@@ -1,0 +1,157 @@
+<project name="sqljdbc" default="build" basedir="." xmlns:ivy="antlib:org.apache.ivy.ant">
+  <description>
+  ----- Building sqljdbc Project -----
+  </description>
+  <!-- set global properties for this build -->
+  <property name="artifactId" value="mssql-jdbc"/>
+  <property name="version" value="6.1.0"/>
+  
+  <property name="src" location="src/main/java"/>
+  <property name="build" location="build"/>
+  <property name="test" location="src/test/java"/>
+  <property name="bvtTest_Classes" location="${build}/classes/test/bvt"/>
+
+	<!-- download dependencies -->	
+	<ivy:resolve>
+		<dependency org="com.microsoft.azure" name="azure-keyvault" rev="0.9.3"/>
+		<dependency org="junit" name="junit" rev="4.12"/>
+	</ivy:resolve>
+	
+	<!-- retrieves all the dependencies of the resolve call to lib directory -->
+	<ivy:retrieve /> 
+	
+  <target name="init" >
+    <!-- Create the time stamp -->
+    <tstamp/>
+    <!-- Create the build directory structure used by compile -->
+    <mkdir dir="${build}"/>
+	<mkdir dir="${build}/classes"/>
+	<mkdir dir="${bvtTest_Classes}"/>
+  </target>
+
+  <target name="compile" depends="init"
+        description="compile the source">
+	<mkdir dir="${CLASSES_DST_DIR}"/>
+    <javac 	srcdir="${src}" 
+			destdir="${CLASSES_DST_DIR}" 
+			fork="yes"
+			deprecation="on"
+			encoding="UTF-8" 
+			source="${JAVA_VERSION}" 
+			target="${JAVA_VERSION}" 
+			debug="true"
+			debuglevel="${DEBUG_LEVEL}"
+			excludes="${EXCLUDE_STUBS}" >
+		
+		<classpath>
+			<fileset dir="lib"/>
+		</classpath>
+		
+	</javac>
+  </target>
+  
+  <target name="build41" description="generate the distribution">
+	<antcall target="compile">
+		<param name="CLASSES_DST_DIR" value="${build}/classes/jdbc41"/>
+		<param name="JAVA_VERSION" value="1.7"/>
+		<param name="DEBUG_LEVEL" value="source,lines"/>
+		<param name="EXCLUDE_STUBS" value="com/microsoft/sqlserver/jdbc/SQLServerJdbc3.java, com/microsoft/sqlserver/jdbc/SQLServerJdbc4.java, com/microsoft/sqlserver/jdbc/SQLServerJdbc42.java"/>
+	</antcall>
+    <jar destfile="${build}/${artifactId}-${version}.jre7.jar">
+      <manifest>
+        <attribute name="Title" value="Microsoft JDBC Driver ${version} for SQL Server"/>
+        <attribute name="Version" value="${version}"/>
+        <attribute name="Vendor" value="Microsoft Corporation"/>
+      </manifest>
+      <fileset dir="${build}/classes/jdbc41"/>
+      <metainf dir="META-INF"/>
+    </jar>
+	<antcall target="Test41"/>
+  </target>
+
+  <target name="build42" description="generate the distribution">
+	<antcall target="compile">
+		<param name="CLASSES_DST_DIR" value="${build}/classes/jdbc42"/>
+		<param name="JAVA_VERSION" value="1.8"/>
+		<param name="DEBUG_LEVEL" value="source,lines"/>
+		<param name="EXCLUDE_STUBS" value="com/microsoft/sqlserver/jdbc/SQLServerJdbc3.java, com/microsoft/sqlserver/jdbc/SQLServerJdbc4.java, com/microsoft/sqlserver/jdbc/SQLServerJdbc41.java"/>
+	</antcall>
+    <jar destfile="${build}/${artifactId}-${version}.jre8.jar">
+      <manifest>
+        <attribute name="Title" value="Microsoft JDBC Driver ${version} for SQL Server"/>
+        <attribute name="Version" value="${version}"/>
+        <attribute name="Vendor" value="Microsoft Corporation"/>
+      </manifest>
+      <fileset dir="${build}/classes/jdbc42"/>
+      <metainf dir="META-INF"/>
+    </jar>
+	<antcall target="Test42"/>
+  </target>
+  
+  <target name="build" description="generate the distribution">
+		<antcall target="clean"/>
+		<antcall target="build41"/>
+		<antcall target="build42"/>
+  </target>
+
+   <target name="compile_test"
+		description="compile the junit source">
+			<javac  classpathref="${JDBC_VERSION}" srcdir="${test}" 
+				destdir="${bvtTest_Classes}" 
+				encoding="UTF-8" 
+				source="${JAVA_VERSION}" 
+				target="${JAVA_VERSION}" 
+				description="compiling the junit source" >			
+			</javac>
+   </target>
+  
+	<target name="Test41" >
+		<antcall target="compile_test">
+			<param name="JAVA_VERSION" value="1.7"/>
+			<param name="JDBC_VERSION" value="test_classpath41"/>
+		</antcall>
+		<junit haltonfailure="true" printsummary="true" showoutput="true">
+			<formatter type="plain" usefile="false" />
+			<classpath><path refid="test_classpath41" /></classpath>
+			<test name="bvtTest"></test>
+		</junit>
+	</target>
+  
+     <target name="Test42" >
+		<antcall target="compile_test">
+			<param name="JAVA_VERSION" value="1.8"/>
+			<param name="JDBC_VERSION" value="test_classpath42"/>
+		</antcall>
+		<junit haltonfailure="true" printsummary="true" showoutput="true">
+			<formatter type="plain" usefile="false" />
+			<classpath><path refid="test_classpath42" /></classpath>
+			<test name="bvtTest"></test>
+		</junit>
+	</target>
+  
+	<path id="test_classpath41">
+		<path location="${build}">
+			<fileset dir="${build}" includes="${artifactId}-${version}.jre7.jar"></fileset>
+		</path>		
+		<path location="lib">
+			<fileset dir="lib" includes="*.jar"></fileset>
+		</path>
+		<path location="${bvtTest_Classes}"></path>
+	</path>
+	
+	<path id="test_classpath42">
+		<path location="${build}">
+			<fileset dir="${build}" includes="${artifactId}-${version}.jre8.jar"></fileset>
+		</path>
+		<path location="lib">
+			<fileset dir="lib" includes="*.jar"></fileset>
+		</path>
+		<path location="${bvtTest_Classes}"></path>
+	</path>
+ 
+  <target name="clean"
+        description="clean up">
+		<delete dir="${build}"/>
+  </target>
+
+</project>
