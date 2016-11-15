@@ -45,6 +45,9 @@ This driver is documented on [Microsoft's Documentation web site](https://msdn.m
 ### Sample Code
 For samples, please see the src\sample directory.
 
+### Download the DLLs
+For some features (e.g. Integrated Authentication and Distributed Transactions), you may need to use the sqljdbc_xa and sqljdbc_auth DLLs. They can be downloaded from the [Microsoft Download Center](https://www.microsoft.com/en-us/download/details.aspx?displaylang=en&id=11774)
+
 ### Download the driver
 Don't want to compile anything? The driver can be downloaded from the [Microsoft Download Center](https://www.microsoft.com/en-us/download/details.aspx?displaylang=en&id=11774)
 
