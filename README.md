@@ -49,7 +49,19 @@ For samples, please see the src\sample directory.
 For some features (e.g. Integrated Authentication and Distributed Transactions), you may need to use the sqljdbc_xa and sqljdbc_auth DLLs. They can be downloaded from the [Microsoft Download Center](https://www.microsoft.com/en-us/download/details.aspx?displaylang=en&id=11774)
 
 ### Download the driver
-Don't want to compile anything? The driver can be downloaded from the [Microsoft Download Center](https://www.microsoft.com/en-us/download/details.aspx?displaylang=en&id=11774)
+Don't want to compile anything?
+
+We're now on the Maven Central Repository. Add the following to your POM file:
+
+```
+<dependency>
+	<groupId>com.microsoft.sqlserver</groupId>
+	<artifactId>mssql-jdbc</artifactId>
+	<version>6.1.0.jre8</version>
+</dependency>
+```
+
+The driver can be downloaded from the [Microsoft Download Center](https://www.microsoft.com/en-us/download/details.aspx?displaylang=en&id=11774)
 
 
 ## Guidelines for Reporting Issues
