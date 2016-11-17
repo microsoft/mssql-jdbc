@@ -36,6 +36,12 @@ To build the jar files, you must use Java 8 with either Ant (with Ivy) or Maven.
     	* Run `mvn install -Pbuild41`. This creates JDBC 4.1 compliant jar in \target directory
     	* Run `mvn install -Pbuild42`. This creates JDBC 4.2 compliant jar in \target directory
 
+## Get Started 
+* [**Ubuntu + SQL Server + Java**](https://www.microsoft.com/en-us/sql-server/developer-get-started/java-ubuntu) 
+* [**Red Hat + SQL Server + Java**](https://www.microsoft.com/en-us/sql-server/developer-get-started/java-rhel)
+* [**Mac + SQL Server + Java**](https://www.microsoft.com/en-us/sql-server/developer-get-started/java-mac)
+* [**Windows + SQL Server + Java**](https://www.microsoft.com/en-us/sql-server/developer-get-started/java-windows)
+
 
 ## Resources
 
