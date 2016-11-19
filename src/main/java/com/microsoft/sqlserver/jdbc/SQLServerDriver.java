@@ -633,7 +633,6 @@ import java.sql.*;
 import java.util.*;
 import java.text.*;
 import java.util.logging.*;
-import java.net.IDN;
 
 /**
 * SQLServerDriver implements the java.sql.Driver for SQLServerConnect.

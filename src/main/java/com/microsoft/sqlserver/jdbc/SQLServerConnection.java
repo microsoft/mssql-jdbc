@@ -19,8 +19,6 @@
  
 package com.microsoft.sqlserver.jdbc;
 import java.io.*;
-import java.lang.reflect.Constructor;
-import java.lang.reflect.InvocationTargetException;
 import java.net.*;
 import java.sql.*;
 import java.util.*;

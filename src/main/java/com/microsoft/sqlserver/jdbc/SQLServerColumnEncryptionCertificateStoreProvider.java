@@ -21,10 +21,8 @@ package com.microsoft.sqlserver.jdbc;
 
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.security.Key;
 import java.security.KeyStore;
 import java.security.KeyStoreException;
