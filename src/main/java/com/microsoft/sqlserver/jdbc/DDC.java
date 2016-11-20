@@ -25,6 +25,8 @@ import java.nio.*;
 import java.text.*;
 import java.util.*;
 
+import static java.nio.charset.StandardCharsets.US_ASCII;
+
 /**
  * Utility class for all Data Dependant Conversions (DDC).
  */
@@ -532,7 +534,7 @@ final class DDC
 			case CHARACTER:
 				return new StringReader(stringVal);
 			case ASCII:
-				return new ByteArrayInputStream(stringVal.getBytes("US-ASCII"));
+				return new ByteArrayInputStream(stringVal.getBytes(US_ASCII));
 			case BINARY:
 				return new ByteArrayInputStream(stringVal.getBytes());
 
@@ -622,7 +624,7 @@ final class DDC
 					}
 					else
 					{
-						return new ByteArrayInputStream((new String(stream.getBytes(), typeInfo.getCharset())).getBytes("US-ASCII"));
+						return new ByteArrayInputStream((new String(stream.getBytes(), typeInfo.getCharset())).getBytes(US_ASCII));
 					}
 				}
 				else if (StreamType.CHARACTER == getterArgs.streamType ||
@@ -1357,7 +1359,7 @@ final class AsciiFilteredUnicodeInputStream extends InputStream
 	private AsciiFilteredUnicodeInputStream( Reader rd) throws SQLServerException
 	{
 		containedReader = rd;
-		asciiCharSet = Charset.forName("US-ASCII");
+		asciiCharSet = US_ASCII;
 	}
 
 	public void close() throws IOException

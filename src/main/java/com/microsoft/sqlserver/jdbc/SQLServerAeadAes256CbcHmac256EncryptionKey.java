@@ -19,10 +19,11 @@
 
 package com.microsoft.sqlserver.jdbc;
 
-import java.io.UnsupportedEncodingException;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.text.MessageFormat;
+
+import static java.nio.charset.StandardCharsets.UTF_16LE;
 
 /**
  * Encryption key class which consist of following 4 keys :
@@ -81,7 +82,7 @@ import java.text.MessageFormat;
             // By default Java is big endian, we are getting bytes in little endian(LE in UTF-16LE)
             // to make it compatible with C# driver which is little endian
             encKeyBuff = SQLServerSecurityUtility.getHMACWithSHA256(
-                encryptionKeySaltFormat.getBytes("UTF-16LE"),
+                encryptionKeySaltFormat.getBytes(UTF_16LE),
                 rootKey,
                 encKeyBuff.length);
 
@@ -90,7 +91,7 @@ import java.text.MessageFormat;
             // Derive mac key from root key
             byte[] macKeyBuff = new byte[keySizeInBytes];
             macKeyBuff = SQLServerSecurityUtility.getHMACWithSHA256(
-                macKeySaltFormat.getBytes("UTF-16LE"),
+                macKeySaltFormat.getBytes(UTF_16LE),
                 rootKey,
                 macKeyBuff.length);
 
@@ -99,17 +100,10 @@ import java.text.MessageFormat;
             // Derive the initialization vector from root key
             byte[] ivKeyBuff = new byte[keySizeInBytes];
             ivKeyBuff = SQLServerSecurityUtility.getHMACWithSHA256(
-                ivKeySaltFormat.getBytes("UTF-16LE"),
+                ivKeySaltFormat.getBytes(UTF_16LE),
                 rootKey,
                 ivKeyBuff.length);
             ivKey = new SQLServerSymmetricKey(ivKeyBuff);
-        }
-        catch (UnsupportedEncodingException e)
-        {
-            MessageFormat form = new MessageFormat(
-                SQLServerException.getErrString("R_unsupportedEncoding"));
-            Object[] msgArgs = { "UTF-16LE" };
-            throw new SQLServerException(this, form.format(msgArgs), null, 0, false);
         }
         catch (InvalidKeyException  | NoSuchAlgorithmException e)
         {
