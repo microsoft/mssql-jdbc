@@ -749,7 +749,7 @@ public class SQLServerConnection implements ISQLServerConnection
 		if (lcpropValue.equals("true")) return true;
 		if (lcpropValue.equals("false")) return false;
 		MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidBooleanValue"));
-		Object[] msgArgs = {new String(propName)};
+		Object[] msgArgs = {propName};
 		SQLServerException.makeFromDriverError(this, this, form.format(msgArgs), null, false);
 		// Adding return false here for compiler's sake, this code is unreachable.
 		return false;
@@ -1128,7 +1128,7 @@ public class SQLServerConnection implements ISQLServerConnection
 			else
 			{
 				MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidselectMethod"));
-				Object[] msgArgs = {new String(sPropValue)};
+				Object[] msgArgs = {sPropValue};
 				SQLServerException.makeFromDriverError(this, this, form.format(msgArgs), null, false);
 			}
 
@@ -1142,7 +1142,7 @@ public class SQLServerConnection implements ISQLServerConnection
 			else
 			{
 				MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidresponseBuffering"));
-				Object[] msgArgs = {new String(sPropValue)};
+				Object[] msgArgs = {sPropValue};
 				SQLServerException.makeFromDriverError(this, this, form.format(msgArgs), null, false);
 			}
 
@@ -1779,7 +1779,7 @@ public class SQLServerConnection implements ISQLServerConnection
 				curserverinfo = curserverinfo + currentFOPlaceHolder.getInstanceName();
 			}
 			MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidPartnerConfiguration"));
-			Object[] msgArgs = { new String(activeConnectionProperties.getProperty(SQLServerDriverStringProperty.DATABASE_NAME.toString())), 
+			Object[] msgArgs = { activeConnectionProperties.getProperty(SQLServerDriverStringProperty.DATABASE_NAME.toString()), 
 					curserverinfo};        
 			terminate(SQLServerException.DRIVER_ERROR_UNSUPPORTED_CONFIG, form.format(msgArgs));
 		}

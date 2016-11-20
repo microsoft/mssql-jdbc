@@ -4006,7 +4006,7 @@ final class TDSWriter
 						else
 						{
 							// encoding as per collation
-							streamByteBuffer[charsCopied] = new String(streamCharBuffer[charsCopied] +
+							streamByteBuffer[charsCopied] = (streamCharBuffer[charsCopied] +
 									"")
 									.getBytes(charSet)[0];
 						}

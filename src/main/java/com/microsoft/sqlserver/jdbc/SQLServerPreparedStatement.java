@@ -914,7 +914,7 @@ private final boolean doPrepExec(TDSWriter tdsWriter, Parameter[] params, boolea
 			{
 			// if the error is not no resultset then throw a processings error.
 			MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_processingError"));
-			Object[] msgArgs = {new String(sqle.getMessage())};				
+			Object[] msgArgs = {sqle.getMessage()};				
 		
 			SQLServerException.makeFromDriverError(connection, this,
 			                  form.format(msgArgs), null, true);
@@ -2338,25 +2338,25 @@ private final boolean doPrepExec(TDSWriter tdsWriter, Parameter[] params, boolea
 	/*L0*/ public final int  executeUpdate(String sql) throws SQLServerException {
 	        loggerExternal.entering(getClassNameLogging(),  "executeUpdate", sql);
 		MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_cannotTakeArgumentsPreparedOrCallable"));
-		Object[] msgArgs = {new String("executeUpdate()")};
+		Object[] msgArgs = {"executeUpdate()"};
 	throw new SQLServerException(this , form.format(msgArgs), null, 0 , false);
 	 }
 	/*L0*/ public final boolean execute(String sql) throws SQLServerException {
             loggerExternal.entering(getClassNameLogging(),  "execute", sql);
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_cannotTakeArgumentsPreparedOrCallable"));
-            Object[] msgArgs = {new String("execute()")};
+            Object[] msgArgs = {"execute()"};
             throw new SQLServerException(this , form.format(msgArgs) , null, 0 , false);
 	}
 	/*L0*/ public final java.sql.ResultSet executeQuery(String sql) throws SQLServerException {
             loggerExternal.entering(getClassNameLogging(),  "executeQuery", sql);
 		MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_cannotTakeArgumentsPreparedOrCallable"));
-		Object[] msgArgs = {new String("executeQuery()")};
+		Object[] msgArgs = {"executeQuery()"};
 	throw new SQLServerException(this , form.format(msgArgs) , null, 0 , false);
 	}
 	/*L0*/ public  void addBatch(String sql) throws SQLServerException {
             loggerExternal.entering(getClassNameLogging(),  "addBatch", sql);
 		MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_cannotTakeArgumentsPreparedOrCallable"));
-		Object[] msgArgs = {new String("addBatch()")};
+		Object[] msgArgs = {"addBatch()"};
 	throw new SQLServerException(this , form.format(msgArgs) , null, 0 , false);
    }
 }

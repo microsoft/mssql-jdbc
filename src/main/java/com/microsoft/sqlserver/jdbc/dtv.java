@@ -336,7 +336,7 @@ final class DTV
 					catch (UnsupportedEncodingException ex)
 					{
 						MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_encodingErrorWritingTDS"));
-						Object[] msgArgs = {new String(ex.getMessage())};
+						Object[] msgArgs = {ex.getMessage()};
 						SQLServerException.makeFromDriverError(
 								conn,
 								null, 
@@ -2353,7 +2353,7 @@ final class AppDTVImpl extends DTVImpl
 					catch (UnsupportedEncodingException ex)
 					{
 						MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_encodingErrorWritingTDS"));
-						Object[] msgArgs = {new String(ex.getMessage())};
+						Object[] msgArgs = {ex.getMessage()};
 						SQLServerException.makeFromDriverError(
 								con,
 								null, 
@@ -2642,7 +2642,7 @@ final class AppDTVImpl extends DTVImpl
 				catch (UnsupportedEncodingException ex)
 				{
 					MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_encodingErrorWritingTDS"));
-					Object[] msgArgs = {new String(ex.getMessage())};
+					Object[] msgArgs = {ex.getMessage()};
 					SQLServerException.makeFromDriverError(
 							con,
 							null, 

@@ -2518,7 +2518,7 @@ public class SQLServerStatement implements ISQLServerStatement {
         else
         {
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidresponseBuffering"));
-            Object[] msgArgs = {new String(value)};
+            Object[] msgArgs = {value};
             SQLServerException.makeFromDriverError(connection, this, form.format(msgArgs), null, false);
         }
         loggerExternal.exiting(getClassNameLogging(),  "setResponseBuffering");
