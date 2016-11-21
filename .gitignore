@@ -215,3 +215,20 @@ pip-log.txt
 
 #Mr Developer
 .mr.developer.cfg
+
+
+#############
+## Intellij
+#############
+
+## Directory-based project format
+.idea/
+
+## File-based project format
+*.ipr
+*.iws
+*.iml
+
+## Additional for IntelliJ
+out/
+gen/
