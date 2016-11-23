@@ -23,7 +23,6 @@ package com.microsoft.sqlserver.jdbc;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.io.UnsupportedEncodingException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.security.InvalidKeyException;
@@ -45,6 +44,8 @@ import javax.crypto.IllegalBlockSizeException;
 import javax.crypto.NoSuchPaddingException;
 
 import com.microsoft.sqlserver.jdbc.KeyStoreProviderCommon;
+
+import static java.nio.charset.StandardCharsets.UTF_16LE;
 
 public class SQLServerColumnEncryptionJavaKeyStoreProvider extends SQLServerColumnEncryptionKeyStoreProvider
 {
@@ -254,15 +255,7 @@ public class SQLServerColumnEncryptionJavaKeyStoreProvider extends SQLServerColu
     	 CertificateDetails certificateDetails = getCertificateDetails(masterKeyPath);
     	 byte [] cipherText=encryptRSAOAEP(plainTextColumnEncryptionKey, certificateDetails);
     	 byte[] cipherTextLength=getLittleEndianBytesFromShort((short)cipherText.length);
-    	 byte[] masterKeyPathBytes;
-    	 
-		try {
-			masterKeyPathBytes = masterKeyPath.toLowerCase().getBytes(
-					"UTF-16LE");
-		} catch (UnsupportedEncodingException e) {
-            MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_unsupportedEncoding"));
-            throw new SQLServerException(form.format(new Object[] {"UTF-16LE"}), null, 0, null);
-		}
+    	 byte[] masterKeyPathBytes = masterKeyPath.toLowerCase().getBytes(UTF_16LE);
     	 
 		byte[] keyPathLength=getLittleEndianBytesFromShort((short)masterKeyPathBytes.length);
     	 
