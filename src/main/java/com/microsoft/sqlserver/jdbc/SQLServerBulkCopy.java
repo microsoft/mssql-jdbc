@@ -28,7 +28,6 @@ import java.io.UnsupportedEncodingException;
 import java.math.BigDecimal;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
-import java.nio.charset.Charset;
 import java.sql.Connection;
 import java.sql.Date;
 import java.sql.ResultSet;
@@ -53,6 +52,9 @@ import java.util.TimeZone;
 import java.util.UUID;
 import java.util.Vector;
 import java.util.logging.Level;
+
+import static java.nio.charset.StandardCharsets.UTF_16LE;
+import static java.nio.charset.StandardCharsets.UTF_8;
 
 import javax.sql.RowSet;
 
@@ -3524,7 +3526,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable
 	 	            Object[] msgArgs = { srcJdbcType, destJdbcType };
 	 	            throw new SQLServerException(this, form.format(msgArgs), null, 0, false);
 	        	}
-	    		return ((String)value).getBytes(Charset.forName("UTF-8"));
+	    		return ((String)value).getBytes(UTF_8);
 	    	
 	    	case NCHAR:
 	    	case NVARCHAR:
@@ -3536,7 +3538,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable
 	 	            Object[] msgArgs = { srcJdbcType, destJdbcType };
 	 	            throw new SQLServerException(this, form.format(msgArgs), null, 0, false);
 	        	}
-	    		return ((String)value).getBytes(Charset.forName("UTF-16LE"));
+	    		return ((String)value).getBytes(UTF_16LE);
 	    	
 	    	case REAL:
 	        case FLOAT:

@@ -26,10 +26,11 @@ import java.util.*;
 import java.math.*;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
-import java.nio.charset.Charset;
 import java.sql.*;
 import java.text.MessageFormat;
 import java.time.*;
+
+import static java.nio.charset.StandardCharsets.UTF_16LE;
 
 import com.microsoft.sqlserver.jdbc.JavaType.SetterConversionAE;
 
@@ -1911,7 +1912,7 @@ final class DTV
 						// Each character is represented using 2 bytes in NVARCHAR
 						else if((JDBCType.NVARCHAR == jdbcTypeSetByUser) || (JDBCType.NCHAR == jdbcTypeSetByUser) || (JDBCType.LONGNVARCHAR == jdbcTypeSetByUser))
 						{
-							byteValue = ((String)value).getBytes(Charset.forName("UTF-16LE"));
+							byteValue = ((String)value).getBytes(UTF_16LE);
 						}
 						// Each character is represented using 1 bytes in VARCHAR
 						else if((JDBCType.VARCHAR == jdbcTypeSetByUser) || (JDBCType.CHAR == jdbcTypeSetByUser) || (JDBCType.LONGVARCHAR == jdbcTypeSetByUser))

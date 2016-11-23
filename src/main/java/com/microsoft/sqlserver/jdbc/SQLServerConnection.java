@@ -32,6 +32,8 @@ import java.text.*;
 import java.util.concurrent.Executor;
 import java.util.concurrent.TimeUnit;
 
+import static java.nio.charset.StandardCharsets.UTF_16LE;
+
 /**
  * SQLServerConnection implements a JDBC connection to SQL Server.
  * SQLServerConnections support JDBC connection pooling and may be either physical JDBC connections
@@ -1234,14 +1236,7 @@ public class SQLServerConnection implements ISQLServerConnection
 			sPropValue = activeConnectionProperties.getProperty(sPropKey);
 			if (null != sPropValue)
 			{
-				try {
-					accessTokenInByte = sPropValue.getBytes("UTF-16LE");
-				} catch (UnsupportedEncodingException e) {
-					MessageFormat form = new MessageFormat(
-							SQLServerException.getErrString("R_unsupportedEncoding"));
-					Object[] msgArgs = { "UTF-16LE" };
-					throw new SQLServerException(this, form.format(msgArgs), null, 0, false);
-				}
+				accessTokenInByte = sPropValue.getBytes(UTF_16LE);
 			}
 
 			if((null != accessTokenInByte) && 0 == accessTokenInByte.length)
@@ -3552,13 +3547,7 @@ public class SQLServerConnection implements ISQLServerConnection
 				try {
 					byte[] dataArray = new byte[dataLen];
 					System.arraycopy(tokenData, dataOffset, dataArray, 0, dataLen);
-					data = new String(dataArray, "UTF-16LE");
-				}
-				catch(UnsupportedEncodingException e){
-					MessageFormat form = new MessageFormat(
-							SQLServerException.getErrString("R_unsupportedEncoding"));
-					Object[] msgArgs = { "UTF-16LE" };
-					throw new SQLServerException(this, form.format(msgArgs), null, 0, false);
+					data = new String(dataArray, UTF_16LE);
 				}
 				catch(Exception e){
 					connectionlogger.severe(toString() + "Failed to read FedAuthInfoData.");
@@ -3724,16 +3713,7 @@ public class SQLServerConnection implements ISQLServerConnection
 
 		byte[] accessTokenFromDLL = dllInfo.accessTokenBytes;
 
-		String accessToken = null;
-		try {
-			accessToken =  new String(accessTokenFromDLL, "UTF-16LE");
-		}
-		catch (UnsupportedEncodingException e) {
-			MessageFormat form = new MessageFormat(
-					SQLServerException.getErrString("R_unsupportedEncoding"));
-			Object[] msgArgs = { "UTF-16LE" };
-			throw new SQLServerException(null, form.format(msgArgs), null, 0, false);
-		}
+		String accessToken =  new String(accessTokenFromDLL, UTF_16LE);
 
 		SqlFedAuthToken fedAuthToken = new SqlFedAuthToken(accessToken, dllInfo.expiresIn);
 
@@ -3754,15 +3734,7 @@ public class SQLServerConnection implements ISQLServerConnection
 
 		TDSWriter tdsWriter = fedAuthCommand.startRequest(TDS.PKT_FEDAUTH_TOKEN_MESSAGE);
 
-		byte[] accessToken = null;
-		try {
-			accessToken = fedAuthToken.accessToken.getBytes("UTF-16LE");
-		} catch (UnsupportedEncodingException e) {
-			MessageFormat form = new MessageFormat(
-					SQLServerException.getErrString("R_unsupportedEncoding"));
-			Object[] msgArgs = { "UTF-16LE" };
-			throw new SQLServerException(this, form.format(msgArgs), null, 0, false);
-		}
+		byte[] accessToken = fedAuthToken.accessToken.getBytes(UTF_16LE);
 
 		// Send total length (length of token plus 4 bytes for the token length field)
 		// If we were sending a nonce, this would include that length as well
