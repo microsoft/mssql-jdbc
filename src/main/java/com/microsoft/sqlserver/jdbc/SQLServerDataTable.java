@@ -35,6 +35,8 @@ public final class SQLServerDataTable {
 	Map<Integer, SQLServerDataColumn> columnMetadata = null;
 	Map<Integer,Object[]> rows = null;
 
+    private String sqlType = null;
+
 	/**
 	 * The constant in the Java programming language, sometimes referred to as a type code,
 	 * that identifies the type TVP.
@@ -235,5 +237,15 @@ public final class SQLServerDataTable {
 		public synchronized Map<Integer, SQLServerDataColumn> getColumnMetadata()
 		{
 			return columnMetadata;
-		}	
-	}
+		}
+
+        public String getSqlType()
+        {
+            return sqlType;
+        }
+
+        public void setSqlType(String sqlType)
+        {
+            this.sqlType = sqlType;
+        }
+    }
