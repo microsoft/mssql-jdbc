@@ -21,9 +21,6 @@ package com.microsoft.sqlserver.jdbc;
 
 import java.util.*;
 import java.math.BigDecimal;
-import java.sql.ResultSet;
-import java.sql.ResultSetMetaData;
-import java.sql.SQLException;
 import java.text.MessageFormat;
 import java.util.Map.Entry;
 import java.time.*;
@@ -35,7 +32,7 @@ public final class SQLServerDataTable {
 	Map<Integer, SQLServerDataColumn> columnMetadata = null;
 	Map<Integer,Object[]> rows = null;
 
-    private String sqlType = null;
+    private String tvpName = null;
 
 	/**
 	 * The constant in the Java programming language, sometimes referred to as a type code,
@@ -239,13 +236,13 @@ public final class SQLServerDataTable {
 			return columnMetadata;
 		}
 
-        public String getSqlType()
+        public String getTvpName()
         {
-            return sqlType;
+            return tvpName;
         }
 
-        public void setSqlType(String sqlType)
+        public void setTvpName(String tvpName)
         {
-            this.sqlType = sqlType;
+            this.tvpName = tvpName;
         }
     }

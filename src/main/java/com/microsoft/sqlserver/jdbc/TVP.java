@@ -73,7 +73,7 @@ class TVP {
 	TVP(String tvpPartName, SQLServerDataTable tvpDataTable) throws SQLServerException
 	{
         if (tvpPartName == null) {
-            tvpPartName = tvpDataTable.getSqlType();
+            tvpPartName = tvpDataTable.getTvpName();
         }
         initTVP(TVPType.SQLServerDataTable, tvpPartName);
 		sourceDataTable = tvpDataTable;
