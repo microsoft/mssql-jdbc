@@ -73,15 +73,20 @@ The driver can be downloaded from the [Microsoft Download Center](https://www.mi
 This project has following dependencies: 
 
 Compile Time:
-
- - `azure-keyvault`
+ - `azure-keyvault` : Azure Key Vault Provider for Always Encrypted feature
 
 Test Time:
+ - `junit:jar`   : For Unit Test cases.
 
- - `junit:jar`
+###Dependency Tree
+One can see all dependencies including Transitive Dependency by executing following command.
+``` 
+mvn dependency:tree
+```
 
-If anybody wants to use driver as a run-time dependency but not using Azure Web Services for authentication then you either describe as optional dependency or exclude azure.
-
+###Exclude Dependencies
+If you wish to limit the number of run-time dependencies, and your project does not require the features named above, you can explicitly exclude them by adding exclusion tag.  
+***For Example:*** If you are not using *Always Encrypted Azure Key Vault feature* then you can exclude *azure-keyvault* dependency. Please see following snippet. 
 ```
 <dependency>
 	<groupId>com.microsoft.sqlserver</groupId>
@@ -96,61 +101,6 @@ If anybody wants to use driver as a run-time dependency but not using Azure Web 
     </exclusions>
 </dependency>
 ```
-
-###Dependency Tree
-```
-mvn dependency:tree
-[INFO] Scanning for projects...
-[INFO]
-[INFO] ------------------------------------------------------------------------
-[INFO] Building Microsoft JDBC Driver for SQL Server 6.1.0
-[INFO] ------------------------------------------------------------------------
-[INFO]
-[INFO] --- maven-dependency-plugin:2.8:tree (default-cli) @ mssql-jdbc ---
-[INFO] com.microsoft.sqlserver:mssql-jdbc:jar:6.1.0
-[INFO] +- com.microsoft.azure:azure-keyvault:jar:0.9.3:compile
-[INFO] |  +- com.microsoft.azure:azure-core:jar:0.9.3:compile
-[INFO] |  |  +- commons-codec:commons-codec:jar:1.10:compile
-[INFO] |  |  +- commons-lang:commons-lang:jar:2.6:compile
-[INFO] |  |  +- javax.mail:mail:jar:1.4.5:compile
-[INFO] |  |  |  \- javax.activation:activation:jar:1.1:compile
-[INFO] |  |  +- com.sun.jersey:jersey-client:jar:1.13:compile
-[INFO] |  |  |  \- com.sun.jersey:jersey-core:jar:1.13:compile
-[INFO] |  |  \- com.sun.jersey:jersey-json:jar:1.13:compile
-[INFO] |  |     +- org.codehaus.jettison:jettison:jar:1.1:compile
-[INFO] |  |     |  \- stax:stax-api:jar:1.0.1:compile
-[INFO] |  |     +- com.sun.xml.bind:jaxb-impl:jar:2.2.3-1:compile
-[INFO] |  |     |  \- javax.xml.bind:jaxb-api:jar:2.2.2:compile
-[INFO] |  |     |     \- javax.xml.stream:stax-api:jar:1.0-2:compile
-[INFO] |  |     +- org.codehaus.jackson:jackson-core-asl:jar:1.9.2:compile
-[INFO] |  |     +- org.codehaus.jackson:jackson-mapper-asl:jar:1.9.2:compile
-[INFO] |  |     +- org.codehaus.jackson:jackson-jaxrs:jar:1.9.2:compile
-[INFO] |  |     \- org.codehaus.jackson:jackson-xc:jar:1.9.2:compile
-[INFO] |  +- org.apache.httpcomponents:httpclient:jar:4.3.6:compile
-[INFO] |  |  +- org.apache.httpcomponents:httpcore:jar:4.3.3:compile
-[INFO] |  |  \- commons-logging:commons-logging:jar:1.1.3:compile
-[INFO] |  +- javax.inject:javax.inject:jar:1:compile
-[INFO] |  \- com.microsoft.azure:adal4j:jar:1.0.0:compile
-[INFO] |     +- com.nimbusds:oauth2-oidc-sdk:jar:4.5:compile
-[INFO] |     |  +- net.jcip:jcip-annotations:jar:1.0:compile
-[INFO] |     |  +- org.apache.commons:commons-lang3:jar:3.3.1:compile
-[INFO] |     |  +- net.minidev:json-smart:jar:1.1.1:compile
-[INFO] |     |  +- com.nimbusds:lang-tag:jar:1.4:compile
-[INFO] |     |  \- com.nimbusds:nimbus-jose-jwt:jar:3.1.2:compile
-[INFO] |     |     \- org.bouncycastle:bcprov-jdk15on:jar:1.51:compile
-[INFO] |     +- com.google.code.gson:gson:jar:2.2.4:compile
-[INFO] |     \- org.slf4j:slf4j-api:jar:1.7.5:compile
-[INFO] \- junit:junit:jar:4.12:test
-[INFO]    \- org.hamcrest:hamcrest-core:jar:1.3:test
-[INFO] ------------------------------------------------------------------------
-[INFO] BUILD SUCCESS
-[INFO] ------------------------------------------------------------------------
-[INFO] Total time: 1.423 s
-[INFO] Finished at: 2016-11-22T13:13:55-08:00
-[INFO] Final Memory: 12M/304M
-[INFO] ------------------------------------------------------------------------
-```
-
 
 ## Guidelines for Reporting Issues
 We appreciate you taking the time to test the driver, provide feedback and report any issues.  It would be extremely helpful if you:
