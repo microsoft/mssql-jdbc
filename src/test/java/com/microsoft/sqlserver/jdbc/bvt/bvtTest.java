@@ -16,8 +16,9 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OU
 IN THE SOFTWARE.
  */
 
-import java.io.BufferedReader;
-import java.io.FileReader;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 import java.math.BigDecimal;
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
@@ -27,24 +28,15 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-
-import com.microsoft.sqlserver.jdbc.SQLServerPreparedStatement;
-import static org.junit.Assert.*;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
+import com.microsoft.sqlserver.jdbc.SQLServerPreparedStatement;
 
 public class bvtTest {
-
 	private static boolean cursor = false;
 	private static String connectionUrl = "";
 	private static Connection con;
-	private static String serverName = null;
-	private static String portNumber = null;
-	private static String databaseName = null;
-	private static String username = null;
-	private static String password = null;
-	private static String line = null;
 	private static String driverNamePattern = "Microsoft JDBC Driver \\d.\\d for SQL Server";
 	private static String table1 = "stmt_test_bvt";
 	private static String table2 = "rs_test_bvt";
@@ -60,8 +52,6 @@ public class bvtTest {
 		} catch (ClassNotFoundException e) {
 			e.printStackTrace();
 		}
-
-		readFromConfig();
 
 		Statement stmt = null;
 		try {
@@ -617,44 +607,17 @@ public class bvtTest {
 	}
 
 	public static String getConnectionURL() {
-
-		// Create a variable for the connection string.
-		connectionUrl = "jdbc:sqlserver://" + serverName + ":" + portNumber + ";" + "databaseName=" + databaseName
-				+ ";username=" + username + ";password=" + password + ";";
-
-		if (cursor)
-			connectionUrl += "selectMethod=cursor;";
-
-		return connectionUrl;
-	}
-
-	public static void readFromConfig() {
-
-		try (BufferedReader in = new BufferedReader(new FileReader("src/test/serverConfig.cfg"));) {
-
-			line = in.readLine();
-			String[] parts = line.split("=");
-			serverName = parts[1].trim();
-
-			line = in.readLine();
-			parts = line.split("=");
-			portNumber = parts[1].trim();
-
-			line = in.readLine();
-			parts = line.split("=");
-			databaseName = parts[1].trim();
-
-			line = in.readLine();
-			parts = line.split("=");
-			username = parts[1].trim();
-
-			line = in.readLine();
-			parts = line.split("=");
-			password = parts[1].trim();
-
-		} catch (Exception e) {
-			fail(e.toString());
+		connectionUrl = System.getenv("mssql_jdbc_test_connection_properties");
+		
+		if(null == connectionUrl){
+			fail("Please setup environment variable mssql_jdbc_test_connection_properties");
 		}
+		
+		if (cursor){
+			connectionUrl += ";selectMethod=cursor;";
+		}
+		
+		return connectionUrl;
 	}
 
 	public static Connection conn() {
@@ -667,7 +630,7 @@ public class bvtTest {
 			return con;
 			// Handle any errors that may have occurred.
 		} catch (SQLException e) {
-			fail("Please make sure the serverConfig.cfg file is updated with correct connection properties.\n" 
+			fail("Please make sure the environment variable mssql_jdbc_test_connection_properties is set with correct connection properties.\n" 
 					+ e.toString());
 		}
 		return null;

@@ -18,7 +18,6 @@ What's coming next?  We will look into adding a more comprehensive set of tests,
 * [**Mac + SQL Server + Java**](https://www.microsoft.com/en-us/sql-server/developer-get-started/java-mac)
 * [**Windows + SQL Server + Java**](https://www.microsoft.com/en-us/sql-server/developer-get-started/java-windows)
 
-
 ## Build
 ### Prerequisites
 * Java 8
@@ -26,19 +25,19 @@ What's coming next?  We will look into adding a more comprehensive set of tests,
 * An instance of SQL Server or Azure SQL Database that you can connect to. 
 
 ### Build the JAR files
-The build automatically triggers a set of verification tests to run.  For these tests to pass, you will first need to modify the serverConfig.cfg file under .\src\test to provide the correct connection properties for your SQL Server or Azure SQL Database instance.
+The build automatically triggers a set of verification tests to run.  For these tests to pass, you will first need to add an environment variable in your system called `mssql_jdbc_test_connection_properties` to provide the [correct connection properties](https://msdn.microsoft.com/en-us/library/ms378428(v=sql.110).aspx) for your SQL Server or Azure SQL Database instance.
 
 To build the jar files, you must use Java 8 with either Ant (with Ivy) or Maven.  You can choose to build a JDBC 4.1 compliant jar file (for use with JRE 7) and/or a JDBC 4.2 compliant jar file (for use with JRE 8).
 
 * Ant:
-	1. If you have not already done so, update the serverConfig.cfg file under .\src\test with the connection properties for your SQL Server or SQL DB instance.
+	1. If you have not already done so, add the environment variable `mssql_jdbc_test_connection_properties` in your system with the connection properties for your SQL Server or SQL DB instance.
 	2. Run one of the commands below to build a JDBC 4.1 compliant jar, JDBC 4.2 compliant jar, or both in the \build directory. 
 		* Run `ant`. This creates both JDBC 4.1 compliant jar and JDBC 4.2 compliant jar in \build directory
     	* Run `ant build41`. This creates JDBC 4.1 compliant jar in \build directory
     	* Run `ant build42`. This creates JDBC 4.2 compliant jar in \build directory
 
 * Maven:
-	1. If you have not already done so, update the serverConfig.cfg file under .\src\test with the connection properties for your SQL Server or SQL DB instance.
+	1. If you have not already done so, add the environment variable `mssql_jdbc_test_connection_properties` in your system with the connection properties for your SQL Server or SQL DB instance.
 	2. Run one of the commands below to build a JDBC 4.1 compliant jar or JDBC 4.2 compliant jar in the \build directory. 
     	* Run `mvn install -Pbuild41`. This creates JDBC 4.1 compliant jar in \target directory
     	* Run `mvn install -Pbuild42`. This creates JDBC 4.2 compliant jar in \target directory
