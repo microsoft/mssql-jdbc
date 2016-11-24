@@ -24,7 +24,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.Reader;
 import java.io.StringReader;
-import java.io.UnsupportedEncodingException;
 import java.math.BigDecimal;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
@@ -2552,31 +2551,22 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable
 	    				}
 	    				else
 	    				{	    					
-                                try
+                                tdsWriter.writeShort((short) (colValueStr.length()));
+                                // converting string into destination collation using Charset
+
+                                SQLCollation destCollation = destColumnMetadata
+                                    .get(destColOrdinal).collation;
+                                if (null != destCollation)
                                 {
-                                    tdsWriter.writeShort((short) (colValueStr.length()));
-                                    // converting string into destination collation using Charset
+                                    tdsWriter.writeBytes(colValueStr.getBytes(
+                                        destColumnMetadata.get(destColOrdinal).collation
+                                            .getCharset()));
 
-                                    SQLCollation destCollation = destColumnMetadata
-                                        .get(destColOrdinal).collation;
-                                    if (null != destCollation)
-                                    {
-                                        tdsWriter.writeBytes(colValueStr.getBytes(
-                                            destColumnMetadata.get(destColOrdinal).collation
-                                                .getCharset()));
-
-                                    }
-                                    else
-                                    {
-                                        tdsWriter.writeBytes(colValueStr.getBytes());
-                                    }
                                 }
-                            catch (UnsupportedEncodingException e)
-                            {
-                                throw new SQLServerException(
-                                    SQLServerException.getErrString("R_encodingErrorWritingTDS"),
-                                    e);
-                            }	    					
+                                else
+                                {
+                                    tdsWriter.writeBytes(colValueStr.getBytes());
+                                }
 	    				}
 	    			}
 	    		}

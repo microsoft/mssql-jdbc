@@ -21,6 +21,7 @@ package com.microsoft.sqlserver.jdbc;
 import java.io.*;
 import java.nio.*;
 import java.nio.channels.*;
+import java.nio.charset.Charset;
 import java.net.*;
 import java.math.*;
 import java.util.concurrent.*;
@@ -3946,7 +3947,7 @@ final class TDSWriter
 			Reader reader,
 			long advertisedLength,
 			boolean isDestBinary,
-			String charSet) throws SQLServerException
+			Charset charSet) throws SQLServerException
 	{
 		assert DataTypes.UNKNOWN_STREAM_LENGTH == advertisedLength || advertisedLength >= 0;
 
@@ -3997,25 +3998,16 @@ final class TDSWriter
 
 				for (int charsCopied = 0; charsCopied < charsToWrite; ++charsCopied)
 				{
-					try
+					if(null == charSet)
 					{
-						if(null == charSet)
-						{
-							streamByteBuffer[charsCopied] = (byte)(streamCharBuffer[charsCopied] & 0xFF);
-						}
-						else
-						{
-							// encoding as per collation
-							streamByteBuffer[charsCopied] = new String(streamCharBuffer[charsCopied] +
-									"")
-									.getBytes(charSet)[0];
-						}
+						streamByteBuffer[charsCopied] = (byte)(streamCharBuffer[charsCopied] & 0xFF);
 					}
-					catch (UnsupportedEncodingException e)
+					else
 					{
-						throw new SQLServerException(
-								SQLServerException.getErrString("R_encodingErrorWritingTDS"),
-								e);
+						// encoding as per collation
+						streamByteBuffer[charsCopied] = new String(streamCharBuffer[charsCopied] +
+								"")
+								.getBytes(charSet)[0];
 					}
 				}
 				writeBytes(streamByteBuffer, 0, charsToWrite);
@@ -7257,7 +7249,7 @@ final class TDSReader
 
 			try
 			{
-				return DDC.convertStringToObject(sb.toString(), Encoding.UNICODE.charsetName(), jdbcType, streamType);
+				return DDC.convertStringToObject(sb.toString(), Encoding.UNICODE.charset(), jdbcType, streamType);
 			}
 			catch (UnsupportedEncodingException e)
 			{

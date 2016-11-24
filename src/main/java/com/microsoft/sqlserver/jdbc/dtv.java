@@ -26,6 +26,7 @@ import java.util.*;
 import java.math.*;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
+import java.nio.charset.Charset;
 import java.sql.*;
 import java.text.MessageFormat;
 import java.time.*;
@@ -325,26 +326,10 @@ final class DTV
 				}
 				else
 				{
-					ReaderInputStream clobStream = null;
-
-					try
-					{
-						clobStream = new ReaderInputStream(
-								clobReader,
-								collation.getCharset(),
-								clobLength);
-					}
-					catch (UnsupportedEncodingException ex)
-					{
-						MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_encodingErrorWritingTDS"));
-						Object[] msgArgs = {new String(ex.getMessage())};
-						SQLServerException.makeFromDriverError(
-								conn,
-								null, 
-								form.format(msgArgs),
-								null,
-								true);
-					}
+					ReaderInputStream clobStream = new ReaderInputStream(
+						clobReader,
+						collation.getCharset(),
+						clobLength);
 
 					tdsWriter.writeRPCInputStream(
 							name,
@@ -2347,21 +2332,7 @@ final class AppDTVImpl extends DTVImpl
 
 				if (null != strValue)
 				{
-					try
-					{
-						nativeEncoding = strValue.getBytes(collation.getCharset());
-					}
-					catch (UnsupportedEncodingException ex)
-					{
-						MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_encodingErrorWritingTDS"));
-						Object[] msgArgs = {new String(ex.getMessage())};
-						SQLServerException.makeFromDriverError(
-								con,
-								null, 
-								form.format(msgArgs),
-								null, // Don't close the connection
-								true);
-					}
+					nativeEncoding = strValue.getBytes(collation.getCharset());
 				}
 
 				dtv.setValue(nativeEncoding, JavaType.BYTEARRAY);
@@ -2631,26 +2602,10 @@ final class AppDTVImpl extends DTVImpl
 					JDBCType.LONGVARCHAR == jdbcType ||
 					JDBCType.CLOB == jdbcType))
 			{
-				ReaderInputStream streamValue = null;
-
-				try
-				{
-					streamValue = new ReaderInputStream(
+				ReaderInputStream streamValue = new ReaderInputStream(
 							readerValue,
 							collation.getCharset(),
 							readerLength);
-				}
-				catch (UnsupportedEncodingException ex)
-				{
-					MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_encodingErrorWritingTDS"));
-					Object[] msgArgs = {new String(ex.getMessage())};
-					SQLServerException.makeFromDriverError(
-							con,
-							null, 
-							form.format(msgArgs),
-							null, // Don't close the connection
-							true);
-				}
 
 				dtv.setValue(streamValue, JavaType.INPUTSTREAM);
 
@@ -2780,7 +2735,7 @@ final class TypeInfo
 
 	// Collation (will be null for non-textual types).
 	private SQLCollation collation; 
-	private String charset;
+	private Charset charset;
 
 	SSType getSSType() { return ssType; }
 	SSLenType getSSLenType() { return ssLenType; }
@@ -2791,7 +2746,7 @@ final class TypeInfo
 	int getScale() { return scale; }
 	SQLCollation getSQLCollation() { return collation; }
 	void setSQLCollation(SQLCollation collation) { this.collation = collation; }
-	String getCharset() { return charset; }
+	Charset getCharset() { return charset; }
 	boolean isNullable() { return 0x0001 == (flags & 0x0001); }
 	boolean isCaseSensitive() { return 0x0002 == (flags & 0x0002); }
 	boolean isSparseColumnSet() { return 0x0400 == (flags & 0x0400); }
@@ -3085,7 +3040,7 @@ final class TypeInfo
 				typeInfo.displaySize = typeInfo.precision = typeInfo.maxLength / 2;
 				typeInfo.ssType = SSType.NCHAR;
 				typeInfo.collation = tdsReader.readCollation();
-				typeInfo.charset = Encoding.UNICODE.charsetName();
+				typeInfo.charset = Encoding.UNICODE.charset();
 			}
 		}),
 
@@ -3111,7 +3066,7 @@ final class TypeInfo
 					tdsReader.throwInvalidTDS();
 				}
 				typeInfo.collation = tdsReader.readCollation();
-				typeInfo.charset = Encoding.UNICODE.charsetName();
+				typeInfo.charset = Encoding.UNICODE.charset();
 			}
 		}),
 
@@ -3126,7 +3081,7 @@ final class TypeInfo
 				typeInfo.ssType = SSType.NTEXT;
 				typeInfo.displaySize = typeInfo.precision = Integer.MAX_VALUE / 2;
 				typeInfo.collation = tdsReader.readCollation();
-				typeInfo.charset = Encoding.UNICODE.charsetName();
+				typeInfo.charset = Encoding.UNICODE.charset();
 			}
 		}),
 
@@ -3185,7 +3140,7 @@ final class TypeInfo
 				typeInfo.ssLenType = SSLenType.PARTLENTYPE;
 				typeInfo.ssType = SSType.XML;
 				typeInfo.displaySize = typeInfo.precision = Integer.MAX_VALUE / 2;
-				typeInfo.charset = Encoding.UNICODE.charsetName();
+				typeInfo.charset = Encoding.UNICODE.charset();
 			}
 		}),
 
