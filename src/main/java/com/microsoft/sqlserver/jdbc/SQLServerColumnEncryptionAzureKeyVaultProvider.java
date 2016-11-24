@@ -19,7 +19,6 @@
  
 package com.microsoft.sqlserver.jdbc;
 
-import java.io.UnsupportedEncodingException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.ByteBuffer;
@@ -29,6 +28,8 @@ import java.security.NoSuchAlgorithmException;
 import java.text.MessageFormat;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
+
+import static java.nio.charset.StandardCharsets.UTF_16LE;
 
 import org.apache.http.impl.client.HttpClientBuilder;
 import com.microsoft.azure.keyvault.KeyVaultClient;
@@ -284,15 +285,7 @@ public class SQLServerColumnEncryptionAzureKeyVaultProvider extends SQLServerCol
 		byte[] version = new byte[] { firstVersion[0] };
 
 		// Get the Unicode encoded bytes of cultureinvariant lower case masterKeyPath
-		byte[] masterKeyPathBytes = null;
-		try {
-			masterKeyPathBytes = masterKeyPath.toLowerCase().getBytes("UTF-16LE");
-		} catch (UnsupportedEncodingException e) {
-			MessageFormat form = new MessageFormat(
-					SQLServerException.getErrString("R_unsupportedEncoding"));
-			Object[] msgArgs = { "UTF-16LE" };
-			throw new SQLServerException(this, form.format(msgArgs), null, 0, false);
-		}
+		byte[] masterKeyPathBytes = masterKeyPath.toLowerCase().getBytes(UTF_16LE);
 
 		byte[] keyPathLength = new byte[2];
 		keyPathLength[0] = (byte)(((short)masterKeyPathBytes.length) & 0xff);

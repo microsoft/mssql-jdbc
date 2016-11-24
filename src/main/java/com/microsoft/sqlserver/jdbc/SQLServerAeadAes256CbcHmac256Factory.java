@@ -19,13 +19,12 @@
 
 package com.microsoft.sqlserver.jdbc;
 
-import java.io.UnsupportedEncodingException;
-import java.sql.SQLException;
 import java.text.MessageFormat;
-import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 import javax.xml.bind.DatatypeConverter;
+
+import static java.nio.charset.StandardCharsets.UTF_8;
 
 /**
  * Factory for SQLServerAeadAes256CbcHmac256Algorithm
@@ -49,40 +48,33 @@ import javax.xml.bind.DatatypeConverter;
 	    }
 		String factoryKey="";
 		
-		try {
-			StringBuffer factoryKeyBuilder=new StringBuffer();
-			factoryKeyBuilder.append(
-					DatatypeConverter.printBase64Binary(
-							new String(
-									columnEncryptionKey.getRootKey(),
-									"UTF-8"
-							).getBytes()
-					)
-			);
+		StringBuffer factoryKeyBuilder=new StringBuffer();
+		factoryKeyBuilder.append(
+				DatatypeConverter.printBase64Binary(
+						new String(
+								columnEncryptionKey.getRootKey(),
+								UTF_8
+						).getBytes()
+				)
+		);
 
-			factoryKeyBuilder.append(":");
-			factoryKeyBuilder.append(encryptionType);
-			factoryKeyBuilder.append(":");
-			factoryKeyBuilder.append(algorithmVersion);
-			
-			factoryKey =factoryKeyBuilder.toString();
-			
-			 SQLServerAeadAes256CbcHmac256Algorithm aesAlgorithm;
-			 
-			 if(!encryptionAlgorithms.containsKey(factoryKey)){
-				 SQLServerAeadAes256CbcHmac256EncryptionKey encryptedKey = new SQLServerAeadAes256CbcHmac256EncryptionKey(columnEncryptionKey.getRootKey(), SQLServerAeadAes256CbcHmac256Algorithm.algorithmName);
-				 aesAlgorithm = new SQLServerAeadAes256CbcHmac256Algorithm(encryptedKey, encryptionType, algorithmVersion);
-				 encryptionAlgorithms.putIfAbsent(factoryKey, aesAlgorithm);
-			 }
+		factoryKeyBuilder.append(":");
+		factoryKeyBuilder.append(encryptionType);
+		factoryKeyBuilder.append(":");
+		factoryKeyBuilder.append(algorithmVersion);
+		
+		factoryKey =factoryKeyBuilder.toString();
+		
+		 SQLServerAeadAes256CbcHmac256Algorithm aesAlgorithm;
+		 
+		 if(!encryptionAlgorithms.containsKey(factoryKey)){
+			 SQLServerAeadAes256CbcHmac256EncryptionKey encryptedKey = new SQLServerAeadAes256CbcHmac256EncryptionKey(columnEncryptionKey.getRootKey(), SQLServerAeadAes256CbcHmac256Algorithm.algorithmName);
+			 aesAlgorithm = new SQLServerAeadAes256CbcHmac256Algorithm(encryptedKey, encryptionType, algorithmVersion);
+			 encryptionAlgorithms.putIfAbsent(factoryKey, aesAlgorithm);
+		 }
 		 
 		 
 		
-		} catch (UnsupportedEncodingException e) {
-		    MessageFormat form = new MessageFormat(
-                SQLServerException.getErrString("R_unsupportedEncoding"));
-            Object[] msgArgs = { "UTF-8" };
-            throw new SQLServerException(this, form.format(msgArgs), null, 0, false);
-		}
 		return encryptionAlgorithms.get(factoryKey);
 	}
 

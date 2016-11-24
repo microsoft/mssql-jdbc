@@ -19,13 +19,14 @@
 
 package com.microsoft.sqlserver.jdbc;
 
-import java.io.UnsupportedEncodingException;
 import java.text.MessageFormat;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ThreadFactory;
+
+import static java.nio.charset.StandardCharsets.UTF_8;
 
 import static java.util.concurrent.TimeUnit.*;
 
@@ -123,16 +124,7 @@ final class SQLServerSymmetricKeyCache
 			String keyLookupValue=null;
 			keyLookupValuebuffer.append(":");
 	
-			try
-			{
-				keyLookupValuebuffer.append(DatatypeConverter.printBase64Binary((new String(keyInfo.encryptedKey,"UTF-8")).getBytes()));
-			}
-			catch (UnsupportedEncodingException e)
-			{
-				MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_unsupportedEncoding"));
-				Object[] msgArgs = { "UTF-8" };
-				throw new SQLServerException(this, form.format(msgArgs), null, 0, false);
-			}
+			keyLookupValuebuffer.append(DatatypeConverter.printBase64Binary((new String(keyInfo.encryptedKey,UTF_8)).getBytes()));
 	
 			keyLookupValuebuffer.append(":");
 			keyLookupValuebuffer.append(keyInfo.keyStoreName);

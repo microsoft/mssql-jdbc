@@ -55,7 +55,7 @@
 		<param name="CLASSES_DST_DIR" value="${build}/classes/jdbc41"/>
 		<param name="JAVA_VERSION" value="1.7"/>
 		<param name="DEBUG_LEVEL" value="source,lines"/>
-		<param name="EXCLUDE_STUBS" value="com/microsoft/sqlserver/jdbc/SQLServerJdbc3.java, com/microsoft/sqlserver/jdbc/SQLServerJdbc4.java, com/microsoft/sqlserver/jdbc/SQLServerJdbc42.java"/>
+		<param name="EXCLUDE_STUBS" value="com/microsoft/sqlserver/jdbc/SQLServerJdbc42.java"/>
 	</antcall>
     <jar destfile="${build}/${artifactId}-${version}.jre7.jar">
       <manifest>
@@ -74,7 +74,7 @@
 		<param name="CLASSES_DST_DIR" value="${build}/classes/jdbc42"/>
 		<param name="JAVA_VERSION" value="1.8"/>
 		<param name="DEBUG_LEVEL" value="source,lines"/>
-		<param name="EXCLUDE_STUBS" value="com/microsoft/sqlserver/jdbc/SQLServerJdbc3.java, com/microsoft/sqlserver/jdbc/SQLServerJdbc4.java, com/microsoft/sqlserver/jdbc/SQLServerJdbc41.java"/>
+		<param name="EXCLUDE_STUBS" value="com/microsoft/sqlserver/jdbc/SQLServerJdbc41.java"/>
 	</antcall>
     <jar destfile="${build}/${artifactId}-${version}.jre8.jar">
       <manifest>

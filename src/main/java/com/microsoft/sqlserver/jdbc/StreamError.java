@@ -21,9 +21,6 @@ package com.microsoft.sqlserver.jdbc;
 
 /**
 * StreamError represents a TDS error or message event.
-*
-* NOTE: Insure that this class is kept serializable because it is held by 
-* the SQLServerException object which is required to be serializable.
 */
 
 final class StreamError extends StreamPacket
