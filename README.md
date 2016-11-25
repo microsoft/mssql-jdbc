@@ -59,7 +59,7 @@ This driver is documented on [Microsoft's Documentation web site](https://msdn.m
 For samples, please see the src\sample directory.
 
 ### Download the DLLs
-For some features (e.g. Integrated Authentication and Distributed Transactions), you may need to use the sqljdbc_xa and sqljdbc_auth DLLs. They can be downloaded from the [Microsoft Download Center](https://www.microsoft.com/en-us/download/details.aspx?displaylang=en&id=11774)
+For some features (e.g. Integrated Authentication and Distributed Transactions), you may need to use the `sqljdbc_xa` and `sqljdbc_auth` DLLs. They can be downloaded from the [Microsoft Download Center](https://www.microsoft.com/en-us/download/details.aspx?displaylang=en&id=11774)
 
 ### Download the driver
 Don't want to compile anything?
@@ -76,6 +76,38 @@ We're now on the Maven Central Repository. Add the following to your POM file:
 
 The driver can be downloaded from the [Microsoft Download Center](https://www.microsoft.com/en-us/download/details.aspx?displaylang=en&id=11774)
 
+##Dependencies
+This project has following dependencies: 
+
+Compile Time:
+ - `azure-keyvault` : Azure Key Vault Provider for Always Encrypted feature
+
+Test Time:
+ - `junit:jar`   : For Unit Test cases.
+
+###Dependency Tree
+One can see all dependencies including Transitive Dependency by executing following command.
+``` 
+mvn dependency:tree
+```
+
+###Exclude Dependencies
+If you wish to limit the number of run-time dependencies, and your project does not require the features named above, you can explicitly exclude them by adding exclusion tag.  
+***For Example:*** If you are not using *Always Encrypted Azure Key Vault feature* then you can exclude *azure-keyvault* dependency. Please see following snippet. 
+```
+<dependency>
+	<groupId>com.microsoft.sqlserver</groupId>
+	<artifactId>mssql-jdbc</artifactId>
+	<version>6.1.0.jre8</version>
+	<scope>runtime</scope>
+	<exclusions>
+		<exclusion>
+		         <groupId>com.microsoft.azure</groupId>
+		         <artifactId>azure-keyvault</artifactId>
+		</exclusion>
+    </exclusions>
+</dependency>
+```
 
 ## Guidelines for Reporting Issues
 We appreciate you taking the time to test the driver, provide feedback and report any issues.  It would be extremely helpful if you:
