@@ -19,12 +19,11 @@
  
 package com.microsoft.sqlserver.jdbc;
 
+import javax.xml.bind.DatatypeConverter;
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.security.Key;
 import java.security.KeyStore;
 import java.security.KeyStoreException;
@@ -37,10 +36,6 @@ import java.security.cert.X509Certificate;
 import java.text.MessageFormat;
 import java.util.Enumeration;
 import java.util.Locale;
-
-import javax.xml.bind.DatatypeConverter;
-
-import com.microsoft.sqlserver.jdbc.AuthenticationJNI;
 
 
 public final class SQLServerColumnEncryptionCertificateStoreProvider extends SQLServerColumnEncryptionKeyStoreProvider

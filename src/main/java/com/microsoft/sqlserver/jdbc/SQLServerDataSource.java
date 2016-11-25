@@ -19,12 +19,17 @@
  
 package com.microsoft.sqlserver.jdbc;
 
-import javax.sql.*;
-import java.sql.*;
-import java.io.*;
-import java.util.*;
-import java.util.logging.*;
-import javax.naming.*;
+import javax.naming.Reference;
+import javax.naming.StringRefAddr;
+import javax.sql.DataSource;
+import java.io.PrintWriter;
+import java.sql.Connection;
+import java.sql.SQLException;
+import java.sql.SQLFeatureNotSupportedException;
+import java.util.Enumeration;
+import java.util.Properties;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
 * This datasource lists properties specific for the SQLServerConnection class.
@@ -487,7 +492,8 @@ public class SQLServerDataSource implements ISQLServerDataSource, DataSource, ja
 
     // Note if setURL is not called, getURL returns the default value of "jdbc:sqlserver://".
     public void setURL(String url)
-    {
+    {
+
          loggerExternal.entering(getClassNameLogging(), "setURL", url);
         // URL is not stored in a property set, it is maintained separately.
         dataSourceURL = url;
@@ -821,7 +827,8 @@ public class SQLServerDataSource implements ISQLServerDataSource, DataSource, ja
     public <T> T unwrap(Class<T> iface) throws SQLException
     {
         loggerExternal.entering(getClassNameLogging(), "unwrap", iface);
-        DriverJDBCVersion.checkSupportsJDBC4();
+        DriverJDBCVersion.checkSupportsJDBC4();
+
         T t;
         try
         {

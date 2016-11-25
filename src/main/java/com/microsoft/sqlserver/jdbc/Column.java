@@ -19,9 +19,8 @@
 
 package com.microsoft.sqlserver.jdbc;
 
-import java.math.BigDecimal;
 import java.text.MessageFormat;
-import java.util.*;
+import java.util.Calendar;
 
 
 /**

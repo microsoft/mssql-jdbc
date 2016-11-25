@@ -18,12 +18,26 @@
  
  
 package com.microsoft.sqlserver.jdbc;
-import java.math.*;
-import java.io.*;
-import java.nio.charset.*;
-import java.nio.*;
-import java.text.*;
-import java.util.*;
+
+import java.io.BufferedReader;
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.Reader;
+import java.io.StringReader;
+import java.io.UnsupportedEncodingException;
+import java.math.BigDecimal;
+import java.math.BigInteger;
+import java.math.RoundingMode;
+import java.nio.ByteBuffer;
+import java.nio.CharBuffer;
+import java.nio.charset.Charset;
+import java.text.MessageFormat;
+import java.util.Calendar;
+import java.util.GregorianCalendar;
+import java.util.Locale;
+import java.util.TimeZone;
 
 import static java.nio.charset.StandardCharsets.US_ASCII;
 

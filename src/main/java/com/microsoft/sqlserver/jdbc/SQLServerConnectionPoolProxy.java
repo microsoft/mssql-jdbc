@@ -18,11 +18,27 @@
  
  
 package com.microsoft.sqlserver.jdbc;
-import java.sql.*;
-import java.util.*;
-import java.util.logging.*;
+
+import java.sql.Blob;
+import java.sql.CallableStatement;
+import java.sql.Clob;
+import java.sql.DatabaseMetaData;
+import java.sql.NClob;
+import java.sql.PreparedStatement;
+import java.sql.SQLClientInfoException;
+import java.sql.SQLException;
+import java.sql.SQLFeatureNotSupportedException;
+import java.sql.SQLPermission;
+import java.sql.SQLWarning;
+import java.sql.SQLXML;
+import java.sql.Savepoint;
+import java.sql.Statement;
+import java.sql.Struct;
+import java.text.MessageFormat;
+import java.util.Properties;
+import java.util.UUID;
 import java.util.concurrent.Executor;
-import java.text.*;
+import java.util.logging.Level;
 
 /**
 * SQLServerConnectionPoolProxy is a wrapper around SQLServerConnection object.
@@ -557,7 +573,8 @@ class SQLServerConnectionPoolProxy implements ISQLServerConnection, java.io.Seri
     public <T> T unwrap(Class<T> iface) throws SQLException
     {
         wrappedConnection.getConnectionLogger().entering ( toString(), "unwrap", iface );
-        DriverJDBCVersion.checkSupportsJDBC4();
+        DriverJDBCVersion.checkSupportsJDBC4();
+
         T t;
         try
         {

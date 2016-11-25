@@ -18,14 +18,19 @@
  
  
 package com.microsoft.sqlserver.jdbc;
-import java.sql.*;
+
+import java.sql.ParameterMetaData;
+import java.sql.ResultSet;
+import java.sql.ResultSetMetaData;
+import java.sql.SQLException;
+import java.sql.SQLFeatureNotSupportedException;
+import java.sql.Statement;
+import java.text.MessageFormat;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.StringTokenizer;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-
-import java.text.*;
 
 /**
  * SQLServerParameterMetaData provides JDBC 3.0 meta data for prepared statement parameters.
