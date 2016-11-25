@@ -487,8 +487,8 @@ public class SQLServerDataSource implements ISQLServerDataSource, DataSource, ja
 
     // Note if setURL is not called, getURL returns the default value of "jdbc:sqlserver://".
     public void setURL(String url)
-    {
-         loggerExternal.entering(getClassNameLogging(), "setURL", url);
+    {
+        loggerExternal.entering(getClassNameLogging(), "setURL", url);
         // URL is not stored in a property set, it is maintained separately.
         dataSourceURL = url;
         loggerExternal.exiting(getClassNameLogging(),  "setURL");
@@ -821,7 +821,8 @@ public class SQLServerDataSource implements ISQLServerDataSource, DataSource, ja
     public <T> T unwrap(Class<T> iface) throws SQLException
     {
         loggerExternal.entering(getClassNameLogging(), "unwrap", iface);
-        DriverJDBCVersion.checkSupportsJDBC4();
+        DriverJDBCVersion.checkSupportsJDBC4();
+
         T t;
         try
         {
