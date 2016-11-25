@@ -19,7 +19,7 @@
  
 package com.microsoft.sqlserver.jdbc;
 
-import java.sql.*;
+import java.sql.SQLException;
 public interface ISQLServerCallableStatement extends java.sql.CallableStatement, ISQLServerPreparedStatement
 {
     public void setDateTimeOffset(String parameterName, microsoft.sql.DateTimeOffset x)  throws SQLException;

@@ -629,11 +629,17 @@ Version History
 */
 
 package com.microsoft.sqlserver.jdbc;
-import java.sql.*;
-import java.util.*;
-import java.text.*;
-import java.util.logging.*;
-import java.net.IDN;
+
+import java.sql.DriverManager;
+import java.sql.DriverPropertyInfo;
+import java.sql.SQLException;
+import java.sql.SQLFeatureNotSupportedException;
+import java.text.MessageFormat;
+import java.util.Enumeration;
+import java.util.Locale;
+import java.util.Properties;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
 * SQLServerDriver implements the java.sql.Driver for SQLServerConnect.

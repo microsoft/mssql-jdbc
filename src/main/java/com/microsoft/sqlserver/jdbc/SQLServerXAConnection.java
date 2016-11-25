@@ -19,11 +19,12 @@
  
 package com.microsoft.sqlserver.jdbc;
 
-import javax.sql.*;
-import java.sql.*;
+import javax.sql.XAConnection;
 import javax.transaction.xa.XAResource;
-import java.util.logging.*;
-import java.util.*;
+import java.sql.SQLException;
+import java.util.Properties;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 
 

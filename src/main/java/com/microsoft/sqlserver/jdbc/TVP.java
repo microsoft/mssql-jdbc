@@ -19,12 +19,14 @@
  
 package com.microsoft.sqlserver.jdbc;
 
-import java.util.*;
-import java.util.Map.Entry;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.text.MessageFormat;
+import java.util.Iterator;
+import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.Map.Entry;
 
 enum TVPType
 {

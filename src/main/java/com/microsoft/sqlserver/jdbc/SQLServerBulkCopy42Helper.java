@@ -19,6 +19,8 @@
  
 package com.microsoft.sqlserver.jdbc;
 
+import microsoft.sql.DateTimeOffset;
+
 import java.sql.Timestamp;
 import java.text.MessageFormat;
 import java.time.DateTimeException;
@@ -28,8 +30,6 @@ import java.time.temporal.TemporalAccessor;
 import java.util.Calendar;
 import java.util.GregorianCalendar;
 import java.util.SimpleTimeZone;
-
-import microsoft.sql.DateTimeOffset;
 
 /**
  * 

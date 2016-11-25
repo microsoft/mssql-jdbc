@@ -18,10 +18,13 @@
  
 
 package com.microsoft.sqlserver.jdbc;
-import java.sql.*;
-import javax.sql.*;
-import java.util.logging.*;
-import javax.naming.*;
+
+import javax.naming.Reference;
+import javax.sql.XAConnection;
+import javax.sql.XADataSource;
+import java.sql.SQLException;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * SQLServerXADataSource provides database connections for use in distributed (XA)

@@ -19,6 +19,9 @@
  
 package com.microsoft.sqlserver.jdbc;
 
+import microsoft.sql.DateTimeOffset;
+
+import javax.sql.RowSet;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -55,10 +58,6 @@ import java.util.logging.Level;
 
 import static java.nio.charset.StandardCharsets.UTF_16LE;
 import static java.nio.charset.StandardCharsets.UTF_8;
-
-import javax.sql.RowSet;
-
-import microsoft.sql.DateTimeOffset;
 
 /**
  * Lets you efficiently bulk load a SQL Server table with data from another source.
