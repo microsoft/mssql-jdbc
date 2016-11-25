@@ -72,7 +72,10 @@ class TVP {
 	// Name used in CREATE TYPE 
 	TVP(String tvpPartName, SQLServerDataTable tvpDataTable) throws SQLServerException
 	{
-		initTVP(TVPType.SQLServerDataTable, tvpPartName);
+        if (tvpPartName == null) {
+            tvpPartName = tvpDataTable.getTvpName();
+        }
+        initTVP(TVPType.SQLServerDataTable, tvpPartName);
 		sourceDataTable = tvpDataTable;
 		sourceDataTableRowIterator = sourceDataTable.getIterator();
 		populateMetadataFromDataTable();		
