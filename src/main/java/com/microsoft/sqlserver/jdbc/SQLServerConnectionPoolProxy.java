@@ -557,7 +557,8 @@ class SQLServerConnectionPoolProxy implements ISQLServerConnection, java.io.Seri
     public <T> T unwrap(Class<T> iface) throws SQLException
     {
         wrappedConnection.getConnectionLogger().entering ( toString(), "unwrap", iface );
-        DriverJDBCVersion.checkSupportsJDBC4();
+        DriverJDBCVersion.checkSupportsJDBC4();
+
         T t;
         try
         {
