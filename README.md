@@ -42,6 +42,14 @@ To build the jar files, you must use Java 8 with either Ant (with Ivy) or Maven.
     	* Run `mvn install -Pbuild41`. This creates JDBC 4.1 compliant jar in \target directory
     	* Run `mvn install -Pbuild42`. This creates JDBC 4.2 compliant jar in \target directory
 
+### AppVeyor Build Status
+* master branch: [![Build status](https://ci.appveyor.com/api/projects/status/vsgfwi0jqtlbamnm/branch/master?svg=true)](https://ci.appveyor.com/project/Microsoft-JDBC/mssql-jdbc-7l4dn/branch/master)
+* dev branch: [![Build status](https://ci.appveyor.com/api/projects/status/vsgfwi0jqtlbamnm/branch/dev?svg=true)](https://ci.appveyor.com/project/Microsoft-JDBC/mssql-jdbc-7l4dn/branch/dev)
+
+### Travis CI Build Status
+* master branch: [![Build Status](https://travis-ci.org/Microsoft/mssql-jdbc.svg?branch=master)](https://travis-ci.org/Microsoft/mssql-jdbc)
+* dev branch: [![Build Status](https://travis-ci.org/Microsoft/mssql-jdbc.svg?branch=dev)](https://travis-ci.org/Microsoft/mssql-jdbc)
+
 ## Resources
 
 ### Documentation
