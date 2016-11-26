@@ -19,7 +19,8 @@
  
 package com.microsoft.sqlserver.jdbc;
 
-import java.io.*;
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
 
 /**
 * PLPInputStream is an InputStream implementation that reads from a TDS PLP stream.

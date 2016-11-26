@@ -19,9 +19,11 @@
  
 package com.microsoft.sqlserver.jdbc;
 
-import java.io.*;
-import java.util.*;
+import java.io.UnsupportedEncodingException;
 import java.text.MessageFormat;
+import java.util.EnumSet;
+import java.util.HashMap;
+import java.util.Map;
 
 
 /**

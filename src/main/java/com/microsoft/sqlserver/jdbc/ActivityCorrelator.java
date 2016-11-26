@@ -19,7 +19,6 @@
 
 package com.microsoft.sqlserver.jdbc;
 
-import java.lang.ThreadLocal;
 import java.util.UUID;
 
 /**

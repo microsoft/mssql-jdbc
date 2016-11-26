@@ -18,9 +18,10 @@
  
  
 package com.microsoft.sqlserver.jdbc;
+
 import java.text.MessageFormat;
-import java.util.*;
-import java.util.logging.*;
+import java.util.UUID;
+import java.util.logging.Level;
 
 /**
 * SQLServerException is thrown from any point in the driver that throws a java.sql.SQLException.

@@ -18,7 +18,10 @@
  
 
 package microsoft.sql;
-import java.util.*;
+
+import java.util.Calendar;
+import java.util.Locale;
+import java.util.TimeZone;
 
 /**
  * A Java class for accessing values of the SQL Server DATETIMEOFFSET data type.

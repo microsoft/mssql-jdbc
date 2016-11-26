@@ -26,7 +26,9 @@
  
 
 package com.microsoft.sqlserver.jdbc;
-import java.util.logging.*;
+
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * The top level TDS parser class.
