@@ -19,11 +19,19 @@
  
 package com.microsoft.sqlserver.jdbc;
 import java.util.logging.*;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
 import org.ietf.jgss.*;
+
 import javax.security.auth.Subject;
 import java.util.*;
 import javax.security.auth.login.*;
+
+import java.lang.reflect.Method;
 import java.net.IDN;
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.security.*;
 
 
@@ -281,7 +289,7 @@ final class KerbAuthentication extends SSPIAuthentication
 		// Get user provided SPN string; if not provided then build the generic one
 		String userSuppliedServerSpn = con.activeConnectionProperties.
 				getProperty(SQLServerDriverStringProperty.SERVER_SPN.toString());
-		
+		String spn;
 		if (null != userSuppliedServerSpn)
 		{
 			// serverNameAsACE is true, translate the user supplied serverSPN to ASCII
@@ -300,7 +308,123 @@ final class KerbAuthentication extends SSPIAuthentication
         {
         	spn =  makeSpn(address, port);
         }
+		// In case of user supplied SPN, we assume the user knows what it does, so we
+		// do not try to perform host lookup canonicalization
+		this.spn = enrichSpnWithRealm(spn, null == userSuppliedServerSpn);
 	}
+
+    private static final Pattern SPN_PATTERN =
+            Pattern.compile("MSSQLSvc/(.*):([^:@]+)(@.+)?", Pattern.CASE_INSENSITIVE);
+
+    private String enrichSpnWithRealm(String spn, boolean allowHostnameCanonicalization) {
+        if (spn == null) {
+            return spn;
+        }
+        Matcher m = SPN_PATTERN.matcher(spn);
+        if (!m.matches()) {
+            return spn;
+        }
+        if (m.group(3) != null) {
+            // Realm is already present, no need to enrich, the job has already been done
+            return spn;
+        }
+        String dnsName = m.group(1);
+        String portOrInstance = m.group(2);
+        RealmValidator realmValidator = getRealmValidator();
+        String realm = findRealmFromHostname(realmValidator, dnsName);
+        if (realm == null && allowHostnameCanonicalization) {
+            // We failed, try with canonical host name to find a better match
+            try {
+                String canonicalHostName = InetAddress.getByName(dnsName).getCanonicalHostName();
+                realm = findRealmFromHostname(realmValidator, canonicalHostName);
+                // Since we have a match, our hostname is the correct one (for instance of server
+                // name was an IP), so we override dnsName as well
+                dnsName = canonicalHostName;
+            } catch (UnknownHostException cannotCanonicalize) {
+                // ignored, but we are in a bad shape
+            }
+        }
+        if (realm == null) {
+            return spn;
+        } else {
+            StringBuilder sb = new StringBuilder("MSSQLSvc/");
+            sb.append(dnsName).append(":").append(portOrInstance).append("@").append(realm.toUpperCase(Locale.ENGLISH));
+            return sb.toString();
+        }
+    }
+
+    private static RealmValidator validator;
+
+    /**
+     * Find a suitable way of validating a REALM for given JVM.
+     *
+     * @return a not null realm Validator.
+     */
+    static RealmValidator getRealmValidator() {
+        if (validator != null) {
+            return validator;
+        }
+        // JVM Specific, here Sun/Oracle JVM
+        try {
+            Class<?> clz = Class.forName("sun.security.krb5.Config");
+            Method getInstance = clz.getMethod("getInstance", new Class[0]);
+            final Method getKDCList = clz.getMethod("getKDCList", new Class[] { String.class });
+            final Object instance = getInstance.invoke(null);
+            RealmValidator oracleRealmValidator = new RealmValidator() {
+
+                @Override
+                public boolean isRealmValid(String realm) {
+                    try {
+                        Object ret = getKDCList.invoke(instance, realm);
+                        return ret != null;
+                    } catch (Exception err) {
+                        return false;
+                    }
+                }
+            };
+            validator = oracleRealmValidator;
+            return oracleRealmValidator;
+        } catch (ReflectiveOperationException notTheRightJVMException) {
+            // Ignored, we simply are not using the right JVM
+        }
+        // No implementation found, default one, not any realm is valid
+        validator = new RealmValidator() {
+            @Override
+            public boolean isRealmValid(String realm) {
+                return false;
+            }
+        };
+        return validator;
+    }
+
+    /**
+     * Try to find a REALM in the different parts of a host name.
+     *
+     * @param realmValidator a function that return true if REALM is valid and exists
+     * @param hostname the name we are looking a REALM for
+     * @return the realm if found, null otherwise
+     */
+    private static String findRealmFromHostname(RealmValidator realmValidator, String hostname) {
+        if (hostname == null) {
+            return null;
+        }
+        int index = 0;
+        while (index != -1 && index < hostname.length() - 2) {
+            String realm = hostname.substring(index + 1);
+            if (realmValidator.isRealmValid(realm)) {
+                return realm.toUpperCase();
+            }
+            index = hostname.indexOf(".", index + 1);
+        }
+        return null;
+    }
+
+    /**
+     * JVM Specific implementation to decide whether a realm is valid or not
+     */
+    interface RealmValidator {
+        boolean isRealmValid(String realm);
+    }
 	
     byte[] GenerateClientContext(byte[] pin,   boolean[] done ) throws SQLServerException
     {
