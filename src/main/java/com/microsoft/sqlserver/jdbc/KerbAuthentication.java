@@ -181,13 +181,13 @@ final class KerbAuthentication extends SSPIAuthentication
 
 		catch(GSSException ge) 
 		{
-		    authLogger.finer(toString() + "initAuthInit failed GSSException:-" + ge);
-            con.terminate(SQLServerException.DRIVER_ERROR_NONE, SQLServerException.getErrString("R_integratedAuthenticationFailed"), ge);            
+		    authLogger.finer(toString() + "initAuthInit failed GSSException:-" + ge);
+		    con.terminate(SQLServerException.DRIVER_ERROR_NONE, SQLServerException.getErrString("R_integratedAuthenticationFailed"), ge);
 		}
         catch(PrivilegedActionException ge) 
 		{
-		    authLogger.finer(toString() + "initAuthInit failed privileged exception:-" + ge);
-            con.terminate(SQLServerException.DRIVER_ERROR_NONE, SQLServerException.getErrString("R_integratedAuthenticationFailed"), ge);            
+		    authLogger.finer(toString() + "initAuthInit failed privileged exception:-" + ge);
+		    con.terminate(SQLServerException.DRIVER_ERROR_NONE, SQLServerException.getErrString("R_integratedAuthenticationFailed"), ge);
 		}
         
 
@@ -240,8 +240,8 @@ final class KerbAuthentication extends SSPIAuthentication
         }
         catch(GSSException ge) 
 		{
-		    authLogger.finer(toString() + "initSecContext Failed :-" + ge);
-            con.terminate(SQLServerException.DRIVER_ERROR_NONE, SQLServerException.getErrString("R_integratedAuthenticationFailed"), ge);            
+		    authLogger.finer(toString() + "initSecContext Failed :-" + ge);
+		    con.terminate(SQLServerException.DRIVER_ERROR_NONE, SQLServerException.getErrString("R_integratedAuthenticationFailed"), ge);
 		}
         // keep the compiler happy
         return null;
@@ -337,4 +337,4 @@ final class KerbAuthentication extends SSPIAuthentication
     }
 }
 
-
+
