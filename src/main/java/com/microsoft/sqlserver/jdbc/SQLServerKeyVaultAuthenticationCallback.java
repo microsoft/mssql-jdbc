@@ -15,19 +15,19 @@
 //  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS 
 //  IN THE SOFTWARE.
 //---------------------------------------------------------------------------------------------------------------------------------
- 
- 
+
+
 package com.microsoft.sqlserver.jdbc;
 
-public interface SQLServerKeyVaultAuthenticationCallback{
+public interface SQLServerKeyVaultAuthenticationCallback {
 
-	/**
-	 * The authentication callback delegate which is to be implemented by the client code
-	 * 
-	 * @param authority - Identifier of the authority, a URL.
-	 * @param resource - Identifier of the target resource that is the recipient of the requested token, a URL.
-	 * @param scope - The scope of the authentication request.
-	 * @return access token
-	 */
-	public String getAccessToken(String authority, String resource, String scope);
+    /**
+     * The authentication callback delegate which is to be implemented by the client code
+     *
+     * @param authority - Identifier of the authority, a URL.
+     * @param resource  - Identifier of the target resource that is the recipient of the requested token, a URL.
+     * @param scope     - The scope of the authentication request.
+     * @return access token
+     */
+    public String getAccessToken(String authority, String resource, String scope);
 }

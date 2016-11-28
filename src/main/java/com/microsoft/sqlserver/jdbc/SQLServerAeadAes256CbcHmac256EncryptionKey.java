@@ -15,7 +15,7 @@
 //  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS 
 //  IN THE SOFTWARE.
 //---------------------------------------------------------------------------------------------------------------------------------
- 
+
 
 package com.microsoft.sqlserver.jdbc;
 
@@ -31,8 +31,7 @@ import java.text.MessageFormat;
  * 3) mac_key - A derived key that is used to compute HMAC of the cipher text
  * 4) iv_key - A derived key that is used to generate a synthetic IV from plain text data.
  */
- class SQLServerAeadAes256CbcHmac256EncryptionKey extends SQLServerSymmetricKey
-{
+class SQLServerAeadAes256CbcHmac256EncryptionKey extends SQLServerSymmetricKey {
 
     // This is the key size in the bits, since we are using AES256, it will 256
     static final int keySize = 256;
@@ -50,102 +49,90 @@ import java.text.MessageFormat;
 
     /**
      * Derive all the keys from the root key
-     * @param rootKey key used to derive other keys
-     * @param algorithmName name of the algorithm associated with keys 
-     * @throws SQLServerException 
+     *
+     * @param rootKey       key used to derive other keys
+     * @param algorithmName name of the algorithm associated with keys
+     * @throws SQLServerException
      */
-     SQLServerAeadAes256CbcHmac256EncryptionKey(byte[] rootKey, String algorithmName) throws SQLServerException
-    {
+    SQLServerAeadAes256CbcHmac256EncryptionKey(byte[] rootKey, String algorithmName) throws SQLServerException {
         super(rootKey);
         this.algorithmName = algorithmName;
         encryptionKeySaltFormat = "Microsoft SQL Server cell encryption key with encryption algorithm:" +
-            this.algorithmName + " and key length:" + keySize;
+                this.algorithmName + " and key length:" + keySize;
         macKeySaltFormat = "Microsoft SQL Server cell MAC key with encryption algorithm:" +
-            this.algorithmName + " and key length:" + keySize;
+                this.algorithmName + " and key length:" + keySize;
         ivKeySaltFormat = "Microsoft SQL Server cell IV key with encryption algorithm:" +
-            this.algorithmName + " and key length:" + keySize;
+                this.algorithmName + " and key length:" + keySize;
         int keySizeInBytes = (keySize / 8);
-        if (rootKey.length != keySizeInBytes)
-        {
-            MessageFormat form =new MessageFormat(SQLServerException.getErrString("R_InvalidKeySize"));
-            Object[] msgArgs={rootKey.length,keySizeInBytes,this.algorithmName};
+        if (rootKey.length != keySizeInBytes) {
+            MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_InvalidKeySize"));
+            Object[] msgArgs = {rootKey.length, keySizeInBytes, this.algorithmName};
             throw new SQLServerException(this, form.format(msgArgs), null, 0, false);
-            
+
         }
 
         // Derive encryption key
 
         byte[] encKeyBuff = new byte[keySizeInBytes];
-        try
-        {
+        try {
             // By default Java is big endian, we are getting bytes in little endian(LE in UTF-16LE)
             // to make it compatible with C# driver which is little endian
             encKeyBuff = SQLServerSecurityUtility.getHMACWithSHA256(
-                encryptionKeySaltFormat.getBytes("UTF-16LE"),
-                rootKey,
-                encKeyBuff.length);
+                    encryptionKeySaltFormat.getBytes("UTF-16LE"),
+                    rootKey,
+                    encKeyBuff.length);
 
             encryptionKey = new SQLServerSymmetricKey(encKeyBuff);
 
             // Derive mac key from root key
             byte[] macKeyBuff = new byte[keySizeInBytes];
             macKeyBuff = SQLServerSecurityUtility.getHMACWithSHA256(
-                macKeySaltFormat.getBytes("UTF-16LE"),
-                rootKey,
-                macKeyBuff.length);
+                    macKeySaltFormat.getBytes("UTF-16LE"),
+                    rootKey,
+                    macKeyBuff.length);
 
             macKey = new SQLServerSymmetricKey(macKeyBuff);
 
             // Derive the initialization vector from root key
             byte[] ivKeyBuff = new byte[keySizeInBytes];
             ivKeyBuff = SQLServerSecurityUtility.getHMACWithSHA256(
-                ivKeySaltFormat.getBytes("UTF-16LE"),
-                rootKey,
-                ivKeyBuff.length);
+                    ivKeySaltFormat.getBytes("UTF-16LE"),
+                    rootKey,
+                    ivKeyBuff.length);
             ivKey = new SQLServerSymmetricKey(ivKeyBuff);
-        }
-        catch (UnsupportedEncodingException e)
-        {
+        } catch (UnsupportedEncodingException e) {
             MessageFormat form = new MessageFormat(
-                SQLServerException.getErrString("R_unsupportedEncoding"));
-            Object[] msgArgs = { "UTF-16LE" };
+                    SQLServerException.getErrString("R_unsupportedEncoding"));
+            Object[] msgArgs = {"UTF-16LE"};
+            throw new SQLServerException(this, form.format(msgArgs), null, 0, false);
+        } catch (InvalidKeyException | NoSuchAlgorithmException e) {
+            MessageFormat form = new MessageFormat(
+                    SQLServerException.getErrString("R_KeyExtractionFailed"));
+            Object[] msgArgs = {e.getMessage()};
             throw new SQLServerException(this, form.format(msgArgs), null, 0, false);
         }
-        catch (InvalidKeyException  | NoSuchAlgorithmException e)
-        {
-            MessageFormat form = new MessageFormat(
-                SQLServerException.getErrString("R_KeyExtractionFailed"));
-            Object[] msgArgs = { e.getMessage() };
-            throw new SQLServerException(this, form.format(msgArgs), null, 0, false);
-        }
-        
+
 
     }
 
     /**
-     * 
-     * @return encryption key 
+     * @return encryption key
      */
-     byte[] getEncryptionKey()
-    {
+    byte[] getEncryptionKey() {
         return encryptionKey.getRootKey();
     }
 
     /**
-     * 
      * @return mac key
      */
-     byte[] getMacKey()
-    {
+    byte[] getMacKey() {
         return macKey.getRootKey();
     }
 
     /**
-     * 
-     * @return iv key 
+     * @return iv key
      */
-     byte[] getIVKey()
-    {
+    byte[] getIVKey() {
         return ivKey.getRootKey();
     }
 

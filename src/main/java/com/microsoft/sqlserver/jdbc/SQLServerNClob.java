@@ -15,31 +15,31 @@
 //  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS 
 //  IN THE SOFTWARE.
 //---------------------------------------------------------------------------------------------------------------------------------
- 
- 
+
+
 package com.microsoft.sqlserver.jdbc;
+
 import java.sql.*;
 import java.io.*;
 import java.util.logging.*;
 
 /**
-* SQLServerNClob represents a National Character Set LOB object and implements java.sql.NClob.
-*/
+ * SQLServerNClob represents a National Character Set LOB object and implements java.sql.NClob.
+ */
 
-public final class SQLServerNClob extends SQLServerClobBase implements NClob
-{
+public final class SQLServerNClob extends SQLServerClobBase implements NClob {
     // Loggers should be class static to avoid lock contention with multiple threads
     private static final Logger logger = Logger.getLogger("com.microsoft.sqlserver.jdbc.internals.SQLServerNClob");
 
-    SQLServerNClob(SQLServerConnection connection)
-    {
+    SQLServerNClob(SQLServerConnection connection) {
         super(connection, "", connection.getDatabaseCollation(), logger);
     }
 
-    SQLServerNClob(BaseInputStream stream, TypeInfo typeInfo) throws SQLServerException, UnsupportedEncodingException
-    {
+    SQLServerNClob(BaseInputStream stream, TypeInfo typeInfo) throws SQLServerException, UnsupportedEncodingException {
         super(null, new String(stream.getBytes(), typeInfo.getCharset()), typeInfo.getSQLCollation(), logger);
     }
 
-    final JDBCType getJdbcType() { return JDBCType.NCLOB; }
+    final JDBCType getJdbcType() {
+        return JDBCType.NCLOB;
+    }
 }

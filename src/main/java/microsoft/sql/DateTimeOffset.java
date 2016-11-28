@@ -15,19 +15,19 @@
 //  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS 
 //  IN THE SOFTWARE.
 //---------------------------------------------------------------------------------------------------------------------------------
- 
+
 
 package microsoft.sql;
+
 import java.util.*;
 
 /**
  * A Java class for accessing values of the SQL Server DATETIMEOFFSET data type.
- *
+ * <p>
  * The DateTimeOffset class represents a java.sql.Timestamp, including fractional seconds,
  * plus an integer representing the number of minutes offset from GMT.
  */
-public final class DateTimeOffset extends Object implements java.io.Serializable, java.lang.Comparable<DateTimeOffset>
-{
+public final class DateTimeOffset extends Object implements java.io.Serializable, java.lang.Comparable<DateTimeOffset> {
     private static final long serialVersionUID = 541973748553014280L;
 
     private final long utcMillis;
@@ -39,18 +39,17 @@ public final class DateTimeOffset extends Object implements java.io.Serializable
     private static final int SS_NANOS_MAX = 9999999;
     private static final int MINUTES_OFFSET_MIN = -14 * 60;
     private static final int MINUTES_OFFSET_MAX = 14 * 60;
-	private static final int HUNDRED_NANOS_PER_SECOND = 10000000;
+    private static final int HUNDRED_NANOS_PER_SECOND = 10000000;
 
     /**
      * Constructs a DateTimeOffset instance.
-     *
+     * <p>
      * This method does not check that its arguments represent a timestamp value that falls
      * within the range of values acceptable to SQL Server for the DATETIMEOFFSET data type.
      * That is, it is possible to create a DateTimeOffset instance representing a value
      * outside the range from 1 January 1AD 00:00:00 UTC to 31 December 9999 00:00:00 UTC.
      */
-    private DateTimeOffset(java.sql.Timestamp timestamp, int minutesOffset)
-    {
+    private DateTimeOffset(java.sql.Timestamp timestamp, int minutesOffset) {
         // Combined time zone and DST offset must be between -14:00 and 14:00
         if (minutesOffset < MINUTES_OFFSET_MIN || minutesOffset > MINUTES_OFFSET_MAX)
             throw new IllegalArgumentException();
@@ -70,9 +69,9 @@ public final class DateTimeOffset extends Object implements java.io.Serializable
         int hundredNanos = (timestampNanos + 50) / 100;
         this.nanos = 100 * (hundredNanos % HUNDRED_NANOS_PER_SECOND);
         this.utcMillis =
-            timestamp.getTime() -
-            timestamp.getNanos() / 1000000 +
-            1000 * (hundredNanos / HUNDRED_NANOS_PER_SECOND);
+                timestamp.getTime() -
+                        timestamp.getNanos() / 1000000 +
+                        1000 * (hundredNanos / HUNDRED_NANOS_PER_SECOND);
 
         // Postconditions
         assert this.minutesOffset >= MINUTES_OFFSET_MIN && this.minutesOffset <= MINUTES_OFFSET_MAX : "minutesOffset: " + this.minutesOffset;
@@ -80,58 +79,56 @@ public final class DateTimeOffset extends Object implements java.io.Serializable
         assert 0 == this.nanos % 100 : "nanos: " + this.nanos;
         assert 0 == this.utcMillis % 1000L : "utcMillis: " + this.utcMillis;
     }
-    
-    public static DateTimeOffset valueOf(java.sql.Timestamp timestamp, int minutesOffset)
-    {
+
+    public static DateTimeOffset valueOf(java.sql.Timestamp timestamp, int minutesOffset) {
         return new DateTimeOffset(timestamp, minutesOffset);
     }
-	
-    public static DateTimeOffset valueOf(java.sql.Timestamp timestamp, Calendar calendar)
-    {
+
+    public static DateTimeOffset valueOf(java.sql.Timestamp timestamp, Calendar calendar) {
         // (Re)Set the calendar's time to the value in the timestamp so that get(ZONE_OFFSET) and get(DST_OFFSET) report
         // the correct values for the time indicated, taking into account DST transition times and any historical changes
         // to the DST transition schedule.
         calendar.setTimeInMillis(timestamp.getTime());
 
-        return new DateTimeOffset(timestamp, (calendar.get(Calendar.ZONE_OFFSET) + calendar.get(Calendar.DST_OFFSET)) / (60*1000));
+        return new DateTimeOffset(timestamp, (calendar.get(Calendar.ZONE_OFFSET) + calendar.get(Calendar.DST_OFFSET)) / (60 * 1000));
     }
-	
-	private String formattedValue = null;
+
+    private String formattedValue = null;
+
     /**
      * Formats a datetimeoffset as yyyy-mm-dd hh:mm:ss[.fffffffff] [+|-]hh:mm, where yyyy-mm-dd hh:mm:ss[.fffffffff]
      * indicates a timestamp that is offset from UTC by the number of minutes indicated by [+|-]hh:mm.
      *
      * @return a String object in yyyy-mm-dd hh:mm:ss[.fffffffff] [+|-]hh:mm format
      */
-    @Override public String toString()
-    {
+    @Override
+    public String toString() {
         // Because formatting the value as a string is computationally expensive (involving creation of a Calendar and
         // a TimeZone, String formatters, etc.), cache the formatted value the first time it is needed.  This can be done
         // simply with the single-check idiom because the DateTimeOffset class is effectively immutable.
         String result = formattedValue;
-        if (null == result)
-        {
+        if (null == result) {
             // Format the offset as +hh:mm or -hh:mm.  Zero offset is formatted as +00:00.
             String formattedOffset = (minutesOffset < 0) ?
 
-                String.format(
-                    Locale.US,
-                    "-%1$02d:%2$02d",
-                    -minutesOffset / 60,
-                    -minutesOffset % 60) :
+                    String.format(
+                            Locale.US,
+                            "-%1$02d:%2$02d",
+                            -minutesOffset / 60,
+                            -minutesOffset % 60) :
 
-                String.format(
-                    Locale.US,
-                    "+%1$02d:%2$02d",
-                    minutesOffset / 60,
-                    minutesOffset % 60);
+                    String.format(
+                            Locale.US,
+                            "+%1$02d:%2$02d",
+                            minutesOffset / 60,
+                            minutesOffset % 60);
 
             // Like java.sql.Date.toString() and java.sql.Timestamp.toString(), DateTimeOffset.toString() produces
             // a value that is not locale-sensitive.  The date part of the returned string is a Gregorian date, even
             // if the VM default locale would otherwise indicate that a Buddhist calendar should be used.
             Calendar calendar =
-                Calendar.getInstance(
-                    TimeZone.getTimeZone("GMT"+formattedOffset), Locale.US);
+                    Calendar.getInstance(
+                            TimeZone.getTimeZone("GMT" + formattedOffset), Locale.US);
 
             // Initialize the calendar with the UTC milliseconds value represented by this DateTimeOffset object
             calendar.setTimeInMillis(utcMillis);
@@ -143,28 +140,28 @@ public final class DateTimeOffset extends Object implements java.io.Serializable
             // Format the returned string value from the calendar's component fields and the UTC offset
             formattedValue = result = (0 == nanos) ?
 
-                String.format(
-                    Locale.US,
-                    "%1$tF %1$tT %2$s",
-                    calendar,
-                    formattedOffset) :
+                    String.format(
+                            Locale.US,
+                            "%1$tF %1$tT %2$s",
+                            calendar,
+                            formattedOffset) :
 
-                String.format(
-                    Locale.US,
-                    "%1$tF %1$tT.%2$s %3$s",
-                    calendar,                              // Example (nanos = 123456000):
-                    java.math.BigDecimal.valueOf(nanos, 9) //   -> 0.123456000
-                        .stripTrailingZeros()              //   -> 0.123456
-                        .toPlainString()                   //   -> "0.123456"
-                        .substring(2),                     //   -> "123456"
-                    formattedOffset);
+                    String.format(
+                            Locale.US,
+                            "%1$tF %1$tT.%2$s %3$s",
+                            calendar,                              // Example (nanos = 123456000):
+                            java.math.BigDecimal.valueOf(nanos, 9) //   -> 0.123456000
+                                    .stripTrailingZeros()              //   -> 0.123456
+                                    .toPlainString()                   //   -> "0.123456"
+                                    .substring(2),                     //   -> "123456"
+                            formattedOffset);
         }
 
         return result;
     }
 
-    @Override public boolean equals(Object o)
-    {
+    @Override
+    public boolean equals(Object o) {
         // Fast check for reference equality
         if (this == o)
             return true;
@@ -176,13 +173,13 @@ public final class DateTimeOffset extends Object implements java.io.Serializable
 
         DateTimeOffset other = (DateTimeOffset) o;
         return
-            utcMillis == other.utcMillis &&
-            nanos == other.nanos &&
-            minutesOffset == other.minutesOffset;
+                utcMillis == other.utcMillis &&
+                        nanos == other.nanos &&
+                        minutesOffset == other.minutesOffset;
     }
 
-    @Override public int hashCode()
-    {
+    @Override
+    public int hashCode() {
 
         // Start by approximately folding the date and time components together.
         // Ignore any sub-second component of the utcMillis, which is always 0.
@@ -217,8 +214,7 @@ public final class DateTimeOffset extends Object implements java.io.Serializable
      *
      * @return this DateTimeOffset object's timestamp component
      */
-    public java.sql.Timestamp getTimestamp()
-    {
+    public java.sql.Timestamp getTimestamp() {
         java.sql.Timestamp timestamp = new java.sql.Timestamp(utcMillis);
         timestamp.setNanos(nanos);
         return timestamp;
@@ -229,8 +225,7 @@ public final class DateTimeOffset extends Object implements java.io.Serializable
      *
      * @return this DateTimeOffset object's minutes offset from GMT
      */
-    public int getMinutesOffset()
-    {
+    public int getMinutesOffset() {
         return minutesOffset;
     }
 
@@ -245,8 +240,7 @@ public final class DateTimeOffset extends Object implements java.io.Serializable
      * @return a negative integer, zero, or a positive integer as this DateTimeOffset is less than, equal to,
      * or greater than the specified DateTimeOffset.
      */
-    public int compareTo(DateTimeOffset other)
-    {
+    public int compareTo(DateTimeOffset other) {
         // Note that no explicit check for null==other is necessary.  The contract for compareTo()
         // says that a NullPointerException is to be thrown if null is passed as an argument.
 
@@ -256,19 +250,17 @@ public final class DateTimeOffset extends Object implements java.io.Serializable
         assert other.nanos >= 0;
 
         return
-            (utcMillis > other.utcMillis) ? 1 :
-            (utcMillis < other.utcMillis) ? -1 :
-            nanos - other.nanos;
+                (utcMillis > other.utcMillis) ? 1 :
+                        (utcMillis < other.utcMillis) ? -1 :
+                                nanos - other.nanos;
     }
 
-    private static class SerializationProxy implements java.io.Serializable
-    {
+    private static class SerializationProxy implements java.io.Serializable {
         private final long utcMillis;
         private final int nanos;
         private final int minutesOffset;
 
-        SerializationProxy(DateTimeOffset dateTimeOffset)
-        {
+        SerializationProxy(DateTimeOffset dateTimeOffset) {
             this.utcMillis = dateTimeOffset.utcMillis;
             this.nanos = dateTimeOffset.nanos;
             this.minutesOffset = dateTimeOffset.minutesOffset;
@@ -276,21 +268,18 @@ public final class DateTimeOffset extends Object implements java.io.Serializable
 
         private static final long serialVersionUID = 664661379547314226L;
 
-        private Object readResolve()
-        {
+        private Object readResolve() {
             java.sql.Timestamp timestamp = new java.sql.Timestamp(utcMillis);
             timestamp.setNanos(nanos);
             return new DateTimeOffset(timestamp, minutesOffset);
         }
     }
 
-    private Object writeReplace()
-    {
+    private Object writeReplace() {
         return new SerializationProxy(this);
     }
 
-    private void readObject(java.io.ObjectInputStream stream) throws java.io.InvalidObjectException
-    {
+    private void readObject(java.io.ObjectInputStream stream) throws java.io.InvalidObjectException {
         // For added security/robustness, the only way to rehydrate a serialized DateTimeOffset
         // is to use a SerializationProxy.  Direct use of readObject() is not supported.
         throw new java.io.InvalidObjectException("");

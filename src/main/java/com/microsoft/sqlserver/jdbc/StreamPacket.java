@@ -15,29 +15,28 @@
 //  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS 
 //  IN THE SOFTWARE.
 //---------------------------------------------------------------------------------------------------------------------------------
- 
+
 
 package com.microsoft.sqlserver.jdbc;
 
 
 /**
-* Common interface for all TDS packet types
-*
-*/
-abstract class StreamPacket
-{
-  int packetType;
-  final int getTokenType() { return packetType; }
+ * Common interface for all TDS packet types
+ */
+abstract class StreamPacket {
+    int packetType;
 
-  StreamPacket()
-  {
-    this.packetType = 0;
-  }
+    final int getTokenType() {
+        return packetType;
+    }
 
-  StreamPacket(int packetType)
-  {
-    this.packetType = packetType;
-  }
+    StreamPacket() {
+        this.packetType = 0;
+    }
 
-  abstract void setFromTDS(TDSReader tdsReader) throws SQLServerException;
+    StreamPacket(int packetType) {
+        this.packetType = packetType;
+    }
+
+    abstract void setFromTDS(TDSReader tdsReader) throws SQLServerException;
 }

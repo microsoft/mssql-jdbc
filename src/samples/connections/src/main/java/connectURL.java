@@ -28,64 +28,71 @@ import java.sql.Statement;
 
 public class connectURL {
 
-	public static void main(String[] args) {	
+    public static void main(String[] args) {
 
-		// Declare the JDBC objects.
-		Connection con = null;
-		Statement stmt = null;
-		ResultSet rs = null;
+        // Declare the JDBC objects.
+        Connection con = null;
+        Statement stmt = null;
+        ResultSet rs = null;
 
-		String serverName = null;
-		String portNumber = null;
-		String databaseName = null;
-		String username = null;
-		String password= null;
+        String serverName = null;
+        String portNumber = null;
+        String databaseName = null;
+        String username = null;
+        String password = null;
 
-		try(BufferedReader br = new BufferedReader(new InputStreamReader(System.in))) {
-			
-			System.out.print("Enter server name: ");
-			serverName = br.readLine();
-			System.out.print("Enter port number: ");
-			portNumber = br.readLine();
-			System.out.print("Enter database name: ");
-			databaseName = br.readLine();
-			System.out.print("Enter username: ");
-			username = br.readLine();	
-			System.out.print("Enter password: ");
-			password = br.readLine();
+        try (BufferedReader br = new BufferedReader(new InputStreamReader(System.in))) {
 
-			// Create a variable for the connection string.
-			String connectionUrl = "jdbc:sqlserver://" + serverName + ":" + portNumber + ";" +
-					"databaseName="+ databaseName + ";username=" + username + ";password=" + password + ";";
+            System.out.print("Enter server name: ");
+            serverName = br.readLine();
+            System.out.print("Enter port number: ");
+            portNumber = br.readLine();
+            System.out.print("Enter database name: ");
+            databaseName = br.readLine();
+            System.out.print("Enter username: ");
+            username = br.readLine();
+            System.out.print("Enter password: ");
+            password = br.readLine();
 
-			// Establish the connection.
-			Class.forName("com.microsoft.sqlserver.jdbc.SQLServerDriver");
-			con = DriverManager.getConnection(connectionUrl);
-			
-			System.out.println();
-			System.out.println("Connection established successfully.");
+            // Create a variable for the connection string.
+            String connectionUrl = "jdbc:sqlserver://" + serverName + ":" + portNumber + ";" +
+                    "databaseName=" + databaseName + ";username=" + username + ";password=" + password + ";";
 
-			// Create and execute an SQL statement that returns user name.
-			String SQL = "SELECT SUSER_SNAME()";
-			stmt = con.createStatement();
-			rs = stmt.executeQuery(SQL);
+            // Establish the connection.
+            Class.forName("com.microsoft.sqlserver.jdbc.SQLServerDriver");
+            con = DriverManager.getConnection(connectionUrl);
 
-			// Iterate through the data in the result set and display it.
-			while (rs.next()) {
-				System.out.println("user name: " + rs.getString(1));
-			}
-		}
+            System.out.println();
+            System.out.println("Connection established successfully.");
 
-		// Handle any errors that may have occurred.
-		catch (Exception e) {
-			e.printStackTrace();
-		}
+            // Create and execute an SQL statement that returns user name.
+            String SQL = "SELECT SUSER_SNAME()";
+            stmt = con.createStatement();
+            rs = stmt.executeQuery(SQL);
 
-		finally {
-			if (rs != null) try { rs.close(); } catch(Exception e) {}
-			if (stmt != null) try { stmt.close(); } catch(Exception e) {}
-			if (con != null) try { con.close(); } catch(Exception e) {}
-		}
-	}
+            // Iterate through the data in the result set and display it.
+            while (rs.next()) {
+                System.out.println("user name: " + rs.getString(1));
+            }
+        }
+
+        // Handle any errors that may have occurred.
+        catch (Exception e) {
+            e.printStackTrace();
+        } finally {
+            if (rs != null) try {
+                rs.close();
+            } catch (Exception e) {
+            }
+            if (stmt != null) try {
+                stmt.close();
+            } catch (Exception e) {
+            }
+            if (con != null) try {
+                con.close();
+            } catch (Exception e) {
+            }
+        }
+    }
 }
 

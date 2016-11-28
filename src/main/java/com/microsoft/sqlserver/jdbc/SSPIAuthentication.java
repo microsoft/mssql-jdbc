@@ -15,17 +15,17 @@
 //  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS 
 //  IN THE SOFTWARE.
 //---------------------------------------------------------------------------------------------------------------------------------
- 
+
 
 package com.microsoft.sqlserver.jdbc;
 
 /**
-* Integrated Authentication master file.
-* Common items for kerb and JNI auth are in this interface.
-*/
+ * Integrated Authentication master file.
+ * Common items for kerb and JNI auth are in this interface.
+ */
 
-abstract class SSPIAuthentication
-{
-    abstract byte[] GenerateClientContext(byte[] pin,   boolean[] done ) throws SQLServerException;
-    abstract int ReleaseClientContext()throws SQLServerException;   
+abstract class SSPIAuthentication {
+    abstract byte[] GenerateClientContext(byte[] pin, boolean[] done) throws SQLServerException;
+
+    abstract int ReleaseClientContext() throws SQLServerException;
 }

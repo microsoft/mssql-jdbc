@@ -15,31 +15,28 @@
 //  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS 
 //  IN THE SOFTWARE.
 //---------------------------------------------------------------------------------------------------------------------------------
- 
+
 
 package com.microsoft.sqlserver.jdbc;
 
 
 /**
-* StreamSSPi represents a TDS SSPI processing.
-*
-*/
+ * StreamSSPi represents a TDS SSPI processing.
+ */
 
 final class StreamSSPI extends StreamPacket {
-  	byte	 sspiBlob[];	
+    byte sspiBlob[];
 
-  StreamSSPI()
-  {
-    super(TDS.TDS_SSPI);
-  }
+    StreamSSPI() {
+        super(TDS.TDS_SSPI);
+    }
 
-  void setFromTDS(TDSReader tdsReader) throws SQLServerException
-  {
-    if (TDS.TDS_SSPI != tdsReader.readUnsignedByte()) assert false;
-    int blobLength = tdsReader.readUnsignedShort();
-    sspiBlob = new byte[blobLength];
-    tdsReader.readBytes(sspiBlob, 0, blobLength);
-  }
+    void setFromTDS(TDSReader tdsReader) throws SQLServerException {
+        if (TDS.TDS_SSPI != tdsReader.readUnsignedByte()) assert false;
+        int blobLength = tdsReader.readUnsignedShort();
+        sspiBlob = new byte[blobLength];
+        tdsReader.readBytes(sspiBlob, 0, blobLength);
+    }
 }
 
 

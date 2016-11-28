@@ -15,7 +15,7 @@
 //  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS 
 //  IN THE SOFTWARE.
 //---------------------------------------------------------------------------------------------------------------------------------
- 
+
 
 package com.microsoft.sqlserver.jdbc;
 
@@ -23,19 +23,18 @@ import java.sql.SQLType;
 
 /**
  * This interface requires all the ResultSet methods including those are specific to JDBC 4.2
- *
  */
-public interface ISQLServerResultSet42 extends ISQLServerResultSet{
+public interface ISQLServerResultSet42 extends ISQLServerResultSet {
 
-	public void updateObject(int index, Object obj, SQLType targetSqlType) throws SQLServerException;
+    public void updateObject(int index, Object obj, SQLType targetSqlType) throws SQLServerException;
 
-	public void updateObject(int index, Object obj, SQLType targetSqlType, int scale) throws SQLServerException;
+    public void updateObject(int index, Object obj, SQLType targetSqlType, int scale) throws SQLServerException;
 
-	public void updateObject(int index, Object obj, SQLType targetSqlType, int scale, boolean forceEncrypt) throws SQLServerException;
+    public void updateObject(int index, Object obj, SQLType targetSqlType, int scale, boolean forceEncrypt) throws SQLServerException;
 
-	public void updateObject(String columnName, Object obj, SQLType targetSqlType, int scale) throws SQLServerException;
+    public void updateObject(String columnName, Object obj, SQLType targetSqlType, int scale) throws SQLServerException;
 
-	public void updateObject(String columnName, Object obj, SQLType targetSqlType, int scale, boolean forceEncrypt) throws SQLServerException;
+    public void updateObject(String columnName, Object obj, SQLType targetSqlType, int scale, boolean forceEncrypt) throws SQLServerException;
 
-	public void updateObject(String columnName, Object obj, SQLType targetSqlType) throws SQLServerException;
+    public void updateObject(String columnName, Object obj, SQLType targetSqlType) throws SQLServerException;
 }

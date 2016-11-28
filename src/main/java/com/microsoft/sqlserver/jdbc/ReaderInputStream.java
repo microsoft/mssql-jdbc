@@ -15,9 +15,10 @@
 //  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS 
 //  IN THE SOFTWARE.
 //---------------------------------------------------------------------------------------------------------------------------------
- 
+
 
 package com.microsoft.sqlserver.jdbc;
+
 import java.io.*;
 import java.nio.charset.*;
 import java.nio.*;
@@ -25,21 +26,20 @@ import java.text.MessageFormat;
 
 /**
  * InputStream adapter for Readers.
- *
+ * <p>
  * This class implements an InputStream whose bytes are encoded
  * character values that are read on demand from a wrapped Reader
  * using the suplied Charset.
- *
+ * <p>
  * Character values pass through through the following
  * in their transformation to bytes:
  * Reader .. CharBuffer .. Charset (CharsetEncoder) .. ByteBuffer .. InputStream
- *
+ * <p>
  * To minimize memory usage, the CharBuffer and ByteBuffer instances
  * used by this class are created on demand when InputStream read
  * methods are called.
  */
-class ReaderInputStream extends InputStream
-{
+class ReaderInputStream extends InputStream {
     // The Reader that this ReaderInputStream adapts.
     private final Reader reader;
 
@@ -66,23 +66,17 @@ class ReaderInputStream extends InputStream
     private static final ByteBuffer EMPTY_BUFFER = ByteBuffer.allocate(0);
     private ByteBuffer encodedChars = EMPTY_BUFFER;
 
-    ReaderInputStream(Reader reader, String charsetName, long readerLength) throws UnsupportedEncodingException
-    {
+    ReaderInputStream(Reader reader, String charsetName, long readerLength) throws UnsupportedEncodingException {
         assert reader != null;
         assert charsetName != null;
         assert DataTypes.UNKNOWN_STREAM_LENGTH == readerLength || readerLength >= 0;
 
         this.reader = reader;
-        try
-        {
+        try {
             this.charset = Charset.forName(charsetName);
-        }
-        catch (IllegalCharsetNameException e)
-        {
+        } catch (IllegalCharsetNameException e) {
             throw new UnsupportedEncodingException(e.getMessage());
-        }
-        catch (UnsupportedCharsetException e)
-        {
+        } catch (UnsupportedCharsetException e) {
             throw new UnsupportedEncodingException(e.getMessage());
         }
 
@@ -96,8 +90,7 @@ class ReaderInputStream extends InputStream
      * @return - the number of bytes that can be read from this input stream without blocking
      * @throws IOException - if an I/O error occurs
      */
-    public int available() throws IOException
-    {
+    public int available() throws IOException {
         assert null != reader;
         assert null != encodedChars;
 
@@ -121,23 +114,20 @@ class ReaderInputStream extends InputStream
     }
 
     private final byte[] oneByte = new byte[1];
-    public int read() throws IOException
-    {
+
+    public int read() throws IOException {
         return (-1 == readInternal(oneByte, 0, oneByte.length)) ? -1 : oneByte[0];
     }
 
-    public int read(byte[] b) throws IOException
-    {
+    public int read(byte[] b) throws IOException {
         return readInternal(b, 0, b.length);
     }
 
-    public int read(byte[] b, int off, int len) throws IOException
-    {
+    public int read(byte[] b, int off, int len) throws IOException {
         return readInternal(b, off, len);
     }
 
-    private int readInternal(byte[] b, int off, int len) throws IOException
-    {
+    private int readInternal(byte[] b, int off, int len) throws IOException {
         assert null != b;
         assert 0 <= off && off <= b.length;
         assert 0 <= len && len <= b.length;
@@ -147,8 +137,7 @@ class ReaderInputStream extends InputStream
             return 0;
 
         int bytesRead = 0;
-        while (bytesRead < len && encodeChars())
-        {
+        while (bytesRead < len && encodeChars()) {
             // Read the lesser of the number of bytes remaining
             // in the encoded character buffer and the number
             // of bytes remaining for this read request.
@@ -173,12 +162,10 @@ class ReaderInputStream extends InputStream
      * Determines whether encoded characters are available, encoding them on demand
      * by reading them from the reader as necessary.
      *
-     * @return true when encoded characters are available
      * @return false when no more encoded characters are available (i.e. end of stream)
-     * @exception IOException if an I/O error occurs reading from the reader or encoding the characters
-     */	
-    private boolean encodeChars() throws IOException
-    {
+     * @throws IOException if an I/O error occurs reading from the reader or encoding the characters
+     */
+    private boolean encodeChars() throws IOException {
         // Once at the end of the stream, no more characters can be encoded.
         if (atEndOfStream)
             return false;
@@ -197,17 +184,13 @@ class ReaderInputStream extends InputStream
         // If there are no raw characters available (because the raw character
         // buffer has been exhausted or never filled), then try to read in
         // raw characters from the reader.
-        if (null == rawChars || !rawChars.hasRemaining())
-        {
-            if (null == rawChars)
-            {
+        if (null == rawChars || !rawChars.hasRemaining()) {
+            if (null == rawChars) {
                 assert MAX_CHAR_BUFFER_SIZE <= Integer.MAX_VALUE;
                 rawChars = CharBuffer.allocate(
-                    (DataTypes.UNKNOWN_STREAM_LENGTH == readerLength || readerLength > MAX_CHAR_BUFFER_SIZE) ?
-                    MAX_CHAR_BUFFER_SIZE : Math.max((int) readerLength, 1));
-            }
-            else
-            {
+                        (DataTypes.UNKNOWN_STREAM_LENGTH == readerLength || readerLength > MAX_CHAR_BUFFER_SIZE) ?
+                                MAX_CHAR_BUFFER_SIZE : Math.max((int) readerLength, 1));
+            } else {
                 // Flip the buffer to be ready for put (reader read) operations.
                 rawChars.clear();
             }
@@ -220,21 +203,18 @@ class ReaderInputStream extends InputStream
             // - the reader reaches end-of-stream
             // - the reader throws any kind of Exception (driver throws an IOException)
             // - the reader violates its interface contract (driver throws an IOException)
-            while (rawChars.hasRemaining())
-            {
+            while (rawChars.hasRemaining()) {
                 int lastPosition = rawChars.position();
                 int charsRead = 0;
-               
+
                 // Try reading from the app-supplied Reader
-                try
-                {
+                try {
                     charsRead = reader.read(rawChars);
                 }
 
                 // Catch any kind of exception and translate it to an IOException.
                 // The app-supplied reader cannot be trusted just to throw IOExceptions...
-                catch (Exception e)
-                {
+                catch (Exception e) {
                     String detailMessage = e.getMessage();
                     if (null == detailMessage)
                         detailMessage = SQLServerException.getErrString("R_streamReadReturnedInvalidValue");
@@ -246,22 +226,19 @@ class ReaderInputStream extends InputStream
                 if (charsRead < -1 || 0 == charsRead)
                     throw new IOException(SQLServerException.getErrString("R_streamReadReturnedInvalidValue"));
 
-                if (-1 == charsRead)
-                {
+                if (-1 == charsRead) {
                     // If the reader violates its interface contract then throw an exception.
                     if (rawChars.position() != lastPosition)
                         throw new IOException(SQLServerException.getErrString("R_streamReadReturnedInvalidValue"));
 
                     // Check that the reader has returned exactly the amount of data we expect
-                    if (DataTypes.UNKNOWN_STREAM_LENGTH != readerLength && 0 != readerLength - readerCharsRead)
-                    {
+                    if (DataTypes.UNKNOWN_STREAM_LENGTH != readerLength && 0 != readerLength - readerCharsRead) {
                         MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_mismatchedStreamLength"));
-                        throw new IOException(form.format(new Object[] {readerLength, readerCharsRead}));
+                        throw new IOException(form.format(new Object[]{readerLength, readerCharsRead}));
                     }
 
                     // If there are no characters left to encode then we're done.
-                    if (0 == rawChars.position())
-                    {
+                    if (0 == rawChars.position()) {
                         rawChars = null;
                         atEndOfStream = true;
                         return false;
@@ -278,10 +255,9 @@ class ReaderInputStream extends InputStream
                     throw new IOException(SQLServerException.getErrString("R_streamReadReturnedInvalidValue"));
 
                 // Check that the reader isn't trying to return more data than we expect
-                if (DataTypes.UNKNOWN_STREAM_LENGTH != readerLength && charsRead > readerLength - readerCharsRead)
-                {
+                if (DataTypes.UNKNOWN_STREAM_LENGTH != readerLength && charsRead > readerLength - readerCharsRead) {
                     MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_mismatchedStreamLength"));
-                    throw new IOException(form.format(new Object[] {readerLength, readerCharsRead}));
+                    throw new IOException(form.format(new Object[]{readerLength, readerCharsRead}));
                 }
 
                 readerCharsRead += charsRead;

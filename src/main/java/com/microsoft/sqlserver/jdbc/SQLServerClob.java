@@ -15,9 +15,10 @@
 //  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS 
 //  IN THE SOFTWARE.
 //---------------------------------------------------------------------------------------------------------------------------------
- 
- 
+
+
 package com.microsoft.sqlserver.jdbc;
+
 import java.sql.*;
 import java.io.*;
 import java.text.*;
@@ -25,48 +26,46 @@ import java.util.*;
 import java.util.logging.*;
 
 /**
-* SQLServerClob represents a character LOB object and implements java.sql.Clob.
-*/
+ * SQLServerClob represents a character LOB object and implements java.sql.Clob.
+ */
 
-public class SQLServerClob extends SQLServerClobBase implements Clob
-{
-	private static final long serialVersionUID = 2872035282200133865L;
-	
-	// Loggers should be class static to avoid lock contention with multiple threads
+public class SQLServerClob extends SQLServerClobBase implements Clob {
+    private static final long serialVersionUID = 2872035282200133865L;
+
+    // Loggers should be class static to avoid lock contention with multiple threads
     private static final Logger logger = Logger.getLogger("com.microsoft.sqlserver.jdbc.internals.SQLServerClob");
 
     /**
      * Create a new CLOB
      *
      * @param connection the database connection this blob is implemented on
-     * @param data the BLOB's data
+     * @param data       the BLOB's data
      */
-    @Deprecated public SQLServerClob(SQLServerConnection connection, String data)
-    {
+    @Deprecated
+    public SQLServerClob(SQLServerConnection connection, String data) {
         super(connection, data, (null == connection) ? null : connection.getDatabaseCollation(), logger);
 
         if (null == data)
             throw new NullPointerException(SQLServerException.getErrString("R_cantSetNull"));
     }
 
-    SQLServerClob(SQLServerConnection connection)
-    {
+    SQLServerClob(SQLServerConnection connection) {
         super(connection, "", connection.getDatabaseCollation(), logger);
     }
 
-    SQLServerClob(BaseInputStream stream, TypeInfo typeInfo) throws SQLServerException, UnsupportedEncodingException
-    {
+    SQLServerClob(BaseInputStream stream, TypeInfo typeInfo) throws SQLServerException, UnsupportedEncodingException {
         super(null, new String(stream.getBytes(), typeInfo.getCharset()), typeInfo.getSQLCollation(), logger);
     }
 
-    final JDBCType getJdbcType() { return JDBCType.CLOB; }
+    final JDBCType getJdbcType() {
+        return JDBCType.CLOB;
+    }
 }
 
-abstract class SQLServerClobBase implements Serializable
-{
-	private static final long serialVersionUID = 8691072211054430124L;
+abstract class SQLServerClobBase implements Serializable {
+    private static final long serialVersionUID = 8691072211054430124L;
 
-	// The value of the CLOB that this Clob object represents.
+    // The value of the CLOB that this Clob object represents.
     // This value is never null unless/until the free() method is called.
     private String value;
 
@@ -84,71 +83,63 @@ abstract class SQLServerClobBase implements Serializable
     transient SQLServerConnection con;
     private static Logger logger;
     final private String traceID = getClass().getName().substring(1 + getClass().getName().lastIndexOf('.')) + ":" + nextInstanceID();
-    final public String toString()
-    {
+
+    final public String toString() {
         return traceID;
     }
-    static private int baseID = 0;	// Unique id generator for each  instance (used for logging).
+
+    static private int baseID = 0;    // Unique id generator for each  instance (used for logging).
+
     // Returns unique id for each instance.
-    private synchronized static int nextInstanceID()
-    {
+    private synchronized static int nextInstanceID() {
         baseID++;
         return baseID;
     }
 
     abstract JDBCType getJdbcType();
 
-    private String getDisplayClassName()
-    {
+    private String getDisplayClassName() {
         String fullClassName = getJdbcType().className();
         return fullClassName.substring(1 + fullClassName.lastIndexOf('.'));
     }
 
     /**
      * Create a new CLOB from a String
+     *
      * @param connection SQLServerConnection
-     * @param data the CLOB data
-	 * @param collation the data collation
-	 * @param logger
+     * @param data       the CLOB data
+     * @param collation  the data collation
+     * @param logger
      */
-    SQLServerClobBase(SQLServerConnection connection, String data, SQLCollation collation, Logger logger)
-    {
+    SQLServerClobBase(SQLServerConnection connection, String data, SQLCollation collation, Logger logger) {
         this.con = connection;
         this.value = data;
         this.sqlCollation = collation;
         SQLServerClobBase.logger = logger;
 
-        if(logger.isLoggable(Level.FINE))
-        {
-            String loggingInfo = (null !=connection)? connection.toString(): "null connection";
-            logger.fine(toString() + " created by (" + loggingInfo+ ")");
+        if (logger.isLoggable(Level.FINE)) {
+            String loggingInfo = (null != connection) ? connection.toString() : "null connection";
+            logger.fine(toString() + " created by (" + loggingInfo + ")");
         }
     }
 
     /**
      * Frees this Clob/NClob object and releases the resources that it holds.
-     *
+     * <p>
      * After free() has been called, any attempt to invoke a method other than free() will
      * result in a SQLException being thrown.  If free() is called multiple times, the subsequent
      * calls to free are treated as a no-op.
      */
-    public void free() throws SQLException
-    {
+    public void free() throws SQLException {
         DriverJDBCVersion.checkSupportsJDBC4();
 
-        if (!isClosed)
-        {
+        if (!isClosed) {
             // Close active streams, ignoring any errors, since nothing can be done with them after that point anyway.
-            if (null != activeStreams)
-            {
-                for (Closeable stream : activeStreams)
-                {
-                    try
-                    {
+            if (null != activeStreams) {
+                for (Closeable stream : activeStreams) {
+                    try {
                         stream.close();
-                    }
-                    catch (IOException ioException)
-                    {
+                    } catch (IOException ioException) {
                         logger.fine(toString() + " ignored IOException closing stream " + stream + ": " + ioException.getMessage());
                     }
                 }
@@ -165,35 +156,30 @@ abstract class SQLServerClobBase implements Serializable
     /**
      * Throws a SQLException if the LOB has been freed.
      */
-    private final void checkClosed() throws SQLServerException
-    {
-        if (isClosed)
-        {
+    private final void checkClosed() throws SQLServerException {
+        if (isClosed) {
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_isFreed"));
-            SQLServerException.makeFromDriverError(con, null, form.format(new Object[] {getDisplayClassName()}), null, true);
+            SQLServerException.makeFromDriverError(con, null, form.format(new Object[]{getDisplayClassName()}), null, true);
         }
     }
 
     /**
      * Materialize the CLOB as an ASCII stream.
-     * @throws SQLException
+     *
      * @return the data as an input stream
+     * @throws SQLException
      */
-    public InputStream getAsciiStream() throws SQLException
-    {
+    public InputStream getAsciiStream() throws SQLException {
         checkClosed();
 
         if (null != sqlCollation && !sqlCollation.supportsAsciiConversion())
             DataTypes.throwConversionError(getDisplayClassName(), "AsciiStream");
 
         InputStream getterStream;
-        try
-        {
+        try {
             // Need to use a BufferedInputStream since the stream returned by this method is assumed to support mark/reset
             getterStream = new BufferedInputStream(new ReaderInputStream(new StringReader(value), "US-ASCII", value.length()));
-        }
-        catch (UnsupportedEncodingException unsupportedEncodingException)
-        {
+        } catch (UnsupportedEncodingException unsupportedEncodingException) {
             throw new SQLServerException(unsupportedEncodingException.getMessage(), null, 0, unsupportedEncodingException);
         }
 
@@ -204,11 +190,11 @@ abstract class SQLServerClobBase implements Serializable
     /**
      * Retrieves the CLOB value designated by this Clob  object as a java.io.Reader object
      * (or as a stream of characters).
-     * @throws SQLException if there is an error accessing the CLOB value
+     *
      * @return a java.io.Reader object containing the CLOB data
+     * @throws SQLException if there is an error accessing the CLOB value
      */
-    public Reader getCharacterStream() throws SQLException
-    {
+    public Reader getCharacterStream() throws SQLException {
         checkClosed();
 
         Reader getterStream = new StringReader(value);
@@ -216,8 +202,7 @@ abstract class SQLServerClobBase implements Serializable
         return getterStream;
     }
 
-    public Reader getCharacterStream(long pos, long length) throws SQLException
-    {
+    public Reader getCharacterStream(long pos, long length) throws SQLException {
         DriverJDBCVersion.checkSupportsJDBC4();
 
         // Not implemented
@@ -228,24 +213,21 @@ abstract class SQLServerClobBase implements Serializable
      * Retrieves a copy of the specified substring in the CLOB value designated by this Clob object.
      * The substring begins at position pos and has up to length consecutive characters.
      *
-     * @param pos - the first character of the substring to be extracted. The first character is at position 1.
+     * @param pos    - the first character of the substring to be extracted. The first character is at position 1.
      * @param length - the number of consecutive characters to be copied; the value for length must be 0 or greater
      * @return a String that is the specified substring in the CLOB value designated by this Clob object
      * @throws SQLException - if there is an error accessing the CLOB value; if pos is less than 1 or length is less than 0
      */
-    public String getSubString(long pos, int length) throws SQLException
-    { 
+    public String getSubString(long pos, int length) throws SQLException {
         checkClosed();
 
-        if (pos < 1)
-        { 
+        if (pos < 1) {
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidPositionIndex"));
             Object[] msgArgs = {new Long(pos)};
             SQLServerException.makeFromDriverError(con, null, form.format(msgArgs), null, true);
         }
 
-        if (length < 0)
-        {
+        if (length < 0) {
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidLength"));
             Object[] msgArgs = {new Integer(length)};
             SQLServerException.makeFromDriverError(con, null, form.format(msgArgs), null, true);
@@ -264,16 +246,16 @@ abstract class SQLServerClobBase implements Serializable
             length = (int) (value.length() - pos);
 
         // Note String.substring uses beginIndex and endIndex (not pos and length), so calculate endIndex.
-        return value.substring((int)pos,(int)pos+length);
+        return value.substring((int) pos, (int) pos + length);
     }
 
     /**
      * Retrieves the number of characters in the CLOB value designated by this Clob object.
-     * @throws SQLException
+     *
      * @return length of the CLOB in characters
+     * @throws SQLException
      */
-    public long length() throws SQLException
-    {
+    public long length() throws SQLException {
         checkClosed();
 
         return value.length();
@@ -284,16 +266,14 @@ abstract class SQLServerClobBase implements Serializable
      * The search begins at position start.
      *
      * @param searchstr - the Clob for which to search
-     * @param start - the position at which to begin searching; the first position is 1
+     * @param start     - the position at which to begin searching; the first position is 1
      * @return the position at which the Clob object appears or -1 if it is not present; the first position is 1
      * @throws SQLException - if there is an error accessing the CLOB value or if start is less than 1
      */
-    public long position(Clob searchstr, long start) throws SQLException
-    {
+    public long position(Clob searchstr, long start) throws SQLException {
         checkClosed();
 
-        if (start < 1)
-        { 
+        if (start < 1) {
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidPositionIndex"));
             Object[] msgArgs = {new Long(start)};
             SQLServerException.makeFromDriverError(con, null, form.format(msgArgs), null, true);
@@ -310,17 +290,15 @@ abstract class SQLServerClobBase implements Serializable
      * SQL CLOB value represented by this Clob object. The search begins at position start.
      *
      * @param searchstr - the substring for which to search
-     * @param start - the position at which to begin searching; the first position is 1
+     * @param start     - the position at which to begin searching; the first position is 1
      * @return the position at which the substring appears or -1 if it is not present;
      * the first position is 1
      * @throws SQLException - if there is an error accessing the CLOB value or if start is less than 1
      */
-    public long position(String searchstr, long start) throws SQLException
-    {
+    public long position(String searchstr, long start) throws SQLException {
         checkClosed();
 
-        if (start < 1)
-        { 
+        if (start < 1) {
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidPositionIndex"));
             Object[] msgArgs = {new Long(start)};
             SQLServerException.makeFromDriverError(con, null, form.format(msgArgs), null, true);
@@ -331,7 +309,7 @@ abstract class SQLServerClobBase implements Serializable
         if (null == searchstr)
             return -1;
 
-        int pos = value.indexOf(searchstr, (int) (start-1));
+        int pos = value.indexOf(searchstr, (int) (start - 1));
         if (-1 != pos)
             return pos + 1;
 
@@ -342,37 +320,35 @@ abstract class SQLServerClobBase implements Serializable
 
     /**
      * Truncates the CLOB value that this Clob designates to have a length of len characters.
+     *
      * @param len the length, in characters, to which the CLOB value should be truncated
      * @throws SQLException
      */
-    public void truncate(long len) throws SQLException
-    {
+    public void truncate(long len) throws SQLException {
         checkClosed();
 
-        if (len < 0)
-        {
+        if (len < 0) {
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidLength"));
             Object[] msgArgs = {new Long(len)};
             SQLServerException.makeFromDriverError(con, null, form.format(msgArgs), null, true);
         }
 
         if (len <= Integer.MAX_VALUE && value.length() > len)
-            value = value.substring(0, (int)len);
+            value = value.substring(0, (int) len);
     }
 
     /**
      * Retrieves a stream to be used to write Ascii characters to the CLOB value that
      * this Clob object represents, starting at position pos.
+     *
      * @param pos the position at which to start writing to this CLOB object
-     * @throws SQLException
      * @return the stream to which ASCII encoded characters can be written
+     * @throws SQLException
      */
-    public java.io.OutputStream setAsciiStream(long pos) throws SQLException
-    {
+    public java.io.OutputStream setAsciiStream(long pos) throws SQLException {
         checkClosed();
 
-        if (pos < 1)
-        {
+        if (pos < 1) {
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidPositionIndex"));
             Object[] msgArgs = {new Long(pos)};
             SQLServerException.makeFromDriverError(con, null, form.format(msgArgs), null, true);
@@ -384,16 +360,15 @@ abstract class SQLServerClobBase implements Serializable
     /**
      * Retrieves a stream to be used to write a stream of Unicode characters to
      * the CLOB value that this Clob object represents, at position pos.
+     *
      * @param pos the position at which to start writing to the CLOB value
-     * @throws SQLException
      * @return a stream to which Unicode encoded characters can be written
+     * @throws SQLException
      */
-    public java.io.Writer setCharacterStream(long pos) throws SQLException
-    {
+    public java.io.Writer setCharacterStream(long pos) throws SQLException {
         checkClosed();
 
-        if (pos < 1)
-        {
+        if (pos < 1) {
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidPositionIndex"));
             Object[] msgArgs = {new Long(pos)};
             SQLServerException.makeFromDriverError(con, null, form.format(msgArgs), null, true);
@@ -405,13 +380,13 @@ abstract class SQLServerClobBase implements Serializable
     /**
      * Writes the given Java String to the CLOB  value that this Clob object designates
      * at the position pos.
+     *
      * @param pos the position at which to start writing to the CLOB
-     * @param s the string to be written to the CLOB  value that this Clob designates
-     * @throws SQLException
+     * @param s   the string to be written to the CLOB  value that this Clob designates
      * @return the number of characters written
+     * @throws SQLException
      */
-    public int setString(long pos, String s) throws SQLException
-    {
+    public int setString(long pos, String s) throws SQLException {
         checkClosed();
 
         if (null == s)
@@ -425,36 +400,33 @@ abstract class SQLServerClobBase implements Serializable
      * The string will overwrite the existing characters in the Clob object starting at the position pos.
      * If the end of the Clob value is reached while writing the given string, then the length of the Clob
      * value will be increased to accomodate the extra characters.
-     *
+     * <p>
      * SQL Server behavior:
      * If the value specified for pos is greater than then length+1 of the CLOB value then a SQLException
      * is thrown.
      *
-     * @param pos - the position at which to start writing to this CLOB object; The first position is 1
-     * @param str - the string to be written to the CLOB value that this Clob object represents
+     * @param pos    - the position at which to start writing to this CLOB object; The first position is 1
+     * @param str    - the string to be written to the CLOB value that this Clob object represents
      * @param offset - the offset (0-based) into str to start reading the characters to be written
-     * @param len - the number of characters to be written
+     * @param len    - the number of characters to be written
      * @return the number of characters written
      * @throws SQLException - if there is an error accessing the CLOB value or if pos is less than 1
      */
-    public int setString(long pos, String str, int offset, int len) throws SQLException
-    {
+    public int setString(long pos, String str, int offset, int len) throws SQLException {
         checkClosed();
 
         if (null == str)
             SQLServerException.makeFromDriverError(con, null, SQLServerException.getErrString("R_cantSetNull"), null, true);
 
         // Offset must be within incoming string str boundary.
-        if (offset < 0 || offset > str.length())
-        {
+        if (offset < 0 || offset > str.length()) {
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidOffset"));
             Object[] msgArgs = {new Integer(offset)};
             SQLServerException.makeFromDriverError(con, null, form.format(msgArgs), null, true);
         }
 
         // len must be within incoming string str boundary.
-        if (len < 0 || len > str.length() - offset)
-        {
+        if (len < 0 || len > str.length() - offset) {
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidLength"));
             Object[] msgArgs = {new Integer(len)};
             SQLServerException.makeFromDriverError(con, null, form.format(msgArgs), null, true);
@@ -463,8 +435,7 @@ abstract class SQLServerClobBase implements Serializable
         // Note position for Clob.setString is 1 based not zero based.
         // Position must be in range of existing Clob data or exactly 1 character
         // past the end of data to request "append" mode.
-        if (pos < 1 || pos > value.length() + 1)
-        {
+        if (pos < 1 || pos > value.length() + 1) {
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidPositionIndex"));
             Object[] msgArgs = {new Long(pos)};
             SQLServerException.makeFromDriverError(con, null, form.format(msgArgs), null, true);
@@ -474,36 +445,34 @@ abstract class SQLServerClobBase implements Serializable
         pos--;
 
         // Overwrite past end of value case.
-        if (len >= value.length() - pos)
-        {
+        if (len >= value.length() - pos) {
             // Make sure the new value length wouldn't exceed the maximum allowed
             DataTypes.getCheckedLength(con, getJdbcType(), pos + len, false);
             assert pos + len <= Integer.MAX_VALUE;
 
             // Start with the original value, up to the starting position
-            StringBuilder sb = new StringBuilder((int)pos+len);
-            sb.append(value.substring(0,(int)pos));
+            StringBuilder sb = new StringBuilder((int) pos + len);
+            sb.append(value.substring(0, (int) pos));
 
             // Append the new value
-            sb.append(str.substring(offset,offset+len));
+            sb.append(str.substring(offset, offset + len));
 
             // Use the combined string as the new value
             value = sb.toString();
         }
 
         // Overwrite internal to value case.
-        else
-        {
+        else {
             // Start with the original value, up to the starting position
             StringBuilder sb = new StringBuilder(value.length());
-            sb.append(value.substring(0,(int)pos));
+            sb.append(value.substring(0, (int) pos));
 
             // Append the new value
-            sb.append(str.substring(offset,offset+len));
+            sb.append(str.substring(offset, offset + len));
 
             // Append the remainder of the original value
             // that was not replaced by the new value
-            sb.append(value.substring((int)pos + len));
+            sb.append(value.substring((int) pos + len));
 
             // Use the combined string as the new value
             value = sb.toString();
@@ -520,66 +489,62 @@ abstract class SQLServerClobBase implements Serializable
 // SQLServerClobWriter starts writing at postion streamPos and continues to write 
 // in a forward only manner.  There is no reset with java.io.Writer.
 //
-final class SQLServerClobWriter extends java.io.Writer 
-{
-	private SQLServerClobBase parentClob = null;
-	private long streamPos;
-	SQLServerClobWriter(SQLServerClobBase parentClob, long streamPos) 
-	{
-		this.parentClob = parentClob;
-		this.streamPos = streamPos;
-	}
-	public void write(char[] cbuf) throws IOException 
-	{
-		if (null == cbuf) return;
-		write(new String(cbuf));
-	}
-	public void write(char[] cbuf, int off, int len) throws IOException
-	{
-		if (null == cbuf) return;
-		write(new String(cbuf,off,len));
-	}
-	public void write(int b) throws java.io.IOException
-	{
-		char [] c = new char[1];
-		c[0] = (char)b;
-		write(new String(c));
-	}
-	public void write(String str, int off, int len) throws IOException
-	{
-		checkClosed();
-		try
-		{
-			// Call parent's setString and update position.
-			// setString can throw a SQLServerException, we translate 
-			// this to an IOException here.
-			int charsWritten = parentClob.setString(streamPos,str,off,len);
-			streamPos += charsWritten;
-		}
-		catch (SQLException ex)
-		{
-			throw new IOException(ex.getMessage());
-		}
-	}
-	public void write(String str) throws IOException
-	{
-		if (null == str) return;
-		write(str,0,str.length());
-	}
-	public void flush() throws IOException
-	{
-		checkClosed();
-	}
-	public void close() throws IOException
-	{
-		checkClosed();
-		parentClob = null;
-	}
-	private void checkClosed() throws IOException
-	{
-		if (null==parentClob)
-			throw new IOException(SQLServerException.getErrString("R_streamIsClosed"));
-	}
+final class SQLServerClobWriter extends java.io.Writer {
+    private SQLServerClobBase parentClob = null;
+    private long streamPos;
+
+    SQLServerClobWriter(SQLServerClobBase parentClob, long streamPos) {
+        this.parentClob = parentClob;
+        this.streamPos = streamPos;
+    }
+
+    public void write(char[] cbuf) throws IOException {
+        if (null == cbuf) return;
+        write(new String(cbuf));
+    }
+
+    public void write(char[] cbuf, int off, int len) throws IOException {
+        if (null == cbuf) return;
+        write(new String(cbuf, off, len));
+    }
+
+    public void write(int b) throws java.io.IOException {
+        char[] c = new char[1];
+        c[0] = (char) b;
+        write(new String(c));
+    }
+
+    public void write(String str, int off, int len) throws IOException {
+        checkClosed();
+        try {
+            // Call parent's setString and update position.
+            // setString can throw a SQLServerException, we translate
+            // this to an IOException here.
+            int charsWritten = parentClob.setString(streamPos, str, off, len);
+            streamPos += charsWritten;
+        } catch (SQLException ex) {
+            throw new IOException(ex.getMessage());
+        }
+    }
+
+    public void write(String str) throws IOException {
+        if (null == str) return;
+        write(str, 0, str.length());
+    }
+
+    public void flush() throws IOException {
+        checkClosed();
+    }
+
+    public void close() throws IOException {
+        checkClosed();
+        parentClob = null;
+    }
+
+    private void checkClosed() throws IOException {
+        if (null == parentClob)
+            throw new IOException(SQLServerException.getErrString("R_streamIsClosed"));
+    }
 }
 
 // SQLServerClobAsciiOutputStream is a simple java.io.OutputStream interface implementing class that 
@@ -589,43 +554,40 @@ final class SQLServerClobWriter extends java.io.Writer
 // SQLServerClobAsciiOutputStream starts writing at character postion streamPos and continues to write 
 // in a forward only manner.  Reset/mark are not supported.
 //
-final class SQLServerClobAsciiOutputStream extends java.io.OutputStream
-{
-	private SQLServerClobBase parentClob = null;
-	private long streamPos;
-	SQLServerClobAsciiOutputStream(SQLServerClobBase parentClob, long streamPos) 
-	{
-		this.parentClob = parentClob;
-		this.streamPos  = streamPos;
-	}
-	public void write(byte[] b) throws IOException
-	{
-		if (null == b) return;
-		write(b,0,b.length);
-	}
-	public void write(byte[] b, int off, int len) throws IOException
-	{
-		if (null == b) return;
-		try
-		{
-			// Convert bytes to string using US-ASCII translation.
-			String s = new String(b, off, len, "US-ASCII");
+final class SQLServerClobAsciiOutputStream extends java.io.OutputStream {
+    private SQLServerClobBase parentClob = null;
+    private long streamPos;
 
-			// Call parent's setString and update position.
-			// setString can throw a SQLServerException, we translate 
-			// this to an IOException here.
-			int charsWritten = parentClob.setString(streamPos, s);
-			streamPos += charsWritten;
-		}
-		catch (SQLException ex)
-		{
-			throw new IOException(ex.getMessage());
-		}
-	}
-	private byte [] bSingleByte = new byte[1];
-	public void write(int b) throws java.io.IOException
-	{
-		bSingleByte[0] = (byte)(b&0xFF);
-		write(bSingleByte,0,bSingleByte.length);
-	}
+    SQLServerClobAsciiOutputStream(SQLServerClobBase parentClob, long streamPos) {
+        this.parentClob = parentClob;
+        this.streamPos = streamPos;
+    }
+
+    public void write(byte[] b) throws IOException {
+        if (null == b) return;
+        write(b, 0, b.length);
+    }
+
+    public void write(byte[] b, int off, int len) throws IOException {
+        if (null == b) return;
+        try {
+            // Convert bytes to string using US-ASCII translation.
+            String s = new String(b, off, len, "US-ASCII");
+
+            // Call parent's setString and update position.
+            // setString can throw a SQLServerException, we translate
+            // this to an IOException here.
+            int charsWritten = parentClob.setString(streamPos, s);
+            streamPos += charsWritten;
+        } catch (SQLException ex) {
+            throw new IOException(ex.getMessage());
+        }
+    }
+
+    private byte[] bSingleByte = new byte[1];
+
+    public void write(int b) throws java.io.IOException {
+        bSingleByte[0] = (byte) (b & 0xFF);
+        write(bSingleByte, 0, bSingleByte.length);
+    }
 }

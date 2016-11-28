@@ -15,44 +15,37 @@
 //  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS 
 //  IN THE SOFTWARE.
 //---------------------------------------------------------------------------------------------------------------------------------
- 
+
 
 package com.microsoft.sqlserver.jdbc;
 
 /**
- * 
- * Base class which represents Symmetric key 
- *
+ * Base class which represents Symmetric key
  */
- class SQLServerSymmetricKey {
-	private byte [] rootKey;
-	
-	
-	 SQLServerSymmetricKey(byte [] rootKey) throws SQLServerException{
-	     if(null == rootKey)
-	     {
-	    	 throw new SQLServerException(this, SQLServerException.getErrString("R_NullColumnEncryptionKey"), null, 0, false);
-	     }
-	     else if (0 == rootKey.length)
-	     { 
-	    	 throw new SQLServerException(this, SQLServerException.getErrString("R_EmptyColumnEncryptionKey"), null, 0, false);  
-	     }
-		this.rootKey=rootKey;
-	}
-	
-	byte [] getRootKey(){
-		return rootKey;
-	}
-	
-	int length(){
-		return rootKey.length;
-	}
-	
-	void zeroOutKey()
-	{
-		for (int i = 0; i < rootKey.length; i++)
-		{
-			rootKey[i] = (byte) 0;
-		}
-	}
+class SQLServerSymmetricKey {
+    private byte[] rootKey;
+
+
+    SQLServerSymmetricKey(byte[] rootKey) throws SQLServerException {
+        if (null == rootKey) {
+            throw new SQLServerException(this, SQLServerException.getErrString("R_NullColumnEncryptionKey"), null, 0, false);
+        } else if (0 == rootKey.length) {
+            throw new SQLServerException(this, SQLServerException.getErrString("R_EmptyColumnEncryptionKey"), null, 0, false);
+        }
+        this.rootKey = rootKey;
+    }
+
+    byte[] getRootKey() {
+        return rootKey;
+    }
+
+    int length() {
+        return rootKey.length;
+    }
+
+    void zeroOutKey() {
+        for (int i = 0; i < rootKey.length; i++) {
+            rootKey[i] = (byte) 0;
+        }
+    }
 }

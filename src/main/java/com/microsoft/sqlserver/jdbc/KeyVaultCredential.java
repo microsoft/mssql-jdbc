@@ -15,44 +15,45 @@
 //  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS 
 //  IN THE SOFTWARE.
 //---------------------------------------------------------------------------------------------------------------------------------
- 
+
 
 package com.microsoft.sqlserver.jdbc;
 
 import java.util.Map;
+
 import org.apache.http.Header;
 import org.apache.http.message.BasicHeader;
 import com.microsoft.azure.keyvault.authentication.KeyVaultCredentials;
 import com.microsoft.windowsazure.core.pipeline.filter.ServiceRequestContext;
 
-class KeyVaultCredential extends KeyVaultCredentials{
+class KeyVaultCredential extends KeyVaultCredentials {
 
-	//this is the only supported access token type
-	//https://msdn.microsoft.com/en-us/library/azure/dn645538.aspx
-	private final String accessTokenType = "Bearer";
+    //this is the only supported access token type
+    //https://msdn.microsoft.com/en-us/library/azure/dn645538.aspx
+    private final String accessTokenType = "Bearer";
 
-	SQLServerKeyVaultAuthenticationCallback authenticationCallback = null;
-	String clientId = null;
-	String clientKey = null;
-	String accessToken = null;
+    SQLServerKeyVaultAuthenticationCallback authenticationCallback = null;
+    String clientId = null;
+    String clientKey = null;
+    String accessToken = null;
 
-	KeyVaultCredential(SQLServerKeyVaultAuthenticationCallback authenticationCallback) {
-		this.authenticationCallback = authenticationCallback;
-	}
+    KeyVaultCredential(SQLServerKeyVaultAuthenticationCallback authenticationCallback) {
+        this.authenticationCallback = authenticationCallback;
+    }
 
-	@Override
-	public Header doAuthenticate(ServiceRequestContext request, Map<String, String> challenge) {
-		assert null != challenge;
-		
-		String authorization = challenge.get("authorization");
-		String resource = challenge.get("resource");
+    @Override
+    public Header doAuthenticate(ServiceRequestContext request, Map<String, String> challenge) {
+        assert null != challenge;
 
-		accessToken = authenticationCallback.getAccessToken(authorization, resource, "");
-		return new BasicHeader("Authorization", accessTokenType + " " + accessToken);
-	}
-	
-	void setAccessToken(String accessToken){
-		this.accessToken= accessToken;
-	}
+        String authorization = challenge.get("authorization");
+        String resource = challenge.get("resource");
+
+        accessToken = authenticationCallback.getAccessToken(authorization, resource, "");
+        return new BasicHeader("Authorization", accessTokenType + " " + accessToken);
+    }
+
+    void setAccessToken(String accessToken) {
+        this.accessToken = accessToken;
+    }
 
 }

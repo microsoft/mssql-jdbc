@@ -15,26 +15,23 @@
 //  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS 
 //  IN THE SOFTWARE.
 //---------------------------------------------------------------------------------------------------------------------------------
- 
+
 
 package com.microsoft.sqlserver.jdbc;
 
 /**
-* StreamColInfo interprets the data stream from a COLINFO TDS token
-*/
+ * StreamColInfo interprets the data stream from a COLINFO TDS token
+ */
 
-final class StreamColInfo extends StreamPacket
-{
+final class StreamColInfo extends StreamPacket {
     private TDSReader tdsReader;
     private TDSReaderMark colInfoMark;
 
-    StreamColInfo()
-    {
+    StreamColInfo() {
         super(TDS.TDS_COLINFO);
     }
 
-    void setFromTDS(TDSReader tdsReader) throws SQLServerException
-    {
+    void setFromTDS(TDSReader tdsReader) throws SQLServerException {
         if (TDS.TDS_COLINFO != tdsReader.readUnsignedByte())
             assert false : "Not a COLINFO token";
 
@@ -44,15 +41,13 @@ final class StreamColInfo extends StreamPacket
         tdsReader.skip(tokenLength);
     }
 
-    int applyTo(Column[] columns) throws SQLServerException
-    {
+    int applyTo(Column[] columns) throws SQLServerException {
         int numTables = 0;
 
         // Read and apply the column info for each column
         TDSReaderMark currentMark = tdsReader.mark();
         tdsReader.reset(colInfoMark);
-        for (int i = 0; i < columns.length; i++)
-        {
+        for (int i = 0; i < columns.length; i++) {
             Column col = columns[i];
 
             // Ignore the column number, per TDS spec.

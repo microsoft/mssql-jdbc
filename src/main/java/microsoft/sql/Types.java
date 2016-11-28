@@ -15,20 +15,18 @@
 //  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS 
 //  IN THE SOFTWARE.
 //---------------------------------------------------------------------------------------------------------------------------------
- 
+
 
 package microsoft.sql;
 
 /**
  * The class that defines the constants that are used to identify the SQL types
  * that are specific to Microsoft SQL Server.
- *
+ * <p>
  * This class is never instantiated.
  */
-public final class Types extends Object
-{
-    private Types()
-    {
+public final class Types extends Object {
+    private Types() {
         // not reached
     }
 
@@ -37,13 +35,13 @@ public final class Types extends Object
      * that identifies the Microsoft SQL type DATETIMEOFFSET.
      */
     public static final int DATETIMEOFFSET = -155;
-	public static final int STRUCTURED = -153;
-	
-	public static final int DATETIME = -151;
-	public static final int SMALLDATETIME = -150;
-	
-	public static final int MONEY = -148;
-	public static final int SMALLMONEY = -146;
-	
-	public static final int GUID = -145;
+    public static final int STRUCTURED = -153;
+
+    public static final int DATETIME = -151;
+    public static final int SMALLDATETIME = -150;
+
+    public static final int MONEY = -148;
+    public static final int SMALLMONEY = -146;
+
+    public static final int GUID = -145;
 }

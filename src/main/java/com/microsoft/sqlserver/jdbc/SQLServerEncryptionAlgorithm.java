@@ -15,8 +15,8 @@
 //  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS 
 //  IN THE SOFTWARE.
 //---------------------------------------------------------------------------------------------------------------------------------
- 
- 
+
+
 package com.microsoft.sqlserver.jdbc;
 
 /*
@@ -26,17 +26,19 @@ package com.microsoft.sqlserver.jdbc;
  */
 abstract class SQLServerEncryptionAlgorithm {
 
-	/**
-	 * Perform encryption of the plain text 
-	 * @param plainText data to be encrypted 
-	 * @return cipher text 
-	 */	  
-	abstract byte [] encryptData(byte [] plainText) throws SQLServerException;
+    /**
+     * Perform encryption of the plain text
+     *
+     * @param plainText data to be encrypted
+     * @return cipher text
+     */
+    abstract byte[] encryptData(byte[] plainText) throws SQLServerException;
 
-	/**
-	 * Decrypt cipher text to plain text
-	 * @param cipherText 
-	 * @return plain text after decryption 
-	 */
-	abstract byte [] decryptData(byte [] cipherText) throws SQLServerException;
+    /**
+     * Decrypt cipher text to plain text
+     *
+     * @param cipherText
+     * @return plain text after decryption
+     */
+    abstract byte[] decryptData(byte[] cipherText) throws SQLServerException;
 }

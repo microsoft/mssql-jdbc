@@ -15,40 +15,36 @@
 //  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS 
 //  IN THE SOFTWARE.
 //---------------------------------------------------------------------------------------------------------------------------------
- 
+
 
 package com.microsoft.sqlserver.jdbc;
 
 
 /**
-* StreamLoginAck represents a TDS login ack.
-*
-*/
+ * StreamLoginAck represents a TDS login ack.
+ */
 
-final class StreamLoginAck extends StreamPacket
-{
-  String sSQLServerVersion;
-  int tdsVersion;
+final class StreamLoginAck extends StreamPacket {
+    String sSQLServerVersion;
+    int tdsVersion;
 
-  StreamLoginAck()
-  {
-    super(TDS.TDS_LOGIN_ACK);
-  }
+    StreamLoginAck() {
+        super(TDS.TDS_LOGIN_ACK);
+    }
 
-  void setFromTDS(TDSReader tdsReader) throws SQLServerException
-  {
-    if (TDS.TDS_LOGIN_ACK != tdsReader.readUnsignedByte()) assert false;
-    tdsReader.readUnsignedShort(); // length of this token stream
-    tdsReader.readUnsignedByte(); // SQL version accepted by the server
-    tdsVersion = tdsReader.readIntBigEndian(); // TDS version accepted by the server
-    tdsReader.readUnicodeString(tdsReader.readUnsignedByte()); // Program name
-    int serverMajorVersion = tdsReader.readUnsignedByte();
-    int serverMinorVersion = tdsReader.readUnsignedByte();
-    int serverBuildNumber  = (tdsReader.readUnsignedByte() << 8) | tdsReader.readUnsignedByte();
+    void setFromTDS(TDSReader tdsReader) throws SQLServerException {
+        if (TDS.TDS_LOGIN_ACK != tdsReader.readUnsignedByte()) assert false;
+        tdsReader.readUnsignedShort(); // length of this token stream
+        tdsReader.readUnsignedByte(); // SQL version accepted by the server
+        tdsVersion = tdsReader.readIntBigEndian(); // TDS version accepted by the server
+        tdsReader.readUnicodeString(tdsReader.readUnsignedByte()); // Program name
+        int serverMajorVersion = tdsReader.readUnsignedByte();
+        int serverMinorVersion = tdsReader.readUnsignedByte();
+        int serverBuildNumber = (tdsReader.readUnsignedByte() << 8) | tdsReader.readUnsignedByte();
 
-    sSQLServerVersion =
-      serverMajorVersion + "." +
-      ((serverMinorVersion <= 9) ? "0": "") + serverMinorVersion + "." +
-      serverBuildNumber;
-  }
+        sSQLServerVersion =
+                serverMajorVersion + "." +
+                        ((serverMinorVersion <= 9) ? "0" : "") + serverMinorVersion + "." +
+                        serverBuildNumber;
+    }
 }

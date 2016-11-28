@@ -15,25 +15,22 @@
 //  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS 
 //  IN THE SOFTWARE.
 //---------------------------------------------------------------------------------------------------------------------------------
- 
- 
+
+
 package com.microsoft.sqlserver.jdbc;
 
 /**
- * 
  * Abstract base class for all the encryption algorithm factory classes.
- *
  */
- abstract class SQLServerEncryptionAlgorithmFactory {
-	
-     /**
-      * 
-      * @param columnEncryptionKey key which will be used in encryption/decryption
-      * @param encryptionType  specifies kind of encryption
-      * @param encryptionAlgorithm name of encryption algorithm 
-      * @return created SQLServerEncryptionAlgorithm instance 
-      * @throws SQLServerException
-      */
-	 abstract SQLServerEncryptionAlgorithm create (SQLServerSymmetricKey columnEncryptionKey,SQLServerEncryptionType encryptionType,String encryptionAlgorithm) throws SQLServerException;
+abstract class SQLServerEncryptionAlgorithmFactory {
+
+    /**
+     * @param columnEncryptionKey key which will be used in encryption/decryption
+     * @param encryptionType      specifies kind of encryption
+     * @param encryptionAlgorithm name of encryption algorithm
+     * @return created SQLServerEncryptionAlgorithm instance
+     * @throws SQLServerException
+     */
+    abstract SQLServerEncryptionAlgorithm create(SQLServerSymmetricKey columnEncryptionKey, SQLServerEncryptionType encryptionType, String encryptionAlgorithm) throws SQLServerException;
 
 }

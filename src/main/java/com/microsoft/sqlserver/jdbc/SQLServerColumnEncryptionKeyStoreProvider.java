@@ -15,15 +15,18 @@
 //  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS 
 //  IN THE SOFTWARE.
 //---------------------------------------------------------------------------------------------------------------------------------
- 
- 
+
+
 package com.microsoft.sqlserver.jdbc;
 
 public abstract class SQLServerColumnEncryptionKeyStoreProvider {
-	
-	public abstract void setName(String name);
-	public abstract String getName();
-	public abstract byte [] decryptColumnEncryptionKey(String masterKeyPath,String encryptionAlgorithm,byte [] encryptedColumnEncryptionKey) throws SQLServerException;
-	public abstract byte [] encryptColumnEncryptionKey(String masterKeyPath,String encryptionAlgorithm,byte [] columnEncryptionKey) throws SQLServerException;
+
+    public abstract void setName(String name);
+
+    public abstract String getName();
+
+    public abstract byte[] decryptColumnEncryptionKey(String masterKeyPath, String encryptionAlgorithm, byte[] encryptedColumnEncryptionKey) throws SQLServerException;
+
+    public abstract byte[] encryptColumnEncryptionKey(String masterKeyPath, String encryptionAlgorithm, byte[] columnEncryptionKey) throws SQLServerException;
 
 }

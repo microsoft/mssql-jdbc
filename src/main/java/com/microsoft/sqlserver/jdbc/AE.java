@@ -15,37 +15,36 @@
 //  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS 
 //  IN THE SOFTWARE.
 //---------------------------------------------------------------------------------------------------------------------------------
- 
+
 
 package com.microsoft.sqlserver.jdbc;
 
 import java.util.Vector;
 
 /**
- *  Represents a single encrypted value for a CEK. It contains the encrypted CEK,the store type, name,the key path and encryption algorithm.
+ * Represents a single encrypted value for a CEK. It contains the encrypted CEK,the store type, name,the key path and encryption algorithm.
  */
 class EncryptionKeyInfo {
     EncryptionKeyInfo(
-    		byte[] encryptedKeyVal, 
-    		int dbId, 
-    		int keyId,
-			int keyVersion, 
-			byte[] mdVersion, 
-			String keyPathVal,
-			String keyStoreNameVal, 
-			String algorithmNameVal) 
-    {
-		encryptedKey = encryptedKeyVal;
-		databaseId = dbId;
-		cekId = keyId;
-		cekVersion = keyVersion;
-		cekMdVersion = mdVersion;
-		keyPath = keyPathVal;
-		keyStoreName = keyStoreNameVal;
-		algorithmName = algorithmNameVal;
-	}
+            byte[] encryptedKeyVal,
+            int dbId,
+            int keyId,
+            int keyVersion,
+            byte[] mdVersion,
+            String keyPathVal,
+            String keyStoreNameVal,
+            String algorithmNameVal) {
+        encryptedKey = encryptedKeyVal;
+        databaseId = dbId;
+        cekId = keyId;
+        cekVersion = keyVersion;
+        cekMdVersion = mdVersion;
+        keyPath = keyPathVal;
+        keyStoreName = keyStoreNameVal;
+        algorithmName = algorithmNameVal;
+    }
 
-	byte[] encryptedKey; // the encrypted "column encryption key"
+    byte[] encryptedKey; // the encrypted "column encryption key"
     int databaseId;
     int cekId;
     int cekVersion;
@@ -53,80 +52,78 @@ class EncryptionKeyInfo {
     String keyPath;
     String keyStoreName;
     String algorithmName;
-    byte normalizationRuleVersion;    
+    byte normalizationRuleVersion;
 }
 
 /**
  * Represents a unique CEK as an entry in the CekTable. A unique (plaintext is unique) CEK can have multiple
- * encrypted CEKs when using multiple CMKs. These encrypted CEKs are represented by a member vector. 
+ * encrypted CEKs when using multiple CMKs. These encrypted CEKs are represented by a member vector.
  */
-class CekTableEntry
-{
-	static final private java.util.logging.Logger aeLogger = 
-		    java.util.logging.Logger.getLogger("com.microsoft.sqlserver.jdbc.AE");
-	
-	Vector<EncryptionKeyInfo> columnEncryptionKeyValues; 
-	int ordinal;
-	int databaseId; 
-	int cekId; 
-	int cekVersion; 
-	byte[] cekMdVersion; 
-	
-	Vector<EncryptionKeyInfo> getColumnEncryptionKeyValues() {
-		return columnEncryptionKeyValues;
-	}
+class CekTableEntry {
+    static final private java.util.logging.Logger aeLogger =
+            java.util.logging.Logger.getLogger("com.microsoft.sqlserver.jdbc.AE");
 
-	int getOrdinal() {
-		return ordinal;
-	}
+    Vector<EncryptionKeyInfo> columnEncryptionKeyValues;
+    int ordinal;
+    int databaseId;
+    int cekId;
+    int cekVersion;
+    byte[] cekMdVersion;
 
-	int getDatabaseId() {
-		return databaseId;
-	}
+    Vector<EncryptionKeyInfo> getColumnEncryptionKeyValues() {
+        return columnEncryptionKeyValues;
+    }
 
-	int getCekId() {
-		return cekId;
-	}
-	
-	int getCekVersion() {
-		return cekVersion;
-	}
+    int getOrdinal() {
+        return ordinal;
+    }
 
-	byte[] getCekMdVersion() {
-		return cekMdVersion;
-	}
-	
-    CekTableEntry(int ordinalVal)
-    {
+    int getDatabaseId() {
+        return databaseId;
+    }
+
+    int getCekId() {
+        return cekId;
+    }
+
+    int getCekVersion() {
+        return cekVersion;
+    }
+
+    byte[] getCekMdVersion() {
+        return cekMdVersion;
+    }
+
+    CekTableEntry(int ordinalVal) {
         ordinal = ordinalVal;
         databaseId = 0;
         cekId = 0;
         cekVersion = 0;
         cekMdVersion = null;
         columnEncryptionKeyValues = new Vector<EncryptionKeyInfo>();
-    }	
-    
-    int getSize(){
-    	return columnEncryptionKeyValues.size();
     }
-    
+
+    int getSize() {
+        return columnEncryptionKeyValues.size();
+    }
+
     void add(byte[] encryptedKey, int dbId, int keyId, int keyVersion, byte[] mdVersion, String keyPath, String keyStoreName, String algorithmName) {
 
         assert null != columnEncryptionKeyValues : "columnEncryptionKeyValues should already be initialized.";
 
-        if (aeLogger.isLoggable(java.util.logging.Level.FINE)){
-        	aeLogger.fine("Retrieving CEK values");
-		}
+        if (aeLogger.isLoggable(java.util.logging.Level.FINE)) {
+            aeLogger.fine("Retrieving CEK values");
+        }
 
         EncryptionKeyInfo encryptionKey = new EncryptionKeyInfo(
-        		encryptedKey,
-        		dbId,
-        		keyId,
-        		keyVersion,
-        		mdVersion,
-        		keyPath,
-        		keyStoreName,
-        		algorithmName);
+                encryptedKey,
+                dbId,
+                keyId,
+                keyVersion,
+                mdVersion,
+                keyPath,
+                keyStoreName,
+                algorithmName);
         columnEncryptionKeyValues.add(encryptionKey);
 
         if (0 == databaseId) {
@@ -134,51 +131,44 @@ class CekTableEntry
             cekId = keyId;
             cekVersion = keyVersion;
             cekMdVersion = mdVersion;
-        }
-        else {
-            assert(databaseId == dbId);
-            assert(cekId == keyId);
-            assert(cekVersion == keyVersion);
+        } else {
+            assert (databaseId == dbId);
+            assert (cekId == keyId);
+            assert (cekVersion == keyVersion);
             assert ((null != cekMdVersion) && (null != mdVersion) && (cekMdVersion.length == mdVersion.length));
         }
-    }	
+    }
 }
 
 /**
  * Contains all CEKs, each row represents one unique CEK (represented by CekTableEntry).
  */
-class CekTable
-{
-	CekTableEntry[] keyList;
-	
-	CekTable(int tableSize)
-	{
-		keyList = new CekTableEntry[tableSize];
-	}
-	
-	int getSize()
-	{
-		return keyList.length;
-	}
-	
-	CekTableEntry getCekTableEntry(int index)
-	{
-		return keyList[index];
-	}
-	
-	void setCekTableEntry(int index, CekTableEntry entry)
-	{
-		keyList[index] = entry;
-	}	
+class CekTable {
+    CekTableEntry[] keyList;
+
+    CekTable(int tableSize) {
+        keyList = new CekTableEntry[tableSize];
+    }
+
+    int getSize() {
+        return keyList.length;
+    }
+
+    CekTableEntry getCekTableEntry(int index) {
+        return keyList[index];
+    }
+
+    void setCekTableEntry(int index, CekTableEntry entry) {
+        keyList[index] = entry;
+    }
 }
 
 /**
  * Represents Encryption related information of the cipher data.
  */
-class CryptoMetadata
-{
-	TypeInfo baseTypeInfo;	
-	CekTableEntry cekTableEntry;
+class CryptoMetadata {
+    TypeInfo baseTypeInfo;
+    CekTableEntry cekTableEntry;
     byte cipherAlgorithmId;
     String cipherAlgorithmName;
     SQLServerEncryptionType encryptionType;
@@ -188,64 +178,63 @@ class CryptoMetadata
     short ordinal;
 
     CekTableEntry getCekTableEntry() {
-		return cekTableEntry;
-	}
-    
-	void setCekTableEntry(CekTableEntry cekTableEntryObj) {
-		cekTableEntry = cekTableEntryObj;
-	}
-	
+        return cekTableEntry;
+    }
+
+    void setCekTableEntry(CekTableEntry cekTableEntryObj) {
+        cekTableEntry = cekTableEntryObj;
+    }
+
     TypeInfo getBaseTypeInfo() {
-		return baseTypeInfo;
-	}
-    
-	void setBaseTypeInfo(TypeInfo baseTypeInfoObj) {
-		baseTypeInfo = baseTypeInfoObj;
-	}
-		
-	SQLServerEncryptionAlgorithm getEncryptionAlgorithm() {
-		return cipherAlgorithm;
-	}
-	
-	void setEncryptionAlgorithm(SQLServerEncryptionAlgorithm encryptionAlgorithmObj) {
-		cipherAlgorithm = encryptionAlgorithmObj;
-	}
-	
-	EncryptionKeyInfo getEncryptionKeyInfo() {
-		return encryptionKeyInfo;
-	}
-	
-	void setEncryptionKeyInfo(EncryptionKeyInfo encryptionKeyInfoObj) {
-		encryptionKeyInfo = encryptionKeyInfoObj;
-	}
+        return baseTypeInfo;
+    }
 
-	byte getEncryptionAlgorithmId() {
-		return cipherAlgorithmId;
-	}
+    void setBaseTypeInfo(TypeInfo baseTypeInfoObj) {
+        baseTypeInfo = baseTypeInfoObj;
+    }
 
-	String getEncryptionAlgorithmName() {
-		return cipherAlgorithmName;
-	}
+    SQLServerEncryptionAlgorithm getEncryptionAlgorithm() {
+        return cipherAlgorithm;
+    }
 
-	SQLServerEncryptionType getEncryptionType() {
-		return encryptionType;
-	}
-	
-	byte getNormalizationRuleVersion() {
-		return normalizationRuleVersion;
-	}
+    void setEncryptionAlgorithm(SQLServerEncryptionAlgorithm encryptionAlgorithmObj) {
+        cipherAlgorithm = encryptionAlgorithmObj;
+    }
 
-	short getOrdinal() {
-		return ordinal;
-	}
-	
-	CryptoMetadata(CekTableEntry cekTableEntryObj,
-                                short ordinalVal,
-                                byte cipherAlgorithmIdVal,
-                                String cipherAlgorithmNameVal,
-                                byte encryptionTypeVal,
-                                byte normalizationRuleVersionVal) throws SQLServerException
-   {
+    EncryptionKeyInfo getEncryptionKeyInfo() {
+        return encryptionKeyInfo;
+    }
+
+    void setEncryptionKeyInfo(EncryptionKeyInfo encryptionKeyInfoObj) {
+        encryptionKeyInfo = encryptionKeyInfoObj;
+    }
+
+    byte getEncryptionAlgorithmId() {
+        return cipherAlgorithmId;
+    }
+
+    String getEncryptionAlgorithmName() {
+        return cipherAlgorithmName;
+    }
+
+    SQLServerEncryptionType getEncryptionType() {
+        return encryptionType;
+    }
+
+    byte getNormalizationRuleVersion() {
+        return normalizationRuleVersion;
+    }
+
+    short getOrdinal() {
+        return ordinal;
+    }
+
+    CryptoMetadata(CekTableEntry cekTableEntryObj,
+                   short ordinalVal,
+                   byte cipherAlgorithmIdVal,
+                   String cipherAlgorithmNameVal,
+                   byte encryptionTypeVal,
+                   byte normalizationRuleVersionVal) throws SQLServerException {
         cekTableEntry = cekTableEntryObj;
         ordinal = ordinalVal;
         cipherAlgorithmId = cipherAlgorithmIdVal;
@@ -257,7 +246,7 @@ class CryptoMetadata
 
     boolean IsAlgorithmInitialized() {
         return (null != cipherAlgorithm) ? true : false;
-    }	
+    }
 }
 
 // Fields in the first resultset of "sp_describe_parameter_encryption"
@@ -275,17 +264,16 @@ enum DescribeParameterEncryptionResultSet1 {
     KeyEncryptionAlgorithm;
 
     private int value;
-    
+
     // Column indexing starts from 1;
-    static{
-    	for (int i = 0; i < values().length; ++i)
-    	{
-    		values()[i].value = i + 1;
-    	}
+    static {
+        for (int i = 0; i < values().length; ++i) {
+            values()[i].value = i + 1;
+        }
     }
-    int value()
-    {
-    	return value;
+
+    int value() {
+        return value;
     }
 }
 
@@ -301,17 +289,16 @@ enum DescribeParameterEncryptionResultSet2 {
     NormalizationRuleVersion;
 
     private int value;
-    
+
     // Column indexing starts from 1;
-    static{
-    	for (int i = 0; i < values().length; ++i)
-    	{
-    		values()[i].value = i + 1;
-    	}
+    static {
+        for (int i = 0; i < values().length; ++i) {
+            values()[i].value = i + 1;
+        }
     }
-    int value()
-    {
-    	return value;
-    }    
+
+    int value() {
+        return value;
+    }
 
 }

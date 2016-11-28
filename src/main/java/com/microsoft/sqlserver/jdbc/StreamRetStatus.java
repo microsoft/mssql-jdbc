@@ -15,28 +15,29 @@
 //  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS 
 //  IN THE SOFTWARE.
 //---------------------------------------------------------------------------------------------------------------------------------
- 
+
 
 package com.microsoft.sqlserver.jdbc;
 
 /**
  * StreamRetStatus represents a TDS return status.
- *
  */
-final class StreamRetStatus extends StreamPacket
-{
-  /** the returned status */
-  private int status;
-  final int getStatus() { return status; }
+final class StreamRetStatus extends StreamPacket {
+    /**
+     * the returned status
+     */
+    private int status;
 
-  StreamRetStatus()
-  {
-    super(TDS.TDS_RET_STAT);
-  }
+    final int getStatus() {
+        return status;
+    }
 
-  void setFromTDS(TDSReader tdsReader) throws SQLServerException
-  {
-    if (TDS.TDS_RET_STAT != tdsReader.readUnsignedByte()) assert false;
-    status = tdsReader.readInt();
-  }
+    StreamRetStatus() {
+        super(TDS.TDS_RET_STAT);
+    }
+
+    void setFromTDS(TDSReader tdsReader) throws SQLServerException {
+        if (TDS.TDS_RET_STAT != tdsReader.readUnsignedByte()) assert false;
+        status = tdsReader.readInt();
+    }
 }

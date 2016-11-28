@@ -15,22 +15,19 @@
 //  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS 
 //  IN THE SOFTWARE.
 //---------------------------------------------------------------------------------------------------------------------------------
- 
+
 
 package com.microsoft.sqlserver.jdbc;
 
-final class StreamInfo extends StreamPacket
-{
-  final StreamError msg = new StreamError();
+final class StreamInfo extends StreamPacket {
+    final StreamError msg = new StreamError();
 
-  StreamInfo()
-  {
-    super(TDS.TDS_MSG);
-  }
+    StreamInfo() {
+        super(TDS.TDS_MSG);
+    }
 
-  void setFromTDS(TDSReader tdsReader) throws SQLServerException
-  {
-    if (TDS.TDS_MSG != tdsReader.readUnsignedByte()) assert false;
-    msg.setContentsFromTDS(tdsReader);
-  }
+    void setFromTDS(TDSReader tdsReader) throws SQLServerException {
+        if (TDS.TDS_MSG != tdsReader.readUnsignedByte()) assert false;
+        msg.setContentsFromTDS(tdsReader);
+    }
 }

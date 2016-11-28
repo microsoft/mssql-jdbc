@@ -15,30 +15,30 @@
 //  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS 
 //  IN THE SOFTWARE.
 //---------------------------------------------------------------------------------------------------------------------------------
- 
- 
+
+
 package com.microsoft.sqlserver.jdbc;
 
 public enum SQLServerStatementColumnEncryptionSetting {
-		/*
-		 * if “Column Encryption Setting=Enabled” in the connection string, use Enabled. Otherwise, maps to Disabled. 
-		 */
-        UseConnectionSetting,
+    /*
+     * if “Column Encryption Setting=Enabled” in the connection string, use Enabled. Otherwise, maps to Disabled.
+     */
+    UseConnectionSetting,
 
-        /*
-         * Enables TCE for the command. Overrides the connection level setting for this command. 
-         */
-        Enabled,
+    /*
+     * Enables TCE for the command. Overrides the connection level setting for this command.
+     */
+    Enabled,
 
-        /*
-         * Parameters will not be encrypted, only the ResultSet will be decrypted. This is an optimization for queries that do not pass any encrypted input parameters.
-         * Overrides the connection level setting for this command.
-         */
-        ResultSetOnly,
+    /*
+     * Parameters will not be encrypted, only the ResultSet will be decrypted. This is an optimization for queries that do not pass any encrypted input parameters.
+     * Overrides the connection level setting for this command.
+     */
+    ResultSetOnly,
 
-        /*
-         * Disables TCE for the command.Overrides the connection level setting for this command.
-         */
-        Disabled,
+    /*
+     * Disables TCE for the command.Overrides the connection level setting for this command.
+     */
+    Disabled,
 }
 

@@ -15,48 +15,47 @@
 //  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS 
 //  IN THE SOFTWARE.
 //---------------------------------------------------------------------------------------------------------------------------------
- 
+
 
 package com.microsoft.sqlserver.jdbc;
 
 /**
-* StreamRetValue represents a TDS return value.
-*/
-final class StreamRetValue extends StreamPacket
-{
-  private String paramName;
+ * StreamRetValue represents a TDS return value.
+ */
+final class StreamRetValue extends StreamPacket {
+    private String paramName;
 
-  /*
-   * TDS 7.2: Indicates ordinal position of the OUTPUT parameter in the original RPC call
-   * TDS 7.1: Indicates the length of the return value
-   */
-  private int ordinalOrLength;
-  final int getOrdinalOrLength() { return ordinalOrLength; }
+    /*
+     * TDS 7.2: Indicates ordinal position of the OUTPUT parameter in the original RPC call
+     * TDS 7.1: Indicates the length of the return value
+     */
+    private int ordinalOrLength;
 
-  /*
-   * Status:
-   * 0x01 if the return value is an OUTPUT parameter of a stored procedure
-   * 0x02 if the return value is from a User Defined Function
-   */
-  private int status;
+    final int getOrdinalOrLength() {
+        return ordinalOrLength;
+    }
 
-  StreamRetValue()
-  {
-    super(TDS.TDS_RETURN_VALUE);
-  }
+    /*
+     * Status:
+     * 0x01 if the return value is an OUTPUT parameter of a stored procedure
+     * 0x02 if the return value is from a User Defined Function
+     */
+    private int status;
 
-  void setFromTDS(TDSReader tdsReader) throws SQLServerException
-  { 
-    if (TDS.TDS_RETURN_VALUE != tdsReader.readUnsignedByte()) assert false;
-    ordinalOrLength = tdsReader.readUnsignedShort();
-    paramName = tdsReader.readUnicodeString(tdsReader.readUnsignedByte());
-    status = tdsReader.readUnsignedByte();
-  }  
+    StreamRetValue() {
+        super(TDS.TDS_RETURN_VALUE);
+    }
 
-	CryptoMetadata getCryptoMetadata(TDSReader tdsReader) throws SQLServerException
-	{ 
-		CryptoMetadata cryptoMeta = (new StreamColumns()).readCryptoMetadata(tdsReader);
+    void setFromTDS(TDSReader tdsReader) throws SQLServerException {
+        if (TDS.TDS_RETURN_VALUE != tdsReader.readUnsignedByte()) assert false;
+        ordinalOrLength = tdsReader.readUnsignedShort();
+        paramName = tdsReader.readUnicodeString(tdsReader.readUnsignedByte());
+        status = tdsReader.readUnsignedByte();
+    }
 
-		return cryptoMeta;
-	}  
+    CryptoMetadata getCryptoMetadata(TDSReader tdsReader) throws SQLServerException {
+        CryptoMetadata cryptoMeta = (new StreamColumns()).readCryptoMetadata(tdsReader);
+
+        return cryptoMeta;
+    }
 }

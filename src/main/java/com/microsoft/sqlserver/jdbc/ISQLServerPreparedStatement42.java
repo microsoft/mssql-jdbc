@@ -15,7 +15,7 @@
 //  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS 
 //  IN THE SOFTWARE.
 //---------------------------------------------------------------------------------------------------------------------------------
- 
+
 
 package com.microsoft.sqlserver.jdbc;
 
@@ -23,15 +23,14 @@ import java.sql.SQLType;
 
 /**
  * This interface requires all the PreparedStatement methods including those are specific to JDBC 4.2
- *
  */
-public interface ISQLServerPreparedStatement42 extends ISQLServerPreparedStatement{
+public interface ISQLServerPreparedStatement42 extends ISQLServerPreparedStatement {
 
-	public void setObject(int index, Object obj, SQLType jdbcType) throws SQLServerException;
+    public void setObject(int index, Object obj, SQLType jdbcType) throws SQLServerException;
 
-	public void setObject(int parameterIndex, Object x, SQLType targetSqlType, int scaleOrLength) throws SQLServerException;
+    public void setObject(int parameterIndex, Object x, SQLType targetSqlType, int scaleOrLength) throws SQLServerException;
 
-	public void setObject(int parameterIndex, Object x, SQLType targetSqlType, Integer precision, Integer scale) throws SQLServerException;
+    public void setObject(int parameterIndex, Object x, SQLType targetSqlType, Integer precision, Integer scale) throws SQLServerException;
 
-	public void setObject(int parameterIndex, Object x, SQLType targetSqlType, Integer precision, Integer scale, boolean forceEncrypt) throws SQLServerException;
+    public void setObject(int parameterIndex, Object x, SQLType targetSqlType, Integer precision, Integer scale, boolean forceEncrypt) throws SQLServerException;
 }

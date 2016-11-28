@@ -15,70 +15,64 @@
 //  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS 
 //  IN THE SOFTWARE.
 //---------------------------------------------------------------------------------------------------------------------------------
- 
+
 
 package com.microsoft.sqlserver.jdbc;
 
 import java.sql.SQLType;
 
 /**
- * 
- * This class provides the underlying implementation of ISQLServerPreparedStatement42 interface to 
- * SQLServerPreparedStatement42 and SQLServerCallableStatement42, so that SQLServerPreparedStatement42 
+ * This class provides the underlying implementation of ISQLServerPreparedStatement42 interface to
+ * SQLServerPreparedStatement42 and SQLServerCallableStatement42, so that SQLServerPreparedStatement42
  * and SQLServerCallableStatement42 have the same implementation for same methods.
- *
  */
 class SQLServerPreparedStatement42Helper {
-	
-	static final void setObject(SQLServerPreparedStatement ps, int index, Object obj, SQLType jdbcType) throws SQLServerException
-	{
-		DriverJDBCVersion.checkSupportsJDBC42();
 
-		if(SQLServerStatement.loggerExternal.isLoggable(java.util.logging.Level.FINER)) 
-			SQLServerStatement.loggerExternal.entering(ps.getClassNameLogging(),  "setObject", new Object[]{index, obj, jdbcType});
+    static final void setObject(SQLServerPreparedStatement ps, int index, Object obj, SQLType jdbcType) throws SQLServerException {
+        DriverJDBCVersion.checkSupportsJDBC42();
 
-		// getVendorTypeNumber() returns the same constant integer values as in java.sql.Types
-		ps.setObject(index, obj, jdbcType.getVendorTypeNumber().intValue());
+        if (SQLServerStatement.loggerExternal.isLoggable(java.util.logging.Level.FINER))
+            SQLServerStatement.loggerExternal.entering(ps.getClassNameLogging(), "setObject", new Object[]{index, obj, jdbcType});
 
-		SQLServerStatement.loggerExternal.exiting(ps.getClassNameLogging(),  "setObject");
-	}
-	
-	static final void setObject(SQLServerPreparedStatement ps, int parameterIndex, Object x, SQLType targetSqlType, int scaleOrLength) throws SQLServerException
-	{
-		DriverJDBCVersion.checkSupportsJDBC42();    
+        // getVendorTypeNumber() returns the same constant integer values as in java.sql.Types
+        ps.setObject(index, obj, jdbcType.getVendorTypeNumber().intValue());
 
-		if(SQLServerStatement.loggerExternal.isLoggable(java.util.logging.Level.FINER)) 
-			SQLServerStatement.loggerExternal.entering(ps.getClassNameLogging(),  "setObject", new Object[]{parameterIndex, x, targetSqlType, scaleOrLength}); 
+        SQLServerStatement.loggerExternal.exiting(ps.getClassNameLogging(), "setObject");
+    }
 
-		// getVendorTypeNumber() returns the same constant integer values as in java.sql.Types
-		ps.setObject(parameterIndex, x, targetSqlType.getVendorTypeNumber().intValue(), scaleOrLength);
+    static final void setObject(SQLServerPreparedStatement ps, int parameterIndex, Object x, SQLType targetSqlType, int scaleOrLength) throws SQLServerException {
+        DriverJDBCVersion.checkSupportsJDBC42();
 
-		SQLServerStatement.loggerExternal.exiting(ps.getClassNameLogging(),  "setObject");
-	}
+        if (SQLServerStatement.loggerExternal.isLoggable(java.util.logging.Level.FINER))
+            SQLServerStatement.loggerExternal.entering(ps.getClassNameLogging(), "setObject", new Object[]{parameterIndex, x, targetSqlType, scaleOrLength});
 
-	static final void setObject(SQLServerPreparedStatement ps, int parameterIndex, Object x, SQLType targetSqlType, Integer precision, Integer scale) throws SQLServerException
-	{
-		DriverJDBCVersion.checkSupportsJDBC42();    
+        // getVendorTypeNumber() returns the same constant integer values as in java.sql.Types
+        ps.setObject(parameterIndex, x, targetSqlType.getVendorTypeNumber().intValue(), scaleOrLength);
 
-		if(SQLServerStatement.loggerExternal.isLoggable(java.util.logging.Level.FINER)) 
-			SQLServerStatement.loggerExternal.entering(ps.getClassNameLogging(),  "setObject", new Object[]{parameterIndex, x, targetSqlType, precision, scale}); 
+        SQLServerStatement.loggerExternal.exiting(ps.getClassNameLogging(), "setObject");
+    }
 
-		// getVendorTypeNumber() returns the same constant integer values as in java.sql.Types
-		ps.setObject(parameterIndex, x, targetSqlType.getVendorTypeNumber().intValue(), precision, scale, false);
+    static final void setObject(SQLServerPreparedStatement ps, int parameterIndex, Object x, SQLType targetSqlType, Integer precision, Integer scale) throws SQLServerException {
+        DriverJDBCVersion.checkSupportsJDBC42();
 
-		SQLServerStatement.loggerExternal.exiting(ps.getClassNameLogging(),  "setObject");
-	}
+        if (SQLServerStatement.loggerExternal.isLoggable(java.util.logging.Level.FINER))
+            SQLServerStatement.loggerExternal.entering(ps.getClassNameLogging(), "setObject", new Object[]{parameterIndex, x, targetSqlType, precision, scale});
 
-	static final void setObject(SQLServerPreparedStatement ps, int parameterIndex, Object x, SQLType targetSqlType, Integer precision, Integer scale, boolean forceEncrypt) throws SQLServerException
-	{
-		DriverJDBCVersion.checkSupportsJDBC42();    
+        // getVendorTypeNumber() returns the same constant integer values as in java.sql.Types
+        ps.setObject(parameterIndex, x, targetSqlType.getVendorTypeNumber().intValue(), precision, scale, false);
 
-		if(SQLServerStatement.loggerExternal.isLoggable(java.util.logging.Level.FINER)) 
-			SQLServerStatement.loggerExternal.entering(ps.getClassNameLogging(),  "setObject", new Object[]{parameterIndex, x, targetSqlType, precision, scale, forceEncrypt}); 
+        SQLServerStatement.loggerExternal.exiting(ps.getClassNameLogging(), "setObject");
+    }
 
-		// getVendorTypeNumber() returns the same constant integer values as in java.sql.Types
-		ps.setObject(parameterIndex, x, targetSqlType.getVendorTypeNumber().intValue(), precision, scale, forceEncrypt);
+    static final void setObject(SQLServerPreparedStatement ps, int parameterIndex, Object x, SQLType targetSqlType, Integer precision, Integer scale, boolean forceEncrypt) throws SQLServerException {
+        DriverJDBCVersion.checkSupportsJDBC42();
 
-		SQLServerStatement.loggerExternal.exiting(ps.getClassNameLogging(),  "setObject");
-	}
+        if (SQLServerStatement.loggerExternal.isLoggable(java.util.logging.Level.FINER))
+            SQLServerStatement.loggerExternal.entering(ps.getClassNameLogging(), "setObject", new Object[]{parameterIndex, x, targetSqlType, precision, scale, forceEncrypt});
+
+        // getVendorTypeNumber() returns the same constant integer values as in java.sql.Types
+        ps.setObject(parameterIndex, x, targetSqlType.getVendorTypeNumber().intValue(), precision, scale, forceEncrypt);
+
+        SQLServerStatement.loggerExternal.exiting(ps.getClassNameLogging(), "setObject");
+    }
 }

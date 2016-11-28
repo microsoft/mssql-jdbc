@@ -15,15 +15,17 @@
 //  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS 
 //  IN THE SOFTWARE.
 //---------------------------------------------------------------------------------------------------------------------------------
- 
- 
+
+
 package com.microsoft.sqlserver.jdbc;
 
 import java.sql.*;
-public interface ISQLServerCallableStatement extends java.sql.CallableStatement, ISQLServerPreparedStatement
-{
-    public void setDateTimeOffset(String parameterName, microsoft.sql.DateTimeOffset x)  throws SQLException;
+
+public interface ISQLServerCallableStatement extends java.sql.CallableStatement, ISQLServerPreparedStatement {
+    public void setDateTimeOffset(String parameterName, microsoft.sql.DateTimeOffset x) throws SQLException;
+
     public microsoft.sql.DateTimeOffset getDateTimeOffset(int parameterIndex) throws SQLException;
+
     public microsoft.sql.DateTimeOffset getDateTimeOffset(String parameterName) throws SQLException;
 }
 
