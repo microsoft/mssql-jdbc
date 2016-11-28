@@ -133,7 +133,16 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
     public <T> T unwrap(Class<T> iface) throws SQLException
     {
         DriverJDBCVersion.checkSupportsJDBC4();
-        throw new SQLFeatureNotSupportedException(SQLServerException.getErrString("R_notSupported"));
+        T t;
+        try
+        {
+            t = iface.cast(this);
+        }
+        catch (ClassCastException e)
+        {
+            throw new SQLServerException(e.getMessage(), e);
+        }
+        return t;
     }
 
     private void checkClosed() throws SQLServerException 
