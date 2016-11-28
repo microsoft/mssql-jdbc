@@ -4153,7 +4153,7 @@ public class SQLServerConnection implements ISQLServerConnection
 		tdsWriter.writeInt(len2);
 		tdsWriter.writeInt(tdsVersion);
 		tdsWriter.writeInt(requestedPacketSize);
-		tdsWriter.writeBytes(interfaceLibVersionBytes);
+		tdsWriter.writeBytes(interfaceLibVersionBytes); //writeBytes() is little endian
 		tdsWriter.writeInt(0); // Client process ID (0 = ??)
 		tdsWriter.writeInt(0); // Primary server connection ID
 
@@ -4361,37 +4361,37 @@ public class SQLServerConnection implements ISQLServerConnection
 		
 
 		// build the interface lib name
-		// 2 characters reserved for major
-		// 2 characters reserved for minor
-		// 2 characters reserved for patch
 		// 2 characters reserved for build
+		// 2 characters reserved for patch
+		// 2 characters reserved for minor
+		// 2 characters reserved for major
 		if(2 == interfaceLibMajor.length()){
-			outputInterfaceLibVersion.append(interfaceLibMajor);
+			outputInterfaceLibVersion.append(interfaceLibBuild);
 		}
 		else{
 			outputInterfaceLibVersion.append("0");
-			outputInterfaceLibVersion.append(interfaceLibMajor);
+			outputInterfaceLibVersion.append(interfaceLibBuild);
 		}
 		if(2 == interfaceLibMinor.length()){
-			outputInterfaceLibVersion.append(interfaceLibMinor);
+			outputInterfaceLibVersion.append(interfaceLibPatch);
 		}
 		else{
 			outputInterfaceLibVersion.append("0");
-			outputInterfaceLibVersion.append(interfaceLibMinor);
+			outputInterfaceLibVersion.append(interfaceLibPatch);
 		}
 		if(2 == interfaceLibPatch.length()){
-			outputInterfaceLibVersion.append(interfaceLibPatch);
+			outputInterfaceLibVersion.append(interfaceLibMinor);
 		}
 		else{
 			outputInterfaceLibVersion.append("0");
-			outputInterfaceLibVersion.append(interfaceLibPatch);
+			outputInterfaceLibVersion.append(interfaceLibMinor);
 		}
 		if(2 == interfaceLibBuild.length()){
-			outputInterfaceLibVersion.append(interfaceLibBuild);
+			outputInterfaceLibVersion.append(interfaceLibMajor);
 		}
 		else{
 			outputInterfaceLibVersion.append("0");
-			outputInterfaceLibVersion.append(interfaceLibBuild);
+			outputInterfaceLibVersion.append(interfaceLibMajor);
 		}
 		
 		return outputInterfaceLibVersion.toString();
