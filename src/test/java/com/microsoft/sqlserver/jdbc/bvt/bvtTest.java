@@ -639,7 +639,7 @@ public class bvtTest {
 		}
 		
 		if (querytimeout){
-			connectionUrl += "queryTimeout=10";
+			connectionUrl += ";queryTimeout=10";
 		}
 
 		return connectionUrl;
