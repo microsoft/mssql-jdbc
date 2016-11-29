@@ -19,15 +19,29 @@
  
 package com.microsoft.sqlserver.jdbc;
 
-import java.sql.*;
+import java.io.Closeable;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.Reader;
 import java.math.BigDecimal;
-import java.util.Calendar;
-import java.util.UUID;
-import java.io.*;
-import java.net.*;
-import java.util.ArrayList;
+import java.net.URL;
+import java.sql.Blob;
+import java.sql.Clob;
+import java.sql.Date;
+import java.sql.NClob;
+import java.sql.Ref;
+import java.sql.ResultSet;
+import java.sql.RowId;
+import java.sql.SQLException;
+import java.sql.SQLFeatureNotSupportedException;
+import java.sql.SQLXML;
+import java.sql.Time;
+import java.sql.Timestamp;
 import java.text.MessageFormat;
-import java.util.regex.*;
+import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 
 /**

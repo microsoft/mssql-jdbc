@@ -19,9 +19,9 @@
  
 
 package com.microsoft.sqlserver.jdbc;
-import java.util.*;
 
-import java.util.logging.*;
+import java.util.HashMap;
+import java.util.logging.Level;
 
 
 final class FailoverMapSingleton  

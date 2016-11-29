@@ -18,13 +18,27 @@
  
  
 package com.microsoft.sqlserver.jdbc;
-import java.util.logging.*;
-import org.ietf.jgss.*;
+
+import org.ietf.jgss.GSSContext;
+import org.ietf.jgss.GSSCredential;
+import org.ietf.jgss.GSSException;
+import org.ietf.jgss.GSSManager;
+import org.ietf.jgss.GSSName;
+import org.ietf.jgss.Oid;
+
 import javax.security.auth.Subject;
-import java.util.*;
-import javax.security.auth.login.*;
+import javax.security.auth.login.AppConfigurationEntry;
+import javax.security.auth.login.Configuration;
+import javax.security.auth.login.LoginContext;
+import javax.security.auth.login.LoginException;
 import java.net.IDN;
-import java.security.*;
+import java.security.AccessControlContext;
+import java.security.AccessController;
+import java.security.PrivilegedActionException;
+import java.security.PrivilegedExceptionAction;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.logging.Level;
 
 
 /**

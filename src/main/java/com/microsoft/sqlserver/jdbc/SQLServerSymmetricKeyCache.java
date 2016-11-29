@@ -19,6 +19,7 @@
 
 package com.microsoft.sqlserver.jdbc;
 
+import javax.xml.bind.DatatypeConverter;
 import java.text.MessageFormat;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
@@ -27,10 +28,7 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ThreadFactory;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
-
-import static java.util.concurrent.TimeUnit.*;
-
-import javax.xml.bind.DatatypeConverter;
+import static java.util.concurrent.TimeUnit.SECONDS;
 
 
 class CacheClear implements Runnable {  

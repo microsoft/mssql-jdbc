@@ -18,14 +18,20 @@
  
 
 package com.microsoft.sqlserver.jdbc;
-import java.sql.*;
 
-import javax.transaction.xa.*;
-
-import java.util.Vector;
-import java.util.Properties;
-import java.util.logging.*;
+import javax.transaction.xa.XAException;
+import javax.transaction.xa.XAResource;
+import javax.transaction.xa.Xid;
+import java.sql.CallableStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
+import java.sql.Types;
 import java.text.MessageFormat;
+import java.util.Properties;
+import java.util.Vector;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
 * Transaction id implementation used to recover transactions.

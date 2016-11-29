@@ -19,15 +19,21 @@
 
 package com.microsoft.sqlserver.jdbc;
 
-import java.util.*;
-import java.text.DecimalFormat;
-import java.util.Map.Entry;
-import java.text.MessageFormat;
 import java.math.BigDecimal;
 import java.math.BigInteger;
-import java.net.*;
-import java.util.logging.*;
-import java.io.*;
+import java.net.InetAddress;
+import java.net.UnknownHostException;
+import java.text.DecimalFormat;
+import java.text.MessageFormat;
+import java.util.Date;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Properties;
+import java.util.UUID;
+import java.util.logging.Level;
+import java.util.logging.LogManager;
+import java.util.logging.Logger;
 
 /**
  * Various driver utilites.
