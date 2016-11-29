@@ -37,8 +37,6 @@ import java.util.logging.Logger;
 
 import static java.nio.charset.StandardCharsets.US_ASCII;
 
-import static java.nio.charset.StandardCharsets.US_ASCII;
-
 /**
 * SQLServerClob represents a character LOB object and implements java.sql.Clob.
 */
