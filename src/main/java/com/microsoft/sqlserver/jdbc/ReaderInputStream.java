@@ -66,26 +66,14 @@ class ReaderInputStream extends InputStream
     private static final ByteBuffer EMPTY_BUFFER = ByteBuffer.allocate(0);
     private ByteBuffer encodedChars = EMPTY_BUFFER;
 
-    ReaderInputStream(Reader reader, String charsetName, long readerLength) throws UnsupportedEncodingException
+    ReaderInputStream(Reader reader, Charset charset, long readerLength)
     {
         assert reader != null;
-        assert charsetName != null;
+        assert charset != null;
         assert DataTypes.UNKNOWN_STREAM_LENGTH == readerLength || readerLength >= 0;
 
         this.reader = reader;
-        try
-        {
-            this.charset = Charset.forName(charsetName);
-        }
-        catch (IllegalCharsetNameException e)
-        {
-            throw new UnsupportedEncodingException(e.getMessage());
-        }
-        catch (UnsupportedCharsetException e)
-        {
-            throw new UnsupportedEncodingException(e.getMessage());
-        }
-
+        this.charset = charset;
         this.readerLength = readerLength;
     }
 
