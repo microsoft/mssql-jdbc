@@ -21,40 +21,19 @@
  
 package com.microsoft.sqlserver.jdbc;
 
-import com.microsoft.sqlserver.jdbc.JavaType.SetterConversionAE;
-
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.io.Reader;
-import java.io.UnsupportedEncodingException;
-import java.math.BigDecimal;
-import java.math.BigInteger;
-import java.math.MathContext;
-import java.math.RoundingMode;
+import java.io.*;
+import java.util.*;
+import java.math.*;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.charset.Charset;
-import java.sql.Blob;
-import java.sql.Clob;
-import java.sql.SQLException;
-import java.sql.Timestamp;
+import java.sql.*;
 import java.text.MessageFormat;
-import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.time.LocalTime;
-import java.time.OffsetDateTime;
-import java.time.OffsetTime;
-import java.util.Calendar;
-import java.util.EnumMap;
-import java.util.GregorianCalendar;
-import java.util.Locale;
-import java.util.Map;
-import java.util.SimpleTimeZone;
-import java.util.TimeZone;
-import java.util.UUID;
+import java.time.*;
 
 import static java.nio.charset.StandardCharsets.UTF_16LE;
+
+import com.microsoft.sqlserver.jdbc.JavaType.SetterConversionAE;
 
 
 /**
