@@ -26,4 +26,3 @@ public interface ISQLServerPreparedStatement extends java.sql.PreparedStatement,
     public void setDateTimeOffset(int parameterIndex, microsoft.sql.DateTimeOffset x)  throws SQLException;
 }
 
-//ISQLServerWithStructured
