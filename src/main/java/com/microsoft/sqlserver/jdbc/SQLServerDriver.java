@@ -889,6 +889,7 @@ enum SQLServerDriverIntProperty
 	PACKET_SIZE("packetSize",											TDS.DEFAULT_PACKET_SIZE),			
 	LOCK_TIMEOUT("lockTimeout",					 						-1),
 	LOGIN_TIMEOUT("loginTimeout", 				 						15),
+  QUERY_TIMEOUT("queryTimeout",                   -1),
 	PORT_NUMBER("portNumber",					 						1433);
 
 	private String name;
@@ -975,6 +976,7 @@ public final class SQLServerDriver implements java.sql.Driver
         new SQLServerDriverPropertyInfo(SQLServerDriverIntProperty.PACKET_SIZE.toString(),                    			Integer.toString(SQLServerDriverIntProperty.PACKET_SIZE.getDefaultValue()), 							false, 		null),
         new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.PASSWORD.toString(),                      		SQLServerDriverStringProperty.PASSWORD.getDefaultValue(),           									true,       null),
         new SQLServerDriverPropertyInfo(SQLServerDriverIntProperty.PORT_NUMBER.toString(),                    			Integer.toString(SQLServerDriverIntProperty.PORT_NUMBER.getDefaultValue()),       						false,      null),
+        new SQLServerDriverPropertyInfo(SQLServerDriverIntProperty.QUERY_TIMEOUT.toString(),                        Integer.toString(SQLServerDriverIntProperty.QUERY_TIMEOUT.getDefaultValue()),                   false,      null),
         new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.RESPONSE_BUFFERING.toString(),            		SQLServerDriverStringProperty.RESPONSE_BUFFERING.getDefaultValue(),   									false,      new String[] {"adaptive", "full"}),
         new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.SELECT_METHOD.toString(),                 		SQLServerDriverStringProperty.SELECT_METHOD.getDefaultValue(),     										false,      new String[] {"direct", "cursor"}),
         new SQLServerDriverPropertyInfo(SQLServerDriverBooleanProperty.SEND_STRING_PARAMETERS_AS_UNICODE.toString(), 	Boolean.toString(SQLServerDriverBooleanProperty.SEND_STRING_PARAMETERS_AS_UNICODE.getDefaultValue()),  	false,      TRUE_FALSE),
