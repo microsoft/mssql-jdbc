@@ -43,7 +43,7 @@ import java.text.MessageFormat;
 * <li>
 */
 
-public class SQLServerPreparedStatement extends SQLServerStatement implements ISQLServerPreparedStatement
+public class SQLServerPreparedStatement extends SQLServerStatement implements ISQLServerPreparedStatement, ISQLServerWithStructured
 {
 	/** Flag to indicate that it is an internal query to retrieve encryption metadata. */ 
 	boolean isInternalEncryptionQuery = false;

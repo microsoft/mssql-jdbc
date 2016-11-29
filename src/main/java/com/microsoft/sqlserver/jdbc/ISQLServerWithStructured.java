@@ -19,11 +19,19 @@
  
 package com.microsoft.sqlserver.jdbc;
 
-import java.sql.*;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 
-public interface ISQLServerPreparedStatement extends java.sql.PreparedStatement, ISQLServerStatement
+/**
+ * interface added for better testability
+ */
+
+public interface ISQLServerWithStructured extends PreparedStatement, ISQLServerStatement
 {
-    public void setDateTimeOffset(int parameterIndex, microsoft.sql.DateTimeOffset x)  throws SQLException;
+    public void setStructured(int n, String tvpName, SQLServerDataTable tvpDataTbale) throws SQLServerException;
+
+    public void setStructured(int n, String tvpName, ResultSet tvpResultSet) throws SQLServerException;
+
+    public void setStructured(int n, String tvpName, ISQLServerDataRecord tvpBulkRecord) throws SQLServerException;
 }
 
-//ISQLServerWithStructured
