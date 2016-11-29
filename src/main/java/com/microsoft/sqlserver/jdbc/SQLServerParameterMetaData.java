@@ -23,7 +23,6 @@ import java.sql.ParameterMetaData;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
-import java.sql.SQLFeatureNotSupportedException;
 import java.sql.Statement;
 import java.text.MessageFormat;
 import java.util.HashMap;
@@ -643,7 +642,16 @@ public final class SQLServerParameterMetaData implements ParameterMetaData {
 	public <T> T unwrap(Class<T> iface) throws SQLException
 	{
 		DriverJDBCVersion.checkSupportsJDBC4();
-		throw new SQLFeatureNotSupportedException(SQLServerException.getErrString("R_notSupported"));
+		T t;
+		try
+		{
+			t = iface.cast(this);
+		}
+		catch (ClassCastException e)
+		{
+			throw new SQLServerException(e.getMessage(), e);
+		}
+		return t;
 	}
 
 

@@ -97,7 +97,7 @@ If you wish to limit the number of run-time dependencies, and your project does 
 	<groupId>com.microsoft.sqlserver</groupId>
 	<artifactId>mssql-jdbc</artifactId>
 	<version>6.1.0.jre8</version>
-	<scope>runtime</scope>
+	<scope>compile</scope>
 	<exclusions>
 		<exclusion>
 		         <groupId>com.microsoft.azure</groupId>

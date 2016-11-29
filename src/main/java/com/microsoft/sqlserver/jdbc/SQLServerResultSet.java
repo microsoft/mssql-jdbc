@@ -2394,7 +2394,7 @@ public class SQLServerResultSet implements ISQLServerResultSet
     {
         DriverJDBCVersion.checkSupportsJDBC41();
 
-    	// The driver currently does not implement JDDBC 4.1 APIs
+    	// The driver currently does not implement the optional JDBC APIs
     	throw new SQLFeatureNotSupportedException(SQLServerException.getErrString("R_notSupported"));    	
     }
 
@@ -2411,7 +2411,7 @@ public class SQLServerResultSet implements ISQLServerResultSet
     {    	
         DriverJDBCVersion.checkSupportsJDBC41();
 
-    	// The driver currently does not implement JDDBC 4.1 APIs
+    	// The driver currently does not implement the optional JDBC APIs
     	throw new SQLFeatureNotSupportedException(SQLServerException.getErrString("R_notSupported"));    	
     }
     

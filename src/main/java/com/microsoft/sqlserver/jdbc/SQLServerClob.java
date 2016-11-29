@@ -35,6 +35,8 @@ import java.util.ArrayList;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import static java.nio.charset.StandardCharsets.US_ASCII;
+
 /**
 * SQLServerClob represents a character LOB object and implements java.sql.Clob.
 */
@@ -197,16 +199,8 @@ abstract class SQLServerClobBase implements Serializable
         if (null != sqlCollation && !sqlCollation.supportsAsciiConversion())
             DataTypes.throwConversionError(getDisplayClassName(), "AsciiStream");
 
-        InputStream getterStream;
-        try
-        {
-            // Need to use a BufferedInputStream since the stream returned by this method is assumed to support mark/reset
-            getterStream = new BufferedInputStream(new ReaderInputStream(new StringReader(value), "US-ASCII", value.length()));
-        }
-        catch (UnsupportedEncodingException unsupportedEncodingException)
-        {
-            throw new SQLServerException(unsupportedEncodingException.getMessage(), null, 0, unsupportedEncodingException);
-        }
+        // Need to use a BufferedInputStream since the stream returned by this method is assumed to support mark/reset
+        InputStream getterStream = new BufferedInputStream(new ReaderInputStream(new StringReader(value), US_ASCII, value.length()));
 
         activeStreams.add(getterStream);
         return getterStream;

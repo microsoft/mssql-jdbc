@@ -482,7 +482,7 @@ final class DDC
 	 */
 	static final Object convertStringToObject(
 			String stringVal,
-			String charset,
+			Charset charset,
 			JDBCType jdbcType,
 			StreamType streamType) throws UnsupportedEncodingException, IllegalArgumentException
 	{

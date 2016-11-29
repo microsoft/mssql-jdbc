@@ -19,7 +19,6 @@
 
 package com.microsoft.sqlserver.jdbc;
 
-import java.io.UnsupportedEncodingException;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.net.InetAddress;
@@ -626,15 +625,7 @@ final class Util {
 	{
 		try
 		{
-			return new String(b, offset, byteLength, Encoding.UNICODE.charsetName());
-		}
-		catch (UnsupportedEncodingException ex)
-		{
-			String txtMsg = SQLServerException.checkAndAppendClientConnId(SQLServerException.getErrString("R_stringReadError"), conn);
-			MessageFormat form = new MessageFormat(txtMsg);
-			Object[] msgArgs = {new Integer(offset)};
-			// Re-throw SQLServerException if conversion fails.
-			throw new SQLServerException(null, form.format(msgArgs), null, 0, true);
+			return new String(b, offset, byteLength, Encoding.UNICODE.charset());
 		}
 		catch (IndexOutOfBoundsException  ex)
 		{

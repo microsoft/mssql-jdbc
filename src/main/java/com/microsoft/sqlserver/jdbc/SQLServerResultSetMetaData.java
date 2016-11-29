@@ -20,7 +20,6 @@
 package com.microsoft.sqlserver.jdbc;
 
 import java.sql.SQLException;
-import java.sql.SQLFeatureNotSupportedException;
 
 
 /**
@@ -88,7 +87,16 @@ public final class SQLServerResultSetMetaData implements java.sql.ResultSetMetaD
     public <T> T unwrap(Class<T> iface) throws SQLException
     {
         DriverJDBCVersion.checkSupportsJDBC4();
-        throw new SQLFeatureNotSupportedException(SQLServerException.getErrString("R_notSupported"));
+        T t;
+        try
+        {
+            t = iface.cast(this);
+        }
+        catch (ClassCastException e)
+        {
+            throw new SQLServerException(e.getMessage(), e);
+        }
+        return t;
     }
 
     public String getCatalogName(int column) throws SQLServerException
