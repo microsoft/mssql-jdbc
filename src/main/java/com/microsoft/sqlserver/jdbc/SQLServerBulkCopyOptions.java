@@ -6,7 +6,7 @@
 // Copyright(c) Microsoft Corporation
 // All rights reserved.
 // MIT License
-// Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files(the ""Software""), 
+// Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files(the "Software"), 
 //  to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, 
 //  and / or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions :
 // The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
@@ -293,11 +293,27 @@ public class SQLServerBulkCopyOptions
         this.fireTriggers = fireTriggers;
     }    
     
+	/**
+     * Indicates if allowEncryptedValueModifications option is enabled or not
+     * @return True if allowEncryptedValueModification is set to true; false otherwise.
+     */
     public boolean isAllowEncryptedValueModifications() 
     {
         return allowEncryptedValueModifications;
     }
 
+	/**
+     * Sets whether the driver would send data as is or would decrypt the data and encrypt it again before sending to SQL Server
+     * <p>
+     * Use caution when specifying allowEncryptedValueModifications as this may lead to corrupting the database 
+     * because the driver does not check if the data is indeed encrypted, or if it is correctly encrypted using the 
+     * same encryption type, algorithm and key as the target column.
+     * 
+     * @param allowEncryptedValueModifications enables bulk copying of encrypted data between tables or databases, without 
+     * decrypting the data. Typically, an application would select data from encrypted columns from one table without 
+     * decrypting the data (the app would connect to the database with the column encryption setting keyword set to disabled) 
+     * and then would use this option to bulk insert the data, which is still encrypted.
+     */
     public void setAllowEncryptedValueModifications(boolean allowEncryptedValueModifications) 
     {
         this.allowEncryptedValueModifications = allowEncryptedValueModifications;

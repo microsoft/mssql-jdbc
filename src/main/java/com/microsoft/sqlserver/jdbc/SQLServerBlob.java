@@ -6,7 +6,7 @@
 // Copyright(c) Microsoft Corporation
 // All rights reserved.
 // MIT License
-// Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files(the ""Software""), 
+// Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files(the "Software"), 
 //  to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, 
 //  and / or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions :
 // The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
@@ -107,7 +107,7 @@ public final class SQLServerBlob implements java.sql.Blob, java.io.Serializable
 
     /**
      * Frees this Blob object and releases the resources that it holds.
-     *
+     * <p>
      * After free() has been called, any attempt to invoke a method other than free() will
      * result in a SQLException being thrown.  If free() is called multiple times, the subsequent
      * calls to free are treated as a no-op.
@@ -154,11 +154,6 @@ public final class SQLServerBlob implements java.sql.Blob, java.io.Serializable
         }
     }
 
-    /**
-     * Return an input stream to read data from this BLOB
-     * @throws SQLException
-     * @return the input stream to that contains the BLOB data
-     */
     public InputStream getBinaryStream() throws SQLException
     {
         checkClosed();
@@ -232,7 +227,7 @@ public final class SQLServerBlob implements java.sql.Blob, java.io.Serializable
 
     /**
      * Return the length of the BLOB
-     * @throws SQLException
+     * @throws SQLException when an error occurs
      * @return the data length
      */
     public long length() throws SQLException
@@ -321,7 +316,7 @@ public final class SQLServerBlob implements java.sql.Blob, java.io.Serializable
     /**
      * Truncate a BLOB
      * @param len the new length for the BLOB
-     * @throws SQLException
+     * @throws SQLException when an error occurs
      */
     public void truncate(long len) throws SQLException
     {
@@ -460,12 +455,14 @@ public final class SQLServerBlob implements java.sql.Blob, java.io.Serializable
 }
 
 
-// SQLServerBlobOutputStream is a simple java.io.OutputStream interface implementing class that 
-// forwards all calls to SQLServerBlob.setBytes.  This class is returned to caller by
-// SQLServerBlob class when setBinaryStream is called.
-//
-// SQLServerBlobOutputStream starts writing at postion startPos and continues to write 
-// in a forward only manner.  Reset/mark are not supported.
+/**
+ * SQLServerBlobOutputStream is a simple java.io.OutputStream interface implementing class that
+ * forwards all calls to SQLServerBlob.setBytes.  This class is returned to caller by
+ * SQLServerBlob class when setBinaryStream is called.
+ * <p>
+ * SQLServerBlobOutputStream starts writing at postion startPos and continues to write 
+ * in a forward only manner.  Reset/mark are not supported.
+ */
 final class SQLServerBlobOutputStream extends java.io.OutputStream
 {
 	private SQLServerBlob parentBlob = null;

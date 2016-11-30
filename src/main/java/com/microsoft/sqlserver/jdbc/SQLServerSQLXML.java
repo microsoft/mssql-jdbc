@@ -6,7 +6,7 @@
 // Copyright(c) Microsoft Corporation
 // All rights reserved.
 // MIT License
-// Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files(the ""Software""), 
+// Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files(the "Software"), 
 //  to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, 
 //  and / or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions :
 // The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
@@ -212,7 +212,7 @@ final class SQLServerSQLXML implements java.sql.SQLXML
 
     /**
     * Return an input stream to read data from this SQLXML
-    * @throws SQLServerException
+    * @throws SQLException when an error occurs
     * @return the input stream to that contains the SQLXML data
     */
     public InputStream getBinaryStream() throws SQLException 
@@ -226,8 +226,7 @@ final class SQLServerSQLXML implements java.sql.SQLXML
     /**
     * Retrieves a stream that can be used to write to the SQLXML value that this SQLXML object represents
     * The user has to write the BOM for binary streams.
-    * @param pos the position in the SQLXML value at which to start writing
-    * @throws SQLException
+    * @throws SQLException when an error occurs
     * @return OutputStream
     */
     public java.io.OutputStream setBinaryStream() throws SQLException 
