@@ -2091,9 +2091,17 @@ private final boolean doPrepExec(TDSWriter tdsWriter, Parameter[] params, boolea
 		{
 			if(this instanceof SQLServerCallableStatement)
 			{
-				java.sql.ParameterMetaData pmd = this.getParameterMetaData();
+				SQLServerParameterMetaData pmd = (SQLServerParameterMetaData) this.getParameterMetaData();
 				try {
-					tvpName = pmd.getParameterTypeName(n);
+					String tvpNameWithoutSchema = pmd.getParameterTypeName(n);
+					String tvpSchema = pmd.getTVPSchemaFromStoredProcedure(n);
+					
+					if (null != tvpSchema) {
+						tvpName = "[" + tvpSchema + "].[" + tvpNameWithoutSchema + "]";
+					} 
+					else {
+						tvpName = tvpNameWithoutSchema;
+					}
 				} catch (SQLException e) {
 					throw new SQLServerException(SQLServerException.getErrString("R_metaDataErrorForParameter"), null, 0 , e);
 				}
