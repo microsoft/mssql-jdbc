@@ -199,6 +199,7 @@ public final class SQLServerResource extends ListResourceBundle
 				{"R_hostNameInCertificatePropertyDescription", "The host name to be used when validating the SQL Server Secure Sockets Layer (SSL) certificate."},
 				{"R_sendTimeAsDatetimePropertyDescription", "Determines whether to use the SQL Server datetime data type to send java.sql.Time values to the database."},
 				{"R_TransparentNetworkIPResolutionPropertyDescription", "Determines whether to use the Transparent Network IP Resolution feature."},
+				{"R_queryTimeoutPropertyDescription", "The number of seconds to wait before the database reports a query time-out."},
 				{"R_noParserSupport", "An error occurred while instantiating the required parser. Error: \"{0}\""},
 				{"R_writeOnlyXML", "Cannot read from this SQLXML instance. This instance is for writing data only."},
 				{"R_dataHasBeenReadXML", "Cannot read from this SQLXML instance. The data has already been read."},
