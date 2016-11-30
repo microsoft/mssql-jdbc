@@ -895,4 +895,10 @@ public final class SQLServerParameterMetaData implements ParameterMetaData {
 			return false;
 		}
 	}
+	
+	String getTVPSchemaFromStoredProcedure(int param) throws SQLServerException{
+		checkClosed();
+		verifyParameterPosition(param);
+		return rsProcedureMeta.getString("SS_TYPE_SCHEMA_NAME");
+	}
 }
