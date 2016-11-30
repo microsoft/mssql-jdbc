@@ -6,7 +6,7 @@
 // Copyright(c) Microsoft Corporation
 // All rights reserved.
 // MIT License
-// Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files(the ""Software""), 
+// Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files(the "Software"), 
 //  to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, 
 //  and / or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions :
 // The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
@@ -133,6 +133,8 @@ abstract class SQLServerClobBase implements Serializable
      * After free() has been called, any attempt to invoke a method other than free() will
      * result in a SQLException being thrown.  If free() is called multiple times, the subsequent
      * calls to free are treated as a no-op.
+	 * 
+     * @throws SQLException when an error occurs
      */
     public void free() throws SQLException
     {
@@ -178,7 +180,7 @@ abstract class SQLServerClobBase implements Serializable
 
     /**
      * Materialize the CLOB as an ASCII stream.
-     * @throws SQLException
+     * @throws SQLException when an error occurs
      * @return the data as an input stream
      */
     public InputStream getAsciiStream() throws SQLException
@@ -210,6 +212,13 @@ abstract class SQLServerClobBase implements Serializable
         return getterStream;
     }
 
+	/** 
+     * Returns the Clob data as a java.io.Reader object or as a stream of characters with the specified position and length.
+     * @param pos A long that indicates the offset to the first character of the partial value to be retrieved.
+     * @param length A long that indicates the length in characters of the partial value to be retrieved.
+     * @return A Reader object that contains the Clob data.
+     * @throws SQLException when an error occurs.
+     */
     public Reader getCharacterStream(long pos, long length) throws SQLException
     {
         DriverJDBCVersion.checkSupportsJDBC4();
@@ -263,7 +272,7 @@ abstract class SQLServerClobBase implements Serializable
 
     /**
      * Retrieves the number of characters in the CLOB value designated by this Clob object.
-     * @throws SQLException
+     * @throws SQLException when an error occurs
      * @return length of the CLOB in characters
      */
     public long length() throws SQLException
@@ -337,7 +346,7 @@ abstract class SQLServerClobBase implements Serializable
     /**
      * Truncates the CLOB value that this Clob designates to have a length of len characters.
      * @param len the length, in characters, to which the CLOB value should be truncated
-     * @throws SQLException
+     * @throws SQLException when an error occurs
      */
     public void truncate(long len) throws SQLException
     {
@@ -358,7 +367,7 @@ abstract class SQLServerClobBase implements Serializable
      * Retrieves a stream to be used to write Ascii characters to the CLOB value that
      * this Clob object represents, starting at position pos.
      * @param pos the position at which to start writing to this CLOB object
-     * @throws SQLException
+     * @throws SQLException when an error occurs
      * @return the stream to which ASCII encoded characters can be written
      */
     public java.io.OutputStream setAsciiStream(long pos) throws SQLException
@@ -379,7 +388,7 @@ abstract class SQLServerClobBase implements Serializable
      * Retrieves a stream to be used to write a stream of Unicode characters to
      * the CLOB value that this Clob object represents, at position pos.
      * @param pos the position at which to start writing to the CLOB value
-     * @throws SQLException
+     * @throws SQLException when an error occurs
      * @return a stream to which Unicode encoded characters can be written
      */
     public java.io.Writer setCharacterStream(long pos) throws SQLException
@@ -401,7 +410,7 @@ abstract class SQLServerClobBase implements Serializable
      * at the position pos.
      * @param pos the position at which to start writing to the CLOB
      * @param s the string to be written to the CLOB  value that this Clob designates
-     * @throws SQLException
+     * @throws SQLException when an error occurs
      * @return the number of characters written
      */
     public int setString(long pos, String s) throws SQLException

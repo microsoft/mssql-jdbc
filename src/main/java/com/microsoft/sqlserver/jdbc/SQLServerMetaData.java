@@ -6,7 +6,7 @@
 // Copyright(c) Microsoft Corporation
 // All rights reserved.
 // MIT License
-// Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files(the ""Software""), 
+// Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files(the "Software"), 
 //  to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, 
 //  and / or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions :
 // The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
@@ -21,6 +21,11 @@ package com.microsoft.sqlserver.jdbc;
 
 import java.text.MessageFormat;
 
+/**
+ * 
+ * This class represents metadata for a column. It is used in the ISQLServerDataRecord interface to pass column metadata to the table-valued parameter. 
+ * 
+ */
 public class SQLServerMetaData {
 	
 	String columnName = null;
@@ -34,6 +39,11 @@ public class SQLServerMetaData {
 	
 	static final int defaultSortOrdinal = -1;
 	
+	/**
+	 * Creates a new SQLServerMetaData
+	 * @param columnName the name of the column
+	 * @param sqlType the SQL type of the column
+	 */
 	public SQLServerMetaData(
 			String columnName, 
 			int sqlType)
@@ -42,6 +52,13 @@ public class SQLServerMetaData {
 		this.javaSqlType = sqlType;
 	}	
 	
+	/**
+	 * creates a new SQLServerMetaData
+	 * @param columnName the name of the column
+	 * @param sqlType the SQL type of the column
+	 * @param precision the precision of the column
+	 * @param scale the scale of the column
+	 */
 	public SQLServerMetaData(
 			String columnName, 
 			int sqlType, 
@@ -54,6 +71,18 @@ public class SQLServerMetaData {
 		this.scale = scale; 
 	}	
 		
+	/**
+	 * Creates a new SQLServerMetaData
+	 * @param columnName the name of the column
+	 * @param sqlType the sql type of the column
+	 * @param precision the precision of the column
+	 * @param scale the scale of the column
+	 * @param useServerDefault specifies if this column should use the default server value; Default value is false.
+	 * @param isUniqueKey  indicates if the column in the table-valued parameter is unique; Default value is false.
+	 * @param sortOrder  indicates the sort order for a column; Default value is SQLServerSortOrder.Unspecified.
+	 * @param sortOrdinal  specifies ordinal of the sort column; sortOrdinal starts from 0; Default value is -1.
+	 * @throws SQLServerException when an error occurs
+	 */
 	public SQLServerMetaData(
 			String columnName, 
 			int sqlType, 
@@ -75,6 +104,10 @@ public class SQLServerMetaData {
 		validateSortOrder();
 	}	
 	
+	/**
+	 * Initializes a new instance of SQLServerMetaData from another SQLServerMetaData object.
+	 * @param sqlServerMetaData the object passed to initialize a new instance of SQLServerMetaData
+	 */
 	public SQLServerMetaData(SQLServerMetaData sqlServerMetaData)
 	{
 		this.columnName = sqlServerMetaData.columnName;
@@ -87,41 +120,73 @@ public class SQLServerMetaData {
 		this.sortOrdinal = sqlServerMetaData.sortOrdinal; 
 	}		
 	
+	/**
+	 * 
+	 * @return Retrieves the column name.
+	 */
 	public String getColumName()
 	{
 		return columnName;
 	}
 	
+	/**
+	 * 
+	 * @return Retrieves the java sql type.
+	 */
 	public int getSqlType()
 	{
 		return javaSqlType;
 	}
 	
+	/**
+	 * 
+	 * @return retrieves the precision of the type passed to the column.
+	 */
 	public int getPrecision()
 	{
 		return precision;
 	}
 	
+	/**
+	 * 
+	 * @return retrieves the scale of the type passed to the column.
+	 */
 	public int getScale()
 	{
 		return scale;
 	}
 	
+	/**
+	 * 
+	 * @return returns whether the column uses the default server value.
+	 */
 	public boolean useServerDefault()
 	{
 		return useServerDefault;
 	}
 
+	/**
+	 * 
+	 * @return retrieves the whether the column is unique.
+	 */
 	public boolean isUniqueKey()
 	{
 		return isUniqueKey;
 	}
 	
+	/**
+	 * 
+	 * @return retrieves the sort order.
+	 */
 	public SQLServerSortOrder getSortOrder()
 	{
 		return sortOrder;
 	}
 	
+	/**
+	 * 
+	 * @return retrieves the sort ordinal.
+	 */
 	public int getSortOrdinal()
 	{
 		return sortOrdinal;

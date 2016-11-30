@@ -6,7 +6,7 @@
 // Copyright(c) Microsoft Corporation
 // All rights reserved.
 // MIT License
-// Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files(the ""Software""), 
+// Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files(the "Software"), 
 //  to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, 
 //  and / or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions :
 // The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
@@ -355,6 +355,14 @@ final class DDC
 		}
 	}
 	
+	/**
+	 * Convert a Money object to desired target user type.
+	 * @param bigDecimalVal the value to convert.
+	 * @param jdbcType the jdbc type required.
+	 * @param streamType the stream type.
+	 * @param numberOfBytes the number of bytes to convert
+	 * @return the required object.
+	 */
 	static final Object convertMoneyToObject(BigDecimal bigDecimalVal, JDBCType jdbcType, StreamType streamType, int numberOfBytes)
 	{
 		switch (jdbcType)
@@ -386,7 +394,7 @@ final class DDC
 		}
 	}
 	
-	//this is how fx framework converts big decimal to money and smallmoney
+	//converts big decimal to money and smallmoney
 	private static byte[] convertToBytes(BigDecimal value, int scale, int numBytes)
 	{
 		boolean isNeg = value.signum() < 0;
@@ -419,7 +427,7 @@ final class DDC
 	 * @param jdbcType the jdbc type required.
 	 * @param baseTypeInfo the type information associated with bytesValue.
 	 * @return the required object.
-	 * @throws SQLServerException 
+	 * @throws SQLServerException when an error occurs.
 	 */
 	static final Object convertBytesToObject(byte[] bytesValue, JDBCType jdbcType, TypeInfo baseTypeInfo) throws SQLServerException
 	{

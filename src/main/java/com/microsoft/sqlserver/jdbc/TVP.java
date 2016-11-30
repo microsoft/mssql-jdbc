@@ -6,7 +6,7 @@
 // Copyright(c) Microsoft Corporation
 // All rights reserved.
 // MIT License
-// Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files(the ""Software""), 
+// Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files(the "Software"), 
 //  to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, 
 //  and / or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions :
 // The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
@@ -34,6 +34,19 @@ enum TVPType
 	Null
 }
 
+/**
+ * 
+ * Implementation of Table-valued parameters which provide an easy way to marshal multiple rows of data from a client application to SQL Server
+ * without requiring multiple round trips or special server-side logic for processing the data. 
+ * <p>
+ * You can use table-valued parameters to encapsulate rows of data in a client application and send the data to the server in a single 
+ * parameterized command. The incoming data rows are stored in a table variable that can then be operated on by using Transact-SQL.
+ * <p>
+ * Column values in table-valued parameters can be accessed using standard Transact-SQL SELECT statements. Table-valued parameters are
+ * strongly typed and their structure is automatically validated. The size of table-valued parameters is limited only by server memory.
+ * <p>
+ * You cannot return data in a table-valued parameter. Table-valued parameters are input-only; the OUTPUT keyword is not supported.
+ */
 class TVP {
 
 	String TVPName;

@@ -6,7 +6,7 @@
 // Copyright(c) Microsoft Corporation
 // All rights reserved.
 // MIT License
-// Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files(the ""Software""), 
+// Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files(the "Software"), 
 //  to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, 
 //  and / or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions :
 // The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
@@ -64,6 +64,7 @@ public class SQLServerPooledConnection implements PooledConnection {
 
 	/**
 	 * This is a helper function to provide an ID string suitable for tracing.
+	 * @return traceID String
 	 */
 	public String toString() 
 	{
@@ -78,7 +79,8 @@ public class SQLServerPooledConnection implements PooledConnection {
 
 	/**
 	 * Creates an object handle for the physical connection that this PooledConnection object represents.
-	 * @throws SQLException 
+	 * @throws SQLException when an error occurs
+	 * @return a Connection object that is a handle to this PooledConnection object
 	 */
 	public Connection getConnection() throws SQLException {
 		if (pcLogger.isLoggable(Level.FINER))				
@@ -174,10 +176,6 @@ public class SQLServerPooledConnection implements PooledConnection {
 		}
 	}
 
-	/**
-	 *  Registers the given event listener so that it will be notified when an event occurs on this
-	 *  PooledConnection object.
-	 */
 	public void addConnectionEventListener(ConnectionEventListener listener) {
 		if (pcLogger.isLoggable(Level.FINER))				
 			pcLogger.finer(toString() +  safeCID());
@@ -187,9 +185,6 @@ public class SQLServerPooledConnection implements PooledConnection {
 		}
 	}
 
-	/**
-	 * Closes the physical connection that this PooledConnection object represents.
-	 */
 	public void close() throws SQLException {
 		if (pcLogger.isLoggable(Level.FINER))				
 			pcLogger.finer(toString() + " Closing physical connection, " + safeCID());
@@ -213,9 +208,6 @@ public class SQLServerPooledConnection implements PooledConnection {
 
 	}
 
-	/**
-	 *  Remove a listener.
-	 */
 	public void removeConnectionEventListener(ConnectionEventListener listener){
 		if (pcLogger.isLoggable(Level.FINER))			
 			pcLogger.finer(toString() +  safeCID());

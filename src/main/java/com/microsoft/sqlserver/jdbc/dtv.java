@@ -8,7 +8,7 @@
 // Copyright(c) Microsoft Corporation
 // All rights reserved.
 // MIT License
-// Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files(the ""Software""), 
+// Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files(the "Software"), 
 //  to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, 
 //  and / or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions :
 // The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
@@ -2871,6 +2871,12 @@ final class TypeInfo
 
 		BITN (TDSType.BITN, new Strategy()
 		{
+			/**
+			 * Sets the fields of typeInfo to the correct values
+			 * @param typeInfo the TypeInfo whos values are being corrected
+			 * @param tdsReader the TDSReader used to set the fields of typeInfo to the correct values
+			 * @throws SQLServerException when an error occurs
+			 */
 			public void apply(TypeInfo typeInfo, TDSReader tdsReader) throws SQLServerException
 			{
 				if (1 != tdsReader.readUnsignedByte())
@@ -2883,6 +2889,12 @@ final class TypeInfo
 
 		INTN (TDSType.INTN, new Strategy()
 		{
+			/**
+			 * Sets the fields of typeInfo to the correct values
+			 * @param typeInfo the TypeInfo whos values are being corrected
+			 * @param tdsReader the TDSReader used to set the fields of typeInfo to the correct values
+			 * @throws SQLServerException when an error occurs
+			 */
 			public void apply(TypeInfo typeInfo, TDSReader tdsReader) throws SQLServerException
 			{
 				switch (tdsReader.readUnsignedByte())
@@ -2910,6 +2922,12 @@ final class TypeInfo
 
 		DATE (TDSType.DATEN, new Strategy()
 		{
+			/**
+			 * Sets the fields of typeInfo to the correct values
+			 * @param typeInfo the TypeInfo whos values are being corrected
+			 * @param tdsReader the TDSReader used to set the fields of typeInfo to the correct values
+			 * @throws SQLServerException when an error occurs
+			 */
 			public void apply(TypeInfo typeInfo, TDSReader tdsReader) throws SQLServerException
 			{
 				typeInfo.ssType = SSType.DATE;
@@ -2921,6 +2939,12 @@ final class TypeInfo
 
 		BIGBINARY (TDSType.BIGBINARY, new Strategy()
 		{
+			/**
+			 * Sets the fields of typeInfo to the correct values
+			 * @param typeInfo the TypeInfo whos values are being corrected
+			 * @param tdsReader the TDSReader used to set the fields of typeInfo to the correct values
+			 * @throws SQLServerException when an error occurs
+			 */
 			public void apply(TypeInfo typeInfo, TDSReader tdsReader) throws SQLServerException
 			{
 				typeInfo.ssLenType = SSLenType.USHORTLENTYPE;
@@ -2936,6 +2960,12 @@ final class TypeInfo
 
 		BIGVARBINARY (TDSType.BIGVARBINARY, new Strategy()
 		{
+			/**
+			 * Sets the fields of typeInfo to the correct values
+			 * @param typeInfo the TypeInfo whos values are being corrected
+			 * @param tdsReader the TDSReader used to set the fields of typeInfo to the correct values
+			 * @throws SQLServerException when an error occurs
+			 */
 			public void apply(TypeInfo typeInfo, TDSReader tdsReader) throws SQLServerException
 			{
 				typeInfo.maxLength = tdsReader.readUnsignedShort();
@@ -2961,6 +2991,12 @@ final class TypeInfo
 
 		IMAGE (TDSType.IMAGE, new Strategy()
 		{
+			/**
+			 * Sets the fields of typeInfo to the correct values
+			 * @param typeInfo the TypeInfo whos values are being corrected
+			 * @param tdsReader the TDSReader used to set the fields of typeInfo to the correct values
+			 * @throws SQLServerException when an error occurs
+			 */
 			public void apply(TypeInfo typeInfo, TDSReader tdsReader) throws SQLServerException
 			{
 				typeInfo.ssLenType = SSLenType.LONGLENTYPE;
@@ -2974,6 +3010,12 @@ final class TypeInfo
 
 		BIGCHAR (TDSType.BIGCHAR, new Strategy()
 		{
+			/**
+			 * Sets the fields of typeInfo to the correct values
+			 * @param typeInfo the TypeInfo whos values are being corrected
+			 * @param tdsReader the TDSReader used to set the fields of typeInfo to the correct values
+			 * @throws SQLServerException when an error occurs
+			 */
 			public void apply(TypeInfo typeInfo, TDSReader tdsReader) throws SQLServerException
 			{
 				typeInfo.ssLenType = SSLenType.USHORTLENTYPE;
@@ -2989,6 +3031,12 @@ final class TypeInfo
 
 		BIGVARCHAR (TDSType.BIGVARCHAR, new Strategy()
 		{
+			/**
+			 * Sets the fields of typeInfo to the correct values
+			 * @param typeInfo the TypeInfo whos values are being corrected
+			 * @param tdsReader the TDSReader used to set the fields of typeInfo to the correct values
+			 * @throws SQLServerException when an error occurs
+			 */
 			public void apply(TypeInfo typeInfo, TDSReader tdsReader) throws SQLServerException
 			{
 				typeInfo.maxLength = tdsReader.readUnsignedShort();
@@ -3016,6 +3064,12 @@ final class TypeInfo
 
 		TEXT (TDSType.TEXT, new Strategy()
 		{
+			/**
+			 * Sets the fields of typeInfo to the correct values
+			 * @param typeInfo the TypeInfo whos values are being corrected
+			 * @param tdsReader the TDSReader used to set the fields of typeInfo to the correct values
+			 * @throws SQLServerException when an error occurs
+			 */
 			public void apply(TypeInfo typeInfo, TDSReader tdsReader) throws SQLServerException
 			{
 				typeInfo.ssLenType = SSLenType.LONGLENTYPE;
@@ -3031,6 +3085,12 @@ final class TypeInfo
 
 		NCHAR (TDSType.NCHAR, new Strategy()
 		{
+			/**
+			 * Sets the fields of typeInfo to the correct values
+			 * @param typeInfo the TypeInfo whos values are being corrected
+			 * @param tdsReader the TDSReader used to set the fields of typeInfo to the correct values
+			 * @throws SQLServerException when an error occurs
+			 */
 			public void apply(TypeInfo typeInfo, TDSReader tdsReader) throws SQLServerException
 			{
 				typeInfo.ssLenType = SSLenType.USHORTLENTYPE;
@@ -3046,6 +3106,12 @@ final class TypeInfo
 
 		NVARCHAR (TDSType.NVARCHAR, new Strategy()
 		{
+			/**
+			 * Sets the fields of typeInfo to the correct values
+			 * @param typeInfo the TypeInfo whos values are being corrected
+			 * @param tdsReader the TDSReader used to set the fields of typeInfo to the correct values
+			 * @throws SQLServerException when an error occurs
+			 */
 			public void apply(TypeInfo typeInfo, TDSReader tdsReader) throws SQLServerException
 			{
 				typeInfo.maxLength = tdsReader.readUnsignedShort();
@@ -3072,6 +3138,12 @@ final class TypeInfo
 
 		NTEXT (TDSType.NTEXT, new Strategy()
 		{
+			/**
+			 * Sets the fields of typeInfo to the correct values
+			 * @param typeInfo the TypeInfo whos values are being corrected
+			 * @param tdsReader the TDSReader used to set the fields of typeInfo to the correct values
+			 * @throws SQLServerException when an error occurs
+			 */
 			public void apply(TypeInfo typeInfo, TDSReader tdsReader) throws SQLServerException
 			{
 				typeInfo.ssLenType = SSLenType.LONGLENTYPE;
@@ -3087,6 +3159,12 @@ final class TypeInfo
 
 		GUID (TDSType.GUID, new Strategy()
 		{
+			/**
+			 * Sets the fields of typeInfo to the correct values
+			 * @param typeInfo the TypeInfo whos values are being corrected
+			 * @param tdsReader the TDSReader used to set the fields of typeInfo to the correct values
+			 * @throws SQLServerException when an error occurs
+			 */
 			public void apply(TypeInfo typeInfo, TDSReader tdsReader) throws SQLServerException
 			{
 				int maxLength = tdsReader.readUnsignedByte();
@@ -3103,6 +3181,12 @@ final class TypeInfo
 
 		UDT (TDSType.UDT, new Strategy()
 		{
+			/**
+			 * Sets the fields of typeInfo to the correct values
+			 * @param typeInfo the TypeInfo whos values are being corrected
+			 * @param tdsReader the TDSReader used to set the fields of typeInfo to the correct values
+			 * @throws SQLServerException when an error occurs
+			 */
 			public void apply(TypeInfo typeInfo, TDSReader tdsReader) throws SQLServerException
 			{
 				UDTTDSHeader udtTDSHeader = new UDTTDSHeader(tdsReader);
@@ -3134,6 +3218,12 @@ final class TypeInfo
 
 		XML (TDSType.XML, new Strategy()
 		{
+			/**
+			 * Sets the fields of typeInfo to the correct values
+			 * @param typeInfo the TypeInfo whos values are being corrected
+			 * @param tdsReader the TDSReader used to set the fields of typeInfo to the correct values
+			 * @throws SQLServerException when an error occurs
+			 */
 			public void apply(TypeInfo typeInfo, TDSReader tdsReader) throws SQLServerException
 			{
 				XMLTDSHeader xmlTDSHeader = new XMLTDSHeader(tdsReader);
@@ -3146,6 +3236,12 @@ final class TypeInfo
 
 		SQL_VARIANT(TDSType.SQL_VARIANT, new Strategy()
 		{
+			/**
+			 * Sets the fields of typeInfo to the correct values
+			 * @param typeInfo the TypeInfo whos values are being corrected
+			 * @param tdsReader the TDSReader used to set the fields of typeInfo to the correct values
+			 * @throws SQLServerException when an error occurs
+			 */
 			public void apply(TypeInfo typeInfo, TDSReader tdsReader) throws SQLServerException
 			{
 				// Throw an exception and terminate the connection.  Since we don't know
@@ -3165,6 +3261,12 @@ final class TypeInfo
 
 		private interface Strategy
 		{
+			/**
+			 * Sets the fields of typeInfo to the correct values
+			 * @param typeInfo the TypeInfo whos values are being corrected
+			 * @param tdsReader the TDSReader used to set the fields of typeInfo to the correct values
+			 * @throws SQLServerException when an error occurs
+			 */
 			public void apply(TypeInfo typeInfo, TDSReader tdsReader) throws SQLServerException;
 		}
 
@@ -3190,6 +3292,11 @@ final class TypeInfo
 				this.scale = scale;
 			}
 
+			/**
+			 * Sets the fields of typeInfo to the correct values
+			 * @param typeInfo the TypeInfo whos values are being corrected
+			 * @param tdsReader the TDSReader used to set the fields of typeInfo to the correct values
+			 */
 			public void apply(TypeInfo typeInfo, TDSReader tdsReader)
 			{
 				typeInfo.ssLenType = SSLenType.FIXEDLENTYPE;
@@ -3210,6 +3317,12 @@ final class TypeInfo
 				this.ssType = ssType;
 			}
 
+			/**
+			 * Sets the fields of typeInfo to the correct values
+			 * @param typeInfo the TypeInfo whos values are being corrected
+			 * @param tdsReader the TDSReader used to set the fields of typeInfo to the correct values
+			 * @throws SQLServerException when an error occurs
+			 */
 			public void apply(TypeInfo typeInfo, TDSReader tdsReader) throws SQLServerException
 			{
 				int maxLength = tdsReader.readUnsignedByte();
@@ -3239,6 +3352,12 @@ final class TypeInfo
 				this.smallBuilder = smallBuilder;
 			}
 
+			/**
+			 * Sets the fields of typeInfo to the correct values
+			 * @param typeInfo the TypeInfo whos values are being corrected
+			 * @param tdsReader the TDSReader used to set the fields of typeInfo to the correct values
+			 * @throws SQLServerException when an error occurs
+			 */
 			public void apply(TypeInfo typeInfo, TDSReader tdsReader) throws SQLServerException
 			{
 				switch (tdsReader.readUnsignedByte()) // maxLength
@@ -3268,6 +3387,12 @@ final class TypeInfo
 				return baseFormat.length() + ((scale > 0) ? (1 + scale) : 0);
 			}
 
+			/**
+			 * Sets the fields of typeInfo to the correct values
+			 * @param typeInfo the TypeInfo whos values are being corrected
+			 * @param tdsReader the TDSReader used to set the fields of typeInfo to the correct values
+			 * @throws SQLServerException when an error occurs
+			 */
 			public void apply(TypeInfo typeInfo, TDSReader tdsReader) throws SQLServerException
 			{
 				typeInfo.scale = tdsReader.readUnsignedByte();
