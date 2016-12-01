@@ -13,7 +13,7 @@
 
 	<!-- download dependencies -->	
 	<ivy:resolve>
-		<dependency org="com.microsoft.azure" name="azure-keyvault" rev="0.9.3"/>
+		<dependency org="com.microsoft.azure" name="azure-keyvault" rev="0.9.7"/>
 		<dependency org="junit" name="junit" rev="4.12"/>
 	</ivy:resolve>
 	
