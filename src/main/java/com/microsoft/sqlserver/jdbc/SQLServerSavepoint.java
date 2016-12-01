@@ -84,7 +84,7 @@ public final class SQLServerSavepoint implements Savepoint{
     if (sName != null)
     	{
     	MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_savepointNamed"));
-	Object[] msgArgs = {new String(sName)};
+	Object[] msgArgs = {sName};
       SQLServerException.makeFromDriverError(con, null, form.format(msgArgs), null, false);
     	}
     return nId;

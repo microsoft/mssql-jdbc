@@ -115,7 +115,7 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
         if (2012 == sqlType)
         {
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_featureNotSupported"));
-            Object[] msgArgs = {new String("REF_CURSOR")};
+            Object[] msgArgs = {"REF_CURSOR"};
             SQLServerException.makeFromDriverError(connection, this, form.format(msgArgs), null, false);
         }
         

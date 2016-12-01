@@ -219,7 +219,7 @@ enum ApplicationIntent
 		else
 		{
 			MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidapplicationIntent"));
-			Object[] msgArgs = {new String(value)};
+			Object[] msgArgs = {value};
 			throw new SQLServerException(null , form.format(msgArgs) , null, 0 , false);              
 		}     
 

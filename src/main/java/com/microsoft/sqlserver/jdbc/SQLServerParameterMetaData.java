@@ -614,7 +614,7 @@ public final class SQLServerParameterMetaData implements ParameterMetaData {
 					if (null == metaInfo)
 					{
 						MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_cantIdentifyTableMetadata"));
-						Object[] msgArgs = {new String(sProcString)};
+						Object[] msgArgs = {sProcString};
 						SQLServerException.makeFromDriverError(con, stmtParent, form.format(msgArgs), null, false);
 					}
 

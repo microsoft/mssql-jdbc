@@ -463,7 +463,7 @@ public final class SQLServerXAResource implements javax.transaction.xa.XAResourc
     				catch (SQLServerException e1) 
     				{
                                     MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_failedToCreateXAConnection"));
-                                    Object[] msgArgs = {new String(e1.getMessage())};
+                                    Object[] msgArgs = {e1.getMessage()};
                                     if (xaLogger.isLoggable(Level.FINER))
                                         xaLogger.finer(toString() + " exception:" + form.format(msgArgs));
                                     SQLServerException.makeFromDriverError(null,null, form.format(msgArgs), null, true);
