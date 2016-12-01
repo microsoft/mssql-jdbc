@@ -21,13 +21,13 @@ What's coming next?  We will look into adding a more comprehensive set of tests,
 ## Build
 ### Prerequisites
 * Java 8
-* [Ant](http://ant.apache.org/manual/install.html) (with [Ivy](https://ant.apache.org/ivy/download.cgi)) or [Maven](http://maven.apache.org/download.cgi)
+* [Ant](http://ant.apache.org/manual/install.html) (with [Ivy](https://ant.apache.org/ivy/download.cgi)), [Maven](http://maven.apache.org/download.cgi) or [Gradle](https://gradle.org/gradle-download/)
 * An instance of SQL Server or Azure SQL Database that you can connect to. 
 
 ### Build the JAR files
 The build automatically triggers a set of verification tests to run.  For these tests to pass, you will first need to add an environment variable in your system called `mssql_jdbc_test_connection_properties` to provide the [correct connection properties](https://msdn.microsoft.com/en-us/library/ms378428(v=sql.110).aspx) for your SQL Server or Azure SQL Database instance.
 
-To build the jar files, you must use Java 8 with either Ant (with Ivy) or Maven.  You can choose to build a JDBC 4.1 compliant jar file (for use with JRE 7) and/or a JDBC 4.2 compliant jar file (for use with JRE 8).
+To build the jar files, you must use Java 8 with either Ant (with Ivy), Maven or Gradle.  You can choose to build a JDBC 4.1 compliant jar file (for use with JRE 7) and/or a JDBC 4.2 compliant jar file (for use with JRE 8).
 
 * Ant:
 	1. If you have not already done so, add the environment variable `mssql_jdbc_test_connection_properties` in your system with the connection properties for your SQL Server or SQL DB instance.
