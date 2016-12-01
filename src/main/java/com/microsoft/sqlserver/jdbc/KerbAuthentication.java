@@ -6,7 +6,7 @@
 // Copyright(c) Microsoft Corporation
 // All rights reserved.
 // MIT License
-// Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files(the ""Software""), 
+// Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files(the "Software"), 
 //  to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, 
 //  and / or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions :
 // The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
@@ -181,13 +181,13 @@ final class KerbAuthentication extends SSPIAuthentication
 
 		catch(GSSException ge) 
 		{
-		    authLogger.finer(toString() + "initAuthInit failed GSSException:-" + ge);
-            con.terminate(SQLServerException.DRIVER_ERROR_NONE, SQLServerException.getErrString("R_integratedAuthenticationFailed"), ge);            
+		    authLogger.finer(toString() + "initAuthInit failed GSSException:-" + ge);
+		    con.terminate(SQLServerException.DRIVER_ERROR_NONE, SQLServerException.getErrString("R_integratedAuthenticationFailed"), ge);
 		}
         catch(PrivilegedActionException ge) 
 		{
-		    authLogger.finer(toString() + "initAuthInit failed privileged exception:-" + ge);
-            con.terminate(SQLServerException.DRIVER_ERROR_NONE, SQLServerException.getErrString("R_integratedAuthenticationFailed"), ge);            
+		    authLogger.finer(toString() + "initAuthInit failed privileged exception:-" + ge);
+		    con.terminate(SQLServerException.DRIVER_ERROR_NONE, SQLServerException.getErrString("R_integratedAuthenticationFailed"), ge);
 		}
         
 
@@ -240,8 +240,8 @@ final class KerbAuthentication extends SSPIAuthentication
         }
         catch(GSSException ge) 
 		{
-		    authLogger.finer(toString() + "initSecContext Failed :-" + ge);
-            con.terminate(SQLServerException.DRIVER_ERROR_NONE, SQLServerException.getErrString("R_integratedAuthenticationFailed"), ge);            
+		    authLogger.finer(toString() + "initSecContext Failed :-" + ge);
+		    con.terminate(SQLServerException.DRIVER_ERROR_NONE, SQLServerException.getErrString("R_integratedAuthenticationFailed"), ge);
 		}
         // keep the compiler happy
         return null;
@@ -337,4 +337,4 @@ final class KerbAuthentication extends SSPIAuthentication
     }
 }
 
-
+

@@ -23,6 +23,10 @@
 		</license>
 	</licenses>
 	
+	<organization>
+		<name>Microsoft Corporation</name>
+	</organization>
+	
 	<developers>
 		<developer>
 			<name>Andrea Lam</name>
@@ -67,8 +71,6 @@
 						<version>3.1</version>
 						<configuration>
 							<excludes>
-								<exclude>**/com/microsoft/sqlserver/jdbc/SQLServerJdbc3.java</exclude>
-								<exclude>**/com/microsoft/sqlserver/jdbc/SQLServerJdbc4.java</exclude>
 								<exclude>**/com/microsoft/sqlserver/jdbc/SQLServerJdbc42.java</exclude>
 							</excludes>
 							<source>1.7</source>
@@ -80,7 +82,12 @@
 						<artifactId>maven-jar-plugin</artifactId>
 						<version>3.0.2</version>
 						<configuration>
-							<finalName>${project.artifactId}-${project.version}.jre7</finalName>   				
+							<finalName>${project.artifactId}-${project.version}.jre7</finalName>
+							<archive>
+								<manifest>
+									<addDefaultImplementationEntries>true</addDefaultImplementationEntries>
+								</manifest>
+							</archive>
 						</configuration>
 					</plugin>   
 				</plugins>
@@ -96,8 +103,6 @@
 						<version>3.1</version>
 						<configuration>
 							<excludes>
-								<exclude>**/com/microsoft/sqlserver/jdbc/SQLServerJdbc3.java</exclude>
-								<exclude>**/com/microsoft/sqlserver/jdbc/SQLServerJdbc4.java</exclude>
 								<exclude>**/com/microsoft/sqlserver/jdbc/SQLServerJdbc41.java</exclude>
 							</excludes>
 							<source>1.8</source>
@@ -109,7 +114,12 @@
 						<artifactId>maven-jar-plugin</artifactId>
 						<version>3.0.2</version>
 						<configuration>
-							<finalName>${project.artifactId}-${project.version}.jre8</finalName>   				
+							<finalName>${project.artifactId}-${project.version}.jre8</finalName>   	
+							<archive>
+								<manifest>
+									<addDefaultImplementationEntries>true</addDefaultImplementationEntries>
+								</manifest>
+							</archive>
 						</configuration>
 					</plugin>   
 				</plugins>

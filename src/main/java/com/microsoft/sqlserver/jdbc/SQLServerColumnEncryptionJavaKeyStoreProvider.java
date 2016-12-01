@@ -6,7 +6,7 @@
 // Copyright(c) Microsoft Corporation
 // All rights reserved.
 // MIT License
-// Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files(the ""Software""), 
+// Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files(the "Software"), 
 //  to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, 
 //  and / or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions :
 // The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
@@ -23,7 +23,6 @@ package com.microsoft.sqlserver.jdbc;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.io.UnsupportedEncodingException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.security.InvalidKeyException;
@@ -46,6 +45,13 @@ import javax.crypto.NoSuchPaddingException;
 
 import com.microsoft.sqlserver.jdbc.KeyStoreProviderCommon;
 
+import static java.nio.charset.StandardCharsets.UTF_16LE;
+
+/**
+ * 
+ * The implementation of the key store provider for Java Key Store. This class enables using certificates stored in the Java keystore as column master keys.
+ *
+ */
 public class SQLServerColumnEncryptionJavaKeyStoreProvider extends SQLServerColumnEncryptionKeyStoreProvider
 {
 	String name = "MSSQL_JAVA_KEYSTORE";
@@ -65,6 +71,12 @@ public class SQLServerColumnEncryptionJavaKeyStoreProvider extends SQLServerColu
 		return this.name;
 	}
 
+	/**
+     * Key store provider for the Java Key Store.
+     * @param keyStoreLocation specifies the location of the keystore
+     * @param keyStoreSecret specifies the secret used for keystore
+     * @throws SQLServerException when an error occurs
+     */
     public SQLServerColumnEncryptionJavaKeyStoreProvider(String keyStoreLocation, char[] keyStoreSecret) throws SQLServerException
     {    	
     	javaKeyStoreLogger.entering(SQLServerColumnEncryptionJavaKeyStoreProvider.class.getName(), "SQLServerColumnEncryptionJavaKeyStoreProvider");    	
@@ -254,15 +266,7 @@ public class SQLServerColumnEncryptionJavaKeyStoreProvider extends SQLServerColu
     	 CertificateDetails certificateDetails = getCertificateDetails(masterKeyPath);
     	 byte [] cipherText=encryptRSAOAEP(plainTextColumnEncryptionKey, certificateDetails);
     	 byte[] cipherTextLength=getLittleEndianBytesFromShort((short)cipherText.length);
-    	 byte[] masterKeyPathBytes;
-    	 
-		try {
-			masterKeyPathBytes = masterKeyPath.toLowerCase().getBytes(
-					"UTF-16LE");
-		} catch (UnsupportedEncodingException e) {
-            MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_unsupportedEncoding"));
-            throw new SQLServerException(form.format(new Object[] {"UTF-16LE"}), null, 0, null);
-		}
+    	 byte[] masterKeyPathBytes = masterKeyPath.toLowerCase().getBytes(UTF_16LE);
     	 
 		byte[] keyPathLength=getLittleEndianBytesFromShort((short)masterKeyPathBytes.length);
     	 

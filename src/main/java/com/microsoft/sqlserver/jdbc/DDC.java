@@ -6,7 +6,7 @@
 // Copyright(c) Microsoft Corporation
 // All rights reserved.
 // MIT License
-// Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files(the ""Software""), 
+// Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files(the "Software"), 
 //  to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, 
 //  and / or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions :
 // The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
@@ -24,6 +24,8 @@ import java.nio.charset.*;
 import java.nio.*;
 import java.text.*;
 import java.util.*;
+
+import static java.nio.charset.StandardCharsets.US_ASCII;
 
 /**
  * Utility class for all Data Dependant Conversions (DDC).
@@ -353,6 +355,14 @@ final class DDC
 		}
 	}
 	
+	/**
+	 * Convert a Money object to desired target user type.
+	 * @param bigDecimalVal the value to convert.
+	 * @param jdbcType the jdbc type required.
+	 * @param streamType the stream type.
+	 * @param numberOfBytes the number of bytes to convert
+	 * @return the required object.
+	 */
 	static final Object convertMoneyToObject(BigDecimal bigDecimalVal, JDBCType jdbcType, StreamType streamType, int numberOfBytes)
 	{
 		switch (jdbcType)
@@ -384,7 +394,7 @@ final class DDC
 		}
 	}
 	
-	//this is how fx framework converts big decimal to money and smallmoney
+	//converts big decimal to money and smallmoney
 	private static byte[] convertToBytes(BigDecimal value, int scale, int numBytes)
 	{
 		boolean isNeg = value.signum() < 0;
@@ -417,7 +427,7 @@ final class DDC
 	 * @param jdbcType the jdbc type required.
 	 * @param baseTypeInfo the type information associated with bytesValue.
 	 * @return the required object.
-	 * @throws SQLServerException 
+	 * @throws SQLServerException when an error occurs.
 	 */
 	static final Object convertBytesToObject(byte[] bytesValue, JDBCType jdbcType, TypeInfo baseTypeInfo) throws SQLServerException
 	{
@@ -466,7 +476,7 @@ final class DDC
 	 */
 	static final Object convertStringToObject(
 			String stringVal,
-			String charset,
+			Charset charset,
 			JDBCType jdbcType,
 			StreamType streamType) throws UnsupportedEncodingException, IllegalArgumentException
 	{
@@ -532,7 +542,7 @@ final class DDC
 			case CHARACTER:
 				return new StringReader(stringVal);
 			case ASCII:
-				return new ByteArrayInputStream(stringVal.getBytes("US-ASCII"));
+				return new ByteArrayInputStream(stringVal.getBytes(US_ASCII));
 			case BINARY:
 				return new ByteArrayInputStream(stringVal.getBytes());
 
@@ -622,7 +632,7 @@ final class DDC
 					}
 					else
 					{
-						return new ByteArrayInputStream((new String(stream.getBytes(), typeInfo.getCharset())).getBytes("US-ASCII"));
+						return new ByteArrayInputStream((new String(stream.getBytes(), typeInfo.getCharset())).getBytes(US_ASCII));
 					}
 				}
 				else if (StreamType.CHARACTER == getterArgs.streamType ||
@@ -1357,7 +1367,7 @@ final class AsciiFilteredUnicodeInputStream extends InputStream
 	private AsciiFilteredUnicodeInputStream( Reader rd) throws SQLServerException
 	{
 		containedReader = rd;
-		asciiCharSet = Charset.forName("US-ASCII");
+		asciiCharSet = US_ASCII;
 	}
 
 	public void close() throws IOException

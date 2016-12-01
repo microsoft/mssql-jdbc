@@ -6,7 +6,7 @@
 // Copyright(c) Microsoft Corporation
 // All rights reserved.
 // MIT License
-// Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files(the ""Software""), 
+// Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files(the "Software"), 
 //  to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, 
 //  and / or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions :
 // The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
@@ -36,15 +36,13 @@ import java.util.logging.*;
  * Documentation for specific public methods that are undocumented can be found under Sun's
  * standard JDBC documentation for class java.sql.Statement. Those methods are part of Sun's
  * standard JDBC documentation and therefore their documentation is not duplicated here.
-* <li>
- *<li>Implementation Notes
- *<li>Fetching Result sets
-* <li>
+ * <p>Implementation Notes
+ * <p>Fetching Result sets
+ * <p>
  * The queries first rowset is available immediately after the executeQuery. The first rs.next()
  * does not make a server round trip. For non server side resultsets the entire result set is in
  * the rowset. For server side result sets the  number of rows in the rowset is set with nFetchSize
- * <li>
- * <li>
+ * <p>
  * The API javadoc for JDBC API methods that this class implements are not repeated here. Please
  * see Sun's JDBC API interfaces javadoc for those details.
  */
@@ -602,6 +600,7 @@ public class SQLServerStatement implements ISQLServerStatement {
     // All result set types other than firehose (SQL Server default) use server side cursors.
     setResponseBuffering(connection.getResponseBuffering());
 
+    setDefaultQueryTimeout();
     
     if(stmtlogger.isLoggable(java.util.logging.Level.FINER))
     {
@@ -619,6 +618,19 @@ public class SQLServerStatement implements ISQLServerStatement {
     }
   }
 
+  // add query timeout to statement
+  private void setDefaultQueryTimeout() {
+    
+    String sPropValue = this.connection.activeConnectionProperties.getProperty(SQLServerDriverIntProperty.QUERY_TIMEOUT.toString());
+    
+    if (null != sPropValue && sPropValue.length() > 0) {
+      int queryTimeoutSeconds = Integer.parseInt(sPropValue);
+      if (queryTimeoutSeconds > 0) {
+        this.queryTimeout = queryTimeoutSeconds;        
+      }
+    }
+  }
+  
 	final java.util.logging.Logger getStatementLogger()
 	{
 		return stmtlogger;
@@ -2023,11 +2035,11 @@ public class SQLServerStatement implements ISQLServerStatement {
         }
     } // executeLargeBatch
     
-/**
- * Return the statement's connection
- * @throws SQLServerException
- * @return the connection
- */
+	/**
+	 * Return the statement's connection
+	 * @throws SQLServerException when an error occurs
+	 * @return the connection
+	 */
   /*L0*/ public final java.sql.Connection getConnection() throws SQLServerException 
     {
         loggerExternal.entering(getClassNameLogging(),  "getConnection");

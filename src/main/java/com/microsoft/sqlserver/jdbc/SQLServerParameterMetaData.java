@@ -6,7 +6,7 @@
 // Copyright(c) Microsoft Corporation
 // All rights reserved.
 // MIT License
-// Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files(the ""Software""), 
+// Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files(the "Software"), 
 //  to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, 
 //  and / or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions :
 // The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
@@ -62,6 +62,11 @@ public final class SQLServerParameterMetaData implements ParameterMetaData {
 		baseID++;
 		return baseID;
 	}
+	
+	/**
+	 * This is a helper function to provide an ID string suitable for tracing.
+	 * @return traceID string
+	 */
 	final public String toString()
 	{
 		return traceID;
@@ -638,7 +643,16 @@ public final class SQLServerParameterMetaData implements ParameterMetaData {
 	public <T> T unwrap(Class<T> iface) throws SQLException
 	{
 		DriverJDBCVersion.checkSupportsJDBC4();
-		throw new SQLFeatureNotSupportedException(SQLServerException.getErrString("R_notSupported"));
+		T t;
+		try
+		{
+			t = iface.cast(this);
+		}
+		catch (ClassCastException e)
+		{
+			throw new SQLServerException(e.getMessage(), e);
+		}
+		return t;
 	}
 
 
@@ -860,7 +874,7 @@ public final class SQLServerParameterMetaData implements ParameterMetaData {
 	/**
 	 * Verify a supplied parameter index is valid
 	 * @param param the param index
-	 * @throws SQLServerException
+	 * @throws SQLServerException when an error occurs
 	 * @return boolean
 	 */
 	/*L2*/ public boolean isSigned(int param) throws SQLServerException {
@@ -880,5 +894,11 @@ public final class SQLServerParameterMetaData implements ParameterMetaData {
 			SQLServerException.makeFromDriverError(con, stmtParent, e.toString(), null, false);
 			return false;
 		}
+	}
+	
+	String getTVPSchemaFromStoredProcedure(int param) throws SQLServerException{
+		checkClosed();
+		verifyParameterPosition(param);
+		return rsProcedureMeta.getString("SS_TYPE_SCHEMA_NAME");
 	}
 }

@@ -6,7 +6,7 @@
 // Copyright(c) Microsoft Corporation
 // All rights reserved.
 // MIT License
-// Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files(the ""Software""), 
+// Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files(the "Software"), 
 //  to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, 
 //  and / or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions :
 // The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
@@ -21,6 +21,7 @@ package com.microsoft.sqlserver.jdbc;
 import java.io.*;
 import java.nio.*;
 import java.nio.channels.*;
+import java.nio.charset.Charset;
 import java.net.*;
 import java.math.*;
 import java.util.concurrent.*;
@@ -2864,13 +2865,20 @@ final class SocketFinder
 
 	}
 
-	//Updates the selectedException if
-	//a) selectedException is null
-	//b) ex is a non-socketTimeoutException and selectedException is a socketTimeoutException 
-	//If there are multiple exceptions, that are not related to socketTimeout
-	//the first non-socketTimeout exception is picked.
-	//If all exceptions are related to socketTimeout, the first exception is picked.
-	//Note: This method is not thread safe. The caller should ensure thread safety.
+	/**
+	 * Updates the selectedException if
+	 * <p>
+	 * a) selectedException is null
+	 * <p>
+	 * b) ex is a non-socketTimeoutException and selectedException is a socketTimeoutException 
+	 * <p>
+	 * If there are multiple exceptions, that are not related to socketTimeout
+	 * the first non-socketTimeout exception is picked.
+	 * If all exceptions are related to socketTimeout, the first exception is picked.
+	 * Note: This method is not thread safe. The caller should ensure thread safety.
+	 * @param ex the IOException
+	 * @param traceId the traceId of the thread
+	 */
 	public void updateSelectedException(IOException ex, String traceId)
 	{
 		boolean updatedException = false;
@@ -2897,7 +2905,8 @@ final class SocketFinder
 	}
 
 	/**
-	 * Used for tracing
+	 * Used fof tracing
+	 * @return traceID string
 	 */
 	public String toString()
 	{
@@ -2993,6 +3002,7 @@ final class SocketConnector implements Runnable
 
 	/**
 	 * Used for tracing
+	 * @return traceID string
 	 */
 	public String toString()
 	{
@@ -3946,7 +3956,7 @@ final class TDSWriter
 			Reader reader,
 			long advertisedLength,
 			boolean isDestBinary,
-			String charSet) throws SQLServerException
+			Charset charSet) throws SQLServerException
 	{
 		assert DataTypes.UNKNOWN_STREAM_LENGTH == advertisedLength || advertisedLength >= 0;
 
@@ -3997,25 +4007,16 @@ final class TDSWriter
 
 				for (int charsCopied = 0; charsCopied < charsToWrite; ++charsCopied)
 				{
-					try
+					if(null == charSet)
 					{
-						if(null == charSet)
-						{
-							streamByteBuffer[charsCopied] = (byte)(streamCharBuffer[charsCopied] & 0xFF);
-						}
-						else
-						{
-							// encoding as per collation
-							streamByteBuffer[charsCopied] = (streamCharBuffer[charsCopied] +
-									"")
-									.getBytes(charSet)[0];
-						}
+						streamByteBuffer[charsCopied] = (byte)(streamCharBuffer[charsCopied] & 0xFF);
 					}
-					catch (UnsupportedEncodingException e)
+					else
 					{
-						throw new SQLServerException(
-								SQLServerException.getErrString("R_encodingErrorWritingTDS"),
-								e);
+						// encoding as per collation
+						streamByteBuffer[charsCopied] = new String(streamCharBuffer[charsCopied] +
+								"")
+								.getBytes(charSet)[0];
 					}
 				}
 				writeBytes(streamByteBuffer, 0, charsToWrite);
@@ -7257,7 +7258,7 @@ final class TDSReader
 
 			try
 			{
-				return DDC.convertStringToObject(sb.toString(), Encoding.UNICODE.charsetName(), jdbcType, streamType);
+				return DDC.convertStringToObject(sb.toString(), Encoding.UNICODE.charset(), jdbcType, streamType);
 			}
 			catch (UnsupportedEncodingException e)
 			{
