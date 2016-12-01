@@ -18,21 +18,49 @@
  
  
 package com.microsoft.sqlserver.jdbc;
-import java.io.*;
-import java.lang.reflect.Constructor;
-import java.lang.reflect.InvocationTargetException;
-import java.net.*;
-import java.sql.*;
-import java.util.*;
+import static java.nio.charset.StandardCharsets.UTF_16LE;
+
+import java.io.IOException;
+import java.io.UnsupportedEncodingException;
+import java.net.DatagramPacket;
+import java.net.DatagramSocket;
+import java.net.IDN;
+import java.net.InetAddress;
+import java.net.SocketException;
+import java.net.UnknownHostException;
+import java.sql.Blob;
+import java.sql.CallableStatement;
+import java.sql.Clob;
+import java.sql.Connection;
+import java.sql.DatabaseMetaData;
+import java.sql.NClob;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLClientInfoException;
+import java.sql.SQLException;
+import java.sql.SQLFeatureNotSupportedException;
+import java.sql.SQLPermission;
+import java.sql.SQLWarning;
+import java.sql.SQLXML;
+import java.sql.Savepoint;
+import java.sql.Statement;
+import java.sql.Struct;
+import java.text.MessageFormat;
+import java.util.Arrays;
 import java.util.Date;
-import javax.sql.*;
-import javax.xml.bind.DatatypeConverter;
-import java.util.logging.*;
-import java.text.*;
+import java.util.Enumeration;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Properties;
+import java.util.UUID;
 import java.util.concurrent.Executor;
 import java.util.concurrent.TimeUnit;
+import java.util.logging.Level;
 
-import static java.nio.charset.StandardCharsets.UTF_16LE;
+import javax.sql.XAConnection;
+import javax.xml.bind.DatatypeConverter;
 
 /**
  * SQLServerConnection implements a JDBC connection to SQL Server.

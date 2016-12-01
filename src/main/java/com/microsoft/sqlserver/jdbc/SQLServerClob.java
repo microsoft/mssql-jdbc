@@ -18,13 +18,23 @@
  
  
 package com.microsoft.sqlserver.jdbc;
-import java.sql.*;
-import java.io.*;
-import java.text.*;
-import java.util.*;
-import java.util.logging.*;
-
 import static java.nio.charset.StandardCharsets.US_ASCII;
+
+import java.io.BufferedInputStream;
+import java.io.Closeable;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.Reader;
+import java.io.Serializable;
+import java.io.StringReader;
+import java.io.UnsupportedEncodingException;
+import java.sql.Clob;
+import java.sql.SQLException;
+import java.sql.SQLFeatureNotSupportedException;
+import java.text.MessageFormat;
+import java.util.ArrayList;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
 * SQLServerClob represents a character LOB object and implements java.sql.Clob.

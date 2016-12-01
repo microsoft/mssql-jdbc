@@ -19,12 +19,18 @@
  
 package com.microsoft.sqlserver.jdbc;
 
-import javax.sql.*;
-import java.sql.*;
-import java.io.*;
-import java.util.*;
-import java.util.logging.*;
-import javax.naming.*;
+import java.io.PrintWriter;
+import java.sql.Connection;
+import java.sql.SQLException;
+import java.sql.SQLFeatureNotSupportedException;
+import java.util.Enumeration;
+import java.util.Properties;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
+import javax.naming.Reference;
+import javax.naming.StringRefAddr;
+import javax.sql.DataSource;
 
 /**
 * This datasource lists properties specific for the SQLServerConnection class.

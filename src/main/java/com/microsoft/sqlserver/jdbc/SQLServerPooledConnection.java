@@ -19,10 +19,15 @@
  
 package com.microsoft.sqlserver.jdbc;
 
-import javax.sql.*;
-import java.sql.*;
-import java.util.*;
-import java.util.logging.*;
+import java.sql.Connection;
+import java.sql.SQLException;
+import java.util.Vector;
+import java.util.logging.Level;
+
+import javax.sql.ConnectionEvent;
+import javax.sql.ConnectionEventListener;
+import javax.sql.PooledConnection;
+import javax.sql.StatementEventListener;
 
 /**
  * SQLServerPooledConnection represents a database physical connection in a connection pool. If provides

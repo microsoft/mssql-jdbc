@@ -21,10 +21,8 @@ package com.microsoft.sqlserver.jdbc;
 
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.security.Key;
 import java.security.KeyStore;
 import java.security.KeyStoreException;
@@ -39,8 +37,6 @@ import java.util.Enumeration;
 import java.util.Locale;
 
 import javax.xml.bind.DatatypeConverter;
-
-import com.microsoft.sqlserver.jdbc.AuthenticationJNI;
 
 /**
  * The implementation of the key store provider for the Windows Certificate Store. This class enables using keys stored in the Windows Certificate Store as column master keys.

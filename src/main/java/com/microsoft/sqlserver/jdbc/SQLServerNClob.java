@@ -18,9 +18,9 @@
  
  
 package com.microsoft.sqlserver.jdbc;
-import java.sql.*;
-import java.io.*;
-import java.util.logging.*;
+import java.io.UnsupportedEncodingException;
+import java.sql.NClob;
+import java.util.logging.Logger;
 
 /**
 * SQLServerNClob represents a National Character Set LOB object and implements java.sql.NClob.

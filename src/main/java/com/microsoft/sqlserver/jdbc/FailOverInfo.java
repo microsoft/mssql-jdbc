@@ -18,8 +18,8 @@
  
 
 package com.microsoft.sqlserver.jdbc;
-import java.util.logging.*;
-import java.text.*;
+import java.text.MessageFormat;
+import java.util.logging.Level;
 
 
 /**

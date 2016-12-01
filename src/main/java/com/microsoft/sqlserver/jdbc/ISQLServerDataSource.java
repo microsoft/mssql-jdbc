@@ -18,7 +18,7 @@
  
 
 package com.microsoft.sqlserver.jdbc;
-import javax.sql.*;
+import javax.sql.CommonDataSource;
 
 
 /**

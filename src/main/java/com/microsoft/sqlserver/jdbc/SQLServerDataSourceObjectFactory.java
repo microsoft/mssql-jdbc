@@ -20,10 +20,11 @@
 package com.microsoft.sqlserver.jdbc;
 
 
-import javax.naming.*;
-import javax.naming.spi.*;
-import java.util.*;
-import java.lang.reflect.*;
+import java.util.Hashtable;
+
+import javax.naming.Context;
+import javax.naming.Name;
+import javax.naming.spi.ObjectFactory;
 
 /**
 * SQLServerDataSourceObjectFactory is an object factory to materialize datasources from JNDI.

@@ -19,14 +19,6 @@
  
 package com.microsoft.sqlserver.jdbc;
 
-import java.util.*;
-import java.math.BigDecimal;
-import java.sql.ResultSet;
-import java.sql.ResultSetMetaData;
-import java.sql.SQLException;
-import java.text.MessageFormat;
-import java.util.Map.Entry;
-
 /**
  * This class represents a column of the in-memory data table represented by SQLServerDataTable. 
  */

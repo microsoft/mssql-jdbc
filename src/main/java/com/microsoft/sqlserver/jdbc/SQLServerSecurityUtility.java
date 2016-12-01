@@ -20,11 +20,7 @@
 package com.microsoft.sqlserver.jdbc;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
-import java.text.MessageFormat;
-import java.util.Arrays;
 import java.util.Iterator;
-import java.util.concurrent.TimeUnit;
-
 
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;

@@ -19,10 +19,16 @@
  
 package com.microsoft.sqlserver.jdbc;
 
-import java.sql.*;
-import java.util.*;
-import java.text.*; 
-import java.util.logging.*;
+import java.sql.CallableStatement;
+import java.sql.Connection;
+import java.sql.DriverPropertyInfo;
+import java.sql.ResultSet;
+import java.sql.RowIdLifetime;
+import java.sql.SQLException;
+import java.text.MessageFormat;
+import java.util.EnumMap;
+import java.util.Properties;
+import java.util.logging.Level;
 
 /**
 * SQLServerDatabaseMetaData provides JDBC database meta data.
