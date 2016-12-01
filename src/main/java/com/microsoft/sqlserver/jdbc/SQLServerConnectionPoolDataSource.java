@@ -19,10 +19,12 @@
  
 package com.microsoft.sqlserver.jdbc;
 
-import java.sql.*;
-import javax.sql.*;
-import javax.naming.*;
-import java.util.logging.*;
+import java.sql.SQLException;
+import java.util.logging.Level;
+
+import javax.naming.Reference;
+import javax.sql.ConnectionPoolDataSource;
+import javax.sql.PooledConnection;
 
 /**
 * SQLServerConnectionPoolDataSource provides physical database connections for connection pool managers.  

@@ -19,13 +19,20 @@
 
 package com.microsoft.sqlserver.jdbc;
 
-import java.lang.reflect.Constructor;
-import java.lang.reflect.InvocationTargetException;
-import java.sql.*;
-import java.util.*;
+import java.sql.BatchUpdateException;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.SQLWarning;
+import java.sql.Statement;
 import java.text.MessageFormat;
-import java.util.regex.*;
-import java.util.logging.*;
+import java.util.ArrayList;
+import java.util.ListIterator;
+import java.util.Stack;
+import java.util.StringTokenizer;
+import java.util.Vector;
+import java.util.logging.Level;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
  /**
  * SQLServerStatment provides the basic implementation of JDBC statement functionality. It also

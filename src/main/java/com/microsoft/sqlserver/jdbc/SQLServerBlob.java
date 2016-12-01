@@ -18,11 +18,17 @@
  
 
 package com.microsoft.sqlserver.jdbc;
-import java.sql.*;
-import java.io.*;
-import java.text.*;
-import java.util.*;
-import java.util.logging.*;
+import java.io.ByteArrayInputStream;
+import java.io.Closeable;
+import java.io.IOException;
+import java.io.InputStream;
+import java.sql.Blob;
+import java.sql.SQLException;
+import java.sql.SQLFeatureNotSupportedException;
+import java.text.MessageFormat;
+import java.util.ArrayList;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
 * SQLServerBlob represents a binary LOB object and implements a java.sql.Blob.

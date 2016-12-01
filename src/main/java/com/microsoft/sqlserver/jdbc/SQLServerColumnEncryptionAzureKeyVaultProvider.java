@@ -19,6 +19,8 @@
  
 package com.microsoft.sqlserver.jdbc;
 
+import static java.nio.charset.StandardCharsets.UTF_16LE;
+
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.ByteBuffer;
@@ -29,9 +31,8 @@ import java.text.MessageFormat;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 
-import static java.nio.charset.StandardCharsets.UTF_16LE;
-
 import org.apache.http.impl.client.HttpClientBuilder;
+
 import com.microsoft.azure.keyvault.KeyVaultClient;
 import com.microsoft.azure.keyvault.KeyVaultClientImpl;
 import com.microsoft.azure.keyvault.models.KeyBundle;

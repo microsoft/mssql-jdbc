@@ -18,7 +18,7 @@
 
 
 package com.microsoft.sqlserver.jdbc;
-import java.util.*;
+import java.util.ListResourceBundle;
 
 /**
  * A simple resource bundle containing the strings for localizing.

@@ -19,7 +19,7 @@
  
 package com.microsoft.sqlserver.jdbc;
 
-import java.sql.*;
+import java.sql.SQLException;
 
 public interface ISQLServerPreparedStatement extends java.sql.PreparedStatement, ISQLServerStatement
 {

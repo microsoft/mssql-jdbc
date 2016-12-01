@@ -20,6 +20,8 @@
 package com.microsoft.sqlserver.jdbc;
 
 
+import static java.nio.charset.StandardCharsets.UTF_16LE;
+
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -42,10 +44,6 @@ import javax.crypto.BadPaddingException;
 import javax.crypto.Cipher;
 import javax.crypto.IllegalBlockSizeException;
 import javax.crypto.NoSuchPaddingException;
-
-import com.microsoft.sqlserver.jdbc.KeyStoreProviderCommon;
-
-import static java.nio.charset.StandardCharsets.UTF_16LE;
 
 /**
  * 

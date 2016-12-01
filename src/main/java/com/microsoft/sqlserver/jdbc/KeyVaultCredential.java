@@ -20,8 +20,10 @@
 package com.microsoft.sqlserver.jdbc;
 
 import java.util.Map;
+
 import org.apache.http.Header;
 import org.apache.http.message.BasicHeader;
+
 import com.microsoft.azure.keyvault.authentication.KeyVaultCredentials;
 import com.microsoft.windowsazure.core.pipeline.filter.ServiceRequestContext;
 
