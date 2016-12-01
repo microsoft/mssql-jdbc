@@ -1461,9 +1461,16 @@ private final boolean doPrepExec(TDSWriter tdsWriter, Parameter[] params, boolea
         else
         {
             JavaType javaType = JavaType.of(obj);
-			if (JavaType.TVP == javaType)
+			if (JavaType.TVP == javaType){
 				tvpName = getTVPNameIfNull (index, null);   //will return null if called from preparedStatement
-            targetJDBCType = javaType.getJDBCType(SSType.UNKNOWN, targetJDBCType);
+				
+				if((null == tvpName) && (obj instanceof ResultSet)){
+					throw new SQLServerException(
+							SQLServerException.getErrString("R_TVPnotWorkWithSetObjectResultSet"),
+							null);
+				}
+			}
+			targetJDBCType = javaType.getJDBCType(SSType.UNKNOWN, targetJDBCType);
             
             if(JDBCType.UNKNOWN == targetJDBCType){
             	if(obj instanceof java.util.UUID){
