@@ -19,11 +19,16 @@
  
 package com.microsoft.sqlserver.jdbc;
 
-import java.util.*;
 import java.math.BigDecimal;
 import java.text.MessageFormat;
+import java.time.OffsetDateTime;
+import java.time.OffsetTime;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.Map.Entry;
-import java.time.*;
+import java.util.UUID;
 
 public final class SQLServerDataTable {
 

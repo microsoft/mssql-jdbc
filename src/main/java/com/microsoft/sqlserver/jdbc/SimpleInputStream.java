@@ -19,7 +19,8 @@
 
 package com.microsoft.sqlserver.jdbc;
 
-import java.io.*;
+import java.io.IOException;
+import java.io.InputStream;
 
 /**
 * SimpleInputStream is an InputStream implementation that reads from TDS.
