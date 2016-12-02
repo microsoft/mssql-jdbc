@@ -641,7 +641,7 @@ final class Parameter
 			case BINARY:
 			case VARBINARY:
 				// To avoid the server side cost of re-preparing, once a "long" type, always a "long" type...
-				if (VARBINARY_MAX == param.typeDefinition || IMAGE == param.typeDefinition)
+				if (VARBINARY_MAX.equals(param.typeDefinition) || IMAGE.equals(param.typeDefinition))
 					break;
 				if(param.shouldHonorAEForParameter && 
 					(null!=jdbcTypeSetByUser) &&
@@ -797,7 +797,7 @@ final class Parameter
 			case CHAR:
 			case VARCHAR:				
 				// To avoid the server side cost of re-preparing, once a "long" type, always a "long" type...
-				if (VARCHAR_MAX == param.typeDefinition || TEXT == param.typeDefinition)
+				if (VARCHAR_MAX.equals(param.typeDefinition) || TEXT.equals(param.typeDefinition))
 					break;
 
 				// Adding for case useColumnEncryption=true & sendStringParametersAsUnicode=false
@@ -895,7 +895,7 @@ final class Parameter
 			case NCHAR:
 			case NVARCHAR:
 				// To avoid the server side cost of re-preparing, once a "long" type, always a "long" type...
-				if (NVARCHAR_MAX == param.typeDefinition || NTEXT == param.typeDefinition)
+				if (NVARCHAR_MAX.equals(param.typeDefinition) || NTEXT.equals(param.typeDefinition))
 					break;
 
 				if(param.shouldHonorAEForParameter && 

@@ -1804,7 +1804,7 @@ final class TDSChannel
 
 			// The error message may have a connection id appended to it. Extract the message only for comparison.
 			// This client connection id is appended in method checkAndAppendClientConnId().
-			if (-1 != errMsg.indexOf(SQLServerException.LOG_CLIENT_CONNECTION_ID_PREFIX))
+			if (errMsg.contains(SQLServerException.LOG_CLIENT_CONNECTION_ID_PREFIX))
 			{
 				errMsg = errMsg.substring(0, errMsg.indexOf(SQLServerException.LOG_CLIENT_CONNECTION_ID_PREFIX));
 			}

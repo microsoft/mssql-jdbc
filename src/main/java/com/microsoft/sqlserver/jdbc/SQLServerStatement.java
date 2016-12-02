@@ -1071,7 +1071,7 @@ public class SQLServerStatement implements ISQLServerStatement {
     * @return the result
     */
    /*L0*/ static String replaceMarkerWithNull(String sql){
-     if (sql.indexOf("'") < 0) {
+     if (!sql.contains("'")) {
        String retStr = replaceParameterWithString(sql , '?' , "null");
        return retStr;
      }
