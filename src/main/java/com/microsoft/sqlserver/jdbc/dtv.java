@@ -3700,7 +3700,7 @@ final class ServerDTVImpl extends DTVImpl
 	static final private java.util.logging.Logger aeLogger = 
 			java.util.logging.Logger.getLogger("com.microsoft.sqlserver.jdbc.DTV");
 
-	private final void getValuePrep(TypeInfo typeInfo, TDSReader tdsReader) throws SQLServerException
+	private void getValuePrep(TypeInfo typeInfo, TDSReader tdsReader) throws SQLServerException
 	{
 		// If we've already seen this value before, then we shouldn't be here.
 		assert null == valueMark;

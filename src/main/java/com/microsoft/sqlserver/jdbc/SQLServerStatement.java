@@ -974,7 +974,7 @@ public class SQLServerStatement implements ISQLServerStatement {
         }
     }
 
-    private final void doExecuteStatementBatch(StmtBatchExecCmd execCmd) throws SQLServerException
+    private void doExecuteStatementBatch(StmtBatchExecCmd execCmd) throws SQLServerException
     {
         resetForReexecute();
 
@@ -2117,7 +2117,7 @@ public class SQLServerStatement implements ISQLServerStatement {
     return 0;
   }
 
-  private final void doExecuteCursored(StmtExecCmd execCmd, String sql) throws SQLServerException
+  private void doExecuteCursored(StmtExecCmd execCmd, String sql) throws SQLServerException
   {
     if (stmtlogger.isLoggable(java.util.logging.Level.FINER))
     {

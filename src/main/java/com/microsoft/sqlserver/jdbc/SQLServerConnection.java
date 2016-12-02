@@ -2520,7 +2520,7 @@ public class SQLServerConnection implements ISQLServerConnection
 	/*
 	 * Executes a connection-level command
 	 */
-	private final void connectionCommand(String sql, String logContext) throws SQLServerException
+	private void connectionCommand(String sql, String logContext) throws SQLServerException
 	{
 		final class ConnectionCommand extends UninterruptableTDSCommand
 		{
@@ -3205,7 +3205,7 @@ public class SQLServerConnection implements ISQLServerConnection
 		}
 	}
 
-	/*L0*/ final private void logon(LogonCommand command) throws SQLServerException
+	/*L0*/ private void logon(LogonCommand command) throws SQLServerException
 	{
 		SSPIAuthentication authentication = null;
 		if(integratedSecurity && AuthenticationScheme.nativeAuthentication == intAuthScheme)
@@ -3909,7 +3909,7 @@ public class SQLServerConnection implements ISQLServerConnection
 	/*
 	 * Executes a DTC command
 	 */
-	private final void executeDTCCommand(int requestType, byte[] payload, String logContext) throws SQLServerException
+	private void executeDTCCommand(int requestType, byte[] payload, String logContext) throws SQLServerException
 	{
 		final class DTCCommand extends UninterruptableTDSCommand
 		{

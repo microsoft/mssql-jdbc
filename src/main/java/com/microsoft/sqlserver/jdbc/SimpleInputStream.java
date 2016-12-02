@@ -185,7 +185,7 @@ final class SimpleInputStream extends BaseInputStream
     * Checks if we have EOS state.
     * @exception IOException if an I/O error occurs.
     */
-    private final  boolean isEOS() throws IOException
+    private boolean isEOS() throws IOException
     {
         assert streamPos<=payloadLength;
         return (streamPos==payloadLength);
