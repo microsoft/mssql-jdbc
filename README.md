@@ -48,11 +48,15 @@ To build the jar files, you must use Java 8 with either Ant (with Ivy), Maven or
     	* Run `gradle build -Pbuild=build41`. This creates JDBC 4.1 compliant jar in \build\libs directory
     	* Run `gradle build -Pbuild=build42`. This creates JDBC 4.2 compliant jar in \build\libs directory
 
-### AppVeyor Build Status
-[![Build status](https://ci.appveyor.com/api/projects/status/o6fjg16678ol64d3?svg=true)](https://ci.appveyor.com/project/Microsoft-JDBC/mssql-jdbc)
+### Status of Most Recent Builds
+| AppVeyor (Windows)       | Travis CI (Linux) |
+|--------------------------|--------------------------|
+| [![av-image][]][av-site] | [![tv-image][]][tv-site] |
 
-### Travis CI Build Status
-[![Build Status](https://travis-ci.org/Microsoft/mssql-jdbc.svg?)](https://travis-ci.org/Microsoft/mssql-jdbc)
+[av-image]: https://ci.appveyor.com/api/projects/status/o6fjg16678ol64d3?svg=true
+[av-site]: https://ci.appveyor.com/project/Microsoft-JDBC/mssql-jdbc
+[tv-image]: https://travis-ci.org/Microsoft/mssql-jdbc.svg?
+[tv-site]: https://travis-ci.org/Microsoft/mssql-jdbc
 
 ## Resources
 
