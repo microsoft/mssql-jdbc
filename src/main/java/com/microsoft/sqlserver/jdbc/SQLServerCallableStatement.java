@@ -22,6 +22,7 @@ package com.microsoft.sqlserver.jdbc;
 import java.sql.*;
 import java.math.BigDecimal;
 import java.util.Calendar;
+import java.util.UUID;
 import java.io.*;
 import java.net.*;
 import java.util.ArrayList;

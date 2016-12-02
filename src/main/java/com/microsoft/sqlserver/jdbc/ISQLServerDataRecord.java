@@ -19,6 +19,8 @@
  
 package com.microsoft.sqlserver.jdbc;
 
+import java.util.Set;
+
 /**
  * The ISQLServerDataRecord interface can be used to create classes that read in data from any source (such as a file)
  * and allow a structured type to be sent to SQL Server tables.

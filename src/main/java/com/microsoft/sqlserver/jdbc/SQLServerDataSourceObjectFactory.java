@@ -23,6 +23,7 @@ package com.microsoft.sqlserver.jdbc;
 import javax.naming.*;
 import javax.naming.spi.*;
 import java.util.*;
+import java.lang.reflect.*;
 
 /**
 * SQLServerDataSourceObjectFactory is an object factory to materialize datasources from JNDI.

@@ -21,6 +21,7 @@ package com.microsoft.sqlserver.jdbc;
 
 
 import java.text.MessageFormat;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
