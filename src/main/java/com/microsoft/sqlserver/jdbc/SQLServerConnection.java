@@ -4422,28 +4422,28 @@ public class SQLServerConnection implements ISQLServerConnection
 		// 2 characters reserved for patch
 		// 2 characters reserved for minor
 		// 2 characters reserved for major
-		if(2 == interfaceLibMajor.length()){
+		if(2 == interfaceLibBuild.length()){
 			outputInterfaceLibVersion.append(interfaceLibBuild);
 		}
 		else{
 			outputInterfaceLibVersion.append("0");
 			outputInterfaceLibVersion.append(interfaceLibBuild);
-		}
-		if(2 == interfaceLibMinor.length()){
-			outputInterfaceLibVersion.append(interfaceLibPatch);
-		}
-		else{
-			outputInterfaceLibVersion.append("0");
-			outputInterfaceLibVersion.append(interfaceLibPatch);
 		}
 		if(2 == interfaceLibPatch.length()){
+			outputInterfaceLibVersion.append(interfaceLibPatch);
+		}
+		else{
+			outputInterfaceLibVersion.append("0");
+			outputInterfaceLibVersion.append(interfaceLibPatch);
+		}
+		if(2 == interfaceLibMinor.length()){
 			outputInterfaceLibVersion.append(interfaceLibMinor);
 		}
 		else{
 			outputInterfaceLibVersion.append("0");
 			outputInterfaceLibVersion.append(interfaceLibMinor);
 		}
-		if(2 == interfaceLibBuild.length()){
+		if(2 == interfaceLibMajor.length()){
 			outputInterfaceLibVersion.append(interfaceLibMajor);
 		}
 		else{
