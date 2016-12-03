@@ -429,7 +429,7 @@ class SQLServerConnectionPoolProxy implements ISQLServerConnection, java.io.Seri
 	{
         DriverJDBCVersion.checkSupportsJDBC41();
 
-        // The driver currently does not implement JDDBC 4.1 APIs
+        // The driver currently does not implement the optional JDBC APIs
         throw new SQLFeatureNotSupportedException(SQLServerException.getErrString("R_notSupported"));
 	}
 	
@@ -437,7 +437,7 @@ class SQLServerConnectionPoolProxy implements ISQLServerConnection, java.io.Seri
 	{
         DriverJDBCVersion.checkSupportsJDBC41();
 
-        // The driver currently does not implement JDDBC 4.1 APIs
+        // The driver currently does not implement the optional JDBC APIs
         throw new SQLFeatureNotSupportedException(SQLServerException.getErrString("R_notSupported"));
 	}  
 	
@@ -557,7 +557,8 @@ class SQLServerConnectionPoolProxy implements ISQLServerConnection, java.io.Seri
     public <T> T unwrap(Class<T> iface) throws SQLException
     {
         wrappedConnection.getConnectionLogger().entering ( toString(), "unwrap", iface );
-        DriverJDBCVersion.checkSupportsJDBC4();
+        DriverJDBCVersion.checkSupportsJDBC4();
+
         T t;
         try
         {

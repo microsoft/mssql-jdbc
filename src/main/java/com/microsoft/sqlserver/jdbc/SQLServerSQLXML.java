@@ -101,7 +101,6 @@ final class SQLServerSQLXML implements java.sql.SQLXML
             ByteArrayOutputStreamToInputStream strm = new ByteArrayOutputStreamToInputStream();
             // Need to beat a stream out of docValue
             TransformerFactory factory;
-            Writer wr=null;
             try
             {
                 factory = TransformerFactory.newInstance();
@@ -126,14 +125,7 @@ final class SQLServerSQLXML implements java.sql.SQLXML
             assert null ==outputStreamValue;
             assert null == docValue;
             assert null !=strValue;
-            try
-            {
-                o = new ByteArrayInputStream(strValue.getBytes(Encoding.UNICODE.charsetName())); 
-            }
-            catch (UnsupportedEncodingException ex)
-            {
-                throw new SQLServerException(null, ex.getMessage(), null, 0, true);
-            }
+            o = new ByteArrayInputStream(strValue.getBytes(Encoding.UNICODE.charset())); 
         }
         assert null != o;
         isFreed = true; // we have consumed the data 
@@ -252,16 +244,7 @@ final class SQLServerSQLXML implements java.sql.SQLXML
         checkWriteXML();
         isUsed = true;
         outputStreamValue = new ByteArrayOutputStreamToInputStream();
-        java.io.Writer wrt=null;
-        try
-        {
-            wrt = new OutputStreamWriter(outputStreamValue, Encoding.UNICODE.charsetName());
-        }
-        catch (UnsupportedEncodingException ex)
-        {
-            throw new SQLServerException(null, ex.getMessage(), null, 0, true);
-        }
-        return wrt;
+        return new OutputStreamWriter(outputStreamValue, Encoding.UNICODE.charset());
     }
     public Reader getCharacterStream() throws SQLException
     {
@@ -309,16 +292,7 @@ final class SQLServerSQLXML implements java.sql.SQLXML
         }
 
         byte byteContents[] = contents.getBytes();
-        String ret = null;
-        try
-        {
-            ret = new String(byteContents,0, byteContents.length, Encoding.UNICODE.charsetName() );
-        }
-        catch (UnsupportedEncodingException ex)
-        {
-            throw new SQLServerException(null, ex.getMessage(), null, 0, true);
-        }
-        return ret;    
+        return new String(byteContents,0, byteContents.length, Encoding.UNICODE.charset() );
     }
     public void setString(String value)  throws SQLException
     {
