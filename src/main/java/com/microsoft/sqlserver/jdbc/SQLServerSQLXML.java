@@ -6,7 +6,7 @@
 // Copyright(c) Microsoft Corporation
 // All rights reserved.
 // MIT License
-// Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files(the ""Software""), 
+// Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files(the "Software"), 
 //  to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, 
 //  and / or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions :
 // The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
@@ -18,21 +18,45 @@
  
  
 package com.microsoft.sqlserver.jdbc;
-import java.sql.*;
-import java.io.*;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStreamWriter;
+import java.io.Reader;
+import java.io.StringReader;
+import java.sql.SQLException;
+import java.text.MessageFormat;
 
 import javax.xml.XMLConstants;
-import javax.xml.parsers.*;
-import javax.xml.transform.dom.*;
-import javax.xml.transform.sax.*;
-import javax.xml.transform.*;
-import org.w3c.dom.*;
-import java.text.*;
-import org.xml.sax.*;
-import javax.xml.transform.stax.*;
-import javax.xml.stream.*;
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.parsers.ParserConfigurationException;
+import javax.xml.stream.XMLInputFactory;
+import javax.xml.stream.XMLOutputFactory;
+import javax.xml.stream.XMLStreamException;
+import javax.xml.stream.XMLStreamReader;
+import javax.xml.stream.XMLStreamWriter;
+import javax.xml.transform.Result;
+import javax.xml.transform.Source;
+import javax.xml.transform.TransformerConfigurationException;
+import javax.xml.transform.TransformerFactory;
+import javax.xml.transform.dom.DOMResult;
+import javax.xml.transform.dom.DOMSource;
+import javax.xml.transform.sax.SAXResult;
+import javax.xml.transform.sax.SAXSource;
+import javax.xml.transform.sax.SAXTransformerFactory;
+import javax.xml.transform.sax.TransformerHandler;
+import javax.xml.transform.stax.StAXResult;
+import javax.xml.transform.stax.StAXSource;
 import javax.xml.transform.stream.StreamResult;
 import javax.xml.transform.stream.StreamSource;
+
+import org.w3c.dom.Document;
+import org.xml.sax.EntityResolver;
+import org.xml.sax.InputSource;
+import org.xml.sax.SAXException;
+import org.xml.sax.XMLReader;
 import org.xml.sax.helpers.XMLReaderFactory;
 
 
@@ -212,7 +236,7 @@ final class SQLServerSQLXML implements java.sql.SQLXML
 
     /**
     * Return an input stream to read data from this SQLXML
-    * @throws SQLServerException
+    * @throws SQLException when an error occurs
     * @return the input stream to that contains the SQLXML data
     */
     public InputStream getBinaryStream() throws SQLException 
@@ -226,8 +250,7 @@ final class SQLServerSQLXML implements java.sql.SQLXML
     /**
     * Retrieves a stream that can be used to write to the SQLXML value that this SQLXML object represents
     * The user has to write the BOM for binary streams.
-    * @param pos the position in the SQLXML value at which to start writing
-    * @throws SQLException
+    * @throws SQLException when an error occurs
     * @return OutputStream
     */
     public java.io.OutputStream setBinaryStream() throws SQLException 

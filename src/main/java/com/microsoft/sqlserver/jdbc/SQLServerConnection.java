@@ -6,7 +6,7 @@
 // Copyright(c) Microsoft Corporation
 // All rights reserved.
 // MIT License
-// Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files(the ""Software""), 
+// Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files(the "Software"), 
 //  to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, 
 //  and / or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions :
 // The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
@@ -18,43 +18,70 @@
  
  
 package com.microsoft.sqlserver.jdbc;
-import java.io.*;
-import java.lang.reflect.Constructor;
-import java.lang.reflect.InvocationTargetException;
-import java.net.*;
-import java.sql.*;
-import java.util.*;
+import static java.nio.charset.StandardCharsets.UTF_16LE;
+
+import java.io.IOException;
+import java.io.UnsupportedEncodingException;
+import java.net.DatagramPacket;
+import java.net.DatagramSocket;
+import java.net.IDN;
+import java.net.InetAddress;
+import java.net.SocketException;
+import java.net.UnknownHostException;
+import java.sql.Blob;
+import java.sql.CallableStatement;
+import java.sql.Clob;
+import java.sql.Connection;
+import java.sql.DatabaseMetaData;
+import java.sql.NClob;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLClientInfoException;
+import java.sql.SQLException;
+import java.sql.SQLFeatureNotSupportedException;
+import java.sql.SQLPermission;
+import java.sql.SQLWarning;
+import java.sql.SQLXML;
+import java.sql.Savepoint;
+import java.sql.Statement;
+import java.sql.Struct;
+import java.text.MessageFormat;
+import java.util.Arrays;
 import java.util.Date;
-import javax.sql.*;
-import javax.xml.bind.DatatypeConverter;
-import java.util.logging.*;
-import java.text.*;
+import java.util.Enumeration;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Properties;
+import java.util.UUID;
 import java.util.concurrent.Executor;
 import java.util.concurrent.TimeUnit;
+import java.util.logging.Level;
 
-import static java.nio.charset.StandardCharsets.UTF_16LE;
+import javax.sql.XAConnection;
+import javax.xml.bind.DatatypeConverter;
 
 /**
  * SQLServerConnection implements a JDBC connection to SQL Server.
  * SQLServerConnections support JDBC connection pooling and may be either physical JDBC connections
  * or logical JDBC connections.
- * <li>
+ * <p>
  * SQLServerConnection manages transaction control for all statements that were created from it.
  * SQLServerConnection may participate in XA distributed transactions managed via an XAResource adapter.
- * <li>
+ * <p>
  * SQLServerConnection instantiates a new TDSChannel object for use by itself and all statement objects that
  * are created under this connection. SQLServerConnection is thread safe.
- * <li>
+ * <p>
  * SQLServerConnection manages a pool of prepared statement handles. Prepared statements are prepared
  * once and typically executed many times with different data values for their parameters.
  * Prepared statements are also maintained across logical (pooled) connection closes.
- * <li>
+ * <p>
  * SQLServerConnection is not thread safe, however multiple statements created from a single
  * connection can be processing simultaneously in concurrent threads.
- * <li>
- * <li>
+ * <p>
  * This class's public functions need to be kept identical to the SQLServerConnectionPoolProxy's.
- * <li>
+ * <p>
  * The API javadoc for JDBC API methods that this class implements are not repeated here. Please
  * see Sun's JDBC API interfaces javadoc for those details.
  */
@@ -223,6 +250,10 @@ public class SQLServerConnection implements ISQLServerConnection
 
 	private boolean sendTimeAsDatetime = SQLServerDriverBooleanProperty.SEND_TIME_AS_DATETIME.getDefaultValue();
 
+	/**
+	 * Checks the sendTimeAsDatetime property. 
+	 * @return boolean value of sendTimeAsDatetime
+	 */
 	public synchronized final boolean getSendTimeAsDatetime()
 	{
 		return !isKatmaiOrLater() || sendTimeAsDatetime;
@@ -289,6 +320,11 @@ public class SQLServerConnection implements ISQLServerConnection
 	Map<String, SQLServerColumnEncryptionKeyStoreProvider> systemColumnEncryptionKeyStoreProvider = 
 			new HashMap<String, SQLServerColumnEncryptionKeyStoreProvider>();			
 
+	/**
+	 * Registers key store providers in the globalCustomColumnEncryptionKeyStoreProviders.
+	 * @param clientKeyStoreProviders a map containing the store providers information. 
+	 * @throws SQLServerException when an error occurs
+	 */
 	public static synchronized void registerColumnEncryptionKeyStoreProviders(
 			Map<String, SQLServerColumnEncryptionKeyStoreProvider> clientKeyStoreProviders) throws SQLServerException
 	{
@@ -389,6 +425,10 @@ public class SQLServerConnection implements ISQLServerConnection
 	private String trustedServerNameAE = null;
 	private static Map<String, List<String>> columnEncryptionTrustedMasterKeyPaths=new HashMap<String, List<String>>();
 
+	/**
+	 * Sets Trusted Master Key Paths in the columnEncryptionTrustedMasterKeyPaths.
+	 * @param trustedKeyPaths all master key paths that are trusted
+	 */
 	public static synchronized void setColumnEncryptionTrustedMasterKeyPaths(Map<String, List<String>> trustedKeyPaths)
 	{
 		loggerExternal.entering(SQLServerConnection.class.getName(), "setColumnEncryptionTrustedMasterKeyPaths", "Setting Trusted Master Key Paths"); 
@@ -403,6 +443,11 @@ public class SQLServerConnection implements ISQLServerConnection
 		loggerExternal.exiting(SQLServerConnection.class.getName(), "setColumnEncryptionTrustedMasterKeyPaths", "Number of Trusted Master Key Paths: " + columnEncryptionTrustedMasterKeyPaths.size());
 	}	
 
+	/**
+	 * Updates the columnEncryptionTrustedMasterKeyPaths with the new Server and trustedKeyPaths.
+	 * @param server String server name 
+	 * @param trustedKeyPaths all master key paths that are trusted
+	 */
 	public static synchronized void updateColumnEncryptionTrustedMasterKeyPaths(String server, List<String> trustedKeyPaths)
 	{
 		loggerExternal.entering(SQLServerConnection.class.getName(), "updateColumnEncryptionTrustedMasterKeyPaths", "Updating Trusted Master Key Paths"); 
@@ -413,6 +458,10 @@ public class SQLServerConnection implements ISQLServerConnection
 		loggerExternal.exiting(SQLServerConnection.class.getName(), "updateColumnEncryptionTrustedMasterKeyPaths", "Number of Trusted Master Key Paths: " + columnEncryptionTrustedMasterKeyPaths.size());
 	}	
 
+	/**
+	 * Removes the trusted Master key Path from the columnEncryptionTrustedMasterKeyPaths.
+	 * @param server String server name 
+	 */
 	public static synchronized void removeColumnEncryptionTrustedMasterKeyPaths(String server)
 	{
 		loggerExternal.entering(SQLServerConnection.class.getName(), "removeColumnEncryptionTrustedMasterKeyPaths", "Removing Trusted Master Key Paths"); 
@@ -423,6 +472,10 @@ public class SQLServerConnection implements ISQLServerConnection
 		loggerExternal.exiting(SQLServerConnection.class.getName(), "removeColumnEncryptionTrustedMasterKeyPaths", "Number of Trusted Master Key Paths: " + columnEncryptionTrustedMasterKeyPaths.size());
 	}	
 
+	/**
+	 * Retrieves the Trusted Master Key Paths.
+	 * @return columnEncryptionTrustedMasterKeyPaths.
+	 */
 	public static synchronized Map<String, List<String>> getColumnEncryptionTrustedMasterKeyPaths()
 	{
 		loggerExternal.entering(SQLServerConnection.class.getName(), "getColumnEncryptionTrustedMasterKeyPaths", "Getting Trusted Master Key Paths");
@@ -601,6 +654,10 @@ public class SQLServerConnection implements ISQLServerConnection
 
 	private UUID clientConnectionId = null;
 
+	/**
+	 * Retrieves the clientConnectionID.
+	 * @throws SQLServerException when an error occurs
+	 */
 	public UUID getClientConnectionId() throws SQLServerException
 	{
 		// If the connection is closed, we do not allow external application to get
@@ -751,7 +808,7 @@ public class SQLServerConnection implements ISQLServerConnection
 		if (lcpropValue.equals("true")) return true;
 		if (lcpropValue.equals("false")) return false;
 		MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidBooleanValue"));
-		Object[] msgArgs = {new String(propName)};
+		Object[] msgArgs = {propName};
 		SQLServerException.makeFromDriverError(this, this, form.format(msgArgs), null, false);
 		// Adding return false here for compiler's sake, this code is unreachable.
 		return false;
@@ -1130,7 +1187,7 @@ public class SQLServerConnection implements ISQLServerConnection
 			else
 			{
 				MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidselectMethod"));
-				Object[] msgArgs = {new String(sPropValue)};
+				Object[] msgArgs = {sPropValue};
 				SQLServerException.makeFromDriverError(this, this, form.format(msgArgs), null, false);
 			}
 
@@ -1144,7 +1201,7 @@ public class SQLServerConnection implements ISQLServerConnection
 			else
 			{
 				MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidresponseBuffering"));
-				Object[] msgArgs = {new String(sPropValue)};
+				Object[] msgArgs = {sPropValue};
 				SQLServerException.makeFromDriverError(this, this, form.format(msgArgs), null, false);
 			}
 
@@ -1774,7 +1831,7 @@ public class SQLServerConnection implements ISQLServerConnection
 				curserverinfo = curserverinfo + currentFOPlaceHolder.getInstanceName();
 			}
 			MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidPartnerConfiguration"));
-			Object[] msgArgs = { new String(activeConnectionProperties.getProperty(SQLServerDriverStringProperty.DATABASE_NAME.toString())), 
+			Object[] msgArgs = { activeConnectionProperties.getProperty(SQLServerDriverStringProperty.DATABASE_NAME.toString()), 
 					curserverinfo};        
 			terminate(SQLServerException.DRIVER_ERROR_UNSUPPORTED_CONFIG, form.format(msgArgs));
 		}
@@ -4365,28 +4422,28 @@ public class SQLServerConnection implements ISQLServerConnection
 		// 2 characters reserved for patch
 		// 2 characters reserved for minor
 		// 2 characters reserved for major
-		if(2 == interfaceLibMajor.length()){
+		if(2 == interfaceLibBuild.length()){
 			outputInterfaceLibVersion.append(interfaceLibBuild);
 		}
 		else{
 			outputInterfaceLibVersion.append("0");
 			outputInterfaceLibVersion.append(interfaceLibBuild);
-		}
-		if(2 == interfaceLibMinor.length()){
-			outputInterfaceLibVersion.append(interfaceLibPatch);
-		}
-		else{
-			outputInterfaceLibVersion.append("0");
-			outputInterfaceLibVersion.append(interfaceLibPatch);
 		}
 		if(2 == interfaceLibPatch.length()){
+			outputInterfaceLibVersion.append(interfaceLibPatch);
+		}
+		else{
+			outputInterfaceLibVersion.append("0");
+			outputInterfaceLibVersion.append(interfaceLibPatch);
+		}
+		if(2 == interfaceLibMinor.length()){
 			outputInterfaceLibVersion.append(interfaceLibMinor);
 		}
 		else{
 			outputInterfaceLibVersion.append("0");
 			outputInterfaceLibVersion.append(interfaceLibMinor);
 		}
-		if(2 == interfaceLibBuild.length()){
+		if(2 == interfaceLibMajor.length()){
 			outputInterfaceLibVersion.append(interfaceLibMajor);
 		}
 		else{
@@ -4426,9 +4483,9 @@ public class SQLServerConnection implements ISQLServerConnection
 	 * to check the holdability of ResultSets that would be created, and/or
 	 * ResultSet.getHoldability to check the holdability of an existing ResultSet.
 	 */
-	private void checkMatchesCurrentHoldability(int statementHoldability) throws SQLServerException
+	private void checkMatchesCurrentHoldability(int resultSetHoldability) throws SQLServerException
 	{
-		if (statementHoldability != this.holdability)
+		if (resultSetHoldability != this.holdability)
 		{
 			SQLServerException.makeFromDriverError(
 					this, this,
@@ -4437,44 +4494,79 @@ public class SQLServerConnection implements ISQLServerConnection
 		}
 	}
 
-	public Statement createStatement(int nType, int nConcur, int statementHoldability) throws SQLServerException 
+	public Statement createStatement(int nType, int nConcur, int resultSetHoldability) throws SQLServerException 
 	{
-		loggerExternal.entering(getClassNameLogging(),  "createStatement",  new Object[]{new Integer(nType), new Integer(nConcur), statementHoldability});   
-		Statement st = createStatement(nType, nConcur, statementHoldability, SQLServerStatementColumnEncryptionSetting.UseConnectionSetting);
+		loggerExternal.entering(getClassNameLogging(),  "createStatement",  new Object[]{new Integer(nType), new Integer(nConcur), resultSetHoldability});   
+		Statement st = createStatement(nType, nConcur, resultSetHoldability, SQLServerStatementColumnEncryptionSetting.UseConnectionSetting);
 		loggerExternal.exiting(getClassNameLogging(),  "createStatement", st);
 		return st;
 	}
 
-	public Statement createStatement(int nType, int nConcur, int statementHoldability, SQLServerStatementColumnEncryptionSetting stmtColEncSetting) throws SQLServerException 
+	public Statement createStatement(int nType, int nConcur, int resultSetHoldability, SQLServerStatementColumnEncryptionSetting stmtColEncSetting) throws SQLServerException 
 	{
-		loggerExternal.entering(getClassNameLogging(),  "createStatement",  new Object[]{new Integer(nType), new Integer(nConcur), statementHoldability, stmtColEncSetting});   
+		loggerExternal.entering(getClassNameLogging(),  "createStatement",  new Object[]{new Integer(nType), new Integer(nConcur), resultSetHoldability, stmtColEncSetting});   
 		checkClosed();
-		checkValidHoldability(statementHoldability);
-		checkMatchesCurrentHoldability(statementHoldability);
+		checkValidHoldability(resultSetHoldability);
+		checkMatchesCurrentHoldability(resultSetHoldability);
 		Statement st = new SQLServerStatement(this, nType, nConcur, stmtColEncSetting);
 		loggerExternal.exiting(getClassNameLogging(),  "createStatement", st);
 		return st;
 	}
 
-	/*L3*/ public PreparedStatement prepareStatement(java.lang.String sql, int nType, int nConcur, int statementHoldability) throws SQLServerException 
+	/*L3*/ public PreparedStatement prepareStatement(java.lang.String sql, int nType, int nConcur, int resultSetHoldability) throws SQLServerException 
 	{
-		loggerExternal.entering(getClassNameLogging(),  "prepareStatement",  new Object[]{new Integer(nType), new Integer(nConcur), statementHoldability});   
+		loggerExternal.entering(getClassNameLogging(),  "prepareStatement",  new Object[]{new Integer(nType), new Integer(nConcur), resultSetHoldability});   
 		PreparedStatement st = prepareStatement(
 				sql, 
 				nType, 
 				nConcur, 
-				statementHoldability, 
+				resultSetHoldability, 
 				SQLServerStatementColumnEncryptionSetting.UseConnectionSetting);
 		loggerExternal.exiting(getClassNameLogging(),  "prepareStatement", st);
 		return st;
 	}
 
-	public PreparedStatement prepareStatement(java.lang.String sql, int nType, int nConcur, int statementHoldability, SQLServerStatementColumnEncryptionSetting stmtColEncSetting) throws SQLServerException 
+	/**
+	   * Creates a <code>PreparedStatement</code> object that will generate
+	   * <code>ResultSet</code> objects with the given type, concurrency,
+	   * and holdability.
+	   * <P>
+	   * This method is the same as the <code>prepareStatement</code> method
+	   * above, but it allows the default result set
+	   * type, concurrency, and holdability to be overridden.
+	   *
+	   * @param sql a <code>String</code> object that is the SQL statement to
+	   *            be sent to the database; may contain one or more '?' IN
+	   *            parameters
+	   * @param nType one of the following <code>ResultSet</code>
+	   *        constants:
+	   *         <code>ResultSet.TYPE_FORWARD_ONLY</code>,
+	   *         <code>ResultSet.TYPE_SCROLL_INSENSITIVE</code>, or
+	   *         <code>ResultSet.TYPE_SCROLL_SENSITIVE</code>
+	   * @param nConcur one of the following <code>ResultSet</code>
+	   *        constants:
+	   *         <code>ResultSet.CONCUR_READ_ONLY</code> or
+	   *         <code>ResultSet.CONCUR_UPDATABLE</code>
+	   * @param resultSetHoldability one of the following <code>ResultSet</code>
+	   *        constants:
+	   *         <code>ResultSet.HOLD_CURSORS_OVER_COMMIT</code> or
+	   *         <code>ResultSet.CLOSE_CURSORS_AT_COMMIT</code>
+	   * @param stmtColEncSetting Specifies how data will be sent and received when reading and writing encrypted columns.
+	   * @return a new <code>PreparedStatement</code> object, containing the
+	   *         pre-compiled SQL statement, that will generate
+	   *         <code>ResultSet</code> objects with the given type,
+	   *         concurrency, and holdability
+	   * @throws SQLServerException if a database access error occurs, this
+	   * method is called on a closed connection
+	   *            or the given parameters are not <code>ResultSet</code>
+	   *            constants indicating type, concurrency, and holdability
+	   */
+	public PreparedStatement prepareStatement(java.lang.String sql, int nType, int nConcur, int resultSetHoldability, SQLServerStatementColumnEncryptionSetting stmtColEncSetting) throws SQLServerException 
 	{	  
-		loggerExternal.entering(getClassNameLogging(),  "prepareStatement",  new Object[]{new Integer(nType), new Integer(nConcur), statementHoldability, stmtColEncSetting});   
+		loggerExternal.entering(getClassNameLogging(),  "prepareStatement",  new Object[]{new Integer(nType), new Integer(nConcur), resultSetHoldability, stmtColEncSetting});   
 		checkClosed();
-		checkValidHoldability(statementHoldability);
-		checkMatchesCurrentHoldability(statementHoldability);
+		checkValidHoldability(resultSetHoldability);
+		checkMatchesCurrentHoldability(resultSetHoldability);
 		
 		PreparedStatement st = null;
 		
@@ -4499,20 +4591,20 @@ public class SQLServerConnection implements ISQLServerConnection
 		return st;
 	}
 
-	/*L3*/ public CallableStatement prepareCall(String sql, int nType, int nConcur, int statementHoldability) throws SQLServerException 
+	/*L3*/ public CallableStatement prepareCall(String sql, int nType, int nConcur, int resultSetHoldability) throws SQLServerException 
 	{
-		loggerExternal.entering(getClassNameLogging(),  "prepareStatement",  new Object[]{new Integer(nType), new Integer(nConcur), statementHoldability});   
-		CallableStatement st  = prepareCall(sql, nType, nConcur, statementHoldability, SQLServerStatementColumnEncryptionSetting.UseConnectionSetting);
+		loggerExternal.entering(getClassNameLogging(),  "prepareStatement",  new Object[]{new Integer(nType), new Integer(nConcur), resultSetHoldability});   
+		CallableStatement st  = prepareCall(sql, nType, nConcur, resultSetHoldability, SQLServerStatementColumnEncryptionSetting.UseConnectionSetting);
 		loggerExternal.exiting(getClassNameLogging(),  "prepareCall", st);
 		return st;
 	}
 
-	public CallableStatement prepareCall(String sql, int nType, int nConcur, int statementHoldability, SQLServerStatementColumnEncryptionSetting stmtColEncSetiing) throws SQLServerException 
+	public CallableStatement prepareCall(String sql, int nType, int nConcur, int resultSetHoldability, SQLServerStatementColumnEncryptionSetting stmtColEncSetiing) throws SQLServerException 
 	{
-		loggerExternal.entering(getClassNameLogging(),  "prepareStatement",  new Object[]{new Integer(nType), new Integer(nConcur), statementHoldability, stmtColEncSetiing});   
+		loggerExternal.entering(getClassNameLogging(),  "prepareStatement",  new Object[]{new Integer(nType), new Integer(nConcur), resultSetHoldability, stmtColEncSetiing});   
 		checkClosed();
-		checkValidHoldability(statementHoldability);
-		checkMatchesCurrentHoldability(statementHoldability);
+		checkValidHoldability(resultSetHoldability);
+		checkMatchesCurrentHoldability(resultSetHoldability);
 		
 		CallableStatement st =  null;
 		
@@ -4549,6 +4641,46 @@ public class SQLServerConnection implements ISQLServerConnection
 		return ps;
 	}
 
+	/**
+	   * Creates a default <code>PreparedStatement</code> object that has
+	   * the capability to retrieve auto-generated keys. The given constant
+	   * tells the driver whether it should make auto-generated keys
+	   * available for retrieval.  This parameter is ignored if the SQL statement
+	   * is not an <code>INSERT</code> statement, or an SQL statement able to return
+	   * auto-generated keys (the list of such statements is vendor-specific).
+	   * <P>
+	   * <B>Note:</B> This method is optimized for handling
+	   * parametric SQL statements that benefit from precompilation. If
+	   * the driver supports precompilation,
+	   * the method <code>prepareStatement</code> will send
+	   * the statement to the database for precompilation. Some drivers
+	   * may not support precompilation. In this case, the statement may
+	   * not be sent to the database until the <code>PreparedStatement</code>
+	   * object is executed.  This has no direct effect on users; however, it does
+	   * affect which methods throw certain SQLExceptions.
+	   * <P>
+	   * Result sets created using the returned <code>PreparedStatement</code>
+	   * object will by default be type <code>TYPE_FORWARD_ONLY</code>
+	   * and have a concurrency level of <code>CONCUR_READ_ONLY</code>.
+	   * The holdability of the created result sets can be determined by
+	   * calling {@link #getHoldability}.
+	   *
+	   * @param sql an SQL statement that may contain one or more '?' IN
+	   *        parameter placeholders
+	   * @param flag a flag indicating whether auto-generated keys
+	   *        should be returned; one of
+	   *        <code>Statement.RETURN_GENERATED_KEYS</code> or
+	   *        <code>Statement.NO_GENERATED_KEYS</code>
+	   * @param stmtColEncSetting Specifies how data will be sent and received when reading and writing encrypted columns.
+	   * @return a new <code>PreparedStatement</code> object, containing the
+	   *         pre-compiled SQL statement, that will have the capability of
+	   *         returning auto-generated keys
+	   * @throws SQLServerException if a database access error occurs, this
+	   *  method is called on a closed connection
+	   *         or the given parameter is not a <code>Statement</code>
+	   *         constant indicating whether auto-generated keys should be
+	   *         returned
+	   */
 	public PreparedStatement prepareStatement(String sql, int flag, SQLServerStatementColumnEncryptionSetting stmtColEncSetting) throws SQLServerException 
 	{
 		loggerExternal.entering(getClassNameLogging(),  "prepareStatement",  new Object[]{sql, new Integer(flag), stmtColEncSetting});
@@ -4568,6 +4700,48 @@ public class SQLServerConnection implements ISQLServerConnection
 		return ps;
 	}
 
+	/**
+	   * Creates a default <code>PreparedStatement</code> object capable
+	   * of returning the auto-generated keys designated by the given array.
+	   * This array contains the indexes of the columns in the target
+	   * table that contain the auto-generated keys that should be made
+	   * available.  The driver will ignore the array if the SQL statement
+	   * is not an <code>INSERT</code> statement, or an SQL statement able to return
+	   * auto-generated keys (the list of such statements is vendor-specific).
+	   *<p>
+	   * An SQL statement with or without IN parameters can be
+	   * pre-compiled and stored in a <code>PreparedStatement</code> object. This
+	   * object can then be used to efficiently execute this statement
+	   * multiple times.
+	   * <P>
+	   * <B>Note:</B> This method is optimized for handling
+	   * parametric SQL statements that benefit from precompilation. If
+	   * the driver supports precompilation,
+	   * the method <code>prepareStatement</code> will send
+	   * the statement to the database for precompilation. Some drivers
+	   * may not support precompilation. In this case, the statement may
+	   * not be sent to the database until the <code>PreparedStatement</code>
+	   * object is executed.  This has no direct effect on users; however, it does
+	   * affect which methods throw certain SQLExceptions.
+	   * <P>
+	   * Result sets created using the returned <code>PreparedStatement</code>
+	   * object will by default be type <code>TYPE_FORWARD_ONLY</code>
+	   * and have a concurrency level of <code>CONCUR_READ_ONLY</code>.
+	   * The holdability of the created result sets can be determined by
+	   * calling {@link #getHoldability}.
+	   *
+	   * @param sql an SQL statement that may contain one or more '?' IN
+	   *        parameter placeholders
+	   * @param columnIndexes an array of column indexes indicating the columns
+	   *        that should be returned from the inserted row or rows
+	   * @param stmtColEncSetting Specifies how data will be sent and received when reading and writing encrypted columns.
+	   * @return a new <code>PreparedStatement</code> object, containing the
+	   *         pre-compiled statement, that is capable of returning the
+	   *         auto-generated keys designated by the given array of column
+	   *         indexes
+	   * @throws SQLServerException if a database access error occurs
+	   * or this method is called on a closed connection
+	   */
 	public PreparedStatement prepareStatement(String sql, int[] columnIndexes, SQLServerStatementColumnEncryptionSetting stmtColEncSetting) throws SQLServerException 
 	{
 		loggerExternal.entering(getClassNameLogging(),  "prepareStatement", new Object[]{sql, columnIndexes, stmtColEncSetting});
@@ -4593,6 +4767,48 @@ public class SQLServerConnection implements ISQLServerConnection
 		return ps;
 	}
 
+	/**
+	   * Creates a default <code>PreparedStatement</code> object capable
+	   * of returning the auto-generated keys designated by the given array.
+	   * This array contains the names of the columns in the target
+	   * table that contain the auto-generated keys that should be returned.
+	   * The driver will ignore the array if the SQL statement
+	   * is not an <code>INSERT</code> statement, or an SQL statement able to return
+	   * auto-generated keys (the list of such statements is vendor-specific).
+	   * <P>
+	   * An SQL statement with or without IN parameters can be
+	   * pre-compiled and stored in a <code>PreparedStatement</code> object. This
+	   * object can then be used to efficiently execute this statement
+	   * multiple times.
+	   * <P>
+	   * <B>Note:</B> This method is optimized for handling
+	   * parametric SQL statements that benefit from precompilation. If
+	   * the driver supports precompilation,
+	   * the method <code>prepareStatement</code> will send
+	   * the statement to the database for precompilation. Some drivers
+	   * may not support precompilation. In this case, the statement may
+	   * not be sent to the database until the <code>PreparedStatement</code>
+	   * object is executed.  This has no direct effect on users; however, it does
+	   * affect which methods throw certain SQLExceptions.
+	   * <P>
+	   * Result sets created using the returned <code>PreparedStatement</code>
+	   * object will by default be type <code>TYPE_FORWARD_ONLY</code>
+	   * and have a concurrency level of <code>CONCUR_READ_ONLY</code>.
+	   * The holdability of the created result sets can be determined by
+	   * calling {@link #getHoldability}.
+	   *
+	   * @param sql an SQL statement that may contain one or more '?' IN
+	   *        parameter placeholders
+	   * @param columnNames an array of column names indicating the columns
+	   *        that should be returned from the inserted row or rows
+	   * @param stmtColEncSetting Specifies how data will be sent and received when reading and writing encrypted columns.
+	   * @return a new <code>PreparedStatement</code> object, containing the
+	   *         pre-compiled statement, that is capable of returning the
+	   *         auto-generated keys designated by the given array of column
+	   *         names
+	   * @throws SQLServerException if a database access error occurs
+	   * or this method is called on a closed connection
+	   */
 	public PreparedStatement prepareStatement(String sql, String[] columnNames, SQLServerStatementColumnEncryptionSetting stmtColEncSetting) throws SQLServerException 
 	{
 		loggerExternal.entering(getClassNameLogging(),  "prepareStatement", new Object[]{sql, columnNames, stmtColEncSetting});   
@@ -4812,6 +5028,16 @@ public class SQLServerConnection implements ISQLServerConnection
 		loggerExternal.exiting(getClassNameLogging(),  "setSchema");
 	}
 
+	/**
+     * Modifies the setting of the sendTimeAsDatetime connection property.
+     * When true, java.sql.Time values will be sent to the server as SQL Serverdatetime values. 
+     * When false, java.sql.Time values will be sent to the server as SQL Servertime values.
+     * sendTimeAsDatetime can also be modified programmatically with SQLServerDataSource.setSendTimeAsDatetime.
+     * The default value for this property may change in a future release.
+     * @param sendTimeAsDateTimeValue enables/disables setting the sendTimeAsDatetime connection property.
+     * For more information about how the Microsoft JDBC Driver for SQL Server configures java.sql.Time values before sending
+     * them to the server, see <a href="https://msdn.microsoft.com/en-us/library/ff427224(v=sql.110).aspx">Configuring How java.sql.Time Values are Sent to the Server</a>.
+     */
 	public synchronized void setSendTimeAsDatetime(boolean sendTimeAsDateTimeValue)
 	{
 		sendTimeAsDatetime = sendTimeAsDateTimeValue;
@@ -5303,6 +5529,13 @@ public class SQLServerConnection implements ISQLServerConnection
 	// This variable holds the value in seconds. 
 	private static long columnEncryptionKeyCacheTtl =  TimeUnit.SECONDS.convert(2, TimeUnit.HOURS);
 
+	/**
+	 * Sets time-to-live for column encryption key entries in the column encryption key cache for the Always Encrypted feature.
+	 * The default value is 2 hours. This variable holds the value in seconds. 
+	 * @param columnEncryptionKeyCacheTTL The timeunit in seconds
+	 * @param unit The Timeunit.
+	 * @throws SQLServerException when an error occurs
+	 */
 	public static synchronized void setColumnEncryptionKeyCacheTtl (int columnEncryptionKeyCacheTTL, TimeUnit unit) throws SQLServerException
 	{
 		if (columnEncryptionKeyCacheTTL < 0 || unit.equals(TimeUnit.MILLISECONDS ) || unit.equals(TimeUnit.MICROSECONDS) || unit.equals(TimeUnit.NANOSECONDS ) )
@@ -5331,8 +5564,11 @@ final class SQLServerConnectionSecurityManager
 		this.serverName = serverName;
 		this.portNumber = portNumber;
 	}
-	// checkConnect will throws a SecurityException if the calling thread is not 
-	// allowed to open  a socket connection to the specified serverName and portNumber. 
+	
+	/**
+	 * checkConnect will throws a SecurityException if the calling thread is not allowed to open  a socket connection to the specified serverName and portNumber. 
+	 * @throws SecurityException when an error occurs
+	 */
 	public void checkConnect() throws SecurityException
 	{
 		SecurityManager security = System.getSecurityManager();
@@ -5341,6 +5577,12 @@ final class SQLServerConnectionSecurityManager
 			security.checkConnect(serverName, portNumber);
 		}
 	}
+	
+	/**
+	 * Throws a <code>SecurityException</code> if the
+     * calling thread is not allowed to dynamic link the library code. 
+	 * @throws SecurityException when an error occurs
+	 */
 	public void checkLink() throws SecurityException
 	{
 		SecurityManager security = System.getSecurityManager();

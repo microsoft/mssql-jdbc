@@ -6,7 +6,7 @@
 // Copyright(c) Microsoft Corporation
 // All rights reserved.
 // MIT License
-// Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files(the ""Software""), 
+// Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files(the "Software"), 
 //  to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, 
 //  and / or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions :
 // The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
@@ -19,7 +19,7 @@
  
 package com.microsoft.sqlserver.jdbc;
 
-import java.sql.*;
+import java.sql.SQLException;
 
 public interface ISQLServerResultSet extends java.sql.ResultSet
 {
@@ -35,9 +35,36 @@ public interface ISQLServerResultSet extends java.sql.ResultSet
     public static final int CONCUR_SS_SCROLL_LOCKS     = 1009; // CONCUR_UPDATABLE + 1
     public static final int CONCUR_SS_OPTIMISTIC_CCVAL = 1010; // CONCUR_UPDATABLE + 2
 
+	/**
+     * Retrieves the value of the designated column as a microsoft.sql.DateTimeOffset object, given a zero-based column ordinal.
+     * @param columnIndex The zero-based ordinal of a column.
+     * @return A DateTimeOffset Class object.
+     * @throws SQLException when an error occurs
+     */
     public microsoft.sql.DateTimeOffset getDateTimeOffset(int columnIndex) throws SQLException;
-    public microsoft.sql.DateTimeOffset getDateTimeOffset(String columnName) throws SQLException;
+    
+	/**
+     * Retrieves the value of the column specified as a microsoft.sql.DateTimeOffset object, given a column name.
+     * @param columnName The name of a column.
+     * @return A DateTimeOffset Class object.
+     * @throws SQLException when an error occurs
+     */
+	public microsoft.sql.DateTimeOffset getDateTimeOffset(String columnName) throws SQLException;
+	
+	/**
+     * Updates the value of the column specified to the DateTimeOffset Class value, given a zero-based column ordinal.
+     * @param index The zero-based ordinal of a column.
+     * @param x A DateTimeOffset Class object.
+     * @throws SQLException when an error occurs
+     */
     public void updateDateTimeOffset(int index, microsoft.sql.DateTimeOffset x) throws SQLException;
+	
+	/**
+     * Updates the value of the column specified to the DateTimeOffset Class value, given a column name.
+     * @param columnName The name of a column.
+     * @param x A DateTimeOffset Class object.
+     * @throws SQLException when an error occurs
+     */
     public void updateDateTimeOffset(String columnName, microsoft.sql.DateTimeOffset x) throws SQLException;
     
 }

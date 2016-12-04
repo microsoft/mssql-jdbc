@@ -6,7 +6,7 @@
 // Copyright(c) Microsoft Corporation
 // All rights reserved.
 // MIT License
-// Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files(the ""Software""), 
+// Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files(the "Software"), 
 //  to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, 
 //  and / or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions :
 // The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
@@ -18,13 +18,23 @@
  
  
 package com.microsoft.sqlserver.jdbc;
+import java.io.BufferedInputStream;
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.Reader;
 import java.math.BigDecimal;
-import java.io.*;
-import java.sql.*;
-import java.util.*;
+import java.sql.Blob;
+import java.sql.Clob;
+import java.sql.ResultSet;
 import java.text.MessageFormat;
-
-import java.time.*;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.time.OffsetDateTime;
+import java.time.OffsetTime;
+import java.util.Calendar;
+import java.util.Locale;
 
 /**
  * Parameter represents a JDBC parameter value that is supplied with a prepared or callable
@@ -631,7 +641,7 @@ final class Parameter
 			case BINARY:
 			case VARBINARY:
 				// To avoid the server side cost of re-preparing, once a "long" type, always a "long" type...
-				if (VARBINARY_MAX == param.typeDefinition || IMAGE == param.typeDefinition)
+				if (VARBINARY_MAX.equals(param.typeDefinition) || IMAGE.equals(param.typeDefinition))
 					break;
 				if(param.shouldHonorAEForParameter && 
 					(null!=jdbcTypeSetByUser) &&
@@ -787,7 +797,7 @@ final class Parameter
 			case CHAR:
 			case VARCHAR:				
 				// To avoid the server side cost of re-preparing, once a "long" type, always a "long" type...
-				if (VARCHAR_MAX == param.typeDefinition || TEXT == param.typeDefinition)
+				if (VARCHAR_MAX.equals(param.typeDefinition) || TEXT.equals(param.typeDefinition))
 					break;
 
 				// Adding for case useColumnEncryption=true & sendStringParametersAsUnicode=false
@@ -885,7 +895,7 @@ final class Parameter
 			case NCHAR:
 			case NVARCHAR:
 				// To avoid the server side cost of re-preparing, once a "long" type, always a "long" type...
-				if (NVARCHAR_MAX == param.typeDefinition || NTEXT == param.typeDefinition)
+				if (NVARCHAR_MAX.equals(param.typeDefinition) || NTEXT.equals(param.typeDefinition))
 					break;
 
 				if(param.shouldHonorAEForParameter && 

@@ -6,7 +6,7 @@
 // Copyright(c) Microsoft Corporation
 // All rights reserved.
 // MIT License
-// Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files(the ""Software""), 
+// Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files(the "Software"), 
 //  to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, 
 //  and / or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions :
 // The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
@@ -18,7 +18,9 @@
  
 
 package microsoft.sql;
-import java.util.*;
+import java.util.Calendar;
+import java.util.Locale;
+import java.util.TimeZone;
 
 /**
  * A Java class for accessing values of the SQL Server DATETIMEOFFSET data type.
@@ -81,11 +83,23 @@ public final class DateTimeOffset extends Object implements java.io.Serializable
         assert 0 == this.utcMillis % 1000L : "utcMillis: " + this.utcMillis;
     }
     
+	/**
+     * Converts a java.sql.Timestamp value with an integer offset to the equivalent DateTimeOffset value
+     * @param timestamp A java.sql.Timestamp value
+     * @param minutesOffset An integer offset in minutes
+     * @return The DateTimeOffset value of the input timestamp and minutesOffset
+     */
     public static DateTimeOffset valueOf(java.sql.Timestamp timestamp, int minutesOffset)
     {
         return new DateTimeOffset(timestamp, minutesOffset);
     }
 	
+	/**
+     * Converts a java.sql.Timestamp value with a Calendar value to the equivalent DateTimeOffset value
+     * @param timestamp A java.sql.Timestamp value
+     * @param calendar A java.util.Calendar value
+     * @return The DateTimeOffset value of the input timestamp and calendar
+     */
     public static DateTimeOffset valueOf(java.sql.Timestamp timestamp, Calendar calendar)
     {
         // (Re)Set the calendar's time to the value in the timestamp so that get(ZONE_OFFSET) and get(DST_OFFSET) report

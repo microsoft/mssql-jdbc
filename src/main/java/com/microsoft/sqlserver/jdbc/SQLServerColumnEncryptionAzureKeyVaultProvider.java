@@ -6,7 +6,7 @@
 // Copyright(c) Microsoft Corporation
 // All rights reserved.
 // MIT License
-// Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files(the ""Software""), 
+// Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files(the "Software"), 
 //  to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, 
 //  and / or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions :
 // The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
@@ -19,6 +19,8 @@
  
 package com.microsoft.sqlserver.jdbc;
 
+import static java.nio.charset.StandardCharsets.UTF_16LE;
+
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.ByteBuffer;
@@ -29,9 +31,8 @@ import java.text.MessageFormat;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 
-import static java.nio.charset.StandardCharsets.UTF_16LE;
-
 import org.apache.http.impl.client.HttpClientBuilder;
+
 import com.microsoft.azure.keyvault.KeyVaultClient;
 import com.microsoft.azure.keyvault.KeyVaultClientImpl;
 import com.microsoft.azure.keyvault.models.KeyBundle;
@@ -87,8 +88,8 @@ public class SQLServerColumnEncryptionAzureKeyVaultProvider extends SQLServerCol
 	 * to authenticate to Azure Key Vault.
 	 * 
 	 * @param authenticationCallback - Callback function used for authenticating to AAD.
-	 * @param executorService
-	 * @throws SQLServerException 
+	 * @param executorService - The ExecutorService used to create the keyVaultClient
+	 * @throws SQLServerException when an error occurs
 	 */
 	public SQLServerColumnEncryptionAzureKeyVaultProvider(SQLServerKeyVaultAuthenticationCallback authenticationCallback, ExecutorService executorService) throws SQLServerException{
 		if(null == authenticationCallback){
@@ -555,7 +556,7 @@ public class SQLServerColumnEncryptionAzureKeyVaultProvider extends SQLServerCol
 	 * 
 	 * @param masterKeyPath - Azure Key Vault Key path
 	 * @return Key size in bytes
-	 * @throws SQLServerException
+	 * @throws SQLServerException when an error occurs
 	 */
 	private int getAKVKeySize(String masterKeyPath) throws SQLServerException
 	{

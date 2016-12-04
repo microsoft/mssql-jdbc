@@ -38,6 +38,7 @@ import com.microsoft.sqlserver.jdbc.SQLServerPreparedStatement;
 
 public class bvtTest {
 	private static boolean cursor = false;
+	private static boolean querytimeout = false;
 	private static String connectionUrl = "";
 	private static Connection con;
 	private static String driverNamePattern = "Microsoft JDBC Driver \\d.\\d for SQL Server";
@@ -137,6 +138,26 @@ public class bvtTest {
 			bvt_rs.verify();
 		} finally {
 			terminateVariation();
+		}
+	}
+
+    ///////////////////////////////////////////////////////////////////
+    // Create a statement with a query timeout
+    // ResultSet.Type_forward_only,
+    // ResultSet.CONCUR_READ_ONLY, executeQuery
+    // verify cursor by using next and previous and verify data
+    ///////////////////////////////////////////////////////////////////
+	@Test
+	public void testCreateStatementWithQueryTimeout() throws SQLException {
+
+		querytimeout = true;
+		
+		try {
+			stmt = conn().createStatement();
+			assertEquals(10, stmt.getQueryTimeout());
+		} finally {
+			terminateVariation();
+			querytimeout = false;
 		}
 	}
 
@@ -620,6 +641,10 @@ public class bvtTest {
 			connectionUrl += ";selectMethod=cursor;";
 		}
 		
+		if (querytimeout){
+			connectionUrl += ";queryTimeout=10";
+		}
+
 		return connectionUrl;
 	}
 
