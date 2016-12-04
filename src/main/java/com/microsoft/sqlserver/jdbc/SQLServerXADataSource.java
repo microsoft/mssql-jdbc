@@ -6,7 +6,7 @@
 // Copyright(c) Microsoft Corporation
 // All rights reserved.
 // MIT License
-// Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files(the ""Software""), 
+// Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files(the "Software"), 
 //  to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, 
 //  and / or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions :
 // The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
@@ -18,10 +18,13 @@
  
 
 package com.microsoft.sqlserver.jdbc;
-import java.sql.*;
-import javax.sql.*;
-import java.util.logging.*;
-import javax.naming.*;
+import java.sql.SQLException;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
+import javax.naming.Reference;
+import javax.sql.XAConnection;
+import javax.sql.XADataSource;
 
 /**
  * SQLServerXADataSource provides database connections for use in distributed (XA)
@@ -35,12 +38,12 @@ import javax.naming.*;
  * an XAResource object that can be used by a transaction manager to coordinate the work
  * done on this connection with the other participants in the distributed transaction.
  *
- * <li>Because they extend the PooledConnection interface, XAConnection objects support all
+ * <p>Because they extend the PooledConnection interface, XAConnection objects support all
  * the methods of PooledConnection objects. They are reusable physical connections to
  * an underlying data source and produce logical connection handles that can be passed
  * back to a JDBC application.
  *
- * <li>XAConnection objects are produced by an XADataSource object. There is some similarity
+ * <p>XAConnection objects are produced by an XADataSource object. There is some similarity
  * between ConnectionPoolDataSource objects and XADataSource objects in that they are
  * both implemented below a DataSource layer that is visible to the JDBC application.
  * This architecture allows sqlserver to support distributed transactions in a way

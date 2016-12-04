@@ -4,7 +4,7 @@
 	
 	<groupId>com.microsoft.sqlserver</groupId>
 	<artifactId>mssql-jdbc</artifactId>
-	<version>6.1.0</version>
+	<version>6.1.1</version>
 	
 	<packaging>jar</packaging>
 	
@@ -48,7 +48,7 @@
 		<dependency>
 			<groupId>com.microsoft.azure</groupId>
 			<artifactId>azure-keyvault</artifactId>
-			<version>0.9.3</version>
+			<version>0.9.7</version>
 		</dependency>
 		
 		<!-- dependency for running tests -->
@@ -68,7 +68,7 @@
 				<plugins>
 					<plugin>
 						<artifactId>maven-compiler-plugin</artifactId>
-						<version>3.1</version>
+						<version>3.6.0</version>
 						<configuration>
 							<excludes>
 								<exclude>**/com/microsoft/sqlserver/jdbc/SQLServerJdbc42.java</exclude>
@@ -100,7 +100,7 @@
 				<plugins>
 					<plugin>
 						<artifactId>maven-compiler-plugin</artifactId>
-						<version>3.1</version>
+						<version>3.6.0</version>
 						<configuration>
 							<excludes>
 								<exclude>**/com/microsoft/sqlserver/jdbc/SQLServerJdbc41.java</exclude>
@@ -144,7 +144,7 @@
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-source-plugin</artifactId>
-				<version>2.2.1</version>
+				<version>3.0.1</version>
 				<executions>
 					<execution>
 						<id>attach-sources</id>

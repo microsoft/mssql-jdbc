@@ -6,7 +6,7 @@
 // Copyright(c) Microsoft Corporation
 // All rights reserved.
 // MIT License
-// Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files(the ""Software""), 
+// Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files(the "Software"), 
 //  to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, 
 //  and / or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions :
 // The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
@@ -21,9 +21,15 @@ package com.microsoft.sqlserver.jdbc;
 
 import java.text.MessageFormat;
 
-
+/**
+ * 
+ * This class is used to handle exceptions that may be recieved from
+ * sqljdbc_auth.dll and sqljdbc_xa.dll
+ *
+ */
 class DLLException extends Exception
 {
+	private static final long serialVersionUID = -4498171382218222079L;
 	// category status and state are always either -1 or a positive number
 	// Internal Adal error category used in retry logic and building error message in managed code
 	private int category = -9;

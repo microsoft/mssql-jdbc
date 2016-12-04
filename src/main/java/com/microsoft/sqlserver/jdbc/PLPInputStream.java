@@ -6,7 +6,7 @@
 // Copyright(c) Microsoft Corporation
 // All rights reserved.
 // MIT License
-// Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files(the ""Software""), 
+// Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files(the "Software"), 
 //  to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, 
 //  and / or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions :
 // The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
@@ -19,7 +19,8 @@
  
 package com.microsoft.sqlserver.jdbc;
 
-import java.io.*;
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
 
 /**
 * PLPInputStream is an InputStream implementation that reads from a TDS PLP stream.
@@ -81,11 +82,13 @@ class PLPInputStream extends BaseInputStream
     }
 
     /**
-    * Create a new input stream.
-    * @param tdsReader TDS reader pointing at the start of the PLP data
-	* @param discardValue
-	* @param dtv
-    */
+     * Create a new input stream.
+     * @param tdsReader TDS reader pointing at the start of the PLP data
+     * @param discardValue boolean to represent if base input stream is adaptive and is streaming
+     * @param dtv DTV implementation for values set from the TDS response stream.
+     * @return PLPInputStream that is created
+     * @throws SQLServerException when an error occurs
+     */
     final static PLPInputStream makeTempStream(TDSReader tdsReader, boolean discardValue, ServerDTVImpl dtv) throws SQLServerException
     {
         return makeStream(tdsReader, discardValue, discardValue, dtv);
@@ -403,8 +406,10 @@ class PLPInputStream extends BaseInputStream
             setReadLimit(readLimit);
          }
     }
+	
     /**
     * Closes the stream releasing all resources held.
+	* @exception IOException if an I/O error occurs.
     */	
     public void close() throws IOException
     {

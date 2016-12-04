@@ -6,7 +6,7 @@
 // Copyright(c) Microsoft Corporation
 // All rights reserved.
 // MIT License
-// Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files(the ""Software""), 
+// Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files(the "Software"), 
 //  to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, 
 //  and / or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions :
 // The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
@@ -19,11 +19,16 @@
  
 package com.microsoft.sqlserver.jdbc;
 
-import java.util.*;
 import java.math.BigDecimal;
 import java.text.MessageFormat;
+import java.time.OffsetDateTime;
+import java.time.OffsetTime;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.Map.Entry;
-import java.time.*;
+import java.util.UUID;
 
 public final class SQLServerDataTable {
 
@@ -37,6 +42,8 @@ public final class SQLServerDataTable {
 	/**
 	 * The constant in the Java programming language, sometimes referred to as a type code,
 	 * that identifies the type TVP.
+	 * 
+	 * @throws SQLServerException when an error occurs
 	 */
 	// Name used in CREATE TYPE 
 	public SQLServerDataTable() throws SQLServerException
@@ -45,6 +52,9 @@ public final class SQLServerDataTable {
 		rows = new HashMap<Integer,Object[]>();
 	}
 
+	/**
+	 * Clears this data table.
+	 */
 	public synchronized void clear()
 	{
 		rowCount = 0;
@@ -53,6 +63,10 @@ public final class SQLServerDataTable {
 		rows.clear();		
 	}
 
+	/**
+	 * Retrieves an iterator on the rows of the data table.
+	 * @return an iterator on the rows of the data table. 
+	 */
 	public synchronized Iterator<Entry<Integer,Object[]>> getIterator()
 	{
 		if ((null != rows) && (null != rows.entrySet()))
@@ -62,6 +76,12 @@ public final class SQLServerDataTable {
 		return null;
 	}
 
+	/**
+	 * Adds meta data for the specified column
+	 * @param columnName the name of the column
+	 * @param sqlType the sql type of the column
+	 * @throws SQLServerException when an error occurs
+	 */
 	public synchronized void addColumnMetadata(String columnName, int sqlType) throws SQLServerException
 	{
 		//column names must be unique
@@ -69,6 +89,11 @@ public final class SQLServerDataTable {
 		columnMetadata.put(columnCount++, new SQLServerDataColumn(columnName,sqlType));
 	}
 
+	/**
+	 * Adds meta data for the specified column
+	 * @param column the name of the column
+	 * @throws SQLServerException when an error occurs
+	 */
 	public synchronized void addColumnMetadata(SQLServerDataColumn column) throws SQLServerException
 	{
 		//column names must be unique
@@ -76,6 +101,11 @@ public final class SQLServerDataTable {
 		columnMetadata.put(columnCount++, column);
 	}
 
+	/**
+	 * Adds one row of data to the data table. 
+	 * @param values values to be added in one row of data to the data table. 
+	 * @throws SQLServerException when an error occurs
+	 */
 	public synchronized void addRow(Object... values) throws SQLServerException
 	{
 		try
@@ -241,6 +271,10 @@ public final class SQLServerDataTable {
             return tvpName;
         }
 
+		/**
+		 * Retrieves the column meta data of this data table. 
+		 * @return the column meta data of this data table. 
+		 */
         public void setTvpName(String tvpName)
         {
             this.tvpName = tvpName;

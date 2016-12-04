@@ -6,7 +6,7 @@
 // Copyright(c) Microsoft Corporation
 // All rights reserved.
 // MIT License
-// Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files(the ""Software""), 
+// Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files(the "Software"), 
 //  to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, 
 //  and / or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions :
 // The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
@@ -19,7 +19,8 @@
 
 package com.microsoft.sqlserver.jdbc;
 
-import java.io.*;
+import java.io.IOException;
+import java.io.InputStream;
 
 /**
 * SimpleInputStream is an InputStream implementation that reads from TDS.
@@ -161,6 +162,7 @@ final class SimpleInputStream extends BaseInputStream
     
     /**
     * Closes the stream releasing all resources held.
+    * @exception IOException if an I/O error occurs.
     */	
     public  void close() throws IOException
     {
@@ -181,6 +183,7 @@ final class SimpleInputStream extends BaseInputStream
     
     /**
     * Checks if we have EOS state.
+    * @exception IOException if an I/O error occurs.
     */
     private final  boolean isEOS() throws IOException
     {

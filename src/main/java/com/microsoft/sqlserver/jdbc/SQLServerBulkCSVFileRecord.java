@@ -6,7 +6,7 @@
 // Copyright(c) Microsoft Corporation
 // All rights reserved.
 // MIT License
-// Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files(the ""Software""), 
+// Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files(the "Software"), 
 //  to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, 
 //  and / or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions :
 // The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
@@ -28,8 +28,9 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.text.DecimalFormat;
 import java.text.MessageFormat;
-import java.time.*;
-import java.time.format.*;
+import java.time.OffsetDateTime;
+import java.time.OffsetTime;
+import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
@@ -196,11 +197,32 @@ public class SQLServerBulkCSVFileRecord implements ISQLServerBulkRecord , java.l
         this(fileToParse,null,",", firstLineIsColumnNames);
     }
 
+	/**
+     * Adds metadata for the given column in the file.
+     * 
+     * @param positionInFile Indicates which column the metadata is for.  Columns start at 1.
+     * @param name Name for the column (optional if only using column ordinal in a mapping for SQLServerBulkCopy operation)
+     * @param jdbcType JDBC data type of the column
+     * @param precision Precision for the column (ignored for the appropriate data types)
+     * @param scale Scale for the column (ignored for the appropriate data types)
+     * @param dateTimeFormatter format to parse data that is sent
+     * @throws SQLServerException when an error occurs
+     */
     public void addColumnMetadata(int positionInFile, String name, int jdbcType, int precision, int scale, DateTimeFormatter dateTimeFormatter) throws SQLServerException
     {	
     	addColumnMetadataInternal(positionInFile, name, jdbcType, precision, scale, dateTimeFormatter);     	
     }
     
+	/**
+     * Adds metadata for the given column in the file.
+     * 
+     * @param positionInFile Indicates which column the metadata is for.  Columns start at 1.
+     * @param name Name for the column (optional if only using column ordinal in a mapping for SQLServerBulkCopy operation)
+     * @param jdbcType JDBC data type of the column
+     * @param precision Precision for the column (ignored for the appropriate data types)
+     * @param scale Scale for the column (ignored for the appropriate data types)
+     * @throws SQLServerException when an error occurs
+     */
     public void addColumnMetadata(int positionInFile, String name, int jdbcType, int precision, int scale) throws SQLServerException
     {
     	addColumnMetadataInternal(positionInFile, name, jdbcType, precision, scale, null);
@@ -215,7 +237,7 @@ public class SQLServerBulkCSVFileRecord implements ISQLServerBulkRecord , java.l
      * @param precision Precision for the column (ignored for the appropriate data types)
      * @param scale Scale for the column (ignored for the appropriate data types)
 	 * @param dateTimeFormatter format to parse data that is sent
-     * @throws SQLServerException 
+     * @throws SQLServerException when an error occurs
      */
     void addColumnMetadataInternal(int positionInFile, String name, int jdbcType, int precision, int scale, DateTimeFormatter dateTimeFormatter) throws SQLServerException
     {
@@ -299,7 +321,7 @@ public class SQLServerBulkCSVFileRecord implements ISQLServerBulkRecord , java.l
     
     /**
      * Set the format for reading in dates from the file.
-     * @param dateTimeFormat format to parse data sent as java.sql.Types.TIMESTAMP_WITH_TIMEZONE
+     * @param dateTimeFormatter format to parse data sent as java.sql.Types.TIMESTAMP_WITH_TIMEZONE
      */
     public void setTimestampWithTimezoneFormat(DateTimeFormatter dateTimeFormatter)
     {
@@ -314,7 +336,7 @@ public class SQLServerBulkCSVFileRecord implements ISQLServerBulkRecord , java.l
     
     /**
      * Set the format for reading in dates from the file.
-     * @param dateTimeFormat format to parse data sent as java.sql.Types.TIME_WITH_TIMEZONE
+     * @param timeFormat format to parse data sent as java.sql.Types.TIME_WITH_TIMEZONE
      */
     public void setTimeWithTimezoneFormat(String timeFormat)
     {
@@ -328,7 +350,7 @@ public class SQLServerBulkCSVFileRecord implements ISQLServerBulkRecord , java.l
     
     /**
      * Set the format for reading in dates from the file.
-     * @param dateTimeFormat format to parse data sent as java.sql.Types.TIME_WITH_TIMEZONE
+     * @param dateTimeFormatter format to parse data sent as java.sql.Types.TIME_WITH_TIMEZONE
      */
     public void setTimeWithTimezoneFormat(DateTimeFormatter dateTimeFormatter)
     {
@@ -342,6 +364,7 @@ public class SQLServerBulkCSVFileRecord implements ISQLServerBulkRecord , java.l
     
     /**
      * Releases any resources associated with the file reader.
+	 * @throws SQLServerException when an error occurs
      */
     public void close() throws SQLServerException
     {
