@@ -1,3 +1,5 @@
+
+
 /*
 File: Values.java
 Contents: Creates values for populating tables.
@@ -16,6 +18,9 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OU
 IN THE SOFTWARE.
 */
 
+package com.microsoft.sqlserver.jdbc.bvt;
+
+import java.math.BigDecimal;
 import java.sql.Date;
 import java.sql.Time;
 import java.sql.Timestamp;
@@ -23,7 +28,7 @@ import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Random;
 import java.util.UUID;
-import java.math.BigDecimal;
+
 import microsoft.sql.DateTimeOffset;
 
 public class Values {
