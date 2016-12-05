@@ -20,15 +20,14 @@
  */
 package com.microsoft.sqlserver.testframework.util;
 
-import java.util.Random;
 import java.util.UUID;
+import java.util.concurrent.ThreadLocalRandom;
 
 /**
  * @author Microsoft
  *
  */
 public class RandomUtil {
-	public static Random random = new Random();
 
 	/**
 	 * 
@@ -100,5 +99,34 @@ public class RandomUtil {
 		return new Integer(Integer.MIN_VALUE);
 	}
 	
+	/**
+	 * Get Random int
+	 * @param min
+	 * @param max
+	 * @return
+	 */
+	public int getRandomInt(int min, int max) {
+		return ThreadLocalRandom.current().nextInt(min, max);
+	}
+	
+	/**
+	 * Get Random double
+	 * @param min
+	 * @param max
+	 * @return
+	 */
+	public double getRandomDouble(double min, double max) {
+		return ThreadLocalRandom.current().nextDouble(min, max);
+	}
+	
+	/**
+	 * Get Random long.
+	 * @param min
+	 * @param max
+	 * @return
+	 */
+	public long getRandomLong(long min, long max) {
+		return ThreadLocalRandom.current().nextLong(min, max);
+	}
 	
 }
