@@ -191,7 +191,7 @@ enum ApplicationIntent
 	private String value;
 	
 	//constructor that sets the string value of the enum
-	private ApplicationIntent(String value)
+	ApplicationIntent(String value)
 	{
 		this.value = value;
 	}
@@ -255,7 +255,7 @@ enum SQLServerDriverStringProperty
 	private String name;
 	private String defaultValue;
 
-	private SQLServerDriverStringProperty(String name, String defaultValue)		
+	SQLServerDriverStringProperty(String name, String defaultValue)
 	{
 		this.name = name;
 	 	this.defaultValue = defaultValue;
@@ -283,7 +283,7 @@ enum SQLServerDriverIntProperty
 	private String name;
 	private int defaultValue;
 
-	private SQLServerDriverIntProperty(String name, int defaultValue)		
+	SQLServerDriverIntProperty(String name, int defaultValue)
 	{
 		this.name = name;
 		this.defaultValue = defaultValue;
@@ -317,7 +317,7 @@ enum SQLServerDriverBooleanProperty
 	private String name;
 	private boolean defaultValue;
 
-	private SQLServerDriverBooleanProperty(String name, boolean defaultValue)		
+	SQLServerDriverBooleanProperty(String name, boolean defaultValue)
 	{
 		this.name = name;
 		this.defaultValue = defaultValue;
