@@ -914,7 +914,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable
 				isStreaming = (DataTypes.SHORT_VARTYPE_MAX_BYTES < baseDestPrecision);
 			
 			// Send CryptoMetaData
-			tdsWriter.writeShort((short) destCryptoMeta.getOrdinal());	// Ordinal
+			tdsWriter.writeShort(destCryptoMeta.getOrdinal());	// Ordinal
 			tdsWriter.writeBytes(userType);		// usertype
 			//	BaseTypeInfo
 			writeTypeInfo(tdsWriter,
@@ -926,9 +926,9 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable
 					isStreaming,	 
 					srcNullable, 
 					true);
-			tdsWriter.writeByte((byte) destCryptoMeta.cipherAlgorithmId);
-			tdsWriter.writeByte((byte) destCryptoMeta.encryptionType.getValue());
-			tdsWriter.writeByte((byte) destCryptoMeta.normalizationRuleVersion);
+			tdsWriter.writeByte(destCryptoMeta.cipherAlgorithmId);
+			tdsWriter.writeByte(destCryptoMeta.encryptionType.getValue());
+			tdsWriter.writeByte(destCryptoMeta.normalizationRuleVersion);
 		}
 		
 		/*
@@ -1250,9 +1250,9 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable
 	    		tdsWriter.writeShort((short) destCekTable.getSize());
 	    		for (int cekIndx = 0; cekIndx < destCekTable.getSize(); cekIndx++)
 	    		{
-		    		tdsWriter.writeInt((int) destCekTable.getCekTableEntry(cekIndx).getColumnEncryptionKeyValues().get(0).databaseId);
-		    		tdsWriter.writeInt((int) destCekTable.getCekTableEntry(cekIndx).getColumnEncryptionKeyValues().get(0).cekId);
-		    		tdsWriter.writeInt((int) destCekTable.getCekTableEntry(cekIndx).getColumnEncryptionKeyValues().get(0).cekVersion);
+		    		tdsWriter.writeInt(destCekTable.getCekTableEntry(cekIndx).getColumnEncryptionKeyValues().get(0).databaseId);
+		    		tdsWriter.writeInt(destCekTable.getCekTableEntry(cekIndx).getColumnEncryptionKeyValues().get(0).cekId);
+		    		tdsWriter.writeInt(destCekTable.getCekTableEntry(cekIndx).getColumnEncryptionKeyValues().get(0).cekVersion);
 		    		tdsWriter.writeBytes(destCekTable.getCekTableEntry(cekIndx).getColumnEncryptionKeyValues().get(0).cekMdVersion);
 		    		
 		    		// We don't need to send the keys. So count for EncryptionKeyValue is 0 in EK_INFO TDS rule.
@@ -2831,7 +2831,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable
 	    		else
 	    			tdsWriter.writeByte((byte) 0x0A);
 	    		
-	    		tdsWriter.writeDateTimeOffset( (DateTimeOffset) colValue, bulkScale, destSSType);
+	    		tdsWriter.writeDateTimeOffset(colValue, bulkScale, destSSType);
 			}
 			break;
 	
@@ -3167,11 +3167,11 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable
 			{
 			case java.sql.Types.TIMESTAMP:
 			case java.sql.Types.TIME:
-				return (Timestamp) null; 
+				return null;
 			case java.sql.Types.DATE:
-				return (java.sql.Date) null;
+				return null;
 			case microsoft.sql.Types.DATETIMEOFFSET:
-				return (DateTimeOffset) null;			
+				return null;
 			}			
 		}	
 		
@@ -3443,7 +3443,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable
 					{
 						int intValue = (int) value;
 						short shortValue = (short) intValue;
-						longValue = new Long((short) shortValue);
+						longValue = new Long(shortValue);
 					}
 					else  longValue = new Long((short) value);
 
@@ -3558,7 +3558,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable
 	        	byteValue = DDC.convertBigDecimalToBytes(bigDataValue, bigDataValue.scale()) ;
 	    		byte[] decimalbyteValue = new byte[16];
 	    		// removing the precision and scale information from the decimalToByte array
-	    		System.arraycopy((byte[])byteValue, 2, decimalbyteValue, 0, ((byte[])byteValue).length - 2);
+	    		System.arraycopy(byteValue, 2, decimalbyteValue, 0, byteValue.length - 2);
 	    		return decimalbyteValue;
 	        	
 	        case SMALLMONEY:
@@ -3577,7 +3577,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable
 	        	ByteBuffer bbuf = ByteBuffer.allocate(8).order(ByteOrder.LITTLE_ENDIAN);
 	        	bbuf.putInt((int) (moneyVal >> 32)).array();
 	        	bbuf.putInt((int) moneyVal).array();
-	        	return (byte[]) bbuf.array();
+	        	return bbuf.array();
 	        	
 	        default:
 	        	 MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_UnsupportedDataTypeAE"));

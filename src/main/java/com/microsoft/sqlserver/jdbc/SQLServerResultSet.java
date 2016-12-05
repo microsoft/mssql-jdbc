@@ -2142,7 +2142,7 @@ public class SQLServerResultSet implements ISQLServerResultSet
                 toString()));
 
         if(null != value)
-            activeStream = (Closeable) value.getStream();
+            activeStream = value.getStream();
         return value;
     }
     
@@ -4943,7 +4943,7 @@ public class SQLServerResultSet implements ISQLServerResultSet
             loggerExternal.entering(getClassNameLogging(),  "updateObject",  new Object[]{index, obj});
 
         checkClosed();
-        updateObject(index, obj, (Integer) null, null, null, false);
+        updateObject(index, obj, null, null, null, false);
 
         loggerExternal.exiting(getClassNameLogging(), "updateObject");
     }
@@ -6230,7 +6230,7 @@ public class SQLServerResultSet implements ISQLServerResultSet
         updateObject(
             findColumn(columnName),
             x,
-            (Integer) null,
+                null,
             null, 
             null,
             false);

@@ -491,7 +491,7 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
             resultsReader());
 
         if(null != value)
-            activeStream = (Closeable) value.getStream();        
+            activeStream = value.getStream();
         return value;
     }
 

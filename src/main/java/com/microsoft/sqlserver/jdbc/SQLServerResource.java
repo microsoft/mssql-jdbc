@@ -28,7 +28,7 @@ public final class SQLServerResource extends ListResourceBundle
 {
 	static String getResource(String key)
 	{
-		return ((ListResourceBundle) SQLServerResource.getBundle("com.microsoft.sqlserver.jdbc.SQLServerResource")).getString(key);
+		return SQLServerResource.getBundle("com.microsoft.sqlserver.jdbc.SQLServerResource").getString(key);
 	}
 
 	protected Object[][]  getContents()
