@@ -4,7 +4,7 @@
 	
 	<groupId>com.microsoft.sqlserver</groupId>
 	<artifactId>mssql-jdbc</artifactId>
-	<version>6.1.1-SNAPSHOT</version>
+	<version>6.1.1</version>
 	
 	<packaging>jar</packaging>
 	
@@ -82,7 +82,7 @@
 						<artifactId>maven-jar-plugin</artifactId>
 						<version>3.0.2</version>
 						<configuration>
-							<classifier>jre7</classifier>
+							<finalName>${project.artifactId}-${project.version}.jre7</finalName>
 							<archive>
 								<manifest>
 									<addDefaultImplementationEntries>true</addDefaultImplementationEntries>
@@ -94,13 +94,48 @@
 			</build>
 		</profile>
 
+		<profile>
+			<id>build42</id>
+			<activation>
+				<activeByDefault>true</activeByDefault>
+			</activation>
+			<build>
+				<plugins>
+					<plugin>
+						<artifactId>maven-compiler-plugin</artifactId>
+						<version>3.6.0</version>
+						<configuration>
+							<excludes>
+								<exclude>**/com/microsoft/sqlserver/jdbc/SQLServerJdbc41.java</exclude>
+							</excludes>
+							<source>1.8</source>
+							<target>1.8</target>
+						</configuration>
+					</plugin>
+					<plugin>
+						<groupId>org.apache.maven.plugins</groupId>
+						<artifactId>maven-jar-plugin</artifactId>
+						<version>3.0.2</version>
+						<configuration>
+							<finalName>${project.artifactId}-${project.version}.jre8</finalName>
+							<archive>
+								<manifest>
+									<addDefaultImplementationEntries>true</addDefaultImplementationEntries>
+								</manifest>
+							</archive>
+						</configuration>
+					</plugin>
+				</plugins>
+			</build>
+		</profile>
+
 	</profiles>
 
 	<build>
 
 		<resources>
 			<resource>
-				<directory>${basedir}</directory> 
+				<directory>${basedir}</directory>
 				<includes>
 					<include>META-INF/services/java.sql.Driver</include>
 				</includes>
@@ -108,29 +143,6 @@
 		</resources>
 
 		<plugins>
-			<plugin>
-				<artifactId>maven-compiler-plugin</artifactId>
-				<version>3.6.0</version>
-				<configuration>
-					<excludes>
-						<exclude>**/com/microsoft/sqlserver/jdbc/SQLServerJdbc41.java</exclude>
-					</excludes>
-					<source>1.8</source>
-					<target>1.8</target>
-				</configuration>
-			</plugin>
-			<plugin>
-				<groupId>org.apache.maven.plugins</groupId>
-				<artifactId>maven-jar-plugin</artifactId>
-				<version>3.0.2</version>
-				<configuration>
-					<archive>
-						<manifest>
-							<addDefaultImplementationEntries>true</addDefaultImplementationEntries>
-						</manifest>
-					</archive>
-				</configuration>
-			</plugin>
 
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
