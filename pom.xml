@@ -149,9 +149,12 @@
 				</plugins>
 			</build>
 		</profile>
-		
+
 		<profile>
 			<id>build42</id>
+			<activation>
+				<activeByDefault>true</activeByDefault>
+			</activation>
 			<build>
 				<plugins>
 					<plugin>
@@ -162,7 +165,7 @@
 								<exclude>**/com/microsoft/sqlserver/jdbc/SQLServerJdbc41.java</exclude>
 							</excludes>
 							<source>1.8</source>
-							<target>1.8</target> 
+							<target>1.8</target>
 						</configuration>
 					</plugin>
 					<plugin>
@@ -170,33 +173,33 @@
 						<artifactId>maven-jar-plugin</artifactId>
 						<version>3.0.2</version>
 						<configuration>
-							<finalName>${project.artifactId}-${project.version}.jre8</finalName>   	
+							<finalName>${project.artifactId}-${project.version}.jre8</finalName>
 							<archive>
 								<manifest>
 									<addDefaultImplementationEntries>true</addDefaultImplementationEntries>
 								</manifest>
 							</archive>
 						</configuration>
-					</plugin>   
+					</plugin>
 				</plugins>
 			</build>
 		</profile>
-		
+
 	</profiles>
 
 	<build>
 
 		<resources>
 			<resource>
-				<directory>${basedir}</directory> 
+				<directory>${basedir}</directory>
 				<includes>
 					<include>META-INF/services/java.sql.Driver</include>
 				</includes>
 			</resource>
 		</resources>
-		
+
 		<plugins>
-			
+
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-source-plugin</artifactId>
