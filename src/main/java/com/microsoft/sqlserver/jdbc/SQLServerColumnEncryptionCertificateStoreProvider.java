@@ -6,7 +6,7 @@
 // Copyright(c) Microsoft Corporation
 // All rights reserved.
 // MIT License
-// Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files(the ""Software""), 
+// Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files(the "Software"), 
 //  to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, 
 //  and / or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions :
 // The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
@@ -21,10 +21,8 @@ package com.microsoft.sqlserver.jdbc;
 
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.security.Key;
 import java.security.KeyStore;
 import java.security.KeyStoreException;
@@ -40,9 +38,10 @@ import java.util.Locale;
 
 import javax.xml.bind.DatatypeConverter;
 
-import com.microsoft.sqlserver.jdbc.AuthenticationJNI;
-
-
+/**
+ * The implementation of the key store provider for the Windows Certificate Store. This class enables using keys stored in the Windows Certificate Store as column master keys.
+ *
+ */
 public final class SQLServerColumnEncryptionCertificateStoreProvider extends SQLServerColumnEncryptionKeyStoreProvider
 {
 	static final private java.util.logging.Logger windowsCertificateStoreLogger =

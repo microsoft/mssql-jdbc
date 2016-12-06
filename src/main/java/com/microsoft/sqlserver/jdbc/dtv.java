@@ -8,7 +8,7 @@
 // Copyright(c) Microsoft Corporation
 // All rights reserved.
 // MIT License
-// Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files(the ""Software""), 
+// Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files(the "Software"), 
 //  to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, 
 //  and / or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions :
 // The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
@@ -21,15 +21,38 @@
  
 package com.microsoft.sqlserver.jdbc;
 
-import java.io.*;
-import java.util.*;
-import java.math.*;
+import static java.nio.charset.StandardCharsets.UTF_16LE;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.Reader;
+import java.io.UnsupportedEncodingException;
+import java.math.BigDecimal;
+import java.math.BigInteger;
+import java.math.MathContext;
+import java.math.RoundingMode;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.charset.Charset;
-import java.sql.*;
+import java.sql.Blob;
+import java.sql.Clob;
+import java.sql.SQLException;
+import java.sql.Timestamp;
 import java.text.MessageFormat;
-import java.time.*;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.time.OffsetDateTime;
+import java.time.OffsetTime;
+import java.util.Calendar;
+import java.util.EnumMap;
+import java.util.GregorianCalendar;
+import java.util.Locale;
+import java.util.Map;
+import java.util.SimpleTimeZone;
+import java.util.TimeZone;
+import java.util.UUID;
 
 import com.microsoft.sqlserver.jdbc.JavaType.SetterConversionAE;
 
@@ -324,26 +347,10 @@ final class DTV
 				}
 				else
 				{
-					ReaderInputStream clobStream = null;
-
-					try
-					{
-						clobStream = new ReaderInputStream(
-								clobReader,
-								collation.getCharset(),
-								clobLength);
-					}
-					catch (UnsupportedEncodingException ex)
-					{
-						MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_encodingErrorWritingTDS"));
-						Object[] msgArgs = {new String(ex.getMessage())};
-						SQLServerException.makeFromDriverError(
-								conn,
-								null, 
-								form.format(msgArgs),
-								null,
-								true);
-					}
+					ReaderInputStream clobStream = new ReaderInputStream(
+						clobReader,
+						collation.getCharset(),
+						clobLength);
 
 					tdsWriter.writeRPCInputStream(
 							name,
@@ -1911,7 +1918,7 @@ final class DTV
 						// Each character is represented using 2 bytes in NVARCHAR
 						else if((JDBCType.NVARCHAR == jdbcTypeSetByUser) || (JDBCType.NCHAR == jdbcTypeSetByUser) || (JDBCType.LONGNVARCHAR == jdbcTypeSetByUser))
 						{
-							byteValue = ((String)value).getBytes(Charset.forName("UTF-16LE"));
+							byteValue = ((String)value).getBytes(UTF_16LE);
 						}
 						// Each character is represented using 1 bytes in VARCHAR
 						else if((JDBCType.VARCHAR == jdbcTypeSetByUser) || (JDBCType.CHAR == jdbcTypeSetByUser) || (JDBCType.LONGVARCHAR == jdbcTypeSetByUser))
@@ -2346,21 +2353,7 @@ final class AppDTVImpl extends DTVImpl
 
 				if (null != strValue)
 				{
-					try
-					{
-						nativeEncoding = strValue.getBytes(collation.getCharset());
-					}
-					catch (UnsupportedEncodingException ex)
-					{
-						MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_encodingErrorWritingTDS"));
-						Object[] msgArgs = {new String(ex.getMessage())};
-						SQLServerException.makeFromDriverError(
-								con,
-								null, 
-								form.format(msgArgs),
-								null, // Don't close the connection
-								true);
-					}
+					nativeEncoding = strValue.getBytes(collation.getCharset());
 				}
 
 				dtv.setValue(nativeEncoding, JavaType.BYTEARRAY);
@@ -2630,26 +2623,10 @@ final class AppDTVImpl extends DTVImpl
 					JDBCType.LONGVARCHAR == jdbcType ||
 					JDBCType.CLOB == jdbcType))
 			{
-				ReaderInputStream streamValue = null;
-
-				try
-				{
-					streamValue = new ReaderInputStream(
+				ReaderInputStream streamValue = new ReaderInputStream(
 							readerValue,
 							collation.getCharset(),
 							readerLength);
-				}
-				catch (UnsupportedEncodingException ex)
-				{
-					MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_encodingErrorWritingTDS"));
-					Object[] msgArgs = {new String(ex.getMessage())};
-					SQLServerException.makeFromDriverError(
-							con,
-							null, 
-							form.format(msgArgs),
-							null, // Don't close the connection
-							true);
-				}
 
 				dtv.setValue(streamValue, JavaType.INPUTSTREAM);
 
@@ -2779,7 +2756,7 @@ final class TypeInfo
 
 	// Collation (will be null for non-textual types).
 	private SQLCollation collation; 
-	private String charset;
+	private Charset charset;
 
 	SSType getSSType() { return ssType; }
 	SSLenType getSSLenType() { return ssLenType; }
@@ -2790,7 +2767,7 @@ final class TypeInfo
 	int getScale() { return scale; }
 	SQLCollation getSQLCollation() { return collation; }
 	void setSQLCollation(SQLCollation collation) { this.collation = collation; }
-	String getCharset() { return charset; }
+	Charset getCharset() { return charset; }
 	boolean isNullable() { return 0x0001 == (flags & 0x0001); }
 	boolean isCaseSensitive() { return 0x0002 == (flags & 0x0002); }
 	boolean isSparseColumnSet() { return 0x0400 == (flags & 0x0400); }
@@ -2915,6 +2892,12 @@ final class TypeInfo
 
 		BITN (TDSType.BITN, new Strategy()
 		{
+			/**
+			 * Sets the fields of typeInfo to the correct values
+			 * @param typeInfo the TypeInfo whos values are being corrected
+			 * @param tdsReader the TDSReader used to set the fields of typeInfo to the correct values
+			 * @throws SQLServerException when an error occurs
+			 */
 			public void apply(TypeInfo typeInfo, TDSReader tdsReader) throws SQLServerException
 			{
 				if (1 != tdsReader.readUnsignedByte())
@@ -2927,6 +2910,12 @@ final class TypeInfo
 
 		INTN (TDSType.INTN, new Strategy()
 		{
+			/**
+			 * Sets the fields of typeInfo to the correct values
+			 * @param typeInfo the TypeInfo whos values are being corrected
+			 * @param tdsReader the TDSReader used to set the fields of typeInfo to the correct values
+			 * @throws SQLServerException when an error occurs
+			 */
 			public void apply(TypeInfo typeInfo, TDSReader tdsReader) throws SQLServerException
 			{
 				switch (tdsReader.readUnsignedByte())
@@ -2954,6 +2943,12 @@ final class TypeInfo
 
 		DATE (TDSType.DATEN, new Strategy()
 		{
+			/**
+			 * Sets the fields of typeInfo to the correct values
+			 * @param typeInfo the TypeInfo whos values are being corrected
+			 * @param tdsReader the TDSReader used to set the fields of typeInfo to the correct values
+			 * @throws SQLServerException when an error occurs
+			 */
 			public void apply(TypeInfo typeInfo, TDSReader tdsReader) throws SQLServerException
 			{
 				typeInfo.ssType = SSType.DATE;
@@ -2965,6 +2960,12 @@ final class TypeInfo
 
 		BIGBINARY (TDSType.BIGBINARY, new Strategy()
 		{
+			/**
+			 * Sets the fields of typeInfo to the correct values
+			 * @param typeInfo the TypeInfo whos values are being corrected
+			 * @param tdsReader the TDSReader used to set the fields of typeInfo to the correct values
+			 * @throws SQLServerException when an error occurs
+			 */
 			public void apply(TypeInfo typeInfo, TDSReader tdsReader) throws SQLServerException
 			{
 				typeInfo.ssLenType = SSLenType.USHORTLENTYPE;
@@ -2980,6 +2981,12 @@ final class TypeInfo
 
 		BIGVARBINARY (TDSType.BIGVARBINARY, new Strategy()
 		{
+			/**
+			 * Sets the fields of typeInfo to the correct values
+			 * @param typeInfo the TypeInfo whos values are being corrected
+			 * @param tdsReader the TDSReader used to set the fields of typeInfo to the correct values
+			 * @throws SQLServerException when an error occurs
+			 */
 			public void apply(TypeInfo typeInfo, TDSReader tdsReader) throws SQLServerException
 			{
 				typeInfo.maxLength = tdsReader.readUnsignedShort();
@@ -3005,6 +3012,12 @@ final class TypeInfo
 
 		IMAGE (TDSType.IMAGE, new Strategy()
 		{
+			/**
+			 * Sets the fields of typeInfo to the correct values
+			 * @param typeInfo the TypeInfo whos values are being corrected
+			 * @param tdsReader the TDSReader used to set the fields of typeInfo to the correct values
+			 * @throws SQLServerException when an error occurs
+			 */
 			public void apply(TypeInfo typeInfo, TDSReader tdsReader) throws SQLServerException
 			{
 				typeInfo.ssLenType = SSLenType.LONGLENTYPE;
@@ -3018,6 +3031,12 @@ final class TypeInfo
 
 		BIGCHAR (TDSType.BIGCHAR, new Strategy()
 		{
+			/**
+			 * Sets the fields of typeInfo to the correct values
+			 * @param typeInfo the TypeInfo whos values are being corrected
+			 * @param tdsReader the TDSReader used to set the fields of typeInfo to the correct values
+			 * @throws SQLServerException when an error occurs
+			 */
 			public void apply(TypeInfo typeInfo, TDSReader tdsReader) throws SQLServerException
 			{
 				typeInfo.ssLenType = SSLenType.USHORTLENTYPE;
@@ -3033,6 +3052,12 @@ final class TypeInfo
 
 		BIGVARCHAR (TDSType.BIGVARCHAR, new Strategy()
 		{
+			/**
+			 * Sets the fields of typeInfo to the correct values
+			 * @param typeInfo the TypeInfo whos values are being corrected
+			 * @param tdsReader the TDSReader used to set the fields of typeInfo to the correct values
+			 * @throws SQLServerException when an error occurs
+			 */
 			public void apply(TypeInfo typeInfo, TDSReader tdsReader) throws SQLServerException
 			{
 				typeInfo.maxLength = tdsReader.readUnsignedShort();
@@ -3060,6 +3085,12 @@ final class TypeInfo
 
 		TEXT (TDSType.TEXT, new Strategy()
 		{
+			/**
+			 * Sets the fields of typeInfo to the correct values
+			 * @param typeInfo the TypeInfo whos values are being corrected
+			 * @param tdsReader the TDSReader used to set the fields of typeInfo to the correct values
+			 * @throws SQLServerException when an error occurs
+			 */
 			public void apply(TypeInfo typeInfo, TDSReader tdsReader) throws SQLServerException
 			{
 				typeInfo.ssLenType = SSLenType.LONGLENTYPE;
@@ -3075,6 +3106,12 @@ final class TypeInfo
 
 		NCHAR (TDSType.NCHAR, new Strategy()
 		{
+			/**
+			 * Sets the fields of typeInfo to the correct values
+			 * @param typeInfo the TypeInfo whos values are being corrected
+			 * @param tdsReader the TDSReader used to set the fields of typeInfo to the correct values
+			 * @throws SQLServerException when an error occurs
+			 */
 			public void apply(TypeInfo typeInfo, TDSReader tdsReader) throws SQLServerException
 			{
 				typeInfo.ssLenType = SSLenType.USHORTLENTYPE;
@@ -3084,12 +3121,18 @@ final class TypeInfo
 				typeInfo.displaySize = typeInfo.precision = typeInfo.maxLength / 2;
 				typeInfo.ssType = SSType.NCHAR;
 				typeInfo.collation = tdsReader.readCollation();
-				typeInfo.charset = Encoding.UNICODE.charsetName();
+				typeInfo.charset = Encoding.UNICODE.charset();
 			}
 		}),
 
 		NVARCHAR (TDSType.NVARCHAR, new Strategy()
 		{
+			/**
+			 * Sets the fields of typeInfo to the correct values
+			 * @param typeInfo the TypeInfo whos values are being corrected
+			 * @param tdsReader the TDSReader used to set the fields of typeInfo to the correct values
+			 * @throws SQLServerException when an error occurs
+			 */
 			public void apply(TypeInfo typeInfo, TDSReader tdsReader) throws SQLServerException
 			{
 				typeInfo.maxLength = tdsReader.readUnsignedShort();
@@ -3110,12 +3153,18 @@ final class TypeInfo
 					tdsReader.throwInvalidTDS();
 				}
 				typeInfo.collation = tdsReader.readCollation();
-				typeInfo.charset = Encoding.UNICODE.charsetName();
+				typeInfo.charset = Encoding.UNICODE.charset();
 			}
 		}),
 
 		NTEXT (TDSType.NTEXT, new Strategy()
 		{
+			/**
+			 * Sets the fields of typeInfo to the correct values
+			 * @param typeInfo the TypeInfo whos values are being corrected
+			 * @param tdsReader the TDSReader used to set the fields of typeInfo to the correct values
+			 * @throws SQLServerException when an error occurs
+			 */
 			public void apply(TypeInfo typeInfo, TDSReader tdsReader) throws SQLServerException
 			{
 				typeInfo.ssLenType = SSLenType.LONGLENTYPE;
@@ -3125,12 +3174,18 @@ final class TypeInfo
 				typeInfo.ssType = SSType.NTEXT;
 				typeInfo.displaySize = typeInfo.precision = Integer.MAX_VALUE / 2;
 				typeInfo.collation = tdsReader.readCollation();
-				typeInfo.charset = Encoding.UNICODE.charsetName();
+				typeInfo.charset = Encoding.UNICODE.charset();
 			}
 		}),
 
 		GUID (TDSType.GUID, new Strategy()
 		{
+			/**
+			 * Sets the fields of typeInfo to the correct values
+			 * @param typeInfo the TypeInfo whos values are being corrected
+			 * @param tdsReader the TDSReader used to set the fields of typeInfo to the correct values
+			 * @throws SQLServerException when an error occurs
+			 */
 			public void apply(TypeInfo typeInfo, TDSReader tdsReader) throws SQLServerException
 			{
 				int maxLength = tdsReader.readUnsignedByte();
@@ -3147,6 +3202,12 @@ final class TypeInfo
 
 		UDT (TDSType.UDT, new Strategy()
 		{
+			/**
+			 * Sets the fields of typeInfo to the correct values
+			 * @param typeInfo the TypeInfo whos values are being corrected
+			 * @param tdsReader the TDSReader used to set the fields of typeInfo to the correct values
+			 * @throws SQLServerException when an error occurs
+			 */
 			public void apply(TypeInfo typeInfo, TDSReader tdsReader) throws SQLServerException
 			{
 				UDTTDSHeader udtTDSHeader = new UDTTDSHeader(tdsReader);
@@ -3178,18 +3239,30 @@ final class TypeInfo
 
 		XML (TDSType.XML, new Strategy()
 		{
+			/**
+			 * Sets the fields of typeInfo to the correct values
+			 * @param typeInfo the TypeInfo whos values are being corrected
+			 * @param tdsReader the TDSReader used to set the fields of typeInfo to the correct values
+			 * @throws SQLServerException when an error occurs
+			 */
 			public void apply(TypeInfo typeInfo, TDSReader tdsReader) throws SQLServerException
 			{
 				XMLTDSHeader xmlTDSHeader = new XMLTDSHeader(tdsReader);
 				typeInfo.ssLenType = SSLenType.PARTLENTYPE;
 				typeInfo.ssType = SSType.XML;
 				typeInfo.displaySize = typeInfo.precision = Integer.MAX_VALUE / 2;
-				typeInfo.charset = Encoding.UNICODE.charsetName();
+				typeInfo.charset = Encoding.UNICODE.charset();
 			}
 		}),
 
 		SQL_VARIANT(TDSType.SQL_VARIANT, new Strategy()
 		{
+			/**
+			 * Sets the fields of typeInfo to the correct values
+			 * @param typeInfo the TypeInfo whos values are being corrected
+			 * @param tdsReader the TDSReader used to set the fields of typeInfo to the correct values
+			 * @throws SQLServerException when an error occurs
+			 */
 			public void apply(TypeInfo typeInfo, TDSReader tdsReader) throws SQLServerException
 			{
 				// Throw an exception and terminate the connection.  Since we don't know
@@ -3209,6 +3282,12 @@ final class TypeInfo
 
 		private interface Strategy
 		{
+			/**
+			 * Sets the fields of typeInfo to the correct values
+			 * @param typeInfo the TypeInfo whos values are being corrected
+			 * @param tdsReader the TDSReader used to set the fields of typeInfo to the correct values
+			 * @throws SQLServerException when an error occurs
+			 */
 			public void apply(TypeInfo typeInfo, TDSReader tdsReader) throws SQLServerException;
 		}
 
@@ -3234,6 +3313,11 @@ final class TypeInfo
 				this.scale = scale;
 			}
 
+			/**
+			 * Sets the fields of typeInfo to the correct values
+			 * @param typeInfo the TypeInfo whos values are being corrected
+			 * @param tdsReader the TDSReader used to set the fields of typeInfo to the correct values
+			 */
 			public void apply(TypeInfo typeInfo, TDSReader tdsReader)
 			{
 				typeInfo.ssLenType = SSLenType.FIXEDLENTYPE;
@@ -3254,6 +3338,12 @@ final class TypeInfo
 				this.ssType = ssType;
 			}
 
+			/**
+			 * Sets the fields of typeInfo to the correct values
+			 * @param typeInfo the TypeInfo whos values are being corrected
+			 * @param tdsReader the TDSReader used to set the fields of typeInfo to the correct values
+			 * @throws SQLServerException when an error occurs
+			 */
 			public void apply(TypeInfo typeInfo, TDSReader tdsReader) throws SQLServerException
 			{
 				int maxLength = tdsReader.readUnsignedByte();
@@ -3283,6 +3373,12 @@ final class TypeInfo
 				this.smallBuilder = smallBuilder;
 			}
 
+			/**
+			 * Sets the fields of typeInfo to the correct values
+			 * @param typeInfo the TypeInfo whos values are being corrected
+			 * @param tdsReader the TDSReader used to set the fields of typeInfo to the correct values
+			 * @throws SQLServerException when an error occurs
+			 */
 			public void apply(TypeInfo typeInfo, TDSReader tdsReader) throws SQLServerException
 			{
 				switch (tdsReader.readUnsignedByte()) // maxLength
@@ -3312,6 +3408,12 @@ final class TypeInfo
 				return baseFormat.length() + ((scale > 0) ? (1 + scale) : 0);
 			}
 
+			/**
+			 * Sets the fields of typeInfo to the correct values
+			 * @param typeInfo the TypeInfo whos values are being corrected
+			 * @param tdsReader the TDSReader used to set the fields of typeInfo to the correct values
+			 * @throws SQLServerException when an error occurs
+			 */
 			public void apply(TypeInfo typeInfo, TDSReader tdsReader) throws SQLServerException
 			{
 				typeInfo.scale = tdsReader.readUnsignedByte();

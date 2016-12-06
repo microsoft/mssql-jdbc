@@ -6,7 +6,7 @@
 // Copyright(c) Microsoft Corporation
 // All rights reserved.
 // MIT License
-// Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files(the ""Software""), 
+// Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files(the "Software"), 
 //  to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, 
 //  and / or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions :
 // The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
@@ -37,13 +37,40 @@ public final class Types extends Object
      * that identifies the Microsoft SQL type DATETIMEOFFSET.
      */
     public static final int DATETIMEOFFSET = -155;
+	
+	/*
+     * The constant in the Java programming language, sometimes referred to as a type code,
+     * that identifies the Microsoft SQL type STRUCTURED.
+     */
 	public static final int STRUCTURED = -153;
 	
+	/*
+     * The constant in the Java programming language, sometimes referred to as a type code,
+     * that identifies the Microsoft SQL type DATETIME.
+     */
 	public static final int DATETIME = -151;
+	
+	/*
+     * The constant in the Java programming language, sometimes referred to as a type code,
+     * that identifies the Microsoft SQL type SMALLDATETIME.
+     */
 	public static final int SMALLDATETIME = -150;
 	
+	/*
+     * The constant in the Java programming language, sometimes referred to as a type code,
+     * that identifies the Microsoft SQL type MONEY.
+     */
 	public static final int MONEY = -148;
+	
+	/*
+     * The constant in the Java programming language, sometimes referred to as a type code,
+     * that identifies the Microsoft SQL type SMALLMONEY.
+     */
 	public static final int SMALLMONEY = -146;
 	
+	/*
+     * The constant in the Java programming language, sometimes referred to as a type code,
+     * that identifies the Microsoft SQL type GUID.
+     */
 	public static final int GUID = -145;
 }

@@ -6,7 +6,7 @@
 // Copyright(c) Microsoft Corporation
 // All rights reserved.
 // MIT License
-// Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files(the ""Software""), 
+// Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files(the "Software"), 
 //  to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, 
 //  and / or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions :
 // The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
@@ -18,32 +18,48 @@
  
  
 package com.microsoft.sqlserver.jdbc;
-import java.sql.*;
-import java.util.*;
-import java.util.logging.*;
+import java.sql.Blob;
+import java.sql.CallableStatement;
+import java.sql.Clob;
+import java.sql.DatabaseMetaData;
+import java.sql.NClob;
+import java.sql.PreparedStatement;
+import java.sql.SQLClientInfoException;
+import java.sql.SQLException;
+import java.sql.SQLFeatureNotSupportedException;
+import java.sql.SQLPermission;
+import java.sql.SQLWarning;
+import java.sql.SQLXML;
+import java.sql.Savepoint;
+import java.sql.Statement;
+import java.sql.Struct;
+import java.text.MessageFormat;
+import java.util.Properties;
+import java.util.UUID;
 import java.util.concurrent.Executor;
-import java.text.*;
+import java.util.logging.Level;
 
 /**
 * SQLServerConnectionPoolProxy is a wrapper around SQLServerConnection object.
 * When returning a connection object from PooledConnection.getConnection we returnt this proxy per SPEC.
-* <li>
+* <p>
 * This class's public functions need to be kept identical to the SQLServerConnection's.
-* <li>
+* <p>
 * The API javadoc for JDBC API methods that this class implements are not repeated here. Please
 * see Sun's JDBC API interfaces javadoc for those details.
 */
 
 class SQLServerConnectionPoolProxy implements ISQLServerConnection, java.io.Serializable
 {
-        private SQLServerConnection wrappedConnection;
-        private boolean bIsOpen;
-        static private int baseConnectionID=0;       //connection id dispenser
-        final private String traceID ;
+	private static final long serialVersionUID = -6412542417798843534L;
+    private SQLServerConnection wrappedConnection;
+    private boolean bIsOpen;
+    static private int baseConnectionID=0;       //connection id dispenser
+    final private String traceID ;
         
-        // Permission targets
-        // currently only callAbort is implemented
-    	private static final String callAbortPerm = "callAbort";
+    // Permission targets
+    // currently only callAbort is implemented
+    private static final String callAbortPerm = "callAbort";
     	
 	/**
 	* Generate the next unique connection id.
@@ -302,6 +318,39 @@ class SQLServerConnectionPoolProxy implements ISQLServerConnection, java.io.Seri
 		return wrappedConnection.createStatement(nType, nConcur, nHold);
 	}
 	
+	/**
+     * Creates a <code>Statement</code> object that will generate
+     * <code>ResultSet</code> objects with the given type, concurrency,
+     * and holdability.
+     * This method is the same as the <code>createStatement</code> method
+     * above, but it allows the default result set
+     * type, concurrency, and holdability to be overridden.
+     *
+     * @param nType one of the following <code>ResultSet</code>
+     *        constants:
+     *         <code>ResultSet.TYPE_FORWARD_ONLY</code>,
+     *         <code>ResultSet.TYPE_SCROLL_INSENSITIVE</code>, or
+     *         <code>ResultSet.TYPE_SCROLL_SENSITIVE</code>
+     * @param nConcur one of the following <code>ResultSet</code>
+     *        constants:
+     *         <code>ResultSet.CONCUR_READ_ONLY</code> or
+     *         <code>ResultSet.CONCUR_UPDATABLE</code>
+     * @param nHold one of the following <code>ResultSet</code>
+     *        constants:
+     *         <code>ResultSet.HOLD_CURSORS_OVER_COMMIT</code> or
+     *         <code>ResultSet.CLOSE_CURSORS_AT_COMMIT</code>
+     * @param stmtColEncSetting Specifies how data will be sent and received when reading and writing encrypted columns.
+     * @return a new <code>Statement</code> object that will generate
+     *         <code>ResultSet</code> objects with the given type,
+     *         concurrency, and holdability
+     * @exception SQLException if a database access error occurs, this
+     * method is called on a closed connection
+     *            or the given parameters are not <code>ResultSet</code>
+     *            constants indicating type, concurrency, and holdability
+     * @exception SQLFeatureNotSupportedException if the JDBC driver does not support
+     * this method or this method is not supported for the specified result
+     * set type, result set holdability and result set concurrency.
+     */
 	public Statement createStatement(
 			int nType,
 			int nConcur,
@@ -319,6 +368,44 @@ class SQLServerConnectionPoolProxy implements ISQLServerConnection, java.io.Seri
 		return wrappedConnection.prepareStatement(sql, nType, nConcur, nHold);
 	}
   
+  /**
+   * Creates a <code>PreparedStatement</code> object that will generate
+   * <code>ResultSet</code> objects with the given type, concurrency,
+   * and holdability.
+   * <P>
+   * This method is the same as the <code>prepareStatement</code> method
+   * above, but it allows the default result set
+   * type, concurrency, and holdability to be overridden.
+   *
+   * @param sql a <code>String</code> object that is the SQL statement to
+   *            be sent to the database; may contain one or more '?' IN
+   *            parameters
+   * @param nType one of the following <code>ResultSet</code>
+   *        constants:
+   *         <code>ResultSet.TYPE_FORWARD_ONLY</code>,
+   *         <code>ResultSet.TYPE_SCROLL_INSENSITIVE</code>, or
+   *         <code>ResultSet.TYPE_SCROLL_SENSITIVE</code>
+   * @param nConcur one of the following <code>ResultSet</code>
+   *        constants:
+   *         <code>ResultSet.CONCUR_READ_ONLY</code> or
+   *         <code>ResultSet.CONCUR_UPDATABLE</code>
+   * @param nHold one of the following <code>ResultSet</code>
+   *        constants:
+   *         <code>ResultSet.HOLD_CURSORS_OVER_COMMIT</code> or
+   *         <code>ResultSet.CLOSE_CURSORS_AT_COMMIT</code>
+   * @param stmtColEncSetting Specifies how data will be sent and received when reading and writing encrypted columns.
+   * @return a new <code>PreparedStatement</code> object, containing the
+   *         pre-compiled SQL statement, that will generate
+   *         <code>ResultSet</code> objects with the given type,
+   *         concurrency, and holdability
+   * @exception SQLException if a database access error occurs, this
+   * method is called on a closed connection
+   *            or the given parameters are not <code>ResultSet</code>
+   *            constants indicating type, concurrency, and holdability
+   * @exception SQLFeatureNotSupportedException if the JDBC driver does not support
+   * this method or this method is not supported for the specified result
+   * set type, result set holdability and result set concurrency.
+   */
 	public PreparedStatement prepareStatement(
 			String sql,
 			int nType,
@@ -336,8 +423,43 @@ class SQLServerConnectionPoolProxy implements ISQLServerConnection, java.io.Seri
 		checkClosed();
 		return wrappedConnection.prepareCall(sql, nType, nConcur, nHold);
 	}
-  
-	public CallableStatement prepareCall(
+    
+	/**
+   * Creates a <code>CallableStatement</code> object that will generate
+   * <code>ResultSet</code> objects with the given type and concurrency.
+   * This method is the same as the <code>prepareCall</code> method
+   * above, but it allows the default result set
+   * type, result set concurrency type and holdability to be overridden.
+   *
+   * @param sql a <code>String</code> object that is the SQL statement to
+   *            be sent to the database; may contain on or more '?' parameters
+   * @param nType one of the following <code>ResultSet</code>
+   *        constants:
+   *         <code>ResultSet.TYPE_FORWARD_ONLY</code>,
+   *         <code>ResultSet.TYPE_SCROLL_INSENSITIVE</code>, or
+   *         <code>ResultSet.TYPE_SCROLL_SENSITIVE</code>
+   * @param nConcur one of the following <code>ResultSet</code>
+   *        constants:
+   *         <code>ResultSet.CONCUR_READ_ONLY</code> or
+   *         <code>ResultSet.CONCUR_UPDATABLE</code>
+   * @param nHold one of the following <code>ResultSet</code>
+   *        constants:
+   *         <code>ResultSet.HOLD_CURSORS_OVER_COMMIT</code> or
+   *         <code>ResultSet.CLOSE_CURSORS_AT_COMMIT</code>
+   * @param stmtColEncSetting Specifies how data will be sent and received when reading and writing encrypted columns.
+   * @return a new <code>CallableStatement</code> object, containing the
+   *         pre-compiled SQL statement, that will generate
+   *         <code>ResultSet</code> objects with the given type,
+   *         concurrency, and holdability
+   * @exception SQLException if a database access error occurs, this
+   * method is called on a closed connection
+   *            or the given parameters are not <code>ResultSet</code>
+   *            constants indicating type, concurrency, and holdability
+    * @exception SQLFeatureNotSupportedException if the JDBC driver does not support
+   * this method or this method is not supported for the specified result
+   * set type, result set holdability and result set concurrency.
+   */
+  	public CallableStatement prepareCall(
 			String sql,
 			int nType,
 			int nConcur,
@@ -356,7 +478,49 @@ class SQLServerConnectionPoolProxy implements ISQLServerConnection, java.io.Seri
 		checkClosed();
 		return wrappedConnection.prepareStatement(sql, flag);
 	}
-
+	
+  /**
+   * Creates a default <code>PreparedStatement</code> object that has
+   * the capability to retrieve auto-generated keys. The given constant
+   * tells the driver whether it should make auto-generated keys
+   * available for retrieval.  This parameter is ignored if the SQL statement
+   * is not an <code>INSERT</code> statement, or an SQL statement able to return
+   * auto-generated keys (the list of such statements is vendor-specific).
+   * <P>
+   * <B>Note:</B> This method is optimized for handling
+   * parametric SQL statements that benefit from precompilation. If
+   * the driver supports precompilation,
+   * the method <code>prepareStatement</code> will send
+   * the statement to the database for precompilation. Some drivers
+   * may not support precompilation. In this case, the statement may
+   * not be sent to the database until the <code>PreparedStatement</code>
+   * object is executed.  This has no direct effect on users; however, it does
+   * affect which methods throw certain SQLExceptions.
+   * <P>
+   * Result sets created using the returned <code>PreparedStatement</code>
+   * object will by default be type <code>TYPE_FORWARD_ONLY</code>
+   * and have a concurrency level of <code>CONCUR_READ_ONLY</code>.
+   * The holdability of the created result sets can be determined by
+   * calling {@link #getHoldability}.
+   *
+   * @param sql an SQL statement that may contain one or more '?' IN
+   *        parameter placeholders
+   * @param flag a flag indicating whether auto-generated keys
+   *        should be returned; one of
+   *        <code>Statement.RETURN_GENERATED_KEYS</code> or
+   *        <code>Statement.NO_GENERATED_KEYS</code>
+   * @param stmtColEncSetting Specifies how data will be sent and received when reading and writing encrypted columns.
+   * @return a new <code>PreparedStatement</code> object, containing the
+   *         pre-compiled SQL statement, that will have the capability of
+   *         returning auto-generated keys
+   * @exception SQLException if a database access error occurs, this
+   *  method is called on a closed connection
+   *         or the given parameter is not a <code>Statement</code>
+   *         constant indicating whether auto-generated keys should be
+   *         returned
+   * @exception SQLFeatureNotSupportedException if the JDBC driver does not support
+   * this method with a constant of Statement.RETURN_GENERATED_KEYS
+   */
 	public PreparedStatement prepareStatement(String sql, int flag, SQLServerStatementColumnEncryptionSetting stmtColEncSetting) throws SQLServerException 
 	{
 		checkClosed();
@@ -369,6 +533,50 @@ class SQLServerConnectionPoolProxy implements ISQLServerConnection, java.io.Seri
 		return wrappedConnection.prepareStatement(sql,  columnIndexes);
 	}
 
+  /**
+   * Creates a default <code>PreparedStatement</code> object capable
+   * of returning the auto-generated keys designated by the given array.
+   * This array contains the indexes of the columns in the target
+   * table that contain the auto-generated keys that should be made
+   * available.  The driver will ignore the array if the SQL statement
+   * is not an <code>INSERT</code> statement, or an SQL statement able to return
+   * auto-generated keys (the list of such statements is vendor-specific).
+   *<p>
+   * An SQL statement with or without IN parameters can be
+   * pre-compiled and stored in a <code>PreparedStatement</code> object. This
+   * object can then be used to efficiently execute this statement
+   * multiple times.
+   * <P>
+   * <B>Note:</B> This method is optimized for handling
+   * parametric SQL statements that benefit from precompilation. If
+   * the driver supports precompilation,
+   * the method <code>prepareStatement</code> will send
+   * the statement to the database for precompilation. Some drivers
+   * may not support precompilation. In this case, the statement may
+   * not be sent to the database until the <code>PreparedStatement</code>
+   * object is executed.  This has no direct effect on users; however, it does
+   * affect which methods throw certain SQLExceptions.
+   * <P>
+   * Result sets created using the returned <code>PreparedStatement</code>
+   * object will by default be type <code>TYPE_FORWARD_ONLY</code>
+   * and have a concurrency level of <code>CONCUR_READ_ONLY</code>.
+   * The holdability of the created result sets can be determined by
+   * calling {@link #getHoldability}.
+   *
+   * @param sql an SQL statement that may contain one or more '?' IN
+   *        parameter placeholders
+   * @param columnIndexes an array of column indexes indicating the columns
+   *        that should be returned from the inserted row or rows
+   * @param stmtColEncSetting Specifies how data will be sent and received when reading and writing encrypted columns.
+   * @return a new <code>PreparedStatement</code> object, containing the
+   *         pre-compiled statement, that is capable of returning the
+   *         auto-generated keys designated by the given array of column
+   *         indexes
+   * @exception SQLException if a database access error occurs
+   * or this method is called on a closed connection
+   * @exception SQLFeatureNotSupportedException if the JDBC driver does not support
+   * this method
+   */
 	public PreparedStatement prepareStatement(String sql, int[] columnIndexes, SQLServerStatementColumnEncryptionSetting stmtColEncSetting) throws SQLServerException 
 	{
 		checkClosed();
@@ -381,6 +589,50 @@ class SQLServerConnectionPoolProxy implements ISQLServerConnection, java.io.Seri
 		return wrappedConnection.prepareStatement(sql, columnNames);
 	}
   
+  /**
+   * Creates a default <code>PreparedStatement</code> object capable
+   * of returning the auto-generated keys designated by the given array.
+   * This array contains the names of the columns in the target
+   * table that contain the auto-generated keys that should be returned.
+   * The driver will ignore the array if the SQL statement
+   * is not an <code>INSERT</code> statement, or an SQL statement able to return
+   * auto-generated keys (the list of such statements is vendor-specific).
+   * <P>
+   * An SQL statement with or without IN parameters can be
+   * pre-compiled and stored in a <code>PreparedStatement</code> object. This
+   * object can then be used to efficiently execute this statement
+   * multiple times.
+   * <P>
+   * <B>Note:</B> This method is optimized for handling
+   * parametric SQL statements that benefit from precompilation. If
+   * the driver supports precompilation,
+   * the method <code>prepareStatement</code> will send
+   * the statement to the database for precompilation. Some drivers
+   * may not support precompilation. In this case, the statement may
+   * not be sent to the database until the <code>PreparedStatement</code>
+   * object is executed.  This has no direct effect on users; however, it does
+   * affect which methods throw certain SQLExceptions.
+   * <P>
+   * Result sets created using the returned <code>PreparedStatement</code>
+   * object will by default be type <code>TYPE_FORWARD_ONLY</code>
+   * and have a concurrency level of <code>CONCUR_READ_ONLY</code>.
+   * The holdability of the created result sets can be determined by
+   * calling {@link #getHoldability}.
+   *
+   * @param sql an SQL statement that may contain one or more '?' IN
+   *        parameter placeholders
+   * @param columnNames an array of column names indicating the columns
+   *        that should be returned from the inserted row or rows
+   * @param stmtColEncSetting Specifies how data will be sent and received when reading and writing encrypted columns.
+   * @return a new <code>PreparedStatement</code> object, containing the
+   *         pre-compiled statement, that is capable of returning the
+   *         auto-generated keys designated by the given array of column
+   *         names
+   * @exception SQLException if a database access error occurs
+   * or this method is called on a closed connection
+   * @exception SQLFeatureNotSupportedException if the JDBC driver does not support
+   * this method
+   */
 	public PreparedStatement prepareStatement(String sql, String[] columnNames, SQLServerStatementColumnEncryptionSetting stmtColEncSetting) throws SQLServerException 
 	{
 		checkClosed();
@@ -429,7 +681,7 @@ class SQLServerConnectionPoolProxy implements ISQLServerConnection, java.io.Seri
 	{
         DriverJDBCVersion.checkSupportsJDBC41();
 
-        // The driver currently does not implement JDDBC 4.1 APIs
+        // The driver currently does not implement the optional JDBC APIs
         throw new SQLFeatureNotSupportedException(SQLServerException.getErrString("R_notSupported"));
 	}
 	
@@ -437,7 +689,7 @@ class SQLServerConnectionPoolProxy implements ISQLServerConnection, java.io.Seri
 	{
         DriverJDBCVersion.checkSupportsJDBC41();
 
-        // The driver currently does not implement JDDBC 4.1 APIs
+        // The driver currently does not implement the optional JDBC APIs
         throw new SQLFeatureNotSupportedException(SQLServerException.getErrString("R_notSupported"));
 	}  
 	
@@ -557,7 +809,8 @@ class SQLServerConnectionPoolProxy implements ISQLServerConnection, java.io.Seri
     public <T> T unwrap(Class<T> iface) throws SQLException
     {
         wrappedConnection.getConnectionLogger().entering ( toString(), "unwrap", iface );
-        DriverJDBCVersion.checkSupportsJDBC4();
+        DriverJDBCVersion.checkSupportsJDBC4();
+
         T t;
         try
         {
@@ -578,12 +831,27 @@ class SQLServerConnectionPoolProxy implements ISQLServerConnection, java.io.Seri
     	return wrappedConnection.getClientConnectionId();
     }
     
+	/**
+     * Modifies the setting of the sendTimeAsDatetime connection property.
+     * When true, java.sql.Time values will be sent to the server as SQL Serverdatetime values. 
+     * When false, java.sql.Time values will be sent to the server as SQL Servertime values.
+     * sendTimeAsDatetime can also be modified programmatically with SQLServerDataSource.setSendTimeAsDatetime.
+     * The default value for this property may change in a future release.
+     * @param sendTimeAsDateTimeValue enables/disables setting the sendTimeAsDatetime connection property.
+     * For more information about how the Microsoft JDBC Driver for SQL Server configures java.sql.Time values before sending
+     * them to the server, see <a href="https://msdn.microsoft.com/en-us/library/ff427224(v=sql.110).aspx" > Configuring How java.sql.Time Values are Sent to the Server.
+     */
 	public synchronized void setSendTimeAsDatetime(boolean sendTimeAsDateTimeValue)  throws SQLServerException
 	{
 		checkClosed();
     	wrappedConnection.setSendTimeAsDatetime(sendTimeAsDateTimeValue);
 	}
 
+	/**
+     * Returns the setting of the sendTimeAsDatetime connection property.
+     * @return if enabled, returns true. Otherwise, false.
+     * @throws SQLServerException when an error occurs.
+     */
 	public synchronized final boolean getSendTimeAsDatetime() throws SQLServerException
 	{
 		checkClosed();

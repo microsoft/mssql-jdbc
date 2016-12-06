@@ -6,7 +6,7 @@
 // Copyright(c) Microsoft Corporation
 // All rights reserved.
 // MIT License
-// Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files(the ""Software""), 
+// Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files(the "Software"), 
 //  to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, 
 //  and / or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions :
 // The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
@@ -19,9 +19,12 @@
  
 package com.microsoft.sqlserver.jdbc;
 
-import java.io.*;
-import java.util.*;
+import java.io.UnsupportedEncodingException;
+import java.nio.charset.Charset;
 import java.text.MessageFormat;
+import java.util.EnumSet;
+import java.util.HashMap;
+import java.util.Map;
 
 
 /**
@@ -49,7 +52,7 @@ final class SQLCollation implements java.io.Serializable
     private final Encoding encoding;
 
     // Utility methods for getting details of this collation's encoding
-    final String getCharset() { return encoding.charsetName(); }
+    final Charset getCharset() throws SQLServerException { return encoding.charset(); }
     final boolean supportsAsciiConversion() { return encoding.supportsAsciiConversion(); }
     final boolean hasAsciiCompatibleSBCS() { return encoding.hasAsciiCompatibleSBCS(); }
 
@@ -541,7 +544,7 @@ final class SQLCollation implements java.io.Serializable
 /**
  * Enumeration of encodings that are supported by SQL Server (and hopefully the JVM).
  *
- * See, for example, http://java.sun.com/j2se/1.5.0/docs/guide/intl/encoding.doc.html
+ * See, for example, https://docs.oracle.com/javase/8/docs/technotes/guides/intl/encoding.doc.html
  * for a complete list of supported encodings with their canonical names.
  */
 enum Encoding
@@ -568,6 +571,7 @@ enum Encoding
     private final boolean supportsAsciiConversion;
     private final boolean hasAsciiCompatibleSBCS;
     private boolean jvmSupportConfirmed = false;
+    private Charset charset;
 
     private Encoding(
         String charsetName,
@@ -585,11 +589,7 @@ enum Encoding
         {
             // Checks for support by converting a java.lang.String
             // This works for all of the code pages above in SE 5 and later.
-            try
-            {
-                " ".getBytes(charsetName);
-            }
-            catch (UnsupportedEncodingException e)
+            if (!Charset.isSupported(charsetName))
             {
                 MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_codePageNotSupported"));
                 Object[] msgArgs = {charsetName};
@@ -602,7 +602,23 @@ enum Encoding
         return this;
     }
 
-    final String charsetName() { return charsetName; }
+    final Charset charset() throws SQLServerException
+    {
+        try
+        {
+            checkSupported();
+            if (charset == null)
+            {
+                charset = Charset.forName(charsetName);
+            }
+        } catch (UnsupportedEncodingException e)
+        {
+            MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_codePageNotSupported"));
+            Object[] msgArgs = {charsetName};
+            throw new SQLServerException(form.format(msgArgs), e);
+        }
+        return charset;
+    }
 
     /**
      * Returns true if the collation supports conversion to ascii.

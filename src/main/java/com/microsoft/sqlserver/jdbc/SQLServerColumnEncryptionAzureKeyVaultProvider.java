@@ -6,7 +6,7 @@
 // Copyright(c) Microsoft Corporation
 // All rights reserved.
 // MIT License
-// Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files(the ""Software""), 
+// Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files(the "Software"), 
 //  to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, 
 //  and / or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions :
 // The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
@@ -19,7 +19,8 @@
  
 package com.microsoft.sqlserver.jdbc;
 
-import java.io.UnsupportedEncodingException;
+import static java.nio.charset.StandardCharsets.UTF_16LE;
+
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.ByteBuffer;
@@ -31,6 +32,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 
 import org.apache.http.impl.client.HttpClientBuilder;
+
 import com.microsoft.azure.keyvault.KeyVaultClient;
 import com.microsoft.azure.keyvault.KeyVaultClientImpl;
 import com.microsoft.azure.keyvault.models.KeyBundle;
@@ -86,8 +88,8 @@ public class SQLServerColumnEncryptionAzureKeyVaultProvider extends SQLServerCol
 	 * to authenticate to Azure Key Vault.
 	 * 
 	 * @param authenticationCallback - Callback function used for authenticating to AAD.
-	 * @param executorService
-	 * @throws SQLServerException 
+	 * @param executorService - The ExecutorService used to create the keyVaultClient
+	 * @throws SQLServerException when an error occurs
 	 */
 	public SQLServerColumnEncryptionAzureKeyVaultProvider(SQLServerKeyVaultAuthenticationCallback authenticationCallback, ExecutorService executorService) throws SQLServerException{
 		if(null == authenticationCallback){
@@ -284,15 +286,7 @@ public class SQLServerColumnEncryptionAzureKeyVaultProvider extends SQLServerCol
 		byte[] version = new byte[] { firstVersion[0] };
 
 		// Get the Unicode encoded bytes of cultureinvariant lower case masterKeyPath
-		byte[] masterKeyPathBytes = null;
-		try {
-			masterKeyPathBytes = masterKeyPath.toLowerCase().getBytes("UTF-16LE");
-		} catch (UnsupportedEncodingException e) {
-			MessageFormat form = new MessageFormat(
-					SQLServerException.getErrString("R_unsupportedEncoding"));
-			Object[] msgArgs = { "UTF-16LE" };
-			throw new SQLServerException(this, form.format(msgArgs), null, 0, false);
-		}
+		byte[] masterKeyPathBytes = masterKeyPath.toLowerCase().getBytes(UTF_16LE);
 
 		byte[] keyPathLength = new byte[2];
 		keyPathLength[0] = (byte)(((short)masterKeyPathBytes.length) & 0xff);
@@ -562,7 +556,7 @@ public class SQLServerColumnEncryptionAzureKeyVaultProvider extends SQLServerCol
 	 * 
 	 * @param masterKeyPath - Azure Key Vault Key path
 	 * @return Key size in bytes
-	 * @throws SQLServerException
+	 * @throws SQLServerException when an error occurs
 	 */
 	private int getAKVKeySize(String masterKeyPath) throws SQLServerException
 	{

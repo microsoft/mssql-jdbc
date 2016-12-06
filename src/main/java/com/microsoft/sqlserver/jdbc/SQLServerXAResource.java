@@ -6,7 +6,7 @@
 // Copyright(c) Microsoft Corporation
 // All rights reserved.
 // MIT License
-// Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files(the ""Software""), 
+// Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files(the "Software"), 
 //  to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, 
 //  and / or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions :
 // The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
@@ -18,14 +18,20 @@
  
 
 package com.microsoft.sqlserver.jdbc;
-import java.sql.*;
-
-import javax.transaction.xa.*;
-
-import java.util.Vector;
-import java.util.Properties;
-import java.util.logging.*;
+import java.sql.CallableStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
+import java.sql.Types;
 import java.text.MessageFormat;
+import java.util.Properties;
+import java.util.Vector;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
+import javax.transaction.xa.XAException;
+import javax.transaction.xa.XAResource;
+import javax.transaction.xa.Xid;
 
 /**
 * Transaction id implementation used to recover transactions.
@@ -75,6 +81,11 @@ final class XidImpl implements Xid {
   /*L0*/ public int getFormatId() {
     return formatId;
   }
+  
+   /** 
+    * Used for tracing 
+    * @return traceID string 
+    */ 
 	public String toString() 
 	{
 		 return traceID;
@@ -452,7 +463,7 @@ public final class SQLServerXAResource implements javax.transaction.xa.XAResourc
     				catch (SQLServerException e1) 
     				{
                                     MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_failedToCreateXAConnection"));
-                                    Object[] msgArgs = {new String(e1.getMessage())};
+                                    Object[] msgArgs = {e1.getMessage()};
                                     if (xaLogger.isLoggable(Level.FINER))
                                         xaLogger.finer(toString() + " exception:" + form.format(msgArgs));
                                     SQLServerException.makeFromDriverError(null,null, form.format(msgArgs), null, true);

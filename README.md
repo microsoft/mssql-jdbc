@@ -18,30 +18,45 @@ What's coming next?  We will look into adding a more comprehensive set of tests,
 * [**Mac + SQL Server + Java**](https://www.microsoft.com/en-us/sql-server/developer-get-started/java-mac)
 * [**Windows + SQL Server + Java**](https://www.microsoft.com/en-us/sql-server/developer-get-started/java-windows)
 
-
 ## Build
 ### Prerequisites
 * Java 8
-* [Ant](http://ant.apache.org/manual/install.html) (with [Ivy](https://ant.apache.org/ivy/download.cgi)) or [Maven](http://maven.apache.org/download.cgi)
+* [Ant](http://ant.apache.org/manual/install.html) (with [Ivy](https://ant.apache.org/ivy/download.cgi)), [Maven](http://maven.apache.org/download.cgi) or [Gradle](https://gradle.org/gradle-download/)
 * An instance of SQL Server or Azure SQL Database that you can connect to. 
 
 ### Build the JAR files
-The build automatically triggers a set of verification tests to run.  For these tests to pass, you will first need to modify the serverConfig.cfg file under .\src\test to provide the correct connection properties for your SQL Server or Azure SQL Database instance.
+The build automatically triggers a set of verification tests to run.  For these tests to pass, you will first need to add an environment variable in your system called `mssql_jdbc_test_connection_properties` to provide the [correct connection properties](https://msdn.microsoft.com/en-us/library/ms378428(v=sql.110).aspx) for your SQL Server or Azure SQL Database instance.
 
-To build the jar files, you must use Java 8 with either Ant (with Ivy) or Maven.  You can choose to build a JDBC 4.1 compliant jar file (for use with JRE 7) and/or a JDBC 4.2 compliant jar file (for use with JRE 8).
+To build the jar files, you must use Java 8 with either Ant (with Ivy), Maven or Gradle.  You can choose to build a JDBC 4.1 compliant jar file (for use with JRE 7) and/or a JDBC 4.2 compliant jar file (for use with JRE 8).
 
 * Ant:
-	1. If you have not already done so, update the serverConfig.cfg file under .\src\test with the connection properties for your SQL Server or SQL DB instance.
+	1. If you have not already done so, add the environment variable `mssql_jdbc_test_connection_properties` in your system with the connection properties for your SQL Server or SQL DB instance.
 	2. Run one of the commands below to build a JDBC 4.1 compliant jar, JDBC 4.2 compliant jar, or both in the \build directory. 
 		* Run `ant`. This creates both JDBC 4.1 compliant jar and JDBC 4.2 compliant jar in \build directory
     	* Run `ant build41`. This creates JDBC 4.1 compliant jar in \build directory
     	* Run `ant build42`. This creates JDBC 4.2 compliant jar in \build directory
 
 * Maven:
-	1. If you have not already done so, update the serverConfig.cfg file under .\src\test with the connection properties for your SQL Server or SQL DB instance.
-	2. Run one of the commands below to build a JDBC 4.1 compliant jar or JDBC 4.2 compliant jar in the \build directory. 
+	1. If you have not already done so, add the environment variable `mssql_jdbc_test_connection_properties` in your system with the connection properties for your SQL Server or SQL DB instance.
+	2. Run one of the commands below to build a JDBC 4.1 compliant jar or JDBC 4.2 compliant jar in the \target directory. 
     	* Run `mvn install -Pbuild41`. This creates JDBC 4.1 compliant jar in \target directory
     	* Run `mvn install -Pbuild42`. This creates JDBC 4.2 compliant jar in \target directory
+
+* Gradle:
+	1. If you have not already done so, add the environment variable `mssql_jdbc_test_connection_properties` in your system with the connection properties for your SQL Server or SQL DB instance.
+	2. Run one of the commands below to build a JDBC 4.1 compliant jar or JDBC 4.2 compliant jar in the \build\libs directory. 
+    	* Run `gradle build -Pbuild=build41`. This creates JDBC 4.1 compliant jar in \build\libs directory
+    	* Run `gradle build -Pbuild=build42`. This creates JDBC 4.2 compliant jar in \build\libs directory
+
+### Status of Most Recent Builds
+| AppVeyor (Windows)       | Travis CI (Linux) |
+|--------------------------|--------------------------|
+| [![av-image][]][av-site] | [![tv-image][]][tv-site] |
+
+[av-image]: https://ci.appveyor.com/api/projects/status/o6fjg16678ol64d3?svg=true
+[av-site]: https://ci.appveyor.com/project/Microsoft-JDBC/mssql-jdbc
+[tv-image]: https://travis-ci.org/Microsoft/mssql-jdbc.svg?
+[tv-site]: https://travis-ci.org/Microsoft/mssql-jdbc
 
 ## Resources
 
@@ -52,7 +67,7 @@ This driver is documented on [Microsoft's Documentation web site](https://msdn.m
 For samples, please see the src\sample directory.
 
 ### Download the DLLs
-For some features (e.g. Integrated Authentication and Distributed Transactions), you may need to use the sqljdbc_xa and sqljdbc_auth DLLs. They can be downloaded from the [Microsoft Download Center](https://www.microsoft.com/en-us/download/details.aspx?displaylang=en&id=11774)
+For some features (e.g. Integrated Authentication and Distributed Transactions), you may need to use the `sqljdbc_xa` and `sqljdbc_auth` DLLs. They can be downloaded from the [Microsoft Download Center](https://www.microsoft.com/en-us/download/details.aspx?displaylang=en&id=11774)
 
 ### Download the driver
 Don't want to compile anything?
@@ -69,6 +84,38 @@ We're now on the Maven Central Repository. Add the following to your POM file:
 
 The driver can be downloaded from the [Microsoft Download Center](https://www.microsoft.com/en-us/download/details.aspx?displaylang=en&id=11774)
 
+##Dependencies
+This project has following dependencies: 
+
+Compile Time:
+ - `azure-keyvault` : Azure Key Vault Provider for Always Encrypted feature
+
+Test Time:
+ - `junit:jar`   : For Unit Test cases.
+
+###Dependency Tree
+One can see all dependencies including Transitive Dependency by executing following command.
+``` 
+mvn dependency:tree
+```
+
+###Exclude Dependencies
+If you wish to limit the number of run-time dependencies, and your project does not require the features named above, you can explicitly exclude them by adding exclusion tag.  
+***For Example:*** If you are not using *Always Encrypted Azure Key Vault feature* then you can exclude *azure-keyvault* dependency. Please see following snippet. 
+```
+<dependency>
+	<groupId>com.microsoft.sqlserver</groupId>
+	<artifactId>mssql-jdbc</artifactId>
+	<version>6.1.0.jre8</version>
+	<scope>compile</scope>
+	<exclusions>
+		<exclusion>
+		         <groupId>com.microsoft.azure</groupId>
+		         <artifactId>azure-keyvault</artifactId>
+		</exclusion>
+    </exclusions>
+</dependency>
+```
 
 ## Guidelines for Reporting Issues
 We appreciate you taking the time to test the driver, provide feedback and report any issues.  It would be extremely helpful if you:

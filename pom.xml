@@ -4,7 +4,7 @@
 	
 	<groupId>com.microsoft.sqlserver</groupId>
 	<artifactId>mssql-jdbc</artifactId>
-	<version>6.1.0</version>
+	<version>6.1.1</version>
 	
 	<packaging>jar</packaging>
 	
@@ -22,6 +22,10 @@
 			<url>http://www.opensource.org/licenses/mit-license.php</url>
 		</license>
 	</licenses>
+	
+	<organization>
+		<name>Microsoft Corporation</name>
+	</organization>
 	
 	<developers>
 		<developer>
@@ -44,7 +48,7 @@
 		<dependency>
 			<groupId>com.microsoft.azure</groupId>
 			<artifactId>azure-keyvault</artifactId>
-			<version>0.9.3</version>
+			<version>0.9.7</version>
 		</dependency>
 		
 		<!-- dependency for running tests -->
@@ -64,11 +68,9 @@
 				<plugins>
 					<plugin>
 						<artifactId>maven-compiler-plugin</artifactId>
-						<version>3.1</version>
+						<version>3.6.0</version>
 						<configuration>
 							<excludes>
-								<exclude>**/com/microsoft/sqlserver/jdbc/SQLServerJdbc3.java</exclude>
-								<exclude>**/com/microsoft/sqlserver/jdbc/SQLServerJdbc4.java</exclude>
 								<exclude>**/com/microsoft/sqlserver/jdbc/SQLServerJdbc42.java</exclude>
 							</excludes>
 							<source>1.7</source>
@@ -80,7 +82,12 @@
 						<artifactId>maven-jar-plugin</artifactId>
 						<version>3.0.2</version>
 						<configuration>
-							<finalName>${project.artifactId}-${project.version}.jre7</finalName>   				
+							<finalName>${project.artifactId}-${project.version}.jre7</finalName>
+							<archive>
+								<manifest>
+									<addDefaultImplementationEntries>true</addDefaultImplementationEntries>
+								</manifest>
+							</archive>
 						</configuration>
 					</plugin>   
 				</plugins>
@@ -93,11 +100,9 @@
 				<plugins>
 					<plugin>
 						<artifactId>maven-compiler-plugin</artifactId>
-						<version>3.1</version>
+						<version>3.6.0</version>
 						<configuration>
 							<excludes>
-								<exclude>**/com/microsoft/sqlserver/jdbc/SQLServerJdbc3.java</exclude>
-								<exclude>**/com/microsoft/sqlserver/jdbc/SQLServerJdbc4.java</exclude>
 								<exclude>**/com/microsoft/sqlserver/jdbc/SQLServerJdbc41.java</exclude>
 							</excludes>
 							<source>1.8</source>
@@ -109,7 +114,12 @@
 						<artifactId>maven-jar-plugin</artifactId>
 						<version>3.0.2</version>
 						<configuration>
-							<finalName>${project.artifactId}-${project.version}.jre8</finalName>   				
+							<finalName>${project.artifactId}-${project.version}.jre8</finalName>   	
+							<archive>
+								<manifest>
+									<addDefaultImplementationEntries>true</addDefaultImplementationEntries>
+								</manifest>
+							</archive>
 						</configuration>
 					</plugin>   
 				</plugins>
@@ -134,7 +144,7 @@
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-source-plugin</artifactId>
-				<version>2.2.1</version>
+				<version>3.0.1</version>
 				<executions>
 					<execution>
 						<id>attach-sources</id>

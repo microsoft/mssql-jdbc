@@ -1,0 +1,66 @@
+apply plugin: 'java'
+
+archivesBaseName = 'mssql-jdbc'
+version = '6.1.1'
+
+allprojects {
+    tasks.withType(JavaCompile) {
+        options.encoding = 'UTF-8'
+    }
+        
+    tasks.withType(Test) {
+       systemProperty "file.encoding", "UTF-8"
+    }
+}
+
+def excludedFile = ''
+
+if(build == "build41") {
+	jar.archiveName = "${archivesBaseName}-${version}.jre7.jar"
+	excludedFile = 'com/microsoft/sqlserver/jdbc/SQLServerJdbc42.java'
+	
+	sourceCompatibility = 1.7
+	targetCompatibility = 1.7
+}
+
+if(build == "build42") {
+	jar.archiveName = "${archivesBaseName}-${version}.jre8.jar"
+	excludedFile = 'com/microsoft/sqlserver/jdbc/SQLServerJdbc41.java'
+	
+	sourceCompatibility = 1.8
+	targetCompatibility = 1.8
+}
+
+jar {
+	manifest {
+        attributes 'Title': "Microsoft JDBC Driver ${version} for SQL Server",
+        'Version': version,
+        'Vendor': 'Microsoft Corporation'
+	}
+}
+
+sourceSets {
+    main {
+        java {
+            srcDirs 'src/main/java'
+			exclude excludedFile
+        }
+		
+		resources {
+			srcDirs "$projectDir"
+			include 'META-INF/services/java.sql.Driver'
+		}
+    }
+}
+
+//Get dependencies from Maven central repository
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+	compile 'com.microsoft.azure:azure-keyvault:0.9.7',
+	'junit:junit:4.12'
+}
+
+

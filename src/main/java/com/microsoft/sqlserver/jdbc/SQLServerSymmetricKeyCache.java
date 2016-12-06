@@ -6,7 +6,7 @@
 // Copyright(c) Microsoft Corporation
 // All rights reserved.
 // MIT License
-// Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files(the ""Software""), 
+// Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files(the "Software"), 
 //  to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, 
 //  and / or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions :
 // The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
@@ -19,15 +19,15 @@
 
 package com.microsoft.sqlserver.jdbc;
 
-import java.io.UnsupportedEncodingException;
+import static java.nio.charset.StandardCharsets.UTF_8;
+import static java.util.concurrent.TimeUnit.SECONDS;
+
 import java.text.MessageFormat;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ThreadFactory;
-
-import static java.util.concurrent.TimeUnit.*;
 
 import javax.xml.bind.DatatypeConverter;
 
@@ -123,16 +123,7 @@ final class SQLServerSymmetricKeyCache
 			String keyLookupValue=null;
 			keyLookupValuebuffer.append(":");
 	
-			try
-			{
-				keyLookupValuebuffer.append(DatatypeConverter.printBase64Binary((new String(keyInfo.encryptedKey,"UTF-8")).getBytes()));
-			}
-			catch (UnsupportedEncodingException e)
-			{
-				MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_unsupportedEncoding"));
-				Object[] msgArgs = { "UTF-8" };
-				throw new SQLServerException(this, form.format(msgArgs), null, 0, false);
-			}
+			keyLookupValuebuffer.append(DatatypeConverter.printBase64Binary((new String(keyInfo.encryptedKey,UTF_8)).getBytes()));
 	
 			keyLookupValuebuffer.append(":");
 			keyLookupValuebuffer.append(keyInfo.keyStoreName);

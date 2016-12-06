@@ -6,7 +6,7 @@
 // Copyright(c) Microsoft Corporation
 // All rights reserved.
 // MIT License
-// Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files(the ""Software""), 
+// Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files(the "Software"), 
 //  to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, 
 //  and / or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions :
 // The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
@@ -19,12 +19,18 @@
  
 package com.microsoft.sqlserver.jdbc;
 
-import javax.sql.*;
-import java.sql.*;
-import java.io.*;
-import java.util.*;
-import java.util.logging.*;
-import javax.naming.*;
+import java.io.PrintWriter;
+import java.sql.Connection;
+import java.sql.SQLException;
+import java.sql.SQLFeatureNotSupportedException;
+import java.util.Enumeration;
+import java.util.Properties;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
+import javax.naming.Reference;
+import javax.naming.StringRefAddr;
+import javax.sql.DataSource;
 
 /**
 * This datasource lists properties specific for the SQLServerConnection class.
@@ -47,6 +53,9 @@ public class SQLServerDataSource implements ISQLServerDataSource, DataSource, ja
     static private int baseDataSourceID = 0;	// Unique id generator for each DataSource instance (used for logging).
     final private String traceID;
     
+	/**
+     * Initializes a new instance of the SQLServerDataSource class.
+     */
     public SQLServerDataSource() 
     {
         connectionProps = new Properties();
@@ -166,20 +175,36 @@ public class SQLServerDataSource implements ISQLServerDataSource, DataSource, ja
         setStringProperty(connectionProps, SQLServerDriverStringProperty.AUTHENTICATION_SCHEME.toString(), authenticationScheme);
     }
 	
+	/**
+	 * sets the authentication mode
+	 * @param authentication the authentication mode 
+	 */
 	public void setAuthentication(String authentication)
     {
         setStringProperty(connectionProps, SQLServerDriverStringProperty.AUTHENTICATION.toString(), authentication);
     }
 	
+	/**
+	 * Retrieves the authentication mode 
+	 * @return the authentication value
+	 */
 	public String getAuthentication(){
 		return getStringProperty(connectionProps, SQLServerDriverStringProperty.AUTHENTICATION.toString(), SQLServerDriverStringProperty.AUTHENTICATION.getDefaultValue());
 	}
 	
+	/**
+	 * Sets the access token.
+	 * @param accessToken to be set in the string property.
+	 */
 	public void setAccessToken(String accessToken)
     {
         setStringProperty(connectionProps, SQLServerDriverStringProperty.ACCESS_TOKEN.toString(), accessToken);
     }
 	
+	/**
+	 * Retrieves the access token. 
+	 * @return the access token.
+	 */
 	public String getAccessToken(){
 		 return getStringProperty(connectionProps, SQLServerDriverStringProperty.ACCESS_TOKEN.toString(), null);
 	}
@@ -188,34 +213,66 @@ public class SQLServerDataSource implements ISQLServerDataSource, DataSource, ja
     // count from all the update counts returned by a batch.  The default of false will 
     // return all update counts.  If lastUpdateCount is not set, getLastUpdateCount 
     // returns the default value of false.
-	
+	/**
+	 * Enables/disables Always Encrypted functionality for the data source object. The default is Disabled.
+	 * @param columnEncryptionSetting Enables/disables Always Encrypted functionality for the data source object. The default is Disabled.
+	 */
     public void setColumnEncryptionSetting(String columnEncryptionSetting)
     {
     	setStringProperty(connectionProps, SQLServerDriverStringProperty.COLUMN_ENCRYPTION.toString(), columnEncryptionSetting);
     }
+	
+	/**
+     * Retrieves the Always Encrypted functionality setting for the data source object.
+     * @return the Always Encrypted functionality setting for the data source object.
+     */
     public String getColumnEncryptionSetting()
     {
     	return getStringProperty(connectionProps, SQLServerDriverStringProperty.COLUMN_ENCRYPTION.toString(), SQLServerDriverStringProperty.COLUMN_ENCRYPTION.getDefaultValue());
     }
 	
+	/**
+	 * Sets the name that identifies a key store. Only value supported is the "JavaKeyStorePassword" for identifying the Java Key Store.
+	 * The default is null.
+	 * @param keyStoreAuthentication the name that identifies a key store.
+	 */
     public void setKeyStoreAuthentication(String keyStoreAuthentication)
     {
     	setStringProperty(connectionProps, SQLServerDriverStringProperty.KEY_STORE_AUTHENTICATION.toString(), keyStoreAuthentication);
     }
+	
+	/**
+     * Gets the value of the keyStoreAuthentication setting for the data source object.
+     * @return the value of the keyStoreAuthentication setting for the data source object.
+     */
     public String getKeyStoreAuthentication()
     {
     	return getStringProperty(connectionProps, SQLServerDriverStringProperty.KEY_STORE_AUTHENTICATION.toString(), SQLServerDriverStringProperty.KEY_STORE_AUTHENTICATION.getDefaultValue());
     }
 
+	/**
+     * Sets the password for the Java keystore. Note that, for Java Key Store provider the password for the keystore and the key must be the same.
+     * Note that, keyStoreAuthentication must be set with "JavaKeyStorePassword".
+     * @param keyStoreSecret the password to use for the keystore as well as for the key
+     */
     public void setKeyStoreSecret(String keyStoreSecret)
     {
     	setStringProperty(connectionProps, SQLServerDriverStringProperty.KEY_STORE_SECRET.toString(), keyStoreSecret);
     }
     
+	/**
+     * Sets the location including the file name for the Java keystore. Note that, keyStoreAuthentication must be set with "JavaKeyStorePassword".
+     * @param keyStoreLocation the location including the file name for the Java keystore.
+     */
     public void setKeyStoreLocation(String keyStoreLocation)
     {
     	setStringProperty(connectionProps, SQLServerDriverStringProperty.KEY_STORE_LOCATION.toString(), keyStoreLocation);
     }
+	
+	/**
+     * Retrieves the keyStoreLocation for the Java Key Store.
+     * @return the keyStoreLocation for the Java Key Store.
+     */
     public String getKeyStoreLocation()
     {
     	return getStringProperty(connectionProps, SQLServerDriverStringProperty.KEY_STORE_LOCATION.toString(), SQLServerDriverStringProperty.KEY_STORE_LOCATION.getDefaultValue());
@@ -240,10 +297,29 @@ public class SQLServerDataSource implements ISQLServerDataSource, DataSource, ja
         return getBooleanProperty(connectionProps, SQLServerDriverBooleanProperty.ENCRYPT.toString(), SQLServerDriverBooleanProperty.ENCRYPT.getDefaultValue());
     }
     
+	/**
+     * Beginning in version 6.0 of the Microsoft JDBC Driver for SQL Server, a new connection property transparentNetworkIPResolution 
+     * (TNIR) is added for transparent connection to Always On availability groups or to a server which has multiple IP addresses
+     * associated. When transparentNetworkIPResolution is true, the driver attempts to connect to the first IP address available. 
+     * If the first attempt fails, the driver tries to connect to all IP addresses in parallel until the timeout expires, discarding 
+     * any pending connection attempts when one of them succeeds.
+     * <p>
+     * transparentNetworkIPResolution is ignored if multiSubnetFailover is true
+     * <p>
+     * transparentNetworkIPResolution is ignored if database mirroring is used
+     * <p>
+     * transparentNetworkIPResolution is ignored if there are more than 64 IP addresses
+     * @param tnir if set to true, the driver attempts to connect to the first IP address available. It is true by default. 
+     */
     public void setTransparentNetworkIPResolution(boolean tnir)
     {
     	setBooleanProperty(connectionProps, SQLServerDriverBooleanProperty.TRANSPARENT_NETWORK_IP_RESOLUTION.toString(), tnir);
     }
+	
+	/**
+     * Retrieves the TransparentNetworkIPResolution value. 
+     * @return if enabled, returns true. Otherwise, false.
+     */
     public boolean getTransparentNetworkIPResolution()
     {
     	return getBooleanProperty(connectionProps, SQLServerDriverBooleanProperty.TRANSPARENT_NETWORK_IP_RESOLUTION.toString(), SQLServerDriverBooleanProperty.TRANSPARENT_NETWORK_IP_RESOLUTION.getDefaultValue());
@@ -378,11 +454,20 @@ public class SQLServerDataSource implements ISQLServerDataSource, DataSource, ja
     {
         return getBooleanProperty(connectionProps, SQLServerDriverBooleanProperty.SEND_STRING_PARAMETERS_AS_UNICODE.toString(), SQLServerDriverBooleanProperty.SEND_STRING_PARAMETERS_AS_UNICODE.getDefaultValue());
     }
-    // Translates the serverName from Unicode to ASCII Compatible Encoding (ACE)
+    
+	/**
+     * Translates the serverName from Unicode to ASCII Compatible Encoding (ACE)
+     * @param serverNameAsACE if enabled the servername will be translated to ASCII Compatible Encoding (ACE)
+     */
     public void setServerNameAsACE(boolean serverNameAsACE)
     {
     	setBooleanProperty(connectionProps, SQLServerDriverBooleanProperty.SERVER_NAME_AS_ACE.toString(), serverNameAsACE);	
     }
+	
+	/**
+     * Retrieves if the serverName should be translated from Unicode to ASCII Compatible Encoding (ACE) 
+     * @return if enabled, will return true. Otherwise, false.
+     */
     public boolean getServerNameAsACE()
     {
     	return getBooleanProperty(connectionProps, SQLServerDriverBooleanProperty.SERVER_NAME_AS_ACE.toString(), SQLServerDriverBooleanProperty.SERVER_NAME_AS_ACE.getDefaultValue());
@@ -487,8 +572,8 @@ public class SQLServerDataSource implements ISQLServerDataSource, DataSource, ja
 
     // Note if setURL is not called, getURL returns the default value of "jdbc:sqlserver://".
     public void setURL(String url)
-    {
-         loggerExternal.entering(getClassNameLogging(), "setURL", url);
+    {
+        loggerExternal.entering(getClassNameLogging(), "setURL", url);
         // URL is not stored in a property set, it is maintained separately.
         dataSourceURL = url;
         loggerExternal.exiting(getClassNameLogging(),  "setURL");
@@ -821,7 +906,8 @@ public class SQLServerDataSource implements ISQLServerDataSource, DataSource, ja
     public <T> T unwrap(Class<T> iface) throws SQLException
     {
         loggerExternal.entering(getClassNameLogging(), "unwrap", iface);
-        DriverJDBCVersion.checkSupportsJDBC4();
+        DriverJDBCVersion.checkSupportsJDBC4();
+
         T t;
         try
         {

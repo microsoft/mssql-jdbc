@@ -6,7 +6,7 @@
 // Copyright(c) Microsoft Corporation
 // All rights reserved.
 // MIT License
-// Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files(the ""Software""), 
+// Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files(the "Software"), 
 //  to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, 
 //  and / or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions :
 // The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
@@ -24,11 +24,9 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.Reader;
 import java.io.StringReader;
-import java.io.UnsupportedEncodingException;
 import java.math.BigDecimal;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
-import java.nio.charset.Charset;
 import java.sql.Connection;
 import java.sql.Date;
 import java.sql.ResultSet;
@@ -53,6 +51,9 @@ import java.util.TimeZone;
 import java.util.UUID;
 import java.util.Vector;
 import java.util.logging.Level;
+
+import static java.nio.charset.StandardCharsets.UTF_16LE;
+import static java.nio.charset.StandardCharsets.UTF_8;
 
 import javax.sql.RowSet;
 
@@ -599,7 +600,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable
         writeResultSet(sourceData, true);
     }
     
-    /*
+    /**
      * Copies all rows in the supplied ResultSet to a destination table specified by the destinationTableName property of the SQLServerBulkCopy object.
      * 
      * @param sourceData ResultSet to read data rows from.
@@ -2550,31 +2551,22 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable
 	    				}
 	    				else
 	    				{	    					
-                                try
+                                tdsWriter.writeShort((short) (colValueStr.length()));
+                                // converting string into destination collation using Charset
+
+                                SQLCollation destCollation = destColumnMetadata
+                                    .get(destColOrdinal).collation;
+                                if (null != destCollation)
                                 {
-                                    tdsWriter.writeShort((short) (colValueStr.length()));
-                                    // converting string into destination collation using Charset
+                                    tdsWriter.writeBytes(colValueStr.getBytes(
+                                        destColumnMetadata.get(destColOrdinal).collation
+                                            .getCharset()));
 
-                                    SQLCollation destCollation = destColumnMetadata
-                                        .get(destColOrdinal).collation;
-                                    if (null != destCollation)
-                                    {
-                                        tdsWriter.writeBytes(colValueStr.getBytes(
-                                            destColumnMetadata.get(destColOrdinal).collation
-                                                .getCharset()));
-
-                                    }
-                                    else
-                                    {
-                                        tdsWriter.writeBytes(colValueStr.getBytes());
-                                    }
                                 }
-                            catch (UnsupportedEncodingException e)
-                            {
-                                throw new SQLServerException(
-                                    SQLServerException.getErrString("R_encodingErrorWritingTDS"),
-                                    e);
-                            }	    					
+                                else
+                                {
+                                    tdsWriter.writeBytes(colValueStr.getBytes());
+                                }
 	    				}
 	    			}
 	    		}
@@ -3524,7 +3516,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable
 	 	            Object[] msgArgs = { srcJdbcType, destJdbcType };
 	 	            throw new SQLServerException(this, form.format(msgArgs), null, 0, false);
 	        	}
-	    		return ((String)value).getBytes(Charset.forName("UTF-8"));
+	    		return ((String)value).getBytes(UTF_8);
 	    	
 	    	case NCHAR:
 	    	case NVARCHAR:
@@ -3536,7 +3528,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable
 	 	            Object[] msgArgs = { srcJdbcType, destJdbcType };
 	 	            throw new SQLServerException(this, form.format(msgArgs), null, 0, false);
 	        	}
-	    		return ((String)value).getBytes(Charset.forName("UTF-16LE"));
+	    		return ((String)value).getBytes(UTF_16LE);
 	    	
 	    	case REAL:
 	        case FLOAT:

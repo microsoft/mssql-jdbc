@@ -6,7 +6,7 @@
 // Copyright(c) Microsoft Corporation
 // All rights reserved.
 // MIT License
-// Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files(the ""Software""), 
+// Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files(the "Software"), 
 //  to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, 
 //  and / or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions :
 // The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
@@ -19,10 +19,16 @@
  
 package com.microsoft.sqlserver.jdbc;
 
-import java.sql.*;
-import java.util.*;
-import java.text.*; 
-import java.util.logging.*;
+import java.sql.CallableStatement;
+import java.sql.Connection;
+import java.sql.DriverPropertyInfo;
+import java.sql.ResultSet;
+import java.sql.RowIdLifetime;
+import java.sql.SQLException;
+import java.text.MessageFormat;
+import java.util.EnumMap;
+import java.util.Properties;
+import java.util.logging.Level;
 
 /**
 * SQLServerDatabaseMetaData provides JDBC database meta data.
@@ -104,6 +110,11 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
         baseID++;
         return baseID;
     }
+	
+	/**
+	 * This is a helper function to provide an ID string suitable for tracing.
+	 * @return traceID string
+	 */
     final public String toString()
     {
         return traceID;
@@ -133,7 +144,16 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
     public <T> T unwrap(Class<T> iface) throws SQLException
     {
         DriverJDBCVersion.checkSupportsJDBC4();
-        throw new SQLFeatureNotSupportedException(SQLServerException.getErrString("R_notSupported"));
+        T t;
+        try
+        {
+            t = iface.cast(this);
+        }
+        catch (ClassCastException e)
+        {
+            throw new SQLServerException(e.getMessage(), e);
+        }
+        return t;
     }
 
     private void checkClosed() throws SQLServerException 

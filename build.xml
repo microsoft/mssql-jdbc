@@ -4,7 +4,7 @@
   </description>
   <!-- set global properties for this build -->
   <property name="artifactId" value="mssql-jdbc"/>
-  <property name="version" value="6.1.0"/>
+  <property name="version" value="6.1.1"/>
   
   <property name="src" location="src/main/java"/>
   <property name="build" location="build"/>
@@ -13,7 +13,7 @@
 
 	<!-- download dependencies -->	
 	<ivy:resolve>
-		<dependency org="com.microsoft.azure" name="azure-keyvault" rev="0.9.3"/>
+		<dependency org="com.microsoft.azure" name="azure-keyvault" rev="0.9.7"/>
 		<dependency org="junit" name="junit" rev="4.12"/>
 	</ivy:resolve>
 	
@@ -55,7 +55,7 @@
 		<param name="CLASSES_DST_DIR" value="${build}/classes/jdbc41"/>
 		<param name="JAVA_VERSION" value="1.7"/>
 		<param name="DEBUG_LEVEL" value="source,lines"/>
-		<param name="EXCLUDE_STUBS" value="com/microsoft/sqlserver/jdbc/SQLServerJdbc3.java, com/microsoft/sqlserver/jdbc/SQLServerJdbc4.java, com/microsoft/sqlserver/jdbc/SQLServerJdbc42.java"/>
+		<param name="EXCLUDE_STUBS" value="com/microsoft/sqlserver/jdbc/SQLServerJdbc42.java"/>
 	</antcall>
     <jar destfile="${build}/${artifactId}-${version}.jre7.jar">
       <manifest>
@@ -74,7 +74,7 @@
 		<param name="CLASSES_DST_DIR" value="${build}/classes/jdbc42"/>
 		<param name="JAVA_VERSION" value="1.8"/>
 		<param name="DEBUG_LEVEL" value="source,lines"/>
-		<param name="EXCLUDE_STUBS" value="com/microsoft/sqlserver/jdbc/SQLServerJdbc3.java, com/microsoft/sqlserver/jdbc/SQLServerJdbc4.java, com/microsoft/sqlserver/jdbc/SQLServerJdbc41.java"/>
+		<param name="EXCLUDE_STUBS" value="com/microsoft/sqlserver/jdbc/SQLServerJdbc41.java"/>
 	</antcall>
     <jar destfile="${build}/${artifactId}-${version}.jre8.jar">
       <manifest>

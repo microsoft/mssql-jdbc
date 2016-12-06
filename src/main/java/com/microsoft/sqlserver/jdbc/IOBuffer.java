@@ -6,7 +6,7 @@
 // Copyright(c) Microsoft Corporation
 // All rights reserved.
 // MIT License
-// Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files(the ""Software""), 
+// Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files(the "Software"), 
 //  to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, 
 //  and / or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions :
 // The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
@@ -18,22 +18,66 @@
  
  
 package com.microsoft.sqlserver.jdbc;
-import java.io.*;
-import java.nio.*;
-import java.nio.channels.*;
-import java.net.*;
-import java.math.*;
-import java.util.concurrent.*;
-import java.util.*;
-import java.util.logging.*;
-import java.text.MessageFormat;
-import java.time.*;
-import java.util.Map.Entry;
-import javax.net.ssl.*;
-import javax.xml.bind.DatatypeConverter;
-import java.security.*;
-import java.security.cert.*;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.io.Reader;
+import java.io.UnsupportedEncodingException;
+import java.math.BigDecimal;
+import java.math.BigInteger;
+import java.math.RoundingMode;
+import java.net.Inet4Address;
+import java.net.Inet6Address;
+import java.net.InetAddress;
+import java.net.InetSocketAddress;
+import java.net.Socket;
+import java.net.SocketAddress;
+import java.net.SocketException;
+import java.net.SocketTimeoutException;
+import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
+import java.nio.channels.SelectionKey;
+import java.nio.channels.Selector;
+import java.nio.channels.SocketChannel;
+import java.nio.charset.Charset;
+import java.security.KeyStore;
+import java.security.Provider;
+import java.security.Security;
+import java.security.cert.CertificateException;
+import java.security.cert.X509Certificate;
 import java.sql.Timestamp;
+import java.text.MessageFormat;
+import java.time.OffsetDateTime;
+import java.time.OffsetTime;
+import java.util.Arrays;
+import java.util.Calendar;
+import java.util.Collection;
+import java.util.GregorianCalendar;
+import java.util.Iterator;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Set;
+import java.util.SimpleTimeZone;
+import java.util.TimeZone;
+import java.util.concurrent.SynchronousQueue;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLSocket;
+import javax.net.ssl.TrustManager;
+import javax.net.ssl.TrustManagerFactory;
+import javax.net.ssl.X509TrustManager;
+import javax.xml.bind.DatatypeConverter;
 
 final class TDS
 {
@@ -1760,7 +1804,7 @@ final class TDSChannel
 
 			// The error message may have a connection id appended to it. Extract the message only for comparison.
 			// This client connection id is appended in method checkAndAppendClientConnId().
-			if (-1 != errMsg.indexOf(SQLServerException.LOG_CLIENT_CONNECTION_ID_PREFIX))
+			if (errMsg.contains(SQLServerException.LOG_CLIENT_CONNECTION_ID_PREFIX))
 			{
 				errMsg = errMsg.substring(0, errMsg.indexOf(SQLServerException.LOG_CLIENT_CONNECTION_ID_PREFIX));
 			}
@@ -2864,13 +2908,20 @@ final class SocketFinder
 
 	}
 
-	//Updates the selectedException if
-	//a) selectedException is null
-	//b) ex is a non-socketTimeoutException and selectedException is a socketTimeoutException 
-	//If there are multiple exceptions, that are not related to socketTimeout
-	//the first non-socketTimeout exception is picked.
-	//If all exceptions are related to socketTimeout, the first exception is picked.
-	//Note: This method is not thread safe. The caller should ensure thread safety.
+	/**
+	 * Updates the selectedException if
+	 * <p>
+	 * a) selectedException is null
+	 * <p>
+	 * b) ex is a non-socketTimeoutException and selectedException is a socketTimeoutException 
+	 * <p>
+	 * If there are multiple exceptions, that are not related to socketTimeout
+	 * the first non-socketTimeout exception is picked.
+	 * If all exceptions are related to socketTimeout, the first exception is picked.
+	 * Note: This method is not thread safe. The caller should ensure thread safety.
+	 * @param ex the IOException
+	 * @param traceId the traceId of the thread
+	 */
 	public void updateSelectedException(IOException ex, String traceId)
 	{
 		boolean updatedException = false;
@@ -2897,7 +2948,8 @@ final class SocketFinder
 	}
 
 	/**
-	 * Used for tracing
+	 * Used fof tracing
+	 * @return traceID string
 	 */
 	public String toString()
 	{
@@ -2993,6 +3045,7 @@ final class SocketConnector implements Runnable
 
 	/**
 	 * Used for tracing
+	 * @return traceID string
 	 */
 	public String toString()
 	{
@@ -3946,7 +3999,7 @@ final class TDSWriter
 			Reader reader,
 			long advertisedLength,
 			boolean isDestBinary,
-			String charSet) throws SQLServerException
+			Charset charSet) throws SQLServerException
 	{
 		assert DataTypes.UNKNOWN_STREAM_LENGTH == advertisedLength || advertisedLength >= 0;
 
@@ -3997,25 +4050,16 @@ final class TDSWriter
 
 				for (int charsCopied = 0; charsCopied < charsToWrite; ++charsCopied)
 				{
-					try
+					if(null == charSet)
 					{
-						if(null == charSet)
-						{
-							streamByteBuffer[charsCopied] = (byte)(streamCharBuffer[charsCopied] & 0xFF);
-						}
-						else
-						{
-							// encoding as per collation
-							streamByteBuffer[charsCopied] = new String(streamCharBuffer[charsCopied] +
-									"")
-									.getBytes(charSet)[0];
-						}
+						streamByteBuffer[charsCopied] = (byte)(streamCharBuffer[charsCopied] & 0xFF);
 					}
-					catch (UnsupportedEncodingException e)
+					else
 					{
-						throw new SQLServerException(
-								SQLServerException.getErrString("R_encodingErrorWritingTDS"),
-								e);
+						// encoding as per collation
+						streamByteBuffer[charsCopied] = new String(streamCharBuffer[charsCopied] +
+								"")
+								.getBytes(charSet)[0];
 					}
 				}
 				writeBytes(streamByteBuffer, 0, charsToWrite);
@@ -7257,7 +7301,7 @@ final class TDSReader
 
 			try
 			{
-				return DDC.convertStringToObject(sb.toString(), Encoding.UNICODE.charsetName(), jdbcType, streamType);
+				return DDC.convertStringToObject(sb.toString(), Encoding.UNICODE.charset(), jdbcType, streamType);
 			}
 			catch (UnsupportedEncodingException e)
 			{
