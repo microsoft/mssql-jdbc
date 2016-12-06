@@ -14,7 +14,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/)
 - Implement missing MetaData #unwrap methods [#12](https://github.com/Microsoft/mssql-jdbc/pull/12)
 - Added Gradle build script [#54](https://github.com/Microsoft/mssql-jdbc/pull/54)
 - Added a queryTimeout connection parameter [#45](https://github.com/Microsoft/mssql-jdbc/pull/45)
-- Added Store Procedure support for TVP [#47](https://github.com/Microsoft/mssql-jdbc/pull/47)
+- Added Stored Procedure support for TVP [#47](https://github.com/Microsoft/mssql-jdbc/pull/47)
 
 ### Changed
 - Use StandardCharsets [#15](https://github.com/Microsoft/mssql-jdbc/pull/15)
