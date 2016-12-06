@@ -1024,6 +1024,8 @@ public final class SQLServerDriver implements java.sql.Driver
         }
         static final private java.util.logging.Logger loggerExternal =
             java.util.logging.Logger.getLogger("com.microsoft.sqlserver.jdbc.Driver"); 
+        static final private java.util.logging.Logger parentLogger =
+                java.util.logging.Logger.getLogger("com.microsoft.sqlserver.jdbc"); 
         final private String loggingClassName;
         String getClassNameLogging()
         {
@@ -1278,8 +1280,7 @@ public final class SQLServerDriver implements java.sql.Driver
     public Logger getParentLogger() throws SQLFeatureNotSupportedException{
         DriverJDBCVersion.checkSupportsJDBC41();
 
-    	// The driver currently does not implement JDDBC 4.1 APIs
-        throw new SQLFeatureNotSupportedException(SQLServerException.getErrString("R_notSupported"));
+        return parentLogger;
      }   
     
    /*L0*/ public boolean jdbcCompliant() {

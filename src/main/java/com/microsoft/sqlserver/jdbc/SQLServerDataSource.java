@@ -34,7 +34,9 @@ public class SQLServerDataSource implements ISQLServerDataSource, DataSource, ja
     // dsLogger is logger used for all SQLServerDataSource instances. 
     static final java.util.logging.Logger dsLogger = java.util.logging.Logger.getLogger("com.microsoft.sqlserver.jdbc.internals.SQLServerDataSource");
     static final java.util.logging.Logger loggerExternal =
-                            java.util.logging.Logger.getLogger("com.microsoft.sqlserver.jdbc.DataSource");
+                            java.util.logging.Logger.getLogger("com.microsoft.sqlserver.jdbc.DataSource"); 
+    static final private java.util.logging.Logger parentLogger =
+            java.util.logging.Logger.getLogger("com.microsoft.sqlserver.jdbc");
     final private String loggingClassName;
     private boolean trustStorePasswordStripped = false; 
     private static final long serialVersionUID = 654861379544314296L;
@@ -117,8 +119,7 @@ public class SQLServerDataSource implements ISQLServerDataSource, DataSource, ja
     {
         DriverJDBCVersion.checkSupportsJDBC41();
 
-    	// The driver currently does not implement JDDBC 4.1 APIs
-    	throw new SQLFeatureNotSupportedException(SQLServerException.getErrString("R_notSupported"));    	    	
+        return parentLogger;
     }
     
     // Core Connection property setters/getters.
