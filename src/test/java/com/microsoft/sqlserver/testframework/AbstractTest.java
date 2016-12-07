@@ -53,18 +53,18 @@ public abstract class AbstractTest {
 	 */
 	@BeforeAll
 	public static void setup() throws Exception {
-		//TODO: Here we want to read config.property file or depend upon app.jvmarg
-		applicationClientID = System.getProperty("applicationClientID");
-		applicationKey = System.getProperty("applicationKey");
-		keyIDs = System.getProperty("keyID", "").split(";");
+		
+		applicationClientID = getConfiguredProperty("applicationClientID");
+		applicationKey = getConfiguredProperty("applicationKey");
+		keyIDs = getConfiguredProperty("keyID","").split(";");
 
-		connectionString = System.getProperty("mssql_jdbc_test_connection_properties");
+		connectionString = getConfiguredProperty("mssql_jdbc_test_connection_properties");
 
-		jksPaths = System.getProperty("jksPaths", "").split(";");
-		javaKeyAliases = System.getProperty("javaKeyAliases", "").split(";");
-		windowsKeyPath = System.getProperty("windowsKeyPath");
+		jksPaths = getConfiguredProperty("jksPaths", "").split(";");
+		javaKeyAliases = getConfiguredProperty("javaKeyAliases", "").split(";");
+		windowsKeyPath = getConfiguredProperty("windowsKeyPath");
 
-		//		info.setProperty("ColumnEncryptionSetting", "Enabled"); // we should not use this instead we should come up with some methodology
+		//		info.setProperty("ColumnEncryptionSetting", "Enabled"); // May be we can use parameterized way to change this value
 		if (!jksPaths[0].isEmpty()) {
 			info.setProperty("keyStoreAuthentication", "JavaKeyStorePassword");
 			info.setProperty("keyStoreLocation", jksPaths[0]);
@@ -96,5 +96,37 @@ public abstract class AbstractTest {
 			connection = null;
 		}
 	}
+	
+	/**
+	 * Read variable from property files if found null try to read from env.
+	 *  
+	 * @param key
+	 * @return Value
+	 */
+	public static String getConfiguredProperty(String key) {
+		String value = System.getProperty(key);
+		
+		if(value == null) {
+			value = System.getenv(key);
+		}
+		
+		return value;
+	}
 
+	
+	/**
+	 * Convenient  method for {@link #getConfiguredProperty(String)}
+	 *  
+	 * @param key
+	 * @return Value
+	 */
+	public static String getConfiguredProperty(String key, String defaultValue) {
+		String value = getConfiguredProperty(key);
+		
+		if(value == null) {
+			value = defaultValue;
+		}
+		
+		return value;
+	}
 }
