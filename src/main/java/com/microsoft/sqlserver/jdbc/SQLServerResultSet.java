@@ -327,13 +327,25 @@ public class SQLServerResultSet implements ISQLServerResultSet
                 return false;
             }
 
-            boolean onDone(TDSReader tdsReader) throws SQLServerException
-            {
-                // When initializing client-cursored ResultSets, a DONE token
-                // following the column metadata indicates an empty result set.
-                rowCount = 0;
-                return false;
-            }
+			boolean onDone(TDSReader tdsReader) throws SQLServerException {
+				// When initializing client-cursored ResultSets, a DONE token
+				// following the column metadata indicates an empty result set.
+				rowCount = 0;
+
+				// Continue to read the error message if DONE packet has error flag
+				int packetType = tdsReader.peekTokenType();
+				if (TDS.TDS_DONE == packetType) {
+					short status = tdsReader.peekStatusFlag();
+					if ((status & 0x0002) != 0) {
+						// Consume the DONE packet if there is error
+						StreamDone doneToken = new StreamDone();
+						doneToken.setFromTDS(tdsReader);
+						return true;
+					}
+				}
+
+				return false;
+			}
         }
 
         this.stmt = stmtIn;
