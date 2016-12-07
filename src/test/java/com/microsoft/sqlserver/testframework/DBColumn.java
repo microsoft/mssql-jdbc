@@ -1,4 +1,4 @@
-/**
+/*
  * Microsoft JDBC Driver for SQL Server
  * 
  * Copyright(c) 2016 Microsoft Corporation
@@ -10,9 +10,8 @@
 package com.microsoft.sqlserver.testframework;
 
 /**
+ * This class holds data for Columns.
  * Think about encrypted columns. <B>createCMK code should not add here.</B> 
- * @author Microsoft
- *
  */
 public class DBColumn {
 	

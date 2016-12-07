@@ -1,4 +1,4 @@
-/**
+/*
  * Microsoft JDBC Driver for SQL Server
  * 
  * Copyright(c) 2016 Microsoft Corporation
@@ -14,13 +14,12 @@ import java.util.List;
 import java.util.StringJoiner;
 
 /**
- * @author Microsoft
+ * This class is responsible for creating SQL Queries for different operations. 
  */
 public class MSSQLGenerator extends AbstractSQLGenerator {
 
 	
 	public String wrapBySQ(String name) {
-		// TODO Auto-generated method stub
 		StringBuilder sb = new StringBuilder();
 		sb.append("[");
 		sb.append(name);
@@ -43,7 +42,6 @@ public class MSSQLGenerator extends AbstractSQLGenerator {
 	 */
 	@Override
 	public String isColumnExists(String tableName, String columnName) {
-		// TODO Auto-generated method stub
 		throw new RuntimeException("Not Implememnted");
 	}
 

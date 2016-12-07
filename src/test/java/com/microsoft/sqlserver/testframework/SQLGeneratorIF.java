@@ -1,4 +1,4 @@
-/**
+/*
  * Microsoft JDBC Driver for SQL Server
  * 
  * Copyright(c) 2016 Microsoft Corporation
@@ -23,13 +23,11 @@ import java.util.List;
  * <LI> https://msdn.microsoft.com/en-us/library/ff630902(v=sql.110).aspx Wrappers and Interfaces
  * <LI> For {@link #createTable(DBTable)} Instead of returning String should we execute and return result? 
  * 			or may be change other two method signature {@link #isColumnExists(String, String)} and {@link #isTableExist(String)}  
- * @author Microsoft
- *
  */
 public interface SQLGeneratorIF {
 	
 	/**
-	 * 
+	 * Checks if table exists or not. 
 	 * @param tableName table name
 	 * @return
 	 */

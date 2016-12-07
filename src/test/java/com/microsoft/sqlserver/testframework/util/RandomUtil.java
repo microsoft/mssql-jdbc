@@ -1,4 +1,4 @@
-/**
+/*
  * Microsoft JDBC Driver for SQL Server
  * 
  * Copyright(c) 2016 Microsoft Corporation
@@ -13,8 +13,7 @@ import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
 
 /**
- * @author Microsoft
- *
+ * Utility Class
  */
 public class RandomUtil {
 

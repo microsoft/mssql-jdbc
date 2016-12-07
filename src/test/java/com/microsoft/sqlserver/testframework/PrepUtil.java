@@ -1,4 +1,4 @@
-/**
+/*
  * Microsoft JDBC Driver for SQL Server
  * 
  * Copyright(c) 2016 Microsoft Corporation
@@ -18,8 +18,6 @@ import com.microsoft.sqlserver.jdbc.SQLServerConnection;
 /**
  * Utility Class for Tests.
  * This will contains methods like Create Table, Drop Table, Initialize connection, create statement etc. logger settings etc.
- * @author Microsoft
- *
  */
 public class PrepUtil {
 	
@@ -28,10 +26,13 @@ public class PrepUtil {
 	}
 
 	/**
+	 * It will create {@link SQLServerConnection}
 	 * TODO : Think of AE functionality on off etc.
 	 * @param connectionString
+	 * @param info
+	 * @return {@link SQLServerConnection}
 	 * @throws SQLException
-	 * @throws ClassNotFoundException 
+	 * @throws ClassNotFoundException
 	 */
 	public static SQLServerConnection getConnection(String connectionString, Properties info) throws SQLException, ClassNotFoundException{
 		Class.forName("com.microsoft.sqlserver.jdbc.SQLServerDriver");
@@ -39,9 +40,9 @@ public class PrepUtil {
 	}
 	
 	/**
-	 * 
+	 * It will create {@link SQLServerConnection}
 	 * @param connectionString
-	 * @return
+	 * @return {@link SQLServerConnection}
 	 * @throws SQLException
 	 * @throws ClassNotFoundException 
 	 */

@@ -1,4 +1,4 @@
-/**
+/*
  * Microsoft JDBC Driver for SQL Server
  * 
  * Copyright(c) 2016 Microsoft Corporation
@@ -25,9 +25,6 @@ import com.microsoft.sqlserver.jdbc.SQLServerConnection;
  * <li>Configured Property file instead of passing from args.
  * <li>Think of different property files for different settings. / flag etc.
  * <Li>Think about what kind of logging we are going use it. <B>util.logging<B> will be preference.
- * 
- * @author Microsoft
- *
  */
 public abstract class AbstractTest {
 
@@ -50,6 +47,10 @@ public abstract class AbstractTest {
 
 	protected static Properties info = new Properties();
 
+	/**
+	 * This will take care of all initialization before running the Test Suite.
+	 * @throws Exception
+	 */
 	@BeforeAll
 	public static void setup() throws Exception {
 		//TODO: Here we want to read config.property file or depend upon app.jvmarg
@@ -79,6 +80,10 @@ public abstract class AbstractTest {
 		}
 	}
 
+	/**
+	 * This will take care of all clean ups after running the Test Suite.
+	 * @throws Exception
+	 */
 	@AfterAll
 	public static void teardown() throws Exception {
 		try {

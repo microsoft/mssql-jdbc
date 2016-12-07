@@ -1,4 +1,4 @@
-/**
+/*
  * Microsoft JDBC Driver for SQL Server
  * 
  * Copyright(c) 2016 Microsoft Corporation
@@ -14,8 +14,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * @author Microsoft
- *
+ * Common methods needed for any implementation for {@link SQLGeneratorIF}
  */
 public abstract class AbstractSQLGenerator implements SQLGeneratorIF {
 
@@ -134,6 +133,11 @@ public abstract class AbstractSQLGenerator implements SQLGeneratorIF {
 		return dataTypesWithPrecision.containsKey(type);
 	}
 
+	/**
+	 * It will wrap provided string with wrap identifier. 
+	 * @param name
+	 * @return
+	 */
 	public String wrapName(String name) {
 		StringBuffer wrap = new StringBuffer();
 

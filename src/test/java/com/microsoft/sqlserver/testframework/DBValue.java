@@ -1,4 +1,4 @@
-/**
+/*
  * Microsoft JDBC Driver for SQL Server
  * 
  * Copyright(c) 2016 Microsoft Corporation
@@ -10,8 +10,7 @@
 package com.microsoft.sqlserver.testframework;
 
 /**
- * @author Microsoft
- *
+ * This class holds data for Table.
  */
 public class DBValue {
 	private String columnName;

@@ -1,4 +1,4 @@
-/**
+/*
  * Microsoft JDBC Driver for SQL Server
  * 
  * Copyright(c) 2016 Microsoft Corporation
@@ -24,12 +24,15 @@ import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
 
 /**
- * @author Microsoft
- *
+ * Tests {@link DBEngine} class.
  */
 @RunWith(JUnitPlatform.class)
 public class TestDBEngine extends AbstractTest {
 
+	/**
+	 * Test case for create table functionality {@link DBEngine#createTable(DBTable, com.microsoft.sqlserver.jdbc.SQLServerConnection)}
+	 * @throws Exception 
+	 */
 	@Test
 	public void testTableCreation() throws Exception {
 		DBEngine dbEngine = new DBEngine();
@@ -51,6 +54,10 @@ public class TestDBEngine extends AbstractTest {
 		assertFalse(dbEngine.isTableExist("testNik1", connection), "Table Should Not Exist");
 	}
 
+	/**
+	 * Test case for {@link DBEngine#dropTable(String, com.microsoft.sqlserver.jdbc.SQLServerConnection)}
+	 * @throws Exception
+	 */
 	@Test
 	public void testDropTable() throws Exception {
 		DBEngine dbEngine = new DBEngine();
@@ -61,6 +68,10 @@ public class TestDBEngine extends AbstractTest {
 		dbEngine.dropTable("testNik3", connection);
 	}
 
+	/**
+	 * Test case for {@link DBEngine#insertdata(String, DBValue[], com.microsoft.sqlserver.jdbc.SQLServerConnection)}
+	 * @throws Exception
+	 */
 	@Test
 	public void testInsertData() throws Exception {
 		DBEngine dbEngine = new DBEngine();
@@ -82,6 +93,11 @@ public class TestDBEngine extends AbstractTest {
 		dbEngine.insertdata("Test1", values, connection);
 	}
 
+	/**
+	 * Test case for {@link DBEngine#insertdata(String, DBValue[], com.microsoft.sqlserver.jdbc.SQLServerConnection)}
+	 * TODO: think of parameterized testing which is part of JUnit 5.
+	 * @throws Exception
+	 */
 	@Test
 	public void testInsertData1() throws Exception {
 		DBEngine dbEngine = new DBEngine();
@@ -109,6 +125,10 @@ public class TestDBEngine extends AbstractTest {
 		dbEngine.insertdata("Test2", values, connection);
 	}
 	
+	/**
+	 * Test case for {@link DBEngine#insertdata(String, List, com.microsoft.sqlserver.jdbc.SQLServerConnection)}
+	 * @throws Exception
+	 */
 	@Test
 	public void testInsertDataWithList() throws Exception {
 		DBEngine dbEngine = new DBEngine();

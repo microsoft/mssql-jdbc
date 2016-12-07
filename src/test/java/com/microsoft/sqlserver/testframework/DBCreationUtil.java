@@ -1,4 +1,4 @@
-/**
+/*
  * Microsoft JDBC Driver for SQL Server
  * 
  * Copyright(c) 2016 Microsoft Corporation
@@ -11,9 +11,6 @@ package com.microsoft.sqlserver.testframework;
 
 /**
  * This Utility is mainly created for tables created for Test purpose.
- * 
- * @author Microsoft
- *
  */
 public class DBCreationUtil {
 	
