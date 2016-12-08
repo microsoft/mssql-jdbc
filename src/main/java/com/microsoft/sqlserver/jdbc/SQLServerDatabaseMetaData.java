@@ -261,7 +261,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
     * @param query to execute
     * @return Resultset from the execution
     */
-    private final SQLServerResultSet getResultSetFromInternalQueries(String catalog, String query) throws SQLServerException
+    private SQLServerResultSet getResultSetFromInternalQueries(String catalog, String query) throws SQLServerException
     {
         checkClosed();
         String orgCat = null;
@@ -313,7 +313,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
     * @param arguments for the stored procedure
     * @return Resultset from the execution
     */
-    private final SQLServerResultSet getResultSetFromStoredProc(String catalog, CallableHandles procedure, String [] arguments) throws SQLServerException
+    private SQLServerResultSet getResultSetFromStoredProc(String catalog, CallableHandles procedure, String [] arguments) throws SQLServerException
     {
         checkClosed();
         assert null != arguments;
@@ -341,8 +341,8 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
         return rs;
     }
 
-    private final SQLServerResultSet getResultSetWithProvidedColumnNames(String catalog,
-        CallableHandles procedure, String[] arguments,   String[] columnNames) throws SQLServerException
+    private SQLServerResultSet getResultSetWithProvidedColumnNames(String catalog,
+                                                                   CallableHandles procedure, String[] arguments, String[] columnNames) throws SQLServerException
     {
         // Execute the query
         SQLServerResultSet rs = getResultSetFromStoredProc(catalog, procedure, arguments);
@@ -2482,7 +2482,7 @@ abstract class IntColumnFilter extends ColumnFilter
 // JDBC spec expects. 
 class IntColumnIdentityFilter extends ColumnFilter
 {
-    private static final String zeroOneToYesNo(int i){return 0==i?"NO":"YES";}
+    private static String zeroOneToYesNo(int i){return 0==i?"NO":"YES";}
 
     final Object apply(Object value, JDBCType asJDBCType) throws SQLServerException
     {

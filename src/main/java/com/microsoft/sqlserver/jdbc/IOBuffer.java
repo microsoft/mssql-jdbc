@@ -741,7 +741,7 @@ final class TDSChannel
 		 * Note that simply using TDSReader.ensurePayload isn't sufficient as it does not
 		 * automatically start the new response message.
 		 */
-		private final void ensureSSLPayload() throws IOException
+		private void ensureSSLPayload() throws IOException
 		{
 			if (0 == tdsReader.available())
 			{
@@ -4292,7 +4292,7 @@ final class TDSWriter
 		return false;
 	}
 
-	private final void writePacket(int tdsMessageStatus) throws SQLServerException
+	private void writePacket(int tdsMessageStatus) throws SQLServerException
 	{
 		final boolean atEOM = (TDS.STATUS_BIT_EOM == (TDS.STATUS_BIT_EOM & tdsMessageStatus));
 		final boolean isCancelled = ( (TDS.PKT_CANCEL_REQ == tdsMessageType)
@@ -4335,7 +4335,7 @@ final class TDSWriter
 			command.onRequestComplete();
 	}
 
-	private final void writePacketHeader(int tdsMessageStatus)
+	private void writePacketHeader(int tdsMessageStatus)
 	{
 		int tdsMessageLength = stagingBuffer.position();
 		++packetNum;
@@ -6704,7 +6704,7 @@ final class TDSReader
 	 * @return true if additional data is available to be read
 	 *         false if no more data is available
 	 */
-	private final boolean ensurePayload() throws SQLServerException
+	private boolean ensurePayload() throws SQLServerException
 	{
 		if (payloadOffset == currentPacket.payloadLength)
 			if (!nextPacket()) return false;
@@ -6718,7 +6718,7 @@ final class TDSReader
 	 * @return true if additional data is available to be read
 	 *         false if no more data is available
 	 */
-	private final boolean nextPacket() throws SQLServerException
+	private boolean nextPacket() throws SQLServerException
 	{
 		assert null != currentPacket;
 
@@ -7449,6 +7449,11 @@ final class TDSReader
 
 	final void TryProcessFeatureExtAck(boolean featureExtAckReceived) throws SQLServerException
 	{
+		//in case of redirection, do not check if TDS_FEATURE_EXTENSION_ACK is received or not.
+		if (null != this.con.getRoutingInfo()) {
+			return;
+		}
+		
 		if( isColumnEncryptionSettingEnabled() && !featureExtAckReceived)
 			throw new SQLServerException(this , SQLServerException.getErrString("R_AE_NotSupportedByServer"), null, 0 , false);		
 	}
@@ -7579,7 +7584,7 @@ abstract class TDSCommand
 
 	// Flag set to indicate that an interrupt has happened.
 	private volatile boolean wasInterrupted = false;
-	private final boolean wasInterrupted() { return wasInterrupted; }
+	private boolean wasInterrupted() { return wasInterrupted; }
 
 	// The reason for the interrupt.
 	private volatile String interruptReason = null;

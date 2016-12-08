@@ -182,7 +182,7 @@ public class SQLServerResultSet implements ISQLServerResultSet
      * Skips columns between the last marked column and the target column, inclusive,
      * optionally discarding their values as they are skipped.
      */
-    private final void skipColumns(int columnsToSkip, boolean discardValues) throws SQLServerException
+    private void skipColumns(int columnsToSkip, boolean discardValues) throws SQLServerException
     {
         assert lastColumnIndex >= 1;
         assert 0 <= columnsToSkip && columnsToSkip <= columns.length;
@@ -438,7 +438,7 @@ public class SQLServerResultSet implements ISQLServerResultSet
      *
      * @throws SQLServerException if the result set is forward only.
      */
-    private final void throwNotScrollable() throws SQLServerException
+    private void throwNotScrollable() throws SQLServerException
     {
         SQLServerException.makeFromDriverError(
             stmt.connection,
@@ -448,19 +448,19 @@ public class SQLServerResultSet implements ISQLServerResultSet
             true);
     }
 
-    private final boolean isForwardOnly()
+    private boolean isForwardOnly()
     {
         return
             TYPE_SS_DIRECT_FORWARD_ONLY == stmt.getSQLResultSetType() ||
             TYPE_SS_SERVER_CURSOR_FORWARD_ONLY == stmt.getSQLResultSetType();
     }
 
-    private final boolean isDynamic()
+    private boolean isDynamic()
     {
         return 0 != serverCursorId && TDS.SCROLLOPT_DYNAMIC == stmt.getCursorType();
     }
 
-    private final void verifyResultSetIsScrollable() throws SQLServerException
+    private void verifyResultSetIsScrollable() throws SQLServerException
     {
         if (isForwardOnly())
             throwNotScrollable();
@@ -472,7 +472,7 @@ public class SQLServerResultSet implements ISQLServerResultSet
      *
      * @throws SQLServerException if the result set is read only.
      */
-    private final void throwNotUpdatable() throws SQLServerException
+    private void throwNotUpdatable() throws SQLServerException
     {
         SQLServerException.makeFromDriverError(
             stmt.connection,
@@ -482,7 +482,7 @@ public class SQLServerResultSet implements ISQLServerResultSet
             true);
     }
 
-    private final void verifyResultSetIsUpdatable() throws SQLServerException
+    private void verifyResultSetIsUpdatable() throws SQLServerException
     {
         if (CONCUR_READ_ONLY == stmt.resultSetConcurrency || 0 == serverCursorId)
             throwNotUpdatable();
@@ -589,7 +589,7 @@ public class SQLServerResultSet implements ISQLServerResultSet
      }
    }
 
-    private final void throwUnsupportedCursorOp() throws SQLServerException
+    private void throwUnsupportedCursorOp() throws SQLServerException
     {
         // Absolute positioning of dynamic cursors is unsupported.
         SQLServerException.makeFromDriverError(
@@ -742,7 +742,7 @@ public class SQLServerResultSet implements ISQLServerResultSet
      * this will be a no-op.
      * @throws SQLServerException
      */
-    private final void initializeNullCompressedColumns() throws SQLServerException
+    private void initializeNullCompressedColumns() throws SQLServerException
     {
     	if(resultSetCurrentRowType.equals(RowType.NBCROW) && (!areNullCompressedColumnsInitialized))
         {
@@ -775,7 +775,7 @@ public class SQLServerResultSet implements ISQLServerResultSet
         }	
     }
     
-    private final Column loadColumn(int index)  throws SQLServerException
+    private Column loadColumn(int index)  throws SQLServerException
     {
         assert 1 <= index && index <= columns.length;
 
@@ -836,7 +836,7 @@ public class SQLServerResultSet implements ISQLServerResultSet
          return value;
     }
 
-    private final void moveRelative(int rowsToMove) throws SQLServerException
+    private void moveRelative(int rowsToMove) throws SQLServerException
     {
         // Relative moves must be from somewhere within the result set
         assert hasCurrentRow();
@@ -851,7 +851,7 @@ public class SQLServerResultSet implements ISQLServerResultSet
             moveBackward(rowsToMove);
     }
 
-    private final void moveForward(int rowsToMove) throws SQLServerException
+    private void moveForward(int rowsToMove) throws SQLServerException
     {
         assert hasCurrentRow();
         assert rowsToMove > 0;
@@ -911,7 +911,7 @@ public class SQLServerResultSet implements ISQLServerResultSet
         updateCurrentRow(rowsToMove);
     }
 
-    private final void moveBackward(int rowsToMove) throws SQLServerException
+    private void moveBackward(int rowsToMove) throws SQLServerException
     {
         assert hasCurrentRow();
         assert rowsToMove < 0;
@@ -1004,7 +1004,7 @@ public class SQLServerResultSet implements ISQLServerResultSet
      * If known, the current row is assumed to be at a valid position somewhere in the ResultSet.
      * That is, the current row is not before the first row or after the last row.
      */
-    private final void updateCurrentRow(int rowsToMove)
+    private void updateCurrentRow(int rowsToMove)
     {
         if (UNKNOWN_ROW != currentRow)
         {
@@ -1360,7 +1360,7 @@ public class SQLServerResultSet implements ISQLServerResultSet
         loggerExternal.exiting(getClassNameLogging(), "beforeFirst");
     }
 
-    private final void moveBeforeFirst() throws SQLServerException
+    private void moveBeforeFirst() throws SQLServerException
     {
         if (0 == serverCursorId)
         {
@@ -1441,7 +1441,7 @@ public class SQLServerResultSet implements ISQLServerResultSet
         return value;
     }
 
-    private final void moveFirst() throws SQLServerException
+    private void moveFirst() throws SQLServerException
     {
         if (0 == serverCursorId)
         {
@@ -1501,7 +1501,7 @@ public class SQLServerResultSet implements ISQLServerResultSet
         return value;
     }
 
-    private final void moveLast() throws SQLServerException
+    private void moveLast() throws SQLServerException
     {
         if (0 == serverCursorId)
         {
@@ -1705,7 +1705,7 @@ public class SQLServerResultSet implements ISQLServerResultSet
         }
     }
 
-    private final boolean fetchBufferHasRows() throws SQLServerException
+    private boolean fetchBufferHasRows() throws SQLServerException
     {
         // Never call this with server cursors without first determining whether the
         // fetch buffer exists yet.
@@ -1832,7 +1832,7 @@ public class SQLServerResultSet implements ISQLServerResultSet
         return true;
     }
 
-    private final void clientMoveAfterLast() throws SQLServerException
+    private void clientMoveAfterLast() throws SQLServerException
     {
         assert UNKNOWN_ROW != currentRow;
 
@@ -1847,7 +1847,7 @@ public class SQLServerResultSet implements ISQLServerResultSet
         }
     }
 
-    private final int clientMoveAbsolute(int row) throws SQLServerException
+    private int clientMoveAbsolute(int row) throws SQLServerException
     {
         assert 0 == serverCursorId;
 
@@ -1962,7 +1962,7 @@ public class SQLServerResultSet implements ISQLServerResultSet
         return value;
     }
 
-   private final void cancelInsert()
+   private void cancelInsert()
    {
      if (isOnInsertRow)
      {
@@ -2094,22 +2094,22 @@ public class SQLServerResultSet implements ISQLServerResultSet
         return loadColumn(index);
     }
 
-    private final Object getValue(int columnIndex, JDBCType jdbcType) throws SQLServerException
+    private Object getValue(int columnIndex, JDBCType jdbcType) throws SQLServerException
     {
         return getValue(columnIndex, jdbcType, null, null);
     }
 
-    private final Object getValue(int columnIndex, JDBCType jdbcType, Calendar cal) throws SQLServerException
+    private Object getValue(int columnIndex, JDBCType jdbcType, Calendar cal) throws SQLServerException
     {
         return getValue(columnIndex, jdbcType, null, cal);
     }
 
-    private final Object getValue(int columnIndex, JDBCType jdbcType, InputStreamGetterArgs getterArgs) throws SQLServerException
+    private Object getValue(int columnIndex, JDBCType jdbcType, InputStreamGetterArgs getterArgs) throws SQLServerException
     {
         return getValue(columnIndex, jdbcType, getterArgs, null);
     }
 
-    private final Object getValue(int columnIndex, JDBCType jdbcType, InputStreamGetterArgs getterArgs, Calendar cal) throws SQLServerException
+    private Object getValue(int columnIndex, JDBCType jdbcType, InputStreamGetterArgs getterArgs, Calendar cal) throws SQLServerException
     {
         Object o = getterGetColumn(columnIndex).getValue(jdbcType, getterArgs, cal, tdsReader);
         lastValueWasNull = (null == o);
@@ -3073,7 +3073,7 @@ public class SQLServerResultSet implements ISQLServerResultSet
      * or it may have been deleted outside the cursor.  This function checks
      * for both possibilities.
      */
-    private final boolean currentRowDeleted() throws SQLServerException
+    private boolean currentRowDeleted() throws SQLServerException
     {
         // Never call this function without a current row
         assert hasCurrentRow();
@@ -3094,7 +3094,7 @@ public class SQLServerResultSet implements ISQLServerResultSet
      *
      * @param index the index of the column to get
      */
-    final private Column updaterGetColumn(int index) throws SQLServerException
+    private Column updaterGetColumn(int index) throws SQLServerException
     {
         // From JDBC spec:
         // Throws SQLException if the concurrency of this ResultSet object is CONCUR_READ_ONLY.
@@ -3226,7 +3226,7 @@ public class SQLServerResultSet implements ISQLServerResultSet
             columnIndex);
     }
 
-    private final void updateSQLXMLInternal(int columnIndex, SQLXML value) throws SQLServerException
+    private void updateSQLXMLInternal(int columnIndex, SQLXML value) throws SQLServerException
     {
         updaterGetColumn(columnIndex).updateValue(
             JDBCType.SQLXML,
@@ -6390,7 +6390,7 @@ public class SQLServerResultSet implements ISQLServerResultSet
         loggerExternal.exiting(getClassNameLogging(), "insertRow");  
     }
 
-    private final void doInsertRowRPC(TDSCommand command, String tableName) throws SQLServerException
+    private void doInsertRowRPC(TDSCommand command, String tableName) throws SQLServerException
     {
         assert 0 != serverCursorId;
         assert null != tableName;
@@ -6485,7 +6485,7 @@ public class SQLServerResultSet implements ISQLServerResultSet
         loggerExternal.exiting(getClassNameLogging(), "updateRow");
     }
 
-    private final void doUpdateRowRPC(TDSCommand command) throws SQLServerException
+    private void doUpdateRowRPC(TDSCommand command) throws SQLServerException
     {
         assert 0 != serverCursorId;
 
@@ -6567,7 +6567,7 @@ public class SQLServerResultSet implements ISQLServerResultSet
         loggerExternal.exiting(getClassNameLogging(), "deleteRow");
     }
 
-    private final void doDeleteRowRPC(TDSCommand command) throws SQLServerException
+    private void doDeleteRowRPC(TDSCommand command) throws SQLServerException
     {
         assert 0 != serverCursorId;
 
@@ -6664,7 +6664,7 @@ public class SQLServerResultSet implements ISQLServerResultSet
         updatedCurrentRow = false;
     }
 
-    private final void cancelUpdates()
+    private void cancelUpdates()
     {
         if (!isOnInsertRow)
             clearColumnsValues();
@@ -7368,7 +7368,7 @@ public class SQLServerResultSet implements ISQLServerResultSet
      * closed while discarding the fetch buffer, then the fetch buffer is considered
      * to be discarded.
      */
-    private final void discardFetchBuffer()
+    private void discardFetchBuffer()
     {
         // Clear the TDSReader mark at the start of the fetch buffer
         fetchBuffer.clearStartMark();

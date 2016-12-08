@@ -151,7 +151,7 @@ public final class SQLServerBlob implements java.sql.Blob, java.io.Serializable
     /**
      * Throws a SQLException if the LOB has been freed.
      */
-    private final void checkClosed() throws SQLServerException
+    private void checkClosed() throws SQLServerException
     {
         if (isClosed)
         {
