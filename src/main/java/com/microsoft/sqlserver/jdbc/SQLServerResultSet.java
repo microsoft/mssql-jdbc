@@ -336,6 +336,7 @@ public class SQLServerResultSet implements ISQLServerResultSet
 				int packetType = tdsReader.peekTokenType();
 				if (TDS.TDS_DONE == packetType) {
 					short status = tdsReader.peekStatusFlag();
+					// check if status flag has DONE_ERROR set i.e., 0x2
 					if ((status & 0x0002) != 0) {
 						// Consume the DONE packet if there is error
 						StreamDone doneToken = new StreamDone();

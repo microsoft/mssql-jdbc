@@ -6852,7 +6852,10 @@ final class TDSReader
 			return value;
 		}
 
-		return Util.readShort(readWrappedBytes(3), 1);
+		// as per TDS protocol, TDS_DONE packet should always be followed by status flag
+		// throw exception if status packet is not available 
+		throwInvalidTDS();
+		return 0;
 	}
 	
 	final int readUnsignedByte() throws SQLServerException
