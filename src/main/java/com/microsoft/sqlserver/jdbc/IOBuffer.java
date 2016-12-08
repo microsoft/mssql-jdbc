@@ -7400,6 +7400,11 @@ final class TDSReader
 
 	final void TryProcessFeatureExtAck(boolean featureExtAckReceived) throws SQLServerException
 	{
+		//in case of redirection, do not check if TDS_FEATURE_EXTENSION_ACK is received or not.
+		if (null != this.con.getRoutingInfo()) {
+			return;
+		}
+		
 		if( isColumnEncryptionSettingEnabled() && !featureExtAckReceived)
 			throw new SQLServerException(this , SQLServerException.getErrString("R_AE_NotSupportedByServer"), null, 0 , false);		
 	}

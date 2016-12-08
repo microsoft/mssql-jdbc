@@ -208,6 +208,10 @@ public class SQLServerConnection implements ISQLServerConnection
 
 	//Contains the routing info received from routing ENVCHANGE
 	private ServerPortPlaceHolder routingInfo = null;
+	
+	ServerPortPlaceHolder getRoutingInfo(){
+		return routingInfo;
+	}
 
 	// Permission targets
 	// currently only callAbort is implemented
