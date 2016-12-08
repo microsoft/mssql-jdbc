@@ -102,7 +102,7 @@ class PLPInputStream extends BaseInputStream
         return is;
     }
 
-    private final static PLPInputStream makeStream(TDSReader tdsReader, boolean isAdaptive, boolean isStreaming, ServerDTVImpl dtv) throws SQLServerException
+    private static PLPInputStream makeStream(TDSReader tdsReader, boolean isAdaptive, boolean isStreaming, ServerDTVImpl dtv) throws SQLServerException
     {
         // Read total length of PLP stream.
         long payloadLength = tdsReader.readLong();

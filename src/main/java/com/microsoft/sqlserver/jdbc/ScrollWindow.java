@@ -58,7 +58,7 @@ final class ScrollWindow
         reset();
     }
 
-    private final void setSize(int size)
+    private void setSize(int size)
     {
         assert this.size != size;
         this.size = size;

@@ -372,7 +372,7 @@ public final class SQLServerXAResource implements javax.transaction.xa.XAResourc
 	}
 
       
-    /*L0*/ final private XAReturnValue DTC_XA_Interface(int nType, Xid xid, int xaFlags) throws XAException 
+    /*L0*/ private XAReturnValue DTC_XA_Interface(int nType, Xid xid, int xaFlags) throws XAException
     {
 
         if (xaLogger.isLoggable(Level.FINER))

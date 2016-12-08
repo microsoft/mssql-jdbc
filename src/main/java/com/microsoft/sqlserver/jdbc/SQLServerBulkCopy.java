@@ -759,7 +759,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable
     /*
      * write ColumnData token in COLMETADATA header
      */
-    private final void writeColumnMetaDataColumnData(TDSWriter tdsWriter, int idx) throws SQLServerException
+    private void writeColumnMetaDataColumnData(TDSWriter tdsWriter, int idx) throws SQLServerException
     { 
     	int srcColumnIndex = 0, destPrecision = 0; 
     	int bulkJdbcType = 0, bulkPrecision = 0 , bulkScale = 0;
@@ -949,9 +949,9 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable
         tdsWriter.writeBytes(colName);
     }
     
-    private final void writeTypeInfo(TDSWriter tdsWriter, int srcJdbcType, int srcScale, int srcPrecision, 
-    		SSType destSSType, SQLCollation collation, boolean isStreaming, boolean srcNullable,
-    		boolean isBaseType) throws SQLServerException
+    private void writeTypeInfo(TDSWriter tdsWriter, int srcJdbcType, int srcScale, int srcPrecision,
+                               SSType destSSType, SQLCollation collation, boolean isStreaming, boolean srcNullable,
+                               boolean isBaseType) throws SQLServerException
     {
     	switch (srcJdbcType)			
         {
@@ -1273,7 +1273,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable
    	 * ...
    	 * </COLMETADATA>
    	 */    	
-    private final void writeColumnMetaData(TDSWriter tdsWriter) throws SQLServerException
+    private void writeColumnMetaData(TDSWriter tdsWriter) throws SQLServerException
     {
     	
     	/*	TDS rules for Always Encrypted metadata
@@ -1631,7 +1631,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable
     }
 
 
-    private final String createInsertBulkCommand(TDSWriter tdsWriter) throws SQLServerException
+    private String createInsertBulkCommand(TDSWriter tdsWriter) throws SQLServerException
     {
     	StringBuilder bulkCmd = new StringBuilder();
     	List<String> bulkOptions = new Vector<String>();
@@ -1722,7 +1722,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable
     }
     
 
-    private final boolean doInsertBulk(TDSCommand command) throws SQLServerException
+    private boolean doInsertBulk(TDSCommand command) throws SQLServerException
     {
         if (copyOptions.isUseInternalTransaction())
         {
@@ -1786,7 +1786,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable
         return moreDataAvailable;
     }
     
-    private final void writePacketDataDone(TDSWriter tdsWriter) throws SQLServerException
+    private void writePacketDataDone(TDSWriter tdsWriter) throws SQLServerException
     {
         // This is an example from https://msdn.microsoft.com/en-us/library/dd340549.aspx
         tdsWriter.writeByte((byte) 0xFD);
@@ -2968,7 +2968,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable
 	/*
 	 * Reads the given column from the result set current row and writes the data to tdsWriter.
 	 */
-	private final void writeColumn(
+	private void writeColumn(
 			TDSWriter tdsWriter, 
 			int srcColOrdinal, 
 			int destColOrdinal,
@@ -3631,7 +3631,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable
 	 * ...
 	 * </ROW>
 	 */
-	private final boolean writeBatchData(TDSWriter tdsWriter) throws SQLServerException
+	private boolean writeBatchData(TDSWriter tdsWriter) throws SQLServerException
 	{
 		int batchsize = copyOptions.getBatchSize();
 		int row = 0;

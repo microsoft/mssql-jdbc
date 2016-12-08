@@ -706,7 +706,7 @@ final class DDC
 
 	// Returns date portion of string.
 	// Expects one of "<date>" or "<date><space><time>".
-	private static final String getDatePart(String s)
+	private static String getDatePart(String s)
 	{
 		int sp = s.indexOf(' ');
 		if (-1 == sp) return s;
@@ -714,7 +714,7 @@ final class DDC
 	}
 	// Returns time portion of string.
 	// Expects one of "<time>" or "<date><space><time>".
-	private static final String getTimePart(String s)
+	private static String getTimePart(String s)
 	{
 		int sp = s.indexOf(' ');
 		if (-1 == sp) return s;

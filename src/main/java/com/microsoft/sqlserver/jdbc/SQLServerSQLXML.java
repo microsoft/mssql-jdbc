@@ -413,7 +413,7 @@ final class SQLServerSQLXML implements java.sql.SQLXML
         return result;
     }
     // Supporting functions
-    private final  DOMSource getDOMSource() throws SQLException
+    private DOMSource getDOMSource() throws SQLException
     {
         Document document = null;
         final DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
@@ -458,7 +458,7 @@ final class SQLServerSQLXML implements java.sql.SQLXML
         }
         return null;
     }
-    private final  SAXSource getSAXSource() throws SQLException
+    private SAXSource getSAXSource() throws SQLException
     {
         try 
         {
@@ -476,7 +476,7 @@ final class SQLServerSQLXML implements java.sql.SQLXML
         }
         return null;
     }
-    private final  StAXSource getStAXSource() throws SQLException
+    private StAXSource getStAXSource() throws SQLException
     {
         XMLInputFactory factory = XMLInputFactory.newInstance();
         try 
@@ -494,7 +494,7 @@ final class SQLServerSQLXML implements java.sql.SQLXML
         return null;
     }
 
-    private final  StAXResult getStAXResult() throws SQLException
+    private StAXResult getStAXResult() throws SQLException
     {
         XMLOutputFactory factory = XMLOutputFactory.newInstance();
         outputStreamValue = new ByteArrayOutputStreamToInputStream();
@@ -512,7 +512,7 @@ final class SQLServerSQLXML implements java.sql.SQLXML
         }
         return null;
     }
-    private final  SAXResult getSAXResult() throws SQLException
+    private SAXResult getSAXResult() throws SQLException
     {
         TransformerHandler handler=null;
         try
@@ -538,7 +538,7 @@ final class SQLServerSQLXML implements java.sql.SQLXML
         SAXResult result= new SAXResult(handler);
         return result;
     }
-    private final  DOMResult getDOMResult() throws SQLException
+    private DOMResult getDOMResult() throws SQLException
     {
         final DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
         DocumentBuilder builder;

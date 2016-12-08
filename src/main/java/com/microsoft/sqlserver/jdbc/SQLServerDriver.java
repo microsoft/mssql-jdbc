@@ -583,7 +583,7 @@ public final class SQLServerDriver implements java.sql.Driver
     }
 	
 
-	private final Properties parseAndMergeProperties(String Url, Properties suppliedProperties) throws SQLServerException 
+	private Properties parseAndMergeProperties(String Url, Properties suppliedProperties) throws SQLServerException
   	{
 	if (Url == null)
 		{
