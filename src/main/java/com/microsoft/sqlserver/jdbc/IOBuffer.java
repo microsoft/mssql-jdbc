@@ -1865,6 +1865,7 @@ final class TDSChannel
 			if (isEncryptOn && isValidTrustStoreType && !isTrustServerCertificate) {
 				isFipsEnabled = true;
 			} else {
+				//If FIPS is not enabled issue warning and fall-back to non-FIPS mode.
 				StringBuilder sb = new StringBuilder();
 				sb.append("Could not switch to FIPS mode due to above settings: ");
 				sb.append(SQLServerDriverStringProperty.FIPS_PROVIDER.toString());

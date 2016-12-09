@@ -18,6 +18,8 @@ import com.microsoft.sqlserver.jdbc.SQLServerConnection;
 /**
  * Utility Class for Tests.
  * This will contains methods like Create Table, Drop Table, Initialize connection, create statement etc. logger settings etc.
+ * TODO : We can delete PrepUtil & move getConnection method in {@link DBEngine} 
+ * @since 6.1.2
  */
 public class PrepUtil {
 	

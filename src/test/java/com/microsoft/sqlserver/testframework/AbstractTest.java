@@ -25,6 +25,7 @@ import com.microsoft.sqlserver.jdbc.SQLServerConnection;
  * <li>Configured Property file instead of passing from args.
  * <li>Think of different property files for different settings. / flag etc.
  * <Li>Think about what kind of logging we are going use it. <B>util.logging<B> will be preference.
+ * @since 6.1.2
  */
 public abstract class AbstractTest {
 
@@ -79,6 +80,8 @@ public abstract class AbstractTest {
 			throw e;
 		}
 	}
+	
+
 
 	/**
 	 * This will take care of all clean ups after running the Test Suite.
@@ -104,13 +107,7 @@ public abstract class AbstractTest {
 	 * @return Value
 	 */
 	public static String getConfiguredProperty(String key) {
-		String value = System.getProperty(key);
-		
-		if(value == null) {
-			value = System.getenv(key);
-		}
-		
-		return value;
+		return Utils.getConfiguredProperty(key);
 	}
 
 	
@@ -121,12 +118,6 @@ public abstract class AbstractTest {
 	 * @return Value
 	 */
 	public static String getConfiguredProperty(String key, String defaultValue) {
-		String value = getConfiguredProperty(key);
-		
-		if(value == null) {
-			value = defaultValue;
-		}
-		
-		return value;
+		return Utils.getConfiguredProperty(key, defaultValue);
 	}
 }
