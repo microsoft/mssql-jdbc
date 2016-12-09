@@ -13,9 +13,9 @@ SQL Server Team
 |--------------------------|--------------------------|
 | [![av-image][]][av-site] | [![tv-image][]][tv-site] |
 
-[av-image]: https://ci.appveyor.com/api/projects/status/o6fjg16678ol64d3?svg=true
+[av-image]: https://ci.appveyor.com/api/projects/status/o6fjg16678ol64d3?svg=true "Windows"
 [av-site]: https://ci.appveyor.com/project/Microsoft-JDBC/mssql-jdbc
-[tv-image]: https://travis-ci.org/Microsoft/mssql-jdbc.svg?
+[tv-image]: https://travis-ci.org/Microsoft/mssql-jdbc.svg? "Linux"
 [tv-site]: https://travis-ci.org/Microsoft/mssql-jdbc
 
 ## Announcements
