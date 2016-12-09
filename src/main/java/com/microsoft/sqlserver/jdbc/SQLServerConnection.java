@@ -251,6 +251,8 @@ public class SQLServerConnection implements ISQLServerConnection
 	final String getSelectMethod() { return selectMethod; }
 	private String responseBuffering; 
 	final String getResponseBuffering() { return responseBuffering; } 
+	private int queryTimeoutSeconds ;
+	final int getQueryTimeoutSeconds() { return queryTimeoutSeconds; }
 
 	private boolean sendTimeAsDatetime = SQLServerDriverBooleanProperty.SEND_TIME_AS_DATETIME.getDefaultValue();
 
@@ -1457,6 +1459,34 @@ public class SQLServerConnection implements ISQLServerConnection
 					SQLServerException.makeFromDriverError(this, this, form.format(msgArgs), null, false);
 				}
 			}
+			
+			sPropKey = SQLServerDriverIntProperty.QUERY_TIMEOUT.toString();
+			int defaultQueryTimeout = SQLServerDriverIntProperty.QUERY_TIMEOUT.getDefaultValue();
+			queryTimeoutSeconds  = defaultQueryTimeout; //Wait forever
+			if (activeConnectionProperties.getProperty(sPropKey) != null  && 
+					activeConnectionProperties.getProperty(sPropKey).length() > 0)
+			{
+				try
+				{
+					int n = (new Integer(activeConnectionProperties.getProperty(sPropKey))).intValue();
+					if (n>=defaultTimeOut){
+						queryTimeoutSeconds = n;
+					}
+					else
+					{
+						MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidQueryTimeout"));
+						Object[] msgArgs = {activeConnectionProperties.getProperty(sPropKey)};
+						SQLServerException.makeFromDriverError(this, this, form.format(msgArgs), null, false);
+					}
+				}
+				catch (NumberFormatException e)
+				{
+					MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidQueryTimeout"));
+					Object[] msgArgs = {activeConnectionProperties.getProperty(sPropKey)};
+					SQLServerException.makeFromDriverError(this, this, form.format(msgArgs), null, false);
+				}
+			}
+			
 			FailoverInfo fo =null;
 			String databaseNameProperty = SQLServerDriverStringProperty.DATABASE_NAME.toString();
 			String serverNameProperty = SQLServerDriverStringProperty.SERVER_NAME.toString();
