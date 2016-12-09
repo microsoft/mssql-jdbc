@@ -240,7 +240,7 @@ public final class SQLServerColumnEncryptionCertificateStoreProvider extends SQL
 				for (Enumeration<String> enumeration = keyStore.aliases(); enumeration.hasMoreElements();)
 				{
 
-					String alias = (String) enumeration.nextElement();
+					String alias = enumeration.nextElement();
 				
 					X509Certificate publicCertificate = (X509Certificate) keyStore.getCertificate(alias);
 		
@@ -250,7 +250,7 @@ public final class SQLServerColumnEncryptionCertificateStoreProvider extends SQL
 						Key keyPrivate = null;
 						try
 						{
-							keyPrivate = (Key) keyStore.getKey(
+							keyPrivate = keyStore.getKey(
 								alias,
 								"".toCharArray());
 							if (null == keyPrivate) 

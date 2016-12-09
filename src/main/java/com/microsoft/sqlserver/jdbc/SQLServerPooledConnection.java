@@ -99,7 +99,8 @@ public class SQLServerPooledConnection implements PooledConnection {
 						SQLServerException.getErrString("R_physicalConnectionIsClosed"),
 						"", true);
 			}
-			// Check with security manager to insure caller has rights to connect.
+
+			// Check with security manager to insure caller has rights to connect.
 			// This will throw a SecurityException if the caller does not have proper rights.
 			physicalConnection.doSecurityCheck();
 			if (pcLogger.isLoggable(Level.FINE))				
@@ -164,7 +165,7 @@ public class SQLServerPooledConnection implements PooledConnection {
 
 				if (listener == null) continue;
 
-				ConnectionEvent ev = new ConnectionEvent(this, (SQLException) e);
+				ConnectionEvent ev = new ConnectionEvent(this, e);
 				if (null == e)
 				{
 					if (pcLogger.isLoggable(Level.FINER))				

@@ -131,7 +131,7 @@ public final class SQLServerDataTable {
 				if((null != values) && (currentColumn < values.length) && (null != values[currentColumn]))
 					val = (null == values[currentColumn]) ? null : values[currentColumn] ;
 				currentColumn++;
-				Map.Entry<Integer, SQLServerDataColumn> pair = (Map.Entry<Integer, SQLServerDataColumn>)columnsIterator.next();
+				Map.Entry<Integer, SQLServerDataColumn> pair = columnsIterator.next();
 				SQLServerDataColumn currentColumnMetadata = pair.getValue();
 				JDBCType jdbcType = JDBCType.of(pair.getValue().javaSqlType);
 
@@ -200,13 +200,13 @@ public final class SQLServerDataTable {
 							rowValues[pair.getKey()] = null;
 						//java.sql.Date, java.sql.Time and java.sql.Timestamp are subclass of java.util.Date
 						else if (val instanceof java.util.Date)
-							rowValues[pair.getKey()] = ((java.util.Date) val).toString();
+							rowValues[pair.getKey()] = val.toString();
 						else if(val instanceof microsoft.sql.DateTimeOffset)
-							rowValues[pair.getKey()] = ((microsoft.sql.DateTimeOffset) val).toString();
+							rowValues[pair.getKey()] = val.toString();
 						else if(val instanceof OffsetDateTime)
-							rowValues[pair.getKey()] = ((OffsetDateTime) val).toString();
+							rowValues[pair.getKey()] = val.toString();
 						else if(val instanceof OffsetTime)
-							rowValues[pair.getKey()] = ((OffsetTime) val).toString();
+							rowValues[pair.getKey()] = val.toString();
 						else
 							rowValues[pair.getKey()] = (null == val) ? null : (String) val;
 						break;
@@ -227,7 +227,7 @@ public final class SQLServerDataTable {
 
 					case CHAR:
 						if(val instanceof UUID && (val != null))
-							val = ((UUID)val).toString();
+							val = val.toString();
 					case VARCHAR:
 					case NCHAR:
 					case NVARCHAR:

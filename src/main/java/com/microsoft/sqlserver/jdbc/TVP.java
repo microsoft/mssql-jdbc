@@ -141,7 +141,7 @@ class TVP {
 		}
 		else if (TVPType.SQLServerDataTable == tvpType)
 		{
-			 Map.Entry<Integer,Object[]> rowPair = (Map.Entry<Integer,Object[]>) sourceDataTableRowIterator.next();
+			 Map.Entry<Integer,Object[]> rowPair = sourceDataTableRowIterator.next();
 			 return rowPair.getValue();	
 		}
 		else
@@ -183,7 +183,7 @@ class TVP {
 		Iterator<Entry<Integer, SQLServerDataColumn>> columnsIterator = dataTableMetaData.entrySet().iterator();
 		while(columnsIterator.hasNext())
 		{
-			Map.Entry<Integer, SQLServerDataColumn> pair = (Map.Entry<Integer, SQLServerDataColumn>)columnsIterator.next();
+			Map.Entry<Integer, SQLServerDataColumn> pair = columnsIterator.next();
 			// duplicate column names for the dataTable will be checked in the SQLServerDataTable.
 			columnMetadata.put(
 					pair.getKey(), 
@@ -245,7 +245,7 @@ class TVP {
 		Iterator<Entry<Integer, SQLServerMetaData>> columnsIterator = columnMetadata.entrySet().iterator();
 		while(columnsIterator.hasNext())
 		{
-			Map.Entry<Integer, SQLServerMetaData> columnPair = (Map.Entry<Integer, SQLServerMetaData>)columnsIterator.next();
+			Map.Entry<Integer, SQLServerMetaData> columnPair = columnsIterator.next();
 			SQLServerSortOrder columnSortOrder = columnPair.getValue().sortOrder;
 			int columnSortOrdinal = columnPair.getValue().sortOrdinal;
 			

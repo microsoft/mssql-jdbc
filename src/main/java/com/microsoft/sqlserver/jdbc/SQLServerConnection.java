@@ -3799,10 +3799,10 @@ public class SQLServerConnection implements ISQLServerConnection
 
 		// Send total length (length of token plus 4 bytes for the token length field)
 		// If we were sending a nonce, this would include that length as well
-		tdsWriter.writeInt((int)accessToken.length + 4);
+		tdsWriter.writeInt(accessToken.length + 4);
 
 		// Send length of token
-		tdsWriter.writeInt((int)accessToken.length);
+		tdsWriter.writeInt(accessToken.length);
 
 		// Send federated authentication access token.
 		tdsWriter.writeBytes(accessToken, 0, accessToken.length);

@@ -1926,7 +1926,7 @@ final class DTV
 							byteValue = ((String)value).getBytes();
 						}
 
-						op.execute(this, (byte[]) byteValue);
+						op.execute(this, byteValue);
 					}
 					else
 						op.execute(this, (String) value);
@@ -1937,7 +1937,7 @@ final class DTV
 				if(null!=cryptoMeta)
 				{
 					byteValue = ByteBuffer.allocate(Long.SIZE / Byte.SIZE).order(ByteOrder.LITTLE_ENDIAN).putLong(((Integer)value).longValue()).array();
-					op.execute(this, (byte[]) byteValue);
+					op.execute(this, byteValue);
 				}
 				else
 					op.execute(this, (Integer) value);
@@ -2001,7 +2001,7 @@ final class DTV
 					}
 
 					byteValue = ByteBuffer.allocate((Float.SIZE/ Byte.SIZE)).order(ByteOrder.LITTLE_ENDIAN).putFloat((Float)value).array();
-					op.execute(this, (byte[]) byteValue);
+					op.execute(this, byteValue);
 				}
 				else
 					op.execute(this, (Float) value);
@@ -2031,7 +2031,7 @@ final class DTV
 						ByteBuffer bbuf = ByteBuffer.allocate(8).order(ByteOrder.LITTLE_ENDIAN);
 						bbuf.putInt((int) (moneyVal >> 32)).array();
 						bbuf.putInt((int) moneyVal).array();
-						op.execute(this, (byte[]) bbuf.array());
+						op.execute(this, bbuf.array());
 					}
 					else
 					{
@@ -2093,7 +2093,7 @@ final class DTV
 				if(null!=cryptoMeta)
 				{
 					byteValue = ByteBuffer.allocate(Long.SIZE / Byte.SIZE).order(ByteOrder.LITTLE_ENDIAN).putLong((byte)value & 0xFF).array();
-					op.execute(this, (byte[]) byteValue);
+					op.execute(this, byteValue);
 				}
 				else
 					op.execute(this, (Byte) value);
@@ -2103,7 +2103,7 @@ final class DTV
 				if(null!=cryptoMeta)
 				{
 					byteValue = ByteBuffer.allocate((Long.SIZE/ Byte.SIZE)).order(ByteOrder.LITTLE_ENDIAN).putLong((Long)value).array();
-					op.execute(this, (byte[]) byteValue);
+					op.execute(this, byteValue);
 				}
 				else
 					op.execute(this, (Long) value);
@@ -2122,7 +2122,7 @@ final class DTV
 						throw new SQLServerException(form.format(new Object[] {jdbcType}), null, 0, null);            			
 					}
 					byteValue = ByteBuffer.allocate((Double.SIZE/ Byte.SIZE)).order(ByteOrder.LITTLE_ENDIAN).putDouble((Double)value).array();
-					op.execute(this, (byte[]) byteValue);
+					op.execute(this, byteValue);
 				}
 				else
 					op.execute(this, (Double) value);
@@ -2132,7 +2132,7 @@ final class DTV
 				if(null!=cryptoMeta)
 				{
 					byteValue = ByteBuffer.allocate(Long.SIZE / Byte.SIZE).order(ByteOrder.LITTLE_ENDIAN).putLong((short)value).array();
-					op.execute(this, (byte[]) byteValue);
+					op.execute(this, byteValue);
 				}
 				else
 					op.execute(this, (Short) value);
@@ -2142,7 +2142,7 @@ final class DTV
 				if(null!=cryptoMeta)
 				{
 					byteValue = ByteBuffer.allocate(Long.SIZE / Byte.SIZE).order(ByteOrder.LITTLE_ENDIAN).putLong((Boolean)value ? 1: 0).array();
-					op.execute(this, (byte[]) byteValue);
+					op.execute(this, byteValue);
 				}
 				else
 					op.execute(this, (Boolean) value);
