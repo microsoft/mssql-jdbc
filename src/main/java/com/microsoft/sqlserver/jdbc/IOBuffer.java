@@ -6844,6 +6844,20 @@ final class TDSReader
 		return currentPacket.payload[payloadOffset] & 0xFF;
 	}
 
+
+	final short peekStatusFlag() throws SQLServerException {
+		// skip the current packet(i.e, TDS packet type) and peek into the status flag (USHORT)
+		if (payloadOffset + 3 <= currentPacket.payloadLength) {
+			short value = Util.readShort(currentPacket.payload, payloadOffset + 1);
+			return value;
+		}
+
+		// as per TDS protocol, TDS_DONE packet should always be followed by status flag
+		// throw exception if status packet is not available 
+		throwInvalidTDS();
+		return 0;
+	}
+	
 	final int readUnsignedByte() throws SQLServerException
 	{
 		// Ensure that we have a packet to read from.
