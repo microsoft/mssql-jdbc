@@ -662,7 +662,12 @@ public final class SQLServerParameterMetaData implements ParameterMetaData {
 	/*L2*/ private void verifyParameterPosition(int param) throws SQLServerException {
 		boolean bFound=false;
 		try {
-			bFound = rsProcedureMeta.absolute(param+1);  //Note row 1 is the 'return value' meta data
+			if(((SQLServerPreparedStatement)stmtParent).bReturnValueSyntax){
+				bFound = rsProcedureMeta.absolute(param);
+			}
+			else{
+				bFound = rsProcedureMeta.absolute(param+1);  //Note row 1 is the 'return value' meta data
+			}			
 		}
 		catch (SQLException e) {
 			MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_metaDataErrorForParameter"));
