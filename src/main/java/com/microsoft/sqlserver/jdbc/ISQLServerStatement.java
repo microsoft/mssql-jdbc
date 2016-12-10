@@ -35,12 +35,12 @@ public interface ISQLServerStatement extends java.sql.Statement
      * @param value A String that contains the response buffering mode. The valid mode can be one of the following case-insensitive Strings: full or adaptive.
      * @throws SQLServerException If there are any errors in setting the response buffering mode.
      */
-    public  void setResponseBuffering(String value) throws SQLServerException;
+    void setResponseBuffering(String value) throws SQLServerException;
 	
 	/**
      * Retrieves the response buffering mode for this SQLServerStatement object.
      * @return A String that contains a lower-case full or adaptive.
      * @throws SQLServerException If there are any errors in retrieving the response buffering mode.
      */
-    public  String getResponseBuffering() throws SQLServerException;
+    String getResponseBuffering() throws SQLServerException;
 }

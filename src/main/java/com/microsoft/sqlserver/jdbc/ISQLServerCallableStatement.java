@@ -37,7 +37,7 @@ public interface ISQLServerCallableStatement extends java.sql.CallableStatement,
 	 * if a database access error occurs or
      * this method is called on a closed <code>CallableStatement</code>
 	 */
-    public void setDateTimeOffset(String parameterName, microsoft.sql.DateTimeOffset x)  throws SQLException;
+    void setDateTimeOffset(String parameterName, microsoft.sql.DateTimeOffset x)  throws SQLException;
 	
 	/**
      * Gets the DateTimeOffset value of parameter with index parameterIndex
@@ -47,7 +47,7 @@ public interface ISQLServerCallableStatement extends java.sql.CallableStatement,
 	 * if a database access error occurs or
      * this method is called on a closed <code>CallableStatement</code>
      */
-    public microsoft.sql.DateTimeOffset getDateTimeOffset(int parameterIndex) throws SQLException;
+    microsoft.sql.DateTimeOffset getDateTimeOffset(int parameterIndex) throws SQLException;
 	
 	/**
      * Gets the DateTimeOffset value of parameter with name parameterName
@@ -57,6 +57,6 @@ public interface ISQLServerCallableStatement extends java.sql.CallableStatement,
 	 * if a database access error occurs or
      * this method is called on a closed <code>CallableStatement</code>
      */
-    public microsoft.sql.DateTimeOffset getDateTimeOffset(String parameterName) throws SQLException;
+    microsoft.sql.DateTimeOffset getDateTimeOffset(String parameterName) throws SQLException;
 }
 
