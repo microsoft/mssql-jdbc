@@ -9,10 +9,8 @@
  */
 package com.microsoft.sqlserver.jdbc.fips;
 
-import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
-import static org.junit.jupiter.api.Assumptions.assumingThat;
 
 import java.security.Provider;
 import java.security.Security;
@@ -24,6 +22,7 @@ import java.util.logging.Logger;
 import javax.net.ssl.SSLContext;
 
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
@@ -77,9 +76,17 @@ public class FipsEnvTest {
 	 * @since 6.1.2
 	 */
 	@Test
-	public void testFIPSOnOracle() {
-		assumeTrue(ORACLE_JVM.equals(currentJVM), "Aborting test: As this is not Oracle Env. "); 
+	public void testFIPSOnOracle() throws Exception {
+		assumeTrue(ORACLE_JVM.equals(currentJVM), "Aborting test: As this is not Oracle Env. ");
 
+		assumeTrue("FIPS".equals(Utils.getConfiguredProperty("FIPS_ENV")), "Aborting test case as FIPS is not enabled. "); 
+		
+		assertTrue(isFIPS("SunJSSE"),"FIPS Should be enabled");
+		
+//		assertTrue(isFIPS("BCFIPS"),"FIPS Should be enabled");
+		
+		//As JDK 1.7 is not supporting lambda for time being commenting.
+		/*
 		assumingThat("NSSFIPS".equals(Utils.getConfiguredProperty("FIPS_ENV")),
 				() -> assertAll("All FIPS", () -> assertTrue(isFIPS("SunJSSE"), "FIPS should be Enabled."), () -> assertTrue(isFIPS("SunPKCS11-NSS"), "Testing")));
 
@@ -87,15 +94,22 @@ public class FipsEnvTest {
 				() -> assertAll("All FIPS", () -> assertTrue(isFIPS("SunJSSE"), "FIPS should be Enabled."), () -> assertTrue(isFIPS("BCFIPS"), "Testing")));
 		
 		assumingThat("FIPS".equals(Utils.getConfiguredProperty("FIPS_ENV")), ()-> assertTrue(isFIPS("SunJSSE"), "FIPS Should be enabled"));
+		*/
 	}
 
 	/**
 	 * It will test 
 	 */
 	@Test
-	public void testFIPSOnIBM() {
+	public void testFIPSOnIBM() throws Exception{
 		assumeTrue(IBM_JVM.equals(currentJVM), "Aborting test: As this is not IBM Env. "); 
-
+		
+		assumeTrue("FIPS".equals(Utils.getConfiguredProperty("FIPS_ENV")), "Aborting test case as FIPS is not enabled. "); 
+		
+		assertTrue(isFIPS("IBMJCEFIP"),"FIPS Should be enabled");
+		
+		//As JDK 1.7 is not supporting lambda for time being commenting.
+		/*
 		assumingThat("NSSFIPS".equals(Utils.getConfiguredProperty("FIPS_ENV")),
 				() -> assertAll("All FIPS", () -> assertTrue(isFIPS("IBMJCEFIP"), "FIPS should be Enabled."), () -> assertTrue(isFIPS("SunPKCS11-NSS"), "Testing")));
 
@@ -103,20 +117,24 @@ public class FipsEnvTest {
 				() -> assertAll("All FIPS", () -> assertTrue(isFIPS("IBMJCEFIPS"), "FIPS should be Enabled."), () -> assertTrue(isFIPS("BCFIPS"), "Testing")));
 		
 		assumingThat("FIPS".equals(Utils.getConfiguredProperty("FIPS_ENV")), ()-> assertTrue(isFIPS("IBMJCEFIPS"), "FIPS Should be enabled"));
+		*/
 	}
 
 
 	/**
 	 * In case of FIPs enabled this test method will call {@link #isFIPS(String)} with appropriate FIPS provider. 
+	 * May be useful only for JDK 1.8
 	 */
-	@Test
+	@Test @Disabled
 	public void testFIPSEnv() {
 		assumeTrue("FIPS".equals(Utils.getConfiguredProperty("FIPS_ENV")), "Aborting test: This is FIPS Enabled JVM");
 
+		//As JDK 1.7 is not supporting lambda for time being commenting.
+		/*
 		assumingThat(System.getProperty("java.vendor").startsWith("IBM"), () -> assertTrue(isFIPS("IBMJCEFIP"), "FIPS should be Enabled."));
 
 		assumingThat(System.getProperty("java.vendor").startsWith("Oracle"), () -> assertTrue(isFIPS("SunJSSE"), "FIPS should be Enabled."));
-
+		*/
 	}
 	
 	/**
@@ -146,14 +164,15 @@ public class FipsEnvTest {
 		return jsse != null && jsse.getInfo().contains("FIPS");
 	}
 	
-//		@Test
+	
+	@Test @Disabled
 	public void printJVMInfo() {
 		Enumeration<Object> keys = p.keys();
 
 		while (keys.hasMoreElements()) {
 			String key = (String) keys.nextElement();
 			String value = (String) p.get(key);
-			
+
 			if (logger.isLoggable(Level.FINE)) {
 				logger.fine(key + ": " + value);
 			}
