@@ -2112,6 +2112,7 @@ private boolean doPrepExec(TDSWriter tdsWriter, Parameter[] params, boolean hasN
 			if(this instanceof SQLServerCallableStatement)
 			{
 				SQLServerParameterMetaData pmd = (SQLServerParameterMetaData) this.getParameterMetaData();
+				pmd.isTVP = true;
 				try {
 					String tvpNameWithoutSchema = pmd.getParameterTypeName(n);
 					String tvpSchema = pmd.getTVPSchemaFromStoredProcedure(n);
