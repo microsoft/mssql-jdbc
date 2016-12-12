@@ -59,6 +59,8 @@ public final class SQLServerParameterMetaData implements ParameterMetaData {
 
 	static private int baseID = 0;	// Unique id generator for each  instance (used for logging).
 	final private String traceID = " SQLServerParameterMetaData:"  + nextInstanceID();
+	boolean isTVP = false;
+	
 	// Returns unique id for each instance.
 	private synchronized static int nextInstanceID()
 	{
@@ -662,7 +664,8 @@ public final class SQLServerParameterMetaData implements ParameterMetaData {
 	/*L2*/ private void verifyParameterPosition(int param) throws SQLServerException {
 		boolean bFound=false;
 		try {
-			if(((SQLServerPreparedStatement)stmtParent).bReturnValueSyntax){
+			if(((SQLServerPreparedStatement)stmtParent).bReturnValueSyntax 
+					&& isTVP){
 				bFound = rsProcedureMeta.absolute(param);
 			}
 			else{
