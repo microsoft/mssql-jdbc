@@ -253,6 +253,8 @@ public class SQLServerConnection implements ISQLServerConnection
 	final String getResponseBuffering() { return responseBuffering; } 
 	private int queryTimeoutSeconds ;
 	final int getQueryTimeoutSeconds() { return queryTimeoutSeconds; }
+	private int socketTimeoutSeconds ;
+	final int getSocketTimeoutSeconds() { return socketTimeoutSeconds; }
 
 	private boolean sendTimeAsDatetime = SQLServerDriverBooleanProperty.SEND_TIME_AS_DATETIME.getDefaultValue();
 
@@ -1435,15 +1437,15 @@ public class SQLServerConnection implements ISQLServerConnection
 			}
 
 			sPropKey = SQLServerDriverIntProperty.LOCK_TIMEOUT.toString();
-			int defaultTimeOut = SQLServerDriverIntProperty.LOCK_TIMEOUT.getDefaultValue();
-			nLockTimeout = defaultTimeOut; //Wait forever
+			int defaultLockTimeOut = SQLServerDriverIntProperty.LOCK_TIMEOUT.getDefaultValue();
+			nLockTimeout = defaultLockTimeOut; //Wait forever
 			if (activeConnectionProperties.getProperty(sPropKey) != null  && 
 					activeConnectionProperties.getProperty(sPropKey).length() > 0)
 			{
 				try
 				{
 					int n = (new Integer(activeConnectionProperties.getProperty(sPropKey))).intValue();
-					if (n>=defaultTimeOut)
+					if (n>=defaultLockTimeOut)
 						nLockTimeout = n;
 					else
 					{
@@ -1469,7 +1471,7 @@ public class SQLServerConnection implements ISQLServerConnection
 				try
 				{
 					int n = (new Integer(activeConnectionProperties.getProperty(sPropKey))).intValue();
-					if (n>=defaultTimeOut){
+					if (n>=defaultQueryTimeout){
 						queryTimeoutSeconds = n;
 					}
 					else
@@ -1482,6 +1484,33 @@ public class SQLServerConnection implements ISQLServerConnection
 				catch (NumberFormatException e)
 				{
 					MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidQueryTimeout"));
+					Object[] msgArgs = {activeConnectionProperties.getProperty(sPropKey)};
+					SQLServerException.makeFromDriverError(this, this, form.format(msgArgs), null, false);
+				}
+			}
+
+			sPropKey = SQLServerDriverIntProperty.SOCKET_TIMEOUT.toString();
+			int defaultSocketTimeout = SQLServerDriverIntProperty.SOCKET_TIMEOUT.getDefaultValue();
+			socketTimeoutSeconds  = defaultSocketTimeout; //Wait forever
+			if (activeConnectionProperties.getProperty(sPropKey) != null  && 
+					activeConnectionProperties.getProperty(sPropKey).length() > 0)
+			{
+				try
+				{
+					int n = (new Integer(activeConnectionProperties.getProperty(sPropKey))).intValue();
+					if (n>=defaultSocketTimeout){
+						socketTimeoutSeconds = n;
+					}
+					else
+					{
+						MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidSocketTimeout"));
+						Object[] msgArgs = {activeConnectionProperties.getProperty(sPropKey)};
+						SQLServerException.makeFromDriverError(this, this, form.format(msgArgs), null, false);
+					}
+				}
+				catch (NumberFormatException e)
+				{
+					MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidSocketTimeout"));
 					Object[] msgArgs = {activeConnectionProperties.getProperty(sPropKey)};
 					SQLServerException.makeFromDriverError(this, this, form.format(msgArgs), null, false);
 				}

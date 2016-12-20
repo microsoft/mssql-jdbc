@@ -200,6 +200,7 @@ public final class SQLServerResource extends ListResourceBundle
 				{"R_sendTimeAsDatetimePropertyDescription", "Determines whether to use the SQL Server datetime data type to send java.sql.Time values to the database."},
 				{"R_TransparentNetworkIPResolutionPropertyDescription", "Determines whether to use the Transparent Network IP Resolution feature."},
 				{"R_queryTimeoutPropertyDescription", "The number of seconds to wait before the database reports a query time-out."},
+				{"R_socketTimeoutPropertyDescription", "The number of milliseconds to wait before the java.net.SocketTimeoutException is raised."},
 				{"R_noParserSupport", "An error occurred while instantiating the required parser. Error: \"{0}\""},
 				{"R_writeOnlyXML", "Cannot read from this SQLXML instance. This instance is for writing data only."},
 				{"R_dataHasBeenReadXML", "Cannot read from this SQLXML instance. The data has already been read."},
@@ -382,6 +383,7 @@ public final class SQLServerResource extends ListResourceBundle
 				{"R_invalidServerCursorForTVP" , "Use different Connection for source ResultSet and prepared query, if selectMethod is set to cursor for Table-Valued Parameter."},
 				{"R_TVPnotWorkWithSetObjectResultSet" , "setObject() with ResultSet is not supported for Table-Valued Parameter. Please use setStructured()"},
 				{"R_invalidQueryTimeout", "The queryTimeout {0} is not valid."},
+				{"R_invalidSocketTimeout", "The socketTimeout {0} is not valid."},
 		};
 }
 
