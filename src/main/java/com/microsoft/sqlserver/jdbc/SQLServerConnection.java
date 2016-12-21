@@ -253,8 +253,8 @@ public class SQLServerConnection implements ISQLServerConnection
 	final String getResponseBuffering() { return responseBuffering; } 
 	private int queryTimeoutSeconds ;
 	final int getQueryTimeoutSeconds() { return queryTimeoutSeconds; }
-	private int socketTimeoutSeconds ;
-	final int getSocketTimeoutSeconds() { return socketTimeoutSeconds; }
+	private int socketTimeoutMilliseconds ;
+	final int getSocketTimeoutMilliseconds() { return socketTimeoutMilliseconds; }
 
 	private boolean sendTimeAsDatetime = SQLServerDriverBooleanProperty.SEND_TIME_AS_DATETIME.getDefaultValue();
 
@@ -1491,7 +1491,7 @@ public class SQLServerConnection implements ISQLServerConnection
 
 			sPropKey = SQLServerDriverIntProperty.SOCKET_TIMEOUT.toString();
 			int defaultSocketTimeout = SQLServerDriverIntProperty.SOCKET_TIMEOUT.getDefaultValue();
-			socketTimeoutSeconds  = defaultSocketTimeout; //Wait forever
+			socketTimeoutMilliseconds  = defaultSocketTimeout; //Wait forever
 			if (activeConnectionProperties.getProperty(sPropKey) != null  && 
 					activeConnectionProperties.getProperty(sPropKey).length() > 0)
 			{
@@ -1499,7 +1499,7 @@ public class SQLServerConnection implements ISQLServerConnection
 				{
 					int n = (new Integer(activeConnectionProperties.getProperty(sPropKey))).intValue();
 					if (n>=defaultSocketTimeout){
-						socketTimeoutSeconds = n;
+						socketTimeoutMilliseconds = n;
 					}
 					else
 					{
