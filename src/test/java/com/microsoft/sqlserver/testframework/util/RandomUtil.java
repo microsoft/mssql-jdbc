@@ -1,21 +1,40 @@
-/*
- * Microsoft JDBC Driver for SQL Server
- * 
- * Copyright(c) 2016 Microsoft Corporation
- * All rights reserved.
- * 
- * This program is made available under the terms of the MIT License.
- * See the LICENSE file in the project root for more information.
- */
+//---------------------------------------------------------------------------------------------------------------------------------
+// File: RandomUtil.java
+//
+//
+// Microsoft JDBC Driver for SQL Server
+// Copyright(c) Microsoft Corporation
+// All rights reserved.
+// MIT License
+// Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files(the "Software"), 
+//  to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, 
+//  and / or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions :
+// The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
+// THE SOFTWARE IS PROVIDED *AS IS*, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, 
+//  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER 
+//  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS 
+//  IN THE SOFTWARE.
+//---------------------------------------------------------------------------------------------------------------------------------
+ 
+
 package com.microsoft.sqlserver.testframework.util;
 
 import java.util.UUID;
-import java.util.concurrent.ThreadLocalRandom;
 
 /**
  * Utility Class
  */
 public class RandomUtil {
+
+	static int _maxIdentifier = 128;	// Max identifier allowed by SQL Server
+
+	static public String getIdentifier(String prefix) {
+		return getIdentifier(prefix, _maxIdentifier, true, false);
+	}
+
+	public static String getIdentifierForDB(String prefix) {
+		return getIdentifierForDB(prefix, _maxIdentifier, true);
+	}
 
 	/**
 	 * 
@@ -25,7 +44,7 @@ public class RandomUtil {
 	 * @param isDatabase	Do you want for db name. 
 	 * @return
 	 */
-	public String getIdentifier(String prefix, int maxLength, boolean unique, boolean isDatabase) {
+	static public String getIdentifier(String prefix, int maxLength, boolean unique, boolean isDatabase) {
 		String identifier;
 		StringBuilder sb = new StringBuilder();
 		sb.append(prefix);
@@ -53,12 +72,12 @@ public class RandomUtil {
 	 * @param unique		Includes UUID.	
 	 * @return
 	 */
-	public String getIdentifierForDB(String prefix, int maxLength, boolean unique) {
+	public static String getIdentifierForDB(String prefix, int maxLength, boolean unique) {
 		String identifier = getIdentifier(prefix, maxLength, unique, true);
 
 		return removeInvalidDBChars(identifier);
 	}
-	
+
 	/**
 	 * 
 	 * @param prefix		Prefix
@@ -66,7 +85,7 @@ public class RandomUtil {
 	 * @param isDatabase	Do you want for db name. 
 	 * @return
 	 */
-	public String getUniqueIdentifier(String prefix, int maxLength, boolean isDatabase) {
+	public static String getUniqueIdentifier(String prefix, int maxLength, boolean isDatabase) {
 		return getIdentifier(prefix, maxLength, true, isDatabase);
 	}
 
@@ -75,46 +94,8 @@ public class RandomUtil {
 	 * @param s
 	 * @return
 	 */
-	private String removeInvalidDBChars(String s) {
+	private static String removeInvalidDBChars(String s) {
 		return s.replaceAll("[:-]", "_");
 	}
-	
-	public Integer getMaxInteger() {
-		return new Integer(Integer.MAX_VALUE);
-	}
-	
-	public Integer getMinInteger() {
-		return new Integer(Integer.MIN_VALUE);
-	}
-	
-	/**
-	 * Get Random int
-	 * @param min
-	 * @param max
-	 * @return
-	 */
-	public int getRandomInt(int min, int max) {
-		return ThreadLocalRandom.current().nextInt(min, max);
-	}
-	
-	/**
-	 * Get Random double
-	 * @param min
-	 * @param max
-	 * @return
-	 */
-	public double getRandomDouble(double min, double max) {
-		return ThreadLocalRandom.current().nextDouble(min, max);
-	}
-	
-	/**
-	 * Get Random long.
-	 * @param min
-	 * @param max
-	 * @return
-	 */
-	public long getRandomLong(long min, long max) {
-		return ThreadLocalRandom.current().nextLong(min, max);
-	}
-	
+
 }

@@ -1,5 +1,5 @@
 //---------------------------------------------------------------------------------------------------------------------------------
-// File: PrepUtil.java
+// File: DBStatement.java
 //
 //
 // Microsoft JDBC Driver for SQL Server
@@ -19,45 +19,81 @@
 
 package com.microsoft.sqlserver.testframework;
 
-import java.sql.DriverManager;
+import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.Properties;
+import java.sql.Statement;
 
 import com.microsoft.sqlserver.jdbc.SQLServerConnection;
 
 /**
- * Utility Class for Tests.
- * This will contains methods like Create Table, Drop Table, Initialize connection, create statement etc. logger settings etc.
+ * wrapper method for Statement object
+ * @author Microsoft
+ *
  */
-public class PrepUtil {
+public class DBStatement extends AbstractParentWrapper {
+
+	// TODO: support PreparedStatement and CallableStatement
+	// TODO: add stmt level holdability 
+	// TODO: support IDENTITY column and  stmt.getGeneratedKeys()
 	
-	private PrepUtil() {
-		//Just hide to restrict constructor invocation.
+	Statement statement = null;
+	DBResultSet dbresultSet = null;
+
+	DBStatement(DBConnection dbConnection) {
+		super(dbConnection, null, "statement");
+	}
+
+	DBStatement statement() {
+		return this;
+	}
+
+	DBStatement createStatement() {
+		try {
+			// TODO: add cursor and holdability
+			statement = ((SQLServerConnection) parent().product()).createStatement();
+			setInternal(statement);
+		} catch (Exception ex) {
+			ex.printStackTrace();
+		}
+		return this;
 	}
 
 	/**
-	 * It will create {@link SQLServerConnection}
-	 * TODO : Think of AE functionality on off etc.
-	 * @param connectionString
-	 * @param info
-	 * @return {@link SQLServerConnection}
+	 * 
+	 * @param sql query to execute
+	 * @return DBResultSet
 	 * @throws SQLException
-	 * @throws ClassNotFoundException
 	 */
-	public static SQLServerConnection getConnection(String connectionString, Properties info) throws SQLException, ClassNotFoundException{
-		Class.forName("com.microsoft.sqlserver.jdbc.SQLServerDriver");
-		return (SQLServerConnection)DriverManager.getConnection(connectionString, info);
+	public DBResultSet executeQuery(String sql) throws SQLException {
+		ResultSet rs = null;
+		rs = statement.executeQuery(sql);
+		dbresultSet = new DBResultSet(this, rs);
+		return dbresultSet;
 	}
-	
+
 	/**
-	 * It will create {@link SQLServerConnection}
-	 * @param connectionString
-	 * @return {@link SQLServerConnection}
+	 * 
+	 * @param sql query to execute
+	 * @return <code>true</code> if ResultSet is returned
 	 * @throws SQLException
-	 * @throws ClassNotFoundException 
 	 */
-	public static SQLServerConnection getConnection(String connectionString) throws SQLException, ClassNotFoundException{
-		return getConnection(connectionString, null);
+	public boolean execute(String sql) throws SQLException {
+		return statement.execute(sql);
+	}
+
+	/**
+	 * Close the <code>Statement</code> and <code>ResultSet</code> associated with it
+	 * @throws SQLException
+	 */
+	public void close() throws SQLException
+	{
+		if(null!=((ResultSet)dbresultSet.product()))
+			((ResultSet)dbresultSet.product()).close();
+		statement.close();
 	}
 	
+	@Override
+	void setInternal(Object internal) {
+		this.internal = internal;
+	}
 }

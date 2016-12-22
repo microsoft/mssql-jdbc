@@ -1,5 +1,5 @@
 //---------------------------------------------------------------------------------------------------------------------------------
-// File: PrepUtil.java
+// File: SqlTinyInt.java
 //
 //
 // Microsoft JDBC Driver for SQL Server
@@ -17,47 +17,25 @@
 //---------------------------------------------------------------------------------------------------------------------------------
  
 
-package com.microsoft.sqlserver.testframework;
+package com.microsoft.sqlserver.testframework.sqlType;
 
-import java.sql.DriverManager;
-import java.sql.SQLException;
-import java.util.Properties;
+import java.sql.JDBCType;
+import java.util.concurrent.ThreadLocalRandom;
 
-import com.microsoft.sqlserver.jdbc.SQLServerConnection;
+public class SqlTinyInt extends SqlNumber {
 
-/**
- * Utility Class for Tests.
- * This will contains methods like Create Table, Drop Table, Initialize connection, create statement etc. logger settings etc.
- */
-public class PrepUtil {
-	
-	private PrepUtil() {
-		//Just hide to restrict constructor invocation.
+	public SqlTinyInt() {
+		super("tinyint", 
+				JDBCType.TINYINT, 
+				3,	//precision
+				0,	//scale
+				SqlTypeValue.TINYINT.minValue,
+				SqlTypeValue.TINYINT.maxValue,
+				SqlTypeValue.TINYINT.nullValue);
 	}
 
-	/**
-	 * It will create {@link SQLServerConnection}
-	 * TODO : Think of AE functionality on off etc.
-	 * @param connectionString
-	 * @param info
-	 * @return {@link SQLServerConnection}
-	 * @throws SQLException
-	 * @throws ClassNotFoundException
-	 */
-	public static SQLServerConnection getConnection(String connectionString, Properties info) throws SQLException, ClassNotFoundException{
-		Class.forName("com.microsoft.sqlserver.jdbc.SQLServerDriver");
-		return (SQLServerConnection)DriverManager.getConnection(connectionString, info);
+	public Object createdata() {
+		//TODO: include max value
+		return new Short((short) ThreadLocalRandom.current().nextInt((short) minvalue, ((short) maxvalue)));
 	}
-	
-	/**
-	 * It will create {@link SQLServerConnection}
-	 * @param connectionString
-	 * @return {@link SQLServerConnection}
-	 * @throws SQLException
-	 * @throws ClassNotFoundException 
-	 */
-	public static SQLServerConnection getConnection(String connectionString) throws SQLException, ClassNotFoundException{
-		return getConnection(connectionString, null);
-	}
-	
 }
