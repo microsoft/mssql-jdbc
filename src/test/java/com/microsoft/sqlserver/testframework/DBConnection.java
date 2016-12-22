@@ -1,5 +1,5 @@
 //---------------------------------------------------------------------------------------------------------------------------------
-// File: PrepUtil.java
+// File: DBConnection.java
 //
 //
 // Microsoft JDBC Driver for SQL Server
@@ -19,45 +19,54 @@
 
 package com.microsoft.sqlserver.testframework;
 
-import java.sql.DriverManager;
 import java.sql.SQLException;
-import java.util.Properties;
 
 import com.microsoft.sqlserver.jdbc.SQLServerConnection;
 
-/**
- * Utility Class for Tests.
- * This will contains methods like Create Table, Drop Table, Initialize connection, create statement etc. logger settings etc.
+/*
+ * Wrapper class for SQLServerConnection
  */
-public class PrepUtil {
+public class DBConnection extends AbstractParentWrapper{
+
+	// TODO: add Isolation Level
+	// TODO: add auto commit
+	// TODO: add connection Savepoint and rollback
+	// TODO: add additional connection properties
+	// TODO: add DataSource support
+	private SQLServerConnection connection = null;
 	
-	private PrepUtil() {
-		//Just hide to restrict constructor invocation.
+	public DBConnection()
+	{
+		super(null, null, "connection");
+	}
+	
+	/**
+	 * establish connection
+	 * @param connectionString
+	 */
+	public void getConnection(String connectionString) {
+		try {
+			connection = PrepUtil.getConnection(connectionString);
+			setInternal(connection);
+		} catch (ClassNotFoundException e) {
+			e.printStackTrace();
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
 	}
 
-	/**
-	 * It will create {@link SQLServerConnection}
-	 * TODO : Think of AE functionality on off etc.
-	 * @param connectionString
-	 * @param info
-	 * @return {@link SQLServerConnection}
-	 * @throws SQLException
-	 * @throws ClassNotFoundException
-	 */
-	public static SQLServerConnection getConnection(String connectionString, Properties info) throws SQLException, ClassNotFoundException{
-		Class.forName("com.microsoft.sqlserver.jdbc.SQLServerDriver");
-		return (SQLServerConnection)DriverManager.getConnection(connectionString, info);
+	@Override
+	void setInternal(Object internal){
+		this.internal = internal;
 	}
 	
 	/**
-	 * It will create {@link SQLServerConnection}
-	 * @param connectionString
-	 * @return {@link SQLServerConnection}
-	 * @throws SQLException
-	 * @throws ClassNotFoundException 
+	 * 
+	 * @return Statement wrapper
 	 */
-	public static SQLServerConnection getConnection(String connectionString) throws SQLException, ClassNotFoundException{
-		return getConnection(connectionString, null);
+	public DBStatement createStatement() {
+		DBStatement dbstatement = new DBStatement(this);
+		return dbstatement.createStatement();
 	}
 	
 }
