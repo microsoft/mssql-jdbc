@@ -29,5 +29,5 @@ public interface SQLServerKeyVaultAuthenticationCallback{
 	 * @param scope - The scope of the authentication request.
 	 * @return access token
 	 */
-	public String getAccessToken(String authority, String resource, String scope);
+    String getAccessToken(String authority, String resource, String scope);
 }

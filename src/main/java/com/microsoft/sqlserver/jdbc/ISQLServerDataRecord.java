@@ -31,14 +31,14 @@ public interface ISQLServerDataRecord
 	 * @param column the first column is 1, the second is 2, and so on
 	 * @return SQLServerMetaData of column
 	 */
-	public SQLServerMetaData getColumnMetaData(int column);
+    SQLServerMetaData getColumnMetaData(int column);
 	
     /**
      * Get the column count.
      * 
      * @return Set of ordinals for the columns.
      */
-    public int getColumnCount();
+    int getColumnCount();
             
     /**
      * Gets the data for the current row as an array of Objects.
@@ -49,13 +49,13 @@ public interface ISQLServerDataRecord
      * 
      * @return The data for the row.
      */
-    public Object[] getRowData();
+    Object[] getRowData();
     
     /**
      * Advances to the next data row.
      * 
      * @return True if rows are available; false if there are no more rows
      */
-    public boolean next();	
+    boolean next();
 }
 

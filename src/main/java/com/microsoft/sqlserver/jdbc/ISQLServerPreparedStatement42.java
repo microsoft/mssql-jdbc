@@ -27,9 +27,9 @@ import java.sql.SQLType;
  */
 public interface ISQLServerPreparedStatement42 extends ISQLServerPreparedStatement{
 
-	public void setObject(int index, Object obj, SQLType jdbcType) throws SQLServerException;
+	void setObject(int index, Object obj, SQLType jdbcType) throws SQLServerException;
 
-	public void setObject(int parameterIndex, Object x, SQLType targetSqlType, int scaleOrLength) throws SQLServerException;
+	void setObject(int parameterIndex, Object x, SQLType targetSqlType, int scaleOrLength) throws SQLServerException;
 
 	/**
      * Sets the value of the designated parameter with the given object.
@@ -49,7 +49,7 @@ public interface ISQLServerPreparedStatement42 extends ISQLServerPreparedStateme
      * parameter marker in the SQL statement; if a database access error occurs
      * or this method is called on a closed {@code PreparedStatement}
      */
-	public void setObject(int parameterIndex, Object x, SQLType targetSqlType, Integer precision, Integer scale) throws SQLServerException;
+    void setObject(int parameterIndex, Object x, SQLType targetSqlType, Integer precision, Integer scale) throws SQLServerException;
 
 	/**
      * Sets the value of the designated parameter with the given object.
@@ -71,5 +71,5 @@ public interface ISQLServerPreparedStatement42 extends ISQLServerPreparedStateme
      * parameter marker in the SQL statement; if a database access error occurs
      * or this method is called on a closed {@code PreparedStatement}
      */
-	public void setObject(int parameterIndex, Object x, SQLType targetSqlType, Integer precision, Integer scale, boolean forceEncrypt) throws SQLServerException;
+    void setObject(int parameterIndex, Object x, SQLType targetSqlType, Integer precision, Integer scale, boolean forceEncrypt) throws SQLServerException;
 }

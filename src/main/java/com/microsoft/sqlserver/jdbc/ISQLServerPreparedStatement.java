@@ -32,6 +32,6 @@ public interface ISQLServerPreparedStatement extends java.sql.PreparedStatement,
      * marker in the SQL statement; if a database access error occurs or
      * this method is called on a closed <code>PreparedStatement</code>
 	 */
-    public void setDateTimeOffset(int parameterIndex, microsoft.sql.DateTimeOffset x)  throws SQLException;
+    void setDateTimeOffset(int parameterIndex, microsoft.sql.DateTimeOffset x)  throws SQLException;
 }
 

@@ -29,7 +29,7 @@ public interface ISQLServerConnection extends java.sql.Connection
 {
     // Transaction types.
 	// TRANSACTION_SNAPSHOT corresponds to -> SET TRANSACTION ISOLATION LEVEL SNAPSHOT
-	public final static int TRANSACTION_SNAPSHOT = 0x1000;
+    int TRANSACTION_SNAPSHOT = 0x1000;
 	
 	/**
 	 * Gets the connection ID of the most recent connection attempt, regardless of whether the attempt succeeded or failed.
@@ -37,6 +37,6 @@ public interface ISQLServerConnection extends java.sql.Connection
 	 * failure after the connection request is initiated and the pre-login handshake.
 	 * @throws SQLException If any errors occur.
 	 */
-	public UUID getClientConnectionId() throws SQLException;
+    UUID getClientConnectionId() throws SQLException;
 }
 

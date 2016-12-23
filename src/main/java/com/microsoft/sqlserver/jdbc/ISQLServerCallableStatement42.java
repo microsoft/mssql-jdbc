@@ -27,11 +27,11 @@ import java.sql.SQLType;
  */
 public interface ISQLServerCallableStatement42 extends ISQLServerCallableStatement, ISQLServerPreparedStatement42{
 
-	public void registerOutParameter(int index, SQLType sqlType) throws SQLServerException;
+	void registerOutParameter(int index, SQLType sqlType) throws SQLServerException;
 
-	public void registerOutParameter (int index, SQLType sqlType, String typeName) throws SQLServerException;
+	void registerOutParameter(int index, SQLType sqlType, String typeName) throws SQLServerException;
 
-	public void registerOutParameter(int index, SQLType sqlType, int scale) throws SQLServerException;
+	void registerOutParameter(int index, SQLType sqlType, int scale) throws SQLServerException;
 
 	/**
 	 * Registers the parameter in ordinal position index to be of JDBC type sqlType. All OUT parameters must be registered before a stored procedure is executed.
@@ -44,11 +44,11 @@ public interface ISQLServerCallableStatement42 extends ISQLServerCallableStateme
 	 * @param scale the desired number of digits to the right of the decimal point. It must be greater than or equal to zero.
 	 * @throws SQLServerException If any errors occur.
 	 */
-	public void registerOutParameter(int index, SQLType sqlType, int precision, int scale) throws SQLServerException;
+    void registerOutParameter(int index, SQLType sqlType, int precision, int scale) throws SQLServerException;
 
-	public void setObject(String sCol, Object obj, SQLType jdbcType) throws SQLServerException;
+	void setObject(String sCol, Object obj, SQLType jdbcType) throws SQLServerException;
 
-	public void setObject(String sCol, Object obj, SQLType jdbcType, int scale) throws SQLServerException;
+	void setObject(String sCol, Object obj, SQLType jdbcType, int scale) throws SQLServerException;
 
 	/**
 	 * Sets the value of the designated parameter with the given object.
@@ -60,11 +60,11 @@ public interface ISQLServerCallableStatement42 extends ISQLServerCallableStateme
 	 * @param forceEncrypt true if force encryption is on, false if force encryption is off
 	 * @throws SQLServerException If any errors occur.
 	 */
-	public void setObject(String sCol, Object obj, SQLType jdbcType, int scale, boolean forceEncrypt) throws SQLServerException;
+    void setObject(String sCol, Object obj, SQLType jdbcType, int scale, boolean forceEncrypt) throws SQLServerException;
 
-	public void registerOutParameter(String parameterName, SQLType sqlType, String typeName) throws SQLServerException;
+	void registerOutParameter(String parameterName, SQLType sqlType, String typeName) throws SQLServerException;
 
-	public void registerOutParameter(String parameterName, SQLType sqlType, int scale) throws SQLServerException;
+	void registerOutParameter(String parameterName, SQLType sqlType, int scale) throws SQLServerException;
 
 	/**
 	 * Registers the parameter in ordinal position index to be of JDBC type sqlType. All OUT parameters must be registered before a stored procedure is executed.
@@ -77,7 +77,7 @@ public interface ISQLServerCallableStatement42 extends ISQLServerCallableStateme
 	 * @param scale the desired number of digits to the right of the decimal point. It must be greater than or equal to zero.
 	 * @throws SQLServerException If any errors occur.
 	 */
-	public void registerOutParameter(String parameterName, SQLType sqlType, int precision, int scale) throws SQLServerException;
+    void registerOutParameter(String parameterName, SQLType sqlType, int precision, int scale) throws SQLServerException;
 
-	public void registerOutParameter(String parameterName, SQLType sqlType) throws SQLServerException;
+	void registerOutParameter(String parameterName, SQLType sqlType) throws SQLServerException;
 }

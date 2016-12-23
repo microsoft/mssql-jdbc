@@ -32,7 +32,7 @@ public interface ISQLServerBulkRecord
      * 
      * @return Set of ordinals for the columns.
      */
-    public Set<Integer> getColumnOrdinals();
+    Set<Integer> getColumnOrdinals();
     
     /**
      * Get the name of the given column.
@@ -40,7 +40,7 @@ public interface ISQLServerBulkRecord
      * @param column Column ordinal
      * @return Name of the column
      */
-    public String getColumnName(int column);
+    String getColumnName(int column);
     
     /**
      * Get the JDBC data type of the given column.
@@ -48,7 +48,7 @@ public interface ISQLServerBulkRecord
      * @param column Column ordinal
      * @return JDBC data type of the column
      */
-    public int getColumnType(int column);
+    int getColumnType(int column);
     
     /**
      * Get the precision for the given column.
@@ -56,7 +56,7 @@ public interface ISQLServerBulkRecord
      * @param column Column ordinal
      * @return Precision of the column
      */
-    public int getPrecision(int column);
+    int getPrecision(int column);
     
     /**
      * Get the scale for the given column.
@@ -64,7 +64,7 @@ public interface ISQLServerBulkRecord
      * @param column Column ordinal
      * @return Scale of the column
      */
-    public int getScale(int column);
+    int getScale(int column);
     
     /**
      * Indicates whether the column represents an identity column.
@@ -72,7 +72,7 @@ public interface ISQLServerBulkRecord
      * @param column Column ordinal
      * @return True if the column is an identity column; false otherwise.
      */
-    public boolean isAutoIncrement(int column);
+    boolean isAutoIncrement(int column);
     
     /**
      * Gets the data for the current row as an array of Objects.
@@ -84,7 +84,7 @@ public interface ISQLServerBulkRecord
      * @return The data for the row.
 	 * @throws SQLServerException If there are any errors in obtaining the data.
      */
-    public Object[] getRowData() throws SQLServerException;
+    Object[] getRowData() throws SQLServerException;
     
     /**
      * Advances to the next data row.
@@ -92,5 +92,5 @@ public interface ISQLServerBulkRecord
      * @return True if rows are available; false if there are no more rows
      * @throws SQLServerException If there are any errors in advancing to the next row.
      */
-    public boolean next() throws SQLServerException;
+    boolean next() throws SQLServerException;
 }

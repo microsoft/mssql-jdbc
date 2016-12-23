@@ -31,7 +31,7 @@ public interface SQLGeneratorIF {
 	 * @param tableName table name
 	 * @return
 	 */
-	public String isTableExist(String tableName);
+    String isTableExist(String tableName);
 	
 	/**
 	 * Checking if column exists or not
@@ -39,21 +39,21 @@ public interface SQLGeneratorIF {
 	 * @param columnName ColumnName
 	 * @return boolean 
 	 */
-	public String isColumnExists(String tableName, String columnName);
+    String isColumnExists(String tableName, String columnName);
 	
 	/**
 	 * This will give you actual query for create table.
 	 * @param table {@link DBTable}
 	 * @return SQL Query in String
 	 */
-	public String createTable(DBTable table);
+    String createTable(DBTable table);
 	
 	/**
 	 * This will give you query for Drop Table. 
 	 * @param tableName
 	 * @return Query in String
 	 */
-	public String dropTable(String tableName);
+    String dropTable(String tableName);
 
 
 	/**
@@ -62,7 +62,7 @@ public interface SQLGeneratorIF {
 	 * @param values {@link DBValue}
 	 * @return Query in String
 	 */
-	public String insertData(String tableName, DBValue[] values);
+    String insertData(String tableName, DBValue[] values);
 	
 	/**
 	 * Creates query for inserting data
@@ -70,5 +70,5 @@ public interface SQLGeneratorIF {
 	 * @param lstValues {@link List}
 	 * @return  Query in String
 	 */
-	public String insertData(String tableName, List<Object> lstValues);
+    String insertData(String tableName, List<Object> lstValues);
 }

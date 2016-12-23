@@ -27,9 +27,9 @@ import java.sql.SQLType;
  */
 public interface ISQLServerResultSet42 extends ISQLServerResultSet{
 
-	public void updateObject(int index, Object obj, SQLType targetSqlType) throws SQLServerException;
+	void updateObject(int index, Object obj, SQLType targetSqlType) throws SQLServerException;
 
-	public void updateObject(int index, Object obj, SQLType targetSqlType, int scale) throws SQLServerException;
+	void updateObject(int index, Object obj, SQLType targetSqlType, int scale) throws SQLServerException;
 
 	/**
 	 * Updates the designated column with an Object value. The updater methods are used to update column values in the current row or the insert row. 
@@ -48,9 +48,9 @@ public interface ISQLServerResultSet42 extends ISQLServerResultSet{
 	 *  encryption on parameters.
 	 * @throws SQLServerException If any errors occur.
 	 */
-	public void updateObject(int index, Object obj, SQLType targetSqlType, int scale, boolean forceEncrypt) throws SQLServerException;
+    void updateObject(int index, Object obj, SQLType targetSqlType, int scale, boolean forceEncrypt) throws SQLServerException;
 
-	public void updateObject(String columnName, Object obj, SQLType targetSqlType, int scale) throws SQLServerException;
+	void updateObject(String columnName, Object obj, SQLType targetSqlType, int scale) throws SQLServerException;
 
 	/**
 	 * 
@@ -70,7 +70,7 @@ public interface ISQLServerResultSet42 extends ISQLServerResultSet{
 	 *  encryption on parameters.
 	 * @throws SQLServerException If any errors occur.
 	 */
-	public void updateObject(String columnName, Object obj, SQLType targetSqlType, int scale, boolean forceEncrypt) throws SQLServerException;
+    void updateObject(String columnName, Object obj, SQLType targetSqlType, int scale, boolean forceEncrypt) throws SQLServerException;
 
-	public void updateObject(String columnName, Object obj, SQLType targetSqlType) throws SQLServerException;
+	void updateObject(String columnName, Object obj, SQLType targetSqlType) throws SQLServerException;
 }

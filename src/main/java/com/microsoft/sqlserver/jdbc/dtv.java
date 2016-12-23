@@ -3288,7 +3288,7 @@ final class TypeInfo
 			 * @param tdsReader the TDSReader used to set the fields of typeInfo to the correct values
 			 * @throws SQLServerException when an error occurs
 			 */
-			public void apply(TypeInfo typeInfo, TDSReader tdsReader) throws SQLServerException;
+			void apply(TypeInfo typeInfo, TDSReader tdsReader) throws SQLServerException;
 		}
 
 		private static final class FixedLenStrategy implements Strategy
