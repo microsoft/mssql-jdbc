@@ -35,16 +35,21 @@ public class DBConnection extends AbstractParentWrapper{
 	// TODO: add DataSource support
 	private SQLServerConnection connection = null;
 	
-	public DBConnection()
+	/**
+	 * establishes connection using the input
+	 * @param connectionString
+	 */
+	public DBConnection(String connectionString)
 	{
 		super(null, null, "connection");
+		getConnection(connectionString);
 	}
 	
 	/**
 	 * establish connection
 	 * @param connectionString
 	 */
-	public void getConnection(String connectionString) {
+	void getConnection(String connectionString) {
 		try {
 			connection = PrepUtil.getConnection(connectionString);
 			setInternal(connection);

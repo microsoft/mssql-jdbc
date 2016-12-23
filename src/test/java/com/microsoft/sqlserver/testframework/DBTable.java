@@ -106,16 +106,17 @@ public class DBTable extends AbstractSQLGenerator {
 	 * create table
 	 * @param dbstatement
 	 */
-	public void createTable(DBStatement dbstatement) {
+	boolean createTable(DBStatement dbstatement) {
 		try {
 			dropTable(dbstatement);
 			String sql = createTableSql();
 			log.info(sql);
-			dbstatement.execute(sql);
+			return dbstatement.execute(sql);
 		} catch (Exception ex) {
 			//TODO: handle exception
 			ex.printStackTrace();
 		}
+		return false;
 	}
 
 	String createTableSql() {
@@ -150,16 +151,18 @@ public class DBTable extends AbstractSQLGenerator {
 	/**
 	 * populate table with values
 	 * @param dbstatement
+	 * @return 
 	 */
-	public void populateTable(DBStatement dbstatement) {
+	boolean populateTable(DBStatement dbstatement) {
 		try {
 			populateValues();
 			String sql = populateTableSql();
 			log.info(sql);
-			dbstatement.execute(sql);
+			return dbstatement.execute(sql);
 		} catch (Exception ex) {
 			ex.printStackTrace();
 		}
+		return false;
 	}
 
 	private void populateValues() {
