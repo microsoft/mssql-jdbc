@@ -1,5 +1,5 @@
 //---------------------------------------------------------------------------------------------------------------------------------
-// File: PrepUtil.java
+// File: SqlInt.java
 //
 //
 // Microsoft JDBC Driver for SQL Server
@@ -17,47 +17,26 @@
 //---------------------------------------------------------------------------------------------------------------------------------
  
 
-package com.microsoft.sqlserver.testframework;
+package com.microsoft.sqlserver.testframework.sqlType;
 
-import java.sql.DriverManager;
-import java.sql.SQLException;
-import java.util.Properties;
+import java.sql.JDBCType;
+import java.util.concurrent.ThreadLocalRandom;;
 
-import com.microsoft.sqlserver.jdbc.SQLServerConnection;
+public class SqlInt extends SqlNumber {
 
-/**
- * Utility Class for Tests.
- * This will contains methods like Create Table, Drop Table, Initialize connection, create statement etc. logger settings etc.
- */
-public class PrepUtil {
-	
-	private PrepUtil() {
-		//Just hide to restrict constructor invocation.
+	public SqlInt() {
+		super("int", 
+				JDBCType.INTEGER, 
+				10,	//Precision
+				0,	//Scale
+				SqlTypeValue.INTEGER.minValue,
+				SqlTypeValue.INTEGER.maxValue,
+				SqlTypeValue.INTEGER.nullValue);
+
 	}
 
-	/**
-	 * It will create {@link SQLServerConnection}
-	 * TODO : Think of AE functionality on off etc.
-	 * @param connectionString
-	 * @param info
-	 * @return {@link SQLServerConnection}
-	 * @throws SQLException
-	 * @throws ClassNotFoundException
-	 */
-	public static SQLServerConnection getConnection(String connectionString, Properties info) throws SQLException, ClassNotFoundException{
-		Class.forName("com.microsoft.sqlserver.jdbc.SQLServerDriver");
-		return (SQLServerConnection)DriverManager.getConnection(connectionString, info);
+	public Object createdata() {
+		//TODO: include max value
+		return new Integer(ThreadLocalRandom.current().nextInt(Integer.MIN_VALUE, Integer.MAX_VALUE));
 	}
-	
-	/**
-	 * It will create {@link SQLServerConnection}
-	 * @param connectionString
-	 * @return {@link SQLServerConnection}
-	 * @throws SQLException
-	 * @throws ClassNotFoundException 
-	 */
-	public static SQLServerConnection getConnection(String connectionString) throws SQLException, ClassNotFoundException{
-		return getConnection(connectionString, null);
-	}
-	
 }

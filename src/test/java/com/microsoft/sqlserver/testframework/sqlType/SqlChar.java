@@ -1,5 +1,5 @@
 //---------------------------------------------------------------------------------------------------------------------------------
-// File: PrepUtil.java
+// File: SqlChar.java
 //
 //
 // Microsoft JDBC Driver for SQL Server
@@ -17,47 +17,31 @@
 //---------------------------------------------------------------------------------------------------------------------------------
  
 
-package com.microsoft.sqlserver.testframework;
+package com.microsoft.sqlserver.testframework.sqlType;
 
-import java.sql.DriverManager;
-import java.sql.SQLException;
-import java.util.Properties;
+import java.sql.JDBCType;
+import java.util.concurrent.ThreadLocalRandom;
 
-import com.microsoft.sqlserver.jdbc.SQLServerConnection;
+import org.apache.commons.lang.StringEscapeUtils;
+import org.apache.commons.lang3.RandomStringUtils;
 
-/**
- * Utility Class for Tests.
- * This will contains methods like Create Table, Drop Table, Initialize connection, create statement etc. logger settings etc.
+/*
+ * Restricting the size of char/varchar to 4000 and nchar/nvarchar to 2000 
+ * to accommodate SQL Sever limitation of having of having maximum allowable table row size to 8060 
  */
-public class PrepUtil {
-	
-	private PrepUtil() {
-		//Just hide to restrict constructor invocation.
+public class SqlChar extends SqlType {
+
+	public SqlChar() {
+		this("char", JDBCType.CHAR, 4000);
 	}
 
-	/**
-	 * It will create {@link SQLServerConnection}
-	 * TODO : Think of AE functionality on off etc.
-	 * @param connectionString
-	 * @param info
-	 * @return {@link SQLServerConnection}
-	 * @throws SQLException
-	 * @throws ClassNotFoundException
-	 */
-	public static SQLServerConnection getConnection(String connectionString, Properties info) throws SQLException, ClassNotFoundException{
-		Class.forName("com.microsoft.sqlserver.jdbc.SQLServerDriver");
-		return (SQLServerConnection)DriverManager.getConnection(connectionString, info);
+	SqlChar(String name, JDBCType jdbctype, int precision) {
+		super(name, jdbctype, precision, 0, SqlTypeValue.CHAR.minValue, SqlTypeValue.CHAR.maxValue, SqlTypeValue.CHAR.nullValue, VariableLengthType.Precision);
+		generatePrecision();
 	}
-	
-	/**
-	 * It will create {@link SQLServerConnection}
-	 * @param connectionString
-	 * @return {@link SQLServerConnection}
-	 * @throws SQLException
-	 * @throws ClassNotFoundException 
-	 */
-	public static SQLServerConnection getConnection(String connectionString) throws SQLException, ClassNotFoundException{
-		return getConnection(connectionString, null);
+
+	public Object createdata() {
+		int dataLength = ThreadLocalRandom.current().nextInt(precision);
+		return StringEscapeUtils.escapeSql(RandomStringUtils.randomAscii(dataLength));
 	}
-	
 }

@@ -1,5 +1,5 @@
 //---------------------------------------------------------------------------------------------------------------------------------
-// File: PrepUtil.java
+// File: DBResultSet.java
 //
 //
 // Microsoft JDBC Driver for SQL Server
@@ -19,45 +19,65 @@
 
 package com.microsoft.sqlserver.testframework;
 
-import java.sql.DriverManager;
+import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.Properties;
-
-import com.microsoft.sqlserver.jdbc.SQLServerConnection;
 
 /**
- * Utility Class for Tests.
- * This will contains methods like Create Table, Drop Table, Initialize connection, create statement etc. logger settings etc.
+ * wrapper class for ResultSet 
+ * @author Microsoft
+ *
  */
-public class PrepUtil {
-	
-	private PrepUtil() {
-		//Just hide to restrict constructor invocation.
-	}
+public class DBResultSet extends AbstractParentWrapper{
 
-	/**
-	 * It will create {@link SQLServerConnection}
-	 * TODO : Think of AE functionality on off etc.
-	 * @param connectionString
-	 * @param info
-	 * @return {@link SQLServerConnection}
-	 * @throws SQLException
-	 * @throws ClassNotFoundException
-	 */
-	public static SQLServerConnection getConnection(String connectionString, Properties info) throws SQLException, ClassNotFoundException{
-		Class.forName("com.microsoft.sqlserver.jdbc.SQLServerDriver");
-		return (SQLServerConnection)DriverManager.getConnection(connectionString, info);
+	// TODO: add cursors
+	// TODO: add resultSet level holdability 
+	// TODO: add concurrency control
+	ResultSet resultSet = null;
+	
+	DBResultSet(DBStatement dbstatement, ResultSet internal){
+		super(dbstatement, internal, "resultSet");
+		resultSet = internal;
 	}
 	
 	/**
-	 * It will create {@link SQLServerConnection}
-	 * @param connectionString
-	 * @return {@link SQLServerConnection}
+	 * Close the ResultSet object
 	 * @throws SQLException
-	 * @throws ClassNotFoundException 
 	 */
-	public static SQLServerConnection getConnection(String connectionString) throws SQLException, ClassNotFoundException{
-		return getConnection(connectionString, null);
+	public void close() throws SQLException
+	{
+		if(null != resultSet)
+			resultSet.close();
 	}
 	
+	/**
+	 * 
+	 * @return true new row is valid
+	 * @throws SQLException
+	 */
+	public boolean next() throws SQLException
+	{
+		return resultSet.next();
+	}
+	
+	/**
+	 * 
+	 * @param index
+	 * @return Object with the column value
+	 * @throws SQLException
+	 */
+	public Object getObject(int index) throws SQLException
+	{
+		// call individual getters based on type
+		return resultSet.getObject(index);
+	}
+	
+	/**
+	 * 
+	 * @param index
+	 * @return
+	 */
+	public void updateObject(int index) throws SQLException
+	{
+		//TODO: update object based on cursor type
+	}
 }

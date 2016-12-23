@@ -1,5 +1,5 @@
 //---------------------------------------------------------------------------------------------------------------------------------
-// File: PrepUtil.java
+// File: SqlFloat.java
 //
 //
 // Microsoft JDBC Driver for SQL Server
@@ -17,47 +17,36 @@
 //---------------------------------------------------------------------------------------------------------------------------------
  
 
-package com.microsoft.sqlserver.testframework;
+package com.microsoft.sqlserver.testframework.sqlType;
 
-import java.sql.DriverManager;
-import java.sql.SQLException;
-import java.util.Properties;
+import java.sql.JDBCType;
+import java.util.concurrent.ThreadLocalRandom;
 
-import com.microsoft.sqlserver.jdbc.SQLServerConnection;
+public class SqlFloat extends SqlType {
 
-/**
- * Utility Class for Tests.
- * This will contains methods like Create Table, Drop Table, Initialize connection, create statement etc. logger settings etc.
- */
-public class PrepUtil {
-	
-	private PrepUtil() {
-		//Just hide to restrict constructor invocation.
+	// called from real
+	SqlFloat(String name, JDBCType jdbctype, int precision, Object min, Object max, Object nullvalue, VariableLengthType variableLengthType) {
+		super(name, jdbctype, precision, 0, min, max, nullvalue, variableLengthType);
+		generatePrecision();
 	}
 
-	/**
-	 * It will create {@link SQLServerConnection}
-	 * TODO : Think of AE functionality on off etc.
-	 * @param connectionString
-	 * @param info
-	 * @return {@link SQLServerConnection}
-	 * @throws SQLException
-	 * @throws ClassNotFoundException
-	 */
-	public static SQLServerConnection getConnection(String connectionString, Properties info) throws SQLException, ClassNotFoundException{
-		Class.forName("com.microsoft.sqlserver.jdbc.SQLServerDriver");
-		return (SQLServerConnection)DriverManager.getConnection(connectionString, info);
+	public SqlFloat() {
+		super("float", 
+				JDBCType.DOUBLE, 
+				53,	//default precision
+				0,	//scale
+				SqlTypeValue.FLOAT.minValue,
+				SqlTypeValue.FLOAT.maxValue,
+				SqlTypeValue.FLOAT.nullValue, 
+				VariableLengthType.Precision);
+		generatePrecision();
 	}
-	
-	/**
-	 * It will create {@link SQLServerConnection}
-	 * @param connectionString
-	 * @return {@link SQLServerConnection}
-	 * @throws SQLException
-	 * @throws ClassNotFoundException 
-	 */
-	public static SQLServerConnection getConnection(String connectionString) throws SQLException, ClassNotFoundException{
-		return getConnection(connectionString, null);
+
+	public Object createdata() {
+		//TODO: include max value
+		if (precision > 24)
+			return Double.longBitsToDouble(ThreadLocalRandom.current().nextLong(((Double) minvalue).longValue(), ((Double) maxvalue).longValue()));
+		else
+			return new Float(ThreadLocalRandom.current().nextDouble(new Float(-3.4E38), new Float(+3.4E38)));
 	}
-	
 }
