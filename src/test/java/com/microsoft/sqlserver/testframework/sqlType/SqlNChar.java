@@ -1,5 +1,5 @@
 //---------------------------------------------------------------------------------------------------------------------------------
-// File: PrepUtil.java
+// File: SqlNChar.java
 //
 //
 // Microsoft JDBC Driver for SQL Server
@@ -17,47 +17,43 @@
 //---------------------------------------------------------------------------------------------------------------------------------
  
 
-package com.microsoft.sqlserver.testframework;
+package com.microsoft.sqlserver.testframework.sqlType;
 
-import java.sql.DriverManager;
-import java.sql.SQLException;
-import java.util.Properties;
+import java.sql.JDBCType;
+import java.util.concurrent.ThreadLocalRandom;
 
-import com.microsoft.sqlserver.jdbc.SQLServerConnection;
+import org.apache.commons.lang.StringEscapeUtils;
 
-/**
- * Utility Class for Tests.
- * This will contains methods like Create Table, Drop Table, Initialize connection, create statement etc. logger settings etc.
- */
-public class PrepUtil {
-	
-	private PrepUtil() {
-		//Just hide to restrict constructor invocation.
+public class SqlNChar extends SqlChar {
+
+	SqlNChar(String name, JDBCType jdbctype, int precision) {
+		super(name, jdbctype, precision);
 	}
 
-	/**
-	 * It will create {@link SQLServerConnection}
-	 * TODO : Think of AE functionality on off etc.
-	 * @param connectionString
-	 * @param info
-	 * @return {@link SQLServerConnection}
-	 * @throws SQLException
-	 * @throws ClassNotFoundException
-	 */
-	public static SQLServerConnection getConnection(String connectionString, Properties info) throws SQLException, ClassNotFoundException{
-		Class.forName("com.microsoft.sqlserver.jdbc.SQLServerDriver");
-		return (SQLServerConnection)DriverManager.getConnection(connectionString, info);
+	public SqlNChar() {
+		this("nchar", JDBCType.NCHAR, 2000);
 	}
-	
-	/**
-	 * It will create {@link SQLServerConnection}
-	 * @param connectionString
-	 * @return {@link SQLServerConnection}
-	 * @throws SQLException
-	 * @throws ClassNotFoundException 
-	 */
-	public static SQLServerConnection getConnection(String connectionString) throws SQLException, ClassNotFoundException{
-		return getConnection(connectionString, null);
+
+	public Object createdata() {
+		int dataLength = ThreadLocalRandom.current().nextInt(precision);
+		/*
+		 Just supporting Latin character sets for now,
+		 as the entire valid code point Character.MIN_CODE_POINT to  Character.MAX_CODE_POINT has many unassigned code points
+		 CodePoints Used:
+				Basic Latin
+				Latin-1 Supplement
+			    Latin Extended-A
+			    Latin Extended-B
+		*/
+		int minCodePoint = 0x000;
+		int maxCodePoint = 0x24F;
+		StringBuilder sb = new StringBuilder();
+		for (int i = 0; i < dataLength; i++) {
+			// TODO: need to remove uassigned 
+			int rand = ThreadLocalRandom.current().nextInt(minCodePoint, maxCodePoint);
+			char c = (char) rand;
+			sb.append(c);
+		}
+		return StringEscapeUtils.escapeSql(sb.toString());
 	}
-	
 }

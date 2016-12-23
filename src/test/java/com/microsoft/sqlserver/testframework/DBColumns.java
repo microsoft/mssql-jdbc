@@ -1,5 +1,5 @@
 //---------------------------------------------------------------------------------------------------------------------------------
-// File: PrepUtil.java
+// File: DBColumns.java
 //
 //
 // Microsoft JDBC Driver for SQL Server
@@ -19,45 +19,76 @@
 
 package com.microsoft.sqlserver.testframework;
 
-import java.sql.DriverManager;
-import java.sql.SQLException;
-import java.util.Properties;
+import java.util.ArrayList;
+import java.util.List;
 
-import com.microsoft.sqlserver.jdbc.SQLServerConnection;
+import com.microsoft.sqlserver.testframework.sqlType.SqlType;
+import com.microsoft.sqlserver.testframework.util.RandomUtil;
 
 /**
- * Utility Class for Tests.
- * This will contains methods like Create Table, Drop Table, Initialize connection, create statement etc. logger settings etc.
+ * Container for all the columns
  */
-public class PrepUtil {
+class DBColumns {
+	List<DBColumn> columns;
+	int totalColumns = 0;
 	
-	private PrepUtil() {
-		//Just hide to restrict constructor invocation.
+	/**
+	 * called if autoGenerateSchema = true
+	 * @param schema
+	 */
+	DBColumns(DBSchema schema) {
+		addColumns(schema);
+	}
+	
+	/**
+	 * called if autoGenerateSchema = false 
+	 */
+	DBColumns(){
+		columns = new ArrayList<DBColumn>();
+	}
+	
+	/**
+	 * adds a columns for each SQL type in DBSchema
+	 * @param schema
+	 */
+	private void addColumns(DBSchema schema)
+	{
+		totalColumns = schema.getNumberOfSqlTypes();
+		columns = new ArrayList<DBColumn>(totalColumns);
+		
+		for(int i=0;i<totalColumns;i++)
+		{
+			SqlType sqlType = schema.getSqlType(i);
+			DBColumn column =new DBColumn(RandomUtil.getIdentifier(sqlType.getName()), sqlType); 
+			columns.add(column);
+		}
+	}
+	
+	/**
+	 * 
+	 * @return total number of columns
+	 */
+	int totalColumns(){
+		return totalColumns;
+	}
+	
+	/**
+	 * 
+	 * @param index
+	 * @return DBColumn
+	 */
+	DBColumn getColumn(int index)
+	{
+		return columns.get(index);
 	}
 
 	/**
-	 * It will create {@link SQLServerConnection}
-	 * TODO : Think of AE functionality on off etc.
-	 * @param connectionString
-	 * @param info
-	 * @return {@link SQLServerConnection}
-	 * @throws SQLException
-	 * @throws ClassNotFoundException
+	 * adds new columns based on the SqlType passed
+	 * @param sqlType
 	 */
-	public static SQLServerConnection getConnection(String connectionString, Properties info) throws SQLException, ClassNotFoundException{
-		Class.forName("com.microsoft.sqlserver.jdbc.SQLServerDriver");
-		return (SQLServerConnection)DriverManager.getConnection(connectionString, info);
-	}
-	
-	/**
-	 * It will create {@link SQLServerConnection}
-	 * @param connectionString
-	 * @return {@link SQLServerConnection}
-	 * @throws SQLException
-	 * @throws ClassNotFoundException 
-	 */
-	public static SQLServerConnection getConnection(String connectionString) throws SQLException, ClassNotFoundException{
-		return getConnection(connectionString, null);
+	void addColumn(SqlType sqlType) {
+		DBColumn column =new DBColumn(RandomUtil.getIdentifier(sqlType.getName()), sqlType); 
+		columns.add(column);
 	}
 	
 }

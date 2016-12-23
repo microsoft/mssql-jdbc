@@ -1,5 +1,5 @@
 //---------------------------------------------------------------------------------------------------------------------------------
-// File: PrepUtil.java
+// File: SqlDate.java
 //
 //
 // Microsoft JDBC Driver for SQL Server
@@ -17,47 +17,25 @@
 //---------------------------------------------------------------------------------------------------------------------------------
  
 
-package com.microsoft.sqlserver.testframework;
+package com.microsoft.sqlserver.testframework.sqlType;
 
-import java.sql.DriverManager;
-import java.sql.SQLException;
-import java.util.Properties;
+import java.sql.Date;
+import java.sql.JDBCType;
+import java.text.SimpleDateFormat;
+import java.util.concurrent.ThreadLocalRandom;
 
-import com.microsoft.sqlserver.jdbc.SQLServerConnection;
+public class SqlDate extends SqlDateTime {
 
-/**
- * Utility Class for Tests.
- * This will contains methods like Create Table, Drop Table, Initialize connection, create statement etc. logger settings etc.
- */
-public class PrepUtil {
-	
-	private PrepUtil() {
-		//Just hide to restrict constructor invocation.
+	static SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
+
+	public SqlDate() throws Exception {
+		super("date", JDBCType.DATE, 
+				new Date(dateFormat.parse((String)SqlTypeValue.DATE.minValue).getTime()), 
+				new Date(dateFormat.parse((String)SqlTypeValue.DATE.maxValue).getTime()));
+
 	}
 
-	/**
-	 * It will create {@link SQLServerConnection}
-	 * TODO : Think of AE functionality on off etc.
-	 * @param connectionString
-	 * @param info
-	 * @return {@link SQLServerConnection}
-	 * @throws SQLException
-	 * @throws ClassNotFoundException
-	 */
-	public static SQLServerConnection getConnection(String connectionString, Properties info) throws SQLException, ClassNotFoundException{
-		Class.forName("com.microsoft.sqlserver.jdbc.SQLServerDriver");
-		return (SQLServerConnection)DriverManager.getConnection(connectionString, info);
+	public Object createdata() {
+		return new Date(ThreadLocalRandom.current().nextLong(((Date) minvalue).getTime(), ((Date) maxvalue).getTime()));
 	}
-	
-	/**
-	 * It will create {@link SQLServerConnection}
-	 * @param connectionString
-	 * @return {@link SQLServerConnection}
-	 * @throws SQLException
-	 * @throws ClassNotFoundException 
-	 */
-	public static SQLServerConnection getConnection(String connectionString) throws SQLException, ClassNotFoundException{
-		return getConnection(connectionString, null);
-	}
-	
 }
