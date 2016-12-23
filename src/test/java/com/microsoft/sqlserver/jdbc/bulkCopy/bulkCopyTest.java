@@ -50,16 +50,14 @@ public class bulkCopyTest extends AbstractTest{
 	@Test
 	public void testBulkCopyWithConnection() throws Exception {
 		
-		//TODO: create a driver class to getConnection
-		DBConnection con = new DBConnection();
-		con.getConnection(connectionString);
+		DBConnection con = new DBConnection(connectionString);
 		DBStatement stmt = con.createStatement();
 		DBTable sourceTable = new DBTable(true);
-		sourceTable.createTable(stmt);
-		sourceTable.populateTable(stmt);
+		stmt.createTable(sourceTable);
+		stmt.populateTable(sourceTable);
 		
 		DBTable destinationTable = sourceTable.cloneSchema();
-		destinationTable.createTable(stmt);
+		stmt.createTable(destinationTable);
 		DBResultSet srcResultSet = stmt.executeQuery("SELECT * FROM "+sourceTable.getEscapedTableName()+";");
 		SQLServerBulkCopy bulkCopy =new SQLServerBulkCopy((Connection)con.product());
         bulkCopy.setDestinationTableName(destinationTable.getEscapedTableName());
@@ -75,18 +73,15 @@ public class bulkCopyTest extends AbstractTest{
 	@Test
 	public void testBulkCopyWithConnectionString() throws Exception {
 		// Change Later
-		DBConnection con = new DBConnection();
-		con.getConnection(connectionString);
+		DBConnection con = new DBConnection(connectionString);
 		DBStatement stmt = con.createStatement();
 		DBTable sourceTable = new DBTable(false);
-//		SqlType bit = new SqlBit();
 		sourceTable.addColumn(new SqlBit());
 		sourceTable.addColumn(new SqlDateTime());
-		sourceTable.createTable(stmt);
-		sourceTable.populateTable(stmt);
-		
+		stmt.createTable(sourceTable);
+		stmt.populateTable(sourceTable);
 		DBTable destinationTable = sourceTable.cloneSchema();
-		destinationTable.createTable(stmt);
+		stmt.createTable(destinationTable);
 		DBResultSet srcResultSet = stmt.executeQuery("SELECT * FROM "+sourceTable.getEscapedTableName()+";");
 		SQLServerBulkCopy bulkCopy =new SQLServerBulkCopy(connectionString);
         bulkCopy.setDestinationTableName(destinationTable.getEscapedTableName());

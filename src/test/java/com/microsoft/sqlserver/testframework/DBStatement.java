@@ -92,6 +92,24 @@ public class DBStatement extends AbstractParentWrapper {
 		statement.close();
 	}
 	
+	/**
+	 * 
+	 * @param table
+	 * @return <code>true</code> if table is created
+	 */
+	public boolean createTable(DBTable table){
+		return table.createTable(this);
+	}
+
+	/**
+	 * 
+	 * @param table
+	 * @return <code>true</code> if table is populated
+	 */
+	public boolean populateTable(DBTable table) {
+		return table.populateTable(this);
+	}
+	
 	@Override
 	void setInternal(Object internal) {
 		this.internal = internal;
