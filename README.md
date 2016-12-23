@@ -8,6 +8,15 @@ We hope you enjoy using the Microsoft JDBC Driver for SQL Server.
 
 SQL Server Team
 
+## Status of Most Recent Builds
+| AppVeyor (Windows)       | Travis CI (Linux) |
+|--------------------------|--------------------------|
+| [![av-image][]][av-site] | [![tv-image][]][tv-site] |
+
+[av-image]: https://ci.appveyor.com/api/projects/status/o6fjg16678ol64d3?svg=true "Windows"
+[av-site]: https://ci.appveyor.com/project/Microsoft-JDBC/mssql-jdbc
+[tv-image]: https://travis-ci.org/Microsoft/mssql-jdbc.svg? "Linux"
+[tv-site]: https://travis-ci.org/Microsoft/mssql-jdbc
 
 ## Announcements
 What's coming next?  We will look into adding a more comprehensive set of tests, improving our javadocs, and start developing the next set of features.
@@ -47,16 +56,6 @@ To build the jar files, you must use Java 8 with either Ant (with Ivy), Maven or
 	2. Run one of the commands below to build a JDBC 4.1 compliant jar or JDBC 4.2 compliant jar in the \build\libs directory. 
     	* Run `gradle build -Pbuild=build41`. This creates JDBC 4.1 compliant jar in \build\libs directory
     	* Run `gradle build -Pbuild=build42`. This creates JDBC 4.2 compliant jar in \build\libs directory
-
-### Status of Most Recent Builds
-| AppVeyor (Windows)       | Travis CI (Linux) |
-|--------------------------|--------------------------|
-| [![av-image][]][av-site] | [![tv-image][]][tv-site] |
-
-[av-image]: https://ci.appveyor.com/api/projects/status/o6fjg16678ol64d3?svg=true
-[av-site]: https://ci.appveyor.com/project/Microsoft-JDBC/mssql-jdbc
-[tv-image]: https://travis-ci.org/Microsoft/mssql-jdbc.svg?
-[tv-site]: https://travis-ci.org/Microsoft/mssql-jdbc
 
 ## Resources
 

@@ -49,7 +49,7 @@ public class SQLServerResultSet42 extends SQLServerResultSet implements ISQLServ
 
 		checkClosed();
 		// getVendorTypeNumber() returns the same constant integer values as in java.sql.Types
-		updateObject(index, obj, (Integer) null, JDBCType.of(targetSqlType.getVendorTypeNumber()), null, false);
+		updateObject(index, obj, null, JDBCType.of(targetSqlType.getVendorTypeNumber()), null, false);
 
 		loggerExternal.exiting(getClassNameLogging(), "updateObject");
 	}
@@ -137,7 +137,7 @@ public class SQLServerResultSet42 extends SQLServerResultSet implements ISQLServ
 		updateObject(
 				findColumn(columnName),
 				obj,
-				(Integer)null,
+                null,
 				JDBCType.of(targetSqlType.getVendorTypeNumber()), 
 				null,
 				false);

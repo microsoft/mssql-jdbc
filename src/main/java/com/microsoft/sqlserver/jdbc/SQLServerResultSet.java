@@ -327,13 +327,26 @@ public class SQLServerResultSet implements ISQLServerResultSet
                 return false;
             }
 
-            boolean onDone(TDSReader tdsReader) throws SQLServerException
-            {
-                // When initializing client-cursored ResultSets, a DONE token
-                // following the column metadata indicates an empty result set.
-                rowCount = 0;
-                return false;
-            }
+			boolean onDone(TDSReader tdsReader) throws SQLServerException {
+				// When initializing client-cursored ResultSets, a DONE token
+				// following the column metadata indicates an empty result set.
+				rowCount = 0;
+
+				// Continue to read the error message if DONE packet has error flag
+				int packetType = tdsReader.peekTokenType();
+				if (TDS.TDS_DONE == packetType) {
+					short status = tdsReader.peekStatusFlag();
+					// check if status flag has DONE_ERROR set i.e., 0x2
+					if ((status & 0x0002) != 0) {
+						// Consume the DONE packet if there is error
+						StreamDone doneToken = new StreamDone();
+						doneToken.setFromTDS(tdsReader);
+						return true;
+					}
+				}
+
+				return false;
+			}
         }
 
         this.stmt = stmtIn;
@@ -2142,7 +2155,7 @@ public class SQLServerResultSet implements ISQLServerResultSet
                 toString()));
 
         if(null != value)
-            activeStream = (Closeable) value.getStream();
+            activeStream = value.getStream();
         return value;
     }
     
@@ -4943,7 +4956,7 @@ public class SQLServerResultSet implements ISQLServerResultSet
             loggerExternal.entering(getClassNameLogging(),  "updateObject",  new Object[]{index, obj});
 
         checkClosed();
-        updateObject(index, obj, (Integer) null, null, null, false);
+        updateObject(index, obj, null, null, null, false);
 
         loggerExternal.exiting(getClassNameLogging(), "updateObject");
     }
@@ -6230,7 +6243,7 @@ public class SQLServerResultSet implements ISQLServerResultSet
         updateObject(
             findColumn(columnName),
             x,
-            (Integer) null,
+                null,
             null, 
             null,
             false);

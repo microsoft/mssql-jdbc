@@ -627,15 +627,10 @@ public class SQLServerStatement implements ISQLServerStatement {
 
   // add query timeout to statement
   private void setDefaultQueryTimeout() {
-    
-    String sPropValue = this.connection.activeConnectionProperties.getProperty(SQLServerDriverIntProperty.QUERY_TIMEOUT.toString());
-    
-    if (null != sPropValue && sPropValue.length() > 0) {
-      int queryTimeoutSeconds = Integer.parseInt(sPropValue);
-      if (queryTimeoutSeconds > 0) {
-        this.queryTimeout = queryTimeoutSeconds;        
-      }
-    }
+	  int queryTimeoutSeconds = this.connection.getQueryTimeoutSeconds();
+	  if (queryTimeoutSeconds > 0) {
+		  this.queryTimeout = queryTimeoutSeconds;        
+	  }
   }
   
 	final java.util.logging.Logger getStatementLogger()

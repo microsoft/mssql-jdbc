@@ -583,7 +583,7 @@ public final class SQLServerDriver implements java.sql.Driver
             result.connect(connectProperties, null);
         }
         loggerExternal.exiting(getClassNameLogging(),  "connect", result); 
-        return (java.sql.Connection) result;
+        return result;
     }
 	
 

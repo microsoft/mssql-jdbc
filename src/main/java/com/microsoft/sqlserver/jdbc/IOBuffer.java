@@ -3581,8 +3581,7 @@ final class TDSWriter
 						TDS.BASE_YEAR_1900);
 
 		// Next, figure out the number of milliseconds since midnight of the current day.
-		int millisSinceMidnight = (int)
-				1000 * calendar.get(Calendar.SECOND) + // Seconds into the current minute
+		int millisSinceMidnight = 1000 * calendar.get(Calendar.SECOND) + // Seconds into the current minute
 				60 * 1000 * calendar.get(Calendar.MINUTE) + // Minutes into the current hour
 				60 * 60 * 1000 * calendar.get(Calendar.HOUR_OF_DAY); // Hours into the current day
 
@@ -4844,7 +4843,7 @@ final class TDSWriter
 				int currentColumn = 0;
 				while(columnsIterator.hasNext())
 				{
-					Map.Entry<Integer, SQLServerMetaData> columnPair = (Map.Entry<Integer, SQLServerMetaData>)columnsIterator.next();
+					Map.Entry<Integer, SQLServerMetaData> columnPair = columnsIterator.next();
 
 					// If useServerDefault is set, client MUST NOT emit TvpColumnData for the associated column
 					if (columnPair.getValue().useServerDefault) 
@@ -5097,7 +5096,7 @@ final class TDSWriter
 
 		while(columnsIterator.hasNext())
 		{
-			Map.Entry<Integer, SQLServerMetaData> pair = (Map.Entry<Integer, SQLServerMetaData>)columnsIterator.next();
+			Map.Entry<Integer, SQLServerMetaData> pair = columnsIterator.next();
 			JDBCType jdbcType = JDBCType.of(pair.getValue().javaSqlType);
 			boolean useServerDefault = pair.getValue().useServerDefault;
 			// ULONG ; UserType of column
@@ -5225,7 +5224,7 @@ final class TDSWriter
 		while(columnsIterator.hasNext())
 		{
 			byte flags = 0;
-			Map.Entry<Integer, SQLServerMetaData> pair = (Map.Entry<Integer, SQLServerMetaData>)columnsIterator.next();
+			Map.Entry<Integer, SQLServerMetaData> pair = columnsIterator.next();
 			SQLServerMetaData metaData = pair.getValue();
 
 			if( SQLServerSortOrder.Ascending == metaData.sortOrder )
@@ -5309,7 +5308,7 @@ final class TDSWriter
 			}
 			else if (isPLP)
 			{
-				writeLong((long) nValueLen); //actual length
+				writeLong(nValueLen); //actual length
 			}
 			else
 			{
@@ -5339,13 +5338,13 @@ final class TDSWriter
 
 	void writeCryptoMetaData() throws SQLServerException
 	{
-		writeByte((byte) cryptoMeta.cipherAlgorithmId);
-		writeByte((byte) cryptoMeta.encryptionType.getValue());
-		writeInt((int) cryptoMeta.cekTableEntry.getColumnEncryptionKeyValues().get(0).databaseId);
-		writeInt((int) cryptoMeta.cekTableEntry.getColumnEncryptionKeyValues().get(0).cekId);
-		writeInt((int) cryptoMeta.cekTableEntry.getColumnEncryptionKeyValues().get(0).cekVersion);
+		writeByte(cryptoMeta.cipherAlgorithmId);
+		writeByte(cryptoMeta.encryptionType.getValue());
+		writeInt(cryptoMeta.cekTableEntry.getColumnEncryptionKeyValues().get(0).databaseId);
+		writeInt(cryptoMeta.cekTableEntry.getColumnEncryptionKeyValues().get(0).cekId);
+		writeInt(cryptoMeta.cekTableEntry.getColumnEncryptionKeyValues().get(0).cekVersion);
 		writeBytes(cryptoMeta.cekTableEntry.getColumnEncryptionKeyValues().get(0).cekMdVersion);
-		writeByte((byte) cryptoMeta.normalizationRuleVersion);
+		writeByte(cryptoMeta.normalizationRuleVersion);
 	}
 
 	void writeRPCByteArray(
@@ -6908,6 +6907,20 @@ final class TDSReader
 		return currentPacket.payload[payloadOffset] & 0xFF;
 	}
 
+
+	final short peekStatusFlag() throws SQLServerException {
+		// skip the current packet(i.e, TDS packet type) and peek into the status flag (USHORT)
+		if (payloadOffset + 3 <= currentPacket.payloadLength) {
+			short value = Util.readShort(currentPacket.payload, payloadOffset + 1);
+			return value;
+		}
+
+		// as per TDS protocol, TDS_DONE packet should always be followed by status flag
+		// throw exception if status packet is not available 
+		throwInvalidTDS();
+		return 0;
+	}
+	
 	final int readUnsignedByte() throws SQLServerException
 	{
 		// Ensure that we have a packet to read from.

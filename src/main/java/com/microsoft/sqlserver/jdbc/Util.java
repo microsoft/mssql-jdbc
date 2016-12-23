@@ -893,7 +893,7 @@ final class Util {
 		case STRING:
 			if (JDBCType.GUID == jdbcType){
 				String guidTemplate = "XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX";
-				return ((null == value) ? 0 : ((String)guidTemplate).length());
+				return ((null == value) ? 0 : guidTemplate.length());
 			}
 			else if (JDBCType.TIMESTAMP == jdbcType ||
 					JDBCType.TIME == jdbcType ||
@@ -920,15 +920,15 @@ final class Util {
 				}
 				else{
 					if(0 == ((BigDecimal)value).intValue()){
-						String s = "" + ((BigDecimal)value);
+						String s = "" + value;
 						s = s.replaceAll("\\.", "");
 						s = s.replaceAll("\\-", "");
 						length = s.length();
 					}
 					//if the value is in scientific notation format
-					else if (("" + ((BigDecimal)value)).contains("E")){
+					else if (("" + value).contains("E")){
 						DecimalFormat dform = new DecimalFormat("###.#####");
-						String s = dform.format((BigDecimal)value);  
+						String s = dform.format(value);
 						s = s.replaceAll("\\.", "");
 						s = s.replaceAll("\\-", "");
 						length = s.length();

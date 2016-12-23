@@ -28,7 +28,7 @@ public final class SQLServerResource extends ListResourceBundle
 {
 	static String getResource(String key)
 	{
-		return ((ListResourceBundle) SQLServerResource.getBundle("com.microsoft.sqlserver.jdbc.SQLServerResource")).getString(key);
+		return SQLServerResource.getBundle("com.microsoft.sqlserver.jdbc.SQLServerResource").getString(key);
 	}
 
 	protected Object[][]  getContents()
@@ -383,6 +383,7 @@ public final class SQLServerResource extends ListResourceBundle
 				{"R_sendTimeAsDateTimeForAE", "Use sendTimeAsDateTime=false with Always Encrypted."}, 
 				{"R_invalidServerCursorForTVP" , "Use different Connection for source ResultSet and prepared query, if selectMethod is set to cursor for Table-Valued Parameter."},
 				{"R_TVPnotWorkWithSetObjectResultSet" , "setObject() with ResultSet is not supported for Table-Valued Parameter. Please use setStructured()"},
+				{"R_invalidQueryTimeout", "The queryTimeout {0} is not valid."},
 		};
 }
 
