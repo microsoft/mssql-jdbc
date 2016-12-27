@@ -27,6 +27,7 @@ import java.text.MessageFormat;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.StringTokenizer;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -57,13 +58,12 @@ public final class SQLServerParameterMetaData implements ParameterMetaData {
 	static  final private java.util.logging.Logger logger =
 			java.util.logging.Logger.getLogger("com.microsoft.sqlserver.jdbc.internals.SQLServerParameterMetaData");
 
-	static private int baseID = 0;	// Unique id generator for each  instance (used for logging).
+	static private AtomicInteger baseID = new AtomicInteger(0);	// Unique id generator for each  instance (used for logging).
 	final private String traceID = " SQLServerParameterMetaData:"  + nextInstanceID();
 	// Returns unique id for each instance.
-	private synchronized static int nextInstanceID()
+	private static int nextInstanceID()
 	{
-		baseID++;
-		return baseID;
+		return baseID.incrementAndGet();
 	}
 	
 	/**

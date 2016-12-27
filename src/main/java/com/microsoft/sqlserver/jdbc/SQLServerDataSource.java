@@ -25,6 +25,7 @@ import java.sql.SQLException;
 import java.sql.SQLFeatureNotSupportedException;
 import java.util.Enumeration;
 import java.util.Properties;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -50,7 +51,7 @@ public class SQLServerDataSource implements ISQLServerDataSource, DataSource, ja
     private Properties connectionProps;			// Properties passed to SQLServerConnection class.
     private String dataSourceURL;				// URL for datasource.
     private String dataSourceDescription;		// Description for datasource.
-    static private int baseDataSourceID = 0;	// Unique id generator for each DataSource instance (used for logging).
+    static private AtomicInteger baseDataSourceID = new AtomicInteger(0);	// Unique id generator for each DataSource instance (used for logging).
     final private String traceID;
     
 	/**
@@ -922,10 +923,9 @@ public class SQLServerDataSource implements ISQLServerDataSource, DataSource, ja
     }
 
     // Returns unique id for each DataSource instance.
-    private synchronized static int nextDataSourceID()
+    private static int nextDataSourceID()
     {
-        baseDataSourceID++;
-        return baseDataSourceID;
+        return baseDataSourceID.incrementAndGet();
     }
     private Object writeReplace() throws java.io.ObjectStreamException
     {
