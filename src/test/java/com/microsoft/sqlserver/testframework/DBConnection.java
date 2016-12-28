@@ -19,6 +19,8 @@
 
 package com.microsoft.sqlserver.testframework;
 
+import static org.junit.jupiter.api.Assertions.fail;
+
 import java.sql.SQLException;
 
 import com.microsoft.sqlserver.jdbc.SQLServerConnection;
@@ -53,10 +55,10 @@ public class DBConnection extends AbstractParentWrapper{
 		try {
 			connection = PrepUtil.getConnection(connectionString);
 			setInternal(connection);
-		} catch (ClassNotFoundException e) {
-			e.printStackTrace();
-		} catch (SQLException e) {
-			e.printStackTrace();
+		} catch (SQLException ex) {
+			fail(ex.getMessage());
+		} catch (ClassNotFoundException ex) {
+			fail(ex.getMessage());
 		}
 	}
 
@@ -70,8 +72,13 @@ public class DBConnection extends AbstractParentWrapper{
 	 * @return Statement wrapper
 	 */
 	public DBStatement createStatement() {
-		DBStatement dbstatement = new DBStatement(this);
-		return dbstatement.createStatement();
+		try {
+			DBStatement dbstatement = new DBStatement(this);
+			return dbstatement.createStatement();
+		} catch (SQLException ex) {
+			fail(ex.getMessage());
+		}
+		return null;
 	}
 	
 }

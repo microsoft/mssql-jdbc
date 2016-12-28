@@ -19,19 +19,28 @@
 
 package com.microsoft.sqlserver.testframework.sqlType;
 
+import static org.junit.jupiter.api.Assertions.fail;
+
 import java.sql.JDBCType;
 import java.sql.Timestamp;
+import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.concurrent.ThreadLocalRandom;
 
 public class SqlSmallDateTime extends SqlDateTime {
 	static SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
 	
-	public SqlSmallDateTime() throws Exception{
+	public SqlSmallDateTime() {
 		super("smalldatetime", 
 				JDBCType.TIMESTAMP, 
-				new Timestamp(dateFormat.parse((String)SqlTypeValue.SMALLDATETIME.minValue).getTime()),
-				new Timestamp(dateFormat.parse((String)SqlTypeValue.SMALLDATETIME.maxValue).getTime()));
+				null,
+				null);
+		try {
+			minvalue = new Timestamp(dateFormat.parse((String)SqlTypeValue.SMALLDATETIME.minValue).getTime());
+			maxvalue = new Timestamp(dateFormat.parse((String)SqlTypeValue.SMALLDATETIME.maxValue).getTime());
+		} catch (ParseException ex) {
+			fail(ex.getMessage());
+		}
 	}
 	
 	public Object createdata() {

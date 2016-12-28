@@ -19,8 +19,11 @@
 
 package com.microsoft.sqlserver.testframework.sqlType;
 
+import static org.junit.jupiter.api.Assertions.fail;
+
 import java.sql.JDBCType;
 import java.sql.Timestamp;
+import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -36,12 +39,17 @@ public class SqlDateTime2 extends SqlDateTime {
 	static String basePattern = "yyyy-MM-dd HH:mm:ss";
 	static DateTimeFormatter formatter;
 
-	public SqlDateTime2() throws Exception {
+	public SqlDateTime2() {
 		super("datetime2", 
 				JDBCType.TIMESTAMP, 
-				new Timestamp(dateFormat.parse((String)SqlTypeValue.DATETIME2.minValue).getTime()), 
-				new Timestamp(dateFormat.parse((String)SqlTypeValue.DATETIME2.maxValue).getTime())
-				);
+				null, 
+				null);
+		try {
+			minvalue = new Timestamp(dateFormat.parse((String)SqlTypeValue.DATETIME2.minValue).getTime());
+			maxvalue = new Timestamp(dateFormat.parse((String)SqlTypeValue.DATETIME2.maxValue).getTime());
+		} catch (ParseException ex) {
+			fail(ex.getMessage());
+		}
 		this.precision = 7;
 		this.variableLengthType = VariableLengthType.Precision;
 		generatePrecision();

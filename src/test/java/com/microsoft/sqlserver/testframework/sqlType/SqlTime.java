@@ -19,8 +19,11 @@
 
 package com.microsoft.sqlserver.testframework.sqlType;
 
+import static org.junit.jupiter.api.Assertions.fail;
+
 import java.sql.JDBCType;
 import java.sql.Time;
+import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
@@ -36,12 +39,17 @@ public class SqlTime extends SqlDateTime {
 	static String basePattern = "HH:mm:ss";
 	static DateTimeFormatter formatter;
 
-	public SqlTime() throws Exception {
+	public SqlTime() {
 		super("time", 
 				JDBCType.TIME, 
-				new Time(dateFormat.parse((String)SqlTypeValue.TIME.minValue).getTime()), 
-				new Time(dateFormat.parse((String)SqlTypeValue.TIME.maxValue).getTime())
-				);
+				null, 
+				null);
+		try {
+			minvalue = new Time(dateFormat.parse((String)SqlTypeValue.TIME.minValue).getTime());
+			maxvalue = new Time(dateFormat.parse((String)SqlTypeValue.TIME.maxValue).getTime());
+		} catch (ParseException ex) {
+			fail(ex.getMessage());
+		}
 		this.precision = 7;
 		this.variableLengthType = VariableLengthType.Precision;
 		// should we let SQL server handle scale for temporal types?

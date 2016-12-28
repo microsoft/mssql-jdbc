@@ -18,7 +18,6 @@
  
 
 package com.microsoft.sqlserver.testframework;
-
 import java.util.ArrayList;
 import java.util.List;
 
@@ -61,39 +60,35 @@ public class DBSchema {
 	DBSchema(boolean autoGenerateSchema) {
 		sqlTypes = new ArrayList<SqlType>();
 		if (autoGenerateSchema) {
-			try {
-				// Exact Numeric
-				sqlTypes.add(new SqlBigInt());
-				sqlTypes.add(new SqlInt());
-				sqlTypes.add(new SqlSmallInt());
-				sqlTypes.add(new SqlTinyInt());
-				sqlTypes.add(new SqlBit());
-				sqlTypes.add(new SqlDecimal());
-				sqlTypes.add(new SqlNumeric());
-				sqlTypes.add(new SqlMoney());
-				sqlTypes.add(new SqlSmallMoney());
-				// Appx Numeric
-				sqlTypes.add(new SqlFloat());
-				sqlTypes.add(new SqlReal());
-				// Character
-				sqlTypes.add(new SqlChar());
-				sqlTypes.add(new SqlVarChar());
-				// Unicode
-				sqlTypes.add(new SqlNChar());
-				sqlTypes.add(new SqlNVarChar());
-				// Temporal
-				sqlTypes.add(new SqlDateTime());
-				sqlTypes.add(new SqlDate());
-				sqlTypes.add(new SqlTime());
-				sqlTypes.add(new SqlSmallDateTime());
-				sqlTypes.add(new SqlDateTime2());
-				sqlTypes.add(new SqlDateTimeOffset());
-				// TODO:
-				// Binary
-				// Other types
-			} catch (Exception e) {
-				e.printStackTrace();
-			}
+			// Exact Numeric
+			sqlTypes.add(new SqlBigInt());
+			sqlTypes.add(new SqlInt());
+			sqlTypes.add(new SqlSmallInt());
+			sqlTypes.add(new SqlTinyInt());
+			sqlTypes.add(new SqlBit());
+			sqlTypes.add(new SqlDecimal());
+			sqlTypes.add(new SqlNumeric());
+			sqlTypes.add(new SqlMoney());
+			sqlTypes.add(new SqlSmallMoney());
+			// Appx Numeric
+			sqlTypes.add(new SqlFloat());
+			sqlTypes.add(new SqlReal());
+			// Character
+			sqlTypes.add(new SqlChar());
+			sqlTypes.add(new SqlVarChar());
+			// Unicode
+			sqlTypes.add(new SqlNChar());
+			sqlTypes.add(new SqlNVarChar());
+			// Temporal
+			sqlTypes.add(new SqlDateTime());
+			sqlTypes.add(new SqlDate());
+			sqlTypes.add(new SqlTime());
+			sqlTypes.add(new SqlSmallDateTime());
+			sqlTypes.add(new SqlDateTime2());
+			sqlTypes.add(new SqlDateTimeOffset());
+			// TODO:
+			// Binary
+			// Other types
 		}
 	}
 

@@ -41,12 +41,12 @@ public class DBResultSet extends AbstractParentWrapper{
 	
 	/**
 	 * Close the ResultSet object
-	 * @throws SQLException
+	 * @throws SQLException 
 	 */
-	public void close() throws SQLException
-	{
-		if(null != resultSet)
+	public void close() throws SQLException {
+		if (null != resultSet) {
 			resultSet.close();
+		}
 	}
 	
 	/**
@@ -54,8 +54,7 @@ public class DBResultSet extends AbstractParentWrapper{
 	 * @return true new row is valid
 	 * @throws SQLException
 	 */
-	public boolean next() throws SQLException
-	{
+	public boolean next() throws SQLException {
 		return resultSet.next();
 	}
 	
@@ -65,8 +64,7 @@ public class DBResultSet extends AbstractParentWrapper{
 	 * @return Object with the column value
 	 * @throws SQLException
 	 */
-	public Object getObject(int index) throws SQLException
-	{
+	public Object getObject(int index) throws SQLException {
 		// call individual getters based on type
 		return resultSet.getObject(index);
 	}
@@ -76,8 +74,7 @@ public class DBResultSet extends AbstractParentWrapper{
 	 * @param index
 	 * @return
 	 */
-	public void updateObject(int index) throws SQLException
-	{
+	public void updateObject(int index) throws SQLException {
 		//TODO: update object based on cursor type
 	}
 }

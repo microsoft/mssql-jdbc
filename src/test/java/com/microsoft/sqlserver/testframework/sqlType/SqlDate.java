@@ -19,8 +19,11 @@
 
 package com.microsoft.sqlserver.testframework.sqlType;
 
+import static org.junit.jupiter.api.Assertions.fail;
+
 import java.sql.Date;
 import java.sql.JDBCType;
+import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.concurrent.ThreadLocalRandom;
 
@@ -28,11 +31,16 @@ public class SqlDate extends SqlDateTime {
 
 	static SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
 
-	public SqlDate() throws Exception {
+	public SqlDate() {
 		super("date", JDBCType.DATE, 
-				new Date(dateFormat.parse((String)SqlTypeValue.DATE.minValue).getTime()), 
-				new Date(dateFormat.parse((String)SqlTypeValue.DATE.maxValue).getTime()));
-
+				null,
+				null);
+		try {
+			minvalue = new Date(dateFormat.parse((String) SqlTypeValue.DATE.minValue).getTime());
+			maxvalue = new Date(dateFormat.parse((String) SqlTypeValue.DATE.maxValue).getTime());
+		} catch (ParseException ex) {
+			fail(ex.getMessage());
+		}
 	}
 
 	public Object createdata() {

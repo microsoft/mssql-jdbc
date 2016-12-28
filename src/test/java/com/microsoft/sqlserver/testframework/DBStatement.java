@@ -24,6 +24,7 @@ import java.sql.SQLException;
 import java.sql.Statement;
 
 import com.microsoft.sqlserver.jdbc.SQLServerConnection;
+import com.microsoft.sqlserver.jdbc.SQLServerException;
 
 /**
  * wrapper method for Statement object
@@ -47,14 +48,10 @@ public class DBStatement extends AbstractParentWrapper {
 		return this;
 	}
 
-	DBStatement createStatement() {
-		try {
-			// TODO: add cursor and holdability
-			statement = ((SQLServerConnection) parent().product()).createStatement();
-			setInternal(statement);
-		} catch (Exception ex) {
-			ex.printStackTrace();
-		}
+	DBStatement createStatement() throws SQLServerException {
+		// TODO: add cursor and holdability
+		statement = ((SQLServerConnection) parent().product()).createStatement();
+		setInternal(statement);
 		return this;
 	}
 
@@ -85,15 +82,15 @@ public class DBStatement extends AbstractParentWrapper {
 	 * Close the <code>Statement</code> and <code>ResultSet</code> associated with it
 	 * @throws SQLException
 	 */
-	public void close() throws SQLException
-	{
-		if(null!=((ResultSet)dbresultSet.product()))
-			((ResultSet)dbresultSet.product()).close();
+	public void close() throws SQLException {
+		if ((null != dbresultSet) && null != ((ResultSet) dbresultSet.product())) {
+			((ResultSet) dbresultSet.product()).close();
+		}
 		statement.close();
 	}
 	
 	/**
-	 * 
+	 * create table
 	 * @param table
 	 * @return <code>true</code> if table is created
 	 */
@@ -102,12 +99,21 @@ public class DBStatement extends AbstractParentWrapper {
 	}
 
 	/**
-	 * 
+	 * populate table with values
 	 * @param table
 	 * @return <code>true</code> if table is populated
 	 */
 	public boolean populateTable(DBTable table) {
 		return table.populateTable(this);
+	}
+	
+	/**
+	 * Drop table from Database
+	 * @param dbstatement
+	 * @return true if table dropped
+	 */
+	public boolean dropTable(DBTable table) {
+		return table.dropTable(this);
 	}
 	
 	@Override

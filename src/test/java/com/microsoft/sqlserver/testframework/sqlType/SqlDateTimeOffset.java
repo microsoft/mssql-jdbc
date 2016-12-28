@@ -19,8 +19,11 @@
 
 package com.microsoft.sqlserver.testframework.sqlType;
 
+import static org.junit.jupiter.api.Assertions.fail;
+
 import java.sql.JDBCType;
 import java.sql.Timestamp;
+import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
@@ -41,12 +44,17 @@ public class SqlDateTimeOffset extends SqlDateTime {
 	
 	static DateTimeFormatter formatter;
 	
-	public SqlDateTimeOffset() throws Exception {
+	public SqlDateTimeOffset() {
 		super("datetimeoffset", 
 				JDBCType.TIMESTAMP, //microsoft.sql.Types.DATETIMEOFFSET
-				new Timestamp(dateFormat.parse((String)SqlTypeValue.DATETIMEOFFSET.minValue).getTime()), 
-				new Timestamp(dateFormat.parse((String)SqlTypeValue.DATETIMEOFFSET.maxValue).getTime())
-				);
+				null, 
+				null);
+		try {
+			minvalue = new Timestamp(dateFormat.parse((String)SqlTypeValue.DATETIMEOFFSET.minValue).getTime());
+			maxvalue = new Timestamp(dateFormat.parse((String)SqlTypeValue.DATETIMEOFFSET.maxValue).getTime());
+		} catch (ParseException ex) {
+			fail(ex.getMessage());
+		}
 		this.precision = 7;
 		this.variableLengthType = VariableLengthType.Precision;
 		generatePrecision();

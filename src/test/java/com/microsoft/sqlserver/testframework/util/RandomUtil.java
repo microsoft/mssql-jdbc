@@ -74,7 +74,6 @@ public class RandomUtil {
 	 */
 	public static String getIdentifierForDB(String prefix, int maxLength, boolean unique) {
 		String identifier = getIdentifier(prefix, maxLength, unique, true);
-
 		return removeInvalidDBChars(identifier);
 	}
 
