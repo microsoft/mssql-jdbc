@@ -1,5 +1,5 @@
 // ---------------------------------------------------------------------------------------------------------------------------------
-// File: PrepUtil.java
+// File: AbstractParentWrapper.java
 //
 //
 // Microsoft JDBC Driver for SQL Server
@@ -25,49 +25,31 @@
 
 package com.microsoft.sqlserver.testframework;
 
-import java.sql.DriverManager;
-import java.sql.SQLException;
-import java.util.Properties;
-
-import com.microsoft.sqlserver.jdbc.SQLServerConnection;
-
 /**
- * Utility Class for Tests. This will contains methods like Create Table, Drop
- * Table, Initialize connection, create statement etc. logger settings etc.
+ * Stores the parent class. For connection parent is null; for Statement,
+ * Connection is parent; for ResultSet, Statement is parent
  */
-public class PrepUtil {
+public abstract class AbstractParentWrapper {
 
-    private PrepUtil() {
-        // Just hide to restrict constructor invocation.
+    AbstractParentWrapper parent = null;
+    Object internal = null;
+    String name = null;
+
+    AbstractParentWrapper(AbstractParentWrapper parent, Object internal, String name) {
+        this.parent = parent;
+        this.internal = internal;
+        this.name = name;
     }
 
-    /**
-     * It will create {@link SQLServerConnection} TODO : Think of AE
-     * functionality on off etc.
-     * 
-     * @param connectionString
-     * @param info
-     * @return {@link SQLServerConnection}
-     * @throws SQLException
-     * @throws ClassNotFoundException
-     */
-    public static SQLServerConnection getConnection(String connectionString, Properties info)
-            throws SQLException, ClassNotFoundException {
-        Class.forName("com.microsoft.sqlserver.jdbc.SQLServerDriver");
-        return (SQLServerConnection) DriverManager.getConnection(connectionString, info);
+    void setInternal(Object internal) {
+        this.internal = internal;
     }
 
-    /**
-     * It will create {@link SQLServerConnection}
-     * 
-     * @param connectionString
-     * @return {@link SQLServerConnection}
-     * @throws SQLException
-     * @throws ClassNotFoundException
-     */
-    public static SQLServerConnection getConnection(String connectionString)
-            throws SQLException, ClassNotFoundException {
-        return getConnection(connectionString, null);
+    public Object product() {
+        return internal;
     }
 
+    public AbstractParentWrapper parent() {
+        return parent;
+    }
 }
