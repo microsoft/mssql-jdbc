@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.sql.DriverManager;
+import java.sql.SQLException;
 import java.sql.SQLWarning;
 import java.util.Properties;
 
@@ -17,7 +18,7 @@ import com.microsoft.sqlserver.testframework.AbstractTest;
 @RunWith(JUnitPlatform.class)
 public class WarningTest extends AbstractTest {
 	@Test
-	public void testWarnings() throws Exception {
+	public void testWarnings() throws SQLException {
 		SQLServerConnection conn = (SQLServerConnection) DriverManager.getConnection(connectionString);
 
 		Properties info = conn.getClientInfo();

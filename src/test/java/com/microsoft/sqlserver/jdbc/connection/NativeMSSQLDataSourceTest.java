@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutput;
 import java.io.ObjectOutputStream;
@@ -16,6 +17,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
 
+import com.microsoft.sqlserver.jdbc.ISQLServerDataSource;
 import com.microsoft.sqlserver.jdbc.SQLServerConnectionPoolDataSource;
 import com.microsoft.sqlserver.jdbc.SQLServerDataSource;
 import com.microsoft.sqlserver.jdbc.SQLServerException;
@@ -33,7 +35,7 @@ public class NativeMSSQLDataSourceTest extends AbstractTest {
 	}
 
 	@Test
-	public void testSerialization() throws Exception {
+	public void testSerialization() throws IOException {
 		ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
 		ObjectOutput objectOutput = new ObjectOutputStream(outputStream);
 
@@ -45,7 +47,7 @@ public class NativeMSSQLDataSourceTest extends AbstractTest {
 	}
 
 	@Test
-	public void testDSNormal() throws Exception {
+	public void testDSNormal() throws SQLServerException, ClassNotFoundException, IOException {
 		SQLServerDataSource ds = new SQLServerDataSource();
 		ds.setURL(connectionString);
 		Connection conn = ds.getConnection();
@@ -54,7 +56,7 @@ public class NativeMSSQLDataSourceTest extends AbstractTest {
 	}
 
 	@Test
-	public void testDSTSPassword() throws Exception {
+	public void testDSTSPassword() throws SQLServerException, ClassNotFoundException, IOException {
 		SQLServerDataSource ds = new SQLServerDataSource();
 		System.setProperty("java.net.preferIPv6Addresses", "true");
 		ds.setURL(connectionString);
@@ -69,14 +71,13 @@ public class NativeMSSQLDataSourceTest extends AbstractTest {
 	}
 
 	@Test
-	public void testInterfaceWrapping() throws Exception {
+	public void testInterfaceWrapping() throws ClassNotFoundException, SQLException {
 		SQLServerDataSource ds = new SQLServerDataSource();
 		try {
 			assertEquals(true, ds.isWrapperFor(Class.forName("com.microsoft.sqlserver.jdbc.ISQLServerDataSource")));
 			assertEquals(true, ds.isWrapperFor(Class.forName("com.microsoft.sqlserver.jdbc.SQLServerDataSource")));
 			assertEquals(true, ds.isWrapperFor(Class.forName("javax.sql.CommonDataSource")));
-			com.microsoft.sqlserver.jdbc.ISQLServerDataSource ids = (com.microsoft.sqlserver.jdbc.ISQLServerDataSource) (ds
-					.unwrap(Class.forName("com.microsoft.sqlserver.jdbc.ISQLServerDataSource")));
+			ISQLServerDataSource ids = (ISQLServerDataSource) (ds.unwrap(Class.forName("com.microsoft.sqlserver.jdbc.ISQLServerDataSource")));
 			ids.setApplicationName("AppName");
 		} catch (UnsupportedOperationException e) {
 			assertEquals("This operation is not supported.", e.getMessage());
@@ -88,8 +89,7 @@ public class NativeMSSQLDataSourceTest extends AbstractTest {
 			assertEquals(true, poolDS.isWrapperFor(Class.forName("com.microsoft.sqlserver.jdbc.SQLServerDataSource")));
 			assertEquals(true, poolDS.isWrapperFor(Class.forName("com.microsoft.sqlserver.jdbc.SQLServerConnectionPoolDataSource")));
 			assertEquals(true, poolDS.isWrapperFor(Class.forName("javax.sql.CommonDataSource")));
-			com.microsoft.sqlserver.jdbc.ISQLServerDataSource ids = (com.microsoft.sqlserver.jdbc.ISQLServerDataSource) (poolDS
-					.unwrap(Class.forName("com.microsoft.sqlserver.jdbc.ISQLServerDataSource")));
+			ISQLServerDataSource ids = (ISQLServerDataSource) (poolDS.unwrap(Class.forName("com.microsoft.sqlserver.jdbc.ISQLServerDataSource")));
 			ids.setApplicationName("AppName");
 		} catch (UnsupportedOperationException e) {
 			assertEquals("This operation is not supported.", e.getMessage());
@@ -102,15 +102,14 @@ public class NativeMSSQLDataSourceTest extends AbstractTest {
 			assertEquals(true, xaDS.isWrapperFor(Class.forName("com.microsoft.sqlserver.jdbc.SQLServerConnectionPoolDataSource")));
 			assertEquals(true, xaDS.isWrapperFor(Class.forName("com.microsoft.sqlserver.jdbc.SQLServerXADataSource")));
 			assertEquals(true, xaDS.isWrapperFor(Class.forName("javax.sql.CommonDataSource")));
-			com.microsoft.sqlserver.jdbc.ISQLServerDataSource ids = (com.microsoft.sqlserver.jdbc.ISQLServerDataSource) (xaDS
-					.unwrap(Class.forName("com.microsoft.sqlserver.jdbc.ISQLServerDataSource")));
+			ISQLServerDataSource ids = (ISQLServerDataSource) (xaDS.unwrap(Class.forName("com.microsoft.sqlserver.jdbc.ISQLServerDataSource")));
 			ids.setApplicationName("AppName");
 		} catch (UnsupportedOperationException e) {
 			assertEquals("This operation is not supported.", e.getMessage());
 		}
 	}
 
-	private SQLServerDataSource testSerial(SQLServerDataSource ds) throws Exception {
+	private SQLServerDataSource testSerial(SQLServerDataSource ds) throws IOException, ClassNotFoundException {
 		java.io.ByteArrayOutputStream outputStream = new java.io.ByteArrayOutputStream();
 		java.io.ObjectOutput objectOutput = new java.io.ObjectOutputStream(outputStream);
 		objectOutput.writeObject(ds);

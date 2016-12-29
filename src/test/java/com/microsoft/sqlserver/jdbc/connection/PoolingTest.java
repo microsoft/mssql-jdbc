@@ -3,6 +3,7 @@ package com.microsoft.sqlserver.jdbc.connection;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.sql.Connection;
+import java.sql.SQLException;
 
 import javax.sql.PooledConnection;
 
@@ -19,7 +20,7 @@ import com.microsoft.sqlserver.testframework.util.RandomUtil;
 public class PoolingTest extends AbstractTest {
 
 	@Test
-	public void testPooling() throws Exception {
+	public void testPooling() throws SQLException {
 		String randomTableName = RandomUtil.getIdentifier("table");
 
 		//make the table a temporary table (will be created in tempdb database)
