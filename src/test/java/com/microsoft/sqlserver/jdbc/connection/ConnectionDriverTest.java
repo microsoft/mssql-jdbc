@@ -1,14 +1,20 @@
 package com.microsoft.sqlserver.jdbc.connection;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.sql.Connection;
 import java.sql.DriverPropertyInfo;
+import java.sql.SQLException;
+import java.sql.SQLFeatureNotSupportedException;
 import java.util.Properties;
+import java.util.logging.Logger;
 
 import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
 
+import com.microsoft.sqlserver.jdbc.SQLServerDataSource;
 import com.microsoft.sqlserver.jdbc.SQLServerDriver;
 import com.microsoft.sqlserver.jdbc.SQLServerException;
 import com.microsoft.sqlserver.testframework.AbstractTest;
@@ -48,5 +54,51 @@ public class ConnectionDriverTest extends AbstractTest {
 				assertTrue(infoArray[i].value.equals("someHost"), "Values are different");
 			}
 		}
+	}
+
+	@Test
+	public void testDataSource() {
+		SQLServerDataSource ds = new SQLServerDataSource();
+		ds.setUser("User");
+		ds.setPassword("sUser");
+		ds.setApplicationName("User");
+		ds.setURL("jdbc:sqlserver://RandomServer;packetSize=512");
+
+		String trustStore = "Store";
+		String trustStorePassword = "pwd";
+
+		ds.setTrustStore(trustStore);
+		ds.setEncrypt(true);
+		ds.setTrustStorePassword(trustStorePassword);
+		ds.setTrustServerCertificate(true);
+		assertEquals(trustStore, ds.getTrustStore(), "Values are different");
+		assertEquals(true, ds.getEncrypt(), "Values are different");
+		assertEquals(true, ds.getTrustServerCertificate(), "Values are different");
+	}
+
+	@Test
+	public void testEncryptedConnection() throws SQLException {
+		SQLServerDataSource ds = new SQLServerDataSource();
+		ds.setApplicationName("User");
+		ds.setURL(connectionString);
+		ds.setEncrypt(true);
+		ds.setTrustServerCertificate(true);
+		ds.setPacketSize(8192);
+		Connection con = ds.getConnection();
+		con.close();
+	}
+
+	@Test
+	public void testJdbc41DriverMethod() throws SQLFeatureNotSupportedException {
+		SQLServerDriver serverDriver = new SQLServerDriver();
+		Logger logger = serverDriver.getParentLogger();
+		assertEquals(logger.getName(), "com.microsoft.sqlserver.jdbc", "Parent Logger name is wrong");
+	}
+
+	@Test
+	public void testJdbc41DataSourceMethod() throws SQLFeatureNotSupportedException {
+		SQLServerDataSource fxds = new SQLServerDataSource();
+		Logger logger = fxds.getParentLogger();
+		assertEquals(logger.getName(), "com.microsoft.sqlserver.jdbc", "Parent Logger name is wrong");
 	}
 }
