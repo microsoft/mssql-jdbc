@@ -18,15 +18,18 @@ import com.microsoft.sqlserver.jdbc.SQLServerDataSource;
 import com.microsoft.sqlserver.jdbc.SQLServerDriver;
 import com.microsoft.sqlserver.jdbc.SQLServerException;
 import com.microsoft.sqlserver.testframework.AbstractTest;
+import com.microsoft.sqlserver.testframework.util.RandomUtil;
 
 @RunWith(JUnitPlatform.class)
 public class ConnectionDriverTest extends AbstractTest {
+	String randomServer = RandomUtil.getIdentifier("Server");
+	
 	@Test
 	public void testConnectionDriver() throws SQLServerException {
 		SQLServerDriver d = new SQLServerDriver();
 		Properties info = new Properties();
 		StringBuffer url = new StringBuffer();
-		url.append("jdbc:sqlserver://abcdefg;packetSize=512;");
+		url.append("jdbc:sqlserver://"+randomServer+";packetSize=512;");
 		// test defaults 
 		DriverPropertyInfo[] infoArray = d.getPropertyInfo(url.toString(), info);
 		for (int i = 0; i < infoArray.length; i++) {
@@ -62,7 +65,7 @@ public class ConnectionDriverTest extends AbstractTest {
 		ds.setUser("User");
 		ds.setPassword("sUser");
 		ds.setApplicationName("User");
-		ds.setURL("jdbc:sqlserver://RandomServer;packetSize=512");
+		ds.setURL("jdbc:sqlserver://"+randomServer+";packetSize=512");
 
 		String trustStore = "Store";
 		String trustStorePassword = "pwd";
