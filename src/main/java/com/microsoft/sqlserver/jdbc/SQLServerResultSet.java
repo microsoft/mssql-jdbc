@@ -58,7 +58,7 @@ public class SQLServerResultSet implements ISQLServerResultSet
 {
 
    /** Generate the statement's logging ID */
-   private static AtomicInteger lastResultSetID = new AtomicInteger(0);
+   private static final AtomicInteger lastResultSetID = new AtomicInteger(0);
    private final String traceID;
    private static int nextResultSetID() { return lastResultSetID.incrementAndGet(); }
    final static java.util.logging.Logger logger = java.util.logging.Logger.getLogger("com.microsoft.sqlserver.jdbc.internals.SQLServerResultSet");

@@ -595,7 +595,7 @@ public class SQLServerConnection implements ISQLServerConnection
 	private SQLCollation databaseCollation;	// Default database collation read from ENVCHANGE_SQLCOLLATION token.
 	final SQLCollation getDatabaseCollation() { return databaseCollation; }
 
-	static private AtomicInteger baseConnectionID = new AtomicInteger(0);       //connection id dispenser
+	static private final AtomicInteger baseConnectionID = new AtomicInteger(0);       //connection id dispenser
 	// This is the current catalog
 	private String sCatalog = "master";                     //the database catalog
 	// This is the catalog immediately after login.

@@ -6590,7 +6590,7 @@ final class TDSReader
 	private boolean serverSupportsColumnEncryption = false;
 
 	private final byte valueBytes[] = new byte[256];
-	private static AtomicInteger lastReaderID = new AtomicInteger(0);
+	private static final AtomicInteger lastReaderID = new AtomicInteger(0);
 	private static int nextReaderID() { return lastReaderID.incrementAndGet(); }
 
 

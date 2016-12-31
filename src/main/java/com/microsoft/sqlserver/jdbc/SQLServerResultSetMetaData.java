@@ -38,7 +38,7 @@ public final class SQLServerResultSetMetaData implements java.sql.ResultSetMetaD
     static final private java.util.logging.Logger logger =
         java.util.logging.Logger.getLogger("com.microsoft.sqlserver.jdbc.internals.SQLServerResultSetMetaData");
 
-    static private AtomicInteger baseID = new AtomicInteger(0);	// Unique id generator for each  instance (used for logging).
+    static private final AtomicInteger baseID = new AtomicInteger(0);	// Unique id generator for each  instance (used for logging).
     final private String traceID;
     // Returns unique id for each instance.
     private static int nextInstanceID()

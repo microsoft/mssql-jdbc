@@ -58,7 +58,7 @@ public final class SQLServerParameterMetaData implements ParameterMetaData {
 	static  final private java.util.logging.Logger logger =
 			java.util.logging.Logger.getLogger("com.microsoft.sqlserver.jdbc.internals.SQLServerParameterMetaData");
 
-	static private AtomicInteger baseID = new AtomicInteger(0);	// Unique id generator for each  instance (used for logging).
+	static private final AtomicInteger baseID = new AtomicInteger(0);	// Unique id generator for each  instance (used for logging).
 	final private String traceID = " SQLServerParameterMetaData:"  + nextInstanceID();
 	// Returns unique id for each instance.
 	private static int nextInstanceID()

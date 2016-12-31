@@ -55,7 +55,7 @@ class SQLServerConnectionPoolProxy implements ISQLServerConnection, java.io.Seri
 	private static final long serialVersionUID = -6412542417798843534L;
     private SQLServerConnection wrappedConnection;
     private boolean bIsOpen;
-    static private AtomicInteger baseConnectionID = new AtomicInteger(0);       //connection id dispenser
+    static private final AtomicInteger baseConnectionID = new AtomicInteger(0);       //connection id dispenser
     final private String traceID ;
         
     // Permission targets

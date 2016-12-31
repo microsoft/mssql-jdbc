@@ -170,7 +170,7 @@ public final class SQLServerXAResource implements javax.transaction.xa.XAResourc
 	private String sResourceManagerId;
 	private int enlistedTransactionCount;
 	final private Logger xaLogger;
-	static private AtomicInteger baseResourceID = new AtomicInteger(0);	// Unique id generator for each  instance (used for logging).
+	static private final AtomicInteger baseResourceID = new AtomicInteger(0);	// Unique id generator for each  instance (used for logging).
     private int tightlyCoupled = 0;
     private int isTransacrionTimeoutSet = 0;	// set to 1 if setTransactionTimeout() is called
     

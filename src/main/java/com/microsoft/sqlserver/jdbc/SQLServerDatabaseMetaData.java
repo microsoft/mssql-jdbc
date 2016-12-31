@@ -49,7 +49,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
     static final private java.util.logging.Logger loggerExternal =
         java.util.logging.Logger.getLogger("com.microsoft.sqlserver.jdbc.internals.DatabaseMetaData");
     
-    static private AtomicInteger baseID = new AtomicInteger(0);	// Unique id generator for each  instance (used for logging).
+    static private final AtomicInteger baseID = new AtomicInteger(0);	// Unique id generator for each  instance (used for logging).
     
     final private String traceID;
     

@@ -51,7 +51,7 @@ public class SQLServerDataSource implements ISQLServerDataSource, DataSource, ja
     private Properties connectionProps;			// Properties passed to SQLServerConnection class.
     private String dataSourceURL;				// URL for datasource.
     private String dataSourceDescription;		// Description for datasource.
-    static private AtomicInteger baseDataSourceID = new AtomicInteger(0);	// Unique id generator for each DataSource instance (used for logging).
+    static private final AtomicInteger baseDataSourceID = new AtomicInteger(0);	// Unique id generator for each DataSource instance (used for logging).
     final private String traceID;
     
 	/**

@@ -471,7 +471,7 @@ public class SQLServerStatement implements ISQLServerStatement {
     }
 
    /** Generate the statement's logging ID */
-   private static AtomicInteger lastStatementID = new AtomicInteger(0);
+   private static final AtomicInteger lastStatementID = new AtomicInteger(0);
    private static int nextStatementID() { return lastStatementID.incrementAndGet(); }
 
    /**

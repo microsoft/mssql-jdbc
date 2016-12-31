@@ -43,7 +43,7 @@ public class SQLServerPooledConnection implements PooledConnection {
 	private SQLServerConnectionPoolProxy	lastProxyConnection;
 	private String factoryUser, factoryPassword;
 	private java.util.logging.Logger pcLogger;
-	static private AtomicInteger basePooledConnectionID = new AtomicInteger(0);	// Unique id generator for each PooledConnection instance (used for logging).
+	static private final AtomicInteger basePooledConnectionID = new AtomicInteger(0);	// Unique id generator for each PooledConnection instance (used for logging).
 	private final String traceID;
 
 

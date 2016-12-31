@@ -55,7 +55,7 @@ public final class SQLServerBlob implements java.sql.Blob, java.io.Serializable
 
     static private final Logger logger = Logger.getLogger("com.microsoft.sqlserver.jdbc.internals.SQLServerBlob");
 
-    static private AtomicInteger baseID = new AtomicInteger(0);	// Unique id generator for each  instance (used for logging).
+    static private final AtomicInteger baseID = new AtomicInteger(0);	// Unique id generator for each  instance (used for logging).
     final private String traceID;
     final public String toString()
     {

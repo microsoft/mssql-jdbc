@@ -101,7 +101,7 @@ abstract class SQLServerClobBase implements Serializable
     {
         return traceID;
     }
-    static private AtomicInteger baseID = new AtomicInteger(0);	// Unique id generator for each  instance (used for logging).
+    static private final AtomicInteger baseID = new AtomicInteger(0);	// Unique id generator for each  instance (used for logging).
     // Returns unique id for each instance.
     private static int nextInstanceID()
     {

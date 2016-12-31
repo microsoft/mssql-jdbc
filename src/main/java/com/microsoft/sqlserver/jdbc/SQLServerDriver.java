@@ -399,7 +399,7 @@ public final class SQLServerDriver implements java.sql.Driver
 		{"server",SQLServerDriverStringProperty.SERVER_NAME.toString()},		
 		{"port", SQLServerDriverIntProperty.PORT_NUMBER.toString()}
   };
-        static private AtomicInteger baseID = new AtomicInteger(0);	// Unique id generator for each  instance (used for logging).
+        static private final AtomicInteger baseID = new AtomicInteger(0);	// Unique id generator for each  instance (used for logging).
         final private int instanceID;							// Unique id for this instance.
         final private String traceID;
         

@@ -41,7 +41,7 @@ abstract class BaseInputStream extends InputStream
 
     /** Generate the  logging ID */
     private String parentLoggingInfo = "";
-    private static AtomicInteger lastLoggingID = new AtomicInteger(0);
+    private static final AtomicInteger lastLoggingID = new AtomicInteger(0);
     private static int nextLoggingID() { return lastLoggingID.incrementAndGet(); }
     static final java.util.logging.Logger logger = java.util.logging.Logger.getLogger("com.microsoft.sqlserver.jdbc.internals.InputStream");;
     private String traceID;

@@ -87,7 +87,7 @@ final class SQLServerSQLXML implements java.sql.SQLXML
     private String      strValue;
     // End of setter values
     
-    static private AtomicInteger baseID = new AtomicInteger(0);	// Unique id generator for each  instance (used for logging).
+    static private final AtomicInteger baseID = new AtomicInteger(0);	// Unique id generator for each  instance (used for logging).
     final private String traceID;
     final public String toString()
     {
