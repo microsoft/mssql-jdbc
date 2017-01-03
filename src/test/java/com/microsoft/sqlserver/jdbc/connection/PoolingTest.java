@@ -57,7 +57,7 @@ public class PoolingTest extends AbstractTest {
 	}
 
 	@Test
-	public void testConnectionPoolReget() throws Exception {
+	public void testConnectionPoolReget() throws SQLException   {
 		SQLServerXADataSource ds = new SQLServerXADataSource();
 		ds.setURL(connectionString);
 
@@ -72,7 +72,7 @@ public class PoolingTest extends AbstractTest {
 	}
 
 	@Test
-	public void testConnectionPoolConnFunctions() throws Exception {
+	public void testConnectionPoolConnFunctions() throws SQLException {
 		String tableName = RandomUtil.getIdentifier("table");
 		tableName = DBTable.escapeIdentifier(tableName);
 
@@ -94,7 +94,7 @@ public class PoolingTest extends AbstractTest {
 	}
 
 	@Test
-	public void testConnectionPoolClose() throws Exception {
+	public void testConnectionPoolClose() throws SQLException   {
 		SQLServerXADataSource ds = new SQLServerXADataSource();
 		ds.setURL(connectionString);
 
@@ -107,7 +107,7 @@ public class PoolingTest extends AbstractTest {
 	}
 	
 	@Test
-	public void testConnectionPoolClientConnectionId()  throws Exception 
+	public void testConnectionPoolClientConnectionId() throws SQLException    
 	{
 		SQLServerXADataSource ds = new SQLServerXADataSource();
 		ds.setURL(connectionString);

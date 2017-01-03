@@ -11,6 +11,8 @@ import java.sql.SQLException;
 import java.sql.SQLFeatureNotSupportedException;
 import java.sql.Statement;
 import java.util.Properties;
+import java.util.concurrent.Executor;
+import java.util.concurrent.Executors;
 import java.util.logging.Logger;
 
 import javax.sql.ConnectionEvent;
@@ -33,6 +35,10 @@ import com.microsoft.sqlserver.testframework.util.RandomUtil;
 
 @RunWith(JUnitPlatform.class)
 public class ConnectionDriverTest extends AbstractTest {
+	//If no retry is done, the function should atleast exit in 5 seconds
+	static int threshHoldForNoRetryInMilliseconds = 5000;
+	static int loginTimeOutInSeconds = 10;
+
 	String randomServer = RandomUtil.getIdentifier("Server");
 
 	@Test
@@ -133,7 +139,7 @@ public class ConnectionDriverTest extends AbstractTest {
 	}
 
 	@Test
-	public void testConnectionEvents() throws Exception {
+	public void testConnectionEvents() throws SQLException {
 		SQLServerConnectionPoolDataSource mds = new SQLServerConnectionPoolDataSource();
 		mds.setURL(connectionString);
 		PooledConnection pooledConnection = mds.getPooledConnection();
@@ -192,7 +198,7 @@ public class ConnectionDriverTest extends AbstractTest {
 	}
 
 	@Test
-	public void testConnectionClosed() throws Exception {
+	public void testConnectionClosed() throws SQLException {
 		SQLServerDataSource mds = new SQLServerDataSource();
 		mds.setURL(connectionString);
 		Connection con = mds.getConnection();
@@ -214,7 +220,7 @@ public class ConnectionDriverTest extends AbstractTest {
 	}
 
 	@Test
-	public void testIsWrapperFor() throws Exception {
+	public void testIsWrapperFor() throws SQLException, ClassNotFoundException {
 		Connection conn = DriverManager.getConnection(connectionString);
 		SQLServerConnection ssconn = (SQLServerConnection) conn;
 		boolean isWrapper;
@@ -237,7 +243,7 @@ public class ConnectionDriverTest extends AbstractTest {
 	}
 
 	@Test
-	public void testNewConnection() throws Exception {
+	public void testNewConnection() throws SQLException {
 		SQLServerConnection conn = (SQLServerConnection) DriverManager.getConnection(connectionString);
 		try {
 			assertTrue(conn.isValid(0), "Newly created connection should be valid");
@@ -249,7 +255,7 @@ public class ConnectionDriverTest extends AbstractTest {
 	}
 
 	@Test
-	public void testClosedConnection() throws Exception {
+	public void testClosedConnection() throws SQLException {
 		SQLServerConnection conn = (SQLServerConnection) DriverManager.getConnection(connectionString);
 		try {
 			conn.close();
@@ -275,7 +281,7 @@ public class ConnectionDriverTest extends AbstractTest {
 	}
 
 	@Test
-	public void testDeadConnection() throws Exception {
+	public void testDeadConnection() throws SQLException {
 		SQLServerConnection conn = (SQLServerConnection) DriverManager.getConnection(connectionString + ";responseBuffering=adaptive");
 
 		if (!DBConnection.isSqlAzure(conn)) {
@@ -305,5 +311,183 @@ public class ConnectionDriverTest extends AbstractTest {
 				assertEquals(e.getMessage(), "This operation is not supported.", "Wrong exception message");
 			}
 		}
+	}
+
+	@Test
+	public void testClientConnectionId() throws Exception {
+		SQLServerConnection conn = (SQLServerConnection) DriverManager.getConnection(connectionString);
+		assertTrue(conn.getClientConnectionId() != null, "ClientConnectionId is null");
+		conn.close();
+		try {
+			// Call getClientConnectionId on a closed connection, should raise exception
+			conn.getClientConnectionId();
+			throw new Exception("No exception thrown calling getClientConnectionId on a closed connection");
+		} catch (SQLServerException e) {
+			assertEquals(e.getMessage(), "The connection is closed.", "Wrong exception message");
+		}
+
+		conn = null;
+		try {
+			// Wrong database, ClientConnectionId should be available in error message
+			conn = (SQLServerConnection) DriverManager.getConnection(connectionString + ";databaseName=" + RandomUtil.getIdentifierForDB("DataBase") + ";");
+			conn.close();
+
+		} catch (SQLServerException e) {
+			assertTrue(e.getMessage().indexOf("ClientConnectionId") != -1, "Unexpected: ClientConnectionId is not in exception message due to wrong DB");
+		}
+
+		try {
+			// Nonexist host, ClientConnectionId should not be available in error message
+			conn = (SQLServerConnection) DriverManager.getConnection(connectionString + ";instanceName=" + RandomUtil.getIdentifier("Instance") + ";logintimeout=5;");
+			conn.close();
+
+		} catch (SQLServerException e) {
+			assertEquals(false, e.getMessage().indexOf("ClientConnectionId") != -1, "Unexpected: ClientConnectionId is in exception message due to wrong host");
+		}
+	}
+
+	@Test
+	public void testIncorrectDatabase() throws SQLServerException {
+		long timerStart = 0;
+		long timerEnd = 0;
+		Connection con = null;
+		final long milsecs = threshHoldForNoRetryInMilliseconds;
+		try {
+			SQLServerDataSource ds = new SQLServerDataSource();
+			ds.setURL(connectionString);
+			ds.setLoginTimeout(loginTimeOutInSeconds);
+			ds.setDatabaseName(RandomUtil.getIdentifier("DataBase"));
+			timerStart = System.currentTimeMillis();
+			con = ds.getConnection();
+		} catch (Exception e) {
+			assertTrue(e.getMessage().contains("Cannot open database"));
+			timerEnd = System.currentTimeMillis();
+		}
+
+		long timeDiff = timerEnd - timerStart;
+		assertTrue(con == null, "Should not have connected.");
+		assertTrue(timeDiff <= milsecs, "Exited in more than " + (milsecs / 1000) + " seconds.");
+	}
+
+	@Test
+	public void testIncorrectUserName() throws SQLServerException {
+		long timerStart = 0;
+		long timerEnd = 0;
+		Connection con = null;
+		final long milsecs = threshHoldForNoRetryInMilliseconds;
+		try {
+			SQLServerDataSource ds = new SQLServerDataSource();
+			ds.setURL(connectionString);
+			ds.setLoginTimeout(loginTimeOutInSeconds);
+			ds.setUser(RandomUtil.getIdentifier("User"));
+			timerStart = System.currentTimeMillis();
+			con = ds.getConnection();
+		} catch (Exception e) {
+			assertTrue(e.getMessage().contains("Login failed"));
+			timerEnd = System.currentTimeMillis();
+		}
+
+		long timeDiff = timerEnd - timerStart;
+		assertTrue(con == null, "Should not have connected.");
+		assertTrue(timeDiff <= milsecs, "Exited in more than " + (milsecs / 1000) + " seconds.");
+	}
+
+	@Test
+	public void testIncorrectPassword() throws SQLServerException {
+		long timerStart = 0;
+		long timerEnd = 0;
+		Connection con = null;
+		final long milsecs = threshHoldForNoRetryInMilliseconds;
+		try {
+			SQLServerDataSource ds = new SQLServerDataSource();
+			ds.setURL(connectionString);
+			ds.setLoginTimeout(loginTimeOutInSeconds);
+			ds.setPassword(RandomUtil.getIdentifier("Password"));
+			timerStart = System.currentTimeMillis();
+			con = ds.getConnection();
+		} catch (Exception e) {
+			assertTrue(e.getMessage().contains("Login failed"));
+			timerEnd = System.currentTimeMillis();
+		}
+
+		long timeDiff = timerEnd - timerStart;
+		assertTrue(con == null, "Should not have connected.");
+		assertTrue(timeDiff <= milsecs, "Exited in more than " + (milsecs / 1000) + " seconds.");
+	}
+
+	@Test
+	public void testInvalidCombination() throws SQLServerException {
+		long timerStart = 0;
+		long timerEnd = 0;
+		Connection con = null;
+		final long milsecs = threshHoldForNoRetryInMilliseconds;
+		try {
+			SQLServerDataSource ds = new SQLServerDataSource();
+			ds.setURL(connectionString);
+			ds.setLoginTimeout(loginTimeOutInSeconds);
+			ds.setMultiSubnetFailover(true);
+			ds.setFailoverPartner(RandomUtil.getIdentifier("FailoverPartner"));
+			timerStart = System.currentTimeMillis();
+			con = ds.getConnection();
+		} catch (Exception e) {
+			assertTrue(e.getMessage().contains("Connecting to a mirrored"));
+			timerEnd = System.currentTimeMillis();
+		}
+
+		long timeDiff = timerEnd - timerStart;
+		assertTrue(con == null, "Should not have connected.");
+		assertTrue(timeDiff <= milsecs, "Exited in more than " + (milsecs / 1000) + " seconds.");
+	}
+
+	@Test
+	public void testIncorrectDatabaseWithFailoverPartner() throws SQLServerException {
+		long timerStart = 0;
+		long timerEnd = 0;
+		Connection con = null;
+		try {
+			SQLServerDataSource ds = new SQLServerDataSource();
+			ds.setURL(connectionString);
+			ds.setLoginTimeout(loginTimeOutInSeconds);
+			ds.setDatabaseName(RandomUtil.getIdentifierForDB("DB"));
+			ds.setFailoverPartner(RandomUtil.getIdentifier("FailoverPartner"));
+			timerStart = System.currentTimeMillis();
+			con = ds.getConnection();
+		} catch (Exception e) {
+			assertTrue(e.getMessage().contains("The TCP/IP connection to the host"));
+			timerEnd = System.currentTimeMillis();
+		}
+
+		long timeDiff = timerEnd - timerStart;
+		assertTrue(con == null, "Should not have connected.");
+		assertTrue(timeDiff >= ((loginTimeOutInSeconds - 1) * 1000), "Exited in less than " + (loginTimeOutInSeconds - 1) + " seconds.");
+	}
+
+	@Test
+	public void testAbortBadParam() throws SQLException {
+		SQLServerConnection conn = (SQLServerConnection) DriverManager.getConnection(connectionString);
+		try {
+			conn.abort(null);
+		} catch (SQLServerException e) {
+			assertTrue(e.getMessage().contains("The argument executor is not valid"));
+		}
+	}
+
+	@Test
+	public void testAbort() throws SQLException {
+		SQLServerConnection conn = (SQLServerConnection) DriverManager.getConnection(connectionString);
+		Executor executor = Executors.newFixedThreadPool(2);
+		conn.abort(executor);
+	}
+
+	@Test
+	public void testSetSchema() throws SQLException {
+		SQLServerConnection conn = (SQLServerConnection) DriverManager.getConnection(connectionString);
+		conn.setSchema(RandomUtil.getIdentifier("schema"));
+	}
+
+	@Test
+	public void testGetSchema() throws SQLException {
+		SQLServerConnection conn = (SQLServerConnection) DriverManager.getConnection(connectionString);
+		conn.getSchema();
 	}
 }

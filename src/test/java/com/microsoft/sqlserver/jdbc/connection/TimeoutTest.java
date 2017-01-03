@@ -75,7 +75,7 @@ public class TimeoutTest extends AbstractTest {
 	}
 
 	@Test
-	public void testQueryTimeout() throws Exception {
+	public void testQueryTimeout() throws Exception   {
 		SQLServerConnection conn = (SQLServerConnection) DriverManager.getConnection(connectionString);
 
 		dropWaitForDelayProcedure(conn);
@@ -95,7 +95,7 @@ public class TimeoutTest extends AbstractTest {
 	}
 
 	@Test
-	public void testSocketTimeout() throws Exception {
+	public void testSocketTimeout() throws Exception   {
 		SQLServerConnection conn = (SQLServerConnection) DriverManager.getConnection(connectionString);
 
 		dropWaitForDelayProcedure(conn);
