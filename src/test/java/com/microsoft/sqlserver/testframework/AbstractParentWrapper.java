@@ -25,12 +25,17 @@
 
 package com.microsoft.sqlserver.testframework;
 
+import java.util.logging.Logger;
+
 /**
  * Stores the parent class. For connection parent is null; for Statement,
  * Connection is parent; for ResultSet, Statement is parent
  */
 public abstract class AbstractParentWrapper {
-
+	static final int ENGINE_EDITION_FOR_SQL_AZURE = 5;
+	
+	protected static Logger logger = Logger.getLogger("AbstractParentWrapper");
+	
     AbstractParentWrapper parent = null;
     Object internal = null;
     String name = null;

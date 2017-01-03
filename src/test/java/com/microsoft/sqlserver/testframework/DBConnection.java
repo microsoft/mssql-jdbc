@@ -27,6 +27,8 @@ package com.microsoft.sqlserver.testframework;
 
 import static org.junit.jupiter.api.Assertions.fail;
 
+import java.sql.Connection;
+import java.sql.ResultSet;
 import java.sql.SQLException;
 
 import com.microsoft.sqlserver.jdbc.SQLServerConnection;
@@ -91,4 +93,17 @@ public class DBConnection extends AbstractParentWrapper {
         return null;
     }
 
+	public static boolean isSqlAzure(Connection con) throws SQLException {
+		boolean isSqlAzure = false;
+
+		ResultSet rs = con.createStatement().executeQuery("SELECT CAST(SERVERPROPERTY('EngineEdition') as INT)");
+		rs.next();
+		int engineEdition = rs.getInt(1);
+		rs.close();
+		if (engineEdition == ENGINE_EDITION_FOR_SQL_AZURE) {
+			isSqlAzure = true;
+		}
+
+		return isSqlAzure;
+	}
 }
