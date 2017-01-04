@@ -1821,19 +1821,11 @@ public class SQLServerConnection implements ISQLServerConnection
 		}
 
 		// If we get here, connection/login succeeded!  Just a few more checks & record-keeping
-		// if connected to failover host, but said host doesn't have DbMirroring set up, throw an error
+		// if connected to failover host, but said host doesn't have DbMirroring set up, just use the mirror
+		// as failoverPartnerServerProvided
 		if (useFailoverHost && null == failoverPartnerServerProvided) 
 		{
-			String curserverinfo = currentConnectPlaceHolder.getServerName();
-			if(null != currentFOPlaceHolder.getInstanceName())
-			{
-				curserverinfo =   curserverinfo + "\\";
-				curserverinfo = curserverinfo + currentFOPlaceHolder.getInstanceName();
-			}
-			MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidPartnerConfiguration"));
-			Object[] msgArgs = { activeConnectionProperties.getProperty(SQLServerDriverStringProperty.DATABASE_NAME.toString()), 
-					curserverinfo};        
-			terminate(SQLServerException.DRIVER_ERROR_UNSUPPORTED_CONFIG, form.format(msgArgs));
+			failoverPartnerServerProvided = mirror;
 		}
 
 		if(null != failoverPartnerServerProvided)
