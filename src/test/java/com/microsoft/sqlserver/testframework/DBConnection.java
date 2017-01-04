@@ -38,60 +38,57 @@ import com.microsoft.sqlserver.jdbc.SQLServerConnection;
  */
 public class DBConnection extends AbstractParentWrapper {
 
-    // TODO: add Isolation Level
-    // TODO: add auto commit
-    // TODO: add connection Savepoint and rollback
-    // TODO: add additional connection properties
-    // TODO: add DataSource support
-    private SQLServerConnection connection = null;
+	// TODO: add Isolation Level
+	// TODO: add auto commit
+	// TODO: add connection Savepoint and rollback
+	// TODO: add additional connection properties
+	// TODO: add DataSource support
+	private SQLServerConnection connection = null;
 
-    /**
-     * establishes connection using the input
-     * 
-     * @param connectionString
-     */
-    public DBConnection(String connectionString) {
-        super(null, null, "connection");
-        getConnection(connectionString);
-    }
+	/**
+	 * establishes connection using the input
+	 * 
+	 * @param connectionString
+	 */
+	public DBConnection(String connectionString) {
+		super(null, null, "connection");
+		getConnection(connectionString);
+	}
 
-    /**
-     * establish connection
-     * 
-     * @param connectionString
-     */
-    void getConnection(String connectionString) {
-        try {
-            connection = PrepUtil.getConnection(connectionString);
-            setInternal(connection);
-        }
-        catch (SQLException ex) {
-            fail(ex.getMessage());
-        }
-        catch (ClassNotFoundException ex) {
-            fail(ex.getMessage());
-        }
-    }
+	/**
+	 * establish connection
+	 * 
+	 * @param connectionString
+	 */
+	void getConnection(String connectionString) {
+		try {
+			connection = PrepUtil.getConnection(connectionString);
+			setInternal(connection);
+		} catch (SQLException ex) {
+			fail(ex.getMessage());
+		} catch (ClassNotFoundException ex) {
+			fail(ex.getMessage());
+		}
+	}
 
-    @Override
-    void setInternal(Object internal) {
-        this.internal = internal;
-    }
+	@Override
+	void setInternal(Object internal) {
+		this.internal = internal;
+	}
 
-    /**
-     * 
-     * @return Statement wrapper
-     */
-    public DBStatement createStatement() {
-        try {
-            DBStatement dbstatement = new DBStatement(this);
-            return dbstatement.createStatement();
-        }
-        catch (SQLException ex) {
-            fail(ex.getMessage());
-        }
-        return null;
-    }
+	/**
+	 * 
+	 * @return Statement wrapper
+	 */
+	public DBStatement createStatement() {
+		try {
+			DBStatement dbstatement = new DBStatement(this);
+			return dbstatement.createStatement();
+		} catch (SQLException ex) {
+			fail(ex.getMessage());
+		}
+		return null;
+	}
 
 	public static boolean isSqlAzure(Connection con) throws SQLException {
 		boolean isSqlAzure = false;
