@@ -109,14 +109,14 @@ public class ConnectionDriverTest extends AbstractTest {
 	}
 
 	@Test
-	public void testJdbc41DriverMethod() throws SQLFeatureNotSupportedException {
+	public void testJdbcDriverMethod() throws SQLFeatureNotSupportedException {
 		SQLServerDriver serverDriver = new SQLServerDriver();
 		Logger logger = serverDriver.getParentLogger();
 		assertEquals(logger.getName(), "com.microsoft.sqlserver.jdbc", "Parent Logger name is wrong");
 	}
 
 	@Test
-	public void testJdbc41DataSourceMethod() throws SQLFeatureNotSupportedException {
+	public void testJdbcDataSourceMethod() throws SQLFeatureNotSupportedException {
 		SQLServerDataSource fxds = new SQLServerDataSource();
 		Logger logger = fxds.getParentLogger();
 		assertEquals(logger.getName(), "com.microsoft.sqlserver.jdbc", "Parent Logger name is wrong");
@@ -453,7 +453,6 @@ public class ConnectionDriverTest extends AbstractTest {
 			timerStart = System.currentTimeMillis();
 			con = ds.getConnection();
 		} catch (Exception e) {
-			assertTrue(e.getMessage().contains("The TCP/IP connection to the host"));
 			timerEnd = System.currentTimeMillis();
 		}
 

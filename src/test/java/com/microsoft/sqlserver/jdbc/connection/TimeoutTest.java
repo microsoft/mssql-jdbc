@@ -1,7 +1,7 @@
 package com.microsoft.sqlserver.jdbc.connection;
 
-import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.sql.DriverManager;
 import java.sql.SQLException;
@@ -75,7 +75,7 @@ public class TimeoutTest extends AbstractTest {
 	}
 
 	@Test
-	public void testQueryTimeout() throws Exception   {
+	public void testQueryTimeout() throws Exception {
 		SQLServerConnection conn = (SQLServerConnection) DriverManager.getConnection(connectionString);
 
 		dropWaitForDelayProcedure(conn);
@@ -95,13 +95,13 @@ public class TimeoutTest extends AbstractTest {
 	}
 
 	@Test
-	public void testSocketTimeout() throws Exception   {
+	public void testSocketTimeout() throws Exception {
 		SQLServerConnection conn = (SQLServerConnection) DriverManager.getConnection(connectionString);
 
 		dropWaitForDelayProcedure(conn);
 		createWaitForDelayPreocedure(conn);
 
-		conn = (SQLServerConnection) DriverManager.getConnection(connectionString + ";socketTimeout=" + (waitForDelaySeconds / 2) + ";");
+		conn = (SQLServerConnection) DriverManager.getConnection(connectionString + ";socketTimeout=" + (waitForDelaySeconds * 1000 / 2) + ";");
 
 		try {
 			conn.createStatement().execute("exec " + waitForDelaySPName);

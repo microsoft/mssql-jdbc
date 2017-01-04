@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.sql.Connection;
+import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.UUID;
@@ -18,6 +19,7 @@ import com.microsoft.sqlserver.jdbc.ISQLServerConnection;
 import com.microsoft.sqlserver.jdbc.SQLServerException;
 import com.microsoft.sqlserver.jdbc.SQLServerXADataSource;
 import com.microsoft.sqlserver.testframework.AbstractTest;
+import com.microsoft.sqlserver.testframework.DBConnection;
 import com.microsoft.sqlserver.testframework.DBTable;
 import com.microsoft.sqlserver.testframework.util.RandomUtil;
 
@@ -25,39 +27,41 @@ import com.microsoft.sqlserver.testframework.util.RandomUtil;
 public class PoolingTest extends AbstractTest {
 	@Test
 	public void testPooling() throws SQLException {
-		String randomTableName = RandomUtil.getIdentifier("table");
+		if (!DBConnection.isSqlAzure(DriverManager.getConnection(connectionString))) {
+			String randomTableName = RandomUtil.getIdentifier("table");
 
-		//make the table a temporary table (will be created in tempdb database)
-		String tempTableName = "#" + randomTableName;
+			//make the table a temporary table (will be created in tempdb database)
+			String tempTableName = "#" + randomTableName;
 
-		SQLServerXADataSource XADataSource1 = new SQLServerXADataSource();
-		XADataSource1.setURL(connectionString);
-		XADataSource1.setDatabaseName("tempdb");
+			SQLServerXADataSource XADataSource1 = new SQLServerXADataSource();
+			XADataSource1.setURL(connectionString);
+			XADataSource1.setDatabaseName("tempdb");
 
-		PooledConnection pc = XADataSource1.getPooledConnection();
-		Connection conn = pc.getConnection();
+			PooledConnection pc = XADataSource1.getPooledConnection();
+			Connection conn = pc.getConnection();
 
-		//create table in tempdb database 
-		conn.createStatement().execute("create table [" + tempTableName + "] (myid int)");
-		conn.createStatement().execute("insert into [" + tempTableName + "] values (1)");
-		conn.close();
+			//create table in tempdb database 
+			conn.createStatement().execute("create table [" + tempTableName + "] (myid int)");
+			conn.createStatement().execute("insert into [" + tempTableName + "] values (1)");
+			conn.close();
 
-		conn = pc.getConnection();
+			conn = pc.getConnection();
 
-		boolean tempTableFileRemoved = false;
-		try {
-			conn.createStatement().executeQuery("select * from [" + tempTableName + "]");
-		} catch (SQLServerException e) {
-			//make sure the temporary table is not found.
-			if (e.getMessage().startsWith("Invalid object name")) {
-				tempTableFileRemoved = true;
+			boolean tempTableFileRemoved = false;
+			try {
+				conn.createStatement().executeQuery("select * from [" + tempTableName + "]");
+			} catch (SQLServerException e) {
+				//make sure the temporary table is not found.
+				if (e.getMessage().startsWith("Invalid object name")) {
+					tempTableFileRemoved = true;
+				}
 			}
+			assertTrue(tempTableFileRemoved, "Temporary table is not removed.");
 		}
-		assertTrue(tempTableFileRemoved, "Temporary table is not removed.");
 	}
 
 	@Test
-	public void testConnectionPoolReget() throws SQLException   {
+	public void testConnectionPoolReget() throws SQLException {
 		SQLServerXADataSource ds = new SQLServerXADataSource();
 		ds.setURL(connectionString);
 
@@ -94,7 +98,7 @@ public class PoolingTest extends AbstractTest {
 	}
 
 	@Test
-	public void testConnectionPoolClose() throws SQLException   {
+	public void testConnectionPoolClose() throws SQLException {
 		SQLServerXADataSource ds = new SQLServerXADataSource();
 		ds.setURL(connectionString);
 
@@ -105,10 +109,9 @@ public class PoolingTest extends AbstractTest {
 		// assert that the first connection is closed.
 		assertEquals(true, con.isClosed(), "Connection is not closed with pool close");
 	}
-	
+
 	@Test
-	public void testConnectionPoolClientConnectionId() throws SQLException    
-	{
+	public void testConnectionPoolClientConnectionId() throws SQLException {
 		SQLServerXADataSource ds = new SQLServerXADataSource();
 		ds.setURL(connectionString);
 
@@ -116,7 +119,7 @@ public class PoolingTest extends AbstractTest {
 		ISQLServerConnection con = (ISQLServerConnection) pc.getConnection();
 
 		UUID Id1 = con.getClientConnectionId();
-		assertTrue(Id1!=null, "Unexecepted: ClientConnectionId is null from Pool");
+		assertTrue(Id1 != null, "Unexecepted: ClientConnectionId is null from Pool");
 		con.close();
 
 		// now reget the connection
