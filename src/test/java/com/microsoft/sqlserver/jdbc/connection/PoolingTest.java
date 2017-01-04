@@ -72,7 +72,7 @@ public class PoolingTest extends AbstractTest {
 		Connection con2 = pc.getConnection();
 
 		// assert that the first connection is closed.
-		assertEquals(true, con.isClosed(), "First connection is not closed");
+		assertTrue(con.isClosed(), "First connection is not closed");
 	}
 
 	@Test
@@ -107,7 +107,7 @@ public class PoolingTest extends AbstractTest {
 
 		pc.close();
 		// assert that the first connection is closed.
-		assertEquals(true, con.isClosed(), "Connection is not closed with pool close");
+		assertTrue(con.isClosed(), "Connection is not closed with pool close");
 	}
 
 	@Test

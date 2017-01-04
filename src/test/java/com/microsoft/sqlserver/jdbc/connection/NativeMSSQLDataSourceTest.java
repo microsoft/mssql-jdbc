@@ -31,7 +31,7 @@ public class NativeMSSQLDataSourceTest extends AbstractTest {
 	public void testNativeMSSQLDataSource() throws SQLException {
 		SQLServerXADataSource ds = new SQLServerXADataSource();
 		ds.setLastUpdateCount(true);
-		assertTrue(true == ds.getLastUpdateCount());
+		assertTrue(ds.getLastUpdateCount());
 	}
 
 	@Test
@@ -73,40 +73,28 @@ public class NativeMSSQLDataSourceTest extends AbstractTest {
 	@Test
 	public void testInterfaceWrapping() throws ClassNotFoundException, SQLException {
 		SQLServerDataSource ds = new SQLServerDataSource();
-		try {
-			assertEquals(true, ds.isWrapperFor(Class.forName("com.microsoft.sqlserver.jdbc.ISQLServerDataSource")));
-			assertEquals(true, ds.isWrapperFor(Class.forName("com.microsoft.sqlserver.jdbc.SQLServerDataSource")));
-			assertEquals(true, ds.isWrapperFor(Class.forName("javax.sql.CommonDataSource")));
-			ISQLServerDataSource ids = (ISQLServerDataSource) (ds.unwrap(Class.forName("com.microsoft.sqlserver.jdbc.ISQLServerDataSource")));
-			ids.setApplicationName("AppName");
-		} catch (UnsupportedOperationException e) {
-			assertEquals("This operation is not supported.", e.getMessage());
-		}
+		assertEquals(true, ds.isWrapperFor(Class.forName("com.microsoft.sqlserver.jdbc.ISQLServerDataSource")));
+		assertEquals(true, ds.isWrapperFor(Class.forName("com.microsoft.sqlserver.jdbc.SQLServerDataSource")));
+		assertEquals(true, ds.isWrapperFor(Class.forName("javax.sql.CommonDataSource")));
+		ISQLServerDataSource ids = (ISQLServerDataSource) (ds.unwrap(Class.forName("com.microsoft.sqlserver.jdbc.ISQLServerDataSource")));
+		ids.setApplicationName("AppName");
 
 		SQLServerConnectionPoolDataSource poolDS = new SQLServerConnectionPoolDataSource();
-		try {
-			assertEquals(true, poolDS.isWrapperFor(Class.forName("com.microsoft.sqlserver.jdbc.ISQLServerDataSource")));
-			assertEquals(true, poolDS.isWrapperFor(Class.forName("com.microsoft.sqlserver.jdbc.SQLServerDataSource")));
-			assertEquals(true, poolDS.isWrapperFor(Class.forName("com.microsoft.sqlserver.jdbc.SQLServerConnectionPoolDataSource")));
-			assertEquals(true, poolDS.isWrapperFor(Class.forName("javax.sql.CommonDataSource")));
-			ISQLServerDataSource ids = (ISQLServerDataSource) (poolDS.unwrap(Class.forName("com.microsoft.sqlserver.jdbc.ISQLServerDataSource")));
-			ids.setApplicationName("AppName");
-		} catch (UnsupportedOperationException e) {
-			assertEquals("This operation is not supported.", e.getMessage());
-		}
+		assertEquals(true, poolDS.isWrapperFor(Class.forName("com.microsoft.sqlserver.jdbc.ISQLServerDataSource")));
+		assertEquals(true, poolDS.isWrapperFor(Class.forName("com.microsoft.sqlserver.jdbc.SQLServerDataSource")));
+		assertEquals(true, poolDS.isWrapperFor(Class.forName("com.microsoft.sqlserver.jdbc.SQLServerConnectionPoolDataSource")));
+		assertEquals(true, poolDS.isWrapperFor(Class.forName("javax.sql.CommonDataSource")));
+		ISQLServerDataSource ids2 = (ISQLServerDataSource) (poolDS.unwrap(Class.forName("com.microsoft.sqlserver.jdbc.ISQLServerDataSource")));
+		ids2.setApplicationName("AppName");
 
 		SQLServerXADataSource xaDS = new SQLServerXADataSource();
-		try {
-			assertEquals(true, xaDS.isWrapperFor(Class.forName("com.microsoft.sqlserver.jdbc.ISQLServerDataSource")));
-			assertEquals(true, xaDS.isWrapperFor(Class.forName("com.microsoft.sqlserver.jdbc.SQLServerDataSource")));
-			assertEquals(true, xaDS.isWrapperFor(Class.forName("com.microsoft.sqlserver.jdbc.SQLServerConnectionPoolDataSource")));
-			assertEquals(true, xaDS.isWrapperFor(Class.forName("com.microsoft.sqlserver.jdbc.SQLServerXADataSource")));
-			assertEquals(true, xaDS.isWrapperFor(Class.forName("javax.sql.CommonDataSource")));
-			ISQLServerDataSource ids = (ISQLServerDataSource) (xaDS.unwrap(Class.forName("com.microsoft.sqlserver.jdbc.ISQLServerDataSource")));
-			ids.setApplicationName("AppName");
-		} catch (UnsupportedOperationException e) {
-			assertEquals("This operation is not supported.", e.getMessage());
-		}
+		assertEquals(true, xaDS.isWrapperFor(Class.forName("com.microsoft.sqlserver.jdbc.ISQLServerDataSource")));
+		assertEquals(true, xaDS.isWrapperFor(Class.forName("com.microsoft.sqlserver.jdbc.SQLServerDataSource")));
+		assertEquals(true, xaDS.isWrapperFor(Class.forName("com.microsoft.sqlserver.jdbc.SQLServerConnectionPoolDataSource")));
+		assertEquals(true, xaDS.isWrapperFor(Class.forName("com.microsoft.sqlserver.jdbc.SQLServerXADataSource")));
+		assertEquals(true, xaDS.isWrapperFor(Class.forName("javax.sql.CommonDataSource")));
+		ISQLServerDataSource ids3 = (ISQLServerDataSource) (xaDS.unwrap(Class.forName("com.microsoft.sqlserver.jdbc.ISQLServerDataSource")));
+		ids3.setApplicationName("AppName");
 	}
 
 	private SQLServerDataSource testSerial(SQLServerDataSource ds) throws IOException, ClassNotFoundException {

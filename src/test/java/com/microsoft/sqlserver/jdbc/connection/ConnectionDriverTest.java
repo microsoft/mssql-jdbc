@@ -224,20 +224,16 @@ public class ConnectionDriverTest extends AbstractTest {
 		Connection conn = DriverManager.getConnection(connectionString);
 		SQLServerConnection ssconn = (SQLServerConnection) conn;
 		boolean isWrapper;
-		try {
-			isWrapper = ssconn.isWrapperFor(ssconn.getClass());
-			assertTrue(isWrapper, "SQLServerConnection supports unwrapping");
-			assertEquals(ssconn.TRANSACTION_SNAPSHOT, ssconn.TRANSACTION_SNAPSHOT, "Cant access the TRANSACTION_SNAPSHOT ");
+		isWrapper = ssconn.isWrapperFor(ssconn.getClass());
+		assertTrue(isWrapper, "SQLServerConnection supports unwrapping");
+		assertEquals(ssconn.TRANSACTION_SNAPSHOT, ssconn.TRANSACTION_SNAPSHOT, "Cant access the TRANSACTION_SNAPSHOT ");
 
-			isWrapper = ssconn.isWrapperFor(Class.forName("com.microsoft.sqlserver.jdbc.ISQLServerConnection"));
-			assertTrue(isWrapper, "ISQLServerConnection supports unwrapping");
-			ISQLServerConnection iSql = (ISQLServerConnection) ssconn.unwrap(Class.forName("com.microsoft.sqlserver.jdbc.ISQLServerConnection"));
-			assertEquals(iSql.TRANSACTION_SNAPSHOT, iSql.TRANSACTION_SNAPSHOT, "Cant access the TRANSACTION_SNAPSHOT ");
+		isWrapper = ssconn.isWrapperFor(Class.forName("com.microsoft.sqlserver.jdbc.ISQLServerConnection"));
+		assertTrue(isWrapper, "ISQLServerConnection supports unwrapping");
+		ISQLServerConnection iSql = (ISQLServerConnection) ssconn.unwrap(Class.forName("com.microsoft.sqlserver.jdbc.ISQLServerConnection"));
+		assertEquals(iSql.TRANSACTION_SNAPSHOT, iSql.TRANSACTION_SNAPSHOT, "Cant access the TRANSACTION_SNAPSHOT ");
 
-			ssconn.unwrap(Class.forName("java.sql.Connection"));
-		} catch (UnsupportedOperationException e) {
-			assertEquals(e.getMessage(), "This operation is not supported.", "Wrong exception message");
-		}
+		ssconn.unwrap(Class.forName("java.sql.Connection"));
 
 		conn.close();
 	}
@@ -245,11 +241,7 @@ public class ConnectionDriverTest extends AbstractTest {
 	@Test
 	public void testNewConnection() throws SQLException {
 		SQLServerConnection conn = (SQLServerConnection) DriverManager.getConnection(connectionString);
-		try {
-			assertTrue(conn.isValid(0), "Newly created connection should be valid");
-		} catch (UnsupportedOperationException e) {
-			assertEquals(e.getMessage(), "This operation is not supported.", "Wrong exception message");
-		}
+		assertTrue(conn.isValid(0), "Newly created connection should be valid");
 
 		conn.close();
 	}
@@ -257,12 +249,8 @@ public class ConnectionDriverTest extends AbstractTest {
 	@Test
 	public void testClosedConnection() throws SQLException {
 		SQLServerConnection conn = (SQLServerConnection) DriverManager.getConnection(connectionString);
-		try {
-			conn.close();
-			assertTrue(!conn.isValid(0), "Closed connection should be invalid");
-		} catch (UnsupportedOperationException e) {
-			assertEquals(e.getMessage(), "This operation is not supported.", "Wrong exception message");
-		}
+		conn.close();
+		assertTrue(!conn.isValid(0), "Closed connection should be invalid");
 	}
 
 	@Test
@@ -273,8 +261,6 @@ public class ConnectionDriverTest extends AbstractTest {
 			throw new Exception("No exception thrown with negative timeout");
 		} catch (SQLException e) {
 			assertEquals(e.getMessage(), "The query timeout value -42 is not valid.", "Wrong exception message");
-		} catch (UnsupportedOperationException e) {
-			assertEquals(e.getMessage(), "This operation is not supported.", "Wrong exception message");
 		}
 
 		conn.close();
@@ -287,29 +273,24 @@ public class ConnectionDriverTest extends AbstractTest {
 		if (!DBConnection.isSqlAzure(conn)) {
 			Statement stmt = null;
 
-			try {
-				String tableName = RandomUtil.getIdentifier("Table");
-				tableName = DBTable.escapeIdentifier(tableName);
+			String tableName = RandomUtil.getIdentifier("Table");
+			tableName = DBTable.escapeIdentifier(tableName);
 
-				conn.setAutoCommit(false);
-				stmt = conn.createStatement();
-				stmt.executeUpdate("CREATE TABLE " + tableName + " (col1 int primary key)");
-				for (int i = 0; i < 80; i++) {
-					stmt.executeUpdate("INSERT INTO " + tableName + "(col1) values (" + i + ")");
-				}
-				conn.commit();
-				try {
-					stmt.execute(
-							"SELECT x1.col1 as foo, x2.col1 as bar, x1.col1 as eeep FROM " + tableName + " as x1, " + tableName + " as x2; RAISERROR ('Oops', 21, 42) WITH LOG");
-				} catch (SQLServerException e) {
-					assertEquals(e.getMessage(), "Connection reset", "Unknown Exception");
-				} finally {
-					DriverManager.getConnection(connectionString).createStatement().execute("drop table " + tableName);
-				}
-				assertEquals(conn.isValid(5), false, "Dead connection should be invalid");
-			} catch (UnsupportedOperationException e) {
-				assertEquals(e.getMessage(), "This operation is not supported.", "Wrong exception message");
+			conn.setAutoCommit(false);
+			stmt = conn.createStatement();
+			stmt.executeUpdate("CREATE TABLE " + tableName + " (col1 int primary key)");
+			for (int i = 0; i < 80; i++) {
+				stmt.executeUpdate("INSERT INTO " + tableName + "(col1) values (" + i + ")");
 			}
+			conn.commit();
+			try {
+				stmt.execute("SELECT x1.col1 as foo, x2.col1 as bar, x1.col1 as eeep FROM " + tableName + " as x1, " + tableName + " as x2; RAISERROR ('Oops', 21, 42) WITH LOG");
+			} catch (SQLServerException e) {
+				assertEquals(e.getMessage(), "Connection reset", "Unknown Exception");
+			} finally {
+				DriverManager.getConnection(connectionString).createStatement().execute("drop table " + tableName);
+			}
+			assertEquals(conn.isValid(5), false, "Dead connection should be invalid");
 		}
 	}
 
