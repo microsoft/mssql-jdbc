@@ -161,14 +161,17 @@ public final class SQLServerDataTable {
 						if(null != val)
 						{
 							bd = new BigDecimal(val.toString());
+							// BigDecimal#precision returns number of digits in the unscaled value. 
+							// Say, for value 0.01, it returns 1 but the precision should be 3 for SQLServer
+							int precision = Util.getValueLengthBaseOnJavaType(bd, JavaType.of(bd), null, null, jdbcType);
 							if (bd.scale() > currentColumnMetadata.scale)
 							{
 								currentColumnMetadata.scale = bd.scale();
 								isColumnMetadataUpdated = true;
 							}
-							if (bd.precision() > currentColumnMetadata.precision)
+							if (precision > currentColumnMetadata.precision)
 							{
-								currentColumnMetadata.precision = bd.precision();
+								currentColumnMetadata.precision = precision;
 								isColumnMetadataUpdated = true;
 							}
 							if(isColumnMetadataUpdated)

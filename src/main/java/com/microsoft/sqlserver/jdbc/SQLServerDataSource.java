@@ -628,6 +628,17 @@ public class SQLServerDataSource implements ISQLServerDataSource, DataSource, ja
         return getIntProperty(connectionProps, SQLServerDriverIntProperty.QUERY_TIMEOUT.toString(), SQLServerDriverIntProperty.QUERY_TIMEOUT.getDefaultValue());
     }
 
+    
+    public void setSocketTimeout(int socketTimeout)
+    {
+        setIntProperty(connectionProps, SQLServerDriverIntProperty.SOCKET_TIMEOUT.toString(), socketTimeout);
+    }
+    public int getSocketTimeout()
+    {
+ 		int defaultTimeOut = SQLServerDriverIntProperty.SOCKET_TIMEOUT.getDefaultValue();   
+ 		return getIntProperty(connectionProps, SQLServerDriverIntProperty.SOCKET_TIMEOUT.toString(), defaultTimeOut);
+    }
+
     // responseBuffering controls the driver's buffering of responses from SQL Server.
     // Possible values are:
     //
