@@ -194,6 +194,7 @@ public final class SQLServerResource extends ListResourceBundle
 				{"R_packetSizePropertyDescription", "The network packet size used to communicate with SQL Server."},
 				{"R_encryptPropertyDescription", "Determines if Secure Sockets Layer (SSL) encryption should be used between the client and the server."},
 				{"R_trustServerCertificatePropertyDescription", "Determines if the driver should validate the SQL Server Secure Sockets Layer (SSL) certificate."},
+				{"R_trustStoreTypePropertyDescription", "Type of trust store type like JKS / PKCS12 or any FIPS Provider KeyStore implementation Type."},
 				{"R_trustStorePropertyDescription", "The path to the certificate trust store file."},
 				{"R_trustStorePasswordPropertyDescription", "The password used to check the integrity of the trust store data."},
 				{"R_hostNameInCertificatePropertyDescription", "The host name to be used when validating the SQL Server Secure Sockets Layer (SSL) certificate."},
