@@ -1,151 +1,106 @@
-/*
- * Microsoft JDBC Driver for SQL Server
- * 
- * Copyright(c) 2016 Microsoft Corporation
- * All rights reserved.
- * 
- * This program is made available under the terms of the MIT License.
- * See the LICENSE file in the project root for more information.
- */
-package com.microsoft.sqlserver.testframework;
+// ---------------------------------------------------------------------------------------------------------------------------------
+// File: AbstractSQLGenerator.java
+//
+//
+// Microsoft JDBC Driver for SQL Server
+// Copyright(c) Microsoft Corporation
+// All rights reserved.
+// MIT License
+// Permission is hereby granted, free of charge, to any person obtaining a copy
+// of this software and associated documentation files(the "Software"),
+// to deal in the Software without restriction, including without limitation the
+// rights to use, copy, modify, merge, publish, distribute, sublicense,
+// and / or sell copies of the Software, and to permit persons to whom the
+// Software is furnished to do so, subject to the following conditions :
+// The above copyright notice and this permission notice shall be included in
+// all copies or substantial portions of the Software.
+// THE SOFTWARE IS PROVIDED *AS IS*, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+// IN THE SOFTWARE.
+// ---------------------------------------------------------------------------------------------------------------------------------
 
-import java.sql.Types;
-import java.util.HashMap;
-import java.util.Map;
+package com.microsoft.sqlserver.testframework;
 
 /**
  * Common methods needed for any implementation for {@link SQLGeneratorIF}
  */
-public abstract class AbstractSQLGenerator implements SQLGeneratorIF {
+public abstract class AbstractSQLGenerator {// implements ISQLGenerator {
 
-	protected static final String CREATE_TABLE = "CREATE TABLE";
-	protected static final String SPACE_CHAR = " ";
-	protected static final String OPEN_BRACKET = "(";
-	protected static final String CLOSE_BRACKET = ")";
-	protected static final String NOT = "NOT";
-	protected static final String NULL = "NULL";
-	protected static final String PRIMARY_KEY = "PRIMARY KEY";
-	protected static final String DEFAULT = "DEFAULT";
-	protected static final String COMMA = ",";
+    protected static final String CREATE_TABLE = "CREATE TABLE";
+    protected static final String SPACE_CHAR = " ";
+    protected static final String OPEN_BRACKET = "(";
+    protected static final String CLOSE_BRACKET = ")";
+    protected static final String NOT = "NOT";
+    protected static final String NULL = "NULL";
+    protected static final String PRIMARY_KEY = "PRIMARY KEY";
+    protected static final String DEFAULT = "DEFAULT";
+    protected static final String COMMA = ",";
 
-	//FIXME: Find good word for '. Better replaced by wrapIdentifier. 
-	protected static final String TICK = "'";
+    // FIXME: Find good word for '. Better replaced by wrapIdentifier.
+    protected static final String TICK = "'";
 
-	protected static final String defaultWrapIdentifier = "\'";
-	
-	private static final Map<Integer, String> dataTypes;
+    protected static final String defaultWrapIdentifier = "\'";
 
-	private static final Map<Integer, String> dataTypesWithLengh;
+    protected static String wrapIdentifier = defaultWrapIdentifier;
 
-	private static final Map<Integer, String> dataTypesWithPrecision;
-	
-	protected static String wrapIdentifier = defaultWrapIdentifier;
+    protected static String openEscapeIdentifier = "[";
 
-	//TODO: Come up with TypeName class which can store default size, precision & scale etc. 
-	//TODO: Need to add support for MAX
-	static {
-		dataTypes = new HashMap<>();
-		dataTypes.put(Types.BIGINT, "BIGINT");
-		dataTypes.put(Types.BINARY, "BINARY");
-		dataTypes.put(Types.BIT, "BIT");
-		dataTypes.put(Types.CHAR, "CHAR");
-		dataTypes.put(Types.DATE, "DATE");
-		dataTypes.put(Types.TIMESTAMP, "DATETIME");
-		dataTypes.put(microsoft.sql.Types.DATETIME, "DATETIME2");
-		dataTypes.put(microsoft.sql.Types.DATETIMEOFFSET, "DATETIMEOFFSET");
-		dataTypes.put(Types.DECIMAL, "DECIMAL");
-		dataTypes.put(Types.DOUBLE, "FLOAT");
-		dataTypes.put(Types.LONGVARBINARY, "IMAGE");
-		dataTypes.put(microsoft.sql.Types.GUID, "GUID");
-		dataTypes.put(Types.INTEGER, "INT");
-		dataTypes.put(microsoft.sql.Types.MONEY, "MONEY");
-		dataTypes.put(Types.NCHAR, "NCHAR");
-		dataTypes.put(Types.LONGNVARCHAR, "NTEXT");
-		dataTypes.put(Types.NUMERIC, "NUMERIC");
-		dataTypes.put(Types.NVARCHAR, "NVARCHAR");
-		dataTypes.put(Types.REAL, "REAL");
-		dataTypes.put(microsoft.sql.Types.SMALLDATETIME, "SMALLDATETIME");
-		dataTypes.put(Types.SMALLINT, "SMALLINT");
-		dataTypes.put(microsoft.sql.Types.SMALLMONEY, "SMALLMONEY");
-		dataTypes.put(Types.LONGVARCHAR, "TEXT");
-		dataTypes.put(Types.TIME, "TIME");
-		dataTypes.put(Types.TINYINT, "TINYINT");
-		dataTypes.put(Types.VARBINARY, "VARBINARY");
-		dataTypes.put(Types.VARCHAR, "VARCHAR");
-		dataTypes.put(microsoft.sql.Types.MONEY, "MONEY");
+    protected static String closeEscapeIdentifier = "]";
 
-		//Data types with length
-		dataTypesWithLengh = new HashMap<>();
-		dataTypesWithLengh.put(microsoft.sql.Types.DATETIMEOFFSET, "DATETIMEOFFSET");
-		dataTypesWithLengh.put(Types.NCHAR, "NCHAR");
-		dataTypesWithLengh.put(Types.LONGNVARCHAR, "NTEXT");
-		dataTypesWithLengh.put(Types.NVARCHAR, "NVARCHAR");
-		dataTypesWithLengh.put(Types.LONGVARCHAR, "TEXT");
-		dataTypesWithLengh.put(Types.VARBINARY, "VARBINARY");
-		dataTypesWithLengh.put(Types.VARCHAR, "VARCHAR");
-		dataTypesWithLengh.put(Types.CHAR, "CHAR");
+    /**
+     * @return the wrapIdentifier
+     */
+    public static String getWrapIdentifier() {
+        return wrapIdentifier;
+    }
 
-		//Data types with precision
-		dataTypesWithPrecision = new HashMap<>();
-		dataTypesWithPrecision.put(Types.NUMERIC, "NUMERIC");
-		dataTypesWithPrecision.put(Types.DECIMAL, "DECIMAL");
+    /**
+     * @param wrapIdentifier
+     *            the wrapIdentifier to set
+     */
+    public static void setWrapIdentifier(String wrapIdentifier) {
+        AbstractSQLGenerator.wrapIdentifier = wrapIdentifier;
+    }
 
-	}
+    // TODO: should provide more detail to distinguish between wrap and escape
+    // identifier
+    /**
+     * It will wrap provided string with wrap identifier.
+     * 
+     * @param name
+     * @return
+     */
+    public String wrapName(String name) {
+        StringBuffer wrap = new StringBuffer();
+        wrap.append(getWrapIdentifier());
+        wrap.append(name);
+        wrap.append(getWrapIdentifier());
+        return wrap.toString();
+    }
 
-	/**
-	 * @return the wrapIdentifier
-	 */
-	public static String getWrapIdentifier() {
-		return wrapIdentifier;
-	}
+    /**
+     * Variable used to escape the Identifiers
+     * 
+     * @param openIdentifier
+     * @param closeIdentifier
+     */
+    public static void setEscapeIdentifier(String openIdentifier, String closeIdentifier) {
+        AbstractSQLGenerator.openEscapeIdentifier = openIdentifier;
+        AbstractSQLGenerator.closeEscapeIdentifier = closeIdentifier;
+    }
 
-	/**
-	 * @param wrapIdentifier the wrapIdentifier to set
-	 */
-	public static void setWrapIdentifier(String wrapIdentifier) {
-		AbstractSQLGenerator.wrapIdentifier = wrapIdentifier;
-	}
-
-	/**
-	 * 
-	 * @param type
-	 * @return
-	 */
-	public static String getColumnTypeName(int type) {
-		return dataTypes.get(type);
-	}
-
-	/**
-	 * 
-	 * @param type
-	 * @return
-	 */
-	public static boolean isColumnLengthRequired(int type) {
-		return dataTypesWithLengh.containsKey(type);
-	}
-
-	/**
-	 * 
-	 * @param type
-	 * @return
-	 */
-	public static boolean isPrecisionScaleDataRequired(int type) {
-		return dataTypesWithPrecision.containsKey(type);
-	}
-
-	/**
-	 * It will wrap provided string with wrap identifier. 
-	 * @param name
-	 * @return
-	 */
-	public String wrapName(String name) {
-		StringBuffer wrap = new StringBuffer();
-
-		wrap.append(getWrapIdentifier());
-		wrap.append(name);
-		wrap.append(getWrapIdentifier());
-
-		return wrap.toString();
-	}
+    /**
+     * 
+     * @param value
+     *            to escape
+     * @return escaped literal
+     */
+    public static String escapeIdentifier(String value) {
+        return openEscapeIdentifier + value + closeEscapeIdentifier;
+    }
 
 }

@@ -1,5 +1,5 @@
 // ---------------------------------------------------------------------------------------------------------------------------------
-// File: DBColumn.java
+// File: DBConnection.java
 //
 //
 // Microsoft JDBC Driver for SQL Server
@@ -25,80 +25,70 @@
 
 package com.microsoft.sqlserver.testframework;
 
-import java.util.ArrayList;
-import java.util.List;
+import static org.junit.jupiter.api.Assertions.fail;
 
-import com.microsoft.sqlserver.testframework.sqlType.SqlType;
+import java.sql.SQLException;
 
-/**
- * This class holds data for Column. Think about encrypted columns. <B>createCMK
- * code should not add here.</B>
+import com.microsoft.sqlserver.jdbc.SQLServerConnection;
+
+/*
+ * Wrapper class for SQLServerConnection
  */
-class DBColumn {
+public class DBConnection extends AbstractParentWrapper {
 
-    /*
-     * TODO: add nullable, defaultValue, alwaysEncrypted
+    // TODO: add Isolation Level
+    // TODO: add auto commit
+    // TODO: add connection Savepoint and rollback
+    // TODO: add additional connection properties
+    // TODO: add DataSource support
+    private SQLServerConnection connection = null;
+
+    /**
+     * establishes connection using the input
+     * 
+     * @param connectionString
      */
-    private String columnName;
-    private SqlType sqlType;
-    private List<Object> columnValues;
-
-    DBColumn(String columnName, SqlType sqlType) {
-        this.columnName = columnName;
-        this.sqlType = sqlType;
+    public DBConnection(String connectionString) {
+        super(null, null, "connection");
+        getConnection(connectionString);
     }
 
     /**
-     * @return the columnName
+     * establish connection
+     * 
+     * @param connectionString
      */
-    String getColumnName() {
-        return columnName;
+    void getConnection(String connectionString) {
+        try {
+            connection = PrepUtil.getConnection(connectionString);
+            setInternal(connection);
+        }
+        catch (SQLException ex) {
+            fail(ex.getMessage());
+        }
+        catch (ClassNotFoundException ex) {
+            fail(ex.getMessage());
+        }
     }
 
-    /**
-     * @param columnName
-     *            the columnName to set
-     */
-    void setColumnName(String columnName) {
-        this.columnName = columnName;
+    @Override
+    void setInternal(Object internal) {
+        this.internal = internal;
     }
 
     /**
      * 
-     * @return SqlType for the column
+     * @return Statement wrapper
      */
-    SqlType getSqlType() {
-        return sqlType;
-    }
-
-    /**
-     * 
-     * @param sqlType
-     */
-    void setSqlType(SqlType sqlType) {
-        this.sqlType = sqlType;
-    }
-
-    /**
-     * generate value for the column
-     * 
-     * @param rows
-     *            number of rows
-     */
-    void populateValues(int rows) {
-        columnValues = new ArrayList<Object>();
-        for (int i = 0; i < rows; i++)
-            columnValues.add(sqlType.createdata());
-    }
-
-    /**
-     * 
-     * @param row
-     * @return the value populated for the column
-     */
-    Object getRowValue(int row) {
-        // handle exceptions
-        return columnValues.get(row);
+    public DBStatement createStatement() {
+        try {
+            DBStatement dbstatement = new DBStatement(this);
+            return dbstatement.createStatement();
+        }
+        catch (SQLException ex) {
+            fail(ex.getMessage());
+        }
+        return null;
     }
 
 }

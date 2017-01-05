@@ -279,8 +279,9 @@ enum SQLServerDriverIntProperty
 	PACKET_SIZE("packetSize",											TDS.DEFAULT_PACKET_SIZE),			
 	LOCK_TIMEOUT("lockTimeout",					 						-1),
 	LOGIN_TIMEOUT("loginTimeout", 				 						15),
-  QUERY_TIMEOUT("queryTimeout",                   -1),
-	PORT_NUMBER("portNumber",					 						1433);
+	QUERY_TIMEOUT("queryTimeout",                   					-1),
+	PORT_NUMBER("portNumber",					 						1433),
+	SOCKET_TIMEOUT("socketTimeout", 				 					0);
 
 	private String name;
 	private int defaultValue;
@@ -385,6 +386,7 @@ public final class SQLServerDriver implements java.sql.Driver
         new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.AUTHENTICATION_SCHEME.toString(),          		SQLServerDriverStringProperty.AUTHENTICATION_SCHEME.getDefaultValue(),      			                false,      new String[] {AuthenticationScheme.javaKerberos.toString(),AuthenticationScheme.nativeAuthentication.toString()}),
         new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.AUTHENTICATION.toString(),          				SQLServerDriverStringProperty.AUTHENTICATION.getDefaultValue(),      			                		false,      new String[] {SqlAuthentication.NotSpecified.toString(),SqlAuthentication.SqlPassword.toString(),SqlAuthentication.ActiveDirectoryPassword.toString(),SqlAuthentication.ActiveDirectoryIntegrated.toString()}),
         new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.FIPS_PROVIDER.toString(), 						SQLServerDriverStringProperty.FIPS_PROVIDER.getDefaultValue(), 											false, 		null),
+        new SQLServerDriverPropertyInfo(SQLServerDriverIntProperty.SOCKET_TIMEOUT.toString(),                   		Integer.toString(SQLServerDriverIntProperty.SOCKET_TIMEOUT.getDefaultValue()),         					false,      null),
     };
     
     //Properties that can only be set by using Properties.

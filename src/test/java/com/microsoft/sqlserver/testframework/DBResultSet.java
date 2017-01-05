@@ -1,5 +1,5 @@
 // ---------------------------------------------------------------------------------------------------------------------------------
-// File: DBColumn.java
+// File: DBResultSet.java
 //
 //
 // Microsoft JDBC Driver for SQL Server
@@ -25,80 +25,64 @@
 
 package com.microsoft.sqlserver.testframework;
 
-import java.util.ArrayList;
-import java.util.List;
-
-import com.microsoft.sqlserver.testframework.sqlType.SqlType;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 
 /**
- * This class holds data for Column. Think about encrypted columns. <B>createCMK
- * code should not add here.</B>
+ * wrapper class for ResultSet
+ * 
+ * @author Microsoft
+ *
  */
-class DBColumn {
+public class DBResultSet extends AbstractParentWrapper {
 
-    /*
-     * TODO: add nullable, defaultValue, alwaysEncrypted
-     */
-    private String columnName;
-    private SqlType sqlType;
-    private List<Object> columnValues;
+    // TODO: add cursors
+    // TODO: add resultSet level holdability
+    // TODO: add concurrency control
+    ResultSet resultSet = null;
 
-    DBColumn(String columnName, SqlType sqlType) {
-        this.columnName = columnName;
-        this.sqlType = sqlType;
+    DBResultSet(DBStatement dbstatement, ResultSet internal) {
+        super(dbstatement, internal, "resultSet");
+        resultSet = internal;
     }
 
     /**
-     * @return the columnName
+     * Close the ResultSet object
+     * 
+     * @throws SQLException
      */
-    String getColumnName() {
-        return columnName;
-    }
-
-    /**
-     * @param columnName
-     *            the columnName to set
-     */
-    void setColumnName(String columnName) {
-        this.columnName = columnName;
+    public void close() throws SQLException {
+        if (null != resultSet) {
+            resultSet.close();
+        }
     }
 
     /**
      * 
-     * @return SqlType for the column
+     * @return true new row is valid
+     * @throws SQLException
      */
-    SqlType getSqlType() {
-        return sqlType;
+    public boolean next() throws SQLException {
+        return resultSet.next();
     }
 
     /**
      * 
-     * @param sqlType
+     * @param index
+     * @return Object with the column value
+     * @throws SQLException
      */
-    void setSqlType(SqlType sqlType) {
-        this.sqlType = sqlType;
-    }
-
-    /**
-     * generate value for the column
-     * 
-     * @param rows
-     *            number of rows
-     */
-    void populateValues(int rows) {
-        columnValues = new ArrayList<Object>();
-        for (int i = 0; i < rows; i++)
-            columnValues.add(sqlType.createdata());
+    public Object getObject(int index) throws SQLException {
+        // call individual getters based on type
+        return resultSet.getObject(index);
     }
 
     /**
      * 
-     * @param row
-     * @return the value populated for the column
+     * @param index
+     * @return
      */
-    Object getRowValue(int row) {
-        // handle exceptions
-        return columnValues.get(row);
+    public void updateObject(int index) throws SQLException {
+        // TODO: update object based on cursor type
     }
-
 }

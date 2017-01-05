@@ -616,6 +616,10 @@ final class TDSChannel
 			// Set socket options
 			tcpSocket.setTcpNoDelay(true);
 			tcpSocket.setKeepAlive(true);
+			
+			//set SO_TIMEOUT
+			int socketTimeout = con.getSocketTimeoutMilliseconds();
+			tcpSocket.setSoTimeout(socketTimeout);
 
 			inputStream = tcpInputStream = tcpSocket.getInputStream();
 			outputStream = tcpOutputStream = tcpSocket.getOutputStream();
