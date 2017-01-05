@@ -2,6 +2,7 @@ package com.microsoft.sqlserver.jdbc.connection;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -26,39 +27,40 @@ import com.microsoft.sqlserver.testframework.util.RandomUtil;
 @RunWith(JUnitPlatform.class)
 public class PoolingTest extends AbstractTest {
 	@Test
-	public void testPooling() throws SQLException {
-		if (!DBConnection.isSqlAzure(DriverManager.getConnection(connectionString))) {
-			String randomTableName = RandomUtil.getIdentifier("table");
+    public void testPooling() throws SQLException {
+        assumeTrue(!DBConnection.isSqlAzure(DriverManager.getConnection(connectionString)), "Skipping test case on Azure SQL.");
 
-			//make the table a temporary table (will be created in tempdb database)
-			String tempTableName = "#" + randomTableName;
+        String randomTableName = RandomUtil.getIdentifier("table");
 
-			SQLServerXADataSource XADataSource1 = new SQLServerXADataSource();
-			XADataSource1.setURL(connectionString);
-			XADataSource1.setDatabaseName("tempdb");
+        // make the table a temporary table (will be created in tempdb database)
+        String tempTableName = "#" + randomTableName;
 
-			PooledConnection pc = XADataSource1.getPooledConnection();
-			Connection conn = pc.getConnection();
+        SQLServerXADataSource XADataSource1 = new SQLServerXADataSource();
+        XADataSource1.setURL(connectionString);
+        XADataSource1.setDatabaseName("tempdb");
 
-			//create table in tempdb database 
-			conn.createStatement().execute("create table [" + tempTableName + "] (myid int)");
-			conn.createStatement().execute("insert into [" + tempTableName + "] values (1)");
-			conn.close();
+        PooledConnection pc = XADataSource1.getPooledConnection();
+        Connection conn = pc.getConnection();
 
-			conn = pc.getConnection();
+        // create table in tempdb database
+        conn.createStatement().execute("create table [" + tempTableName + "] (myid int)");
+        conn.createStatement().execute("insert into [" + tempTableName + "] values (1)");
+        conn.close();
 
-			boolean tempTableFileRemoved = false;
-			try {
-				conn.createStatement().executeQuery("select * from [" + tempTableName + "]");
-			} catch (SQLServerException e) {
-				//make sure the temporary table is not found.
-				if (e.getMessage().startsWith("Invalid object name")) {
-					tempTableFileRemoved = true;
-				}
-			}
-			assertTrue(tempTableFileRemoved, "Temporary table is not removed.");
-		}
-	}
+        conn = pc.getConnection();
+
+        boolean tempTableFileRemoved = false;
+        try {
+            conn.createStatement().executeQuery("select * from [" + tempTableName + "]");
+        }
+        catch (SQLServerException e) {
+            // make sure the temporary table is not found.
+            if (e.getMessage().startsWith("Invalid object name")) {
+                tempTableFileRemoved = true;
+            }
+        }
+        assertTrue(tempTableFileRemoved, "Temporary table is not removed.");
+    }
 
 	@Test
 	public void testConnectionPoolReget() throws SQLException {

@@ -97,7 +97,7 @@ public class DBConnection extends AbstractParentWrapper {
 		rs.next();
 		int engineEdition = rs.getInt(1);
 		rs.close();
-		if (engineEdition == ENGINE_EDITION_FOR_SQL_AZURE) {
+		if (ENGINE_EDITION_FOR_SQL_AZURE == engineEdition) {
 			isSqlAzure = true;
 		}
 
