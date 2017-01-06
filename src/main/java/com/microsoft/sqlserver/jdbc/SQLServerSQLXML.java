@@ -27,6 +27,7 @@ import java.io.Reader;
 import java.io.StringReader;
 import java.sql.SQLException;
 import java.text.MessageFormat;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import javax.xml.XMLConstants;
 import javax.xml.parsers.DocumentBuilder;
@@ -86,17 +87,16 @@ final class SQLServerSQLXML implements java.sql.SQLXML
     private String      strValue;
     // End of setter values
     
-    static private int baseID = 0;	// Unique id generator for each  instance (used for logging).
+    static private final AtomicInteger baseID = new AtomicInteger(0);	// Unique id generator for each  instance (used for logging).
     final private String traceID;
     final public String toString()
     {
         return traceID;
     }
     // Returns unique id for each instance.
-    private synchronized static int nextInstanceID()
+    private static int nextInstanceID()
     {
-        baseID++;
-        return baseID;
+        return baseID.incrementAndGet();
     }
 
     // This method is used to get the value the user has set 

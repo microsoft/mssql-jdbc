@@ -37,6 +37,7 @@ import java.text.MessageFormat;
 import java.util.Properties;
 import java.util.UUID;
 import java.util.concurrent.Executor;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
 
 /**
@@ -54,7 +55,7 @@ class SQLServerConnectionPoolProxy implements ISQLServerConnection, java.io.Seri
 	private static final long serialVersionUID = -6412542417798843534L;
     private SQLServerConnection wrappedConnection;
     private boolean bIsOpen;
-    static private int baseConnectionID=0;       //connection id dispenser
+    static private final AtomicInteger baseConnectionID = new AtomicInteger(0);       //connection id dispenser
     final private String traceID ;
         
     // Permission targets
@@ -65,10 +66,9 @@ class SQLServerConnectionPoolProxy implements ISQLServerConnection, java.io.Seri
 	* Generate the next unique connection id.
 	* @return the next conn id
 	*/
-	/*L0*/ private synchronized static int nextConnectionID() 
+	/*L0*/ private static int nextConnectionID()
 	{
-		baseConnectionID++;
-		return baseConnectionID;
+		return baseConnectionID.incrementAndGet();
 	}
 
 	public String toString() 

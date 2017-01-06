@@ -26,6 +26,7 @@ import java.text.MessageFormat;
 import java.util.Enumeration;
 import java.util.Locale;
 import java.util.Properties;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -400,15 +401,14 @@ public final class SQLServerDriver implements java.sql.Driver
 		{"server",SQLServerDriverStringProperty.SERVER_NAME.toString()},		
 		{"port", SQLServerDriverIntProperty.PORT_NUMBER.toString()}
   };
-        static private int baseID = 0;	// Unique id generator for each  instance (used for logging).
+        static private final AtomicInteger baseID = new AtomicInteger(0);	// Unique id generator for each  instance (used for logging).
         final private int instanceID;							// Unique id for this instance.
         final private String traceID;
         
         // Returns unique id for each instance.
-        private synchronized static int nextInstanceID()
+        private static int nextInstanceID()
         {
-            baseID++;
-            return baseID;
+            return baseID.incrementAndGet();
         }
         final public String toString()
         {

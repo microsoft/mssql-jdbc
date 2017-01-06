@@ -69,6 +69,7 @@ import java.util.TimeZone;
 import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -6592,8 +6593,8 @@ final class TDSReader
 	private boolean serverSupportsColumnEncryption = false;
 
 	private final byte valueBytes[] = new byte[256];
-	private static int lastReaderID = 0;
-	private synchronized static int nextReaderID() { return ++lastReaderID; }
+	private static final AtomicInteger lastReaderID = new AtomicInteger(0);
+	private static int nextReaderID() { return lastReaderID.incrementAndGet(); }
 
 
 	TDSReader(TDSChannel tdsChannel, SQLServerConnection con, TDSCommand command)

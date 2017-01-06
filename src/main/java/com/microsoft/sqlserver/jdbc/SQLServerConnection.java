@@ -57,6 +57,7 @@ import java.util.Properties;
 import java.util.UUID;
 import java.util.concurrent.Executor;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
 
 import javax.sql.XAConnection;
@@ -602,7 +603,7 @@ public class SQLServerConnection implements ISQLServerConnection
 	private SQLCollation databaseCollation;	// Default database collation read from ENVCHANGE_SQLCOLLATION token.
 	final SQLCollation getDatabaseCollation() { return databaseCollation; }
 
-	static private int baseConnectionID=0;       //connection id dispenser
+	static private final AtomicInteger baseConnectionID = new AtomicInteger(0);       //connection id dispenser
 	// This is the current catalog
 	private String sCatalog = "master";                     //the database catalog
 	// This is the catalog immediately after login.
@@ -744,9 +745,8 @@ public class SQLServerConnection implements ISQLServerConnection
 	 * Generate the next unique connection id.
 	 * @return the next conn id
 	 */
-	/*L0*/ private synchronized static int nextConnectionID() {
-		baseConnectionID++; //4.04 Ensure thread safe id allocation
-		return baseConnectionID;
+	/*L0*/ private static int nextConnectionID() {
+		return baseConnectionID.incrementAndGet(); //4.04 Ensure thread safe id allocation
 	}
 	java.util.logging.Logger getConnectionLogger()
 	{

@@ -22,6 +22,7 @@ package com.microsoft.sqlserver.jdbc;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.Vector;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
 
 import javax.sql.ConnectionEvent;
@@ -42,7 +43,7 @@ public class SQLServerPooledConnection implements PooledConnection {
 	private SQLServerConnectionPoolProxy	lastProxyConnection;
 	private String factoryUser, factoryPassword;
 	private java.util.logging.Logger pcLogger;
-	static private int basePooledConnectionID = 0;	// Unique id generator for each PooledConnection instance (used for logging).
+	static private final AtomicInteger basePooledConnectionID = new AtomicInteger(0);	// Unique id generator for each PooledConnection instance (used for logging).
 	private final String traceID;
 
 
@@ -246,10 +247,9 @@ public class SQLServerPooledConnection implements PooledConnection {
 	}
 
 	// Returns unique id for each PooledConnection instance.
-	private synchronized static int nextPooledConnectionID()
+	private static int nextPooledConnectionID()
 	{
-		basePooledConnectionID++;
-		return basePooledConnectionID;
+		return basePooledConnectionID.incrementAndGet();
 	}
 
 	// Helper function to return connectionID of the physicalConnection in a safe manner for logging.

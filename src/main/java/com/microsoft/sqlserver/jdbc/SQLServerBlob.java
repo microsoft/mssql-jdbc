@@ -27,6 +27,7 @@ import java.sql.SQLException;
 import java.sql.SQLFeatureNotSupportedException;
 import java.text.MessageFormat;
 import java.util.ArrayList;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -54,7 +55,7 @@ public final class SQLServerBlob implements java.sql.Blob, java.io.Serializable
 
     static private final Logger logger = Logger.getLogger("com.microsoft.sqlserver.jdbc.internals.SQLServerBlob");
 
-    static private int baseID = 0;	// Unique id generator for each  instance (used for logging).
+    static private final AtomicInteger baseID = new AtomicInteger(0);	// Unique id generator for each  instance (used for logging).
     final private String traceID;
     final public String toString()
     {
@@ -62,10 +63,9 @@ public final class SQLServerBlob implements java.sql.Blob, java.io.Serializable
     }
 
     // Returns unique id for each instance.
-    private synchronized static int nextInstanceID()
+    private static int nextInstanceID()
     {
-        baseID++;
-        return baseID;
+        return baseID.incrementAndGet();
     }
 
     /**
