@@ -274,10 +274,10 @@ public final class SQLServerDataTable {
             return tvpName;
         }
 
-		/**
-		 * Retrieves the column meta data of this data table. 
-		 * @return the column meta data of this data table. 
-		 */
+        /**
+         * Retrieves the column meta data of this data table. 
+         * @param tvpName the name of TVP
+         */
         public void setTvpName(String tvpName)
         {
             this.tvpName = tvpName;
