@@ -6838,6 +6838,19 @@ final class TDSReader
 		return available;
 	}
 
+    /**
+     * 
+     * @return number of bytes available in the current packet
+     */
+    final int availableCurrentPacket() {
+        /*
+         * The number of bytes that can be read from the current chunk, without including the next chunk that is buffered. This is so the driver can
+         * confirm if the next chunk sent is new packet or just continuation
+         */
+        int available = currentPacket.payloadLength - payloadOffset;
+        return available;
+    }
+    
 	final int peekTokenType() throws SQLServerException
 	{
 		// Check whether we're at EOF
