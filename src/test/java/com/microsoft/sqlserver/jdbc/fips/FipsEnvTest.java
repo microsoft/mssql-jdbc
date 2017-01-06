@@ -19,8 +19,6 @@ import java.util.Properties;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import javax.net.ssl.SSLContext;
-
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
@@ -68,22 +66,20 @@ public class FipsEnvTest {
 	
 
 	/**
-	 * After stabilizing parameterized test case {@link #testFIPSOnOracle(String)} we can delete this test case.
+	 * After stabilizing parameterized test case 
 	 * TODO: Enable FIPS can be done in two ways. 
-	 * <LI> JVM Level
-	 * <LI> Program Level
-	 * We need to test both... 
+	 * <LI> JVM Level      - Done.
+	 * <LI> Program Level  - Not Done.
+	 * We need to test both on different environments. 
 	 * @since 6.1.2
 	 */
 	@Test
 	public void testFIPSOnOracle() throws Exception {
 		assumeTrue(ORACLE_JVM.equals(currentJVM), "Aborting test: As this is not Oracle Env. ");
 
-		assumeTrue("FIPS".equals(Utils.getConfiguredProperty("FIPS_ENV")), "Aborting test case as FIPS is not enabled. "); 
+		assumeTrue("FIPS".equals(Utils.getConfiguredProperty("FIPS_ENV")), "Aborting test case as FIPS_ENV property is not set. "); 
 		
 		assertTrue(isFIPS("SunJSSE"),"FIPS Should be enabled");
-		
-//		assertTrue(isFIPS("BCFIPS"),"FIPS Should be enabled");
 		
 		//As JDK 1.7 is not supporting lambda for time being commenting.
 		/*
@@ -98,7 +94,9 @@ public class FipsEnvTest {
 	}
 
 	/**
-	 * It will test 
+	 * It will test FIPS on IBM Env. 
+	 * If JVM is not IBM test will not fail. It will simply skipped.  
+	 * @since 6.1.2
 	 */
 	@Test
 	public void testFIPSOnIBM() throws Exception{
@@ -138,9 +136,10 @@ public class FipsEnvTest {
 	}
 	
 	/**
-	 * Just simple method to check if JVM is configured for FIPS or not. 
-	 * @param provider
-	 * @return
+	 * Just simple method to check if JVM is configured for FIPS or not.
+	 * CAUTION: We observed that <code>SSLContext.getDefault().getProvider</code> fails because it could not find any algorithm. 
+	 * @param provider FIPS Provider
+	 * @return boolean
 	 * @throws Exception
 	 */
 	public static boolean isFIPS(String provider) throws Exception {
@@ -152,18 +151,6 @@ public class FipsEnvTest {
 		return jsse != null && jsse.getInfo().contains("FIPS");
 	}
 
-	
-	@Deprecated
-	private boolean isFIPS() throws Exception {
-		// We observed that SSLContext.getDefault().getProvider fails because it could not able to find any algorithm.
-		Provider jsse = SSLContext.getDefault().getProvider();
-		if (logger.isLoggable(Level.FINE)) {
-			logger.fine(jsse.toString());
-			logger.fine(jsse.getInfo());
-		}
-		return jsse != null && jsse.getInfo().contains("FIPS");
-	}
-	
 	
 	@Test @Disabled
 	public void printJVMInfo() {
