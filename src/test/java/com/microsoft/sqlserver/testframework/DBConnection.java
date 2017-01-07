@@ -91,4 +91,16 @@ public class DBConnection extends AbstractParentWrapper {
         return null;
     }
 
+    /**
+     * clsoe connection
+     */
+    public void close() {
+        try {
+            connection.close();
+        }
+        catch (SQLException ex) {
+            fail(ex.getMessage());
+        }
+    }
+
 }
