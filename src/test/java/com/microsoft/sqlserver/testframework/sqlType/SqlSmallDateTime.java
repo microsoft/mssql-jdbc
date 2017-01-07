@@ -34,7 +34,7 @@ import java.text.SimpleDateFormat;
 import java.util.concurrent.ThreadLocalRandom;
 
 public class SqlSmallDateTime extends SqlDateTime {
-    static SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+    static SimpleDateFormat dateFormat = new SimpleDateFormat("yyyyMMdd'T'HH:mm:ss");
 
     public SqlSmallDateTime() {
 		super("smalldatetime", 
