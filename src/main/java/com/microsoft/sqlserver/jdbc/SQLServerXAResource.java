@@ -26,6 +26,7 @@ import java.sql.Types;
 import java.text.MessageFormat;
 import java.util.Properties;
 import java.util.Vector;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -169,7 +170,7 @@ public final class SQLServerXAResource implements javax.transaction.xa.XAResourc
 	private String sResourceManagerId;
 	private int enlistedTransactionCount;
 	final private Logger xaLogger;
-	static private int baseResourceID = 0;	// Unique id generator for each  instance (used for logging).
+	static private final AtomicInteger baseResourceID = new AtomicInteger(0);	// Unique id generator for each  instance (used for logging).
     private int tightlyCoupled = 0;
     private int isTransacrionTimeoutSet = 0;	// set to 1 if setTransactionTimeout() is called
     
@@ -923,10 +924,9 @@ public final class SQLServerXAResource implements javax.transaction.xa.XAResourc
 	}
 
 	// Returns unique id for each PooledConnection instance.
-	private synchronized static int nextResourceID()
+	private static int nextResourceID()
 	{
-		baseResourceID++;
-		return baseResourceID;
+		return baseResourceID.incrementAndGet();
 	}
 
 }

@@ -38,6 +38,7 @@ import java.sql.SQLWarning;
 import java.sql.SQLXML;
 import java.text.MessageFormat;
 import java.util.Calendar;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
 
 
@@ -57,9 +58,9 @@ public class SQLServerResultSet implements ISQLServerResultSet
 {
 
    /** Generate the statement's logging ID */
-   private static int lastResultSetID = 0;
+   private static final AtomicInteger lastResultSetID = new AtomicInteger(0);
    private final String traceID;
-   private synchronized static int nextResultSetID() { return ++lastResultSetID; }
+   private static int nextResultSetID() { return lastResultSetID.incrementAndGet(); }
    final static java.util.logging.Logger logger = java.util.logging.Logger.getLogger("com.microsoft.sqlserver.jdbc.internals.SQLServerResultSet");
    public String toString() { return traceID; }
    String logCursorState() { return " currentRow:" + currentRow + " numFetchedRows:" + numFetchedRows + " rowCount:" + rowCount; }

@@ -28,6 +28,7 @@ import java.sql.SQLException;
 import java.text.MessageFormat;
 import java.util.EnumMap;
 import java.util.Properties;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
 
 /**
@@ -48,7 +49,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
     static final private java.util.logging.Logger loggerExternal =
         java.util.logging.Logger.getLogger("com.microsoft.sqlserver.jdbc.internals.DatabaseMetaData");
     
-    static private int baseID = 0;	// Unique id generator for each  instance (used for logging).
+    static private final AtomicInteger baseID = new AtomicInteger(0);	// Unique id generator for each  instance (used for logging).
     
     final private String traceID;
     
@@ -105,10 +106,9 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
     
 
     // Returns unique id for each instance.
-    private synchronized static int nextInstanceID()
+    private static int nextInstanceID()
     {
-        baseID++;
-        return baseID;
+        return baseID.incrementAndGet();
     }
 	
 	/**
