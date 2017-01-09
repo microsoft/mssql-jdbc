@@ -1,27 +1,10 @@
-// ---------------------------------------------------------------------------------------------------------------------------------
-// File: BulkCopyTestConnection.java
-//
-//
-// Microsoft JDBC Driver for SQL Server
-// Copyright(c) Microsoft Corporation
-// All rights reserved.
-// MIT License
-// Permission is hereby granted, free of charge, to any person obtaining a copy
-// of this software and associated documentation files(the "Software"),
-// to deal in the Software without restriction, including without limitation the
-// rights to use, copy, modify, merge, publish, distribute, sublicense,
-// and / or sell copies of the Software, and to permit persons to whom the
-// Software is furnished to do so, subject to the following conditions :
-// The above copyright notice and this permission notice shall be included in
-// all copies or substantial portions of the Software.
-// THE SOFTWARE IS PROVIDED *AS IS*, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.IN NO EVENT SHALL THE
-// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
-// IN THE SOFTWARE.
-// ---------------------------------------------------------------------------------------------------------------------------------
+/*
+ * Microsoft JDBC Driver for SQL Server
+ * 
+ * Copyright(c) 2016 Microsoft Corporation All rights reserved.
+ * 
+ * This program is made available under the terms of the MIT License. See the LICENSE file in the project root for more information.
+ */
 package com.microsoft.sqlserver.jdbc.bulkCopy;
 
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -47,6 +30,9 @@ import com.microsoft.sqlserver.jdbc.SQLServerBulkCopyOptions;
 import com.microsoft.sqlserver.jdbc.SQLServerConnection;
 import com.microsoft.sqlserver.jdbc.SQLServerException;
 
+/**
+ * Test BulkCopy Connection Constructor and BulkCopyOption
+ */
 @RunWith(JUnitPlatform.class)
 @DisplayName("BulkCopy Connection Test")
 public class BulkCopyConnectionTest extends BulkCopyTestSetUp {
@@ -66,7 +52,7 @@ public class BulkCopyConnectionTest extends BulkCopyTestSetUp {
                 return DynamicTest.dynamicTest("Testing " + datum.testName, new org.junit.jupiter.api.function.Executable() {
                     @Override
                     public void execute() {
-                        BulkCopyTestUtil.performBulkCopy(datum,sourceTable);
+                        BulkCopyTestUtil.performBulkCopy(datum, sourceTable);
                     }
                 });
             }
@@ -87,13 +73,16 @@ public class BulkCopyConnectionTest extends BulkCopyTestSetUp {
                 return DynamicTest.dynamicTest("Testing " + datum.testName, new org.junit.jupiter.api.function.Executable() {
                     @Override
                     public void execute() {
-                        BulkCopyTestUtil.performBulkCopy(datum,sourceTable);
+                        BulkCopyTestUtil.performBulkCopy(datum, sourceTable);
                     }
                 });
             }
         });
     }
 
+    /**
+     * BulkCopy:test uninitialized Connection
+     */
     @Test
     @DisplayName("BulkCopy:test uninitialized Connection")
     void testInvalidConnection_1() {
@@ -106,6 +95,9 @@ public class BulkCopyConnectionTest extends BulkCopyTestSetUp {
         });
     }
 
+    /**
+     * BulkCopy:test uninitialized SQLServerConnection
+     */
     @Test
     @DisplayName("BulkCopy:test uninitialized SQLServerConnection")
     void testInvalidConnection_2() {
@@ -118,6 +110,9 @@ public class BulkCopyConnectionTest extends BulkCopyTestSetUp {
         });
     }
 
+    /**
+     * BulkCopy:test empty connenction string
+     */
     @Test
     @DisplayName("BulkCopy:test empty connenction string")
     void testInvalidConnection_3() {
@@ -130,6 +125,9 @@ public class BulkCopyConnectionTest extends BulkCopyTestSetUp {
         });
     }
 
+    /**
+     * BulkCopy:test null connenction string
+     */
     @Test
     @DisplayName("BulkCopy:test null connenction string")
     void testInvalidConnection_4() {
@@ -142,6 +140,9 @@ public class BulkCopyConnectionTest extends BulkCopyTestSetUp {
         });
     }
 
+    /**
+     * BulkCopy:test null SQLServerBulkCopyOptions
+     */
     @Test
     @DisplayName("BulkCopy:test null SQLServerBulkCopyOptions")
     void testEmptyBulkCopyOptions() {
@@ -150,9 +151,14 @@ public class BulkCopyConnectionTest extends BulkCopyTestSetUp {
         SQLServerBulkCopyOptions option = null;
         bulkWrapper.useBulkCopyOptions(true);
         bulkWrapper.setBulkOptions(option);
-        BulkCopyTestUtil.performBulkCopy(bulkWrapper,sourceTable);
+        BulkCopyTestUtil.performBulkCopy(bulkWrapper, sourceTable);
     }
-   
+
+    /**
+     * Generate BulkCopyTestWrapper objects with data for testing BulkCopyConstructor
+     * 
+     * @return
+     */
     List<BulkCopyTestWrapper> createTestData_testBulkCopyConstructor() {
         String testCaseName = "BulkCopyConstructor ";
         List<BulkCopyTestWrapper> testData = new ArrayList<BulkCopyTestWrapper>();
@@ -169,6 +175,11 @@ public class BulkCopyConnectionTest extends BulkCopyTestSetUp {
         return testData;
     }
 
+    /**
+     * Generate BulkCopyTestWrapper objects with data for testing BulkCopyOption
+     * 
+     * @return
+     */
     private List<BulkCopyTestWrapper> createTestData_testBulkCopyOption() {
         String testCaseName = "BulkCopyOption ";
         List<BulkCopyTestWrapper> testData = new ArrayList<BulkCopyTestWrapper>();
