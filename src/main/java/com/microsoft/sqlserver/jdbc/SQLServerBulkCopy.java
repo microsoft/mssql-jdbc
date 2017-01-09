@@ -19,6 +19,9 @@
  
 package com.microsoft.sqlserver.jdbc;
 
+import static java.nio.charset.StandardCharsets.UTF_16LE;
+import static java.nio.charset.StandardCharsets.UTF_8;
+
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -52,12 +55,7 @@ import java.util.UUID;
 import java.util.Vector;
 import java.util.logging.Level;
 
-import static java.nio.charset.StandardCharsets.UTF_16LE;
-import static java.nio.charset.StandardCharsets.UTF_8;
-
 import javax.sql.RowSet;
-
-import microsoft.sql.DateTimeOffset;
 
 /**
  * Lets you efficiently bulk load a SQL Server table with data from another source.
@@ -375,9 +373,9 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable
      * Initializes and opens a new instance of SQLServerConnection based on the supplied connectionString. 
      * 
      * @param connectionUrl Connection string for the destination server.
-     * @throws SQLException If a connection cannot be established.
+     * @throws SQLServerException If a connection cannot be established.
      */
-    public SQLServerBulkCopy(String connectionUrl) throws SQLException
+    public SQLServerBulkCopy(String connectionUrl) throws SQLServerException
     {
         loggerExternal.entering(loggerClassName,  "SQLServerBulkCopy", "connectionUrl not traced.");
         if((connectionUrl == null ) || connectionUrl.trim().equals(""))
@@ -556,25 +554,31 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable
     }
     
     /**
-     * Update the behavior of the SQLServerBulkCopy instance according to the options supplied.
+     * Update the behavior of the SQLServerBulkCopy instance according to the
+     * options supplied, if supplied SQLServerBulkCopyOption is not null.
      * 
-     * @param copyOptions Settings to change how the WriteToServer methods behave.
-     * @throws SQLServerException If the SQLServerBulkCopyOption class was constructed using an existing Connection and
-     *              the UseInternalTransaction option is specified.
+     * @param copyOptions
+     *            Settings to change how the WriteToServer methods behave.
+     * @throws SQLServerException
+     *             If the SQLServerBulkCopyOption class was constructed using an
+     *             existing Connection and the UseInternalTransaction option is
+     *             specified.
      */
     public void setBulkCopyOptions(SQLServerBulkCopyOptions copyOptions) throws SQLServerException
     {
         loggerExternal.entering(loggerClassName,  "updateBulkCopyOptions", copyOptions);
         
-        // Verify that copyOptions does not have useInternalTransaction set. UseInternalTrasnaction can only be used with a connection string.
-        // Setting it with an external connection object should throw exception.
-        if (!ownsConnection && copyOptions.isUseInternalTransaction())
-        { 
-            SQLServerException.makeFromDriverError(null, null, SQLServerException.getErrString("R_invalidTransactionOption"), null, false);         
-        }
-        
-        this.copyOptions = copyOptions;
+        if (null != copyOptions) {
+            // Verify that copyOptions does not have useInternalTransaction set.
+            // UseInternalTrasnaction can only be used with a connection string.
+            // Setting it with an external connection object should throw
+            // exception.
+            if (!ownsConnection && copyOptions.isUseInternalTransaction()) {
+                SQLServerException.makeFromDriverError(null, null, SQLServerException.getErrString("R_invalidTransactionOption"), null, false);
+            }
 
+            this.copyOptions = copyOptions;
+        }
         loggerExternal.exiting(loggerClassName,  "updateBulkCopyOptions");
     }
     
