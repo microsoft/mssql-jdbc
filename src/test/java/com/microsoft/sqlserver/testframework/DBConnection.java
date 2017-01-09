@@ -90,6 +90,20 @@ public class DBConnection extends AbstractParentWrapper {
 		return null;
 	}
 
+
+    /**
+     * clsoe connection
+     */
+    public void close() {
+        try {
+            connection.close();
+        }
+        catch (SQLException ex) {
+            fail(ex.getMessage());
+        }
+    }
+
+
 	public static boolean isSqlAzure(Connection con) throws SQLException {
 		boolean isSqlAzure = false;
 
@@ -103,4 +117,5 @@ public class DBConnection extends AbstractParentWrapper {
 
 		return isSqlAzure;
 	}
+
 }

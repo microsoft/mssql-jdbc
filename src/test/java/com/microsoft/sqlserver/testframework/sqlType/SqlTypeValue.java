@@ -29,6 +29,8 @@ import java.math.BigDecimal;
 
 /*
  * Maps SQL type to its minimum, maximum and null value
+ * 
+ * temporal min/max values used are not DATEFORMAT dependent as in https://msdn.microsoft.com/en-us/library/ms180878.aspx
  */
 enum SqlTypeValue {
 					// minValue												// maxValue													// nullValue
@@ -43,12 +45,12 @@ enum SqlTypeValue {
 	FLOAT			(new Double(-1.79E308), 								new Double(+1.79E308), 										new Double(0)),
 	REAL			(new Float(-3.4E38), 									new Float(+3.4E38), 										new Float(0)),
 	CHAR			(null, 													null, 														null),// CHAR used by char, nchar, varchar, nvarchar
-	DATETIME		("1753-01-01 00:00:00.000", 							"9999-12-31 23:59:59.997", 									null),
-	DATE			("0001-01-01",											"9999-12-31",												null),
+	DATETIME		("17530101T00:00:00.000", 							    "99991231T23:59:59.997", 									null),
+	DATE			("00010101",											"99991231",												null),
 	TIME			("00:00:00.0000000", 									"23:59:59.9999999", 										null),
-	SMALLDATETIME	("1900-01-01 00:00:00",									"2079-06-06 23:59:59",										null),
-	DATETIME2		("0001-01-01 00:00:00.0000000",							"9999-12-31 23:59:59.9999999", 								null),
-	DATETIMEOFFSET	("0001-01-01 00:00:00.0000000-1400",					"9999-12-31 23:59:59.9999999+1400",							null),
+	SMALLDATETIME	("19000101T00:00:00",									"20790606T23:59:59",										null),
+	DATETIME2		("00010101T00:00:00.0000000",							"99991231T23:59:59.9999999", 								null),
+	DATETIMEOFFSET	("00010101T00:00:00.0000000-1400",					    "99991231T23:59:59.9999999+1400",							null),
 	;
 	
     Object minValue;

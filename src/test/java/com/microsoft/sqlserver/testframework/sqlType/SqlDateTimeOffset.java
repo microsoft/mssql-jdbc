@@ -44,7 +44,7 @@ public class SqlDateTimeOffset extends SqlDateTime {
     // TODO: datetiemoffset can extend SqlDateTime2
     // timezone is not supported in Timestamp so its useless to initialize
     // min/max with offset
-    static SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSSSSSSZ");
+    static SimpleDateFormat dateFormat = new SimpleDateFormat("yyyyMMdd'T'HH:mm:ss.SSSSSSSZ");
     static String basePattern = "yyyy-MM-dd HH:mm:ss";
     static ZoneOffset min = ZoneOffset.of("-1400");
     static ZoneOffset max = ZoneOffset.of("+1400");
