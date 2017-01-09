@@ -1,5 +1,5 @@
 // ---------------------------------------------------------------------------------------------------------------------------------
-// File: bulkCopyTest.java
+// File: BulkCopyTestWrapper.java
 //
 //
 // Microsoft JDBC Driver for SQL Server
@@ -37,103 +37,134 @@ import java.sql.SQLException;
 import java.sql.Time;
 import java.sql.Timestamp;
 
-import org.junit.jupiter.api.Test;
-import org.junit.platform.runner.JUnitPlatform;
-import org.junit.runner.RunWith;
-
 import com.microsoft.sqlserver.jdbc.SQLServerBulkCopy;
-import com.microsoft.sqlserver.testframework.AbstractTest;
+import com.microsoft.sqlserver.jdbc.SQLServerBulkCopyOptions;
 import com.microsoft.sqlserver.testframework.DBConnection;
 import com.microsoft.sqlserver.testframework.DBResultSet;
 import com.microsoft.sqlserver.testframework.DBStatement;
 import com.microsoft.sqlserver.testframework.DBTable;
-import com.microsoft.sqlserver.testframework.sqlType.SqlBit;
-import com.microsoft.sqlserver.testframework.sqlType.SqlDateTime;;
 
-@RunWith(JUnitPlatform.class)
-public class bulkCopyTest extends AbstractTest {
+/**
+ * Wrapper class that has all the data/values needed to execute BulkCopy test case
+ */
+class BulkCopyTestWrapper {
+    /**
+     * Test case name
+     */
+    String testName;
 
     /**
-     * Test bulkCopy with existing Connection object
-     * 
-     * @throws Exception
+     * <code>true</code> if SQLServerBulkCopy should use connection object
      */
-    @Test
-    public void testBulkCopyWithConnection() throws SQLException {
-        DBConnection con = null;
-        DBStatement stmt = null;
-        DBTable sourceTable = null;
-        DBTable destinationTable = null;
-        try {
-            con = new DBConnection(connectionString);
-            stmt = con.createStatement();
-            sourceTable = new DBTable(true);
-            stmt.createTable(sourceTable);
-            stmt.populateTable(sourceTable);
+    private boolean isUsingConnection;
 
-            destinationTable = sourceTable.cloneSchema();
-            stmt.createTable(destinationTable);
-            DBResultSet srcResultSet = stmt
-                    .executeQuery("SELECT * FROM " + sourceTable.getEscapedTableName() + ";");
-            SQLServerBulkCopy bulkCopy = new SQLServerBulkCopy((Connection) con.product());
-            bulkCopy.setDestinationTableName(destinationTable.getEscapedTableName());
-            bulkCopy.writeToServer((ResultSet) srcResultSet.product());
-            bulkCopy.close();
+    /**
+     * <code>true</code> if SQLServerBulkCopy should include SQLServerBulkCopyOptions
+     */
+    private boolean useBulkCopyOptions;
 
-            validateValues(con, sourceTable, destinationTable);
-        }
-        finally {
-            stmt.dropTable(sourceTable);
-            stmt.dropTable(destinationTable);
-            stmt.close();
-        }
+    private SQLServerBulkCopyOptions bulkOptions;
+
+    private String connectionString;
+
+    BulkCopyTestWrapper(String connectionString) {
+        this.connectionString = connectionString;
     }
 
     /**
-     * Test bulkCopy with Connection string
      * 
-     * @throws Exception
+     * @return
      */
-    @Test
-    public void testBulkCopyWithConnectionString() throws SQLException {
+    public boolean isUsingConnection() {
+        return isUsingConnection;
+    }
+
+    /**
+     * 
+     * @param isUsingConnection
+     *            <code>true</code> if connection object should be passed in BulkCopy constructor <code>false</code> if connection string is to be
+     *            passed to constructor
+     */
+    public void setUsingConnection(boolean isUsingConnection) {
+        this.isUsingConnection = isUsingConnection;
+        testName += "isUsingConnection=" + isUsingConnection + ";";
+    }
+
+    public boolean isUsingBulkCopyOptions() {
+        return useBulkCopyOptions;
+    }
+
+    public void useBulkCopyOptions(boolean useBulkCopyOptions) {
+        this.useBulkCopyOptions = useBulkCopyOptions;
+        testName += "useBulkCopyOptions=" + useBulkCopyOptions + ";";
+    }
+
+    public SQLServerBulkCopyOptions getBulkOptions() {
+        return bulkOptions;
+    }
+
+    public void setBulkOptions(SQLServerBulkCopyOptions bulkOptions) {
+        this.bulkOptions = bulkOptions;
+    }
+
+    public String getConnectionString() {
+        return connectionString;
+    }
+
+    public void setConnectionString(String connectionString) {
+        this.connectionString = connectionString;
+    }
+
+}
+
+class BulkCopyTestUtil {
+
+    static void performBulkCopy(BulkCopyTestWrapper wrapper, DBTable sourceTable) {
+        performBulkCopy(wrapper, sourceTable, false);
+    }
+
+    static void performBulkCopy(BulkCopyTestWrapper wrapper, DBTable sourceTable, boolean validateResult) {
         DBConnection con = null;
         DBStatement stmt = null;
-        DBTable sourceTable = null;
         DBTable destinationTable = null;
         try {
-            con = new DBConnection(connectionString);
+            con = new DBConnection(wrapper.getConnectionString());
             stmt = con.createStatement();
-            sourceTable = new DBTable(false);
-            sourceTable.addColumn(new SqlBit());
-            sourceTable.addColumn(new SqlDateTime());
 
-            stmt.createTable(sourceTable);
-            stmt.populateTable(sourceTable);
             destinationTable = sourceTable.cloneSchema();
             stmt.createTable(destinationTable);
-            DBResultSet srcResultSet = stmt
-                    .executeQuery("SELECT * FROM " + sourceTable.getEscapedTableName() + ";");
-            SQLServerBulkCopy bulkCopy = new SQLServerBulkCopy(connectionString);
+            DBResultSet srcResultSet = stmt.executeQuery("SELECT * FROM " + sourceTable.getEscapedTableName() + ";");
+            SQLServerBulkCopy bulkCopy;
+            if (wrapper.isUsingConnection()) {
+                bulkCopy = new SQLServerBulkCopy((Connection) con.product());
+            }
+            else {
+                bulkCopy = new SQLServerBulkCopy(wrapper.getConnectionString());
+            }
+            if (wrapper.isUsingBulkCopyOptions()) {
+                bulkCopy.setBulkCopyOptions(wrapper.getBulkOptions());
+            }
             bulkCopy.setDestinationTableName(destinationTable.getEscapedTableName());
             bulkCopy.writeToServer((ResultSet) srcResultSet.product());
             bulkCopy.close();
-            validateValues(con, sourceTable, destinationTable);
+            if (validateResult) {
+                validateValues(con, sourceTable, destinationTable);
+            }
+        }
+        catch (SQLException ex) {
+            fail(ex.getMessage());
         }
         finally {
-            stmt.dropTable(sourceTable);
             stmt.dropTable(destinationTable);
-            stmt.close();
+            con.close();
         }
     }
 
-    void validateValues(DBConnection con, DBTable sourceTable, DBTable destinationTable)
-            throws SQLException {
+    static void validateValues(DBConnection con, DBTable sourceTable, DBTable destinationTable) throws SQLException {
         DBStatement srcStmt = con.createStatement();
         DBStatement dstStmt = con.createStatement();
-        DBResultSet srcResultSet = srcStmt
-                .executeQuery("SELECT * FROM " + sourceTable.getEscapedTableName() + ";");
-        DBResultSet dstResultSet = dstStmt
-                .executeQuery("SELECT * FROM " + destinationTable.getEscapedTableName() + ";");
+        DBResultSet srcResultSet = srcStmt.executeQuery("SELECT * FROM " + sourceTable.getEscapedTableName() + ";");
+        DBResultSet dstResultSet = dstStmt.executeQuery("SELECT * FROM " + destinationTable.getEscapedTableName() + ";");
         ResultSetMetaData destMeta = ((ResultSet) dstResultSet.product()).getMetaData();
         int totalColumns = destMeta.getColumnCount();
 
@@ -150,24 +181,20 @@ public class bulkCopyTest extends AbstractTest {
                 // validate result based on sql JOIN
                 switch (destMeta.getColumnType(i)) {
                     case java.sql.Types.BIGINT:
-                        assertTrue((((Long) srcValue).longValue() == ((Long) dstValue).longValue()),
-                                "Unexpected bigint value");
+                        assertTrue((((Long) srcValue).longValue() == ((Long) dstValue).longValue()), "Unexpected bigint value");
                         break;
 
                     case java.sql.Types.INTEGER:
-                        assertTrue((((Integer) srcValue).intValue() == ((Integer) dstValue)
-                                .intValue()), "Unexpected int value");
+                        assertTrue((((Integer) srcValue).intValue() == ((Integer) dstValue).intValue()), "Unexpected int value");
                         break;
 
                     case java.sql.Types.SMALLINT:
                     case java.sql.Types.TINYINT:
-                        assertTrue((((Short) srcValue).shortValue() == ((Short) dstValue)
-                                .shortValue()), "Unexpected smallint/tinyint value");
+                        assertTrue((((Short) srcValue).shortValue() == ((Short) dstValue).shortValue()), "Unexpected smallint/tinyint value");
                         break;
 
                     case java.sql.Types.BIT:
-                        assertTrue((((Boolean) srcValue).booleanValue() == ((Boolean) dstValue)
-                                .booleanValue()), "Unexpected bit value");
+                        assertTrue((((Boolean) srcValue).booleanValue() == ((Boolean) dstValue).booleanValue()), "Unexpected bit value");
                         break;
 
                     case java.sql.Types.DECIMAL:
@@ -177,48 +204,38 @@ public class bulkCopyTest extends AbstractTest {
                         break;
 
                     case java.sql.Types.DOUBLE:
-                        assertTrue((((Double) srcValue).doubleValue() == ((Double) dstValue)
-                                .doubleValue()), "Unexpected float value");
+                        assertTrue((((Double) srcValue).doubleValue() == ((Double) dstValue).doubleValue()), "Unexpected float value");
                         break;
 
                     case java.sql.Types.REAL:
-                        assertTrue((((Float) srcValue).floatValue() == ((Float) dstValue)
-                                .floatValue()), "Unexpected real value");
+                        assertTrue((((Float) srcValue).floatValue() == ((Float) dstValue).floatValue()), "Unexpected real value");
                         break;
 
                     case java.sql.Types.VARCHAR:
                     case java.sql.Types.NVARCHAR:
-                        assertTrue((((String) srcValue).equals((String) dstValue)),
-                                "Unexpected varchar/nvarchar value ");
+                        assertTrue((((String) srcValue).equals((String) dstValue)), "Unexpected varchar/nvarchar value ");
                         break;
 
                     case java.sql.Types.CHAR:
                     case java.sql.Types.NCHAR:
-                        assertTrue((((String) srcValue).equals((String) dstValue)),
-                                "Unexpected char/nchar value ");
+                        assertTrue((((String) srcValue).equals((String) dstValue)), "Unexpected char/nchar value ");
                         break;
 
                     case java.sql.Types.TIMESTAMP:
-                        assertTrue(
-                                (((Timestamp) srcValue)
-                                        .getTime() == (((Timestamp) dstValue).getTime())),
+                        assertTrue((((Timestamp) srcValue).getTime() == (((Timestamp) dstValue).getTime())),
                                 "Unexpected datetime/smalldatetime/datetime2 value");
                         break;
 
                     case java.sql.Types.DATE:
-                        assertTrue((((Date) srcValue).getTime() == (((Date) dstValue).getTime())),
-                                "Unexpected datetime value");
+                        assertTrue((((Date) srcValue).getTime() == (((Date) dstValue).getTime())), "Unexpected datetime value");
                         break;
 
                     case java.sql.Types.TIME:
-                        assertTrue(((Time) srcValue).getTime() == ((Time) dstValue).getTime(),
-                                "Unexpected time value ");
+                        assertTrue(((Time) srcValue).getTime() == ((Time) dstValue).getTime(), "Unexpected time value ");
                         break;
 
                     case microsoft.sql.Types.DATETIMEOFFSET:
-                        assertTrue(
-                                0 == ((microsoft.sql.DateTimeOffset) srcValue)
-                                        .compareTo((microsoft.sql.DateTimeOffset) dstValue),
+                        assertTrue(0 == ((microsoft.sql.DateTimeOffset) srcValue).compareTo((microsoft.sql.DateTimeOffset) dstValue),
                                 "Unexpected time value ");
                         break;
 
