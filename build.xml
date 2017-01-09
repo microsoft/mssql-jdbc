@@ -4,17 +4,26 @@
   </description>
   <!-- set global properties for this build -->
   <property name="artifactId" value="mssql-jdbc"/>
-  <property name="version" value="6.1.1"/>
+  <property name="version" value="6.1.2"/>
   
   <property name="src" location="src/main/java"/>
   <property name="build" location="build"/>
-  <property name="test" location="src/test/java"/>
+  <property name="bvtTest" location="src/test/java/com/microsoft/sqlserver/jdbc/bvt/"/>
   <property name="bvtTest_Classes" location="${build}/classes/test/bvt"/>
 
 	<!-- download dependencies -->	
 	<ivy:resolve>
 		<dependency org="com.microsoft.azure" name="azure-keyvault" rev="0.9.7"/>
 		<dependency org="junit" name="junit" rev="4.12"/>
+		<dependency org="org.junit.platform" name="junit-platform-console" rev="1.0.0-M3"/>
+		<dependency org="org.junit.platform" name="junit-platform-commons" rev="1.0.0-M3"/>
+		<dependency org="org.junit.platform" name="junit-platform-engine" rev="1.0.0-M3"/>
+		<dependency org="org.junit.platform" name="junit-platform-launcher" rev="1.0.0-M3"/>
+		<dependency org="org.junit.platform" name="junit-platform-runner" rev="1.0.0-M3"/>
+		<dependency org="org.junit.platform" name="junit-platform-surefire-provider" rev="1.0.0-M3"/>
+		<dependency org="org.junit.jupiter" name="junit-jupiter-api" rev="5.0.0-M3"/>
+		<dependency org="org.junit.jupiter" name="junit-jupiter-engine" rev="5.0.0-M3"/>
+		
 	</ivy:resolve>
 	
 	<!-- retrieves all the dependencies of the resolve call to lib directory -->
@@ -96,7 +105,7 @@
 
    <target name="compile_test"
 		description="compile the junit source">
-			<javac  classpathref="${JDBC_VERSION}" srcdir="${test}" 
+			<javac  classpathref="${JDBC_VERSION}" srcdir="${bvtTest}" 
 				destdir="${bvtTest_Classes}" 
 				encoding="UTF-8" 
 				source="${JAVA_VERSION}" 
@@ -113,7 +122,7 @@
 		<junit haltonfailure="true" printsummary="true" showoutput="true">
 			<formatter type="plain" usefile="false" />
 			<classpath><path refid="test_classpath41" /></classpath>
-			<test name="bvtTest"></test>
+			<test name="com.microsoft.sqlserver.jdbc.bvt.bvtTest"></test>
 		</junit>
 	</target>
   
@@ -125,7 +134,7 @@
 		<junit haltonfailure="true" printsummary="true" showoutput="true">
 			<formatter type="plain" usefile="false" />
 			<classpath><path refid="test_classpath42" /></classpath>
-			<test name="bvtTest"></test>
+			<test name="com.microsoft.sqlserver.jdbc.bvt.bvtTest"></test>
 		</junit>
 	</target>
   
