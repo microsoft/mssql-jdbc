@@ -47,7 +47,6 @@ public class BulkCopyTestSetUp extends AbstractTest {
             con = new DBConnection(connectionString);
             stmt = con.createStatement();
             sourceTable = new DBTable(true);
-            sourceTable.setTotalRows(200);
             stmt.createTable(sourceTable);
             stmt.populateTable(sourceTable);
         }
