@@ -79,6 +79,18 @@ public class DBStatement extends AbstractParentWrapper {
     /**
      * 
      * @param sql
+     *            the SQL query
+     * @return The number of rows updated.
+     * @throws SQLException
+     */
+    public int executeUpdate(String sql) throws SQLException {
+        int updatecount = statement.executeUpdate(sql);
+        return updatecount;
+    }
+
+    /**
+     * 
+     * @param sql
      *            query to execute
      * @return <code>true</code> if ResultSet is returned
      * @throws SQLException
@@ -88,8 +100,7 @@ public class DBStatement extends AbstractParentWrapper {
     }
 
     /**
-     * Close the <code>Statement</code> and <code>ResultSet</code> associated
-     * with it
+     * Close the <code>Statement</code> and <code>ResultSet</code> associated with it
      * 
      * @throws SQLException
      */
