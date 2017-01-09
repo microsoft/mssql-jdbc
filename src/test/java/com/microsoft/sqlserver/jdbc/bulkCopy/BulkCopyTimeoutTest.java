@@ -28,50 +28,23 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.util.concurrent.ThreadLocalRandom;
 
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
 
 import com.microsoft.sqlserver.jdbc.SQLServerBulkCopyOptions;
 import com.microsoft.sqlserver.jdbc.SQLServerException;
-import com.microsoft.sqlserver.testframework.AbstractTest;
-import com.microsoft.sqlserver.testframework.DBConnection;
-import com.microsoft.sqlserver.testframework.DBStatement;
-import com.microsoft.sqlserver.testframework.DBTable;
 
 /**
  * Test the timeout in SQLServerBulkCopyOptions. Source table is created with large row count so skip data validation.
  */
 @RunWith(JUnitPlatform.class)
-public class BulkCopyTimeoutTest extends AbstractTest {
+public class BulkCopyTimeoutTest extends BulkCopyTestSetUp {
 
     /**
      * TODO: add support for small timeout value once test framework has support to add more than 10K rows, to check for Timeout Exception
      */
-    static DBTable sourceTable;
-    static int rowCount = 500;
 
-    /**
-     * Setup source table as per row count.
-     */
-    @BeforeAll
-    static void setUpSourceTable() {
-        DBConnection con = null;
-        DBStatement stmt = null;
-        try {
-            con = new DBConnection(connectionString);
-            stmt = con.createStatement();
-            sourceTable = new DBTable(true);
-            sourceTable.setTotalRows(rowCount);
-            stmt.createTable(sourceTable);
-            stmt.populateTable(sourceTable);
-        }
-        finally {
-            con.close();
-        }
-    }
 
     /**
      * 
@@ -106,22 +79,5 @@ public class BulkCopyTimeoutTest extends AbstractTest {
                 BulkCopyTestUtil.performBulkCopy(bulkWrapper, sourceTable, false);
             }
         });
-    }
-
-    /**
-     * drop source table
-     */
-    @AfterAll
-    static void dropSourceTable() {
-        DBConnection con = null;
-        DBStatement stmt = null;
-        try {
-            con = new DBConnection(connectionString);
-            stmt = con.createStatement();
-            stmt.dropTable(sourceTable);
-        }
-        finally {
-            con.close();
-        }
     }
 }
