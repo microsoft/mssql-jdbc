@@ -41,7 +41,7 @@ import org.apache.commons.lang3.RandomStringUtils;
 
 public class SqlDateTime2 extends SqlDateTime {
 
-    static SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSSSSSS");
+    static SimpleDateFormat dateFormat = new SimpleDateFormat("yyyyMMdd'T'HH:mm:ss.SSSSSSS");
     static String basePattern = "yyyy-MM-dd HH:mm:ss";
     static DateTimeFormatter formatter;
 

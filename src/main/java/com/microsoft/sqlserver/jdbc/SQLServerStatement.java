@@ -30,6 +30,7 @@ import java.util.ListIterator;
 import java.util.Stack;
 import java.util.StringTokenizer;
 import java.util.Vector;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -470,8 +471,8 @@ public class SQLServerStatement implements ISQLServerStatement {
     }
 
    /** Generate the statement's logging ID */
-   private static int lastStatementID = 0;
-   private synchronized static int nextStatementID() { return ++lastStatementID; }
+   private static final AtomicInteger lastStatementID = new AtomicInteger(0);
+   private static int nextStatementID() { return lastStatementID.incrementAndGet(); }
 
    /**
    * The regular statement constructor

@@ -25,6 +25,7 @@ import java.sql.SQLException;
 import java.sql.SQLFeatureNotSupportedException;
 import java.util.Enumeration;
 import java.util.Properties;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -50,7 +51,7 @@ public class SQLServerDataSource implements ISQLServerDataSource, DataSource, ja
     private Properties connectionProps;			// Properties passed to SQLServerConnection class.
     private String dataSourceURL;				// URL for datasource.
     private String dataSourceDescription;		// Description for datasource.
-    static private int baseDataSourceID = 0;	// Unique id generator for each DataSource instance (used for logging).
+    static private final AtomicInteger baseDataSourceID = new AtomicInteger(0);	// Unique id generator for each DataSource instance (used for logging).
     final private String traceID;
     
 	/**
@@ -333,6 +334,15 @@ public class SQLServerDataSource implements ISQLServerDataSource, DataSource, ja
     {
         return getBooleanProperty(connectionProps, SQLServerDriverBooleanProperty.TRUST_SERVER_CERTIFICATE.toString(), SQLServerDriverBooleanProperty.TRUST_SERVER_CERTIFICATE.getDefaultValue());
     }
+    
+    public void setTrustStoreType(String trustStoreType) {
+    	setStringProperty(connectionProps, SQLServerDriverStringProperty.TRUST_STORE_TYPE.toString(), trustStoreType);
+    }
+    
+    public String getTrustStoreType() {
+    	return getStringProperty(connectionProps, SQLServerDriverStringProperty.TRUST_STORE_TYPE.toString(), SQLServerDriverStringProperty.TRUST_STORE_TYPE.getDefaultValue());
+    }
+    
     public void setTrustStore(String st)
     {
         setStringProperty(connectionProps, SQLServerDriverStringProperty.TRUST_STORE.toString(), st);
@@ -557,6 +567,14 @@ public class SQLServerDataSource implements ISQLServerDataSource, DataSource, ja
     public boolean getXopenStates()
     {
         return getBooleanProperty(connectionProps, SQLServerDriverBooleanProperty.XOPEN_STATES.toString(), SQLServerDriverBooleanProperty.XOPEN_STATES.getDefaultValue());
+    }
+    
+    public void setFIPSProvider(String fipsProvider) {
+    	setStringProperty(connectionProps, SQLServerDriverStringProperty.FIPS_PROVIDER.toString(), fipsProvider);
+    }
+    
+    public String getFIPSProvider() {
+    	return getStringProperty(connectionProps, SQLServerDriverStringProperty.FIPS_PROVIDER.toString(), null);
     }
 
     // The URL property is exposed for backwards compatibility reasons.  Also, several 
@@ -942,10 +960,9 @@ public class SQLServerDataSource implements ISQLServerDataSource, DataSource, ja
     }
 
     // Returns unique id for each DataSource instance.
-    private synchronized static int nextDataSourceID()
+    private static int nextDataSourceID()
     {
-        baseDataSourceID++;
-        return baseDataSourceID;
+        return baseDataSourceID.incrementAndGet();
     }
     private Object writeReplace() throws java.io.ObjectStreamException
     {

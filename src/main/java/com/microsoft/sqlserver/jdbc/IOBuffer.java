@@ -69,6 +69,7 @@ import java.util.TimeZone;
 import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -1568,6 +1569,12 @@ final class TDSChannel
 		SSL_HANDHSAKE_COMPLETE
 	};
 
+	/**
+	 * Enables SSL Handshake. 
+	 * @param host   Server Host Name for SSL Handshake
+	 * @param port	 Server Port for SSL Handshake
+	 * @throws SQLServerException
+	 */
 	void enableSSL(String host, int port) throws SQLServerException
 	{
 		// If enabling SSL fails, which it can for a number of reasons, the following items
@@ -1577,6 +1584,10 @@ final class TDSChannel
 		Provider ksProvider = null;         // KeyStore provider
 		String tmfDefaultAlgorithm = null;  // Default algorithm (typically X.509) used by the TrustManagerFactory
 		SSLHandhsakeState handshakeState = SSLHandhsakeState.SSL_HANDHSAKE_NOT_STARTED;
+		
+		boolean isFips = false;
+		String trustStoreType = null;
+		String fipsProvider = null;
 
 		// If anything in here fails, terminate the connection and throw an exception
 		try
@@ -1587,7 +1598,14 @@ final class TDSChannel
 			String trustStoreFileName = con.activeConnectionProperties.getProperty(SQLServerDriverStringProperty.TRUST_STORE.toString());
 			String trustStorePassword = con.activeConnectionProperties.getProperty(SQLServerDriverStringProperty.TRUST_STORE_PASSWORD.toString());
 			String hostNameInCertificate =  con.activeConnectionProperties.getProperty(SQLServerDriverStringProperty.HOSTNAME_IN_CERTIFICATE.toString());
-
+			
+			trustStoreType = con.activeConnectionProperties.getProperty(SQLServerDriverStringProperty.TRUST_STORE_TYPE.toString());
+			fipsProvider = con.activeConnectionProperties.getProperty(SQLServerDriverStringProperty.FIPS_PROVIDER.toString());
+			
+			
+			isFips = isFipsEnabled(fipsProvider, trustStoreType);
+			
+						
 			assert
 			TDS.ENCRYPT_OFF == con.getRequestedEncryptionLevel() || // Login only SSL
 			TDS.ENCRYPT_ON  == con.getRequestedEncryptionLevel();   // Full SSL
@@ -1636,8 +1654,12 @@ final class TDSChannel
 					// stored in Java Key Store (JKS) format.
 					if (logger.isLoggable(Level.FINEST))
 						logger.finest(toString() + " Finding key store interface");
-
-					ks = KeyStore.getInstance("JKS");
+					
+					if (isFips) {
+						ks = KeyStore.getInstance(trustStoreType, fipsProvider);
+					} else {
+						ks = KeyStore.getInstance("JKS");
+					}
 					ksProvider = ks.getProvider();
 
 					// Next, load up the trust store file from the specified location.
@@ -1700,14 +1722,13 @@ final class TDSChannel
 				tmf.init(ks);
 				tm = tmf.getTrustManagers();
 
-				// if the host name in cert provided use it or use the host name
-				if(null != hostNameInCertificate)
-				{
-					tm = new TrustManager[] {new HostNameOverrideX509TrustManager(this, (X509TrustManager)tm[0], hostNameInCertificate)};
-				}    
-				else
-				{
-					tm = new TrustManager[] {new HostNameOverrideX509TrustManager(this, (X509TrustManager)tm[0], host)};
+				// if the host name in cert provided use it or use the host name Only if it is not FIPS
+				if (!isFips) {
+					if (null != hostNameInCertificate) {
+						tm = new TrustManager[] { new HostNameOverrideX509TrustManager(this, (X509TrustManager) tm[0], hostNameInCertificate) };
+					} else {
+						tm = new TrustManager[] { new HostNameOverrideX509TrustManager(this, (X509TrustManager) tm[0], host) };
+					}
 				}
 			} // end if (!con.trustServerCertificate())
 
@@ -1825,6 +1846,50 @@ final class TDSChannel
 				con.terminate(SQLServerException.DRIVER_ERROR_SSL_FAILED, form.format(msgArgs), e);
 			}
 		}
+	}
+	
+	/**
+	 * Checking if FIPS is enabled or not. 
+	 * @param fipsProvider FIPS Provider
+	 * @return {@code true} if Customer wants to use FIPS Provider. 
+	 * @since 6.1.2
+	 */
+	private boolean isFipsEnabled(String fipsProvider, String trustStoreType) {
+		boolean isFipsEnabled = false;
+		boolean isEncryptOn;
+		boolean isValidTrustStoreType;
+		boolean isTrustServerCertificate;
+
+		if (!StringUtils.isEmpty(fipsProvider)) {
+			isEncryptOn = TDS.ENCRYPT_ON == con.getRequestedEncryptionLevel();
+
+			//Here different FIPS provider supports different KeyStore type along with different JVM Implementation. 
+			isValidTrustStoreType = !StringUtils.isEmpty(trustStoreType);
+			isTrustServerCertificate = con.trustServerCertificate();
+
+			if (isEncryptOn && isValidTrustStoreType && !isTrustServerCertificate) {
+				isFipsEnabled = true;
+			} else {
+				//If FIPS is not enabled issue warning and fall-back to non-FIPS mode.
+				StringBuilder sb = new StringBuilder();
+				sb.append("Could not switch to FIPS mode due to above settings: ");
+				sb.append(SQLServerDriverStringProperty.FIPS_PROVIDER.toString());
+				sb.append(": ");
+				sb.append(fipsProvider);
+				sb.append(", ");
+
+				sb.append(SQLServerDriverStringProperty.TRUST_STORE_TYPE.toString());
+				sb.append(": ");
+				sb.append(trustStoreType);
+				sb.append(", ");
+
+				sb.append("TrustCertificate: ");
+				sb.append(isTrustServerCertificate);
+
+				logger.warning(sb.toString());
+			}
+		}
+		return isFipsEnabled;
 	}
 	
 	private final static String SEPARATOR = System.getProperty("file.separator");
@@ -6592,8 +6657,8 @@ final class TDSReader
 	private boolean serverSupportsColumnEncryption = false;
 
 	private final byte valueBytes[] = new byte[256];
-	private static int lastReaderID = 0;
-	private synchronized static int nextReaderID() { return ++lastReaderID; }
+	private static final AtomicInteger lastReaderID = new AtomicInteger(0);
+	private static int nextReaderID() { return lastReaderID.incrementAndGet(); }
 
 
 	TDSReader(TDSChannel tdsChannel, SQLServerConnection con, TDSCommand command)

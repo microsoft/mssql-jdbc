@@ -35,7 +35,7 @@ import java.util.concurrent.ThreadLocalRandom;
 
 public class SqlDateTime extends SqlType {
 
-    static SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS");
+    static SimpleDateFormat dateFormat = new SimpleDateFormat("yyyyMMdd'T'HH:mm:ss.SSS");
 
     public SqlDateTime() {
         this("datetime", JDBCType.TIMESTAMP, null, null);

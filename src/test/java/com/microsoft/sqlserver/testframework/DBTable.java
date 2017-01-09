@@ -145,7 +145,6 @@ public class DBTable extends AbstractSQLGenerator {
         try {
             dropTable(dbstatement);
             String sql = createTableSql();
-            log.info(sql);
             return dbstatement.execute(sql);
         }
         catch (SQLException ex) {
@@ -194,7 +193,6 @@ public class DBTable extends AbstractSQLGenerator {
         try {
             populateValues();
             String sql = populateTableSql();
-            log.info(sql);
             return dbstatement.execute(sql);
         }
         catch (SQLException ex) {

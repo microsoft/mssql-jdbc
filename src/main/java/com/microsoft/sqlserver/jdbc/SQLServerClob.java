@@ -33,6 +33,7 @@ import java.sql.SQLException;
 import java.sql.SQLFeatureNotSupportedException;
 import java.text.MessageFormat;
 import java.util.ArrayList;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -100,12 +101,11 @@ abstract class SQLServerClobBase implements Serializable
     {
         return traceID;
     }
-    static private int baseID = 0;	// Unique id generator for each  instance (used for logging).
+    static private final AtomicInteger baseID = new AtomicInteger(0);	// Unique id generator for each  instance (used for logging).
     // Returns unique id for each instance.
-    private synchronized static int nextInstanceID()
+    private static int nextInstanceID()
     {
-        baseID++;
-        return baseID;
+        return baseID.incrementAndGet();
     }
 
     abstract JDBCType getJdbcType();

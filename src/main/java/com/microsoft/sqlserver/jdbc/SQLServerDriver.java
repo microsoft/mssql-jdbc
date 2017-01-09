@@ -26,6 +26,7 @@ import java.text.MessageFormat;
 import java.util.Enumeration;
 import java.util.Locale;
 import java.util.Properties;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -240,6 +241,7 @@ enum SQLServerDriverStringProperty
 	SELECT_METHOD("selectMethod", 				 						"direct"),
 	SERVER_NAME("serverName",					 						""),
 	SERVER_SPN("serverSpn",						 						""),
+	TRUST_STORE_TYPE("trustStoreType",					 				"JKS"),
 	TRUST_STORE("trustStore",					 						""),
 	TRUST_STORE_PASSWORD("trustStorePassword",			 				""),
 	USER("user", 						 								""),
@@ -250,7 +252,8 @@ enum SQLServerDriverStringProperty
 	COLUMN_ENCRYPTION("columnEncryptionSetting",					 	ColumnEncryptionSetting.Disabled.toString()),
 	KEY_STORE_AUTHENTICATION("keyStoreAuthentication",					""),
 	KEY_STORE_SECRET("keyStoreSecret",									""),
-	KEY_STORE_LOCATION("keyStoreLocation",								"");
+	KEY_STORE_LOCATION("keyStoreLocation",								""),
+	FIPS_PROVIDER("fipsProvider",										"");
 
 	private String name;
 	private String defaultValue;
@@ -374,6 +377,7 @@ public final class SQLServerDriver implements java.sql.Driver
         new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.SERVER_SPN.toString(),                    		SQLServerDriverStringProperty.SERVER_SPN.getDefaultValue(),           									false,      null),
         new SQLServerDriverPropertyInfo(SQLServerDriverBooleanProperty.TRANSPARENT_NETWORK_IP_RESOLUTION.toString(),    Boolean.toString(SQLServerDriverBooleanProperty.TRANSPARENT_NETWORK_IP_RESOLUTION.getDefaultValue()),   false,      TRUE_FALSE),
         new SQLServerDriverPropertyInfo(SQLServerDriverBooleanProperty.TRUST_SERVER_CERTIFICATE.toString(),        		Boolean.toString(SQLServerDriverBooleanProperty.TRUST_SERVER_CERTIFICATE.getDefaultValue()),      		false,      TRUE_FALSE),
+        new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.TRUST_STORE_TYPE.toString(),                    	SQLServerDriverStringProperty.TRUST_STORE_TYPE.getDefaultValue(),           							false,      null),
         new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.TRUST_STORE.toString(),                    		SQLServerDriverStringProperty.TRUST_STORE.getDefaultValue(),           									false,      null),
         new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.TRUST_STORE_PASSWORD.toString(),            		SQLServerDriverStringProperty.TRUST_STORE_PASSWORD.getDefaultValue(),           						false,      null),
         new SQLServerDriverPropertyInfo(SQLServerDriverBooleanProperty.SEND_TIME_AS_DATETIME.toString(),            	Boolean.toString(SQLServerDriverBooleanProperty.SEND_TIME_AS_DATETIME.getDefaultValue()),       		false,      TRUE_FALSE),
@@ -382,6 +386,7 @@ public final class SQLServerDriver implements java.sql.Driver
         new SQLServerDriverPropertyInfo(SQLServerDriverBooleanProperty.XOPEN_STATES.toString(),                   		Boolean.toString(SQLServerDriverBooleanProperty.XOPEN_STATES.getDefaultValue()),      					false,      TRUE_FALSE),
         new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.AUTHENTICATION_SCHEME.toString(),          		SQLServerDriverStringProperty.AUTHENTICATION_SCHEME.getDefaultValue(),      			                false,      new String[] {AuthenticationScheme.javaKerberos.toString(),AuthenticationScheme.nativeAuthentication.toString()}),
         new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.AUTHENTICATION.toString(),          				SQLServerDriverStringProperty.AUTHENTICATION.getDefaultValue(),      			                		false,      new String[] {SqlAuthentication.NotSpecified.toString(),SqlAuthentication.SqlPassword.toString(),SqlAuthentication.ActiveDirectoryPassword.toString(),SqlAuthentication.ActiveDirectoryIntegrated.toString()}),
+        new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.FIPS_PROVIDER.toString(), 						SQLServerDriverStringProperty.FIPS_PROVIDER.getDefaultValue(), 											false, 		null),
         new SQLServerDriverPropertyInfo(SQLServerDriverIntProperty.SOCKET_TIMEOUT.toString(),                   		Integer.toString(SQLServerDriverIntProperty.SOCKET_TIMEOUT.getDefaultValue()),         					false,      null),
     };
     
@@ -400,15 +405,14 @@ public final class SQLServerDriver implements java.sql.Driver
 		{"server",SQLServerDriverStringProperty.SERVER_NAME.toString()},		
 		{"port", SQLServerDriverIntProperty.PORT_NUMBER.toString()}
   };
-        static private int baseID = 0;	// Unique id generator for each  instance (used for logging).
+        static private final AtomicInteger baseID = new AtomicInteger(0);	// Unique id generator for each  instance (used for logging).
         final private int instanceID;							// Unique id for this instance.
         final private String traceID;
         
         // Returns unique id for each instance.
-        private synchronized static int nextInstanceID()
+        private static int nextInstanceID()
         {
-            baseID++;
-            return baseID;
+            return baseID.incrementAndGet();
         }
         final public String toString()
         {

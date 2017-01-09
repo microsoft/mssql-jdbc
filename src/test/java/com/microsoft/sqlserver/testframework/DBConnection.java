@@ -27,6 +27,8 @@ package com.microsoft.sqlserver.testframework;
 
 import static org.junit.jupiter.api.Assertions.fail;
 
+import java.sql.Connection;
+import java.sql.ResultSet;
 import java.sql.SQLException;
 
 import com.microsoft.sqlserver.jdbc.SQLServerConnection;
@@ -36,59 +38,84 @@ import com.microsoft.sqlserver.jdbc.SQLServerConnection;
  */
 public class DBConnection extends AbstractParentWrapper {
 
-    // TODO: add Isolation Level
-    // TODO: add auto commit
-    // TODO: add connection Savepoint and rollback
-    // TODO: add additional connection properties
-    // TODO: add DataSource support
-    private SQLServerConnection connection = null;
+	// TODO: add Isolation Level
+	// TODO: add auto commit
+	// TODO: add connection Savepoint and rollback
+	// TODO: add additional connection properties
+	// TODO: add DataSource support
+	private SQLServerConnection connection = null;
+
+	/**
+	 * establishes connection using the input
+	 * 
+	 * @param connectionString
+	 */
+	public DBConnection(String connectionString) {
+		super(null, null, "connection");
+		getConnection(connectionString);
+	}
+
+	/**
+	 * establish connection
+	 * 
+	 * @param connectionString
+	 */
+	void getConnection(String connectionString) {
+		try {
+			connection = PrepUtil.getConnection(connectionString);
+			setInternal(connection);
+		} catch (SQLException ex) {
+			fail(ex.getMessage());
+		} catch (ClassNotFoundException ex) {
+			fail(ex.getMessage());
+		}
+	}
+
+	@Override
+	void setInternal(Object internal) {
+		this.internal = internal;
+	}
+
+	/**
+	 * 
+	 * @return Statement wrapper
+	 */
+	public DBStatement createStatement() {
+		try {
+			DBStatement dbstatement = new DBStatement(this);
+			return dbstatement.createStatement();
+		} catch (SQLException ex) {
+			fail(ex.getMessage());
+		}
+		return null;
+	}
+
 
     /**
-     * establishes connection using the input
-     * 
-     * @param connectionString
+     * clsoe connection
      */
-    public DBConnection(String connectionString) {
-        super(null, null, "connection");
-        getConnection(connectionString);
-    }
-
-    /**
-     * establish connection
-     * 
-     * @param connectionString
-     */
-    void getConnection(String connectionString) {
+    public void close() {
         try {
-            connection = PrepUtil.getConnection(connectionString);
-            setInternal(connection);
+            connection.close();
         }
         catch (SQLException ex) {
             fail(ex.getMessage());
         }
-        catch (ClassNotFoundException ex) {
-            fail(ex.getMessage());
-        }
     }
 
-    @Override
-    void setInternal(Object internal) {
-        this.internal = internal;
-    }
 
-    /**
-     * 
-     * @return Statement wrapper
-     */
-    public DBStatement createStatement() {
-        try {
-            DBStatement dbstatement = new DBStatement(this);
-            return dbstatement.createStatement();
-        }
-        catch (SQLException ex) {
-            fail(ex.getMessage());
-        }
-        return null;
-    }
+	public static boolean isSqlAzure(Connection con) throws SQLException {
+		boolean isSqlAzure = false;
+
+		ResultSet rs = con.createStatement().executeQuery("SELECT CAST(SERVERPROPERTY('EngineEdition') as INT)");
+		rs.next();
+		int engineEdition = rs.getInt(1);
+		rs.close();
+		if (ENGINE_EDITION_FOR_SQL_AZURE == engineEdition) {
+			isSqlAzure = true;
+		}
+
+		return isSqlAzure;
+	}
 
 }

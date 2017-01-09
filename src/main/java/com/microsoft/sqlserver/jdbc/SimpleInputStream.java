@@ -21,6 +21,7 @@ package com.microsoft.sqlserver.jdbc;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
 * SimpleInputStream is an InputStream implementation that reads from TDS.
@@ -40,8 +41,8 @@ abstract class BaseInputStream extends InputStream
 
     /** Generate the  logging ID */
     private String parentLoggingInfo = "";
-    private static int lastLoggingID = 0;
-    private synchronized static int nextLoggingID() { return ++lastLoggingID; }
+    private static final AtomicInteger lastLoggingID = new AtomicInteger(0);
+    private static int nextLoggingID() { return lastLoggingID.incrementAndGet(); }
     static final java.util.logging.Logger logger = java.util.logging.Logger.getLogger("com.microsoft.sqlserver.jdbc.internals.InputStream");;
     private String traceID;
     final public String toString() 
