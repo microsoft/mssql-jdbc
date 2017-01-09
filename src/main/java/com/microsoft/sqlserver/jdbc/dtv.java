@@ -3257,24 +3257,48 @@ final class TypeInfo
 
 		SQL_VARIANT(TDSType.SQL_VARIANT, new Strategy()
 		{
-			/**
-			 * Sets the fields of typeInfo to the correct values
-			 * @param typeInfo the TypeInfo whos values are being corrected
-			 * @param tdsReader the TDSReader used to set the fields of typeInfo to the correct values
-			 * @throws SQLServerException when an error occurs
-			 */
-			public void apply(TypeInfo typeInfo, TDSReader tdsReader) throws SQLServerException
-			{
-				// Throw an exception and terminate the connection.  Since we don't know
-				// how to process or skip the VARIANT type in the TDS token stream, we are
-				// unable to continue processing the response.
-				SQLServerException.makeFromDriverError(
-						tdsReader.getConnection(),
-						null,
-						SQLServerException.getErrString("R_variantNotSupported"),
-						SQLServerException.EXCEPTION_XOPEN_CONNECTION_FAILURE,
-						false);
-			}
+            /**
+             * Sets the fields of typeInfo to the correct values
+             * 
+             * @param typeInfo
+             *            the TypeInfo whos values are being corrected
+             * @param tdsReader
+             *            the TDSReader used to set the fields of typeInfo to the correct values
+             * @throws SQLServerException
+             *             when an error occurs
+             */
+            public void apply(TypeInfo typeInfo, TDSReader tdsReader) throws SQLServerException {
+                try {
+                    SQLServerException.makeFromDriverError(tdsReader.getConnection(), null, SQLServerException.getErrString("R_variantNotSupported"),
+                            null, false);
+                }
+                finally {
+                    /*
+                     * As the driver doesn't know how to process or skip the VARIANT type in TDS token stream, we send an interrupt Signal to server,
+                     * and skips all the data received while waiting for the interrupt acknowledgment.
+                     */
+                    int remainingPackets = 0;
+
+                    // Skip the current buffered packet
+                    remainingPackets = tdsReader.availableCurrentPacket();
+                    tdsReader.skip(remainingPackets);
+
+                    // send interrupt to server
+                    tdsReader.getCommand().interrupt(SQLServerException.getErrString("R_variantNotSupported"));
+
+                    /*
+                     * Skip all data only if waiting for attention ack and until interrupt acknowledgment is received.
+                     * 
+                     * Interrupt acknowledgment is a DONE token with the DONE_ATTN(0x0020) bit set.
+                     */
+                    while (tdsReader.getCommand().attentionPending() && (TDS.TDS_DONE != tdsReader.peekTokenType())
+                            && (0 != (tdsReader.peekStatusFlag() & 0x0020))) {
+                        remainingPackets = tdsReader.availableCurrentPacket();
+                        tdsReader.skip(remainingPackets);
+                    }
+                    tdsReader.getCommand().close();
+                }
+            }
 		});
 
 		private final TDSType tdsType;
