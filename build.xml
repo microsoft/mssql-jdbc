@@ -119,7 +119,7 @@
 			<param name="JAVA_VERSION" value="1.7"/>
 			<param name="JDBC_VERSION" value="test_classpath41"/>
 		</antcall>
-		<junit haltonfailure="true" printsummary="true" showoutput="true">
+		<junit haltonfailure="true" printsummary="true" showoutput="true" fork="true">
 			<formatter type="plain" usefile="false" />
 			<classpath><path refid="test_classpath41" /></classpath>
 			<test name="com.microsoft.sqlserver.jdbc.bvt.bvtTest"></test>
@@ -131,7 +131,7 @@
 			<param name="JAVA_VERSION" value="1.8"/>
 			<param name="JDBC_VERSION" value="test_classpath42"/>
 		</antcall>
-		<junit haltonfailure="true" printsummary="true" showoutput="true">
+		<junit haltonfailure="true" printsummary="true" showoutput="true" fork="true">
 			<formatter type="plain" usefile="false" />
 			<classpath><path refid="test_classpath42" /></classpath>
 			<test name="com.microsoft.sqlserver.jdbc.bvt.bvtTest"></test>
