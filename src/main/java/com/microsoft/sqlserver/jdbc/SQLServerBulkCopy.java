@@ -19,6 +19,9 @@
  
 package com.microsoft.sqlserver.jdbc;
 
+import static java.nio.charset.StandardCharsets.UTF_16LE;
+import static java.nio.charset.StandardCharsets.UTF_8;
+
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -52,12 +55,7 @@ import java.util.UUID;
 import java.util.Vector;
 import java.util.logging.Level;
 
-import static java.nio.charset.StandardCharsets.UTF_16LE;
-import static java.nio.charset.StandardCharsets.UTF_8;
-
 import javax.sql.RowSet;
-
-import microsoft.sql.DateTimeOffset;
 
 /**
  * Lets you efficiently bulk load a SQL Server table with data from another source.
@@ -375,9 +373,9 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable
      * Initializes and opens a new instance of SQLServerConnection based on the supplied connectionString. 
      * 
      * @param connectionUrl Connection string for the destination server.
-     * @throws SQLException If a connection cannot be established.
+     * @throws SQLServerException If a connection cannot be established.
      */
-    public SQLServerBulkCopy(String connectionUrl) throws SQLException
+    public SQLServerBulkCopy(String connectionUrl) throws SQLServerException
     {
         loggerExternal.entering(loggerClassName,  "SQLServerBulkCopy", "connectionUrl not traced.");
         if((connectionUrl == null ) || connectionUrl.trim().equals(""))
@@ -556,25 +554,31 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable
     }
     
     /**
-     * Update the behavior of the SQLServerBulkCopy instance according to the options supplied.
+     * Update the behavior of the SQLServerBulkCopy instance according to the
+     * options supplied, if supplied SQLServerBulkCopyOption is not null.
      * 
-     * @param copyOptions Settings to change how the WriteToServer methods behave.
-     * @throws SQLServerException If the SQLServerBulkCopyOption class was constructed using an existing Connection and
-     *              the UseInternalTransaction option is specified.
+     * @param copyOptions
+     *            Settings to change how the WriteToServer methods behave.
+     * @throws SQLServerException
+     *             If the SQLServerBulkCopyOption class was constructed using an
+     *             existing Connection and the UseInternalTransaction option is
+     *             specified.
      */
     public void setBulkCopyOptions(SQLServerBulkCopyOptions copyOptions) throws SQLServerException
     {
         loggerExternal.entering(loggerClassName,  "updateBulkCopyOptions", copyOptions);
         
-        // Verify that copyOptions does not have useInternalTransaction set. UseInternalTrasnaction can only be used with a connection string.
-        // Setting it with an external connection object should throw exception.
-        if (!ownsConnection && copyOptions.isUseInternalTransaction())
-        { 
-            SQLServerException.makeFromDriverError(null, null, SQLServerException.getErrString("R_invalidTransactionOption"), null, false);         
-        }
-        
-        this.copyOptions = copyOptions;
+        if (null != copyOptions) {
+            // Verify that copyOptions does not have useInternalTransaction set.
+            // UseInternalTrasnaction can only be used with a connection string.
+            // Setting it with an external connection object should throw
+            // exception.
+            if (!ownsConnection && copyOptions.isUseInternalTransaction()) {
+                SQLServerException.makeFromDriverError(null, null, SQLServerException.getErrString("R_invalidTransactionOption"), null, false);
+            }
 
+            this.copyOptions = copyOptions;
+        }
         loggerExternal.exiting(loggerClassName,  "updateBulkCopyOptions");
     }
     
@@ -759,7 +763,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable
     /*
      * write ColumnData token in COLMETADATA header
      */
-    private final void writeColumnMetaDataColumnData(TDSWriter tdsWriter, int idx) throws SQLServerException
+    private void writeColumnMetaDataColumnData(TDSWriter tdsWriter, int idx) throws SQLServerException
     { 
     	int srcColumnIndex = 0, destPrecision = 0; 
     	int bulkJdbcType = 0, bulkPrecision = 0 , bulkScale = 0;
@@ -914,7 +918,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable
 				isStreaming = (DataTypes.SHORT_VARTYPE_MAX_BYTES < baseDestPrecision);
 			
 			// Send CryptoMetaData
-			tdsWriter.writeShort((short) destCryptoMeta.getOrdinal());	// Ordinal
+			tdsWriter.writeShort(destCryptoMeta.getOrdinal());	// Ordinal
 			tdsWriter.writeBytes(userType);		// usertype
 			//	BaseTypeInfo
 			writeTypeInfo(tdsWriter,
@@ -926,9 +930,9 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable
 					isStreaming,	 
 					srcNullable, 
 					true);
-			tdsWriter.writeByte((byte) destCryptoMeta.cipherAlgorithmId);
-			tdsWriter.writeByte((byte) destCryptoMeta.encryptionType.getValue());
-			tdsWriter.writeByte((byte) destCryptoMeta.normalizationRuleVersion);
+			tdsWriter.writeByte(destCryptoMeta.cipherAlgorithmId);
+			tdsWriter.writeByte(destCryptoMeta.encryptionType.getValue());
+			tdsWriter.writeByte(destCryptoMeta.normalizationRuleVersion);
 		}
 		
 		/*
@@ -949,9 +953,9 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable
         tdsWriter.writeBytes(colName);
     }
     
-    private final void writeTypeInfo(TDSWriter tdsWriter, int srcJdbcType, int srcScale, int srcPrecision, 
-    		SSType destSSType, SQLCollation collation, boolean isStreaming, boolean srcNullable,
-    		boolean isBaseType) throws SQLServerException
+    private void writeTypeInfo(TDSWriter tdsWriter, int srcJdbcType, int srcScale, int srcPrecision,
+                               SSType destSSType, SQLCollation collation, boolean isStreaming, boolean srcNullable,
+                               boolean isBaseType) throws SQLServerException
     {
     	switch (srcJdbcType)			
         {
@@ -1250,9 +1254,9 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable
 	    		tdsWriter.writeShort((short) destCekTable.getSize());
 	    		for (int cekIndx = 0; cekIndx < destCekTable.getSize(); cekIndx++)
 	    		{
-		    		tdsWriter.writeInt((int) destCekTable.getCekTableEntry(cekIndx).getColumnEncryptionKeyValues().get(0).databaseId);
-		    		tdsWriter.writeInt((int) destCekTable.getCekTableEntry(cekIndx).getColumnEncryptionKeyValues().get(0).cekId);
-		    		tdsWriter.writeInt((int) destCekTable.getCekTableEntry(cekIndx).getColumnEncryptionKeyValues().get(0).cekVersion);
+		    		tdsWriter.writeInt(destCekTable.getCekTableEntry(cekIndx).getColumnEncryptionKeyValues().get(0).databaseId);
+		    		tdsWriter.writeInt(destCekTable.getCekTableEntry(cekIndx).getColumnEncryptionKeyValues().get(0).cekId);
+		    		tdsWriter.writeInt(destCekTable.getCekTableEntry(cekIndx).getColumnEncryptionKeyValues().get(0).cekVersion);
 		    		tdsWriter.writeBytes(destCekTable.getCekTableEntry(cekIndx).getColumnEncryptionKeyValues().get(0).cekMdVersion);
 		    		
 		    		// We don't need to send the keys. So count for EncryptionKeyValue is 0 in EK_INFO TDS rule.
@@ -1273,7 +1277,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable
    	 * ...
    	 * </COLMETADATA>
    	 */    	
-    private final void writeColumnMetaData(TDSWriter tdsWriter) throws SQLServerException
+    private void writeColumnMetaData(TDSWriter tdsWriter) throws SQLServerException
     {
     	
     	/*	TDS rules for Always Encrypted metadata
@@ -1631,7 +1635,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable
     }
 
 
-    private final String createInsertBulkCommand(TDSWriter tdsWriter) throws SQLServerException
+    private String createInsertBulkCommand(TDSWriter tdsWriter) throws SQLServerException
     {
     	StringBuilder bulkCmd = new StringBuilder();
     	List<String> bulkOptions = new Vector<String>();
@@ -1722,7 +1726,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable
     }
     
 
-    private final boolean doInsertBulk(TDSCommand command) throws SQLServerException
+    private boolean doInsertBulk(TDSCommand command) throws SQLServerException
     {
         if (copyOptions.isUseInternalTransaction())
         {
@@ -1786,7 +1790,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable
         return moreDataAvailable;
     }
     
-    private final void writePacketDataDone(TDSWriter tdsWriter) throws SQLServerException
+    private void writePacketDataDone(TDSWriter tdsWriter) throws SQLServerException
     {
         // This is an example from https://msdn.microsoft.com/en-us/library/dd340549.aspx
         tdsWriter.writeByte((byte) 0xFD);
@@ -2831,7 +2835,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable
 	    		else
 	    			tdsWriter.writeByte((byte) 0x0A);
 	    		
-	    		tdsWriter.writeDateTimeOffset( (DateTimeOffset) colValue, bulkScale, destSSType);
+	    		tdsWriter.writeDateTimeOffset(colValue, bulkScale, destSSType);
 			}
 			break;
 	
@@ -2968,7 +2972,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable
 	/*
 	 * Reads the given column from the result set current row and writes the data to tdsWriter.
 	 */
-	private final void writeColumn(
+	private void writeColumn(
 			TDSWriter tdsWriter, 
 			int srcColOrdinal, 
 			int destColOrdinal,
@@ -3167,11 +3171,11 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable
 			{
 			case java.sql.Types.TIMESTAMP:
 			case java.sql.Types.TIME:
-				return (Timestamp) null; 
+				return null;
 			case java.sql.Types.DATE:
-				return (java.sql.Date) null;
+				return null;
 			case microsoft.sql.Types.DATETIMEOFFSET:
-				return (DateTimeOffset) null;			
+				return null;
 			}			
 		}	
 		
@@ -3443,7 +3447,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable
 					{
 						int intValue = (int) value;
 						short shortValue = (short) intValue;
-						longValue = new Long((short) shortValue);
+						longValue = new Long(shortValue);
 					}
 					else  longValue = new Long((short) value);
 
@@ -3558,7 +3562,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable
 	        	byteValue = DDC.convertBigDecimalToBytes(bigDataValue, bigDataValue.scale()) ;
 	    		byte[] decimalbyteValue = new byte[16];
 	    		// removing the precision and scale information from the decimalToByte array
-	    		System.arraycopy((byte[])byteValue, 2, decimalbyteValue, 0, ((byte[])byteValue).length - 2);
+	    		System.arraycopy(byteValue, 2, decimalbyteValue, 0, byteValue.length - 2);
 	    		return decimalbyteValue;
 	        	
 	        case SMALLMONEY:
@@ -3577,7 +3581,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable
 	        	ByteBuffer bbuf = ByteBuffer.allocate(8).order(ByteOrder.LITTLE_ENDIAN);
 	        	bbuf.putInt((int) (moneyVal >> 32)).array();
 	        	bbuf.putInt((int) moneyVal).array();
-	        	return (byte[]) bbuf.array();
+	        	return bbuf.array();
 	        	
 	        default:
 	        	 MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_UnsupportedDataTypeAE"));
@@ -3631,7 +3635,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable
 	 * ...
 	 * </ROW>
 	 */
-	private final boolean writeBatchData(TDSWriter tdsWriter) throws SQLServerException
+	private boolean writeBatchData(TDSWriter tdsWriter) throws SQLServerException
 	{
 		int batchsize = copyOptions.getBatchSize();
 		int row = 0;

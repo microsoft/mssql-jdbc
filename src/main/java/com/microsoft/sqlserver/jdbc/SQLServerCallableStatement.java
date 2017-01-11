@@ -161,7 +161,7 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
     /**
      * Locate any output parameter values returned from the procedure call
      */
-    final private Parameter getOutParameter(int i) throws SQLServerException
+    private Parameter getOutParameter(int i) throws SQLServerException
     {
         // Process any remaining result sets and update counts.  This positions
         // us for retrieving the OUT parameters.  Note that after retrieving
@@ -491,7 +491,7 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
             resultsReader());
 
         if(null != value)
-            activeStream = (Closeable) value.getStream();        
+            activeStream = value.getStream();
         return value;
     }
 

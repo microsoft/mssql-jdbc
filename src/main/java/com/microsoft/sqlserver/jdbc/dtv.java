@@ -1926,7 +1926,7 @@ final class DTV
 							byteValue = ((String)value).getBytes();
 						}
 
-						op.execute(this, (byte[]) byteValue);
+						op.execute(this, byteValue);
 					}
 					else
 						op.execute(this, (String) value);
@@ -1937,7 +1937,7 @@ final class DTV
 				if(null!=cryptoMeta)
 				{
 					byteValue = ByteBuffer.allocate(Long.SIZE / Byte.SIZE).order(ByteOrder.LITTLE_ENDIAN).putLong(((Integer)value).longValue()).array();
-					op.execute(this, (byte[]) byteValue);
+					op.execute(this, byteValue);
 				}
 				else
 					op.execute(this, (Integer) value);
@@ -2001,7 +2001,7 @@ final class DTV
 					}
 
 					byteValue = ByteBuffer.allocate((Float.SIZE/ Byte.SIZE)).order(ByteOrder.LITTLE_ENDIAN).putFloat((Float)value).array();
-					op.execute(this, (byte[]) byteValue);
+					op.execute(this, byteValue);
 				}
 				else
 					op.execute(this, (Float) value);
@@ -2031,7 +2031,7 @@ final class DTV
 						ByteBuffer bbuf = ByteBuffer.allocate(8).order(ByteOrder.LITTLE_ENDIAN);
 						bbuf.putInt((int) (moneyVal >> 32)).array();
 						bbuf.putInt((int) moneyVal).array();
-						op.execute(this, (byte[]) bbuf.array());
+						op.execute(this, bbuf.array());
 					}
 					else
 					{
@@ -2093,7 +2093,7 @@ final class DTV
 				if(null!=cryptoMeta)
 				{
 					byteValue = ByteBuffer.allocate(Long.SIZE / Byte.SIZE).order(ByteOrder.LITTLE_ENDIAN).putLong((byte)value & 0xFF).array();
-					op.execute(this, (byte[]) byteValue);
+					op.execute(this, byteValue);
 				}
 				else
 					op.execute(this, (Byte) value);
@@ -2103,7 +2103,7 @@ final class DTV
 				if(null!=cryptoMeta)
 				{
 					byteValue = ByteBuffer.allocate((Long.SIZE/ Byte.SIZE)).order(ByteOrder.LITTLE_ENDIAN).putLong((Long)value).array();
-					op.execute(this, (byte[]) byteValue);
+					op.execute(this, byteValue);
 				}
 				else
 					op.execute(this, (Long) value);
@@ -2122,7 +2122,7 @@ final class DTV
 						throw new SQLServerException(form.format(new Object[] {jdbcType}), null, 0, null);            			
 					}
 					byteValue = ByteBuffer.allocate((Double.SIZE/ Byte.SIZE)).order(ByteOrder.LITTLE_ENDIAN).putDouble((Double)value).array();
-					op.execute(this, (byte[]) byteValue);
+					op.execute(this, byteValue);
 				}
 				else
 					op.execute(this, (Double) value);
@@ -2132,7 +2132,7 @@ final class DTV
 				if(null!=cryptoMeta)
 				{
 					byteValue = ByteBuffer.allocate(Long.SIZE / Byte.SIZE).order(ByteOrder.LITTLE_ENDIAN).putLong((short)value).array();
-					op.execute(this, (byte[]) byteValue);
+					op.execute(this, byteValue);
 				}
 				else
 					op.execute(this, (Short) value);
@@ -2142,7 +2142,7 @@ final class DTV
 				if(null!=cryptoMeta)
 				{
 					byteValue = ByteBuffer.allocate(Long.SIZE / Byte.SIZE).order(ByteOrder.LITTLE_ENDIAN).putLong((Boolean)value ? 1: 0).array();
-					op.execute(this, (byte[]) byteValue);
+					op.execute(this, byteValue);
 				}
 				else
 					op.execute(this, (Boolean) value);
@@ -3257,24 +3257,48 @@ final class TypeInfo
 
 		SQL_VARIANT(TDSType.SQL_VARIANT, new Strategy()
 		{
-			/**
-			 * Sets the fields of typeInfo to the correct values
-			 * @param typeInfo the TypeInfo whos values are being corrected
-			 * @param tdsReader the TDSReader used to set the fields of typeInfo to the correct values
-			 * @throws SQLServerException when an error occurs
-			 */
-			public void apply(TypeInfo typeInfo, TDSReader tdsReader) throws SQLServerException
-			{
-				// Throw an exception and terminate the connection.  Since we don't know
-				// how to process or skip the VARIANT type in the TDS token stream, we are
-				// unable to continue processing the response.
-				SQLServerException.makeFromDriverError(
-						tdsReader.getConnection(),
-						null,
-						SQLServerException.getErrString("R_variantNotSupported"),
-						SQLServerException.EXCEPTION_XOPEN_CONNECTION_FAILURE,
-						false);
-			}
+            /**
+             * Sets the fields of typeInfo to the correct values
+             * 
+             * @param typeInfo
+             *            the TypeInfo whos values are being corrected
+             * @param tdsReader
+             *            the TDSReader used to set the fields of typeInfo to the correct values
+             * @throws SQLServerException
+             *             when an error occurs
+             */
+            public void apply(TypeInfo typeInfo, TDSReader tdsReader) throws SQLServerException {
+                try {
+                    SQLServerException.makeFromDriverError(tdsReader.getConnection(), null, SQLServerException.getErrString("R_variantNotSupported"),
+                            null, false);
+                }
+                finally {
+                    /*
+                     * As the driver doesn't know how to process or skip the VARIANT type in TDS token stream, we send an interrupt Signal to server,
+                     * and skips all the data received while waiting for the interrupt acknowledgment.
+                     */
+                    int remainingPackets = 0;
+
+                    // Skip the current buffered packet
+                    remainingPackets = tdsReader.availableCurrentPacket();
+                    tdsReader.skip(remainingPackets);
+
+                    // send interrupt to server
+                    tdsReader.getCommand().interrupt(SQLServerException.getErrString("R_variantNotSupported"));
+
+                    /*
+                     * Skip all data only if waiting for attention ack and until interrupt acknowledgment is received.
+                     * 
+                     * Interrupt acknowledgment is a DONE token with the DONE_ATTN(0x0020) bit set.
+                     */
+                    while (tdsReader.getCommand().attentionPending() && (TDS.TDS_DONE != tdsReader.peekTokenType())
+                            && (0 != (tdsReader.peekStatusFlag() & 0x0020))) {
+                        remainingPackets = tdsReader.availableCurrentPacket();
+                        tdsReader.skip(remainingPackets);
+                    }
+                    tdsReader.getCommand().close();
+                }
+            }
 		});
 
 		private final TDSType tdsType;
@@ -3700,7 +3724,7 @@ final class ServerDTVImpl extends DTVImpl
 	static final private java.util.logging.Logger aeLogger = 
 			java.util.logging.Logger.getLogger("com.microsoft.sqlserver.jdbc.DTV");
 
-	private final void getValuePrep(TypeInfo typeInfo, TDSReader tdsReader) throws SQLServerException
+	private void getValuePrep(TypeInfo typeInfo, TDSReader tdsReader) throws SQLServerException
 	{
 		// If we've already seen this value before, then we shouldn't be here.
 		assert null == valueMark;

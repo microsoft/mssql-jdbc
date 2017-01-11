@@ -131,7 +131,7 @@ public final class SQLServerDataTable {
 				if((null != values) && (currentColumn < values.length) && (null != values[currentColumn]))
 					val = (null == values[currentColumn]) ? null : values[currentColumn] ;
 				currentColumn++;
-				Map.Entry<Integer, SQLServerDataColumn> pair = (Map.Entry<Integer, SQLServerDataColumn>)columnsIterator.next();
+				Map.Entry<Integer, SQLServerDataColumn> pair = columnsIterator.next();
 				SQLServerDataColumn currentColumnMetadata = pair.getValue();
 				JDBCType jdbcType = JDBCType.of(pair.getValue().javaSqlType);
 
@@ -161,14 +161,17 @@ public final class SQLServerDataTable {
 						if(null != val)
 						{
 							bd = new BigDecimal(val.toString());
+							// BigDecimal#precision returns number of digits in the unscaled value. 
+							// Say, for value 0.01, it returns 1 but the precision should be 3 for SQLServer
+							int precision = Util.getValueLengthBaseOnJavaType(bd, JavaType.of(bd), null, null, jdbcType);
 							if (bd.scale() > currentColumnMetadata.scale)
 							{
 								currentColumnMetadata.scale = bd.scale();
 								isColumnMetadataUpdated = true;
 							}
-							if (bd.precision() > currentColumnMetadata.precision)
+							if (precision > currentColumnMetadata.precision)
 							{
-								currentColumnMetadata.precision = bd.precision();
+								currentColumnMetadata.precision = precision;
 								isColumnMetadataUpdated = true;
 							}
 							if(isColumnMetadataUpdated)
@@ -200,13 +203,13 @@ public final class SQLServerDataTable {
 							rowValues[pair.getKey()] = null;
 						//java.sql.Date, java.sql.Time and java.sql.Timestamp are subclass of java.util.Date
 						else if (val instanceof java.util.Date)
-							rowValues[pair.getKey()] = ((java.util.Date) val).toString();
+							rowValues[pair.getKey()] = val.toString();
 						else if(val instanceof microsoft.sql.DateTimeOffset)
-							rowValues[pair.getKey()] = ((microsoft.sql.DateTimeOffset) val).toString();
+							rowValues[pair.getKey()] = val.toString();
 						else if(val instanceof OffsetDateTime)
-							rowValues[pair.getKey()] = ((OffsetDateTime) val).toString();
+							rowValues[pair.getKey()] = val.toString();
 						else if(val instanceof OffsetTime)
-							rowValues[pair.getKey()] = ((OffsetTime) val).toString();
+							rowValues[pair.getKey()] = val.toString();
 						else
 							rowValues[pair.getKey()] = (null == val) ? null : (String) val;
 						break;
@@ -227,7 +230,7 @@ public final class SQLServerDataTable {
 
 					case CHAR:
 						if(val instanceof UUID && (val != null))
-							val = ((UUID)val).toString();
+							val = val.toString();
 					case VARCHAR:
 					case NCHAR:
 					case NVARCHAR:
@@ -271,10 +274,10 @@ public final class SQLServerDataTable {
             return tvpName;
         }
 
-		/**
-		 * Retrieves the column meta data of this data table. 
-		 * @return the column meta data of this data table. 
-		 */
+        /**
+         * Retrieves the column meta data of this data table. 
+         * @param tvpName the name of TVP
+         */
         public void setTvpName(String tvpName)
         {
             this.tvpName = tvpName;

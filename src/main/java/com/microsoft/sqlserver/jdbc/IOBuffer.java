@@ -69,6 +69,7 @@ import java.util.TimeZone;
 import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -616,6 +617,10 @@ final class TDSChannel
 			// Set socket options
 			tcpSocket.setTcpNoDelay(true);
 			tcpSocket.setKeepAlive(true);
+			
+			//set SO_TIMEOUT
+			int socketTimeout = con.getSocketTimeoutMilliseconds();
+			tcpSocket.setSoTimeout(socketTimeout);
 
 			inputStream = tcpInputStream = tcpSocket.getInputStream();
 			outputStream = tcpOutputStream = tcpSocket.getOutputStream();
@@ -741,7 +746,7 @@ final class TDSChannel
 		 * Note that simply using TDSReader.ensurePayload isn't sufficient as it does not
 		 * automatically start the new response message.
 		 */
-		private final void ensureSSLPayload() throws IOException
+		private void ensureSSLPayload() throws IOException
 		{
 			if (0 == tdsReader.available())
 			{
@@ -1564,6 +1569,12 @@ final class TDSChannel
 		SSL_HANDHSAKE_COMPLETE
 	};
 
+	/**
+	 * Enables SSL Handshake. 
+	 * @param host   Server Host Name for SSL Handshake
+	 * @param port	 Server Port for SSL Handshake
+	 * @throws SQLServerException
+	 */
 	void enableSSL(String host, int port) throws SQLServerException
 	{
 		// If enabling SSL fails, which it can for a number of reasons, the following items
@@ -1573,6 +1584,10 @@ final class TDSChannel
 		Provider ksProvider = null;         // KeyStore provider
 		String tmfDefaultAlgorithm = null;  // Default algorithm (typically X.509) used by the TrustManagerFactory
 		SSLHandhsakeState handshakeState = SSLHandhsakeState.SSL_HANDHSAKE_NOT_STARTED;
+		
+		boolean isFips = false;
+		String trustStoreType = null;
+		String fipsProvider = null;
 
 		// If anything in here fails, terminate the connection and throw an exception
 		try
@@ -1583,7 +1598,14 @@ final class TDSChannel
 			String trustStoreFileName = con.activeConnectionProperties.getProperty(SQLServerDriverStringProperty.TRUST_STORE.toString());
 			String trustStorePassword = con.activeConnectionProperties.getProperty(SQLServerDriverStringProperty.TRUST_STORE_PASSWORD.toString());
 			String hostNameInCertificate =  con.activeConnectionProperties.getProperty(SQLServerDriverStringProperty.HOSTNAME_IN_CERTIFICATE.toString());
-
+			
+			trustStoreType = con.activeConnectionProperties.getProperty(SQLServerDriverStringProperty.TRUST_STORE_TYPE.toString());
+			fipsProvider = con.activeConnectionProperties.getProperty(SQLServerDriverStringProperty.FIPS_PROVIDER.toString());
+			
+			
+			isFips = isFipsEnabled(fipsProvider, trustStoreType);
+			
+						
 			assert
 			TDS.ENCRYPT_OFF == con.getRequestedEncryptionLevel() || // Login only SSL
 			TDS.ENCRYPT_ON  == con.getRequestedEncryptionLevel();   // Full SSL
@@ -1632,8 +1654,12 @@ final class TDSChannel
 					// stored in Java Key Store (JKS) format.
 					if (logger.isLoggable(Level.FINEST))
 						logger.finest(toString() + " Finding key store interface");
-
-					ks = KeyStore.getInstance("JKS");
+					
+					if (isFips) {
+						ks = KeyStore.getInstance(trustStoreType, fipsProvider);
+					} else {
+						ks = KeyStore.getInstance("JKS");
+					}
 					ksProvider = ks.getProvider();
 
 					// Next, load up the trust store file from the specified location.
@@ -1696,14 +1722,13 @@ final class TDSChannel
 				tmf.init(ks);
 				tm = tmf.getTrustManagers();
 
-				// if the host name in cert provided use it or use the host name
-				if(null != hostNameInCertificate)
-				{
-					tm = new TrustManager[] {new HostNameOverrideX509TrustManager(this, (X509TrustManager)tm[0], hostNameInCertificate)};
-				}    
-				else
-				{
-					tm = new TrustManager[] {new HostNameOverrideX509TrustManager(this, (X509TrustManager)tm[0], host)};
+				// if the host name in cert provided use it or use the host name Only if it is not FIPS
+				if (!isFips) {
+					if (null != hostNameInCertificate) {
+						tm = new TrustManager[] { new HostNameOverrideX509TrustManager(this, (X509TrustManager) tm[0], hostNameInCertificate) };
+					} else {
+						tm = new TrustManager[] { new HostNameOverrideX509TrustManager(this, (X509TrustManager) tm[0], host) };
+					}
 				}
 			} // end if (!con.trustServerCertificate())
 
@@ -1821,6 +1846,50 @@ final class TDSChannel
 				con.terminate(SQLServerException.DRIVER_ERROR_SSL_FAILED, form.format(msgArgs), e);
 			}
 		}
+	}
+	
+	/**
+	 * Checking if FIPS is enabled or not. 
+	 * @param fipsProvider FIPS Provider
+	 * @return {@code true} if Customer wants to use FIPS Provider. 
+	 * @since 6.1.2
+	 */
+	private boolean isFipsEnabled(String fipsProvider, String trustStoreType) {
+		boolean isFipsEnabled = false;
+		boolean isEncryptOn;
+		boolean isValidTrustStoreType;
+		boolean isTrustServerCertificate;
+
+		if (!StringUtils.isEmpty(fipsProvider)) {
+			isEncryptOn = TDS.ENCRYPT_ON == con.getRequestedEncryptionLevel();
+
+			//Here different FIPS provider supports different KeyStore type along with different JVM Implementation. 
+			isValidTrustStoreType = !StringUtils.isEmpty(trustStoreType);
+			isTrustServerCertificate = con.trustServerCertificate();
+
+			if (isEncryptOn && isValidTrustStoreType && !isTrustServerCertificate) {
+				isFipsEnabled = true;
+			} else {
+				//If FIPS is not enabled issue warning and fall-back to non-FIPS mode.
+				StringBuilder sb = new StringBuilder();
+				sb.append("Could not switch to FIPS mode due to above settings: ");
+				sb.append(SQLServerDriverStringProperty.FIPS_PROVIDER.toString());
+				sb.append(": ");
+				sb.append(fipsProvider);
+				sb.append(", ");
+
+				sb.append(SQLServerDriverStringProperty.TRUST_STORE_TYPE.toString());
+				sb.append(": ");
+				sb.append(trustStoreType);
+				sb.append(", ");
+
+				sb.append("TrustCertificate: ");
+				sb.append(isTrustServerCertificate);
+
+				logger.warning(sb.toString());
+			}
+		}
+		return isFipsEnabled;
 	}
 	
 	private final static String SEPARATOR = System.getProperty("file.separator");
@@ -3517,8 +3586,7 @@ final class TDSWriter
 						TDS.BASE_YEAR_1900);
 
 		// Next, figure out the number of milliseconds since midnight of the current day.
-		int millisSinceMidnight = (int)
-				1000 * calendar.get(Calendar.SECOND) + // Seconds into the current minute
+		int millisSinceMidnight = 1000 * calendar.get(Calendar.SECOND) + // Seconds into the current minute
 				60 * 1000 * calendar.get(Calendar.MINUTE) + // Minutes into the current hour
 				60 * 60 * 1000 * calendar.get(Calendar.HOUR_OF_DAY); // Hours into the current day
 
@@ -4229,7 +4297,7 @@ final class TDSWriter
 		return false;
 	}
 
-	private final void writePacket(int tdsMessageStatus) throws SQLServerException
+	private void writePacket(int tdsMessageStatus) throws SQLServerException
 	{
 		final boolean atEOM = (TDS.STATUS_BIT_EOM == (TDS.STATUS_BIT_EOM & tdsMessageStatus));
 		final boolean isCancelled = ( (TDS.PKT_CANCEL_REQ == tdsMessageType)
@@ -4272,7 +4340,7 @@ final class TDSWriter
 			command.onRequestComplete();
 	}
 
-	private final void writePacketHeader(int tdsMessageStatus)
+	private void writePacketHeader(int tdsMessageStatus)
 	{
 		int tdsMessageLength = stagingBuffer.position();
 		++packetNum;
@@ -4780,7 +4848,7 @@ final class TDSWriter
 				int currentColumn = 0;
 				while(columnsIterator.hasNext())
 				{
-					Map.Entry<Integer, SQLServerMetaData> columnPair = (Map.Entry<Integer, SQLServerMetaData>)columnsIterator.next();
+					Map.Entry<Integer, SQLServerMetaData> columnPair = columnsIterator.next();
 
 					// If useServerDefault is set, client MUST NOT emit TvpColumnData for the associated column
 					if (columnPair.getValue().useServerDefault) 
@@ -5033,7 +5101,7 @@ final class TDSWriter
 
 		while(columnsIterator.hasNext())
 		{
-			Map.Entry<Integer, SQLServerMetaData> pair = (Map.Entry<Integer, SQLServerMetaData>)columnsIterator.next();
+			Map.Entry<Integer, SQLServerMetaData> pair = columnsIterator.next();
 			JDBCType jdbcType = JDBCType.of(pair.getValue().javaSqlType);
 			boolean useServerDefault = pair.getValue().useServerDefault;
 			// ULONG ; UserType of column
@@ -5161,7 +5229,7 @@ final class TDSWriter
 		while(columnsIterator.hasNext())
 		{
 			byte flags = 0;
-			Map.Entry<Integer, SQLServerMetaData> pair = (Map.Entry<Integer, SQLServerMetaData>)columnsIterator.next();
+			Map.Entry<Integer, SQLServerMetaData> pair = columnsIterator.next();
 			SQLServerMetaData metaData = pair.getValue();
 
 			if( SQLServerSortOrder.Ascending == metaData.sortOrder )
@@ -5245,7 +5313,7 @@ final class TDSWriter
 			}
 			else if (isPLP)
 			{
-				writeLong((long) nValueLen); //actual length
+				writeLong(nValueLen); //actual length
 			}
 			else
 			{
@@ -5275,13 +5343,13 @@ final class TDSWriter
 
 	void writeCryptoMetaData() throws SQLServerException
 	{
-		writeByte((byte) cryptoMeta.cipherAlgorithmId);
-		writeByte((byte) cryptoMeta.encryptionType.getValue());
-		writeInt((int) cryptoMeta.cekTableEntry.getColumnEncryptionKeyValues().get(0).databaseId);
-		writeInt((int) cryptoMeta.cekTableEntry.getColumnEncryptionKeyValues().get(0).cekId);
-		writeInt((int) cryptoMeta.cekTableEntry.getColumnEncryptionKeyValues().get(0).cekVersion);
+		writeByte(cryptoMeta.cipherAlgorithmId);
+		writeByte(cryptoMeta.encryptionType.getValue());
+		writeInt(cryptoMeta.cekTableEntry.getColumnEncryptionKeyValues().get(0).databaseId);
+		writeInt(cryptoMeta.cekTableEntry.getColumnEncryptionKeyValues().get(0).cekId);
+		writeInt(cryptoMeta.cekTableEntry.getColumnEncryptionKeyValues().get(0).cekVersion);
 		writeBytes(cryptoMeta.cekTableEntry.getColumnEncryptionKeyValues().get(0).cekMdVersion);
-		writeByte((byte) cryptoMeta.normalizationRuleVersion);
+		writeByte(cryptoMeta.normalizationRuleVersion);
 	}
 
 	void writeRPCByteArray(
@@ -6589,8 +6657,8 @@ final class TDSReader
 	private boolean serverSupportsColumnEncryption = false;
 
 	private final byte valueBytes[] = new byte[256];
-	private static int lastReaderID = 0;
-	private synchronized static int nextReaderID() { return ++lastReaderID; }
+	private static final AtomicInteger lastReaderID = new AtomicInteger(0);
+	private static int nextReaderID() { return lastReaderID.incrementAndGet(); }
 
 
 	TDSReader(TDSChannel tdsChannel, SQLServerConnection con, TDSCommand command)
@@ -6641,7 +6709,7 @@ final class TDSReader
 	 * @return true if additional data is available to be read
 	 *         false if no more data is available
 	 */
-	private final boolean ensurePayload() throws SQLServerException
+	private boolean ensurePayload() throws SQLServerException
 	{
 		if (payloadOffset == currentPacket.payloadLength)
 			if (!nextPacket()) return false;
@@ -6655,7 +6723,7 @@ final class TDSReader
 	 * @return true if additional data is available to be read
 	 *         false if no more data is available
 	 */
-	private final boolean nextPacket() throws SQLServerException
+	private boolean nextPacket() throws SQLServerException
 	{
 		assert null != currentPacket;
 
@@ -6835,6 +6903,19 @@ final class TDSReader
 		return available;
 	}
 
+    /**
+     * 
+     * @return number of bytes available in the current packet
+     */
+    final int availableCurrentPacket() {
+        /*
+         * The number of bytes that can be read from the current chunk, without including the next chunk that is buffered. This is so the driver can
+         * confirm if the next chunk sent is new packet or just continuation
+         */
+        int available = currentPacket.payloadLength - payloadOffset;
+        return available;
+    }
+    
 	final int peekTokenType() throws SQLServerException
 	{
 		// Check whether we're at EOF
@@ -6844,6 +6925,20 @@ final class TDSReader
 		return currentPacket.payload[payloadOffset] & 0xFF;
 	}
 
+
+	final short peekStatusFlag() throws SQLServerException {
+		// skip the current packet(i.e, TDS packet type) and peek into the status flag (USHORT)
+		if (payloadOffset + 3 <= currentPacket.payloadLength) {
+			short value = Util.readShort(currentPacket.payload, payloadOffset + 1);
+			return value;
+		}
+
+		// as per TDS protocol, TDS_DONE packet should always be followed by status flag
+		// throw exception if status packet is not available 
+		throwInvalidTDS();
+		return 0;
+	}
+	
 	final int readUnsignedByte() throws SQLServerException
 	{
 		// Ensure that we have a packet to read from.
@@ -7386,6 +7481,11 @@ final class TDSReader
 
 	final void TryProcessFeatureExtAck(boolean featureExtAckReceived) throws SQLServerException
 	{
+		//in case of redirection, do not check if TDS_FEATURE_EXTENSION_ACK is received or not.
+		if (null != this.con.getRoutingInfo()) {
+			return;
+		}
+		
 		if( isColumnEncryptionSettingEnabled() && !featureExtAckReceived)
 			throw new SQLServerException(this , SQLServerException.getErrString("R_AE_NotSupportedByServer"), null, 0 , false);		
 	}
@@ -7516,7 +7616,7 @@ abstract class TDSCommand
 
 	// Flag set to indicate that an interrupt has happened.
 	private volatile boolean wasInterrupted = false;
-	private final boolean wasInterrupted() { return wasInterrupted; }
+	private boolean wasInterrupted() { return wasInterrupted; }
 
 	// The reason for the interrupt.
 	private volatile String interruptReason = null;

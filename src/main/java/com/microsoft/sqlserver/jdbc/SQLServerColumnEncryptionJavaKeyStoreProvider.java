@@ -197,7 +197,7 @@ public class SQLServerColumnEncryptionJavaKeyStoreProvider extends SQLServerColu
         try
         {
             X509Certificate publicCertificate = (X509Certificate) keyStore.getCertificate(alias);
-            Key keyPrivate = (Key) keyStore.getKey(alias,keyStorePwd);
+            Key keyPrivate = keyStore.getKey(alias,keyStorePwd);
             if (null == publicCertificate )
             {
                 // Certificate not found. Throw an exception.

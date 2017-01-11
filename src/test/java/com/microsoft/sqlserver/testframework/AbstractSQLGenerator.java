@@ -1,0 +1,106 @@
+// ---------------------------------------------------------------------------------------------------------------------------------
+// File: AbstractSQLGenerator.java
+//
+//
+// Microsoft JDBC Driver for SQL Server
+// Copyright(c) Microsoft Corporation
+// All rights reserved.
+// MIT License
+// Permission is hereby granted, free of charge, to any person obtaining a copy
+// of this software and associated documentation files(the "Software"),
+// to deal in the Software without restriction, including without limitation the
+// rights to use, copy, modify, merge, publish, distribute, sublicense,
+// and / or sell copies of the Software, and to permit persons to whom the
+// Software is furnished to do so, subject to the following conditions :
+// The above copyright notice and this permission notice shall be included in
+// all copies or substantial portions of the Software.
+// THE SOFTWARE IS PROVIDED *AS IS*, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+// IN THE SOFTWARE.
+// ---------------------------------------------------------------------------------------------------------------------------------
+
+package com.microsoft.sqlserver.testframework;
+
+/**
+ * Common methods needed for any implementation for {@link SQLGeneratorIF}
+ */
+public abstract class AbstractSQLGenerator {// implements ISQLGenerator {
+
+    protected static final String CREATE_TABLE = "CREATE TABLE";
+    protected static final String SPACE_CHAR = " ";
+    protected static final String OPEN_BRACKET = "(";
+    protected static final String CLOSE_BRACKET = ")";
+    protected static final String NOT = "NOT";
+    protected static final String NULL = "NULL";
+    protected static final String PRIMARY_KEY = "PRIMARY KEY";
+    protected static final String DEFAULT = "DEFAULT";
+    protected static final String COMMA = ",";
+
+    // FIXME: Find good word for '. Better replaced by wrapIdentifier.
+    protected static final String TICK = "'";
+
+    protected static final String defaultWrapIdentifier = "\'";
+
+    protected static String wrapIdentifier = defaultWrapIdentifier;
+
+    protected static String openEscapeIdentifier = "[";
+
+    protected static String closeEscapeIdentifier = "]";
+
+    /**
+     * @return the wrapIdentifier
+     */
+    public static String getWrapIdentifier() {
+        return wrapIdentifier;
+    }
+
+    /**
+     * @param wrapIdentifier
+     *            the wrapIdentifier to set
+     */
+    public static void setWrapIdentifier(String wrapIdentifier) {
+        AbstractSQLGenerator.wrapIdentifier = wrapIdentifier;
+    }
+
+    // TODO: should provide more detail to distinguish between wrap and escape
+    // identifier
+    /**
+     * It will wrap provided string with wrap identifier.
+     * 
+     * @param name
+     * @return
+     */
+    public String wrapName(String name) {
+        StringBuffer wrap = new StringBuffer();
+        wrap.append(getWrapIdentifier());
+        wrap.append(name);
+        wrap.append(getWrapIdentifier());
+        return wrap.toString();
+    }
+
+    /**
+     * Variable used to escape the Identifiers
+     * 
+     * @param openIdentifier
+     * @param closeIdentifier
+     */
+    public static void setEscapeIdentifier(String openIdentifier, String closeIdentifier) {
+        AbstractSQLGenerator.openEscapeIdentifier = openIdentifier;
+        AbstractSQLGenerator.closeEscapeIdentifier = closeIdentifier;
+    }
+
+    /**
+     * 
+     * @param value
+     *            to escape
+     * @return escaped literal
+     */
+    public static String escapeIdentifier(String value) {
+        return openEscapeIdentifier + value + closeEscapeIdentifier;
+    }
+
+}

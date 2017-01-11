@@ -30,6 +30,7 @@ import java.util.ListIterator;
 import java.util.Stack;
 import java.util.StringTokenizer;
 import java.util.Vector;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -470,8 +471,8 @@ public class SQLServerStatement implements ISQLServerStatement {
     }
 
    /** Generate the statement's logging ID */
-   private static int lastStatementID = 0;
-   private synchronized static int nextStatementID() { return ++lastStatementID; }
+   private static final AtomicInteger lastStatementID = new AtomicInteger(0);
+   private static int nextStatementID() { return lastStatementID.incrementAndGet(); }
 
    /**
    * The regular statement constructor
@@ -627,15 +628,10 @@ public class SQLServerStatement implements ISQLServerStatement {
 
   // add query timeout to statement
   private void setDefaultQueryTimeout() {
-    
-    String sPropValue = this.connection.activeConnectionProperties.getProperty(SQLServerDriverIntProperty.QUERY_TIMEOUT.toString());
-    
-    if (null != sPropValue && sPropValue.length() > 0) {
-      int queryTimeoutSeconds = Integer.parseInt(sPropValue);
-      if (queryTimeoutSeconds > 0) {
-        this.queryTimeout = queryTimeoutSeconds;        
-      }
-    }
+	  int queryTimeoutSeconds = this.connection.getQueryTimeoutSeconds();
+	  if (queryTimeoutSeconds > 0) {
+		  this.queryTimeout = queryTimeoutSeconds;        
+	  }
   }
   
 	final java.util.logging.Logger getStatementLogger()
@@ -974,7 +970,7 @@ public class SQLServerStatement implements ISQLServerStatement {
         }
     }
 
-    private final void doExecuteStatementBatch(StmtBatchExecCmd execCmd) throws SQLServerException
+    private void doExecuteStatementBatch(StmtBatchExecCmd execCmd) throws SQLServerException
     {
         resetForReexecute();
 
@@ -2117,7 +2113,7 @@ public class SQLServerStatement implements ISQLServerStatement {
     return 0;
   }
 
-  private final void doExecuteCursored(StmtExecCmd execCmd, String sql) throws SQLServerException
+  private void doExecuteCursored(StmtExecCmd execCmd, String sql) throws SQLServerException
   {
     if (stmtlogger.isLoggable(java.util.logging.Level.FINER))
     {

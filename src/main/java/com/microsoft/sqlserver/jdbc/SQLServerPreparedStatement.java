@@ -53,7 +53,6 @@ import java.util.logging.Level;
 * <p>
 * The API javadoc for JDBC API methods that this class implements are not repeated here. Please
 * see Sun's JDBC API interfaces javadoc for those details.
-* <p>
 */
 
 public class SQLServerPreparedStatement extends SQLServerStatement implements ISQLServerPreparedStatement
@@ -254,7 +253,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     * in any of the type definitions of any of the parameters due to changes in
     * scale, length, etc., and, if so, sets the new type definition string.
     */
-   private final boolean buildPreparedStrings(Parameter[] params, boolean renewDefinition) throws SQLServerException
+   private boolean buildPreparedStrings(Parameter[] params, boolean renewDefinition) throws SQLServerException
    {
      String newTypeDefinitions = buildParamTypeDefinitions(params, renewDefinition);
      if (null != preparedTypeDefinitions && newTypeDefinitions.equals(preparedTypeDefinitions))
@@ -549,7 +548,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 		}
   }
 
-  private final void buildServerCursorPrepExecParams(TDSWriter tdsWriter) throws SQLServerException
+  private void buildServerCursorPrepExecParams(TDSWriter tdsWriter) throws SQLServerException
   {
     if(getStatementLogger().isLoggable(java.util.logging.Level.FINE))
 		getStatementLogger().fine(toString() + ": calling sp_cursorprepexec: PreparedHandle:" + prepStmtHandle + ", SQL:" + preparedSQL);
@@ -591,7 +590,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     tdsWriter.writeRPCInt(null, new Integer(0), true);
   }
 
-  private final void buildPrepExecParams(TDSWriter tdsWriter) throws SQLServerException
+  private void buildPrepExecParams(TDSWriter tdsWriter) throws SQLServerException
   {
     if(getStatementLogger().isLoggable(java.util.logging.Level.FINE))
 			getStatementLogger().fine(toString() + ": calling sp_prepexec: PreparedHandle:" + prepStmtHandle + ", SQL:" + preparedSQL);
@@ -619,7 +618,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     tdsWriter.writeRPCStringUnicode(preparedSQL);
   }
 
-  private final void buildServerCursorExecParams(TDSWriter tdsWriter) throws SQLServerException
+  private void buildServerCursorExecParams(TDSWriter tdsWriter) throws SQLServerException
   {
     if(getStatementLogger().isLoggable(java.util.logging.Level.FINE))
 			getStatementLogger().fine(toString() + ": calling sp_cursorexecute: PreparedHandle:" + prepStmtHandle + ", SQL:" + preparedSQL);
@@ -651,7 +650,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     tdsWriter.writeRPCInt(null, new Integer(0), true);
   }
 
-  private final void buildExecParams(TDSWriter tdsWriter) throws SQLServerException
+  private void buildExecParams(TDSWriter tdsWriter) throws SQLServerException
   {
     if(getStatementLogger().isLoggable(java.util.logging.Level.FINE))
 			getStatementLogger().fine(toString() + ": calling sp_execute: PreparedHandle:" + prepStmtHandle + ", SQL:" + preparedSQL);
@@ -843,7 +842,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 	  connection.resetCurrentCommand();
   }
 
-private final boolean doPrepExec(TDSWriter tdsWriter, Parameter[] params, boolean hasNewTypeDefinitions) throws SQLServerException
+private boolean doPrepExec(TDSWriter tdsWriter, Parameter[] params, boolean hasNewTypeDefinitions) throws SQLServerException
   {
     boolean needsPrepare = hasNewTypeDefinitions || 0 == prepStmtHandle;
     
@@ -1037,7 +1036,7 @@ private final boolean doPrepExec(TDSWriter tdsWriter, Parameter[] params, boolea
         loggerExternal.exiting(getClassNameLogging(),  "setAsciiStream");
     }
 
-  private final Parameter getParam(int index) throws SQLServerException
+  private Parameter getParam(int index) throws SQLServerException
 	{
 	index --;
 	if (index < 0 || index >= inOutParam.length)
@@ -2112,6 +2111,7 @@ private final boolean doPrepExec(TDSWriter tdsWriter, Parameter[] params, boolea
 			if(this instanceof SQLServerCallableStatement)
 			{
 				SQLServerParameterMetaData pmd = (SQLServerParameterMetaData) this.getParameterMetaData();
+				pmd.isTVP = true;
 				try {
 					String tvpNameWithoutSchema = pmd.getParameterTypeName(n);
 					String tvpSchema = pmd.getTVPSchemaFromStoredProcedure(n);

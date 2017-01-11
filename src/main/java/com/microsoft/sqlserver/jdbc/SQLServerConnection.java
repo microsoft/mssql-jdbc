@@ -57,6 +57,7 @@ import java.util.Properties;
 import java.util.UUID;
 import java.util.concurrent.Executor;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
 
 import javax.sql.XAConnection;
@@ -208,6 +209,10 @@ public class SQLServerConnection implements ISQLServerConnection
 
 	//Contains the routing info received from routing ENVCHANGE
 	private ServerPortPlaceHolder routingInfo = null;
+	
+	ServerPortPlaceHolder getRoutingInfo(){
+		return routingInfo;
+	}
 
 	// Permission targets
 	// currently only callAbort is implemented
@@ -247,6 +252,10 @@ public class SQLServerConnection implements ISQLServerConnection
 	final String getSelectMethod() { return selectMethod; }
 	private String responseBuffering; 
 	final String getResponseBuffering() { return responseBuffering; } 
+	private int queryTimeoutSeconds ;
+	final int getQueryTimeoutSeconds() { return queryTimeoutSeconds; }
+	private int socketTimeoutMilliseconds ;
+	final int getSocketTimeoutMilliseconds() { return socketTimeoutMilliseconds; }
 
 	private boolean sendTimeAsDatetime = SQLServerDriverBooleanProperty.SEND_TIME_AS_DATETIME.getDefaultValue();
 
@@ -594,7 +603,7 @@ public class SQLServerConnection implements ISQLServerConnection
 	private SQLCollation databaseCollation;	// Default database collation read from ENVCHANGE_SQLCOLLATION token.
 	final SQLCollation getDatabaseCollation() { return databaseCollation; }
 
-	static private int baseConnectionID=0;       //connection id dispenser
+	static private final AtomicInteger baseConnectionID = new AtomicInteger(0);       //connection id dispenser
 	// This is the current catalog
 	private String sCatalog = "master";                     //the database catalog
 	// This is the catalog immediately after login.
@@ -736,9 +745,8 @@ public class SQLServerConnection implements ISQLServerConnection
 	 * Generate the next unique connection id.
 	 * @return the next conn id
 	 */
-	/*L0*/ private synchronized static int nextConnectionID() {
-		baseConnectionID++; //4.04 Ensure thread safe id allocation
-		return baseConnectionID;
+	/*L0*/ private static int nextConnectionID() {
+		return baseConnectionID.incrementAndGet(); //4.04 Ensure thread safe id allocation
 	}
 	java.util.logging.Logger getConnectionLogger()
 	{
@@ -1429,15 +1437,15 @@ public class SQLServerConnection implements ISQLServerConnection
 			}
 
 			sPropKey = SQLServerDriverIntProperty.LOCK_TIMEOUT.toString();
-			int defaultTimeOut = SQLServerDriverIntProperty.LOCK_TIMEOUT.getDefaultValue();
-			nLockTimeout = defaultTimeOut; //Wait forever
+			int defaultLockTimeOut = SQLServerDriverIntProperty.LOCK_TIMEOUT.getDefaultValue();
+			nLockTimeout = defaultLockTimeOut; //Wait forever
 			if (activeConnectionProperties.getProperty(sPropKey) != null  && 
 					activeConnectionProperties.getProperty(sPropKey).length() > 0)
 			{
 				try
 				{
 					int n = (new Integer(activeConnectionProperties.getProperty(sPropKey))).intValue();
-					if (n>=defaultTimeOut)
+					if (n>=defaultLockTimeOut)
 						nLockTimeout = n;
 					else
 					{
@@ -1453,6 +1461,61 @@ public class SQLServerConnection implements ISQLServerConnection
 					SQLServerException.makeFromDriverError(this, this, form.format(msgArgs), null, false);
 				}
 			}
+			
+			sPropKey = SQLServerDriverIntProperty.QUERY_TIMEOUT.toString();
+			int defaultQueryTimeout = SQLServerDriverIntProperty.QUERY_TIMEOUT.getDefaultValue();
+			queryTimeoutSeconds  = defaultQueryTimeout; //Wait forever
+			if (activeConnectionProperties.getProperty(sPropKey) != null  && 
+					activeConnectionProperties.getProperty(sPropKey).length() > 0)
+			{
+				try
+				{
+					int n = (new Integer(activeConnectionProperties.getProperty(sPropKey))).intValue();
+					if (n>=defaultQueryTimeout){
+						queryTimeoutSeconds = n;
+					}
+					else
+					{
+						MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidQueryTimeout"));
+						Object[] msgArgs = {activeConnectionProperties.getProperty(sPropKey)};
+						SQLServerException.makeFromDriverError(this, this, form.format(msgArgs), null, false);
+					}
+				}
+				catch (NumberFormatException e)
+				{
+					MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidQueryTimeout"));
+					Object[] msgArgs = {activeConnectionProperties.getProperty(sPropKey)};
+					SQLServerException.makeFromDriverError(this, this, form.format(msgArgs), null, false);
+				}
+			}
+
+			sPropKey = SQLServerDriverIntProperty.SOCKET_TIMEOUT.toString();
+			int defaultSocketTimeout = SQLServerDriverIntProperty.SOCKET_TIMEOUT.getDefaultValue();
+			socketTimeoutMilliseconds  = defaultSocketTimeout; //Wait forever
+			if (activeConnectionProperties.getProperty(sPropKey) != null  && 
+					activeConnectionProperties.getProperty(sPropKey).length() > 0)
+			{
+				try
+				{
+					int n = (new Integer(activeConnectionProperties.getProperty(sPropKey))).intValue();
+					if (n>=defaultSocketTimeout){
+						socketTimeoutMilliseconds = n;
+					}
+					else
+					{
+						MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidSocketTimeout"));
+						Object[] msgArgs = {activeConnectionProperties.getProperty(sPropKey)};
+						SQLServerException.makeFromDriverError(this, this, form.format(msgArgs), null, false);
+					}
+				}
+				catch (NumberFormatException e)
+				{
+					MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidSocketTimeout"));
+					Object[] msgArgs = {activeConnectionProperties.getProperty(sPropKey)};
+					SQLServerException.makeFromDriverError(this, this, form.format(msgArgs), null, false);
+				}
+			}
+			
 			FailoverInfo fo =null;
 			String databaseNameProperty = SQLServerDriverStringProperty.DATABASE_NAME.toString();
 			String serverNameProperty = SQLServerDriverStringProperty.SERVER_NAME.toString();
@@ -2520,7 +2583,7 @@ public class SQLServerConnection implements ISQLServerConnection
 	/*
 	 * Executes a connection-level command
 	 */
-	private final void connectionCommand(String sql, String logContext) throws SQLServerException
+	private void connectionCommand(String sql, String logContext) throws SQLServerException
 	{
 		final class ConnectionCommand extends UninterruptableTDSCommand
 		{
@@ -3205,7 +3268,7 @@ public class SQLServerConnection implements ISQLServerConnection
 		}
 	}
 
-	/*L0*/ final private void logon(LogonCommand command) throws SQLServerException
+	/*L0*/ private void logon(LogonCommand command) throws SQLServerException
 	{
 		SSPIAuthentication authentication = null;
 		if(integratedSecurity && AuthenticationScheme.nativeAuthentication == intAuthScheme)
@@ -3795,10 +3858,10 @@ public class SQLServerConnection implements ISQLServerConnection
 
 		// Send total length (length of token plus 4 bytes for the token length field)
 		// If we were sending a nonce, this would include that length as well
-		tdsWriter.writeInt((int)accessToken.length + 4);
+		tdsWriter.writeInt(accessToken.length + 4);
 
 		// Send length of token
-		tdsWriter.writeInt((int)accessToken.length);
+		tdsWriter.writeInt(accessToken.length);
 
 		// Send federated authentication access token.
 		tdsWriter.writeBytes(accessToken, 0, accessToken.length);
@@ -3909,7 +3972,7 @@ public class SQLServerConnection implements ISQLServerConnection
 	/*
 	 * Executes a DTC command
 	 */
-	private final void executeDTCCommand(int requestType, byte[] payload, String logContext) throws SQLServerException
+	private void executeDTCCommand(int requestType, byte[] payload, String logContext) throws SQLServerException
 	{
 		final class DTCCommand extends UninterruptableTDSCommand
 		{

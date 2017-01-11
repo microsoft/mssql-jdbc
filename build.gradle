@@ -1,7 +1,7 @@
 apply plugin: 'java'
 
 archivesBaseName = 'mssql-jdbc'
-version = '6.1.1'
+version = '6.1.2'
 
 allprojects {
     tasks.withType(JavaCompile) {
@@ -59,8 +59,17 @@ repositories {
 }
 
 dependencies {
-	compile 'com.microsoft.azure:azure-keyvault:0.9.7',
-	'junit:junit:4.12'
+	compile 'com.microsoft.azure:azure-keyvault:0.9.7'
+	
+	testCompile 'junit:junit:4.12',
+	'org.junit.platform:junit-platform-console:1.0.0-M3',
+	'org.junit.platform:junit-platform-commons:1.0.0-M3',
+	'org.junit.platform:junit-platform-engine:1.0.0-M3',
+	'org.junit.platform:junit-platform-launcher:1.0.0-M3',
+	'org.junit.platform:junit-platform-runner:1.0.0-M3',
+	'org.junit.platform:junit-platform-surefire-provider:1.0.0-M3',
+	'org.junit.jupiter:junit-jupiter-api:5.0.0-M3',
+	'org.junit.jupiter:junit-jupiter-engine:5.0.0-M3'
 }
 
 

@@ -28,6 +28,7 @@ import java.sql.SQLException;
 import java.text.MessageFormat;
 import java.util.EnumMap;
 import java.util.Properties;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
 
 /**
@@ -48,7 +49,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
     static final private java.util.logging.Logger loggerExternal =
         java.util.logging.Logger.getLogger("com.microsoft.sqlserver.jdbc.internals.DatabaseMetaData");
     
-    static private int baseID = 0;	// Unique id generator for each  instance (used for logging).
+    static private final AtomicInteger baseID = new AtomicInteger(0);	// Unique id generator for each  instance (used for logging).
     
     final private String traceID;
     
@@ -105,10 +106,9 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
     
 
     // Returns unique id for each instance.
-    private synchronized static int nextInstanceID()
+    private static int nextInstanceID()
     {
-        baseID++;
-        return baseID;
+        return baseID.incrementAndGet();
     }
 	
 	/**
@@ -261,7 +261,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
     * @param query to execute
     * @return Resultset from the execution
     */
-    private final SQLServerResultSet getResultSetFromInternalQueries(String catalog, String query) throws SQLServerException
+    private SQLServerResultSet getResultSetFromInternalQueries(String catalog, String query) throws SQLServerException
     {
         checkClosed();
         String orgCat = null;
@@ -313,7 +313,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
     * @param arguments for the stored procedure
     * @return Resultset from the execution
     */
-    private final SQLServerResultSet getResultSetFromStoredProc(String catalog, CallableHandles procedure, String [] arguments) throws SQLServerException
+    private SQLServerResultSet getResultSetFromStoredProc(String catalog, CallableHandles procedure, String [] arguments) throws SQLServerException
     {
         checkClosed();
         assert null != arguments;
@@ -341,8 +341,8 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
         return rs;
     }
 
-    private final SQLServerResultSet getResultSetWithProvidedColumnNames(String catalog,
-        CallableHandles procedure, String[] arguments,   String[] columnNames) throws SQLServerException
+    private SQLServerResultSet getResultSetWithProvidedColumnNames(String catalog,
+                                                                   CallableHandles procedure, String[] arguments, String[] columnNames) throws SQLServerException
     {
         // Execute the query
         SQLServerResultSet rs = getResultSetFromStoredProc(catalog, procedure, arguments);
@@ -2482,7 +2482,7 @@ abstract class IntColumnFilter extends ColumnFilter
 // JDBC spec expects. 
 class IntColumnIdentityFilter extends ColumnFilter
 {
-    private static final String zeroOneToYesNo(int i){return 0==i?"NO":"YES";}
+    private static String zeroOneToYesNo(int i){return 0==i?"NO":"YES";}
 
     final Object apply(Object value, JDBCType asJDBCType) throws SQLServerException
     {

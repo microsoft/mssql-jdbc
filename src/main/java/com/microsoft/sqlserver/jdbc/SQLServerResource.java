@@ -28,7 +28,7 @@ public final class SQLServerResource extends ListResourceBundle
 {
 	static String getResource(String key)
 	{
-		return ((ListResourceBundle) SQLServerResource.getBundle("com.microsoft.sqlserver.jdbc.SQLServerResource")).getString(key);
+		return SQLServerResource.getBundle("com.microsoft.sqlserver.jdbc.SQLServerResource").getString(key);
 	}
 
 	protected Object[][]  getContents()
@@ -194,12 +194,14 @@ public final class SQLServerResource extends ListResourceBundle
 				{"R_packetSizePropertyDescription", "The network packet size used to communicate with SQL Server."},
 				{"R_encryptPropertyDescription", "Determines if Secure Sockets Layer (SSL) encryption should be used between the client and the server."},
 				{"R_trustServerCertificatePropertyDescription", "Determines if the driver should validate the SQL Server Secure Sockets Layer (SSL) certificate."},
+				{"R_trustStoreTypePropertyDescription", "Type of trust store type like JKS / PKCS12 or any FIPS Provider KeyStore implementation Type."},
 				{"R_trustStorePropertyDescription", "The path to the certificate trust store file."},
 				{"R_trustStorePasswordPropertyDescription", "The password used to check the integrity of the trust store data."},
 				{"R_hostNameInCertificatePropertyDescription", "The host name to be used when validating the SQL Server Secure Sockets Layer (SSL) certificate."},
 				{"R_sendTimeAsDatetimePropertyDescription", "Determines whether to use the SQL Server datetime data type to send java.sql.Time values to the database."},
 				{"R_TransparentNetworkIPResolutionPropertyDescription", "Determines whether to use the Transparent Network IP Resolution feature."},
 				{"R_queryTimeoutPropertyDescription", "The number of seconds to wait before the database reports a query time-out."},
+				{"R_socketTimeoutPropertyDescription", "The number of milliseconds to wait before the java.net.SocketTimeoutException is raised."},
 				{"R_noParserSupport", "An error occurred while instantiating the required parser. Error: \"{0}\""},
 				{"R_writeOnlyXML", "Cannot read from this SQLXML instance. This instance is for writing data only."},
 				{"R_dataHasBeenReadXML", "Cannot read from this SQLXML instance. The data has already been read."},
@@ -371,6 +373,7 @@ public final class SQLServerResource extends ListResourceBundle
 				{"R_keyStoreAuthenticationPropertyDescription", "The name that identifies a key store."},
 				{"R_keyStoreSecretPropertyDescription", "The authentication secret or information needed to locate the secret."},
 				{"R_keyStoreLocationPropertyDescription", "The key store location."},
+				{"R_fipsProviderPropertyDescription", "FIPS Provider."},
 				{"R_keyStoreAuthenticationNotSet", "\"keyStoreAuthentication\" connection string keyword must be specified,  if \"{0}\" is specified."},
 				{"R_keyStoreSecretOrLocationNotSet", "Both \"keyStoreSecret\" and \"keyStoreLocation\" must be set, if \"keyStoreAuthentication=JavaKeyStorePassword\" has been specified in the connection string."},
 				{"R_certificateStoreInvalidKeyword", "Cannot set \"keyStoreSecret\", if \"keyStoreAuthentication=CertificateStore\" has been specified in the connection string."},
@@ -381,6 +384,8 @@ public final class SQLServerResource extends ListResourceBundle
 				{"R_sendTimeAsDateTimeForAE", "Use sendTimeAsDateTime=false with Always Encrypted."}, 
 				{"R_invalidServerCursorForTVP" , "Use different Connection for source ResultSet and prepared query, if selectMethod is set to cursor for Table-Valued Parameter."},
 				{"R_TVPnotWorkWithSetObjectResultSet" , "setObject() with ResultSet is not supported for Table-Valued Parameter. Please use setStructured()"},
+				{"R_invalidQueryTimeout", "The queryTimeout {0} is not valid."},
+				{"R_invalidSocketTimeout", "The socketTimeout {0} is not valid."},
 		};
 }
 
