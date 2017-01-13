@@ -27,7 +27,6 @@ import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ThreadFactory;
 
 import javax.xml.bind.DatatypeConverter;
 
@@ -74,18 +73,13 @@ final class SQLServerSymmetricKeyCache
 	private final ConcurrentHashMap<String, SQLServerSymmetricKey> cache;
 	private static final SQLServerSymmetricKeyCache instance = new SQLServerSymmetricKeyCache();
 	private static ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(
-			1, 
-			new ThreadFactory() 
-			{
-				@Override
-				public Thread newThread(Runnable r) 
-				{
-					Thread t = Executors.defaultThreadFactory().newThread(r);
-					t.setDaemon(true);
-					return t;
-				}
-			}
-		);
+			1,
+			r -> {
+                Thread t = Executors.defaultThreadFactory().newThread(r);
+                t.setDaemon(true);
+                return t;
+            }
+	);
 
 	static final private java.util.logging.Logger aeLogger = 
 			java.util.logging.Logger.getLogger("com.microsoft.sqlserver.jdbc.SQLServerSymmetricKeyCache");

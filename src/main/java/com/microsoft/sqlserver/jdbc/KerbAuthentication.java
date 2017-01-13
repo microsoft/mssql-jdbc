@@ -211,16 +211,12 @@ final class KerbAuthentication extends SSPIAuthentication
     private static GSSCredential getClientCredential(final Subject subject, final GSSManager MANAGER, final Oid kerboid)
             throws PrivilegedActionException 
     {
-         final PrivilegedExceptionAction<GSSCredential> action = 
-            new PrivilegedExceptionAction<GSSCredential>() {
-                public GSSCredential run() throws GSSException {
-                    return MANAGER.createCredential(
-                        null // use the default principal
-                        , GSSCredential.DEFAULT_LIFETIME
-                        ,kerboid 
-                        , GSSCredential.INITIATE_ONLY);
-                } 
-            };
+         final PrivilegedExceptionAction<GSSCredential> action =
+                 () -> MANAGER.createCredential(
+                     null // use the default principal
+                     , GSSCredential.DEFAULT_LIFETIME
+                     ,kerboid
+                     , GSSCredential.INITIATE_ONLY);
         // TO support java 5, 6 we have to do this
         // The signature for Java 5 returns an object 6 returns GSSCredential, immediate casting throws 
         // warning in Java 6.
