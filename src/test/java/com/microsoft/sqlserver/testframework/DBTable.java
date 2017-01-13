@@ -49,15 +49,15 @@ public class DBTable extends AbstractSQLGenerator {
     String escapedTableName;
     List<DBColumn> columns;
     int totalColumns;
-    int totalRows = 2; // default row count set to 2
+    static int totalRows = 2; // default row count set to 2
     DBSchema schema;
-
+    ArrayList<ArrayList<Object>> rows;
+    ArrayList<Object> currentrow;
     /**
      * Initializes {@link DBTable} with tableName, schema, and {@link DBColumns}
      * 
      * @param autoGenerateSchema
-     *            <code>true</code> : generates schema with all available
-     *            dataTypes in SqlType class
+     *            <code>true</code> : generates schema with all available dataTypes in SqlType class
      */
     public DBTable(boolean autoGenerateSchema) {
 
@@ -68,14 +68,15 @@ public class DBTable extends AbstractSQLGenerator {
             addColumns();
         }
         else {
-            this.columns = new ArrayList<DBColumn>();
+            this.columns = new ArrayList<DBColumn>();         
         }
         this.totalColumns = columns.size();
+        this.currentrow = new ArrayList<Object>();
+        this.rows = new ArrayList<ArrayList<Object>>();
     }
 
     /**
-     * Similar to {@link DBTable#DBTable(boolean)}, but uses existing list of
-     * columns Used internally to clone schema
+     * Similar to {@link DBTable#DBTable(boolean)}, but uses existing list of columns Used internally to clone schema
      * 
      * @param DBTable
      */
@@ -123,7 +124,7 @@ public class DBTable extends AbstractSQLGenerator {
      * 
      * @return total rows in the table
      */
-    public int getTotalRows() {
+    public static int getTotalRows() {
         return totalRows;
     }
 
@@ -251,22 +252,27 @@ public class DBTable extends AbstractSQLGenerator {
             for (int colNum = 0; colNum < totalColumns; colNum++) {
 
                 // TODO: add betterway to enclose data
-                if (JDBCType.CHAR == getColumn(colNum).getSqlType().getJdbctype()
-                        || JDBCType.VARCHAR == getColumn(colNum).getSqlType().getJdbctype()
+                if (JDBCType.CHAR == getColumn(colNum).getSqlType().getJdbctype() || JDBCType.VARCHAR == getColumn(colNum).getSqlType().getJdbctype()
                         || JDBCType.NCHAR == getColumn(colNum).getSqlType().getJdbctype()
                         || JDBCType.NVARCHAR == getColumn(colNum).getSqlType().getJdbctype()
                         || JDBCType.TIMESTAMP == getColumn(colNum).getSqlType().getJdbctype()
                         || JDBCType.DATE == getColumn(colNum).getSqlType().getJdbctype()
-                        || JDBCType.TIME == getColumn(colNum).getSqlType().getJdbctype())
+                        || JDBCType.TIME == getColumn(colNum).getSqlType().getJdbctype()) {
                     sb.add("'" + String.valueOf(getColumn(colNum).getRowValue(i)) + "'");
-                else
+                    currentrow.add(getColumn(colNum).getRowValue(i));
+                }
+                else {
                     sb.add(String.valueOf(getColumn(colNum).getRowValue(i)));
+                    currentrow.add(getColumn(colNum).getRowValue(i));
+                }
 
                 if (colNum < totalColumns - 1) {
                     sb.add(COMMA);
                 }
             }
-            sb.add(CLOSE_BRACKET);
+            sb.add(CLOSE_BRACKET);           
+            rows.add(currentrow);
+            currentrow = new ArrayList<Object>();
         }
 
         return (sb.toString());
@@ -333,4 +339,9 @@ public class DBTable extends AbstractSQLGenerator {
     DBColumn getColumn(int index) {
         return columns.get(index);
     }
+    
+    public ArrayList<ArrayList<Object>> getAllRows() {
+        return rows;
+    }
+
 }
