@@ -639,9 +639,9 @@ enum JavaType
             return OffsetTime.class;
         case "OffsetDateTime":
             return OffsetDateTime.class;
+        default:
+            return null;
         }
-    	
-		return null;
     }
     
     static JavaType of(Object obj)
