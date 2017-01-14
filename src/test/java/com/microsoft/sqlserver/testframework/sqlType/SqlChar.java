@@ -26,15 +26,15 @@
 package com.microsoft.sqlserver.testframework.sqlType;
 
 import java.sql.JDBCType;
+import java.util.Random;
 import java.util.concurrent.ThreadLocalRandom;
 
 import org.apache.commons.lang.StringEscapeUtils;
 import org.apache.commons.lang3.RandomStringUtils;
 
 /*
- * Restricting the size of char/varchar to 4000 and nchar/nvarchar to 2000 to
- * accommodate SQL Sever limitation of having of having maximum allowable table
- * row size to 8060
+ * Restricting the size of char/varchar to 4000 and nchar/nvarchar to 2000 to accommodate SQL Sever limitation of having of having maximum allowable
+ * table row size to 8060
  */
 public class SqlChar extends SqlType {
 
@@ -43,13 +43,20 @@ public class SqlChar extends SqlType {
     }
 
     SqlChar(String name, JDBCType jdbctype, int precision) {
-        super(name, jdbctype, precision, 0, SqlTypeValue.CHAR.minValue, SqlTypeValue.CHAR.maxValue,
-                SqlTypeValue.CHAR.nullValue, VariableLengthType.Precision);
+        super(name, jdbctype, precision, 0, SqlTypeValue.CHAR.minValue, SqlTypeValue.CHAR.maxValue, SqlTypeValue.CHAR.nullValue,
+                VariableLengthType.Precision);
         generatePrecision();
     }
 
     public Object createdata() {
         int dataLength = ThreadLocalRandom.current().nextInt(precision);
-        return StringEscapeUtils.escapeSql(RandomStringUtils.randomAscii(dataLength));
+        String str = RandomStringUtils.randomAscii(dataLength);
+        String newStr = str.replace("'", "");
+//        System.out.println("str " +str);
+//        System.out.println("new " +newStr);
+        return newStr;
+//        return (RandomStringUtils.randomAscii(dataLength).replace("'", "\\'"));
+//         return StringEscapeUtils.escapeSql(RandomStringUtils.randomAscii(dataLength));
+
     }
 }

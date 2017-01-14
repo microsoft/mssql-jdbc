@@ -29,6 +29,7 @@ import static org.junit.jupiter.api.Assertions.fail;
 
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
@@ -107,14 +108,21 @@ public class DBConnection extends AbstractParentWrapper {
      * @throws SQLException
      */
     public DBStatement createStatement(int type, int concurrency) throws SQLException {
-        Statement product = ((Connection) product()).createStatement(type, concurrency);
-        DBStatement wrapper = new DBStatement(this, product, type, concurrency, _holdability);
+        DBStatement dbstatement = new DBStatement(this);
+        return dbstatement.createStatement(type, concurrency);
 
-        // State
-        wrapper._cursortype = type;
-        wrapper._concurrency = concurrency;
-
-        return wrapper;
+    }
+    
+    /**
+     * 
+     * @param query
+     * @return
+     * @throws SQLException
+     */
+    public DBPreparedStatement prepareStatement(String query) throws SQLException
+    {
+       DBPreparedStatement dbpstmt = new DBPreparedStatement(this, internal, "preparedStatement");
+       return dbpstmt.prepareStatement(query);    
     }
 
     /**
@@ -157,6 +165,12 @@ public class DBConnection extends AbstractParentWrapper {
         return product;
     }
 
+    /**
+     * 
+     * @param con
+     * @return
+     * @throws SQLException
+     */
     public static boolean isSqlAzure(Connection con) throws SQLException {
         boolean isSqlAzure = false;
 

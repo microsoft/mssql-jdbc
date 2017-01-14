@@ -68,6 +68,13 @@ public class DBStatement extends AbstractParentWrapper {
         setInternal(statement);
         return this;
     }
+    
+    DBStatement createStatement(int type, int concurrency) throws SQLServerException {
+        // TODO: add cursor and holdability
+        statement = ((SQLServerConnection) parent().product()).createStatement(type, concurrency);
+        setInternal(statement);
+        return this;
+    }
 
     /**
      * 

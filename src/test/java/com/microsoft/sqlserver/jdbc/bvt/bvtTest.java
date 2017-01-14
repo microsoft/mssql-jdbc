@@ -10,6 +10,7 @@ package com.microsoft.sqlserver.jdbc.bvt;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
+import java.math.BigDecimal;
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.ResultSet;
@@ -28,6 +29,7 @@ import com.microsoft.sqlserver.jdbc.SQLServerPreparedStatement;
 import com.microsoft.sqlserver.jdbc.bvt.bvt_ResultSet;
 import com.microsoft.sqlserver.testframework.AbstractTest;
 import com.microsoft.sqlserver.testframework.DBConnection;
+import com.microsoft.sqlserver.testframework.DBPreparedStatement;
 import com.microsoft.sqlserver.testframework.DBResultSet;
 import com.microsoft.sqlserver.testframework.DBStatement;
 import com.microsoft.sqlserver.testframework.DBTable;
@@ -35,62 +37,11 @@ import com.microsoft.sqlserver.testframework.DBTable;
 @RunWith(JUnitPlatform.class)
 @DisplayName("BVT Test")
 public class bvtTest extends bvtTestSetup {
-    private static boolean cursor = false;
-    private static boolean querytimeout = false;
-    // private static String connectionUrl = "";
-    private static Connection con;
     private static String driverNamePattern = "Microsoft JDBC Driver \\d.\\d for SQL Server";
-    // private static String table1 = "stmt_test_bvt";
-    // private static String table2 = "rs_test_bvt";
-    // private static Statement stmt = null;
     private static DBResultSet rs = null;
-    private static SQLServerPreparedStatement pstmt = null;
-    private static bvt_ResultSet bvt_rs = null;
+    private static DBPreparedStatement pstmt = null;
     private static DBConnection conn = null;
     private static DBStatement stmt = null;
-
-//    private static DBTable table1 = null;
-//    private static DBTable table2 = null;
-
-//     @BeforeClass
-//     public static void init() throws SQLException {
-//    // try {
-//    // Class.forName("com.microsoft.sqlserver.jdbc.SQLServerDriver");
-//    // }
-//    // catch (ClassNotFoundException e) {
-//    // e.printStackTrace();
-//    // }
-//    
-//     // Statement stmt = null;
-//     try {
-//     // stmt = conn().createStatement();
-//     conn = new DBConnection(connectionString);
-//     stmt = conn.createStatement();
-//    
-//     // create tables
-//     table1 = new DBTable(true);
-//     stmt.createTable(table1);
-//     table2 = new DBTable(true);
-//     stmt.createTable(table2);
-//    
-//     // // CREATE the table
-//     // stmt.executeUpdate(Tables.dropTable(table1));
-//     // stmt.executeUpdate(Tables.createTable(table1));
-//     // // CREATE the data to populate the table with
-//     // Values.createData();
-//     // Tables.populate(table1, stmt);
-//     //
-//     // stmt.executeUpdate(Tables.dropTable(table2));
-//     // stmt.executeUpdate(Tables.createTable(table2));
-//     // Tables.populate(table2, stmt);
-//     }
-//     finally {
-//     if (null != stmt) {
-//     stmt.close();
-//     }
-//     terminateVariation();
-//     }
-//     }
 
     ///////////////////////////////////////////////////////////////////
     //// Connect to specified server and close the connection
@@ -156,12 +107,6 @@ public class bvtTest extends bvtTestSetup {
             String query = "SELECT * FROM " + table1.getEscapedTableName() + ";";
             rs = stmt.executeQuery(query);
             rs.verify(table1);
-            // bvt_rs = new bvt_ResultSet(rs);
-
-            // close and verify
-
-            // bvt_rs.verify();
-
         }
         finally {
 
@@ -178,75 +123,52 @@ public class bvtTest extends bvtTestSetup {
     @Test
     public void testCreateStatementWithQueryTimeout() throws SQLException {
 
-        querytimeout = true;
-
         try {
-            conn = new DBConnection(connectionString);
+            conn = new DBConnection(connectionString + ";querytimeout=10");
             stmt = conn.createStatement();
             assertEquals(10, stmt.getQueryTimeout());
         }
         finally {
             terminateVariation();
-            querytimeout = false;
+
         }
     }
 
-    //
-    // ///////////////////////////////////////////////////////////////////
-    // // Create a statement
-    // // ResultSet.Type_forward_only,
-    // // ResultSet.CONCUR_READ_ONLY, executeQuery
-    // // verify cursor by using next and previous and verify data
-    // ///////////////////////////////////////////////////////////////////
-    // @Test
-    // public void testStmtForwardOnlyReadOnly() throws SQLException, ClassNotFoundException {
-    //
-    // try {
-    // stmt = conn.createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY);
-    //
-    // // SELECT * FROM <table1> ORDER BY <key>
-    // String query = "SELECT * FROM "+ table1.getEscapedTableName();
-    // rs = stmt.executeQuery(query);
-    //
-    //
-    // rs.next();
-    // rs.verifyCurrentRow(table1);
-    // rs.next();
-    // rs.verifyCurrentRow();
-    //
-    // try{
-    // rs.previous();
-    // assertTrue("Previous should have thrown an exception", false);
-    // }
-    // catch (SQLException ex) {
-    // // expected exception
-    // }
-    // rs.verify();
-    // }
-    // finally {
-    // terminateVariation();
-    // }
-    //
-    //// bvt_rs = new bvt_ResultSet(rs);
-    //// // Verify resultset behavior
-    //// bvt_rs.next();
-    //// bvt_rs.verifyCurrentRow();
-    //// bvt_rs.next();
-    //// bvt_rs.verifyCurrentRow();
-    //// try {
-    //// bvt_rs.previous();
-    //// assertTrue("Previous should have thrown an exception", false);
-    //// }
-    //// catch (SQLException ex) {
-    //// // expected exception
-    //// }
-    //// bvt_rs.verify();
-    //// }
-    //// finally {
-    //// terminateVariation();
-    //// }
-    // }
-    //
+    ///////////////////////////////////////////////////////////////////
+    // Create a statement
+    // ResultSet.Type_forward_only,
+    // ResultSet.CONCUR_READ_ONLY, executeQuery
+    // verify cursor by using next and previous and verify data
+    ///////////////////////////////////////////////////////////////////
+    @Test
+    public void testStmtForwardOnlyReadOnly() throws SQLException, ClassNotFoundException {
+
+        try {
+            conn = new DBConnection(connectionString);
+            stmt = conn.createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY);
+
+            String query = "SELECT * FROM " + table1.getEscapedTableName();
+            rs = stmt.executeQuery(query);
+
+            rs.next();
+            rs.verifyCurrentRow(table1);
+            rs.next();
+            rs.verifyCurrentRow(table1);
+
+            try {
+                rs.previous();
+                assertTrue("Previous should have thrown an exception", false);
+            }
+            catch (SQLException ex) {
+                // expected exception
+            }
+            rs.verify(table1);
+        }
+        finally {
+            terminateVariation();
+        }
+    }
+
     ///////////////////////////////////////////////////////////////////
     // Create a statement
     // ResultSet.SCROLL_INSENSITIVE,
@@ -256,39 +178,23 @@ public class bvtTest extends bvtTestSetup {
     @Test
     public void testStmtScrollInsensitiveReadOnly() throws SQLException, ClassNotFoundException {
         try {
+            conn = new DBConnection(connectionString);
             stmt = conn.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
 
-            // SELECT * FROM <table1> ORDER BY <c1>, <c2>
-//            String c1 = Tables.primaryKey();
-//            String c2 = "[c1_char(512)]";
-//
-//            Tables.select(table1);
-//            Tables.orderby(c1);
-//            Tables.orderby(c2);
-
             String query = "SELECT * FROM" + table1.getEscapedTableName();
-//            rs = stmt.executeQuery(Tables.query);
             rs = stmt.executeQuery(query);
             rs.next();
-            rs.verifyCurrentRow();
+            rs.verifyCurrentRow(table1);
             rs.afterLast();
-            rs.verifyCurrentRow();
+            rs.previous();
+            rs.verifyCurrentRow(table1);
             rs.verify(table1);
-//            bvt_rs = new bvt_ResultSet(rs);
-
-            // Verify resultset behavior
-//            bvt_rs.next();
-//            bvt_rs.verifyCurrentRow();
-//            bvt_rs.afterLast();
-//            bvt_rs.previous();
-//            bvt_rs.verifyCurrentRow();
-//            bvt_rs.verify();
         }
         finally {
             terminateVariation();
         }
     }
-    //
+
     // /////////////////////////////////////////////////////////////////
     // // Create a statement
     // // ResultSet.SCROLL_SENSITIVE,
@@ -299,452 +205,386 @@ public class bvtTest extends bvtTestSetup {
     public void testStmtScrollSensitiveReadOnly() throws SQLException {
 
         try {
+            conn = new DBConnection(connectionString);
             stmt = conn.createStatement(ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_READ_ONLY);
 
-            // SELECT * FROM <table1> ORDER BY <key>
-//            String pk = Tables.primaryKey();
-//            String query = Tables.select_Orderby(table1, pk);
-            String query = "SELECT * FROM "+ table1.getEscapedTableName();
+            String query = "SELECT * FROM " + table1.getEscapedTableName();
             rs = stmt.executeQuery(query);
             rs.next();
             rs.next();
-            rs.verifyCurrentRow();
+            rs.verifyCurrentRow(table1);
             rs.absolute(3);
-            rs.verifyCurrentRow();
+            rs.verifyCurrentRow(table1);
             rs.absolute(1);
             rs.verify(table1);
-//            bvt_rs = new bvt_ResultSet(rs);
 
-            // Verify resultset behavior
-//            bvt_rs.next();
-//            bvt_rs.next();
-//            bvt_rs.verifyCurrentRow();
-//            bvt_rs.absolute(3);
-//            bvt_rs.verifyCurrentRow();
-//            bvt_rs.absolute(1);
-//            bvt_rs.verify();
         }
         finally {
             terminateVariation();
         }
     }
-    //
-    // ///////////////////////////////////////////////////////////////////
-    // // Create a statement
-    // // ResultSet.Type_forward_only,
-    // // ResultSet.CONCUR_UPDATABLE, executeQuery
-    // // verify cursor by using next and previous and verify data
-    // ///////////////////////////////////////////////////////////////////
-    // @Test
-    // public void testStmtForwardOnlyUpdateable() throws SQLException {
-    //
-    // try {
-    // stmt = conn().createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE);
-    //
-    // // SELECT * FROM <table1> ORDER BY <key>
-    // String pk = Tables.primaryKey();
-    // String query = Tables.select_Orderby(table1, pk);
-    // rs = stmt.executeQuery(query);
-    // bvt_rs = new bvt_ResultSet(rs);
-    //
-    // // Verify resultset behavior
-    // bvt_rs.next();
-    // bvt_rs.verifyCurrentRow();
-    // bvt_rs.next();
-    // bvt_rs.verifyCurrentRow();
-    // try {
-    // bvt_rs.previous();
-    // assertTrue("Previous should have thrown an exception", false);
-    // }
-    // catch (SQLException ex) {
-    // // expected exception
-    // }
-    // bvt_rs.verify();
-    // }
-    // finally {
-    // terminateVariation();
-    // }
-    // }
-    //
-    // ///////////////////////////////////////////////////////////////////
-    // // Create a statement
-    // // ResultSet.SCROLL_SENSITIVE,
-    // // ResultSet.CONCUR_UPDATABLE, executeQuery
-    // // verify cursor by using next and previous and verify data
-    // ///////////////////////////////////////////////////////////////////
-    // @Test
-    // public void testStmtScrollSensitiveUpdatable() throws SQLException {
-    //
-    // try {
-    // stmt = conn().createStatement(ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_UPDATABLE);
-    //
-    // // SELECT * FROM <table1> ORDER BY <key>
-    // String pk = Tables.primaryKey();
-    // String query = Tables.select_Orderby(table1, pk);
-    // rs = stmt.executeQuery(query);
-    // bvt_rs = new bvt_ResultSet(rs);
-    //
-    // // Verify resultset behavior
-    // bvt_rs.next();
-    // bvt_rs.next();
-    // bvt_rs.verifyCurrentRow();
-    // bvt_rs.absolute(3);
-    // bvt_rs.verifyCurrentRow();
-    // bvt_rs.absolute(1);
-    // bvt_rs.verify();
-    // }
-    // finally {
-    // terminateVariation();
-    // }
-    // }
-    //
-    // ///////////////////////////////////////////////////////////////////
-    // // Create a statement
-    // // TYPE_SS_SCROLL_DYNAMIC,
-    // // CONCUR_SS_OPTIMISTIC_CC, executeQuery
-    // // verify cursor by using next and previous and verify data
-    // ///////////////////////////////////////////////////////////////////
-    // @Test
-    // public void testStmtSS_ScrollDynamicOptimistic_CC() throws SQLException {
-    //
-    // try {
-    // int TYPE_SS_SCROLL_DYNAMIC = 1006;
-    // int CONCUR_SS_OPTIMISTIC_CC = 1008;
-    // stmt = conn().createStatement(TYPE_SS_SCROLL_DYNAMIC, CONCUR_SS_OPTIMISTIC_CC);
-    //
-    // // SELECT * FROM <table> ORDER BY <c1>, <c2> ASC|DESC
-    // String c1 = Tables.primaryKey();
-    // String c2 = "[c1_char(512)]";
-    //
-    // Tables.select(table1);
-    // Tables.orderby(c1);
-    // Tables.orderby(c2);
-    //
-    // rs = stmt.executeQuery(Tables.query);
-    // bvt_rs = new bvt_ResultSet(rs);
-    //
-    // // Verify resultset behavior
-    // bvt_rs.next();
-    // bvt_rs.afterLast();
-    // bvt_rs.previous();
-    // bvt_rs.verify();
-    // }
-    // finally {
-    // terminateVariation();
-    // }
-    // }
-    //
-    // ///////////////////////////////////////////////////////////////////
-    // // Create a statement
-    // // TYPE_SS_SEVER_CURSOR_FORWARD_ONLY,
-    // // CONCUR_READ_ONLY, executeQuery
-    // // verify cursor by using next and verify data
-    // ///////////////////////////////////////////////////////////////////
-    // @Test
-    // public void testStmtSS_SEVER_CURSOR_FORWARD_ONLY() throws SQLException {
-    //
-    // try {
-    // int TYPE_SS_SEVER_CURSOR_FORWARD_ONLY = 2004;
-    // int CONCUR_READ_ONLY = 1008;
-    // stmt = conn().createStatement(TYPE_SS_SEVER_CURSOR_FORWARD_ONLY, CONCUR_READ_ONLY);
-    //
-    // String c1 = Tables.primaryKey();
-    // String c2 = "[c1_char(512)]";
-    //
-    // Tables.select(table1);
-    // Tables.orderby(c1);
-    // Tables.orderby(c2);
-    //
-    // rs = stmt.executeQuery(Tables.query);
-    // bvt_rs = new bvt_ResultSet(rs);
-    //
-    // // Verify resultset behavior
-    // bvt_rs.next();
-    // bvt_rs.verify();
-    // }
-    // finally {
-    // terminateVariation();
-    // }
-    //
-    // }
-    //
-    // ///////////////////////////////////////////////////////////////////
-    // // Create a preparedstatement, call close
-    // ///////////////////////////////////////////////////////////////////
-    // @Test
-    // public void testCreatepreparedStatement() throws SQLException {
-    //
-    // try {
-    // String pk = Tables.primaryKey();
-    // String query = "SELECT * from " + table1 + " where c30_smallmoney = ? order by " + pk;
-    //
-    // pstmt = (SQLServerPreparedStatement) conn().prepareStatement(query);
-    // pstmt.setSmallMoney(1, new BigDecimal("214748.3647"));
-    //
-    // rs = pstmt.executeQuery();
-    // bvt_rs = new bvt_ResultSet(rs);
-    // bvt_rs.verify();
-    // }
-    // finally {
-    // terminateVariation();
-    // }
-    // }
-    //
-    // ///////////////////////////////////////////////////////////////////
-    // // Verify resultset using ResultSetMetaData
-    // ///////////////////////////////////////////////////////////////////
-    // @Test
-    // public void testResultSet() throws SQLException {
-    //
-    // try {
-    // stmt = conn().createStatement();
-    // // SELECT * FROM <rs_test_bvt> ORDER BY <key>
-    // String pk = Tables.primaryKey();
-    // String query = Tables.select_Orderby(table2, pk);
-    // rs = stmt.executeQuery(query);
-    // bvt_rs = new bvt_ResultSet(rs);
-    //
-    // // verify resultSet
-    // bvt_rs.verify();
-    // }
-    // finally {
-    // terminateVariation();
-    // }
-    // }
-    //
-    // ///////////////////////////////////////////////////////////////////
-    // // Verify resultset and close resultSet
-    // ///////////////////////////////////////////////////////////////////
-    // @Test
-    // public void testResultSetAndClose() throws SQLException {
-    //
-    // try {
-    // stmt = conn().createStatement();
-    //
-    // // SELECT * FROM <table2> ORDER BY <key>
-    // String pk = Tables.primaryKey();
-    // String query = Tables.select_Orderby(table2, pk);
-    // rs = stmt.executeQuery(query);
-    // }
-    // finally {
-    // terminateVariation();
-    // }
-    // }
-    //
-    // ///////////////////////////////////////////////////////////////////
-    // // Verify two concurrent resultsets from same connection,
-    // // separate statements
-    // ///////////////////////////////////////////////////////////////////
-    // @Test
-    // public void testTwoResultsetsDifferentStmt() throws SQLException {
-    //
-    // Statement stmt1 = null;
-    // Statement stmt2 = null;
-    // ResultSet rs1 = null;
-    // ResultSet rs2 = null;
-    // bvt_ResultSet bvt_rs1 = null;
-    // bvt_ResultSet bvt_rs2 = null;
-    // try {
-    // stmt1 = conn().createStatement();
-    // stmt2 = conn().createStatement();
-    //
-    // // SELECT * FROM <table2> ORDER BY <key>
-    // String pk = Tables.primaryKey();
-    // String query = Tables.select_Orderby(table2, pk);
-    // rs1 = stmt1.executeQuery(query);
-    //
-    // String query2 = Tables.select_Orderby(table1, pk);
-    // rs2 = stmt2.executeQuery(query2);
-    // bvt_rs1 = new bvt_ResultSet(rs1);
-    // bvt_rs2 = new bvt_ResultSet(rs2);
-    //
-    // // Interleave resultset calls
-    // bvt_rs1.next();
-    // bvt_rs1.verifyCurrentRow();
-    // bvt_rs2.next();
-    // bvt_rs2.verifyCurrentRow();
-    // bvt_rs1.next();
-    // bvt_rs1.verifyCurrentRow();
-    // bvt_rs1.verify();
-    // bvt_rs1.close();
-    // bvt_rs2.next();
-    // bvt_rs2.verify();
-    // }
-    // finally {
-    // if (null != bvt_rs2) {
-    // bvt_rs2.close();
-    // }
-    // if (null != rs1) {
-    // rs1.close();
-    // }
-    // if (null != rs2) {
-    // rs2.close();
-    // }
-    // if (null != stmt1) {
-    // stmt1.close();
-    // }
-    // if (null != stmt2) {
-    // stmt2.close();
-    // }
-    // terminateVariation();
-    // }
-    // }
-    //
-    // ///////////////////////////////////////////////////////////////////
-    // // Verify two concurrent resultsets from same connection,
-    // // same statement
-    // ///////////////////////////////////////////////////////////////////
-    // @Test
-    // public void testTwoResultsetsSameStmt() throws SQLException {
-    //
-    // ResultSet rs1 = null;
-    // ResultSet rs2 = null;
-    // try {
-    // stmt = conn().createStatement();
-    //
-    // // SELECT * FROM <table2> ORDER BY <key>
-    // String pk = Tables.primaryKey();
-    // String query = Tables.select_Orderby(table2, pk);
-    // rs1 = stmt.executeQuery(query);
-    //
-    // // SELECT * FROM <table1> ORDER BY <key>
-    // String query2 = Tables.select_Orderby(table1, pk);
-    // rs2 = stmt.executeQuery(query2);
-    //
-    // bvt_ResultSet bvt_rs1 = new bvt_ResultSet(rs1);
-    // bvt_ResultSet bvt_rs2 = new bvt_ResultSet(rs2);
-    //
-    // // Interleave resultset calls. rs is expected to be closed
-    // try {
-    // bvt_rs1.next();
-    // }
-    // catch (SQLException e) {
-    // assertEquals(e.toString(), "com.microsoft.sqlserver.jdbc.SQLServerException: The result set is closed.");
-    // }
-    // bvt_rs2.next();
-    // bvt_rs2.verifyCurrentRow();
-    // try {
-    // bvt_rs1.next();
-    // }
-    // catch (SQLException e) {
-    // assertEquals(e.toString(), "com.microsoft.sqlserver.jdbc.SQLServerException: The result set is closed.");
-    // }
-    // bvt_rs1.close();
-    // bvt_rs2.next();
-    // bvt_rs2.verify();
-    // }
-    // finally {
-    // if (null != rs1) {
-    // rs1.close();
-    // }
-    // if (null != rs2) {
-    // rs2.close();
-    // }
-    // terminateVariation();
-    // }
-    // }
-    //
-    // ///////////////////////////////////////////////////////////////////
-    // // Verify resultset closed after statement is closed
-    // ///////////////////////////////////////////////////////////////////
-    // @Test
-    // public void testResultSetAndCloseStmt() throws SQLException {
-    // try {
-    // stmt = conn().createStatement();
-    //
-    // // SELECT * FROM <table2> ORDER BY <key>
-    // String pk = Tables.primaryKey();
-    // String query = Tables.select_Orderby(table2, pk);
-    // rs = stmt.executeQuery(query);
-    // bvt_rs = new bvt_ResultSet(rs);
-    //
-    // // close statement and verify resultSet
-    // stmt.close(); // this should close the resultSet
-    // try {
-    // bvt_rs.next();
-    // }
-    // catch (SQLException e) {
-    // assertEquals(e.toString(), "com.microsoft.sqlserver.jdbc.SQLServerException: The result set is closed.");
-    // }
-    // }
-    // finally {
-    // terminateVariation();
-    // }
-    // }
-    //
-    // ///////////////////////////////////////////////////////////////////
-    // // Verify resultset using SelectMethod
-    // ///////////////////////////////////////////////////////////////////
-    // @Test
-    // public void testResultSetSelectMethod() throws SQLException {
-    //
-    // // guarantees selectMethod=cursor
-    // cursor = true;
-    // try {
-    // stmt = conn().createStatement();
-    //
-    // // SELECT * FROM <table2> ORDER BY <key>
-    // String pk = Tables.primaryKey();
-    // String query = Tables.select_Orderby(table2, pk);
-    // rs = stmt.executeQuery(query);
-    // bvt_rs = new bvt_ResultSet(rs);
-    //
-    // // verify resultSet
-    // bvt_rs.verify();
-    // cursor = false;
-    // }
-    // finally {
-    // terminateVariation();
-    // }
-    // }
+
+    ///////////////////////////////////////////////////////////////////
+    // Create a statement
+    // ResultSet.Type_forward_only,
+    // ResultSet.CONCUR_UPDATABLE, executeQuery
+    // verify cursor by using next and previous and verify data
+    ///////////////////////////////////////////////////////////////////
+    @Test
+    public void testStmtForwardOnlyUpdateable() throws SQLException {
+
+        try {
+            conn = new DBConnection(connectionString);
+            stmt = conn.createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE);
+
+            String query = "SELECT * FROM " + table1.getEscapedTableName();
+            rs = stmt.executeQuery(query);
+            rs.next();
+
+            // Verify resultset behavior
+            rs.next();
+            rs.verifyCurrentRow(table1);
+            rs.next();
+            rs.verifyCurrentRow(table1);
+            try {
+                rs.previous();
+                assertTrue("Previous should have thrown an exception", false);
+            }
+            catch (SQLException ex) {
+                // expected exception
+            }
+            rs.verify(table1);
+        }
+        finally {
+            terminateVariation();
+        }
+    }
+
+    ///////////////////////////////////////////////////////////////////
+    // Create a statement
+    // ResultSet.SCROLL_SENSITIVE,
+    // ResultSet.CONCUR_UPDATABLE, executeQuery
+    // verify cursor by using next and previous and verify data
+    ///////////////////////////////////////////////////////////////////
+    @Test
+    public void testStmtScrollSensitiveUpdatable() throws SQLException {
+
+        try {
+            conn = new DBConnection(connectionString);
+            stmt = conn.createStatement(ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_UPDATABLE);
+
+            // SELECT * FROM <table1> ORDER BY <key>
+            // DBResultSet.currentTable = table1;
+            String query = "SELECT * FROM " + table1.getEscapedTableName();
+            rs = stmt.executeQuery(query);
+            // bvt_rs = new bvt_ResultSet(rs);
+
+            // Verify resultset behavior
+            rs.next();
+            rs.next();
+            rs.verifyCurrentRow(table1);
+            rs.absolute(3);
+            rs.verifyCurrentRow(table1);
+            rs.absolute(1);
+            rs.verify(table1);
+        }
+        finally {
+            terminateVariation();
+        }
+    }
+
+    ///////////////////////////////////////////////////////////////////
+    // Create a statement
+    // TYPE_SS_SCROLL_DYNAMIC,
+    // CONCUR_SS_OPTIMISTIC_CC, executeQuery
+    // verify cursor by using next and previous and verify data
+    ///////////////////////////////////////////////////////////////////
+    @Test
+    public void testStmtSS_ScrollDynamicOptimistic_CC() throws SQLException {
+
+        try {
+            int TYPE_SS_SCROLL_DYNAMIC = 1006;
+            int CONCUR_SS_OPTIMISTIC_CC = 1008;
+            conn = new DBConnection(connectionString);
+            stmt = conn.createStatement(TYPE_SS_SCROLL_DYNAMIC, CONCUR_SS_OPTIMISTIC_CC);
+
+            String query = "SELECT * FROM " + table1.getEscapedTableName();
+            rs = stmt.executeQuery(query);
+
+            // Verify resultset behavior
+            rs.next();
+            rs.afterLast();
+            rs.previous();
+            rs.verify(table1);
+        }
+        finally {
+            terminateVariation();
+        }
+    }
+
+    ///////////////////////////////////////////////////////////////////
+    // Create a statement
+    // TYPE_SS_SEVER_CURSOR_FORWARD_ONLY,
+    // CONCUR_READ_ONLY, executeQuery
+    // verify cursor by using next and verify data
+    ///////////////////////////////////////////////////////////////////
+    @Test
+    public void testStmtSS_SEVER_CURSOR_FORWARD_ONLY() throws SQLException {
+
+        try {
+            int TYPE_SS_SEVER_CURSOR_FORWARD_ONLY = 2004;
+            int CONCUR_READ_ONLY = 1008;
+            conn = new DBConnection(connectionString);
+            stmt = conn.createStatement(TYPE_SS_SEVER_CURSOR_FORWARD_ONLY, CONCUR_READ_ONLY);
+
+            // DBResultSet.currentTable = table1;
+            String query = "SELECT * FROM " + table1.getEscapedTableName();
+
+            rs = stmt.executeQuery(query);
+
+            // Verify resultset behavior
+            rs.next();
+            rs.verify(table1);
+        }
+        finally {
+            terminateVariation();
+        }
+
+    }
+
+    ///////////////////////////////////////////////////////////////////
+    // Create a preparedstatement, call close
+    ///////////////////////////////////////////////////////////////////
+    @Test
+    public void testCreatepreparedStatement() throws SQLException {
+
+        try {
+            conn = new DBConnection(connectionString);
+            String colName = table1.getColumnName(7);
+            String value = rs.getRow(0).get(7).toString();
+
+            String query = "SELECT * from " + table1.getEscapedTableName() + " where [" + colName + "] = ? ";
+
+            pstmt = conn.prepareStatement(query);
+            pstmt.setObject(1, new BigDecimal(value));
+            //
+            rs = pstmt.executeQuery();
+            rs.verify(table1);
+        }
+        finally {
+            terminateVariation();
+        }
+    }
+
+    ///////////////////////////////////////////////////////////////////
+    // Verify resultset using ResultSetMetaData
+    ///////////////////////////////////////////////////////////////////
+    @Test
+    public void testResultSet() throws SQLException {
+
+        try {
+            conn = new DBConnection(connectionString);
+            stmt = conn.createStatement();
+            // SELECT * FROM <rs_test_bvt> ORDER BY <key>
+            String query = "SELECT * FROM " + table1.getEscapedTableName();
+            rs = stmt.executeQuery(query);
+
+            // verify resultSet
+            rs.verify(table1);
+        }
+        finally {
+            terminateVariation();
+        }
+    }
+
+    ///////////////////////////////////////////////////////////////////
+    // Verify resultset and close resultSet
+    ///////////////////////////////////////////////////////////////////
+    @Test
+    public void testResultSetAndClose() throws SQLException {
+
+        try {
+            DBResultSet rs = null;
+            conn = new DBConnection(connectionString);
+            stmt = conn.createStatement();
+
+            String query = "SELECT * FROM " + table1.getEscapedTableName();
+            rs = stmt.executeQuery(query);
+            rs.currentTable = table1;
+
+            rs.verify(table1);
+            stmt.close();
+        }
+        finally {
+            terminateVariation();
+        }
+    }
+
+    ///////////////////////////////////////////////////////////////////
+    // Verify two concurrent resultsets from same connection,
+    // separate statements
+    ///////////////////////////////////////////////////////////////////
+    @Test
+    public void testTwoResultsetsDifferentStmt() throws SQLException {
+
+        DBStatement stmt1 = null;
+        DBStatement stmt2 = null;
+        DBResultSet rs1 = null;
+        DBResultSet rs2 = null;
+        try {
+            conn = new DBConnection(connectionString);
+            stmt1 = conn.createStatement();
+            stmt2 = conn.createStatement();
+
+            // SELECT * FROM <table2> ORDER BY <key>
+
+            String query = "SELECT * FROM " + table1.getEscapedTableName();
+            rs1 = stmt1.executeQuery(query);
+            rs1.currentTable = table1;
+
+            String query2 = "SELECT * FROM " + table2.getEscapedTableName();
+            rs2 = stmt2.executeQuery(query2);
+            rs2.currentTable = table2;
+
+            // Interleave resultset calls
+            rs1.next();
+            rs1.verifyCurrentRow(table1);
+            rs2.next();
+            rs2.verifyCurrentRow(table2);
+            rs1.next();
+            rs1.verifyCurrentRow(table1);
+            rs1.verify(table1);
+            rs1.close();
+            rs2.next();
+            rs2.verify(table2);
+        }
+        finally {
+            if (null != rs1) {
+                rs1.close();
+            }
+            if (null != rs2) {
+                rs2.close();
+            }
+            if (null != stmt1) {
+                stmt1.close();
+            }
+            if (null != stmt2) {
+                stmt2.close();
+            }
+            terminateVariation();
+        }
+    }
+
+    ///////////////////////////////////////////////////////////////////
+    // Verify two concurrent resultsets from same connection,
+    // same statement
+    ///////////////////////////////////////////////////////////////////
+    @Test
+    public void testTwoResultsetsSameStmt() throws SQLException {
+
+        DBResultSet rs1 = null;
+        DBResultSet rs2 = null;
+        try {
+            conn = new DBConnection(connectionString);
+            stmt = conn.createStatement();
+
+            // SELECT * FROM <table2> ORDER BY <key>
+            String query = "SELECT * FROM " + table1.getEscapedTableName();
+            rs1 = stmt.executeQuery(query);
+
+            // SELECT * FROM <table1> ORDER BY <key>
+            String query2 = "SELECT * FROM " + table2.getEscapedTableName();
+            rs2 = stmt.executeQuery(query2);
+
+            // Interleave resultset calls. rs is expected to be closed
+            try {
+                rs1.next();
+            }
+            catch (SQLException e) {
+                assertEquals(e.toString(), "com.microsoft.sqlserver.jdbc.SQLServerException: The result set is closed.");
+            }
+            rs2.next();
+            rs2.verifyCurrentRow(table2);
+            try {
+                rs1.next();
+            }
+            catch (SQLException e) {
+                assertEquals(e.toString(), "com.microsoft.sqlserver.jdbc.SQLServerException: The result set is closed.");
+            }
+            rs1.close();
+            rs2.next();
+            rs2.verify(table2);
+        }
+        finally {
+            if (null != rs1) {
+                rs1.close();
+            }
+            if (null != rs2) {
+                rs2.close();
+            }
+            terminateVariation();
+        }
+    }
+
+    ///////////////////////////////////////////////////////////////////
+    // Verify resultset closed after statement is closed
+    ///////////////////////////////////////////////////////////////////
+    @Test
+    public void testResultSetAndCloseStmt() throws SQLException {
+        try {
+            conn = new DBConnection(connectionString);
+            stmt = conn.createStatement();
+
+            // SELECT * FROM <table2> ORDER BY <key>
+            String query = "SELECT * FROM " + table1.getEscapedTableName();
+            rs = stmt.executeQuery(query);
+
+            // close statement and verify resultSet
+            stmt.close(); // this should close the resultSet
+            try {
+                rs.next();
+            }
+            catch (SQLException e) {
+                assertEquals(e.toString(), "com.microsoft.sqlserver.jdbc.SQLServerException: The result set is closed.");
+            }
+        }
+        finally {
+            terminateVariation();
+        }
+    }
+
+    ///////////////////////////////////////////////////////////////////
+    // Verify resultset using SelectMethod
+    ///////////////////////////////////////////////////////////////////
+    @Test
+    public void testResultSetSelectMethod() throws SQLException {
+
+        try {
+            conn = new DBConnection(connectionString + ";selectMethod=cursor;");
+            stmt = conn.createStatement();
+
+            // SELECT * FROM <table2> ORDER BY <key>
+            String query = "SELECT * FROM " + table1.getEscapedTableName();
+            rs = stmt.executeQuery(query);
+
+            // verify resultSet
+            rs.verify(table1);
+        }
+        finally {
+            terminateVariation();
+        }
+    }
 
     @AfterClass
     public static void terminate() throws SQLException {
 
         try {
             stmt = conn.createStatement();
-            // stmt.executeUpdate(Tables.dropTable(table2));
-            // stmt.executeUpdate(Tables.dropTable(table1));
         }
         finally {
             terminateVariation();
         }
     }
-
-    // public static String getConnectionURL() {
-    // connectionUrl = System.getenv("mssql_jdbc_test_connection_properties");
-    //
-    // if (null == connectionUrl) {
-    // fail("Please setup environment variable mssql_jdbc_test_connection_properties");
-    // }
-    //
-    // if (cursor) {
-    // connectionUrl += ";selectMethod=cursor;";
-    // }
-    //
-    // if (querytimeout) {
-    // connectionUrl += ";queryTimeout=10";
-    // }
-    //
-    // return connectionUrl;
-    // }
-    //
-    // public static Connection conn() {
-    //
-    // connectionUrl = getConnectionURL();
-    // // Establish the connection.
-    // try {
-    //
-    // Connection con = DriverManager.getConnection(connectionUrl);
-    // return con;
-    // // Handle any errors that may have occurred.
-    // }
-    // catch (SQLException e) {
-    // fail("Please make sure the environment variable mssql_jdbc_test_connection_properties is set with correct connection properties.\n"
-    // + e.toString());
-    // }
-    // return null;
-    // }
 
     public static void terminateVariation() throws SQLException {
         if (conn != null && !conn.isClosed()) {
@@ -752,14 +592,12 @@ public class bvtTest extends bvtTestSetup {
                 conn.close();
             }
             finally {
-                if (null != bvt_rs)
-                    bvt_rs.close();
                 if (null != rs)
                     rs.close();
                 if (null != stmt)
                     stmt.close();
-                if (null != pstmt)
-                    pstmt.close();
+                // if (null != pstmt)
+                // pstmt.close();
             }
         }
     }
