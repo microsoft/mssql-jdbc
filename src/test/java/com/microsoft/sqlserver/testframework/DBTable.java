@@ -35,6 +35,8 @@ import java.util.StringJoiner;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import org.apache.commons.codec.binary.Hex;
+
 import com.microsoft.sqlserver.testframework.sqlType.SqlType;
 import com.microsoft.sqlserver.testframework.sqlType.VariableLengthType;
 import com.microsoft.sqlserver.testframework.util.RandomUtil;
@@ -251,16 +253,22 @@ public class DBTable extends AbstractSQLGenerator {
             for (int colNum = 0; colNum < totalColumns; colNum++) {
 
                 // TODO: add betterway to enclose data
-                if (JDBCType.CHAR == getColumn(colNum).getSqlType().getJdbctype()
+                if (JDBCType.CHAR == getColumn(colNum).getSqlType().getJdbctype() 
                         || JDBCType.VARCHAR == getColumn(colNum).getSqlType().getJdbctype()
                         || JDBCType.NCHAR == getColumn(colNum).getSqlType().getJdbctype()
                         || JDBCType.NVARCHAR == getColumn(colNum).getSqlType().getJdbctype()
                         || JDBCType.TIMESTAMP == getColumn(colNum).getSqlType().getJdbctype()
                         || JDBCType.DATE == getColumn(colNum).getSqlType().getJdbctype()
-                        || JDBCType.TIME == getColumn(colNum).getSqlType().getJdbctype())
+                        || JDBCType.TIME == getColumn(colNum).getSqlType().getJdbctype()) {
                     sb.add("'" + String.valueOf(getColumn(colNum).getRowValue(i)) + "'");
-                else
+                }
+                else if (JDBCType.BINARY == getColumn(colNum).getSqlType().getJdbctype()
+                        || JDBCType.VARBINARY == getColumn(colNum).getSqlType().getJdbctype()) {
+                    sb.add("0X" + Hex.encodeHexString((byte[]) (getColumn(colNum).getRowValue(i))));
+                }
+                else {
                     sb.add(String.valueOf(getColumn(colNum).getRowValue(i)));
+                }
 
                 if (colNum < totalColumns - 1) {
                     sb.add(COMMA);
