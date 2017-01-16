@@ -31,7 +31,7 @@ import java.util.concurrent.ThreadLocalRandom;
 public class SqlBinary extends SqlType {
 
     public SqlBinary() {
-        this("binary", JDBCType.BINARY, 4000);
+        this("binary", JDBCType.BINARY, 2000);
     }
 
     SqlBinary(String name, JDBCType jdbctype, int precision) {

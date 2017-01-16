@@ -37,7 +37,7 @@ public class SqlNChar extends SqlChar {
     }
 
     public SqlNChar() {
-        this("nchar", JDBCType.NCHAR, 2000);
+        this("nchar", JDBCType.NCHAR, 1000);
     }
 
     public Object createdata() {

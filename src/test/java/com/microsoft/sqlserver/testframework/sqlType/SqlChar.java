@@ -32,14 +32,13 @@ import org.apache.commons.lang.StringEscapeUtils;
 import org.apache.commons.lang3.RandomStringUtils;
 
 /*
- * Restricting the size of char/varchar to 4000 and nchar/nvarchar to 2000 to
- * accommodate SQL Sever limitation of having of having maximum allowable table
- * row size to 8060
+ * Restricting the size of char/binary to 2000 and nchar to 1000 to accommodate SQL Sever limitation of having of having maximum allowable
+ * table row size to 8060
  */
 public class SqlChar extends SqlType {
 
     public SqlChar() {
-        this("char", JDBCType.CHAR, 4000);
+        this("char", JDBCType.CHAR, 2000);
     }
 
     SqlChar(String name, JDBCType jdbctype, int precision) {
