@@ -46,9 +46,6 @@ public class DBStatement extends AbstractParentWrapper {
 
     Statement statement = null;
     DBResultSet dbresultSet = null;
-    public int _cursortype = ResultSet.TYPE_FORWARD_ONLY;
-    public int _concurrency = ResultSet.CONCUR_READ_ONLY;
-    public int _holdability = ResultSet.CLOSE_CURSORS_AT_COMMIT;
     
     DBStatement(DBConnection dbConnection) {
         super(dbConnection, null, "statement");

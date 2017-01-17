@@ -32,7 +32,7 @@ import java.sql.SQLException;
 
 /**
  * 
- * Wrapper class PreparedStatement 
+ * Wrapper class PreparedStatement
  */
 public class DBPreparedStatement extends AbstractParentWrapper {
 
@@ -71,7 +71,6 @@ public class DBPreparedStatement extends AbstractParentWrapper {
     public void setObject(int parameterIndex, Object targetObject) throws SQLException {
 
         ((PreparedStatement) product()).setObject(parameterIndex, targetObject);
-
     }
 
     /**
@@ -84,7 +83,6 @@ public class DBPreparedStatement extends AbstractParentWrapper {
         rs = pstmt.executeQuery();
         dbresultSet = new DBResultSet(this, rs);
         return dbresultSet;
-
     }
 
 }

@@ -55,7 +55,6 @@ public class DBResultSet extends AbstractParentWrapper {
     // TODO: add resultSet level holdability
     // TODO: add concurrency control
     public DBTable currentTable;
-    public static final int VERIFY_MOVERS_NEXT = 0x100;
     public int _currentrow = -1;       // The row this rowset is currently pointing to
 
     ResultSet resultSet = null;

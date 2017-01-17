@@ -49,7 +49,7 @@ public class DBTable extends AbstractSQLGenerator {
     String escapedTableName;
     List<DBColumn> columns;
     int totalColumns;
-    static int totalRows = 3; // default row count set to 2
+    static int totalRows = 3; // default row count set to 3
     DBSchema schema;
     ArrayList<ArrayList<Object>> rows;
     ArrayList<Object> currentrow;

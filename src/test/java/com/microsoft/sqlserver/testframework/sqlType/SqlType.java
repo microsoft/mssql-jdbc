@@ -41,6 +41,7 @@ public abstract class SqlType {
     protected Object nullvalue = null;	// Primitives have non-null defaults
     protected VariableLengthType variableLengthType;
     static Random r = new Random();
+
     /**
      * 
      * @param name
@@ -56,8 +57,8 @@ public abstract class SqlType {
      * @param variableLengthType
      *            {@link VariableLengthType}
      */
-    SqlType(String name, JDBCType jdbctype, int precision, int scale, Object min, Object max,
-            Object nullvalue, VariableLengthType variableLengthType) {
+    SqlType(String name, JDBCType jdbctype, int precision, int scale, Object min, Object max, Object nullvalue,
+            VariableLengthType variableLengthType) {
         this.name = name;
         this.jdbctype = jdbctype;
         this.precision = precision;
@@ -181,23 +182,19 @@ public abstract class SqlType {
         int maxPrecision = this.precision;
         this.precision = ThreadLocalRandom.current().nextInt(minPrecision, maxPrecision + 1);
     }
-    
+
     /**
      * generate char or nchar values
+     * 
      * @param columnLength
      * @param charSet
      * @return
      */
     protected static String buildCharOrNChar(int columnLength, String charSet) {
-
-        int length;
-        
-            int columnLengthInt = columnLength;
-            length = columnLengthInt;
-            return buildRandomString(length, charSet);
-        
+        int columnLengthInt = columnLength;
+        return buildRandomString(columnLengthInt, charSet);
     }
-    
+
     private static String buildRandomString(int length, String charSet) {
         StringBuffer sb = new StringBuffer();
         for (int i = 0; i < length; i++) {
