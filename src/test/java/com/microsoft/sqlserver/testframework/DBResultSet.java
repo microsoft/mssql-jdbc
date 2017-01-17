@@ -230,7 +230,8 @@ public class DBResultSet extends AbstractParentWrapper {
                 assertTrue(
                         (("" + Timestamp.valueOf(((OffsetDateTime) backendData).toLocalDateTime())) + " "
                                 + ((OffsetDateTime) backendData).getOffset()).equalsIgnoreCase("" + (DateTimeOffset) retrieved),
-                        " unexpected DATETIMEOFFSET value");
+                        " unexpected DATETIMEOFFSET value, expected: " +  ("" + Timestamp.valueOf(((OffsetDateTime) backendData).toLocalDateTime())) + " "
+                                + ((OffsetDateTime) backendData).getOffset() + " .Retrieved: " + (DateTimeOffset) retrieved );
                 break;
 
             default:
