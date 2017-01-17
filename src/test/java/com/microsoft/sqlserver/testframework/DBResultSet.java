@@ -88,7 +88,6 @@ public class DBResultSet extends AbstractParentWrapper {
      * @throws SQLException
      */
     public boolean next() throws SQLException {
-        // if(_currentrow < DBTa)
         _currentrow++;
         return resultSet.next();
     }
