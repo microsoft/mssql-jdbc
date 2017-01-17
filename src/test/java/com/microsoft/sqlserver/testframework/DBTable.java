@@ -254,17 +254,12 @@ public class DBTable extends AbstractSQLGenerator {
 
                 // TODO: add betterway to enclose data
                 if (JDBCType.CHAR == getColumn(colNum).getSqlType().getJdbctype() || JDBCType.VARCHAR == getColumn(colNum).getSqlType().getJdbctype()
-//                        || JDBCType.NCHAR == getColumn(colNum).getSqlType().getJdbctype()
-//                        || JDBCType.NVARCHAR == getColumn(colNum).getSqlType().getJdbctype()
+                        || JDBCType.NCHAR == getColumn(colNum).getSqlType().getJdbctype()
+                        || JDBCType.NVARCHAR == getColumn(colNum).getSqlType().getJdbctype()
                         || JDBCType.TIMESTAMP == getColumn(colNum).getSqlType().getJdbctype()
                         || JDBCType.DATE == getColumn(colNum).getSqlType().getJdbctype()
                         || JDBCType.TIME == getColumn(colNum).getSqlType().getJdbctype()) {
                     sb.add("'" + String.valueOf(getColumn(colNum).getRowValue(i)) + "'");
-                    currentrow.add(getColumn(colNum).getRowValue(i));
-                }
-                else if (JDBCType.NCHAR == getColumn(colNum).getSqlType().getJdbctype()
-                        || JDBCType.NVARCHAR == getColumn(colNum).getSqlType().getJdbctype()) {
-                    sb.add("N'" + String.valueOf(getColumn(colNum).getRowValue(i)) + "'");
                     currentrow.add(getColumn(colNum).getRowValue(i));
                 }
                 else {

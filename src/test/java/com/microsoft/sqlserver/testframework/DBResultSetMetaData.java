@@ -32,7 +32,7 @@ import java.sql.SQLException;
 import com.microsoft.sqlserver.jdbc.SQLServerResultSetMetaData;
 
 /**
- * @author v-afrafi
+ * 
  *
  */
 public class DBResultSetMetaData extends AbstractParentWrapper {
@@ -67,7 +67,6 @@ public class DBResultSetMetaData extends AbstractParentWrapper {
             this.isCurrency(i);
             this.isNullable(i);
             this.isSigned(i);
-
         }
     }
 

@@ -25,21 +25,23 @@
 
 package com.microsoft.sqlserver.testframework;
 
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
+
 import java.math.BigDecimal;
-import java.sql.Date;
 import java.sql.JDBCType;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.Time;
 import java.sql.Timestamp;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.Calendar;
 
-import com.sun.org.apache.xpath.internal.operations.Bool;
-
-import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.junit.jupiter.api.Assertions.fail;
+import microsoft.sql.DateTimeOffset;
 
 /**
  * wrapper class for ResultSet
@@ -52,24 +54,22 @@ public class DBResultSet extends AbstractParentWrapper {
     // TODO: add cursors
     // TODO: add resultSet level holdability
     // TODO: add concurrency control
-    public  DBTable currentTable;
+    public DBTable currentTable;
     public static final int VERIFY_MOVERS_NEXT = 0x100;
     public int _currentrow = -1;       // The row this rowset is currently pointing to
 
     ResultSet resultSet = null;
     DBResultSetMetaData metaData;
-    
+
     DBResultSet(DBStatement dbstatement, ResultSet internal) {
         super(dbstatement, internal, "resultSet");
         resultSet = internal;
     }
-    
+
     DBResultSet(DBPreparedStatement dbpstmt, ResultSet internal) {
         super(dbpstmt, internal, "resultSet");
         resultSet = internal;
     }
-
-
 
     /**
      * Close the ResultSet object
@@ -88,7 +88,7 @@ public class DBResultSet extends AbstractParentWrapper {
      * @throws SQLException
      */
     public boolean next() throws SQLException {
-//        if(_currentrow < DBTa)
+        // if(_currentrow < DBTa)
         _currentrow++;
         return resultSet.next();
     }
@@ -112,7 +112,7 @@ public class DBResultSet extends AbstractParentWrapper {
     public void updateObject(int index) throws SQLException {
         // TODO: update object based on cursor type
     }
-    
+
     /**
      * 
      * @throws SQLException
@@ -125,34 +125,39 @@ public class DBResultSet extends AbstractParentWrapper {
         while (this.next())
             this.verifyCurrentRow(table);
     }
-    
+
     /**
-     * @throws SQLException 
+     * @throws SQLException
      * 
      */
-    public void verifyCurrentRow(DBTable table) throws SQLException{
+    public void verifyCurrentRow(DBTable table) throws SQLException {
         currentTable = table;
         int totalColumns = ((ResultSet) product()).getMetaData().getColumnCount();
-        
-        Class _class = Object.class;
-        for ( int i=0; i< totalColumns; i++)
-            verifydata(i, _class, null);
-        
-    }
-    
-    public void verifydata(int ordinal, Class coercion, Object arg) throws SQLException
-    {
-                Object backendData =  this.currentrow().get(ordinal);
-                       
-                //getXXX - default mapping
-                Object retrieved = this.getXXX(ordinal +1 , coercion);
 
-                //Verify
-                verifydata(ordinal, coercion, backendData, retrieved);
+        Class _class = Object.class;
+        for (int i = 0; i < totalColumns; i++)
+            verifydata(i, _class, null);
+
     }
-    
-    public void verifydata(int ordinal, Class coercion, Object backendData, Object retrieved) throws SQLException
-    {
+
+    /**
+     * 
+     * @param ordinal
+     * @param coercion
+     * @param arg
+     * @throws SQLException
+     */
+    public void verifydata(int ordinal, Class coercion, Object arg) throws SQLException {
+        Object backendData = this.currentrow().get(ordinal);
+
+        // getXXX - default mapping
+        Object retrieved = this.getXXX(ordinal + 1, coercion);
+
+        // Verify
+        verifydata(ordinal, coercion, backendData, retrieved);
+    }
+
+    public void verifydata(int ordinal, Class coercion, Object backendData, Object retrieved) throws SQLException {
         metaData = this.getMetaData();
         switch (metaData.getColumnType(ordinal + 1)) {
             case java.sql.Types.BIGINT:
@@ -171,14 +176,14 @@ public class DBResultSet extends AbstractParentWrapper {
             case java.sql.Types.BIT:
                 if (backendData.equals(1))
                     backendData = true;
-                else backendData = false;
-                assertTrue(( (((Boolean) backendData)).booleanValue() == ((Boolean) retrieved).booleanValue()), "Unexpected bit value");
+                else
+                    backendData = false;
+                assertTrue(((((Boolean) backendData)).booleanValue() == ((Boolean) retrieved).booleanValue()), "Unexpected bit value");
                 break;
 
             case java.sql.Types.DECIMAL:
             case java.sql.Types.NUMERIC:
-                assertTrue(0 == (((BigDecimal) backendData).compareTo((BigDecimal) retrieved)),
-                        "Unexpected decimal/numeric/money/smallmoney value");
+                assertTrue(0 == (((BigDecimal) backendData).compareTo((BigDecimal) retrieved)), "Unexpected decimal/numeric/money/smallmoney value");
                 break;
 
             case java.sql.Types.DOUBLE:
@@ -191,108 +196,72 @@ public class DBResultSet extends AbstractParentWrapper {
 
             case java.sql.Types.VARCHAR:
             case java.sql.Types.NVARCHAR:
-                System.out.println("-----> b: "+ backendData.toString().trim());
-                System.out.println("-----> r: " + retrieved.toString().trim());
-                System.out.println(backendData.toString().trim().equalsIgnoreCase(retrieved.toString().trim()));
-                assertTrue((((String) backendData).equals((String) retrieved)), "Unexpected varchar/nvarchar value ");
+                assertTrue((((String) backendData).trim().equalsIgnoreCase(((String) retrieved).trim())), "Unexpected varchar/nvarchar value ");
                 break;
 
             case java.sql.Types.CHAR:
             case java.sql.Types.NCHAR:
-//                assertTrue((((String) backendData).trim().equalsIgnoreCase(((String) retrieved).trim())), "Unexpected char/nchar value ");
+
+                assertTrue((((String) backendData).trim().equalsIgnoreCase(((String) retrieved).trim())), "Unexpected char/nchar value ");
                 break;
 
             case java.sql.Types.TIMESTAMP:
-                if (metaData.getColumnTypeName(ordinal +1).equalsIgnoreCase("datetime"))
-                {
-                    assertTrue((((Timestamp) roundDatetimeValue(backendData) ).getTime() == (((Timestamp) retrieved).getTime())),
+                if (metaData.getColumnTypeName(ordinal + 1).equalsIgnoreCase("datetime")) {
+                    assertTrue((((Timestamp) roundDatetimeValue(backendData)).getTime() == (((Timestamp) retrieved).getTime())),
                             "Unexpected datetime value");
                     break;
                 }
-                else if (metaData.getColumnTypeName(ordinal +1).equalsIgnoreCase("smalldatetime"))
-                {
-                    assertTrue((((Timestamp) roundSmallDateTimeValue(backendData) ).getTime() == (((Timestamp) retrieved).getTime())),
+                else if (metaData.getColumnTypeName(ordinal + 1).equalsIgnoreCase("smalldatetime")) {
+                    assertTrue((((Timestamp) roundSmallDateTimeValue(backendData)).getTime() == (((Timestamp) retrieved).getTime())),
                             "Unexpected smalldatetime value");
                     break;
                 }
-                else 
-//                    assertTrue((""+ ((java.util.Date) backendData).getTime()).equalsIgnoreCase("" +retrieved.getTime()),
-//                        "Unexpected datetime2 value");
+                else
+                    assertTrue(("" + Timestamp.valueOf((LocalDateTime) backendData)).equalsIgnoreCase("" + retrieved), "Unexpected datetime2 value");
                 break;
 
             case java.sql.Types.DATE:
-                assertTrue((("" +backendData).equalsIgnoreCase(""+ retrieved)), "Unexpected date value");
+                assertTrue((("" + backendData).equalsIgnoreCase("" + retrieved)), "Unexpected date value");
                 break;
 
             case java.sql.Types.TIME:
-//                assertTrue((backendData) == ((Time) retrieved).getTime(), "Unexpected time value ");
+                assertTrue(("" + Time.valueOf((LocalTime) backendData)).equalsIgnoreCase("" + retrieved), "Unexpected time value ");
                 break;
 
             case microsoft.sql.Types.DATETIMEOFFSET:
-//                assertTrue(0 == ((microsoft.sql.DateTimeOffset) backendData).compareTo((microsoft.sql.DateTimeOffset) retrieved),
-//                        "Unexpected time value ");
+                assertTrue(
+                        (("" + Timestamp.valueOf(((OffsetDateTime) backendData).toLocalDateTime())) + " "
+                                + ((OffsetDateTime) backendData).getOffset()).equalsIgnoreCase("" + (DateTimeOffset) retrieved),
+                        " unexpected DATETIMEOFFSET value");
                 break;
 
             default:
                 fail("Unhandled JDBCType " + JDBCType.valueOf(metaData.getColumnType(ordinal + 1)));
                 break;
         }
-        
-//        if (backendData != null) {
-//            if (retrieved instanceof BigDecimal) {
-//                if (((BigDecimal) retrieved).compareTo(new BigDecimal("" + backendData)) != 0)                
-//                    fail(" Verification failed at index: " + ordinal + " , retrieved value: " + retrieved
-//                            + " , inserted value is " + backendData);
-//                  
-//            } else if (retrieved instanceof Float) {
-//                if (Float.compare(new Float("" + backendData), (float) retrieved) != 0)
-//                    fail(" Verification failed at index: " + ordinal + " , retrieved value: " + retrieved
-//                            + " ,inserted value is " + backendData);
-//            } else if (retrieved instanceof Double) {
-//                if (Double.compare(new Double("" + backendData), (double) retrieved) != 0)
-//                    fail(" Verification failed at index: " + ordinal + " , retrieved value: " + retrieved
-//                            + " , inserted value is " + backendData);
-//            } else if (retrieved instanceof byte[]) {
-//                if (!parseByte((byte[]) retrieved).contains("" + backendData))
-//                    fail(" Verification failed at index: " + ordinal + " , retrieved value: " + retrieved
-//                            + " , inserted value is " + backendData);
-//            } else if (retrieved instanceof String) {
-//                if (!(((String) retrieved).trim()).equalsIgnoreCase(((String) backendData).trim()))
-//                    fail(" Verification failed at index: " + ordinal + " , retrieved value: " + retrieved
-//                            + " , inserted value is " + backendData);
-//            } else if (retrieved instanceof Boolean) {
-//                 if ( retrieved.equals(true) && !backendData.equals(1))
-//                 {
-//                    fail(" Verification failed at index: " + ordinal + " , retrieved value: " + retrieved
-//                            + " , inserted value is " + backendData);
-//                 }
-//                 else if ( retrieved.equals(false) && !backendData.equals(0))
-//                 {
-//                     fail(" Verification failed at index: " + ordinal + " , retrieved value: " + retrieved
-//                             + " , inserted value is " + backendData);
-//                  }
-//            } else if (!(("" + retrieved).equalsIgnoreCase("" + backendData)))
-//                fail(" Verification failed at index: " + ordinal + " , retrieved value: " + retrieved + " , inserted value is "
-//                        + backendData);
-//        }
-//        // if data is null
-//        else {
-//            if (retrieved != backendData)
-//                fail(" Verification failed at index: " + ordinal + " , retrieved value: " + retrieved + " , inserted value is "
-//                        + backendData);
-//        }
-        
+
     }
-    
-    
-    public ArrayList<Object> currentrow(){
-        return currentTable.getAllRows().get(_currentrow );
+
+    /**
+     * Retrieves the current row of the table
+     * 
+     * @return
+     */
+    public ArrayList<Object> currentrow() {
+        return currentTable.getAllRows().get(_currentrow);
     }
-    
-    public ArrayList<Object> getRow(int index){
-        return currentTable.getAllRows().get(index );
+
+    /**
+     * Get the indexed row from the backend data for the specific table
+     * 
+     * @param table
+     * @param index
+     * @return
+     */
+    public static ArrayList<Object> getRow(DBTable table, int index) {
+        return table.getAllRows().get(index);
     }
-    
+
     private Object getXXX(int idx, Class coercion) throws SQLException {
         if (coercion == Object.class) {
             return this.getObject(idx);
@@ -317,66 +286,55 @@ public class DBResultSet extends AbstractParentWrapper {
 
         return wrapper;
     }
-    
+
     /**
      * 
      * @return
      * @throws SQLException
      */
-    public int getRow() throws SQLException
-    {
+    public int getRow() throws SQLException {
         int product = ((ResultSet) product()).getRow();
         return product;
     }
-    
+
     /**
      * 
      * @return
      * @throws SQLException
      */
-    public boolean previous() throws SQLException
-    {
-     
+    public boolean previous() throws SQLException {
+
         boolean validrow = ((ResultSet) product()).previous();
 
-        if (_currentrow > 0)
-        {
+        if (_currentrow > 0) {
             _currentrow--;
-        }     
+        }
         return (validrow);
     }
-    
+
     /**
      * 
      * @throws SQLException
      */
-    public void afterLast() throws SQLException
-    {    
+    public void afterLast() throws SQLException {
         ((ResultSet) product()).afterLast();
-        _currentrow = DBTable.getTotalRows() ;
+        _currentrow = DBTable.getTotalRows();
     }
-    
-    public boolean absolute(int x) throws SQLException
-    {    
-        boolean validrow = ((ResultSet) product()).absolute(x);   
-        _currentrow = x-1;
+
+    /**
+     * 
+     * @param x
+     * @return
+     * @throws SQLException
+     */
+    public boolean absolute(int x) throws SQLException {
+        boolean validrow = ((ResultSet) product()).absolute(x);
+        _currentrow = x - 1;
         return validrow;
     }
 
-    private static String parseByte(byte[] bytes) {
-        StringBuffer parsedByte = new StringBuffer();
-        parsedByte.append("0x");
-        for (byte b : bytes) {
-            parsedByte.append(String.format("%02X", b));
-        }
-        return parsedByte.toString();
-    }
-    
-    
-    public static Object roundSmallDateTimeValue(Object value)
-    {
-        if(value == null)
-        {
+    private static Object roundSmallDateTimeValue(Object value) {
+        if (value == null) {
             return null;
         }
 
@@ -384,85 +342,85 @@ public class DBResultSet extends AbstractParentWrapper {
         java.sql.Timestamp ts = null;
         int nanos = -1;
 
-        if(value instanceof Calendar)
-        {
-            cal = (Calendar)value;
+        if (value instanceof Calendar) {
+            cal = (Calendar) value;
         }
-        else
-        {
-            ts = (java.sql.Timestamp)value;
+        else {
+            ts = (java.sql.Timestamp) value;
             cal = Calendar.getInstance();
             cal.setTimeInMillis(ts.getTime());
             nanos = ts.getNanos();
         }
 
-        //round to the nearest minute
-        double seconds = cal.get(Calendar.SECOND) + (nanos == -1 ? ((double)cal.get(Calendar.MILLISECOND) / 1000) : ((double)nanos / 1000000000));
-        if(seconds > 29.998)
-        {
+        // round to the nearest minute
+        double seconds = cal.get(Calendar.SECOND) + (nanos == -1 ? ((double) cal.get(Calendar.MILLISECOND) / 1000) : ((double) nanos / 1000000000));
+        if (seconds > 29.998) {
             cal.set(Calendar.MINUTE, cal.get(Calendar.MINUTE) + 1);
         }
         cal.set(Calendar.SECOND, 0);
         cal.set(Calendar.MILLISECOND, 0);
         nanos = 0;
 
-        //required to force computation
+        // required to force computation
         cal.getTimeInMillis();
 
-        //return appropriate value
-        if(value instanceof Calendar)
-        {
+        // return appropriate value
+        if (value instanceof Calendar) {
             return cal;
         }
-        else
-        {
+        else {
             ts.setTime(cal.getTimeInMillis());
             ts.setNanos(nanos);
             return ts;
         }
     }
-    
-    public static Object roundDatetimeValue(Object value)
-    {
-        if(value == null)
+
+    private static Object roundDatetimeValue(Object value) {
+        if (value == null)
             return null;
-        Timestamp ts = value instanceof Timestamp ? (Timestamp)value : new Timestamp(((Calendar)value).getTimeInMillis());
+        Timestamp ts = value instanceof Timestamp ? (Timestamp) value : new Timestamp(((Calendar) value).getTimeInMillis());
         int millis = ts.getNanos() / 1000000;
-        int lastDigit = (int)(millis % 10);
-        switch(lastDigit)
-        {
-        //0, 1 -> 0
-        case 1: ts.setNanos((millis - 1) * 1000000);
-        break;
+        int lastDigit = (int) (millis % 10);
+        switch (lastDigit) {
+            // 0, 1 -> 0
+            case 1:
+                ts.setNanos((millis - 1) * 1000000);
+                break;
 
-        //2, 3, 4 -> 3
-        case 2: ts.setNanos((millis + 1) * 1000000);
-        break;
-        case 4: ts.setNanos((millis - 1) * 1000000);
-        break;
+            // 2, 3, 4 -> 3
+            case 2:
+                ts.setNanos((millis + 1) * 1000000);
+                break;
+            case 4:
+                ts.setNanos((millis - 1) * 1000000);
+                break;
 
-        //5, 6, 7, 8 -> 7
-        case 5: ts.setNanos((millis + 2) * 1000000);
-        break;
-        case 6: ts.setNanos((millis + 1) * 1000000);
-        break;  
-        case 8: ts.setNanos((millis - 1) * 1000000);
-        break;
+            // 5, 6, 7, 8 -> 7
+            case 5:
+                ts.setNanos((millis + 2) * 1000000);
+                break;
+            case 6:
+                ts.setNanos((millis + 1) * 1000000);
+                break;
+            case 8:
+                ts.setNanos((millis - 1) * 1000000);
+                break;
 
-        //9 -> 0 with overflow
-        case 9: ts.setNanos(0);
-        ts.setTime(ts.getTime() + millis + 1);
-        break;
+            // 9 -> 0 with overflow
+            case 9:
+                ts.setNanos(0);
+                ts.setTime(ts.getTime() + millis + 1);
+                break;
 
-        //default, i.e. 0, 3, 7 -> 0, 3, 7
-        //don't change the millis but make sure that any 
-        //sub-millisecond digits are zeroed out
-        default: ts.setNanos((millis) * 1000000);
+            // default, i.e. 0, 3, 7 -> 0, 3, 7
+            // don't change the millis but make sure that any
+            // sub-millisecond digits are zeroed out
+            default:
+                ts.setNanos((millis) * 1000000);
         }
-        if(value instanceof Calendar)
-        {
-            ((Calendar)value).setTimeInMillis(ts.getTime());
-            ((Calendar)value).getTimeInMillis();
+        if (value instanceof Calendar) {
+            ((Calendar) value).setTimeInMillis(ts.getTime());
+            ((Calendar) value).getTimeInMillis();
             return value;
         }
         return ts;

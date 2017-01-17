@@ -11,7 +11,6 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 import java.math.BigDecimal;
-import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -19,20 +18,15 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import org.junit.AfterClass;
-import org.junit.BeforeClass;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
 
-import com.microsoft.sqlserver.jdbc.SQLServerPreparedStatement;
-import com.microsoft.sqlserver.jdbc.bvt.bvt_ResultSet;
-import com.microsoft.sqlserver.testframework.AbstractTest;
 import com.microsoft.sqlserver.testframework.DBConnection;
 import com.microsoft.sqlserver.testframework.DBPreparedStatement;
 import com.microsoft.sqlserver.testframework.DBResultSet;
 import com.microsoft.sqlserver.testframework.DBStatement;
-import com.microsoft.sqlserver.testframework.DBTable;
 
 @RunWith(JUnitPlatform.class)
 @DisplayName("BVT Test")
@@ -103,7 +97,6 @@ public class bvtTest extends bvtTestSetup {
         try {
             conn = new DBConnection(connectionString);
             stmt = conn.createStatement();
-            // SELECT * FROM <table1>
             String query = "SELECT * FROM " + table1.getEscapedTableName() + ";";
             rs = stmt.executeQuery(query);
             rs.verify(table1);
@@ -130,7 +123,6 @@ public class bvtTest extends bvtTestSetup {
         }
         finally {
             terminateVariation();
-
         }
     }
 
@@ -273,11 +265,9 @@ public class bvtTest extends bvtTestSetup {
             conn = new DBConnection(connectionString);
             stmt = conn.createStatement(ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_UPDATABLE);
 
-            // SELECT * FROM <table1> ORDER BY <key>
             // DBResultSet.currentTable = table1;
             String query = "SELECT * FROM " + table1.getEscapedTableName();
             rs = stmt.executeQuery(query);
-            // bvt_rs = new bvt_ResultSet(rs);
 
             // Verify resultset behavior
             rs.next();
@@ -337,7 +327,6 @@ public class bvtTest extends bvtTestSetup {
             conn = new DBConnection(connectionString);
             stmt = conn.createStatement(TYPE_SS_SEVER_CURSOR_FORWARD_ONLY, CONCUR_READ_ONLY);
 
-            // DBResultSet.currentTable = table1;
             String query = "SELECT * FROM " + table1.getEscapedTableName();
 
             rs = stmt.executeQuery(query);
@@ -361,13 +350,13 @@ public class bvtTest extends bvtTestSetup {
         try {
             conn = new DBConnection(connectionString);
             String colName = table1.getColumnName(7);
-            String value = rs.getRow(0).get(7).toString();
+            String value = DBResultSet.getRow(table1, 0).get(7).toString();
 
             String query = "SELECT * from " + table1.getEscapedTableName() + " where [" + colName + "] = ? ";
 
             pstmt = conn.prepareStatement(query);
             pstmt.setObject(1, new BigDecimal(value));
-            //
+           
             rs = pstmt.executeQuery();
             rs.verify(table1);
         }
@@ -385,7 +374,7 @@ public class bvtTest extends bvtTestSetup {
         try {
             conn = new DBConnection(connectionString);
             stmt = conn.createStatement();
-            // SELECT * FROM <rs_test_bvt> ORDER BY <key>
+
             String query = "SELECT * FROM " + table1.getEscapedTableName();
             rs = stmt.executeQuery(query);
 
@@ -404,7 +393,6 @@ public class bvtTest extends bvtTestSetup {
     public void testResultSetAndClose() throws SQLException {
 
         try {
-            DBResultSet rs = null;
             conn = new DBConnection(connectionString);
             stmt = conn.createStatement();
 
@@ -435,8 +423,6 @@ public class bvtTest extends bvtTestSetup {
             conn = new DBConnection(connectionString);
             stmt1 = conn.createStatement();
             stmt2 = conn.createStatement();
-
-            // SELECT * FROM <table2> ORDER BY <key>
 
             String query = "SELECT * FROM " + table1.getEscapedTableName();
             rs1 = stmt1.executeQuery(query);
@@ -488,11 +474,9 @@ public class bvtTest extends bvtTestSetup {
             conn = new DBConnection(connectionString);
             stmt = conn.createStatement();
 
-            // SELECT * FROM <table2> ORDER BY <key>
             String query = "SELECT * FROM " + table1.getEscapedTableName();
             rs1 = stmt.executeQuery(query);
 
-            // SELECT * FROM <table1> ORDER BY <key>
             String query2 = "SELECT * FROM " + table2.getEscapedTableName();
             rs2 = stmt.executeQuery(query2);
 
@@ -596,8 +580,6 @@ public class bvtTest extends bvtTestSetup {
                     rs.close();
                 if (null != stmt)
                     stmt.close();
-                // if (null != pstmt)
-                // pstmt.close();
             }
         }
     }

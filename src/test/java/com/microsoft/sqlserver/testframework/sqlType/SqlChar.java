@@ -38,6 +38,7 @@ import org.apache.commons.lang3.RandomStringUtils;
  */
 public class SqlChar extends SqlType {
 
+    private static String normalCharSet = "1234567890-=!@#$%^&*()_+qwertyuiop[]\\asdfghjkl;'zxcvbnm,./QWERTYUIOP{}|ASDFGHJKL:\"ZXCVBNM<>?";
     public SqlChar() {
         this("char", JDBCType.CHAR, 4000);
     }
@@ -50,13 +51,13 @@ public class SqlChar extends SqlType {
 
     public Object createdata() {
         int dataLength = ThreadLocalRandom.current().nextInt(precision);
-        String str = RandomStringUtils.randomAscii(dataLength);
+        String str = generateCharTypes(dataLength);
         String newStr = str.replace("'", "");
-//        System.out.println("str " +str);
-//        System.out.println("new " +newStr);
         return newStr;
-//        return (RandomStringUtils.randomAscii(dataLength).replace("'", "\\'"));
-//         return StringEscapeUtils.escapeSql(RandomStringUtils.randomAscii(dataLength));
+    }
 
+    private static String generateCharTypes(int columnLength) {
+        String charSet = normalCharSet;
+        return buildCharOrNChar(columnLength, charSet);
     }
 }

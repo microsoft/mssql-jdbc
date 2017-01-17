@@ -26,6 +26,7 @@
 package com.microsoft.sqlserver.testframework.sqlType;
 
 import java.sql.JDBCType;
+import java.util.Random;
 import java.util.concurrent.ThreadLocalRandom;
 
 public abstract class SqlType {
@@ -39,7 +40,7 @@ public abstract class SqlType {
     protected Object maxvalue = null;
     protected Object nullvalue = null;	// Primitives have non-null defaults
     protected VariableLengthType variableLengthType;
-
+    static Random r = new Random();
     /**
      * 
      * @param name
@@ -179,5 +180,36 @@ public abstract class SqlType {
         int minPrecision = 1;
         int maxPrecision = this.precision;
         this.precision = ThreadLocalRandom.current().nextInt(minPrecision, maxPrecision + 1);
+    }
+    
+    /**
+     * generate char or nchar values
+     * @param columnLength
+     * @param charSet
+     * @return
+     */
+    protected static String buildCharOrNChar(int columnLength, String charSet) {
+
+        int length;
+        
+            int columnLengthInt = columnLength;
+            length = columnLengthInt;
+            return buildRandomString(length, charSet);
+        
+    }
+    
+    private static String buildRandomString(int length, String charSet) {
+        StringBuffer sb = new StringBuffer();
+        for (int i = 0; i < length; i++) {
+            char c = pickRandomChar(charSet);
+            sb.append(c);
+        }
+        return sb.toString();
+    }
+
+    private static char pickRandomChar(String charSet) {
+        int charSetLength = charSet.length();
+        int randomIndex = r.nextInt(charSetLength);
+        return charSet.charAt(randomIndex);
     }
 }
