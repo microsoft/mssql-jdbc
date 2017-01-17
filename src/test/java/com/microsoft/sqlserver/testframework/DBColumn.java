@@ -25,6 +25,7 @@
 
 package com.microsoft.sqlserver.testframework;
 
+import java.sql.JDBCType;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -71,6 +72,14 @@ class DBColumn {
         return sqlType;
     }
 
+    /**
+     * 
+     * @return JDBCType for the column
+     */
+    JDBCType getJdbctype() {
+        return sqlType.getJdbctype();
+    }
+    
     /**
      * 
      * @param sqlType
