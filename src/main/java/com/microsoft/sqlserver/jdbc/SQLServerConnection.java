@@ -1806,6 +1806,7 @@ public class SQLServerConnection implements ISQLServerConnection
 						|| (SQLServerException.DRIVER_ERROR_SSL_FAILED == sqlex.getDriverErrorCode()) // failure negotiating SSL
 						|| (SQLServerException.DRIVER_ERROR_INTERMITTENT_TLS_FAILED == sqlex.getDriverErrorCode()) // failure TLS1.2
 						|| (SQLServerException.DRIVER_ERROR_UNSUPPORTED_CONFIG == sqlex.getDriverErrorCode()) // unsupported configuration (e.g. Sphinx, invalid packet size, etc.)
+						|| (SQLServerException.ERROR_SOCKET_TIMEOUT == sqlex.getDriverErrorCode()) //socket timeout ocurred
 						|| timerHasExpired(timerExpire)// no more time to try again
 						|| (state.equals(State.Connected)&& !isDBMirroring)
 						//for non-dbmirroring cases, do not retry after tcp socket connection succeeds
