@@ -183,30 +183,4 @@ public abstract class SqlType {
         this.precision = ThreadLocalRandom.current().nextInt(minPrecision, maxPrecision + 1);
     }
 
-    /**
-     * generate char or nchar values
-     * 
-     * @param columnLength
-     * @param charSet
-     * @return
-     */
-    protected static String buildCharOrNChar(int columnLength, String charSet) {
-        int columnLengthInt = columnLength;
-        return buildRandomString(columnLengthInt, charSet);
-    }
-
-    private static String buildRandomString(int length, String charSet) {
-        StringBuffer sb = new StringBuffer();
-        for (int i = 0; i < length; i++) {
-            char c = pickRandomChar(charSet);
-            sb.append(c);
-        }
-        return sb.toString();
-    }
-
-    private static char pickRandomChar(String charSet) {
-        int charSetLength = charSet.length();
-        int randomIndex = r.nextInt(charSetLength);
-        return charSet.charAt(randomIndex);
-    }
 }

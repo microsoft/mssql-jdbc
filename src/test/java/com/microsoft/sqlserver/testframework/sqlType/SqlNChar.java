@@ -28,10 +28,8 @@ package com.microsoft.sqlserver.testframework.sqlType;
 import java.sql.JDBCType;
 import java.util.concurrent.ThreadLocalRandom;
 
-import org.apache.commons.lang.StringEscapeUtils;
-
 public class SqlNChar extends SqlChar {
-    private static String normalCharSet = "1234567890-=!@#$%^&*()_+qwertyuiop[]\\asdfghjkl;'zxcvbnm,./QWERTYUIOP{}|ASDFGHJKL:\"ZXCVBNM<>?";
+    private static String normalCharSet = "1234567890-=!@#$%^&*()_+qwertyuiop[]\\asdfghjkl;zxcvbnm,./QWERTYUIOP{}|ASDFGHJKL:\"ZXCVBNM<>?";
 
     SqlNChar(String name, JDBCType jdbctype, int precision) {
         super(name, jdbctype, precision);
@@ -43,11 +41,9 @@ public class SqlNChar extends SqlChar {
 
     public Object createdata() {
         int dataLength = ThreadLocalRandom.current().nextInt(precision);
-        String str = generateCharTypes(dataLength);
-        String newStr = str.replace("'", "");
-        return newStr;
+        return generateCharTypes(dataLength);
     }
-    
+
     private static String generateCharTypes(int columnLength) {
         String charSet = normalCharSet;
         return buildCharOrNChar(columnLength, charSet);

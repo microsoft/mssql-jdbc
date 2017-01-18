@@ -38,7 +38,8 @@ import org.apache.commons.lang3.RandomStringUtils;
  */
 public class SqlChar extends SqlType {
 
-    private static String normalCharSet = "1234567890-=!@#$%^&*()_+qwertyuiop[]\\asdfghjkl;'zxcvbnm,./QWERTYUIOP{}|ASDFGHJKL:\"ZXCVBNM<>?";
+    private static String normalCharSet = "1234567890-=!@#$%^&*()_+qwertyuiop[]\\asdfghjkl;zxcvbnm,./QWERTYUIOP{}|ASDFGHJKL:\"ZXCVBNM<>?";
+
     public SqlChar() {
         this("char", JDBCType.CHAR, 4000);
     }
@@ -51,13 +52,38 @@ public class SqlChar extends SqlType {
 
     public Object createdata() {
         int dataLength = ThreadLocalRandom.current().nextInt(precision);
-        String str = generateCharTypes(dataLength);
-        String newStr = str.replace("'", "");
-        return newStr;
+        return generateCharTypes(dataLength);
     }
 
     private static String generateCharTypes(int columnLength) {
         String charSet = normalCharSet;
         return buildCharOrNChar(columnLength, charSet);
+    }
+
+    /**
+     * generate char or nchar values
+     * 
+     * @param columnLength
+     * @param charSet
+     * @return
+     */
+    protected static String buildCharOrNChar(int columnLength, String charSet) {
+        int columnLengthInt = columnLength;
+        return buildRandomString(columnLengthInt, charSet);
+    }
+
+    private static String buildRandomString(int length, String charSet) {
+        StringBuffer sb = new StringBuffer();
+        for (int i = 0; i < length; i++) {
+            char c = pickRandomChar(charSet);
+            sb.append(c);
+        }
+        return sb.toString();
+    }
+
+    private static char pickRandomChar(String charSet) {
+        int charSetLength = charSet.length();
+        int randomIndex = r.nextInt(charSetLength);
+        return charSet.charAt(randomIndex);
     }
 }

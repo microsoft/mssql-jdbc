@@ -46,11 +46,11 @@ public class DBStatement extends AbstractParentWrapper {
 
     Statement statement = null;
     DBResultSet dbresultSet = null;
-    
+
     DBStatement(DBConnection dbConnection) {
         super(dbConnection, null, "statement");
     }
-    
+
     DBStatement(DBConnection parent, Statement internal, int type, int concurrency, int holdability) {
         super(parent, null, "statement");
     }
@@ -65,7 +65,7 @@ public class DBStatement extends AbstractParentWrapper {
         setInternal(statement);
         return this;
     }
-    
+
     DBStatement createStatement(int type, int concurrency) throws SQLServerException {
         // TODO: add cursor and holdability
         statement = ((SQLServerConnection) parent().product()).createStatement(type, concurrency);
@@ -99,8 +99,7 @@ public class DBStatement extends AbstractParentWrapper {
     }
 
     /**
-     * Close the <code>Statement</code> and <code>ResultSet</code> associated
-     * with it
+     * Close the <code>Statement</code> and <code>ResultSet</code> associated with it
      * 
      * @throws SQLException
      */
@@ -145,15 +144,14 @@ public class DBStatement extends AbstractParentWrapper {
     void setInternal(Object internal) {
         this.internal = internal;
     }
-    
+
     /**
      * 
      * @return
      * @throws SQLException
      */
-    public int getQueryTimeout() throws SQLException
-    {
-       int current = ((Statement) product()).getQueryTimeout();     
-       return current;
+    public int getQueryTimeout() throws SQLException {
+        int current = ((Statement) product()).getQueryTimeout();
+        return current;
     }
 }
