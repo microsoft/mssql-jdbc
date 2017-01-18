@@ -252,7 +252,7 @@ public class DBTable extends AbstractSQLGenerator {
             sb.add(OPEN_BRACKET);
             for (int colNum = 0; colNum < totalColumns; colNum++) {
 
-                // TODO: add betterway to enclose data
+                // TODO: consider how to enclose data in case of preparedStatemets
                 if (passDataAsString(colNum)) {
                     sb.add("'" + String.valueOf(getColumn(colNum).getRowValue(i)) + "'");
                 }

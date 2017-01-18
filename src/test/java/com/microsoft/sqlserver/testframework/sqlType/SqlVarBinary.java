@@ -27,8 +27,14 @@ package com.microsoft.sqlserver.testframework.sqlType;
 
 import java.sql.JDBCType;
 
+/**
+ * Contains name, jdbctype, precision, scale for varbinary data type
+ */
 public class SqlVarBinary extends SqlBinary {
 
+    /**
+     * set JDBCType and precision for SqlVarBinary
+     */
     public SqlVarBinary() {
         super("varbinary", JDBCType.VARBINARY, 4000);
     }
