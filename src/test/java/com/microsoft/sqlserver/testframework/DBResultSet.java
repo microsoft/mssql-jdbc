@@ -79,6 +79,17 @@ public class DBResultSet extends AbstractParentWrapper {
 
     /**
      * 
+     * @param x
+     * @return
+     * @throws SQLException
+     */
+    public String getString(int x) throws SQLException {
+        String product = resultSet.getString(x);
+        return product;
+    }
+
+    /**
+     * 
      * @param index
      * @return
      */
