@@ -251,10 +251,28 @@ public class DBResultSet extends AbstractParentWrapper {
                         " unexpected DATETIMEOFFSET value, expected: " + expectedData + " ,received: " + retrieved);
                 break;
 
+            case java.sql.Types.BINARY:
+                assertTrue(parseByte((byte[])expectedData, (byte[])retrieved),
+                        " unexpected BINARY value, expected: " + expectedData + " ,received: " + retrieved);
+                break;
+
+            case java.sql.Types.VARBINARY:
+                assertTrue(parseByte((byte[])expectedData, (byte[])retrieved),
+                        " unexpected BINARY value, expected: " + expectedData + " ,received: " + retrieved);
+                break;
             default:
                 fail("Unhandled JDBCType " + JDBCType.valueOf(metaData.getColumnType(ordinal + 1)));
                 break;
         }
+    }
+    
+    private  boolean parseByte(byte[] expectedData, byte[] retrieved) {
+        for (int j = 0; j < expectedData.length; j++) {
+            assertTrue(
+                    expectedData[j] == retrieved[j] && expectedData[j] == retrieved[j] && expectedData[j] == retrieved[j],
+                            " unexpected BINARY value, expected");
+        }
+        return true;
     }
 
     private Object getXXX(int idx, Class coercion) throws SQLException {

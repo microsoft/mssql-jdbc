@@ -335,10 +335,12 @@ public class DBTable extends AbstractSQLGenerator {
         return columns.get(index);
     }
 
-    public List<DBColumn> getColumns() {
-        return columns;
-    }
-
+    /**
+     * 
+     * @param colIndex
+     * @param rowIndex
+     * @return
+     */
     public Object getRowData(int colIndex, int rowIndex) {
         return columns.get(colIndex).getRowValue(rowIndex);
     }
@@ -360,59 +362,8 @@ public class DBTable extends AbstractSQLGenerator {
      * @param colNum
      * @return <code>true</code> if value can be passed as Hex for the column
      */
+
     boolean passDataAsHex(int colNum) {
         return (JDBCType.BINARY == getColumn(colNum).getJdbctype() || JDBCType.VARBINARY == getColumn(colNum).getJdbctype());
-    }
-<<<<<<< HEAD
-
-    public List<DBColumn> getColumns() {
-        return columns;
-    }
-
-    public Object getRowData(int colIndex, int rowIndex) {
-        return columns.get(colIndex).getRowValue(rowIndex);
-    }
-
-=======
-    
->>>>>>> 85dd53d41a6d634a76d0a4872b4eaf0a2d2ccf4f
-    /**
-     * 
-     * @param colNum
-     * @return <code>true</code> if value can be passed as String for the column
-     */
-<<<<<<< HEAD
-    boolean passDataAsString(int colNum) {
-        return (JDBCType.CHAR == getColumn(colNum).getJdbctype() || JDBCType.VARCHAR == getColumn(colNum).getJdbctype()
-                || JDBCType.NCHAR == getColumn(colNum).getJdbctype() || JDBCType.NVARCHAR == getColumn(colNum).getJdbctype()
-                || JDBCType.TIMESTAMP == getColumn(colNum).getJdbctype() || JDBCType.DATE == getColumn(colNum).getJdbctype()
-                || JDBCType.TIME == getColumn(colNum).getJdbctype());
-    }
-
-=======
-    boolean passDataAsString(int colNum){
-        return (JDBCType.CHAR == getColumn(colNum).getJdbctype() 
-                || JDBCType.VARCHAR == getColumn(colNum).getJdbctype()
-                || JDBCType.NCHAR == getColumn(colNum).getJdbctype()
-                || JDBCType.NVARCHAR == getColumn(colNum).getJdbctype()
-                || JDBCType.TIMESTAMP == getColumn(colNum).getJdbctype()
-                || JDBCType.DATE == getColumn(colNum).getJdbctype()
-                || JDBCType.TIME == getColumn(colNum).getJdbctype());
-    }
-    
->>>>>>> 85dd53d41a6d634a76d0a4872b4eaf0a2d2ccf4f
-    /**
-     * 
-     * @param colNum
-     * @return <code>true</code> if value can be passed as Hex for the column
-     */
-<<<<<<< HEAD
-    boolean passDataAsHex(int colNum) {
-        return (JDBCType.BINARY == getColumn(colNum).getJdbctype() || JDBCType.VARBINARY == getColumn(colNum).getJdbctype());
-=======
-    boolean passDataAsHex(int colNum){
-        return (JDBCType.BINARY == getColumn(colNum).getJdbctype()
-                || JDBCType.VARBINARY == getColumn(colNum).getJdbctype());
->>>>>>> 85dd53d41a6d634a76d0a4872b4eaf0a2d2ccf4f
     }
 }
