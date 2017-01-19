@@ -34,7 +34,7 @@ public class TVPSchemaTest extends AbstractTest {
     protected static String procedureName = "[" + schemaName + "].[procedureThatCallsTVP]";
 
     /**
-     * 
+     * PreparedStatement with storedProcedure
      * @throws SQLException
      */
     @Test
@@ -91,7 +91,7 @@ public class TVPSchemaTest extends AbstractTest {
     }
 
     /**
-     * 
+     * callableStatement with StoredProcedure
      * @throws SQLException
      */
     @Test
@@ -149,7 +149,7 @@ public class TVPSchemaTest extends AbstractTest {
     }
 
     /**
-     * 
+     * Prepared with InsertCommand
      * @throws SQLException
      * @throws IOException
      */
@@ -205,7 +205,7 @@ public class TVPSchemaTest extends AbstractTest {
     }
 
     /**
-     * 
+     * Callable with InsertCommand
      * @throws SQLException
      * @throws IOException
      */
