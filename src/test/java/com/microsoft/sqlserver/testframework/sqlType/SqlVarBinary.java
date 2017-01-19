@@ -1,5 +1,5 @@
 // ---------------------------------------------------------------------------------------------------------------------------------
-// File: SqlChar.java
+// File: SqlVarBinary.java
 //
 //
 // Microsoft JDBC Driver for SQL Server
@@ -26,29 +26,16 @@
 package com.microsoft.sqlserver.testframework.sqlType;
 
 import java.sql.JDBCType;
-import java.util.concurrent.ThreadLocalRandom;
 
-import org.apache.commons.lang.StringEscapeUtils;
-import org.apache.commons.lang3.RandomStringUtils;
-
-/*
- * Restricting the size of char/binary to 2000 and nchar to 1000 to accommodate SQL Sever limitation of having of having maximum allowable
- * table row size to 8060
+/**
+ * Contains name, jdbctype, precision, scale for varbinary data type
  */
-public class SqlChar extends SqlType {
+public class SqlVarBinary extends SqlBinary {
 
-    public SqlChar() {
-        this("char", JDBCType.CHAR, 2000);
-    }
-
-    SqlChar(String name, JDBCType jdbctype, int precision) {
-        super(name, jdbctype, precision, 0, SqlTypeValue.CHAR.minValue, SqlTypeValue.CHAR.maxValue,
-                SqlTypeValue.CHAR.nullValue, VariableLengthType.Precision);
-        generatePrecision();
-    }
-
-    public Object createdata() {
-        int dataLength = ThreadLocalRandom.current().nextInt(precision);
-        return StringEscapeUtils.escapeSql(RandomStringUtils.randomAscii(dataLength));
+    /**
+     * set JDBCType and precision for SqlVarBinary
+     */
+    public SqlVarBinary() {
+        super("varbinary", JDBCType.VARBINARY, 4000);
     }
 }

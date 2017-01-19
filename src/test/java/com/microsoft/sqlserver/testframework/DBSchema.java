@@ -29,6 +29,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import com.microsoft.sqlserver.testframework.sqlType.SqlBigInt;
+import com.microsoft.sqlserver.testframework.sqlType.SqlBinary;
 import com.microsoft.sqlserver.testframework.sqlType.SqlBit;
 import com.microsoft.sqlserver.testframework.sqlType.SqlChar;
 import com.microsoft.sqlserver.testframework.sqlType.SqlDate;
@@ -49,6 +50,7 @@ import com.microsoft.sqlserver.testframework.sqlType.SqlSmallMoney;
 import com.microsoft.sqlserver.testframework.sqlType.SqlTime;
 import com.microsoft.sqlserver.testframework.sqlType.SqlTinyInt;
 import com.microsoft.sqlserver.testframework.sqlType.SqlType;
+import com.microsoft.sqlserver.testframework.sqlType.SqlVarBinary;
 import com.microsoft.sqlserver.testframework.sqlType.SqlVarChar;
 
 /**
@@ -94,8 +96,11 @@ public class DBSchema {
             sqlTypes.add(new SqlSmallDateTime());
             sqlTypes.add(new SqlDateTime2());
             sqlTypes.add(new SqlDateTimeOffset());
-            // TODO:
             // Binary
+            sqlTypes.add(new SqlBinary());
+            sqlTypes.add(new SqlVarBinary());
+            
+            // TODO:
             // Other types
         }
     }
