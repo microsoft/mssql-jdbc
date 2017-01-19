@@ -334,35 +334,6 @@ public class DBTable extends AbstractSQLGenerator {
     DBColumn getColumn(int index) {
         return columns.get(index);
     }
-
-    public List<DBColumn> getColumns() {
-        return columns;
-    }
-
-    public Object getRowData(int colIndex, int rowIndex) {
-        return columns.get(colIndex).getRowValue(rowIndex);
-    }
-
-    /**
-     * 
-     * @param colNum
-     * @return <code>true</code> if value can be passed as String for the column
-     */
-    boolean passDataAsString(int colNum) {
-        return (JDBCType.CHAR == getColumn(colNum).getJdbctype() || JDBCType.VARCHAR == getColumn(colNum).getJdbctype()
-                || JDBCType.NCHAR == getColumn(colNum).getJdbctype() || JDBCType.NVARCHAR == getColumn(colNum).getJdbctype()
-                || JDBCType.TIMESTAMP == getColumn(colNum).getJdbctype() || JDBCType.DATE == getColumn(colNum).getJdbctype()
-                || JDBCType.TIME == getColumn(colNum).getJdbctype());
-    }
-
-    /**
-     * 
-     * @param colNum
-     * @return <code>true</code> if value can be passed as Hex for the column
-     */
-    boolean passDataAsHex(int colNum) {
-        return (JDBCType.BINARY == getColumn(colNum).getJdbctype() || JDBCType.VARBINARY == getColumn(colNum).getJdbctype());
-    }
 <<<<<<< HEAD
 
     public List<DBColumn> getColumns() {

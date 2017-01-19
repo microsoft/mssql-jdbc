@@ -1,5 +1,5 @@
 // ---------------------------------------------------------------------------------------------------------------------------------
-// File: SqlNChar.java
+// File: SqlVarBinary.java
 //
 //
 // Microsoft JDBC Driver for SQL Server
@@ -26,26 +26,16 @@
 package com.microsoft.sqlserver.testframework.sqlType;
 
 import java.sql.JDBCType;
-import java.util.concurrent.ThreadLocalRandom;
 
-public class SqlNChar extends SqlChar {
-    private static String normalCharSet = "1234567890-=!@#$%^&*()_+qwertyuiop[]\\asdfghjkl;zxcvbnm,./QWERTYUIOP{}|ASDFGHJKL:\"ZXCVBNM<>?";
+/**
+ * Contains name, jdbctype, precision, scale for varbinary data type
+ */
+public class SqlVarBinary extends SqlBinary {
 
-    SqlNChar(String name, JDBCType jdbctype, int precision) {
-        super(name, jdbctype, precision);
-    }
-
-    public SqlNChar() {
-        this("nchar", JDBCType.NCHAR, 1000);
-    }
-
-    public Object createdata() {
-        int dataLength = ThreadLocalRandom.current().nextInt(precision);
-        return generateCharTypes(dataLength);
-    }
-
-    private static String generateCharTypes(int columnLength) {
-        String charSet = normalCharSet;
-        return buildCharOrNChar(columnLength, charSet);
+    /**
+     * set JDBCType and precision for SqlVarBinary
+     */
+    public SqlVarBinary() {
+        super("varbinary", JDBCType.VARBINARY, 4000);
     }
 }

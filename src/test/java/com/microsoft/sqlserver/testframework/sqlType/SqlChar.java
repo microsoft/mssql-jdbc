@@ -41,7 +41,7 @@ public class SqlChar extends SqlType {
     private static String normalCharSet = "1234567890-=!@#$%^&*()_+qwertyuiop[]\\asdfghjkl;zxcvbnm,./QWERTYUIOP{}|ASDFGHJKL:\"ZXCVBNM<>?";
 
     public SqlChar() {
-        this("char", JDBCType.CHAR, 4000);
+        this("char", JDBCType.CHAR, 2000);
     }
 
     SqlChar(String name, JDBCType jdbctype, int precision) {

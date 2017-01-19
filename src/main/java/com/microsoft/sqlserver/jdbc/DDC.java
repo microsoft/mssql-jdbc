@@ -412,7 +412,7 @@ final class DDC
 	{
 		boolean isNeg = value.signum() < 0;
 
-		value = value.setScale(scale, RoundingMode.DOWN);
+		value = value.setScale(scale);
 
 		BigInteger bigInt = value.unscaledValue();
 

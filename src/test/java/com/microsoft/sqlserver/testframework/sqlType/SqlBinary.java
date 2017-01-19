@@ -1,5 +1,5 @@
 // ---------------------------------------------------------------------------------------------------------------------------------
-// File: SqlNChar.java
+// File: SqlBinary.java
 //
 //
 // Microsoft JDBC Driver for SQL Server
@@ -28,24 +28,37 @@ package com.microsoft.sqlserver.testframework.sqlType;
 import java.sql.JDBCType;
 import java.util.concurrent.ThreadLocalRandom;
 
-public class SqlNChar extends SqlChar {
-    private static String normalCharSet = "1234567890-=!@#$%^&*()_+qwertyuiop[]\\asdfghjkl;zxcvbnm,./QWERTYUIOP{}|ASDFGHJKL:\"ZXCVBNM<>?";
+/**
+ * Contains name, jdbctype, precision, scale for binary data type
+ */
+public class SqlBinary extends SqlType {
 
-    SqlNChar(String name, JDBCType jdbctype, int precision) {
-        super(name, jdbctype, precision);
+    /**
+     * set JDBCType and precision for SqlBinary
+     */
+    public SqlBinary() {
+        this("binary", JDBCType.BINARY, 2000);
     }
 
-    public SqlNChar() {
-        this("nchar", JDBCType.NCHAR, 1000);
+    /**
+     * 
+     * @param name binary or varbinary
+     * @param jdbctype
+     * @param precision
+     */
+    SqlBinary(String name, JDBCType jdbctype, int precision) {
+        super(name, jdbctype, precision, 0, SqlTypeValue.BINARY.minValue, SqlTypeValue.BINARY.maxValue, SqlTypeValue.BINARY.nullValue,
+                VariableLengthType.Precision);
+        generatePrecision();
     }
 
+    /**
+     * create random data for binary and varbinary column
+     */
     public Object createdata() {
         int dataLength = ThreadLocalRandom.current().nextInt(precision);
-        return generateCharTypes(dataLength);
-    }
-
-    private static String generateCharTypes(int columnLength) {
-        String charSet = normalCharSet;
-        return buildCharOrNChar(columnLength, charSet);
+        byte[] bytes = new byte[dataLength];
+        ThreadLocalRandom.current().nextBytes(bytes);
+        return bytes;
     }
 }

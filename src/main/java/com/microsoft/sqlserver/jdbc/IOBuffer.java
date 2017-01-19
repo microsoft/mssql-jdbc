@@ -4926,7 +4926,7 @@ final class TDSWriter
 							BigDecimal bdValue = new BigDecimal(currentColumnStringValue);
 
 							// setScale of all BigDecimal value based on metadata sent
-							bdValue = bdValue.setScale(columnPair.getValue().scale, RoundingMode.HALF_UP);
+							bdValue = bdValue.setScale(columnPair.getValue().scale);
 							byte[] valueBytes = DDC.convertBigDecimalToBytes(bdValue, bdValue.scale());
 
 							// 1-byte for sign and 16-byte for integer
