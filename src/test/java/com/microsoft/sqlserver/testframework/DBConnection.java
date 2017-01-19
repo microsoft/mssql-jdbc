@@ -29,12 +29,11 @@ import static org.junit.jupiter.api.Assertions.fail;
 
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
-import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.sql.Statement;
 
 import com.microsoft.sqlserver.jdbc.SQLServerConnection;
+import com.microsoft.sqlserver.jdbc.SQLServerException;
 
 /*
  * Wrapper class for SQLServerConnection
@@ -47,10 +46,6 @@ public class DBConnection extends AbstractParentWrapper {
     // TODO: add additional connection properties
     // TODO: add DataSource support
     private SQLServerConnection connection = null;
-    private boolean _closed = false;
-    private boolean _closeCalled = false;
-    public int _holdability = ResultSet.HOLD_CURSORS_OVER_COMMIT;
-
 
     /**
      * establishes connection using the input
@@ -112,21 +107,31 @@ public class DBConnection extends AbstractParentWrapper {
         return dbstatement.createStatement(type, concurrency);
 
     }
-    
+
+    /**
+     * 
+     * @param rsType
+     * @return
+     * @throws SQLServerException
+     */
+    public DBStatement createStatement(DBResultSetTypes rsType) throws SQLServerException {
+        DBStatement dbstatement = new DBStatement(this);
+        return dbstatement.createStatement(rsType.resultsetCursor, rsType.resultSetConcurrency);
+    }
+
     /**
      * 
      * @param query
      * @return
      * @throws SQLException
      */
-    public DBPreparedStatement prepareStatement(String query) throws SQLException
-    {
-       DBPreparedStatement dbpstmt = new DBPreparedStatement(this, internal, "preparedStatement");
-       return dbpstmt.prepareStatement(query);    
+    public DBPreparedStatement prepareStatement(String query) throws SQLException {
+        DBPreparedStatement dbpstmt = new DBPreparedStatement(this, internal, "preparedStatement");
+        return dbpstmt.prepareStatement(query);
     }
 
     /**
-     * clsoe connection
+     * close connection
      */
     public void close() {
         try {

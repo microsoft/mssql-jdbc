@@ -9,10 +9,10 @@ package com.microsoft.sqlserver.jdbc.bvt;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import java.math.BigDecimal;
 import java.sql.DatabaseMetaData;
-import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -26,6 +26,7 @@ import org.junit.runner.RunWith;
 import com.microsoft.sqlserver.testframework.DBConnection;
 import com.microsoft.sqlserver.testframework.DBPreparedStatement;
 import com.microsoft.sqlserver.testframework.DBResultSet;
+import com.microsoft.sqlserver.testframework.DBResultSetTypes;
 import com.microsoft.sqlserver.testframework.DBStatement;
 
 @RunWith(JUnitPlatform.class)
@@ -37,9 +38,11 @@ public class bvtTest extends bvtTestSetup {
     private static DBConnection conn = null;
     private static DBStatement stmt = null;
 
-    ///////////////////////////////////////////////////////////////////
-    //// Connect to specified server and close the connection
-    /////////////////////////////////////////////////////////////////////
+    /**
+     * Connect to specified server and close the connection
+     * 
+     * @throws SQLException
+     */
     @Test
     @DisplayName("test connection")
     public void testConnection() throws SQLException {
@@ -52,9 +55,11 @@ public class bvtTest extends bvtTestSetup {
         }
     }
 
-    /////////////////////////////////////////////////////////////////////
-    //// Verify isClosed()
-    /////////////////////////////////////////////////////////////////////
+    /**
+     * Verify isClosed()
+     * 
+     * @throws SQLException
+     */
     @Test
     public void testConnectionIsClosed() throws SQLException {
         try {
@@ -68,9 +73,11 @@ public class bvtTest extends bvtTestSetup {
         }
     }
 
-    /////////////////////////////////////////////////////////////////////
-    //// Verify Driver Name and Version from MetaData
-    /////////////////////////////////////////////////////////////////////
+    /**
+     * Verify Driver Name and Version from MetaData
+     * 
+     * @throws SQLException
+     */
     @Test
     public void testDriverNameAndDriverVersion() throws SQLException {
         try {
@@ -88,9 +95,11 @@ public class bvtTest extends bvtTestSetup {
         }
     }
 
-    ///////////////////////////////////////////////////////////////////
-    // Create a statement, call close
-    ///////////////////////////////////////////////////////////////////
+    /**
+     * Create a statement, call close
+     * 
+     * @throws SQLException
+     */
     @Test
     public void testCreateStatement() throws SQLException {
 
@@ -107,12 +116,11 @@ public class bvtTest extends bvtTestSetup {
         }
     }
 
-    ///////////////////////////////////////////////////////////////////
-    // Create a statement with a query timeout
-    // ResultSet.Type_forward_only,
-    // ResultSet.CONCUR_READ_ONLY, executeQuery
-    // verify cursor by using next and previous and verify data
-    ///////////////////////////////////////////////////////////////////
+    /**
+     * Create a statement with a query timeout
+     * 
+     * @throws SQLException
+     */
     @Test
     public void testCreateStatementWithQueryTimeout() throws SQLException {
 
@@ -126,19 +134,19 @@ public class bvtTest extends bvtTestSetup {
         }
     }
 
-    ///////////////////////////////////////////////////////////////////
-    // Create a statement
-    // ResultSet.Type_forward_only,
-    // ResultSet.CONCUR_READ_ONLY, executeQuery
-    // verify cursor by using next and previous and verify data
-    ///////////////////////////////////////////////////////////////////
+    /**
+     * Create a statement ResultSet.Type_forward_only, ResultSet.CONCUR_READ_ONLY, executeQuery verify cursor by using next and previous and verify
+     * data
+     * 
+     * @throws SQLException
+     * @throws ClassNotFoundException
+     */
     @Test
     public void testStmtForwardOnlyReadOnly() throws SQLException, ClassNotFoundException {
 
         try {
             conn = new DBConnection(connectionString);
-            stmt = conn.createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY);
-
+            stmt = conn.createStatement(DBResultSetTypes.TYPE_FORWARD_ONLY_CONCUR_READ_ONLY);
             String query = "SELECT * FROM " + table1.getEscapedTableName();
             rs = stmt.executeQuery(query);
 
@@ -161,17 +169,18 @@ public class bvtTest extends bvtTestSetup {
         }
     }
 
-    ///////////////////////////////////////////////////////////////////
-    // Create a statement
-    // ResultSet.SCROLL_INSENSITIVE,
-    // ResultSet.CONCUR_READ_ONLY, executeQuery
-    // verify cursor by using next, afterlast and previous and verify data
-    ///////////////////////////////////////////////////////////////////
+    /**
+     * Create a statement, ResultSet.SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY, executeQuery verify cursor by using next, afterlast and previous
+     * and verify data
+     * 
+     * @throws SQLException
+     * @throws ClassNotFoundException
+     */
     @Test
     public void testStmtScrollInsensitiveReadOnly() throws SQLException, ClassNotFoundException {
         try {
             conn = new DBConnection(connectionString);
-            stmt = conn.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
+            stmt = conn.createStatement(DBResultSetTypes.TYPE_SCROLL_INSENSITIVE_CONCUR_READ_ONLY);
 
             String query = "SELECT * FROM" + table1.getEscapedTableName();
             rs = stmt.executeQuery(query);
@@ -187,18 +196,18 @@ public class bvtTest extends bvtTestSetup {
         }
     }
 
-    // /////////////////////////////////////////////////////////////////
-    // // Create a statement
-    // // ResultSet.SCROLL_SENSITIVE,
-    // // ResultSet.CONCUR_READ_ONLY, executeQuery
-    // // verify cursor by using next and absolute and verify data
-    // ///////////////////////////////////////////////////////////////////
+    /**
+     * Create a statement ResultSet.SCROLL_SENSITIVE, ResultSet.CONCUR_READ_ONLY, executeQuery verify cursor by using next and absolute and verify
+     * data
+     * 
+     * @throws SQLException
+     */
     @Test
     public void testStmtScrollSensitiveReadOnly() throws SQLException {
 
         try {
             conn = new DBConnection(connectionString);
-            stmt = conn.createStatement(ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_READ_ONLY);
+            stmt = conn.createStatement(DBResultSetTypes.TYPE_SCROLL_SENSITIVE_CONCUR_READ_ONLY);
 
             String query = "SELECT * FROM " + table1.getEscapedTableName();
             rs = stmt.executeQuery(query);
@@ -216,18 +225,18 @@ public class bvtTest extends bvtTestSetup {
         }
     }
 
-    ///////////////////////////////////////////////////////////////////
-    // Create a statement
-    // ResultSet.Type_forward_only,
-    // ResultSet.CONCUR_UPDATABLE, executeQuery
-    // verify cursor by using next and previous and verify data
-    ///////////////////////////////////////////////////////////////////
+    /**
+     * Create a statement ResultSet.Type_forward_only, ResultSet.CONCUR_UPDATABLE, executeQuery verify cursor by using next and previous and verify
+     * data
+     * 
+     * @throws SQLException
+     */
     @Test
     public void testStmtForwardOnlyUpdateable() throws SQLException {
 
         try {
             conn = new DBConnection(connectionString);
-            stmt = conn.createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE);
+            stmt = conn.createStatement(DBResultSetTypes.TYPE_FORWARD_ONLY_CONCUR_UPDATABLE);
 
             String query = "SELECT * FROM " + table1.getEscapedTableName();
             rs = stmt.executeQuery(query);
@@ -252,20 +261,19 @@ public class bvtTest extends bvtTestSetup {
         }
     }
 
-    ///////////////////////////////////////////////////////////////////
-    // Create a statement
-    // ResultSet.SCROLL_SENSITIVE,
-    // ResultSet.CONCUR_UPDATABLE, executeQuery
-    // verify cursor by using next and previous and verify data
-    ///////////////////////////////////////////////////////////////////
+    /**
+     * Create a statement ResultSet.SCROLL_SENSITIVE, ResultSet.CONCUR_UPDATABLE, executeQuery verify cursor by using next and previous and verify
+     * data
+     * 
+     * @throws SQLException
+     */
     @Test
     public void testStmtScrollSensitiveUpdatable() throws SQLException {
 
         try {
             conn = new DBConnection(connectionString);
-            stmt = conn.createStatement(ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_UPDATABLE);
+            stmt = conn.createStatement(DBResultSetTypes.TYPE_SCROLL_SENSITIVE_CONCUR_UPDATABLE);
 
-            // DBResultSet.currentTable = table1;
             String query = "SELECT * FROM " + table1.getEscapedTableName();
             rs = stmt.executeQuery(query);
 
@@ -283,20 +291,17 @@ public class bvtTest extends bvtTestSetup {
         }
     }
 
-    ///////////////////////////////////////////////////////////////////
-    // Create a statement
-    // TYPE_SS_SCROLL_DYNAMIC,
-    // CONCUR_SS_OPTIMISTIC_CC, executeQuery
-    // verify cursor by using next and previous and verify data
-    ///////////////////////////////////////////////////////////////////
+    /**
+     * Create a statement TYPE_SS_SCROLL_DYNAMIC, CONCUR_SS_OPTIMISTIC_CC, executeQuery verify cursor by using next and previous and verify data
+     * 
+     * @throws SQLException
+     */
     @Test
     public void testStmtSS_ScrollDynamicOptimistic_CC() throws SQLException {
 
         try {
-            int TYPE_SS_SCROLL_DYNAMIC = 1006;
-            int CONCUR_SS_OPTIMISTIC_CC = 1008;
             conn = new DBConnection(connectionString);
-            stmt = conn.createStatement(TYPE_SS_SCROLL_DYNAMIC, CONCUR_SS_OPTIMISTIC_CC);
+            stmt = conn.createStatement(DBResultSetTypes.TYPE_DYNAMIC_CONCUR_OPTIMISTIC);
 
             String query = "SELECT * FROM " + table1.getEscapedTableName();
             rs = stmt.executeQuery(query);
@@ -312,20 +317,18 @@ public class bvtTest extends bvtTestSetup {
         }
     }
 
-    ///////////////////////////////////////////////////////////////////
-    // Create a statement
-    // TYPE_SS_SEVER_CURSOR_FORWARD_ONLY,
-    // CONCUR_READ_ONLY, executeQuery
-    // verify cursor by using next and verify data
-    ///////////////////////////////////////////////////////////////////
+    /**
+     * Create a statement TYPE_SS_SEVER_CURSOR_FORWARD_ONLY, CONCUR_READ_ONLY, executeQuery verify cursor by using next and verify data
+     * 
+     * @throws SQLException
+     */
     @Test
     public void testStmtSS_SEVER_CURSOR_FORWARD_ONLY() throws SQLException {
 
         try {
-            int TYPE_SS_SEVER_CURSOR_FORWARD_ONLY = 2004;
-            int CONCUR_READ_ONLY = 1008;
             conn = new DBConnection(connectionString);
-            stmt = conn.createStatement(TYPE_SS_SEVER_CURSOR_FORWARD_ONLY, CONCUR_READ_ONLY);
+            DBResultSetTypes rsType = DBResultSetTypes.TYPE_FORWARD_ONLY_CONCUR_READ_ONLY;
+            stmt = conn.createStatement(rsType.resultsetCursor, rsType.resultSetConcurrency);
 
             String query = "SELECT * FROM " + table1.getEscapedTableName();
 
@@ -341,22 +344,24 @@ public class bvtTest extends bvtTestSetup {
 
     }
 
-    ///////////////////////////////////////////////////////////////////
-    // Create a preparedstatement, call close
-    ///////////////////////////////////////////////////////////////////
+    /**
+     * Create a preparedStatement, call close
+     * 
+     * @throws SQLException
+     */
     @Test
     public void testCreatepreparedStatement() throws SQLException {
 
         try {
             conn = new DBConnection(connectionString);
             String colName = table1.getColumnName(7);
-            String value = DBResultSet.getRow(table1, 0).get(7).toString();
+            String value = table1.getRowData(7, 0).toString();
 
             String query = "SELECT * from " + table1.getEscapedTableName() + " where [" + colName + "] = ? ";
 
             pstmt = conn.prepareStatement(query);
             pstmt.setObject(1, new BigDecimal(value));
-           
+
             rs = pstmt.executeQuery();
             rs.verify(table1);
         }
@@ -365,9 +370,11 @@ public class bvtTest extends bvtTestSetup {
         }
     }
 
-    ///////////////////////////////////////////////////////////////////
-    // Verify resultset using ResultSetMetaData
-    ///////////////////////////////////////////////////////////////////
+    /**
+     * Verify resultset using ResultSetMetaData
+     * 
+     * @throws SQLException
+     */
     @Test
     public void testResultSet() throws SQLException {
 
@@ -386,9 +393,11 @@ public class bvtTest extends bvtTestSetup {
         }
     }
 
-    ///////////////////////////////////////////////////////////////////
-    // Verify resultset and close resultSet
-    ///////////////////////////////////////////////////////////////////
+    /**
+     * Verify resultset and close resultSet
+     * 
+     * @throws SQLException
+     */
     @Test
     public void testResultSetAndClose() throws SQLException {
 
@@ -398,20 +407,25 @@ public class bvtTest extends bvtTestSetup {
 
             String query = "SELECT * FROM " + table1.getEscapedTableName();
             rs = stmt.executeQuery(query);
-            rs.currentTable = table1;
 
-            rs.verify(table1);
-            stmt.close();
+            try {
+                if (null != rs)
+                    rs.close();
+            }
+            catch (SQLException e) {
+                fail(e.toString());
+            }
         }
         finally {
             terminateVariation();
         }
     }
 
-    ///////////////////////////////////////////////////////////////////
-    // Verify two concurrent resultsets from same connection,
-    // separate statements
-    ///////////////////////////////////////////////////////////////////
+    /**
+     * Verify two concurrent resultsets from same connection, separate statements
+     * 
+     * @throws SQLException
+     */
     @Test
     public void testTwoResultsetsDifferentStmt() throws SQLException {
 
@@ -426,11 +440,9 @@ public class bvtTest extends bvtTestSetup {
 
             String query = "SELECT * FROM " + table1.getEscapedTableName();
             rs1 = stmt1.executeQuery(query);
-            rs1.currentTable = table1;
 
             String query2 = "SELECT * FROM " + table2.getEscapedTableName();
             rs2 = stmt2.executeQuery(query2);
-            rs2.currentTable = table2;
 
             // Interleave resultset calls
             rs1.next();
@@ -461,10 +473,11 @@ public class bvtTest extends bvtTestSetup {
         }
     }
 
-    ///////////////////////////////////////////////////////////////////
-    // Verify two concurrent resultsets from same connection,
-    // same statement
-    ///////////////////////////////////////////////////////////////////
+    /**
+     * Verify two concurrent resultsets from same connection, same statement
+     * 
+     * @throws SQLException
+     */
     @Test
     public void testTwoResultsetsSameStmt() throws SQLException {
 
@@ -510,20 +523,20 @@ public class bvtTest extends bvtTestSetup {
         }
     }
 
-    ///////////////////////////////////////////////////////////////////
-    // Verify resultset closed after statement is closed
-    ///////////////////////////////////////////////////////////////////
+    /**
+     * Verify resultset closed after statement is closed
+     * 
+     * @throws SQLException
+     */
     @Test
     public void testResultSetAndCloseStmt() throws SQLException {
         try {
             conn = new DBConnection(connectionString);
             stmt = conn.createStatement();
 
-            // SELECT * FROM <table2> ORDER BY <key>
             String query = "SELECT * FROM " + table1.getEscapedTableName();
             rs = stmt.executeQuery(query);
 
-            // close statement and verify resultSet
             stmt.close(); // this should close the resultSet
             try {
                 rs.next();
@@ -537,9 +550,11 @@ public class bvtTest extends bvtTestSetup {
         }
     }
 
-    ///////////////////////////////////////////////////////////////////
-    // Verify resultset using SelectMethod
-    ///////////////////////////////////////////////////////////////////
+    /**
+     * Verify resultset using SelectMethod
+     * 
+     * @throws SQLException
+     */
     @Test
     public void testResultSetSelectMethod() throws SQLException {
 
@@ -547,11 +562,9 @@ public class bvtTest extends bvtTestSetup {
             conn = new DBConnection(connectionString + ";selectMethod=cursor;");
             stmt = conn.createStatement();
 
-            // SELECT * FROM <table2> ORDER BY <key>
             String query = "SELECT * FROM " + table1.getEscapedTableName();
             rs = stmt.executeQuery(query);
 
-            // verify resultSet
             rs.verify(table1);
         }
         finally {

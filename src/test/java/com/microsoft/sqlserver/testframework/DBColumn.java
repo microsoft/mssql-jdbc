@@ -25,14 +25,14 @@
 
 package com.microsoft.sqlserver.testframework;
 
+import java.sql.JDBCType;
 import java.util.ArrayList;
 import java.util.List;
 
 import com.microsoft.sqlserver.testframework.sqlType.SqlType;
 
 /**
- * This class holds data for Column. Think about encrypted columns. <B>createCMK
- * code should not add here.</B>
+ * This class holds data for Column. Think about encrypted columns. <B>createCMK code should not add here.</B>
  */
 class DBColumn {
 
@@ -73,6 +73,14 @@ class DBColumn {
 
     /**
      * 
+     * @return JDBCType for the column
+     */
+    JDBCType getJdbctype() {
+        return sqlType.getJdbctype();
+    }
+
+    /**
+     * 
      * @param sqlType
      */
     void setSqlType(SqlType sqlType) {
@@ -88,7 +96,7 @@ class DBColumn {
     void populateValues(int rows) {
         columnValues = new ArrayList<Object>();
         for (int i = 0; i < rows; i++)
-            columnValues.add(sqlType.createdata());        
+            columnValues.add(sqlType.createdata());
     }
 
     /**
@@ -96,7 +104,7 @@ class DBColumn {
      * @param row
      * @return the value populated for the column
      */
-    Object getRowValue(int row) {
+    public Object getRowValue(int row) {
         // handle exceptions
         return columnValues.get(row);
     }

@@ -33,7 +33,7 @@ import org.apache.commons.lang.StringEscapeUtils;
 import org.apache.commons.lang3.RandomStringUtils;
 
 /*
- * Restricting the size of char/varchar to 4000 and nchar/nvarchar to 2000 to accommodate SQL Sever limitation of having of having maximum allowable
+ * Restricting the size of char/binary to 2000 and nchar to 1000 to accommodate SQL Sever limitation of having of having maximum allowable
  * table row size to 8060
  */
 public class SqlChar extends SqlType {

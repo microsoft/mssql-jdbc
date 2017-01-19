@@ -37,11 +37,7 @@ import java.sql.Time;
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
-import java.time.OffsetDateTime;
-import java.util.ArrayList;
 import java.util.Calendar;
-
-import microsoft.sql.DateTimeOffset;
 
 /**
  * wrapper class for ResultSet
@@ -49,12 +45,23 @@ import microsoft.sql.DateTimeOffset;
  * @author Microsoft
  *
  */
+
 public class DBResultSet extends AbstractParentWrapper {
 
     // TODO: add cursors
     // TODO: add resultSet level holdability
     // TODO: add concurrency control
-    public DBTable currentTable;
+
+    public static final int TYPE_DYNAMIC = ResultSet.TYPE_SCROLL_SENSITIVE + 1;
+    public static final int CONCUR_OPTIMISTIC = ResultSet.CONCUR_UPDATABLE + 2;
+    public static final int TYPE_CURSOR_FORWARDONLY = ResultSet.TYPE_FORWARD_ONLY + 1001;
+    public static final int TYPE_FORWARD_ONLY = ResultSet.TYPE_FORWARD_ONLY;
+    public static final int CONCUR_READ_ONLY = ResultSet.CONCUR_READ_ONLY;
+    public static final int TYPE_SCROLL_INSENSITIVE = ResultSet.TYPE_SCROLL_INSENSITIVE;
+    public static final int TYPE_SCROLL_SENSITIVE = ResultSet.TYPE_SCROLL_SENSITIVE;
+    public static final int CONCUR_UPDATABLE = ResultSet.CONCUR_UPDATABLE;
+
+    protected DBTable currentTable;
     public int _currentrow = -1;       // The row this rowset is currently pointing to
 
     ResultSet resultSet = null;
@@ -146,128 +153,108 @@ public class DBResultSet extends AbstractParentWrapper {
      * @throws SQLException
      */
     public void verifydata(int ordinal, Class coercion, Object arg) throws SQLException {
-        Object backendData = this.currentrow().get(ordinal);
+        Object expectedData = currentTable.columns.get(ordinal).getRowValue(_currentrow);
 
         // getXXX - default mapping
         Object retrieved = this.getXXX(ordinal + 1, coercion);
 
         // Verify
-        verifydata(ordinal, coercion, backendData, retrieved);
+        verifydata(ordinal, coercion, expectedData, retrieved);
     }
 
-    public void verifydata(int ordinal, Class coercion, Object backendData, Object retrieved) throws SQLException {
+    public void verifydata(int ordinal, Class coercion, Object expectedData, Object retrieved) throws SQLException {
         metaData = this.getMetaData();
         switch (metaData.getColumnType(ordinal + 1)) {
             case java.sql.Types.BIGINT:
-                assertTrue((((Long) backendData).longValue() == ((Long) retrieved).longValue()),
-                        "Unexpected bigint value, expected: " + ((Long) backendData).longValue() + " .Retrieved: " + ((Long) retrieved).longValue());
+                assertTrue((((Long) expectedData).longValue() == ((Long) retrieved).longValue()),
+                        "Unexpected bigint value, expected: " + ((Long) expectedData).longValue() + " .Retrieved: " + ((Long) retrieved).longValue());
                 break;
 
             case java.sql.Types.INTEGER:
-                assertTrue((((Integer) backendData).intValue() == ((Integer) retrieved).intValue()),
-                        "Unexpected int value, expected : " + ((Integer) backendData).intValue() + " ,received: " + ((Integer) retrieved).intValue());
+                assertTrue((((Integer) expectedData).intValue() == ((Integer) retrieved).intValue()), "Unexpected int value, expected : "
+                        + ((Integer) expectedData).intValue() + " ,received: " + ((Integer) retrieved).intValue());
                 break;
 
             case java.sql.Types.SMALLINT:
             case java.sql.Types.TINYINT:
-                assertTrue((((Short) backendData).shortValue() == ((Short) retrieved).shortValue()), "Unexpected smallint/tinyint value, expected: "
-                        + " " + ((Short) backendData).shortValue() + " received: " + ((Short) retrieved).shortValue());
+                assertTrue((((Short) expectedData).shortValue() == ((Short) retrieved).shortValue()), "Unexpected smallint/tinyint value, expected: "
+                        + " " + ((Short) expectedData).shortValue() + " received: " + ((Short) retrieved).shortValue());
                 break;
 
             case java.sql.Types.BIT:
-                if (backendData.equals(1))
-                    backendData = true;
+                if (expectedData.equals(1))
+                    expectedData = true;
                 else
-                    backendData = false;
-                assertTrue((((Boolean) backendData).booleanValue() == ((Boolean) retrieved).booleanValue()), "Unexpected bit value, expected: "
-                        + ((Boolean) backendData).booleanValue() + " ,received: " + ((Boolean) retrieved).booleanValue());
+                    expectedData = false;
+                assertTrue((((Boolean) expectedData).booleanValue() == ((Boolean) retrieved).booleanValue()), "Unexpected bit value, expected: "
+                        + ((Boolean) expectedData).booleanValue() + " ,received: " + ((Boolean) retrieved).booleanValue());
                 break;
 
             case java.sql.Types.DECIMAL:
             case java.sql.Types.NUMERIC:
-                assertTrue(0 == (((BigDecimal) backendData).compareTo((BigDecimal) retrieved)), "Unexpected decimal/numeric/money/smallmoney value "
-                        + ",expected: " + (BigDecimal) backendData + " received: " + (BigDecimal) retrieved);
+                assertTrue(0 == (((BigDecimal) expectedData).compareTo((BigDecimal) retrieved)), "Unexpected decimal/numeric/money/smallmoney value "
+                        + ",expected: " + (BigDecimal) expectedData + " received: " + (BigDecimal) retrieved);
                 break;
 
             case java.sql.Types.DOUBLE:
-                assertTrue((((Double) backendData).doubleValue() == ((Double) retrieved).doubleValue()), "Unexpected float value, expected: "
-                        + ((Double) backendData).doubleValue() + " received: " + ((Double) retrieved).doubleValue());
+                assertTrue((((Double) expectedData).doubleValue() == ((Double) retrieved).doubleValue()), "Unexpected float value, expected: "
+                        + ((Double) expectedData).doubleValue() + " received: " + ((Double) retrieved).doubleValue());
                 break;
 
             case java.sql.Types.REAL:
-                assertTrue((((Float) backendData).floatValue() == ((Float) retrieved).floatValue()),
-                        "Unexpected real value, expected: " + ((Float) backendData).floatValue() + " received: " + ((Float) retrieved).floatValue());
+                assertTrue((((Float) expectedData).floatValue() == ((Float) retrieved).floatValue()),
+                        "Unexpected real value, expected: " + ((Float) expectedData).floatValue() + " received: " + ((Float) retrieved).floatValue());
                 break;
 
             case java.sql.Types.VARCHAR:
             case java.sql.Types.NVARCHAR:
-                assertTrue((((String) backendData).trim().equalsIgnoreCase(((String) retrieved).trim())), "Unexpected varchar/nvarchar value, "
-                        + "expected:  " + ((String) backendData).trim() + " ,received: " + ((String) retrieved).trim());
+                assertTrue((((String) expectedData).trim().equalsIgnoreCase(((String) retrieved).trim())), "Unexpected varchar/nvarchar value, "
+                        + "expected:  " + ((String) expectedData).trim() + " ,received: " + ((String) retrieved).trim());
                 break;
             case java.sql.Types.CHAR:
             case java.sql.Types.NCHAR:
 
-                assertTrue((((String) backendData).trim().equalsIgnoreCase(((String) retrieved).trim())), "Unexpected char/nchar value, "
-                        + "expected:  " + ((String) backendData).trim() + " ,received: " + ((String) retrieved).trim());
+                assertTrue((((String) expectedData).trim().equalsIgnoreCase(((String) retrieved).trim())), "Unexpected char/nchar value, "
+                        + "expected:  " + ((String) expectedData).trim() + " ,received: " + ((String) retrieved).trim());
                 break;
 
             case java.sql.Types.TIMESTAMP:
                 if (metaData.getColumnTypeName(ordinal + 1).equalsIgnoreCase("datetime")) {
-                    assertTrue((((Timestamp) roundDatetimeValue(backendData)).getTime() == (((Timestamp) retrieved).getTime())),
-                            "Unexpected datetime value, expected: " + ((Timestamp) roundDatetimeValue(backendData)).getTime() + " , received: "
+                    assertTrue((((Timestamp) roundDatetimeValue(expectedData)).getTime() == (((Timestamp) retrieved).getTime())),
+                            "Unexpected datetime value, expected: " + ((Timestamp) roundDatetimeValue(expectedData)).getTime() + " , received: "
                                     + (((Timestamp) retrieved).getTime()));
                     break;
                 }
                 else if (metaData.getColumnTypeName(ordinal + 1).equalsIgnoreCase("smalldatetime")) {
-                    assertTrue((((Timestamp) roundSmallDateTimeValue(backendData)).getTime() == (((Timestamp) retrieved).getTime())),
-                            "Unexpected smalldatetime value, expected: " + ((Timestamp) roundSmallDateTimeValue(backendData)).getTime()
+                    assertTrue((((Timestamp) roundSmallDateTimeValue(expectedData)).getTime() == (((Timestamp) retrieved).getTime())),
+                            "Unexpected smalldatetime value, expected: " + ((Timestamp) roundSmallDateTimeValue(expectedData)).getTime()
                                     + " ,received: " + (((Timestamp) retrieved).getTime()));
                     break;
                 }
                 else
-                    assertTrue(("" + Timestamp.valueOf((LocalDateTime) backendData)).equalsIgnoreCase("" + retrieved), "Unexpected datetime2 value, "
-                            + "expected: " + Timestamp.valueOf((LocalDateTime) backendData) + " ,received: " + retrieved);
+                    assertTrue(("" + Timestamp.valueOf((LocalDateTime) expectedData)).equalsIgnoreCase("" + retrieved), "Unexpected datetime2 value, "
+                            + "expected: " + Timestamp.valueOf((LocalDateTime) expectedData) + " ,received: " + retrieved);
                 break;
 
             case java.sql.Types.DATE:
-                assertTrue((("" + backendData).equalsIgnoreCase("" + retrieved)),
-                        "Unexpected date value, expected: " + backendData + " ,received: " + retrieved);
+                assertTrue((("" + expectedData).equalsIgnoreCase("" + retrieved)),
+                        "Unexpected date value, expected: " + expectedData + " ,received: " + retrieved);
                 break;
 
             case java.sql.Types.TIME:
-                assertTrue(("" + Time.valueOf((LocalTime) backendData)).equalsIgnoreCase("" + retrieved),
-                        "Unexpected time value, exptected: " + Time.valueOf((LocalTime) backendData) + " ,received: " + retrieved);
+                assertTrue(("" + Time.valueOf((LocalTime) expectedData)).equalsIgnoreCase("" + retrieved),
+                        "Unexpected time value, exptected: " + Time.valueOf((LocalTime) expectedData) + " ,received: " + retrieved);
                 break;
 
             case microsoft.sql.Types.DATETIMEOFFSET:
-                assertTrue(("" + backendData).equals("" + retrieved),
-                        " unexpected DATETIMEOFFSET value, expected: " + backendData + " ,received: " + retrieved);
+                assertTrue(("" + expectedData).equals("" + retrieved),
+                        " unexpected DATETIMEOFFSET value, expected: " + expectedData + " ,received: " + retrieved);
                 break;
 
             default:
                 fail("Unhandled JDBCType " + JDBCType.valueOf(metaData.getColumnType(ordinal + 1)));
                 break;
         }
-    }
-
-    /**
-     * Retrieves the current row of the table
-     * 
-     * @return
-     */
-    public ArrayList<Object> currentrow() {
-        return currentTable.getAllRows().get(_currentrow);
-    }
-
-    /**
-     * Get the indexed row from the backend data for the specific table
-     * 
-     * @param table
-     * @param index
-     * @return
-     */
-    public static ArrayList<Object> getRow(DBTable table, int index) {
-        return table.getAllRows().get(index);
     }
 
     private Object getXXX(int idx, Class coercion) throws SQLException {

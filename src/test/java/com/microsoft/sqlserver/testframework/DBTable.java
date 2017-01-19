@@ -35,6 +35,8 @@ import java.util.StringJoiner;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import org.apache.commons.codec.binary.Hex;
+
 import com.microsoft.sqlserver.testframework.sqlType.SqlType;
 import com.microsoft.sqlserver.testframework.sqlType.VariableLengthType;
 import com.microsoft.sqlserver.testframework.util.RandomUtil;
@@ -72,8 +74,6 @@ public class DBTable extends AbstractSQLGenerator {
             this.columns = new ArrayList<DBColumn>();
         }
         this.totalColumns = columns.size();
-        this.currentrow = new ArrayList<Object>();
-        this.rows = new ArrayList<ArrayList<Object>>();
     }
 
     /**
@@ -132,7 +132,7 @@ public class DBTable extends AbstractSQLGenerator {
     /**
      * 
      * @param totalRows
-     *            set the number of rows in table, default value is 2
+     *            set the number of rows in table, default value is 3
      */
     public void setTotalRows(int totalRows) {
         this.totalRows = totalRows;
@@ -252,19 +252,15 @@ public class DBTable extends AbstractSQLGenerator {
             sb.add(OPEN_BRACKET);
             for (int colNum = 0; colNum < totalColumns; colNum++) {
 
-                // TODO: add betterway to enclose data
-                if (JDBCType.CHAR == getColumn(colNum).getSqlType().getJdbctype() || JDBCType.VARCHAR == getColumn(colNum).getSqlType().getJdbctype()
-                        || JDBCType.NCHAR == getColumn(colNum).getSqlType().getJdbctype()
-                        || JDBCType.NVARCHAR == getColumn(colNum).getSqlType().getJdbctype()
-                        || JDBCType.TIMESTAMP == getColumn(colNum).getSqlType().getJdbctype()
-                        || JDBCType.DATE == getColumn(colNum).getSqlType().getJdbctype()
-                        || JDBCType.TIME == getColumn(colNum).getSqlType().getJdbctype()) {
+                // TODO: consider how to enclose data in case of preparedStatemets
+                if (passDataAsString(colNum)) {
                     sb.add("'" + String.valueOf(getColumn(colNum).getRowValue(i)) + "'");
-                    currentrow.add(getColumn(colNum).getRowValue(i));
+                }
+                else if (passDataAsHex(colNum)) {
+                    sb.add("0X" + Hex.encodeHexString((byte[]) (getColumn(colNum).getRowValue(i))));
                 }
                 else {
                     sb.add(String.valueOf(getColumn(colNum).getRowValue(i)));
-                    currentrow.add(getColumn(colNum).getRowValue(i));
                 }
 
                 if (colNum < totalColumns - 1) {
@@ -272,8 +268,6 @@ public class DBTable extends AbstractSQLGenerator {
                 }
             }
             sb.add(CLOSE_BRACKET);
-            rows.add(currentrow);
-            currentrow = new ArrayList<Object>();
         }
 
         return (sb.toString());
@@ -341,8 +335,32 @@ public class DBTable extends AbstractSQLGenerator {
         return columns.get(index);
     }
 
-    public ArrayList<ArrayList<Object>> getAllRows() {
-        return rows;
+    public List<DBColumn> getColumns() {
+        return columns;
     }
 
+    public Object getRowData(int colIndex, int rowIndex) {
+        return columns.get(colIndex).getRowValue(rowIndex);
+    }
+
+    /**
+     * 
+     * @param colNum
+     * @return <code>true</code> if value can be passed as String for the column
+     */
+    boolean passDataAsString(int colNum) {
+        return (JDBCType.CHAR == getColumn(colNum).getJdbctype() || JDBCType.VARCHAR == getColumn(colNum).getJdbctype()
+                || JDBCType.NCHAR == getColumn(colNum).getJdbctype() || JDBCType.NVARCHAR == getColumn(colNum).getJdbctype()
+                || JDBCType.TIMESTAMP == getColumn(colNum).getJdbctype() || JDBCType.DATE == getColumn(colNum).getJdbctype()
+                || JDBCType.TIME == getColumn(colNum).getJdbctype());
+    }
+
+    /**
+     * 
+     * @param colNum
+     * @return <code>true</code> if value can be passed as Hex for the column
+     */
+    boolean passDataAsHex(int colNum) {
+        return (JDBCType.BINARY == getColumn(colNum).getJdbctype() || JDBCType.VARBINARY == getColumn(colNum).getJdbctype());
+    }
 }
