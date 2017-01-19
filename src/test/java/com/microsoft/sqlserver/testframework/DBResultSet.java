@@ -81,6 +81,17 @@ public class DBResultSet extends AbstractParentWrapper {
      * 
      * @param index
      * @return
+     * @throws SQLException
+     */
+    public String getString(int index) throws SQLException {
+        // call individual getters based on type
+        return resultSet.getString(index);
+    }
+    
+    /**
+     * 
+     * @param index
+     * @return
      */
     public void updateObject(int index) throws SQLException {
         // TODO: update object based on cursor type
