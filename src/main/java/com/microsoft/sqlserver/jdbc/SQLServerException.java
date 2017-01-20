@@ -79,6 +79,7 @@ public final class SQLServerException extends java.sql.SQLException
     static final int DRIVER_ERROR_SSL_FAILED          = 5;
     static final int DRIVER_ERROR_UNSUPPORTED_CONFIG  = 6;
     static final int DRIVER_ERROR_INTERMITTENT_TLS_FAILED  = 7;
+    static final int ERROR_SOCKET_TIMEOUT = 8;
     private int driverErrorCode = DRIVER_ERROR_NONE;
     final int getDriverErrorCode() { return driverErrorCode; }
     final void setDriverErrorCode(int value) { driverErrorCode = value; }

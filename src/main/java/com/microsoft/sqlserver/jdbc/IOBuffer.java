@@ -2009,8 +2009,14 @@ final class TDSChannel
 		{
 			if (logger.isLoggable(Level.FINE))
 				logger.fine(toString() + " read failed:" + e.getMessage());
-
-			con.terminate(SQLServerException.DRIVER_ERROR_IO_FAILED, e.getMessage());
+			
+            if (e instanceof SocketTimeoutException) {
+                con.terminate(SQLServerException.ERROR_SOCKET_TIMEOUT, e.getMessage());
+            }
+            else {
+                con.terminate(SQLServerException.DRIVER_ERROR_IO_FAILED, e.getMessage());
+            }
+			
 			return 0; // Keep the compiler happy.
 		}
 	}
