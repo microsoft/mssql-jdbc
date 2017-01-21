@@ -1,28 +1,10 @@
-// ---------------------------------------------------------------------------------------------------------------------------------
-// File: DBResultSet.java
-//
-//
-// Microsoft JDBC Driver for SQL Server
-// Copyright(c) Microsoft Corporation
-// All rights reserved.
-// MIT License
-// Permission is hereby granted, free of charge, to any person obtaining a copy
-// of this software and associated documentation files(the "Software"),
-// to deal in the Software without restriction, including without limitation the
-// rights to use, copy, modify, merge, publish, distribute, sublicense,
-// and / or sell copies of the Software, and to permit persons to whom the
-// Software is furnished to do so, subject to the following conditions :
-// The above copyright notice and this permission notice shall be included in
-// all copies or substantial portions of the Software.
-// THE SOFTWARE IS PROVIDED *AS IS*, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.IN NO EVENT SHALL THE
-// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
-// IN THE SOFTWARE.
-// ---------------------------------------------------------------------------------------------------------------------------------
-
+/**
+ * Microsoft JDBC Driver for SQL Server
+ * 
+ * Copyright(c) Microsoft Corporation All rights reserved.
+ * 
+ * This program is made available under the terms of the MIT License. See the LICENSE file in the project root for more information.
+ */
 package com.microsoft.sqlserver.testframework;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -31,13 +13,15 @@ import static org.junit.jupiter.api.Assertions.fail;
 import java.math.BigDecimal;
 import java.sql.JDBCType;
 import java.sql.ResultSet;
-import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.Time;
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.util.Arrays;
 import java.util.Calendar;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * wrapper class for ResultSet
@@ -51,6 +35,7 @@ public class DBResultSet extends AbstractParentWrapper {
     // TODO: add cursors
     // TODO: add resultSet level holdability
     // TODO: add concurrency control
+    public static final Logger log = Logger.getLogger("DBResultSet");
 
     public static final int TYPE_DYNAMIC = ResultSet.TYPE_SCROLL_SENSITIVE + 1;
     public static final int CONCUR_OPTIMISTIC = ResultSet.CONCUR_UPDATABLE + 2;
@@ -141,18 +126,16 @@ public class DBResultSet extends AbstractParentWrapper {
 
         Class _class = Object.class;
         for (int i = 0; i < totalColumns; i++)
-            verifydata(i, _class, null);
-
+            verifydata(i, _class);
     }
 
     /**
      * 
      * @param ordinal
      * @param coercion
-     * @param arg
      * @throws SQLException
      */
-    public void verifydata(int ordinal, Class coercion, Object arg) throws SQLException {
+    public void verifydata(int ordinal, Class coercion) throws SQLException {
         Object expectedData = currentTable.columns.get(ordinal).getRowValue(_currentrow);
 
         // getXXX - default mapping
@@ -162,6 +145,15 @@ public class DBResultSet extends AbstractParentWrapper {
         verifydata(ordinal, coercion, expectedData, retrieved);
     }
 
+    /**
+     * verifies data
+     * 
+     * @param ordinal
+     * @param coercion
+     * @param expectedData
+     * @param retrieved
+     * @throws SQLException
+     */
     public void verifydata(int ordinal, Class coercion, Object expectedData, Object retrieved) throws SQLException {
         metaData = this.getMetaData();
         switch (metaData.getColumnType(ordinal + 1)) {
@@ -252,12 +244,12 @@ public class DBResultSet extends AbstractParentWrapper {
                 break;
 
             case java.sql.Types.BINARY:
-                assertTrue(parseByte((byte[])expectedData, (byte[])retrieved),
+                assertTrue(parseByte((byte[]) expectedData, (byte[]) retrieved),
                         " unexpected BINARY value, expected: " + expectedData + " ,received: " + retrieved);
                 break;
 
             case java.sql.Types.VARBINARY:
-                assertTrue(parseByte((byte[])expectedData, (byte[])retrieved),
+                assertTrue(Arrays.equals((byte[]) expectedData, (byte[]) retrieved),
                         " unexpected BINARY value, expected: " + expectedData + " ,received: " + retrieved);
                 break;
             default:
@@ -265,12 +257,11 @@ public class DBResultSet extends AbstractParentWrapper {
                 break;
         }
     }
-    
-    private  boolean parseByte(byte[] expectedData, byte[] retrieved) {
-        for (int j = 0; j < expectedData.length; j++) {
-            assertTrue(
-                    expectedData[j] == retrieved[j] && expectedData[j] == retrieved[j] && expectedData[j] == retrieved[j],
-                            " unexpected BINARY value, expected");
+
+    private boolean parseByte(byte[] expectedData, byte[] retrieved) {
+        assertTrue(Arrays.equals(expectedData, Arrays.copyOf(retrieved, expectedData.length)), " unexpected BINARY value, expected");
+        for (int i = expectedData.length; i < retrieved.length; i++) {
+            assertTrue(0 == retrieved[i], "unexpected data BINARY");
         }
         return true;
     }
@@ -279,25 +270,25 @@ public class DBResultSet extends AbstractParentWrapper {
         if (coercion == Object.class) {
             return this.getObject(idx);
         }
+        else {
+            if (log.isLoggable(Level.FINE)) {
+                log.fine("coercion not supported! ");
+            }
+            else {
+                log.fine("coercion + " + coercion.toString() + " is not supported!");
+            }
+        }
         return null;
     }
 
     /**
      * 
      * @return
+     * @throws SQLException
      */
-    public DBResultSetMetaData getMetaData() {
-        ResultSetMetaData product = null;
-        DBResultSetMetaData wrapper = null;
-        try {
-            product = resultSet.getMetaData();
-            wrapper = new DBResultSetMetaData(parent, product, name);
-        }
-        catch (SQLException e) {
-            fail(e.getMessage());
-        }
-
-        return wrapper;
+    public DBResultSetMetaData getMetaData() throws SQLException {
+        DBResultSetMetaData metaData = new DBResultSetMetaData(this);
+        return metaData.getMetaData();
     }
 
     /**

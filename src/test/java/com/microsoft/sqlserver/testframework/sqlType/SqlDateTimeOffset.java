@@ -1,39 +1,24 @@
-// ---------------------------------------------------------------------------------------------------------------------------------
-// File: SqlDateTimeOffset.java
-//
-//
-// Microsoft JDBC Driver for SQL Server
-// Copyright(c) Microsoft Corporation
-// All rights reserved.
-// MIT License
-// Permission is hereby granted, free of charge, to any person obtaining a copy
-// of this software and associated documentation files(the "Software"),
-// to deal in the Software without restriction, including without limitation the
-// rights to use, copy, modify, merge, publish, distribute, sublicense,
-// and / or sell copies of the Software, and to permit persons to whom the
-// Software is furnished to do so, subject to the following conditions :
-// The above copyright notice and this permission notice shall be included in
-// all copies or substantial portions of the Software.
-// THE SOFTWARE IS PROVIDED *AS IS*, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.IN NO EVENT SHALL THE
-// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
-// IN THE SOFTWARE.
-// ---------------------------------------------------------------------------------------------------------------------------------
-
+/*
+ * Microsoft JDBC Driver for SQL Server
+ * 
+ * Copyright(c) Microsoft Corporation All rights reserved.
+ * 
+ * This program is made available under the terms of the MIT License. See the LICENSE file in the project root for more information.
+ */
 package com.microsoft.sqlserver.testframework.sqlType;
 
 import java.sql.JDBCType;
 import java.sql.Timestamp;
 import java.util.Calendar;
+import java.util.concurrent.ThreadLocalRandom;
 
 import microsoft.sql.DateTimeOffset;
 
 public class SqlDateTimeOffset extends SqlDateTime {
-    public static boolean returnMinMax = (0 == r.nextInt(5)); // 20% chance of return Min/Max value
+    public static boolean returnMinMax = (0 == ThreadLocalRandom.current().nextInt(5)); // 20% chance of return Min/Max value
     private static String numberCharSet2 = "123456789";
+    DateTimeOffset maxDTS;
+    DateTimeOffset minDTS;
 
     // TODO: datetiemoffset can extend SqlDateTime2
     // timezone is not supported in Timestamp so its useless to initialize
@@ -45,20 +30,27 @@ public class SqlDateTimeOffset extends SqlDateTime {
         this.precision = 7;
         this.variableLengthType = VariableLengthType.Precision;
         generatePrecision();
+        maxDTS = calculateDateTimeOffsetMinMax("max", precision, (String) SqlTypeValue.DATETIMEOFFSET.maxValue);
+        minDTS = calculateDateTimeOffsetMinMax("min", precision, (String) SqlTypeValue.DATETIMEOFFSET.minValue);
 
     }
 
+    /**
+     * create data
+     */
     public Object createdata() {
         return generateDatetimeoffset(this.precision);
     }
 
+    /**
+     * 
+     * @param precision
+     * @return
+     */
     public Object generateDatetimeoffset(Integer precision) {
         if (null == precision) {
             precision = 7;
         }
-
-        DateTimeOffset maxDTS = calculateDateTimeOffsetMinMax("max", precision, "9999-12-31 23:59:59");
-        DateTimeOffset minDTS = calculateDateTimeOffsetMinMax("min", precision, "0001-01-01 00:00:00");
 
         long max = maxDTS.getTimestamp().getTime();
         long min = minDTS.getTimestamp().getTime();
@@ -70,19 +62,18 @@ public class SqlDateTimeOffset extends SqlDateTime {
         }
 
         if (returnMinMax) {
-            if (r.nextBoolean()) {
+            if (ThreadLocalRandom.current().nextBoolean()) {
                 return maxDTS;
             }
             else {
-                // return minDTS;
-                return calculateDateTimeOffsetMinMax("min", precision, "0001-01-01 00:00:00.0000000");
+                return minDTS;
             }
         }
 
         int precisionDigits = buildPrecision(precision, numberCharSet2);
         ts.setNanos(precisionDigits);
 
-        int randomTimeZoneInMinutes = r.nextInt(1681) - 840;
+        int randomTimeZoneInMinutes = ThreadLocalRandom.current().nextInt(1681) - 840;
 
         return microsoft.sql.DateTimeOffset.valueOf(ts, randomTimeZoneInMinutes);
     }
@@ -136,7 +127,7 @@ public class SqlDateTimeOffset extends SqlDateTime {
     private static Timestamp generateTimestamp(long max, long min) {
 
         if (returnMinMax) {
-            if (r.nextBoolean()) {
+            if (ThreadLocalRandom.current().nextBoolean()) {
                 return new Timestamp(max);
             }
             else {
@@ -145,7 +136,7 @@ public class SqlDateTimeOffset extends SqlDateTime {
         }
 
         while (true) {
-            long longValue = r.nextLong();
+            long longValue = ThreadLocalRandom.current().nextLong();
 
             if (longValue >= min && longValue <= max) {
                 return new Timestamp(longValue);
@@ -155,7 +146,7 @@ public class SqlDateTimeOffset extends SqlDateTime {
 
     private static char pickRandomChar(String charSet) {
         int charSetLength = charSet.length();
-        int randomIndex = r.nextInt(charSetLength);
+        int randomIndex = ThreadLocalRandom.current().nextInt(charSetLength);
         return charSet.charAt(randomIndex);
     }
 }

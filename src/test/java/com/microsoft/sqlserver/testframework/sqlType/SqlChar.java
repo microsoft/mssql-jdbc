@@ -26,15 +26,11 @@
 package com.microsoft.sqlserver.testframework.sqlType;
 
 import java.sql.JDBCType;
-import java.util.Random;
 import java.util.concurrent.ThreadLocalRandom;
 
-import org.apache.commons.lang.StringEscapeUtils;
-import org.apache.commons.lang3.RandomStringUtils;
-
 /*
- * Restricting the size of char/binary to 2000 and nchar to 1000 to accommodate SQL Sever limitation of having of having maximum allowable
- * table row size to 8060
+ * Restricting the size of char/binary to 2000 and nchar to 1000 to accommodate SQL Sever limitation of having of having maximum allowable table row
+ * size to 8060
  */
 public class SqlChar extends SqlType {
 
@@ -83,7 +79,7 @@ public class SqlChar extends SqlType {
 
     private static char pickRandomChar(String charSet) {
         int charSetLength = charSet.length();
-        int randomIndex = r.nextInt(charSetLength);
+        int randomIndex = ThreadLocalRandom.current().nextInt(charSetLength);
         return charSet.charAt(randomIndex);
     }
 }

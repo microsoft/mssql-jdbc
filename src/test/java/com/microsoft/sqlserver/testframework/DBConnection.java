@@ -126,7 +126,7 @@ public class DBConnection extends AbstractParentWrapper {
      * @throws SQLException
      */
     public DBPreparedStatement prepareStatement(String query) throws SQLException {
-        DBPreparedStatement dbpstmt = new DBPreparedStatement(this, internal, "preparedStatement");
+        DBPreparedStatement dbpstmt = new DBPreparedStatement(this);
         return dbpstmt.prepareStatement(query);
     }
 

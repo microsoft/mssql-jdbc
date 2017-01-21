@@ -1,14 +1,14 @@
 /*
  * Microsoft JDBC Driver for SQL Server
  * 
- * Copyright(c) 2016 Microsoft Corporation All rights reserved.
+ * Copyright(c) Microsoft Corporation All rights reserved.
  * 
  * This program is made available under the terms of the MIT License. See the LICENSE file in the project root for more information.
  */
 package com.microsoft.sqlserver.jdbc.bvt;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
 import java.math.BigDecimal;
@@ -17,7 +17,7 @@ import java.sql.SQLException;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import org.junit.AfterClass;
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
@@ -64,9 +64,9 @@ public class bvtTest extends bvtTestSetup {
     public void testConnectionIsClosed() throws SQLException {
         try {
             conn = new DBConnection(connectionString);
-            assertTrue("BVT connection should not be closed", !conn.isClosed());
+            assertTrue(!conn.isClosed(), "BVT connection should not be closed");
             conn.close();
-            assertTrue("BVT connection should not be open", conn.isClosed());
+            assertTrue(conn.isClosed(), "BVT connection should not be open");
         }
         finally {
             terminateVariation();
@@ -85,10 +85,10 @@ public class bvtTest extends bvtTestSetup {
             DatabaseMetaData metaData = conn.getMetaData();
             Pattern p = Pattern.compile(driverNamePattern);
             Matcher m = p.matcher(metaData.getDriverName());
-            assertTrue("Driver name is not a correct format! ", m.find());
+            assertTrue(m.find(), "Driver name is not a correct format! ");
             String[] parts = metaData.getDriverVersion().split("\\.");
             if (parts.length != 4)
-                assertTrue("Driver version number should be four parts! ", true);
+                assertTrue(true, "Driver version number should be four parts! ");
         }
         finally {
             terminateVariation();
@@ -109,9 +109,9 @@ public class bvtTest extends bvtTestSetup {
             String query = "SELECT * FROM " + table1.getEscapedTableName() + ";";
             rs = stmt.executeQuery(query);
             rs.verify(table1);
+            rs.close();
         }
         finally {
-
             terminateVariation();
         }
     }
@@ -157,7 +157,7 @@ public class bvtTest extends bvtTestSetup {
 
             try {
                 rs.previous();
-                assertTrue("Previous should have thrown an exception", false);
+                assertTrue(false, "Previous should have thrown an exception");
             }
             catch (SQLException ex) {
                 // expected exception
@@ -249,7 +249,7 @@ public class bvtTest extends bvtTestSetup {
             rs.verifyCurrentRow(table1);
             try {
                 rs.previous();
-                assertTrue("Previous should have thrown an exception", false);
+                assertTrue(false, "Previous should have thrown an exception");
             }
             catch (SQLException ex) {
                 // expected exception
@@ -544,6 +544,7 @@ public class bvtTest extends bvtTestSetup {
             catch (SQLException e) {
                 assertEquals(e.toString(), "com.microsoft.sqlserver.jdbc.SQLServerException: The result set is closed.");
             }
+            assertTrue(true, "Previouse one should have thrown exception!");
         }
         finally {
             terminateVariation();
@@ -572,17 +573,30 @@ public class bvtTest extends bvtTestSetup {
         }
     }
 
-    @AfterClass
+    /**
+     * drops tables
+     * 
+     * @throws SQLException
+     */
+    @AfterAll
     public static void terminate() throws SQLException {
 
         try {
+            conn = new DBConnection(connectionString);
             stmt = conn.createStatement();
+            stmt.execute("if object_id('" + table1.getEscapedTableName() + "','U') is not null" + " drop table " + table1.getEscapedTableName());
+            stmt.execute("if object_id('" + table2.getEscapedTableName() + "','U') is not null" + " drop table " + table2.getEscapedTableName());
         }
         finally {
             terminateVariation();
         }
     }
 
+    /**
+     * cleanup after tests
+     * 
+     * @throws SQLException
+     */
     public static void terminateVariation() throws SQLException {
         if (conn != null && !conn.isClosed()) {
             try {

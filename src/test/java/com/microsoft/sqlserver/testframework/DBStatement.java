@@ -51,10 +51,6 @@ public class DBStatement extends AbstractParentWrapper {
         super(dbConnection, null, "statement");
     }
 
-    DBStatement(DBConnection parent, Statement internal, int type, int concurrency, int holdability) {
-        super(parent, null, "statement");
-    }
-
     DBStatement statement() {
         return this;
     }

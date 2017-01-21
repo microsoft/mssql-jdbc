@@ -104,7 +104,7 @@ class DBColumn {
      * @param row
      * @return the value populated for the column
      */
-    public Object getRowValue(int row) {
+     Object getRowValue(int row) {
         // handle exceptions
         return columnValues.get(row);
     }

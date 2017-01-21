@@ -26,7 +26,6 @@
 package com.microsoft.sqlserver.testframework.sqlType;
 
 import java.sql.JDBCType;
-import java.util.Random;
 import java.util.concurrent.ThreadLocalRandom;
 
 public abstract class SqlType {
@@ -40,7 +39,7 @@ public abstract class SqlType {
     protected Object maxvalue = null;
     protected Object nullvalue = null;	// Primitives have non-null defaults
     protected VariableLengthType variableLengthType;
-    static Random r = new Random();
+//    protected ThreadLocalRandom r;
 
     /**
      * 
