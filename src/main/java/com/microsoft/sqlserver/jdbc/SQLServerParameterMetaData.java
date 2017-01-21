@@ -809,7 +809,15 @@ public final class SQLServerParameterMetaData implements ParameterMetaData {
 			}
 			else {
 				verifyParameterPosition(param);
-				return rsProcedureMeta.getString("TYPE_NAME");
+				String schema = rsProcedureMeta.getString("SS_TYPE_SCHEMA_NAME");
+				String typeName = rsProcedureMeta.getString("TYPE_NAME");
+				String tvpName = null;
+				if (schema != null) {
+					tvpName = "[" + schema + "].[" + typeName + "]";
+				} else if (typeName != null) {
+					tvpName = "[" + typeName + "]";
+				}
+				return tvpName;
 			}
 		}
 		catch (SQLException e) {
