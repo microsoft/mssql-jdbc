@@ -9,7 +9,7 @@ The purpose of the Java Coding Standards is to create a collaboration baseline. 
 
 ## 1. General
 
-All **changed code**, must obey these *coding standards*. As we have huge legacy code we will have code which defers Coding Standards.  
+All **changed code**, must obey these *coding standards*. As we have huge legacy code we will have code which defers Coding Standards. Eclipse code formatter [mssql-jdbc_formatter.xml](mssql-jdbc_formatter.xml) must be used to format the **changed code**, except for [enum types](#EnumSpec).
 
 ## 2. Comments
 
@@ -19,17 +19,19 @@ We should give appropriate java comments in code. Please find ideal example of j
 
 ```java
 /**
- * Get property-only names that do not work with connection String 
- * @param name to normalize
+ * Get property-only names that do not work with connection String
+ * 
+ * @param name
+ *            to normalize
  * @param logger
  * @return the normalized property name
  */
- static String getPropertyOnlyName(String name, Logger logger) {
- 	if(null == name) {
+static String getPropertyOnlyName(String name, Logger logger) {
+	if (null == name) {
 		return name;
 	}
 	... some complex logic
- }
+}
 ```
 
 **Incorrect:**
@@ -49,24 +51,12 @@ We should give appropriate java comments in code. Please find ideal example of j
 All Java files should contain the appropriate copyright notice at the beginning of the file. 
 
 ```java
-/**
- * File Name: {File_Name} 
- * Created : ${date}
- *
+/*
  * Microsoft JDBC Driver for SQL Server
- * The MIT License (MIT)
- * Copyright(c) ${year} Microsoft Corporation
  * 
- * Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"),
- * to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, 
- * and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
- *  
- * The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
+ * Copyright(c) Microsoft Corporation All rights reserved.
  * 
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
- * MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR 
- * ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH 
- * THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE. 
+ * This program is made available under the terms of the MIT License. See the LICENSE file in the project root for more information.
  */
 ```
 
@@ -225,7 +215,7 @@ List people = Arrays.asList("you", "me");
 
 Consider the use of common design patterns.
 
-### 5.1. Enums
+### 5.1. Enums <a name="EnumSpec"></a>
 
 Constrain arguments by using type safe enumerations.
 
@@ -243,7 +233,26 @@ public enum Options {
 String yes = "YES";
 String no = "NO";
 ```
+<br />
+enum value with multiple constants must be alligned such that the constant of same type from all the values must be alligned in same column.
 
+**Correct:**
+```java
+public enum SqlType{
+	VARCHAR 	("varchar",		JDBCType.VARCHAR),
+	NVARCHAR	("nvarchar",	JDBCType.NVARCHAR),
+	CHAR		("char",		JDBCType.CHAR);
+}
+```
+
+**Incorrect**
+```java
+public enum SqlType {
+	VARCHAR("varchar", JDBCType.VARCHAR),
+	NVARCHAR("nvarchar", JDBCType.NVARCHAR),
+	CHAR("char", JDBCType.CHAR);
+}
+```
 
 ### 5.2. Private Helpers
 
