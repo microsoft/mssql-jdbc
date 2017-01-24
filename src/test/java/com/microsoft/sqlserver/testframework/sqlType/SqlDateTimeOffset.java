@@ -19,6 +19,8 @@ public class SqlDateTimeOffset extends SqlDateTime {
     private static String numberCharSet2 = "123456789";
     DateTimeOffset maxDTS;
     DateTimeOffset minDTS;
+    long max;
+    long min;
 
     // TODO: datetiemoffset can extend SqlDateTime2
     // timezone is not supported in Timestamp so its useless to initialize
@@ -33,6 +35,8 @@ public class SqlDateTimeOffset extends SqlDateTime {
         maxDTS = calculateDateTimeOffsetMinMax("max", precision, (String) SqlTypeValue.DATETIMEOFFSET.maxValue);
         minDTS = calculateDateTimeOffsetMinMax("min", precision, (String) SqlTypeValue.DATETIMEOFFSET.minValue);
 
+        max = maxDTS.getTimestamp().getTime();
+        min = minDTS.getTimestamp().getTime();
     }
 
     /**
@@ -51,9 +55,6 @@ public class SqlDateTimeOffset extends SqlDateTime {
         if (null == precision) {
             precision = 7;
         }
-
-        long max = maxDTS.getTimestamp().getTime();
-        long min = minDTS.getTimestamp().getTime();
 
         Timestamp ts = generateTimestamp(max, min);
 
@@ -74,7 +75,7 @@ public class SqlDateTimeOffset extends SqlDateTime {
         ts.setNanos(precisionDigits);
 
         int randomTimeZoneInMinutes = ThreadLocalRandom.current().nextInt(1681) - 840;
-
+        
         return microsoft.sql.DateTimeOffset.valueOf(ts, randomTimeZoneInMinutes);
     }
 
