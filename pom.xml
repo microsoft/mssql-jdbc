@@ -146,6 +146,7 @@
 							</archive>
 						</configuration>
 					</plugin>   
+					
 				</plugins>
 			</build>
 		</profile>
@@ -198,6 +199,15 @@
 			</resource>
 		</resources>
 
+		<testResources>
+			<testResource>
+				<directory>src/test/resources</directory>
+				<includes>
+					<include>**/*.csv</include>
+				</includes>
+			</testResource>
+		</testResources>
+ 
 		<plugins>
 
 			<plugin>

@@ -51,6 +51,13 @@ sourceSets {
 			include 'META-INF/services/java.sql.Driver'
 		}
     }
+	test {
+		resources {
+			srcDirs 'src/test/resources'
+			include '**/*.csv'
+			output.resourcesDir = output.classesDir
+		}
+	}
 }
 
 //Get dependencies from Maven central repository
@@ -71,5 +78,3 @@ dependencies {
 	'org.junit.jupiter:junit-jupiter-api:5.0.0-M3',
 	'org.junit.jupiter:junit-jupiter-engine:5.0.0-M3'
 }
-
-
