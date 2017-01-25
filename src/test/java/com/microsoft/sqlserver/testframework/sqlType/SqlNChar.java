@@ -28,9 +28,8 @@ package com.microsoft.sqlserver.testframework.sqlType;
 import java.sql.JDBCType;
 import java.util.concurrent.ThreadLocalRandom;
 
-import org.apache.commons.lang.StringEscapeUtils;
-
 public class SqlNChar extends SqlChar {
+    private static String normalCharSet = "1234567890-=!@#$%^&*()_+qwertyuiop[]\\asdfghjkl;zxcvbnm,./QWERTYUIOP{}|ASDFGHJKL:\"ZXCVBNM<>?";
 
     SqlNChar(String name, JDBCType jdbctype, int precision) {
         super(name, jdbctype, precision);
@@ -42,23 +41,11 @@ public class SqlNChar extends SqlChar {
 
     public Object createdata() {
         int dataLength = ThreadLocalRandom.current().nextInt(precision);
-        /*
-         * Just supporting Latin character sets for now, as the entire valid
-         * code point Character.MIN_CODE_POINT to Character.MAX_CODE_POINT has
-         * many unassigned code points.
-         * 
-         * CodePoints Used: Basic Latin, Latin-1 Supplement, Latin Extended-A,
-         * Latin Extended-B
-         */
-        int minCodePoint = 0x000;
-        int maxCodePoint = 0x24F;
-        StringBuilder sb = new StringBuilder();
-        for (int i = 0; i < dataLength; i++) {
-            // TODO: need to remove uassigned
-            int rand = ThreadLocalRandom.current().nextInt(minCodePoint, maxCodePoint);
-            char c = (char) rand;
-            sb.append(c);
-        }
-        return StringEscapeUtils.escapeSql(sb.toString());
+        return generateCharTypes(dataLength);
+    }
+
+    private static String generateCharTypes(int columnLength) {
+        String charSet = normalCharSet;
+        return buildCharOrNChar(columnLength, charSet);
     }
 }
