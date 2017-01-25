@@ -97,7 +97,7 @@ enum TDSType
             valuesTypes[s.intValue] = s;
     }
 
-    private TDSType(int intValue)
+    TDSType(int intValue)
     {
         this.intValue = intValue;
     }
@@ -175,7 +175,7 @@ enum SSType
     static final BigDecimal MIN_VALUE_SMALLMONEY = new BigDecimal("-214748.3648");
     
     
-    private SSType(Category category, String name, JDBCType jdbcType)
+    SSType(Category category, String name, JDBCType jdbcType)
     {
         this.category = category;
         this.name = name;
@@ -375,9 +375,9 @@ enum SSType
         private final SSType.Category from;
         private final EnumSet<JDBCType.Category> to;
 
-        private GetterConversion(
-            SSType.Category from,
-            EnumSet<JDBCType.Category> to)
+        GetterConversion(
+                SSType.Category from,
+                EnumSet<JDBCType.Category> to)
         {
             this.from = from;
             this.to = to;
@@ -423,7 +423,7 @@ enum StreamType
     // Display string to use when describing this stream type in traces and error messages
     private final String name;
 
-    private StreamType(JDBCType jdbcType, String name)
+    StreamType(JDBCType jdbcType, String name)
     {
         this.jdbcType = jdbcType;
         this.name = name;
@@ -596,7 +596,7 @@ enum JavaType
     private final JDBCType jdbcTypeFromJavaType;
     private static double jvmVersion = 0.0; 
 
-    private JavaType(Class<?> javaClass, JDBCType jdbcTypeFromJavaType)
+    JavaType(Class<?> javaClass, JDBCType jdbcTypeFromJavaType)
     {
         this.javaClass = javaClass;
         this.jdbcTypeFromJavaType = jdbcTypeFromJavaType;
@@ -794,9 +794,9 @@ enum JavaType
 		private final EnumSet<JDBCType> to;
 		private final JavaType from;
 
-		private SetterConversionAE(
-				JavaType from,
-				EnumSet<JDBCType> to)
+		SetterConversionAE(
+                JavaType from,
+                EnumSet<JDBCType> to)
 		{
 			this.from = from;
 			this.to = to;
@@ -889,7 +889,7 @@ enum JDBCType
     private final String className;
     final String className() { return className; }
 
-    private JDBCType(Category category, int intValue, String className)
+    JDBCType(Category category, int intValue, String className)
     {
         this.category = category;
         this.intValue = intValue;
@@ -1095,9 +1095,9 @@ enum JDBCType
         private final JDBCType.Category from;
         private final EnumSet<JDBCType.Category> to;
 
-        private SetterConversion(
-            JDBCType.Category from,
-            EnumSet<JDBCType.Category> to)
+        SetterConversion(
+                JDBCType.Category from,
+                EnumSet<JDBCType.Category> to)
         {
             this.from = from;
             this.to = to;
@@ -1307,9 +1307,9 @@ enum JDBCType
         private final JDBCType.Category from;
         private final EnumSet<SSType.Category> to;
 
-        private UpdaterConversion(
-            JDBCType.Category from,
-            EnumSet<SSType.Category> to)
+        UpdaterConversion(
+                JDBCType.Category from,
+                EnumSet<SSType.Category> to)
         {
             this.from = from;
             this.to = to;
@@ -1623,9 +1623,9 @@ enum JDBCType
         private final JDBCType from;
         private final EnumSet<SSType> to;
 
-        private NormalizationAE(
-    		JDBCType from,
-            EnumSet<SSType> to)
+        NormalizationAE(
+                JDBCType from,
+                EnumSet<SSType> to)
         {
             this.from = from;
             this.to = to;

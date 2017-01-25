@@ -75,7 +75,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
 		// procs on or after katmai
         private final String katProc;
 
-        private CallableHandles(String name, String katName)
+        CallableHandles(String name, String katName)
         {
             this.preKatProc = name;
             this.katProc = katName;

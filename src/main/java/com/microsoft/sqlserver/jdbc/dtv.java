@@ -3471,7 +3471,7 @@ final class TypeInfo
 			}
 		}
 
-		private Builder(
+		Builder(
 				TDSType tdsType,
 				Strategy strategy)
 		{

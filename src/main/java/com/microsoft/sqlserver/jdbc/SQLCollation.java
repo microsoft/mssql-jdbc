@@ -573,10 +573,10 @@ enum Encoding
     private boolean jvmSupportConfirmed = false;
     private Charset charset;
 
-    private Encoding(
-        String charsetName,
-        boolean supportsAsciiConversion,
-        boolean hasAsciiCompatibleSBCS)
+    Encoding(
+            String charsetName,
+            boolean supportsAsciiConversion,
+            boolean hasAsciiCompatibleSBCS)
     {
         this.charsetName = charsetName;
         this.supportsAsciiConversion = supportsAsciiConversion;
