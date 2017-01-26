@@ -1,10 +1,27 @@
-/*
- * Microsoft JDBC Driver for SQL Server
- * 
- * Copyright(c) Microsoft Corporation All rights reserved.
- * 
- * This program is made available under the terms of the MIT License. See the LICENSE file in the project root for more information.
- */
+// ---------------------------------------------------------------------------------------------------------------------------------
+// File: DBTable.java
+//
+//
+// Microsoft JDBC Driver for SQL Server
+// Copyright(c) Microsoft Corporation
+// All rights reserved.
+// MIT License
+// Permission is hereby granted, free of charge, to any person obtaining a copy
+// of this software and associated documentation files(the "Software"),
+// to deal in the Software without restriction, including without limitation the
+// rights to use, copy, modify, merge, publish, distribute, sublicense,
+// and / or sell copies of the Software, and to permit persons to whom the
+// Software is furnished to do so, subject to the following conditions :
+// The above copyright notice and this permission notice shall be included in
+// all copies or substantial portions of the Software.
+// THE SOFTWARE IS PROVIDED *AS IS*, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+// IN THE SOFTWARE.
+// ---------------------------------------------------------------------------------------------------------------------------------
 
 package com.microsoft.sqlserver.testframework;
 
@@ -36,6 +53,8 @@ public class DBTable extends AbstractSQLGenerator {
     int totalColumns;
     static int totalRows = 3; // default row count set to 3
     DBSchema schema;
+    ArrayList<ArrayList<Object>> rows;
+    ArrayList<Object> currentrow;
 
     /**
      * Initializes {@link DBTable} with tableName, schema, and {@link DBColumns}
@@ -315,22 +334,25 @@ public class DBTable extends AbstractSQLGenerator {
     DBColumn getColumn(int index) {
         return columns.get(index);
     }
+<<<<<<< HEAD
 
-    /**
-     * 
-     * @param colIndex
-     * @param rowIndex
-     * @return
-     */
+    public List<DBColumn> getColumns() {
+        return columns;
+    }
+
     public Object getRowData(int colIndex, int rowIndex) {
         return columns.get(colIndex).getRowValue(rowIndex);
     }
 
+=======
+    
+>>>>>>> 85dd53d41a6d634a76d0a4872b4eaf0a2d2ccf4f
     /**
      * 
      * @param colNum
      * @return <code>true</code> if value can be passed as String for the column
      */
+<<<<<<< HEAD
     boolean passDataAsString(int colNum) {
         return (JDBCType.CHAR == getColumn(colNum).getJdbctype() || JDBCType.VARCHAR == getColumn(colNum).getJdbctype()
                 || JDBCType.NCHAR == getColumn(colNum).getJdbctype() || JDBCType.NVARCHAR == getColumn(colNum).getJdbctype()
@@ -338,13 +360,30 @@ public class DBTable extends AbstractSQLGenerator {
                 || JDBCType.TIME == getColumn(colNum).getJdbctype());
     }
 
+=======
+    boolean passDataAsString(int colNum){
+        return (JDBCType.CHAR == getColumn(colNum).getJdbctype() 
+                || JDBCType.VARCHAR == getColumn(colNum).getJdbctype()
+                || JDBCType.NCHAR == getColumn(colNum).getJdbctype()
+                || JDBCType.NVARCHAR == getColumn(colNum).getJdbctype()
+                || JDBCType.TIMESTAMP == getColumn(colNum).getJdbctype()
+                || JDBCType.DATE == getColumn(colNum).getJdbctype()
+                || JDBCType.TIME == getColumn(colNum).getJdbctype());
+    }
+    
+>>>>>>> 85dd53d41a6d634a76d0a4872b4eaf0a2d2ccf4f
     /**
      * 
      * @param colNum
      * @return <code>true</code> if value can be passed as Hex for the column
      */
-
+<<<<<<< HEAD
     boolean passDataAsHex(int colNum) {
         return (JDBCType.BINARY == getColumn(colNum).getJdbctype() || JDBCType.VARBINARY == getColumn(colNum).getJdbctype());
+=======
+    boolean passDataAsHex(int colNum){
+        return (JDBCType.BINARY == getColumn(colNum).getJdbctype()
+                || JDBCType.VARBINARY == getColumn(colNum).getJdbctype());
+>>>>>>> 85dd53d41a6d634a76d0a4872b4eaf0a2d2ccf4f
     }
 }

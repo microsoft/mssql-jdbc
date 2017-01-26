@@ -1,24 +1,13 @@
-//---------------------------------------------------------------------------------------------------------------------------------
-// File: DataTypes.java
-//
-// Contents: DataTypes holds the set of all TDS native data types and provides mappings of those values to the JDBC type space.
-//
-// Microsoft JDBC Driver for SQL Server
-// Copyright(c) Microsoft Corporation
-// All rights reserved.
-// MIT License
-// Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files(the "Software"), 
-//  to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, 
-//  and / or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions :
-// The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
-// THE SOFTWARE IS PROVIDED *AS IS*, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, 
-//  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER 
-//  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS 
-//  IN THE SOFTWARE.
-//---------------------------------------------------------------------------------------------------------------------------------
- 
- 
+/*
+ * Microsoft JDBC Driver for SQL Server
+ * 
+ * Copyright(c) Microsoft Corporation All rights reserved.
+ * 
+ * This program is made available under the terms of the MIT License. See the LICENSE file in the project root for more information.
+ */
+
 package com.microsoft.sqlserver.jdbc;
+
 import java.io.InputStream;
 import java.io.Reader;
 import java.math.BigDecimal;
@@ -35,7 +24,6 @@ import java.time.OffsetDateTime;
 import java.time.OffsetTime;
 import java.util.EnumMap;
 import java.util.EnumSet;
-
 
 enum TDSType
 {
@@ -82,33 +70,30 @@ enum TDSType
     XML       (0xF1), // -15
 
     // LONGLEN types
-    SQL_VARIANT (0x62); //98
+    SQL_VARIANT(0x62); // 98
 
     private final int intValue;
 
     private static final int MAXELEMENTS = 256;
-    private static final TDSType valuesTypes[]  = new TDSType[MAXELEMENTS]; 
+    private static final TDSType valuesTypes[] = new TDSType[MAXELEMENTS];
 
-    byte byteValue() { return (byte) intValue; }
+    byte byteValue() {
+        return (byte) intValue;
+    }
 
-    static 
-    {
-        for(TDSType s : values())
+    static {
+        for (TDSType s : values())
             valuesTypes[s.intValue] = s;
     }
 
-    private TDSType(int intValue)
-    {
+    private TDSType(int intValue) {
         this.intValue = intValue;
     }
 
-    static TDSType valueOf(int intValue) throws IllegalArgumentException
-    {
+    static TDSType valueOf(int intValue) throws IllegalArgumentException {
         TDSType tdsType;
 
-        if (!(0 <= intValue && intValue < valuesTypes.length) ||
-            null == (tdsType = valuesTypes[intValue]))
-        {
+        if (!(0 <= intValue && intValue < valuesTypes.length) || null == (tdsType = valuesTypes[intValue])) {
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_unknownSSType"));
             Object[] msgArgs = {new Integer(intValue)};
             throw new IllegalArgumentException(form.format(msgArgs));
@@ -173,20 +158,24 @@ enum SSType
     static final BigDecimal MIN_VALUE_MONEY = new BigDecimal("-922337203685477.5808");
     static final BigDecimal MAX_VALUE_SMALLMONEY = new BigDecimal("214748.3647");
     static final BigDecimal MIN_VALUE_SMALLMONEY = new BigDecimal("-214748.3648");
-    
-    
-    private SSType(Category category, String name, JDBCType jdbcType)
-    {
+
+    private SSType(Category category,
+            String name,
+            JDBCType jdbcType) {
         this.category = category;
         this.name = name;
         this.jdbcType = jdbcType;
     }
 
-    public String toString() { return name; }
-    final JDBCType getJDBCType() { return jdbcType; }
-    
-    static SSType of(String typeName) throws SQLServerException
-    {
+    public String toString() {
+        return name;
+    }
+
+    final JDBCType getJDBCType() {
+        return jdbcType;
+    }
+
+    static SSType of(String typeName) throws SQLServerException {
         for (SSType ssType : values())
             if (ssType.name.equalsIgnoreCase(typeName))
                 return ssType;
@@ -194,11 +183,10 @@ enum SSType
         MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_unknownSSType"));
         Object[] msgArgs = {typeName};
         SQLServerException.makeFromDriverError(null, null, form.format(msgArgs), null, true);
-        return SSType.UNKNOWN;    	
+        return SSType.UNKNOWN;
     }
-    
-    enum Category
-    {
+
+    enum Category {
         BINARY,
         CHARACTER,
         DATE,
@@ -375,19 +363,16 @@ enum SSType
         private final SSType.Category from;
         private final EnumSet<JDBCType.Category> to;
 
-        private GetterConversion(
-            SSType.Category from,
-            EnumSet<JDBCType.Category> to)
-        {
+        private GetterConversion(SSType.Category from,
+                EnumSet<JDBCType.Category> to) {
             this.from = from;
             this.to = to;
         }
 
-        private static final EnumMap<SSType.Category, EnumSet<JDBCType.Category>> conversionMap =
-            new EnumMap<SSType.Category, EnumSet<JDBCType.Category>>(SSType.Category.class);
+        private static final EnumMap<SSType.Category, EnumSet<JDBCType.Category>> conversionMap = new EnumMap<SSType.Category, EnumSet<JDBCType.Category>>(
+                SSType.Category.class);
 
-        static
-        {
+        static {
             for (SSType.Category category : SSType.Category.values())
                 conversionMap.put(category, EnumSet.noneOf(JDBCType.Category.class));
 
@@ -395,14 +380,13 @@ enum SSType
                 conversionMap.get(conversion.from).addAll(conversion.to);
         }
 
-        static final boolean converts(SSType fromSSType, JDBCType toJDBCType)
-        {
+        static final boolean converts(SSType fromSSType,
+                JDBCType toJDBCType) {
             return conversionMap.get(fromSSType.category).contains(toJDBCType.category);
         }
     }
 
-    boolean convertsTo(JDBCType jdbcType)
-    {
+    boolean convertsTo(JDBCType jdbcType) {
         return GetterConversion.converts(this, jdbcType);
     }
 }
@@ -414,28 +398,31 @@ enum StreamType
     BINARY     (JDBCType.LONGVARBINARY, "BinaryStream"),
     CHARACTER  (JDBCType.LONGVARCHAR,   "CharacterStream"),
     NCHARACTER (JDBCType.LONGNVARCHAR,  "NCharacterStream"),
-    SQLXML          (JDBCType.SQLXML,  "SQLXML");
+    SQLXML     (JDBCType.SQLXML,        "SQLXML");
 
     // JDBC type most naturally associated with this type of stream
     private final JDBCType jdbcType;
-    JDBCType getJDBCType() { return jdbcType; }
+
+    JDBCType getJDBCType() {
+        return jdbcType;
+    }
 
     // Display string to use when describing this stream type in traces and error messages
     private final String name;
 
-    private StreamType(JDBCType jdbcType, String name)
-    {
+    private StreamType(JDBCType jdbcType,
+            String name) {
         this.jdbcType = jdbcType;
         this.name = name;
     }
 
-    public String toString() { return name; }
+    public String toString() {
+        return name;
+    }
 
-    boolean convertsFrom(TypeInfo typeInfo)
-    {
+    boolean convertsFrom(TypeInfo typeInfo) {
         // Special case handling for ASCII streams:
-        if (ASCII == this)
-        {
+        if (ASCII == this) {
             // Conversion not allowed from XML to AsciiStream
             if (SSType.XML == typeInfo.getSSType())
                 return false;
@@ -448,11 +435,9 @@ enum StreamType
         return typeInfo.getSSType().convertsTo(jdbcType);
     }
 
-    boolean convertsTo(TypeInfo typeInfo)
-    {
+    boolean convertsTo(TypeInfo typeInfo) {
         // Special case handling for ASCII streams:
-        if (ASCII == this)
-        {
+        if (ASCII == this) {
             // Conversion not allowed to XML from AsciiStream
             if (SSType.XML == typeInfo.getSSType())
                 return false;
@@ -466,27 +451,23 @@ enum StreamType
     }
 }
 
-final class UserTypes 
-{
+final class UserTypes {
     /* System defined UDTs */
     static final int TIMESTAMP = 0x0050;
 
-    private UserTypes() {} // prevent instantiation
+    private UserTypes() {
+    } // prevent instantiation
 }
 
 /**
  * Java class types that may be used as parameter or column values.
  *
- * Explicit external representation of the Java types eliminates
- * multiple expensive calls to Class.isInstance (from DTV and elsewhere)
- * where the Java type of a parameter or column value needs to be known.
+ * Explicit external representation of the Java types eliminates multiple expensive calls to Class.isInstance (from DTV and elsewhere) where the Java
+ * type of a parameter or column value needs to be known.
  *
- * !! IMPORTANT !!
- * The tradeoff of using an external representation is that the driver
- * must ensure that the JavaType always reflects the Java type of the
- * object instance, so as a general rule, any code that passes Object
- * instances around where the type must be later known, should always
- * pass a JavaType as well.
+ * !! IMPORTANT !! The tradeoff of using an external representation is that the driver must ensure that the JavaType always reflects the Java type of
+ * the object instance, so as a general rule, any code that passes Object instances around where the type must be later known, should always pass a
+ * JavaType as well.
  */
 enum JavaType
 {
@@ -498,63 +479,60 @@ enum JavaType
     // the following must be observed:
     //
     // 1. Constants MUST be arranged such that subclasses are listed first
-    //    to prevent an Object from being incorrectly determined as just an
-    //    instance of the superclass.
+    // to prevent an Object from being incorrectly determined as just an
+    // instance of the superclass.
     //
     // 2. Notwithstanding the previous restriction, because the type determination
-    //    process involves a linear search, constants SHOULD be arranged
-    //    in order of decreasing probability of occurrence.
+    // process involves a linear search, constants SHOULD be arranged
+    // in order of decreasing probability of occurrence.
     //
     // 3. The last constant must be for the Object class to ensure that every
-    //    type of Object maps to some JavaType.
-    INTEGER (Integer.class, JDBCType.INTEGER),
-    STRING (String.class, JDBCType.CHAR),
-    DATE (java.sql.Date.class, JDBCType.DATE),
-    TIME (java.sql.Time.class, JDBCType.TIME),
-    TIMESTAMP (java.sql.Timestamp.class, JDBCType.TIMESTAMP),
-    UTILDATE (java.util.Date.class, JDBCType.TIMESTAMP),
-    CALENDAR(java.util.Calendar.class, JDBCType.TIMESTAMP),
-    LOCALDATE(getJavaClass("LocalDate"), JDBCType.DATE),
-    LOCALTIME(getJavaClass("LocalTime"), JDBCType.TIME),
-    LOCALDATETIME(getJavaClass("LocalDateTime"), JDBCType.TIMESTAMP),
-    OFFSETTIME(getJavaClass("OffsetTime"), JDBCType.TIME_WITH_TIMEZONE),
-    OFFSETDATETIME(getJavaClass("OffsetDateTime"), JDBCType.TIMESTAMP_WITH_TIMEZONE),
-    DATETIMEOFFSET (microsoft.sql.DateTimeOffset.class, JDBCType.DATETIMEOFFSET),
-    BOOLEAN (Boolean.class, JDBCType.BIT),
-    BIGDECIMAL (BigDecimal.class, JDBCType.DECIMAL),
-    DOUBLE (Double.class, JDBCType.DOUBLE),
-    FLOAT (Float.class, JDBCType.REAL),
-    SHORT (Short.class, JDBCType.SMALLINT),
-    LONG (Long.class, JDBCType.BIGINT),
-    BIGINTEGER(BigInteger.class, JDBCType.BIGINT),
-    BYTE (Byte.class, JDBCType.TINYINT),
-    BYTEARRAY (byte[].class, JDBCType.BINARY),
+    // type of Object maps to some JavaType.
+    INTEGER         (Integer.class,                         JDBCType.INTEGER),
+    STRING          (String.class,                          JDBCType.CHAR),
+    DATE            (java.sql.Date.class,                   JDBCType.DATE),
+    TIME            (java.sql.Time.class,                   JDBCType.TIME),
+    TIMESTAMP       (java.sql.Timestamp.class,              JDBCType.TIMESTAMP),
+    UTILDATE        (java.util.Date.class,                  JDBCType.TIMESTAMP),
+    CALENDAR        (java.util.Calendar.class,              JDBCType.TIMESTAMP),
+    LOCALDATE       (getJavaClass("LocalDate"),             JDBCType.DATE),
+    LOCALTIME       (getJavaClass("LocalTime"),             JDBCType.TIME),
+    LOCALDATETIME   (getJavaClass("LocalDateTime"),         JDBCType.TIMESTAMP),
+    OFFSETTIME      (getJavaClass("OffsetTime"),            JDBCType.TIME_WITH_TIMEZONE),
+    OFFSETDATETIME  (getJavaClass("OffsetDateTime"),        JDBCType.TIMESTAMP_WITH_TIMEZONE),
+    DATETIMEOFFSET  (microsoft.sql.DateTimeOffset.class,    JDBCType.DATETIMEOFFSET),
+    BOOLEAN         (Boolean.class,                         JDBCType.BIT),
+    BIGDECIMAL      (BigDecimal.class,                      JDBCType.DECIMAL),
+    DOUBLE          (Double.class,                          JDBCType.DOUBLE),
+    FLOAT           (Float.class,                           JDBCType.REAL),
+    SHORT           (Short.class,                           JDBCType.SMALLINT),
+    LONG            (Long.class,                            JDBCType.BIGINT),
+    BIGINTEGER      (BigInteger.class,                      JDBCType.BIGINT),
+    BYTE            (Byte.class,                            JDBCType.TINYINT),
+    BYTEARRAY       (byte[].class,                          JDBCType.BINARY),
     // Check for NClob before checking for Clob, since NClob IS A Clob
-    NCLOB (NClob.class, JDBCType.NCLOB),
-    CLOB (Clob.class, JDBCType.CLOB),
-    BLOB (Blob.class, JDBCType.BLOB),
-    TVP(com.microsoft.sqlserver.jdbc.TVP.class, JDBCType.TVP),
+    NCLOB           (NClob.class,                           JDBCType.NCLOB),
+    CLOB            (Clob.class,                            JDBCType.CLOB),
+    BLOB            (Blob.class,                            JDBCType.BLOB),
+    TVP             (com.microsoft.sqlserver.jdbc.TVP.class, JDBCType.TVP),
     
-    INPUTSTREAM (InputStream.class, JDBCType.UNKNOWN)
-    {
+    INPUTSTREAM(InputStream.class, JDBCType.UNKNOWN) {
         // InputStreams are either ASCII or binary
-        JDBCType getJDBCType(SSType ssType, JDBCType jdbcTypeFromApp)
-        {
+        JDBCType getJDBCType(SSType ssType,
+                JDBCType jdbcTypeFromApp) {
             JDBCType jdbcType;
 
             // When the backend type is known, the JDBC type is unknown.
             // That is, this method is being called from updateObject
             // rather than setObject.
-            if (SSType.UNKNOWN != ssType)
-            {
+            if (SSType.UNKNOWN != ssType) {
                 // If the backend type is known to be textual then assume
-                // that the stream is ASCII.  Otherwise, assume that the
-                // stream is binary.  In this case XML is NOT considered
-                // to be textual.  When updating an XML column from an
+                // that the stream is ASCII. Otherwise, assume that the
+                // stream is binary. In this case XML is NOT considered
+                // to be textual. When updating an XML column from an
                 // InputStream through updateObject, the stream is assumed
                 // to be binary, not ASCII.
-                switch (ssType)
-                {
+                switch (ssType) {
                     case CHAR:
                     case VARCHAR:
                     case VARCHARMAX:
@@ -577,8 +555,7 @@ enum JavaType
             // being called from setObject rather than updateObject),
             // if the JDBC type is specified as something other
             // than textual, then assume the stream is binary.
-            else
-            {
+            else {
                 jdbcType = jdbcTypeFromApp.isTextual() ? JDBCType.LONGVARCHAR : JDBCType.LONGVARBINARY;
             }
 
@@ -587,96 +564,85 @@ enum JavaType
         }
     },
 
-    READER (Reader.class, JDBCType.LONGVARCHAR),
+    READER  (Reader.class,          JDBCType.LONGVARCHAR),
     // Note: Only SQLServerSQLXML SQLXML instances are accepted by this driver
-    SQLXML (SQLServerSQLXML.class, JDBCType.SQLXML),
-    OBJECT (Object.class, JDBCType.UNKNOWN);
+    SQLXML  (SQLServerSQLXML.class, JDBCType.SQLXML),
+    OBJECT  (Object.class,          JDBCType.UNKNOWN);
 
     private final Class<?> javaClass;
     private final JDBCType jdbcTypeFromJavaType;
-    private static double jvmVersion = 0.0; 
+    private static double jvmVersion = 0.0;
 
-    private JavaType(Class<?> javaClass, JDBCType jdbcTypeFromJavaType)
-    {
+    private JavaType(Class<?> javaClass,
+            JDBCType jdbcTypeFromJavaType) {
         this.javaClass = javaClass;
         this.jdbcTypeFromJavaType = jdbcTypeFromJavaType;
     }
 
-    static Class<?> getJavaClass(String className)
-    {
-		if(0.0 == jvmVersion)
-		{
+    static Class<?> getJavaClass(String className) {
+        if (0.0 == jvmVersion) {
             try {
                 /*
-                 * Note: getProperty could throw a SecurityException if there is a security manager 
-                 * that doesn't allow checkPropertyAccess. Unlikely to happen & doesn't appear to be
-                 * a graceful way to handle so will let that exception through.
+                 * Note: getProperty could throw a SecurityException if there is a security manager that doesn't allow checkPropertyAccess. Unlikely
+                 * to happen & doesn't appear to be a graceful way to handle so will let that exception through.
                  */
-    			String jvmSpecVersion = System.getProperty("java.specification.version");
-    			if(jvmSpecVersion != null)
-    			{
-			        jvmVersion = Double.parseDouble(jvmSpecVersion);
-    			}
-			} catch (NumberFormatException e) {
-			    // Setting the version to be less that 1.8 so we don't try to set every time.
-			    jvmVersion = 0.1;
+                String jvmSpecVersion = System.getProperty("java.specification.version");
+                if (jvmSpecVersion != null) {
+                    jvmVersion = Double.parseDouble(jvmSpecVersion);
+                }
             }
-		}
+            catch (NumberFormatException e) {
+                // Setting the version to be less that 1.8 so we don't try to set every time.
+                jvmVersion = 0.1;
+            }
+        }
 
-		if (jvmVersion < 1.8)
-		{
-			return null;
-		}
-    	
-    	if (className.equals("LocalDate"))
-    	{
-    		return LocalDate.class;
-    	}
-    	else if (className.equals("LocalTime"))
-    	{
-    		return LocalTime.class;
-    	}
-    	else if (className.equals("LocalDateTime"))
-    	{
-    		return LocalDateTime.class;
-    	}
-    	else if (className.equals("OffsetTime"))
-    	{
-    		return OffsetTime.class;
-    	}
-    	else if (className.equals("OffsetDateTime"))
-    	{
-    		return OffsetDateTime.class;
-    	}
-    	
-		return null;
+        if (jvmVersion < 1.8) {
+            return null;
+        }
+
+        if (className.equals("LocalDate")) {
+            return LocalDate.class;
+        }
+        else if (className.equals("LocalTime")) {
+            return LocalTime.class;
+        }
+        else if (className.equals("LocalDateTime")) {
+            return LocalDateTime.class;
+        }
+        else if (className.equals("OffsetTime")) {
+            return OffsetTime.class;
+        }
+        else if (className.equals("OffsetDateTime")) {
+            return OffsetDateTime.class;
+        }
+
+        return null;
     }
-    
-    static JavaType of(Object obj)
-    {
-    	if (obj instanceof SQLServerDataTable || obj instanceof ResultSet || obj instanceof ISQLServerDataRecord)
-			return JavaType.TVP;
-        if (null != obj)
-        {
+
+    static JavaType of(Object obj) {
+        if (obj instanceof SQLServerDataTable || obj instanceof ResultSet || obj instanceof ISQLServerDataRecord)
+            return JavaType.TVP;
+        if (null != obj) {
             for (JavaType javaType : values())
-            	//if JVM version is prior to Java 8, the javaClass variable can be
-            	//null if the java type is introduced in Java 8
-            	if(null != javaType.javaClass){
-            		if (javaType.javaClass.isInstance(obj))
-            			return javaType;
-            	}
+                // if JVM version is prior to Java 8, the javaClass variable can be
+                // null if the java type is introduced in Java 8
+                if (null != javaType.javaClass) {
+                    if (javaType.javaClass.isInstance(obj))
+                        return javaType;
+                }
         }
 
         return JavaType.OBJECT;
     }
 
-    // Retrieve JDBC to use with this Java type.  By default we use the static JDBC type
+    // Retrieve JDBC to use with this Java type. By default we use the static JDBC type
     // associated with the Java type, ignoring the JDBC type specified by the application.
     // But this behavior is overridden for certain Java types, like InputStream, which
     // require the JDBC type to be specified externally to be able to distinguish between
     // ASCII and binary streams.
-    JDBCType getJDBCType(SSType ssType, JDBCType jdbcTypeFromApp)
-    {
+    JDBCType getJDBCType(SSType ssType,
+            JDBCType jdbcTypeFromApp) {
         return jdbcTypeFromJavaType;
     }
     
@@ -791,46 +757,43 @@ enum JavaType
 						JDBCType.SMALLDATETIME
 						));
 
-		private final EnumSet<JDBCType> to;
-		private final JavaType from;
+        private final EnumSet<JDBCType> to;
+        private final JavaType from;
 
-		private SetterConversionAE(
-				JavaType from,
-				EnumSet<JDBCType> to)
-		{
-			this.from = from;
-			this.to = to;
-		}
+        private SetterConversionAE(JavaType from,
+                EnumSet<JDBCType> to) {
+            this.from = from;
+            this.to = to;
+        }
 
-		private static final EnumMap<JavaType, EnumSet<JDBCType>> setterConversionAEMap =
-				new EnumMap<JavaType, EnumSet<JDBCType>>(JavaType.class);
+        private static final EnumMap<JavaType, EnumSet<JDBCType>> setterConversionAEMap = new EnumMap<JavaType, EnumSet<JDBCType>>(JavaType.class);
 
-		static
-		{
-			for (JavaType javaType : JavaType.values())
-				setterConversionAEMap.put(javaType, EnumSet.noneOf(JDBCType.class));
+        static {
+            for (JavaType javaType : JavaType.values())
+                setterConversionAEMap.put(javaType, EnumSet.noneOf(JDBCType.class));
 
-			for (SetterConversionAE conversion : values())
-				setterConversionAEMap.get(conversion.from).addAll(conversion.to);
-		}
+            for (SetterConversionAE conversion : values())
+                setterConversionAEMap.get(conversion.from).addAll(conversion.to);
+        }
 
-		static boolean converts(JavaType fromJavaType, JDBCType toJDBCType, Boolean sendStringParametersAsUnicode)
-		{
-			if ((null == fromJavaType) || (JavaType.OBJECT == fromJavaType))
-				return true;
-			else if(!sendStringParametersAsUnicode && fromJavaType == JavaType.BYTEARRAY 
-					&& (toJDBCType == JDBCType.VARCHAR || toJDBCType == JDBCType.CHAR || toJDBCType == JDBCType.LONGVARCHAR)){
-				//when column is encrypted and sendStringParametersAsUnicode is false, 
-				//does not throw exception if the column is char/varchar/varcharmax,
-				//in order to allow send char/varchar/varcharmax as MBCS (BYTEARRAY type)
-				return true;
-			}
-			else if (!setterConversionAEMap.containsKey(fromJavaType))
-				return false;
-			return setterConversionAEMap.get(fromJavaType).contains(toJDBCType);
-		}
-	};    
-    
+        static boolean converts(JavaType fromJavaType,
+                JDBCType toJDBCType,
+                Boolean sendStringParametersAsUnicode) {
+            if ((null == fromJavaType) || (JavaType.OBJECT == fromJavaType))
+                return true;
+            else if (!sendStringParametersAsUnicode && fromJavaType == JavaType.BYTEARRAY
+                    && (toJDBCType == JDBCType.VARCHAR || toJDBCType == JDBCType.CHAR || toJDBCType == JDBCType.LONGVARCHAR)) {
+                // when column is encrypted and sendStringParametersAsUnicode is false,
+                // does not throw exception if the column is char/varchar/varcharmax,
+                // in order to allow send char/varchar/varcharmax as MBCS (BYTEARRAY type)
+                return true;
+            }
+            else if (!setterConversionAEMap.containsKey(fromJavaType))
+                return false;
+            return setterConversionAEMap.get(fromJavaType).contains(toJDBCType);
+        }
+    };
+
 }
 
 enum JDBCType
@@ -878,7 +841,7 @@ enum JDBCType
     VARBINARY     (Category.BINARY,          java.sql.Types.VARBINARY,				"[B"),
     VARCHAR       (Category.CHARACTER,       java.sql.Types.VARCHAR,				"java.lang.String"),
     MONEY         (Category.NUMERIC,       	 microsoft.sql.Types.MONEY,				"java.math.BigDecimal"),
-    SMALLMONEY    (Category.NUMERIC,       	 microsoft.sql.Types.SMALLMONEY,       "java.math.BigDecimal"),
+    SMALLMONEY    (Category.NUMERIC,       	 microsoft.sql.Types.SMALLMONEY,        "java.math.BigDecimal"),
     TVP 		  (Category.TVP, 			 microsoft.sql.Types.STRUCTURED,		"java.lang.Object"),
     DATETIME      (Category.TIMESTAMP,       microsoft.sql.Types.DATETIME,			"java.sql.Timestamp"),
     SMALLDATETIME (Category.TIMESTAMP,       microsoft.sql.Types.SMALLDATETIME,     "java.sql.Timestamp"),
@@ -887,26 +850,29 @@ enum JDBCType
     final Category category;
     private final int intValue;
     private final String className;
-    final String className() { return className; }
 
-    private JDBCType(Category category, int intValue, String className)
-    {
+    final String className() {
+        return className;
+    }
+
+    private JDBCType(Category category,
+            int intValue,
+            String className) {
         this.category = category;
         this.intValue = intValue;
         this.className = className;
     }
 
-	/**
+    /**
      * Gets the integer value of JDBCType
+     * 
      * @return integer representation of JDBCType
      */
-    public int getIntValue()
-    {
-    	return this.intValue;
+    public int getIntValue() {
+        return this.intValue;
     }
     
-    enum Category
-    {
+    enum Category {
         CHARACTER,
         LONG_CHARACTER,
         CLOB,
@@ -921,7 +887,7 @@ enum JDBCType
         TIME,
         TIMESTAMP,
         TIME_WITH_TIMEZONE,
-        TIMESTAMP_WITH_TIMEZONE,        
+        TIMESTAMP_WITH_TIMEZONE,
         DATETIMEOFFSET,
         SQLXML,
         UNKNOWN,
@@ -929,9 +895,8 @@ enum JDBCType
         GUID;
     }
 
-    // This SetterConversion enum is based on the Category enum 
-    enum SetterConversion
-    {
+    // This SetterConversion enum is based on the Category enum
+    enum SetterConversion {
         CHARACTER (
             JDBCType.Category.CHARACTER,
             EnumSet.of(
@@ -1095,19 +1060,16 @@ enum JDBCType
         private final JDBCType.Category from;
         private final EnumSet<JDBCType.Category> to;
 
-        private SetterConversion(
-            JDBCType.Category from,
-            EnumSet<JDBCType.Category> to)
-        {
+        private SetterConversion(JDBCType.Category from,
+                EnumSet<JDBCType.Category> to) {
             this.from = from;
             this.to = to;
         }
 
-        private static final EnumMap<JDBCType.Category, EnumSet<JDBCType.Category>> conversionMap =
-            new EnumMap<JDBCType.Category, EnumSet<JDBCType.Category>>(JDBCType.Category.class);
+        private static final EnumMap<JDBCType.Category, EnumSet<JDBCType.Category>> conversionMap = new EnumMap<JDBCType.Category, EnumSet<JDBCType.Category>>(
+                JDBCType.Category.class);
 
-        static
-        {
+        static {
             for (JDBCType.Category category : JDBCType.Category.values())
                 conversionMap.put(category, EnumSet.noneOf(JDBCType.Category.class));
 
@@ -1115,19 +1077,17 @@ enum JDBCType
                 conversionMap.get(conversion.from).addAll(conversion.to);
         }
 
-        static boolean converts(JDBCType fromJDBCType, JDBCType toJDBCType)
-        {
+        static boolean converts(JDBCType fromJDBCType,
+                JDBCType toJDBCType) {
             return conversionMap.get(fromJDBCType.category).contains(toJDBCType.category);
         }
     };
 
-    boolean convertsTo(JDBCType jdbcType)
-    {
+    boolean convertsTo(JDBCType jdbcType) {
         return SetterConversion.converts(this, jdbcType);
     }
 
-    enum UpdaterConversion
-    {
+    enum UpdaterConversion {
         CHARACTER (
             JDBCType.Category.CHARACTER,
             EnumSet.of(
@@ -1307,19 +1267,16 @@ enum JDBCType
         private final JDBCType.Category from;
         private final EnumSet<SSType.Category> to;
 
-        private UpdaterConversion(
-            JDBCType.Category from,
-            EnumSet<SSType.Category> to)
-        {
+        private UpdaterConversion(JDBCType.Category from,
+                EnumSet<SSType.Category> to) {
             this.from = from;
             this.to = to;
         }
 
-        private static final EnumMap<JDBCType.Category, EnumSet<SSType.Category>> conversionMap =
-            new EnumMap<JDBCType.Category, EnumSet<SSType.Category>>(JDBCType.Category.class);
+        private static final EnumMap<JDBCType.Category, EnumSet<SSType.Category>> conversionMap = new EnumMap<JDBCType.Category, EnumSet<SSType.Category>>(
+                JDBCType.Category.class);
 
-        static
-        {
+        static {
             for (JDBCType.Category category : JDBCType.Category.values())
                 conversionMap.put(category, EnumSet.noneOf(SSType.Category.class));
 
@@ -1327,19 +1284,17 @@ enum JDBCType
                 conversionMap.get(conversion.from).addAll(conversion.to);
         }
 
-        static boolean converts(JDBCType fromJDBCType, SSType toSSType)
-        {
+        static boolean converts(JDBCType fromJDBCType,
+                SSType toSSType) {
             return conversionMap.get(fromJDBCType.category).contains(toSSType.category);
         }
     };
 
-    boolean convertsTo(SSType ssType)
-    {
+    boolean convertsTo(SSType ssType) {
         return UpdaterConversion.converts(this, ssType);
     }
 
-    static JDBCType of(int intValue) throws SQLServerException
-    {
+    static JDBCType of(int intValue) throws SQLServerException {
         for (JDBCType jdbcType : values())
             if (jdbcType.intValue == intValue)
                 return jdbcType;
@@ -1352,6 +1307,7 @@ enum JDBCType
 
     /**
      * Identify numerically signed data types.
+     * 
      * @return true if the type can be signed
      */
     private final static EnumSet<JDBCType> signedTypes =
@@ -1374,26 +1330,25 @@ enum JDBCType
 
     /**
      * Identify binary JDBC data types.
+     * 
      * @return true if the JDBC type is binary
      */
-    private final static EnumSet<JDBCType> binaryTypes =
-        EnumSet.of(
+    private final static EnumSet<JDBCType> binaryTypes = EnumSet.of(
             BINARY,
             VARBINARY,
             LONGVARBINARY,
             BLOB);
 
-    boolean isBinary()
-    {
+    boolean isBinary() {
         return binaryTypes.contains(this);
     }
 
     /**
-     * Identify textual JDBC data types -- those types for which conversion from another type
-     * is simply a matter of representing that type as a string.
+     * Identify textual JDBC data types -- those types for which conversion from another type is simply a matter of representing that type as a
+     * string.
      *
-     * Note: SQLXML does not qualify as a "textual" type in this context.  That is, calling,
-     * for example, timestamp.toString() does not result in an XML representation of a timestamp.
+     * Note: SQLXML does not qualify as a "textual" type in this context. That is, calling, for example, timestamp.toString() does not result in an
+     * XML representation of a timestamp.
      *
      * @return true if the JDBC type is textual
      */
@@ -1406,166 +1361,167 @@ enum JDBCType
             Category.LONG_NCHARACTER,
             Category.NCLOB);
 
-    boolean isTextual()
-    {
+    boolean isTextual() {
         return textualCategories.contains(category);
     }
 
     /**
      * Identify unsupported JDBC data types.
-     * @param jdbcType the JDBC type to check
+     * 
+     * @param jdbcType
+     *            the JDBC type to check
      * @return true if the type is unsupported
      */
-    boolean isUnsupported()
-    {
+    boolean isUnsupported() {
         return Category.UNKNOWN == category;
     }
 
     /**
      * Returns this type's java.sql.Types value according to the JDBC version expected by the JRE.
      *
-     * JDBC3 types are expected for SE 5.
-     * JDBC4 types are expected for SE 6 and later.
+     * JDBC3 types are expected for SE 5. JDBC4 types are expected for SE 6 and later.
      */
-    int asJavaSqlType()
-    {
-        if (Util.SYSTEM_SPEC_VERSION.equals("1.5"))
-        {
-            switch (this)
-            {
-                case NCHAR:        return java.sql.Types.CHAR;
-                case NVARCHAR:     return java.sql.Types.VARCHAR;
-                case LONGNVARCHAR: return java.sql.Types.LONGVARCHAR;
-                case NCLOB:        return java.sql.Types.CLOB;
-                case ROWID:        return java.sql.Types.OTHER;
-                case SQLXML:       return java.sql.Types.VARCHAR;
-                default:           return intValue;
+    int asJavaSqlType() {
+        if (Util.SYSTEM_SPEC_VERSION.equals("1.5")) {
+            switch (this) {
+                case NCHAR:
+                    return java.sql.Types.CHAR;
+                case NVARCHAR:
+                    return java.sql.Types.VARCHAR;
+                case LONGNVARCHAR:
+                    return java.sql.Types.LONGVARCHAR;
+                case NCLOB:
+                    return java.sql.Types.CLOB;
+                case ROWID:
+                    return java.sql.Types.OTHER;
+                case SQLXML:
+                    return java.sql.Types.VARCHAR;
+                default:
+                    return intValue;
             }
         }
-        else
-        {
+        else {
             return intValue;
         }
     }
-    
+
     /*
      * Used for verifying if a data type can be normalized for AE
      */
-    enum NormalizationAE
-    {
+    enum NormalizationAE {
     	CHARACTER_NORMALIZED_TO (
 				JDBCType.CHAR,
-        EnumSet.of(
-            SSType.CHAR,
-            SSType.VARCHAR,
-            SSType.VARCHARMAX)),
+        		EnumSet.of(
+                    SSType.CHAR,
+                    SSType.VARCHAR,
+                    SSType.VARCHARMAX)),
     	
     	VARCHARACTER_NORMALIZED_TO (
 				JDBCType.VARCHAR,
-        EnumSet.of(
-            SSType.CHAR,
-            SSType.VARCHAR,
-            SSType.VARCHARMAX)),
+                EnumSet.of(
+                    SSType.CHAR,
+                    SSType.VARCHAR,
+                    SSType.VARCHARMAX)),
 
     	LONGVARCHARACTER_NORMALIZED_TO (
 				JDBCType.LONGVARCHAR,
-        EnumSet.of(
-            SSType.CHAR,
-            SSType.VARCHAR,
-            SSType.VARCHARMAX)),
+                EnumSet.of(
+                    SSType.CHAR,
+                    SSType.VARCHAR,
+                    SSType.VARCHARMAX)),
             
     	NCHAR_NORMALIZED_TO (
 				JDBCType.NCHAR,
-        EnumSet.of(
-            SSType.NCHAR,
-            SSType.NVARCHAR,
-            SSType.NVARCHARMAX)),
+                EnumSet.of(
+                    SSType.NCHAR,
+                    SSType.NVARCHAR,
+                    SSType.NVARCHARMAX)),
     	
     	NVARCHAR_NORMALIZED_TO (
 				JDBCType.NVARCHAR,
-        EnumSet.of(
-            SSType.NCHAR,
-            SSType.NVARCHAR,
-            SSType.NVARCHARMAX)),
+                EnumSet.of(
+                    SSType.NCHAR,
+                    SSType.NVARCHAR,
+                    SSType.NVARCHARMAX)),
 
     	LONGNVARCHAR_NORMALIZED_TO (
 				JDBCType.LONGNVARCHAR,
-        EnumSet.of(
-            SSType.NCHAR,
-            SSType.NVARCHAR,
-            SSType.NVARCHARMAX)),
+                EnumSet.of(
+                    SSType.NCHAR,
+                    SSType.NVARCHAR,
+                    SSType.NVARCHARMAX)),
             
     	BIT_NORMALIZED_TO (
 				JDBCType.BIT,
-        EnumSet.of(
-            SSType.BIT,
-            SSType.TINYINT,
-            SSType.SMALLINT,
-            SSType.INTEGER,
-            SSType.BIGINT)),
+                EnumSet.of(
+                    SSType.BIT,
+                    SSType.TINYINT,
+                    SSType.SMALLINT,
+                    SSType.INTEGER,
+                    SSType.BIGINT)),
 
     	TINYINT_NORMALIZED_TO (
 				JDBCType.TINYINT,
-        EnumSet.of(
-            SSType.TINYINT,
-            SSType.SMALLINT,
-            SSType.INTEGER,
-            SSType.BIGINT)),
+                EnumSet.of(
+                    SSType.TINYINT,
+                    SSType.SMALLINT,
+                    SSType.INTEGER,
+                    SSType.BIGINT)),
 
     	SMALLINT_NORMALIZED_TO (
 				JDBCType.SMALLINT,
-        EnumSet.of(
-            SSType.SMALLINT,
-            SSType.INTEGER,
-            SSType.BIGINT)),
+                EnumSet.of(
+                    SSType.SMALLINT,
+                    SSType.INTEGER,
+                    SSType.BIGINT)),
     	
     	INTEGER_NORMALIZED_TO (
 				JDBCType.INTEGER,
-        EnumSet.of(
-            SSType.INTEGER,
-            SSType.BIGINT)),
-    	
+                EnumSet.of(
+                    SSType.INTEGER,
+                    SSType.BIGINT)),
+            	
     	BIGINT_NORMALIZED_TO (
 				JDBCType.BIGINT,
-        EnumSet.of(
-            SSType.BIGINT)),
+                EnumSet.of(
+                    SSType.BIGINT)),
     	
     	BINARY_NORMALIZED_TO (
 				JDBCType.BINARY,
-        EnumSet.of(
-            SSType.BINARY,
-            SSType.VARBINARY,
-            SSType.VARBINARYMAX)),
+                EnumSet.of(
+                    SSType.BINARY,
+                    SSType.VARBINARY,
+                    SSType.VARBINARYMAX)),
         
     	VARBINARY_NORMALIZED_TO (
 				JDBCType.VARBINARY,
-        EnumSet.of(
-            SSType.BINARY,
-            SSType.VARBINARY,
-            SSType.VARBINARYMAX)),
+                EnumSet.of(
+                    SSType.BINARY,
+                    SSType.VARBINARY,
+                    SSType.VARBINARYMAX)),
 
     	LONGVARBINARY_NORMALIZED_TO (
 				JDBCType.LONGVARBINARY,
-        EnumSet.of(
-            SSType.BINARY,
-            SSType.VARBINARY,
-            SSType.VARBINARYMAX)),
+                EnumSet.of(
+                    SSType.BINARY,
+                    SSType.VARBINARY,
+                    SSType.VARBINARYMAX)),
             
     	FLOAT_NORMALIZED_TO (
 				JDBCType.DOUBLE,
-        EnumSet.of(
-            SSType.FLOAT)),
-    	
+                EnumSet.of(
+                    SSType.FLOAT)),
+            	
     	REAL_NORMALIZED_TO (
 				JDBCType.REAL,
-        EnumSet.of(
-            SSType.REAL)),
-    	
+                EnumSet.of(
+                    SSType.REAL)),
+            	
     	DECIMAL_NORMALIZED_TO (
 				JDBCType.DECIMAL,
-        EnumSet.of(
-            SSType.DECIMAL,
-            SSType.NUMERIC)),
+                EnumSet.of(
+                    SSType.DECIMAL,
+                    SSType.NUMERIC)),
 
         SMALLMONEY_NORMALIZED_TO (
         		JDBCType.SMALLMONEY,
@@ -1580,87 +1536,81 @@ enum JDBCType
     	
     	NUMERIC_NORMALIZED_TO (
 				JDBCType.NUMERIC,
-        EnumSet.of(
-        	SSType.DECIMAL,	
-            SSType.NUMERIC)),
-    	
+                EnumSet.of(
+                	SSType.DECIMAL,	
+                    SSType.NUMERIC)),
+            	
     	DATE_NORMALIZED_TO (
 				JDBCType.DATE,
-        EnumSet.of(
-            SSType.DATE)),
-    	
+                EnumSet.of(
+                    SSType.DATE)),
+            	
     	TIME_NORMALIZED_TO (
 				JDBCType.TIME,
-        EnumSet.of(
-            SSType.TIME)),
+                EnumSet.of(
+                    SSType.TIME)),
     	
     	DATETIME2_NORMALIZED_TO (
 				JDBCType.TIMESTAMP,
-        EnumSet.of(
-            SSType.DATETIME2)),
+                EnumSet.of(
+                    SSType.DATETIME2)),
     	
     	DATETIMEOFFSET_NORMALIZED_TO (
 				JDBCType.DATETIMEOFFSET,
-        EnumSet.of(
-            SSType.DATETIMEOFFSET)),
+                EnumSet.of(
+                    SSType.DATETIMEOFFSET)),
     	
     	DATETIME_NORMALIZED_TO (
 				JDBCType.DATETIME,
-        EnumSet.of(
-            SSType.DATETIME)),
+                EnumSet.of(
+                    SSType.DATETIME)),
     	
     	SMALLDATETIME_NORMALIZED_TO (
 				JDBCType.SMALLDATETIME,
-        EnumSet.of(
-            SSType.SMALLDATETIME)),
+                EnumSet.of(
+                    SSType.SMALLDATETIME)),
     	
     	GUID_NORMALIZED_TO (
 				JDBCType.GUID,
-        EnumSet.of(
-            SSType.GUID)),
+                EnumSet.of(
+                    SSType.GUID)),
     	;
 
         private final JDBCType from;
         private final EnumSet<SSType> to;
 
-        private NormalizationAE(
-    		JDBCType from,
-            EnumSet<SSType> to)
-        {
+        private NormalizationAE(JDBCType from,
+                EnumSet<SSType> to) {
             this.from = from;
             this.to = to;
         }
 
-        private static final EnumMap<JDBCType, EnumSet<SSType>> normalizationMapAE =
-            new EnumMap<JDBCType, EnumSet<SSType>>(JDBCType.class);
+        private static final EnumMap<JDBCType, EnumSet<SSType>> normalizationMapAE = new EnumMap<JDBCType, EnumSet<SSType>>(JDBCType.class);
 
-        static
-        {
+        static {
             for (JDBCType jdbcType : JDBCType.values())
-            		normalizationMapAE.put(jdbcType, EnumSet.noneOf(SSType.class));
+                normalizationMapAE.put(jdbcType, EnumSet.noneOf(SSType.class));
 
             for (NormalizationAE conversion : values())
-            		normalizationMapAE.get(conversion.from).addAll(conversion.to);
+                normalizationMapAE.get(conversion.from).addAll(conversion.to);
         }
 
-        static boolean converts(JDBCType fromJDBCType, SSType toSSType)
-        {
+        static boolean converts(JDBCType fromJDBCType,
+                SSType toSSType) {
             return normalizationMapAE.get(fromJDBCType).contains(toSSType);
         }
     };
-    
-    boolean normalizationCheck(SSType ssType)
-    {
-    	return NormalizationAE.converts(this, ssType);
+
+    boolean normalizationCheck(SSType ssType) {
+        return NormalizationAE.converts(this, ssType);
     }
-    
+
 }
 
-final class DataTypes
-{
+final class DataTypes {
     // ResultSet & CallableStatement getXXX conversions (SSType --> JDBCType)
-    static final void throwConversionError(String fromType, String toType) throws SQLServerException
-    {
+    static final void throwConversionError(String fromType,
+            String toType) throws SQLServerException {
         MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_unsupportedConversionFromTo"));
         Object[] msgArgs = {fromType, toType};
         SQLServerException.makeFromDriverError(null, null, form.format(msgArgs), null, true);
@@ -1673,11 +1623,11 @@ final class DataTypes
     // Max length in bytes allowed by the "short" VARBINARY/VARCHAR types.
     // Values longer than this must use VARBINARY(max)/VARCHAR(max) (Yukon or later) or IMAGE/TEXT (Shiloh)
     final static int SHORT_VARTYPE_MAX_BYTES = 8000;
-    
-    //A type with unlimited max size, known as varchar(max), varbinary(max) and nvarchar(max), 
-    //which has a max size of 0xFFFF, defined by PARTLENTYPE. 
-    final static int SQL_USHORTVARMAXLEN = 65535; //0xFFFF
-    
+
+    // A type with unlimited max size, known as varchar(max), varbinary(max) and nvarchar(max),
+    // which has a max size of 0xFFFF, defined by PARTLENTYPE.
+    final static int SQL_USHORTVARMAXLEN = 65535; // 0xFFFF
+
     // From SQL Server 2005 Books Online : ntext, text, and image (Transact-SQL)
     // http://msdn.microsoft.com/en-us/library/ms187993.aspx
     //
@@ -1689,26 +1639,26 @@ final class DataTypes
     //
     // ntext
     // "... maximum length of 2^30 - 1 (1,073,741,823) characters."
-    final static int NTEXT_MAX_CHARS       = 0x3FFFFFFF;
-    final static int IMAGE_TEXT_MAX_BYTES  = 0x7FFFFFFF;
+    final static int NTEXT_MAX_CHARS = 0x3FFFFFFF;
+    final static int IMAGE_TEXT_MAX_BYTES = 0x7FFFFFFF;
 
     // From SQL Server 2005 Books Online : Transact-SQL Data Types
     // http://msdn.microsoft.com/en-us/library/ms179910.aspx
     //
     // varbinary(max)
-    // "max indicates that the maximum storage size is 2^31 - 1 bytes.  The storage size is the actual
-    //  length of the data entered + 2 bytes."
+    // "max indicates that the maximum storage size is 2^31 - 1 bytes. The storage size is the actual
+    // length of the data entered + 2 bytes."
     //
     // varchar(max)
-    // "max indicates that the maximum storage size is 2^31 - 1 bytes.  The storage size is the actual
-    //  length of the data entered + 2 bytes."
+    // "max indicates that the maximum storage size is 2^31 - 1 bytes. The storage size is the actual
+    // length of the data entered + 2 bytes."
     //
     // nvarchar(max)
-    // "max indicates that the maximum storage size is 2^31 - 1 bytes.  The storage size, in bytes,
-    //  is two times the number of characters entered + 2 bytes."
+    // "max indicates that the maximum storage size is 2^31 - 1 bytes. The storage size, in bytes,
+    // is two times the number of characters entered + 2 bytes."
     //
     // Normally, that would mean that the maximum length of nvarchar(max) data is 0x3FFFFFFE characters
-    // and that the maximum length of varchar(max) or varbinary(max) data is 0x3FFFFFFD bytes.  However...
+    // and that the maximum length of varchar(max) or varbinary(max) data is 0x3FFFFFFD bytes. However...
     // Despite the documentation, SQL Server returns 2^30 - 1 and 2^31 - 1 respectively as the PRECISION
     // of these types, so use that instead.
     final static int MAX_VARTYPE_MAX_CHARS = 0x3FFFFFFF;
@@ -1718,16 +1668,17 @@ final class DataTypes
 
     // Special length indicator for varchar(max), nvarchar(max) and varbinary(max).
     static final int MAXTYPE_LENGTH = 0xFFFF;
- 
+
     static final int UNKNOWN_STREAM_LENGTH = -1;
 
     // Utility methods to check a reported length against the maximums allowed
-    static final long getCheckedLength(SQLServerConnection con, JDBCType jdbcType, long length, boolean allowUnknown) throws SQLServerException
-    {
+    static final long getCheckedLength(SQLServerConnection con,
+            JDBCType jdbcType,
+            long length,
+            boolean allowUnknown) throws SQLServerException {
         long maxLength;
 
-        switch (jdbcType)
-        {
+        switch (jdbcType) {
             case NCHAR:
             case NVARCHAR:
             case LONGNVARCHAR:
@@ -1742,16 +1693,10 @@ final class DataTypes
                 break;
         }
 
-        if (length < (allowUnknown ? -1 : 0) || length > maxLength)
-        {
+        if (length < (allowUnknown ? -1 : 0) || length > maxLength) {
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidLength"));
             Object[] msgArgs = {length};
-            SQLServerException.makeFromDriverError(
-                con,
-                null,
-                form.format(msgArgs),
-                null,
-                false);
+            SQLServerException.makeFromDriverError(con, null, form.format(msgArgs), null, false);
         }
 
         return length;

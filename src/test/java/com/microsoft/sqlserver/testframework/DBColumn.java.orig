@@ -78,7 +78,11 @@ class DBColumn {
     JDBCType getJdbctype() {
         return sqlType.getJdbctype();
     }
+<<<<<<< HEAD
 
+=======
+    
+>>>>>>> 85dd53d41a6d634a76d0a4872b4eaf0a2d2ccf4f
     /**
      * 
      * @param sqlType
@@ -104,7 +108,7 @@ class DBColumn {
      * @param row
      * @return the value populated for the column
      */
-     Object getRowValue(int row) {
+    public Object getRowValue(int row) {
         // handle exceptions
         return columnValues.get(row);
     }

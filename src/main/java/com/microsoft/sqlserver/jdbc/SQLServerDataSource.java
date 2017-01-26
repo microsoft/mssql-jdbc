@@ -1,22 +1,11 @@
-//---------------------------------------------------------------------------------------------------------------------------------
-// File: SQLServerDataSource.java
-//
-//
-// Microsoft JDBC Driver for SQL Server
-// Copyright(c) Microsoft Corporation
-// All rights reserved.
-// MIT License
-// Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files(the "Software"), 
-//  to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, 
-//  and / or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions :
-// The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
-// THE SOFTWARE IS PROVIDED *AS IS*, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, 
-//  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER 
-//  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS 
-//  IN THE SOFTWARE.
-//---------------------------------------------------------------------------------------------------------------------------------
- 
- 
+/*
+ * Microsoft JDBC Driver for SQL Server
+ * 
+ * Copyright(c) Microsoft Corporation All rights reserved.
+ * 
+ * This program is made available under the terms of the MIT License. See the LICENSE file in the project root for more information.
+ */
+
 package com.microsoft.sqlserver.jdbc;
 
 import java.io.PrintWriter;
@@ -34,627 +23,623 @@ import javax.naming.StringRefAddr;
 import javax.sql.DataSource;
 
 /**
-* This datasource lists properties specific for the SQLServerConnection class.
-*/
-public class SQLServerDataSource implements ISQLServerDataSource, DataSource, java.io.Serializable, javax.naming.Referenceable
-{
-    // dsLogger is logger used for all SQLServerDataSource instances. 
+ * This datasource lists properties specific for the SQLServerConnection class.
+ */
+public class SQLServerDataSource implements ISQLServerDataSource, DataSource, java.io.Serializable, javax.naming.Referenceable {
+    // dsLogger is logger used for all SQLServerDataSource instances.
     static final java.util.logging.Logger dsLogger = java.util.logging.Logger.getLogger("com.microsoft.sqlserver.jdbc.internals.SQLServerDataSource");
-    static final java.util.logging.Logger loggerExternal =
-                            java.util.logging.Logger.getLogger("com.microsoft.sqlserver.jdbc.DataSource"); 
-    static final private java.util.logging.Logger parentLogger =
-            java.util.logging.Logger.getLogger("com.microsoft.sqlserver.jdbc");
+    static final java.util.logging.Logger loggerExternal = java.util.logging.Logger.getLogger("com.microsoft.sqlserver.jdbc.DataSource");
+    static final private java.util.logging.Logger parentLogger = java.util.logging.Logger.getLogger("com.microsoft.sqlserver.jdbc");
     final private String loggingClassName;
-    private boolean trustStorePasswordStripped = false; 
+    private boolean trustStorePasswordStripped = false;
     private static final long serialVersionUID = 654861379544314296L;
 
     private Properties connectionProps;			// Properties passed to SQLServerConnection class.
     private String dataSourceURL;				// URL for datasource.
     private String dataSourceDescription;		// Description for datasource.
-    static private final AtomicInteger baseDataSourceID = new AtomicInteger(0);	// Unique id generator for each DataSource instance (used for logging).
+    static private final AtomicInteger baseDataSourceID = new AtomicInteger(0);	// Unique id generator for each DataSource instance (used for
+                                                                               	// logging).
     final private String traceID;
-    
-	/**
+
+    /**
      * Initializes a new instance of the SQLServerDataSource class.
      */
-    public SQLServerDataSource() 
-    {
+    public SQLServerDataSource() {
         connectionProps = new Properties();
         int dataSourceID = nextDataSourceID();
         String nameL = getClass().getName();
-        traceID =  nameL.substring(1 + nameL.lastIndexOf('.')) + ":"  + dataSourceID;
-        loggingClassName = "com.microsoft.sqlserver.jdbc." + nameL.substring(1 + nameL.lastIndexOf('.')) + ":"  + dataSourceID;
+        traceID = nameL.substring(1 + nameL.lastIndexOf('.')) + ":" + dataSourceID;
+        loggingClassName = "com.microsoft.sqlserver.jdbc." + nameL.substring(1 + nameL.lastIndexOf('.')) + ":" + dataSourceID;
     }
 
-    String getClassNameLogging()
-    {
+    String getClassNameLogging() {
         return loggingClassName;
     }
-    public String toString() 
-    {
+
+    public String toString() {
         return traceID;
     }
 
     // DataSource interface public methods
 
-    public Connection getConnection() throws SQLServerException 
-    { 
-        loggerExternal.entering(getClassNameLogging(),  "getConnection");         
+    public Connection getConnection() throws SQLServerException {
+        loggerExternal.entering(getClassNameLogging(), "getConnection");
         Connection con = getConnectionInternal(null, null, null);
-        loggerExternal.exiting(getClassNameLogging(),  "getConnection", con);
-        return con;
-    }
-    public Connection getConnection(String username, String password) throws SQLServerException 
-    {
-        if (loggerExternal.isLoggable(Level.FINER)) 
-            loggerExternal.entering(getClassNameLogging(),  "getConnection", new Object[]{username, "Password not traced"}); 
-        Connection con = getConnectionInternal(username, password, null);
-        loggerExternal.exiting(getClassNameLogging(),  "getConnection", con);
+        loggerExternal.exiting(getClassNameLogging(), "getConnection", con);
         return con;
     }
 
-    // Sets the maximum time in seconds that this data source will wait while 
-    // attempting to connect to a database.  Note default value is 0.
-    public void setLoginTimeout(int loginTimeout)
-    {
+    public Connection getConnection(String username,
+            String password) throws SQLServerException {
+        if (loggerExternal.isLoggable(Level.FINER))
+            loggerExternal.entering(getClassNameLogging(), "getConnection", new Object[] {username, "Password not traced"});
+        Connection con = getConnectionInternal(username, password, null);
+        loggerExternal.exiting(getClassNameLogging(), "getConnection", con);
+        return con;
+    }
+
+    // Sets the maximum time in seconds that this data source will wait while
+    // attempting to connect to a database. Note default value is 0.
+    public void setLoginTimeout(int loginTimeout) {
         setIntProperty(connectionProps, SQLServerDriverIntProperty.LOGIN_TIMEOUT.toString(), loginTimeout);
     }
-    public int getLoginTimeout()
-    {
- 		int defaultTimeOut = SQLServerDriverIntProperty.LOGIN_TIMEOUT.getDefaultValue();   
+
+    public int getLoginTimeout() {
+        int defaultTimeOut = SQLServerDriverIntProperty.LOGIN_TIMEOUT.getDefaultValue();
         final int logintimeout = getIntProperty(connectionProps, SQLServerDriverIntProperty.LOGIN_TIMEOUT.toString(), defaultTimeOut);
-        // even if the user explicitly sets the timeout to zero, convert to 15    
-        return (logintimeout==0)?defaultTimeOut:logintimeout;
+        // even if the user explicitly sets the timeout to zero, convert to 15
+        return (logintimeout == 0) ? defaultTimeOut : logintimeout;
     }
 
     // Sets the log writer for this DataSource.
     // Currently we just hold onto this logWriter and pass it back to callers, nothing else.
     private transient PrintWriter logWriter;
-    public void setLogWriter(PrintWriter out) 
-    {
-        loggerExternal.entering(getClassNameLogging(), "setLogWriter" ,out); 
+
+    public void setLogWriter(PrintWriter out) {
+        loggerExternal.entering(getClassNameLogging(), "setLogWriter", out);
         logWriter = out;
-        loggerExternal.exiting(getClassNameLogging(),  "setLogWriter");
+        loggerExternal.exiting(getClassNameLogging(), "setLogWriter");
     }
 
     // Retrieves the log writer for this DataSource.
-    public PrintWriter getLogWriter() 
-    {
-        loggerExternal.entering(getClassNameLogging(), "getLogWriter" ); 
-        loggerExternal.exiting(getClassNameLogging(),  "getLogWriter", logWriter);
+    public PrintWriter getLogWriter() {
+        loggerExternal.entering(getClassNameLogging(), "getLogWriter");
+        loggerExternal.exiting(getClassNameLogging(), "getLogWriter", logWriter);
         return logWriter;
-    }	
+    }
 
-    public Logger getParentLogger() throws SQLFeatureNotSupportedException
-    {
+    public Logger getParentLogger() throws SQLFeatureNotSupportedException {
         DriverJDBCVersion.checkSupportsJDBC41();
 
         return parentLogger;
     }
-    
+
     // Core Connection property setters/getters.
 
-    // applicationName is used to identify the specific application in various SQL Server 
+    // applicationName is used to identify the specific application in various SQL Server
     // profiling and logging tools.
-    public void setApplicationName(String applicationName)
-    {
+    public void setApplicationName(String applicationName) {
         setStringProperty(connectionProps, SQLServerDriverStringProperty.APPLICATION_NAME.toString(), applicationName);
     }
-    public String getApplicationName()
-    {
-        return    getStringProperty(connectionProps, SQLServerDriverStringProperty.APPLICATION_NAME.toString(), SQLServerDriverStringProperty.APPLICATION_NAME.getDefaultValue());
+
+    public String getApplicationName() {
+        return getStringProperty(connectionProps, SQLServerDriverStringProperty.APPLICATION_NAME.toString(),
+                SQLServerDriverStringProperty.APPLICATION_NAME.getDefaultValue());
     }
 
-    // databaseName is the name of the database to connect to. If databaseName is not set, 
+    // databaseName is the name of the database to connect to. If databaseName is not set,
     // getDatabaseName returns the default value of null.
-    public void setDatabaseName(String databaseName)
-    {
+    public void setDatabaseName(String databaseName) {
         setStringProperty(connectionProps, SQLServerDriverStringProperty.DATABASE_NAME.toString(), databaseName);
     }
-    public String getDatabaseName()
-    {
+
+    public String getDatabaseName() {
         return getStringProperty(connectionProps, SQLServerDriverStringProperty.DATABASE_NAME.toString(), null);
     }
 
-    // instanceName is the SQL Server instance name to connect to.  
+    // instanceName is the SQL Server instance name to connect to.
     // If instanceName is not set, getInstanceName returns the default value of null.
-    public void setInstanceName(String instanceName)
-    {
+    public void setInstanceName(String instanceName) {
         setStringProperty(connectionProps, SQLServerDriverStringProperty.INSTANCE_NAME.toString(), instanceName);
     }
-    public String getInstanceName()
-    {
+
+    public String getInstanceName() {
         return getStringProperty(connectionProps, SQLServerDriverStringProperty.INSTANCE_NAME.toString(), null);
     }
 
-    public void setIntegratedSecurity(boolean enable)
-    {
+    public void setIntegratedSecurity(boolean enable) {
         setBooleanProperty(connectionProps, SQLServerDriverBooleanProperty.INTEGRATED_SECURITY.toString(), enable);
     }
-	public void setAuthenticationScheme(String authenticationScheme)
-    {
+
+    public void setAuthenticationScheme(String authenticationScheme) {
         setStringProperty(connectionProps, SQLServerDriverStringProperty.AUTHENTICATION_SCHEME.toString(), authenticationScheme);
     }
-	
-	/**
-	 * sets the authentication mode
-	 * @param authentication the authentication mode 
-	 */
-	public void setAuthentication(String authentication)
-    {
+
+    /**
+     * sets the authentication mode
+     * 
+     * @param authentication
+     *            the authentication mode
+     */
+    public void setAuthentication(String authentication) {
         setStringProperty(connectionProps, SQLServerDriverStringProperty.AUTHENTICATION.toString(), authentication);
     }
-	
-	/**
-	 * Retrieves the authentication mode 
-	 * @return the authentication value
-	 */
-	public String getAuthentication(){
-		return getStringProperty(connectionProps, SQLServerDriverStringProperty.AUTHENTICATION.toString(), SQLServerDriverStringProperty.AUTHENTICATION.getDefaultValue());
-	}
-	
-	/**
-	 * Sets the access token.
-	 * @param accessToken to be set in the string property.
-	 */
-	public void setAccessToken(String accessToken)
-    {
+
+    /**
+     * Retrieves the authentication mode
+     * 
+     * @return the authentication value
+     */
+    public String getAuthentication() {
+        return getStringProperty(connectionProps, SQLServerDriverStringProperty.AUTHENTICATION.toString(),
+                SQLServerDriverStringProperty.AUTHENTICATION.getDefaultValue());
+    }
+
+    /**
+     * Sets the access token.
+     * 
+     * @param accessToken
+     *            to be set in the string property.
+     */
+    public void setAccessToken(String accessToken) {
         setStringProperty(connectionProps, SQLServerDriverStringProperty.ACCESS_TOKEN.toString(), accessToken);
     }
-	
-	/**
-	 * Retrieves the access token. 
-	 * @return the access token.
-	 */
-	public String getAccessToken(){
-		 return getStringProperty(connectionProps, SQLServerDriverStringProperty.ACCESS_TOKEN.toString(), null);
-	}
 
-    // If lastUpdateCount is set to true, the driver will return only the last update 
-    // count from all the update counts returned by a batch.  The default of false will 
-    // return all update counts.  If lastUpdateCount is not set, getLastUpdateCount 
-    // returns the default value of false.
-	/**
-	 * Enables/disables Always Encrypted functionality for the data source object. The default is Disabled.
-	 * @param columnEncryptionSetting Enables/disables Always Encrypted functionality for the data source object. The default is Disabled.
-	 */
-    public void setColumnEncryptionSetting(String columnEncryptionSetting)
-    {
-    	setStringProperty(connectionProps, SQLServerDriverStringProperty.COLUMN_ENCRYPTION.toString(), columnEncryptionSetting);
+    /**
+     * Retrieves the access token.
+     * 
+     * @return the access token.
+     */
+    public String getAccessToken() {
+        return getStringProperty(connectionProps, SQLServerDriverStringProperty.ACCESS_TOKEN.toString(), null);
     }
-	
-	/**
+
+    // If lastUpdateCount is set to true, the driver will return only the last update
+    // count from all the update counts returned by a batch. The default of false will
+    // return all update counts. If lastUpdateCount is not set, getLastUpdateCount
+    // returns the default value of false.
+    /**
+     * Enables/disables Always Encrypted functionality for the data source object. The default is Disabled.
+     * 
+     * @param columnEncryptionSetting
+     *            Enables/disables Always Encrypted functionality for the data source object. The default is Disabled.
+     */
+    public void setColumnEncryptionSetting(String columnEncryptionSetting) {
+        setStringProperty(connectionProps, SQLServerDriverStringProperty.COLUMN_ENCRYPTION.toString(), columnEncryptionSetting);
+    }
+
+    /**
      * Retrieves the Always Encrypted functionality setting for the data source object.
+     * 
      * @return the Always Encrypted functionality setting for the data source object.
      */
-    public String getColumnEncryptionSetting()
-    {
-    	return getStringProperty(connectionProps, SQLServerDriverStringProperty.COLUMN_ENCRYPTION.toString(), SQLServerDriverStringProperty.COLUMN_ENCRYPTION.getDefaultValue());
+    public String getColumnEncryptionSetting() {
+        return getStringProperty(connectionProps, SQLServerDriverStringProperty.COLUMN_ENCRYPTION.toString(),
+                SQLServerDriverStringProperty.COLUMN_ENCRYPTION.getDefaultValue());
     }
-	
-	/**
-	 * Sets the name that identifies a key store. Only value supported is the "JavaKeyStorePassword" for identifying the Java Key Store.
-	 * The default is null.
-	 * @param keyStoreAuthentication the name that identifies a key store.
-	 */
-    public void setKeyStoreAuthentication(String keyStoreAuthentication)
-    {
-    	setStringProperty(connectionProps, SQLServerDriverStringProperty.KEY_STORE_AUTHENTICATION.toString(), keyStoreAuthentication);
+
+    /**
+     * Sets the name that identifies a key store. Only value supported is the "JavaKeyStorePassword" for identifying the Java Key Store. The default
+     * is null.
+     * 
+     * @param keyStoreAuthentication
+     *            the name that identifies a key store.
+     */
+    public void setKeyStoreAuthentication(String keyStoreAuthentication) {
+        setStringProperty(connectionProps, SQLServerDriverStringProperty.KEY_STORE_AUTHENTICATION.toString(), keyStoreAuthentication);
     }
-	
-	/**
+
+    /**
      * Gets the value of the keyStoreAuthentication setting for the data source object.
+     * 
      * @return the value of the keyStoreAuthentication setting for the data source object.
      */
-    public String getKeyStoreAuthentication()
-    {
-    	return getStringProperty(connectionProps, SQLServerDriverStringProperty.KEY_STORE_AUTHENTICATION.toString(), SQLServerDriverStringProperty.KEY_STORE_AUTHENTICATION.getDefaultValue());
+    public String getKeyStoreAuthentication() {
+        return getStringProperty(connectionProps, SQLServerDriverStringProperty.KEY_STORE_AUTHENTICATION.toString(),
+                SQLServerDriverStringProperty.KEY_STORE_AUTHENTICATION.getDefaultValue());
     }
 
-	/**
+    /**
      * Sets the password for the Java keystore. Note that, for Java Key Store provider the password for the keystore and the key must be the same.
      * Note that, keyStoreAuthentication must be set with "JavaKeyStorePassword".
-     * @param keyStoreSecret the password to use for the keystore as well as for the key
+     * 
+     * @param keyStoreSecret
+     *            the password to use for the keystore as well as for the key
      */
-    public void setKeyStoreSecret(String keyStoreSecret)
-    {
-    	setStringProperty(connectionProps, SQLServerDriverStringProperty.KEY_STORE_SECRET.toString(), keyStoreSecret);
-    }
-    
-	/**
-     * Sets the location including the file name for the Java keystore. Note that, keyStoreAuthentication must be set with "JavaKeyStorePassword".
-     * @param keyStoreLocation the location including the file name for the Java keystore.
-     */
-    public void setKeyStoreLocation(String keyStoreLocation)
-    {
-    	setStringProperty(connectionProps, SQLServerDriverStringProperty.KEY_STORE_LOCATION.toString(), keyStoreLocation);
-    }
-	
-	/**
-     * Retrieves the keyStoreLocation for the Java Key Store.
-     * @return the keyStoreLocation for the Java Key Store.
-     */
-    public String getKeyStoreLocation()
-    {
-    	return getStringProperty(connectionProps, SQLServerDriverStringProperty.KEY_STORE_LOCATION.toString(), SQLServerDriverStringProperty.KEY_STORE_LOCATION.getDefaultValue());
+    public void setKeyStoreSecret(String keyStoreSecret) {
+        setStringProperty(connectionProps, SQLServerDriverStringProperty.KEY_STORE_SECRET.toString(), keyStoreSecret);
     }
 
-    public void setLastUpdateCount(boolean lastUpdateCount)
-    {
+    /**
+     * Sets the location including the file name for the Java keystore. Note that, keyStoreAuthentication must be set with "JavaKeyStorePassword".
+     * 
+     * @param keyStoreLocation
+     *            the location including the file name for the Java keystore.
+     */
+    public void setKeyStoreLocation(String keyStoreLocation) {
+        setStringProperty(connectionProps, SQLServerDriverStringProperty.KEY_STORE_LOCATION.toString(), keyStoreLocation);
+    }
+
+    /**
+     * Retrieves the keyStoreLocation for the Java Key Store.
+     * 
+     * @return the keyStoreLocation for the Java Key Store.
+     */
+    public String getKeyStoreLocation() {
+        return getStringProperty(connectionProps, SQLServerDriverStringProperty.KEY_STORE_LOCATION.toString(),
+                SQLServerDriverStringProperty.KEY_STORE_LOCATION.getDefaultValue());
+    }
+
+    public void setLastUpdateCount(boolean lastUpdateCount) {
         setBooleanProperty(connectionProps, SQLServerDriverBooleanProperty.LAST_UPDATE_COUNT.toString(), lastUpdateCount);
     }
-    public boolean getLastUpdateCount()
-    {
-        return getBooleanProperty(connectionProps, SQLServerDriverBooleanProperty.LAST_UPDATE_COUNT.toString(), SQLServerDriverBooleanProperty.LAST_UPDATE_COUNT.getDefaultValue());
+
+    public boolean getLastUpdateCount() {
+        return getBooleanProperty(connectionProps, SQLServerDriverBooleanProperty.LAST_UPDATE_COUNT.toString(),
+                SQLServerDriverBooleanProperty.LAST_UPDATE_COUNT.getDefaultValue());
     }
 
     // Encryption
-    public void setEncrypt(boolean encrypt)
-    {
+    public void setEncrypt(boolean encrypt) {
         setBooleanProperty(connectionProps, SQLServerDriverBooleanProperty.ENCRYPT.toString(), encrypt);
     }
-    public boolean getEncrypt()
-    {
-        return getBooleanProperty(connectionProps, SQLServerDriverBooleanProperty.ENCRYPT.toString(), SQLServerDriverBooleanProperty.ENCRYPT.getDefaultValue());
+
+    public boolean getEncrypt() {
+        return getBooleanProperty(connectionProps, SQLServerDriverBooleanProperty.ENCRYPT.toString(),
+                SQLServerDriverBooleanProperty.ENCRYPT.getDefaultValue());
     }
-    
-	/**
-     * Beginning in version 6.0 of the Microsoft JDBC Driver for SQL Server, a new connection property transparentNetworkIPResolution 
-     * (TNIR) is added for transparent connection to Always On availability groups or to a server which has multiple IP addresses
-     * associated. When transparentNetworkIPResolution is true, the driver attempts to connect to the first IP address available. 
-     * If the first attempt fails, the driver tries to connect to all IP addresses in parallel until the timeout expires, discarding 
-     * any pending connection attempts when one of them succeeds.
+
+    /**
+     * Beginning in version 6.0 of the Microsoft JDBC Driver for SQL Server, a new connection property transparentNetworkIPResolution (TNIR) is added
+     * for transparent connection to Always On availability groups or to a server which has multiple IP addresses associated. When
+     * transparentNetworkIPResolution is true, the driver attempts to connect to the first IP address available. If the first attempt fails, the
+     * driver tries to connect to all IP addresses in parallel until the timeout expires, discarding any pending connection attempts when one of them
+     * succeeds.
      * <p>
      * transparentNetworkIPResolution is ignored if multiSubnetFailover is true
      * <p>
      * transparentNetworkIPResolution is ignored if database mirroring is used
      * <p>
      * transparentNetworkIPResolution is ignored if there are more than 64 IP addresses
-     * @param tnir if set to true, the driver attempts to connect to the first IP address available. It is true by default. 
+     * 
+     * @param tnir
+     *            if set to true, the driver attempts to connect to the first IP address available. It is true by default.
      */
-    public void setTransparentNetworkIPResolution(boolean tnir)
-    {
-    	setBooleanProperty(connectionProps, SQLServerDriverBooleanProperty.TRANSPARENT_NETWORK_IP_RESOLUTION.toString(), tnir);
+    public void setTransparentNetworkIPResolution(boolean tnir) {
+        setBooleanProperty(connectionProps, SQLServerDriverBooleanProperty.TRANSPARENT_NETWORK_IP_RESOLUTION.toString(), tnir);
     }
-	
-	/**
-     * Retrieves the TransparentNetworkIPResolution value. 
+
+    /**
+     * Retrieves the TransparentNetworkIPResolution value.
+     * 
      * @return if enabled, returns true. Otherwise, false.
      */
-    public boolean getTransparentNetworkIPResolution()
-    {
-    	return getBooleanProperty(connectionProps, SQLServerDriverBooleanProperty.TRANSPARENT_NETWORK_IP_RESOLUTION.toString(), SQLServerDriverBooleanProperty.TRANSPARENT_NETWORK_IP_RESOLUTION.getDefaultValue());
+    public boolean getTransparentNetworkIPResolution() {
+        return getBooleanProperty(connectionProps, SQLServerDriverBooleanProperty.TRANSPARENT_NETWORK_IP_RESOLUTION.toString(),
+                SQLServerDriverBooleanProperty.TRANSPARENT_NETWORK_IP_RESOLUTION.getDefaultValue());
     }
-    
-    public void setTrustServerCertificate(boolean e)
-    {
+
+    public void setTrustServerCertificate(boolean e) {
         setBooleanProperty(connectionProps, SQLServerDriverBooleanProperty.TRUST_SERVER_CERTIFICATE.toString(), e);
     }
-    public boolean getTrustServerCertificate()
-    {
-        return getBooleanProperty(connectionProps, SQLServerDriverBooleanProperty.TRUST_SERVER_CERTIFICATE.toString(), SQLServerDriverBooleanProperty.TRUST_SERVER_CERTIFICATE.getDefaultValue());
+
+    public boolean getTrustServerCertificate() {
+        return getBooleanProperty(connectionProps, SQLServerDriverBooleanProperty.TRUST_SERVER_CERTIFICATE.toString(),
+                SQLServerDriverBooleanProperty.TRUST_SERVER_CERTIFICATE.getDefaultValue());
     }
-    
+
     public void setTrustStoreType(String trustStoreType) {
-    	setStringProperty(connectionProps, SQLServerDriverStringProperty.TRUST_STORE_TYPE.toString(), trustStoreType);
+        setStringProperty(connectionProps, SQLServerDriverStringProperty.TRUST_STORE_TYPE.toString(), trustStoreType);
     }
-    
+
     public String getTrustStoreType() {
-    	return getStringProperty(connectionProps, SQLServerDriverStringProperty.TRUST_STORE_TYPE.toString(), SQLServerDriverStringProperty.TRUST_STORE_TYPE.getDefaultValue());
+        return getStringProperty(connectionProps, SQLServerDriverStringProperty.TRUST_STORE_TYPE.toString(),
+                SQLServerDriverStringProperty.TRUST_STORE_TYPE.getDefaultValue());
     }
-    
-    public void setTrustStore(String st)
-    {
+
+    public void setTrustStore(String st) {
         setStringProperty(connectionProps, SQLServerDriverStringProperty.TRUST_STORE.toString(), st);
     }
-    public String getTrustStore()
-    {
+
+    public String getTrustStore() {
         return getStringProperty(connectionProps, SQLServerDriverStringProperty.TRUST_STORE.toString(), null);
     }
-    
-    public void setTrustStorePassword(String p)
-    {
-        // if a non value property is set 
-        if (p!=null)
+
+    public void setTrustStorePassword(String p) {
+        // if a non value property is set
+        if (p != null)
             trustStorePasswordStripped = false;
         setStringProperty(connectionProps, SQLServerDriverStringProperty.TRUST_STORE_PASSWORD.toString(), p);
     }
-    public void setHostNameInCertificate(String host)
-    {
+
+    public void setHostNameInCertificate(String host) {
         setStringProperty(connectionProps, SQLServerDriverStringProperty.HOSTNAME_IN_CERTIFICATE.toString(), host);
     }
-    public String getHostNameInCertificate()
-    {
+
+    public String getHostNameInCertificate() {
         return getStringProperty(connectionProps, SQLServerDriverStringProperty.HOSTNAME_IN_CERTIFICATE.toString(), null);
     }
-    
-    // lockTimeout is the number of milliseconds to wait before the database reports 
-    // a lock timeout.  The default value of -1 means wait forever.  If specified, 
-    // this value will be the default for all statements on the connection.  Note a 
-    // value of 0 means no wait.  If lockTimeout is not set, getLockTimeout returns 
-    // the default of -1.	
-    public void setLockTimeout(int lockTimeout)
-    {
+
+    // lockTimeout is the number of milliseconds to wait before the database reports
+    // a lock timeout. The default value of -1 means wait forever. If specified,
+    // this value will be the default for all statements on the connection. Note a
+    // value of 0 means no wait. If lockTimeout is not set, getLockTimeout returns
+    // the default of -1.
+    public void setLockTimeout(int lockTimeout) {
         setIntProperty(connectionProps, SQLServerDriverIntProperty.LOCK_TIMEOUT.toString(), lockTimeout);
     }
-    public int getLockTimeout()
-    {
-        return getIntProperty(connectionProps, SQLServerDriverIntProperty.LOCK_TIMEOUT.toString(), SQLServerDriverIntProperty.LOCK_TIMEOUT.getDefaultValue());
+
+    public int getLockTimeout() {
+        return getIntProperty(connectionProps, SQLServerDriverIntProperty.LOCK_TIMEOUT.toString(),
+                SQLServerDriverIntProperty.LOCK_TIMEOUT.getDefaultValue());
     }
 
-    // setPassword sets the password that will be used when connecting to SQL Server.  
-    // Note getPassword is deliberately declared non-public for security reasons.  
-    // If the password is not set, getPassword returns the default value of null.  
-    public void setPassword(String password)
-    {
+    // setPassword sets the password that will be used when connecting to SQL Server.
+    // Note getPassword is deliberately declared non-public for security reasons.
+    // If the password is not set, getPassword returns the default value of null.
+    public void setPassword(String password) {
         setStringProperty(connectionProps, SQLServerDriverStringProperty.PASSWORD.toString(), password);
     }
-    String getPassword()
-    {
+
+    String getPassword() {
         return getStringProperty(connectionProps, SQLServerDriverStringProperty.PASSWORD.toString(), null);
     }
 
-    // portNumber is the TCP-IP port number used when opening a socket connection 
-    // to SQL Server.  If portNumber is not set, getPortNumber returns the default 
-    // of 1433.  Note as mentioned above, setPortNumber does not do any range 
-    // checking on the port value passed in, invalid port numbers like 99999 can 
-    // be passed in without triggering any error.  
-    public void setPortNumber(int portNumber)
-    {
+    // portNumber is the TCP-IP port number used when opening a socket connection
+    // to SQL Server. If portNumber is not set, getPortNumber returns the default
+    // of 1433. Note as mentioned above, setPortNumber does not do any range
+    // checking on the port value passed in, invalid port numbers like 99999 can
+    // be passed in without triggering any error.
+    public void setPortNumber(int portNumber) {
         setIntProperty(connectionProps, SQLServerDriverIntProperty.PORT_NUMBER.toString(), portNumber);
     }
-    public int getPortNumber()
-    {
-        return getIntProperty(connectionProps, SQLServerDriverIntProperty.PORT_NUMBER.toString(), SQLServerDriverIntProperty.PORT_NUMBER.getDefaultValue());
+
+    public int getPortNumber() {
+        return getIntProperty(connectionProps, SQLServerDriverIntProperty.PORT_NUMBER.toString(),
+                SQLServerDriverIntProperty.PORT_NUMBER.getDefaultValue());
     }
 
-    // selectMethod is the default cursor type used for the result set. This 
-    // property is useful when you are dealing with large result sets and don't 
-    // want to store the whole result set in memory on the client side. By setting 
+    // selectMethod is the default cursor type used for the result set. This
+    // property is useful when you are dealing with large result sets and don't
+    // want to store the whole result set in memory on the client side. By setting
     // the property to "cursor" you will be able to create a server side cursor that
-    // can fetch smaller chunks of data at a time.  If selectMethod is not set, 
+    // can fetch smaller chunks of data at a time. If selectMethod is not set,
     // getSelectMethod returns the default value of "direct".
-    public void setSelectMethod(String selectMethod)
-    {
+    public void setSelectMethod(String selectMethod) {
         setStringProperty(connectionProps, SQLServerDriverStringProperty.SELECT_METHOD.toString(), selectMethod);
     }
-    public String getSelectMethod()
-    {
-        return getStringProperty(connectionProps, SQLServerDriverStringProperty.SELECT_METHOD.toString(), SQLServerDriverStringProperty.SELECT_METHOD.getDefaultValue() );
+
+    public String getSelectMethod() {
+        return getStringProperty(connectionProps, SQLServerDriverStringProperty.SELECT_METHOD.toString(),
+                SQLServerDriverStringProperty.SELECT_METHOD.getDefaultValue());
     }
 
-    public void setResponseBuffering(String respo)
-    {
+    public void setResponseBuffering(String respo) {
         setStringProperty(connectionProps, SQLServerDriverStringProperty.RESPONSE_BUFFERING.toString(), respo);
     }
-    public String getResponseBuffering()
-    {
-        return getStringProperty(connectionProps, SQLServerDriverStringProperty.RESPONSE_BUFFERING.toString(), SQLServerDriverStringProperty.RESPONSE_BUFFERING.getDefaultValue());
+
+    public String getResponseBuffering() {
+        return getStringProperty(connectionProps, SQLServerDriverStringProperty.RESPONSE_BUFFERING.toString(),
+                SQLServerDriverStringProperty.RESPONSE_BUFFERING.getDefaultValue());
     }
 
-    public void setApplicationIntent(String applicationIntent)
-    {
+    public void setApplicationIntent(String applicationIntent) {
         setStringProperty(connectionProps, SQLServerDriverStringProperty.APPLICATION_INTENT.toString(), applicationIntent);
     }
-    public String getApplicationIntent()
-    {
-    	return getStringProperty(connectionProps, SQLServerDriverStringProperty.APPLICATION_INTENT.toString(), SQLServerDriverStringProperty.APPLICATION_INTENT.getDefaultValue());
+
+    public String getApplicationIntent() {
+        return getStringProperty(connectionProps, SQLServerDriverStringProperty.APPLICATION_INTENT.toString(),
+                SQLServerDriverStringProperty.APPLICATION_INTENT.getDefaultValue());
     }
 
-    public void setSendTimeAsDatetime(boolean sendTimeAsDatetime)
-    {
+    public void setSendTimeAsDatetime(boolean sendTimeAsDatetime) {
         setBooleanProperty(connectionProps, SQLServerDriverBooleanProperty.SEND_TIME_AS_DATETIME.toString(), sendTimeAsDatetime);
     }
 
-    public boolean getSendTimeAsDatetime()
-    {
-        return getBooleanProperty(connectionProps, SQLServerDriverBooleanProperty.SEND_TIME_AS_DATETIME.toString(), SQLServerDriverBooleanProperty.SEND_TIME_AS_DATETIME.getDefaultValue());
+    public boolean getSendTimeAsDatetime() {
+        return getBooleanProperty(connectionProps, SQLServerDriverBooleanProperty.SEND_TIME_AS_DATETIME.toString(),
+                SQLServerDriverBooleanProperty.SEND_TIME_AS_DATETIME.getDefaultValue());
     }
 
-    // If sendStringParametersAsUnicode is set to true (which is the default), 
-    // string parameters are sent to the server in UNICODE format.  If sendStringParametersAsUnicode 
-    // is set to false, string parameters are sent to the server in the native TDS collation 
-    // format of the database, not in UNICODE. If sendStringParametersAsUnicode is not set, 
+    // If sendStringParametersAsUnicode is set to true (which is the default),
+    // string parameters are sent to the server in UNICODE format. If sendStringParametersAsUnicode
+    // is set to false, string parameters are sent to the server in the native TDS collation
+    // format of the database, not in UNICODE. If sendStringParametersAsUnicode is not set,
     // getSendStringParametersAsUnicode returns the default of true.
-    public void setSendStringParametersAsUnicode(boolean sendStringParametersAsUnicode)
-    {
-        setBooleanProperty(connectionProps, SQLServerDriverBooleanProperty.SEND_STRING_PARAMETERS_AS_UNICODE.toString(), sendStringParametersAsUnicode);
+    public void setSendStringParametersAsUnicode(boolean sendStringParametersAsUnicode) {
+        setBooleanProperty(connectionProps, SQLServerDriverBooleanProperty.SEND_STRING_PARAMETERS_AS_UNICODE.toString(),
+                sendStringParametersAsUnicode);
     }
-    public boolean getSendStringParametersAsUnicode()
-    {
-        return getBooleanProperty(connectionProps, SQLServerDriverBooleanProperty.SEND_STRING_PARAMETERS_AS_UNICODE.toString(), SQLServerDriverBooleanProperty.SEND_STRING_PARAMETERS_AS_UNICODE.getDefaultValue());
+
+    public boolean getSendStringParametersAsUnicode() {
+        return getBooleanProperty(connectionProps, SQLServerDriverBooleanProperty.SEND_STRING_PARAMETERS_AS_UNICODE.toString(),
+                SQLServerDriverBooleanProperty.SEND_STRING_PARAMETERS_AS_UNICODE.getDefaultValue());
     }
-    
-	/**
+
+    /**
      * Translates the serverName from Unicode to ASCII Compatible Encoding (ACE)
-     * @param serverNameAsACE if enabled the servername will be translated to ASCII Compatible Encoding (ACE)
+     * 
+     * @param serverNameAsACE
+     *            if enabled the servername will be translated to ASCII Compatible Encoding (ACE)
      */
-    public void setServerNameAsACE(boolean serverNameAsACE)
-    {
-    	setBooleanProperty(connectionProps, SQLServerDriverBooleanProperty.SERVER_NAME_AS_ACE.toString(), serverNameAsACE);	
+    public void setServerNameAsACE(boolean serverNameAsACE) {
+        setBooleanProperty(connectionProps, SQLServerDriverBooleanProperty.SERVER_NAME_AS_ACE.toString(), serverNameAsACE);
     }
-	
-	/**
-     * Retrieves if the serverName should be translated from Unicode to ASCII Compatible Encoding (ACE) 
+
+    /**
+     * Retrieves if the serverName should be translated from Unicode to ASCII Compatible Encoding (ACE)
+     * 
      * @return if enabled, will return true. Otherwise, false.
      */
-    public boolean getServerNameAsACE()
-    {
-    	return getBooleanProperty(connectionProps, SQLServerDriverBooleanProperty.SERVER_NAME_AS_ACE.toString(), SQLServerDriverBooleanProperty.SERVER_NAME_AS_ACE.getDefaultValue());
+    public boolean getServerNameAsACE() {
+        return getBooleanProperty(connectionProps, SQLServerDriverBooleanProperty.SERVER_NAME_AS_ACE.toString(),
+                SQLServerDriverBooleanProperty.SERVER_NAME_AS_ACE.getDefaultValue());
     }
-    // serverName is the host name of the target SQL Server.  If serverName is not set, 
+
+    // serverName is the host name of the target SQL Server. If serverName is not set,
     // getServerName returns the default value of null is returned.
-    public void setServerName(String serverName)
-    {
+    public void setServerName(String serverName) {
         setStringProperty(connectionProps, SQLServerDriverStringProperty.SERVER_NAME.toString(), serverName);
     }
-    public String getServerName()
-    {
+
+    public String getServerName() {
         return getStringProperty(connectionProps, SQLServerDriverStringProperty.SERVER_NAME.toString(), null);
     }
+
     // Specify an Service Principal Name (SPN) of the target SQL Server.
     // https://msdn.microsoft.com/en-us/library/cc280459.aspx
-    public void setServerSpn(String serverSpn)
-    {
+    public void setServerSpn(String serverSpn) {
         setStringProperty(connectionProps, SQLServerDriverStringProperty.SERVER_SPN.toString(), serverSpn);
     }
-    public String getServerSpn()
-    {
+
+    public String getServerSpn() {
         return getStringProperty(connectionProps, SQLServerDriverStringProperty.SERVER_SPN.toString(), null);
     }
-    // serverName is the host name of the target SQL Server.  If serverName is not set, 
+
+    // serverName is the host name of the target SQL Server. If serverName is not set,
     // getServerName returns the default value of null is returned.
-    public void setFailoverPartner(String serverName)
-    {
+    public void setFailoverPartner(String serverName) {
         setStringProperty(connectionProps, SQLServerDriverStringProperty.FAILOVER_PARTNER.toString(), serverName);
     }
-    public String getFailoverPartner()
-    {
+
+    public String getFailoverPartner() {
         return getStringProperty(connectionProps, SQLServerDriverStringProperty.FAILOVER_PARTNER.toString(), null);
     }
 
-    public void setMultiSubnetFailover(boolean multiSubnetFailover)
-    {
-    	setBooleanProperty(connectionProps, SQLServerDriverBooleanProperty.MULTI_SUBNET_FAILOVER.toString(), multiSubnetFailover);
-    }    
-    
-    public boolean getMultiSubnetFailover()
-    {
-    	return getBooleanProperty(connectionProps, SQLServerDriverBooleanProperty.MULTI_SUBNET_FAILOVER.toString(), SQLServerDriverBooleanProperty.MULTI_SUBNET_FAILOVER.getDefaultValue());
+    public void setMultiSubnetFailover(boolean multiSubnetFailover) {
+        setBooleanProperty(connectionProps, SQLServerDriverBooleanProperty.MULTI_SUBNET_FAILOVER.toString(), multiSubnetFailover);
     }
 
-    // setUser set's the user name that will be used when connecting to SQL Server.  
+    public boolean getMultiSubnetFailover() {
+        return getBooleanProperty(connectionProps, SQLServerDriverBooleanProperty.MULTI_SUBNET_FAILOVER.toString(),
+                SQLServerDriverBooleanProperty.MULTI_SUBNET_FAILOVER.getDefaultValue());
+    }
+
+    // setUser set's the user name that will be used when connecting to SQL Server.
     // If user is not set, getUser returns the default value of null.
-    public void setUser(String user)
-    {
+    public void setUser(String user) {
         setStringProperty(connectionProps, SQLServerDriverStringProperty.USER.toString(), user);
     }
-    public String getUser()
-    {
+
+    public String getUser() {
         return getStringProperty(connectionProps, SQLServerDriverStringProperty.USER.toString(), null);
     }
 
-    // workstationID is the name of the client machine (or client workstation).  
-    // workstationID is the host name of the client in other words.  If workstationID 
-    // is not set, the default value is constructed by calling InetAddress.getLocalHost().getHostName() 
+    // workstationID is the name of the client machine (or client workstation).
+    // workstationID is the host name of the client in other words. If workstationID
+    // is not set, the default value is constructed by calling InetAddress.getLocalHost().getHostName()
     // or if getHostName() returns blank then getHostAddress().toString().
-    public void setWorkstationID(String workstationID)
-    {
+    public void setWorkstationID(String workstationID) {
         setStringProperty(connectionProps, SQLServerDriverStringProperty.WORKSTATION_ID.toString(), workstationID);
     }
-    public String getWorkstationID()
-    {
-        if(loggerExternal.isLoggable(java.util.logging.Level.FINER) )    
-            loggerExternal.entering(getClassNameLogging(),  "getWorkstationID");
+
+    public String getWorkstationID() {
+        if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
+            loggerExternal.entering(getClassNameLogging(), "getWorkstationID");
         String getWSID = connectionProps.getProperty(SQLServerDriverStringProperty.WORKSTATION_ID.toString());
         // Per spec, return what the logon will send here if workstationID property is not set.
-        if (null == getWSID) 
-        {
-            getWSID = Util.lookupHostName(); 
+        if (null == getWSID) {
+            getWSID = Util.lookupHostName();
         }
-        loggerExternal.exiting(getClassNameLogging(),  "getWorkstationID", getWSID);
+        loggerExternal.exiting(getClassNameLogging(), "getWorkstationID", getWSID);
         return getWSID;
     }
 
-    // If xopenStates is set to true, the driver will convert SQL states to XOPEN 
-    // compliant states. The default is false which causes the driver to generate SQL 99 
-    // state codes.  If xopenStates is not set, getXopenStates returns the default value 
+    // If xopenStates is set to true, the driver will convert SQL states to XOPEN
+    // compliant states. The default is false which causes the driver to generate SQL 99
+    // state codes. If xopenStates is not set, getXopenStates returns the default value
     // of false.
-    public void setXopenStates(boolean xopenStates)
-    {
+    public void setXopenStates(boolean xopenStates) {
         setBooleanProperty(connectionProps, SQLServerDriverBooleanProperty.XOPEN_STATES.toString(), xopenStates);
     }
-    public boolean getXopenStates()
-    {
-        return getBooleanProperty(connectionProps, SQLServerDriverBooleanProperty.XOPEN_STATES.toString(), SQLServerDriverBooleanProperty.XOPEN_STATES.getDefaultValue());
-    }
-    
-    public void setFIPSProvider(String fipsProvider) {
-    	setStringProperty(connectionProps, SQLServerDriverStringProperty.FIPS_PROVIDER.toString(), fipsProvider);
-    }
-    
-    public String getFIPSProvider() {
-    	return getStringProperty(connectionProps, SQLServerDriverStringProperty.FIPS_PROVIDER.toString(), null);
+
+    public boolean getXopenStates() {
+        return getBooleanProperty(connectionProps, SQLServerDriverBooleanProperty.XOPEN_STATES.toString(),
+                SQLServerDriverBooleanProperty.XOPEN_STATES.getDefaultValue());
     }
 
-    // The URL property is exposed for backwards compatibility reasons.  Also, several 
-    // Java Application servers expect a setURL function on the DataSource and set it 
+    public void setFIPSProvider(String fipsProvider) {
+        setStringProperty(connectionProps, SQLServerDriverStringProperty.FIPS_PROVIDER.toString(), fipsProvider);
+    }
+
+    public String getFIPSProvider() {
+        return getStringProperty(connectionProps, SQLServerDriverStringProperty.FIPS_PROVIDER.toString(), null);
+    }
+
+    // The URL property is exposed for backwards compatibility reasons. Also, several
+    // Java Application servers expect a setURL function on the DataSource and set it
     // by default (JBoss and WebLogic).
 
-    // Note for security reasons we do not recommend that customers include the password 
-    // in the url supplied to setURL.  The reason for this is third-party Java Application 
-    // Servers will very often display the value set to URL property in their DataSource 
-    // configuration GUI.  We recommend instead that clients use the setPassword method 
-    // to set the password value.  The Java Application Servers will not display a password 
+    // Note for security reasons we do not recommend that customers include the password
+    // in the url supplied to setURL. The reason for this is third-party Java Application
+    // Servers will very often display the value set to URL property in their DataSource
+    // configuration GUI. We recommend instead that clients use the setPassword method
+    // to set the password value. The Java Application Servers will not display a password
     // that is set on the DataSource in the configuration GUI.
 
     // Note if setURL is not called, getURL returns the default value of "jdbc:sqlserver://".
-    public void setURL(String url)
-    {
+    public void setURL(String url) {
         loggerExternal.entering(getClassNameLogging(), "setURL", url);
         // URL is not stored in a property set, it is maintained separately.
         dataSourceURL = url;
-        loggerExternal.exiting(getClassNameLogging(),  "setURL");
+        loggerExternal.exiting(getClassNameLogging(), "setURL");
     }
-    public String getURL()
-    {   
+
+    public String getURL() {
         String url = dataSourceURL;
         loggerExternal.entering(getClassNameLogging(), "getURL");
 
-        if (null == dataSourceURL) 
+        if (null == dataSourceURL)
             url = "jdbc:sqlserver://";
-        loggerExternal.exiting(getClassNameLogging(),  "getURL", url);
+        loggerExternal.exiting(getClassNameLogging(), "getURL", url);
         return url;
     }
 
     // DataSource specific property setters/getters.
 
-    // Per JDBC specification 16.1.1 "...the only property that all DataSource 
+    // Per JDBC specification 16.1.1 "...the only property that all DataSource
     // implementations are required to support is the description property".
-    public void setDescription(String description)
-    {
+    public void setDescription(String description) {
         loggerExternal.entering(getClassNameLogging(), "setDescription", description);
         dataSourceDescription = description;
-        loggerExternal.exiting(getClassNameLogging(),  "setDescription");
+        loggerExternal.exiting(getClassNameLogging(), "setDescription");
     }
-    public String getDescription()
-    {
+
+    public String getDescription() {
         loggerExternal.entering(getClassNameLogging(), "getDescription");
-        loggerExternal.exiting(getClassNameLogging(),  "getDescription", dataSourceDescription);
+        loggerExternal.exiting(getClassNameLogging(), "getDescription", dataSourceDescription);
         return dataSourceDescription;
     }
 
     // packetSize is the size (in bytes) to use for the TCP/IP send and receive
-    // buffer.  It is also the value used for the TDS packet size (SQL Server
-    // Network Packet Size).  Validity of the value is checked at connect time.
+    // buffer. It is also the value used for the TDS packet size (SQL Server
+    // Network Packet Size). Validity of the value is checked at connect time.
     // If no value is set for this property, its default value is 4KB.
-    public void setPacketSize(int packetSize)
-    {
+    public void setPacketSize(int packetSize) {
         setIntProperty(connectionProps, SQLServerDriverIntProperty.PACKET_SIZE.toString(), packetSize);
     }
-    public int getPacketSize()
-    {
-        return getIntProperty(connectionProps, SQLServerDriverIntProperty.PACKET_SIZE.toString(), SQLServerDriverIntProperty.PACKET_SIZE.getDefaultValue());
-    }
-    
-    public void setQueryTimeout(int queryTimeout)
-    {
-        setIntProperty(connectionProps, SQLServerDriverIntProperty.QUERY_TIMEOUT.toString(), queryTimeout);
-    }
-    public int getQueryTimeout()
-    {
-        return getIntProperty(connectionProps, SQLServerDriverIntProperty.QUERY_TIMEOUT.toString(), SQLServerDriverIntProperty.QUERY_TIMEOUT.getDefaultValue());
+
+    public int getPacketSize() {
+        return getIntProperty(connectionProps, SQLServerDriverIntProperty.PACKET_SIZE.toString(),
+                SQLServerDriverIntProperty.PACKET_SIZE.getDefaultValue());
     }
 
-    
-    public void setSocketTimeout(int socketTimeout)
-    {
+    public void setQueryTimeout(int queryTimeout) {
+        setIntProperty(connectionProps, SQLServerDriverIntProperty.QUERY_TIMEOUT.toString(), queryTimeout);
+    }
+
+    public int getQueryTimeout() {
+        return getIntProperty(connectionProps, SQLServerDriverIntProperty.QUERY_TIMEOUT.toString(),
+                SQLServerDriverIntProperty.QUERY_TIMEOUT.getDefaultValue());
+    }
+
+    public void setSocketTimeout(int socketTimeout) {
         setIntProperty(connectionProps, SQLServerDriverIntProperty.SOCKET_TIMEOUT.toString(), socketTimeout);
     }
-    public int getSocketTimeout()
-    {
- 		int defaultTimeOut = SQLServerDriverIntProperty.SOCKET_TIMEOUT.getDefaultValue();   
- 		return getIntProperty(connectionProps, SQLServerDriverIntProperty.SOCKET_TIMEOUT.toString(), defaultTimeOut);
+
+    public int getSocketTimeout() {
+        int defaultTimeOut = SQLServerDriverIntProperty.SOCKET_TIMEOUT.getDefaultValue();
+        return getIntProperty(connectionProps, SQLServerDriverIntProperty.SOCKET_TIMEOUT.toString(), defaultTimeOut);
     }
 
     // responseBuffering controls the driver's buffering of responses from SQL Server.
@@ -662,334 +647,307 @@ public class SQLServerDataSource implements ISQLServerDataSource, DataSource, ja
     //
     // "full" - Fully buffer the response at execution time.
     // Advantages:
-    //   100% back compat with v1.1 driver
-    //   Maximizes concurrency on the server
+    // 100% back compat with v1.1 driver
+    // Maximizes concurrency on the server
     // Disadvantages:
-    //   Consumes more client-side memory
-    //   Client scalability limits with large responses
-    //   More execute latency
+    // Consumes more client-side memory
+    // Client scalability limits with large responses
+    // More execute latency
     //
     // "adaptive" - Data Pipe adaptive buffering
     // Advantages:
-    //   Buffers only when necessary, only as much as necessary
-    //   Enables handling very large responses, values
+    // Buffers only when necessary, only as much as necessary
+    // Enables handling very large responses, values
     // Disadvantages
-    //   Reduced concurrency on the server
+    // Reduced concurrency on the server
     // Internal functions for setting/getting property values.
 
     // Set a string property value.
     // Caller will always supply a non-null props and propKey.
     // Caller may supply a null propValue, in this case no property value is set.
-    private void setStringProperty(Properties props, String propKey, String propValue) 
-    {
-        if(loggerExternal.isLoggable(java.util.logging.Level.FINER) && !propKey.contains("password") &&  !propKey.contains("Password"))    
-        {
-            loggerExternal.entering(getClassNameLogging(),  "set"+propKey, propValue);
+    private void setStringProperty(Properties props,
+            String propKey,
+            String propValue) {
+        if (loggerExternal.isLoggable(java.util.logging.Level.FINER) && !propKey.contains("password") && !propKey.contains("Password")) {
+            loggerExternal.entering(getClassNameLogging(), "set" + propKey, propValue);
         }
-        else 
-            loggerExternal.entering(getClassNameLogging(),  "set"+propKey);
-        if (null!=propValue) 
+        else
+            loggerExternal.entering(getClassNameLogging(), "set" + propKey);
+        if (null != propValue)
             props.setProperty(propKey, propValue);
-        loggerExternal.exiting(getClassNameLogging(),  "set"+propKey);
+        loggerExternal.exiting(getClassNameLogging(), "set" + propKey);
     }
 
     // Reads property value in String format.
     // Caller will always supply a non-null props and propKey.
     // Returns null if the specific property value is not set.
-    private String getStringProperty(Properties props, String propKey, String defaultValue) 
-    {
-        if(loggerExternal.isLoggable(java.util.logging.Level.FINER))    
-            loggerExternal.entering(getClassNameLogging(),  "get"+propKey);
+    private String getStringProperty(Properties props,
+            String propKey,
+            String defaultValue) {
+        if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
+            loggerExternal.entering(getClassNameLogging(), "get" + propKey);
         String propValue = props.getProperty(propKey);
-        if (null==propValue) 
+        if (null == propValue)
             propValue = defaultValue;
-        if(loggerExternal.isLoggable(java.util.logging.Level.FINER)&& !propKey.contains("password") &&  !propKey.contains("Password"))
-            loggerExternal.exiting(getClassNameLogging(),  "get"+propKey, propValue);
+        if (loggerExternal.isLoggable(java.util.logging.Level.FINER) && !propKey.contains("password") && !propKey.contains("Password"))
+            loggerExternal.exiting(getClassNameLogging(), "get" + propKey, propValue);
         return propValue;
     }
 
     // Set an integer property value.
     // Caller will always supply a non-null props and propKey.
-    private void setIntProperty(Properties props, String propKey, int propValue)
-    {
-         if(loggerExternal.isLoggable(java.util.logging.Level.FINER))    
-            loggerExternal.entering(getClassNameLogging(),  "set"+propKey, new Integer(propValue));   
+    private void setIntProperty(Properties props,
+            String propKey,
+            int propValue) {
+        if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
+            loggerExternal.entering(getClassNameLogging(), "set" + propKey, new Integer(propValue));
         props.setProperty(propKey, new Integer(propValue).toString());
-        loggerExternal.exiting(getClassNameLogging(),  "set"+propKey);
+        loggerExternal.exiting(getClassNameLogging(), "set" + propKey);
     }
 
     // Reads a property value in int format.
     // Caller will always supply a non-null props and propKey.
     // Returns defaultValue if the specific property value is not set.
-    private int getIntProperty(Properties props, String propKey, int defaultValue)
-    {
-        if(loggerExternal.isLoggable(java.util.logging.Level.FINER))    
-            loggerExternal.entering(getClassNameLogging(),  "get"+propKey);
+    private int getIntProperty(Properties props,
+            String propKey,
+            int defaultValue) {
+        if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
+            loggerExternal.entering(getClassNameLogging(), "get" + propKey);
         String propValue = props.getProperty(propKey);
         int value = defaultValue;
-        if (null!=propValue) 
-        {
-            try
-            {
+        if (null != propValue) {
+            try {
                 value = Integer.parseInt(propValue);
             }
-            catch(NumberFormatException nfe)
-            {
+            catch (NumberFormatException nfe) {
                 // This exception cannot occur as all of our properties
                 // are set internally by int -> Integer.toString.
-                assert false : "Bad portNumber:-"+ propValue;
+                assert false : "Bad portNumber:-" + propValue;
             }
         }
-        if(loggerExternal.isLoggable(java.util.logging.Level.FINER))    
-            loggerExternal.exiting(getClassNameLogging(),  "get"+propKey, new Integer(value));    
+        if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
+            loggerExternal.exiting(getClassNameLogging(), "get" + propKey, new Integer(value));
         return value;
     }
 
     // Set a boolean property value.
     // Caller will always supply a non-null props and propKey.
-    private void setBooleanProperty(Properties props, String propKey, boolean propValue)
-    {
-        if(loggerExternal.isLoggable(java.util.logging.Level.FINER))    
-            loggerExternal.entering(getClassNameLogging(),  "set"+propKey, Boolean.valueOf(propValue));
-        props.setProperty(propKey, (propValue) ? "true" : "false" );
-        loggerExternal.exiting(getClassNameLogging(),  "set"+propKey);
+    private void setBooleanProperty(Properties props,
+            String propKey,
+            boolean propValue) {
+        if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
+            loggerExternal.entering(getClassNameLogging(), "set" + propKey, Boolean.valueOf(propValue));
+        props.setProperty(propKey, (propValue) ? "true" : "false");
+        loggerExternal.exiting(getClassNameLogging(), "set" + propKey);
     }
 
     // Reads a property value in boolean format.
     // Caller will always supply a non-null props and propKey.
     // Returns defaultValue if the specific property value is not set.
-    private boolean getBooleanProperty(Properties props, String propKey, boolean defaultValue)
-    {
-        if(loggerExternal.isLoggable(java.util.logging.Level.FINER))    
-            loggerExternal.entering(getClassNameLogging(),  "get"+propKey);
+    private boolean getBooleanProperty(Properties props,
+            String propKey,
+            boolean defaultValue) {
+        if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
+            loggerExternal.entering(getClassNameLogging(), "get" + propKey);
         String propValue = props.getProperty(propKey);
         Boolean value;
-        if (null==propValue)
-        {
-            value =  defaultValue;
+        if (null == propValue) {
+            value = defaultValue;
         }
-        else
-        {
+        else {
             // Since we set the value of the String property ourselves to
             // "true" or "false", we can do this.
             value = Boolean.valueOf(propValue);
         }
-        loggerExternal.exiting(getClassNameLogging(),  "get"+propKey, value); 
+        loggerExternal.exiting(getClassNameLogging(), "get" + propKey, value);
         return value.booleanValue();
     }
 
-
     // Returns a SQLServerConnection given username, password, and pooledConnection.
-    // Note that the DataSource properties set to connectionProps are used when creating 
+    // Note that the DataSource properties set to connectionProps are used when creating
     // the connection.
 
     // Both username and password can be null.
 
     // If pooledConnection is not null, then connection returned is attached to the pooledConnection
     // and participates in connection pooling.
-    SQLServerConnection getConnectionInternal(String username, String password, 
-    SQLServerPooledConnection pooledConnection) throws SQLServerException 
-    {
-    Properties userSuppliedProps = null;
-    Properties mergedProps = null;
-    // Trust store password stripped and this object got created via Objectfactory referencing. 
-    if(trustStorePasswordStripped)    
-        SQLServerException.makeFromDriverError(null, null,
-            SQLServerException.getErrString("R_referencingFailedTSP"), null, true);
+    SQLServerConnection getConnectionInternal(String username,
+            String password,
+            SQLServerPooledConnection pooledConnection) throws SQLServerException {
+        Properties userSuppliedProps = null;
+        Properties mergedProps = null;
+        // Trust store password stripped and this object got created via Objectfactory referencing.
+        if (trustStorePasswordStripped)
+            SQLServerException.makeFromDriverError(null, null, SQLServerException.getErrString("R_referencingFailedTSP"), null, true);
 
-    // If username or password is passed in, clone the property set so we
-    // don't alter original connectionProps.
-    if (null != username || null != password)
-    {
-        userSuppliedProps = (Properties)this.connectionProps.clone();
+        // If username or password is passed in, clone the property set so we
+        // don't alter original connectionProps.
+        if (null != username || null != password) {
+            userSuppliedProps = (Properties) this.connectionProps.clone();
 
-        // Remove user and password from connectionProps if set.
-        // We want the user supplied user+password to replace
-        // whatever is set in connectionProps.
-        userSuppliedProps.remove(SQLServerDriverStringProperty.USER.toString());
-        userSuppliedProps.remove(SQLServerDriverStringProperty.PASSWORD.toString());
+            // Remove user and password from connectionProps if set.
+            // We want the user supplied user+password to replace
+            // whatever is set in connectionProps.
+            userSuppliedProps.remove(SQLServerDriverStringProperty.USER.toString());
+            userSuppliedProps.remove(SQLServerDriverStringProperty.PASSWORD.toString());
 
-        if (null != username)
-            userSuppliedProps.put(SQLServerDriverStringProperty.USER.toString(), username);
-        if (null != password)
-            userSuppliedProps.put(SQLServerDriverStringProperty.PASSWORD.toString(), password);
-    }
-    else
-    {
-        userSuppliedProps = connectionProps;
-    }
+            if (null != username)
+                userSuppliedProps.put(SQLServerDriverStringProperty.USER.toString(), username);
+            if (null != password)
+                userSuppliedProps.put(SQLServerDriverStringProperty.PASSWORD.toString(), password);
+        }
+        else {
+            userSuppliedProps = connectionProps;
+        }
 
-    // Merge in URL properties into userSuppliedProps if URL is set.
-    if (null != dataSourceURL)
-    {
-        Properties urlProps = Util.parseUrl(dataSourceURL, dsLogger);
-        // null returned properties means that the passed in URL is not supported.
-        if(null == urlProps)	
-            SQLServerException.makeFromDriverError(null, null,
-        SQLServerException.getErrString("R_errorConnectionString"), null, true);
-        // Manually merge URL props and user supplied props.
-        mergedProps = SQLServerDriver.mergeURLAndSuppliedProperties(urlProps, userSuppliedProps);
-    }
-    else
-    {
-        mergedProps = userSuppliedProps;
-    }
+        // Merge in URL properties into userSuppliedProps if URL is set.
+        if (null != dataSourceURL) {
+            Properties urlProps = Util.parseUrl(dataSourceURL, dsLogger);
+            // null returned properties means that the passed in URL is not supported.
+            if (null == urlProps)
+                SQLServerException.makeFromDriverError(null, null, SQLServerException.getErrString("R_errorConnectionString"), null, true);
+            // Manually merge URL props and user supplied props.
+            mergedProps = SQLServerDriver.mergeURLAndSuppliedProperties(urlProps, userSuppliedProps);
+        }
+        else {
+            mergedProps = userSuppliedProps;
+        }
 
-    // Create new connection and connect.
-    if (dsLogger.isLoggable(Level.FINER))				
-        dsLogger.finer(toString() + " Begin create new connection.");
-    SQLServerConnection result = new SQLServerConnection(toString());
-    result.connect(mergedProps, pooledConnection);
-    if (dsLogger.isLoggable(Level.FINER))				
-        dsLogger.finer(toString() + " End create new connection " + result.toString());
-    return result;
+        // Create new connection and connect.
+        if (dsLogger.isLoggable(Level.FINER))
+            dsLogger.finer(toString() + " Begin create new connection.");
+        SQLServerConnection result = new SQLServerConnection(toString());
+        result.connect(mergedProps, pooledConnection);
+        if (dsLogger.isLoggable(Level.FINER))
+            dsLogger.finer(toString() + " End create new connection " + result.toString());
+        return result;
     }
 
     // Implement javax.naming.Referenceable interface methods.
 
-    public Reference getReference() 
-    {
+    public Reference getReference() {
         loggerExternal.entering(getClassNameLogging(), "getReference");
         Reference ref = getReferenceInternal("com.microsoft.sqlserver.jdbc.SQLServerDataSource");
-        loggerExternal.exiting(getClassNameLogging(),  "getReference", ref);
+        loggerExternal.exiting(getClassNameLogging(), "getReference", ref);
         return ref;
     }
 
-    Reference getReferenceInternal(String dataSourceClassString)
-    {
-    if (dsLogger.isLoggable(Level.FINER))				
-        dsLogger.finer(toString() + " creating reference for " + dataSourceClassString + ".");
+    Reference getReferenceInternal(String dataSourceClassString) {
+        if (dsLogger.isLoggable(Level.FINER))
+            dsLogger.finer(toString() + " creating reference for " + dataSourceClassString + ".");
 
-    Reference ref = new Reference(this.getClass().getName(),
-        "com.microsoft.sqlserver.jdbc.SQLServerDataSourceObjectFactory", null);
-    if(null != dataSourceClassString)
-        ref.add(new StringRefAddr("class", dataSourceClassString));
-    
-    if(trustStorePasswordStripped)
-        ref.add(new StringRefAddr("trustStorePasswordStripped", "true"));                
+        Reference ref = new Reference(this.getClass().getName(), "com.microsoft.sqlserver.jdbc.SQLServerDataSourceObjectFactory", null);
+        if (null != dataSourceClassString)
+            ref.add(new StringRefAddr("class", dataSourceClassString));
 
-    // Add each property name+value pair found in connectionProps.
-    Enumeration<?> e = connectionProps.keys();
-    while (e.hasMoreElements()) 
-    {
-        String propertyName = (String)e.nextElement();
-        // If a trustStore password is set, it is omitted and a trustStorePasswordSet flag is set.
-        if(propertyName.equals(SQLServerDriverStringProperty.TRUST_STORE_PASSWORD.toString()))
-        {
-            // The property set and the variable set at the same time is not possible
-            assert trustStorePasswordStripped == false;
-            ref.add(new StringRefAddr("trustStorePasswordStripped", "true"));                
+        if (trustStorePasswordStripped)
+            ref.add(new StringRefAddr("trustStorePasswordStripped", "true"));
+
+        // Add each property name+value pair found in connectionProps.
+        Enumeration<?> e = connectionProps.keys();
+        while (e.hasMoreElements()) {
+            String propertyName = (String) e.nextElement();
+            // If a trustStore password is set, it is omitted and a trustStorePasswordSet flag is set.
+            if (propertyName.equals(SQLServerDriverStringProperty.TRUST_STORE_PASSWORD.toString())) {
+                // The property set and the variable set at the same time is not possible
+                assert trustStorePasswordStripped == false;
+                ref.add(new StringRefAddr("trustStorePasswordStripped", "true"));
+            }
+            else {
+                // do not add passwords to the collection. we have normal password
+                if (!propertyName.contains(SQLServerDriverStringProperty.PASSWORD.toString()))
+                    ref.add(new StringRefAddr(propertyName, connectionProps.getProperty(propertyName)));
+            }
         }
-        else
-        {
-            // do not add passwords to the collection. we have normal password 
-            if (!propertyName.contains(SQLServerDriverStringProperty.PASSWORD.toString()))
-                ref.add(new StringRefAddr(propertyName, connectionProps.getProperty(propertyName)));
-        }
-    }
 
-    // Add dataSourceURL and dataSourceDescription as these will not appear in connectionProps.
-    if (null != dataSourceURL)
-    ref.add(new StringRefAddr("dataSourceURL", dataSourceURL));
+        // Add dataSourceURL and dataSourceDescription as these will not appear in connectionProps.
+        if (null != dataSourceURL)
+            ref.add(new StringRefAddr("dataSourceURL", dataSourceURL));
 
-    if (null != dataSourceDescription)
-    ref.add(new StringRefAddr("dataSourceDescription", dataSourceDescription));
+        if (null != dataSourceDescription)
+            ref.add(new StringRefAddr("dataSourceDescription", dataSourceDescription));
 
-    return ref;
+        return ref;
     }
 
     // Initialize this datasource from properties found inside the reference ref.
     // Called by SQLServerDataSourceObjectFactory to initialize new DataSource instance.
-    void initializeFromReference(javax.naming.Reference ref)
-    {
+    void initializeFromReference(javax.naming.Reference ref) {
         // Enumerate all the StringRefAddr objects in the Reference and assign properties appropriately.
         Enumeration<?> e = ref.getAll();
-        while (e.hasMoreElements()) 
-        {
-            StringRefAddr addr   = (StringRefAddr) e.nextElement();
-            String propertyName  = addr.getType();
+        while (e.hasMoreElements()) {
+            StringRefAddr addr = (StringRefAddr) e.nextElement();
+            String propertyName = addr.getType();
             String propertyValue = (String) addr.getContent();
 
             // Special case dataSourceURL and dataSourceDescription.
-            if (propertyName.equals("dataSourceURL"))
-            {
+            if (propertyName.equals("dataSourceURL")) {
                 dataSourceURL = propertyValue;
             }
-            else if (propertyName.equals("dataSourceDescription"))
-            {
+            else if (propertyName.equals("dataSourceDescription")) {
                 dataSourceDescription = propertyValue;
             }
-            else if (propertyName.equals("trustStorePasswordStripped"))
-            {
+            else if (propertyName.equals("trustStorePasswordStripped")) {
                 trustStorePasswordStripped = true;
             }
             // Just skip "class" StringRefAddr, it does not go into connectionProps
-            else if (false == propertyName.equals("class"))
-            {
+            else if (false == propertyName.equals("class")) {
 
                 connectionProps.setProperty(propertyName, propertyValue);
             }
         }
     }
 
-    public boolean isWrapperFor(Class<?> iface) throws SQLException
-    {
-        loggerExternal.entering(getClassNameLogging(), "isWrapperFor", iface );
+    public boolean isWrapperFor(Class<?> iface) throws SQLException {
+        loggerExternal.entering(getClassNameLogging(), "isWrapperFor", iface);
         DriverJDBCVersion.checkSupportsJDBC4();
         boolean f = iface.isInstance(this);
-        loggerExternal.exiting(getClassNameLogging(),  "isWrapperFor", Boolean.valueOf(f));
+        loggerExternal.exiting(getClassNameLogging(), "isWrapperFor", Boolean.valueOf(f));
         return f;
     }
 
-    public <T> T unwrap(Class<T> iface) throws SQLException
-    {
+    public <T> T unwrap(Class<T> iface) throws SQLException {
         loggerExternal.entering(getClassNameLogging(), "unwrap", iface);
         DriverJDBCVersion.checkSupportsJDBC4();
 
         T t;
-        try
-        {
+        try {
             t = iface.cast(this);
         }
-        catch (ClassCastException e)
-        {
+        catch (ClassCastException e) {
             throw new SQLServerException(e.getMessage(), e);
         }
-        loggerExternal.exiting(getClassNameLogging(),  "unwrap", t);
+        loggerExternal.exiting(getClassNameLogging(), "unwrap", t);
         return t;
     }
 
     // Returns unique id for each DataSource instance.
-    private static int nextDataSourceID()
-    {
+    private static int nextDataSourceID() {
         return baseDataSourceID.incrementAndGet();
     }
-    private Object writeReplace() throws java.io.ObjectStreamException
-    {
+
+    private Object writeReplace() throws java.io.ObjectStreamException {
         return new SerializationProxy(this);
     }
-    private void readObject(java.io.ObjectInputStream stream) throws java.io.InvalidObjectException
-    {
+
+    private void readObject(java.io.ObjectInputStream stream) throws java.io.InvalidObjectException {
         // For added security/robustness, the only way to rehydrate a serialized SQLServerDataSource
-        // is to use a SerializationProxy.  Direct use of readObject() is not supported.
+        // is to use a SerializationProxy. Direct use of readObject() is not supported.
         throw new java.io.InvalidObjectException("");
     }
 
-    // This code is duplicated in pooled and XA datasource classes. 
-    private static class SerializationProxy  
-        implements java.io.Serializable
-    {
-        private final Reference ref;   
+    // This code is duplicated in pooled and XA datasource classes.
+    private static class SerializationProxy implements java.io.Serializable {
+        private final Reference ref;
         private static final long serialVersionUID = 654661379542314226L;
-        
-        SerializationProxy (SQLServerDataSource ds)
-        {
-            // We do not need the class name so pass null, serialization mechanism 
+
+        SerializationProxy(SQLServerDataSource ds) {
+            // We do not need the class name so pass null, serialization mechanism
             // stores the class info.
             ref = ds.getReferenceInternal(null);
         }
-        private Object readResolve()
-        {
+
+        private Object readResolve() {
             SQLServerDataSource ds = new SQLServerDataSource();
             ds.initializeFromReference(ref);
             return ds;

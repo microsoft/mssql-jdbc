@@ -1,98 +1,153 @@
-// ---------------------------------------------------------------------------------------------------------------------------------
-// File: SqlDateTimeOffset.java
-//
-//
-// Microsoft JDBC Driver for SQL Server
-// Copyright(c) Microsoft Corporation
-// All rights reserved.
-// MIT License
-// Permission is hereby granted, free of charge, to any person obtaining a copy
-// of this software and associated documentation files(the "Software"),
-// to deal in the Software without restriction, including without limitation the
-// rights to use, copy, modify, merge, publish, distribute, sublicense,
-// and / or sell copies of the Software, and to permit persons to whom the
-// Software is furnished to do so, subject to the following conditions :
-// The above copyright notice and this permission notice shall be included in
-// all copies or substantial portions of the Software.
-// THE SOFTWARE IS PROVIDED *AS IS*, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.IN NO EVENT SHALL THE
-// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
-// IN THE SOFTWARE.
-// ---------------------------------------------------------------------------------------------------------------------------------
-
+/*
+ * Microsoft JDBC Driver for SQL Server
+ * 
+ * Copyright(c) Microsoft Corporation All rights reserved.
+ * 
+ * This program is made available under the terms of the MIT License. See the LICENSE file in the project root for more information.
+ */
 package com.microsoft.sqlserver.testframework.sqlType;
-
-import static org.junit.jupiter.api.Assertions.fail;
 
 import java.sql.JDBCType;
 import java.sql.Timestamp;
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
-import java.time.OffsetDateTime;
-import java.time.ZoneOffset;
-import java.time.format.DateTimeFormatter;
-import java.time.format.DateTimeFormatterBuilder;
-import java.time.temporal.ChronoField;
+import java.util.Calendar;
 import java.util.concurrent.ThreadLocalRandom;
 
-import org.apache.commons.lang3.RandomStringUtils;
+import microsoft.sql.DateTimeOffset;
 
 public class SqlDateTimeOffset extends SqlDateTime {
+    public static boolean returnMinMax = (0 == ThreadLocalRandom.current().nextInt(5)); // 20% chance of return Min/Max value
+    private static String numberCharSet2 = "123456789";
+    DateTimeOffset maxDTS;
+    DateTimeOffset minDTS;
+    long max;
+    long min;
+
     // TODO: datetiemoffset can extend SqlDateTime2
     // timezone is not supported in Timestamp so its useless to initialize
     // min/max with offset
-    static SimpleDateFormat dateFormat = new SimpleDateFormat("yyyyMMdd'T'HH:mm:ss.SSSSSSSZ");
-    static String basePattern = "yyyy-MM-dd HH:mm:ss";
-    static ZoneOffset min = ZoneOffset.of("-1400");
-    static ZoneOffset max = ZoneOffset.of("+1400");
-
-    static DateTimeFormatter formatter;
-
     public SqlDateTimeOffset() {
-        super("datetimeoffset",
-                JDBCType.TIMESTAMP /* microsoft.sql.Types.DATETIMEOFFSET */, null, null);
-        try {
-            minvalue = new Timestamp(
-                    dateFormat.parse((String) SqlTypeValue.DATETIMEOFFSET.minValue).getTime());
-            maxvalue = new Timestamp(
-                    dateFormat.parse((String) SqlTypeValue.DATETIMEOFFSET.maxValue).getTime());
-        }
-        catch (ParseException ex) {
-            fail(ex.getMessage());
-        }
+        super("datetimeoffset", JDBCType.TIMESTAMP /* microsoft.sql.Types.DATETIMEOFFSET */, null, null);
+        minvalue = Timestamp.valueOf((String) SqlTypeValue.DATETIMEOFFSET.minValue);
+        maxvalue = Timestamp.valueOf((String) SqlTypeValue.DATETIMEOFFSET.maxValue);
         this.precision = 7;
         this.variableLengthType = VariableLengthType.Precision;
         generatePrecision();
-        formatter = new DateTimeFormatterBuilder().appendPattern(basePattern)
-                .appendFraction(ChronoField.NANO_OF_SECOND, 0, this.precision, true)
-                .appendOffset("+HH:mm", "Z").toFormatter();
+        maxDTS = calculateDateTimeOffsetMinMax("max", precision, (String) SqlTypeValue.DATETIMEOFFSET.maxValue);
+        minDTS = calculateDateTimeOffsetMinMax("min", precision, (String) SqlTypeValue.DATETIMEOFFSET.minValue);
+
+        max = maxDTS.getTimestamp().getTime();
+        min = minDTS.getTimestamp().getTime();
     }
 
+    /**
+     * create data
+     */
     public Object createdata() {
-        Timestamp temp = new Timestamp(ThreadLocalRandom.current()
-                .nextLong(((Timestamp) minvalue).getTime(), ((Timestamp) maxvalue).getTime()));
-        temp.setNanos(0);
-        String timeNano = temp.toString().substring(0, temp.toString().length() - 1)
-                + RandomStringUtils.randomNumeric(this.precision);
+        return generateDatetimeoffset(this.precision);
+    }
 
-        // generate random offset values
-        int offsetSeconds = ThreadLocalRandom.current().nextInt(min.getTotalSeconds(),
-                max.getTotalSeconds() + 1);
+    /**
+     * 
+     * @param precision
+     * @return
+     */
+    public Object generateDatetimeoffset(Integer precision) {
+        if (null == precision) {
+            precision = 7;
+        }
 
-        // trim the seconds from +HH:mm:ss
-        if (0 != offsetSeconds % 60) {
-            timeNano = timeNano
-                    + ZoneOffset.ofTotalSeconds(offsetSeconds).toString().substring(0, 6);
+        Timestamp ts = generateTimestamp(max, min);
+
+        if (null == ts) {
+            return null;
+        }
+
+        if (returnMinMax) {
+            if (ThreadLocalRandom.current().nextBoolean()) {
+                return maxDTS;
+            }
+            else {
+                return minDTS;
+            }
+        }
+
+        int precisionDigits = buildPrecision(precision, numberCharSet2);
+        ts.setNanos(precisionDigits);
+
+        int randomTimeZoneInMinutes = ThreadLocalRandom.current().nextInt(1681) - 840;
+        
+        return microsoft.sql.DateTimeOffset.valueOf(ts, randomTimeZoneInMinutes);
+    }
+
+    private static DateTimeOffset calculateDateTimeOffsetMinMax(String maxOrMin, Integer precision, String tsMinMax) {
+        int providedTimeZoneInMinutes;
+        if (maxOrMin.toLowerCase().equals("max")) {
+            providedTimeZoneInMinutes = 840;
         }
         else {
-            timeNano = timeNano + ZoneOffset.ofTotalSeconds(offsetSeconds).toString();
+            providedTimeZoneInMinutes = -840;
         }
-        // can pass string rather than converting to LocalDateTime, but leaving
-        // it unchanged for now to handle prepared statements
-        OffsetDateTime of = OffsetDateTime.parse(timeNano, formatter);
-        return of;
+
+        Timestamp tsMax = Timestamp.valueOf(tsMinMax);
+
+        Calendar cal = Calendar.getInstance();
+        long offset = cal.get(Calendar.ZONE_OFFSET); // in milliseconds
+
+        // max Timestamp + difference of current time zone and GMT - provided time zone in milliseconds
+        tsMax = new Timestamp(tsMax.getTime() + offset - (providedTimeZoneInMinutes * 60 * 1000));
+
+        if (maxOrMin.toLowerCase().equals("max")) {
+            int precisionDigits = buildPrecision(precision, "9");
+            tsMax.setNanos(precisionDigits);
+        }
+
+        return microsoft.sql.DateTimeOffset.valueOf(tsMax, providedTimeZoneInMinutes);
+    }
+
+    private static int buildPrecision(int precision, String charSet) {
+        String stringValue = calculatePrecisionDigits(precision, charSet);
+        return Integer.parseInt(stringValue);
+    }
+
+    // setNanos(999999900) gives 00:00:00.9999999
+    // so, this value has to be 9 digits
+    private static String calculatePrecisionDigits(int precision, String charSet) {
+        StringBuffer sb = new StringBuffer();
+        for (int i = 0; i < precision; i++) {
+            char c = pickRandomChar(charSet);
+            sb.append(c);
+        }
+
+        for (int i = sb.length(); i < 9; i++) {
+            sb.append("0");
+        }
+
+        return sb.toString();
+    }
+
+    private static Timestamp generateTimestamp(long max, long min) {
+
+        if (returnMinMax) {
+            if (ThreadLocalRandom.current().nextBoolean()) {
+                return new Timestamp(max);
+            }
+            else {
+                return new Timestamp(min);
+            }
+        }
+
+        while (true) {
+            long longValue = ThreadLocalRandom.current().nextLong();
+
+            if (longValue >= min && longValue <= max) {
+                return new Timestamp(longValue);
+            }
+        }
+    }
+
+    private static char pickRandomChar(String charSet) {
+        int charSetLength = charSet.length();
+        int randomIndex = ThreadLocalRandom.current().nextInt(charSetLength);
+        return charSet.charAt(randomIndex);
     }
 }
