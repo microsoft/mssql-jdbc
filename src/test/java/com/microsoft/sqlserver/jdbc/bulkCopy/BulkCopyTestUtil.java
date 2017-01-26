@@ -23,6 +23,7 @@ import java.sql.Timestamp;
 import java.util.Arrays;
 
 import com.microsoft.sqlserver.jdbc.SQLServerBulkCopy;
+import com.microsoft.sqlserver.jdbc.bulkCopy.BulkCopyTestWrapper.ColumnMap;
 import com.microsoft.sqlserver.testframework.DBConnection;
 import com.microsoft.sqlserver.testframework.DBResultSet;
 import com.microsoft.sqlserver.testframework.DBStatement;
@@ -41,6 +42,17 @@ class BulkCopyTestUtil {
      */
     static void performBulkCopy(BulkCopyTestWrapper wrapper, DBTable sourceTable) {
         performBulkCopy(wrapper, sourceTable, true);
+    }
+    
+    /**
+     * perform bulk copy using source and destination tables and validate bulkcopy
+     * 
+     * @param wrapper
+     * @param sourceTable
+     * @param destTable
+     */
+    static void performBulkCopy(BulkCopyTestWrapper wrapper, DBTable sourceTable, DBTable destTable) {
+        performBulkCopy(wrapper, sourceTable, destTable, true);
     }
 
     /**
@@ -72,6 +84,23 @@ class BulkCopyTestUtil {
                 bulkCopy.setBulkCopyOptions(wrapper.getBulkOptions());
             }
             bulkCopy.setDestinationTableName(destinationTable.getEscapedTableName());
+            if (wrapper.isUsingColumnMapping()){
+                for(int i = 0; i < wrapper.cm.size(); i++){
+                     ColumnMap currentMap = wrapper.cm.get(i);
+                     if(currentMap.sourceIsInt && currentMap.destIsInt){
+                         bulkCopy.addColumnMapping(currentMap.srcInt, currentMap.destInt);
+                     }
+                     else if(currentMap.sourceIsInt && (!currentMap.destIsInt)){
+                         bulkCopy.addColumnMapping(currentMap.srcInt, currentMap.destString);
+                     }
+                     else if((!currentMap.sourceIsInt) && currentMap.destIsInt){
+                         bulkCopy.addColumnMapping(currentMap.srcString, currentMap.destInt);
+                     }
+                     else if((!currentMap.sourceIsInt) && (!currentMap.destIsInt)){
+                         bulkCopy.addColumnMapping(currentMap.srcString, currentMap.destString);
+                     }
+                }
+            }
             bulkCopy.writeToServer((ResultSet) srcResultSet.product());
             bulkCopy.close();
             if (validateResult) {
@@ -84,6 +113,196 @@ class BulkCopyTestUtil {
         finally {
             stmt.dropTable(destinationTable);
             con.close();
+        }
+    }
+    
+    /**
+     * perform bulk copy using source and destination tables
+     * 
+     * @param wrapper
+     * @param sourceTable
+     * @param destTable
+     * @param validateResult
+     */
+    static void performBulkCopy(BulkCopyTestWrapper wrapper, DBTable sourceTable, DBTable destinationTable, boolean validateResult) {
+        DBConnection con = null;
+        DBStatement stmt = null;
+        try {
+            con = new DBConnection(wrapper.getConnectionString());
+            stmt = con.createStatement();
+
+            DBResultSet srcResultSet = stmt.executeQuery("SELECT * FROM " + sourceTable.getEscapedTableName() + ";");
+            SQLServerBulkCopy bulkCopy;
+            if (wrapper.isUsingConnection()) {
+                bulkCopy = new SQLServerBulkCopy((Connection) con.product());
+            }
+            else {
+                bulkCopy = new SQLServerBulkCopy(wrapper.getConnectionString());
+            }
+            if (wrapper.isUsingBulkCopyOptions()) {
+                bulkCopy.setBulkCopyOptions(wrapper.getBulkOptions());
+            }
+            bulkCopy.setDestinationTableName(destinationTable.getEscapedTableName());
+            if (wrapper.isUsingColumnMapping()){
+                for(int i = 0; i < wrapper.cm.size(); i++){
+                     ColumnMap currentMap = wrapper.cm.get(i);
+                     if(currentMap.sourceIsInt && currentMap.destIsInt){
+                         bulkCopy.addColumnMapping(currentMap.srcInt, currentMap.destInt);
+                     }
+                     else if(currentMap.sourceIsInt && (!currentMap.destIsInt)){
+                         bulkCopy.addColumnMapping(currentMap.srcInt, currentMap.destString);
+                     }
+                     else if((!currentMap.sourceIsInt) && currentMap.destIsInt){
+                         bulkCopy.addColumnMapping(currentMap.srcString, currentMap.destInt);
+                     }
+                     else if((!currentMap.sourceIsInt) && (!currentMap.destIsInt)){
+                         bulkCopy.addColumnMapping(currentMap.srcString, currentMap.destString);
+                     }
+                }
+            }
+            bulkCopy.writeToServer((ResultSet) srcResultSet.product());
+            bulkCopy.close();
+            if (validateResult) {
+                validateValues(con, sourceTable, destinationTable);
+            }
+        }
+        catch (SQLException ex) {
+            fail(ex.getMessage());
+        }
+        finally {
+            stmt.dropTable(destinationTable);
+            con.close();
+        }
+    }
+    
+    /**
+     * perform bulk copy using source and destination tables
+     * 
+     * @param wrapper
+     * @param sourceTable
+     * @param destTable
+     * @param validateResult
+     * @param fail
+     */
+    static void performBulkCopy(BulkCopyTestWrapper wrapper, DBTable sourceTable, DBTable destinationTable, boolean validateResult, boolean fail) {
+        DBConnection con = null;
+        DBStatement stmt = null;
+        try {
+            con = new DBConnection(wrapper.getConnectionString());
+            stmt = con.createStatement();
+
+            DBResultSet srcResultSet = stmt.executeQuery("SELECT * FROM " + sourceTable.getEscapedTableName() + ";");
+            SQLServerBulkCopy bulkCopy;
+            if (wrapper.isUsingConnection()) {
+                bulkCopy = new SQLServerBulkCopy((Connection) con.product());
+            }
+            else {
+                bulkCopy = new SQLServerBulkCopy(wrapper.getConnectionString());
+            }
+            if (wrapper.isUsingBulkCopyOptions()) {
+                bulkCopy.setBulkCopyOptions(wrapper.getBulkOptions());
+            }
+            bulkCopy.setDestinationTableName(destinationTable.getEscapedTableName());
+            if (wrapper.isUsingColumnMapping()){
+                for(int i = 0; i < wrapper.cm.size(); i++){
+                     ColumnMap currentMap = wrapper.cm.get(i);
+                     if(currentMap.sourceIsInt && currentMap.destIsInt){
+                         bulkCopy.addColumnMapping(currentMap.srcInt, currentMap.destInt);
+                     }
+                     else if(currentMap.sourceIsInt && (!currentMap.destIsInt)){
+                         bulkCopy.addColumnMapping(currentMap.srcInt, currentMap.destString);
+                     }
+                     else if((!currentMap.sourceIsInt) && currentMap.destIsInt){
+                         bulkCopy.addColumnMapping(currentMap.srcString, currentMap.destInt);
+                     }
+                     else if((!currentMap.sourceIsInt) && (!currentMap.destIsInt)){
+                         bulkCopy.addColumnMapping(currentMap.srcString, currentMap.destString);
+                     }
+                }
+            }
+            bulkCopy.writeToServer((ResultSet) srcResultSet.product());
+            if(fail)
+                fail("bulkCopy.writeToServer did not fail when it should have");
+            bulkCopy.close();
+            if (validateResult) {
+                validateValues(con, sourceTable, destinationTable);
+            }
+        }
+        catch (SQLException ex) {
+            if(!fail){
+                fail(ex.getMessage());
+            }
+        }
+        finally {
+            stmt.dropTable(destinationTable);
+            con.close();
+        }
+    }
+    
+    /**
+     * perform bulk copy using source and destination tables
+     * 
+     * @param wrapper
+     * @param sourceTable
+     * @param destTable
+     * @param validateResult
+     * @param fail
+     * @param dropDest
+     */
+    static void performBulkCopy(BulkCopyTestWrapper wrapper, DBTable sourceTable, DBTable destinationTable, boolean validateResult, boolean fail, boolean dropDest) {
+        DBConnection con = null;
+        DBStatement stmt = null;
+        try {
+            con = new DBConnection(wrapper.getConnectionString());
+            stmt = con.createStatement();
+
+            DBResultSet srcResultSet = stmt.executeQuery("SELECT * FROM " + sourceTable.getEscapedTableName() + ";");
+            SQLServerBulkCopy bulkCopy;
+            if (wrapper.isUsingConnection()) {
+                bulkCopy = new SQLServerBulkCopy((Connection) con.product());
+            }
+            else {
+                bulkCopy = new SQLServerBulkCopy(wrapper.getConnectionString());
+            }
+            if (wrapper.isUsingBulkCopyOptions()) {
+                bulkCopy.setBulkCopyOptions(wrapper.getBulkOptions());
+            }
+            bulkCopy.setDestinationTableName(destinationTable.getEscapedTableName());
+            if (wrapper.isUsingColumnMapping()){
+                for(int i = 0; i < wrapper.cm.size(); i++){
+                     ColumnMap currentMap = wrapper.cm.get(i);
+                     if(currentMap.sourceIsInt && currentMap.destIsInt){
+                         bulkCopy.addColumnMapping(currentMap.srcInt, currentMap.destInt);
+                     }
+                     else if(currentMap.sourceIsInt && (!currentMap.destIsInt)){
+                         bulkCopy.addColumnMapping(currentMap.srcInt, currentMap.destString);
+                     }
+                     else if((!currentMap.sourceIsInt) && currentMap.destIsInt){
+                         bulkCopy.addColumnMapping(currentMap.srcString, currentMap.destInt);
+                     }
+                     else if((!currentMap.sourceIsInt) && (!currentMap.destIsInt)){
+                         bulkCopy.addColumnMapping(currentMap.srcString, currentMap.destString);
+                     }
+                }
+            }
+            bulkCopy.writeToServer((ResultSet) srcResultSet.product());
+            if(fail)
+                fail("bulkCopy.writeToServer did not fail when it should have");
+            bulkCopy.close();
+            if (validateResult) {
+                validateValues(con, sourceTable, destinationTable);
+            }
+        }
+        catch (SQLException ex) {
+            if(!fail){
+                fail(ex.getMessage());
+            }
+        }
+        finally {
+            if(dropDest){
+                stmt.dropTable(destinationTable);
+                con.close();
+            }
         }
     }
 
