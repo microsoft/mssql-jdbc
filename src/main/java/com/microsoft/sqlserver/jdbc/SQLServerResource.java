@@ -1,45 +1,31 @@
-//---------------------------------------------------------------------------------------------------------------------------------
-// File: SQLServerResource.java
-//
-//
-// Microsoft JDBC Driver for SQL Server
-// Copyright(c) Microsoft Corporation
-// All rights reserved.
-// MIT License
-// Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files(the "Software"), 
-//  to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, 
-//  and / or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions :
-// The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
-// THE SOFTWARE IS PROVIDED *AS IS*, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, 
-//  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER 
-//  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS 
-//  IN THE SOFTWARE.
-//---------------------------------------------------------------------------------------------------------------------------------
-
+/*
+ * Microsoft JDBC Driver for SQL Server
+ * 
+ * Copyright(c) Microsoft Corporation All rights reserved.
+ * 
+ * This program is made available under the terms of the MIT License. See the LICENSE file in the project root for more information.
+ */
 
 package com.microsoft.sqlserver.jdbc;
+
 import java.util.ListResourceBundle;
 
 /**
  * A simple resource bundle containing the strings for localizing.
  *
  */
-public final class SQLServerResource extends ListResourceBundle
-{
-	static String getResource(String key)
-	{
-		return SQLServerResource.getBundle("com.microsoft.sqlserver.jdbc.SQLServerResource").getString(key);
-	}
+public final class SQLServerResource extends ListResourceBundle {
+    static String getResource(String key) {
+        return SQLServerResource.getBundle("com.microsoft.sqlserver.jdbc.SQLServerResource").getString(key);
+    }
 
-	protected Object[][]  getContents()
-	{
-		return contents;
-	}
+    protected Object[][] getContents() {
+        return contents;
+    }
 
-	// the keys must be prefixed with R_ to denote they are resource strings and their names should follow the camelCasing
-	// convention and be descriptive
-	static final Object[][] contents =
-		{ 
+    // the keys must be prefixed with R_ to denote they are resource strings and their names should follow the camelCasing
+    // convention and be descriptive
+    static final Object[][] contents = {
 				// LOCALIZE THIS
 				{"R_timedOutBeforeRouting", "The timeout expired before connecting to the routing destination."},
 				{"R_invalidRoutingInfo", "Unexpected routing information received. Please check your connection properties and SQL Server configuration."},
@@ -386,6 +372,5 @@ public final class SQLServerResource extends ListResourceBundle
 				{"R_TVPnotWorkWithSetObjectResultSet" , "setObject() with ResultSet is not supported for Table-Valued Parameter. Please use setStructured()"},
 				{"R_invalidQueryTimeout", "The queryTimeout {0} is not valid."},
 				{"R_invalidSocketTimeout", "The socketTimeout {0} is not valid."},
-		};
+    };
 }
-

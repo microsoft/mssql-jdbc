@@ -62,6 +62,13 @@ public class DBStatement extends AbstractParentWrapper {
         return this;
     }
 
+    DBStatement createStatement(int type, int concurrency) throws SQLServerException {
+        // TODO: add cursor and holdability
+        statement = ((SQLServerConnection) parent().product()).createStatement(type, concurrency);
+        setInternal(statement);
+        return this;
+    }
+
     /**
      * 
      * @param sql
@@ -88,8 +95,7 @@ public class DBStatement extends AbstractParentWrapper {
     }
 
     /**
-     * Close the <code>Statement</code> and <code>ResultSet</code> associated
-     * with it
+     * Close the <code>Statement</code> and <code>ResultSet</code> associated with it
      * 
      * @throws SQLException
      */
@@ -133,5 +139,15 @@ public class DBStatement extends AbstractParentWrapper {
     @Override
     void setInternal(Object internal) {
         this.internal = internal;
+    }
+
+    /**
+     * 
+     * @return
+     * @throws SQLException
+     */
+    public int getQueryTimeout() throws SQLException {
+        int current = ((Statement) product()).getQueryTimeout();
+        return current;
     }
 }

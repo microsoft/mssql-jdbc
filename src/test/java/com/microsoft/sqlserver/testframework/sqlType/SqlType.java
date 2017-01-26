@@ -39,6 +39,7 @@ public abstract class SqlType {
     protected Object maxvalue = null;
     protected Object nullvalue = null;	// Primitives have non-null defaults
     protected VariableLengthType variableLengthType;
+//    protected ThreadLocalRandom r;
 
     /**
      * 
@@ -55,8 +56,8 @@ public abstract class SqlType {
      * @param variableLengthType
      *            {@link VariableLengthType}
      */
-    SqlType(String name, JDBCType jdbctype, int precision, int scale, Object min, Object max,
-            Object nullvalue, VariableLengthType variableLengthType) {
+    SqlType(String name, JDBCType jdbctype, int precision, int scale, Object min, Object max, Object nullvalue,
+            VariableLengthType variableLengthType) {
         this.name = name;
         this.jdbctype = jdbctype;
         this.precision = precision;
@@ -180,4 +181,5 @@ public abstract class SqlType {
         int maxPrecision = this.precision;
         this.precision = ThreadLocalRandom.current().nextInt(minPrecision, maxPrecision + 1);
     }
+
 }
