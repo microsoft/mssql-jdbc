@@ -32,8 +32,7 @@ import java.util.List;
 import com.microsoft.sqlserver.testframework.sqlType.SqlType;
 
 /**
- * This class holds data for Column. Think about encrypted columns. <B>createCMK
- * code should not add here.</B>
+ * This class holds data for Column. Think about encrypted columns. <B>createCMK code should not add here.</B>
  */
 class DBColumn {
 
@@ -79,7 +78,7 @@ class DBColumn {
     JDBCType getJdbctype() {
         return sqlType.getJdbctype();
     }
-    
+
     /**
      * 
      * @param sqlType
@@ -105,7 +104,7 @@ class DBColumn {
      * @param row
      * @return the value populated for the column
      */
-    Object getRowValue(int row) {
+     Object getRowValue(int row) {
         // handle exceptions
         return columnValues.get(row);
     }

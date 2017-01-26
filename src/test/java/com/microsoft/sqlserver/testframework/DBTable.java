@@ -1,27 +1,10 @@
-// ---------------------------------------------------------------------------------------------------------------------------------
-// File: DBTable.java
-//
-//
-// Microsoft JDBC Driver for SQL Server
-// Copyright(c) Microsoft Corporation
-// All rights reserved.
-// MIT License
-// Permission is hereby granted, free of charge, to any person obtaining a copy
-// of this software and associated documentation files(the "Software"),
-// to deal in the Software without restriction, including without limitation the
-// rights to use, copy, modify, merge, publish, distribute, sublicense,
-// and / or sell copies of the Software, and to permit persons to whom the
-// Software is furnished to do so, subject to the following conditions :
-// The above copyright notice and this permission notice shall be included in
-// all copies or substantial portions of the Software.
-// THE SOFTWARE IS PROVIDED *AS IS*, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.IN NO EVENT SHALL THE
-// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
-// IN THE SOFTWARE.
-// ---------------------------------------------------------------------------------------------------------------------------------
+/*
+ * Microsoft JDBC Driver for SQL Server
+ * 
+ * Copyright(c) Microsoft Corporation All rights reserved.
+ * 
+ * This program is made available under the terms of the MIT License. See the LICENSE file in the project root for more information.
+ */
 
 package com.microsoft.sqlserver.testframework;
 
@@ -51,15 +34,14 @@ public class DBTable extends AbstractSQLGenerator {
     String escapedTableName;
     List<DBColumn> columns;
     int totalColumns;
-    int totalRows = 2; // default row count set to 2
+    static int totalRows = 3; // default row count set to 3
     DBSchema schema;
 
     /**
      * Initializes {@link DBTable} with tableName, schema, and {@link DBColumns}
      * 
      * @param autoGenerateSchema
-     *            <code>true</code> : generates schema with all available
-     *            dataTypes in SqlType class
+     *            <code>true</code> : generates schema with all available dataTypes in SqlType class
      */
     public DBTable(boolean autoGenerateSchema) {
 
@@ -76,8 +58,7 @@ public class DBTable extends AbstractSQLGenerator {
     }
 
     /**
-     * Similar to {@link DBTable#DBTable(boolean)}, but uses existing list of
-     * columns Used internally to clone schema
+     * Similar to {@link DBTable#DBTable(boolean)}, but uses existing list of columns Used internally to clone schema
      * 
      * @param DBTable
      */
@@ -125,14 +106,14 @@ public class DBTable extends AbstractSQLGenerator {
      * 
      * @return total rows in the table
      */
-    public int getTotalRows() {
+    public static int getTotalRows() {
         return totalRows;
     }
 
     /**
      * 
      * @param totalRows
-     *            set the number of rows in table, default value is 2
+     *            set the number of rows in table, default value is 3
      */
     public void setTotalRows(int totalRows) {
         this.totalRows = totalRows;
@@ -334,29 +315,36 @@ public class DBTable extends AbstractSQLGenerator {
     DBColumn getColumn(int index) {
         return columns.get(index);
     }
-    
+
+    /**
+     * 
+     * @param colIndex
+     * @param rowIndex
+     * @return
+     */
+    public Object getRowData(int colIndex, int rowIndex) {
+        return columns.get(colIndex).getRowValue(rowIndex);
+    }
+
     /**
      * 
      * @param colNum
      * @return <code>true</code> if value can be passed as String for the column
      */
-    boolean passDataAsString(int colNum){
-        return (JDBCType.CHAR == getColumn(colNum).getJdbctype() 
-                || JDBCType.VARCHAR == getColumn(colNum).getJdbctype()
-                || JDBCType.NCHAR == getColumn(colNum).getJdbctype()
-                || JDBCType.NVARCHAR == getColumn(colNum).getJdbctype()
-                || JDBCType.TIMESTAMP == getColumn(colNum).getJdbctype()
-                || JDBCType.DATE == getColumn(colNum).getJdbctype()
+    boolean passDataAsString(int colNum) {
+        return (JDBCType.CHAR == getColumn(colNum).getJdbctype() || JDBCType.VARCHAR == getColumn(colNum).getJdbctype()
+                || JDBCType.NCHAR == getColumn(colNum).getJdbctype() || JDBCType.NVARCHAR == getColumn(colNum).getJdbctype()
+                || JDBCType.TIMESTAMP == getColumn(colNum).getJdbctype() || JDBCType.DATE == getColumn(colNum).getJdbctype()
                 || JDBCType.TIME == getColumn(colNum).getJdbctype());
     }
-    
+
     /**
      * 
      * @param colNum
      * @return <code>true</code> if value can be passed as Hex for the column
      */
-    boolean passDataAsHex(int colNum){
-        return (JDBCType.BINARY == getColumn(colNum).getJdbctype()
-                || JDBCType.VARBINARY == getColumn(colNum).getJdbctype());
+
+    boolean passDataAsHex(int colNum) {
+        return (JDBCType.BINARY == getColumn(colNum).getJdbctype() || JDBCType.VARBINARY == getColumn(colNum).getJdbctype());
     }
 }
