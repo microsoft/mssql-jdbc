@@ -120,7 +120,8 @@ public abstract class AbstractTest {
      * @param key
      * @return Value
      */
-    public static String getConfiguredProperty(String key, String defaultValue) {
+    public static String getConfiguredProperty(String key,
+            String defaultValue) {
         return Utils.getConfiguredProperty(key, defaultValue);
     }
 

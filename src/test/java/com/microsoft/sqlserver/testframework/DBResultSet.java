@@ -1,10 +1,11 @@
-/**
+/*
  * Microsoft JDBC Driver for SQL Server
  * 
  * Copyright(c) Microsoft Corporation All rights reserved.
  * 
  * This program is made available under the terms of the MIT License. See the LICENSE file in the project root for more information.
  */
+
 package com.microsoft.sqlserver.testframework;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -52,12 +53,14 @@ public class DBResultSet extends AbstractParentWrapper {
     ResultSet resultSet = null;
     DBResultSetMetaData metaData;
 
-    DBResultSet(DBStatement dbstatement, ResultSet internal) {
+    DBResultSet(DBStatement dbstatement,
+            ResultSet internal) {
         super(dbstatement, internal, "resultSet");
         resultSet = internal;
     }
 
-    DBResultSet(DBPreparedStatement dbpstmt, ResultSet internal) {
+    DBResultSet(DBPreparedStatement dbpstmt,
+            ResultSet internal) {
         super(dbpstmt, internal, "resultSet");
         resultSet = internal;
     }
@@ -104,7 +107,7 @@ public class DBResultSet extends AbstractParentWrapper {
         // call individual getters based on type
         return resultSet.getString(index);
     }
-    
+
     /**
      * 
      * @param index
@@ -146,7 +149,8 @@ public class DBResultSet extends AbstractParentWrapper {
      * @param coercion
      * @throws SQLException
      */
-    public void verifydata(int ordinal, Class coercion) throws SQLException {
+    public void verifydata(int ordinal,
+            Class coercion) throws SQLException {
         Object expectedData = currentTable.columns.get(ordinal).getRowValue(_currentrow);
 
         // getXXX - default mapping
@@ -165,7 +169,10 @@ public class DBResultSet extends AbstractParentWrapper {
      * @param retrieved
      * @throws SQLException
      */
-    public void verifydata(int ordinal, Class coercion, Object expectedData, Object retrieved) throws SQLException {
+    public void verifydata(int ordinal,
+            Class coercion,
+            Object expectedData,
+            Object retrieved) throws SQLException {
         metaData = this.getMetaData();
         switch (metaData.getColumnType(ordinal + 1)) {
             case java.sql.Types.BIGINT:
@@ -270,7 +277,8 @@ public class DBResultSet extends AbstractParentWrapper {
         }
     }
 
-    private boolean parseByte(byte[] expectedData, byte[] retrieved) {
+    private boolean parseByte(byte[] expectedData,
+            byte[] retrieved) {
         assertTrue(Arrays.equals(expectedData, Arrays.copyOf(retrieved, expectedData.length)), " unexpected BINARY value, expected");
         for (int i = expectedData.length; i < retrieved.length; i++) {
             assertTrue(0 == retrieved[i], "unexpected data BINARY");
@@ -278,7 +286,8 @@ public class DBResultSet extends AbstractParentWrapper {
         return true;
     }
 
-    private Object getXXX(int idx, Class coercion) throws SQLException {
+    private Object getXXX(int idx,
+            Class coercion) throws SQLException {
         if (coercion == Object.class) {
             return this.getObject(idx);
         }

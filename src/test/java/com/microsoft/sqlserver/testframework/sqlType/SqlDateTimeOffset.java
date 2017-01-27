@@ -75,11 +75,13 @@ public class SqlDateTimeOffset extends SqlDateTime {
         ts.setNanos(precisionDigits);
 
         int randomTimeZoneInMinutes = ThreadLocalRandom.current().nextInt(1681) - 840;
-        
+
         return microsoft.sql.DateTimeOffset.valueOf(ts, randomTimeZoneInMinutes);
     }
 
-    private static DateTimeOffset calculateDateTimeOffsetMinMax(String maxOrMin, Integer precision, String tsMinMax) {
+    private static DateTimeOffset calculateDateTimeOffsetMinMax(String maxOrMin,
+            Integer precision,
+            String tsMinMax) {
         int providedTimeZoneInMinutes;
         if (maxOrMin.toLowerCase().equals("max")) {
             providedTimeZoneInMinutes = 840;
@@ -104,14 +106,16 @@ public class SqlDateTimeOffset extends SqlDateTime {
         return microsoft.sql.DateTimeOffset.valueOf(tsMax, providedTimeZoneInMinutes);
     }
 
-    private static int buildPrecision(int precision, String charSet) {
+    private static int buildPrecision(int precision,
+            String charSet) {
         String stringValue = calculatePrecisionDigits(precision, charSet);
         return Integer.parseInt(stringValue);
     }
 
     // setNanos(999999900) gives 00:00:00.9999999
     // so, this value has to be 9 digits
-    private static String calculatePrecisionDigits(int precision, String charSet) {
+    private static String calculatePrecisionDigits(int precision,
+            String charSet) {
         StringBuffer sb = new StringBuffer();
         for (int i = 0; i < precision; i++) {
             char c = pickRandomChar(charSet);
@@ -125,7 +129,8 @@ public class SqlDateTimeOffset extends SqlDateTime {
         return sb.toString();
     }
 
-    private static Timestamp generateTimestamp(long max, long min) {
+    private static Timestamp generateTimestamp(long max,
+            long min) {
 
         if (returnMinMax) {
             if (ThreadLocalRandom.current().nextBoolean()) {

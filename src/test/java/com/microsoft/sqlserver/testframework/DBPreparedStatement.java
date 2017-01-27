@@ -1,10 +1,11 @@
-/**
+/*
  * Microsoft JDBC Driver for SQL Server
  * 
  * Copyright(c) Microsoft Corporation All rights reserved.
  * 
  * This program is made available under the terms of the MIT License. See the LICENSE file in the project root for more information.
  */
+
 package com.microsoft.sqlserver.testframework;
 
 import java.sql.Connection;
@@ -20,7 +21,7 @@ public class DBPreparedStatement extends AbstractParentWrapper {
 
     PreparedStatement pstmt = null;
     DBResultSet dbresultSet = null;
-    
+
     /**
      * 
      */
@@ -33,7 +34,9 @@ public class DBPreparedStatement extends AbstractParentWrapper {
      * @param internal
      * @param name
      */
-    DBPreparedStatement(AbstractParentWrapper parent, Object internal, String name) {
+    DBPreparedStatement(AbstractParentWrapper parent,
+            Object internal,
+            String name) {
         super(parent, internal, name);
     }
 
@@ -58,7 +61,8 @@ public class DBPreparedStatement extends AbstractParentWrapper {
      * @param targetObject
      * @throws SQLException
      */
-    public void setObject(int parameterIndex, Object targetObject) throws SQLException {
+    public void setObject(int parameterIndex,
+            Object targetObject) throws SQLException {
 
         ((PreparedStatement) product()).setObject(parameterIndex, targetObject);
     }
