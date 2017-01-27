@@ -14,9 +14,7 @@ import java.util.concurrent.ThreadLocalRandom;
 public class SqlBigInt extends SqlNumber {
 
     public SqlBigInt() {
-        super("bigint", JDBCType.BIGINT, 19,	// precision
-                0,	// scale
-                SqlTypeValue.BIGINT.minValue, SqlTypeValue.BIGINT.maxValue, SqlTypeValue.BIGINT.nullValue);
+        super("bigint", JDBCType.BIGINT, 19, 0, SqlTypeValue.BIGINT.minValue, SqlTypeValue.BIGINT.maxValue, SqlTypeValue.BIGINT.nullValue);
     }
 
     public Object createdata() {

@@ -26,9 +26,8 @@ public class SqlFloat extends SqlType {
     }
 
     public SqlFloat() {
-        super("float", JDBCType.DOUBLE, 53,	// default precision
-                0,	// scale
-                SqlTypeValue.FLOAT.minValue, SqlTypeValue.FLOAT.maxValue, SqlTypeValue.FLOAT.nullValue, VariableLengthType.Precision);
+        super("float", JDBCType.DOUBLE, 53, 0, SqlTypeValue.FLOAT.minValue, SqlTypeValue.FLOAT.maxValue, SqlTypeValue.FLOAT.nullValue,
+                VariableLengthType.Precision);
         generatePrecision();
     }
 

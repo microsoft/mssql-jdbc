@@ -11,7 +11,6 @@ package com.microsoft.sqlserver.testframework.sqlType;
 public class SqlSmallMoney extends SqlDecimal {
 
     public SqlSmallMoney() {
-        super("smallmoney", 10, 4,	// max scale for money/smallmoney
-                SqlTypeValue.SMALLMONEY.minValue, SqlTypeValue.SMALLMONEY.maxValue, VariableLengthType.Fixed);
+        super("smallmoney", 10, 4, SqlTypeValue.SMALLMONEY.minValue, SqlTypeValue.SMALLMONEY.maxValue, VariableLengthType.Fixed);
     }
 }
