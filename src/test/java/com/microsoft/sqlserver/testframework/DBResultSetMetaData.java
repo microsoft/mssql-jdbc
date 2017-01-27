@@ -28,7 +28,9 @@ public class DBResultSetMetaData extends AbstractParentWrapper {
      * @param internal
      * @param name
      */
-    DBResultSetMetaData(AbstractParentWrapper parent, Object internal, String name) {
+    DBResultSetMetaData(AbstractParentWrapper parent,
+            Object internal,
+            String name) {
         super(parent, internal, name);
         // TODO Auto-generated constructor stub
     }

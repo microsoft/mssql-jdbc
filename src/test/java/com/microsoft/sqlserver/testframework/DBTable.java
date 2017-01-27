@@ -322,7 +322,8 @@ public class DBTable extends AbstractSQLGenerator {
      * @param rowIndex
      * @return
      */
-    public Object getRowData(int colIndex, int rowIndex) {
+    public Object getRowData(int colIndex,
+            int rowIndex) {
         return columns.get(colIndex).getRowValue(rowIndex);
     }
 
