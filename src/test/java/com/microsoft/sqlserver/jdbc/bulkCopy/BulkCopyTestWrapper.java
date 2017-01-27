@@ -1,7 +1,7 @@
 /*
  * Microsoft JDBC Driver for SQL Server
  * 
- * Copyright(c) 2016 Microsoft Corporation All rights reserved.
+ * Copyright(c) Microsoft Corporation All rights reserved.
  * 
  * This program is made available under the terms of the MIT License. See the LICENSE file in the project root for more information.
  */
@@ -29,12 +29,12 @@ class BulkCopyTestWrapper {
      * <code>true</code> if SQLServerBulkCopy should include SQLServerBulkCopyOptions
      */
     private boolean useBulkCopyOptions;
-    
+
     /**
-     * <code>true</code> if SQLServerBulkCopy should use column mapping 
+     * <code>true</code> if SQLServerBulkCopy should use column mapping
      */
     private boolean isUsingColumnMapping = false;
-    
+
     public LinkedList<ColumnMap> cm = new LinkedList<ColumnMap>();
 
     private SQLServerBulkCopyOptions bulkOptions;
@@ -88,76 +88,82 @@ class BulkCopyTestWrapper {
     public void setConnectionString(String connectionString) {
         this.connectionString = connectionString;
     }
-    
-    public void setUsingColumnMapping(){
+
+    public void setUsingColumnMapping() {
         this.isUsingColumnMapping = true;
     }
-    
-    public boolean isUsingColumnMapping(){
+
+    public boolean isUsingColumnMapping() {
         return isUsingColumnMapping;
     }
-    
-    public void setColumnMapping(int sourceColOrdinal, int destColOrdinal){
+
+    public void setColumnMapping(int sourceColOrdinal,
+            int destColOrdinal) {
         setUsingColumnMapping();
         cm.add(new ColumnMap(sourceColOrdinal, destColOrdinal));
     }
-    
-    public void setColumnMapping(int sourceColOrdinal, String destColName){
+
+    public void setColumnMapping(int sourceColOrdinal,
+            String destColName) {
         setUsingColumnMapping();
         cm.add(new ColumnMap(sourceColOrdinal, destColName));
     }
-    
-    public void setColumnMapping(String sourceColName, String destColName){
+
+    public void setColumnMapping(String sourceColName,
+            String destColName) {
         setUsingColumnMapping();
         cm.add(new ColumnMap(sourceColName, destColName));
     }
-    
-    public void setColumnMapping(String sourceColName, int destColOrdinal){
+
+    public void setColumnMapping(String sourceColName,
+            int destColOrdinal) {
         setUsingColumnMapping();
         cm.add(new ColumnMap(sourceColName, destColOrdinal));
     }
-    
-    class ColumnMap{
+
+    class ColumnMap {
         boolean sourceIsInt = false;
         boolean destIsInt = false;
-       
+
         int srcInt = -1;
         String srcString = null;
         int destInt = -1;
         String destString = null;
-       
-        ColumnMap(int src, int dest){
+
+        ColumnMap(int src,
+                int dest) {
             this.sourceIsInt = true;
             this.destIsInt = true;
-           
+
             this.srcInt = src;
             this.destInt = dest;
         }
-       
-        ColumnMap(String src, int dest){
+
+        ColumnMap(String src,
+                int dest) {
             this.sourceIsInt = false;
             this.destIsInt = true;
-           
+
             this.srcString = src;
             this.destInt = dest;
         }
-       
-        ColumnMap(int src, String dest){
+
+        ColumnMap(int src,
+                String dest) {
             this.sourceIsInt = true;
             this.destIsInt = false;
-           
+
             this.srcInt = src;
             this.destString = dest;
         }
-       
-        ColumnMap(String src, String dest){
+
+        ColumnMap(String src,
+                String dest) {
             this.sourceIsInt = false;
             this.destIsInt = false;
-           
+
             this.srcString = src;
             this.destString = dest;
-        } 
-    }   
+        }
+    }
 }
-
-

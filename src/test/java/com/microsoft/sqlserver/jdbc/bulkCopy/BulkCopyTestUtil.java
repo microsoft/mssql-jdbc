@@ -1,7 +1,7 @@
 /*
  * Microsoft JDBC Driver for SQL Server
  * 
- * Copyright(c) 2016 Microsoft Corporation All rights reserved.
+ * Copyright(c) Microsoft Corporation All rights reserved.
  * 
  * This program is made available under the terms of the MIT License. See the LICENSE file in the project root for more information.
  */
@@ -40,10 +40,11 @@ class BulkCopyTestUtil {
      * @param wrapper
      * @param sourceTable
      */
-    static void performBulkCopy(BulkCopyTestWrapper wrapper, DBTable sourceTable) {
+    static void performBulkCopy(BulkCopyTestWrapper wrapper,
+            DBTable sourceTable) {
         performBulkCopy(wrapper, sourceTable, true);
     }
-    
+
     /**
      * perform bulk copy using source and destination tables and validate bulkcopy
      * 
@@ -51,7 +52,9 @@ class BulkCopyTestUtil {
      * @param sourceTable
      * @param destTable
      */
-    static void performBulkCopy(BulkCopyTestWrapper wrapper, DBTable sourceTable, DBTable destTable) {
+    static void performBulkCopy(BulkCopyTestWrapper wrapper,
+            DBTable sourceTable,
+            DBTable destTable) {
         performBulkCopy(wrapper, sourceTable, destTable, true);
     }
 
@@ -62,7 +65,9 @@ class BulkCopyTestUtil {
      * @param sourceTable
      * @param validateResult
      */
-    static void performBulkCopy(BulkCopyTestWrapper wrapper, DBTable sourceTable, boolean validateResult) {
+    static void performBulkCopy(BulkCopyTestWrapper wrapper,
+            DBTable sourceTable,
+            boolean validateResult) {
         DBConnection con = null;
         DBStatement stmt = null;
         DBTable destinationTable = null;
@@ -84,21 +89,21 @@ class BulkCopyTestUtil {
                 bulkCopy.setBulkCopyOptions(wrapper.getBulkOptions());
             }
             bulkCopy.setDestinationTableName(destinationTable.getEscapedTableName());
-            if (wrapper.isUsingColumnMapping()){
-                for(int i = 0; i < wrapper.cm.size(); i++){
-                     ColumnMap currentMap = wrapper.cm.get(i);
-                     if(currentMap.sourceIsInt && currentMap.destIsInt){
-                         bulkCopy.addColumnMapping(currentMap.srcInt, currentMap.destInt);
-                     }
-                     else if(currentMap.sourceIsInt && (!currentMap.destIsInt)){
-                         bulkCopy.addColumnMapping(currentMap.srcInt, currentMap.destString);
-                     }
-                     else if((!currentMap.sourceIsInt) && currentMap.destIsInt){
-                         bulkCopy.addColumnMapping(currentMap.srcString, currentMap.destInt);
-                     }
-                     else if((!currentMap.sourceIsInt) && (!currentMap.destIsInt)){
-                         bulkCopy.addColumnMapping(currentMap.srcString, currentMap.destString);
-                     }
+            if (wrapper.isUsingColumnMapping()) {
+                for (int i = 0; i < wrapper.cm.size(); i++) {
+                    ColumnMap currentMap = wrapper.cm.get(i);
+                    if (currentMap.sourceIsInt && currentMap.destIsInt) {
+                        bulkCopy.addColumnMapping(currentMap.srcInt, currentMap.destInt);
+                    }
+                    else if (currentMap.sourceIsInt && (!currentMap.destIsInt)) {
+                        bulkCopy.addColumnMapping(currentMap.srcInt, currentMap.destString);
+                    }
+                    else if ((!currentMap.sourceIsInt) && currentMap.destIsInt) {
+                        bulkCopy.addColumnMapping(currentMap.srcString, currentMap.destInt);
+                    }
+                    else if ((!currentMap.sourceIsInt) && (!currentMap.destIsInt)) {
+                        bulkCopy.addColumnMapping(currentMap.srcString, currentMap.destString);
+                    }
                 }
             }
             bulkCopy.writeToServer((ResultSet) srcResultSet.product());
@@ -115,7 +120,7 @@ class BulkCopyTestUtil {
             con.close();
         }
     }
-    
+
     /**
      * perform bulk copy using source and destination tables
      * 
@@ -124,7 +129,10 @@ class BulkCopyTestUtil {
      * @param destTable
      * @param validateResult
      */
-    static void performBulkCopy(BulkCopyTestWrapper wrapper, DBTable sourceTable, DBTable destinationTable, boolean validateResult) {
+    static void performBulkCopy(BulkCopyTestWrapper wrapper,
+            DBTable sourceTable,
+            DBTable destinationTable,
+            boolean validateResult) {
         DBConnection con = null;
         DBStatement stmt = null;
         try {
@@ -143,21 +151,21 @@ class BulkCopyTestUtil {
                 bulkCopy.setBulkCopyOptions(wrapper.getBulkOptions());
             }
             bulkCopy.setDestinationTableName(destinationTable.getEscapedTableName());
-            if (wrapper.isUsingColumnMapping()){
-                for(int i = 0; i < wrapper.cm.size(); i++){
-                     ColumnMap currentMap = wrapper.cm.get(i);
-                     if(currentMap.sourceIsInt && currentMap.destIsInt){
-                         bulkCopy.addColumnMapping(currentMap.srcInt, currentMap.destInt);
-                     }
-                     else if(currentMap.sourceIsInt && (!currentMap.destIsInt)){
-                         bulkCopy.addColumnMapping(currentMap.srcInt, currentMap.destString);
-                     }
-                     else if((!currentMap.sourceIsInt) && currentMap.destIsInt){
-                         bulkCopy.addColumnMapping(currentMap.srcString, currentMap.destInt);
-                     }
-                     else if((!currentMap.sourceIsInt) && (!currentMap.destIsInt)){
-                         bulkCopy.addColumnMapping(currentMap.srcString, currentMap.destString);
-                     }
+            if (wrapper.isUsingColumnMapping()) {
+                for (int i = 0; i < wrapper.cm.size(); i++) {
+                    ColumnMap currentMap = wrapper.cm.get(i);
+                    if (currentMap.sourceIsInt && currentMap.destIsInt) {
+                        bulkCopy.addColumnMapping(currentMap.srcInt, currentMap.destInt);
+                    }
+                    else if (currentMap.sourceIsInt && (!currentMap.destIsInt)) {
+                        bulkCopy.addColumnMapping(currentMap.srcInt, currentMap.destString);
+                    }
+                    else if ((!currentMap.sourceIsInt) && currentMap.destIsInt) {
+                        bulkCopy.addColumnMapping(currentMap.srcString, currentMap.destInt);
+                    }
+                    else if ((!currentMap.sourceIsInt) && (!currentMap.destIsInt)) {
+                        bulkCopy.addColumnMapping(currentMap.srcString, currentMap.destString);
+                    }
                 }
             }
             bulkCopy.writeToServer((ResultSet) srcResultSet.product());
@@ -174,7 +182,7 @@ class BulkCopyTestUtil {
             con.close();
         }
     }
-    
+
     /**
      * perform bulk copy using source and destination tables
      * 
@@ -184,7 +192,11 @@ class BulkCopyTestUtil {
      * @param validateResult
      * @param fail
      */
-    static void performBulkCopy(BulkCopyTestWrapper wrapper, DBTable sourceTable, DBTable destinationTable, boolean validateResult, boolean fail) {
+    static void performBulkCopy(BulkCopyTestWrapper wrapper,
+            DBTable sourceTable,
+            DBTable destinationTable,
+            boolean validateResult,
+            boolean fail) {
         DBConnection con = null;
         DBStatement stmt = null;
         try {
@@ -203,25 +215,25 @@ class BulkCopyTestUtil {
                 bulkCopy.setBulkCopyOptions(wrapper.getBulkOptions());
             }
             bulkCopy.setDestinationTableName(destinationTable.getEscapedTableName());
-            if (wrapper.isUsingColumnMapping()){
-                for(int i = 0; i < wrapper.cm.size(); i++){
-                     ColumnMap currentMap = wrapper.cm.get(i);
-                     if(currentMap.sourceIsInt && currentMap.destIsInt){
-                         bulkCopy.addColumnMapping(currentMap.srcInt, currentMap.destInt);
-                     }
-                     else if(currentMap.sourceIsInt && (!currentMap.destIsInt)){
-                         bulkCopy.addColumnMapping(currentMap.srcInt, currentMap.destString);
-                     }
-                     else if((!currentMap.sourceIsInt) && currentMap.destIsInt){
-                         bulkCopy.addColumnMapping(currentMap.srcString, currentMap.destInt);
-                     }
-                     else if((!currentMap.sourceIsInt) && (!currentMap.destIsInt)){
-                         bulkCopy.addColumnMapping(currentMap.srcString, currentMap.destString);
-                     }
+            if (wrapper.isUsingColumnMapping()) {
+                for (int i = 0; i < wrapper.cm.size(); i++) {
+                    ColumnMap currentMap = wrapper.cm.get(i);
+                    if (currentMap.sourceIsInt && currentMap.destIsInt) {
+                        bulkCopy.addColumnMapping(currentMap.srcInt, currentMap.destInt);
+                    }
+                    else if (currentMap.sourceIsInt && (!currentMap.destIsInt)) {
+                        bulkCopy.addColumnMapping(currentMap.srcInt, currentMap.destString);
+                    }
+                    else if ((!currentMap.sourceIsInt) && currentMap.destIsInt) {
+                        bulkCopy.addColumnMapping(currentMap.srcString, currentMap.destInt);
+                    }
+                    else if ((!currentMap.sourceIsInt) && (!currentMap.destIsInt)) {
+                        bulkCopy.addColumnMapping(currentMap.srcString, currentMap.destString);
+                    }
                 }
             }
             bulkCopy.writeToServer((ResultSet) srcResultSet.product());
-            if(fail)
+            if (fail)
                 fail("bulkCopy.writeToServer did not fail when it should have");
             bulkCopy.close();
             if (validateResult) {
@@ -229,7 +241,7 @@ class BulkCopyTestUtil {
             }
         }
         catch (SQLException ex) {
-            if(!fail){
+            if (!fail) {
                 fail(ex.getMessage());
             }
         }
@@ -238,7 +250,7 @@ class BulkCopyTestUtil {
             con.close();
         }
     }
-    
+
     /**
      * perform bulk copy using source and destination tables
      * 
@@ -249,7 +261,12 @@ class BulkCopyTestUtil {
      * @param fail
      * @param dropDest
      */
-    static void performBulkCopy(BulkCopyTestWrapper wrapper, DBTable sourceTable, DBTable destinationTable, boolean validateResult, boolean fail, boolean dropDest) {
+    static void performBulkCopy(BulkCopyTestWrapper wrapper,
+            DBTable sourceTable,
+            DBTable destinationTable,
+            boolean validateResult,
+            boolean fail,
+            boolean dropDest) {
         DBConnection con = null;
         DBStatement stmt = null;
         try {
@@ -268,25 +285,25 @@ class BulkCopyTestUtil {
                 bulkCopy.setBulkCopyOptions(wrapper.getBulkOptions());
             }
             bulkCopy.setDestinationTableName(destinationTable.getEscapedTableName());
-            if (wrapper.isUsingColumnMapping()){
-                for(int i = 0; i < wrapper.cm.size(); i++){
-                     ColumnMap currentMap = wrapper.cm.get(i);
-                     if(currentMap.sourceIsInt && currentMap.destIsInt){
-                         bulkCopy.addColumnMapping(currentMap.srcInt, currentMap.destInt);
-                     }
-                     else if(currentMap.sourceIsInt && (!currentMap.destIsInt)){
-                         bulkCopy.addColumnMapping(currentMap.srcInt, currentMap.destString);
-                     }
-                     else if((!currentMap.sourceIsInt) && currentMap.destIsInt){
-                         bulkCopy.addColumnMapping(currentMap.srcString, currentMap.destInt);
-                     }
-                     else if((!currentMap.sourceIsInt) && (!currentMap.destIsInt)){
-                         bulkCopy.addColumnMapping(currentMap.srcString, currentMap.destString);
-                     }
+            if (wrapper.isUsingColumnMapping()) {
+                for (int i = 0; i < wrapper.cm.size(); i++) {
+                    ColumnMap currentMap = wrapper.cm.get(i);
+                    if (currentMap.sourceIsInt && currentMap.destIsInt) {
+                        bulkCopy.addColumnMapping(currentMap.srcInt, currentMap.destInt);
+                    }
+                    else if (currentMap.sourceIsInt && (!currentMap.destIsInt)) {
+                        bulkCopy.addColumnMapping(currentMap.srcInt, currentMap.destString);
+                    }
+                    else if ((!currentMap.sourceIsInt) && currentMap.destIsInt) {
+                        bulkCopy.addColumnMapping(currentMap.srcString, currentMap.destInt);
+                    }
+                    else if ((!currentMap.sourceIsInt) && (!currentMap.destIsInt)) {
+                        bulkCopy.addColumnMapping(currentMap.srcString, currentMap.destString);
+                    }
                 }
             }
             bulkCopy.writeToServer((ResultSet) srcResultSet.product());
-            if(fail)
+            if (fail)
                 fail("bulkCopy.writeToServer did not fail when it should have");
             bulkCopy.close();
             if (validateResult) {
@@ -294,12 +311,12 @@ class BulkCopyTestUtil {
             }
         }
         catch (SQLException ex) {
-            if(!fail){
+            if (!fail) {
                 fail(ex.getMessage());
             }
         }
         finally {
-            if(dropDest){
+            if (dropDest) {
                 stmt.dropTable(destinationTable);
             }
             con.close();
@@ -314,7 +331,9 @@ class BulkCopyTestUtil {
      * @param destinationTable
      * @throws SQLException
      */
-    static void validateValues(DBConnection con, DBTable sourceTable, DBTable destinationTable) throws SQLException {
+    static void validateValues(DBConnection con,
+            DBTable sourceTable,
+            DBTable destinationTable) throws SQLException {
         DBStatement srcStmt = con.createStatement();
         DBStatement dstStmt = con.createStatement();
         DBResultSet srcResultSet = srcStmt.executeQuery("SELECT * FROM " + sourceTable.getEscapedTableName() + ";");
@@ -330,95 +349,97 @@ class BulkCopyTestUtil {
                 Object srcValue, dstValue;
                 srcValue = srcResultSet.getObject(i);
                 dstValue = dstResultSet.getObject(i);
-                
-                comapreSourceDest(destMeta.getColumnType(i),srcValue,dstValue);
+
+                comapreSourceDest(destMeta.getColumnType(i), srcValue, dstValue);
             }
     }
-    
+
     /**
-     * validate if both expected and actual value are same  
+     * validate if both expected and actual value are same
+     * 
      * @param dataType
      * @param expectedValue
      * @param actualValue
      */
-    static void comapreSourceDest(int dataType, Object expectedValue, Object actualValue){
-     // Bulkcopy doesn't guarantee order of insertion - if we need to test several rows either use primary key or
+    static void comapreSourceDest(int dataType,
+            Object expectedValue,
+            Object actualValue) {
+        // Bulkcopy doesn't guarantee order of insertion - if we need to test several rows either use primary key or
         // validate result based on sql JOIN
-        
-        if((null == expectedValue) || (null == actualValue))
-        {
+
+        if ((null == expectedValue) || (null == actualValue)) {
             // if one value is null other should be null too
-            assertEquals(expectedValue,actualValue,"Expected null in source and destination");
+            assertEquals(expectedValue, actualValue, "Expected null in source and destination");
         }
         else
-        switch (dataType) {
-            case java.sql.Types.BIGINT:
-                assertTrue((((Long) expectedValue).longValue() == ((Long) actualValue).longValue()), "Unexpected bigint value");
-                break;
+            switch (dataType) {
+                case java.sql.Types.BIGINT:
+                    assertTrue((((Long) expectedValue).longValue() == ((Long) actualValue).longValue()), "Unexpected bigint value");
+                    break;
 
-            case java.sql.Types.INTEGER:
-                assertTrue((((Integer) expectedValue).intValue() == ((Integer) actualValue).intValue()), "Unexpected int value");
-                break;
+                case java.sql.Types.INTEGER:
+                    assertTrue((((Integer) expectedValue).intValue() == ((Integer) actualValue).intValue()), "Unexpected int value");
+                    break;
 
-            case java.sql.Types.SMALLINT:
-            case java.sql.Types.TINYINT:
-                assertTrue((((Short) expectedValue).shortValue() == ((Short) actualValue).shortValue()), "Unexpected smallint/tinyint value");
-                break;
+                case java.sql.Types.SMALLINT:
+                case java.sql.Types.TINYINT:
+                    assertTrue((((Short) expectedValue).shortValue() == ((Short) actualValue).shortValue()), "Unexpected smallint/tinyint value");
+                    break;
 
-            case java.sql.Types.BIT:
-                assertTrue((((Boolean) expectedValue).booleanValue() == ((Boolean) actualValue).booleanValue()), "Unexpected bit value");
-                break;
+                case java.sql.Types.BIT:
+                    assertTrue((((Boolean) expectedValue).booleanValue() == ((Boolean) actualValue).booleanValue()), "Unexpected bit value");
+                    break;
 
-            case java.sql.Types.DECIMAL:
-            case java.sql.Types.NUMERIC:
-                assertTrue(0 == (((BigDecimal) expectedValue).compareTo((BigDecimal) actualValue)),
-                        "Unexpected decimal/numeric/money/smallmoney value");
-                break;
+                case java.sql.Types.DECIMAL:
+                case java.sql.Types.NUMERIC:
+                    assertTrue(0 == (((BigDecimal) expectedValue).compareTo((BigDecimal) actualValue)),
+                            "Unexpected decimal/numeric/money/smallmoney value");
+                    break;
 
-            case java.sql.Types.DOUBLE:
-                assertTrue((((Double) expectedValue).doubleValue() == ((Double) actualValue).doubleValue()), "Unexpected float value");
-                break;
+                case java.sql.Types.DOUBLE:
+                    assertTrue((((Double) expectedValue).doubleValue() == ((Double) actualValue).doubleValue()), "Unexpected float value");
+                    break;
 
-            case java.sql.Types.REAL:
-                assertTrue((((Float) expectedValue).floatValue() == ((Float) actualValue).floatValue()), "Unexpected real value");
-                break;
+                case java.sql.Types.REAL:
+                    assertTrue((((Float) expectedValue).floatValue() == ((Float) actualValue).floatValue()), "Unexpected real value");
+                    break;
 
-            case java.sql.Types.VARCHAR:
-            case java.sql.Types.NVARCHAR:
-                assertTrue((((String) expectedValue).equals((String) actualValue)), "Unexpected varchar/nvarchar value ");
-                break;
+                case java.sql.Types.VARCHAR:
+                case java.sql.Types.NVARCHAR:
+                    assertTrue((((String) expectedValue).equals((String) actualValue)), "Unexpected varchar/nvarchar value ");
+                    break;
 
-            case java.sql.Types.CHAR:
-            case java.sql.Types.NCHAR:
-                assertTrue((((String) expectedValue).equals((String) actualValue)), "Unexpected char/nchar value ");
-                break;
+                case java.sql.Types.CHAR:
+                case java.sql.Types.NCHAR:
+                    assertTrue((((String) expectedValue).equals((String) actualValue)), "Unexpected char/nchar value ");
+                    break;
 
-            case java.sql.Types.BINARY:
-            case java.sql.Types.VARBINARY:
-                assertTrue(Arrays.equals(((byte[]) expectedValue), ((byte[]) actualValue)), "Unexpected bianry/varbinary value ");
-                break;
-                
-            case java.sql.Types.TIMESTAMP:
-                assertTrue((((Timestamp) expectedValue).getTime() == (((Timestamp) actualValue).getTime())),
-                        "Unexpected datetime/smalldatetime/datetime2 value");
-                break;
+                case java.sql.Types.BINARY:
+                case java.sql.Types.VARBINARY:
+                    assertTrue(Arrays.equals(((byte[]) expectedValue), ((byte[]) actualValue)), "Unexpected bianry/varbinary value ");
+                    break;
 
-            case java.sql.Types.DATE:
-                assertTrue((((Date) expectedValue).getTime() == (((Date) actualValue).getTime())), "Unexpected datetime value");
-                break;
+                case java.sql.Types.TIMESTAMP:
+                    assertTrue((((Timestamp) expectedValue).getTime() == (((Timestamp) actualValue).getTime())),
+                            "Unexpected datetime/smalldatetime/datetime2 value");
+                    break;
 
-            case java.sql.Types.TIME:
-                assertTrue(((Time) expectedValue).getTime() == ((Time) actualValue).getTime(), "Unexpected time value ");
-                break;
+                case java.sql.Types.DATE:
+                    assertTrue((((Date) expectedValue).getTime() == (((Date) actualValue).getTime())), "Unexpected datetime value");
+                    break;
 
-            case microsoft.sql.Types.DATETIMEOFFSET:
-                assertTrue(0 == ((microsoft.sql.DateTimeOffset) expectedValue).compareTo((microsoft.sql.DateTimeOffset) actualValue),
-                        "Unexpected time value ");
-                break;
+                case java.sql.Types.TIME:
+                    assertTrue(((Time) expectedValue).getTime() == ((Time) actualValue).getTime(), "Unexpected time value ");
+                    break;
 
-            default:
-                fail("Unhandled JDBCType " + JDBCType.valueOf(dataType));
-                break;
-        }
+                case microsoft.sql.Types.DATETIMEOFFSET:
+                    assertTrue(0 == ((microsoft.sql.DateTimeOffset) expectedValue).compareTo((microsoft.sql.DateTimeOffset) actualValue),
+                            "Unexpected time value ");
+                    break;
+
+                default:
+                    fail("Unhandled JDBCType " + JDBCType.valueOf(dataType));
+                    break;
+            }
     }
 }
