@@ -1,3 +1,10 @@
+/*
+ * Microsoft JDBC Driver for SQL Server
+ * 
+ * Copyright(c) Microsoft Corporation All rights reserved.
+ * 
+ * This program is made available under the terms of the MIT License. See the LICENSE file in the project root for more information.
+ */
 package com.microsoft.sqlserver.jdbc.tvp;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -35,6 +42,7 @@ public class TVPSchemaTest extends AbstractTest {
 
     /**
      * PreparedStatement with storedProcedure
+     * 
      * @throws SQLException
      */
     @Test
@@ -87,11 +95,15 @@ public class TVPSchemaTest extends AbstractTest {
             assertTrue(actualValue3.trim().equals(expectecValue3),
                     "actual value does not match expected value." + "\n\tExpected value: " + expectecValue3 + "\n\tActual value: " + actualValue3);
         }
+        if (null != P_C_statement) {
+            P_C_statement.close();
+        }
         terminateVariation();
     }
 
     /**
      * callableStatement with StoredProcedure
+     * 
      * @throws SQLException
      */
     @Test
@@ -145,11 +157,15 @@ public class TVPSchemaTest extends AbstractTest {
                     "actual value does not match expected value." + "\n\tExpected value: " + expectecValue3 + "\n\tActual value: " + actualValue3);
 
         }
+        if (null != P_C_statement) {
+            P_C_statement.close();
+        }
         terminateVariation();
     }
 
     /**
      * Prepared with InsertCommand
+     * 
      * @throws SQLException
      * @throws IOException
      */
@@ -201,11 +217,15 @@ public class TVPSchemaTest extends AbstractTest {
             assertTrue(actualValue3.trim().equals(expectecValue3),
                     "actual value does not match expected value." + "\n\tExpected value: " + expectecValue3 + "\n\tActual value: " + actualValue3);
         }
+        if (null != P_C_stmt) {
+            P_C_stmt.close();
+        }
         terminateVariation();
     }
 
     /**
      * Callable with InsertCommand
+     * 
      * @throws SQLException
      * @throws IOException
      */
@@ -256,6 +276,9 @@ public class TVPSchemaTest extends AbstractTest {
             assertTrue(actualValue3.trim().equals(expectecValue3),
                     "actual value does not match expected value." + "\n\tExpected value: " + expectecValue3 + "\n\tActual value: " + actualValue3);
         }
+        if (null != P_C_stmt) {
+            P_C_stmt.close();
+        }
         terminateVariation();
     }
 
@@ -304,6 +327,9 @@ public class TVPSchemaTest extends AbstractTest {
         }
         if (null != stmt) {
             stmt.close();
+        }
+        if (null != rs) {
+            rs.close();
         }
     }
 
