@@ -4,7 +4,7 @@
   </description>
   <!-- set global properties for this build -->
   <property name="artifactId" value="mssql-jdbc"/>
-  <property name="version" value="6.1.2"/>
+  <property name="version" value="6.1.3"/>
   
   <property name="src" location="src/main/java"/>
   <property name="build" location="build"/>
