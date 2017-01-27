@@ -1,7 +1,7 @@
 /*
  * Microsoft JDBC Driver for SQL Server
  * 
- * Copyright(c) 2016 Microsoft Corporation All rights reserved.
+ * Copyright(c) Microsoft Corporation All rights reserved.
  * 
  * This program is made available under the terms of the MIT License. See the LICENSE file in the project root for more information.
  */
@@ -152,6 +152,7 @@ public class BulkCopyCSVTest extends AbstractTest {
 
     /**
      * validate value in csv and in destination table as string
+     * 
      * @param destinationTable
      */
     static void validateValuesFromCSV(DBTable destinationTable) {
