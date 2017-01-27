@@ -7,19 +7,11 @@
  */
 package com.microsoft.sqlserver.jdbc.bulkCopy;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
-import java.math.BigDecimal;
-import java.sql.Date;
-import java.sql.JDBCType;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
-import java.sql.Time;
-import java.sql.Timestamp;
-import java.util.Arrays;
 import java.util.concurrent.ThreadLocalRandom;
 
 import org.junit.jupiter.api.AfterAll;
@@ -359,104 +351,16 @@ public class BulkCopyColumnMappingTest extends BulkCopyTestSetUp {
                 Object srcValue, dstValue;
                 srcValue = srcResultSet.getObject(i);
                 dstValue = dstResultSet.getObject(i);
-                
-                compareSourceDest(sourceMeta.getColumnType(i),srcValue,dstValue);
+                BulkCopyTestUtil.comapreSourceDest(sourceMeta.getColumnType(i), srcValue, dstValue);
                 
                 //compare value of first column of source with extra column in destination
                 if(1 == i){
                     Object srcValueFirstCol = srcResultSet.getObject(i);
                     Object dstValLastCol = dstResultSet.getObject(totalColumns+1);
-                    compareSourceDest(sourceMeta.getColumnType(i),srcValueFirstCol,dstValLastCol);
+                    BulkCopyTestUtil.comapreSourceDest(sourceMeta.getColumnType(i), srcValueFirstCol, dstValLastCol);
                 }
             }
             
-    }
-    
-    /**
-     * validate if both expected and actual value are same  
-     * @param dataType
-     * @param expectedValue
-     * @param actualValue
-     */
-    private void compareSourceDest(int dataType, Object expectedValue, Object actualValue){
-     // Bulkcopy doesn't guarantee order of insertion - if we need to test several rows either use primary key or
-        // validate result based on sql JOIN
-        
-        if((null == expectedValue) || (null == actualValue))
-        {
-            // if one value is null other should be null too
-            assertEquals(expectedValue,actualValue,"Expected null in source and destination");
-        }
-        else
-        switch (dataType) {
-            case java.sql.Types.BIGINT:
-                assertTrue((((Long) expectedValue).longValue() == ((Long) actualValue).longValue()), "Unexpected bigint value");
-                break;
-
-            case java.sql.Types.INTEGER:
-                assertTrue((((Integer) expectedValue).intValue() == ((Integer) actualValue).intValue()), "Unexpected int value");
-                break;
-
-            case java.sql.Types.SMALLINT:
-            case java.sql.Types.TINYINT:
-                assertTrue((((Short) expectedValue).shortValue() == ((Short) actualValue).shortValue()), "Unexpected smallint/tinyint value");
-                break;
-
-            case java.sql.Types.BIT:
-                assertTrue((((Boolean) expectedValue).booleanValue() == ((Boolean) actualValue).booleanValue()), "Unexpected bit value");
-                break;
-
-            case java.sql.Types.DECIMAL:
-            case java.sql.Types.NUMERIC:
-                assertTrue(0 == (((BigDecimal) expectedValue).compareTo((BigDecimal) actualValue)),
-                        "Unexpected decimal/numeric/money/smallmoney value");
-                break;
-
-            case java.sql.Types.DOUBLE:
-                assertTrue((((Double) expectedValue).doubleValue() == ((Double) actualValue).doubleValue()), "Unexpected float value");
-                break;
-
-            case java.sql.Types.REAL:
-                assertTrue((((Float) expectedValue).floatValue() == ((Float) actualValue).floatValue()), "Unexpected real value");
-                break;
-
-            case java.sql.Types.VARCHAR:
-            case java.sql.Types.NVARCHAR:
-                assertTrue((((String) expectedValue).equals((String) actualValue)), "Unexpected varchar/nvarchar value ");
-                break;
-
-            case java.sql.Types.CHAR:
-            case java.sql.Types.NCHAR:
-                assertTrue((((String) expectedValue).equals((String) actualValue)), "Unexpected char/nchar value ");
-                break;
-
-            case java.sql.Types.BINARY:
-            case java.sql.Types.VARBINARY:
-                assertTrue(Arrays.equals(((byte[]) expectedValue), ((byte[]) actualValue)), "Unexpected bianry/varbinary value ");
-                break;
-                
-            case java.sql.Types.TIMESTAMP:
-                assertTrue((((Timestamp) expectedValue).getTime() == (((Timestamp) actualValue).getTime())),
-                        "Unexpected datetime/smalldatetime/datetime2 value");
-                break;
-
-            case java.sql.Types.DATE:
-                assertTrue((((Date) expectedValue).getTime() == (((Date) actualValue).getTime())), "Unexpected datetime value");
-                break;
-
-            case java.sql.Types.TIME:
-                assertTrue(((Time) expectedValue).getTime() == ((Time) actualValue).getTime(), "Unexpected time value ");
-                break;
-
-            case microsoft.sql.Types.DATETIMEOFFSET:
-                assertTrue(0 == ((microsoft.sql.DateTimeOffset) expectedValue).compareTo((microsoft.sql.DateTimeOffset) actualValue),
-                        "Unexpected time value ");
-                break;
-
-            default:
-                fail("Unhandled JDBCType " + JDBCType.valueOf(dataType));
-                break;
-        }
     }
 
     private void dropTable(String tableName) {

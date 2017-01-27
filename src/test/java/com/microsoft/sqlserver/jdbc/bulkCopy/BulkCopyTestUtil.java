@@ -301,8 +301,8 @@ class BulkCopyTestUtil {
         finally {
             if(dropDest){
                 stmt.dropTable(destinationTable);
-                con.close();
             }
+            con.close();
         }
     }
 
