@@ -3014,37 +3014,48 @@ final class TypeInfo {
              */
             public void apply(TypeInfo typeInfo,
                     TDSReader tdsReader) throws SQLServerException {
-                try {
-                    SQLServerException.makeFromDriverError(tdsReader.getConnection(), null, SQLServerException.getErrString("R_variantNotSupported"),
-                            null, false);
+
+                int type = tdsReader.readSqlVariant();//tdsReader.readUnsignedByte();
+                int cbPropsActual = tdsReader.readUnsignedByte();
+//                System.out.println(TDSType.valueOf(type));
+                switch(TDSType.valueOf(type)){
+                    case INT4: 
+                        INTEGER.build(typeInfo, tdsReader);
+                        break;
                 }
-                finally {
-                    /*
-                     * As the driver doesn't know how to process or skip the VARIANT type in TDS token stream, we send an interrupt Signal to server,
-                     * and skips all the data received while waiting for the interrupt acknowledgment.
-                     */
-                    int remainingPackets = 0;
-
-                    // Skip the current buffered packet
-                    remainingPackets = tdsReader.availableCurrentPacket();
-                    tdsReader.skip(remainingPackets);
-
-                    // send interrupt to server
-                    tdsReader.getCommand().interrupt(SQLServerException.getErrString("R_variantNotSupported"));
-
-                    /*
-                     * Skip all data only if waiting for attention ack and until interrupt acknowledgment is received.
-                     * 
-                     * Interrupt acknowledgment is a DONE token with the DONE_ATTN(0x0020) bit set.
-                     */
-                    while (tdsReader.getCommand().attentionPending() && (TDS.TDS_DONE != tdsReader.peekTokenType())
-                            && (0 != (tdsReader.peekStatusFlag() & 0x0020))) {
-                        remainingPackets = tdsReader.availableCurrentPacket();
-                        tdsReader.skip(remainingPackets);
-                    }
-                    tdsReader.getCommand().close();
+                
                 }
-            }
+//                try {
+//                    SQLServerException.makeFromDriverError(tdsReader.getConnection(), null, SQLServerException.getErrString("R_variantNotSupported"),
+//                            null, false);
+//                }
+//                finally {
+//                    /*
+//                     * As the driver doesn't know how to process or skip the VARIANT type in TDS token stream, we send an interrupt Signal to server,
+//                     * and skips all the data received while waiting for the interrupt acknowledgment.
+//                     */
+//                    int remainingPackets = 0;
+//
+//                    // Skip the current buffered packet
+//                    remainingPackets = tdsReader.availableCurrentPacket();
+//                    tdsReader.skip(remainingPackets);
+//
+//                    // send interrupt to server
+//                    tdsReader.getCommand().interrupt(SQLServerException.getErrString("R_variantNotSupported"));
+//
+//                    /*
+//                     * Skip all data only if waiting for attention ack and until interrupt acknowledgment is received.
+//                     * 
+//                     * Interrupt acknowledgment is a DONE token with the DONE_ATTN(0x0020) bit set.
+//                     */
+//                    while (tdsReader.getCommand().attentionPending() && (TDS.TDS_DONE != tdsReader.peekTokenType())
+//                            && (0 != (tdsReader.peekStatusFlag() & 0x0020))) {
+//                        remainingPackets = tdsReader.availableCurrentPacket();
+//                        tdsReader.skip(remainingPackets);
+//                    }
+//                    tdsReader.getCommand().close();
+//                }
+//            }
 		});
 
         private final TDSType tdsType;

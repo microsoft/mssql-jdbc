@@ -6424,6 +6424,18 @@ final class TDSReader {
             payloadOffset += bytesToCopy;
         }
     }
+    
+    final int readSqlVariant( ) throws SQLServerException{
+        
+        if (payloadOffset + 4 <= currentPacket.payloadLength) {
+            payloadOffset += 4;
+            int value = readUnsignedByte();
+            return value;
+        }
+        return 0;
+        
+
+    }
 
     final byte[] readWrappedBytes(int valueLength) throws SQLServerException {
         assert valueLength <= valueBytes.length;
@@ -6443,6 +6455,10 @@ final class TDSReader {
         readBytes(valueBytes, 0, valueLength);
         return DDC.convertBigDecimalToObject(Util.readBigDecimal(valueBytes, valueLength, typeInfo.getScale()), jdbcType, streamType);
     }
+
+//    final Object readSqlVariant() {
+//
+//    }
 
     final Object readMoney(int valueLength,
             JDBCType jdbcType,
