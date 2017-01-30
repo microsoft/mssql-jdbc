@@ -34,7 +34,7 @@ What's coming next?  We will look into adding a more comprehensive set of tests,
 * An instance of SQL Server or Azure SQL Database that you can connect to. 
 
 ### Build the JAR files
-The build automatically triggers a set of verification tests to run.  For these tests to pass, you will first need to add an environment variable in your system called `mssql_jdbc_test_connection_properties` to provide the [correct connection properties](https://msdn.microsoft.com/en-us/library/ms378428(v=sql.110).aspx) for your SQL Server or Azure SQL Database instance.
+Maven and Gradle builds automatically trigger a set of verification tests to run.  For these tests to pass, you will first need to add an environment variable in your system called `mssql_jdbc_test_connection_properties` to provide the [correct connection properties](https://msdn.microsoft.com/en-us/library/ms378428(v=sql.110).aspx) for your SQL Server or Azure SQL Database instance.
 
 To build the jar files, you must use Java 8 with either Ant (with Ivy), Maven or Gradle.  You can choose to build a JDBC 4.1 compliant jar file (for use with JRE 7) and/or a JDBC 4.2 compliant jar file (for use with JRE 8).
 
@@ -115,6 +115,11 @@ If you wish to limit the number of run-time dependencies, and your project does 
     </exclusions>
 </dependency>
 ```
+
+## Guidelines for Creating Pull Requests
+We love contributions from the community.  To help improve the quality of our code, we encourage you to use the mssql-jdbc_formatter.xml formatter provided on all pull requests.
+
+Thank you!
 
 ## Guidelines for Reporting Issues
 We appreciate you taking the time to test the driver, provide feedback and report any issues.  It would be extremely helpful if you:
