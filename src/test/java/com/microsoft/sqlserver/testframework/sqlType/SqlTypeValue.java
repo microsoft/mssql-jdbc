@@ -1,27 +1,10 @@
-// ---------------------------------------------------------------------------------------------------------------------------------
-// File: SqlTypeValue.java
-//
-//
-// Microsoft JDBC Driver for SQL Server
-// Copyright(c) Microsoft Corporation
-// All rights reserved.
-// MIT License
-// Permission is hereby granted, free of charge, to any person obtaining a copy
-// of this software and associated documentation files(the "Software"),
-// to deal in the Software without restriction, including without limitation the
-// rights to use, copy, modify, merge, publish, distribute, sublicense,
-// and / or sell copies of the Software, and to permit persons to whom the
-// Software is furnished to do so, subject to the following conditions :
-// The above copyright notice and this permission notice shall be included in
-// all copies or substantial portions of the Software.
-// THE SOFTWARE IS PROVIDED *AS IS*, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.IN NO EVENT SHALL THE
-// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
-// IN THE SOFTWARE.
-// ---------------------------------------------------------------------------------------------------------------------------------
+/*
+ * Microsoft JDBC Driver for SQL Server
+ * 
+ * Copyright(c) Microsoft Corporation All rights reserved.
+ * 
+ * This program is made available under the terms of the MIT License. See the LICENSE file in the project root for more information.
+ */
 
 package com.microsoft.sqlserver.testframework.sqlType;
 
@@ -45,14 +28,15 @@ enum SqlTypeValue {
 	FLOAT			(new Double(-1.79E308), 								new Double(+1.79E308), 										new Double(0)),
 	REAL			(new Float(-3.4E38), 									new Float(+3.4E38), 										new Float(0)),
 	CHAR			(null, 													null, 														null),// CHAR used by char, nchar, varchar, nvarchar
+	BINARY          (null,                                                  null,                                                       null),
 	DATETIME		("17530101T00:00:00.000", 							    "99991231T23:59:59.997", 									null),
-	DATE			("00010101",											"99991231",												null),
+	DATE			("00010101",											"99991231",												    null),
 	TIME			("00:00:00.0000000", 									"23:59:59.9999999", 										null),
 	SMALLDATETIME	("19000101T00:00:00",									"20790606T23:59:59",										null),
 	DATETIME2		("00010101T00:00:00.0000000",							"99991231T23:59:59.9999999", 								null),
-	DATETIMEOFFSET	("00010101T00:00:00.0000000-1400",					    "99991231T23:59:59.9999999+1400",							null),
+	DATETIMEOFFSET	("0001-01-01 00:00:00",					                "9999-12-31 23:59:59",						null),
 	;
-	
+   
     Object minValue;
     Object maxValue;
     Object nullValue;

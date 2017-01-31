@@ -1,3 +1,10 @@
+/*
+ * Microsoft JDBC Driver for SQL Server
+ * 
+ * Copyright(c) Microsoft Corporation All rights reserved.
+ * 
+ * This program is made available under the terms of the MIT License. See the LICENSE file in the project root for more information.
+ */
 package com.microsoft.sqlserver.jdbc.connection;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -26,7 +33,7 @@ import com.microsoft.sqlserver.testframework.util.RandomUtil;
 
 @RunWith(JUnitPlatform.class)
 public class PoolingTest extends AbstractTest {
-	@Test
+    @Test
     public void testPooling() throws SQLException {
         assumeTrue(!DBConnection.isSqlAzure(DriverManager.getConnection(connectionString)), "Skipping test case on Azure SQL.");
 
@@ -62,74 +69,74 @@ public class PoolingTest extends AbstractTest {
         assertTrue(tempTableFileRemoved, "Temporary table is not removed.");
     }
 
-	@Test
-	public void testConnectionPoolReget() throws SQLException {
-		SQLServerXADataSource ds = new SQLServerXADataSource();
-		ds.setURL(connectionString);
+    @Test
+    public void testConnectionPoolReget() throws SQLException {
+        SQLServerXADataSource ds = new SQLServerXADataSource();
+        ds.setURL(connectionString);
 
-		PooledConnection pc = ds.getPooledConnection();
-		Connection con = pc.getConnection();
+        PooledConnection pc = ds.getPooledConnection();
+        Connection con = pc.getConnection();
 
-		// now reget a connection
-		Connection con2 = pc.getConnection();
+        // now reget a connection
+        Connection con2 = pc.getConnection();
 
-		// assert that the first connection is closed.
-		assertTrue(con.isClosed(), "First connection is not closed");
-	}
+        // assert that the first connection is closed.
+        assertTrue(con.isClosed(), "First connection is not closed");
+    }
 
-	@Test
-	public void testConnectionPoolConnFunctions() throws SQLException {
-		String tableName = RandomUtil.getIdentifier("table");
-		tableName = DBTable.escapeIdentifier(tableName);
+    @Test
+    public void testConnectionPoolConnFunctions() throws SQLException {
+        String tableName = RandomUtil.getIdentifier("table");
+        tableName = DBTable.escapeIdentifier(tableName);
 
-		String sql1 = "if exists (select * from dbo.sysobjects where name = '" + tableName + "' and type = 'U')\n" + "drop table " + tableName + "\n" + "create table " + tableName
-				+ "\n" + "(\n" + "wibble_id int primary key not null,\n" + "counter int null\n" + ");";
-		String sql2 = "if exists (select * from dbo.sysobjects where name = '" + tableName + "' and type = 'U')\n" + "drop table " + tableName + "\n";
+        String sql1 = "if exists (select * from dbo.sysobjects where name = '" + tableName + "' and type = 'U')\n" + "drop table " + tableName + "\n"
+                + "create table " + tableName + "\n" + "(\n" + "wibble_id int primary key not null,\n" + "counter int null\n" + ");";
+        String sql2 = "if exists (select * from dbo.sysobjects where name = '" + tableName + "' and type = 'U')\n" + "drop table " + tableName + "\n";
 
-		SQLServerXADataSource ds = new SQLServerXADataSource();
-		ds.setURL(connectionString);
+        SQLServerXADataSource ds = new SQLServerXADataSource();
+        ds.setURL(connectionString);
 
-		PooledConnection pc = ds.getPooledConnection();
-		Connection con = pc.getConnection();
+        PooledConnection pc = ds.getPooledConnection();
+        Connection con = pc.getConnection();
 
-		Statement statement = con.createStatement();
-		statement.execute(sql1);
-		statement.execute(sql2);
-		con.clearWarnings();
-		pc.close();
-	}
+        Statement statement = con.createStatement();
+        statement.execute(sql1);
+        statement.execute(sql2);
+        con.clearWarnings();
+        pc.close();
+    }
 
-	@Test
-	public void testConnectionPoolClose() throws SQLException {
-		SQLServerXADataSource ds = new SQLServerXADataSource();
-		ds.setURL(connectionString);
+    @Test
+    public void testConnectionPoolClose() throws SQLException {
+        SQLServerXADataSource ds = new SQLServerXADataSource();
+        ds.setURL(connectionString);
 
-		PooledConnection pc = ds.getPooledConnection();
-		Connection con = pc.getConnection();
+        PooledConnection pc = ds.getPooledConnection();
+        Connection con = pc.getConnection();
 
-		pc.close();
-		// assert that the first connection is closed.
-		assertTrue(con.isClosed(), "Connection is not closed with pool close");
-	}
+        pc.close();
+        // assert that the first connection is closed.
+        assertTrue(con.isClosed(), "Connection is not closed with pool close");
+    }
 
-	@Test
-	public void testConnectionPoolClientConnectionId() throws SQLException {
-		SQLServerXADataSource ds = new SQLServerXADataSource();
-		ds.setURL(connectionString);
+    @Test
+    public void testConnectionPoolClientConnectionId() throws SQLException {
+        SQLServerXADataSource ds = new SQLServerXADataSource();
+        ds.setURL(connectionString);
 
-		PooledConnection pc = ds.getPooledConnection();
-		ISQLServerConnection con = (ISQLServerConnection) pc.getConnection();
+        PooledConnection pc = ds.getPooledConnection();
+        ISQLServerConnection con = (ISQLServerConnection) pc.getConnection();
 
-		UUID Id1 = con.getClientConnectionId();
-		assertTrue(Id1 != null, "Unexecepted: ClientConnectionId is null from Pool");
-		con.close();
+        UUID Id1 = con.getClientConnectionId();
+        assertTrue(Id1 != null, "Unexecepted: ClientConnectionId is null from Pool");
+        con.close();
 
-		// now reget the connection
-		ISQLServerConnection con2 = (ISQLServerConnection) pc.getConnection();
+        // now reget the connection
+        ISQLServerConnection con2 = (ISQLServerConnection) pc.getConnection();
 
-		UUID Id2 = con2.getClientConnectionId();
-		con2.close();
+        UUID Id2 = con2.getClientConnectionId();
+        con2.close();
 
-		assertEquals(Id1, Id2, "ClientConnection Ids from pool are not the same.");
-	}
+        assertEquals(Id1, Id2, "ClientConnection Ids from pool are not the same.");
+    }
 }

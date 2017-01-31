@@ -4,7 +4,7 @@
 	
 	<groupId>com.microsoft.sqlserver</groupId>
 	<artifactId>mssql-jdbc</artifactId>
-	<version>6.1.2</version>
+	<version>6.1.3</version>
 	
 	<packaging>jar</packaging>
 	
@@ -146,6 +146,7 @@
 							</archive>
 						</configuration>
 					</plugin>   
+					
 				</plugins>
 			</build>
 		</profile>
@@ -198,6 +199,15 @@
 			</resource>
 		</resources>
 
+		<testResources>
+			<testResource>
+				<directory>src/test/resources</directory>
+				<includes>
+					<include>**/*.csv</include>
+				</includes>
+			</testResource>
+		</testResources>
+ 
 		<plugins>
 
 			<plugin>
