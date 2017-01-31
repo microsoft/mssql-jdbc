@@ -42,6 +42,7 @@ class PLPInputStream extends BaseInputStream {
      */
     final static boolean isNull(TDSReader tdsReader) throws SQLServerException {
         TDSReaderMark mark = tdsReader.mark();
+        //Temporary stream cannot get closes, since it closes the main stream. 
         try {
             return null == PLPInputStream.makeTempStream(tdsReader, false, null);
         }
