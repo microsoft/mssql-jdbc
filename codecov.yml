@@ -1,0 +1,8 @@
+codecov:
+  branch: CodeCoverage
+  notify:
+    require_ci_to_pass: false
+  coverage:
+  	range: "10...100"
+  comment:
+	layout: header, changes, diff
