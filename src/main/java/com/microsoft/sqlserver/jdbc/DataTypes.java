@@ -358,7 +358,13 @@ enum SSType
             SSType.Category.GUID,
             EnumSet.of(
                 JDBCType.Category.BINARY,
-                JDBCType.Category.CHARACTER));
+                JDBCType.Category.CHARACTER)),
+        VARIANT (
+                SSType.Category.VARIANT,
+                EnumSet.of(
+                    JDBCType.Category.NUMERIC,
+                    JDBCType.Category.CHARACTER,
+                    JDBCType.Category.BINARY));
 
         private final SSType.Category from;
         private final EnumSet<JDBCType.Category> to;

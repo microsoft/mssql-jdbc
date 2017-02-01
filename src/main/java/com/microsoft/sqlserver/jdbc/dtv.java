@@ -3014,15 +3014,27 @@ final class TypeInfo {
              */
             public void apply(TypeInfo typeInfo,
                     TDSReader tdsReader) throws SQLServerException {
-
-                int type = tdsReader.readSqlVariant();//tdsReader.readUnsignedByte();
-                int cbPropsActual = tdsReader.readUnsignedByte();
-//                System.out.println(TDSType.valueOf(type));
-                switch(TDSType.valueOf(type)){
-                    case INT4: 
-                        INTEGER.build(typeInfo, tdsReader);
-                        break;
-                }
+                typeInfo.ssLenType = SSLenType.LONGLENTYPE;
+                typeInfo.maxLength = tdsReader.readInt();
+                typeInfo.ssType = SSType.SQL_VARIANT;
+//                typeInfo.precision = 255;
+//                typeInfo.scale = 255;
+//                switch (TDSType.valueOf(tdsReader.readSqlVariant()))
+//                {
+//                    case INTN:
+//                        break;
+//                    case INT4:
+//                        break;
+//                }
+                
+//                int type = tdsReader.readSqlVariant();//tdsReader.readUnsignedByte();
+//                int cbPropsActual = tdsReader.readUnsignedByte();
+////                System.out.println(TDSType.valueOf(type));
+//                switch(TDSType.valueOf(type)){
+//                    case INT4: 
+//                        INTEGER.build(typeInfo, tdsReader);
+//                        break;
+//                }
                 
                 }
 //                try {
@@ -3508,10 +3520,14 @@ final class ServerDTVImpl extends DTVImpl {
                         valueLength = tdsReader.readInt();
                     }
                 }
+                
                 else {
                     valueLength = tdsReader.readInt();
                     isNull = (0 == valueLength);
                 }
+//                if (SSType.SQL_VARIANT == typeInfo.getSSType()){
+//                    typeInfo.ssType = SSType.SQL_VARIANT;
+//                }
                 break;
         }
 
@@ -3950,6 +3966,15 @@ final class ServerDTVImpl extends DTVImpl {
                 case GUID:
                     convertedValue = tdsReader.readGUID(valueLength, jdbcType, streamGetterArgs.streamType);
                     break;
+                    
+                case SQL_VARIANT:
+                    int type = tdsReader.readUnsignedByte();
+                    switch(TDSType.valueOf(type)){
+                        case INT4:
+                            int vprop = tdsReader.readUnsignedByte();
+                            convertedValue = DDC.convertIntegerToObject(tdsReader.readInt(), valueLength, jdbcType, streamGetterArgs.streamType);
+                            break;
+                    }
 
                 // Unknown SSType should have already been rejected by TypeInfo.setFromTDS()
                 default:
