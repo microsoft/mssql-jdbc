@@ -1584,6 +1584,11 @@ final class TDSChannel {
                     .getProperty(SQLServerDriverStringProperty.HOSTNAME_IN_CERTIFICATE.toString());
 
             trustStoreType = con.activeConnectionProperties.getProperty(SQLServerDriverStringProperty.TRUST_STORE_TYPE.toString());
+            
+            if(StringUtils.isEmpty(trustStoreType)) {
+                trustStoreType = SQLServerDriverStringProperty.TRUST_STORE_TYPE.getDefaultValue();
+            }
+            
             fipsProvider = con.activeConnectionProperties.getProperty(SQLServerDriverStringProperty.FIPS_PROVIDER.toString());
             isFips = Boolean.valueOf(con.activeConnectionProperties.getProperty(SQLServerDriverBooleanProperty.FIPS.toString())); 
             
@@ -1844,6 +1849,9 @@ final class TDSChannel {
         isTrustServerCertificate = con.trustServerCertificate();
 
         if (isEncryptOn & !isTrustServerCertificate) {
+            if (logger.isLoggable(Level.FINER))
+                logger.finer(toString() + " Found parameters are encrypt is true & trustServerCertificate false");
+            
             isValid = true;
 
             if (isValidTrustStore) {
@@ -1851,7 +1859,12 @@ final class TDSChannel {
                 if (!isValidFipsProvider || !isValidTrustStoreType) {
                     isValid = false;
                     strError = SQLServerException.getErrString("R_invalidFipsProviderConfig");
+                    
+                    if (logger.isLoggable(Level.FINER))
+                        logger.finer(toString() + " FIPS provider & TrustStoreType should pass with TrustStore.");
                 }
+                if (logger.isLoggable(Level.FINER))
+                    logger.finer(toString() + " Found FIPS parameters seems to be valid.");
             }
         }
         else {
@@ -1859,7 +1872,7 @@ final class TDSChannel {
         }
 
         if (!isValid) {
-            throw new SQLServerException(strError, null);
+            throw new SQLServerException(strError, null, 0, null);
         }
 
     }
