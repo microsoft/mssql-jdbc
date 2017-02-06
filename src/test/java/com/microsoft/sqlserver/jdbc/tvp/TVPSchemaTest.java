@@ -31,14 +31,15 @@ public class TVPSchemaTest extends AbstractTest {
     private static DBConnection conn = null;
     static DBStatement stmt = null;
     static DBResultSet rs = null;
+    static SQLServerDataTable tvp = null;
     static String expectecValue1 = "hello";
     static String expectecValue2 = "world";
     static String expectecValue3 = "again";
-    protected static String schemaName = "anotherSchma";
-    protected static String tvpNameWithouSchema = "charTVP";
-    protected static String tvpNameWithSchema = "[" + schemaName + "].[" + tvpNameWithouSchema + "]";
-    protected static String charTable = "[" + schemaName + "].[tvpCharTable]";
-    protected static String procedureName = "[" + schemaName + "].[procedureThatCallsTVP]";
+    private static String schemaName = "anotherSchma";
+    private static String tvpNameWithouSchema = "charTVP";
+    private static String tvpNameWithSchema = "[" + schemaName + "].[" + tvpNameWithouSchema + "]";
+    private static String charTable = "[" + schemaName + "].[tvpCharTable]";
+    private static String procedureName = "[" + schemaName + "].[procedureThatCallsTVP]";
 
     /**
      * PreparedStatement with storedProcedure
@@ -48,31 +49,9 @@ public class TVPSchemaTest extends AbstractTest {
     @Test
     @DisplayName("TVPSchema_PreparedStatement_StoredProcedure()")
     public void testTVPSchema_PreparedStatement_StoredProcedure() throws SQLException {
-        conn = new DBConnection(connectionString);
-        stmt = conn.createStatement();
 
-        dropProcedure();
-        dropTables();
-        dropTVPS();
-
-        dropAndCreateSchema();
-
-        createTVPS();
-        createTables();
-        createPreocedure();
-
+        testSetup();
         final String sql = "{call " + procedureName + "(?)}";
-
-        SQLServerDataTable tvp = new SQLServerDataTable();
-        tvp.addColumnMetadata("PlainChar", java.sql.Types.CHAR);
-        tvp.addColumnMetadata("PlainVarchar", java.sql.Types.VARCHAR);
-        tvp.addColumnMetadata("PlainVarcharMax", java.sql.Types.VARCHAR);
-
-        tvp.addRow(expectecValue1, expectecValue2, expectecValue3);
-        tvp.addRow(expectecValue1, expectecValue2, expectecValue3);
-        tvp.addRow(expectecValue1, expectecValue2, expectecValue3);
-        tvp.addRow(expectecValue1, expectecValue2, expectecValue3);
-        tvp.addRow(expectecValue1, expectecValue2, expectecValue3);
 
         SQLServerPreparedStatement P_C_statement = (SQLServerPreparedStatement) connection.prepareStatement(sql);
 
@@ -80,21 +59,8 @@ public class TVPSchemaTest extends AbstractTest {
         P_C_statement.execute();
 
         rs = stmt.executeQuery("select * from " + charTable);
+        verify(rs);
 
-        while (rs.next()) {
-            String actualValue1 = rs.getString(1);
-            String actualValue2 = rs.getString(2);
-            String actualValue3 = rs.getString(3);
-
-            assertTrue(actualValue1.trim().equals(expectecValue1),
-                    "actual value does not match expected value." + "\n\tExpected value: " + expectecValue1 + "\n\tActual value: " + actualValue1);
-
-            assertTrue(actualValue2.trim().equals(expectecValue2),
-                    "actual value does not match expected value." + "\n\tExpected value: " + expectecValue2 + "\n\tActual value: " + actualValue2);
-
-            assertTrue(actualValue3.trim().equals(expectecValue3),
-                    "actual value does not match expected value." + "\n\tExpected value: " + expectecValue3 + "\n\tActual value: " + actualValue3);
-        }
         if (null != P_C_statement) {
             P_C_statement.close();
         }
@@ -109,54 +75,17 @@ public class TVPSchemaTest extends AbstractTest {
     @Test
     @DisplayName("TVPSchema_CallableStatement_StoredProcedure()")
     public void testTVPSchema_CallableStatement_StoredProcedure() throws SQLException {
-        conn = new DBConnection(connectionString);
-        stmt = conn.createStatement();
 
-        dropProcedure();
-        dropTables();
-        dropTVPS();
-
-        dropAndCreateSchema();
-
-        createTVPS();
-        createTables();
-        createPreocedure();
-
+        testSetup();
         final String sql = "{call " + procedureName + "(?)}";
 
-        SQLServerDataTable tvp = new SQLServerDataTable();
-        tvp.addColumnMetadata("PlainChar", java.sql.Types.CHAR);
-        tvp.addColumnMetadata("PlainVarchar", java.sql.Types.VARCHAR);
-        tvp.addColumnMetadata("PlainVarcharMax", java.sql.Types.VARCHAR);
-
-        tvp.addRow(expectecValue1, expectecValue2, expectecValue3);
-        tvp.addRow(expectecValue1, expectecValue2, expectecValue3);
-        tvp.addRow(expectecValue1, expectecValue2, expectecValue3);
-        tvp.addRow(expectecValue1, expectecValue2, expectecValue3);
-        tvp.addRow(expectecValue1, expectecValue2, expectecValue3);
-
         SQLServerCallableStatement P_C_statement = (SQLServerCallableStatement) connection.prepareCall(sql);
-
         P_C_statement.setStructured(1, tvpNameWithSchema, tvp);
         P_C_statement.execute();
 
         rs = stmt.executeQuery("select * from " + charTable);
+        verify(rs);
 
-        while (rs.next()) {
-            String actualValue1 = rs.getString(1);
-            String actualValue2 = rs.getString(2);
-            String actualValue3 = rs.getString(3);
-
-            assertTrue(actualValue1.trim().equals(expectecValue1),
-                    "actual value does not match expected value." + "\n\tExpected value: " + expectecValue1 + "\n\tActual value: " + actualValue1);
-
-            assertTrue(actualValue2.trim().equals(expectecValue2),
-                    "actual value does not match expected value." + "\n\tExpected value: " + expectecValue2 + "\n\tActual value: " + actualValue2);
-
-            assertTrue(actualValue3.trim().equals(expectecValue3),
-                    "actual value does not match expected value." + "\n\tExpected value: " + expectecValue3 + "\n\tActual value: " + actualValue3);
-
-        }
         if (null != P_C_statement) {
             P_C_statement.close();
         }
@@ -172,51 +101,17 @@ public class TVPSchemaTest extends AbstractTest {
     @Test
     @DisplayName("TVPSchema_Prepared_InsertCommand")
     public void testTVPSchema_Prepared_InsertCommand() throws SQLException, IOException {
-        conn = new DBConnection(connectionString);
-        stmt = conn.createStatement();
 
-        dropProcedure();
-        dropTables();
-        dropTVPS();
-
-        dropAndCreateSchema();
-
-        createTVPS();
-        createTables();
-
-        SQLServerDataTable tvp = new SQLServerDataTable();
-        tvp.addColumnMetadata("PlainChar", java.sql.Types.CHAR);
-        tvp.addColumnMetadata("PlainVarchar", java.sql.Types.VARCHAR);
-        tvp.addColumnMetadata("PlainVarcharMax", java.sql.Types.VARCHAR);
-
-        tvp.addRow(expectecValue1, expectecValue2, expectecValue3);
-        tvp.addRow(expectecValue1, expectecValue2, expectecValue3);
-        tvp.addRow(expectecValue1, expectecValue2, expectecValue3);
-        tvp.addRow(expectecValue1, expectecValue2, expectecValue3);
-        tvp.addRow(expectecValue1, expectecValue2, expectecValue3);
+        testSetup();
 
         SQLServerPreparedStatement P_C_stmt = (SQLServerPreparedStatement) connection
                 .prepareStatement("INSERT INTO " + charTable + " select * from ? ;");
-
         P_C_stmt.setStructured(1, tvpNameWithSchema, tvp);
         P_C_stmt.executeUpdate();
 
         rs = stmt.executeQuery("select * from " + charTable);
+        verify(rs);
 
-        while (rs.next()) {
-            String actualValue1 = rs.getString(1);
-            String actualValue2 = rs.getString(2);
-            String actualValue3 = rs.getString(3);
-
-            assertTrue(actualValue1.trim().equals(expectecValue1),
-                    "actual value does not match expected value." + "\n\tExpected value: " + expectecValue1 + "\n\tActual value: " + actualValue1);
-
-            assertTrue(actualValue2.trim().equals(expectecValue2),
-                    "actual value does not match expected value." + "\n\tExpected value: " + expectecValue2 + "\n\tActual value: " + actualValue2);
-
-            assertTrue(actualValue3.trim().equals(expectecValue3),
-                    "actual value does not match expected value." + "\n\tExpected value: " + expectecValue3 + "\n\tActual value: " + actualValue3);
-        }
         if (null != P_C_stmt) {
             P_C_stmt.close();
         }
@@ -232,6 +127,23 @@ public class TVPSchemaTest extends AbstractTest {
     @Test
     @DisplayName("TVPSchema_Callable_InsertCommand()")
     public void testTVPSchema_Callable_InsertCommand() throws SQLException, IOException {
+
+        testSetup();
+
+        SQLServerCallableStatement P_C_stmt = (SQLServerCallableStatement) connection.prepareCall("INSERT INTO " + charTable + " select * from ? ;");
+        P_C_stmt.setStructured(1, tvpNameWithSchema, tvp);
+        P_C_stmt.executeUpdate();
+
+        rs = stmt.executeQuery("select * from " + charTable);
+        verify(rs);
+
+        if (null != P_C_stmt) {
+            P_C_stmt.close();
+        }
+        terminateVariation();
+    }
+
+    private void testSetup() throws SQLException {
         conn = new DBConnection(connectionString);
         stmt = conn.createStatement();
 
@@ -243,8 +155,9 @@ public class TVPSchemaTest extends AbstractTest {
 
         createTVPS();
         createTables();
+        createPreocedure();
 
-        SQLServerDataTable tvp = new SQLServerDataTable();
+        tvp = new SQLServerDataTable();
         tvp.addColumnMetadata("PlainChar", java.sql.Types.CHAR);
         tvp.addColumnMetadata("PlainVarchar", java.sql.Types.VARCHAR);
         tvp.addColumnMetadata("PlainVarcharMax", java.sql.Types.VARCHAR);
@@ -254,14 +167,9 @@ public class TVPSchemaTest extends AbstractTest {
         tvp.addRow(expectecValue1, expectecValue2, expectecValue3);
         tvp.addRow(expectecValue1, expectecValue2, expectecValue3);
         tvp.addRow(expectecValue1, expectecValue2, expectecValue3);
+    }
 
-        SQLServerCallableStatement P_C_stmt = (SQLServerCallableStatement) connection.prepareCall("INSERT INTO " + charTable + " select * from ? ;");
-
-        P_C_stmt.setStructured(1, tvpNameWithSchema, tvp);
-        P_C_stmt.executeUpdate();
-
-        rs = stmt.executeQuery("select * from " + charTable);
-
+    private void verify(DBResultSet rs) throws SQLException {
         while (rs.next()) {
             String actualValue1 = rs.getString(1);
             String actualValue2 = rs.getString(2);
@@ -276,10 +184,6 @@ public class TVPSchemaTest extends AbstractTest {
             assertTrue(actualValue3.trim().equals(expectecValue3),
                     "actual value does not match expected value." + "\n\tExpected value: " + expectecValue3 + "\n\tActual value: " + actualValue3);
         }
-        if (null != P_C_stmt) {
-            P_C_stmt.close();
-        }
-        terminateVariation();
     }
 
     private void dropProcedure() throws SQLException {
@@ -330,6 +234,9 @@ public class TVPSchemaTest extends AbstractTest {
         }
         if (null != rs) {
             rs.close();
+        }
+        if (null != tvp){
+            tvp.clear();
         }
     }
 
