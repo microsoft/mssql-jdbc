@@ -2480,6 +2480,10 @@ final class TypeInfo {
     void setFlags(Short flags) {
         this.flags = flags;
     }
+    
+    void setScale(int scale){
+        this.scale = scale;
+    }
 
 	//TypeInfo Builder enum defines a set of builders used to construct TypeInfo instances 
 	//for the various data types. Each builder builds a TypeInfo instance using a builder Strategy. 
@@ -3969,10 +3973,28 @@ final class ServerDTVImpl extends DTVImpl {
                     
                 case SQL_VARIANT:
                     int type = tdsReader.readUnsignedByte();
+                    int cbPropsActual = tdsReader.readUnsignedByte();
                     switch(TDSType.valueOf(type)){
+                        case INT8:
+                            convertedValue = DDC.convertLongToObject(tdsReader.readLong(), jdbcType, baseSSType, streamGetterArgs.streamType);
+                            break;
                         case INT4:
-                            int vprop = tdsReader.readUnsignedByte();
                             convertedValue = DDC.convertIntegerToObject(tdsReader.readInt(), valueLength, jdbcType, streamGetterArgs.streamType);
+                            break;
+                        case INT2:
+                            convertedValue = DDC.convertIntegerToObject(tdsReader.readShort(), valueLength, jdbcType, streamGetterArgs.streamType);
+                            break;
+                        case INT1:
+                            convertedValue = DDC.convertIntegerToObject(tdsReader.readUnsignedByte(), valueLength, jdbcType,
+                                    streamGetterArgs.streamType);
+                            break;
+                        case DECIMALN:
+                            int precision = tdsReader.readUnsignedByte();
+                            typeInfo.setScale( tdsReader.readUnsignedByte() );
+                            int lengthTotal = valueLength;
+                            int lengthConsumed = 2 + cbPropsActual;
+                            int tempvalueLength = lengthTotal - lengthConsumed;
+                            convertedValue = tdsReader.readDecimal(tempvalueLength, typeInfo, jdbcType, streamGetterArgs.streamType);
                             break;
                     }
 
