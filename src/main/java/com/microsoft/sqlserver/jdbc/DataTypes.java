@@ -601,23 +601,20 @@ enum JavaType
             return null;
         }
 
-        if (className.equals("LocalDate")) {
-            return LocalDate.class;
+        switch (className) {
+            case "LocalDate":
+                return LocalDate.class;
+            case "LocalTime":
+                return LocalTime.class;
+            case "LocalDateTime":
+                return LocalDateTime.class;
+            case "OffsetTime":
+                return OffsetTime.class;
+            case "OffsetDateTime":
+                return OffsetDateTime.class;
+            default:
+                return null;
         }
-        else if (className.equals("LocalTime")) {
-            return LocalTime.class;
-        }
-        else if (className.equals("LocalDateTime")) {
-            return LocalDateTime.class;
-        }
-        else if (className.equals("OffsetTime")) {
-            return OffsetTime.class;
-        }
-        else if (className.equals("OffsetDateTime")) {
-            return OffsetDateTime.class;
-        }
-
-        return null;
     }
 
     static JavaType of(Object obj) {
