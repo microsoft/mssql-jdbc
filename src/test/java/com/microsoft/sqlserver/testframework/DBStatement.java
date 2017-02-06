@@ -79,6 +79,18 @@ public class DBStatement extends AbstractParentWrapper {
     }
 
     /**
+     * executes the given sql query
+     * 
+     * @param sql
+     * @return
+     * @throws SQLException
+     */
+    public int executeUpdate(String sql) throws SQLException {
+        int updatecount = statement.executeUpdate(sql);
+        return updatecount;
+    }
+
+    /**
      * Close the <code>Statement</code> and <code>ResultSet</code> associated with it
      * 
      * @throws SQLException
