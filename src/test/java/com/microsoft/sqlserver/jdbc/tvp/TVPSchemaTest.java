@@ -12,6 +12,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import java.io.IOException;
 import java.sql.SQLException;
 
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
@@ -50,11 +52,9 @@ public class TVPSchemaTest extends AbstractTest {
     @DisplayName("TVPSchema_PreparedStatement_StoredProcedure()")
     public void testTVPSchema_PreparedStatement_StoredProcedure() throws SQLException {
 
-        testSetup();
         final String sql = "{call " + procedureName + "(?)}";
 
         SQLServerPreparedStatement P_C_statement = (SQLServerPreparedStatement) connection.prepareStatement(sql);
-
         P_C_statement.setStructured(1, tvpNameWithSchema, tvp);
         P_C_statement.execute();
 
@@ -64,7 +64,6 @@ public class TVPSchemaTest extends AbstractTest {
         if (null != P_C_statement) {
             P_C_statement.close();
         }
-        terminateVariation();
     }
 
     /**
@@ -76,7 +75,6 @@ public class TVPSchemaTest extends AbstractTest {
     @DisplayName("TVPSchema_CallableStatement_StoredProcedure()")
     public void testTVPSchema_CallableStatement_StoredProcedure() throws SQLException {
 
-        testSetup();
         final String sql = "{call " + procedureName + "(?)}";
 
         SQLServerCallableStatement P_C_statement = (SQLServerCallableStatement) connection.prepareCall(sql);
@@ -89,7 +87,6 @@ public class TVPSchemaTest extends AbstractTest {
         if (null != P_C_statement) {
             P_C_statement.close();
         }
-        terminateVariation();
     }
 
     /**
@@ -102,8 +99,6 @@ public class TVPSchemaTest extends AbstractTest {
     @DisplayName("TVPSchema_Prepared_InsertCommand")
     public void testTVPSchema_Prepared_InsertCommand() throws SQLException, IOException {
 
-        testSetup();
-
         SQLServerPreparedStatement P_C_stmt = (SQLServerPreparedStatement) connection
                 .prepareStatement("INSERT INTO " + charTable + " select * from ? ;");
         P_C_stmt.setStructured(1, tvpNameWithSchema, tvp);
@@ -115,7 +110,6 @@ public class TVPSchemaTest extends AbstractTest {
         if (null != P_C_stmt) {
             P_C_stmt.close();
         }
-        terminateVariation();
     }
 
     /**
@@ -127,8 +121,6 @@ public class TVPSchemaTest extends AbstractTest {
     @Test
     @DisplayName("TVPSchema_Callable_InsertCommand()")
     public void testTVPSchema_Callable_InsertCommand() throws SQLException, IOException {
-
-        testSetup();
 
         SQLServerCallableStatement P_C_stmt = (SQLServerCallableStatement) connection.prepareCall("INSERT INTO " + charTable + " select * from ? ;");
         P_C_stmt.setStructured(1, tvpNameWithSchema, tvp);
@@ -143,6 +135,7 @@ public class TVPSchemaTest extends AbstractTest {
         terminateVariation();
     }
 
+    @BeforeEach
     private void testSetup() throws SQLException {
         conn = new DBConnection(connectionString);
         stmt = conn.createStatement();
@@ -225,6 +218,7 @@ public class TVPSchemaTest extends AbstractTest {
         stmt.executeUpdate(TVPCreateCmd);
     }
 
+    @AfterEach
     private void terminateVariation() throws SQLException {
         if (null != conn) {
             conn.close();
@@ -235,7 +229,7 @@ public class TVPSchemaTest extends AbstractTest {
         if (null != rs) {
             rs.close();
         }
-        if (null != tvp){
+        if (null != tvp) {
             tvp.clear();
         }
     }
