@@ -250,17 +250,18 @@ public final class SQLServerDataTable {
     public synchronized Map<Integer, SQLServerDataColumn> getColumnMetadata() {
         return columnMetadata;
     }
-
+    
     public String getTvpName() {
         return tvpName;
     }
 
     /**
      * Retrieves the column meta data of this data table.
-     * 
+     * @deprecated
      * @param tvpName
      *            the name of TVP
      */
+    @Deprecated
     public void setTvpName(String tvpName) {
         this.tvpName = tvpName;
     }
