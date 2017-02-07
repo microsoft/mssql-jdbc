@@ -121,11 +121,9 @@ public class FipsTest {
 
         connectionProps.setProperty("encrypt", "true");
         connectionProps.setProperty("integratedSecurity", "false");
-        // connectionProps.setProperty("TrustServerCertificate", "true");
 
         // In case of false we need to pass keystore etc. which is not passing by default.
         connectionProps.setProperty("TrustServerCertificate", "false");
-        // connectionProps.setProperty("trustStorePassword", "Any_Password_<>_Not_Used_In_This_Code");
 
         // For New Code
         connectionProps.setProperty("trustStoreType", "PKCS12");
