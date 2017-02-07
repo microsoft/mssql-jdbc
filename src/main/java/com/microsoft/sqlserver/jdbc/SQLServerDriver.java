@@ -275,7 +275,8 @@ enum SQLServerDriverBooleanProperty
 	SEND_TIME_AS_DATETIME              ("sendTimeAsDatetime",              true),
 	TRANSPARENT_NETWORK_IP_RESOLUTION  ("TransparentNetworkIPResolution",  true),
 	TRUST_SERVER_CERTIFICATE           ("trustServerCertificate",          false),
-	XOPEN_STATES                       ("xopenStates",                     false);
+	XOPEN_STATES                       ("xopenStates",                     false),
+	FIPS                               ("fips",                            false);
 
     private String name;
     private boolean defaultValue;
@@ -344,6 +345,7 @@ public final class SQLServerDriver implements java.sql.Driver {
         new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.AUTHENTICATION.toString(),          				SQLServerDriverStringProperty.AUTHENTICATION.getDefaultValue(),      			                		false,      new String[] {SqlAuthentication.NotSpecified.toString(),SqlAuthentication.SqlPassword.toString(),SqlAuthentication.ActiveDirectoryPassword.toString(),SqlAuthentication.ActiveDirectoryIntegrated.toString()}),
         new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.FIPS_PROVIDER.toString(), 						SQLServerDriverStringProperty.FIPS_PROVIDER.getDefaultValue(), 											false, 		null),
         new SQLServerDriverPropertyInfo(SQLServerDriverIntProperty.SOCKET_TIMEOUT.toString(),                   		Integer.toString(SQLServerDriverIntProperty.SOCKET_TIMEOUT.getDefaultValue()),         					false,      null),
+        new SQLServerDriverPropertyInfo(SQLServerDriverBooleanProperty.FIPS.toString(),                                 Boolean.toString(SQLServerDriverBooleanProperty.FIPS.getDefaultValue()),                                false,      TRUE_FALSE),
             };
 
     // Properties that can only be set by using Properties.
