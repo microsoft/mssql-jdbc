@@ -132,7 +132,6 @@ public class TVPSchemaTest extends AbstractTest {
         if (null != P_C_stmt) {
             P_C_stmt.close();
         }
-        terminateVariation();
     }
 
     @BeforeEach
