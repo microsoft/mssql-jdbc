@@ -883,7 +883,11 @@ final class Parameter {
                 case GUID:
                     param.typeDefinition = SSType.GUID.toString();
                     break;
+                case Variant:
+                   // param.typeDefinition = SSType.INTEGER.toString();
+                    param.typeDefinition = SSType.SQL_VARIANT.toString();
 
+                    break;
                 default:
                     assert false : "Unexpected JDBC type " + dtv.getJdbcType();
                     break;

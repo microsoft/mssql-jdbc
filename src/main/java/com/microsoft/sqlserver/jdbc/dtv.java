@@ -43,6 +43,8 @@ import java.util.UUID;
 
 import com.microsoft.sqlserver.jdbc.JavaType.SetterConversionAE;
 
+import microsoft.sql.SqlVariant;
+
 /**
  * Defines an abstraction for execution of type-specific operations on DTV values.
  *
@@ -139,6 +141,8 @@ abstract class DTVExecuteOp {
 
     abstract void execute(DTV dtv,
             TVP tvpValue) throws SQLServerException;
+    abstract void execute(DTV dtv,
+            SqlVariant SqlVariantValue) throws SQLServerException;
 }
 
 /**
@@ -1580,7 +1584,9 @@ final class DTV {
                 case STRUCT:
                     unsupportedConversion = true;
                     break;
-
+                case Variant:
+                    op.execute(this, (microsoft.sql.SqlVariant) null);
+                    break;
                 case UNKNOWN:
                 default:
                     assert false : "Unexpected JDBCType: " + jdbcType;
@@ -1857,6 +1863,7 @@ final class DTV {
                 case SQLXML:
                     op.execute(this, (SQLServerSQLXML) value);
                     break;
+                
 
                 default:
                     assert false : "Unexpected JavaType: " + javaType;
