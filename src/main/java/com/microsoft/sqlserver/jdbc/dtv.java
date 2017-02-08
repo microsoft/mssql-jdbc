@@ -1440,6 +1440,16 @@ final class DTV {
             // Write the reader value as a stream of Unicode characters
             tdsWriter.writeRPCReaderUnicode(name, readerValue, dtv.getStreamSetterArgs().getLength(), isOutParam, collation);
         }
+
+        /* (non-Javadoc)
+         * @see com.microsoft.sqlserver.jdbc.DTVExecuteOp#execute(com.microsoft.sqlserver.jdbc.DTV, microsoft.sql.SqlVariant)
+         */
+        @Override
+        void execute(DTV dtv,
+                SqlVariant SqlVariantValue) throws SQLServerException {
+            // TODO Auto-generated method stub
+            
+        }
     }
 
     /**
@@ -2290,6 +2300,16 @@ final class AppDTVImpl extends DTVImpl {
                 dtv.setStreamSetterArgs(new StreamSetterArgs(StreamType.CHARACTER, DataTypes.UNKNOWN_STREAM_LENGTH));
                 execute(dtv, streamValue);
             }
+        }
+
+        /* (non-Javadoc)
+         * @see com.microsoft.sqlserver.jdbc.DTVExecuteOp#execute(com.microsoft.sqlserver.jdbc.DTV, microsoft.sql.SqlVariant)
+         */
+        @Override
+        void execute(DTV dtv,
+                SqlVariant SqlVariantValue) throws SQLServerException {
+            // TODO Auto-generated method stub
+            
         }
     }
 

@@ -26,6 +26,8 @@ import java.time.OffsetTime;
 import java.util.Calendar;
 import java.util.Locale;
 
+import microsoft.sql.SqlVariant;
+
 /**
  * Parameter represents a JDBC parameter value that is supplied with a prepared or callable statement or an updatable result set. Parameter is JDBC
  * type specific and is capable of representing any Java native type as well as a number of Java object types including binary and character streams.
@@ -1140,6 +1142,16 @@ final class Parameter {
         void execute(DTV dtv,
                 com.microsoft.sqlserver.jdbc.TVP tvpValue) throws SQLServerException {
             setTypeDefinition(dtv);
+        }
+
+        /* (non-Javadoc)
+         * @see com.microsoft.sqlserver.jdbc.DTVExecuteOp#execute(com.microsoft.sqlserver.jdbc.DTV, microsoft.sql.SqlVariant)
+         */
+        @Override
+        void execute(DTV dtv,
+                SqlVariant SqlVariantValue) throws SQLServerException {
+            // TODO Auto-generated method stub
+            
         }
 
     }
