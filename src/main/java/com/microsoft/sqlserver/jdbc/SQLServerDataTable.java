@@ -257,11 +257,9 @@ public final class SQLServerDataTable {
 
     /**
      * Retrieves the column meta data of this data table.
-     * @deprecated
      * @param tvpName
      *            the name of TVP
      */
-    @Deprecated
     public void setTvpName(String tvpName) {
         this.tvpName = tvpName;
     }
