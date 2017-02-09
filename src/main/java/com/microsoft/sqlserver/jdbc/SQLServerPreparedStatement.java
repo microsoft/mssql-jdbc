@@ -2136,7 +2136,8 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     String getTVPNameIfNull(int n,
             String tvpName) throws SQLServerException {
         if ((null == tvpName) || (0 == tvpName.length())) {
-            if (this instanceof SQLServerCallableStatement) {
+            // Check if the CallableStatement/PreparedStatement is a stored procedure call
+            if(null != this.procedureName) {
                 SQLServerParameterMetaData pmd = (SQLServerParameterMetaData) this.getParameterMetaData();
                 pmd.isTVP = true;
                 try {
