@@ -12,6 +12,7 @@ import static org.junit.Assert.fail;
 import java.io.BufferedReader;
 import java.io.FileInputStream;
 import java.io.InputStreamReader;
+import java.net.URI;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
@@ -141,10 +142,11 @@ public class BulkCopyCSVTest extends AbstractTest {
         try {
             String className = new Object() {
             }.getClass().getEnclosingClass().getName();
-            String location = Class.forName(className).getProtectionDomain().getCodeSource().getLocation().getPath();
-            return location + "/";
+            String location = Class.forName(className).getProtectionDomain().getCodeSource().getLocation().getPath()+ "/";
+            URI uri = new URI(location.toString());
+            return uri.getPath();
         }
-        catch (ClassNotFoundException e) {
+        catch (Exception e) {
             fail("Failed to get CSV file path. " + e.getMessage());
         }
         return null;
