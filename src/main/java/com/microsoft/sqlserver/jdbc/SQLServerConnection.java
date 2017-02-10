@@ -1270,7 +1270,7 @@ public class SQLServerConnection implements ISQLServerConnection {
             }
 
             if ((!System.getProperty("os.name").toLowerCase().startsWith("windows"))
-                    && ((null != accessTokenInByte) || (!authenticationString.equalsIgnoreCase(SqlAuthentication.NotSpecified.toString())))) {
+                    && (!authenticationString.equalsIgnoreCase(SqlAuthentication.NotSpecified.toString()))) {
                 throw new SQLServerException(SQLServerException.getErrString("R_FedAuthOnNonWindows"), null);
             }
 
