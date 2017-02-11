@@ -183,6 +183,8 @@ public final class SQLServerResource extends ListResourceBundle {
 				{"R_trustStoreTypePropertyDescription", "KeyStore type."},
 				{"R_trustStorePropertyDescription", "The path to the certificate TrustStore file."},
 				{"R_trustStorePasswordPropertyDescription", "The password used to check the integrity of the trust store data."},
+				{"R_trustManagerClassPropertyDescription", "The class to instantiate as the TrustManager for SSL connections."},
+				{"R_trustManagerConstructorArgPropertyDescription", "The optional argument to pass to the constructor specified by trustManagerClass."},
 				{"R_hostNameInCertificatePropertyDescription", "The host name to be used when validating the SQL Server Secure Sockets Layer (SSL) certificate."},
 				{"R_sendTimeAsDatetimePropertyDescription", "Determines whether to use the SQL Server datetime data type to send java.sql.Time values to the database."},
 				{"R_TransparentNetworkIPResolutionPropertyDescription", "Determines whether to use the Transparent Network IP Resolution feature."},

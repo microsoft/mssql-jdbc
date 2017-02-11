@@ -1622,7 +1622,21 @@ final class TDSChannel {
 
                 tm = new TrustManager[] {new PermissiveX509TrustManager(this)};
             }
-
+            // Otherwise, we'll check if a specific TrustManager implemenation has been requested and
+            // if so instantiate it, optionally specifying a constructor argument to customize it.
+            else if (con.getTrustManagerClass() != null)
+            {
+                Class<?> tmClazz = Class.forName(con.getTrustManagerClass());
+                if (!TrustManager.class.isAssignableFrom(tmClazz)) {
+                    throw new IllegalArgumentException("The class specified by the trustManagerClass property must implement javax.net.ssl.TrustManager");
+                }
+                String constructorArg = con.getTrustManagerConstructorArg();
+                if (constructorArg == null) {
+                    tm = new TrustManager[] {(TrustManager) tmClazz.getDeclaredConstructor().newInstance()};
+                } else {
+                    tm = new TrustManager[] {(TrustManager) tmClazz.getDeclaredConstructor(String.class).newInstance(constructorArg)};
+                }
+            }
             // Otherwise, we'll validate the certificate using a real TrustManager obtained
             // from the a security provider that is capable of validating X.509 certificates.
             else {
@@ -1798,7 +1812,14 @@ final class TDSChannel {
 
             // It is important to get the localized message here, otherwise error messages won't match for different locales.
             String errMsg = e.getLocalizedMessage();
-
+            // If the message is null replace it with the non-localized message or a dummy string. This can happen if a custom
+            // TrustManager implementation is specified that does not provide localized messages.
+            if (errMsg == null) {
+                errMsg = e.getMessage();
+            }
+            if (errMsg == null) {
+               errMsg = "";
+            }
             // The error message may have a connection id appended to it. Extract the message only for comparison.
             // This client connection id is appended in method checkAndAppendClientConnId().
             if (errMsg.contains(SQLServerException.LOG_CLIENT_CONNECTION_ID_PREFIX)) {
