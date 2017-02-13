@@ -201,9 +201,14 @@ public class FipsTest {
      */
     private void setDataSourceProperties(SQLServerDataSource ds) {
         ds.setServerName(dataSourceProps[0]);
-        ds.setUser(dataSourceProps[1]);
-        ds.setPassword(dataSourceProps[2]);
-        ds.setDatabaseName(dataSourceProps[3]);
+
+        if (dataSourceProps[1] != null && StringUtils.isInteger(dataSourceProps[1])) {
+            ds.setPortNumber(Integer.valueOf(dataSourceProps[1]));
+        }
+
+        ds.setUser(dataSourceProps[2]);
+        ds.setPassword(dataSourceProps[3]);
+        ds.setDatabaseName(dataSourceProps[4]);
 
         // Set all properties for FIPS
         ds.setFIPS(true);
@@ -247,20 +252,25 @@ public class FipsTest {
      */
     private static String[] getDataSourceProperties() {
         String[] params = connectionString.split(";");
-        String[] dataSoureParam = new String[4];
+        String[] dataSoureParam = new String[5];
 
         for (String strParam : params) {
             if (strParam.startsWith("jdbc:sqlserver")) {
                 dataSoureParam[0] = strParam.replace("jdbc:sqlserver://", "");
+                String[] hostPort = dataSoureParam[0].split(":");
+                dataSoureParam[0] = hostPort[0];
+                if (hostPort.length > 1) {
+                    dataSoureParam[1] = hostPort[1];
+                }
             }
             else if (strParam.startsWith("userName")) {
-                dataSoureParam[1] = strParam.replace("userName=", "");
+                dataSoureParam[2] = strParam.replace("userName=", "");
             }
             else if (strParam.startsWith("password")) {
-                dataSoureParam[2] = strParam.replace("password=", "");
+                dataSoureParam[3] = strParam.replace("password=", "");
             }
             else if (strParam.startsWith("database")) {
-                dataSoureParam[3] = strParam.replace("database=", "");
+                dataSoureParam[4] = strParam.replace("database=", "");
             }
 
         }

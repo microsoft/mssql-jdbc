@@ -38,5 +38,32 @@ public class StringUtils {
     public static boolean isEmpty(final CharSequence charSequence) {
         return charSequence == null || charSequence.length() == 0;
     }
+    
+    /**
+     * Check if String is numeric or not. 
+     * @param str {@link String} 
+     * @return {@link Boolean} if provided String is numeric or not.
+     */
+    public static boolean isNumeric(final String str) {
+        return !isEmpty(str) && str.matches("\\d+(\\.\\d+)?");
+    }
+    
+    /**
+     * Check if string is integer or not
+     * @param str {@link String} 
+     * @return {@link Boolean} if provided String is Integer or not.
+     */
+    public static boolean isInteger(final String str) {
+        boolean isInteger = false;
+        
+        try {
+            int i = Integer.parseInt(str);
+            isInteger = true;
+        }catch(NumberFormatException e) {
+            //Nothing. this is not integer. 
+        }
+        
+        return isInteger;
+    }
 
 }
