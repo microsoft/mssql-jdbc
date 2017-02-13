@@ -263,14 +263,27 @@ public class FipsTest {
                     dataSoureParam[1] = hostPort[1];
                 }
             }
-            else if (strParam.startsWith("userName")) {
-                dataSoureParam[2] = strParam.replace("userName=", "");
+            // Actually this is specifically did for Travis.
+            else if (strParam.startsWith("user")) {
+                strParam = strParam.toLowerCase();
+                if (strParam.equals("user")) {
+                    dataSoureParam[2] = strParam.replace("user=", "");
+                }
+                else {
+                    dataSoureParam[2] = strParam.replace("username=", "");
+                }
             }
             else if (strParam.startsWith("password")) {
                 dataSoureParam[3] = strParam.replace("password=", "");
             }
             else if (strParam.startsWith("database")) {
-                dataSoureParam[4] = strParam.replace("database=", "");
+                strParam = strParam.toLowerCase();
+                if (strParam.equals("database")) {
+                    dataSoureParam[4] = strParam.replace("database=", "");
+                }
+                else {
+                    dataSoureParam[4] = strParam.replace("databasename=", "");
+                }
             }
 
         }
