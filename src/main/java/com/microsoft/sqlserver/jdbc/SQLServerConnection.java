@@ -1285,8 +1285,8 @@ public class SQLServerConnection implements ISQLServerConnection {
             }
 
             if ((!System.getProperty("os.name").toLowerCase().startsWith("windows"))
-                    && (!authenticationString.equalsIgnoreCase(SqlAuthentication.NotSpecified.toString()))) {
-                throw new SQLServerException(SQLServerException.getErrString("R_FedAuthOnNonWindows"), null);
+                    && (authenticationString.equalsIgnoreCase(SqlAuthentication.ActiveDirectoryIntegrated.toString()))) {
+                throw new SQLServerException(SQLServerException.getErrString("R_AADIntegratedOnNonWindows"), null);
             }
 
             sPropKey = SQLServerDriverStringProperty.WORKSTATION_ID.toString();
