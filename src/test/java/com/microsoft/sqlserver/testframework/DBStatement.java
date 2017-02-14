@@ -143,7 +143,14 @@ public class DBStatement extends AbstractParentWrapper {
      * @throws SQLException
      */
     public int getQueryTimeout() throws SQLException {
-        int current = ((Statement) product()).getQueryTimeout();
-        return current;
+        return ((Statement) product()).getQueryTimeout();
+    }
+
+    /**
+     * @return
+     * @throws SQLException
+     */
+    public int getUpdateCount() throws SQLException {
+        return ((Statement) product()).getUpdateCount();
     }
 }

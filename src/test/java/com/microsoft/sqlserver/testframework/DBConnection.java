@@ -14,6 +14,7 @@ import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Statement;
 
 import com.microsoft.sqlserver.jdbc.SQLServerConnection;
 import com.microsoft.sqlserver.jdbc.SQLServerException;
@@ -22,6 +23,9 @@ import com.microsoft.sqlserver.jdbc.SQLServerException;
  * Wrapper class for SQLServerConnection
  */
 public class DBConnection extends AbstractParentWrapper {
+    private boolean _isSqlAzure = false;  // Wether the target server is SQL Azure or SQL Server
+    private boolean _determinedSqlAzureOrSqlServer = false;
+    private double _serverversion = 0;
 
     // TODO: add Isolation Level
     // TODO: add auto commit
@@ -172,6 +176,107 @@ public class DBConnection extends AbstractParentWrapper {
         }
 
         return isSqlAzure;
+    }
+
+    /**
+     * @param string
+     * @return
+     * @throws SQLException
+     */
+    public DBCallableStatement prepareCall(String query) throws SQLException {
+        DBCallableStatement dbcstmt = new DBCallableStatement(this);
+        return dbcstmt.prepareCall(query);
+    }
+
+    /**
+     * @return
+     * @throws Exception
+     */
+    public boolean isSqlAzure() throws SQLException {
+        if (!_determinedSqlAzureOrSqlServer) {
+            _isSqlAzure = isServerSqlAzure();
+            _determinedSqlAzureOrSqlServer = true;
+        }
+        // check the consistency
+        boolean shouldTestAgainstSQLAzure = (DBOptions.servertype() == DBOptions.SERVER_TYPE_SQL_AZURE);
+        if (_isSqlAzure != shouldTestAgainstSQLAzure) {
+            String errorMessage = "Error: The test should " + (shouldTestAgainstSQLAzure ? "" : "NOT")
+                    + " test against SQL Azure, but the actual target db server is " + (_isSqlAzure ? "" : "NOT") + " SQL Azure.";
+            throw new SQLException(errorMessage);
+        }
+        return _isSqlAzure;
+    }
+
+    private boolean isServerSqlAzure() throws SQLException {
+        DBStatement stmt = null;
+        boolean isSqlAzure = false;
+        try {
+            // SERVERPROPERTY('EngineEdition') can be used to determine whether the db server is SQL Azure.
+            // It should return 5 for SQL Azure. This is more reliable than @@version or serverproperty('edition').
+            // Reference: http://msdn.microsoft.com/en-us/library/ee336261.aspx
+            //
+            // SERVERPROPERTY('EngineEdition') means
+            // Database Engine edition of the instance of SQL Server installed on the server.
+            // 1 = Personal or Desktop Engine (Not available for SQL Server.)
+            // 2 = Standard (This is returned for Standard and Workgroup.)
+            // 3 = Enterprise (This is returned for Enterprise, Enterprise Evaluation, and Developer.)
+            // 4 = Express (This is returned for Express, Express with Advanced Services, and Windows Embedded SQL.)
+            // 5 = SQL Azure
+            // Base data type: int
+            final int ENGINE_EDITION_FOR_SQL_AZURE = 5;
+            stmt = this.createStatement(DBResultSet.TYPE_DIRECT_FORWARDONLY, DBResultSet.CONCUR_READ_ONLY);
+            DBResultSet rs = stmt.executeQuery("SELECT CAST(SERVERPROPERTY('EngineEdition') as INT)");
+            rs.next();
+            int engineEdition = rs.getInt(1);
+            rs.close();
+            stmt.close();
+            if (engineEdition == ENGINE_EDITION_FOR_SQL_AZURE) {
+                isSqlAzure = true;
+            }
+        }
+        catch (Exception e) {
+
+            throw new SQLException("Unable to get dbms version string to determine whether the server is SQL Server or SQL Azure.", e);
+        }
+        finally {
+            stmt.close();
+        }
+
+        return isSqlAzure;
+    }
+
+    public double serverversion() throws Exception {
+        if (_serverversion == 0) {
+            DBStatement stmt = null;
+            DBResultSet rs = null;
+
+            try {
+                stmt = this.createStatement(DBResultSet.TYPE_DIRECT_FORWARDONLY, ResultSet.CONCUR_READ_ONLY);
+                rs = stmt.executeQuery("SELECT @@VERSION");
+                rs.next();
+
+                String version = rs.getString(1);
+                // i.e. " - 10.50.1064.0"
+                int firstDot = version.indexOf('.');
+                assert ((firstDot - 2) > 0);
+                int secondDot = version.indexOf('.', (firstDot + 1));
+                try {
+                    _serverversion = Double.parseDouble(version.substring((firstDot - 2), secondDot));
+                }
+                catch (NumberFormatException ex) {
+                    // for CTP version parsed as P2.3) - 13 throws number format exception
+                    _serverversion = 16;
+                }
+            }
+            catch (Exception e) {
+                throw new Exception("Unable to get dbms major version", e);
+            }
+            finally {
+                rs.close();
+                stmt.close();
+            }
+        }
+        return _serverversion;
     }
 
 }
