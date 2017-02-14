@@ -3496,9 +3496,13 @@ public class SQLServerConnection implements ISQLServerConnection {
                     // the cause error message uses \\n\\r which does not give correct format
                     // change it to \r\n to provide correct format
                     String correctedErrorMessage = e.getCause().getMessage().replaceAll("\\\\r\\\\n", "\r\n");
-                    AuthenticationException correctedCauseException = new AuthenticationException(correctedErrorMessage);
+                    AuthenticationException correctedAuthenticationException = new AuthenticationException(correctedErrorMessage);
 
-                    throw new SQLServerException(form.format(msgArgs), null, 0, correctedCauseException);
+                    // SQLServerException is caused by ExecutionException, which is caused by AuthenticationException
+                    // to match the exception tree before error message correction
+                    ExecutionException correctedExecutionException = new ExecutionException(correctedAuthenticationException);
+
+                    throw new SQLServerException(form.format(msgArgs), null, 0, correctedExecutionException);
                 }
                 finally {
                     executorService.shutdown();
