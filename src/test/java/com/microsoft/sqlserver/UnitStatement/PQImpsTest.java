@@ -31,6 +31,10 @@ import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
 import com.microsoft.sqlserver.testframework.AbstractTest;
 import com.microsoft.sqlserver.testframework.util.RandomUtil;
 
+/**
+ * Tests different kinds of queries
+ *
+ */
 @RunWith(JUnitPlatform.class)
 public class PQImpsTest extends AbstractTest {
     private static final int SQL_SERVER_2012_VERSION = 11;
@@ -78,21 +82,16 @@ public class PQImpsTest extends AbstractTest {
     public void numericTest() throws SQLException {
         try {
             populateNumericTable();
-
             testBeforeExcute();
-
             selectNumeric();
             checkNumericMetaData();
-
             // old PQ implementation doesn't work with "insert"
             if (version >= SQL_SERVER_2012_VERSION) {
                 insertNumeric();
                 checkNumericMetaData();
-
                 updateNumeric();
                 checkNumericMetaData();
             }
-
             deleteNumeric();
             checkNumericMetaData();
         }
@@ -110,18 +109,15 @@ public class PQImpsTest extends AbstractTest {
     public void charTests() throws SQLException {
         try {
             populateCharTable();
-
             selectChar();
             checkCharMetaData(4);
 
             if (version >= SQL_SERVER_2012_VERSION) {
                 insertChar();
                 checkCharMetaData(6);
-
                 updateChar();
                 checkCharMetaData(6);
             }
-
             deleteChar();
             checkCharMetaData(4);
         }
@@ -141,18 +137,15 @@ public class PQImpsTest extends AbstractTest {
         try {
 
             populateBinaryTable();
-
             selectBinary();
             checkBinaryMetaData();
 
             if (version >= SQL_SERVER_2012_VERSION) {
                 insertBinary();
                 checkBinaryMetaData();
-
                 updateBinary();
                 checkBinaryMetaData();
             }
-
             deleteBinary();
             checkBinaryMetaData();
         }
@@ -172,18 +165,15 @@ public class PQImpsTest extends AbstractTest {
 
         try {
             populateDateAndTimeTable();
-
             selectDateAndTime();
             checkDateAndTimeMetaData();
 
             if (version >= SQL_SERVER_2012_VERSION) {
                 insertDateAndTime();
                 checkDateAndTimeMetaData();
-
                 updateDateAndTime();
                 checkDateAndTimeMetaData();
             }
-
             deleteDateAndTime();
             checkDateAndTimeMetaData();
         }

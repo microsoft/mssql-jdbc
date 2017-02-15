@@ -33,6 +33,10 @@ import org.junit.runner.RunWith;
 
 import com.microsoft.sqlserver.testframework.AbstractTest;
 
+/**
+ * Testing with LimitEscape queries
+ *
+ */
 @RunWith(JUnitPlatform.class)
 public class LimitEscapeTest extends AbstractTest {
     public static final Logger log = Logger.getLogger("LimitEscape");
@@ -755,6 +759,9 @@ public class LimitEscapeTest extends AbstractTest {
         }
     } 
 
+    /**
+     * clean up
+     */
     @BeforeAll
     public static void beforeAll() {
         try {

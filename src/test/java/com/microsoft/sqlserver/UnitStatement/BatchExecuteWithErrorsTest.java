@@ -34,11 +34,15 @@ import com.microsoft.sqlserver.testframework.DBConnection;
 import com.microsoft.sqlserver.testframework.Utils;
 import com.microsoft.sqlserver.testframework.util.RandomUtil;
 
+/**
+ * Tests batch execution with errors
+ *
+ */
 @RunWith(JUnitPlatform.class)
 public class BatchExecuteWithErrorsTest extends AbstractTest {
 
     public static final Logger log = Logger.getLogger("BatchExecuteWithErrors");
-    DBConnection con = null;
+    Connection con = null;
     String tableN = RandomUtil.getIdentifier("t_Repro47239");
     final String tableName = AbstractSQLGenerator.escapeIdentifier(tableN);
     final String insertStmt = "INSERT INTO " + tableName + " VALUES (999, 'HELLO', '4/12/1994')";
@@ -48,6 +52,7 @@ public class BatchExecuteWithErrorsTest extends AbstractTest {
 
     /**
      * Batch test
+     * 
      * @throws SQLException
      */
     @Test
@@ -63,8 +68,8 @@ public class BatchExecuteWithErrorsTest extends AbstractTest {
         String warning;
         String error;
         String severe;
-        con = new DBConnection(connectionString);
-        if (con.isSqlAzure()) {
+        con = DriverManager.getConnection(connectionString);
+        if (DBConnection.isSqlAzure(con)) {
             // SQL Azure will throw exception for "raiserror WITH LOG", so the following RAISERROR statements have not "with log" option
             warning = "RAISERROR ('raiserror level 4',4,1)";
             error = "RAISERROR ('raiserror level 11',11,1)";
@@ -219,7 +224,7 @@ public class BatchExecuteWithErrorsTest extends AbstractTest {
         // and thus it cannot be put into a TSQL batch and it is useless here.
         // So we have to skip the last scenario of this test case, i.e. "Test Severe (connection-closing) errors"
         // It is worthwhile to still execute the first 5 test scenarios of this test case, in order to have best test coverage.
-        if (!con.isSqlAzure()) {
+        if (!DBConnection.isSqlAzure(conn)) {
             // Test Severe (connection-closing) errors
             stmt.addBatch(error);
             stmt.addBatch(insertStmt);
@@ -269,12 +274,11 @@ public class BatchExecuteWithErrorsTest extends AbstractTest {
 
         assumeTrue("JDBC42".equals(Utils.getConfiguredProperty("JDBC_Version")), "Aborting test case as JDBC version is not compatible. ");
         // the DBConnection for detecting whether the server is SQL Azure or SQL Server.
-        con = new DBConnection(connectionString);
-
+        con = DriverManager.getConnection(connectionString);
         final String warning;
         final String error;
         final String severe;
-        if (con.isSqlAzure()) {
+        if (DBConnection.isSqlAzure(con)) {
             // SQL Azure will throw exception for "raiserror WITH LOG", so the following RAISERROR statements have not "with log" option
             warning = "RAISERROR ('raiserror level 4',4,1)";
             error = "RAISERROR ('raiserror level 11',11,1)";
@@ -409,7 +413,7 @@ public class BatchExecuteWithErrorsTest extends AbstractTest {
             assertThat(bue.getMessage(), containsString("Syntax error converting date"));
         }
         catch (SQLException e) {
-            assertThat(e.getMessage(), containsString("Conversion failed when converting date"));      
+            assertThat(e.getMessage(), containsString("Conversion failed when converting date"));
         }
 
         conn.setAutoCommit(true);
@@ -421,7 +425,7 @@ public class BatchExecuteWithErrorsTest extends AbstractTest {
         // and thus it cannot be put into a TSQL batch and it is useless here.
         // So we have to skip the last scenario of this test case, i.e. "Test Severe (connection-closing) errors"
         // It is worthwhile to still execute the first 5 test scenarios of this test case, in order to have best test coverage.
-        if (!con.isSqlAzure()) {
+        if (!DBConnection.isSqlAzure(DriverManager.getConnection(connectionString))) {
             // Test Severe (connection-closing) errors
             stmt.addBatch(error);
             stmt.addBatch(insertStmt);

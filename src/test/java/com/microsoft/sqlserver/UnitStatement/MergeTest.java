@@ -11,17 +11,20 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.fail;
 
 import java.sql.ResultSet;
-import java.sql.Statement;
 
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
+
 import com.microsoft.sqlserver.testframework.AbstractTest;
 import com.microsoft.sqlserver.testframework.DBConnection;
 import com.microsoft.sqlserver.testframework.DBStatement;
 
+/**
+ * Testing merge queries
+ */
 @RunWith(JUnitPlatform.class)
 public class MergeTest extends AbstractTest {
     private static final String setupTables = "IF OBJECT_ID (N'dbo.CricketTeams', N'U') IS NOT NULL DROP TABLE dbo.CricketTeams;"
@@ -50,7 +53,7 @@ public class MergeTest extends AbstractTest {
     @DisplayName("Merge Test")
     public void runTest() throws Exception {
         DBConnection conn = new DBConnection(connectionString);
-        if (conn.serverversion() >= 10) {
+        if (conn.getServerversion() >= 10) {
             DBStatement stmt = conn.createStatement();
             stmt = conn.createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE);
             stmt.executeUpdate(setupTables);

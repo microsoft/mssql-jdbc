@@ -26,6 +26,10 @@ import com.microsoft.sqlserver.jdbc.SQLServerPreparedStatement;
 import com.microsoft.sqlserver.jdbc.SQLServerStatement;
 import com.microsoft.sqlserver.testframework.AbstractTest;
 
+/**
+ * Test Poolable statements
+ *
+ */
 @RunWith(JUnitPlatform.class)
 public class PoolableTest extends AbstractTest {
 
@@ -38,19 +42,19 @@ public class PoolableTest extends AbstractTest {
     @DisplayName("Poolable Test")
     public  void poolableTest() throws SQLException, ClassNotFoundException {
         Class.forName("com.microsoft.sqlserver.jdbc.SQLServerDriver");
-        Connection Connection1 = DriverManager.getConnection(connectionString);
-        Statement Statement151 = Connection1.createStatement();
+        Connection connection = DriverManager.getConnection(connectionString);
+        Statement statement = connection.createStatement();
         try {         
             // First get the default values
-            boolean isPoolable = ((SQLServerStatement) Statement151).isPoolable();
+            boolean isPoolable = ((SQLServerStatement) statement).isPoolable();
             assertEquals(isPoolable, false, "SQLServerStatement should not be Poolable by default");
 
-            PreparedStatement prepStmt = Connection1.prepareStatement("select 1");
+            PreparedStatement prepStmt = connection.prepareStatement("select 1");
             isPoolable = ((SQLServerPreparedStatement) prepStmt).isPoolable();
             assertEquals(isPoolable, true, "SQLServerPreparedStatement should be Poolable by default");
 
 
-            CallableStatement CallableStatement1 = Connection1.prepareCall("{  ? = CALL " + "ProcName" + " (?, ?, ?, ?) }");
+            CallableStatement CallableStatement1 = connection.prepareCall("{  ? = CALL " + "ProcName" + " (?, ?, ?, ?) }");
             isPoolable = ((SQLServerCallableStatement) CallableStatement1).isPoolable();
 
             assertEquals(isPoolable, true, "SQLServerCallableStatement should be Poolable by default");
@@ -61,9 +65,9 @@ public class PoolableTest extends AbstractTest {
             assertEquals(((SQLServerCallableStatement) CallableStatement1).isPoolable(), false, "set did not work");
             CallableStatement1.close();
 
-            ((SQLServerStatement) Statement151).setPoolable(true);
-            assertEquals(((SQLServerStatement) Statement151).isPoolable(), true, "set did not work");
-            Statement151.close();
+            ((SQLServerStatement) statement).setPoolable(true);
+            assertEquals(((SQLServerStatement) statement).isPoolable(), true, "set did not work");
+            statement.close();
 
         }
         catch (UnsupportedOperationException e) {
