@@ -16,7 +16,6 @@ import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.IDN;
 import java.net.InetAddress;
-import java.net.MalformedURLException;
 import java.net.SocketException;
 import java.net.UnknownHostException;
 import java.sql.Blob;
@@ -38,7 +37,6 @@ import java.sql.Statement;
 import java.sql.Struct;
 import java.text.MessageFormat;
 import java.util.Arrays;
-import java.util.Date;
 import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.List;
@@ -46,21 +44,13 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Properties;
 import java.util.UUID;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executor;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
 
 import javax.sql.XAConnection;
 import javax.xml.bind.DatatypeConverter;
-
-import com.microsoft.aad.adal4j.AuthenticationContext;
-import com.microsoft.aad.adal4j.AuthenticationException;
-import com.microsoft.aad.adal4j.AuthenticationResult;
 
 /**
  * SQLServerConnection implements a JDBC connection to SQL Server. SQLServerConnections support JDBC connection pooling and may be either physical
@@ -146,8 +136,8 @@ public class SQLServerConnection implements ISQLServerConnection {
     }
 
     class SqlFedAuthInfo {
-        private String spn;
-        private String stsurl;
+        String spn;
+        String stsurl;
 
         @Override
         public String toString() {
@@ -155,37 +145,15 @@ public class SQLServerConnection implements ISQLServerConnection {
         }
     }
 
-    final class SqlFedAuthToken {
-        private final Date expiresOn;
-        private final String accessToken;
+    
 
-        SqlFedAuthToken(final String accessToken,
-                final long expiresIn) {
-            this.accessToken = accessToken;
-
-            Date now = new Date();
-            now.setTime(now.getTime() + (expiresIn * 1000));
-            this.expiresOn = now;
-        }
-        
-        SqlFedAuthToken(final String accessToken,
-                final Date expiresOn) {
-            this.accessToken = accessToken;
-            this.expiresOn = expiresOn;
-        }
-
-        Date getExpiresOnDate() {
-            return expiresOn;
-        }
-    }
-
-    private class ActiveDirectoryAuthentication {
-        private static final String jdbcFedauthClientId = "7f98cb04-cd1e-40df-9140-3bf7e2cea4db";
-        private static final String AdalGetAccessTokenFunctionName = "ADALGetAccessToken";
-        private static final int GetAccessTokenSuccess = 0;
-        private static final int GetAccessTokenInvalidGrant = 1;
-        private static final int GetAccessTokenTansisentError = 2;
-        private static final int GetAccessTokenOtherError = 3;
+    class ActiveDirectoryAuthentication {
+        static final String jdbcFedauthClientId = "7f98cb04-cd1e-40df-9140-3bf7e2cea4db";
+        static final String AdalGetAccessTokenFunctionName = "ADALGetAccessToken";
+        static final int GetAccessTokenSuccess = 0;
+        static final int GetAccessTokenInvalidGrant = 1;
+        static final int GetAccessTokenTansisentError = 2;
+        static final int GetAccessTokenOtherError = 3;
     }
 
     /**
@@ -3474,39 +3442,10 @@ public class SQLServerConnection implements ISQLServerConnection {
             numberOfAttempts++;
 
             if (authenticationString.trim().equalsIgnoreCase(SqlAuthentication.ActiveDirectoryPassword.toString())) {
-                ExecutorService executorService = Executors.newFixedThreadPool(1);
-                try {
-                    AuthenticationContext context = new AuthenticationContext(fedAuthInfo.stsurl, false, executorService);
-                    Future<AuthenticationResult> future = context.acquireToken(fedAuthInfo.spn, ActiveDirectoryAuthentication.jdbcFedauthClientId,
-                            user, password, null);
+                fedAuthToken = SQLServerADAL4JUtils.getSqlFedAuthToken(fedAuthInfo, user, password, authenticationString);
 
-                    AuthenticationResult authenticationResult = future.get();
-                    fedAuthToken = new SqlFedAuthToken(authenticationResult.getAccessToken(), authenticationResult.getExpiresOnDate());
-
-                    // Break out of the retry loop in successful case.
-                    break;
-                }
-                catch (MalformedURLException | InterruptedException e) {
-                    throw new SQLServerException(e.getMessage(), null);
-                }
-                catch (ExecutionException e) {
-                    MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_ADALExecution"));
-                    Object[] msgArgs = {user, authenticationString};
-
-                    // the cause error message uses \\n\\r which does not give correct format
-                    // change it to \r\n to provide correct format
-                    String correctedErrorMessage = e.getCause().getMessage().replaceAll("\\\\r\\\\n", "\r\n");
-                    AuthenticationException correctedAuthenticationException = new AuthenticationException(correctedErrorMessage);
-
-                    // SQLServerException is caused by ExecutionException, which is caused by AuthenticationException
-                    // to match the exception tree before error message correction
-                    ExecutionException correctedExecutionException = new ExecutionException(correctedAuthenticationException);
-
-                    throw new SQLServerException(form.format(msgArgs), null, 0, correctedExecutionException);
-                }
-                finally {
-                    executorService.shutdown();
-                }
+                // Break out of the retry loop in successful case.
+                break;
             }
             else if (authenticationString.trim().equalsIgnoreCase(SqlAuthentication.ActiveDirectoryIntegrated.toString())) {
                 try {
