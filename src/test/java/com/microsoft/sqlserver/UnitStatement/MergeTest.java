@@ -8,8 +8,12 @@
 package com.microsoft.sqlserver.UnitStatement;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import java.sql.ResultSet;
+import static org.junit.jupiter.api.Assertions.fail;
 
+import java.sql.ResultSet;
+import java.sql.Statement;
+
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
@@ -38,6 +42,10 @@ public class MergeTest extends AbstractTest {
             + "WHEN NOT MATCHED BY SOURCE THEN                                                    DELETE;";
 
 
+    /**
+     * Merge test
+     * @throws Exception
+     */
     @Test
     @DisplayName("Merge Test")
     public void runTest() throws Exception {
@@ -57,6 +65,28 @@ public class MergeTest extends AbstractTest {
                 conn.close();
             }
         }
+    }
+    
+    /**
+     * Clean up
+     * @throws Exception
+     */
+    @AfterAll
+    public static void afterAll() throws Exception {
+
+        DBConnection conn = new DBConnection(connectionString);
+        DBStatement stmt = conn.createStatement();
+        try {
+            stmt.executeUpdate("IF OBJECT_ID (N'dbo.CricketTeams', N'U') IS NOT NULL DROP TABLE dbo.CricketTeams");
+        }
+        catch (Exception ex) {
+            fail(ex.toString());
+        }
+        finally {
+            stmt.close();
+            conn.close();
+        }
+
     }
 
 }

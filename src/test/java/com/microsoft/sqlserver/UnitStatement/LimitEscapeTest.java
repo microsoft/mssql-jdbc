@@ -34,7 +34,7 @@ import org.junit.runner.RunWith;
 import com.microsoft.sqlserver.testframework.AbstractTest;
 
 @RunWith(JUnitPlatform.class)
-public class LimitEscape extends AbstractTest {
+public class LimitEscapeTest extends AbstractTest {
     public static final Logger log = Logger.getLogger("LimitEscape");
     private static Vector<String> offsetQuery = new Vector<String>();
     private static Connection conn = null;
@@ -279,6 +279,10 @@ public class LimitEscape extends AbstractTest {
         stmt.execute(query);
     }
 
+    /**
+     * Initialize and verify queries
+     * @throws Exception
+     */
     @Test
     @DisplayName("initAndVerifyQueries")
     public void initAndVerifyQueries() throws Exception {
@@ -706,9 +710,13 @@ public class LimitEscape extends AbstractTest {
         log.fine("Tranlsation verified for " + qry.queryCount + " queries");
     }
 
+    /**
+     * Verify offset Exception
+     * @throws Exception
+     */
     @Test
     @DisplayName("verifyOffsetException")
-    public static void verifyOffsetException() throws Exception {
+    public  void verifyOffsetException() throws Exception {
         offsetQuery.addElement("select * from UnitStatement_LimitEscape_t1 {limit 2 offset 1}");
         offsetQuery.addElement("select * from UnitStatement_LimitEscape_t1 {limit 2232 offset 1232}");
         offsetQuery.addElement("select * from UnitStatement_LimitEscape_t1 {limit (2) offset (1)}");
@@ -728,8 +736,7 @@ public class LimitEscape extends AbstractTest {
             }
             // Exception was thrown from Java reflection method invocation
             catch (InvocationTargetException e) {
-                // TODO:
-                // driver.verifyexception(e.getCause(), "unsupported.limitoffset");
+                assertEquals(e.toString(), "java.lang.reflect.InvocationTargetException");
             }
         }
         log.fine("Offset exception verified for " + i + " queries");
@@ -744,37 +751,9 @@ public class LimitEscape extends AbstractTest {
         }
         // Exception was thrown from Java reflection method invocation
         catch (InvocationTargetException e) {
-            // TODO
-            // driver.verifyexception(e.getCause(), "syntaxerror.limit");
+            assertEquals(e.toString(), "java.lang.reflect.InvocationTargetException");
         }
-    }
-
-    public static void verifyJdbcVersions_3_4(Connection conn) throws Exception {
-        // 1
-        // Execute query, and verify exception. Limit syntax should not be translated for versions lower than JDBC 4.1.
-        Query qry = new Query("select * from UnitStatement_LimitEscape_t1 {limit 10}", "select * from UnitStatement_LimitEscape_t1 {limit 10}", 0, // #
-                                                                                                                                                   // of
-                                                                                                                                                   // rows
-                0, // # of columns
-                null, // id column values
-                null, // int column values
-                null); // string column values
-        // Verified that SQL Server throws an exception with this message for similar errors.
-        qry.setExceptionMsg("Incorrect syntax near '{'.");
-        qry.execute(conn);
-
-        // 2
-        // Execute query, and verify exception. Limit syntax should not be translated for versions lower than JDBC 4.1.
-        qry = new Query("select * from UnitStatement_LimitEscape_t1 {limit 10 offset 10}",
-                "select * from UnitStatement_LimitEscape_t1 {limit 10 offset 10}", 0, // # of rows
-                0, // # of columns
-                null, // id column values
-                null, // int column values
-                null); // string column values
-        // Verified that SQL Server throws an exception with this message for similar errors.
-        qry.setExceptionMsg("Incorrect syntax near '{'.");
-        qry.execute(conn);
-    }
+    } 
 
     @BeforeAll
     public static void beforeAll() {
@@ -787,18 +766,22 @@ public class LimitEscape extends AbstractTest {
         }
     }
 
+    /**
+     * Clean up
+     * @throws Exception
+     */
     @AfterAll
     public static void afterAll() throws Exception {
 
         Statement stmt = conn.createStatement();
         try {
-            stmt.executeUpdate("drop table UnitStatement_LimitEscape_t1");
+            stmt.executeUpdate("IF OBJECT_ID (N'UnitStatement_LimitEscape_t1', N'U') IS NOT NULL DROP TABLE UnitStatement_LimitEscape_t1");
 
-            stmt.executeUpdate("drop table UnitStatement_LimitEscape_t2");
+            stmt.executeUpdate("IF OBJECT_ID (N'UnitStatement_LimitEscape_t2', N'U') IS NOT NULL DROP TABLE UnitStatement_LimitEscape_t2");
 
-            stmt.executeUpdate("drop table UnitStatement_LimitEscape_t3");
+            stmt.executeUpdate("IF OBJECT_ID (N'UnitStatement_LimitEscape_t3', N'U') IS NOT NULL DROP TABLE UnitStatement_LimitEscape_t3");
 
-            stmt.executeUpdate("drop table UnitStatement_LimitEscape_t4");
+            stmt.executeUpdate("IF OBJECT_ID (N'UnitStatement_LimitEscape_t4', N'U') IS NOT NULL DROP TABLE UnitStatement_LimitEscape_t4");
         }
         catch (Exception ex) {
             fail(ex.toString());

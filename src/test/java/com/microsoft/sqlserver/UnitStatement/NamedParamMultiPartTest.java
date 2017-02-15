@@ -29,18 +29,26 @@ import org.junit.runner.RunWith;
 import com.microsoft.sqlserver.testframework.AbstractTest;
 
 @RunWith(JUnitPlatform.class)
-public class NamedParamMultiPart extends AbstractTest {
+public class NamedParamMultiPartTest extends AbstractTest {
     private static final String dataPut = "eminem ";
     private static Connection Connection2 = null;
     private static Driver Driver1 = null;
     private static CallableStatement cs = null;
 
+    /**
+     * setup
+     * @throws SQLException
+     */
     @BeforeAll
     public static void beforeAll() throws SQLException {
         Driver1 = DriverManager.getDriver(connectionString);
         Connection2 = DriverManager.getConnection(connectionString);
     }
 
+    /**
+     * Multipart param
+     * @throws Exception
+     */
     @Test
     @DisplayName("Named Param Multi Part Test")
     public void datatypestest() throws Exception {
@@ -60,6 +68,10 @@ public class NamedParamMultiPart extends AbstractTest {
         Statement6.close();
     }
 
+    /**
+     * Stored procedure call
+     * @throws Exception
+     */
     @Test
     public void update1() throws Exception {
         cs = Connection2.prepareCall("{ CALL [mystoredproc] (?) }");
@@ -69,6 +81,10 @@ public class NamedParamMultiPart extends AbstractTest {
         assertEquals(data, dataPut, "Received data not equal to setdata");
     }
 
+    /**
+     * Stored procedure call
+     * @throws Exception
+     */
     @Test
     public void update2() throws Exception {
         cs = Connection2.prepareCall("{ CALL [dbo].[mystoredproc] (?) }");
@@ -78,6 +94,10 @@ public class NamedParamMultiPart extends AbstractTest {
         assertEquals(data, dataPut, "Received data not equal to setdata");
     }
 
+    /**
+     * Stored procedure call
+     * @throws Exception
+     */
     @Test
     public void update3() throws Exception {
         String catalog = Connection2.getCatalog();
@@ -89,6 +109,10 @@ public class NamedParamMultiPart extends AbstractTest {
         assertEquals(data, dataPut, "Received data not equal to setdata");
     }
 
+    /**
+     * Stored procedure call
+     * @throws Exception
+     */
     @Test
     public void update4() throws Exception {
         cs = Connection2.prepareCall("{ CALL mystoredproc (?) }");
@@ -98,6 +122,10 @@ public class NamedParamMultiPart extends AbstractTest {
         assertEquals(data, dataPut, "Received data not equal to setdata");
     }
 
+    /**
+     * Stored procedure call
+     * @throws Exception
+     */
     @Test
     public void update5() throws Exception {
         cs = Connection2.prepareCall("{ CALL dbo.mystoredproc (?) }");
@@ -107,6 +135,10 @@ public class NamedParamMultiPart extends AbstractTest {
         assertEquals(data, dataPut, "Received data not equal to setdata");
     }
 
+    /**
+     * 
+     * @throws Exception
+     */
     @Test
     public void update6() throws Exception {
         String catalog = Connection2.getCatalog();
@@ -118,6 +150,9 @@ public class NamedParamMultiPart extends AbstractTest {
         assertEquals(data, dataPut, "Received data not equal to setdata");
     }
 
+    /**
+     * Clean up
+     */
     @AfterAll
     public static void afterAll() {
         try {

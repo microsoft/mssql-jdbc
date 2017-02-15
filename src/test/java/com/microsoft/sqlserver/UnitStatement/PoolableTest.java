@@ -29,6 +29,11 @@ import com.microsoft.sqlserver.testframework.AbstractTest;
 @RunWith(JUnitPlatform.class)
 public class PoolableTest extends AbstractTest {
 
+    /**
+     * Poolable Test
+     * @throws SQLException
+     * @throws ClassNotFoundException
+     */
     @Test
     @DisplayName("Poolable Test")
     public  void poolableTest() throws SQLException, ClassNotFoundException {

@@ -25,7 +25,7 @@ import com.microsoft.sqlserver.testframework.AbstractTest;
 import com.microsoft.sqlserver.testframework.util.RandomUtil;
 
 @RunWith(JUnitPlatform.class)
-public class CallableMixed extends AbstractTest {
+public class CallableMixedTest extends AbstractTest {
     Connection connection1 = null;
     Statement Statement151 = null;
     String tableN = RandomUtil.getIdentifier("TFOO3");
@@ -33,6 +33,10 @@ public class CallableMixed extends AbstractTest {
     String tableName = AbstractSQLGenerator.escapeIdentifier(tableN);
     String procName = AbstractSQLGenerator.escapeIdentifier(procN);
 
+    /**
+     * Tests Callable mix
+     * @throws SQLException
+     */
     @Test
     @DisplayName("Test CallableMix")
     public void datatypestest() throws SQLException {

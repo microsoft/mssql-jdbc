@@ -12,6 +12,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 import java.sql.BatchUpdateException;
 import java.sql.Connection;
@@ -30,10 +31,11 @@ import org.junit.runner.RunWith;
 import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
 import com.microsoft.sqlserver.testframework.AbstractTest;
 import com.microsoft.sqlserver.testframework.DBConnection;
+import com.microsoft.sqlserver.testframework.Utils;
 import com.microsoft.sqlserver.testframework.util.RandomUtil;
 
 @RunWith(JUnitPlatform.class)
-public class BatchExecuteWithErrors extends AbstractTest {
+public class BatchExecuteWithErrorsTest extends AbstractTest {
 
     public static final Logger log = Logger.getLogger("BatchExecuteWithErrors");
     DBConnection con = null;
@@ -44,6 +46,10 @@ public class BatchExecuteWithErrors extends AbstractTest {
     final String select = "SELECT 1";
     final String dateConversionError = "insert into " + tableName + " values (999999, 'Hello again', 'asdfasdf')";
 
+    /**
+     * Batch test
+     * @throws SQLException
+     */
     @Test
     @DisplayName("Batch Test")
     public void Repro47239() throws SQLException {
@@ -252,12 +258,19 @@ public class BatchExecuteWithErrors extends AbstractTest {
         conn.close();
     }
 
-    @DisplayName("Regression test for using 'large' methods")
+    /**
+     * Tests large methods, supported in 42
+     * 
+     * @throws Exception
+     */
     @Test
+    @DisplayName("Regression test for using 'large' methods")
     public void Repro47239_large() throws Exception {
 
+        assumeTrue("JDBC42".equals(Utils.getConfiguredProperty("JDBC_Version")), "Aborting test case as JDBC version is not compatible. ");
         // the DBConnection for detecting whether the server is SQL Azure or SQL Server.
         con = new DBConnection(connectionString);
+
         final String warning;
         final String error;
         final String severe;
@@ -295,9 +308,12 @@ public class BatchExecuteWithErrors extends AbstractTest {
         }
         catch (Exception ignored) {
         }
-        stmt.executeLargeUpdate(
-                "create table " + tableName + " (c1_int int, c2_varchar varchar(20), c3_date datetime, c4_int int identity(1,1) primary key)");
-
+        try {
+            stmt.executeLargeUpdate(
+                    "create table " + tableName + " (c1_int int, c2_varchar varchar(20), c3_date datetime, c4_int int identity(1,1) primary key)");
+        }
+        catch (Exception ignored) {
+        }
         // Regular Statement batch update
         expectedUpdateCounts = new long[] {1, -2, 1, -2, 1, -2};
         Statement batchStmt = conn.createStatement();
@@ -391,13 +407,9 @@ public class BatchExecuteWithErrors extends AbstractTest {
         }
         catch (BatchUpdateException bue) {
             assertThat(bue.getMessage(), containsString("Syntax error converting date"));
-            // CTestLog.CompareStartsWith(bue.getMessage(), "Syntax error converting date", "Transaction rollback with conversion error threw wrong
-            // BatchUpdateException");
         }
         catch (SQLException e) {
-            assertThat(e.getMessage(), containsString("Conversion failed when converting date"));
-            // CTestLog.CompareStartsWith(e.getMessage(), "Conversion failed when converting date", "Transaction rollback with conversion error threw
-            // wrong SQLException");
+            assertThat(e.getMessage(), containsString("Conversion failed when converting date"));      
         }
 
         conn.setAutoCommit(true);

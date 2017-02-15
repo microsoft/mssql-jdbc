@@ -32,7 +32,7 @@ import com.microsoft.sqlserver.testframework.AbstractTest;
 import com.microsoft.sqlserver.testframework.util.RandomUtil;
 
 @RunWith(JUnitPlatform.class)
-public class PQTestImps extends AbstractTest {
+public class PQImpsTest extends AbstractTest {
     private static final int SQL_SERVER_2012_VERSION = 11;
 
     private static SQLServerConnection connection = null;
@@ -51,6 +51,10 @@ public class PQTestImps extends AbstractTest {
     private static String dateAndTimeTable = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("dateAndTimeTable_DB"));
     private static String multipleTypesTable = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("multipleTypesTable_DB"));
 
+    /**
+     * Setup
+     * @throws SQLException
+     */
     @BeforeAll
     public static void BeforeTests() throws SQLException {
         connection = (SQLServerConnection) DriverManager.getConnection(connectionString);
@@ -65,6 +69,10 @@ public class PQTestImps extends AbstractTest {
         populateTablesForCompexQueries();
     }
 
+    /**
+     * Numeric types test
+     * @throws SQLException
+     */
     @Test
     @DisplayName("Numeric types")
     public void numericTest() throws SQLException {
@@ -93,6 +101,10 @@ public class PQTestImps extends AbstractTest {
         }
     }
 
+    /**
+     * Char types test
+     * @throws SQLException
+     */
     @Test
     @DisplayName("Char Types")
     public void charTests() throws SQLException {
@@ -119,6 +131,10 @@ public class PQTestImps extends AbstractTest {
 
     }
 
+    /**
+     * Binary types test
+     * @throws SQLException
+     */
     @Test
     @DisplayName("Binary Types")
     public void binaryTests() throws SQLException {
@@ -146,6 +162,10 @@ public class PQTestImps extends AbstractTest {
 
     }
 
+    /**
+     * Temporal types test
+     * @throws SQLException
+     */
     @Test
     @DisplayName("Temporal Types")
     public void temporalTests() throws SQLException {
@@ -173,6 +193,10 @@ public class PQTestImps extends AbstractTest {
 
     }
 
+    /**
+     * Multiple Types table
+     * @throws Exception
+     */
     @Test
     @DisplayName("Multiple Types Table")
     public void MultipleTypesTableTest() throws Exception {
@@ -691,6 +715,10 @@ public class PQTestImps extends AbstractTest {
         pstmt.close();
     }
 
+    /**
+     * Test subquery
+     * @throws SQLException
+     */
     @Test
     @DisplayName("SubQuery")
     public void testSubquery() throws SQLException {
@@ -716,6 +744,10 @@ public class PQTestImps extends AbstractTest {
         }
     }
 
+    /**
+     * Test join
+     * @throws SQLException
+     */
     @Test
     @DisplayName("Join Queries")
     public void testJoin() throws SQLException {
@@ -743,6 +775,10 @@ public class PQTestImps extends AbstractTest {
         }
     }
 
+    /**
+     * Test merge 
+     * @throws SQLException
+     */
     @Test
     @DisplayName("Merge Queries")
     public void testMerge() throws SQLException {
@@ -937,6 +973,10 @@ public class PQTestImps extends AbstractTest {
         compareParameterMetaData(pmd, 21, "java.sql.Time", 92, "time", 14, 5);
     }
 
+    /**
+     * Test Orderby
+     * @throws SQLException
+     */
     @Test
     @DisplayName("Test OrderBy")
     public void testOrderBy() throws SQLException {
@@ -962,6 +1002,10 @@ public class PQTestImps extends AbstractTest {
 
     }
 
+    /**
+     * Test Groupby
+     * @throws SQLException
+     */
     @Test
     @DisplayName("Test GroupBy")
     private void testGroupBy() throws SQLException {
@@ -987,6 +1031,10 @@ public class PQTestImps extends AbstractTest {
 
     }
 
+    /**
+     * Test Lower
+     * @throws SQLException
+     */
     @Test
     public void testLower() throws SQLException {
         String sql = "SELECT FirstName,LOWER(LastName)" + " FROM " + nameTable + " WHERE FirstName = ? and LastName = ? and PlainID = ? and ID = ? ";
@@ -1011,6 +1059,10 @@ public class PQTestImps extends AbstractTest {
 
     }
 
+    /**
+     * Test Power
+     * @throws SQLException
+     */
     @Test
     public void testPower() throws SQLException {
         String sql = "SELECT POWER(ID,2)" + " FROM " + nameTable + " WHERE FirstName = ? and LastName = ? and PlainID = ? and ID = ? ";
@@ -1034,6 +1086,10 @@ public class PQTestImps extends AbstractTest {
 
     }
 
+    /**
+     * All in one queries
+     * @throws SQLException
+     */
     @Test
     @DisplayName("All In One Queries")
     public void testAllInOneQuery() throws SQLException {
@@ -1063,6 +1119,10 @@ public class PQTestImps extends AbstractTest {
         }
     }
 
+    /**
+     * Cleanup
+     * @throws SQLException
+     */
     @AfterAll
     public static void dropTables() throws SQLException {
         stmt.execute("if object_id('" + nameTable + "','U') is not null" + " drop table " + nameTable);

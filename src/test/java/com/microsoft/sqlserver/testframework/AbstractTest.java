@@ -83,12 +83,12 @@ public abstract class AbstractTest {
             throw e;
         }
     }
-    
+
     /**
-     * 
+     * Get the connection String
      * @return
      */
-    public static String getConnectionString(){
+    public static String getConnectionString() {
         return connectionString;
     }
 
