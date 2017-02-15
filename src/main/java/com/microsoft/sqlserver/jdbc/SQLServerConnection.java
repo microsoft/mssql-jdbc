@@ -148,12 +148,12 @@ public class SQLServerConnection implements ISQLServerConnection {
     
 
     class ActiveDirectoryAuthentication {
-        static final String jdbcFedauthClientId = "7f98cb04-cd1e-40df-9140-3bf7e2cea4db";
-        static final String AdalGetAccessTokenFunctionName = "ADALGetAccessToken";
-        static final int GetAccessTokenSuccess = 0;
-        static final int GetAccessTokenInvalidGrant = 1;
-        static final int GetAccessTokenTansisentError = 2;
-        static final int GetAccessTokenOtherError = 3;
+        static final String JDBC_FEDAUTH_CLIENT_ID = "7f98cb04-cd1e-40df-9140-3bf7e2cea4db";
+        static final String ADAL_GET_ACCESS_TOKEN_FUNCTION_NAME = "ADALGetAccessToken";
+        static final int GET_ACCESS_TOKEN_SUCCESS = 0;
+        static final int GET_ACCESS_TOKEN_INVALID_GRANT = 1;
+        static final int GET_ACCESS_TOKEN_TANSISENT_ERROR = 2;
+        static final int GET_ACCESS_TOKEN_OTHER_ERROR = 3;
     }
 
     /**
@@ -3451,7 +3451,7 @@ public class SQLServerConnection implements ISQLServerConnection {
                 try {
                     long expirationFileTime = 0;
                     FedAuthDllInfo dllInfo = AuthenticationJNI.getAccessTokenForWindowsIntegrated(fedAuthInfo.stsurl, fedAuthInfo.spn,
-                            clientConnectionId.toString(), ActiveDirectoryAuthentication.jdbcFedauthClientId, expirationFileTime);
+                            clientConnectionId.toString(), ActiveDirectoryAuthentication.JDBC_FEDAUTH_CLIENT_ID, expirationFileTime);
 
                     // AccessToken should not be null.
                     assert null != dllInfo.accessTokenBytes;
@@ -3476,7 +3476,7 @@ public class SQLServerConnection implements ISQLServerConnection {
                     }
 
                     int millisecondsRemaining = TimerRemaining(timerExpire);
-                    if (ActiveDirectoryAuthentication.GetAccessTokenTansisentError != errorCategory || timerHasExpired(timerExpire)
+                    if (ActiveDirectoryAuthentication.GET_ACCESS_TOKEN_TANSISENT_ERROR != errorCategory || timerHasExpired(timerExpire)
                             || (sleepInterval >= millisecondsRemaining)) {
 
                         String errorStatus = Integer.toHexString(adalException.GetStatus());

@@ -22,7 +22,7 @@ class SQLServerADAL4JUtils {
         ExecutorService executorService = Executors.newFixedThreadPool(1);
         try {
             AuthenticationContext context = new AuthenticationContext(fedAuthInfo.stsurl, false, executorService);
-            Future<AuthenticationResult> future = context.acquireToken(fedAuthInfo.spn, ActiveDirectoryAuthentication.jdbcFedauthClientId, user,
+            Future<AuthenticationResult> future = context.acquireToken(fedAuthInfo.spn, ActiveDirectoryAuthentication.JDBC_FEDAUTH_CLIENT_ID, user,
                     password, null);
 
             AuthenticationResult authenticationResult = future.get();
