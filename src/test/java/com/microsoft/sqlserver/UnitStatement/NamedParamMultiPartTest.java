@@ -35,8 +35,7 @@ import com.microsoft.sqlserver.testframework.AbstractTest;
 @RunWith(JUnitPlatform.class)
 public class NamedParamMultiPartTest extends AbstractTest {
     private static final String dataPut = "eminem ";
-    private static Connection connection2 = null;
-    private static Driver driver1 = null;
+    private static Connection connection = null;
     private static CallableStatement cs = null;
 
     /**
@@ -45,8 +44,7 @@ public class NamedParamMultiPartTest extends AbstractTest {
      */
     @BeforeAll
     public static void beforeAll() throws SQLException {
-        driver1 = DriverManager.getDriver(connectionString);
-        connection2 = DriverManager.getConnection(connectionString);
+        connection = DriverManager.getConnection(connectionString);
     }
 
     /**
@@ -57,13 +55,11 @@ public class NamedParamMultiPartTest extends AbstractTest {
     @DisplayName("Named Param Multi Part Test")
     public void datatypestest() throws Exception {
         // 1.0.505.2
-        Connection connection = driver1.connect(connectionString, null);
-        Statement statement = connection2.createStatement();
+        Statement statement = connection.createStatement();
         statement.executeUpdate(
                 "if exists (select * from dbo.sysobjects where id = object_id(N'[dbo].[mystoredproc]') and OBJECTPROPERTY(id, N'IsProcedure') = 1) DROP PROCEDURE [mystoredproc]");
         statement.executeUpdate("CREATE PROCEDURE [mystoredproc] (@p_out varchar(255) OUTPUT) AS set @p_out =  '" + dataPut + "'");
         statement.close();
-        connection.close();
     }
 
     /**
@@ -72,7 +68,7 @@ public class NamedParamMultiPartTest extends AbstractTest {
      */
     @Test
     public void update1() throws Exception {
-        cs = connection2.prepareCall("{ CALL [mystoredproc] (?) }");
+        cs = connection.prepareCall("{ CALL [mystoredproc] (?) }");
         cs.registerOutParameter("p_out", Types.VARCHAR);
         cs.executeUpdate();
         String data = cs.getString("p_out");
@@ -85,7 +81,7 @@ public class NamedParamMultiPartTest extends AbstractTest {
      */
     @Test
     public void update2() throws Exception {
-        cs = connection2.prepareCall("{ CALL [dbo].[mystoredproc] (?) }");
+        cs = connection.prepareCall("{ CALL [dbo].[mystoredproc] (?) }");
         cs.registerOutParameter("p_out", Types.VARCHAR);
         cs.executeUpdate();
         Object data = cs.getObject("p_out");
@@ -98,9 +94,9 @@ public class NamedParamMultiPartTest extends AbstractTest {
      */
     @Test
     public void update3() throws Exception {
-        String catalog = connection2.getCatalog();
+        String catalog = connection.getCatalog();
         String storedproc = "[" + catalog + "]" + ".[dbo].[mystoredproc]";
-        cs = connection2.prepareCall("{ CALL " + storedproc + " (?) }");
+        cs = connection.prepareCall("{ CALL " + storedproc + " (?) }");
         cs.registerOutParameter("p_out", Types.VARCHAR);
         cs.executeUpdate();
         Object data = cs.getObject("p_out");
@@ -113,7 +109,7 @@ public class NamedParamMultiPartTest extends AbstractTest {
      */
     @Test
     public void update4() throws Exception {
-        cs = connection2.prepareCall("{ CALL mystoredproc (?) }");
+        cs = connection.prepareCall("{ CALL mystoredproc (?) }");
         cs.registerOutParameter("p_out", Types.VARCHAR);
         cs.executeUpdate();
         Object data = cs.getObject("p_out");
@@ -126,7 +122,7 @@ public class NamedParamMultiPartTest extends AbstractTest {
      */
     @Test
     public void update5() throws Exception {
-        cs = connection2.prepareCall("{ CALL dbo.mystoredproc (?) }");
+        cs = connection.prepareCall("{ CALL dbo.mystoredproc (?) }");
         cs.registerOutParameter("p_out", Types.VARCHAR);
         cs.executeUpdate();
         Object data = cs.getObject("p_out");
@@ -139,9 +135,9 @@ public class NamedParamMultiPartTest extends AbstractTest {
      */
     @Test
     public void update6() throws Exception {
-        String catalog = connection2.getCatalog();
+        String catalog = connection.getCatalog();
         String storedproc = catalog + ".dbo.mystoredproc";
-        cs = connection2.prepareCall("{ CALL " + storedproc + " (?) }");
+        cs = connection.prepareCall("{ CALL " + storedproc + " (?) }");
         cs.registerOutParameter("p_out", Types.VARCHAR);
         cs.executeUpdate();
         Object data = cs.getObject("p_out");
@@ -154,8 +150,8 @@ public class NamedParamMultiPartTest extends AbstractTest {
     @AfterAll
     public static void afterAll() {
         try {
-            if (null != connection2) {
-                connection2.close();
+            if (null != connection) {
+                connection.close();
             }
             if (null != cs) {
                 cs.close();
