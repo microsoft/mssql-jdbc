@@ -23,9 +23,7 @@ import com.microsoft.sqlserver.jdbc.SQLServerException;
  * Wrapper class for SQLServerConnection
  */
 public class DBConnection extends AbstractParentWrapper {
-    private boolean _isSqlAzure = false;  // Wether the target server is SQL Azure or SQL Server
-    private boolean _determinedSqlAzureOrSqlServer = false;
-    private double _serverversion = 0;
+    private double serverversion = 0;
 
     // TODO: add Isolation Level
     // TODO: add auto commit
@@ -189,12 +187,12 @@ public class DBConnection extends AbstractParentWrapper {
     }
 
     /**
-     * 
-     * @return
+     * Retrieve server version
+     * @return server version
      * @throws Exception
      */
-    public double getServerversion() throws Exception {
-        if (_serverversion == 0) {
+    public double getServerVersion() throws Exception {
+        if (0 == serverversion) {
             DBStatement stmt = null;
             DBResultSet rs = null;
 
@@ -209,11 +207,11 @@ public class DBConnection extends AbstractParentWrapper {
                 assert ((firstDot - 2) > 0);
                 int secondDot = version.indexOf('.', (firstDot + 1));
                 try {
-                    _serverversion = Double.parseDouble(version.substring((firstDot - 2), secondDot));
+                    serverversion = Double.parseDouble(version.substring((firstDot - 2), secondDot));
                 }
                 catch (NumberFormatException ex) {
                     // for CTP version parsed as P2.3) - 13 throws number format exception
-                    _serverversion = 16;
+                    serverversion = 16;
                 }
             }
             catch (Exception e) {
@@ -224,7 +222,7 @@ public class DBConnection extends AbstractParentWrapper {
                 stmt.close();
             }
         }
-        return _serverversion;
+        return serverversion;
     }
 
 }

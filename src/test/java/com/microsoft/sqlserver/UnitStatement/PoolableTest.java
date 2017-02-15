@@ -53,16 +53,16 @@ public class PoolableTest extends AbstractTest {
             assertEquals(isPoolable, true, "SQLServerPreparedStatement should be Poolable by default");
 
 
-            CallableStatement CallableStatement1 = connection.prepareCall("{  ? = CALL " + "ProcName" + " (?, ?, ?, ?) }");
-            isPoolable = ((SQLServerCallableStatement) CallableStatement1).isPoolable();
+            CallableStatement callableStatement = connection.prepareCall("{  ? = CALL " + "ProcName" + " (?, ?, ?, ?) }");
+            isPoolable = ((SQLServerCallableStatement) callableStatement).isPoolable();
 
             assertEquals(isPoolable, true, "SQLServerCallableStatement should be Poolable by default");
 
             // Now do couple of sets and gets
 
-            ((SQLServerCallableStatement) CallableStatement1).setPoolable(false);
-            assertEquals(((SQLServerCallableStatement) CallableStatement1).isPoolable(), false, "set did not work");
-            CallableStatement1.close();
+            ((SQLServerCallableStatement) callableStatement).setPoolable(false);
+            assertEquals(((SQLServerCallableStatement) callableStatement).isPoolable(), false, "set did not work");
+            callableStatement.close();
 
             ((SQLServerStatement) statement).setPoolable(true);
             assertEquals(((SQLServerStatement) statement).isPoolable(), true, "set did not work");

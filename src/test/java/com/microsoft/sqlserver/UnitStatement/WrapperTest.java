@@ -145,7 +145,7 @@ public class WrapperTest extends AbstractTest {
 
     private static boolean isKatmaiServer() throws Exception {
         DBConnection conn = new DBConnection(connectionString);
-        double version = conn.getServerversion();
+        double version = conn.getServerVersion();
         conn.close();
         return ((version >= 10.0) ? true : false);
     }

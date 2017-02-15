@@ -53,7 +53,7 @@ public class MergeTest extends AbstractTest {
     @DisplayName("Merge Test")
     public void runTest() throws Exception {
         DBConnection conn = new DBConnection(connectionString);
-        if (conn.getServerversion() >= 10) {
+        if (conn.getServerVersion() >= 10) {
             DBStatement stmt = conn.createStatement();
             stmt = conn.createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE);
             stmt.executeUpdate(setupTables);
