@@ -87,7 +87,8 @@ The driver can be downloaded from the [Microsoft Download Center](https://www.mi
 This project has following dependencies: 
 
 Compile Time:
- - `azure-keyvault` : Azure Key Vault Provider for Always Encrypted feature
+ - `azure-keyvault` : Azure Key Vault Provider for Always Encrypted feature (optinal)
+ - `adal4j` : Azure ActiveDirectory Library for Java for Azure Active Directory Authentication feature (optinal)
 
 Test Time:
  - `junit:jar`   : For Unit Test cases.
@@ -98,21 +99,22 @@ One can see all dependencies including Transitive Dependency by executing follow
 mvn dependency:tree
 ```
 
-###Exclude Dependencies
-If you wish to limit the number of run-time dependencies, and your project does not require the features named above, you can explicitly exclude them by adding exclusion tag.  
-***For Example:*** If you are not using *Always Encrypted Azure Key Vault feature* then you can exclude *azure-keyvault* dependency. Please see following snippet. 
+### Azure Key Vault and Azure Active Directory Authentication Dependencies
+Since the dependencies of ***Azure Key Vault*** and ***Azure Active Directory Authentication*** are optional, projects that require those 2 features need to redeclare the dependency explicitly in their pom files.
+
+***For Example:*** If you are using *Azure Key Vault feature* then you need to redeclare *azure-keyvault* dependency in your project's pom file. Please see the following snippet: 
 ```
 <dependency>
 	<groupId>com.microsoft.sqlserver</groupId>
 	<artifactId>mssql-jdbc</artifactId>
 	<version>6.1.0.jre8</version>
 	<scope>compile</scope>
-	<exclusions>
-		<exclusion>
-		         <groupId>com.microsoft.azure</groupId>
-		         <artifactId>azure-keyvault</artifactId>
-		</exclusion>
-    </exclusions>
+</dependency>
+
+<dependency>
+	<groupId>com.microsoft.azure</groupId>
+	<artifactId>azure-keyvault</artifactId>
+	<version>0.9.7</version>
 </dependency>
 ```
 
