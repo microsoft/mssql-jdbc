@@ -41,7 +41,6 @@ public class PoolableTest extends AbstractTest {
     @Test
     @DisplayName("Poolable Test")
     public  void poolableTest() throws SQLException, ClassNotFoundException {
-        Class.forName("com.microsoft.sqlserver.jdbc.SQLServerDriver");
         Connection connection = DriverManager.getConnection(connectionString);
         Statement statement = connection.createStatement();
         try {         

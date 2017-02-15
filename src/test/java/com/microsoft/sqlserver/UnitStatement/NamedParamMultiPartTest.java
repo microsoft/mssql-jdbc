@@ -45,23 +45,12 @@ public class NamedParamMultiPartTest extends AbstractTest {
     @BeforeAll
     public static void beforeAll() throws SQLException {
         connection = DriverManager.getConnection(connectionString);
-    }
-
-    /**
-     * Multipart param
-     * @throws Exception
-     */
-    @Test
-    @DisplayName("Named Param Multi Part Test")
-    public void datatypestest() throws Exception {
-        // 1.0.505.2
         Statement statement = connection.createStatement();
         statement.executeUpdate(
                 "if exists (select * from dbo.sysobjects where id = object_id(N'[dbo].[mystoredproc]') and OBJECTPROPERTY(id, N'IsProcedure') = 1) DROP PROCEDURE [mystoredproc]");
         statement.executeUpdate("CREATE PROCEDURE [mystoredproc] (@p_out varchar(255) OUTPUT) AS set @p_out =  '" + dataPut + "'");
         statement.close();
-    }
-
+    }    
     /**
      * Stored procedure call
      * @throws Exception
