@@ -14,6 +14,7 @@ import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Statement;
 
 import com.microsoft.sqlserver.jdbc.SQLServerConnection;
 import com.microsoft.sqlserver.jdbc.SQLServerException;
@@ -22,6 +23,7 @@ import com.microsoft.sqlserver.jdbc.SQLServerException;
  * Wrapper class for SQLServerConnection
  */
 public class DBConnection extends AbstractParentWrapper {
+    private double serverversion = 0;
 
     // TODO: add Isolation Level
     // TODO: add auto commit
@@ -172,6 +174,55 @@ public class DBConnection extends AbstractParentWrapper {
         }
 
         return isSqlAzure;
+    }
+
+    /**
+     * @param string
+     * @return
+     * @throws SQLException
+     */
+    public DBCallableStatement prepareCall(String query) throws SQLException {
+        DBCallableStatement dbcstmt = new DBCallableStatement(this);
+        return dbcstmt.prepareCall(query);
+    }
+
+    /**
+     * Retrieve server version
+     * @return server version
+     * @throws Exception
+     */
+    public double getServerVersion() throws Exception {
+        if (0 == serverversion) {
+            DBStatement stmt = null;
+            DBResultSet rs = null;
+
+            try {
+                stmt = this.createStatement(DBResultSet.TYPE_DIRECT_FORWARDONLY, ResultSet.CONCUR_READ_ONLY);
+                rs = stmt.executeQuery("SELECT @@VERSION");
+                rs.next();
+
+                String version = rs.getString(1);
+                // i.e. " - 10.50.1064.0"
+                int firstDot = version.indexOf('.');
+                assert ((firstDot - 2) > 0);
+                int secondDot = version.indexOf('.', (firstDot + 1));
+                try {
+                    serverversion = Double.parseDouble(version.substring((firstDot - 2), secondDot));
+                }
+                catch (NumberFormatException ex) {
+                    // for CTP version parsed as P2.3) - 13 throws number format exception
+                    serverversion = 16;
+                }
+            }
+            catch (Exception e) {
+                throw new Exception("Unable to get dbms major version", e);
+            }
+            finally {
+                rs.close();
+                stmt.close();
+            }
+        }
+        return serverversion;
     }
 
 }

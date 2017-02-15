@@ -85,6 +85,14 @@ public abstract class AbstractTest {
     }
 
     /**
+     * Get the connection String
+     * @return
+     */
+    public static String getConnectionString() {
+        return connectionString;
+    }
+
+    /**
      * This will take care of all clean ups after running the Test Suite.
      * 
      * @throws Exception
