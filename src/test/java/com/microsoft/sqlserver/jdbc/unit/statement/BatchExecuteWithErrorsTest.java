@@ -5,7 +5,7 @@
  * 
  * This program is made available under the terms of the MIT License. See the LICENSE file in the project root for more information.
  */
-package com.microsoft.sqlserver.jdbc.unitStatement;
+package com.microsoft.sqlserver.jdbc.unit.statement;
 
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.MatcherAssert.assertThat;
