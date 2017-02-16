@@ -87,8 +87,8 @@ The driver can be downloaded from the [Microsoft Download Center](https://www.mi
 This project has following dependencies: 
 
 Compile Time:
- - `azure-keyvault` : Azure Key Vault Provider for Always Encrypted feature (optinal)
- - `adal4j` : Azure ActiveDirectory Library for Java for Azure Active Directory Authentication feature (optinal)
+ - `azure-keyvault` : Azure Key Vault Provider for Always Encrypted feature (optional)
+ - `adal4j` : Azure ActiveDirectory Library for Java for Azure Active Directory Authentication feature (optional)
 
 Test Time:
  - `junit:jar`   : For Unit Test cases.
@@ -100,7 +100,7 @@ mvn dependency:tree
 ```
 
 ### Azure Key Vault and Azure Active Directory Authentication Dependencies
-Since the dependencies of ***Azure Key Vault*** and ***Azure Active Directory Authentication*** are optional, projects that require those 2 features need to redeclare the dependency explicitly in their pom files.
+Projects that require either of the two features need to explicitly declare the dependency in their pom file.
 
 ***For Example:*** If you are using *Azure Key Vault feature* then you need to redeclare *azure-keyvault* dependency in your project's pom file. Please see the following snippet: 
 ```
