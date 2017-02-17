@@ -79,6 +79,18 @@ public class DBStatement extends AbstractParentWrapper {
     }
 
     /**
+     * executes the given sql query
+     * 
+     * @param sql
+     * @return
+     * @throws SQLException
+     */
+    public int executeUpdate(String sql) throws SQLException {
+        int updatecount = statement.executeUpdate(sql);
+        return updatecount;
+    }
+
+    /**
      * Close the <code>Statement</code> and <code>ResultSet</code> associated with it
      * 
      * @throws SQLException
@@ -131,7 +143,14 @@ public class DBStatement extends AbstractParentWrapper {
      * @throws SQLException
      */
     public int getQueryTimeout() throws SQLException {
-        int current = ((Statement) product()).getQueryTimeout();
-        return current;
+        return ((Statement) product()).getQueryTimeout();
+    }
+
+    /**
+     * @return
+     * @throws SQLException
+     */
+    public int getUpdateCount() throws SQLException {
+        return ((Statement) product()).getUpdateCount();
     }
 }

@@ -1584,9 +1584,17 @@ final class TDSChannel {
                     .getProperty(SQLServerDriverStringProperty.HOSTNAME_IN_CERTIFICATE.toString());
 
             trustStoreType = con.activeConnectionProperties.getProperty(SQLServerDriverStringProperty.TRUST_STORE_TYPE.toString());
+            
+            if(StringUtils.isEmpty(trustStoreType)) {
+                trustStoreType = SQLServerDriverStringProperty.TRUST_STORE_TYPE.getDefaultValue();
+            }
+            
             fipsProvider = con.activeConnectionProperties.getProperty(SQLServerDriverStringProperty.FIPS_PROVIDER.toString());
-
-            isFips = isFipsEnabled(fipsProvider, trustStoreType);
+            isFips = Boolean.valueOf(con.activeConnectionProperties.getProperty(SQLServerDriverBooleanProperty.FIPS.toString())); 
+            
+            if (isFips) {
+                validateFips(fipsProvider, trustStoreType, trustStoreFileName);
+            }
 
             assert TDS.ENCRYPT_OFF == con.getRequestedEncryptionLevel() || // Login only SSL
                     TDS.ENCRYPT_ON == con.getRequestedEncryptionLevel();   // Full SSL
@@ -1635,7 +1643,7 @@ final class TDSChannel {
                         ks = KeyStore.getInstance(trustStoreType, fipsProvider);
                     }
                     else {
-                        ks = KeyStore.getInstance("JKS");
+                        ks = KeyStore.getInstance(trustStoreType);
                     }
                     ksProvider = ks.getProvider();
 
@@ -1806,51 +1814,67 @@ final class TDSChannel {
     }
 
     /**
-     * Checking if FIPS is enabled or not.
+     * Validate FIPS if fips set as true
+     * 
+     * Valid FIPS settings:
+     * <LI>Encrypt should be true
+     * <LI>trustServerCertificate should be false
+     * <LI>if certificate is not installed FIPSProvider & TrustStoreType should be present.
      * 
      * @param fipsProvider
      *            FIPS Provider
-     * @return {@code true} if Customer wants to use FIPS Provider.
-     * @since 6.1.2
+     * @param trustStoreType
+     * @param trustStoreFileName
+     * @throws SQLServerException
+     * @since 6.1.4
      */
-    private boolean isFipsEnabled(String fipsProvider,
-            String trustStoreType) {
-        boolean isFipsEnabled = false;
+    private void validateFips(final String fipsProvider,
+            final String trustStoreType,
+            final String trustStoreFileName) throws SQLServerException {
+        boolean isValid = false;
         boolean isEncryptOn;
         boolean isValidTrustStoreType;
+        boolean isValidTrustStore;
         boolean isTrustServerCertificate;
+        boolean isValidFipsProvider;
 
-        if (!StringUtils.isEmpty(fipsProvider)) {
-            isEncryptOn = TDS.ENCRYPT_ON == con.getRequestedEncryptionLevel();
+        String strError = SQLServerException.getErrString("R_invalidFipsConfig");
 
-            // Here different FIPS provider supports different KeyStore type along with different JVM Implementation.
-            isValidTrustStoreType = !StringUtils.isEmpty(trustStoreType);
-            isTrustServerCertificate = con.trustServerCertificate();
+        isEncryptOn = (TDS.ENCRYPT_ON == con.getRequestedEncryptionLevel());
 
-            if (isEncryptOn && isValidTrustStoreType && !isTrustServerCertificate) {
-                isFipsEnabled = true;
-            }
-            else {
-                // If FIPS is not enabled issue warning and fall-back to non-FIPS mode.
-                StringBuilder sb = new StringBuilder();
-                sb.append("Could not switch to FIPS mode due to above settings: ");
-                sb.append(SQLServerDriverStringProperty.FIPS_PROVIDER.toString());
-                sb.append(": ");
-                sb.append(fipsProvider);
-                sb.append(", ");
+        // Here different FIPS provider supports different KeyStore type along with different JVM Implementation.
+        isValidFipsProvider = !StringUtils.isEmpty(fipsProvider);
+        isValidTrustStoreType = !StringUtils.isEmpty(trustStoreType);
+        isValidTrustStore = !StringUtils.isEmpty(trustStoreFileName);
+        isTrustServerCertificate = con.trustServerCertificate();
 
-                sb.append(SQLServerDriverStringProperty.TRUST_STORE_TYPE.toString());
-                sb.append(": ");
-                sb.append(trustStoreType);
-                sb.append(", ");
+        if (isEncryptOn & !isTrustServerCertificate) {
+            if (logger.isLoggable(Level.FINER))
+                logger.finer(toString() + " Found parameters are encrypt is true & trustServerCertificate false");
+            
+            isValid = true;
 
-                sb.append("TrustCertificate: ");
-                sb.append(isTrustServerCertificate);
-
-                logger.warning(sb.toString());
+            if (isValidTrustStore) {
+                // In case of valid trust store we need to check fipsProvider and TrustStoreType.
+                if (!isValidFipsProvider || !isValidTrustStoreType) {
+                    isValid = false;
+                    strError = SQLServerException.getErrString("R_invalidFipsProviderConfig");
+                    
+                    if (logger.isLoggable(Level.FINER))
+                        logger.finer(toString() + " FIPS provider & TrustStoreType should pass with TrustStore.");
+                }
+                if (logger.isLoggable(Level.FINER))
+                    logger.finer(toString() + " Found FIPS parameters seems to be valid.");
             }
         }
-        return isFipsEnabled;
+        else {
+            strError = SQLServerException.getErrString("R_invalidFipsEncryptConfig");
+        }
+
+        if (!isValid) {
+            throw new SQLServerException(strError, null, 0, null);
+        }
+
     }
 
     private final static String SEPARATOR = System.getProperty("file.separator");

@@ -46,6 +46,7 @@ public class DBResultSet extends AbstractParentWrapper {
     public static final int TYPE_SCROLL_INSENSITIVE = ResultSet.TYPE_SCROLL_INSENSITIVE;
     public static final int TYPE_SCROLL_SENSITIVE = ResultSet.TYPE_SCROLL_SENSITIVE;
     public static final int CONCUR_UPDATABLE = ResultSet.CONCUR_UPDATABLE;
+    public static final int TYPE_DIRECT_FORWARDONLY = ResultSet.TYPE_FORWARD_ONLY + 1000;
 
     protected DBTable currentTable;
     public int _currentrow = -1;       // The row this rowset is currently pointing to
@@ -157,8 +158,8 @@ public class DBResultSet extends AbstractParentWrapper {
         Object retrieved = this.getXXX(ordinal + 1, coercion);
 
         // Verify
-        //TODO: Check the intermittent verification error
-        //verifydata(ordinal, coercion, expectedData, retrieved);
+        // TODO: Check the intermittent verification error
+        // verifydata(ordinal, coercion, expectedData, retrieved);
     }
 
     /**
@@ -449,5 +450,14 @@ public class DBResultSet extends AbstractParentWrapper {
             return value;
         }
         return ts;
+    }
+
+    /**
+     * @param i
+     * @return
+     * @throws SQLException
+     */
+    public int getInt(int index) throws SQLException {
+        return resultSet.getInt(index);
     }
 }
