@@ -3,6 +3,25 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](http://keepachangelog.com/) 
 
+## [6.1.4]
+### Added
+- Added isWrapperFor methods for MetaData classes[#94](https://github.com/Microsoft/mssql-jdbc/pull/94)
+- Added Code Coverage [#136](https://github.com/Microsoft/mssql-jdbc/pull/136)
+- Added TVP schema test [#137](https://github.com/Microsoft/mssql-jdbc/pull/137)
+- Introduced FIPS boolean property [#135](https://github.com/Microsoft/mssql-jdbc/pull/135)
+- Added unit statement test cases [#147](https://github.com/Microsoft/mssql-jdbc/pull/147)
+
+### Changed
+- Enabled AAD Authentication with Access Token on Linux [#142](https://github.com/Microsoft/mssql-jdbc/pull/142)
+- Enabled AAD Authentication with ActiveDirectoryPassword on Linux [#146](https://github.com/Microsoft/mssql-jdbc/pull/146)
+- Made Azure Key Vault and Azure Active Directory Authentication Dependencies optional [#148](https://github.com/Microsoft/mssql-jdbc/pull/148)
+- Getting TVP name from ParameterMetaData when using TVP with a stored procedure [#138](https://github.com/Microsoft/mssql-jdbc/pull/138)
+
+### Fixed Issues
+- Fixed getBinaryStream issue [#133](https://github.com/Microsoft/mssql-jdbc/pull/133) 
+ - Fixed an issue of Bulk Copy when AlwaysEncrypted is enabled on connection and destination table is not encrypted [#151](https://github.com/Microsoft/mssql-jdbc/pull/151)
+
+
 ## [6.1.3]
 ### Added
  - Added Binary and Varbinary types to the jUnit test framework [#119](https://github.com/Microsoft/mssql-jdbc/pull/119)
