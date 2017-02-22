@@ -23,6 +23,7 @@ import java.util.logging.Level;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import javax.naming.NamingException;
 import javax.security.auth.Subject;
 import javax.security.auth.login.AppConfigurationEntry;
 import javax.security.auth.login.Configuration;
@@ -35,6 +36,8 @@ import org.ietf.jgss.GSSException;
 import org.ietf.jgss.GSSManager;
 import org.ietf.jgss.GSSName;
 import org.ietf.jgss.Oid;
+
+import com.microsoft.sqlserver.jdbc.dns.DNSKerberosLocator;
 
 /**
  * KerbAuthentication for int auth.
@@ -268,7 +271,9 @@ final class KerbAuthentication extends SSPIAuthentication {
             spn = makeSpn(address, port);
         }
         this.spn = enrichSpnWithRealm(spn, null == userSuppliedServerSpn);
-        //DEBUG System.err.println("SPN before enrichment: " + spn + " ; AFTER enrichment: " + this.spn);
+        if (!this.spn.equals(spn) && authLogger.isLoggable(Level.FINER)){
+            authLogger.finer(toString() + "SPN enriched: " + spn + " := " + this.spn);
+        }
 	}
 	
     private static final Pattern SPN_PATTERN = Pattern.compile("MSSQLSvc/(.*):([^:@]+)(@.+)?", Pattern.CASE_INSENSITIVE);
@@ -287,7 +292,7 @@ final class KerbAuthentication extends SSPIAuthentication {
         }
         String dnsName = m.group(1);
         String portOrInstance = m.group(2);
-        RealmValidator realmValidator = getRealmValidator();
+        RealmValidator realmValidator = getRealmValidator(dnsName);
         String realm = findRealmFromHostname(realmValidator, dnsName);
         if (realm == null && allowHostnameCanonicalization) {
             // We failed, try with canonical host name to find a better match
@@ -315,9 +320,10 @@ final class KerbAuthentication extends SSPIAuthentication {
     /**
      * Find a suitable way of validating a REALM for given JVM.
      *
+     * @param hostnameToTest an example hostname we are gonna use to test our realm validator.
      * @return a not null realm Validator.
      */
-    static RealmValidator getRealmValidator() {
+    static RealmValidator getRealmValidator(String hostnameToTest) {
         if (validator != null) {
             return validator;
         }
@@ -327,15 +333,11 @@ final class KerbAuthentication extends SSPIAuthentication {
             Method getInstance = clz.getMethod("getInstance", new Class[0]);
             final Method getKDCList = clz.getMethod("getKDCList", new Class[] { String.class });
             final Object instance = getInstance.invoke(null);
-            //DEBUG final Method getDefaultRealm = clz.getMethod("getDefaultRealm", new Class[0]);
-            //DEBUG final Object realmDefault = getDefaultRealm.invoke(instance);
-            //DEBUG System.err.println("default_realm="+realmDefault);
             RealmValidator oracleRealmValidator = new RealmValidator() {
 
                 @Override
                 public boolean isRealmValid(String realm) {
                     try {
-                        //DEBUG System.err.println("RealmValidator.isRealmValid("+realm+")");
                         Object ret = getKDCList.invoke(instance, realm);
                         return ret!=null;
                     } catch (Exception err) {
@@ -344,15 +346,28 @@ final class KerbAuthentication extends SSPIAuthentication {
                 }
             };
             validator = oracleRealmValidator;
-            return oracleRealmValidator;
+            // As explained here: https://github.com/Microsoft/mssql-jdbc/pull/40#issuecomment-281509304
+            // The default Oracle Resolution mechanism is not bulletproof
+            // If it resolves a crappy name, drop it.
+            if (!validator.isRealmValid("this.might.not.exist." + hostnameToTest)){
+                // Our realm validator is well working, return it
+                authLogger.fine("Kerberos Realm Validator: Using Built-in Oracle Realm Validation method.");
+                return oracleRealmValidator;
+            }
+            authLogger.fine("Kerberos Realm Validator: Detected buggy Oracle Realm Validator, using DNSKerberosLocator.");
         } catch (ReflectiveOperationException notTheRightJVMException) {
             // Ignored, we simply are not using the right JVM
+            authLogger.fine("Kerberos Realm Validator: No Oracle Realm Validator Available, using DNSKerberosLocator.");
         }
         // No implementation found, default one, not any realm is valid
         validator = new RealmValidator() {
             @Override
             public boolean isRealmValid(String realm) {
-                return false;
+                try {
+                    return DNSKerberosLocator.isRealmValid(realm);
+                } catch (NamingException err){
+                    return false;
+                }
             }
         };
         return validator;
@@ -365,13 +380,16 @@ final class KerbAuthentication extends SSPIAuthentication {
      * @param hostname the name we are looking a REALM for
      * @return the realm if found, null otherwise
      */
-    private static String findRealmFromHostname(RealmValidator realmValidator, String hostname) {
+    private String findRealmFromHostname(RealmValidator realmValidator, String hostname) {
         if (hostname == null) {
             return null;
         }
         int index = 0;
         while (index != -1 && index < hostname.length() - 2) {
             String realm = hostname.substring(index);
+            if (authLogger.isLoggable(Level.FINEST)) {
+                authLogger.finest(toString() + " looking up REALM candidate " + realm);
+            }
             if (realmValidator.isRealmValid(realm)) {
                 return realm.toUpperCase();
             }
@@ -390,10 +408,9 @@ final class KerbAuthentication extends SSPIAuthentication {
         boolean isRealmValid(String realm);
     }
 
-    byte[] GenerateClientContext(byte[] pin,   boolean[] done ) throws SQLServerException
-    {
-        if(null == peerContext)
-        {
+    byte[] GenerateClientContext(byte[] pin,
+            boolean[] done) throws SQLServerException {
+        if (null == peerContext) {
             intAuthInit();
         }
         return intAuthHandShake(pin, done);
