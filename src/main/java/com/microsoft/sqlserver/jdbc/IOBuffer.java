@@ -55,6 +55,8 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.SimpleTimeZone;
 import java.util.TimeZone;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
@@ -6824,7 +6826,7 @@ final class TDSReader {
 final class TimeoutTimer implements Runnable {
     private final int timeoutSeconds;
     private final TDSCommand command;
-    private Thread timerThread;
+    private static final ExecutorService executor = Executors.newCachedThreadPool();
     private volatile boolean canceled = false;
 
     TimeoutTimer(int timeoutSeconds,
@@ -6836,18 +6838,16 @@ final class TimeoutTimer implements Runnable {
         this.command = command;
     }
 
-    final void start() {
-        timerThread = new Thread(this);
-        timerThread.setDaemon(true);
-        timerThread.start();
+    final void start() {        
+        executor.execute(this);
     }
 
     final void stop() {
+        executor.shutdownNow();
         canceled = true;
-        timerThread.interrupt();
     }
 
-    public void run() {
+    public void run() { 
         int secondsRemaining = timeoutSeconds;
         try {
             // Poll every second while time is left on the timer.
