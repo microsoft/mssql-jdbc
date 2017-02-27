@@ -6826,7 +6826,7 @@ final class TDSReader {
 final class TimeoutTimer implements Runnable {
     private final int timeoutSeconds;
     private final TDSCommand command;
-    private static final ExecutorService executor = Executors.newCachedThreadPool();
+    private ExecutorService executor = Executors.newCachedThreadPool();
     private volatile boolean canceled = false;
 
     TimeoutTimer(int timeoutSeconds,
@@ -6838,7 +6838,11 @@ final class TimeoutTimer implements Runnable {
         this.command = command;
     }
 
-    final void start() {        
+    final void start() {
+        //if ExecutorService is shutdown already, reset it
+        if(executor.isShutdown()){
+            executor = Executors.newCachedThreadPool();
+        }
         executor.execute(this);
     }
 
