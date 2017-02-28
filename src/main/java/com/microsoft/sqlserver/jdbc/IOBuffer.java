@@ -57,7 +57,9 @@ import java.util.SimpleTimeZone;
 import java.util.TimeZone;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.concurrent.SynchronousQueue;
+import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -6826,7 +6828,15 @@ final class TDSReader {
 final class TimeoutTimer implements Runnable {
     private final int timeoutSeconds;
     private final TDSCommand command;
-    private ExecutorService executor = Executors.newCachedThreadPool();
+    private volatile Future<?> task;
+    private static final ExecutorService executor = Executors.newCachedThreadPool(new ThreadFactory() {
+        @Override
+        public Thread newThread(Runnable r) {
+            Thread t = Executors.defaultThreadFactory().newThread(r);
+            t.setDaemon(true);
+            return t;
+        }
+    });
     private volatile boolean canceled = false;
 
     TimeoutTimer(int timeoutSeconds,
@@ -6839,15 +6849,11 @@ final class TimeoutTimer implements Runnable {
     }
 
     final void start() {
-        //if ExecutorService is shutdown already, reset it
-        if(executor.isShutdown()){
-            executor = Executors.newCachedThreadPool();
-        }
-        executor.execute(this);
+        task = executor.submit(this);
     }
 
     final void stop() {
-        executor.shutdownNow();
+        task.cancel(false);
         canceled = true;
     }
 
