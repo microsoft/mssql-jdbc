@@ -87,7 +87,6 @@ final class KerbAuthentication extends SSPIAuthentication {
                     else {
                         Map<String, String> confDetails = new HashMap<String, String>();
                         confDetails.put("useTicketCache", "true");
-                        confDetails.put("doNotPrompt", "true");
                         appConf = new AppConfigurationEntry("com.sun.security.auth.module.Krb5LoginModule",
                                 AppConfigurationEntry.LoginModuleControlFlag.REQUIRED, confDetails);
                         if (authLogger.isLoggable(Level.FINER))
@@ -132,14 +131,16 @@ final class KerbAuthentication extends SSPIAuthentication {
                 AccessControlContext context = AccessController.getContext();
                 currentSubject = Subject.getSubject(context);
                 if (null == currentSubject) {
-                    lc = new LoginContext(CONFIGNAME);
+                    lc = new LoginContext(CONFIGNAME, new KerbCallback(con));
                     lc.login();
                     // per documentation LoginContext will instantiate a new subject.
                     currentSubject = lc.getSubject();
                 }
             }
             catch (LoginException le) {
+                authLogger.fine("Failed to login due to " + le.getClass().getName() + ":" + le.getMessage());
                 con.terminate(SQLServerException.DRIVER_ERROR_NONE, SQLServerException.getErrString("R_integratedAuthenticationFailed"), le);
+                return;
             }
 
             // http://blogs.sun.com/harcey/entry/of_java_kerberos_and_access
