@@ -2552,13 +2552,18 @@ final class SocketFinder {
             }
         }
 
-        // if a channel was selected, make the necessary updates
+     // if a channel was selected, make the necessary updates
         if (selectedChannel != null) {
-            // Note that this must be done after selector is closed. Otherwise,
-            // we would get an illegalBlockingMode exception at run time.
-            selectedChannel.configureBlocking(true);
-            selectedSocket = selectedChannel.socket();
+            //the selectedChannel has the address that is connected successfully
+            //convert it to a java.net.Socket object with the address
+            SocketAddress  iadd = selectedChannel.getRemoteAddress();
+            selectedSocket = new Socket();
+            selectedSocket.connect(iadd);
+
             result = Result.SUCCESS;
+            
+            //close the channel since it is not used anymore
+            selectedChannel.close();
         }
     }
 
