@@ -13,6 +13,7 @@ import javax.security.auth.callback.UnsupportedCallbackException;
 public class KerbCallback implements CallbackHandler {
 
     private final SQLServerConnection con;
+    private String usernameRequested = null;
 
     KerbCallback(SQLServerConnection con) {
         this.con = con;
@@ -30,13 +31,22 @@ public class KerbCallback implements CallbackHandler {
                 "Cannot get any of properties: " + Arrays.toString(names) + " from con properties");
     }
 
+    /**
+     * If a name was retrieved By Kerberos, return it.
+     * @return null if callback was not called or username was not provided
+     */
+    public String getUsernameRequested(){
+        return usernameRequested;
+    }
+
     @Override
     public void handle(Callback[] callbacks) throws IOException, UnsupportedCallbackException {
         for (int i = 0; i < callbacks.length; i++) {
             Callback callback = callbacks[i];
             if (callback instanceof NameCallback) {
-                ((NameCallback) callback).setName(getAnyOf(callback, con.activeConnectionProperties,
-                        "user", SQLServerDriverStringProperty.USER.name()));
+                usernameRequested = getAnyOf(callback, con.activeConnectionProperties,
+                                             "user", SQLServerDriverStringProperty.USER.name());
+                ((NameCallback) callback).setName(usernameRequested);
             } else if (callback instanceof PasswordCallback) {
                 String password = getAnyOf(callback, con.activeConnectionProperties,
                         "password", SQLServerDriverStringProperty.PASSWORD.name());
@@ -47,7 +57,5 @@ public class KerbCallback implements CallbackHandler {
                 throw new UnsupportedCallbackException(callback, "Unrecognized Callback type: " + callback.getClass());
             }
         }
-
     }
-
 }
