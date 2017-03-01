@@ -82,6 +82,34 @@ public class DBTable extends AbstractSQLGenerator {
         }
         this.totalColumns = columns.size();
     }
+    
+    /**
+     * Initializes {@link DBTable} with tableName, schema, and {@link DBColumns}
+     * 
+     * @param autoGenerateSchema
+     *            <code>true</code>: generates schema with all available
+     *            dataTypes in SqlType class
+     * @param unicode
+     *             <code>true</code>: sets unicode column names if autoGenerateSchema is also set to <code>true</code>
+     * @param alternateShcema
+     *             <code>true</code>: creates table with alternate schema
+     */
+    public DBTable(boolean autoGenerateSchema, boolean unicode, boolean alternateSchema) {
+
+        this.tableName = RandomUtil.getIdentifier("table");
+        this.escapedTableName = escapeIdentifier(tableName);
+        this.schema = new DBSchema(autoGenerateSchema, alternateSchema);
+        if (autoGenerateSchema) {
+            if(unicode)
+                addColumns(unicode);
+            else
+                addColumns();
+        }
+        else {
+            this.columns = new ArrayList<DBColumn>();
+        }
+        this.totalColumns = columns.size();
+    }
 
     /**
      * Similar to {@link DBTable#DBTable(boolean)}, but uses existing list of columns Used internally to clone schema

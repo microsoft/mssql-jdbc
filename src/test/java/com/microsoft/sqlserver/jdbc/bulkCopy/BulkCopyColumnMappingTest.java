@@ -202,8 +202,8 @@ public class BulkCopyColumnMappingTest extends BulkCopyTestSetUp {
     @DisplayName("BulkCopy:test implicit mismatched column mapping")
     void testImplicitMismatchCM() {
 
-        // create dest table with different schema from source table
-        DBTable destTable = new DBTable(true);
+        // create non unicode dest table with different schema from source table
+        DBTable destTable = new DBTable(true, false, true);
         stmt.createTable(destTable);
 
         // set up bulkCopy with explicit column mapping
