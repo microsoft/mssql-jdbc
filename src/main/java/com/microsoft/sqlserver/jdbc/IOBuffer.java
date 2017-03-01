@@ -6826,17 +6826,23 @@ final class TDSReader {
  * a reason like "timed out".
  */
 final class TimeoutTimer implements Runnable {
+    private static final String threadGroupName = "mssql-jdbc-TimeoutTimer";
     private final int timeoutSeconds;
     private final TDSCommand command;
     private volatile Future<?> task;
+    
     private static final ExecutorService executor = Executors.newCachedThreadPool(new ThreadFactory() {
+        private final ThreadGroup tg = new ThreadGroup(threadGroupName);
+        private final String threadNamePrefix = tg.getName() + "-";
+        private final AtomicInteger threadNumber = new AtomicInteger(0);
         @Override
         public Thread newThread(Runnable r) {
-            Thread t = Executors.defaultThreadFactory().newThread(r);
+            Thread t = new Thread(tg, r, threadNamePrefix + threadNumber.incrementAndGet());
             t.setDaemon(true);
             return t;
         }
     });
+    
     private volatile boolean canceled = false;
 
     TimeoutTimer(int timeoutSeconds,
