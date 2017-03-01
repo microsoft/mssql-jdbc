@@ -6853,7 +6853,7 @@ final class TimeoutTimer implements Runnable {
     }
 
     final void stop() {
-        task.cancel(false);
+        task.cancel(true);
         canceled = true;
     }
 
