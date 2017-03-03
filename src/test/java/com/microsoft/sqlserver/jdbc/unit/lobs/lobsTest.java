@@ -105,7 +105,12 @@ public class lobsTest extends AbstractTest {
             for (int j = 0; j < isResultSetTypes.size(); j++) {
                 Class lobClass = classes.get(i);
                 boolean isResultSet = isResultSetTypes.get(j);
-                Executable exec = () -> testInvalidLobs(lobClass, isResultSet);
+                Executable exec = new Executable() {
+                    @Override
+                    public void execute() throws Throwable {
+                        testInvalidLobs(lobClass, isResultSet);
+                    }
+                };
                 // create a test display name
                 String testName = " Test: " + lobClass + (isResultSet ? " isResultSet" : " isPreparedStatement");
                 // create dynamic test
@@ -276,6 +281,7 @@ public class lobsTest extends AbstractTest {
 
     /**
      * Tests Insert Retrive on nclob
+     * 
      * @throws Exception
      */
     @Test
@@ -287,6 +293,7 @@ public class lobsTest extends AbstractTest {
 
     /**
      * Tests Insert Retrive on blob
+     * 
      * @throws Exception
      */
     @Test
@@ -298,6 +305,7 @@ public class lobsTest extends AbstractTest {
 
     /**
      * Tests Insert Retrive on clob
+     * 
      * @throws Exception
      */
     @Test
@@ -461,7 +469,7 @@ public class lobsTest extends AbstractTest {
             else {
                 blob = conn.createBlob();
                 rs.updateBlob(1, blob);
-              
+
             }
             rs.updateRow();
         }
