@@ -97,7 +97,7 @@ public class lobsTest extends AbstractTest {
 
     @TestFactory
     public Collection<DynamicTest> executeDynamicTests() {
-        List<Class> classes = new ArrayList<>(Arrays.asList(Blob.class, Clob.class, DBBinaryStream.class, DBCharacterStream.class));
+        List<Class> classes = new ArrayList<Class>(Arrays.asList(Blob.class, Clob.class, DBBinaryStream.class, DBCharacterStream.class));
         List<Boolean> isResultSetTypes = new ArrayList<>(Arrays.asList(true, false));
         Collection<DynamicTest> dynamicTests = new ArrayList<>();
 
