@@ -17,7 +17,9 @@ public abstract class SqlNumber extends SqlType {
             int scale,
             Object min,
             Object max,
-            Object nullvalue) {
-        super(name, jdbctype, precision, scale, min, max, nullvalue, VariableLengthType.Fixed);
+            Object nullvalue,
+            VariableLengthType variableLengthType,
+            Class type) {
+        super(name, jdbctype, precision, scale, min, max, nullvalue, VariableLengthType.Fixed, type);
     }
 }

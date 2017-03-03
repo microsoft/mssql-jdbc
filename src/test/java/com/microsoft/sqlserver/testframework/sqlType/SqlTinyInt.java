@@ -14,7 +14,8 @@ import java.util.concurrent.ThreadLocalRandom;
 public class SqlTinyInt extends SqlNumber {
 
     public SqlTinyInt() {
-        super("tinyint", JDBCType.TINYINT, 3, 0, SqlTypeValue.TINYINT.minValue, SqlTypeValue.TINYINT.maxValue, SqlTypeValue.TINYINT.nullValue);
+        super("tinyint", JDBCType.TINYINT, 3, 0, SqlTypeValue.TINYINT.minValue, SqlTypeValue.TINYINT.maxValue, SqlTypeValue.TINYINT.nullValue,
+                VariableLengthType.Fixed, Byte.class);
     }
 
     public Object createdata() {

@@ -11,6 +11,9 @@ package com.microsoft.sqlserver.testframework.sqlType;
 import java.sql.JDBCType;
 import java.util.concurrent.ThreadLocalRandom;
 
+import com.microsoft.sqlserver.testframework.DBCoercion;
+import com.microsoft.sqlserver.testframework.Utils;
+
 /*
  * Restricting the size of char/binary to 2000 and nchar to 1000 to accommodate SQL Sever limitation of having of having maximum allowable table row
  * size to 8060
@@ -27,8 +30,14 @@ public class SqlChar extends SqlType {
             JDBCType jdbctype,
             int precision) {
         super(name, jdbctype, precision, 0, SqlTypeValue.CHAR.minValue, SqlTypeValue.CHAR.maxValue, SqlTypeValue.CHAR.nullValue,
-                VariableLengthType.Precision);
+                VariableLengthType.Precision, String.class);
         generatePrecision();
+        coercions.add(new DBCoercion(Object.class, new int[] {DBCoercion.GET, DBCoercion.UPDATE, DBCoercion.UPDATEOBJECT, DBCoercion.SET,
+                DBCoercion.SETOBJECT, DBCoercion.GETPARAM, DBCoercion.REG}));
+        coercions.add(new DBCoercion(String.class, new int[] {DBCoercion.GET, DBCoercion.UPDATE, DBCoercion.UPDATEOBJECT, DBCoercion.SET,
+                DBCoercion.SETOBJECT, DBCoercion.GETPARAM, DBCoercion.REG, DBCoercion.CHAR}));
+        coercions.add(new DBCoercion(Utils.DBCharacterStream.class, new int[] {DBCoercion.GET, DBCoercion.UPDATE, DBCoercion.UPDATEOBJECT,
+                DBCoercion.SET, DBCoercion.SETOBJECT, DBCoercion.GETPARAM, DBCoercion.REG, DBCoercion.STREAM, DBCoercion.CHAR}));
     }
 
     public Object createdata() {

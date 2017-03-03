@@ -136,6 +136,10 @@ public class DBTable extends AbstractSQLGenerator {
     public String getTableName() {
         return tableName;
     }
+    
+    public List<DBColumn> getColumns() {
+        return this.columns;
+    }
 
     /**
      * gets escaped table name of the {@link DBTable} object
@@ -380,7 +384,8 @@ public class DBTable extends AbstractSQLGenerator {
         return (JDBCType.CHAR == getColumn(colNum).getJdbctype() || JDBCType.VARCHAR == getColumn(colNum).getJdbctype()
                 || JDBCType.NCHAR == getColumn(colNum).getJdbctype() || JDBCType.NVARCHAR == getColumn(colNum).getJdbctype()
                 || JDBCType.TIMESTAMP == getColumn(colNum).getJdbctype() || JDBCType.DATE == getColumn(colNum).getJdbctype()
-                || JDBCType.TIME == getColumn(colNum).getJdbctype());
+                || JDBCType.TIME == getColumn(colNum).getJdbctype() || JDBCType.LONGVARCHAR == getColumn(colNum).getJdbctype()
+                || JDBCType.LONGNVARCHAR == getColumn(colNum).getJdbctype());
     }
 
     /**
@@ -390,6 +395,7 @@ public class DBTable extends AbstractSQLGenerator {
      */
 
     boolean passDataAsHex(int colNum) {
-        return (JDBCType.BINARY == getColumn(colNum).getJdbctype() || JDBCType.VARBINARY == getColumn(colNum).getJdbctype());
+        return (JDBCType.BINARY == getColumn(colNum).getJdbctype() || JDBCType.VARBINARY == getColumn(colNum).getJdbctype()
+                || JDBCType.LONGVARBINARY == getColumn(colNum).getJdbctype());
     }
 }

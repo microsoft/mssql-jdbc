@@ -34,7 +34,8 @@ public class SqlBinary extends SqlType {
             JDBCType jdbctype,
             int precision) {
         super(name, jdbctype, precision, 0, SqlTypeValue.BINARY.minValue, SqlTypeValue.BINARY.maxValue, SqlTypeValue.BINARY.nullValue,
-                VariableLengthType.Precision);
+                VariableLengthType.Precision, byte[].class);
+        flags.set(FIXED);
         generatePrecision();
     }
 
@@ -42,7 +43,7 @@ public class SqlBinary extends SqlType {
      * create random data for binary and varbinary column
      */
     public Object createdata() {
-        int dataLength = ThreadLocalRandom.current().nextInt(precision);
+        int dataLength = ThreadLocalRandom.current().nextInt(5);// precision
         byte[] bytes = new byte[dataLength];
         ThreadLocalRandom.current().nextBytes(bytes);
         return bytes;
