@@ -103,8 +103,8 @@ public class lobsTest extends AbstractTest {
 
         for (int i = 0; i < classes.size(); i++) {
             for (int j = 0; j < isResultSetTypes.size(); j++) {
-                Class lobClass = classes.get(i);
-                boolean isResultSet = isResultSetTypes.get(j);
+                final Class lobClass = classes.get(i);
+                final boolean isResultSet = isResultSetTypes.get(j);
                 Executable exec = new Executable() {
                     @Override
                     public void execute() throws Throwable {
