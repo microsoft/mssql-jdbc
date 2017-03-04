@@ -13,12 +13,16 @@ import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.UUID;
 
+import javax.sql.DataSource;
 import javax.sql.PooledConnection;
 
+import org.apache.commons.dbcp2.BasicDataSource;
 import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
@@ -30,6 +34,8 @@ import com.microsoft.sqlserver.testframework.AbstractTest;
 import com.microsoft.sqlserver.testframework.DBConnection;
 import com.microsoft.sqlserver.testframework.DBTable;
 import com.microsoft.sqlserver.testframework.util.RandomUtil;
+import com.zaxxer.hikari.HikariConfig;
+import com.zaxxer.hikari.HikariDataSource;
 
 @RunWith(JUnitPlatform.class)
 public class PoolingTest extends AbstractTest {
@@ -138,5 +144,53 @@ public class PoolingTest extends AbstractTest {
         con2.close();
 
         assertEquals(Id1, Id2, "ClientConnection Ids from pool are not the same.");
+    }
+    
+    @Test
+    public void testHikariCP() throws SQLException {
+        HikariConfig config = new HikariConfig();
+        config.setJdbcUrl(connectionString);
+        HikariDataSource ds = new HikariDataSource(config);
+
+        connect(ds);
+    }
+
+    @Test
+    public void testApacheDBCP() throws SQLException {
+        BasicDataSource ds = new BasicDataSource();
+        ds.setUrl(connectionString);
+
+        connect(ds);
+    }
+
+    private static void connect(DataSource ds) throws SQLException {
+        Connection con = null;
+        PreparedStatement pst = null;
+        ResultSet rs = null;
+
+        try {
+            con = ds.getConnection();
+            con.isValid(5);
+
+            pst = con.prepareStatement("SELECT SUSER_SNAME()");
+            rs = pst.executeQuery();
+
+            while (rs.next()) {
+                rs.getString(1);
+            }
+        }
+        finally {
+            if (rs != null) {
+                rs.close();
+            }
+
+            if (pst != null) {
+                pst.close();
+            }
+
+            if (con != null) {
+                con.close();
+            }
+        }
     }
 }
