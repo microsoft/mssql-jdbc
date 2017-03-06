@@ -20,15 +20,14 @@ import org.junit.runner.RunWith;
 import com.microsoft.sqlserver.jdbc.SQLServerDataSource;
 import com.microsoft.sqlserver.testframework.AbstractTest;
 
-/**
- * Tests batch execution with errors
- *
- */
 @RunWith(JUnitPlatform.class)
 public class StatementCancellationTest extends AbstractTest {
     private static final long DELAY_WAIT_MILLISECONDS = 10000;
     private static final long CANCEL_WAIT_MILLISECONDS = 5000;
 
+    /**
+     * Tests Statement Cancellation works when MultiSubnetFailover is set to true
+     */
     @Test
     public void setMultiSubnetFailoverToTrue() throws SQLException {
         long timeStart = 0;
@@ -52,7 +51,7 @@ public class StatementCancellationTest extends AbstractTest {
                             }
                         }
                     };
-                    cancellationThread.setName("stmt-canceller");
+                    cancellationThread.setName("stmtCancel");
                     cancellationThread.start();
 
                     try {
