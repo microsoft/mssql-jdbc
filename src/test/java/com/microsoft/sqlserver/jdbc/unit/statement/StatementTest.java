@@ -65,7 +65,7 @@ public class StatementTest extends AbstractTest {
             con.setAutoCommit(false);
             Statement stmt = con.createStatement();
             try {
-                stmt.executeUpdate("DROP TABLE " + tableName);
+                stmt.executeUpdate("DROP TABLE if exists " + tableName);
             }
             catch (SQLException e) {
             }
@@ -82,7 +82,7 @@ public class StatementTest extends AbstractTest {
             Connection con = DriverManager.getConnection(connectionString);
             Statement stmt = con.createStatement();
             try {
-                stmt.executeUpdate("DROP TABLE " + tableName);
+                stmt.executeUpdate("DROP TABLE if exists " + tableName);
             }
             catch (SQLException e) {
             }
@@ -669,7 +669,8 @@ public class StatementTest extends AbstractTest {
             Statement stmt = con.createStatement();
 
             try {
-                stmt.executeUpdate("drop procedure " + procName);
+                stmt.executeUpdate("IF EXISTS (select * from sysobjects where id = object_id(N'" + procName + "') and OBJECTPROPERTY(id, N'IsProcedure') = 1)"
+                        + " DROP PROCEDURE " + procName);
             }
             catch (Exception ex) {
             }
@@ -771,8 +772,8 @@ public class StatementTest extends AbstractTest {
                             try {
                                 ResultSet rs = stmt.executeQuery("SELECT * FROM " + tableName);
 
-                                while (rs.next())                                 
-                                ++numExecuteSuccesses;
+                                while (rs.next())
+                                    ++numExecuteSuccesses;
                             }
                             catch (SQLException e) {
                                 // "Statement cancelled" (SQLState "HY008") exceptions
@@ -1036,12 +1037,12 @@ public class StatementTest extends AbstractTest {
             }
 
             try {
-                stmt.executeUpdate("DROP TABLE " + table1Name);
+                stmt.executeUpdate("DROP TABLE if exists" + table1Name);
             }
             catch (SQLException e) {
             }
             try {
-                stmt.executeUpdate("DROP TABLE " + table2Name);
+                stmt.executeUpdate("DROP TABLE if exists " + table2Name);
             }
             catch (SQLException e) {
             }
@@ -1180,7 +1181,8 @@ public class StatementTest extends AbstractTest {
             Connection conn = DriverManager.getConnection(connectionString);
             Statement stmt = conn.createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE);
             try {
-                stmt.executeUpdate("drop procedure " + procName);
+                stmt.executeUpdate("IF EXISTS (select * from sysobjects where id = object_id(N'" + procName + "') and OBJECTPROPERTY(id, N'IsProcedure') = 1)"
+                        + " DROP PROCEDURE " + procName);
             }
             catch (Exception ex) {
             }
@@ -1213,7 +1215,8 @@ public class StatementTest extends AbstractTest {
             }
 
             try {
-                stmt.executeUpdate("drop procedure " + procName);
+                stmt.executeUpdate("IF EXISTS (select * from sysobjects where id = object_id(N'" + procName + "') and OBJECTPROPERTY(id, N'IsProcedure') = 1)"
+                        + " DROP PROCEDURE " + procName);
             }
             catch (Exception ex) {
             }
@@ -1361,13 +1364,14 @@ public class StatementTest extends AbstractTest {
             Statement stmt = conn.createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE);
 
             try {
-                stmt.executeUpdate("drop table " + tableName);
+                stmt.executeUpdate("drop table if exists " + tableName);
             }
             catch (Exception ex) {
             }
             ;
             try {
-                stmt.executeUpdate("drop procedure " + procName);
+                stmt.executeUpdate("IF EXISTS (select * from sysobjects where id = object_id(N'" + procName
+                        + "') and OBJECTPROPERTY(id, N'IsProcedure') = 1)" + " DROP PROCEDURE " + procName);
             }
             catch (Exception ex) {
             }
@@ -1388,13 +1392,14 @@ public class StatementTest extends AbstractTest {
             assertEquals(cstmt.getString(2), "wassup", "Wrong value");
 
             try {
-                stmt.executeUpdate("drop table " + tableName);
+                stmt.executeUpdate("drop table if exists " + tableName);
             }
             catch (Exception ex) {
             }
             ;
             try {
-                stmt.executeUpdate("drop procedure " + procName);
+                stmt.executeUpdate("IF EXISTS (select * from sysobjects where id = object_id(N'" + procName
+                        + "') and OBJECTPROPERTY(id, N'IsProcedure') = 1)" + " DROP PROCEDURE " + procName);
             }
             catch (Exception ex) {
             }
@@ -1416,13 +1421,14 @@ public class StatementTest extends AbstractTest {
             Statement stmt = conn.createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE);
 
             try {
-                stmt.executeUpdate("drop table " + tableName);
+                stmt.executeUpdate("drop table if exists" + tableName);
             }
             catch (Exception ex) {
             }
             ;
             try {
-                stmt.executeUpdate("drop procedure " + procName);
+                stmt.executeUpdate("IF EXISTS (select * from sysobjects where id = object_id(N'" + procName
+                        + "') and OBJECTPROPERTY(id, N'IsProcedure') = 1)" + " DROP PROCEDURE " + procName);
             }
             catch (Exception ex) {
             }
@@ -1446,13 +1452,14 @@ public class StatementTest extends AbstractTest {
             ;
 
             try {
-                stmt.executeUpdate("drop table " + tableName);
+                stmt.executeUpdate("drop table if exists " + tableName);
             }
             catch (Exception ex) {
             }
             ;
             try {
-                stmt.executeUpdate("drop procedure " + procName);
+                stmt.executeUpdate("IF EXISTS (select * from sysobjects where id = object_id(N'" + procName
+                        + "') and OBJECTPROPERTY(id, N'IsProcedure') = 1)" + " DROP PROCEDURE " + procName);
             }
             catch (Exception ex) {
             }
@@ -1469,7 +1476,7 @@ public class StatementTest extends AbstractTest {
             Connection conn = DriverManager.getConnection(connectionString);
             Statement stmt = conn.createStatement();
             try {
-                stmt.executeUpdate("drop table " + tableName);
+                stmt.executeUpdate("drop table if exists " + tableName);
             }
             catch (Exception ex) {
             }
@@ -1495,7 +1502,7 @@ public class StatementTest extends AbstractTest {
             catch (SQLException ex) {
             }
             try {
-                stmt.executeUpdate("drop table " + tableName);
+                stmt.executeUpdate("drop table if exists " + tableName);
             }
             catch (Exception ex) {
             }
@@ -1514,13 +1521,14 @@ public class StatementTest extends AbstractTest {
             Statement stmt = conn.createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE);
 
             try {
-                stmt.executeUpdate("drop table " + tableName);
+                stmt.executeUpdate("drop table if exists " + tableName);
             }
             catch (Exception ex) {
             }
             ;
             try {
-                stmt.executeUpdate("drop procedure " + procName);
+                stmt.executeUpdate("IF EXISTS (select * from sysobjects where id = object_id(N'" + procName + "') and OBJECTPROPERTY(id, N'IsProcedure') = 1)"
+                        + " DROP PROCEDURE " + procName);
             }
             catch (Exception ex) {
             }
@@ -1546,13 +1554,14 @@ public class StatementTest extends AbstractTest {
             assertEquals(null, cstmt.getString(2), "Wrong value");
 
             try {
-                stmt.executeUpdate("drop table " + tableName);
+                stmt.executeUpdate("drop table if exists " + tableName);
             }
             catch (Exception ex) {
             }
             ;
             try {
-                stmt.executeUpdate("drop procedure " + procName);
+                stmt.executeUpdate("IF EXISTS (select * from sysobjects where id = object_id(N'" + procName + "') and OBJECTPROPERTY(id, N'IsProcedure') = 1)"
+                        + " DROP PROCEDURE " + procName);
             }
             catch (Exception ex) {
             }
@@ -1570,13 +1579,14 @@ public class StatementTest extends AbstractTest {
             // Set up everything
             Statement stmt = conn.createStatement();
             try {
-                stmt.executeUpdate("drop table " + tableName);
+                stmt.executeUpdate("drop table if exists " + tableName);
             }
             catch (Exception ex) {
             }
             ;
             try {
-                stmt.executeUpdate("drop procedure " + procName);
+                stmt.executeUpdate("IF EXISTS (select * from sysobjects where id = object_id(N'" + procName + "') and OBJECTPROPERTY(id, N'IsProcedure') = 1)"
+                        + " DROP PROCEDURE " + procName);
             }
             catch (Exception ex) {
             }
@@ -1670,13 +1680,14 @@ public class StatementTest extends AbstractTest {
             }
 
             try {
-                stmt.executeUpdate("drop table " + tableName);
+                stmt.executeUpdate("drop table if exists" + tableName);
             }
             catch (Exception ex) {
             }
             ;
             try {
-                stmt.executeUpdate("drop procedure " + procName);
+                stmt.executeUpdate("IF EXISTS (select * from sysobjects where id = object_id(N'" + procName + "') and OBJECTPROPERTY(id, N'IsProcedure') = 1)"
+                        + " DROP PROCEDURE " + procName);
             }
             catch (Exception ex) {
             }
@@ -1702,7 +1713,7 @@ public class StatementTest extends AbstractTest {
 
             Statement stmt = con.createStatement();
             try {
-                stmt.executeUpdate("DROP TABLE " + tableName);
+                stmt.executeUpdate("DROP TABLE IF EXISTS " + tableName);
             }
             catch (SQLException e) {
             }
@@ -1721,7 +1732,7 @@ public class StatementTest extends AbstractTest {
                     con = DriverManager.getConnection(connectionString);
                 }
 
-                con.createStatement().executeUpdate("DROP TABLE " + tableName);
+                con.createStatement().executeUpdate("DROP TABLE IF EXISTS " + tableName);
             }
             catch (SQLException e) {
             }
@@ -1939,7 +1950,7 @@ public class StatementTest extends AbstractTest {
                 con = ds.getConnection();
                 Statement stmt = con.createStatement();
                 try {
-                    stmt.executeUpdate("DROP TABLE " + tableName);
+                    stmt.executeUpdate("DROP TABLE IF EXISTS" + tableName);
                 }
                 catch (SQLException e) {
                 }
@@ -1988,7 +1999,7 @@ public class StatementTest extends AbstractTest {
                 con = ds.getConnection();
                 Statement stmt = con.createStatement();
                 try {
-                    stmt.executeUpdate("DROP TABLE " + tableName);
+                    stmt.executeUpdate("DROP TABLE IF EXISTS " + tableName);
                 }
                 catch (SQLException e) {
                 }
@@ -2288,19 +2299,20 @@ public class StatementTest extends AbstractTest {
             con.setAutoCommit(false);
             Statement stmt = con.createStatement();
             try {
-                stmt.executeUpdate("DROP TABLE " + tableName);
+                stmt.executeUpdate("DROP TABLE if exists" + tableName);
             }
             catch (SQLException e) {
                 throw new SQLException(e);
             }
             try {
-                stmt.executeUpdate("DROP TABLE " + table2Name);
+                stmt.executeUpdate("DROP TABLE if exists" + table2Name);
             }
             catch (SQLException e) {
                 throw new SQLException(e);
             }
             try {
-                stmt.executeUpdate("DROP PROCEDURE " + sprocName);
+                stmt.executeUpdate("IF EXISTS (select * from sysobjects where id = object_id(N'" + sprocName
+                        + "') and OBJECTPROPERTY(id, N'IsProcedure') = 1)" + " DROP PROCEDURE " + sprocName);
             }
             catch (SQLException e) {
                 throw new SQLException(e);
@@ -2425,12 +2437,12 @@ public class StatementTest extends AbstractTest {
             con.setAutoCommit(false);
             Statement stmt = con.createStatement();
             try {
-                stmt.executeUpdate("DROP TABLE " + tableName);
+                stmt.executeUpdate("DROP TABLE if exists" + tableName);
             }
             catch (SQLException e) {
             }
             try {
-                stmt.executeUpdate("DROP TRIGGER " + triggerName);
+                stmt.executeUpdate("if EXISTS (SELECT * FROM sys.triggers where name = '" + triggerName + "') drop trigger " + triggerName);
             }
             catch (SQLException e) {
             }
@@ -2642,7 +2654,7 @@ public class StatementTest extends AbstractTest {
             }
 
             try {
-                stmt.executeUpdate("DROP TABLE " + tableName);
+                stmt.executeUpdate("DROP TABLE if exists" + tableName);
             }
             catch (SQLException e) {
             }
