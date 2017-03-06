@@ -44,63 +44,41 @@ public class DBTable extends AbstractSQLGenerator {
      *            <code>true</code> : generates schema with all available dataTypes in SqlType class
      */
     public DBTable(boolean autoGenerateSchema) {
-
-        this.tableName = RandomUtil.getIdentifier("table");
-        this.escapedTableName = escapeIdentifier(tableName);
-        this.schema = new DBSchema(autoGenerateSchema);
-        if (autoGenerateSchema) {
-            addColumns();
-        }
-        else {
-            this.columns = new ArrayList<DBColumn>();
-        }
-        this.totalColumns = columns.size();
+        this(autoGenerateSchema, false, false);
     }
-    
+
     /**
      * Initializes {@link DBTable} with tableName, schema, and {@link DBColumns}
      * 
      * @param autoGenerateSchema
-     *            <code>true</code>: generates schema with all available
-     *            dataTypes in SqlType class
+     *            <code>true</code>: generates schema with all available dataTypes in SqlType class
      * @param unicode
-     *             <code>true</code>: sets unicode column names if autoGenerateSchema is also set to <code>true</code>
+     *            <code>true</code>: sets unicode column names if autoGenerateSchema is also set to <code>true</code>
      */
-    public DBTable(boolean autoGenerateSchema, boolean unicode) {
-
-        this.tableName = RandomUtil.getIdentifier("table");
-        this.escapedTableName = escapeIdentifier(tableName);
-        this.schema = new DBSchema(autoGenerateSchema);
-        if (autoGenerateSchema) {
-            if(unicode)
-                addColumns(unicode);
-            else
-                addColumns();
-        }
-        else {
-            this.columns = new ArrayList<DBColumn>();
-        }
-        this.totalColumns = columns.size();
+    public DBTable(boolean autoGenerateSchema,
+            boolean unicode) {
+        this(autoGenerateSchema, unicode, false);
     }
-    
+
     /**
      * Initializes {@link DBTable} with tableName, schema, and {@link DBColumns}
      * 
      * @param autoGenerateSchema
-     *            <code>true</code>: generates schema with all available
-     *            dataTypes in SqlType class
+     *            <code>true</code>: generates schema with all available dataTypes in SqlType class
      * @param unicode
-     *             <code>true</code>: sets unicode column names if autoGenerateSchema is also set to <code>true</code>
+     *            <code>true</code>: sets unicode column names if autoGenerateSchema is also set to <code>true</code>
      * @param alternateShcema
-     *             <code>true</code>: creates table with alternate schema
+     *            <code>true</code>: creates table with alternate schema
      */
-    public DBTable(boolean autoGenerateSchema, boolean unicode, boolean alternateSchema) {
+    public DBTable(boolean autoGenerateSchema,
+            boolean unicode,
+            boolean alternateSchema) {
 
         this.tableName = RandomUtil.getIdentifier("table");
         this.escapedTableName = escapeIdentifier(tableName);
         this.schema = new DBSchema(autoGenerateSchema, alternateSchema);
         if (autoGenerateSchema) {
-            if(unicode)
+            if (unicode)
                 addColumns(unicode);
             else
                 addColumns();
@@ -133,11 +111,11 @@ public class DBTable extends AbstractSQLGenerator {
 
         for (int i = 0; i < totalColumns; i++) {
             SqlType sqlType = schema.getSqlType(i);
-            DBColumn column = new DBColumn(RandomUtil.getIdentifier(sqlType.getName()), sqlType); 
+            DBColumn column = new DBColumn(RandomUtil.getIdentifier(sqlType.getName()), sqlType);
             columns.add(column);
         }
     }
-    
+
     /**
      * adds a columns for each SQL type in DBSchema
      */
@@ -148,7 +126,7 @@ public class DBTable extends AbstractSQLGenerator {
         for (int i = 0; i < totalColumns; i++) {
             SqlType sqlType = schema.getSqlType(i);
             DBColumn column;
-            if(unicode)
+            if (unicode)
                 column = new DBColumn(RandomUtil.getIdentifier(sqlType.getName()) + "ĀĂŎՖએДЕЖЗИЙਟਖਞ", sqlType);
             else
                 column = new DBColumn(RandomUtil.getIdentifier(sqlType.getName()), sqlType);
