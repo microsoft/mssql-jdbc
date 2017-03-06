@@ -2428,10 +2428,11 @@ public class StatementTest extends AbstractTest {
     public class TCUpdateCountAfterRaiseError {
         String tableNameTemp = RandomUtil.getIdentifier("TCUpdateCountAfterRaiseError");
         private final String tableName = AbstractSQLGenerator.escapeIdentifier(tableNameTemp);
-        private final String triggerName = "[TCUpdateCountAfterRaiseError]";
+        private final String triggerName = "TCUpdateCountAfterRaiseErrorTrigger";
         private final int NUM_ROWS = 3;
         private final String errorMessage50001InSqlAzure = "Error 50001, severity 17, state 1 was raised, but no message with that error number was found in sys.messages. If error is larger than 50000, make sure the user-defined message is added using sp_addmessage.";
 
+        @BeforeEach
         private void setup() throws Exception {
             Connection con = DriverManager.getConnection(connectionString);
             con.setAutoCommit(false);
@@ -2445,6 +2446,7 @@ public class StatementTest extends AbstractTest {
                 stmt.executeUpdate("if EXISTS (SELECT * FROM sys.triggers where name = '" + triggerName + "') drop trigger " + triggerName);
             }
             catch (SQLException e) {
+                System.out.println(e.toString());
             }
             stmt.executeUpdate("CREATE TABLE " + tableName + " (col1 INT primary key)");
             for (int i = 0; i < NUM_ROWS; i++)
@@ -2478,7 +2480,6 @@ public class StatementTest extends AbstractTest {
          */
         @Test
         public void testUpdateCountAfterRaiseError() throws Exception {
-            setup();
 
             Connection con = DriverManager.getConnection(connectionString);
             PreparedStatement pstmt = con
@@ -2538,7 +2539,6 @@ public class StatementTest extends AbstractTest {
          */
         @Test
         public void testUpdateCountAfterErrorInTrigger_LastUpdateCountFalse() throws Exception {
-            setup();
 
             Connection con = DriverManager.getConnection(connectionString + ";lastUpdateCount = false");
             PreparedStatement pstmt = con.prepareStatement("INSERT INTO " + tableName + " VALUES (5)");
@@ -2590,7 +2590,6 @@ public class StatementTest extends AbstractTest {
          */
         @Test
         public void testUpdateCountAfterErrorInTrigger_LastUpdateCountTrue() throws Exception {
-            setup();
 
             Connection con = DriverManager.getConnection(connectionString + ";lastUpdateCount = true");
             PreparedStatement pstmt = con.prepareStatement("INSERT INTO " + tableName + " VALUES (5)");
