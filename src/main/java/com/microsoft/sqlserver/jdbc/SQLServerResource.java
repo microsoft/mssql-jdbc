@@ -188,6 +188,7 @@ public final class SQLServerResource extends ListResourceBundle {
 				{"R_TransparentNetworkIPResolutionPropertyDescription", "Determines whether to use the Transparent Network IP Resolution feature."},
 				{"R_queryTimeoutPropertyDescription", "The number of seconds to wait before the database reports a query time-out."},
 				{"R_socketTimeoutPropertyDescription", "The number of milliseconds to wait before the java.net.SocketTimeoutException is raised."},
+				{"R_gsscredentialPropertyDescription", "Impersonated GSS Credential to access SQL Server."}, 
 				{"R_noParserSupport", "An error occurred while instantiating the required parser. Error: \"{0}\""},
 				{"R_writeOnlyXML", "Cannot read from this SQLXML instance. This instance is for writing data only."},
 				{"R_dataHasBeenReadXML", "Cannot read from this SQLXML instance. The data has already been read."},
