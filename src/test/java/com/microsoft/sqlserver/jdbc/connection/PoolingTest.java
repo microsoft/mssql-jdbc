@@ -11,6 +11,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
+import java.lang.management.ManagementFactory;
+import java.lang.management.ThreadInfo;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
@@ -152,7 +154,12 @@ public class PoolingTest extends AbstractTest {
         config.setJdbcUrl(connectionString);
         HikariDataSource ds = new HikariDataSource(config);
 
-        connect(ds);
+        try{
+            connect(ds);
+        }
+        finally{
+            ds.close();
+        }
     }
 
     @Test
@@ -160,7 +167,12 @@ public class PoolingTest extends AbstractTest {
         BasicDataSource ds = new BasicDataSource();
         ds.setUrl(connectionString);
 
-        connect(ds);
+        try{
+            connect(ds);
+        }
+        finally{
+            ds.close();
+        }
     }
 
     private static void connect(DataSource ds) throws SQLException {
@@ -170,11 +182,12 @@ public class PoolingTest extends AbstractTest {
 
         try {
             con = ds.getConnection();
-            con.isValid(5);
-
             pst = con.prepareStatement("SELECT SUSER_SNAME()");
+            pst.setQueryTimeout(5);
             rs = pst.executeQuery();
 
+            assertTrue(countTimeoutThreads() >= 1, "Timeout timer is missing.");
+            
             while (rs.next()) {
                 rs.getString(1);
             }
@@ -192,5 +205,20 @@ public class PoolingTest extends AbstractTest {
                 con.close();
             }
         }
+    }
+
+    private static int countTimeoutThreads() {
+        int count = 0;
+        String threadName = "mssql-jdbc-TimeoutTimer";
+
+        ThreadInfo[] tinfos = ManagementFactory.getThreadMXBean().getThreadInfo(ManagementFactory.getThreadMXBean().getAllThreadIds(), 0);
+
+        for (ThreadInfo ti : tinfos) {
+            if ((ti.getThreadName().startsWith(threadName)) && (ti.getThreadState().equals(java.lang.Thread.State.TIMED_WAITING))) {
+                count++;
+            }
+        }
+
+        return count;
     }
 }
