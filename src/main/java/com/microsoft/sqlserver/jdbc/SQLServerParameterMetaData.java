@@ -408,6 +408,19 @@ public final class SQLServerParameterMetaData implements ParameterMetaData {
         StringTokenizer st = new StringTokenizer(sql, " ");
         if (st.hasMoreTokens()) {
             String sToken = st.nextToken().trim();
+            
+            // filter out comments in the beginning of the query
+            if (sToken.equalsIgnoreCase("/*")) {
+                int endCommentMarkIndex = sql.indexOf("*/");
+                if (0 > endCommentMarkIndex) {
+                    return null;
+                }
+                else {
+                    // plus 2 because */ is 2
+                    String sqlWithoutCommentsInBeginning = sql.substring(endCommentMarkIndex + 2);
+                    return parseStatement(sqlWithoutCommentsInBeginning);
+                }
+            }
 
             if (sToken.equalsIgnoreCase("INSERT"))
                 return parseStatement(sql, "INTO"); // INTO marks the table name
