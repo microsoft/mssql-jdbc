@@ -88,6 +88,40 @@ public class RegressionTest extends AbstractTest {
             con.close();
     }
 
+    /**
+     * Tests update count returned by SELECT INTO
+     * 
+     * @throws SQLException
+     */
+    @Test
+    public void testSelectIntoUpdateCount() throws SQLException {
+        SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(connectionString);
+        
+        // Azure does not do SELECT INTO
+        if (!DBConnection.isSqlAzure(con)) {
+            final String tableName = "[#SourceTableForSelectInto]";
+            
+            Statement stmt = con.createStatement();
+            stmt.executeUpdate("CREATE TABLE " + tableName + " (col1 int primary key, col2 varchar(3), col3 varchar(128))");
+            stmt.executeUpdate("INSERT INTO " + tableName + " VALUES (1, 'CAN', 'Canada')");
+            stmt.executeUpdate("INSERT INTO " + tableName + " VALUES (2, 'USA', 'United States of America')");
+            stmt.executeUpdate("INSERT INTO " + tableName + " VALUES (3, 'JPN', 'Japan')");
+
+            // expected values
+            int numRowsToCopy = 2;
+    
+            PreparedStatement ps = con.prepareStatement("SELECT * INTO #TMPTABLE FROM " + tableName + " WHERE col1 <= ?");
+            ps.setInt(1, numRowsToCopy);
+            int updateCount = ps.executeUpdate();
+            assertEquals(numRowsToCopy, updateCount, "Incorrect update count");
+            
+            if (null != stmt)
+                stmt.close();
+        }
+        if (null != con)
+            con.close();
+    }
+
     @AfterAll
     public static void terminate() throws SQLException {
         SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(connectionString);
