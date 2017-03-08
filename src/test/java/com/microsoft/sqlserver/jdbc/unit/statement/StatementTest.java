@@ -1,3 +1,10 @@
+/*
+ * Microsoft JDBC Driver for SQL Server
+ * 
+ * Copyright(c) Microsoft Corporation All rights reserved.
+ * 
+ * This program is made available under the terms of the MIT License. See the LICENSE file in the project root for more information.
+ */
 package com.microsoft.sqlserver.jdbc.unit.statement;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -53,9 +60,9 @@ public class StatementTest extends AbstractTest {
         private static final int NUM_TABLE_ROWS = 1000;
         private static final int MIN_TABLE_ROWS = 100;
         private static final String TEST_STRING = "Hello." + "  This is a test string."
-                + "  It is particularly long so that we will get a multipacket TDS response back from the server." + "  Does it work?"
-                + "  I have no idea." + "  If I did, then I would not be needing this test, now would I?" + "  So how about it then?"
-                + "  Blah blah blah blah blah blah blah blah blah blah blah blah blah and blah." + "  OK, that will do for now.";
+                + "  It is particularly long so that we will get a multipacket TDS response back from the server." + "  This is a test string."
+                + "  This is a test string." + "  This is a test string." + "  This is a test string." + "  This is a test string."
+                + "  This is a test string.";
         String tableN = RandomUtil.getIdentifier("TCAttentionHandling");
         String tableName = AbstractSQLGenerator.escapeIdentifier(tableN);
 
@@ -157,10 +164,6 @@ public class StatementTest extends AbstractTest {
          */
         @Test
         public void testQueryTimeout() throws Exception {
-            // VSTS 433183 - fxUnitStatement: TCAttentionHandling\testQueryTimeout fails on VM
-            // BVTs use a fixed seed (set in build.xml)
-            String seed = System.getProperty("seed");
-
             long elapsedMillis;
 
             Connection con = DriverManager.getConnection(connectionString);
@@ -211,7 +214,7 @@ public class StatementTest extends AbstractTest {
          */
         @Test
         public void testCancelLongResponse() throws Exception {
-            // assumeTrue("JDBC42".equals(Utils.getConfiguredProperty("JDBC_Version")), "Aborting test case as JDBC version is not compatible. ");
+            assumeTrue("JDBC42".equals(Utils.getConfiguredProperty("JDBC_Version")), "Aborting test case as JDBC version is not compatible. ");
             Connection con = DriverManager.getConnection(connectionString);
             Statement stmt = con.createStatement(SQLServerResultSet.TYPE_SS_DIRECT_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY);
             ((SQLServerStatement) stmt).setResponseBuffering("adaptive");
@@ -344,7 +347,7 @@ public class StatementTest extends AbstractTest {
                 oneShotCancel = new Thread(new OneShotCancel(stmt, 3));
                 oneShotCancel.start();
 
-                // Start retrieving rows and see how far we get...
+                // Start retrieving rows
                 int numSelectedRows = 0;
 
                 try {
@@ -669,8 +672,8 @@ public class StatementTest extends AbstractTest {
             Statement stmt = con.createStatement();
 
             try {
-                stmt.executeUpdate("IF EXISTS (select * from sysobjects where id = object_id(N'" + procName + "') and OBJECTPROPERTY(id, N'IsProcedure') = 1)"
-                        + " DROP PROCEDURE " + procName);
+                stmt.executeUpdate("IF EXISTS (select * from sysobjects where id = object_id(N'" + procName
+                        + "') and OBJECTPROPERTY(id, N'IsProcedure') = 1)" + " DROP PROCEDURE " + procName);
             }
             catch (Exception ex) {
             }
@@ -1166,7 +1169,7 @@ public class StatementTest extends AbstractTest {
     public class TCStatementCallable {
 
         /**
-         * Tests allableStatementMethods on jdbc41
+         * Tests CallableStatementMethods on jdbc41
          * 
          * @throws Exception
          */
@@ -1181,8 +1184,8 @@ public class StatementTest extends AbstractTest {
             Connection conn = DriverManager.getConnection(connectionString);
             Statement stmt = conn.createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE);
             try {
-                stmt.executeUpdate("IF EXISTS (select * from sysobjects where id = object_id(N'" + procName + "') and OBJECTPROPERTY(id, N'IsProcedure') = 1)"
-                        + " DROP PROCEDURE " + procName);
+                stmt.executeUpdate("IF EXISTS (select * from sysobjects where id = object_id(N'" + procName
+                        + "') and OBJECTPROPERTY(id, N'IsProcedure') = 1)" + " DROP PROCEDURE " + procName);
             }
             catch (Exception ex) {
             }
@@ -1196,8 +1199,7 @@ public class StatementTest extends AbstractTest {
             cstmt.registerOutParameter(1, java.sql.Types.VARCHAR);
             cstmt.registerOutParameter(2, java.sql.Types.VARCHAR);
             cstmt.execute();
-            // Temporary solution, verify in the test case. Could not write a wrapper for getObject in fxCallableStatement as fxConnection do not have
-            // wrappers for all methods.
+
             try {
                 String out1 = cstmt.getObject(1, String.class);
             }
@@ -1215,8 +1217,8 @@ public class StatementTest extends AbstractTest {
             }
 
             try {
-                stmt.executeUpdate("IF EXISTS (select * from sysobjects where id = object_id(N'" + procName + "') and OBJECTPROPERTY(id, N'IsProcedure') = 1)"
-                        + " DROP PROCEDURE " + procName);
+                stmt.executeUpdate("IF EXISTS (select * from sysobjects where id = object_id(N'" + procName
+                        + "') and OBJECTPROPERTY(id, N'IsProcedure') = 1)" + " DROP PROCEDURE " + procName);
             }
             catch (Exception ex) {
             }
@@ -1378,9 +1380,9 @@ public class StatementTest extends AbstractTest {
             ;
             stmt.executeUpdate("create table " + tableName + " (col1 int, col2 text, col3 int identity(1,1) primary key)");
             stmt.executeUpdate("Insert into " + tableName + " values(0, 'hello')");
-            stmt.executeUpdate("Insert into " + tableName + " values(0, 'yo')");
+            stmt.executeUpdate("Insert into " + tableName + " values(0, 'hi')");
             String query = "create procedure " + procName + " @col1Value int, @col2Value varchar(512) OUTPUT AS BEGIN SELECT * from " + tableName
-                    + " where col1=@col1Value SET @col2Value='wassup' END";
+                    + " where col1=@col1Value SET @col2Value='hi' END";
             stmt.execute(query);
 
             CallableStatement cstmt = conn.prepareCall("{call " + procName + "(?, ?)}");
@@ -1389,7 +1391,7 @@ public class StatementTest extends AbstractTest {
             ResultSet rs = cstmt.executeQuery();
             rs.next();
             assertEquals(rs.getString(2), "hello", "Wrong value");
-            assertEquals(cstmt.getString(2), "wassup", "Wrong value");
+            assertEquals(cstmt.getString(2), "hi", "Wrong value");
 
             try {
                 stmt.executeUpdate("drop table if exists " + tableName);
@@ -1435,9 +1437,9 @@ public class StatementTest extends AbstractTest {
             ;
             stmt.executeUpdate("create table " + tableName + " (col1 int, col2 text, col3 int identity(1,1) primary key)");
             stmt.executeUpdate("Insert into " + tableName + " values(0, 'hello')");
-            stmt.executeUpdate("Insert into " + tableName + " values(0, 'yo')");
+            stmt.executeUpdate("Insert into " + tableName + " values(0, 'hi')");
             String query = "create procedure " + procName + " @col1Value int, @col2Value varchar(512) OUTPUT AS BEGIN SELECT * from " + tableName
-                    + " where col1=@col1Value SET @col2Value='wassup' END";
+                    + " where col1=@col1Value SET @col2Value='hi' END";
             stmt.execute(query);
 
             CallableStatement cstmt = conn.prepareCall("{call " + procName + "(?, ?)}");
@@ -1527,17 +1529,17 @@ public class StatementTest extends AbstractTest {
             }
             ;
             try {
-                stmt.executeUpdate("IF EXISTS (select * from sysobjects where id = object_id(N'" + procName + "') and OBJECTPROPERTY(id, N'IsProcedure') = 1)"
-                        + " DROP PROCEDURE " + procName);
+                stmt.executeUpdate("IF EXISTS (select * from sysobjects where id = object_id(N'" + procName
+                        + "') and OBJECTPROPERTY(id, N'IsProcedure') = 1)" + " DROP PROCEDURE " + procName);
             }
             catch (Exception ex) {
             }
             ;
             stmt.executeUpdate("create table " + tableName + " (col1 int, col2 text, col3 int identity(1,1) primary key)");
             stmt.executeUpdate("Insert into " + tableName + " values(0, 'hello')");
-            stmt.executeUpdate("Insert into " + tableName + " values(0, 'yo')");
+            stmt.executeUpdate("Insert into " + tableName + " values(0, 'hi')");
             String query = "create procedure " + procName
-                    + " @col1Value int, @col2Value varchar(512) OUTPUT AS BEGIN SELECT * from somenonexistanttable where col1=@col1Value SET @col2Value='wassup' END";
+                    + " @col1Value int, @col2Value varchar(512) OUTPUT AS BEGIN SELECT * from somenonexistanttable where col1=@col1Value SET @col2Value='hi' END";
             stmt.execute(query);
 
             CallableStatement cstmt = conn.prepareCall("{call " + procName + "(?, ?)}");
@@ -1560,8 +1562,8 @@ public class StatementTest extends AbstractTest {
             }
             ;
             try {
-                stmt.executeUpdate("IF EXISTS (select * from sysobjects where id = object_id(N'" + procName + "') and OBJECTPROPERTY(id, N'IsProcedure') = 1)"
-                        + " DROP PROCEDURE " + procName);
+                stmt.executeUpdate("IF EXISTS (select * from sysobjects where id = object_id(N'" + procName
+                        + "') and OBJECTPROPERTY(id, N'IsProcedure') = 1)" + " DROP PROCEDURE " + procName);
             }
             catch (Exception ex) {
             }
@@ -1585,8 +1587,8 @@ public class StatementTest extends AbstractTest {
             }
             ;
             try {
-                stmt.executeUpdate("IF EXISTS (select * from sysobjects where id = object_id(N'" + procName + "') and OBJECTPROPERTY(id, N'IsProcedure') = 1)"
-                        + " DROP PROCEDURE " + procName);
+                stmt.executeUpdate("IF EXISTS (select * from sysobjects where id = object_id(N'" + procName
+                        + "') and OBJECTPROPERTY(id, N'IsProcedure') = 1)" + " DROP PROCEDURE " + procName);
             }
             catch (Exception ex) {
             }
@@ -1642,7 +1644,7 @@ public class StatementTest extends AbstractTest {
                 CallableStatement cstmt2 = testConn2.prepareCall("SELECT col1 FROM " + tableName + " WITH (UPDLOCK)");
 
                 // Verify that the result set can be closed after
-                // the lock timeout error (VSTS 374320)
+                // the lock timeout error
                 rs = cstmt2.executeQuery();
                 rs.close();
 
@@ -1686,8 +1688,8 @@ public class StatementTest extends AbstractTest {
             }
             ;
             try {
-                stmt.executeUpdate("IF EXISTS (select * from sysobjects where id = object_id(N'" + procName + "') and OBJECTPROPERTY(id, N'IsProcedure') = 1)"
-                        + " DROP PROCEDURE " + procName);
+                stmt.executeUpdate("IF EXISTS (select * from sysobjects where id = object_id(N'" + procName
+                        + "') and OBJECTPROPERTY(id, N'IsProcedure') = 1)" + " DROP PROCEDURE " + procName);
             }
             catch (Exception ex) {
             }
