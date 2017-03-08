@@ -92,7 +92,8 @@ public class RegressionTest extends AbstractTest {
     public static void terminate() throws SQLException {
         SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(connectionString);
         Statement stmt = con.createStatement();
-        stmt.executeUpdate("drop table if exists" + tableName);
+        stmt.executeUpdate("IF EXISTS (select * from sysobjects where id = object_id(N'" + tableName + "') and OBJECTPROPERTY(id, N'IsTable') = 1)"
+                + " DROP TABLE " + tableName);
         stmt.executeUpdate("IF EXISTS (select * from sysobjects where id = object_id(N'" + procName + "') and OBJECTPROPERTY(id, N'IsProcedure') = 1)"
                 + " DROP PROCEDURE " + procName);
 
