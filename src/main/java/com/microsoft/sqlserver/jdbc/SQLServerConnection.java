@@ -258,6 +258,8 @@ public class SQLServerConnection implements ISQLServerConnection {
     final int getSocketTimeoutMilliseconds() {
         return socketTimeoutMilliseconds;
     }
+    
+    boolean userSetTNIR = true;
 
     private boolean sendTimeAsDatetime = SQLServerDriverBooleanProperty.SEND_TIME_AS_DATETIME.getDefaultValue();
 
@@ -1102,6 +1104,7 @@ public class SQLServerConnection implements ISQLServerConnection {
             sPropKey = SQLServerDriverBooleanProperty.TRANSPARENT_NETWORK_IP_RESOLUTION.toString();
             sPropValue = activeConnectionProperties.getProperty(sPropKey);
             if (sPropValue == null) {
+                userSetTNIR = false;
                 sPropValue = Boolean.toString(SQLServerDriverBooleanProperty.TRANSPARENT_NETWORK_IP_RESOLUTION.getDefaultValue());
                 activeConnectionProperties.setProperty(sPropKey, sPropValue);
             }
@@ -1901,10 +1904,10 @@ public class SQLServerConnection implements ISQLServerConnection {
         tdsChannel = new TDSChannel(this);
         if (0 == timeOutFullInSeconds)
             tdsChannel.open(serverInfo.getServerName(), serverInfo.getPortNumber(), 0, useParallel, useTnir, isTnirFirstAttempt,
-                    timeOutsliceInMillisForFullTimeout);
+                    timeOutsliceInMillisForFullTimeout, userSetTNIR);
         else
             tdsChannel.open(serverInfo.getServerName(), serverInfo.getPortNumber(), timeOutsliceInMillis, useParallel, useTnir, isTnirFirstAttempt,
-                    timeOutsliceInMillisForFullTimeout);
+                    timeOutsliceInMillisForFullTimeout, userSetTNIR);
 
         setState(State.Connected);
 

@@ -622,13 +622,14 @@ final class TDSChannel {
             boolean useParallel,
             boolean useTnir,
             boolean isTnirFirstAttempt,
-            int timeoutMillisForFullTimeout) throws SQLServerException {
+            int timeoutMillisForFullTimeout,
+            boolean userSetTNIR) throws SQLServerException {
         if (logger.isLoggable(Level.FINER))
             logger.finer(this.toString() + ": Opening TCP socket...");
 
         SocketFinder socketFinder = new SocketFinder(traceID, con);
         channelSocket = tcpSocket = socketFinder.findSocket(host, port, timeoutMillis, useParallel, useTnir, isTnirFirstAttempt,
-                timeoutMillisForFullTimeout);
+                timeoutMillisForFullTimeout, userSetTNIR);
 
         try {
 
@@ -2248,17 +2249,20 @@ final class SocketFinder {
             boolean useParallel,
             boolean useTnir,
             boolean isTnirFirstAttempt,
-            int timeoutInMilliSecondsForFullTimeout) throws SQLServerException {
+            int timeoutInMilliSecondsForFullTimeout,
+            boolean userSetTNIR) throws SQLServerException {
         assert timeoutInMilliSeconds != 0 : "The driver does not allow a time out of 0";
 
         try {
-            InetAddress[] inetAddrs = null;
+            InetAddress[] inetAddrs = InetAddress.getAllByName(hostName);
 
-            // inetAddrs is only used if useParallel is true or TNIR is true. Skip resolving address if that's not the case.
+            //if only one IP is resolved and user didn't set TNIR explicitly then set TNIR to false
+            if ((1 == inetAddrs.length) && !userSetTNIR) {
+                useTnir = false;
+            }
+            
             if (useParallel || useTnir) {
                 // Ignore TNIR if host resolves to more than 64 IPs. Make sure we are using original timeout for this.
-                inetAddrs = InetAddress.getAllByName(hostName);
-
                 if ((useTnir) && (inetAddrs.length > ipAddressLimit)) {
                     useTnir = false;
                     timeoutInMilliSeconds = timeoutInMilliSecondsForFullTimeout;
