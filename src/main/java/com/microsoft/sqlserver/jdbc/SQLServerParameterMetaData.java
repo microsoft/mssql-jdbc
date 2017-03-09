@@ -408,41 +408,10 @@ public final class SQLServerParameterMetaData implements ParameterMetaData {
         StringTokenizer st = new StringTokenizer(sql, " ");
         if (st.hasMoreTokens()) {
             String sToken = st.nextToken().trim();
-            
-            // filter out comments in the beginning of the query
+
+         // filter out comments in the beginning of the query 
             if (sToken.contains("/*")) {
-                int beginningCommentMarkCounter = 1;
-                int endCommentMarkCounter = 0;
-
-                // deal with nested comments
-                while (st.hasMoreTokens()) {
-                    String sto = st.nextToken().trim();
-
-                    if (sto.contains("/*")) {
-                        beginningCommentMarkCounter++;
-                    }
-
-                    if (sto.contains("*/")) {
-                        endCommentMarkCounter++;
-                    }
-
-                    if (beginningCommentMarkCounter == endCommentMarkCounter) {
-                        break;
-                    }
-                }
-
-                // remove comments in the beginning
-                String sqlWithoutCommentsInBeginning = sql;
-                for (int i = 0; i < endCommentMarkCounter; i++) {
-                    int endCommentMarkIndex = sqlWithoutCommentsInBeginning.indexOf("*/");
-                    if (0 > endCommentMarkIndex) {
-                        return null;
-                    }
-                    else {
-                        // plus 2 because */ is 2
-                        sqlWithoutCommentsInBeginning = sqlWithoutCommentsInBeginning.substring(endCommentMarkIndex + 2);
-                    }
-                }
+                String sqlWithoutCommentsInBeginning = removeCommentsInTheBeginning(sql, 0, 0);
                 return parseStatement(sqlWithoutCommentsInBeginning);
             }
 
@@ -460,6 +429,36 @@ public final class SQLServerParameterMetaData implements ParameterMetaData {
         }
 
         return null;
+    }
+    
+    private String removeCommentsInTheBeginning(String sql, int startCommentMarkCount, int endCommentMarkCount) {
+        int startCommentMarkIndex = sql.indexOf("/*");
+        int endCommentMarkIndex = sql.indexOf("*/");
+
+        if (startCommentMarkIndex == -1) {
+            startCommentMarkIndex = Integer.MAX_VALUE;
+        }
+        if (endCommentMarkIndex == -1) {
+            endCommentMarkIndex = Integer.MAX_VALUE;
+        }
+
+        // Base case. startCommentMarkCount is guaranteed to be bigger than 0 because the method is called when /* occurs
+        if (startCommentMarkCount == endCommentMarkCount) {
+            if (startCommentMarkCount != 0 && endCommentMarkCount != 0) {
+                return sql;
+            }
+        }
+
+        // filter out first /*
+        if (startCommentMarkIndex < endCommentMarkIndex) {
+            String sqlWithoutCommentsInBeginning = sql.substring(startCommentMarkIndex + 2);
+            return removeCommentsInTheBeginning(sqlWithoutCommentsInBeginning, ++startCommentMarkCount, endCommentMarkCount);
+        }
+        // filter out first */
+        else {
+            String sqlWithoutCommentsInBeginning = sql.substring(endCommentMarkIndex + 2);
+            return removeCommentsInTheBeginning(sqlWithoutCommentsInBeginning, startCommentMarkCount, ++endCommentMarkCount);
+        }
     }
 
     String parseThreePartNames(String threeName) throws SQLServerException {
