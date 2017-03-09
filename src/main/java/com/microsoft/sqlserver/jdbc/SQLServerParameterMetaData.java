@@ -409,7 +409,7 @@ public final class SQLServerParameterMetaData implements ParameterMetaData {
         if (st.hasMoreTokens()) {
             String sToken = st.nextToken().trim();
 
-         // filter out comments in the beginning of the query 
+            // filter out comments in the beginning of the query
             if (sToken.contains("/*")) {
                 String sqlWithoutCommentsInBeginning = removeCommentsInTheBeginning(sql, 0, 0);
                 return parseStatement(sqlWithoutCommentsInBeginning);
