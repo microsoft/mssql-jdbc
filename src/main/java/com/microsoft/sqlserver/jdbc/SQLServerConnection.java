@@ -47,6 +47,7 @@ import java.util.UUID;
 import java.util.concurrent.Executor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.logging.Level;
 
 import javax.sql.XAConnection;
@@ -78,6 +79,25 @@ import javax.xml.bind.DatatypeConverter;
 public class SQLServerConnection implements ISQLServerConnection {
     long timerExpire;
     boolean attemptRefreshTokenLocked = false;
+
+    // Threasholds related to when prepared statement handles are cleaned-up. 1 == immediately.
+    /**
+     * The initial default on application start-up for the prepared statement clean-up action threshold (i.e. when sp_unprepare is called). 
+     */    
+    static final public int INITIAL_DEFAULT_PREPARED_STATEMENT_CLEANUP_THRESHOLD = 10; // Used to set the initial default, can be changed later.
+    static private int defaultPreparedStatementDiscardActionThreshold = -1; // Current default for new connections
+    private int preparedStatementDiscardActionThreshold = -1; // Current limit for this particular connection.
+
+    /**
+     * The initial default on application start-up for if prepared statements should execute sp_executesql before following the prepare, unprepare pattern. 
+     */    
+    static final public boolean INITIAL_DEFAULT_PREPARE_STATEMENT_ON_FIRST_CALL = false; // Used to set the initial default, can be changed later. false == use sp_executesql -> sp_prepexec -> sp_execute -> batched -> sp_unprepare pattern, true == skip sp_executesql part of pattern.
+    static private Boolean defaultPrepareStatementOnFirstCall = null; // Current default for new connections
+    private Boolean prepareStatementOnFirstCall = null; // Current limit for this particular connection.
+
+    // Handle the actual queue of discarded prepared statements.
+    private ConcurrentLinkedQueue<PreparedStatementDiscardItem> discardedPreparedStatementHandles = new ConcurrentLinkedQueue<PreparedStatementDiscardItem>();
+    private AtomicInteger discardedPreparedStatementHandleQueueCount = new AtomicInteger(0);
 
     private boolean fedAuthRequiredByUser = false;
     private boolean fedAuthRequiredPreLoginResponse = false;
@@ -2623,6 +2643,10 @@ public class SQLServerConnection implements ISQLServerConnection {
         if (null != tdsChannel) {
             tdsChannel.close();
         }
+
+        // Clean-up queue etc. related to batching of prepared statement discard actions (sp_unprepare).
+        this.cleanupPreparedStatementDiscardActions();
+
         loggerExternal.exiting(getClassNameLogging(), "close");
     }
 
@@ -5116,6 +5140,246 @@ public class SQLServerConnection implements ISQLServerConnection {
         return columnEncryptionKeyCacheTtl;
     }
 
+    
+    /**
+     * Used to keep track of an individual handle ready for un-prepare.
+     */
+    private final class PreparedStatementDiscardItem  {
+
+        public int handle; 
+        public boolean directSql;
+
+        public PreparedStatementDiscardItem(int handle, boolean directSql) {
+            this.handle = handle;
+            this.directSql = directSql;
+        }
+    }
+
+
+    /**
+     * Enqueue a discarded prepared statement handle to be clean-up on the server.
+     * 
+     * @param handle
+     *      The prepared statement handle
+     * @param directSql
+     *      Whether the statement handle is direct SQL (true) or a cursor (false)
+     */
+    final void enqueuePreparedStatementDiscardItem(int handle, boolean directSql)
+    {
+        if (getConnectionLogger().isLoggable(java.util.logging.Level.FINER))
+            getConnectionLogger().finer(this + ": Adding PreparedHandle to queue for un-prepare:" + handle);
+
+        // Add the new handle to the discarding queue and find out current # enqueued.
+        this.discardedPreparedStatementHandles.add(new PreparedStatementDiscardItem(handle, directSql));
+        this.discardedPreparedStatementHandleQueueCount.incrementAndGet();
+    }
+
+
+    /**
+     * Returns the number of currently outstanding prepared statement un-prepare actions.
+     */
+    public int outstandingPreparedStatementDiscardActionCount(){
+        return this.discardedPreparedStatementHandleQueueCount.get();
+    }
+
+    /**
+     * Forces the un-prepare requests for any outstanding discarded prepared statements to be executed.
+     */
+    public void forcePreparedStatementDiscardActions()
+    {
+        this.handlePreparedStatementDiscardActions(true);
+    }
+
+    /**
+     * Remove references to outstanding un-prepare requests. Should be run when connection is closed.
+     */
+    private final void cleanupPreparedStatementDiscardActions()
+    {
+        this.discardedPreparedStatementHandles.clear();
+        this.discardedPreparedStatementHandleQueueCount.set(0);
+    }
+
+    /**
+     * Returns the default behavior for new connection instances. If false the first execution will call sp_executesql and not prepare 
+     * a statement, once the second execution happens it will call sp_prepexec and actually setup a prepared statement handle. Following
+     * executions will call sp_execute. This relieves the need for sp_unprepare on prepared statement close if the statement is only
+     * executed once. Initial setting for this option is available in INITIAL_DEFAULT_PREPARE_STATEMENT_AFTER_FIRST_CALL.
+     * 
+     * @return Returns the current setting per the description.
+     */
+    static public boolean getDefaultPrepareStatementOnFirstCall()
+    {
+        if(null == defaultPrepareStatementOnFirstCall)
+            return INITIAL_DEFAULT_PREPARE_STATEMENT_ON_FIRST_CALL;
+        else
+            return defaultPrepareStatementOnFirstCall;        
+    }
+
+    /**
+     * Specifies the default behavior for new connection instances. If value is false the first execution will call sp_executesql and not prepare 
+     * a statement, once the second execution happens it will call sp_prepexec and actually setup a prepared statement handle. Following
+     * executions will call sp_execute. This relieves the need for sp_unprepare on prepared statement close if the statement is only
+     * executed once. Initial setting for this option is available in INITIAL_DEFAULT_PREPARE_STATEMENT_AFTER_FIRST_CALL.
+     * 
+     * @param value
+     *      Changes the setting per the description.
+     */
+    static public void setDefaultPrepareStatementOnFirstCall(boolean value)
+    {
+        defaultPrepareStatementOnFirstCall = value; 
+    }
+
+    /**
+     * Returns the behavior for a specific connection instance. If false the first execution will call sp_executesql and not prepare 
+     * a statement, once the second execution happens it will call sp_prepexec and actually setup a prepared statement handle. Following
+     * executions will call sp_execute. This relieves the need for sp_unprepare on prepared statement close if the statement is only
+     * executed once. The default for this option can be changed by calling setDefaultPrepareStatementAfterFirstCall(). 
+     * 
+     * @return Returns the current setting per the description.
+     */
+    public boolean getPrepareStatementOnFirstCall()
+    {
+        if(null == this.prepareStatementOnFirstCall)
+            return getDefaultPrepareStatementOnFirstCall();
+        else
+            return this.prepareStatementOnFirstCall;        
+    }
+
+    /**
+     * Specifies the behavior for a specific connection instance. If value is false the first execution will call sp_executesql and not prepare 
+     * a statement, once the second execution happens it will call sp_prepexec and actually setup a prepared statement handle. Following
+     * executions will call sp_execute. This relieves the need for sp_unprepare on prepared statement close if the statement is only
+     * executed once.  
+     * 
+     * @param value
+     *      Changes the setting per the description.
+     */
+    public void setPrepareStatementOnFirstCall(boolean value)
+    {
+        this.prepareStatementOnFirstCall = value;
+    }
+
+    /**
+     * Returns the default behavior for new connection instances. This setting controls how many outstanding prepared statement discard
+     * actions (sp_unprepare) can be outstanding per connection before a call to clean-up the outstanding handles on the server is executed.
+     * If the setting is <= 1 unprepare actions will be executed immedietely on prepared statement close. If it is set to >1 these calls will
+     * be batched together to avoid overhead of calling sp_unprepare too often. 
+     * Initial setting for this option is available in INITIAL_DEFAULT_PREPARED_STATEMENT_CLEANUP_THRESHOLD.
+     * 
+     * @return Returns the current setting per the description.
+     */
+    static public int getDefaultPreparedStatementDiscardActionThreshold()
+    {
+        if(0 > defaultPreparedStatementDiscardActionThreshold)
+            return INITIAL_DEFAULT_PREPARED_STATEMENT_CLEANUP_THRESHOLD;
+        else
+            return defaultPreparedStatementDiscardActionThreshold;        
+    }
+
+    /**
+     * Specifies the default behavior for new connection instances. This setting controls how many outstanding prepared statement discard
+     * actions (sp_unprepare) can be outstanding per connection before a call to clean-up the outstanding handles on the server is executed.
+     * If the setting is <= 1 unprepare actions will be executed immedietely on prepared statement close. If it is set to >1 these calls will
+     * be batched together to avoid overhead of calling sp_unprepare too often. 
+     * Initial setting for this option is available in INITIAL_DEFAULT_PREPARED_STATEMENT_CLEANUP_THRESHOLD.
+     * 
+     * @param value
+     *      Changes the setting per the description.
+     */
+    static public void setDefaultPreparedStatementDiscardActionThreshold(int value)
+    {
+        defaultPreparedStatementDiscardActionThreshold = value; 
+    }
+
+    /**
+     * Returns the behavior for a specific connection instance. This setting controls how many outstanding prepared statement discard
+     * actions (sp_unprepare) can be outstanding per connection before a call to clean-up the outstanding handles on the server is executed.
+     * If the setting is <= 1 unprepare actions will be executed immedietely on prepared statement close. If it is set to >1 these calls will
+     * be batched together to avoid overhead of calling sp_unprepare too often. 
+     * The default for this option can be changed by calling getDefaultPreparedStatementDiscardActionThreshold(). 
+     * 
+     * @return Returns the current setting per the description.
+     */
+    public int getPreparedStatementDiscardActionThreshold()
+    {
+        if(0 > this.preparedStatementDiscardActionThreshold)
+            return getDefaultPreparedStatementDiscardActionThreshold();
+        else
+            return this.preparedStatementDiscardActionThreshold;        
+    }
+
+    /**
+     * Specifies the behavior for a specific connection instance. This setting controls how many outstanding prepared statement discard
+     * actions (sp_unprepare) can be outstanding per connection before a call to clean-up the outstanding handles on the server is executed.
+     * If the setting is <= 1 unprepare actions will be executed immedietely on prepared statement close. If it is set to >1 these calls will
+     * be batched together to avoid overhead of calling sp_unprepare too often. 
+     * 
+     * @param value
+     *      Changes the setting per the description.
+     */
+     public void setPreparedStatementDiscardActionThreshold(int value)
+    {
+        this.preparedStatementDiscardActionThreshold = value;
+    }
+
+    /**
+     * Cleans-up discarded prepared statement handles on the server using batched un-prepare actions if the batching threshold has been reached.
+     * 
+     * @param force 
+     *      When force is set to true we ignore the current threshold for if the discard actions should run and run them anyway.
+     */
+    final void handlePreparedStatementDiscardActions(boolean force)
+    {
+        // Skip out if session is unavailable to adhere to previous non-batched behavior.
+        if (this.isSessionUnAvailable()) 
+            return;
+
+        final int threshold = this.getPreparedStatementDiscardActionThreshold();
+
+        // Find out current # enqueued, if force, make sure it always exceeds threshold.
+        int count = force ? threshold + 1 : this.outstandingPreparedStatementDiscardActionCount();
+
+        // Met threshold to clean-up?
+        if(threshold < count){
+
+            PreparedStatementDiscardItem prepStmtDiscardAction = this.discardedPreparedStatementHandles.poll();
+            if(null != prepStmtDiscardAction) {
+                int handlesRemoved = 0;
+
+                // Create batch of sp_unprepare statements.
+                StringBuilder sql = new StringBuilder(count * 32/*EXEC sp_cursorunprepare++;*/);
+
+                // Build the string containing no more than the # of handles to remove.
+                // Note that sp_unprepare can fail if the statement is already removed. 
+                // However, the server will only abort that statement continue with remaining clean-up.
+                do{
+                    ++handlesRemoved;
+                    
+                    sql.append(prepStmtDiscardAction.directSql ? "EXEC sp_unprepare " : "EXEC sp_cursorunprepare ")
+                        .append(prepStmtDiscardAction.handle)
+                        .append(';');
+                } while (null != (prepStmtDiscardAction = this.discardedPreparedStatementHandles.poll()));
+
+                try{
+                    // Execute the batched set.
+                    try(Statement stmt = this.createStatement()){
+                        stmt.execute(sql.toString());
+                    }
+
+                    if (getConnectionLogger().isLoggable(java.util.logging.Level.FINER))
+                        getConnectionLogger().finer(this + ": Finished un-preparing handle count:" + handlesRemoved);
+                }
+                catch(SQLException e){
+                    if (getConnectionLogger().isLoggable(java.util.logging.Level.FINER))
+                        getConnectionLogger().log(Level.FINER, this + ": Error (ignored) batch-closing prepared handles", e);
+                }
+                finally{}
+  
+                // Decrement threshold counter
+                this.discardedPreparedStatementHandleQueueCount.addAndGet(-handlesRemoved);
+            }
+        }
+    } 
 }
 
 // Helper class for security manager functions used by SQLServerConnection class.
