@@ -166,7 +166,7 @@ public class SQLServerConnection implements ISQLServerConnection {
         Closed      // indicates that the connection has been closed.
     }
 
-    private final static float TIMEOUTSTEP = 0.08F;    // fraction of timeout to use for fast failover connections
+    private final static float TIMEOUTSTEP = 0.125F;    // fraction of timeout to use for fast failover connections
     final static int TnirFirstAttemptTimeoutMs = 500;    // fraction of timeout to use for fast failover connections
 
     /*
