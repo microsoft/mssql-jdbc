@@ -1725,7 +1725,7 @@ public class SQLServerConnection implements ISQLServerConnection {
             attemptNumber++;
 
             if (useParallel || useTnir) {
-                intervalExpire = System.currentTimeMillis() + (timeoutUnitInterval * (attemptNumber + 1));
+                intervalExpire = System.currentTimeMillis() + (timeoutUnitInterval * ((long) Math.pow(2, attemptNumber)));
             }
             else if (isDBMirroring) {
                 intervalExpire = System.currentTimeMillis() + (timeoutUnitInterval * ((attemptNumber / 2) + 1));
