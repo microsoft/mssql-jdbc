@@ -435,10 +435,10 @@ public final class SQLServerParameterMetaData implements ParameterMetaData {
         int startCommentMarkIndex = sql.indexOf("/*");
         int endCommentMarkIndex = sql.indexOf("*/");
 
-        if (startCommentMarkIndex == -1) {
+        if (-1 == startCommentMarkIndex) {
             startCommentMarkIndex = Integer.MAX_VALUE;
         }
-        if (endCommentMarkIndex == -1) {
+        if (-1 == endCommentMarkIndex) {
             endCommentMarkIndex = Integer.MAX_VALUE;
         }
 

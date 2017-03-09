@@ -1108,6 +1108,34 @@ public class PQImpsTest extends AbstractTest {
             compareParameterMetaData(pmd, 3, "java.lang.Integer", 4, "int", 10, 0);
         }
     }
+    
+    @Test
+    public void testQueryWithComments1() throws SQLException {
+        pstmt = connection.prepareStatement("/*test*//*test*/select top 100 c1 from " + charTable + " where c1 = ?");
+        pstmt.setString(1, "abc");
+        
+        try {
+            pstmt.getParameterMetaData();
+            pstmt.executeQuery();
+        }
+        catch (Exception e) {
+            fail(e.toString());
+        }
+    }
+    
+    @Test
+    public void testQueryWithComments2() throws SQLException {
+        pstmt = connection.prepareStatement("/*/*test*/ te/*test*/st /*test*/*//*te/*test*/st*/select top 100 c1 from " + charTable + " where c1 = ?");
+        pstmt.setString(1, "abc");
+        
+        try {
+            pstmt.getParameterMetaData();
+            pstmt.executeQuery();
+        }
+        catch (Exception e) {
+            fail(e.toString());
+        }
+    }
 
     /**
      * Cleanup
