@@ -410,16 +410,40 @@ public final class SQLServerParameterMetaData implements ParameterMetaData {
             String sToken = st.nextToken().trim();
             
             // filter out comments in the beginning of the query
-            if (sToken.equalsIgnoreCase("/*")) {
-                int endCommentMarkIndex = sql.indexOf("*/");
-                if (0 > endCommentMarkIndex) {
-                    return null;
+            if (sToken.contains("/*")) {
+                int beginningCommentMarkCounter = 1;
+                int endCommentMarkCounter = 0;
+
+                // deal with nested comments
+                while (st.hasMoreTokens()) {
+                    String sto = st.nextToken().trim();
+
+                    if (sto.contains("/*")) {
+                        beginningCommentMarkCounter++;
+                    }
+
+                    if (sto.contains("*/")) {
+                        endCommentMarkCounter++;
+                    }
+
+                    if (beginningCommentMarkCounter == endCommentMarkCounter) {
+                        break;
+                    }
                 }
-                else {
-                    // plus 2 because */ is 2
-                    String sqlWithoutCommentsInBeginning = sql.substring(endCommentMarkIndex + 2);
-                    return parseStatement(sqlWithoutCommentsInBeginning);
+
+                // remove comments in the beginning
+                String sqlWithoutCommentsInBeginning = sql;
+                for (int i = 0; i < endCommentMarkCounter; i++) {
+                    int endCommentMarkIndex = sqlWithoutCommentsInBeginning.indexOf("*/");
+                    if (0 > endCommentMarkIndex) {
+                        return null;
+                    }
+                    else {
+                        // plus 2 because */ is 2
+                        sqlWithoutCommentsInBeginning = sqlWithoutCommentsInBeginning.substring(endCommentMarkIndex + 2);
+                    }
                 }
+                return parseStatement(sqlWithoutCommentsInBeginning);
             }
 
             if (sToken.equalsIgnoreCase("INSERT"))
