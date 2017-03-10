@@ -148,6 +148,9 @@ public class PoolingTest extends AbstractTest {
         assertEquals(Id1, Id2, "ClientConnection Ids from pool are not the same.");
     }
     
+    /**
+     * test connection pool with HikariCP
+     */
     @Test
     public void testHikariCP() throws SQLException {
         HikariConfig config = new HikariConfig();
@@ -162,6 +165,9 @@ public class PoolingTest extends AbstractTest {
         }
     }
 
+    /**
+     * test connection pool with Apache DBCP
+     */
     @Test
     public void testApacheDBCP() throws SQLException {
         BasicDataSource ds = new BasicDataSource();
@@ -175,6 +181,9 @@ public class PoolingTest extends AbstractTest {
         }
     }
 
+    /**
+     * setup connection, get connection from pool, and test threads
+     */
     private static void connect(DataSource ds) throws SQLException {
         Connection con = null;
         PreparedStatement pst = null;
@@ -207,6 +216,11 @@ public class PoolingTest extends AbstractTest {
         }
     }
 
+    /**
+     * count number of mssql-jdbc-TimeoutTimer threads
+     * 
+     * @return
+     */
     private static int countTimeoutThreads() {
         int count = 0;
         String threadName = "mssql-jdbc-TimeoutTimer";
