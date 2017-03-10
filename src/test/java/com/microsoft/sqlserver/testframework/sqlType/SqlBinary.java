@@ -43,7 +43,7 @@ public class SqlBinary extends SqlType {
      * create random data for binary and varbinary column
      */
     public Object createdata() {
-        int dataLength = ThreadLocalRandom.current().nextInt(5);// precision
+        int dataLength = ThreadLocalRandom.current().nextInt(precision);
         byte[] bytes = new byte[dataLength];
         ThreadLocalRandom.current().nextBytes(bytes);
         return bytes;

@@ -105,6 +105,12 @@ public abstract class SqlType extends DBItems {
         }
     }
 
+    /**
+     * create valid random value for the SQL type
+     * @param type
+     * @param data
+     * @return
+     */
     public Object createdata(Class type,
             byte[] data) {
         if (type == String.class)
@@ -235,7 +241,7 @@ public abstract class SqlType extends DBItems {
      * @return
      * @throws Exception
      */
-    public boolean canconvert(Class target,
+    public boolean canConvert(Class target,
             int flag,
             DBConnection conn) throws Exception {
         double serverversion = conn.getServerVersion();

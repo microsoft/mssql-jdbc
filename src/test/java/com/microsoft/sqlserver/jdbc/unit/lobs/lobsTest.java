@@ -157,7 +157,7 @@ public class lobsTest extends AbstractTest {
             Object updater;
             for (int i = 0; i < table.getColumns().size(); i++) {
                 DBColumn col = table.getColumns().get(i);
-                if (!col.getSqlType().canconvert(lobClass, coercionType, new DBConnection(connectionString)))
+                if (!col.getSqlType().canConvert(lobClass, coercionType, new DBConnection(connectionString)))
                     continue;
                 // re-create LOB since it might get closed
                 Object lob = this.createLob(lobClass);
@@ -251,7 +251,7 @@ public class lobsTest extends AbstractTest {
             while (rs.next()) {
                 for (int i = 0; i < 3; i++) {
                     DBColumn col = table.getColumns().get(i);
-                    if (!col.getSqlType().canconvert(streamClass, DBCoercion.GET, new DBConnection(connectionString)))
+                    if (!col.getSqlType().canConvert(streamClass, DBCoercion.GET, new DBConnection(connectionString)))
                         continue;
                     Object stream = rs.getXXX(i + 1, streamClass);
                     if (stream == null) {
@@ -288,7 +288,7 @@ public class lobsTest extends AbstractTest {
     @DisplayName("testlLobs_InsertRetrive")
     public void testNClob() throws Exception {
         String types[] = {"nvarchar(max)"};
-        testlLobs_InsertRetrive(types, NClob.class);
+        testLobs_InsertRetrive(types, NClob.class);
     }
 
     /**
@@ -300,7 +300,7 @@ public class lobsTest extends AbstractTest {
     @DisplayName("testlLobs_InsertRetrive")
     public void testBlob() throws Exception {
         String types[] = {"varbinary(max)"};
-        testlLobs_InsertRetrive(types, Blob.class);
+        testLobs_InsertRetrive(types, Blob.class);
     }
 
     /**
@@ -312,10 +312,10 @@ public class lobsTest extends AbstractTest {
     @DisplayName("testlLobs_InsertRetrive")
     public void testClob() throws Exception {
         String types[] = {"varchar(max)"};
-        testlLobs_InsertRetrive(types, Clob.class);
+        testLobs_InsertRetrive(types, Clob.class);
     }
 
-    private void testlLobs_InsertRetrive(String types[],
+    private void testLobs_InsertRetrive(String types[],
             Class lobClass) throws Exception {
         table = createTable(table, types, false);  // create empty table
         int size = 10000;
