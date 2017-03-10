@@ -366,7 +366,7 @@ public final class SQLServerParameterMetaData implements ParameterMetaData {
      */
     private MetaInfo parseStatement(String sql,
             String sTableMarker) {
-        StringTokenizer st = new StringTokenizer(sql, " ,", true);
+        StringTokenizer st = new StringTokenizer(sql, " ,\r\n", true);
 
         /* Find the table */
 

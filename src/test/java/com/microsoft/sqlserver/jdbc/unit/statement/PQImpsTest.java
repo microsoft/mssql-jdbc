@@ -1184,6 +1184,25 @@ public class PQImpsTest extends AbstractTest {
             fail(e.toString());
         }
     }
+    
+    /**
+     * test query with single line comment
+     * 
+     * @throws SQLException
+     */
+    @Test
+    public void testQueryWithSingleLineComments3() throws SQLException {
+        pstmt = connection.prepareStatement("select top 100 c1\nfrom " + charTable + " where c1 = ?");
+        pstmt.setString(1, "abc");
+        
+        try {
+            pstmt.getParameterMetaData();
+            pstmt.executeQuery();
+        }
+        catch (Exception e) {
+            fail(e.toString());
+        }
+    }
 
     /**
      * Cleanup
