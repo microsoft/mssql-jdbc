@@ -1110,7 +1110,7 @@ public class PQImpsTest extends AbstractTest {
     }
     
     @Test
-    public void testQueryWithComments1() throws SQLException {
+    public void testQueryWithMultipleLineComments1() throws SQLException {
         pstmt = connection.prepareStatement("/*test*//*test*/select top 100 c1 from " + charTable + " where c1 = ?");
         pstmt.setString(1, "abc");
         
@@ -1124,8 +1124,36 @@ public class PQImpsTest extends AbstractTest {
     }
     
     @Test
-    public void testQueryWithComments2() throws SQLException {
+    public void testQueryWithMultipleLineComments2() throws SQLException {
         pstmt = connection.prepareStatement("/*/*test*/ te/*test*/st /*test*/*//*te/*test*/st*/select top 100 c1 from " + charTable + " where c1 = ?");
+        pstmt.setString(1, "abc");
+        
+        try {
+            pstmt.getParameterMetaData();
+            pstmt.executeQuery();
+        }
+        catch (Exception e) {
+            fail(e.toString());
+        }
+    }
+    
+    @Test
+    public void testQueryWithSingleLineComments1() throws SQLException {
+        pstmt = connection.prepareStatement("-- test \n select top 100 c1 from " + charTable + " where c1 = ?");
+        pstmt.setString(1, "abc");
+        
+        try {
+            pstmt.getParameterMetaData();
+            pstmt.executeQuery();
+        }
+        catch (Exception e) {
+            fail(e.toString());
+        }
+    }
+    
+    @Test
+    public void testQueryWithSingleLineComments2() throws SQLException {
+        pstmt = connection.prepareStatement("--test\nselect top 100 c1 from " + charTable + " where c1 = ?");
         pstmt.setString(1, "abc");
         
         try {

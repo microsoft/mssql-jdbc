@@ -409,7 +409,7 @@ public final class SQLServerParameterMetaData implements ParameterMetaData {
         if (st.hasMoreTokens()) {
             String sToken = st.nextToken().trim();
 
-            // filter out multiply line comments in the beginning of the query
+            // filter out multiple line comments in the beginning of the query
             if (sToken.contains("/*")) {
                 String sqlWithoutCommentsInBeginning = removeCommentsInTheBeginning(sql, 0, 0, "/*", "*/");
                 return parseStatement(sqlWithoutCommentsInBeginning);
@@ -455,14 +455,14 @@ public final class SQLServerParameterMetaData implements ParameterMetaData {
             }
         }
 
-        // filter out first /*
+        // filter out first start comment mark
         if (startCommentMarkIndex < endCommentMarkIndex) {
-            String sqlWithoutCommentsInBeginning = sql.substring(startCommentMarkIndex + 2);
+            String sqlWithoutCommentsInBeginning = sql.substring(startCommentMarkIndex + startMark.length());
             return removeCommentsInTheBeginning(sqlWithoutCommentsInBeginning, ++startCommentMarkCount, endCommentMarkCount, startMark, endMark);
         }
-        // filter out first */
+        // filter out first end comment mark
         else {
-            String sqlWithoutCommentsInBeginning = sql.substring(endCommentMarkIndex + 2);
+            String sqlWithoutCommentsInBeginning = sql.substring(endCommentMarkIndex + endMark.length());
             return removeCommentsInTheBeginning(sqlWithoutCommentsInBeginning, startCommentMarkCount, ++endCommentMarkCount, startMark, endMark);
         }
     }
