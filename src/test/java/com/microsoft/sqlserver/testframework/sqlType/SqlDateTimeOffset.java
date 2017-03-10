@@ -27,6 +27,7 @@ public class SqlDateTimeOffset extends SqlDateTime {
     // min/max with offset
     public SqlDateTimeOffset() {
         super("datetimeoffset", JDBCType.TIMESTAMP /* microsoft.sql.Types.DATETIMEOFFSET */, null, null);
+        type = microsoft.sql.DateTimeOffset.class;
         minvalue = Timestamp.valueOf((String) SqlTypeValue.DATETIMEOFFSET.minValue);
         maxvalue = Timestamp.valueOf((String) SqlTypeValue.DATETIMEOFFSET.maxValue);
         this.precision = 7;

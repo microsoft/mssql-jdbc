@@ -11,6 +11,8 @@ package com.microsoft.sqlserver.testframework;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
+import java.io.InputStream;
+import java.io.Reader;
 import java.math.BigDecimal;
 import java.sql.JDBCType;
 import java.sql.ResultSet;
@@ -23,6 +25,9 @@ import java.util.Arrays;
 import java.util.Calendar;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+
+import com.microsoft.sqlserver.testframework.Utils.DBBinaryStream;
+import com.microsoft.sqlserver.testframework.Utils.DBCharacterStream;
 
 /**
  * wrapper class for ResultSet
@@ -100,6 +105,46 @@ public class DBResultSet extends AbstractParentWrapper {
 
     /**
      * 
+     * @param x
+     * @return
+     * @throws SQLException
+     */
+    public InputStream getBinaryStream(int x) throws SQLException {
+        return resultSet.getBinaryStream(x);
+    }
+
+    /**
+     * 
+     * @param x
+     * @return
+     * @throws SQLException
+     */
+    public InputStream getBinaryStream(String x) throws SQLException {
+        return resultSet.getBinaryStream(x);
+    }
+
+    /**
+     * 
+     * @param x
+     * @return
+     * @throws SQLException
+     */
+    public Reader getCharacterStream(int x) throws SQLException {
+        return resultSet.getCharacterStream(x);
+    }
+
+    /**
+     * 
+     * @param x
+     * @return
+     * @throws SQLException
+     */
+    public Reader getCharacterStream(String x) throws SQLException {
+        return resultSet.getCharacterStream(x);
+    }
+
+    /**
+     * 
      * @param index
      * @return
      * @throws SQLException
@@ -149,6 +194,7 @@ public class DBResultSet extends AbstractParentWrapper {
      * @param ordinal
      * @param coercion
      * @throws SQLException
+     * @throws Exception
      */
     public void verifydata(int ordinal,
             Class coercion) throws SQLException {
@@ -287,10 +333,39 @@ public class DBResultSet extends AbstractParentWrapper {
         return true;
     }
 
-    private Object getXXX(int idx,
+    /**
+     * 
+     * @param idx
+     * @param coercion
+     * @return
+     * @throws SQLException
+     */
+    public Object getXXX(Object idx,
             Class coercion) throws SQLException {
+        int intOrdinal = 0;
+        String strOrdinal = "";
+        boolean isInteger = false;
+
+        if (idx == null) {
+            strOrdinal = null;
+        }
+        else if (idx instanceof Integer) {
+            isInteger = true;
+            intOrdinal = ((Integer) idx).intValue();
+        }
+        else {
+            // Otherwise
+            throw new SQLException("Unhandled ordinal type: " + idx.getClass());
+        }
+
         if (coercion == Object.class) {
-            return this.getObject(idx);
+            return this.getObject(intOrdinal);
+        }
+        else if (coercion == DBBinaryStream.class) {
+            return isInteger ? this.getBinaryStream(intOrdinal) : this.getBinaryStream(strOrdinal);
+        }
+        else if (coercion == DBCharacterStream.class) {
+            return isInteger ? this.getCharacterStream(intOrdinal) : this.getCharacterStream(strOrdinal);
         }
         else {
             if (log.isLoggable(Level.FINE)) {
@@ -460,4 +535,16 @@ public class DBResultSet extends AbstractParentWrapper {
     public int getInt(int index) throws SQLException {
         return resultSet.getInt(index);
     }
+
+    /**
+     * 
+     * @return
+     */
+    public DBStatement statement() {
+        if (parent instanceof DBStatement) {
+            return ((DBStatement) parent);
+        }
+        return (null);
+    }
+
 }
