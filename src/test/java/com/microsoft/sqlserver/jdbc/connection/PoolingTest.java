@@ -39,6 +39,10 @@ import com.microsoft.sqlserver.testframework.util.RandomUtil;
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
 
+/**
+ * Tests pooled connection
+ *
+ */
 @RunWith(JUnitPlatform.class)
 public class PoolingTest extends AbstractTest {
     @Test
@@ -150,6 +154,8 @@ public class PoolingTest extends AbstractTest {
     
     /**
      * test connection pool with HikariCP
+     * 
+     * @throws SQLException
      */
     @Test
     public void testHikariCP() throws SQLException {
@@ -167,6 +173,8 @@ public class PoolingTest extends AbstractTest {
 
     /**
      * test connection pool with Apache DBCP
+     * 
+     * @throws SQLException
      */
     @Test
     public void testApacheDBCP() throws SQLException {
@@ -181,8 +189,12 @@ public class PoolingTest extends AbstractTest {
         }
     }
 
+
     /**
      * setup connection, get connection from pool, and test threads
+     * 
+     * @param ds
+     * @throws SQLException
      */
     private static void connect(DataSource ds) throws SQLException {
         Connection con = null;
