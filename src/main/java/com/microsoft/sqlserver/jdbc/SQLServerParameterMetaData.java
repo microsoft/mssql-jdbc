@@ -409,9 +409,15 @@ public final class SQLServerParameterMetaData implements ParameterMetaData {
         if (st.hasMoreTokens()) {
             String sToken = st.nextToken().trim();
 
-            // filter out comments in the beginning of the query
+            // filter out multiply line comments in the beginning of the query
             if (sToken.contains("/*")) {
-                String sqlWithoutCommentsInBeginning = removeCommentsInTheBeginning(sql, 0, 0);
+                String sqlWithoutCommentsInBeginning = removeCommentsInTheBeginning(sql, 0, 0, "/*", "*/");
+                return parseStatement(sqlWithoutCommentsInBeginning);
+            }
+            
+            // filter out single line comments in the beginning of the query
+            if (sToken.contains("--")) {
+                String sqlWithoutCommentsInBeginning = removeCommentsInTheBeginning(sql, 0, 0, "--", "\n");
                 return parseStatement(sqlWithoutCommentsInBeginning);
             }
 
@@ -431,9 +437,9 @@ public final class SQLServerParameterMetaData implements ParameterMetaData {
         return null;
     }
     
-    private String removeCommentsInTheBeginning(String sql, int startCommentMarkCount, int endCommentMarkCount) {
-        int startCommentMarkIndex = sql.indexOf("/*");
-        int endCommentMarkIndex = sql.indexOf("*/");
+    private String removeCommentsInTheBeginning(String sql, int startCommentMarkCount, int endCommentMarkCount, String startMark, String endMark) {
+        int startCommentMarkIndex = sql.indexOf(startMark);
+        int endCommentMarkIndex = sql.indexOf(endMark);
 
         if (-1 == startCommentMarkIndex) {
             startCommentMarkIndex = Integer.MAX_VALUE;
@@ -452,12 +458,12 @@ public final class SQLServerParameterMetaData implements ParameterMetaData {
         // filter out first /*
         if (startCommentMarkIndex < endCommentMarkIndex) {
             String sqlWithoutCommentsInBeginning = sql.substring(startCommentMarkIndex + 2);
-            return removeCommentsInTheBeginning(sqlWithoutCommentsInBeginning, ++startCommentMarkCount, endCommentMarkCount);
+            return removeCommentsInTheBeginning(sqlWithoutCommentsInBeginning, ++startCommentMarkCount, endCommentMarkCount, startMark, endMark);
         }
         // filter out first */
         else {
             String sqlWithoutCommentsInBeginning = sql.substring(endCommentMarkIndex + 2);
-            return removeCommentsInTheBeginning(sqlWithoutCommentsInBeginning, startCommentMarkCount, ++endCommentMarkCount);
+            return removeCommentsInTheBeginning(sqlWithoutCommentsInBeginning, startCommentMarkCount, ++endCommentMarkCount, startMark, endMark);
         }
     }
 
