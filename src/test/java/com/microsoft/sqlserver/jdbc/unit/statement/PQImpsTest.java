@@ -1109,9 +1109,14 @@ public class PQImpsTest extends AbstractTest {
         }
     }
     
+    /**
+     * test query with simple multiple line comments
+     * 
+     * @throws SQLException
+     */
     @Test
     public void testQueryWithMultipleLineComments1() throws SQLException {
-        pstmt = connection.prepareStatement("/*test*//*test*/select top 100 c1 from " + charTable + " where c1 = ?");
+        pstmt = connection.prepareStatement("/*te\nst*//*test*/select top 100 c1 from " + charTable + " where c1 = ?");
         pstmt.setString(1, "abc");
         
         try {
@@ -1123,9 +1128,14 @@ public class PQImpsTest extends AbstractTest {
         }
     }
     
+    /**
+     * test query with complex multiple line comments
+     * 
+     * @throws SQLException
+     */
     @Test
     public void testQueryWithMultipleLineComments2() throws SQLException {
-        pstmt = connection.prepareStatement("/*/*test*/ te/*test*/st /*test*/*//*te/*test*/st*/select top 100 c1 from " + charTable + " where c1 = ?");
+        pstmt = connection.prepareStatement("/*/*te\nst*/ te/*test*/st /*te\nst*/*//*te/*test*/st*/select top 100 c1 from " + charTable + " where c1 = ?");
         pstmt.setString(1, "abc");
         
         try {
@@ -1137,9 +1147,14 @@ public class PQImpsTest extends AbstractTest {
         }
     }
     
+    /**
+     * test query with single line comments
+     * 
+     * @throws SQLException
+     */
     @Test
     public void testQueryWithSingleLineComments1() throws SQLException {
-        pstmt = connection.prepareStatement("-- test \n select top 100 c1 from " + charTable + " where c1 = ?");
+        pstmt = connection.prepareStatement("-- #test \n select top 100 c1 from " + charTable + " where c1 = ?");
         pstmt.setString(1, "abc");
         
         try {
@@ -1151,9 +1166,14 @@ public class PQImpsTest extends AbstractTest {
         }
     }
     
+    /**
+     * test query with single line comments
+     * 
+     * @throws SQLException
+     */
     @Test
     public void testQueryWithSingleLineComments2() throws SQLException {
-        pstmt = connection.prepareStatement("--test\nselect top 100 c1 from " + charTable + " where c1 = ?");
+        pstmt = connection.prepareStatement("--#test\nselect top 100 c1 from " + charTable + " where c1 = ?");
         pstmt.setString(1, "abc");
         
         try {
