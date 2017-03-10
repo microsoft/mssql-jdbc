@@ -626,8 +626,6 @@ public class SQLServerStatement implements ISQLServerStatement {
     }
 
     public void closeOnCompletion() throws SQLException {
-        DriverJDBCVersion.checkSupportsJDBC41();
-
         loggerExternal.entering(getClassNameLogging(), "closeOnCompletion");
 
         checkClosed();
@@ -2143,8 +2141,6 @@ public class SQLServerStatement implements ISQLServerStatement {
     }
 
     public boolean isClosed() throws SQLException {
-        DriverJDBCVersion.checkSupportsJDBC4();
-
         loggerExternal.entering(getClassNameLogging(), "isClosed");
         boolean result = bIsClosed || connection.isSessionUnAvailable();
         loggerExternal.exiting(getClassNameLogging(), "isClosed", result);
@@ -2152,8 +2148,6 @@ public class SQLServerStatement implements ISQLServerStatement {
     }
 
     public boolean isCloseOnCompletion() throws SQLException {
-        DriverJDBCVersion.checkSupportsJDBC41();
-
         loggerExternal.entering(getClassNameLogging(), "isCloseOnCompletion");
         checkClosed();
         loggerExternal.exiting(getClassNameLogging(), "isCloseOnCompletion", isCloseOnCompletion);
@@ -2161,7 +2155,6 @@ public class SQLServerStatement implements ISQLServerStatement {
     }
 
     public boolean isPoolable() throws SQLException {
-        DriverJDBCVersion.checkSupportsJDBC4();
         loggerExternal.entering(getClassNameLogging(), "isPoolable");
         checkClosed();
         loggerExternal.exiting(getClassNameLogging(), "isPoolable", stmtPoolable);
@@ -2169,7 +2162,6 @@ public class SQLServerStatement implements ISQLServerStatement {
     }
 
     public void setPoolable(boolean poolable) throws SQLException {
-        DriverJDBCVersion.checkSupportsJDBC4();
         loggerExternal.entering(getClassNameLogging(), "setPoolable", poolable);
         checkClosed();
         stmtPoolable = poolable;
@@ -2178,7 +2170,6 @@ public class SQLServerStatement implements ISQLServerStatement {
 
     public boolean isWrapperFor(Class<?> iface) throws SQLException {
         loggerExternal.entering(getClassNameLogging(), "isWrapperFor");
-        DriverJDBCVersion.checkSupportsJDBC4();
         boolean f = iface.isInstance(this);
         loggerExternal.exiting(getClassNameLogging(), "isWrapperFor", Boolean.valueOf(f));
         return f;
@@ -2186,7 +2177,6 @@ public class SQLServerStatement implements ISQLServerStatement {
 
     public <T> T unwrap(Class<T> iface) throws SQLException {
         loggerExternal.entering(getClassNameLogging(), "unwrap");
-        DriverJDBCVersion.checkSupportsJDBC4();
         T t;
         try {
             t = iface.cast(this);

@@ -111,8 +111,6 @@ public class SQLServerDataSource implements ISQLServerDataSource, DataSource, ja
     }
 
     public Logger getParentLogger() throws SQLFeatureNotSupportedException {
-        DriverJDBCVersion.checkSupportsJDBC41();
-
         return parentLogger;
     }
 
@@ -954,7 +952,6 @@ public class SQLServerDataSource implements ISQLServerDataSource, DataSource, ja
 
     public boolean isWrapperFor(Class<?> iface) throws SQLException {
         loggerExternal.entering(getClassNameLogging(), "isWrapperFor", iface);
-        DriverJDBCVersion.checkSupportsJDBC4();
         boolean f = iface.isInstance(this);
         loggerExternal.exiting(getClassNameLogging(), "isWrapperFor", Boolean.valueOf(f));
         return f;
@@ -962,8 +959,6 @@ public class SQLServerDataSource implements ISQLServerDataSource, DataSource, ja
 
     public <T> T unwrap(Class<T> iface) throws SQLException {
         loggerExternal.entering(getClassNameLogging(), "unwrap", iface);
-        DriverJDBCVersion.checkSupportsJDBC4();
-
         T t;
         try {
             t = iface.cast(this);

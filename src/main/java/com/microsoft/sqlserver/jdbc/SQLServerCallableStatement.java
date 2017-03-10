@@ -487,8 +487,6 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
     }
 
     public final String getNString(int parameterIndex) throws SQLException {
-        DriverJDBCVersion.checkSupportsJDBC4();
-
         loggerExternal.entering(getClassNameLogging(), "getNString", parameterIndex);
         checkClosed();
         String value = (String) getValue(parameterIndex, JDBCType.NCHAR);
@@ -497,8 +495,6 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
     }
 
     public final String getNString(String parameterName) throws SQLException {
-        DriverJDBCVersion.checkSupportsJDBC4();
-
         loggerExternal.entering(getClassNameLogging(), "getNString", parameterName);
         checkClosed();
         String value = (String) getValue(findColumn(parameterName), JDBCType.NCHAR);
@@ -680,8 +676,6 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
 
     public <T> T getObject(int index,
             Class<T> type) throws SQLException {
-        DriverJDBCVersion.checkSupportsJDBC41();
-
         // The driver currently does not implement the optional JDBC APIs
         throw new SQLFeatureNotSupportedException(SQLServerException.getErrString("R_notSupported"));
     }
@@ -698,8 +692,6 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
 
     public <T> T getObject(String sCol,
             Class<T> type) throws SQLException {
-        DriverJDBCVersion.checkSupportsJDBC41();
-
         // The driver currently does not implement the optional JDBC APIs
         throw new SQLFeatureNotSupportedException(SQLServerException.getErrString("R_notSupported"));
     }
@@ -1206,8 +1198,6 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
     }
 
     public final java.io.Reader getCharacterStream(String parameterName) throws SQLException {
-        DriverJDBCVersion.checkSupportsJDBC4();
-
         loggerExternal.entering(getClassNameLogging(), "getCharacterStream", parameterName);
         checkClosed();
         Reader reader = (Reader) getStream(findColumn(parameterName), StreamType.CHARACTER);
@@ -1216,7 +1206,6 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
     }
 
     public final java.io.Reader getNCharacterStream(int parameterIndex) throws SQLException {
-        DriverJDBCVersion.checkSupportsJDBC4();
         loggerExternal.entering(getClassNameLogging(), "getNCharacterStream", parameterIndex);
         checkClosed();
         Reader reader = (Reader) getStream(parameterIndex, StreamType.NCHARACTER);
@@ -1225,8 +1214,6 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
     }
 
     public final java.io.Reader getNCharacterStream(String parameterName) throws SQLException {
-        DriverJDBCVersion.checkSupportsJDBC4();
-
         loggerExternal.entering(getClassNameLogging(), "getNCharacterStream", parameterName);
         checkClosed();
         Reader reader = (Reader) getStream(findColumn(parameterName), StreamType.NCHARACTER);
@@ -1265,7 +1252,6 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
     }
 
     public NClob getNClob(int parameterIndex) throws SQLException {
-        DriverJDBCVersion.checkSupportsJDBC4();
         loggerExternal.entering(getClassNameLogging(), "getNClob", parameterIndex);
         checkClosed();
         NClob nClob = (NClob) getValue(parameterIndex, JDBCType.NCLOB);
@@ -1274,7 +1260,6 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
     }
 
     public NClob getNClob(String parameterName) throws SQLException {
-        DriverJDBCVersion.checkSupportsJDBC4();
         loggerExternal.entering(getClassNameLogging(), "getNClob", parameterName);
         checkClosed();
         NClob nClob = (NClob) getValue(findColumn(parameterName), JDBCType.NCLOB);
@@ -1609,7 +1594,6 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
 
     public final void setCharacterStream(String parameterName,
             Reader reader) throws SQLException {
-        DriverJDBCVersion.checkSupportsJDBC4();
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setCharacterStream", new Object[] {parameterName, reader});
         checkClosed();
@@ -1631,7 +1615,6 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
             Reader reader,
             long length) throws SQLException {
 
-        DriverJDBCVersion.checkSupportsJDBC4();
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setCharacterStream", new Object[] {parameterName, reader, length});
         checkClosed();
@@ -1641,7 +1624,6 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
 
     public final void setNCharacterStream(String parameterName,
             Reader value) throws SQLException {
-        DriverJDBCVersion.checkSupportsJDBC4();
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setNCharacterStream", new Object[] {parameterName, value});
         checkClosed();
@@ -1652,7 +1634,6 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
     public final void setNCharacterStream(String parameterName,
             Reader value,
             long length) throws SQLException {
-        DriverJDBCVersion.checkSupportsJDBC4();
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setNCharacterStream", new Object[] {parameterName, value, length});
         checkClosed();
@@ -1662,7 +1643,6 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
 
     public final void setClob(String parameterName,
             Clob x) throws SQLException {
-        DriverJDBCVersion.checkSupportsJDBC4();
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setClob", new Object[] {parameterName, x});
         checkClosed();
@@ -1672,7 +1652,6 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
 
     public final void setClob(String parameterName,
             Reader reader) throws SQLException {
-        DriverJDBCVersion.checkSupportsJDBC4();
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setClob", new Object[] {parameterName, reader});
         checkClosed();
@@ -1683,7 +1662,6 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
     public final void setClob(String parameterName,
             Reader value,
             long length) throws SQLException {
-        DriverJDBCVersion.checkSupportsJDBC4();
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setClob", new Object[] {parameterName, value, length});
         checkClosed();
@@ -1693,7 +1671,6 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
 
     public final void setNClob(String parameterName,
             NClob value) throws SQLException {
-        DriverJDBCVersion.checkSupportsJDBC4();
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setNClob", new Object[] {parameterName, value});
         checkClosed();
@@ -1703,7 +1680,6 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
 
     public final void setNClob(String parameterName,
             Reader reader) throws SQLException {
-        DriverJDBCVersion.checkSupportsJDBC4();
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setNClob", new Object[] {parameterName, reader});
         checkClosed();
@@ -1714,7 +1690,6 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
     public final void setNClob(String parameterName,
             Reader reader,
             long length) throws SQLException {
-        DriverJDBCVersion.checkSupportsJDBC4();
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setNClob", new Object[] {parameterName, reader, length});
         checkClosed();
@@ -1724,7 +1699,6 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
 
     public final void setNString(String parameterName,
             String value) throws SQLException {
-        DriverJDBCVersion.checkSupportsJDBC4();
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setNString", new Object[] {parameterName, value});
         checkClosed();
@@ -1752,7 +1726,6 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
     public final void setNString(String parameterName,
             String value,
             boolean forceEncrypt) throws SQLException {
-        DriverJDBCVersion.checkSupportsJDBC4();
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setNString", new Object[] {parameterName, value, forceEncrypt});
         checkClosed();
@@ -1904,7 +1877,6 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
             InputStream x) throws SQLException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setAsciiStream", new Object[] {parameterName, x});
-        DriverJDBCVersion.checkSupportsJDBC4();
         checkClosed();
         setStream(findColumn(parameterName), StreamType.ASCII, x, JavaType.INPUTSTREAM, DataTypes.UNKNOWN_STREAM_LENGTH);
         loggerExternal.exiting(getClassNameLogging(), "setAsciiStream");
@@ -1925,7 +1897,6 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
             long length) throws SQLException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setAsciiStream", new Object[] {parameterName, x, length});
-        DriverJDBCVersion.checkSupportsJDBC4();
         checkClosed();
         setStream(findColumn(parameterName), StreamType.ASCII, x, JavaType.INPUTSTREAM, length);
         loggerExternal.exiting(getClassNameLogging(), "setAsciiStream");
@@ -1934,7 +1905,6 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
     public final void setBinaryStream(String parameterName,
             InputStream x) throws SQLException {
 
-        DriverJDBCVersion.checkSupportsJDBC4();
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setBinaryStream", new Object[] {parameterName, x});
         checkClosed();
@@ -1955,7 +1925,6 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
     public final void setBinaryStream(String parameterName,
             InputStream x,
             long length) throws SQLException {
-        DriverJDBCVersion.checkSupportsJDBC4();
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setBinaryStream", new Object[] {parameterName, x, length});
         checkClosed();
@@ -1965,7 +1934,6 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
 
     public final void setBlob(String parameterName,
             Blob inputStream) throws SQLException {
-        DriverJDBCVersion.checkSupportsJDBC4();
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setBlob", new Object[] {parameterName, inputStream});
         checkClosed();
@@ -1975,7 +1943,6 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
 
     public final void setBlob(String parameterName,
             InputStream value) throws SQLException {
-        DriverJDBCVersion.checkSupportsJDBC4();
 
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setBlob", new Object[] {parameterName, value});
@@ -1987,7 +1954,6 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
     public final void setBlob(String parameterName,
             InputStream inputStream,
             long length) throws SQLException {
-        DriverJDBCVersion.checkSupportsJDBC4();
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setBlob", new Object[] {parameterName, inputStream, length});
         checkClosed();
@@ -2919,7 +2885,6 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
 
     public final void setSQLXML(String parameterName,
             SQLXML xmlObject) throws SQLException {
-        DriverJDBCVersion.checkSupportsJDBC4();
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setSQLXML", new Object[] {parameterName, xmlObject});
         checkClosed();
@@ -2928,7 +2893,6 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
     }
 
     public final SQLXML getSQLXML(int parameterIndex) throws SQLException {
-        DriverJDBCVersion.checkSupportsJDBC4();
         loggerExternal.entering(getClassNameLogging(), "getSQLXML", parameterIndex);
         checkClosed();
         SQLServerSQLXML value = (SQLServerSQLXML) getSQLXMLInternal(parameterIndex);
@@ -2937,7 +2901,6 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
     }
 
     public final SQLXML getSQLXML(String parameterName) throws SQLException {
-        DriverJDBCVersion.checkSupportsJDBC4();
         loggerExternal.entering(getClassNameLogging(), "getSQLXML", parameterName);
         checkClosed();
         SQLServerSQLXML value = (SQLServerSQLXML) getSQLXMLInternal(findColumn(parameterName));
@@ -2947,21 +2910,18 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
 
     public final void setRowId(String parameterName,
             RowId x) throws SQLException {
-        DriverJDBCVersion.checkSupportsJDBC4();
 
         // Not implemented
         throw new SQLFeatureNotSupportedException(SQLServerException.getErrString("R_notSupported"));
     }
 
     public final RowId getRowId(int parameterIndex) throws SQLException {
-        DriverJDBCVersion.checkSupportsJDBC4();
 
         // Not implemented
         throw new SQLFeatureNotSupportedException(SQLServerException.getErrString("R_notSupported"));
     }
 
     public final RowId getRowId(String parameterName) throws SQLException {
-        DriverJDBCVersion.checkSupportsJDBC4();
 
         // Not implemented
         throw new SQLFeatureNotSupportedException(SQLServerException.getErrString("R_notSupported"));

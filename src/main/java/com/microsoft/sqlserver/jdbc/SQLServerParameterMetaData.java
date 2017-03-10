@@ -584,13 +584,11 @@ public final class SQLServerParameterMetaData implements ParameterMetaData {
     }
 
     public boolean isWrapperFor(Class<?> iface) throws SQLException {
-        DriverJDBCVersion.checkSupportsJDBC4();
         boolean f = iface.isInstance(this);
         return f;
     }
 
     public <T> T unwrap(Class<T> iface) throws SQLException {
-        DriverJDBCVersion.checkSupportsJDBC4();
         T t;
         try {
             t = iface.cast(this);

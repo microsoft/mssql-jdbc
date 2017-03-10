@@ -144,8 +144,6 @@ abstract class SQLServerClobBase implements Serializable {
      *             when an error occurs
      */
     public void free() throws SQLException {
-        DriverJDBCVersion.checkSupportsJDBC4();
-
         if (!isClosed) {
             // Close active streams, ignoring any errors, since nothing can be done with them after that point anyway.
             if (null != activeStreams) {
@@ -225,8 +223,6 @@ abstract class SQLServerClobBase implements Serializable {
      */
     public Reader getCharacterStream(long pos,
             long length) throws SQLException {
-        DriverJDBCVersion.checkSupportsJDBC4();
-
         // Not implemented
         throw new SQLFeatureNotSupportedException(SQLServerException.getErrString("R_notSupported"));
     }

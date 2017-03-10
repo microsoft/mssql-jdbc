@@ -639,8 +639,6 @@ public final class SQLServerDriver implements java.sql.Driver {
     }
 
     public Logger getParentLogger() throws SQLFeatureNotSupportedException {
-        DriverJDBCVersion.checkSupportsJDBC41();
-
         return parentLogger;
     }
 

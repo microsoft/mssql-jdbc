@@ -2580,8 +2580,6 @@ public class SQLServerConnection implements ISQLServerConnection {
     public void abort(Executor executor) throws SQLException {
         loggerExternal.entering(getClassNameLogging(), "abort", executor);
 
-        DriverJDBCVersion.checkSupportsJDBC41();
-
         // nop if connection is closed
         if (isClosed())
             return;
@@ -4593,24 +4591,18 @@ public class SQLServerConnection implements ISQLServerConnection {
     }
 
     public int getNetworkTimeout() throws SQLException {
-        DriverJDBCVersion.checkSupportsJDBC41();
-
         // this operation is not supported
         throw new SQLFeatureNotSupportedException(SQLServerException.getErrString("R_notSupported"));
     }
 
     public void setNetworkTimeout(Executor executor,
             int timeout) throws SQLException {
-        DriverJDBCVersion.checkSupportsJDBC41();
-
         // this operation is not supported
         throw new SQLFeatureNotSupportedException(SQLServerException.getErrString("R_notSupported"));
     }
 
     public String getSchema() throws SQLException {
         loggerExternal.entering(getClassNameLogging(), "getSchema");
-
-        DriverJDBCVersion.checkSupportsJDBC41();
 
         checkClosed();
 
@@ -4650,8 +4642,6 @@ public class SQLServerConnection implements ISQLServerConnection {
 
     public void setSchema(String schema) throws SQLException {
         loggerExternal.entering(getClassNameLogging(), "setSchema", schema);
-        DriverJDBCVersion.checkSupportsJDBC41();
-
         checkClosed();
         addWarning(SQLServerException.getErrString("R_setSchemaWarning"));
 
@@ -4675,33 +4665,27 @@ public class SQLServerConnection implements ISQLServerConnection {
 
     public java.sql.Array createArrayOf(String typeName,
             Object[] elements) throws SQLException {
-        DriverJDBCVersion.checkSupportsJDBC4();
-
         // Not implemented
         throw new SQLFeatureNotSupportedException(SQLServerException.getErrString("R_notSupported"));
     }
 
     public Blob createBlob() throws SQLException {
-        DriverJDBCVersion.checkSupportsJDBC4();
         checkClosed();
         return new SQLServerBlob(this);
     }
 
     public Clob createClob() throws SQLException {
-        DriverJDBCVersion.checkSupportsJDBC4();
         checkClosed();
         return new SQLServerClob(this);
     }
 
     public NClob createNClob() throws SQLException {
-        DriverJDBCVersion.checkSupportsJDBC4();
         checkClosed();
         return new SQLServerNClob(this);
     }
 
     public SQLXML createSQLXML() throws SQLException {
         loggerExternal.entering(getClassNameLogging(), "createSQLXML");
-        DriverJDBCVersion.checkSupportsJDBC4();
         SQLXML sqlxml = null;
         sqlxml = new SQLServerSQLXML(this);
 
@@ -4712,8 +4696,6 @@ public class SQLServerConnection implements ISQLServerConnection {
 
     public Struct createStruct(String typeName,
             Object[] attributes) throws SQLException {
-        DriverJDBCVersion.checkSupportsJDBC4();
-
         // Not implemented
         throw new SQLFeatureNotSupportedException(SQLServerException.getErrString("R_notSupported"));
     }
@@ -4723,7 +4705,6 @@ public class SQLServerConnection implements ISQLServerConnection {
     }
 
     public Properties getClientInfo() throws SQLException {
-        DriverJDBCVersion.checkSupportsJDBC4();
         loggerExternal.entering(getClassNameLogging(), "getClientInfo");
         checkClosed();
         Properties p = new Properties();
@@ -4732,7 +4713,6 @@ public class SQLServerConnection implements ISQLServerConnection {
     }
 
     public String getClientInfo(String name) throws SQLException {
-        DriverJDBCVersion.checkSupportsJDBC4();
         loggerExternal.entering(getClassNameLogging(), "getClientInfo", name);
         checkClosed();
         loggerExternal.exiting(getClassNameLogging(), "getClientInfo", null);
@@ -4740,7 +4720,6 @@ public class SQLServerConnection implements ISQLServerConnection {
     }
 
     public void setClientInfo(Properties properties) throws SQLClientInfoException {
-        DriverJDBCVersion.checkSupportsJDBC4();
         loggerExternal.entering(getClassNameLogging(), "setClientInfo", properties);
         // This function is only marked as throwing only SQLClientInfoException so the conversion is necessary
         try {
@@ -4765,7 +4744,6 @@ public class SQLServerConnection implements ISQLServerConnection {
 
     public void setClientInfo(String name,
             String value) throws SQLClientInfoException {
-        DriverJDBCVersion.checkSupportsJDBC4();
         loggerExternal.entering(getClassNameLogging(), "setClientInfo", new Object[] {name, value});
         // This function is only marked as throwing only SQLClientInfoException so the conversion is necessary
         try {
@@ -4804,8 +4782,6 @@ public class SQLServerConnection implements ISQLServerConnection {
         boolean isValid = false;
 
         loggerExternal.entering(getClassNameLogging(), "isValid", timeout);
-
-        DriverJDBCVersion.checkSupportsJDBC4();
 
         // Throw an exception if the timeout is invalid
         if (timeout < 0) {
@@ -4847,7 +4823,6 @@ public class SQLServerConnection implements ISQLServerConnection {
 
     public boolean isWrapperFor(Class<?> iface) throws SQLException {
         loggerExternal.entering(getClassNameLogging(), "isWrapperFor", iface);
-        DriverJDBCVersion.checkSupportsJDBC4();
         boolean f = iface.isInstance(this);
         loggerExternal.exiting(getClassNameLogging(), "isWrapperFor", Boolean.valueOf(f));
         return f;
@@ -4855,7 +4830,6 @@ public class SQLServerConnection implements ISQLServerConnection {
 
     public <T> T unwrap(Class<T> iface) throws SQLException {
         loggerExternal.entering(getClassNameLogging(), "unwrap", iface);
-        DriverJDBCVersion.checkSupportsJDBC4();
         T t;
         try {
             t = iface.cast(this);
