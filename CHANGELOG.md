@@ -3,6 +3,24 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](http://keepachangelog.com/) 
 
+## [6.1.5]
+### Added
+- Added socket timeout exception as cause[#180](https://github.com/Microsoft/mssql-jdbc/pull/180)
+- Added Constrained delegation support[#178](https://github.com/Microsoft/mssql-jdbc/pull/178)
+- Added junit test for Statement test[#174](https://github.com/Microsoft/mssql-jdbc/pull/174)
+- Added test for statement.cancel() when MultiSubnetFailover is set to true[#173](https://github.com/Microsoft/mssql-jdbc/pull/173)
+- Added tests for lobs [#168](https://github.com/Microsoft/mssql-jdbc/pull/168)
+- Added badges for License, Maven Central, JavaDocs & gitter chat room [#184](https://github.com/Microsoft/mssql-jdbc/pull/184)
+
+### Changed
+- Enabled update counts for SELECT INTO statements[#175](https://github.com/Microsoft/mssql-jdbc/pull/175)
+- Use Executor service instead of thread[#162](https://github.com/Microsoft/mssql-jdbc/pull/162)
+- Convert socket adaptor to socket[#160](https://github.com/Microsoft/mssql-jdbc/pull/160)
+
+### Fixed Issues
+- Fixed local test failures [#179](https://github.com/Microsoft/mssql-jdbc/pull/179) 
+- Fixed random failure in BulkCopyColumnMapping test[#165](https://github.com/Microsoft/mssql-jdbc/pull/165)
+
 ## [6.1.4]
 ### Added
 - Added isWrapperFor methods for MetaData classes[#94](https://github.com/Microsoft/mssql-jdbc/pull/94)
