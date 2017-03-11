@@ -243,8 +243,9 @@ enum SQLServerDriverIntProperty {
 	LOGIN_TIMEOUT  ("loginTimeout",    15),
 	QUERY_TIMEOUT  ("queryTimeout",    -1),
 	PORT_NUMBER    ("portNumber",      1433),
-	SOCKET_TIMEOUT ("socketTimeout",   0);
-
+	SOCKET_TIMEOUT ("socketTimeout",   0),
+    PREPARED_STATEMENT_DISCARD_ACTION_THRESHOLD("preparedStatementDiscardActionThreshold", -1/*This is not the default, default handled in SQLServerConnection*/);  
+    
     private String name;
     private int defaultValue;
 
@@ -276,7 +277,8 @@ enum SQLServerDriverBooleanProperty
 	TRANSPARENT_NETWORK_IP_RESOLUTION  ("TransparentNetworkIPResolution",  true),
 	TRUST_SERVER_CERTIFICATE           ("trustServerCertificate",          false),
 	XOPEN_STATES                       ("xopenStates",                     false),
-	FIPS                               ("fips",                            false);
+	FIPS                               ("fips",                            false),
+    PREPARE_STATEMENT_ON_FIRST_CALL    ("prepareStatementOnFirstCall",     false/*This is not the default, default handled in SQLServerConnection*/);
 
     private String name;
     private boolean defaultValue;

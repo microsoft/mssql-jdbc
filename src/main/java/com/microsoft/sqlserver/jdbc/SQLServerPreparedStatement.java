@@ -64,7 +64,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     private String preparedSQL;
 
     /** True if this execute has been called for this statement at least once */
-    private boolean bExecutedAtLeastOnce = false;
+    private boolean isExecutedAtLeastOnce = false;
 
     /**
      * Array with parameter names generated in buildParamTypeDefinitions For mapping encryption information to parameters, as the second result set
@@ -135,28 +135,28 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     /**
      * Close the prepared statement's prepared handle.
      */
-    private void closePreparedHandle()
-    {
+    private void closePreparedHandle() {
         if (0 == prepStmtHandle)
             return;
 
         // If the connection is already closed, don't bother trying to close
         // the prepared handle.  We won't be able to, and it's already closed
         // on the server anyway.
-        if (connection.isSessionUnAvailable())
-        {
+        if (connection.isSessionUnAvailable()) {
             if (getStatementLogger().isLoggable(java.util.logging.Level.FINER))
                 getStatementLogger().finer(this + ": Not closing PreparedHandle:" + prepStmtHandle + "; connection is already closed.");
         }
         else {
+            this.isExecutedAtLeastOnce = false;
+
             // Using batched clean-up? If not, use old method of calling sp_unprepare.
-            if(1 < this.connection.getPreparedStatementDiscardActionThreshold()){
+            if(1 < this.connection.getPreparedStatementDiscardActionThreshold()) {
                 // Handle unprepare actions through batching @ connection level. 
                 this.connection.enqueuePreparedStatementDiscardItem(this.prepStmtHandle, this.executedSqlDirectly);
                 this.prepStmtHandle = 0;
                 this.connection.handlePreparedStatementDiscardActions(false);
             }
-            else{
+            else {
                 // Non batched behavior (same as pre batch impl.)
                 if (getStatementLogger().isLoggable(java.util.logging.Level.FINER))
                     getStatementLogger().finer(this + ": Closing PreparedHandle:" + prepStmtHandle);
@@ -595,7 +595,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         tdsWriter.writeByte((byte) 0);  // RPC procedure option 1
         tdsWriter.writeByte((byte) 0);  // RPC procedure option 2
 
-        // NO, sp_executesql doesn't take this. tdsWriter.writeRPCInt(null, new Integer(prepStmtHandle), true);
+        // No handle used.
         prepStmtHandle = 0;
 
         // <stmt> IN
@@ -803,18 +803,18 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         boolean needsPrepare = hasNewTypeDefinitions || 0 == prepStmtHandle;
 
         // Cursors never go the non-prepared statement route.
-        if (isCursorable(executeMethod)){
+        if (isCursorable(executeMethod)) {
             if (needsPrepare) 
                 buildServerCursorPrepExecParams(tdsWriter);
             else
                 buildServerCursorExecParams(tdsWriter);
         }
-        else{
+        else {
             // Move overhead of needing to do prepare & unprepare to only use cases that need more than one execution.
             // First execution, use sp_executesql, optimizing for asumption we will not re-use statement.
-            if (!this.connection.getPrepareStatementOnFirstCall() && !this.bExecutedAtLeastOnce){
+            if (!this.connection.getPrepareStatementOnFirstCall() && !this.isExecutedAtLeastOnce) {
                 buildExecSQLParams(tdsWriter);
-                this.bExecutedAtLeastOnce = true;
+                this.isExecutedAtLeastOnce = true;
             }
             // Second execution, use prepared statements since we seem to be re-using it.
             else if(needsPrepare)
@@ -824,6 +824,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         }
 
         sendParamsByRPC(tdsWriter, params);
+
         return needsPrepare;
     }
 

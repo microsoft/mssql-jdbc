@@ -55,73 +55,68 @@ public class PreparedStatementTest extends AbstractTest {
 
         // Make sure correct settings are used.
         SQLServerConnection.setDefaultPrepareStatementOnFirstCall(SQLServerConnection.INITIAL_DEFAULT_PREPARE_STATEMENT_ON_FIRST_CALL);
-        SQLServerConnection.setDefaultPreparedStatementDiscardActionThreshold(SQLServerConnection.INITIAL_DEFAULT_PREPARED_STATEMENT_CLEANUP_THRESHOLD);
+        SQLServerConnection.setDefaultPreparedStatementDiscardActionThreshold(SQLServerConnection.INITIAL_DEFAULT_PREPARED_STATEMENT_DISCARD_ACTION_THRESHOLD);
 
         try (SQLServerConnection con = (SQLServerConnection)DriverManager.getConnection(connectionString)) {
             conOuter = con;
-            try {
+
+            // Clean-up proc cache
+            this.executeSQL(con, "DBCC FREEPROCCACHE;");
+            
+            String lookupUniqueifier = UUID.randomUUID().toString();
+
+            String queryCacheLookup = String.format("/*unpreparetest_%s%%*/SELECT * FROM sys.tables;", lookupUniqueifier);
+            String query = String.format("/*unpreparetest_%s only sp_executesql*/SELECT * FROM sys.tables;", lookupUniqueifier);
+
+            // Verify nothing in cache.
+            String verifyTotalCacheUsesQuery = String.format("SELECT CAST(ISNULL(SUM(usecounts), 0) AS INT) FROM sys.dm_exec_cached_plans AS p CROSS APPLY sys.dm_exec_sql_text(p.plan_handle) AS s WHERE s.text LIKE '%%%s'", queryCacheLookup);
+
+            assertSame(0, executeSQLReturnFirstInt(con, verifyTotalCacheUsesQuery));
+
+            int iterations = 25;
+
+            // Verify no prepares for 1 time only uses.
+            for(int i = 0; i < iterations; ++i) {
+                try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement)con.prepareStatement(query)) {
+                    pstmt.execute();
+                } 
+                assertSame(0, con.getOutstandingPreparedStatementDiscardActionCount());
+            }
+
+            // Verify total cache use.
+            assertSame(iterations, executeSQLReturnFirstInt(con, verifyTotalCacheUsesQuery));
+
+            query = String.format("/*unpreparetest_%s, sp_executesql->sp_prepexec->sp_execute- batched sp_unprepare*/SELECT * FROM sys.tables;", lookupUniqueifier);
+            int prevDiscardActionCount = 0;
+    
+            // Now verify unprepares are needed.                 
+            for(int i = 0; i < iterations; ++i) {
+
+                // Verify current queue depth is expected.
+                assertSame(prevDiscardActionCount, con.getOutstandingPreparedStatementDiscardActionCount());
                 
-                // Clean-up proc cache
-                this.executeSQL(con, "DBCC FREEPROCCACHE;");
-                
-                String lookupUniqueifier = UUID.randomUUID().toString();
+                try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement)con.prepareStatement(query)) {
+                    pstmt.execute(); // sp_executesql
+            
+                    pstmt.execute(); // sp_prepexec
+                    ++prevDiscardActionCount;
 
-                String queryCacheLookup = String.format("/*unpreparetest_%s%%*/SELECT * FROM sys.tables;", lookupUniqueifier);
-                String query = String.format("/*unpreparetest_%s only sp_executesql*/SELECT * FROM sys.tables;", lookupUniqueifier);
-
-                // Verify nothing in cache.
-                String verifyTotalCacheUsesQuery = String.format("SELECT CAST(ISNULL(SUM(usecounts), 0) AS INT) FROM sys.dm_exec_cached_plans AS p CROSS APPLY sys.dm_exec_sql_text(p.plan_handle) AS s WHERE s.text LIKE '%%%s'", queryCacheLookup);
-
-                assertSame(0, executeSQLReturnFirstInt(con, verifyTotalCacheUsesQuery));
-
-                int iterations = 25;
-
-                // Verify no prepares for 1 time only uses.
-                for(int i = 0; i < iterations; ++i){
-                    try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement)con.prepareStatement(query)) {
-                        pstmt.execute();
-                    }
-                    assertSame(0, con.outstandingPreparedStatementDiscardActionCount());
+                    pstmt.execute(); // sp_execute
                 }
 
-                // Verify total cache use.
-                assertSame(iterations, executeSQLReturnFirstInt(con, verifyTotalCacheUsesQuery));
+                // Verify clean-up is happening as expected.
+                if(prevDiscardActionCount > con.getPreparedStatementDiscardActionThreshold()) {
+                    prevDiscardActionCount = 0;
+                }
 
-                query = String.format("/*unpreparetest_%s, sp_executesql->sp_prepexec->sp_execute- batched sp_unprepare*/SELECT * FROM sys.tables;", lookupUniqueifier);
-                int prevDiscardActionCount = 0;
-     
-                // Now verify unprepares are needed.                 
-                for(int i = 0; i < iterations; ++i){
+                assertSame(prevDiscardActionCount, con.getOutstandingPreparedStatementDiscardActionCount());
+            }  
 
-                    // Verify current queue depth is expected.
-                    assertSame(prevDiscardActionCount, con.outstandingPreparedStatementDiscardActionCount());
-                    
-                    try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement)con.prepareStatement(query)) {
-                        pstmt.execute(); // sp_executesql
-                
-                        pstmt.execute(); // sp_prepexec
-                        ++prevDiscardActionCount;
-
-                        pstmt.execute(); // sp_execute
-                    }
-
-                    // Verify clean-up is happening as expected.
-                    if(prevDiscardActionCount > con.getPreparedStatementDiscardActionThreshold()){
-                        prevDiscardActionCount = 0;
-                    }
-
-                    assertSame(prevDiscardActionCount, con.outstandingPreparedStatementDiscardActionCount());
-                }  
-
-                // Verify total cache use.
-                assertSame(iterations * 4, executeSQLReturnFirstInt(con, verifyTotalCacheUsesQuery));
-              
-            } 
-            finally {
-            }
-        }
+            // Verify total cache use.
+            assertSame(iterations * 4, executeSQLReturnFirstInt(con, verifyTotalCacheUsesQuery));              
+        } 
         // Verify clean-up happened on connection close.
-        assertSame(0, conOuter.outstandingPreparedStatementDiscardActionCount());        
+        assertSame(0, conOuter.getOutstandingPreparedStatementDiscardActionCount());        
     }
 
     /**
@@ -133,15 +128,15 @@ public class PreparedStatementTest extends AbstractTest {
     public void testPreparedStatementExecAndUnprepareConfig() throws SQLException {
 
         // Verify initial defaults is correct:
-        assertTrue(SQLServerConnection.INITIAL_DEFAULT_PREPARED_STATEMENT_CLEANUP_THRESHOLD > 1);
+        assertTrue(SQLServerConnection.INITIAL_DEFAULT_PREPARED_STATEMENT_DISCARD_ACTION_THRESHOLD > 1);
         assertTrue(false == SQLServerConnection.INITIAL_DEFAULT_PREPARE_STATEMENT_ON_FIRST_CALL);
-        assertSame(SQLServerConnection.INITIAL_DEFAULT_PREPARED_STATEMENT_CLEANUP_THRESHOLD, SQLServerConnection.getDefaultPreparedStatementDiscardActionThreshold());
+        assertSame(SQLServerConnection.INITIAL_DEFAULT_PREPARED_STATEMENT_DISCARD_ACTION_THRESHOLD, SQLServerConnection.getDefaultPreparedStatementDiscardActionThreshold());
         assertSame(SQLServerConnection.INITIAL_DEFAULT_PREPARE_STATEMENT_ON_FIRST_CALL, SQLServerConnection.getDefaultPrepareStatementOnFirstCall());
 
         // Change the defaults and verify change stuck.
         SQLServerConnection.setDefaultPrepareStatementOnFirstCall(!SQLServerConnection.INITIAL_DEFAULT_PREPARE_STATEMENT_ON_FIRST_CALL);
-        SQLServerConnection.setDefaultPreparedStatementDiscardActionThreshold(SQLServerConnection.INITIAL_DEFAULT_PREPARED_STATEMENT_CLEANUP_THRESHOLD - 1);
-        assertNotSame(SQLServerConnection.INITIAL_DEFAULT_PREPARED_STATEMENT_CLEANUP_THRESHOLD, SQLServerConnection.getDefaultPreparedStatementDiscardActionThreshold());
+        SQLServerConnection.setDefaultPreparedStatementDiscardActionThreshold(SQLServerConnection.INITIAL_DEFAULT_PREPARED_STATEMENT_DISCARD_ACTION_THRESHOLD - 1);
+        assertNotSame(SQLServerConnection.INITIAL_DEFAULT_PREPARED_STATEMENT_DISCARD_ACTION_THRESHOLD, SQLServerConnection.getDefaultPreparedStatementDiscardActionThreshold());
         assertNotSame(SQLServerConnection.INITIAL_DEFAULT_PREPARE_STATEMENT_ON_FIRST_CALL, SQLServerConnection.getDefaultPrepareStatementOnFirstCall());
 
         // Verify invalid (negative) change does not stick for threshold.
@@ -163,7 +158,7 @@ public class PreparedStatementTest extends AbstractTest {
         assertNotSame(conn1.getPrepareStatementOnFirstCall(), conn2.getPrepareStatementOnFirstCall());        
 
         // Verify instance setting is followed.
-        SQLServerConnection.setDefaultPreparedStatementDiscardActionThreshold(SQLServerConnection.INITIAL_DEFAULT_PREPARED_STATEMENT_CLEANUP_THRESHOLD);
+        SQLServerConnection.setDefaultPreparedStatementDiscardActionThreshold(SQLServerConnection.INITIAL_DEFAULT_PREPARED_STATEMENT_DISCARD_ACTION_THRESHOLD);
         try (SQLServerConnection con = (SQLServerConnection)DriverManager.getConnection(connectionString)) {
             try {
 
@@ -176,14 +171,14 @@ public class PreparedStatementTest extends AbstractTest {
                 try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement)con.prepareStatement(query)) {
                     pstmt.execute();
                 }
-                // Verify that the un-prepare action was handled immediately.
-                assertSame(1, con.outstandingPreparedStatementDiscardActionCount());
+                // Verify that the un-prepare action was not handled immediately.
+                assertSame(1, con.getOutstandingPreparedStatementDiscardActionCount());
 
                 // Force un-prepares.
                 con.forcePreparedStatementDiscardActions();
 
                 // Verify that queue is now empty.
-                assertSame(0, con.outstandingPreparedStatementDiscardActionCount());
+                assertSame(0, con.getOutstandingPreparedStatementDiscardActionCount());
 
                 // Set instance setting to serial execution of un-prepare actions.
                 con.setPreparedStatementDiscardActionThreshold(1);                
@@ -192,7 +187,7 @@ public class PreparedStatementTest extends AbstractTest {
                     pstmt.execute();
                 }
                 // Verify that the un-prepare action was handled immediately.
-                assertSame(0, con.outstandingPreparedStatementDiscardActionCount());
+                assertSame(0, con.getOutstandingPreparedStatementDiscardActionCount());
             } 
             finally {
             }

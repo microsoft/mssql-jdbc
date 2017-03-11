@@ -84,7 +84,7 @@ public class SQLServerConnection implements ISQLServerConnection {
     /**
      * The initial default on application start-up for the prepared statement clean-up action threshold (i.e. when sp_unprepare is called). 
      */    
-    static final public int INITIAL_DEFAULT_PREPARED_STATEMENT_CLEANUP_THRESHOLD = 10; // Used to set the initial default, can be changed later.
+    static final public int INITIAL_DEFAULT_PREPARED_STATEMENT_DISCARD_ACTION_THRESHOLD = 10; // Used to set the initial default, can be changed later.
     static private int defaultPreparedStatementDiscardActionThreshold = -1; // Current default for new connections
     private int preparedStatementDiscardActionThreshold = -1; // Current limit for this particular connection.
 
@@ -1421,6 +1421,32 @@ public class SQLServerConnection implements ISQLServerConnection {
                 }
                 catch (NumberFormatException e) {
                     MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidSocketTimeout"));
+                    Object[] msgArgs = {activeConnectionProperties.getProperty(sPropKey)};
+                    SQLServerException.makeFromDriverError(this, this, form.format(msgArgs), null, false);
+                }
+            }
+            
+            sPropKey = SQLServerDriverIntProperty.PREPARED_STATEMENT_DISCARD_ACTION_THRESHOLD.toString();
+            if (activeConnectionProperties.getProperty(sPropKey) != null && activeConnectionProperties.getProperty(sPropKey).length() > 0) {
+                try {
+                    int n = (new Integer(activeConnectionProperties.getProperty(sPropKey))).intValue();
+                    this.setPreparedStatementDiscardActionThreshold(n);
+                }
+                catch (NumberFormatException e) {
+                    MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_preparedStatementDiscardActionThreshold"));
+                    Object[] msgArgs = {activeConnectionProperties.getProperty(sPropKey)};
+                    SQLServerException.makeFromDriverError(this, this, form.format(msgArgs), null, false);
+                }
+            }
+
+            sPropKey = SQLServerDriverBooleanProperty.PREPARE_STATEMENT_ON_FIRST_CALL.toString();
+            if (activeConnectionProperties.getProperty(sPropKey) != null && activeConnectionProperties.getProperty(sPropKey).length() > 0) {
+                try {
+                    boolean b = (new Boolean(activeConnectionProperties.getProperty(sPropKey))).booleanValue();
+                    this.setPrepareStatementOnFirstCall(b);
+                }
+                catch (NumberFormatException e) {
+                    MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_prepareStatementOnFirstCall"));
                     Object[] msgArgs = {activeConnectionProperties.getProperty(sPropKey)};
                     SQLServerException.makeFromDriverError(this, this, form.format(msgArgs), null, false);
                 }
@@ -5164,8 +5190,7 @@ public class SQLServerConnection implements ISQLServerConnection {
      * @param directSql
      *      Whether the statement handle is direct SQL (true) or a cursor (false)
      */
-    final void enqueuePreparedStatementDiscardItem(int handle, boolean directSql)
-    {
+    final void enqueuePreparedStatementDiscardItem(int handle, boolean directSql) {
         if (getConnectionLogger().isLoggable(java.util.logging.Level.FINER))
             getConnectionLogger().finer(this + ": Adding PreparedHandle to queue for un-prepare:" + handle);
 
@@ -5178,23 +5203,21 @@ public class SQLServerConnection implements ISQLServerConnection {
     /**
      * Returns the number of currently outstanding prepared statement un-prepare actions.
      */
-    public int outstandingPreparedStatementDiscardActionCount(){
+    public int getOutstandingPreparedStatementDiscardActionCount() {
         return this.discardedPreparedStatementHandleQueueCount.get();
     }
 
     /**
      * Forces the un-prepare requests for any outstanding discarded prepared statements to be executed.
      */
-    public void forcePreparedStatementDiscardActions()
-    {
+    public void forcePreparedStatementDiscardActions() {
         this.handlePreparedStatementDiscardActions(true);
     }
 
     /**
      * Remove references to outstanding un-prepare requests. Should be run when connection is closed.
      */
-    private final void cleanupPreparedStatementDiscardActions()
-    {
+    private final void cleanupPreparedStatementDiscardActions() {
         this.discardedPreparedStatementHandles.clear();
         this.discardedPreparedStatementHandleQueueCount.set(0);
     }
@@ -5207,8 +5230,7 @@ public class SQLServerConnection implements ISQLServerConnection {
      * 
      * @return Returns the current setting per the description.
      */
-    static public boolean getDefaultPrepareStatementOnFirstCall()
-    {
+    static public boolean getDefaultPrepareStatementOnFirstCall() {
         if(null == defaultPrepareStatementOnFirstCall)
             return INITIAL_DEFAULT_PREPARE_STATEMENT_ON_FIRST_CALL;
         else
@@ -5224,8 +5246,7 @@ public class SQLServerConnection implements ISQLServerConnection {
      * @param value
      *      Changes the setting per the description.
      */
-    static public void setDefaultPrepareStatementOnFirstCall(boolean value)
-    {
+    static public void setDefaultPrepareStatementOnFirstCall(boolean value) {
         defaultPrepareStatementOnFirstCall = value; 
     }
 
@@ -5237,8 +5258,7 @@ public class SQLServerConnection implements ISQLServerConnection {
      * 
      * @return Returns the current setting per the description.
      */
-    public boolean getPrepareStatementOnFirstCall()
-    {
+    public boolean getPrepareStatementOnFirstCall() {
         if(null == this.prepareStatementOnFirstCall)
             return getDefaultPrepareStatementOnFirstCall();
         else
@@ -5254,8 +5274,7 @@ public class SQLServerConnection implements ISQLServerConnection {
      * @param value
      *      Changes the setting per the description.
      */
-    public void setPrepareStatementOnFirstCall(boolean value)
-    {
+    public void setPrepareStatementOnFirstCall(boolean value) {
         this.prepareStatementOnFirstCall = value;
     }
 
@@ -5268,10 +5287,9 @@ public class SQLServerConnection implements ISQLServerConnection {
      * 
      * @return Returns the current setting per the description.
      */
-    static public int getDefaultPreparedStatementDiscardActionThreshold()
-    {
+    static public int getDefaultPreparedStatementDiscardActionThreshold() {
         if(0 > defaultPreparedStatementDiscardActionThreshold)
-            return INITIAL_DEFAULT_PREPARED_STATEMENT_CLEANUP_THRESHOLD;
+            return INITIAL_DEFAULT_PREPARED_STATEMENT_DISCARD_ACTION_THRESHOLD;
         else
             return defaultPreparedStatementDiscardActionThreshold;        
     }
@@ -5286,8 +5304,7 @@ public class SQLServerConnection implements ISQLServerConnection {
      * @param value
      *      Changes the setting per the description.
      */
-    static public void setDefaultPreparedStatementDiscardActionThreshold(int value)
-    {
+    static public void setDefaultPreparedStatementDiscardActionThreshold(int value) {
         defaultPreparedStatementDiscardActionThreshold = value; 
     }
 
@@ -5300,8 +5317,7 @@ public class SQLServerConnection implements ISQLServerConnection {
      * 
      * @return Returns the current setting per the description.
      */
-    public int getPreparedStatementDiscardActionThreshold()
-    {
+    public int getPreparedStatementDiscardActionThreshold() {
         if(0 > this.preparedStatementDiscardActionThreshold)
             return getDefaultPreparedStatementDiscardActionThreshold();
         else
@@ -5317,8 +5333,7 @@ public class SQLServerConnection implements ISQLServerConnection {
      * @param value
      *      Changes the setting per the description.
      */
-     public void setPreparedStatementDiscardActionThreshold(int value)
-    {
+    public void setPreparedStatementDiscardActionThreshold(int value) {
         this.preparedStatementDiscardActionThreshold = value;
     }
 
@@ -5328,8 +5343,7 @@ public class SQLServerConnection implements ISQLServerConnection {
      * @param force 
      *      When force is set to true we ignore the current threshold for if the discard actions should run and run them anyway.
      */
-    final void handlePreparedStatementDiscardActions(boolean force)
-    {
+    final void handlePreparedStatementDiscardActions(boolean force) {
         // Skip out if session is unavailable to adhere to previous non-batched behavior.
         if (this.isSessionUnAvailable()) 
             return;
@@ -5337,10 +5351,10 @@ public class SQLServerConnection implements ISQLServerConnection {
         final int threshold = this.getPreparedStatementDiscardActionThreshold();
 
         // Find out current # enqueued, if force, make sure it always exceeds threshold.
-        int count = force ? threshold + 1 : this.outstandingPreparedStatementDiscardActionCount();
+        int count = force ? threshold + 1 : this.getOutstandingPreparedStatementDiscardActionCount();
 
         // Met threshold to clean-up?
-        if(threshold < count){
+        if(threshold < count) {
 
             PreparedStatementDiscardItem prepStmtDiscardAction = this.discardedPreparedStatementHandles.poll();
             if(null != prepStmtDiscardAction) {
@@ -5352,7 +5366,7 @@ public class SQLServerConnection implements ISQLServerConnection {
                 // Build the string containing no more than the # of handles to remove.
                 // Note that sp_unprepare can fail if the statement is already removed. 
                 // However, the server will only abort that statement continue with remaining clean-up.
-                do{
+                do {
                     ++handlesRemoved;
                     
                     sql.append(prepStmtDiscardAction.directSql ? "EXEC sp_unprepare " : "EXEC sp_cursorunprepare ")
@@ -5360,20 +5374,19 @@ public class SQLServerConnection implements ISQLServerConnection {
                         .append(';');
                 } while (null != (prepStmtDiscardAction = this.discardedPreparedStatementHandles.poll()));
 
-                try{
+                try {
                     // Execute the batched set.
-                    try(Statement stmt = this.createStatement()){
+                    try(Statement stmt = this.createStatement()) {
                         stmt.execute(sql.toString());
                     }
 
                     if (getConnectionLogger().isLoggable(java.util.logging.Level.FINER))
                         getConnectionLogger().finer(this + ": Finished un-preparing handle count:" + handlesRemoved);
                 }
-                catch(SQLException e){
+                catch(SQLException e) {
                     if (getConnectionLogger().isLoggable(java.util.logging.Level.FINER))
                         getConnectionLogger().log(Level.FINER, this + ": Error (ignored) batch-closing prepared handles", e);
                 }
-                finally{}
   
                 // Decrement threshold counter
                 this.discardedPreparedStatementHandleQueueCount.addAndGet(-handlesRemoved);

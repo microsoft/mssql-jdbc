@@ -376,5 +376,7 @@ public final class SQLServerResource extends ListResourceBundle {
 				{"R_invalidFipsConfig", "Could not enable FIPS."},
 				{"R_invalidFipsEncryptConfig", "Could not enable FIPS due to either encrypt is not true or using trusted certificate settings."},
 				{"R_invalidFipsProviderConfig", "Could not enable FIPS due to invalid FIPSProvider or TrustStoreType."},
+				{"R_preparedStatementDiscardActionThreshold", "The preparedStatementDiscardActionThreshold {0} is not valid."},
+				{"R_prepareStatementOnFirstCall", "The prepareStatementOnFirstCall {0} is not valid."},
     };
 }

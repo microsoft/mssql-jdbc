@@ -642,6 +642,24 @@ public class SQLServerDataSource implements ISQLServerDataSource, DataSource, ja
                 SQLServerDriverIntProperty.QUERY_TIMEOUT.getDefaultValue());
     }
 
+    public void setPrepareStatementOnFirstCall(boolean prepareStatementOnFirstCall) {
+        setBooleanProperty(connectionProps, SQLServerDriverBooleanProperty.PREPARE_STATEMENT_ON_FIRST_CALL.toString(), prepareStatementOnFirstCall);
+    }
+
+    public boolean getPrepareStatementOnFirstCall() {
+        return getBooleanProperty(connectionProps, SQLServerDriverBooleanProperty.PREPARE_STATEMENT_ON_FIRST_CALL.toString(),
+                SQLServerConnection.getDefaultPrepareStatementOnFirstCall());
+    }
+
+    public void setPreparedStatementDiscardActionThreshold(int preparedStatementDiscardActionThreshold) {
+        setIntProperty(connectionProps, SQLServerDriverIntProperty.PREPARED_STATEMENT_DISCARD_ACTION_THRESHOLD.toString(), preparedStatementDiscardActionThreshold);
+    }
+
+    public int getPreparedStatementDiscardActionThreshold() {
+        return getIntProperty(connectionProps, SQLServerDriverIntProperty.PREPARED_STATEMENT_DISCARD_ACTION_THRESHOLD.toString(),
+                SQLServerConnection.getDefaultPreparedStatementDiscardActionThreshold());
+    }
+
     public void setSocketTimeout(int socketTimeout) {
         setIntProperty(connectionProps, SQLServerDriverIntProperty.SOCKET_TIMEOUT.toString(), socketTimeout);
     }
