@@ -1,3 +1,8 @@
+[![GitHub license](https://img.shields.io/badge/license-MIT-blue.svg)](https://raw.githubusercontent.com/Microsoft/mssql-jdbc/master/LICENSE)
+[![Maven Central](https://maven-badges.herokuapp.com/maven-central/com.microsoft.sqlserver/mssql-jdbc/badge.svg)](http://mvnrepository.com/artifact/com.microsoft.sqlserver/mssql-jdbc)
+[![Javadocs](http://javadoc.io/badge/com.microsoft.sqlserver/mssql-jdbc.svg)](http://javadoc.io/doc/com.microsoft.sqlserver/mssql-jdbc)
+[![Gitter](https://img.shields.io/gitter/room/badges/shields.svg)](https://gitter.im/Microsoft/mssql-developers)
+</br>
 # Microsoft JDBC Driver for SQL Server
 
 Welcome to the Microsoft JDBC Driver for SQL Server project!
@@ -30,20 +35,13 @@ What's coming next?  We will look into adding a more comprehensive set of tests,
 ## Build
 ### Prerequisites
 * Java 8
-* [Ant](http://ant.apache.org/manual/install.html) (with [Ivy](https://ant.apache.org/ivy/download.cgi)), [Maven](http://maven.apache.org/download.cgi) or [Gradle](https://gradle.org/gradle-download/)
+* [Maven](http://maven.apache.org/download.cgi) or [Gradle](https://gradle.org/gradle-download/)
 * An instance of SQL Server or Azure SQL Database that you can connect to. 
 
 ### Build the JAR files
 Maven and Gradle builds automatically trigger a set of verification tests to run.  For these tests to pass, you will first need to add an environment variable in your system called `mssql_jdbc_test_connection_properties` to provide the [correct connection properties](https://msdn.microsoft.com/en-us/library/ms378428(v=sql.110).aspx) for your SQL Server or Azure SQL Database instance.
 
-To build the jar files, you must use Java 8 with either Ant (with Ivy), Maven or Gradle.  You can choose to build a JDBC 4.1 compliant jar file (for use with JRE 7) and/or a JDBC 4.2 compliant jar file (for use with JRE 8).
-
-* Ant:
-	1. If you have not already done so, add the environment variable `mssql_jdbc_test_connection_properties` in your system with the connection properties for your SQL Server or SQL DB instance.
-	2. Run one of the commands below to build a JDBC 4.1 compliant jar, JDBC 4.2 compliant jar, or both in the \build directory. 
-		* Run `ant`. This creates both JDBC 4.1 compliant jar and JDBC 4.2 compliant jar in \build directory
-    	* Run `ant build41`. This creates JDBC 4.1 compliant jar in \build directory
-    	* Run `ant build42`. This creates JDBC 4.2 compliant jar in \build directory
+To build the jar files, you must use Java 8 with either Maven or Gradle.  You can choose to build a JDBC 4.1 compliant jar file (for use with JRE 7) and/or a JDBC 4.2 compliant jar file (for use with JRE 8).
 
 * Maven:
 	1. If you have not already done so, add the environment variable `mssql_jdbc_test_connection_properties` in your system with the connection properties for your SQL Server or SQL DB instance.
@@ -148,3 +146,4 @@ The Microsoft JDBC Driver for SQL Server is licensed under the MIT license. See 
 
 ## Code of conduct
 This project has adopted the [Microsoft Open Source Code of Conduct](https://opensource.microsoft.com/codeofconduct/). For more information see the [Code of Conduct FAQ](https://opensource.microsoft.com/codeofconduct/faq/) or contact [opencode@microsoft.com](mailto:opencode@microsoft.com) with any additional questions or comments.
+

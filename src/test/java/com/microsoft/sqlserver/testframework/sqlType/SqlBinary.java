@@ -34,7 +34,8 @@ public class SqlBinary extends SqlType {
             JDBCType jdbctype,
             int precision) {
         super(name, jdbctype, precision, 0, SqlTypeValue.BINARY.minValue, SqlTypeValue.BINARY.maxValue, SqlTypeValue.BINARY.nullValue,
-                VariableLengthType.Precision);
+                VariableLengthType.Precision, byte[].class);
+        flags.set(FIXED);
         generatePrecision();
     }
 

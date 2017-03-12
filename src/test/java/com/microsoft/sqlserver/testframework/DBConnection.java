@@ -14,7 +14,6 @@ import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.sql.Statement;
 
 import com.microsoft.sqlserver.jdbc.SQLServerConnection;
 import com.microsoft.sqlserver.jdbc.SQLServerException;
@@ -117,6 +116,26 @@ public class DBConnection extends AbstractParentWrapper {
     }
 
     /**
+     * 
+     * @param query
+     * @param type
+     * @param concurrency
+     * @return
+     * @throws SQLException
+     */
+    public DBPreparedStatement prepareStatement(String query,
+            int type,
+            int concurrency) throws SQLException {
+        // Static for fast-forward, limited settings
+        if ((type == ResultSet.TYPE_FORWARD_ONLY || type == ResultSet.TYPE_SCROLL_INSENSITIVE))
+            concurrency = ResultSet.CONCUR_READ_ONLY;
+
+        DBPreparedStatement dbpstmt = new DBPreparedStatement(this);
+
+        return dbpstmt.prepareStatement(query, type, concurrency);
+    }
+
+    /**
      * close connection
      */
     public void close() {
@@ -188,6 +207,7 @@ public class DBConnection extends AbstractParentWrapper {
 
     /**
      * Retrieve server version
+     * 
      * @return server version
      * @throws Exception
      */

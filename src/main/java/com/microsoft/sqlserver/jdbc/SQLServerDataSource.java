@@ -22,6 +22,8 @@ import javax.naming.Reference;
 import javax.naming.StringRefAddr;
 import javax.sql.DataSource;
 
+import org.ietf.jgss.GSSCredential;
+
 /**
  * This datasource lists properties specific for the SQLServerConnection class.
  */
@@ -175,6 +177,25 @@ public class SQLServerDataSource implements ISQLServerDataSource, DataSource, ja
                 SQLServerDriverStringProperty.AUTHENTICATION.getDefaultValue());
     }
 
+    /**
+     * sets GSSCredential
+     * 
+     * @param userCredential
+     */
+    public void setGSSCredentials(GSSCredential userCredential){
+        setObjectProperty(connectionProps,SQLServerDriverObjectProperty.GSS_CREDENTIAL.toString(), userCredential);
+    }
+
+    /**
+     * Retrieves the GSSCredential
+     * 
+     * @return GSSCredential
+     */
+    public GSSCredential getGSSCredentials(){
+        return (GSSCredential) getObjectProperty(connectionProps, SQLServerDriverObjectProperty.GSS_CREDENTIAL.toString(),
+                SQLServerDriverObjectProperty.GSS_CREDENTIAL.getDefaultValue());
+    }
+    
     /**
      * Sets the access token.
      * 
@@ -790,6 +811,30 @@ public class SQLServerDataSource implements ISQLServerDataSource, DataSource, ja
         return value.booleanValue();
     }
 
+    private void setObjectProperty(Properties props,
+            String propKey,
+            Object propValue) {
+        if (loggerExternal.isLoggable(java.util.logging.Level.FINER)) {
+            loggerExternal.entering(getClassNameLogging(), "set" + propKey);
+        }
+        if (null != propValue) {
+            props.put(propKey, propValue);
+        }
+        loggerExternal.exiting(getClassNameLogging(), "set" + propKey);
+    }
+
+    private Object getObjectProperty(Properties props,
+            String propKey,
+            Object defaultValue) {
+        if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
+            loggerExternal.entering(getClassNameLogging(), "get" + propKey);
+        Object propValue = props.get(propKey);
+        if (null == propValue)
+            propValue = defaultValue;
+        loggerExternal.exiting(getClassNameLogging(), "get" + propKey);
+        return propValue;
+    }
+    
     // Returns a SQLServerConnection given username, password, and pooledConnection.
     // Note that the DataSource properties set to connectionProps are used when creating
     // the connection.

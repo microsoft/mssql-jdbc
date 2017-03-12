@@ -14,6 +14,6 @@ public class SqlReal extends SqlFloat {
 
     public SqlReal() {
         super("real", JDBCType.REAL, 24, SqlTypeValue.REAL.minValue, SqlTypeValue.REAL.maxValue, SqlTypeValue.REAL.nullValue,
-                VariableLengthType.Fixed);
+                VariableLengthType.Fixed, Float.class);
     }
 }

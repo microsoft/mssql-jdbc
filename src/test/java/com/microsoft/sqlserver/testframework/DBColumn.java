@@ -17,7 +17,7 @@ import com.microsoft.sqlserver.testframework.sqlType.SqlType;
 /**
  * This class holds data for Column. Think about encrypted columns. <B>createCMK code should not add here.</B>
  */
-class DBColumn {
+public class DBColumn {
 
     /*
      * TODO: add nullable, defaultValue, alwaysEncrypted
@@ -35,7 +35,7 @@ class DBColumn {
     /**
      * @return the columnName
      */
-    String getColumnName() {
+    public String getColumnName() {
         return columnName;
     }
 
@@ -51,7 +51,7 @@ class DBColumn {
      * 
      * @return SqlType for the column
      */
-    SqlType getSqlType() {
+    public SqlType getSqlType() {
         return sqlType;
     }
 

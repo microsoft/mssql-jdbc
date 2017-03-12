@@ -1,7 +1,7 @@
 apply plugin: 'java'
 
 archivesBaseName = 'mssql-jdbc'
-version = '6.1.4'
+version = '6.1.5'
 
 allprojects {
     tasks.withType(JavaCompile) {
