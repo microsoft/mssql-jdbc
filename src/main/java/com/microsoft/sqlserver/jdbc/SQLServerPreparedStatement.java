@@ -147,14 +147,14 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                 getStatementLogger().finer(this + ": Not closing PreparedHandle:" + prepStmtHandle + "; connection is already closed.");
         }
         else {
-            this.isExecutedAtLeastOnce = false;
+            isExecutedAtLeastOnce = false;
 
             // Using batched clean-up? If not, use old method of calling sp_unprepare.
-            if(1 < this.connection.getPreparedStatementDiscardActionThreshold()) {
+            if(1 < connection.getPreparedStatementDiscardActionThreshold()) {
                 // Handle unprepare actions through batching @ connection level. 
-                this.connection.enqueuePreparedStatementDiscardItem(this.prepStmtHandle, this.executedSqlDirectly);
-                this.prepStmtHandle = 0;
-                this.connection.handlePreparedStatementDiscardActions(false);
+                connection.enqueuePreparedStatementDiscardItem(prepStmtHandle, executedSqlDirectly);
+                prepStmtHandle = 0;
+                connection.handlePreparedStatementDiscardActions(false);
             }
             else {
                 // Non batched behavior (same as pre batch impl.)
@@ -812,9 +812,9 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         else {
             // Move overhead of needing to do prepare & unprepare to only use cases that need more than one execution.
             // First execution, use sp_executesql, optimizing for asumption we will not re-use statement.
-            if (!this.connection.getPrepareStatementOnFirstCall() && !this.isExecutedAtLeastOnce) {
+            if (!connection.getPrepareStatementOnFirstCall() && !isExecutedAtLeastOnce) {
                 buildExecSQLParams(tdsWriter);
-                this.isExecutedAtLeastOnce = true;
+                isExecutedAtLeastOnce = true;
             }
             // Second execution, use prepared statements since we seem to be re-using it.
             else if(needsPrepare)

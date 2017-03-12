@@ -1430,7 +1430,7 @@ public class SQLServerConnection implements ISQLServerConnection {
             if (activeConnectionProperties.getProperty(sPropKey) != null && activeConnectionProperties.getProperty(sPropKey).length() > 0) {
                 try {
                     int n = (new Integer(activeConnectionProperties.getProperty(sPropKey))).intValue();
-                    this.setPreparedStatementDiscardActionThreshold(n);
+                    setPreparedStatementDiscardActionThreshold(n);
                 }
                 catch (NumberFormatException e) {
                     MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_preparedStatementDiscardActionThreshold"));
@@ -1440,16 +1440,9 @@ public class SQLServerConnection implements ISQLServerConnection {
             }
 
             sPropKey = SQLServerDriverBooleanProperty.PREPARE_STATEMENT_ON_FIRST_CALL.toString();
-            if (activeConnectionProperties.getProperty(sPropKey) != null && activeConnectionProperties.getProperty(sPropKey).length() > 0) {
-                try {
-                    boolean b = (new Boolean(activeConnectionProperties.getProperty(sPropKey))).booleanValue();
-                    this.setPrepareStatementOnFirstCall(b);
-                }
-                catch (NumberFormatException e) {
-                    MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_prepareStatementOnFirstCall"));
-                    Object[] msgArgs = {activeConnectionProperties.getProperty(sPropKey)};
-                    SQLServerException.makeFromDriverError(this, this, form.format(msgArgs), null, false);
-                }
+            sPropValue = activeConnectionProperties.getProperty(sPropKey);
+            if (null != sPropValue) {
+                setPrepareStatementOnFirstCall(booleanPropertyOn(sPropKey, sPropValue));
             }
 
             FailoverInfo fo = null;
@@ -2671,7 +2664,7 @@ public class SQLServerConnection implements ISQLServerConnection {
         }
 
         // Clean-up queue etc. related to batching of prepared statement discard actions (sp_unprepare).
-        this.cleanupPreparedStatementDiscardActions();
+        cleanupPreparedStatementDiscardActions();
 
         loggerExternal.exiting(getClassNameLogging(), "close");
     }
@@ -5191,8 +5184,8 @@ public class SQLServerConnection implements ISQLServerConnection {
      *      Whether the statement handle is direct SQL (true) or a cursor (false)
      */
     final void enqueuePreparedStatementDiscardItem(int handle, boolean directSql) {
-        if (getConnectionLogger().isLoggable(java.util.logging.Level.FINER))
-            getConnectionLogger().finer(this + ": Adding PreparedHandle to queue for un-prepare:" + handle);
+        if (this.getConnectionLogger().isLoggable(java.util.logging.Level.FINER))
+            this.getConnectionLogger().finer(this + ": Adding PreparedHandle to queue for un-prepare:" + handle);
 
         // Add the new handle to the discarding queue and find out current # enqueued.
         this.discardedPreparedStatementHandles.add(new PreparedStatementDiscardItem(handle, directSql));
@@ -5365,7 +5358,8 @@ public class SQLServerConnection implements ISQLServerConnection {
 
                 // Build the string containing no more than the # of handles to remove.
                 // Note that sp_unprepare can fail if the statement is already removed. 
-                // However, the server will only abort that statement continue with remaining clean-up.
+                // However, the server will only abort that statement and continue with 
+                // the remaining clean-up.
                 do {
                     ++handlesRemoved;
                     
@@ -5380,12 +5374,12 @@ public class SQLServerConnection implements ISQLServerConnection {
                         stmt.execute(sql.toString());
                     }
 
-                    if (getConnectionLogger().isLoggable(java.util.logging.Level.FINER))
-                        getConnectionLogger().finer(this + ": Finished un-preparing handle count:" + handlesRemoved);
+                    if (this.getConnectionLogger().isLoggable(java.util.logging.Level.FINER))
+                        this.getConnectionLogger().finer(this + ": Finished un-preparing handle count:" + handlesRemoved);
                 }
                 catch(SQLException e) {
-                    if (getConnectionLogger().isLoggable(java.util.logging.Level.FINER))
-                        getConnectionLogger().log(Level.FINER, this + ": Error (ignored) batch-closing prepared handles", e);
+                    if (this.getConnectionLogger().isLoggable(java.util.logging.Level.FINER))
+                        this.getConnectionLogger().log(Level.FINER, this + ": Error batch-closing at least one prepared handle", e);
                 }
   
                 // Decrement threshold counter

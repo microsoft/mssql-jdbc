@@ -188,6 +188,8 @@ public final class SQLServerResource extends ListResourceBundle {
 				{"R_TransparentNetworkIPResolutionPropertyDescription", "Determines whether to use the Transparent Network IP Resolution feature."},
 				{"R_queryTimeoutPropertyDescription", "The number of seconds to wait before the database reports a query time-out."},
 				{"R_socketTimeoutPropertyDescription", "The number of milliseconds to wait before the java.net.SocketTimeoutException is raised."},
+				{"R_preparedStatementDiscardActionThresholdPropertyDescription", "The threshold for when to close discarded prepare statements on the server (calling a batch of sp_unprepares). A value of 1 or less will cause sp_unprepare to be called immediately on PreparedStatment close."},
+				{"R_prepareStatementOnFirstCallPropertyDescription", "This setting specifies whether a prepared statement is prepared (sp_prepexec) on first use (property=true) or on second after first calling sp_executesql (property=false)."},
 				{"R_noParserSupport", "An error occurred while instantiating the required parser. Error: \"{0}\""},
 				{"R_writeOnlyXML", "Cannot read from this SQLXML instance. This instance is for writing data only."},
 				{"R_dataHasBeenReadXML", "Cannot read from this SQLXML instance. The data has already been read."},
@@ -377,6 +379,5 @@ public final class SQLServerResource extends ListResourceBundle {
 				{"R_invalidFipsEncryptConfig", "Could not enable FIPS due to either encrypt is not true or using trusted certificate settings."},
 				{"R_invalidFipsProviderConfig", "Could not enable FIPS due to invalid FIPSProvider or TrustStoreType."},
 				{"R_preparedStatementDiscardActionThreshold", "The preparedStatementDiscardActionThreshold {0} is not valid."},
-				{"R_prepareStatementOnFirstCall", "The prepareStatementOnFirstCall {0} is not valid."},
     };
 }
