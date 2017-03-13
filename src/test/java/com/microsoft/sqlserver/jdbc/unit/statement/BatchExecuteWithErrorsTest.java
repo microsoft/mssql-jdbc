@@ -273,6 +273,10 @@ public class BatchExecuteWithErrorsTest extends AbstractTest {
     public void Repro47239_large() throws Exception {
 
         assumeTrue("JDBC42".equals(Utils.getConfiguredProperty("JDBC_Version")), "Aborting test case as JDBC version is not compatible. ");
+        
+        // cancel connection resilience to test
+        connectionString += "connectRetryCount=0";
+        
         // the DBConnection for detecting whether the server is SQL Azure or SQL Server.
         con = DriverManager.getConnection(connectionString);
         final String warning;
