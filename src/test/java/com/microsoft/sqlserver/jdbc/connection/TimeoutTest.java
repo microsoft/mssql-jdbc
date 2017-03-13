@@ -109,6 +109,8 @@ public class TimeoutTest extends AbstractTest {
 
     @Test
     public void testSocketTimeout() throws Exception {
+        // cancel connection resilience to test socketTimeout
+        connectionString += "connectRetryCount=0";
         SQLServerConnection conn = (SQLServerConnection) DriverManager.getConnection(connectionString);
 
         dropWaitForDelayProcedure(conn);
