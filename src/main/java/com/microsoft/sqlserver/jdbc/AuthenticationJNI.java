@@ -87,7 +87,6 @@ final class AuthenticationJNI extends SSPIAuthentication {
 
         this.con = con;
 
-        System.out.println("connectionResiliencyRequested : "+connectionResiliencyRequested);
         if (connectionResiliencyRequested) {
             if (reconnecting) {
                 if (authLogger.isLoggable(Level.FINER)) {

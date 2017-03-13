@@ -299,13 +299,17 @@ final class KerbAuthentication extends SSPIAuthentication {
      * @param address
      * @param port
      * @param ImpersonatedUserCred
+     * @param reconnecting
+     * @param loginSubject
      * @throws SQLServerException
      */
     KerbAuthentication(SQLServerConnection con,
             String address,
             int port,
-            GSSCredential ImpersonatedUserCred) throws SQLServerException {
-        this(con, address, port);
+            GSSCredential ImpersonatedUserCred,
+            boolean reconnecting,
+            Subject loginSubject) throws SQLServerException {
+        this(con, address, port, reconnecting, loginSubject);
         peerCredentials = ImpersonatedUserCred;
     }
 
