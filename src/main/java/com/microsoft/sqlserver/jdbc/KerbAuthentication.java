@@ -153,7 +153,6 @@ final class KerbAuthentication extends SSPIAuthentication {
                 peerContext.requestInteg(true);
             }
             else {
-                Subject currentSubject = null;
                 try {
                     AccessControlContext context = AccessController.getContext();
                     currentSubject = Subject.getSubject(context);
