@@ -812,7 +812,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         else {
             // Move overhead of needing to do prepare & unprepare to only use cases that need more than one execution.
             // First execution, use sp_executesql, optimizing for asumption we will not re-use statement.
-            if (!connection.getPrepareStatementOnFirstCall() && !isExecutedAtLeastOnce) {
+            if (!connection.getEnablePrepareOnFirstPreparedStatementCall() && !isExecutedAtLeastOnce) {
                 buildExecSQLParams(tdsWriter);
                 isExecutedAtLeastOnce = true;
             }

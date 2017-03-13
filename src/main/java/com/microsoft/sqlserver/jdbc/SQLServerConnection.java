@@ -94,9 +94,9 @@ public class SQLServerConnection implements ISQLServerConnection {
     /**
      * The initial default on application start-up for if prepared statements should execute sp_executesql before following the prepare, unprepare pattern. 
      */    
-    static final public boolean INITIAL_DEFAULT_PREPARE_STATEMENT_ON_FIRST_CALL = false; // Used to set the initial default, can be changed later. false == use sp_executesql -> sp_prepexec -> sp_execute -> batched -> sp_unprepare pattern, true == skip sp_executesql part of pattern.
-    static private Boolean defaultPrepareStatementOnFirstCall = null; // Current default for new connections
-    private Boolean prepareStatementOnFirstCall = null; // Current limit for this particular connection.
+    static final public boolean INITIAL_DEFAULT_ENABLE_PREPARE_ON_FIRST_PREPARED_STATEMENT_CALL = false; // Used to set the initial default, can be changed later. false == use sp_executesql -> sp_prepexec -> sp_execute -> batched -> sp_unprepare pattern, true == skip sp_executesql part of pattern.
+    static private Boolean defaultEnablePrepareOnFirstPreparedStatementCall = null; // Current default for new connections
+    private Boolean enablePrepareOnFirstPreparedStatementCall = null; // Current limit for this particular connection.
 
     // Handle the actual queue of discarded prepared statements.
     private ConcurrentLinkedQueue<PreparedStatementDiscardItem> discardedPreparedStatementHandles = new ConcurrentLinkedQueue<PreparedStatementDiscardItem>();
@@ -1449,10 +1449,10 @@ public class SQLServerConnection implements ISQLServerConnection {
                 }
             }
 
-            sPropKey = SQLServerDriverBooleanProperty.PREPARE_STATEMENT_ON_FIRST_CALL.toString();
+            sPropKey = SQLServerDriverBooleanProperty.ENABLE_PREPARE_ON_FIRST_PREPARED_STATEMENT.toString();
             sPropValue = activeConnectionProperties.getProperty(sPropKey);
             if (null != sPropValue) {
-                setPrepareStatementOnFirstCall(booleanPropertyOn(sPropKey, sPropValue));
+                setEnablePrepareOnFirstPreparedStatementCall(booleanPropertyOn(sPropKey, sPropValue));
             }
 
             FailoverInfo fo = null;
@@ -5221,14 +5221,14 @@ public class SQLServerConnection implements ISQLServerConnection {
     /**
      * Returns the number of currently outstanding prepared statement un-prepare actions.
      */
-    public int getOutstandingPreparedStatementDiscardActionCount() {
+    public int getDiscardedServerPreparedStatementCount() {
         return this.discardedPreparedStatementHandleQueueCount.get();
     }
 
     /**
      * Forces the un-prepare requests for any outstanding discarded prepared statements to be executed.
      */
-    public void forcePreparedStatementDiscardActions() {
+    public void closeDiscardedServerPreparedStatements() {
         this.handlePreparedStatementDiscardActions(true);
     }
 
@@ -5244,43 +5244,43 @@ public class SQLServerConnection implements ISQLServerConnection {
      * Returns the default behavior for new connection instances. If false the first execution will call sp_executesql and not prepare 
      * a statement, once the second execution happens it will call sp_prepexec and actually setup a prepared statement handle. Following
      * executions will call sp_execute. This relieves the need for sp_unprepare on prepared statement close if the statement is only
-     * executed once. Initial setting for this option is available in INITIAL_DEFAULT_PREPARE_STATEMENT_AFTER_FIRST_CALL.
+     * executed once. Initial setting for this option is available in INITIAL_DEFAULT_ENABLE_PREPARE_ON_FIRST_PREPARED_STATEMENT_CALL.
      * 
      * @return Returns the current setting per the description.
      */
-    static public boolean getDefaultPrepareStatementOnFirstCall() {
-        if(null == defaultPrepareStatementOnFirstCall)
-            return INITIAL_DEFAULT_PREPARE_STATEMENT_ON_FIRST_CALL;
+    static public boolean getDefaultEnablePrepareOnFirstPreparedStatementCall() {
+        if(null == defaultEnablePrepareOnFirstPreparedStatementCall)
+            return INITIAL_DEFAULT_ENABLE_PREPARE_ON_FIRST_PREPARED_STATEMENT_CALL;
         else
-            return defaultPrepareStatementOnFirstCall;        
+            return defaultEnablePrepareOnFirstPreparedStatementCall;        
     }
 
     /**
      * Specifies the default behavior for new connection instances. If value is false the first execution will call sp_executesql and not prepare 
      * a statement, once the second execution happens it will call sp_prepexec and actually setup a prepared statement handle. Following
      * executions will call sp_execute. This relieves the need for sp_unprepare on prepared statement close if the statement is only
-     * executed once. Initial setting for this option is available in INITIAL_DEFAULT_PREPARE_STATEMENT_AFTER_FIRST_CALL.
+     * executed once. Initial setting for this option is available in INITIAL_DEFAULT_ENABLE_PREPARE_ON_FIRST_PREPARED_STATEMENT_CALL.
      * 
      * @param value
      *      Changes the setting per the description.
      */
-    static public void setDefaultPrepareStatementOnFirstCall(boolean value) {
-        defaultPrepareStatementOnFirstCall = value; 
+    static public void setDefaultEnablePrepareOnFirstPreparedStatementCall(boolean value) {
+        defaultEnablePrepareOnFirstPreparedStatementCall = value; 
     }
 
     /**
      * Returns the behavior for a specific connection instance. If false the first execution will call sp_executesql and not prepare 
      * a statement, once the second execution happens it will call sp_prepexec and actually setup a prepared statement handle. Following
      * executions will call sp_execute. This relieves the need for sp_unprepare on prepared statement close if the statement is only
-     * executed once. The default for this option can be changed by calling setDefaultPrepareStatementAfterFirstCall(). 
+     * executed once. The default for this option can be changed by calling setDefaultEnablePrepareOnFirstPreparedStatementCall(). 
      * 
      * @return Returns the current setting per the description.
      */
-    public boolean getPrepareStatementOnFirstCall() {
-        if(null == this.prepareStatementOnFirstCall)
-            return getDefaultPrepareStatementOnFirstCall();
+    public boolean getEnablePrepareOnFirstPreparedStatementCall() {
+        if(null == this.enablePrepareOnFirstPreparedStatementCall)
+            return getDefaultEnablePrepareOnFirstPreparedStatementCall();
         else
-            return this.prepareStatementOnFirstCall;        
+            return this.enablePrepareOnFirstPreparedStatementCall;        
     }
 
     /**
@@ -5292,8 +5292,8 @@ public class SQLServerConnection implements ISQLServerConnection {
      * @param value
      *      Changes the setting per the description.
      */
-    public void setPrepareStatementOnFirstCall(boolean value) {
-        this.prepareStatementOnFirstCall = value;
+    public void setEnablePrepareOnFirstPreparedStatementCall(boolean value) {
+        this.enablePrepareOnFirstPreparedStatementCall = value;
     }
 
     /**
@@ -5369,7 +5369,7 @@ public class SQLServerConnection implements ISQLServerConnection {
         final int threshold = this.getPreparedStatementDiscardActionThreshold();
 
         // Find out current # enqueued, if force, make sure it always exceeds threshold.
-        int count = force ? threshold + 1 : this.getOutstandingPreparedStatementDiscardActionCount();
+        int count = force ? threshold + 1 : this.getDiscardedServerPreparedStatementCount();
 
         // Met threshold to clean-up?
         if(threshold < count) {
