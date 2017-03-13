@@ -16,6 +16,9 @@ import java.text.MessageFormat;
 import java.util.Enumeration;
 import java.util.Locale;
 import java.util.Properties;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -243,7 +246,9 @@ enum SQLServerDriverIntProperty {
 	LOGIN_TIMEOUT  ("loginTimeout",    15),
 	QUERY_TIMEOUT  ("queryTimeout",    -1),
 	PORT_NUMBER    ("portNumber",      1433),
-	SOCKET_TIMEOUT ("socketTimeout",   0);
+	SOCKET_TIMEOUT ("socketTimeout",   0),
+	CONNECT_RETRY_COUNT("connectRetryCount", 1),
+    CONNECT_RETRY_INTERVAL("connectRetryInterval", 10);
 
     private String name;
     private int defaultValue;
@@ -300,6 +305,10 @@ public final class SQLServerDriver implements java.sql.Driver {
     static final String PRODUCT_NAME = "Microsoft JDBC Driver " + SQLJdbcVersion.major + "." + SQLJdbcVersion.minor + " for SQL Server";
     static final String DEFAULT_APP_NAME = "Microsoft JDBC Driver for SQL Server";
 
+    // This thread pool works at the driver level, created when the driver is loaded. Creating one at driver ensures that threads will be shared
+    // between multiple connection objects.
+    static final ThreadPoolExecutor reconnectThreadPoolExecutor = (ThreadPoolExecutor) Executors.newCachedThreadPool();
+    
     private static final String[] TRUE_FALSE = {"true", "false"};
     private static final SQLServerDriverPropertyInfo[] DRIVER_PROPERTIES =
     {
@@ -346,6 +355,8 @@ public final class SQLServerDriver implements java.sql.Driver {
         new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.FIPS_PROVIDER.toString(), 						SQLServerDriverStringProperty.FIPS_PROVIDER.getDefaultValue(), 											false, 		null),
         new SQLServerDriverPropertyInfo(SQLServerDriverIntProperty.SOCKET_TIMEOUT.toString(),                   		Integer.toString(SQLServerDriverIntProperty.SOCKET_TIMEOUT.getDefaultValue()),         					false,      null),
         new SQLServerDriverPropertyInfo(SQLServerDriverBooleanProperty.FIPS.toString(),                                 Boolean.toString(SQLServerDriverBooleanProperty.FIPS.getDefaultValue()),                                false,      TRUE_FALSE),
+        new SQLServerDriverPropertyInfo(SQLServerDriverIntProperty.CONNECT_RETRY_COUNT.toString(),                      Integer.toString(SQLServerDriverIntProperty.CONNECT_RETRY_COUNT.getDefaultValue()),                     false,      null),        
+        new SQLServerDriverPropertyInfo(SQLServerDriverIntProperty.CONNECT_RETRY_INTERVAL.toString(),                   Integer.toString(SQLServerDriverIntProperty.CONNECT_RETRY_INTERVAL.getDefaultValue()),                  false,      null),
             };
 
     // Properties that can only be set by using Properties.
@@ -399,6 +410,14 @@ public final class SQLServerDriver implements java.sql.Driver {
         instanceID = nextInstanceID();
         traceID = "SQLServerDriver:" + instanceID;
         loggingClassName = "com.microsoft.sqlserver.jdbc." + "SQLServerDriver:" + instanceID;
+        // KeepAliveTime defines time for which threads will remain alive. If they are alive for more than keepalivetime, they are terminated.
+        // One of the purposes for having thread pool is to ensure that if the situations where large number of connections fail due to infrastructre
+        // changes
+        // and try reconnection simultaneously, they get to share threads.
+        // Magical number 200 miliseconds does not have a mathematical reasonning right now however
+        // it should be large enough so that next connection object trying reconnection can leverage it but should not hog the resources when not
+        // required
+        reconnectThreadPoolExecutor.setKeepAliveTime(200, TimeUnit.MILLISECONDS);
     }
 
     // Helper function used to fixup the case sensitivity, synonyms and remove unknown tokens from the

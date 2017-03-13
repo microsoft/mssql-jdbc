@@ -55,11 +55,14 @@ final class TDSParser {
                     break;
                 case TDS.TDS_FEATURE_EXTENSION_ACK:
                     isFeatureExtAck = true;
-                    tdsReader.getConnection().processFeatureExtAck(tdsReader);
+                    tdsTokenHandler.onFeatureExtAck(tdsReader);
                     parsing = true;
                     break;
                 case TDS.TDS_ENV_CHG:
                     parsing = tdsTokenHandler.onEnvChange(tdsReader);
+                    break;
+                case TDS.TDS_SESSION_STATE:     
+                    parsing = tdsTokenHandler.onSessionState(tdsReader);
                     break;
                 case TDS.TDS_RET_STAT:
                     parsing = tdsTokenHandler.onRetStatus(tdsReader);
@@ -178,11 +181,16 @@ class TDSTokenHandler {
         return false;
     }
 
-    boolean onFeatureExtensionAck(TDSReader tdsReader) throws SQLServerException {
+    boolean onFeatureExtAck(TDSReader tdsReader) throws SQLServerException {
         TDSParser.throwUnexpectedTokenException(tdsReader, logContext);
         return false;
     }
 
+    boolean onSessionState(TDSReader tdsReader) throws SQLServerException {     
+        tdsReader.getConnection().processSessionState(tdsReader);       
+        return true;        
+    }
+    
     boolean onEnvChange(TDSReader tdsReader) throws SQLServerException {
         tdsReader.getConnection().processEnvChange(tdsReader);
         return true;

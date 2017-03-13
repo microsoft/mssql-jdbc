@@ -10,8 +10,6 @@ import java.util.concurrent.Future;
 import com.microsoft.aad.adal4j.AuthenticationContext;
 import com.microsoft.aad.adal4j.AuthenticationException;
 import com.microsoft.aad.adal4j.AuthenticationResult;
-import com.microsoft.sqlserver.jdbc.SQLServerConnection.ActiveDirectoryAuthentication;
-import com.microsoft.sqlserver.jdbc.SQLServerConnection.SqlFedAuthInfo;
 
 class SQLServerADAL4JUtils {
 

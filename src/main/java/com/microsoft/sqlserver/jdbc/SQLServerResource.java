@@ -376,5 +376,15 @@ public final class SQLServerResource extends ListResourceBundle {
 				{"R_invalidFipsConfig", "Could not enable FIPS."},
 				{"R_invalidFipsEncryptConfig", "Could not enable FIPS due to either encrypt is not true or using trusted certificate settings."},
 				{"R_invalidFipsProviderConfig", "Could not enable FIPS due to invalid FIPSProvider or TrustStoreType."},
+				{"R_invalidConnectRetryCount", "Connection retry count {0} is not valid."},
+		        {"R_connectRetryCountPropertyDescription", "The number of attempts the driver will make to reconnect after identifying a connection failure."},
+		        {"R_invalidConnectRetryInterval", "Connection retry interval {0} is not valid."},
+		        {"R_connectRetryIntervalPropertyDescription", "The driver's wait time between reconnection attempts after identifying a connection failure."},
+		        {"R_crClientAllRecoveryAttemptsFailed", "The connection is broken and recovery is not possible. The client driver attempted to recover the connection one or more times and all attempts failed. Increase the value of ConnectRetryCount to increase the number of recovery attempts."},
+		        {"R_crClientNoRecoveryAckFromLogin", "The server did not acknowledge a recovery attempt, connection recovery is not possible."},
+		        {"R_crClientTDSVersionNotRecoverable", "The server did not preserve the exact client TDS version requested during a recovery attempt, connection recovery is not possible."},
+		        {"R_crServerSessionStateNotRecoverable", "The connection is broken and recovery is not possible. The connection is marked by the server as unrecoverable. No attempt was made to restore the connection."},
+		        {"R_crClientSSLStateNotRecoverable", "The server did not preserve SSL encryption during a recovery attempt, connection recovery is not possible."},
+		        
     };
 }
