@@ -23,6 +23,7 @@ import java.util.Arrays;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
@@ -57,6 +58,7 @@ public class BatchExecuteWithErrorsTest extends AbstractTest {
      */
     @Test
     @DisplayName("Batch Test")
+    @Disabled
     public void Repro47239() throws SQLException {
         String tableN = RandomUtil.getIdentifier("t_Repro47239");
         final String tableName = AbstractSQLGenerator.escapeIdentifier(tableN);
