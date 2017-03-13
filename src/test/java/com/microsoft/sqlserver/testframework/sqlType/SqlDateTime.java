@@ -35,7 +35,7 @@ public class SqlDateTime extends SqlType {
             JDBCType jdbctype,
             Object min,
             Object max) {
-        super(name, jdbctype, 0, 0, min, max, SqlTypeValue.DATETIME.nullValue, VariableLengthType.Fixed);
+        super(name, jdbctype, 0, 0, min, max, SqlTypeValue.DATETIME.nullValue, VariableLengthType.Fixed, java.sql.Timestamp.class);
     }
 
     public Object createdata() {

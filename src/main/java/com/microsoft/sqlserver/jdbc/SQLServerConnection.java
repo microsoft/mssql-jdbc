@@ -53,6 +53,9 @@ import javax.security.auth.Subject;
 import javax.sql.XAConnection;
 import javax.xml.bind.DatatypeConverter;
 
+import org.ietf.jgss.GSSCredential;
+import org.ietf.jgss.GSSException;
+
 /**
  * SQLServerConnection implements a JDBC connection to SQL Server. SQLServerConnections support JDBC connection pooling and may be either physical
  * JDBC connections or logical JDBC connections.
@@ -482,6 +485,7 @@ public class SQLServerConnection implements ISQLServerConnection {
     Properties activeConnectionProperties; // the active set of connection properties
     private boolean integratedSecurity = SQLServerDriverBooleanProperty.INTEGRATED_SECURITY.getDefaultValue();
     private AuthenticationScheme intAuthScheme = AuthenticationScheme.nativeAuthentication;
+    private GSSCredential ImpersonatedUserCred ;
     // This is the current connect place holder this should point one of the primary or failover place holder
     ServerPortPlaceHolder currentConnectPlaceHolder = null;
 
@@ -1186,12 +1190,18 @@ public class SQLServerConnection implements ISQLServerConnection {
                     }
                 }
 
-                sPropKey = SQLServerDriverStringProperty.AUTHENTICATION.toString();
-                sPropValue = activeConnectionProperties.getProperty(sPropKey);
-                if (sPropValue == null) {
-                    sPropValue = SQLServerDriverStringProperty.AUTHENTICATION.getDefaultValue();
-                }
-                authenticationString = SqlAuthentication.valueOfString(sPropValue).toString();
+            if(intAuthScheme == AuthenticationScheme.javaKerberos){
+                sPropKey = SQLServerDriverObjectProperty.GSS_CREDENTIAL.toString();
+                if(activeConnectionProperties.containsKey(sPropKey))
+                    ImpersonatedUserCred = (GSSCredential) activeConnectionProperties.get(sPropKey);
+            }
+            
+            sPropKey = SQLServerDriverStringProperty.AUTHENTICATION.toString();
+            sPropValue = activeConnectionProperties.getProperty(sPropKey);
+            if (sPropValue == null) {
+                sPropValue = SQLServerDriverStringProperty.AUTHENTICATION.getDefaultValue();
+            }
+            authenticationString = SqlAuthentication.valueOfString(sPropValue).toString();
 
                 if ((true == integratedSecurity) && (!authenticationString.equalsIgnoreCase(SqlAuthentication.NotSpecified.toString()))) {
                     connectionlogger.severe(toString() + " " + SQLServerException.getErrString("R_SetAuthenticationWhenIntegratedSecurityTrue"));
@@ -3468,8 +3478,12 @@ public class SQLServerConnection implements ISQLServerConnection {
             }
         }
         if (integratedSecurity && AuthenticationScheme.javaKerberos == intAuthScheme) {
-            authentication = new KerbAuthentication(this, currentConnectPlaceHolder.getServerName(), currentConnectPlaceHolder.getPortNumber(),
-                    reconnecting, loginSubject);
+
+		if (null != ImpersonatedUserCred)
+                authentication = new KerbAuthentication(this, currentConnectPlaceHolder.getServerName(), currentConnectPlaceHolder.getPortNumber(),
+                        ImpersonatedUserCred,reconnecting, loginSubject);
+            else
+                authentication = new KerbAuthentication(this, currentConnectPlaceHolder.getServerName(), currentConnectPlaceHolder.getPortNumber(),reconnecting, loginSubject);
         }
         // If the workflow being used is Active Directory Password or Active Directory Integrated and server's prelogin response
         // for FEDAUTHREQUIRED option indicates Federated Authentication is required, we have to insert FedAuth Feature Extension
@@ -3508,6 +3522,16 @@ public class SQLServerConnection implements ISQLServerConnection {
                 if (null != authentication)
                     authentication.ReleaseClientContext();
                 authentication = null;
+                
+                if (null != ImpersonatedUserCred) {
+                    try {
+                        ImpersonatedUserCred.dispose();
+                    }
+                    catch (GSSException e) {
+                        if (connectionlogger.isLoggable(Level.FINER))
+                            connectionlogger.finer(toString() + " Release of the credentials failed GSSException: " + e);
+                    }
+                }
             }
         }
     }

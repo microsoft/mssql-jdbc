@@ -14,7 +14,8 @@ import java.util.concurrent.ThreadLocalRandom;
 public class SqlBit extends SqlType {
 
     public SqlBit() {
-        super("bit", JDBCType.BIT, 1, 0, SqlTypeValue.BIT.minValue, SqlTypeValue.BIT.maxValue, SqlTypeValue.BIT.nullValue, VariableLengthType.Fixed);
+        super("bit", JDBCType.BIT, 1, 0, SqlTypeValue.BIT.minValue, SqlTypeValue.BIT.maxValue, SqlTypeValue.BIT.nullValue, VariableLengthType.Fixed,
+                Boolean.class);
     }
 
     public Object createdata() {

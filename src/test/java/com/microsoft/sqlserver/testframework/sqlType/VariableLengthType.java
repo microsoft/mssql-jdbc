@@ -8,11 +8,12 @@
 
 package com.microsoft.sqlserver.testframework.sqlType;
 
-/*
+/**
  * Used to identify if the SQL type is of fixed length, or has Precision or Scale
  */
 public enum VariableLengthType {
-    Fixed,		// primitive types with fixed Length
-    Precision,	// variable length type that just has precision char/varchar
-    Scale		// variable length type with scale and precision
+    Fixed,      // primitive types with fixed Length
+    Precision,  // variable length type that just has precision char/varchar
+    Scale,      // variable length type with scale and precision
+    Variable
 }

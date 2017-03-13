@@ -43,7 +43,7 @@ public class SqlDecimal extends SqlType {
             Object min,
             Object max,
             VariableLengthType variableLengthType) {
-        super(name, jdbctype, precision, scale, min, max, SqlTypeValue.DECIMAL.nullValue, variableLengthType);
+        super(name, jdbctype, precision, scale, min, max, SqlTypeValue.DECIMAL.nullValue, variableLengthType, BigDecimal.class);
 
         // update random precision and scale
         generatePrecision();

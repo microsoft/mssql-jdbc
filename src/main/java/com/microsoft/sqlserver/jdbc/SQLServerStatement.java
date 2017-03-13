@@ -1371,6 +1371,9 @@ public class SQLServerStatement implements ISQLServerStatement {
                     // status (Statement.SUCCESS_NO_INFO)
                     if (-1 == doneToken.getUpdateCount() && EXECUTE_BATCH != executeMethod)
                         return true;
+                    
+                    if ( -1 != doneToken.getUpdateCount() && EXECUTE_QUERY == executeMethod )
+                        return true;
 
                     // Otherwise, the update count is valid. Now determine whether we should
                     // return it as a result...

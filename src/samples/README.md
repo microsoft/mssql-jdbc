@@ -37,7 +37,7 @@ The following samples are available:
 
 ###Prerequisites
 * Java 8
-* [Ant](http://ant.apache.org/manual/install.html) (with [Ivy](https://ant.apache.org/ivy/download.cgi)) or [Maven](http://maven.apache.org/download.cgi)
+* [Maven](http://maven.apache.org/download.cgi)
 * An instance of SQL Server or SQL Azure Database that you can connect to. 
 
 ###Using Maven
@@ -53,3 +53,4 @@ For example, if you wish to compile and run the executeStoredProcedure sample yo
 
 * `mvn install -PexecuteStoredProcedure`
 * `mvn exec:java -PexecuteStoredProcedure`
+

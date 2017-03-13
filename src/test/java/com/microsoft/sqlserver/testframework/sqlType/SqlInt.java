@@ -14,7 +14,8 @@ import java.util.concurrent.ThreadLocalRandom;;
 public class SqlInt extends SqlNumber {
 
     public SqlInt() {
-        super("int", JDBCType.INTEGER, 10, 0, SqlTypeValue.INTEGER.minValue, SqlTypeValue.INTEGER.maxValue, SqlTypeValue.INTEGER.nullValue);
+        super("int", JDBCType.INTEGER, 10, 0, SqlTypeValue.INTEGER.minValue, SqlTypeValue.INTEGER.maxValue, SqlTypeValue.INTEGER.nullValue,
+                VariableLengthType.Fixed, Integer.class);
 
     }
 
