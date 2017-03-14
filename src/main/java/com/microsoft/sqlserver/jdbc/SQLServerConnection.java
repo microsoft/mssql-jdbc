@@ -1436,7 +1436,7 @@ public class SQLServerConnection implements ISQLServerConnection {
                 }
             }
             
-            sPropKey = SQLServerDriverIntProperty.PREPARED_STATEMENT_DISCARD_ACTION_THRESHOLD.toString();
+            sPropKey = SQLServerDriverIntProperty.SERVER_PREPARED_STATEMENT_DISCARD_THRESHOLD.toString();
             if (activeConnectionProperties.getProperty(sPropKey) != null && activeConnectionProperties.getProperty(sPropKey).length() > 0) {
                 try {
                     int n = (new Integer(activeConnectionProperties.getProperty(sPropKey))).intValue();
