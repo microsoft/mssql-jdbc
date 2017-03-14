@@ -271,7 +271,7 @@ enum SQLServerDriverIntProperty {
 	QUERY_TIMEOUT  ("queryTimeout",    -1),
 	PORT_NUMBER    ("portNumber",      1433),
 	SOCKET_TIMEOUT ("socketTimeout",   0),
-    PREPARED_STATEMENT_DISCARD_ACTION_THRESHOLD("preparedStatementDiscardActionThreshold", -1/*This is not the default, default handled in SQLServerConnection and is not final/const*/);  
+    SERVER_PREPARED_STATEMENT_DISCARD_THRESHOLD("serverPreparedStatementDiscardThreshold", -1/*This is not the default, default handled in SQLServerConnection and is not final/const*/);  
     
     private String name;
     private int defaultValue;
@@ -376,8 +376,8 @@ public final class SQLServerDriver implements java.sql.Driver {
         new SQLServerDriverPropertyInfo(SQLServerDriverIntProperty.SOCKET_TIMEOUT.toString(),                   		      Integer.toString(SQLServerDriverIntProperty.SOCKET_TIMEOUT.getDefaultValue()),         				  false,      null),
         new SQLServerDriverPropertyInfo(SQLServerDriverBooleanProperty.FIPS.toString(),                                       Boolean.toString(SQLServerDriverBooleanProperty.FIPS.getDefaultValue()),                                false,      TRUE_FALSE),
         new SQLServerDriverPropertyInfo(SQLServerDriverBooleanProperty.ENABLE_PREPARE_ON_FIRST_PREPARED_STATEMENT.toString(), Boolean.toString(SQLServerConnection.getDefaultEnablePrepareOnFirstPreparedStatementCall()),            false,      TRUE_FALSE),
-        new SQLServerDriverPropertyInfo(SQLServerDriverIntProperty.PREPARED_STATEMENT_DISCARD_ACTION_THRESHOLD.toString(),    Integer.toString(SQLServerConnection.getDefaultPreparedStatementDiscardActionThreshold()),              false,      null),
-            };
+        new SQLServerDriverPropertyInfo(SQLServerDriverIntProperty.SERVER_PREPARED_STATEMENT_DISCARD_THRESHOLD.toString(),    Integer.toString(SQLServerConnection.getDefaultServerPreparedStatementDiscardThreshold()),              false,      null),
+    };
 
     // Properties that can only be set by using Properties.
     // Cannot set in connection string

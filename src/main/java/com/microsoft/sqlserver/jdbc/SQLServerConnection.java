@@ -87,9 +87,9 @@ public class SQLServerConnection implements ISQLServerConnection {
     /**
      * The initial default on application start-up for the prepared statement clean-up action threshold (i.e. when sp_unprepare is called). 
      */    
-    static final public int INITIAL_DEFAULT_PREPARED_STATEMENT_DISCARD_ACTION_THRESHOLD = 10; // Used to set the initial default, can be changed later.
-    static private int defaultPreparedStatementDiscardActionThreshold = -1; // Current default for new connections
-    private int preparedStatementDiscardActionThreshold = -1; // Current limit for this particular connection.
+    static final public int INITIAL_DEFAULT_SERVER_PREPARED_STATEMENT_DISCARD_THRESHOLD = 10; // Used to set the initial default, can be changed later.
+    static private int defaultServerPreparedStatementDiscardThreshold = -1; // Current default for new connections
+    private int serverPreparedStatementDiscardThreshold = -1; // Current limit for this particular connection.
 
     /**
      * The initial default on application start-up for if prepared statements should execute sp_executesql before following the prepare, unprepare pattern. 
@@ -1440,10 +1440,10 @@ public class SQLServerConnection implements ISQLServerConnection {
             if (activeConnectionProperties.getProperty(sPropKey) != null && activeConnectionProperties.getProperty(sPropKey).length() > 0) {
                 try {
                     int n = (new Integer(activeConnectionProperties.getProperty(sPropKey))).intValue();
-                    setPreparedStatementDiscardActionThreshold(n);
+                    setServerPreparedStatementDiscardThreshold(n);
                 }
                 catch (NumberFormatException e) {
-                    MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_preparedStatementDiscardActionThreshold"));
+                    MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_serverPreparedStatementDiscardThreshold"));
                     Object[] msgArgs = {activeConnectionProperties.getProperty(sPropKey)};
                     SQLServerException.makeFromDriverError(this, this, form.format(msgArgs), null, false);
                 }
@@ -5301,15 +5301,15 @@ public class SQLServerConnection implements ISQLServerConnection {
      * actions (sp_unprepare) can be outstanding per connection before a call to clean-up the outstanding handles on the server is executed.
      * If the setting is <= 1 unprepare actions will be executed immedietely on prepared statement close. If it is set to >1 these calls will
      * be batched together to avoid overhead of calling sp_unprepare too often. 
-     * Initial setting for this option is available in INITIAL_DEFAULT_PREPARED_STATEMENT_CLEANUP_THRESHOLD.
+     * Initial setting for this option is available in INITIAL_DEFAULT_SERVER_PREPARED_STATEMENT_DISCARD_THRESHOLD.
      * 
      * @return Returns the current setting per the description.
      */
-    static public int getDefaultPreparedStatementDiscardActionThreshold() {
-        if(0 > defaultPreparedStatementDiscardActionThreshold)
-            return INITIAL_DEFAULT_PREPARED_STATEMENT_DISCARD_ACTION_THRESHOLD;
+    static public int getDefaultServerPreparedStatementDiscardThreshold() {
+        if(0 > defaultServerPreparedStatementDiscardThreshold)
+            return INITIAL_DEFAULT_SERVER_PREPARED_STATEMENT_DISCARD_THRESHOLD;
         else
-            return defaultPreparedStatementDiscardActionThreshold;        
+            return defaultServerPreparedStatementDiscardThreshold;        
     }
 
     /**
@@ -5317,13 +5317,13 @@ public class SQLServerConnection implements ISQLServerConnection {
      * actions (sp_unprepare) can be outstanding per connection before a call to clean-up the outstanding handles on the server is executed.
      * If the setting is <= 1 unprepare actions will be executed immedietely on prepared statement close. If it is set to >1 these calls will
      * be batched together to avoid overhead of calling sp_unprepare too often. 
-     * Initial setting for this option is available in INITIAL_DEFAULT_PREPARED_STATEMENT_CLEANUP_THRESHOLD.
+     * Initial setting for this option is available in INITIAL_DEFAULT_SERVER_PREPARED_STATEMENT_DISCARD_THRESHOLD.
      * 
      * @param value
      *      Changes the setting per the description.
      */
-    static public void setDefaultPreparedStatementDiscardActionThreshold(int value) {
-        defaultPreparedStatementDiscardActionThreshold = value; 
+    static public void setDefaultServerPreparedStatementDiscardThreshold(int value) {
+        defaultServerPreparedStatementDiscardThreshold = value; 
     }
 
     /**
@@ -5331,15 +5331,15 @@ public class SQLServerConnection implements ISQLServerConnection {
      * actions (sp_unprepare) can be outstanding per connection before a call to clean-up the outstanding handles on the server is executed.
      * If the setting is <= 1 unprepare actions will be executed immedietely on prepared statement close. If it is set to >1 these calls will
      * be batched together to avoid overhead of calling sp_unprepare too often. 
-     * The default for this option can be changed by calling getDefaultPreparedStatementDiscardActionThreshold(). 
+     * The default for this option can be changed by calling getDefaultServerPreparedStatementDiscardThreshold(). 
      * 
      * @return Returns the current setting per the description.
      */
-    public int getPreparedStatementDiscardActionThreshold() {
-        if(0 > this.preparedStatementDiscardActionThreshold)
-            return getDefaultPreparedStatementDiscardActionThreshold();
+    public int getServerPreparedStatementDiscardThreshold() {
+        if(0 > this.serverPreparedStatementDiscardThreshold)
+            return getDefaultServerPreparedStatementDiscardThreshold();
         else
-            return this.preparedStatementDiscardActionThreshold;        
+            return this.serverPreparedStatementDiscardThreshold;        
     }
 
     /**
@@ -5351,8 +5351,8 @@ public class SQLServerConnection implements ISQLServerConnection {
      * @param value
      *      Changes the setting per the description.
      */
-    public void setPreparedStatementDiscardActionThreshold(int value) {
-        this.preparedStatementDiscardActionThreshold = value;
+    public void setServerPreparedStatementDiscardThreshold(int value) {
+        this.serverPreparedStatementDiscardThreshold = value;
     }
 
     /**
@@ -5366,7 +5366,7 @@ public class SQLServerConnection implements ISQLServerConnection {
         if (this.isSessionUnAvailable()) 
             return;
 
-        final int threshold = this.getPreparedStatementDiscardActionThreshold();
+        final int threshold = this.getServerPreparedStatementDiscardThreshold();
 
         // Find out current # enqueued, if force, make sure it always exceeds threshold.
         int count = force ? threshold + 1 : this.getDiscardedServerPreparedStatementCount();

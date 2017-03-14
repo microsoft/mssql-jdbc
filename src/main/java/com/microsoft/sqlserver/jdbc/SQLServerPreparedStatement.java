@@ -150,7 +150,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
             isExecutedAtLeastOnce = false;
 
             // Using batched clean-up? If not, use old method of calling sp_unprepare.
-            if(1 < connection.getPreparedStatementDiscardActionThreshold()) {
+            if(1 < connection.getServerPreparedStatementDiscardThreshold()) {
                 // Handle unprepare actions through batching @ connection level. 
                 connection.enqueuePreparedStatementDiscardItem(prepStmtHandle, executedSqlDirectly);
                 prepStmtHandle = 0;

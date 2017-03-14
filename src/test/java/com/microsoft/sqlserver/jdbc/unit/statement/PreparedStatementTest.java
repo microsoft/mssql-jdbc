@@ -57,7 +57,7 @@ public class PreparedStatementTest extends AbstractTest {
 
         // Make sure correct settings are used.
         SQLServerConnection.setDefaultEnablePrepareOnFirstPreparedStatementCall(SQLServerConnection.INITIAL_DEFAULT_ENABLE_PREPARE_ON_FIRST_PREPARED_STATEMENT_CALL);
-        SQLServerConnection.setDefaultPreparedStatementDiscardActionThreshold(SQLServerConnection.INITIAL_DEFAULT_PREPARED_STATEMENT_DISCARD_ACTION_THRESHOLD);
+        SQLServerConnection.setDefaultServerPreparedStatementDiscardThreshold(SQLServerConnection.INITIAL_DEFAULT_SERVER_PREPARED_STATEMENT_DISCARD_THRESHOLD);
 
         try (SQLServerConnection con = (SQLServerConnection)DriverManager.getConnection(connectionString)) {
             conOuter = con;
@@ -107,7 +107,7 @@ public class PreparedStatementTest extends AbstractTest {
                 }
 
                 // Verify clean-up is happening as expected.
-                if(prevDiscardActionCount > con.getPreparedStatementDiscardActionThreshold()) {
+                if(prevDiscardActionCount > con.getServerPreparedStatementDiscardThreshold()) {
                     prevDiscardActionCount = 0;
                 }
 
@@ -130,9 +130,9 @@ public class PreparedStatementTest extends AbstractTest {
     public void testPreparedStatementExecAndUnprepareConfig() throws SQLException {
 
         // Verify initial defaults are correct:
-        assertTrue(SQLServerConnection.INITIAL_DEFAULT_PREPARED_STATEMENT_DISCARD_ACTION_THRESHOLD > 1);
+        assertTrue(SQLServerConnection.INITIAL_DEFAULT_SERVER_PREPARED_STATEMENT_DISCARD_THRESHOLD > 1);
         assertTrue(false == SQLServerConnection.INITIAL_DEFAULT_ENABLE_PREPARE_ON_FIRST_PREPARED_STATEMENT_CALL);
-        assertSame(SQLServerConnection.INITIAL_DEFAULT_PREPARED_STATEMENT_DISCARD_ACTION_THRESHOLD, SQLServerConnection.getDefaultPreparedStatementDiscardActionThreshold());
+        assertSame(SQLServerConnection.INITIAL_DEFAULT_SERVER_PREPARED_STATEMENT_DISCARD_THRESHOLD, SQLServerConnection.getDefaultServerPreparedStatementDiscardThreshold());
         assertSame(SQLServerConnection.INITIAL_DEFAULT_ENABLE_PREPARE_ON_FIRST_PREPARED_STATEMENT_CALL, SQLServerConnection.getDefaultEnablePrepareOnFirstPreparedStatementCall());
 
         // Test Data Source properties
@@ -140,43 +140,43 @@ public class PreparedStatementTest extends AbstractTest {
         dataSource.setURL(connectionString);
         // Verify defaults.
         assertSame(SQLServerConnection.getDefaultEnablePrepareOnFirstPreparedStatementCall(), dataSource.getEnablePrepareOnFirstPreparedStatementCall());
-        assertSame(SQLServerConnection.getDefaultPreparedStatementDiscardActionThreshold(), dataSource.getPreparedStatementDiscardActionThreshold());
+        assertSame(SQLServerConnection.getDefaultServerPreparedStatementDiscardThreshold(), dataSource.getServerPreparedStatementDiscardThreshold());
         // Verify change
         dataSource.setEnablePrepareOnFirstPreparedStatementCall(!dataSource.getEnablePrepareOnFirstPreparedStatementCall());
         assertNotSame(SQLServerConnection.getDefaultEnablePrepareOnFirstPreparedStatementCall(), dataSource.getEnablePrepareOnFirstPreparedStatementCall());
-        dataSource.setPreparedStatementDiscardActionThreshold(dataSource.getPreparedStatementDiscardActionThreshold() + 1);
-        assertNotSame(SQLServerConnection.getDefaultPreparedStatementDiscardActionThreshold(), dataSource.getPreparedStatementDiscardActionThreshold());
+        dataSource.setServerPreparedStatementDiscardThreshold(dataSource.getServerPreparedStatementDiscardThreshold() + 1);
+        assertNotSame(SQLServerConnection.getDefaultServerPreparedStatementDiscardThreshold(), dataSource.getServerPreparedStatementDiscardThreshold());
         // Verify connection from data source has same parameters.
         SQLServerConnection connDataSource = (SQLServerConnection)dataSource.getConnection();
         assertSame(dataSource.getEnablePrepareOnFirstPreparedStatementCall(), connDataSource.getEnablePrepareOnFirstPreparedStatementCall());
-        assertSame(dataSource.getPreparedStatementDiscardActionThreshold(), connDataSource.getPreparedStatementDiscardActionThreshold());
+        assertSame(dataSource.getServerPreparedStatementDiscardThreshold(), connDataSource.getServerPreparedStatementDiscardThreshold());
 
         // Test connection string properties.
         // Make sure default is not same as test.
         assertNotSame(true, SQLServerConnection.getDefaultEnablePrepareOnFirstPreparedStatementCall());
-        assertNotSame(3, SQLServerConnection.getDefaultPreparedStatementDiscardActionThreshold());
+        assertNotSame(3, SQLServerConnection.getDefaultServerPreparedStatementDiscardThreshold());
 
         // Test EnablePrepareOnFirstPreparedStatementCall
         String connectionStringNoExecuteSQL = connectionString + ";enablePrepareOnFirstPreparedStatementCall=true;";
         SQLServerConnection connectionNoExecuteSQL = (SQLServerConnection)DriverManager.getConnection(connectionStringNoExecuteSQL);
         assertSame(true, connectionNoExecuteSQL.getEnablePrepareOnFirstPreparedStatementCall());
 
-        // Test preparedStatementDiscardActionThreshold
-        String connectionStringThreshold3 = connectionString + ";preparedStatementDiscardActionThreshold=3;";
+        // Test ServerPreparedStatementDiscardThreshold
+        String connectionStringThreshold3 = connectionString + ";ServerPreparedStatementDiscardThreshold=3;";
         SQLServerConnection connectionThreshold3 = (SQLServerConnection)DriverManager.getConnection(connectionStringThreshold3);
-        assertSame(3, connectionThreshold3.getPreparedStatementDiscardActionThreshold());
+        assertSame(3, connectionThreshold3.getServerPreparedStatementDiscardThreshold());
 
-        // Test combination of EnablePrepareOnFirstPreparedStatementCall and preparedStatementDiscardActionThreshold
-        String connectionStringThresholdAndNoExecuteSQL = connectionString + ";preparedStatementDiscardActionThreshold=3;enablePrepareOnFirstPreparedStatementCall=true;";
+        // Test combination of EnablePrepareOnFirstPreparedStatementCall and ServerPreparedStatementDiscardThreshold
+        String connectionStringThresholdAndNoExecuteSQL = connectionString + ";ServerPreparedStatementDiscardThreshold=3;enablePrepareOnFirstPreparedStatementCall=true;";
         SQLServerConnection connectionThresholdAndNoExecuteSQL = (SQLServerConnection)DriverManager.getConnection(connectionStringThresholdAndNoExecuteSQL);
         assertSame(true, connectionThresholdAndNoExecuteSQL.getEnablePrepareOnFirstPreparedStatementCall());
-        assertSame(3, connectionThresholdAndNoExecuteSQL.getPreparedStatementDiscardActionThreshold());
+        assertSame(3, connectionThresholdAndNoExecuteSQL.getServerPreparedStatementDiscardThreshold());
 
         // Test that an error is thrown for invalid connection string property values (non int/bool).
         try {
-            String connectionStringThresholdError = connectionString + ";preparedStatementDiscardActionThreshold=hej;";
+            String connectionStringThresholdError = connectionString + ";ServerPreparedStatementDiscardThreshold=hej;";
             DriverManager.getConnection(connectionStringThresholdError);
-            fail("Error for invalid preparedStatementDiscardActionThreshold expected.");
+            fail("Error for invalid ServerPreparedStatementDiscardThresholdexpected.");
         }
         catch(SQLException e) {
             // Good!
@@ -192,36 +192,36 @@ public class PreparedStatementTest extends AbstractTest {
 
         // Change the defaults and verify change stuck.
         SQLServerConnection.setDefaultEnablePrepareOnFirstPreparedStatementCall(!SQLServerConnection.INITIAL_DEFAULT_ENABLE_PREPARE_ON_FIRST_PREPARED_STATEMENT_CALL);
-        SQLServerConnection.setDefaultPreparedStatementDiscardActionThreshold(SQLServerConnection.INITIAL_DEFAULT_PREPARED_STATEMENT_DISCARD_ACTION_THRESHOLD - 1);
-        assertNotSame(SQLServerConnection.INITIAL_DEFAULT_PREPARED_STATEMENT_DISCARD_ACTION_THRESHOLD, SQLServerConnection.getDefaultPreparedStatementDiscardActionThreshold());
+        SQLServerConnection.setDefaultServerPreparedStatementDiscardThreshold(SQLServerConnection.INITIAL_DEFAULT_SERVER_PREPARED_STATEMENT_DISCARD_THRESHOLD - 1);
+        assertNotSame(SQLServerConnection.INITIAL_DEFAULT_SERVER_PREPARED_STATEMENT_DISCARD_THRESHOLD, SQLServerConnection.getDefaultServerPreparedStatementDiscardThreshold());
         assertNotSame(SQLServerConnection.INITIAL_DEFAULT_ENABLE_PREPARE_ON_FIRST_PREPARED_STATEMENT_CALL, SQLServerConnection.getDefaultEnablePrepareOnFirstPreparedStatementCall());
 
         // Verify invalid (negative) change does not stick for threshold.
-        SQLServerConnection.setDefaultPreparedStatementDiscardActionThreshold(-1);
-        assertTrue(0 < SQLServerConnection.getDefaultPreparedStatementDiscardActionThreshold());
+        SQLServerConnection.setDefaultServerPreparedStatementDiscardThreshold(-1);
+        assertTrue(0 < SQLServerConnection.getDefaultServerPreparedStatementDiscardThreshold());
 
         // Verify instance settings.
         SQLServerConnection conn1 = (SQLServerConnection)DriverManager.getConnection(connectionString);
-        assertSame(SQLServerConnection.getDefaultPreparedStatementDiscardActionThreshold(), conn1.getPreparedStatementDiscardActionThreshold());        
+        assertSame(SQLServerConnection.getDefaultServerPreparedStatementDiscardThreshold(), conn1.getServerPreparedStatementDiscardThreshold());        
         assertSame(SQLServerConnection.getDefaultEnablePrepareOnFirstPreparedStatementCall(), conn1.getEnablePrepareOnFirstPreparedStatementCall());        
-        conn1.setPreparedStatementDiscardActionThreshold(SQLServerConnection.getDefaultPreparedStatementDiscardActionThreshold() + 1);
+        conn1.setServerPreparedStatementDiscardThreshold(SQLServerConnection.getDefaultServerPreparedStatementDiscardThreshold() + 1);
         conn1.setEnablePrepareOnFirstPreparedStatementCall(!SQLServerConnection.getDefaultEnablePrepareOnFirstPreparedStatementCall());
-        assertNotSame(SQLServerConnection.getDefaultPreparedStatementDiscardActionThreshold(), conn1.getPreparedStatementDiscardActionThreshold());        
+        assertNotSame(SQLServerConnection.getDefaultServerPreparedStatementDiscardThreshold(), conn1.getServerPreparedStatementDiscardThreshold());        
         assertNotSame(SQLServerConnection.getDefaultEnablePrepareOnFirstPreparedStatementCall(), conn1.getEnablePrepareOnFirstPreparedStatementCall());        
         
         // Verify new instance not same as changed instance.
         SQLServerConnection conn2 = (SQLServerConnection)DriverManager.getConnection(connectionString);
-        assertNotSame(conn1.getPreparedStatementDiscardActionThreshold(), conn2.getPreparedStatementDiscardActionThreshold());        
+        assertNotSame(conn1.getServerPreparedStatementDiscardThreshold(), conn2.getServerPreparedStatementDiscardThreshold());        
         assertNotSame(conn1.getEnablePrepareOnFirstPreparedStatementCall(), conn2.getEnablePrepareOnFirstPreparedStatementCall());        
 
         // Verify instance setting is followed.
-        SQLServerConnection.setDefaultPreparedStatementDiscardActionThreshold(SQLServerConnection.INITIAL_DEFAULT_PREPARED_STATEMENT_DISCARD_ACTION_THRESHOLD);
+        SQLServerConnection.setDefaultServerPreparedStatementDiscardThreshold(SQLServerConnection.INITIAL_DEFAULT_SERVER_PREPARED_STATEMENT_DISCARD_THRESHOLD);
         try (SQLServerConnection con = (SQLServerConnection)DriverManager.getConnection(connectionString)) {
 
             String query = "/*unprepSettingsTest*/SELECT * FROM sys.objects;";
 
             // Verify initial default is not serial:
-            assertTrue(1 < SQLServerConnection.getDefaultPreparedStatementDiscardActionThreshold());
+            assertTrue(1 < SQLServerConnection.getDefaultServerPreparedStatementDiscardThreshold());
 
             // Verify first use is batched.
             try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement)con.prepareStatement(query)) {
@@ -237,7 +237,7 @@ public class PreparedStatementTest extends AbstractTest {
             assertSame(0, con.getDiscardedServerPreparedStatementCount());
 
             // Set instance setting to serial execution of un-prepare actions.
-            con.setPreparedStatementDiscardActionThreshold(1);                
+            con.setServerPreparedStatementDiscardThreshold(1);                
 
             try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement)con.prepareStatement(query)) {
                 pstmt.execute();
