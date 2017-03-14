@@ -3370,7 +3370,7 @@ public class SQLServerConnection implements ISQLServerConnection {
                 }
                 catch (Exception e) {
                     connectionlogger.severe(toString() + "Failed to read FedAuthInfoData.");
-                    throw new SQLServerException(SQLServerException.getErrString("R_FedAuthInfoFailedToReadData"), null);
+                    throw new SQLServerException(SQLServerException.getErrString("R_FedAuthInfoFailedToReadData"), e);
                 }
 
                 if (connectionlogger.isLoggable(Level.FINER)) {

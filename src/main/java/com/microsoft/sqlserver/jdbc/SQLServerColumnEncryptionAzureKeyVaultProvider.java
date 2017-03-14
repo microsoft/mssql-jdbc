@@ -184,7 +184,7 @@ public class SQLServerColumnEncryptionAzureKeyVaultProvider extends SQLServerCol
             md = MessageDigest.getInstance("SHA-256");
         }
         catch (NoSuchAlgorithmException e) {
-            throw new SQLServerException(SQLServerException.getErrString("R_NoSHA256Algorithm"), null);
+            throw new SQLServerException(SQLServerException.getErrString("R_NoSHA256Algorithm"), e);
         }
         md.update(hash);
         byte dataToVerify[] = md.digest();
@@ -302,7 +302,7 @@ public class SQLServerColumnEncryptionAzureKeyVaultProvider extends SQLServerCol
             md = MessageDigest.getInstance("SHA-256");
         }
         catch (NoSuchAlgorithmException e) {
-            throw new SQLServerException(SQLServerException.getErrString("R_NoSHA256Algorithm"), null);
+            throw new SQLServerException(SQLServerException.getErrString("R_NoSHA256Algorithm"), e);
         }
         md.update(dataToHash);
         byte dataToSign[] = md.digest();
@@ -401,7 +401,7 @@ public class SQLServerColumnEncryptionAzureKeyVaultProvider extends SQLServerCol
             catch (URISyntaxException e) {
                 MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_AKVURLInvalid"));
                 Object[] msgArgs = {masterKeyPath};
-                throw new SQLServerException(null, form.format(msgArgs), null, 0, false);
+                throw new SQLServerException(form.format(msgArgs), null, 0, e);
             }
 
             // A valid URI.
@@ -439,7 +439,7 @@ public class SQLServerColumnEncryptionAzureKeyVaultProvider extends SQLServerCol
             wrappedKey = keyVaultClient.wrapKeyAsync(masterKeyPath, encryptionAlgorithm, columnEncryptionKey).get();
         }
         catch (InterruptedException | ExecutionException e) {
-            throw new SQLServerException(SQLServerException.getErrString("R_EncryptCEKError"), null);
+            throw new SQLServerException(SQLServerException.getErrString("R_EncryptCEKError"), e);
         }
         return wrappedKey.getResult();
     }
@@ -472,7 +472,7 @@ public class SQLServerColumnEncryptionAzureKeyVaultProvider extends SQLServerCol
             unwrappedKey = keyVaultClient.unwrapKeyAsync(masterKeyPath, encryptionAlgorithm, encryptedColumnEncryptionKey).get();
         }
         catch (InterruptedException | ExecutionException e) {
-            throw new SQLServerException(SQLServerException.getErrString("R_DecryptCEKError"), null);
+            throw new SQLServerException(SQLServerException.getErrString("R_DecryptCEKError"), e);
         }
         return unwrappedKey.getResult();
     }
@@ -496,7 +496,7 @@ public class SQLServerColumnEncryptionAzureKeyVaultProvider extends SQLServerCol
             signedData = keyVaultClient.signAsync(masterKeyPath, JsonWebKeySignatureAlgorithm.RS256, dataToSign).get();
         }
         catch (InterruptedException | ExecutionException e) {
-            throw new SQLServerException(SQLServerException.getErrString("R_GenerateSignature"), null);
+            throw new SQLServerException(SQLServerException.getErrString("R_GenerateSignature"), e);
         }
         return signedData.getResult();
     }
@@ -522,7 +522,7 @@ public class SQLServerColumnEncryptionAzureKeyVaultProvider extends SQLServerCol
             valid = keyVaultClient.verifyAsync(masterKeyPath, JsonWebKeySignatureAlgorithm.RS256, dataToVerify, signature).get();
         }
         catch (InterruptedException | ExecutionException e) {
-            throw new SQLServerException(SQLServerException.getErrString("R_VerifySignature"), null);
+            throw new SQLServerException(SQLServerException.getErrString("R_VerifySignature"), e);
         }
 
         return valid;
@@ -544,7 +544,7 @@ public class SQLServerColumnEncryptionAzureKeyVaultProvider extends SQLServerCol
             retrievedKey = keyVaultClient.getKeyAsync(masterKeyPath).get();
         }
         catch (InterruptedException | ExecutionException e) {
-            throw new SQLServerException(SQLServerException.getErrString("R_GetAKVKeySize"), null);
+            throw new SQLServerException(SQLServerException.getErrString("R_GetAKVKeySize"), e);
         }
 
         if (!retrievedKey.getKey().getKty().equalsIgnoreCase("RSA") && !retrievedKey.getKey().getKty().equalsIgnoreCase("RSA-HSM")) {

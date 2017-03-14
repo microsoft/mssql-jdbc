@@ -3537,7 +3537,7 @@ final class TDSWriter {
             throw new SQLServerException(SQLServerException.getErrString("R_zoneOffsetError"), null, // SQLState is null as this error is generated in
                                                                                                      // the driver
                     0, // Use 0 instead of DriverError.NOT_SET to use the correct constructor
-                    null);
+                    e);
         }
         subSecondNanos = offsetDateTimeValue.getNano();
 
@@ -3593,7 +3593,7 @@ final class TDSWriter {
             throw new SQLServerException(SQLServerException.getErrString("R_zoneOffsetError"), null, // SQLState is null as this error is generated in
                                                                                                      // the driver
                     0, // Use 0 instead of DriverError.NOT_SET to use the correct constructor
-                    null);
+                    e);
         }
         subSecondNanos = offsetTimeValue.getNano();
 
