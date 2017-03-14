@@ -1723,7 +1723,8 @@ public class SQLServerConnection implements ISQLServerConnection {
                     Thread.sleep(sleepInterval);
                 }
                 catch (InterruptedException e) {
-                    // continue if the thread is interrupted. This really should not happen.
+                    // re-interrupt the current thread, in order to restore the thread's interrupt status.
+                    Thread.currentThread().interrupt();
                 }
                 sleepInterval = (sleepInterval < 500) ? sleepInterval * 2 : 1000;
             }
@@ -3531,7 +3532,8 @@ public class SQLServerConnection implements ISQLServerConnection {
                         Thread.sleep(sleepInterval);
                     }
                     catch (InterruptedException e1) {
-                        // continue if the thread is interrupted. This really should not happen.
+                        // re-interrupt the current thread, in order to restore the thread's interrupt status.
+                        Thread.currentThread().interrupt();
                     }
                     sleepInterval = sleepInterval * 2;
                 }
