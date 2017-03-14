@@ -20,14 +20,15 @@ public class SqlFloat extends SqlType {
             Object min,
             Object max,
             Object nullvalue,
-            VariableLengthType variableLengthType) {
-        super(name, jdbctype, precision, 0, min, max, nullvalue, variableLengthType);
+            VariableLengthType variableLengthType,
+            Class type) {
+        super(name, jdbctype, precision, 0, min, max, nullvalue, variableLengthType, type);
         generatePrecision();
     }
 
     public SqlFloat() {
         super("float", JDBCType.DOUBLE, 53, 0, SqlTypeValue.FLOAT.minValue, SqlTypeValue.FLOAT.maxValue, SqlTypeValue.FLOAT.nullValue,
-                VariableLengthType.Precision);
+                VariableLengthType.Precision, Double.class);
         generatePrecision();
     }
 

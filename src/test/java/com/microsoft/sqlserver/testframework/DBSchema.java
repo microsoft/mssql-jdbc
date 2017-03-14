@@ -9,6 +9,7 @@
 package com.microsoft.sqlserver.testframework;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 import com.microsoft.sqlserver.testframework.sqlType.SqlBigInt;
@@ -85,6 +86,19 @@ public class DBSchema {
 
             // TODO:
             // Other types
+        }
+    }
+
+    /**
+     * 
+     * @param autoGenerateSchema
+     * @param alternateSchema
+     */
+    DBSchema(boolean autoGenerateSchema,
+            boolean alternateSchema) {
+        this(autoGenerateSchema);
+        if (alternateSchema) {
+            Collections.shuffle(this.sqlTypes);
         }
     }
 

@@ -22,6 +22,7 @@ public class SqlDate extends SqlDateTime {
 
     public SqlDate() {
         super("date", JDBCType.DATE, null, null);
+        type = java.sql.Date.class;
         try {
             minvalue = new Date(dateFormat.parse((String) SqlTypeValue.DATE.minValue).getTime());
             maxvalue = new Date(dateFormat.parse((String) SqlTypeValue.DATE.maxValue).getTime());
