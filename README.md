@@ -15,9 +15,9 @@ SQL Server Team
 
 ## Take our survey
 
-Let us know more about your Java & SQL Server configuration:
+Let us know more about your how you program with Java.
 
-<a href="https://www.surveymonkey.com/r/7PLF8JJ"><img style="float: right;"  height="67" width="156" src="https://meetsstorenew.blob.core.windows.net/contianerhd/survey.png?st=2017-02-17T22%3A03%3A00Z&se=2100-02-18T22%3A03%3A00Z&sp=rl&sv=2015-12-11&sr=b&sig=DJSFoihBptSvO%2BjvWzwpHecf8o5yfAbJoD2qW5oB8tc%3D"></a>
+<a href="https://www.surveymonkey.com/r/RS29KQ8"><img style="float: right;"  height="67" width="156" src="https://meetsstorenew.blob.core.windows.net/contianerhd/survey.png?st=2017-02-17T22%3A03%3A00Z&se=2100-02-18T22%3A03%3A00Z&sp=rl&sv=2015-12-11&sr=b&sig=DJSFoihBptSvO%2BjvWzwpHecf8o5yfAbJoD2qW5oB8tc%3D"></a>
 
 ## Status of Most Recent Builds
 | AppVeyor (Windows)       | Travis CI (Linux) |
