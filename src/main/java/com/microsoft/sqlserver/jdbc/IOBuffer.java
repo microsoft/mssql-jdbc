@@ -7680,7 +7680,7 @@ abstract class TDSCommand {
         }
 
         // A new response is received hence increment unprocessed respose count     
-        tdsWriter.getConnection().incrementUnprocessedResponseCount();
+        tdsWriter.getConnection().getSessionRecovery().incrementUnprocessedResponseCount();
         
         return tdsReader;
     }

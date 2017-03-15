@@ -1419,7 +1419,7 @@ public class SQLServerStatement implements ISQLServerStatement {
                     // even if there is no update count.
                     if (doneToken.isFinal()) {
                      // If this the final DONE token, response is completely processed hence decrement unprocessed response count        
-                        tdsReader.getConnection().decrementUnprocessedResponseCount();
+                        tdsReader.getConnection().getSessionRecovery().decrementUnprocessedResponseCount();
                         moreResults = false;
                         return false;
                     }
