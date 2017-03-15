@@ -16,12 +16,7 @@ SQL Server Team
 ## Status of Most Recent Builds
 | AppVeyor (Windows)       | Travis CI (Linux) |
 |--------------------------|--------------------------|
-| [![av-image][]][av-site] | [![tv-image][]][tv-site] |
-
-[av-image]: https://ci.appveyor.com/api/projects/status/o6fjg16678ol64d3?svg=true "Windows"
-[av-site]: https://ci.appveyor.com/project/Microsoft-JDBC/mssql-jdbc
-[tv-image]: https://travis-ci.org/Microsoft/mssql-jdbc.svg? "Linux"
-[tv-site]: https://travis-ci.org/Microsoft/mssql-jdbc
+| [![AppVeyor ](https://ci.appveyor.com/api/projects/status/o6fjg16678ol64d3?svg=true "Windows")](https://ci.appveyor.com/project/Microsoft-JDBC/mssql-jdbc) | [![Travis CI](https://travis-ci.org/Microsoft/mssql-jdbc.svg? "Linux")](https://travis-ci.org/Microsoft/mssql-jdbc ) |vg? "Linux"
 
 ## Announcements
 What's coming next?  We will look into adding a more comprehensive set of tests, improving our javadocs, and start developing the next set of features.
