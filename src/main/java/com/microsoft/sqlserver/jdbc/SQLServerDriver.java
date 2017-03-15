@@ -304,8 +304,8 @@ enum SQLServerDriverBooleanProperty
 	TRANSPARENT_NETWORK_IP_RESOLUTION         ("TransparentNetworkIPResolution",            true),
 	TRUST_SERVER_CERTIFICATE                  ("trustServerCertificate",                    false),
 	XOPEN_STATES                              ("xopenStates",                               false),
-    FIPS                                      ("fips",                                      false),
-    ENABLE_PREPARE_ON_FIRST_PREPARED_STATEMENT("enablePrepareOnFirstPreparedStatementCall", false/*This is not the default, default handled in SQLServerConnection and is not final/const*/);
+	FIPS                                      ("fips",                                      false),
+	ENABLE_PREPARE_ON_FIRST_PREPARED_STATEMENT("enablePrepareOnFirstPreparedStatementCall", false/*This is not the default, default handled in SQLServerConnection and is not final/const*/);
 
     private String name;
     private boolean defaultValue;
@@ -334,8 +334,8 @@ public final class SQLServerDriver implements java.sql.Driver {
     {
         //                                                               													  default       																						  required    available choices
         //  property name                                               													  value        							 															      property    (if appropriate)
-    	new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.APPLICATION_INTENT.toString(),    				      SQLServerDriverStringProperty.APPLICATION_INTENT.getDefaultValue(), 									  false,		new String[]{ApplicationIntent.READ_ONLY.toString(), ApplicationIntent.READ_WRITE.toString()}),            	
-    	new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.APPLICATION_NAME.toString(),    					      SQLServerDriverStringProperty.APPLICATION_NAME.getDefaultValue(), 									  false,		null),
+        new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.APPLICATION_INTENT.toString(),    				      SQLServerDriverStringProperty.APPLICATION_INTENT.getDefaultValue(), 									  false,		new String[]{ApplicationIntent.READ_ONLY.toString(), ApplicationIntent.READ_WRITE.toString()}),            	
+        new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.APPLICATION_NAME.toString(),    					      SQLServerDriverStringProperty.APPLICATION_NAME.getDefaultValue(), 									  false,		null),
         new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.COLUMN_ENCRYPTION.toString(),            			      SQLServerDriverStringProperty.COLUMN_ENCRYPTION.getDefaultValue(),       							      false,      new String[] {ColumnEncryptionSetting.Disabled.toString(), ColumnEncryptionSetting.Enabled.toString()}),
         new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.DATABASE_NAME.toString(),       					      SQLServerDriverStringProperty.DATABASE_NAME.getDefaultValue(),       								      false,    	null),                        
         new SQLServerDriverPropertyInfo(SQLServerDriverBooleanProperty.DISABLE_STATEMENT_POOLING.toString(), 			      Boolean.toString(SQLServerDriverBooleanProperty.DISABLE_STATEMENT_POOLING.getDefaultValue()),       	  false,      new String[] {"true"}),
@@ -370,13 +370,13 @@ public final class SQLServerDriver implements java.sql.Driver {
         new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.USER.toString(),                          		      SQLServerDriverStringProperty.USER.getDefaultValue(),           										  true,       null),
         new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.WORKSTATION_ID.toString(),                 		      SQLServerDriverStringProperty.WORKSTATION_ID.getDefaultValue(), 										  false, 		null),
         new SQLServerDriverPropertyInfo(SQLServerDriverBooleanProperty.XOPEN_STATES.toString(),                   		      Boolean.toString(SQLServerDriverBooleanProperty.XOPEN_STATES.getDefaultValue()),      				  false,      TRUE_FALSE),
-        new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.AUTHENTICATION_SCHEME.toString(),          		      SQLServerDriverStringProperty.AUTHENTICATION_SCHEME.getDefaultValue(),      			                  false,      new String[] {AuthenticationScheme.javaKerberos.toString(),AuthenticationScheme.nativeAuthentication.toString()}),
-        new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.AUTHENTICATION.toString(),          				      SQLServerDriverStringProperty.AUTHENTICATION.getDefaultValue(),      			                	      false,      new String[] {SqlAuthentication.NotSpecified.toString(),SqlAuthentication.SqlPassword.toString(),SqlAuthentication.ActiveDirectoryPassword.toString(),SqlAuthentication.ActiveDirectoryIntegrated.toString()}),
+        new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.AUTHENTICATION_SCHEME.toString(),          		      SQLServerDriverStringProperty.AUTHENTICATION_SCHEME.getDefaultValue(),      			            	  false,      new String[] {AuthenticationScheme.javaKerberos.toString(),AuthenticationScheme.nativeAuthentication.toString()}),
+        new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.AUTHENTICATION.toString(),          				      SQLServerDriverStringProperty.AUTHENTICATION.getDefaultValue(),      			                		  false,      new String[] {SqlAuthentication.NotSpecified.toString(),SqlAuthentication.SqlPassword.toString(),SqlAuthentication.ActiveDirectoryPassword.toString(),SqlAuthentication.ActiveDirectoryIntegrated.toString()}),
         new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.FIPS_PROVIDER.toString(), 						      SQLServerDriverStringProperty.FIPS_PROVIDER.getDefaultValue(), 										  false, 		null),
         new SQLServerDriverPropertyInfo(SQLServerDriverIntProperty.SOCKET_TIMEOUT.toString(),                   		      Integer.toString(SQLServerDriverIntProperty.SOCKET_TIMEOUT.getDefaultValue()),         				  false,      null),
-        new SQLServerDriverPropertyInfo(SQLServerDriverBooleanProperty.FIPS.toString(),                                       Boolean.toString(SQLServerDriverBooleanProperty.FIPS.getDefaultValue()),                                false,      TRUE_FALSE),
-        new SQLServerDriverPropertyInfo(SQLServerDriverBooleanProperty.ENABLE_PREPARE_ON_FIRST_PREPARED_STATEMENT.toString(), Boolean.toString(SQLServerConnection.getDefaultEnablePrepareOnFirstPreparedStatementCall()),            false,      TRUE_FALSE),
-        new SQLServerDriverPropertyInfo(SQLServerDriverIntProperty.SERVER_PREPARED_STATEMENT_DISCARD_THRESHOLD.toString(),    Integer.toString(SQLServerConnection.getDefaultServerPreparedStatementDiscardThreshold()),              false,      null),
+        new SQLServerDriverPropertyInfo(SQLServerDriverBooleanProperty.FIPS.toString(),                                       Boolean.toString(SQLServerDriverBooleanProperty.FIPS.getDefaultValue()),                          	  false,      TRUE_FALSE),
+        new SQLServerDriverPropertyInfo(SQLServerDriverBooleanProperty.ENABLE_PREPARE_ON_FIRST_PREPARED_STATEMENT.toString(), Boolean.toString(SQLServerConnection.getDefaultEnablePrepareOnFirstPreparedStatementCall()),      	  false,      TRUE_FALSE),
+        new SQLServerDriverPropertyInfo(SQLServerDriverIntProperty.SERVER_PREPARED_STATEMENT_DISCARD_THRESHOLD.toString(),    Integer.toString(SQLServerConnection.getDefaultServerPreparedStatementDiscardThreshold()),        	  false,      null),
     };
 
     // Properties that can only be set by using Properties.

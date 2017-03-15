@@ -140,7 +140,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
             return;
 
         // If the connection is already closed, don't bother trying to close
-        // the prepared handle.  We won't be able to, and it's already closed
+        // the prepared handle. We won't be able to, and it's already closed
         // on the server anyway.
         if (connection.isSessionUnAvailable()) {
             if (getStatementLogger().isLoggable(java.util.logging.Level.FINER))
@@ -148,18 +148,19 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         }
         else {
             isExecutedAtLeastOnce = false;
+            int handleToClose = prepStmtHandle;
+            prepStmtHandle = 0;
 
             // Using batched clean-up? If not, use old method of calling sp_unprepare.
             if(1 < connection.getServerPreparedStatementDiscardThreshold()) {
                 // Handle unprepare actions through batching @ connection level. 
-                connection.enqueuePreparedStatementDiscardItem(prepStmtHandle, executedSqlDirectly);
-                prepStmtHandle = 0;
+                connection.enqueuePreparedStatementDiscardItem(handleToClose, executedSqlDirectly);
                 connection.handlePreparedStatementDiscardActions(false);
             }
             else {
                 // Non batched behavior (same as pre batch impl.)
                 if (getStatementLogger().isLoggable(java.util.logging.Level.FINER))
-                    getStatementLogger().finer(this + ": Closing PreparedHandle:" + prepStmtHandle);
+                    getStatementLogger().finer(this + ": Closing PreparedHandle:" + handleToClose);
 
                 final class PreparedHandleClose extends UninterruptableTDSCommand {
                     PreparedHandleClose() {
@@ -172,8 +173,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                         tdsWriter.writeShort(executedSqlDirectly ? TDS.PROCID_SP_UNPREPARE : TDS.PROCID_SP_CURSORUNPREPARE);
                         tdsWriter.writeByte((byte) 0);  // RPC procedure option 1
                         tdsWriter.writeByte((byte) 0);  // RPC procedure option 2
-                        tdsWriter.writeRPCInt(null, new Integer(prepStmtHandle), false);
-                        prepStmtHandle = 0;
+                        tdsWriter.writeRPCInt(null, new Integer(handleToClose), false);
                         TDSParser.parse(startResponse(), getLogContext());
                         return true;
                     }
@@ -185,11 +185,11 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                 }
                 catch (SQLServerException e) {
                     if (getStatementLogger().isLoggable(java.util.logging.Level.FINER))
-                        getStatementLogger().log(Level.FINER, this + ": Error (ignored) closing PreparedHandle:" + prepStmtHandle, e);
+                        getStatementLogger().log(Level.FINER, this + ": Error (ignored) closing PreparedHandle:" + handleToClose, e);
                 }
 
                 if (getStatementLogger().isLoggable(java.util.logging.Level.FINER))
-                    getStatementLogger().finer(this + ": Closed PreparedHandle:" + prepStmtHandle);
+                    getStatementLogger().finer(this + ": Closed PreparedHandle:" + handleToClose);
             }
         }
     }
