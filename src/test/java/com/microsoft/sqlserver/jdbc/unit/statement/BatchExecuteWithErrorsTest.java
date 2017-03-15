@@ -59,6 +59,7 @@ public class BatchExecuteWithErrorsTest extends AbstractTest {
     @Test
     @DisplayName("Batch Test")
     @Disabled
+    // TODO: disabled for resiliency branch, revist during implemenataion
     public void Repro47239() throws SQLException {
         String tableN = RandomUtil.getIdentifier("t_Repro47239");
         final String tableName = AbstractSQLGenerator.escapeIdentifier(tableN);
@@ -276,6 +277,7 @@ public class BatchExecuteWithErrorsTest extends AbstractTest {
 
         assumeTrue("JDBC42".equals(Utils.getConfiguredProperty("JDBC_Version")), "Aborting test case as JDBC version is not compatible. ");
         
+        //TODO: revist during implemenataion of resilience
         // cancel connection resilience to test
         connectionString += "connectRetryCount=0";
         

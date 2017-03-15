@@ -110,6 +110,7 @@ public class TimeoutTest extends AbstractTest {
 
     @Test
     @Disabled
+    //TODO: disabled for resiliency branch, revist during implemenataion
     public void testSocketTimeout() throws Exception {
         
         SQLServerConnection conn = (SQLServerConnection) DriverManager.getConnection(connectionString);
