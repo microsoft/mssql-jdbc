@@ -1530,7 +1530,7 @@ public class SQLServerConnection implements ISQLServerConnection {
         boolean useParallel = getMultiSubnetFailover();
         boolean useTnir = getTransparentNetworkIPResolution();
 
-        long intervalExpire;
+        long intervalExpire = 0;
         long normalIntervalExpire = 0;
         long parrallelIntervalExpire = 0;
 
@@ -1591,7 +1591,6 @@ public class SQLServerConnection implements ISQLServerConnection {
                 if (null == inetAddrs) {
                     try {
                         inetAddrs = InetAddress.getAllByName(currentConnectPlaceHolder.getServerName());
-
                     }
                     catch (IOException ex) {
                         SQLServerException.ConvertConnectExceptionToSQLServerException(currentConnectPlaceHolder.getServerName(),
@@ -1604,13 +1603,16 @@ public class SQLServerConnection implements ISQLServerConnection {
                     useTnir = false;
                 }
 
-                if (isDBMirroring || useParallel || useTnir) {
-                    timeoutUnitInterval = parallelTimeoutUnitInterval;
-                    intervalExpire = parrallelIntervalExpire;
-                }
-                else{
-                    timeoutUnitInterval = normalTimeoutUnitInterval;
-                    intervalExpire = normalIntervalExpire;
+                //calculate timeout interval for the first attempt
+                if(0 == attemptNumber){
+                    if (isDBMirroring || useParallel || useTnir) {
+                        timeoutUnitInterval = parallelTimeoutUnitInterval;
+                        intervalExpire = parrallelIntervalExpire;
+                    }
+                    else{
+                        timeoutUnitInterval = normalTimeoutUnitInterval;
+                        intervalExpire = normalIntervalExpire;
+                    }
                 }
                 
                 // logging code
