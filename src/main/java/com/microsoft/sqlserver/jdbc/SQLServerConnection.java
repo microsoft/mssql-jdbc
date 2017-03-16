@@ -1613,13 +1613,15 @@ public class SQLServerConnection implements ISQLServerConnection {
                         timeoutUnitInterval = normalTimeoutUnitInterval;
                         intervalExpire = normalIntervalExpire;
                     }
+                    
+                    if (connectionlogger.isLoggable(Level.FINE)) {
+                        connectionlogger.finer(
+                                toString() + " Start time: " + timerStart + " Time out time: " + timerExpire + " Timeout Unit Interval: " + timeoutUnitInterval);
+                    }
                 }
                 
                 // logging code
                 if (connectionlogger.isLoggable(Level.FINE)) {
-                    connectionlogger.finer(
-                            toString() + " Start time: " + timerStart + " Time out time: " + timerExpire + " Timeout Unit Interval: " + timeoutUnitInterval);
-                    
                     connectionlogger.fine(toString() + " This attempt server name: " + currentConnectPlaceHolder.getServerName() + " port: "
                             + currentConnectPlaceHolder.getPortNumber() + " InstanceName: " + currentConnectPlaceHolder.getInstanceName()
                             + " useParallel: " + useParallel);
