@@ -46,6 +46,8 @@ public final class SQLServerBlob implements java.sql.Blob, java.io.Serializable 
 
     static private final AtomicInteger baseID = new AtomicInteger(0);   // Unique id generator for each instance (used for logging).
     final private String traceID;
+    
+    private InputStream outputStream = null;
 
     final public String toString() {
         return traceID;
@@ -142,20 +144,19 @@ public final class SQLServerBlob implements java.sql.Blob, java.io.Serializable 
     public InputStream getBinaryStream() throws SQLException {
         checkClosed();
 
-        if( null == value)
-        {           
-            InputStream stream = (InputStream) activeStreams.get(0);
+        if (null == value) {
+            outputStream = (InputStream) activeStreams.get(0);
             try {
-                stream.reset();
-            } catch (IOException e) {
-                throw new SQLServerException(null, e.getMessage(), null, 0, true);
+                outputStream.reset();
+            }
+            catch (IOException e) {
+                throw new SQLServerException(e.getMessage(), null, 0, e);
             }
             return (InputStream) activeStreams.get(0);
         }
-        else       
-        {
-          return getBinaryStreamInternal(0, value.length);
-        }   
+        else {
+            return getBinaryStreamInternal(0, value.length);
+        }
     }
 
     public InputStream getBinaryStream(long pos,
@@ -237,17 +238,20 @@ public final class SQLServerBlob implements java.sql.Blob, java.io.Serializable 
         return value.length;
     }
     
-    private void getBytesFromStream() throws SQLServerException 
-    {
-        if ( null == value)
-        {
+    /**
+     * Converts stream to byte[]
+     * @throws SQLServerException
+     */
+    private void getBytesFromStream() throws SQLServerException {
+        if (null == value) {
             BaseInputStream stream = (BaseInputStream) activeStreams.get(0);
             try {
                 stream.reset();
-            } catch (IOException e) {
-                throw new SQLServerException(null, e.getMessage(), null, 0, true);
             }
-            value =  (stream).getBytes();
+            catch (IOException e) {
+                throw new SQLServerException(e.getMessage(), null, 0, e);
+            }
+            value = (stream).getBytes();
         }
     }
 
