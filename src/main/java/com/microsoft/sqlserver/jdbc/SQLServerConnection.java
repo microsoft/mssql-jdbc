@@ -79,6 +79,8 @@ public class SQLServerConnection implements ISQLServerConnection {
     long timerExpire;
     boolean attemptRefreshTokenLocked = false;
 
+    private InetAddress[] inetAddrs = null;
+    
     private boolean fedAuthRequiredByUser = false;
     private boolean fedAuthRequiredPreLoginResponse = false;
     private boolean federatedAuthenticationAcknowledged = false;
@@ -1602,13 +1604,30 @@ public class SQLServerConnection implements ISQLServerConnection {
                 // Attempt login.
                 // use Place holder to make sure that the failoverdemand is done.
 
+                if (null == inetAddrs) {
+                    try {
+                        inetAddrs = InetAddress.getAllByName(currentConnectPlaceHolder.getServerName());
+
+                    }
+                    catch (IOException ex) {
+                        SQLServerException.ConvertConnectExceptionToSQLServerException(currentConnectPlaceHolder.getServerName(),
+                                currentConnectPlaceHolder.getPortNumber(), this, ex);
+                    }
+                }
+
+                // if only one IP is resolved and user didn't set TNIR explicitly then set TNIR to false
+                if ((1 == inetAddrs.length) && !userSetTNIR) {
+                    useTnir = false;
+                }
+                
                 connectHelper(currentConnectPlaceHolder, TimerRemaining(intervalExpire), timeout, useParallel, useTnir, (0 == attemptNumber), // Is
                                                                                                                                               // this
                                                                                                                                               // the
                                                                                                                                               // TNIR
                                                                                                                                               // first
                                                                                                                                               // attempt
-                        TimerRemaining(intervalExpireFullTimeout)); // Only used when host resolves to >64 IPs
+                        TimerRemaining(intervalExpireFullTimeout), // Only used when host resolves to >64 IPs
+                        inetAddrs); 
 
                 if (isRoutedInCurrentAttempt) {
                     // we ignore the failoverpartner ENVCHANGE, if we got routed.
@@ -1900,7 +1919,8 @@ public class SQLServerConnection implements ISQLServerConnection {
             boolean useParallel,
             boolean useTnir,
             boolean isTnirFirstAttempt,
-            int timeOutsliceInMillisForFullTimeout) throws SQLServerException {
+            int timeOutsliceInMillisForFullTimeout,
+            InetAddress[] inetAddrs) throws SQLServerException {
         // Make the initial tcp-ip connection.
 
         if (connectionlogger.isLoggable(Level.FINE)) {
@@ -1911,10 +1931,10 @@ public class SQLServerConnection implements ISQLServerConnection {
         tdsChannel = new TDSChannel(this);
         if (0 == timeOutFullInSeconds)
             tdsChannel.open(serverInfo.getServerName(), serverInfo.getPortNumber(), 0, useParallel, useTnir, isTnirFirstAttempt,
-                    timeOutsliceInMillisForFullTimeout, userSetTNIR);
+                    timeOutsliceInMillisForFullTimeout, inetAddrs);
         else
             tdsChannel.open(serverInfo.getServerName(), serverInfo.getPortNumber(), timeOutsliceInMillis, useParallel, useTnir, isTnirFirstAttempt,
-                    timeOutsliceInMillisForFullTimeout, userSetTNIR);
+                    timeOutsliceInMillisForFullTimeout, inetAddrs);
 
         setState(State.Connected);
 
