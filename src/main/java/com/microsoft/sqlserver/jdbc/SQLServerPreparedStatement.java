@@ -148,7 +148,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         }
         else {
             isExecutedAtLeastOnce = false;
-            int handleToClose = prepStmtHandle;
+            final int handleToClose = prepStmtHandle;
             prepStmtHandle = 0;
 
             // Using batched clean-up? If not, use old method of calling sp_unprepare.
