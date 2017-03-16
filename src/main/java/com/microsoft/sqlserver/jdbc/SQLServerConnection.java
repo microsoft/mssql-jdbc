@@ -1503,7 +1503,9 @@ public class SQLServerConnection implements ISQLServerConnection {
         // for all other cases, including multiSubnetFailover
         final boolean isDBMirroring = (null == mirror && null == foActual) ? false : true;
         int sleepInterval = 100;  // milliseconds to sleep (back off) between attempts.
-        long timeoutUnitInterval;
+        long timeoutUnitInterval = 0;
+        long normalTimeoutUnitInterval;
+        long parallelTimeoutUnitInterval;
 
         boolean useFailoverHost = false;
         FailoverInfo tempFailover = null;
@@ -1529,6 +1531,8 @@ public class SQLServerConnection implements ISQLServerConnection {
         boolean useTnir = getTransparentNetworkIPResolution();
 
         long intervalExpire;
+        long normalIntervalExpire = 0;
+        long parrallelIntervalExpire = 0;
 
         if (0 == timeout) {
             timeout = SQLServerDriverIntProperty.LOGIN_TIMEOUT.getDefaultValue();
@@ -1537,22 +1541,14 @@ public class SQLServerConnection implements ISQLServerConnection {
         timerExpire = timerStart + timerTimeout;
 
         // For non-dbmirroring, non-tnir and non-multisubnetfailover scenarios, full time out would be used as time slice.
-        if (isDBMirroring || useParallel || useTnir) {
-            timeoutUnitInterval = (long) (TIMEOUTSTEP * timerTimeout);
-        }
-        else {
-            timeoutUnitInterval = timerTimeout;
-        }
-        intervalExpire = timerStart + timeoutUnitInterval;
+        parallelTimeoutUnitInterval = (long) (TIMEOUTSTEP * timerTimeout);
+        normalTimeoutUnitInterval = timerTimeout;
+        
+        parrallelIntervalExpire = timerStart + parallelTimeoutUnitInterval;
+        normalIntervalExpire = timerStart + normalTimeoutUnitInterval;
         // This is needed when the host resolves to more than 64 IP addresses. In that case, TNIR is ignored
         // and the original timeout is used instead of the timeout slice.
         long intervalExpireFullTimeout = timerStart + timerTimeout;
-
-        if (connectionlogger.isLoggable(Level.FINER)) {
-            connectionlogger.finer(
-                    toString() + " Start time: " + timerStart + " Time out time: " + timerExpire + " Timeout Unit Interval: " + timeoutUnitInterval);
-        }
-
         // Initialize loop variables
         int attemptNumber = 0;
 
@@ -1591,19 +1587,7 @@ public class SQLServerConnection implements ISQLServerConnection {
                     currentConnectPlaceHolder = currentPrimaryPlaceHolder;
                 }
 
-                // logging code
-                if (connectionlogger.isLoggable(Level.FINE)) {
-                    connectionlogger.fine(toString() + " This attempt server name: " + currentConnectPlaceHolder.getServerName() + " port: "
-                            + currentConnectPlaceHolder.getPortNumber() + " InstanceName: " + currentConnectPlaceHolder.getInstanceName()
-                            + " useParallel: " + useParallel);
-                    connectionlogger.fine(toString() + " This attempt endtime: " + intervalExpire);
-                    connectionlogger.fine(toString() + " This attempt No: " + attemptNumber);
-                }
-                // end logging code
-
-                // Attempt login.
-                // use Place holder to make sure that the failoverdemand is done.
-
+                // DNS resolution to retrieve all IP addresses if not done yet
                 if (null == inetAddrs) {
                     try {
                         inetAddrs = InetAddress.getAllByName(currentConnectPlaceHolder.getServerName());
@@ -1619,6 +1603,31 @@ public class SQLServerConnection implements ISQLServerConnection {
                 if ((1 == inetAddrs.length) && !userSetTNIR) {
                     useTnir = false;
                 }
+
+                if (isDBMirroring || useParallel || useTnir) {
+                    timeoutUnitInterval = parallelTimeoutUnitInterval;
+                    intervalExpire = parrallelIntervalExpire;
+                }
+                else{
+                    timeoutUnitInterval = normalTimeoutUnitInterval;
+                    intervalExpire = normalIntervalExpire;
+                }
+                
+                // logging code
+                if (connectionlogger.isLoggable(Level.FINE)) {
+                    connectionlogger.finer(
+                            toString() + " Start time: " + timerStart + " Time out time: " + timerExpire + " Timeout Unit Interval: " + timeoutUnitInterval);
+                    
+                    connectionlogger.fine(toString() + " This attempt server name: " + currentConnectPlaceHolder.getServerName() + " port: "
+                            + currentConnectPlaceHolder.getPortNumber() + " InstanceName: " + currentConnectPlaceHolder.getInstanceName()
+                            + " useParallel: " + useParallel);
+                    connectionlogger.fine(toString() + " This attempt endtime: " + intervalExpire);
+                    connectionlogger.fine(toString() + " This attempt No: " + attemptNumber);
+                }
+                // end logging code
+                
+                // Attempt login.
+                // use Place holder to make sure that the failoverdemand is done.
                 
                 connectHelper(currentConnectPlaceHolder, TimerRemaining(intervalExpire), timeout, useParallel, useTnir, (0 == attemptNumber), // Is
                                                                                                                                               // this
