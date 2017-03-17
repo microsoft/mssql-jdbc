@@ -1172,7 +1172,7 @@ public class PQImpsTest extends AbstractTest {
      */
     @Test
     public void testQueryWithMultipleLineCommentsUpdate() throws SQLException {
-        pstmt = connection.prepareStatement("/*te\nst*//*test*/update /*test*/" + charTable + " set c1=123 where c1=abc");
+        pstmt = connection.prepareStatement("/*te\nst*//*test*/update /*test*/" + charTable + " set c1=123 where c1=?");
         
         try {
             pstmt.getParameterMetaData();
@@ -1189,7 +1189,7 @@ public class PQImpsTest extends AbstractTest {
      */
     @Test
     public void testQueryWithMultipleLineCommentsDeletion() throws SQLException {
-        pstmt = connection.prepareStatement("/*te\nst*//*test*/delete /*test*/from " + charTable + " where c1=abc");
+        pstmt = connection.prepareStatement("/*te\nst*//*test*/delete /*test*/from " + charTable + " where c1=?");
         
         try {
             pstmt.getParameterMetaData();
@@ -1280,7 +1280,7 @@ public class PQImpsTest extends AbstractTest {
      */
     @Test
     public void testQueryWithSingleLineCommentsUpdate() throws SQLException {
-        pstmt = connection.prepareStatement("--#test\nupdate /*test*/" + charTable + " set c1=123 where c1=abc");
+        pstmt = connection.prepareStatement("--#test\nupdate /*test*/" + charTable + " set c1=123 where c1=?");
         
         try {
             pstmt.getParameterMetaData();
@@ -1297,7 +1297,7 @@ public class PQImpsTest extends AbstractTest {
      */
     @Test
     public void testQueryWithSingleLineCommentsDeletion() throws SQLException {
-        pstmt = connection.prepareStatement("--#test\ndelete /*test*/from " + charTable + " where c1=abc");
+        pstmt = connection.prepareStatement("--#test\ndelete /*test*/from " + charTable + " where c1=?");
         
         try {
             pstmt.getParameterMetaData();

@@ -366,7 +366,7 @@ public final class SQLServerParameterMetaData implements ParameterMetaData {
      */
     private MetaInfo parseStatement(String sql,
             String sTableMarker) {
-        StringTokenizer st = new StringTokenizer(sql, " ,\r\n*/", true);
+        StringTokenizer st = new StringTokenizer(sql, " ,\r\n", true);
 
         /* Find the table */
 
@@ -374,6 +374,10 @@ public final class SQLServerParameterMetaData implements ParameterMetaData {
         String metaFields = "";
         while (st.hasMoreTokens()) {
             String sToken = st.nextToken().trim();
+
+            if(sToken.contains("*/")){
+                sToken = removeCommentsInTheBeginning(sToken, 0, 0, "/*", "*/");
+            }
 
             if (sToken.equalsIgnoreCase(sTableMarker)) {
                 if (st.hasMoreTokens()) {
