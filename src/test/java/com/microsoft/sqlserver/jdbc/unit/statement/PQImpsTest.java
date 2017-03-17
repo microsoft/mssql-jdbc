@@ -1147,6 +1147,57 @@ public class PQImpsTest extends AbstractTest {
             fail(e.toString());
         }
     }
+    
+    /**
+     * test insertion query with multiple line comments
+     * 
+     * @throws SQLException
+     */
+    @Test
+    public void testQueryWithMultipleLineCommentsInsert() throws SQLException {
+        pstmt = connection.prepareStatement("/*te\nst*//*test*/insert /*test*/into " + charTable + " (c1) VALUES(?)");
+        
+        try {
+            pstmt.getParameterMetaData();
+        }
+        catch (Exception e) {
+            fail(e.toString());
+        }
+    }
+    
+    /**
+     * test update query with multiple line comments
+     * 
+     * @throws SQLException
+     */
+    @Test
+    public void testQueryWithMultipleLineCommentsUpdate() throws SQLException {
+        pstmt = connection.prepareStatement("/*te\nst*//*test*/update /*test*/" + charTable + " set c1=123 where c1=abc");
+        
+        try {
+            pstmt.getParameterMetaData();
+        }
+        catch (Exception e) {
+            fail(e.toString());
+        }
+    }
+    
+    /**
+     * test deletion query with multiple line comments
+     * 
+     * @throws SQLException
+     */
+    @Test
+    public void testQueryWithMultipleLineCommentsDeletion() throws SQLException {
+        pstmt = connection.prepareStatement("/*te\nst*//*test*/delete /*test*/from " + charTable + " where c1=abc");
+        
+        try {
+            pstmt.getParameterMetaData();
+        }
+        catch (Exception e) {
+            fail(e.toString());
+        }
+    }
 
     /**
      * test query with single line comments
@@ -1199,6 +1250,57 @@ public class PQImpsTest extends AbstractTest {
         try {
             pstmt.getParameterMetaData();
             pstmt.executeQuery();
+        }
+        catch (Exception e) {
+            fail(e.toString());
+        }
+    }
+    
+    /**
+     * test insertion query with single line comments
+     * 
+     * @throws SQLException
+     */
+    @Test
+    public void testQueryWithSingleLineCommentsInsert() throws SQLException {
+        pstmt = connection.prepareStatement("--#test\ninsert /*test*/into " + charTable + " (c1) VALUES(?)");
+        
+        try {
+            pstmt.getParameterMetaData();
+        }
+        catch (Exception e) {
+            fail(e.toString());
+        }
+    }
+    
+    /**
+     * test update query with single line comments
+     * 
+     * @throws SQLException
+     */
+    @Test
+    public void testQueryWithSingleLineCommentsUpdate() throws SQLException {
+        pstmt = connection.prepareStatement("--#test\nupdate /*test*/" + charTable + " set c1=123 where c1=abc");
+        
+        try {
+            pstmt.getParameterMetaData();
+        }
+        catch (Exception e) {
+            fail(e.toString());
+        }
+    }
+    
+    /**
+     * test deletion query with single line comments
+     * 
+     * @throws SQLException
+     */
+    @Test
+    public void testQueryWithSingleLineCommentsDeletion() throws SQLException {
+        pstmt = connection.prepareStatement("--#test\ndelete /*test*/from " + charTable + " where c1=abc");
+        
+        try {
+            pstmt.getParameterMetaData();
         }
         catch (Exception e) {
             fail(e.toString());
