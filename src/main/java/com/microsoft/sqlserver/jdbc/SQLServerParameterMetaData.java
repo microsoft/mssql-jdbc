@@ -631,6 +631,9 @@ public final class SQLServerParameterMetaData implements ParameterMetaData {
         catch (SQLException e) {
             SQLServerException.makeFromDriverError(con, stmtParent, e.toString(), null, false);
         }
+        catch(StringIndexOutOfBoundsException e){
+            SQLServerException.makeFromDriverError(con, stmtParent, e.toString(), null, false);
+        }
     }
 
     public boolean isWrapperFor(Class<?> iface) throws SQLException {
