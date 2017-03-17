@@ -414,7 +414,7 @@ public final class SQLServerParameterMetaData implements ParameterMetaData {
                 String sqlWithoutCommentsInBeginning = removeCommentsInTheBeginning(sql, 0, 0, "/*", "*/");
                 return parseStatement(sqlWithoutCommentsInBeginning);
             }
-            
+
             // filter out single line comments in the beginning of the query
             if (sToken.contains("--")) {
                 String sqlWithoutCommentsInBeginning = removeCommentsInTheBeginning(sql, 0, 0, "--", "\n");
@@ -437,7 +437,11 @@ public final class SQLServerParameterMetaData implements ParameterMetaData {
         return null;
     }
     
-    private String removeCommentsInTheBeginning(String sql, int startCommentMarkCount, int endCommentMarkCount, String startMark, String endMark) {
+    private String removeCommentsInTheBeginning(String sql,
+            int startCommentMarkCount,
+            int endCommentMarkCount,
+            String startMark,
+            String endMark) {
         int startCommentMarkIndex = sql.indexOf(startMark);
         int endCommentMarkIndex = sql.indexOf(endMark);
 
