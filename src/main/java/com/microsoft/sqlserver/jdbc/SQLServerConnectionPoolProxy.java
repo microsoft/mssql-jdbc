@@ -32,7 +32,7 @@ import java.util.logging.Level;
 
 /**
  * SQLServerConnectionPoolProxy is a wrapper around SQLServerConnection object. When returning a connection object from PooledConnection.getConnection
- * we returnt this proxy per SPEC.
+ * we return this proxy per SPEC.
  * <p>
  * This class's public functions need to be kept identical to the SQLServerConnection's.
  * <p>
@@ -114,7 +114,7 @@ class SQLServerConnectionPoolProxy implements ISQLServerConnection, java.io.Seri
     }
 
     /**
-     * Rollback a transcation.
+     * Rollback a transaction.
      *
      * @throws SQLServerException
      *             if no transaction exists or if the connection is in auto-commit mode.

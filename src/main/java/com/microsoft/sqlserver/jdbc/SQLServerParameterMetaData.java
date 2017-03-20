@@ -366,7 +366,7 @@ public final class SQLServerParameterMetaData implements ParameterMetaData {
      */
     private MetaInfo parseStatement(String sql,
             String sTableMarker) {
-        StringTokenizer st = new StringTokenizer(sql, " ,", true);
+        StringTokenizer st = new StringTokenizer(sql, " ,\r\n", true);
 
         /* Find the table */
 
@@ -374,6 +374,10 @@ public final class SQLServerParameterMetaData implements ParameterMetaData {
         String metaFields = "";
         while (st.hasMoreTokens()) {
             String sToken = st.nextToken().trim();
+
+            if(sToken.contains("*/")){
+                sToken = removeCommentsInTheBeginning(sToken, 0, 0, "/*", "*/");
+            }
 
             if (sToken.equalsIgnoreCase(sTableMarker)) {
                 if (st.hasMoreTokens()) {
@@ -409,6 +413,18 @@ public final class SQLServerParameterMetaData implements ParameterMetaData {
         if (st.hasMoreTokens()) {
             String sToken = st.nextToken().trim();
 
+            // filter out multiple line comments in the beginning of the query
+            if (sToken.contains("/*")) {
+                String sqlWithoutCommentsInBeginning = removeCommentsInTheBeginning(sql, 0, 0, "/*", "*/");
+                return parseStatement(sqlWithoutCommentsInBeginning);
+            }
+
+            // filter out single line comments in the beginning of the query
+            if (sToken.contains("--")) {
+                String sqlWithoutCommentsInBeginning = removeCommentsInTheBeginning(sql, 0, 0, "--", "\n");
+                return parseStatement(sqlWithoutCommentsInBeginning);
+            }
+
             if (sToken.equalsIgnoreCase("INSERT"))
                 return parseStatement(sql, "INTO"); // INTO marks the table name
 
@@ -423,6 +439,40 @@ public final class SQLServerParameterMetaData implements ParameterMetaData {
         }
 
         return null;
+    }
+    
+    private String removeCommentsInTheBeginning(String sql,
+            int startCommentMarkCount,
+            int endCommentMarkCount,
+            String startMark,
+            String endMark) {
+        int startCommentMarkIndex = sql.indexOf(startMark);
+        int endCommentMarkIndex = sql.indexOf(endMark);
+
+        if (-1 == startCommentMarkIndex) {
+            startCommentMarkIndex = Integer.MAX_VALUE;
+        }
+        if (-1 == endCommentMarkIndex) {
+            endCommentMarkIndex = Integer.MAX_VALUE;
+        }
+
+        // Base case. startCommentMarkCount is guaranteed to be bigger than 0 because the method is called when /* occurs
+        if (startCommentMarkCount == endCommentMarkCount) {
+            if (startCommentMarkCount != 0 && endCommentMarkCount != 0) {
+                return sql;
+            }
+        }
+
+        // filter out first start comment mark
+        if (startCommentMarkIndex < endCommentMarkIndex) {
+            String sqlWithoutCommentsInBeginning = sql.substring(startCommentMarkIndex + startMark.length());
+            return removeCommentsInTheBeginning(sqlWithoutCommentsInBeginning, ++startCommentMarkCount, endCommentMarkCount, startMark, endMark);
+        }
+        // filter out first end comment mark
+        else {
+            String sqlWithoutCommentsInBeginning = sql.substring(endCommentMarkIndex + endMark.length());
+            return removeCommentsInTheBeginning(sqlWithoutCommentsInBeginning, startCommentMarkCount, ++endCommentMarkCount, startMark, endMark);
+        }
     }
 
     String parseThreePartNames(String threeName) throws SQLServerException {
@@ -579,6 +629,9 @@ public final class SQLServerParameterMetaData implements ParameterMetaData {
             }
         }
         catch (SQLException e) {
+            SQLServerException.makeFromDriverError(con, stmtParent, e.toString(), null, false);
+        }
+        catch(StringIndexOutOfBoundsException e){
             SQLServerException.makeFromDriverError(con, stmtParent, e.toString(), null, false);
         }
     }
