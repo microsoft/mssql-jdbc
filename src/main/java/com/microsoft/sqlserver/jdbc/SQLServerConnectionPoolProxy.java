@@ -40,8 +40,7 @@ import java.util.logging.Level;
  * details.
  */
 
-class SQLServerConnectionPoolProxy implements ISQLServerConnection, java.io.Serializable {
-    private static final long serialVersionUID = -6412542417798843534L;
+class SQLServerConnectionPoolProxy implements ISQLServerConnection {
     private SQLServerConnection wrappedConnection;
     private boolean bIsOpen;
     static private final AtomicInteger baseConnectionID = new AtomicInteger(0);       // connection id dispenser
