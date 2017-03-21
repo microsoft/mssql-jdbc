@@ -628,6 +628,9 @@ public final class SQLServerParameterMetaData implements ParameterMetaData {
                 }
             }
         }
+        catch (SQLServerException e) {
+            throw e;
+        }
         catch (SQLException e) {
             SQLServerException.makeFromDriverError(con, stmtParent, e.toString(), null, false);
         }
