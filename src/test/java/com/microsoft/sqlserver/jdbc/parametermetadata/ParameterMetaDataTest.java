@@ -48,7 +48,8 @@ public class ParameterMetaDataTest extends AbstractTest {
                     assertSame(parameterMetaData, parameterMetaData.unwrap(ParameterMetaData.class));
                 }
             } finally {
-                stmt.executeUpdate("drop table if exists " + tableName);
+                stmt.executeUpdate("IF EXISTS (select * from sysobjects where id = object_id(N'" + tableName + "') and OBJECTPROPERTY(id, N'IsTable') = 1)"
+                        + " DROP TABLE " + tableName);
             }
 
         }
