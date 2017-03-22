@@ -523,18 +523,20 @@ public class ConnectionDriverTest extends AbstractTest {
      */
     @Test
     public void testThreadInterruptedStatus() throws InterruptedException {
-        Runnable runnable = () -> {
-            SQLServerDataSource ds = new SQLServerDataSource();
+        Runnable runnable = new Runnable() {
+            public void run() {
+                SQLServerDataSource ds = new SQLServerDataSource();
 
-            ds.setURL(connectionString);
-            ds.setServerName("invalidServerName" + UUID.randomUUID());
-            ds.setLoginTimeout(5);
+                ds.setURL(connectionString);
+                ds.setServerName("invalidServerName" + UUID.randomUUID());
+                ds.setLoginTimeout(5);
 
-            try {
-                ds.getConnection();
-            }
-            catch (SQLException e) {
-                isInterrupted = Thread.currentThread().isInterrupted();
+                try {
+                    ds.getConnection();
+                }
+                catch (SQLException e) {
+                    isInterrupted = Thread.currentThread().isInterrupted();
+                }
             }
         };
 
