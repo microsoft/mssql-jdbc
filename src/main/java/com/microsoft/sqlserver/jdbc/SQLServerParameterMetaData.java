@@ -628,6 +628,7 @@ public final class SQLServerParameterMetaData implements ParameterMetaData {
                 }
             }
         }
+        // Do not need to wrapper SQLServerException again
         catch (SQLServerException e) {
             throw e;
         }
