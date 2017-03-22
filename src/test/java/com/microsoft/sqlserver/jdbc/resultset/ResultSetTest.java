@@ -84,7 +84,7 @@ public class ResultSetTest extends AbstractTest {
      * @throws SQLException
      */
     @Test
-    public void testTesultSetWrapper() throws SQLException {
+    public void testResultSetWrapper() throws SQLException {
         try (Connection con = DriverManager.getConnection(connectionString);
              Statement stmt = con.createStatement()) {
             
@@ -97,7 +97,8 @@ public class ResultSetTest extends AbstractTest {
                 assertSame(rs, rs.unwrap(ResultSet.class));
                 assertSame(rs, rs.unwrap(ISQLServerResultSet.class));
             } finally {
-                stmt.executeUpdate("drop table if exists " + tableName);
+                stmt.executeUpdate("IF EXISTS (select * from sysobjects where id = object_id(N'" + tableName + "') and OBJECTPROPERTY(id, N'IsTable') = 1)"
+                        + " DROP TABLE " + tableName);
             }
         }
     }
