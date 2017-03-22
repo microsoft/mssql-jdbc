@@ -145,7 +145,7 @@ enum SSType
     DECIMAL        (Category.NUMERIC,         "decimal",          JDBCType.DECIMAL),
     NUMERIC        (Category.NUMERIC,         "numeric",          JDBCType.NUMERIC),
     GUID           (Category.GUID,            "uniqueidentifier", JDBCType.GUID),
-    SQL_VARIANT    (Category.VARIANT,         "sql_variant",      JDBCType.Variant),
+    SQL_VARIANT    (Category.VARIANT,         "sql_variant",      JDBCType.CHAR),  //TODO: was variant
     UDT            (Category.UDT,             "udt",              JDBCType.VARBINARY),
     XML            (Category.XML,             "xml",              JDBCType.LONGNVARCHAR),
     TIMESTAMP      (Category.TIMESTAMP,       "timestamp",        JDBCType.BINARY);
@@ -368,7 +368,8 @@ enum SSType
                     JDBCType.Category.CHARACTER,
                     JDBCType.Category.NCHARACTER,
                     JDBCType.Category.LONG_CHARACTER,
-                    JDBCType.Category.LONG_NCHARACTER));
+                    JDBCType.Category.LONG_NCHARACTER,
+                    JDBCType.Category.Variant));
 
         private final SSType.Category from;
         private final EnumSet<JDBCType.Category> to;
