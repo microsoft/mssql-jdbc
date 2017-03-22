@@ -21,6 +21,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
 
+import com.microsoft.sqlserver.jdbc.SQLServerException;
 import com.microsoft.sqlserver.testframework.AbstractTest;
 import com.microsoft.sqlserver.testframework.util.RandomUtil;
 
@@ -55,4 +56,21 @@ public class ParameterMetaDataTest extends AbstractTest {
         }
     }
 
+    /**
+     * Test SQLServerException is not wrapped with another SQLServerException.
+     * 
+     * @throws SQLException
+     */
+    @Test
+    public void testSQLServerExceptionNotWrapped() throws SQLException {
+        try (Connection con = DriverManager.getConnection(connectionString);
+                PreparedStatement pstmt = connection.prepareStatement("invalid query :)");) {
+
+            pstmt.getParameterMetaData();
+        }
+        catch (SQLServerException e) {
+            assertTrue(!e.getMessage().contains("com.microsoft.sqlserver.jdbc.SQLServerException"),
+                    "SQLServerException should not be wrapped by another SQLServerException.");
+        }
+    }
 }
