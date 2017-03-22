@@ -161,8 +161,17 @@ public final class SQLServerDataTable {
                                 currentColumnMetadata.precision = precision;
                                 isColumnMetadataUpdated = true;
                             }
-                            if (isColumnMetadataUpdated)
+                            
+                            int numberOfDigitsIntegerPart = precision - bd.scale();
+                            if (numberOfDigitsIntegerPart > currentColumnMetadata.numberOfDigitsIntegerPart) {
+                                currentColumnMetadata.numberOfDigitsIntegerPart = numberOfDigitsIntegerPart;
+                                isColumnMetadataUpdated = true;
+                            }
+
+                            if (isColumnMetadataUpdated) {
+                                currentColumnMetadata.precision = currentColumnMetadata.scale + currentColumnMetadata.numberOfDigitsIntegerPart;
                                 columnMetadata.put(pair.getKey(), currentColumnMetadata);
+                            }
                         }
                         rowValues[pair.getKey()] = bd;
                         break;
