@@ -160,9 +160,7 @@
 						<configuration>
 							<finalName>${project.artifactId}-${project.version}.jre7</finalName>
 							<archive>
-								<manifest>
-									<addDefaultImplementationEntries>true</addDefaultImplementationEntries>
-								</manifest>
+								<manifestFile>${project.build.outputDirectory}/META-INF/MANIFEST.MF</manifestFile>
 							</archive>
 						</configuration>
 					</plugin>   
@@ -261,7 +259,26 @@
 					</execution>
 				</executions>
 			</plugin>
-			
+			<!-- Create OSGI Headers -->
+           	<plugin>
+           		<groupId>org.apache.felix</groupId>
+       			<artifactId>maven-bundle-plugin</artifactId>
+                <extensions>true</extensions>
+                <configuration>
+                    <instructions>
+                    	<Export-Package>com.microsoft.sqlserver.jdbc;microsoft.sql</Export-Package>
+                    </instructions>
+                </configuration>
+                	<executions>
+				    	<execution>
+				      		<id>bundle-manifest</id>
+				      		<phase>process-classes</phase>
+				      		<goals>    
+				        		<goal>manifest</goal>
+				      		</goals>   
+				    	</execution>
+				  	</executions>
+         	</plugin>  			
 		</plugins>
 	</build>
 </project>
