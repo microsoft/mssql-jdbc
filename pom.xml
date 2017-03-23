@@ -196,9 +196,7 @@
 						<configuration>
 							<finalName>${project.artifactId}-${project.version}.jre8</finalName>
 							<archive>
-								<manifest>
-									<addDefaultImplementationEntries>true</addDefaultImplementationEntries>
-								</manifest>
+								<manifestFile>${project.build.outputDirectory}/META-INF/MANIFEST.MF</manifestFile>
 							</archive>
 						</configuration>
 					</plugin>
