@@ -72,7 +72,8 @@ public class StatementTest extends AbstractTest {
             con.setAutoCommit(false);
             Statement stmt = con.createStatement();
             try {
-                stmt.executeUpdate("DROP TABLE if exists " + tableName);
+                stmt.executeUpdate("IF EXISTS (select * from sysobjects where id = object_id(N'" + tableName + "') and OBJECTPROPERTY(id, N'IsTable') = 1)"
+                        + " DROP TABLE " + tableName);
             }
             catch (SQLException e) {
             }
@@ -89,7 +90,8 @@ public class StatementTest extends AbstractTest {
             Connection con = DriverManager.getConnection(connectionString);
             Statement stmt = con.createStatement();
             try {
-                stmt.executeUpdate("DROP TABLE if exists " + tableName);
+                stmt.executeUpdate("IF EXISTS (select * from sysobjects where id = object_id(N'" + tableName + "') and OBJECTPROPERTY(id, N'IsTable') = 1)"
+                        + " DROP TABLE " + tableName);
             }
             catch (SQLException e) {
             }
@@ -1040,12 +1042,14 @@ public class StatementTest extends AbstractTest {
             }
 
             try {
-                stmt.executeUpdate("DROP TABLE if exists" + table1Name);
+                stmt.executeUpdate("IF EXISTS (select * from sysobjects where id = object_id(N'" + table1Name + "') and OBJECTPROPERTY(id, N'IsTable') = 1)"
+                        + " DROP TABLE " + table1Name);
             }
             catch (SQLException e) {
             }
             try {
-                stmt.executeUpdate("DROP TABLE if exists " + table2Name);
+                stmt.executeUpdate("IF EXISTS (select * from sysobjects where id = object_id(N'" + table2Name + "') and OBJECTPROPERTY(id, N'IsTable') = 1)"
+                        + " DROP TABLE " + table2Name);
             }
             catch (SQLException e) {
             }
@@ -1366,7 +1370,8 @@ public class StatementTest extends AbstractTest {
             Statement stmt = conn.createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE);
 
             try {
-                stmt.executeUpdate("drop table if exists " + tableName);
+                stmt.executeUpdate("IF EXISTS (select * from sysobjects where id = object_id(N'" + tableName + "') and OBJECTPROPERTY(id, N'IsTable') = 1)"
+                        + " DROP TABLE " + tableName);
             }
             catch (Exception ex) {
             }
@@ -1394,7 +1399,8 @@ public class StatementTest extends AbstractTest {
             assertEquals(cstmt.getString(2), "hi", "Wrong value");
 
             try {
-                stmt.executeUpdate("drop table if exists " + tableName);
+                stmt.executeUpdate("IF EXISTS (select * from sysobjects where id = object_id(N'" + tableName + "') and OBJECTPROPERTY(id, N'IsTable') = 1)"
+                        + " DROP TABLE " + tableName);
             }
             catch (Exception ex) {
             }
@@ -1423,7 +1429,8 @@ public class StatementTest extends AbstractTest {
             Statement stmt = conn.createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE);
 
             try {
-                stmt.executeUpdate("drop table if exists" + tableName);
+                stmt.executeUpdate("IF EXISTS (select * from sysobjects where id = object_id(N'" + tableName + "') and OBJECTPROPERTY(id, N'IsTable') = 1)"
+                        + " DROP TABLE " + tableName);
             }
             catch (Exception ex) {
             }
@@ -1454,7 +1461,8 @@ public class StatementTest extends AbstractTest {
             ;
 
             try {
-                stmt.executeUpdate("drop table if exists " + tableName);
+                stmt.executeUpdate("IF EXISTS (select * from sysobjects where id = object_id(N'" + tableName + "') and OBJECTPROPERTY(id, N'IsTable') = 1)"
+                        + " DROP TABLE " + tableName);
             }
             catch (Exception ex) {
             }
@@ -1478,7 +1486,8 @@ public class StatementTest extends AbstractTest {
             Connection conn = DriverManager.getConnection(connectionString);
             Statement stmt = conn.createStatement();
             try {
-                stmt.executeUpdate("drop table if exists " + tableName);
+                stmt.executeUpdate("IF EXISTS (select * from sysobjects where id = object_id(N'" + tableName + "') and OBJECTPROPERTY(id, N'IsTable') = 1)"
+                        + " DROP TABLE " + tableName);
             }
             catch (Exception ex) {
             }
@@ -1504,7 +1513,8 @@ public class StatementTest extends AbstractTest {
             catch (SQLException ex) {
             }
             try {
-                stmt.executeUpdate("drop table if exists " + tableName);
+                stmt.executeUpdate("IF EXISTS (select * from sysobjects where id = object_id(N'" + tableName + "') and OBJECTPROPERTY(id, N'IsTable') = 1)"
+                        + " DROP TABLE " + tableName);
             }
             catch (Exception ex) {
             }
@@ -1523,7 +1533,8 @@ public class StatementTest extends AbstractTest {
             Statement stmt = conn.createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE);
 
             try {
-                stmt.executeUpdate("drop table if exists " + tableName);
+                stmt.executeUpdate("IF EXISTS (select * from sysobjects where id = object_id(N'" + tableName + "') and OBJECTPROPERTY(id, N'IsTable') = 1)"
+                        + " DROP TABLE " + tableName);
             }
             catch (Exception ex) {
             }
@@ -1556,7 +1567,8 @@ public class StatementTest extends AbstractTest {
             assertEquals(null, cstmt.getString(2), "Wrong value");
 
             try {
-                stmt.executeUpdate("drop table if exists " + tableName);
+                stmt.executeUpdate("IF EXISTS (select * from sysobjects where id = object_id(N'" + tableName + "') and OBJECTPROPERTY(id, N'IsTable') = 1)"
+                        + " DROP TABLE " + tableName);
             }
             catch (Exception ex) {
             }
@@ -1581,7 +1593,8 @@ public class StatementTest extends AbstractTest {
             // Set up everything
             Statement stmt = conn.createStatement();
             try {
-                stmt.executeUpdate("drop table if exists " + tableName);
+                stmt.executeUpdate("IF EXISTS (select * from sysobjects where id = object_id(N'" + tableName + "') and OBJECTPROPERTY(id, N'IsTable') = 1)"
+                        + " DROP TABLE " + tableName);
             }
             catch (Exception ex) {
             }
@@ -1682,7 +1695,8 @@ public class StatementTest extends AbstractTest {
             }
 
             try {
-                stmt.executeUpdate("drop table if exists" + tableName);
+                stmt.executeUpdate("IF EXISTS (select * from sysobjects where id = object_id(N'" + tableName + "') and OBJECTPROPERTY(id, N'IsTable') = 1)"
+                        + " DROP TABLE " + tableName);
             }
             catch (Exception ex) {
             }
@@ -1715,7 +1729,8 @@ public class StatementTest extends AbstractTest {
 
             Statement stmt = con.createStatement();
             try {
-                stmt.executeUpdate("DROP TABLE IF EXISTS " + tableName);
+                stmt.executeUpdate("IF EXISTS (select * from sysobjects where id = object_id(N'" + tableName + "') and OBJECTPROPERTY(id, N'IsTable') = 1)"
+                        + " DROP TABLE " + tableName);
             }
             catch (SQLException e) {
             }
@@ -1734,7 +1749,8 @@ public class StatementTest extends AbstractTest {
                     con = DriverManager.getConnection(connectionString);
                 }
 
-                con.createStatement().executeUpdate("DROP TABLE IF EXISTS " + tableName);
+                con.createStatement().executeUpdate("IF EXISTS (select * from sysobjects where id = object_id(N'" + tableName + "') and OBJECTPROPERTY(id, N'IsTable') = 1)"
+                        + " DROP TABLE " + tableName);
             }
             catch (SQLException e) {
             }
@@ -1952,7 +1968,8 @@ public class StatementTest extends AbstractTest {
                 con = ds.getConnection();
                 Statement stmt = con.createStatement();
                 try {
-                    stmt.executeUpdate("DROP TABLE IF EXISTS" + tableName);
+                    stmt.executeUpdate("IF EXISTS (select * from sysobjects where id = object_id(N'" + tableName + "') and OBJECTPROPERTY(id, N'IsTable') = 1)"
+                            + " DROP TABLE " + tableName);
                 }
                 catch (SQLException e) {
                 }
@@ -2001,7 +2018,8 @@ public class StatementTest extends AbstractTest {
                 con = ds.getConnection();
                 Statement stmt = con.createStatement();
                 try {
-                    stmt.executeUpdate("DROP TABLE IF EXISTS " + tableName);
+                    stmt.executeUpdate("IF EXISTS (select * from sysobjects where id = object_id(N'" + tableName + "') and OBJECTPROPERTY(id, N'IsTable') = 1)"
+                            + " DROP TABLE " + tableName);
                 }
                 catch (SQLException e) {
                 }
@@ -2301,13 +2319,15 @@ public class StatementTest extends AbstractTest {
             con.setAutoCommit(false);
             Statement stmt = con.createStatement();
             try {
-                stmt.executeUpdate("DROP TABLE if exists" + tableName);
+                stmt.executeUpdate("IF EXISTS (select * from sysobjects where id = object_id(N'" + tableName + "') and OBJECTPROPERTY(id, N'IsTable') = 1)"
+                        + " DROP TABLE " + tableName);
             }
             catch (SQLException e) {
                 throw new SQLException(e);
             }
             try {
-                stmt.executeUpdate("DROP TABLE if exists" + table2Name);
+                stmt.executeUpdate("IF EXISTS (select * from sysobjects where id = object_id(N'" + table2Name + "') and OBJECTPROPERTY(id, N'IsTable') = 1)"
+                        + " DROP TABLE " + table2Name);
             }
             catch (SQLException e) {
                 throw new SQLException(e);
@@ -2440,7 +2460,8 @@ public class StatementTest extends AbstractTest {
             con.setAutoCommit(false);
             Statement stmt = con.createStatement();
             try {
-                stmt.executeUpdate("DROP TABLE if exists" + tableName);
+                stmt.executeUpdate("IF EXISTS (select * from sysobjects where id = object_id(N'" + tableName + "') and OBJECTPROPERTY(id, N'IsTable') = 1)"
+                        + " DROP TABLE " + tableName);
             }
             catch (SQLException e) {
             }
@@ -2655,7 +2676,8 @@ public class StatementTest extends AbstractTest {
             }
 
             try {
-                stmt.executeUpdate("DROP TABLE if exists" + tableName);
+                stmt.executeUpdate("IF EXISTS (select * from sysobjects where id = object_id(N'" + tableName + "') and OBJECTPROPERTY(id, N'IsTable') = 1)"
+                        + " DROP TABLE " + tableName);
             }
             catch (SQLException e) {
             }
