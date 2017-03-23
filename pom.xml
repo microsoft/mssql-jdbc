@@ -267,6 +267,7 @@
                 <configuration>
                     <instructions>
                     	<Export-Package>com.microsoft.sqlserver.jdbc;microsoft.sql</Export-Package>
+                    	<Import-Package>!microsoft.sql,*</Import-Package>
                     </instructions>
                 </configuration>
                 	<executions>
