@@ -47,8 +47,6 @@ public final class SQLServerBlob implements java.sql.Blob, java.io.Serializable 
     static private final AtomicInteger baseID = new AtomicInteger(0);   // Unique id generator for each instance (used for logging).
     final private String traceID;
     
-    private InputStream outputStream = null;
-
     final public String toString() {
         return traceID;
     }
@@ -144,10 +142,10 @@ public final class SQLServerBlob implements java.sql.Blob, java.io.Serializable 
     public InputStream getBinaryStream() throws SQLException {
         checkClosed();
 
-        if (null == value) {
-            outputStream = (InputStream) activeStreams.get(0);
+        if (null == value && !activeStreams.isEmpty()) {
+            InputStream stream = (InputStream) activeStreams.get(0);
             try {
-                outputStream.reset();
+                stream.reset();
             }
             catch (IOException e) {
                 throw new SQLServerException(e.getMessage(), null, 0, e);
@@ -251,7 +249,7 @@ public final class SQLServerBlob implements java.sql.Blob, java.io.Serializable 
             catch (IOException e) {
                 throw new SQLServerException(e.getMessage(), null, 0, e);
             }
-            value = (stream).getBytes();
+            value = stream.getBytes();
         }
     }
 

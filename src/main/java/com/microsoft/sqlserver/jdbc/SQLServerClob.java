@@ -61,7 +61,7 @@ public class SQLServerClob extends SQLServerClobBase implements Clob {
 
     SQLServerClob(BaseInputStream stream,
             TypeInfo typeInfo) throws SQLServerException, UnsupportedEncodingException {
-        super(null, new String(stream.getBytes(), typeInfo.getCharset()), typeInfo.getSQLCollation(), logger, null);
+        super(null, stream, typeInfo.getSQLCollation(), logger , typeInfo);
     }
 
     final JDBCType getJdbcType() {
@@ -92,7 +92,6 @@ abstract class SQLServerClobBase implements Serializable {
     transient SQLServerConnection con;
     private static Logger logger;
     final private String traceID = getClass().getName().substring(1 + getClass().getName().lastIndexOf('.')) + ":" + nextInstanceID();
-    private InputStream outputStream = null;
 
     final public String toString() {
         return traceID;
@@ -122,6 +121,9 @@ abstract class SQLServerClobBase implements Serializable {
      * @param collation
      *            the data collation
      * @param logger
+     *            logger information
+     * @param typeInfo
+     *            the column TYPE_INFO
      */
     SQLServerClobBase(SQLServerConnection connection,
             Object data,
@@ -204,11 +206,11 @@ abstract class SQLServerClobBase implements Serializable {
         // Need to use a BufferedInputStream since the stream returned by this method is assumed to support mark/reset
         InputStream getterStream = null;
         if (null == value && !activeStreams.isEmpty()) {
-            outputStream = (InputStream) activeStreams.get(0);
+            InputStream inputStream = (InputStream) activeStreams.get(0);
             try {
-                outputStream.reset();
+                inputStream.reset();
                 getterStream = new BufferedInputStream(
-                        new ReaderInputStream(new InputStreamReader(outputStream), US_ASCII, outputStream.available()));
+                        new ReaderInputStream(new InputStreamReader(inputStream), US_ASCII, inputStream.available()));
             }
             catch (IOException e) {
                 throw new SQLServerException(e.getMessage(), null, 0, e);
@@ -321,8 +323,14 @@ abstract class SQLServerClobBase implements Serializable {
      * @throws SQLServerException
      */
     private void getStringFromStream() throws SQLServerException {
-        if (null == value) {
+        if (null == value && !activeStreams.isEmpty()) {
             BaseInputStream stream = (BaseInputStream) activeStreams.get(0);
+            try {
+                stream.reset();
+            }
+            catch (IOException e) {
+                throw new SQLServerException(e.getMessage(), null, 0, e);
+            }
             value = new String((stream).getBytes(), typeInfo.getCharset());
         }
     }
