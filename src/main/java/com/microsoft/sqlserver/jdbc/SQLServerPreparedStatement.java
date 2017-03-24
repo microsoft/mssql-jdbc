@@ -417,10 +417,8 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         if ((Util.shouldHonorAEForParameters(stmtColumnEncriptionSetting, connection)) && (0 < inOutParam.length) && !isInternalEncryptionQuery) {
             
             // retrieve paramater encryption metadata if they are not retrieved yet
-            if (0 < inOutParam.length) {
-                if (null == inOutParam[0].getCryptoMetadata()) {
-                    getParameterEncryptionMetadata(inOutParam);
-                }
+            if (null == inOutParam[0].getCryptoMetadata()) {
+                getParameterEncryptionMetadata(inOutParam);
             }
 
             // maxRows is set to 0 when retreving encryption metadata,
