@@ -415,7 +415,13 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
         boolean hasNewTypeDefinitions = buildPreparedStrings(inOutParam, false);
         if ((Util.shouldHonorAEForParameters(stmtColumnEncriptionSetting, connection)) && (0 < inOutParam.length) && !isInternalEncryptionQuery) {
-            getParameterEncryptionMetadata(inOutParam);
+            
+            // retrieve paramater encryption metadata if they are not retrieved yet
+            if (0 < inOutParam.length) {
+                if (null == inOutParam[0].getCryptoMetadata()) {
+                    getParameterEncryptionMetadata(inOutParam);
+                }
+            }
 
             // maxRows is set to 0 when retreving encryption metadata,
             // need to set it back
