@@ -168,7 +168,8 @@ public class SQLServerConnection implements ISQLServerConnection {
         Closed      // indicates that the connection has been closed.
     }
 
-    private final static float TIMEOUTSTEP = 0.125F;    // fraction of timeout to use for fast failover connections
+    private final static float TIMEOUTSTEP = 0.08F;    // fraction of timeout to use for fast failover connections
+    private final static float TIMEOUTSTEP_TNIR = 0.125F;
     final static int TnirFirstAttemptTimeoutMs = 500;    // fraction of timeout to use for fast failover connections
 
     /*
@@ -1506,6 +1507,7 @@ public class SQLServerConnection implements ISQLServerConnection {
         long timeoutUnitInterval = 0;
         long normalTimeoutUnitInterval;
         long parallelTimeoutUnitInterval;
+        long tnirTimeoutUnitInterval;
 
         boolean useFailoverHost = false;
         FailoverInfo tempFailover = null;
@@ -1533,6 +1535,7 @@ public class SQLServerConnection implements ISQLServerConnection {
         long intervalExpire = 0;
         long normalIntervalExpire = 0;
         long parrallelIntervalExpire = 0;
+        long tnirIntervalExpire = 0;
 
         if (0 == timeout) {
             timeout = SQLServerDriverIntProperty.LOGIN_TIMEOUT.getDefaultValue();
@@ -1542,9 +1545,11 @@ public class SQLServerConnection implements ISQLServerConnection {
 
         // For non-dbmirroring, non-tnir and non-multisubnetfailover scenarios, full time out would be used as time slice.
         parallelTimeoutUnitInterval = (long) (TIMEOUTSTEP * timerTimeout);
+        tnirTimeoutUnitInterval = (long) (TIMEOUTSTEP_TNIR * timerTimeout);
         normalTimeoutUnitInterval = timerTimeout;
-        
+
         parrallelIntervalExpire = timerStart + parallelTimeoutUnitInterval;
+        tnirIntervalExpire = timerStart + tnirTimeoutUnitInterval;
         normalIntervalExpire = timerStart + normalTimeoutUnitInterval;
         // This is needed when the host resolves to more than 64 IP addresses. In that case, TNIR is ignored
         // and the original timeout is used instead of the timeout slice.
@@ -1603,20 +1608,24 @@ public class SQLServerConnection implements ISQLServerConnection {
                     useTnir = false;
                 }
 
-                //calculate timeout interval for the first attempt
-                if(0 == attemptNumber){
-                    if (isDBMirroring || useParallel || useTnir) {
+                // calculate timeout interval for the first attempt
+                if (0 == attemptNumber) {
+                    if (isDBMirroring || useParallel) {
                         timeoutUnitInterval = parallelTimeoutUnitInterval;
                         intervalExpire = parrallelIntervalExpire;
                     }
-                    else{
+                    else if(useTnir){
+                        timeoutUnitInterval = tnirTimeoutUnitInterval;
+                        intervalExpire = tnirIntervalExpire;
+                    }
+                    else {
                         timeoutUnitInterval = normalTimeoutUnitInterval;
                         intervalExpire = normalIntervalExpire;
                     }
-                    
+
                     if (connectionlogger.isLoggable(Level.FINE)) {
-                        connectionlogger.finer(
-                                toString() + " Start time: " + timerStart + " Time out time: " + timerExpire + " Timeout Unit Interval: " + timeoutUnitInterval);
+                        connectionlogger.finer(toString() + " Start time: " + timerStart + " Time out time: " + timerExpire
+                                + " Timeout Unit Interval: " + timeoutUnitInterval);
                     }
                 }
                 
@@ -1629,10 +1638,10 @@ public class SQLServerConnection implements ISQLServerConnection {
                     connectionlogger.fine(toString() + " This attempt No: " + attemptNumber);
                 }
                 // end logging code
-                
+
                 // Attempt login.
                 // use Place holder to make sure that the failoverdemand is done.
-                
+
                 connectHelper(currentConnectPlaceHolder, TimerRemaining(intervalExpire), timeout, useParallel, useTnir, (0 == attemptNumber), // Is
                                                                                                                                               // this
                                                                                                                                               // the
@@ -1640,7 +1649,7 @@ public class SQLServerConnection implements ISQLServerConnection {
                                                                                                                                               // first
                                                                                                                                               // attempt
                         TimerRemaining(intervalExpireFullTimeout), // Only used when host resolves to >64 IPs
-                        inetAddrs); 
+                        inetAddrs);
 
                 if (isRoutedInCurrentAttempt) {
                     // we ignore the failoverpartner ENVCHANGE, if we got routed.
@@ -1756,7 +1765,13 @@ public class SQLServerConnection implements ISQLServerConnection {
             // Update timeout interval (but no more than the point where we're supposed to fail: timerExpire)
             attemptNumber++;
 
-            if (useParallel || useTnir) {
+            if (useParallel) {
+                intervalExpire = System.currentTimeMillis() + (timeoutUnitInterval * (attemptNumber + 1));
+            }
+            else if (isDBMirroring) {
+                intervalExpire = System.currentTimeMillis() + (timeoutUnitInterval * ((attemptNumber / 2) + 1));
+            }
+            else if (useTnir) {
                 long timeSlice = timeoutUnitInterval * ((long) Math.pow(2, attemptNumber));
 
                 // In case the timeout for the first slice is less than 500 ms then bump it up to 500 ms
@@ -1765,9 +1780,6 @@ public class SQLServerConnection implements ISQLServerConnection {
                 }
 
                 intervalExpire = System.currentTimeMillis() + timeSlice;
-            }
-            else if (isDBMirroring) {
-                intervalExpire = System.currentTimeMillis() + (timeoutUnitInterval * ((attemptNumber / 2) + 1));
             }
             else
                 intervalExpire = timerExpire;
