@@ -93,7 +93,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     /**
      * Flag set to true when all encryption metadata of inOutParam is retrieved
      */
-    private boolean encryptionMetadataISRetrieved = false;
+    private boolean encryptionMetadataIsRetrieved = false;
 
     // Internal function used in tracing
     String getClassNameInternal() {
@@ -207,7 +207,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
      * @param sql
      */
     /* L0 */ final void initParams(String sql) {
-        encryptionMetadataISRetrieved = false;
+        encryptionMetadataIsRetrieved = false;
         int nParams = 0;
 
         // Figure out the expected number of parameters by counting the
@@ -225,7 +225,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     /* L0 */ public final void clearParameters() throws SQLServerException {
         loggerExternal.entering(getClassNameLogging(), "clearParameters");
         checkClosed();
-        encryptionMetadataISRetrieved = false;
+        encryptionMetadataIsRetrieved = false;
         int i;
         if (inOutParam == null)
             return;
@@ -424,9 +424,9 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         if ((Util.shouldHonorAEForParameters(stmtColumnEncriptionSetting, connection)) && (0 < inOutParam.length) && !isInternalEncryptionQuery) {
             
             // retrieve paramater encryption metadata if they are not retrieved yet
-            if (!encryptionMetadataISRetrieved) {
+            if (!encryptionMetadataIsRetrieved) {
                 getParameterEncryptionMetadata(inOutParam);
-                encryptionMetadataISRetrieved = true;
+                encryptionMetadataIsRetrieved = true;
             }
 
             // maxRows is set to 0 when retreving encryption metadata,
