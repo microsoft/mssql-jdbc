@@ -43,23 +43,22 @@ class PLPInputStream extends BaseInputStream {
     final static boolean isNull(TDSReader tdsReader) throws SQLServerException {
         TDSReaderMark mark = tdsReader.mark();
         try {
-//            
-//        }
-//            PLPInputStream tempPLP = PLPInputStream.makeTempStream(tdsReader, false, null);
-            return null ==  PLPInputStream.makeTempStream(tdsReader, false, null);
-//            try {
-//                if (null != tempPLP) {
-//                    tempPLP.close();
-//                    return false;
-//                }
-//            }
-//            catch (IOException e) {
-//                tdsReader.getConnection().terminate(SQLServerException.DRIVER_ERROR_IO_FAILED, e.getMessage());
-//            }
-//            return true;
+            PLPInputStream tempPLP = PLPInputStream.makeTempStream(tdsReader, false, null);
+            try {
+                if (null != tempPLP) {
+                    tempPLP.close();
+                    return false;
+                }
+            }
+            catch (IOException e) {
+                tdsReader.getConnection().terminate(SQLServerException.DRIVER_ERROR_IO_FAILED, e.getMessage());
+            }
+            return true;
         }
         finally {
-//            if (null != tdsReader)
+
+            if (null != tdsReader)
+
                 tdsReader.reset(mark);
         }
     }

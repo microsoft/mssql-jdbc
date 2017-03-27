@@ -885,11 +885,6 @@ final class Parameter {
                 case GUID:
                     param.typeDefinition = SSType.GUID.toString();
                     break;
-                case Variant:
-                   // param.typeDefinition = SSType.INTEGER.toString();
-                    param.typeDefinition = SSType.SQL_VARIANT.toString();
-
-                    break;
                 default:
                     assert false : "Unexpected JDBC type " + dtv.getJdbcType();
                     break;
@@ -1143,17 +1138,6 @@ final class Parameter {
                 com.microsoft.sqlserver.jdbc.TVP tvpValue) throws SQLServerException {
             setTypeDefinition(dtv);
         }
-
-        /* (non-Javadoc)
-         * @see com.microsoft.sqlserver.jdbc.DTVExecuteOp#execute(com.microsoft.sqlserver.jdbc.DTV, microsoft.sql.SqlVariant)
-         */
-        @Override
-        void execute(DTV dtv,
-                SqlVariant SqlVariantValue) throws SQLServerException {
-            // TODO Auto-generated method stub
-            
-        }
-
     }
 
     /**

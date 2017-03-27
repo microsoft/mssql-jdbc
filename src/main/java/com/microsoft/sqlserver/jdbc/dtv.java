@@ -142,8 +142,6 @@ abstract class DTVExecuteOp {
 
     abstract void execute(DTV dtv,
             TVP tvpValue) throws SQLServerException;
-    abstract void execute(DTV dtv,
-            SqlVariant SqlVariantValue) throws SQLServerException;
 }
 
 /**
@@ -1442,15 +1440,8 @@ final class DTV {
             tdsWriter.writeRPCReaderUnicode(name, readerValue, dtv.getStreamSetterArgs().getLength(), isOutParam, collation);
         }
 
-        /* (non-Javadoc)
-         * @see com.microsoft.sqlserver.jdbc.DTVExecuteOp#execute(com.microsoft.sqlserver.jdbc.DTV, microsoft.sql.SqlVariant)
-         */
-        @Override
-        void execute(DTV dtv,
-                SqlVariant SqlVariantValue) throws SQLServerException {
-            // TODO Auto-generated method stub
-            
-        }
+       
+       
     }
 
     /**
@@ -1595,9 +1586,6 @@ final class DTV {
                 case STRUCT:
                     unsupportedConversion = true;
                     break;
-                case Variant:
-                    op.execute(this, (microsoft.sql.SqlVariant) null);
-                    break;
                 case UNKNOWN:
                 default:
                     assert false : "Unexpected JDBCType: " + jdbcType;
@@ -1618,6 +1606,9 @@ final class DTV {
                             value = UUID.fromString((String) value);
                         byte[] bArray = Util.asGuidByteArray((UUID) value);
                         op.execute(this, bArray);
+                    }
+                    else if (jdbcType.Variant == jdbcType){
+                        op.execute(this, String.valueOf(value));
                     }
                     else {
                         if (null != cryptoMeta) {
@@ -2303,15 +2294,7 @@ final class AppDTVImpl extends DTVImpl {
             }
         }
 
-        /* (non-Javadoc)
-         * @see com.microsoft.sqlserver.jdbc.DTVExecuteOp#execute(com.microsoft.sqlserver.jdbc.DTV, microsoft.sql.SqlVariant)
-         */
-        @Override
-        void execute(DTV dtv,
-                SqlVariant SqlVariantValue) throws SQLServerException {
-            // TODO Auto-generated method stub
-            
-        }
+        
     }
 
     void setValue(DTV dtv,
@@ -2418,7 +2401,7 @@ final class TypeInfo {
     private int displaySize;// size is in characters. display size assumes a formatted hexa decimal representation for binaries.
     private int scale;
     private short flags;
-    public SSType ssType;
+    private SSType ssType;
     private int userType;
     private String udtTypeName;
 
@@ -2428,6 +2411,10 @@ final class TypeInfo {
 
     SSType getSSType() {
         return ssType;
+    }
+    
+    void setSSType(SSType ssType) {
+        this.ssType = ssType;
     }
 
     SSLenType getSSLenType() {
@@ -3067,57 +3054,7 @@ final class TypeInfo {
                 typeInfo.ssLenType = SSLenType.LONGLENTYPE; //Variant type should be LONGLENTYPE length.
                 typeInfo.maxLength = tdsReader.readInt();
                 typeInfo.ssType = SSType.SQL_VARIANT;
-//                typeInfo.precision = 255;
-//                typeInfo.scale = 255;
-//                switch (TDSType.valueOf(tdsReader.readSqlVariant()))
-//                {
-//                    case INTN:
-//                        break;
-//                    case INT4:
-//                        break;
-//                }
-                
-//                int type = tdsReader.readSqlVariant();//tdsReader.readUnsignedByte();
-//                int cbPropsActual = tdsReader.readUnsignedByte();
-////                System.out.println(TDSType.valueOf(type));
-//                switch(TDSType.valueOf(type)){
-//                    case INT4: 
-//                        INTEGER.build(typeInfo, tdsReader);
-//                        break;
-//                }
-                
                 }
-//                try {
-//                    SQLServerException.makeFromDriverError(tdsReader.getConnection(), null, SQLServerException.getErrString("R_variantNotSupported"),
-//                            null, false);
-//                }
-//                finally {
-//                    /*
-//                     * As the driver doesn't know how to process or skip the VARIANT type in TDS token stream, we send an interrupt Signal to server,
-//                     * and skips all the data received while waiting for the interrupt acknowledgment.
-//                     */
-//                    int remainingPackets = 0;
-//
-//                    // Skip the current buffered packet
-//                    remainingPackets = tdsReader.availableCurrentPacket();
-//                    tdsReader.skip(remainingPackets);
-//
-//                    // send interrupt to server
-//                    tdsReader.getCommand().interrupt(SQLServerException.getErrString("R_variantNotSupported"));
-//
-//                    /*
-//                     * Skip all data only if waiting for attention ack and until interrupt acknowledgment is received.
-//                     * 
-//                     * Interrupt acknowledgment is a DONE token with the DONE_ATTN(0x0020) bit set.
-//                     */
-//                    while (tdsReader.getCommand().attentionPending() && (TDS.TDS_DONE != tdsReader.peekTokenType())
-//                            && (0 != (tdsReader.peekStatusFlag() & 0x0020))) {
-//                        remainingPackets = tdsReader.availableCurrentPacket();
-//                        tdsReader.skip(remainingPackets);
-//                    }
-//                    tdsReader.getCommand().close();
-//                }
-//            }
 		});
 
         private final TDSType tdsType;
@@ -3571,12 +3508,12 @@ final class ServerDTVImpl extends DTVImpl {
                     }
                 }
                 
-                else {
+                else if(SSType.SQL_VARIANT == typeInfo.getSSType()) {
                     valueLength = tdsReader.readInt(); 
                     isNull = (0 == valueLength);
                 }
                 if (SSType.SQL_VARIANT == typeInfo.getSSType()){
-                    typeInfo.ssType = SSType.SQL_VARIANT;
+                    typeInfo.setSSType(SSType.SQL_VARIANT);
                 }
                 break;
         }
@@ -4017,9 +3954,16 @@ final class ServerDTVImpl extends DTVImpl {
                     convertedValue = tdsReader.readGUID(valueLength, jdbcType, streamGetterArgs.streamType);
                     break;
                     
-                case SQL_VARIANT:                    
+                case SQL_VARIANT:   
+                    /**
+                     * SQL Variant has the following structure:
+                     * 1- basetype: the underlying type
+                     * 2- probByte: holds count of property bytes expected for a sql variant structure
+                     * 3- properties: For example VARCHAR type has 5 byte collation and 2 byte max length 
+                     * 4- dataValue: the data value
+                     */
                     int baseType = tdsReader.readUnsignedByte();
-                    int cbPropsActual = tdsReader.readUnsignedByte();
+                    int cbPropsActual = tdsReader.readUnsignedByte();                    
                     switch(TDSType.valueOf(baseType)){
                         case INT8:
                             convertedValue = DDC.convertLongToObject(tdsReader.readLong(), jdbcType, baseSSType, streamGetterArgs.streamType);
@@ -4034,114 +3978,9 @@ final class ServerDTVImpl extends DTVImpl {
                             convertedValue = DDC.convertIntegerToObject(tdsReader.readUnsignedByte(), valueLength, jdbcType,
                                     streamGetterArgs.streamType);
                             break;
-                        case DECIMALN:
-                        case NUMERICN:
-                            int precision = tdsReader.readUnsignedByte();
-                            typeInfo.setScale( tdsReader.readUnsignedByte() );
-                            int lengthTotal = valueLength;
-                            int lengthConsumed = 2 + cbPropsActual;
-                            int tempvalueLength = lengthTotal - lengthConsumed;
-                            convertedValue = tdsReader.readDecimal(tempvalueLength, typeInfo, jdbcType, streamGetterArgs.streamType);
-                            break;
-                            
-                        case MONEY4:
-                            lengthTotal = valueLength;
-                            lengthConsumed = 2 + cbPropsActual;
-                            tempvalueLength = lengthTotal - lengthConsumed;
-                           typeInfo.ssType = SSType.SMALLMONEY;
-                           typeInfo.setMaxLength(4);
-                           typeInfo.setPrecision(Long.toString(Long.MAX_VALUE).length());
-                           typeInfo.setDisplaySize( ("-" + "." + Integer.toString(Integer.MAX_VALUE)).length());
-                           typeInfo.setScale(4);
-                         
-                           convertedValue = tdsReader.readMoney(tempvalueLength, jdbcType, streamGetterArgs.streamType);
-                           break;
-                        case MONEY8:
-                             lengthTotal = valueLength;
-                             lengthConsumed = 2 + cbPropsActual;
-                             tempvalueLength = lengthTotal - lengthConsumed;
-                            typeInfo.ssType = SSType.MONEY;
-                            typeInfo.setMaxLength(8);
-                            typeInfo.setPrecision(Long.toString(Long.MAX_VALUE).length());
-                            typeInfo.setDisplaySize( ("-" + "." + Integer.toString(Integer.MAX_VALUE)).length());
-                            typeInfo.setScale(4);
-                          
-                            convertedValue = tdsReader.readMoney(tempvalueLength, jdbcType, streamGetterArgs.streamType);
-                            break;
-                        case BIGVARCHAR:               
-                             lengthTotal = valueLength;
-                             lengthConsumed = 2 + cbPropsActual;
-                             tempvalueLength = lengthTotal - lengthConsumed;
-                                                   
-                            SQLCollation collation = null;
-                            collation =  tdsReader.readCollation();
-                            typeInfo.setSQLCollation(collation);
-
-
-                            typeInfo.setSSLenType(SSLenType.USHORTLENTYPE);
-                            int maxLength = tdsReader.readUnsignedShort();
-                            typeInfo.setMaxLength(maxLength);  
-                            if (maxLength > DataTypes.SHORT_VARTYPE_MAX_BYTES)
-                                tdsReader.throwInvalidTDS();
-                            typeInfo.setDisplaySize(maxLength);
-                            typeInfo.setPrecision(maxLength);
-                            
-//                            typeInfo.ssType = SSType.CHAR;
-                            typeInfo.setCharset(collation.getCharset());
-                            
-                            convertedValue = DDC.convertStreamToObject(new SimpleInputStream(tdsReader, tempvalueLength, streamGetterArgs, this), typeInfo,
-                                    jdbcType, streamGetterArgs);
-                            break;
-                            
-                        case DATETIME8:
-                        case DATETIME4:
-//                             typeInfo.setScale( 3);
-                             lengthTotal = valueLength;
-                             lengthConsumed = 2 + cbPropsActual;
-                             tempvalueLength = lengthTotal - lengthConsumed;
-                            convertedValue = tdsReader.readDateTime(tempvalueLength, cal, jdbcType, streamGetterArgs.streamType);
-                            break;
-                        case DATEN:
-                            lengthTotal = valueLength;
-                            lengthConsumed = 2 + cbPropsActual;
-                            tempvalueLength = lengthTotal - lengthConsumed;
-                            convertedValue = tdsReader.readDate(tempvalueLength, cal, jdbcType);
-                           break;
-                        case TIMEN:
-                            lengthTotal = valueLength;
-                            typeInfo.setScale(tdsReader.readUnsignedByte());
-                            lengthConsumed = 2 + cbPropsActual;
-                            tempvalueLength = lengthTotal - lengthConsumed;
-                            convertedValue = tdsReader.readTime(tempvalueLength, typeInfo, cal, jdbcType);
-                           break;
-                        case DATETIME2N:
-                            lengthTotal = valueLength;
-                            typeInfo.setScale(tdsReader.readUnsignedByte());
-                            lengthConsumed = 2 + cbPropsActual;
-                            tempvalueLength = lengthTotal - lengthConsumed;
-                            convertedValue = tdsReader.readDateTime2(tempvalueLength, typeInfo, cal, jdbcType);
-                            break;
-                        case BIGBINARY:
-                        case BIGVARBINARY:
-                            lengthTotal = valueLength;
-                            maxLength = tdsReader.readUnsignedShort();
-                            typeInfo.setMaxLength(maxLength);  
-                            if (maxLength > DataTypes.SHORT_VARTYPE_MAX_BYTES)
-                                tdsReader.throwInvalidTDS();
-                            typeInfo.setDisplaySize(2 * maxLength);
-                            typeInfo.setPrecision(maxLength);
-                            typeInfo.ssType = SSType.BINARY;
-                            lengthConsumed = 2 + cbPropsActual;
-                            tempvalueLength = lengthTotal - lengthConsumed;
-
-                            convertedValue = DDC.convertStreamToObject(new SimpleInputStream(tdsReader, tempvalueLength, streamGetterArgs, this), typeInfo,
-                                    jdbcType, streamGetterArgs);
-                            
-                            break;   
-                        case GUID:
-                            typeInfo.ssType = SSType.GUID;
-                            typeInfo.setDisplaySize("NNNNNNNN-NNNN-NNNN-NNNN-NNNNNNNNNNNN".length());
-
+                        default:
+                        convertedValue = readSqlVariant(TDSType.valueOf(baseType), cbPropsActual, valueLength, tdsReader, baseSSType, typeInfo, jdbcType, streamGetterArgs, cal);
+                        break;
                     }
                     break;
                 // Unknown SSType should have already been rejected by TypeInfo.setFromTDS()
@@ -4153,6 +3992,161 @@ final class ServerDTVImpl extends DTVImpl {
 
         // Postcondition: returned object is null only if value was null.
         assert isNull || null != convertedValue;
+        return convertedValue;
+    }
+    
+    /**
+     * Read the value inside sqlVariant
+     * @throws SQLServerException 
+     */
+    private Object readSqlVariant(TDSType baseType, int cbPropsActual, int valueLength,  TDSReader tdsReader, SSType baseSSType, TypeInfo typeInfo, JDBCType jdbcType,
+            InputStreamGetterArgs streamGetterArgs, Calendar cal) throws SQLServerException{
+        Object convertedValue = null;
+        int lengthTotal = valueLength;
+        int lengthConsumed = 2 + cbPropsActual;
+        int expectedValueLength = lengthTotal - lengthConsumed;
+        SQLCollation collation = null;
+        switch(baseType){          
+            case DECIMALN:
+            case NUMERICN:
+                int precision = tdsReader.readUnsignedByte();
+                typeInfo.setScale( tdsReader.readUnsignedByte() );           
+                convertedValue = tdsReader.readDecimal(expectedValueLength, typeInfo, jdbcType, streamGetterArgs.streamType);
+                break;
+            case FLOAT4:
+                convertedValue = tdsReader.readReal(expectedValueLength, jdbcType, streamGetterArgs.streamType);
+                break;
+            case FLOAT8:
+                convertedValue = tdsReader.readFloat(expectedValueLength, jdbcType, streamGetterArgs.streamType);
+                break;
+            case MONEY4:
+               typeInfo.setMaxLength(4);
+               typeInfo.setPrecision(Long.toString(Long.MAX_VALUE).length());
+               typeInfo.setDisplaySize( ("-" + "." + Integer.toString(Integer.MAX_VALUE)).length());
+               typeInfo.setScale(4);
+             
+               convertedValue = tdsReader.readMoney(expectedValueLength, jdbcType, streamGetterArgs.streamType);
+               break;
+            case MONEY8:
+                typeInfo.setMaxLength(8);
+                typeInfo.setPrecision(Long.toString(Long.MAX_VALUE).length());
+                typeInfo.setDisplaySize( ("-" + "." + Integer.toString(Integer.MAX_VALUE)).length());
+                typeInfo.setScale(4);
+              
+                convertedValue = tdsReader.readMoney(expectedValueLength, jdbcType, streamGetterArgs.streamType);
+                break;
+            case BIT1:
+            case BITN:
+                switch (expectedValueLength) {
+                    case 8:
+                        convertedValue = DDC.convertLongToObject(tdsReader.readLong(), jdbcType, baseSSType, streamGetterArgs.streamType);
+                        break;
+
+                    case 4:
+                        convertedValue = DDC.convertIntegerToObject(tdsReader.readInt(), expectedValueLength, jdbcType, streamGetterArgs.streamType);
+                        break;
+
+                    case 2:
+                        convertedValue = DDC.convertIntegerToObject(tdsReader.readShort(), expectedValueLength, jdbcType, streamGetterArgs.streamType);
+                        break;
+
+                    case 1:
+                        convertedValue = DDC.convertIntegerToObject(tdsReader.readUnsignedByte(), expectedValueLength, jdbcType,
+                                streamGetterArgs.streamType);
+                        break;
+
+                    default:
+                        assert false : "Unexpected valueLength" + expectedValueLength;
+                        break;
+                }
+                break;
+            case BIGVARCHAR:                                                     
+                collation =  tdsReader.readCollation();
+                typeInfo.setSQLCollation(collation);
+                typeInfo.setSSLenType(SSLenType.USHORTLENTYPE);
+                int maxLength = tdsReader.readUnsignedShort();
+                typeInfo.setMaxLength(maxLength);  
+                if (maxLength > DataTypes.SHORT_VARTYPE_MAX_BYTES)
+                    tdsReader.throwInvalidTDS();
+                typeInfo.setDisplaySize(maxLength);
+                typeInfo.setPrecision(maxLength);
+                typeInfo.setCharset(collation.getCharset());                
+                convertedValue = DDC.convertStreamToObject(new SimpleInputStream(tdsReader, expectedValueLength, streamGetterArgs, this), typeInfo,
+                        jdbcType, streamGetterArgs);
+                break;
+                
+            case NCHAR:
+               collation =  tdsReader.readCollation();
+               typeInfo.setSQLCollation(collation);
+               typeInfo.setSSLenType(SSLenType.USHORTLENTYPE);
+                maxLength = tdsReader.readUnsignedShort();
+                if (maxLength > DataTypes.SHORT_VARTYPE_MAX_BYTES || 0 != maxLength % 2)
+                    tdsReader.throwInvalidTDS();
+                typeInfo.setDisplaySize(maxLength / 2);
+                typeInfo.setPrecision(maxLength/2);
+                typeInfo.setCharset(Encoding.UNICODE.charset());
+                convertedValue = DDC.convertStreamToObject(new SimpleInputStream(tdsReader, expectedValueLength, streamGetterArgs, this), typeInfo,
+                        jdbcType, streamGetterArgs);
+                break;
+            case NVARCHAR:
+                collation = tdsReader.readCollation();
+                typeInfo.setSQLCollation(collation);
+
+                maxLength = tdsReader.readUnsignedShort();
+                // for PLP types
+                if (DataTypes.MAXTYPE_LENGTH == maxLength) {
+                    typeInfo.setDisplaySize(DataTypes.MAX_VARTYPE_MAX_CHARS);
+                    typeInfo.setPrecision(DataTypes.MAX_VARTYPE_MAX_CHARS);
+                }
+                // for non-PLP types
+                else if (maxLength <= DataTypes.SHORT_VARTYPE_MAX_BYTES && 0 == maxLength % 2) {
+                    typeInfo.setDisplaySize(maxLength / 2);
+                    typeInfo.setPrecision(maxLength / 2);
+                }
+                else {
+                    tdsReader.throwInvalidTDS();
+                }
+                typeInfo.setCharset(Encoding.UNICODE.charset());
+                convertedValue = DDC.convertStreamToObject(new SimpleInputStream(tdsReader, expectedValueLength, streamGetterArgs, this), typeInfo,
+                        jdbcType, streamGetterArgs);
+                break;
+            case DATETIME8:
+            case DATETIME4:
+                convertedValue = tdsReader.readDateTime(expectedValueLength, cal, jdbcType, streamGetterArgs.streamType);
+                break;
+            case DATEN:
+                convertedValue = tdsReader.readDate(expectedValueLength, cal, jdbcType);
+               break;
+            case TIMEN:
+                typeInfo.setScale(tdsReader.readUnsignedByte());
+                convertedValue = tdsReader.readTime(expectedValueLength, typeInfo, cal, jdbcType);
+               break;
+            case DATETIME2N:
+                typeInfo.setScale(tdsReader.readUnsignedByte());
+                convertedValue = tdsReader.readDateTime2(expectedValueLength, typeInfo, cal, jdbcType);
+                break;
+            case BIGBINARY:
+            case BIGVARBINARY:
+                maxLength = tdsReader.readUnsignedShort();
+                typeInfo.setMaxLength(maxLength);  
+                if (maxLength > DataTypes.SHORT_VARTYPE_MAX_BYTES)
+                    tdsReader.throwInvalidTDS();
+                typeInfo.setDisplaySize(2 * maxLength);
+                typeInfo.setPrecision(maxLength);
+                jdbcType = JDBCType.BINARY;
+                convertedValue = DDC.convertStreamToObject(new SimpleInputStream(tdsReader, expectedValueLength, streamGetterArgs, this), typeInfo,
+                        jdbcType, streamGetterArgs);          
+                break;   
+            case GUID:
+                typeInfo.setDisplaySize("NNNNNNNN-NNNN-NNNN-NNNN-NNNNNNNNNNNN".length());
+                lengthConsumed = 2 + cbPropsActual;
+                convertedValue = tdsReader.readGUID(expectedValueLength, jdbcType, streamGetterArgs.streamType);
+                break;
+             // Unknown SSType should have already been rejected by TypeInfo.setFromTDS()
+            default:
+                assert false : "Unexpected SSType " + typeInfo.getSSType();
+                break;
+        }
         return convertedValue;
     }
 

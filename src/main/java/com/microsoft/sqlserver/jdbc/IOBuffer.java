@@ -6423,19 +6423,7 @@ final class TDSReader {
             bytesRead += bytesToCopy;
             payloadOffset += bytesToCopy;
         }
-    }
-    
-    final int readSqlVariant( ) throws SQLServerException{
-        
-        if (payloadOffset + 4 <= currentPacket.payloadLength) {
-            payloadOffset += 4;
-            int value = readUnsignedByte();
-            return value;
-        }
-        return 0;
-        
-
-    }
+    }   
 
     final byte[] readWrappedBytes(int valueLength) throws SQLServerException {
         assert valueLength <= valueBytes.length;

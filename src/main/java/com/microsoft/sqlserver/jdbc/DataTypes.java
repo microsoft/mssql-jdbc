@@ -145,7 +145,7 @@ enum SSType
     DECIMAL        (Category.NUMERIC,         "decimal",          JDBCType.DECIMAL),
     NUMERIC        (Category.NUMERIC,         "numeric",          JDBCType.NUMERIC),
     GUID           (Category.GUID,            "uniqueidentifier", JDBCType.GUID),
-    SQL_VARIANT    (Category.VARIANT,         "sql_variant",      JDBCType.CHAR),  //TODO: was variant
+    SQL_VARIANT    (Category.VARIANT,         "sql_variant",      JDBCType.CHAR),  
     UDT            (Category.UDT,             "udt",              JDBCType.VARBINARY),
     XML            (Category.XML,             "xml",              JDBCType.LONGNVARCHAR),
     TIMESTAMP      (Category.TIMESTAMP,       "timestamp",        JDBCType.BINARY);
@@ -362,14 +362,7 @@ enum SSType
         VARIANT (
                 SSType.Category.VARIANT,
                 EnumSet.of(
-                    JDBCType.Category.NUMERIC,
-                    JDBCType.Category.CHARACTER,
-                    JDBCType.Category.BINARY,
-                    JDBCType.Category.CHARACTER,
-                    JDBCType.Category.NCHARACTER,
-                    JDBCType.Category.LONG_CHARACTER,
-                    JDBCType.Category.LONG_NCHARACTER,
-                    JDBCType.Category.Variant));
+                    JDBCType.Category.CHARACTER));
 
         private final SSType.Category from;
         private final EnumSet<JDBCType.Category> to;
@@ -857,7 +850,7 @@ enum JDBCType
     DATETIME      (Category.TIMESTAMP,       microsoft.sql.Types.DATETIME,			"java.sql.Timestamp"),
     SMALLDATETIME (Category.TIMESTAMP,       microsoft.sql.Types.SMALLDATETIME,     "java.sql.Timestamp"),
     GUID		  (Category.CHARACTER,		 microsoft.sql.Types.GUID,				"java.lang.String"),
-    Variant       (Category.Variant,         microsoft.sql.Types.VARIANT,           "java.lang.Object");
+    Variant       (Category.Variant,         microsoft.sql.Types.VARIANT,           "java.lang.String");
 
     final Category category;
     private final int intValue;
@@ -997,7 +990,7 @@ enum JDBCType
                 JDBCType.Category.CHARACTER,
                 JDBCType.Category.LONG_CHARACTER,
                 JDBCType.Category.NCHARACTER,
-                JDBCType.Category.LONG_NCHARACTER)),
+                JDBCType.Category.LONG_NCHARACTER)), 
 
         DATE (
             JDBCType.Category.DATE,
