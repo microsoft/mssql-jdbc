@@ -26,7 +26,7 @@ public final class SQLServerNClob extends SQLServerClobBase implements NClob {
 
     SQLServerNClob(BaseInputStream stream,
             TypeInfo typeInfo) throws SQLServerException, UnsupportedEncodingException {
-        super(null, new String(stream.getBytes(), typeInfo.getCharset()), typeInfo.getSQLCollation(), logger, null);
+        super(null, stream, typeInfo.getSQLCollation(), logger , typeInfo);
     }
 
     final JDBCType getJdbcType() {
