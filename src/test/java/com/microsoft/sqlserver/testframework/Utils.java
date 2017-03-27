@@ -280,7 +280,7 @@ public class Utils {
                     "DROP %s %s ",
                 bracketedObjectName,
                 objectProperty,
-                objectProperty == "IsProcedure" ? "PROCEDURE" : "TABLE",
+                "IsProcedure".equals(objectProperty)  ? "PROCEDURE" : "TABLE",
                 bracketedObjectName);
         stmt.executeUpdate(sql);
     }
