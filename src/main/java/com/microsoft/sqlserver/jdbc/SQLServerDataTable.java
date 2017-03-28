@@ -162,6 +162,7 @@ public final class SQLServerDataTable {
                                 isColumnMetadataUpdated = true;
                             }
                             
+                            // precision equal: the maximum number of digits in integer part + the maximum scale
                             int numberOfDigitsIntegerPart = precision - bd.scale();
                             if (numberOfDigitsIntegerPart > currentColumnMetadata.numberOfDigitsIntegerPart) {
                                 currentColumnMetadata.numberOfDigitsIntegerPart = numberOfDigitsIntegerPart;
