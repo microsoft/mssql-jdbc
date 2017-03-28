@@ -5190,10 +5190,10 @@ public class SQLServerConnection implements ISQLServerConnection {
      */
     private final class PreparedStatementDiscardItem  {
 
-        public int handle; 
-        public boolean directSql;
+        int handle; 
+        boolean directSql;
 
-        public PreparedStatementDiscardItem(int handle, boolean directSql) {
+        PreparedStatementDiscardItem(int handle, boolean directSql) {
             this.handle = handle;
             this.directSql = directSql;
         }
@@ -5220,6 +5220,8 @@ public class SQLServerConnection implements ISQLServerConnection {
 
     /**
      * Returns the number of currently outstanding prepared statement un-prepare actions.
+     * 
+     * @return Returns the current value per the description.
      */
     public int getDiscardedServerPreparedStatementCount() {
         return this.discardedPreparedStatementHandleQueueCount.get();
