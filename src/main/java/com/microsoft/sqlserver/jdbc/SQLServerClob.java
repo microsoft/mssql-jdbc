@@ -14,6 +14,7 @@ import java.io.BufferedInputStream;
 import java.io.Closeable;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.io.Reader;
 import java.io.Serializable;
 import java.io.StringReader;
@@ -48,19 +49,19 @@ public class SQLServerClob extends SQLServerClobBase implements Clob {
     @Deprecated
     public SQLServerClob(SQLServerConnection connection,
             String data) {
-        super(connection, data, (null == connection) ? null : connection.getDatabaseCollation(), logger);
+        super(connection, data, (null == connection) ? null : connection.getDatabaseCollation(), logger, null);
 
         if (null == data)
             throw new NullPointerException(SQLServerException.getErrString("R_cantSetNull"));
     }
 
     SQLServerClob(SQLServerConnection connection) {
-        super(connection, "", connection.getDatabaseCollation(), logger);
+        super(connection, "", connection.getDatabaseCollation(), logger, null);
     }
 
     SQLServerClob(BaseInputStream stream,
             TypeInfo typeInfo) throws SQLServerException, UnsupportedEncodingException {
-        super(null, new String(stream.getBytes(), typeInfo.getCharset()), typeInfo.getSQLCollation(), logger);
+        super(null, stream, typeInfo.getSQLCollation(), logger , typeInfo);
     }
 
     final JDBCType getJdbcType() {
@@ -78,6 +79,8 @@ abstract class SQLServerClobBase implements Serializable {
     private final SQLCollation sqlCollation;
 
     private boolean isClosed = false;
+    
+    private final TypeInfo typeInfo;
 
     // Active streams which must be closed when the Clob/NClob is closed
     //
@@ -94,7 +97,7 @@ abstract class SQLServerClobBase implements Serializable {
         return traceID;
     }
 
-    static private final AtomicInteger baseID = new AtomicInteger(0);	// Unique id generator for each instance (used for logging).
+    static private final AtomicInteger baseID = new AtomicInteger(0);   // Unique id generator for each instance (used for logging).
     // Returns unique id for each instance.
 
     private static int nextInstanceID() {
@@ -118,14 +121,24 @@ abstract class SQLServerClobBase implements Serializable {
      * @param collation
      *            the data collation
      * @param logger
+     *            logger information
+     * @param typeInfo
+     *            the column TYPE_INFO
      */
     SQLServerClobBase(SQLServerConnection connection,
-            String data,
+            Object data,
             SQLCollation collation,
-            Logger logger) {
+            Logger logger,
+            TypeInfo typeInfo) {
         this.con = connection;
-        this.value = data;
+        if (data instanceof BaseInputStream) {
+            activeStreams.add((Closeable) data);
+        }
+        else {
+            this.value = (String) data;
+        }
         this.sqlCollation = collation;
+        this.typeInfo = typeInfo;
         SQLServerClobBase.logger = logger;
 
         if (logger.isLoggable(Level.FINE)) {
@@ -191,9 +204,23 @@ abstract class SQLServerClobBase implements Serializable {
             DataTypes.throwConversionError(getDisplayClassName(), "AsciiStream");
 
         // Need to use a BufferedInputStream since the stream returned by this method is assumed to support mark/reset
-        InputStream getterStream = new BufferedInputStream(new ReaderInputStream(new StringReader(value), US_ASCII, value.length()));
+        InputStream getterStream = null;
+        if (null == value && !activeStreams.isEmpty()) {
+            InputStream inputStream = (InputStream) activeStreams.get(0);
+            try {
+                inputStream.reset();
+                getterStream = new BufferedInputStream(
+                        new ReaderInputStream(new InputStreamReader(inputStream), US_ASCII, inputStream.available()));
+            }
+            catch (IOException e) {
+                throw new SQLServerException(e.getMessage(), null, 0, e);
+            }
+        }
+        else {
+            getStringFromStream();
+            getterStream = new BufferedInputStream(new ReaderInputStream(new StringReader(value), US_ASCII, value.length()));
 
-        activeStreams.add(getterStream);
+        }
         return getterStream;
     }
 
@@ -207,6 +234,7 @@ abstract class SQLServerClobBase implements Serializable {
     public Reader getCharacterStream() throws SQLException {
         checkClosed();
 
+        getStringFromStream();
         Reader getterStream = new StringReader(value);
         activeStreams.add(getterStream);
         return getterStream;
@@ -247,6 +275,7 @@ abstract class SQLServerClobBase implements Serializable {
             int length) throws SQLException {
         checkClosed();
 
+        getStringFromStream();
         if (pos < 1) {
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidPositionIndex"));
             Object[] msgArgs = {new Long(pos)};
@@ -285,7 +314,25 @@ abstract class SQLServerClobBase implements Serializable {
     public long length() throws SQLException {
         checkClosed();
 
+        getStringFromStream();
         return value.length();
+    }
+    
+    /**
+     * Converts the stream to String
+     * @throws SQLServerException
+     */
+    private void getStringFromStream() throws SQLServerException {
+        if (null == value && !activeStreams.isEmpty()) {
+            BaseInputStream stream = (BaseInputStream) activeStreams.get(0);
+            try {
+                stream.reset();
+            }
+            catch (IOException e) {
+                throw new SQLServerException(e.getMessage(), null, 0, e);
+            }
+            value = new String((stream).getBytes(), typeInfo.getCharset());
+        }
     }
 
     /**
@@ -303,6 +350,7 @@ abstract class SQLServerClobBase implements Serializable {
             long start) throws SQLException {
         checkClosed();
 
+        getStringFromStream();
         if (start < 1) {
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidPositionIndex"));
             Object[] msgArgs = {new Long(start)};
@@ -331,6 +379,7 @@ abstract class SQLServerClobBase implements Serializable {
             long start) throws SQLException {
         checkClosed();
 
+        getStringFromStream();
         if (start < 1) {
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidPositionIndex"));
             Object[] msgArgs = {new Long(start)};
@@ -362,6 +411,7 @@ abstract class SQLServerClobBase implements Serializable {
     public void truncate(long len) throws SQLException {
         checkClosed();
 
+        getStringFromStream();
         if (len < 0) {
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidLength"));
             Object[] msgArgs = {new Long(len)};
@@ -460,6 +510,7 @@ abstract class SQLServerClobBase implements Serializable {
             int len) throws SQLException {
         checkClosed();
 
+        getStringFromStream();
         if (null == str)
             SQLServerException.makeFromDriverError(con, null, SQLServerException.getErrString("R_cantSetNull"), null, true);
 
