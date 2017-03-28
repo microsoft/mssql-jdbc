@@ -63,6 +63,7 @@ public final class SQLServerBlob implements java.sql.Blob, java.io.Serializable 
      *            the database connection this blob is implemented on
      * @param data
      *            the BLOB's data
+     * @deprecated Use {@link SQLServerConnection#createBlob()} instead. 
      */
     @Deprecated
     public SQLServerBlob(SQLServerConnection connection,

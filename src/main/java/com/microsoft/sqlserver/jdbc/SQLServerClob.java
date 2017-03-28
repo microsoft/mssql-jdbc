@@ -44,7 +44,8 @@ public class SQLServerClob extends SQLServerClobBase implements Clob {
      * @param connection
      *            the database connection this blob is implemented on
      * @param data
-     *            the BLOB's data
+     *            the CLOB's data
+     * @deprecated Use {@link SQLServerConnection#createClob()} instead.
      */
     @Deprecated
     public SQLServerClob(SQLServerConnection connection,
