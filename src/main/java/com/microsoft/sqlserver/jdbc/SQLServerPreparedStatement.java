@@ -424,7 +424,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         if (!encryptionMetadataIsRetrieved) {
             hasNewTypeDefinitions = buildPreparedStrings(inOutParam, false);
         }
-        
+
         if ((Util.shouldHonorAEForParameters(stmtColumnEncriptionSetting, connection)) && (0 < inOutParam.length) && !isInternalEncryptionQuery) {
 
             // retrieve paramater encryption metadata if they are not retrieved yet
@@ -435,10 +435,10 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                 // maxRows is set to 0 when retreving encryption metadata,
                 // need to set it back
                 setMaxRowsAndMaxFieldSize();
-
-                // fix an issue when inserting unicode into non-encrypted nchar column using setString() and AE is on on Connection
-                buildPreparedStrings(inOutParam, true);
             }
+
+            // fix an issue when inserting unicode into non-encrypted nchar column using setString() and AE is on on Connection
+            hasNewTypeDefinitions = buildPreparedStrings(inOutParam, true);
         }
 
         // Start the request and detach the response reader so that we can
