@@ -87,14 +87,14 @@ public class SQLServerConnection implements ISQLServerConnection {
     /**
      * The initial default on application start-up for the prepared statement clean-up action threshold (i.e. when sp_unprepare is called). 
      */    
-    static final public int INITIAL_DEFAULT_SERVER_PREPARED_STATEMENT_DISCARD_THRESHOLD = 10; // Used to set the initial default, can be changed later.
+    static final private int INITIAL_DEFAULT_SERVER_PREPARED_STATEMENT_DISCARD_THRESHOLD = 10; // Used to set the initial default, can be changed later.
     static private int defaultServerPreparedStatementDiscardThreshold = -1; // Current default for new connections
     private int serverPreparedStatementDiscardThreshold = -1; // Current limit for this particular connection.
 
     /**
      * The initial default on application start-up for if prepared statements should execute sp_executesql before following the prepare, unprepare pattern. 
      */    
-    static final public boolean INITIAL_DEFAULT_ENABLE_PREPARE_ON_FIRST_PREPARED_STATEMENT_CALL = false; // Used to set the initial default, can be changed later. false == use sp_executesql -> sp_prepexec -> sp_execute -> batched -> sp_unprepare pattern, true == skip sp_executesql part of pattern.
+    static final private boolean INITIAL_DEFAULT_ENABLE_PREPARE_ON_FIRST_PREPARED_STATEMENT_CALL = false; // Used to set the initial default, can be changed later. false == use sp_executesql -> sp_prepexec -> sp_execute -> batched -> sp_unprepare pattern, true == skip sp_executesql part of pattern.
     static private Boolean defaultEnablePrepareOnFirstPreparedStatementCall = null; // Current default for new connections
     private Boolean enablePrepareOnFirstPreparedStatementCall = null; // Current limit for this particular connection.
 
@@ -5243,6 +5243,15 @@ public class SQLServerConnection implements ISQLServerConnection {
     }
 
     /**
+     * The initial default on application start-up for if prepared statements should execute sp_executesql before following the prepare, unprepare pattern. 
+     * 
+     * @return Returns the current setting per the description.
+     */
+    static public boolean getInitialDefaultEnablePrepareOnFirstPreparedStatementCall() {
+        return INITIAL_DEFAULT_ENABLE_PREPARE_ON_FIRST_PREPARED_STATEMENT_CALL;
+    }
+
+    /**
      * Returns the default behavior for new connection instances. If false the first execution will call sp_executesql and not prepare 
      * a statement, once the second execution happens it will call sp_prepexec and actually setup a prepared statement handle. Following
      * executions will call sp_execute. This relieves the need for sp_unprepare on prepared statement close if the statement is only
@@ -5252,7 +5261,7 @@ public class SQLServerConnection implements ISQLServerConnection {
      */
     static public boolean getDefaultEnablePrepareOnFirstPreparedStatementCall() {
         if(null == defaultEnablePrepareOnFirstPreparedStatementCall)
-            return INITIAL_DEFAULT_ENABLE_PREPARE_ON_FIRST_PREPARED_STATEMENT_CALL;
+            return getInitialDefaultEnablePrepareOnFirstPreparedStatementCall();
         else
             return defaultEnablePrepareOnFirstPreparedStatementCall;        
     }
@@ -5299,6 +5308,15 @@ public class SQLServerConnection implements ISQLServerConnection {
     }
 
     /**
+     * The initial default on application start-up for the prepared statement clean-up action threshold (i.e. when sp_unprepare is called). 
+     * 
+     * @return Returns the current setting per the description.
+     */
+    static public int getInitialDefaultServerPreparedStatementDiscardThreshold() {
+        return INITIAL_DEFAULT_SERVER_PREPARED_STATEMENT_DISCARD_THRESHOLD;
+    }
+
+    /**
      * Returns the default behavior for new connection instances. This setting controls how many outstanding prepared statement discard
      * actions (sp_unprepare) can be outstanding per connection before a call to clean-up the outstanding handles on the server is executed.
      * If the setting is <= 1 unprepare actions will be executed immedietely on prepared statement close. If it is set to >1 these calls will
@@ -5309,7 +5327,7 @@ public class SQLServerConnection implements ISQLServerConnection {
      */
     static public int getDefaultServerPreparedStatementDiscardThreshold() {
         if(0 > defaultServerPreparedStatementDiscardThreshold)
-            return INITIAL_DEFAULT_SERVER_PREPARED_STATEMENT_DISCARD_THRESHOLD;
+            return getInitialDefaultServerPreparedStatementDiscardThreshold();
         else
             return defaultServerPreparedStatementDiscardThreshold;        
     }
