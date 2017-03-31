@@ -9,10 +9,8 @@
 package com.microsoft.sqlserver.testframework;
 
 import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
 import java.io.CharArrayReader;
-import java.io.IOException;
-import java.io.InputStream;
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -249,5 +247,41 @@ public class Utils {
             super(value);
         }
     }
+    
+    /**
+     * mimic "DROP TABLE IF EXISTS ..." for older versions of SQL Server
+     */
+    public static void dropTableIfExists(String tableName, java.sql.Statement stmt) throws SQLException {
+        dropObjectIfExists(tableName, "IsTable", stmt);
+    }
 
+    /**
+     * mimic "DROP PROCEDURE IF EXISTS ..." for older versions of SQL Server
+     */
+    public static void dropProcedureIfExists(String procName, java.sql.Statement stmt) throws SQLException {
+        dropObjectIfExists(procName, "IsProcedure", stmt);
+    }
+
+    /**
+     * actually perform the "DROP TABLE / PROCEDURE"
+     */
+    private static void dropObjectIfExists(String objectName, String objectProperty, java.sql.Statement stmt) throws SQLException {
+        StringBuilder sb = new StringBuilder();
+        if (!objectName.startsWith("[")) { sb.append("["); }
+        sb.append(objectName);
+        if (!objectName.endsWith("]")) { sb.append("]"); }
+        String bracketedObjectName = sb.toString();
+        String sql = String.format(
+                "IF EXISTS " +
+                        "( " +
+                            "SELECT * from sys.objects " +
+                            "WHERE object_id = OBJECT_ID(N'%s') AND OBJECTPROPERTY(object_id, N'%s') = 1 " +
+                        ") " +
+                    "DROP %s %s ",
+                bracketedObjectName,
+                objectProperty,
+                "IsProcedure".equals(objectProperty)  ? "PROCEDURE" : "TABLE",
+                bracketedObjectName);
+        stmt.executeUpdate(sql);
+    }
 }

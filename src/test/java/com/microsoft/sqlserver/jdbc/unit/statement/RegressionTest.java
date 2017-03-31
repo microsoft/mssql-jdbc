@@ -23,6 +23,7 @@ import org.junit.runner.RunWith;
 import com.microsoft.sqlserver.jdbc.SQLServerConnection;
 import com.microsoft.sqlserver.testframework.AbstractTest;
 import com.microsoft.sqlserver.testframework.DBConnection;
+import com.microsoft.sqlserver.testframework.Utils;
 
 @RunWith(JUnitPlatform.class)
 public class RegressionTest extends AbstractTest {
@@ -126,11 +127,8 @@ public class RegressionTest extends AbstractTest {
     public static void terminate() throws SQLException {
         SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(connectionString);
         Statement stmt = con.createStatement();
-        stmt.executeUpdate("IF EXISTS (select * from sysobjects where id = object_id(N'" + tableName + "') and OBJECTPROPERTY(id, N'IsTable') = 1)"
-                + " DROP TABLE " + tableName);
-        stmt.executeUpdate("IF EXISTS (select * from sysobjects where id = object_id(N'" + procName + "') and OBJECTPROPERTY(id, N'IsProcedure') = 1)"
-                + " DROP PROCEDURE " + procName);
-
+        Utils.dropTableIfExists(tableName, stmt);
+        Utils.dropProcedureIfExists(procName, stmt);
     }
 
 }

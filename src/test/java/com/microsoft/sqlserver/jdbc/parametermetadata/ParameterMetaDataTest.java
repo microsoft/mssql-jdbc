@@ -23,6 +23,7 @@ import org.junit.runner.RunWith;
 
 import com.microsoft.sqlserver.jdbc.SQLServerException;
 import com.microsoft.sqlserver.testframework.AbstractTest;
+import com.microsoft.sqlserver.testframework.Utils;
 import com.microsoft.sqlserver.testframework.util.RandomUtil;
 
 @RunWith(JUnitPlatform.class)
@@ -49,8 +50,7 @@ public class ParameterMetaDataTest extends AbstractTest {
                     assertSame(parameterMetaData, parameterMetaData.unwrap(ParameterMetaData.class));
                 }
             } finally {
-                stmt.executeUpdate("IF EXISTS (select * from sysobjects where id = object_id(N'" + tableName + "') and OBJECTPROPERTY(id, N'IsTable') = 1)"
-                        + " DROP TABLE " + tableName);
+                Utils.dropTableIfExists(tableName, stmt);
             }
 
         }
