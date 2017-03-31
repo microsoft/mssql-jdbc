@@ -36,7 +36,8 @@ public class PrepUtil {
      * @throws SQLException
      * @throws ClassNotFoundException
      */
-    public static SQLServerConnection getConnection(String connectionString, Properties info) throws SQLException, ClassNotFoundException {
+    public static SQLServerConnection getConnection(String connectionString,
+            Properties info) throws SQLException, ClassNotFoundException {
         Class.forName("com.microsoft.sqlserver.jdbc.SQLServerDriver");
         return (SQLServerConnection) DriverManager.getConnection(connectionString, info);
     }

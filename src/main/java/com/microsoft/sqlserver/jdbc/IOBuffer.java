@@ -55,7 +55,11 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.SimpleTimeZone;
 import java.util.TimeZone;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.concurrent.SynchronousQueue;
+import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -1585,9 +1589,17 @@ final class TDSChannel {
                     .getProperty(SQLServerDriverStringProperty.HOSTNAME_IN_CERTIFICATE.toString());
 
             trustStoreType = con.activeConnectionProperties.getProperty(SQLServerDriverStringProperty.TRUST_STORE_TYPE.toString());
+            
+            if(StringUtils.isEmpty(trustStoreType)) {
+                trustStoreType = SQLServerDriverStringProperty.TRUST_STORE_TYPE.getDefaultValue();
+            }
+            
             fipsProvider = con.activeConnectionProperties.getProperty(SQLServerDriverStringProperty.FIPS_PROVIDER.toString());
-
-            isFips = isFipsEnabled(fipsProvider, trustStoreType);
+            isFips = Boolean.valueOf(con.activeConnectionProperties.getProperty(SQLServerDriverBooleanProperty.FIPS.toString())); 
+            
+            if (isFips) {
+                validateFips(fipsProvider, trustStoreType, trustStoreFileName);
+            }
 
             assert TDS.ENCRYPT_OFF == con.getRequestedEncryptionLevel() || // Login only SSL
                     TDS.ENCRYPT_ON == con.getRequestedEncryptionLevel();   // Full SSL
@@ -1636,7 +1648,7 @@ final class TDSChannel {
                         ks = KeyStore.getInstance(trustStoreType, fipsProvider);
                     }
                     else {
-                        ks = KeyStore.getInstance("JKS");
+                        ks = KeyStore.getInstance(trustStoreType);
                     }
                     ksProvider = ks.getProvider();
 
@@ -1807,51 +1819,67 @@ final class TDSChannel {
     }
 
     /**
-     * Checking if FIPS is enabled or not.
+     * Validate FIPS if fips set as true
+     * 
+     * Valid FIPS settings:
+     * <LI>Encrypt should be true
+     * <LI>trustServerCertificate should be false
+     * <LI>if certificate is not installed FIPSProvider & TrustStoreType should be present.
      * 
      * @param fipsProvider
      *            FIPS Provider
-     * @return {@code true} if Customer wants to use FIPS Provider.
-     * @since 6.1.2
+     * @param trustStoreType
+     * @param trustStoreFileName
+     * @throws SQLServerException
+     * @since 6.1.4
      */
-    private boolean isFipsEnabled(String fipsProvider,
-            String trustStoreType) {
-        boolean isFipsEnabled = false;
+    private void validateFips(final String fipsProvider,
+            final String trustStoreType,
+            final String trustStoreFileName) throws SQLServerException {
+        boolean isValid = false;
         boolean isEncryptOn;
         boolean isValidTrustStoreType;
+        boolean isValidTrustStore;
         boolean isTrustServerCertificate;
+        boolean isValidFipsProvider;
 
-        if (!StringUtils.isEmpty(fipsProvider)) {
-            isEncryptOn = TDS.ENCRYPT_ON == con.getRequestedEncryptionLevel();
+        String strError = SQLServerException.getErrString("R_invalidFipsConfig");
 
-            // Here different FIPS provider supports different KeyStore type along with different JVM Implementation.
-            isValidTrustStoreType = !StringUtils.isEmpty(trustStoreType);
-            isTrustServerCertificate = con.trustServerCertificate();
+        isEncryptOn = (TDS.ENCRYPT_ON == con.getRequestedEncryptionLevel());
 
-            if (isEncryptOn && isValidTrustStoreType && !isTrustServerCertificate) {
-                isFipsEnabled = true;
-            }
-            else {
-                // If FIPS is not enabled issue warning and fall-back to non-FIPS mode.
-                StringBuilder sb = new StringBuilder();
-                sb.append("Could not switch to FIPS mode due to above settings: ");
-                sb.append(SQLServerDriverStringProperty.FIPS_PROVIDER.toString());
-                sb.append(": ");
-                sb.append(fipsProvider);
-                sb.append(", ");
+        // Here different FIPS provider supports different KeyStore type along with different JVM Implementation.
+        isValidFipsProvider = !StringUtils.isEmpty(fipsProvider);
+        isValidTrustStoreType = !StringUtils.isEmpty(trustStoreType);
+        isValidTrustStore = !StringUtils.isEmpty(trustStoreFileName);
+        isTrustServerCertificate = con.trustServerCertificate();
 
-                sb.append(SQLServerDriverStringProperty.TRUST_STORE_TYPE.toString());
-                sb.append(": ");
-                sb.append(trustStoreType);
-                sb.append(", ");
+        if (isEncryptOn & !isTrustServerCertificate) {
+            if (logger.isLoggable(Level.FINER))
+                logger.finer(toString() + " Found parameters are encrypt is true & trustServerCertificate false");
+            
+            isValid = true;
 
-                sb.append("TrustCertificate: ");
-                sb.append(isTrustServerCertificate);
-
-                logger.warning(sb.toString());
+            if (isValidTrustStore) {
+                // In case of valid trust store we need to check fipsProvider and TrustStoreType.
+                if (!isValidFipsProvider || !isValidTrustStoreType) {
+                    isValid = false;
+                    strError = SQLServerException.getErrString("R_invalidFipsProviderConfig");
+                    
+                    if (logger.isLoggable(Level.FINER))
+                        logger.finer(toString() + " FIPS provider & TrustStoreType should pass with TrustStore.");
+                }
+                if (logger.isLoggable(Level.FINER))
+                    logger.finer(toString() + " Found FIPS parameters seems to be valid.");
             }
         }
-        return isFipsEnabled;
+        else {
+            strError = SQLServerException.getErrString("R_invalidFipsEncryptConfig");
+        }
+
+        if (!isValid) {
+            throw new SQLServerException(strError, null, 0, null);
+        }
+
     }
 
     private final static String SEPARATOR = System.getProperty("file.separator");
@@ -1957,7 +1985,7 @@ final class TDSChannel {
                 logger.fine(toString() + " read failed:" + e.getMessage());
 
             if (e instanceof SocketTimeoutException) {
-                con.terminate(SQLServerException.ERROR_SOCKET_TIMEOUT, e.getMessage());
+                con.terminate(SQLServerException.ERROR_SOCKET_TIMEOUT, e.getMessage(), e);
             }
             else {
                 con.terminate(SQLServerException.DRIVER_ERROR_IO_FAILED, e.getMessage());
@@ -2529,13 +2557,18 @@ final class SocketFinder {
             }
         }
 
-        // if a channel was selected, make the necessary updates
+     // if a channel was selected, make the necessary updates
         if (selectedChannel != null) {
-            // Note that this must be done after selector is closed. Otherwise,
-            // we would get an illegalBlockingMode exception at run time.
-            selectedChannel.configureBlocking(true);
-            selectedSocket = selectedChannel.socket();
+            //the selectedChannel has the address that is connected successfully
+            //convert it to a java.net.Socket object with the address
+            SocketAddress  iadd = selectedChannel.getRemoteAddress();
+            selectedSocket = new Socket();
+            selectedSocket.connect(iadd);
+
             result = Result.SUCCESS;
+            
+            //close the channel since it is not used anymore
+            selectedChannel.close();
         }
     }
 
@@ -6821,9 +6854,23 @@ final class TDSReader {
  * a reason like "timed out".
  */
 final class TimeoutTimer implements Runnable {
+    private static final String threadGroupName = "mssql-jdbc-TimeoutTimer";
     private final int timeoutSeconds;
     private final TDSCommand command;
-    private Thread timerThread;
+    private volatile Future<?> task;
+    
+    private static final ExecutorService executor = Executors.newCachedThreadPool(new ThreadFactory() {
+        private final ThreadGroup tg = new ThreadGroup(threadGroupName);
+        private final String threadNamePrefix = tg.getName() + "-";
+        private final AtomicInteger threadNumber = new AtomicInteger(0);
+        @Override
+        public Thread newThread(Runnable r) {
+            Thread t = new Thread(tg, r, threadNamePrefix + threadNumber.incrementAndGet());
+            t.setDaemon(true);
+            return t;
+        }
+    });
+    
     private volatile boolean canceled = false;
 
     TimeoutTimer(int timeoutSeconds,
@@ -6836,17 +6883,15 @@ final class TimeoutTimer implements Runnable {
     }
 
     final void start() {
-        timerThread = new Thread(this);
-        timerThread.setDaemon(true);
-        timerThread.start();
+        task = executor.submit(this);
     }
 
     final void stop() {
+        task.cancel(true);
         canceled = true;
-        timerThread.interrupt();
     }
 
-    public void run() {
+    public void run() { 
         int secondsRemaining = timeoutSeconds;
         try {
             // Poll every second while time is left on the timer.
@@ -6860,6 +6905,8 @@ final class TimeoutTimer implements Runnable {
             while (--secondsRemaining > 0);
         }
         catch (InterruptedException e) {
+            // re-interrupt the current thread, in order to restore the thread's interrupt status.
+            Thread.currentThread().interrupt();
             return;
         }
 

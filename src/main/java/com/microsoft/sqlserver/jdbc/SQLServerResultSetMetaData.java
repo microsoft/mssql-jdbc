@@ -64,8 +64,8 @@ public final class SQLServerResultSetMetaData implements java.sql.ResultSetMetaD
 
     public boolean isWrapperFor(Class<?> iface) throws SQLException {
         DriverJDBCVersion.checkSupportsJDBC4();
-        // This class cannot be unwrapped
-        return false;
+        boolean f = iface.isInstance(this);
+        return f;
     }
 
     public <T> T unwrap(Class<T> iface) throws SQLException {

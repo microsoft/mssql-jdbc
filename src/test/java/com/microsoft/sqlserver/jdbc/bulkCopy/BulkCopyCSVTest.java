@@ -1,7 +1,7 @@
 /*
  * Microsoft JDBC Driver for SQL Server
  * 
- * Copyright(c) 2016 Microsoft Corporation All rights reserved.
+ * Copyright(c) Microsoft Corporation All rights reserved.
  * 
  * This program is made available under the terms of the MIT License. See the LICENSE file in the project root for more information.
  */
@@ -12,6 +12,7 @@ import static org.junit.Assert.fail;
 import java.io.BufferedReader;
 import java.io.FileInputStream;
 import java.io.InputStreamReader;
+import java.net.URI;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
@@ -141,10 +142,11 @@ public class BulkCopyCSVTest extends AbstractTest {
         try {
             String className = new Object() {
             }.getClass().getEnclosingClass().getName();
-            String location = Class.forName(className).getProtectionDomain().getCodeSource().getLocation().getPath();
-            return location + "/";
+            String location = Class.forName(className).getProtectionDomain().getCodeSource().getLocation().getPath()+ "/";
+            URI uri = new URI(location.toString());
+            return uri.getPath();
         }
-        catch (ClassNotFoundException e) {
+        catch (Exception e) {
             fail("Failed to get CSV file path. " + e.getMessage());
         }
         return null;
@@ -152,6 +154,7 @@ public class BulkCopyCSVTest extends AbstractTest {
 
     /**
      * validate value in csv and in destination table as string
+     * 
      * @param destinationTable
      */
     static void validateValuesFromCSV(DBTable destinationTable) {

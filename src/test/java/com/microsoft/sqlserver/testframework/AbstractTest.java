@@ -85,6 +85,14 @@ public abstract class AbstractTest {
     }
 
     /**
+     * Get the connection String
+     * @return
+     */
+    public static String getConnectionString() {
+        return connectionString;
+    }
+
+    /**
      * This will take care of all clean ups after running the Test Suite.
      * 
      * @throws Exception
@@ -120,7 +128,8 @@ public abstract class AbstractTest {
      * @param key
      * @return Value
      */
-    public static String getConfiguredProperty(String key, String defaultValue) {
+    public static String getConfiguredProperty(String key,
+            String defaultValue) {
         return Utils.getConfiguredProperty(key, defaultValue);
     }
 

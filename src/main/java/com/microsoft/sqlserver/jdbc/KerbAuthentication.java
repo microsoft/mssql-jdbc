@@ -127,37 +127,47 @@ final class KerbAuthentication extends SSPIAuthentication {
             // If we need to support NTLM as well, we can use null
             // Kerberos OID
             Oid kerberos = new Oid("1.2.840.113554.1.2.2");
-            Subject currentSubject = null;
-            try {
-                AccessControlContext context = AccessController.getContext();
-                currentSubject = Subject.getSubject(context);
-                if (null == currentSubject) {
-                    lc = new LoginContext(CONFIGNAME);
-                    lc.login();
-                    // per documentation LoginContext will instantiate a new subject.
-                    currentSubject = lc.getSubject();
-                }
-            }
-            catch (LoginException le) {
-                con.terminate(SQLServerException.DRIVER_ERROR_NONE, SQLServerException.getErrString("R_integratedAuthenticationFailed"), le);
-            }
-
             // http://blogs.sun.com/harcey/entry/of_java_kerberos_and_access
-            // We pass null to indicate that the system should interpret the SPN as it is.
+            // We pass null to indicate that the system should interpret the SPN
+            // as it is.
             GSSName remotePeerName = manager.createName(spn, null);
-            if (authLogger.isLoggable(Level.FINER)) {
-                authLogger.finer(toString() + " Getting client credentials");
-            }
-            peerCredentials = getClientCredential(currentSubject, manager, kerberos);
-            if (authLogger.isLoggable(Level.FINER)) {
-                authLogger.finer(toString() + " creating security context");
-            }
 
-            peerContext = manager.createContext(remotePeerName, kerberos, peerCredentials, GSSContext.DEFAULT_LIFETIME);
-            // The following flags should be inline with our native implementation.
-            peerContext.requestCredDeleg(true);
-            peerContext.requestMutualAuth(true);
-            peerContext.requestInteg(true);
+            if (null != peerCredentials) {
+                peerContext = manager.createContext(remotePeerName, kerberos, peerCredentials, GSSContext.DEFAULT_LIFETIME);
+                peerContext.requestCredDeleg(false);
+                peerContext.requestMutualAuth(true);
+                peerContext.requestInteg(true);
+            }
+            else {
+                Subject currentSubject = null;
+                try {
+                    AccessControlContext context = AccessController.getContext();
+                    currentSubject = Subject.getSubject(context);
+                    if (null == currentSubject) {
+                        lc = new LoginContext(CONFIGNAME);
+                        lc.login();
+                        // per documentation LoginContext will instantiate a new subject.
+                        currentSubject = lc.getSubject();
+                    }
+                }
+                catch (LoginException le) {
+                    con.terminate(SQLServerException.DRIVER_ERROR_NONE, SQLServerException.getErrString("R_integratedAuthenticationFailed"), le);
+                }
+
+                if (authLogger.isLoggable(Level.FINER)) {
+                    authLogger.finer(toString() + " Getting client credentials");
+                }
+                peerCredentials = getClientCredential(currentSubject, manager, kerberos);
+                if (authLogger.isLoggable(Level.FINER)) {
+                    authLogger.finer(toString() + " creating security context");
+                }
+                
+                peerContext = manager.createContext(remotePeerName, kerberos, peerCredentials, GSSContext.DEFAULT_LIFETIME);
+                // The following flags should be inline with our native implementation.
+                peerContext.requestCredDeleg(true);
+                peerContext.requestMutualAuth(true);
+                peerContext.requestInteg(true);
+            }
         }
 
         catch (GSSException ge) {
@@ -182,7 +192,7 @@ final class KerbAuthentication extends SSPIAuthentication {
             }
         };
         // TO support java 5, 6 we have to do this
-        // The signature for Java 5 returns an object 6 returns GSSCredential, immediate casting throws
+        // The signature for Java 5 returns an object 6 returns GSSCredential, immediate casting throws 
         // warning in Java 6.
         Object credential = Subject.doAs(subject, action);
         return (GSSCredential) credential;
@@ -260,6 +270,22 @@ final class KerbAuthentication extends SSPIAuthentication {
         else {
             spn = makeSpn(address, port);
         }
+    }
+
+    /**
+     * 
+     * @param con
+     * @param address
+     * @param port
+     * @param ImpersonatedUserCred
+     * @throws SQLServerException
+     */
+    KerbAuthentication(SQLServerConnection con,
+            String address,
+            int port,
+            GSSCredential ImpersonatedUserCred) throws SQLServerException {
+        this(con, address, port);
+        peerCredentials = ImpersonatedUserCred;
     }
 
     byte[] GenerateClientContext(byte[] pin,

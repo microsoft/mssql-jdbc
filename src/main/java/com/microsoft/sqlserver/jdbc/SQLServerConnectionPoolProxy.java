@@ -32,7 +32,7 @@ import java.util.logging.Level;
 
 /**
  * SQLServerConnectionPoolProxy is a wrapper around SQLServerConnection object. When returning a connection object from PooledConnection.getConnection
- * we returnt this proxy per SPEC.
+ * we return this proxy per SPEC.
  * <p>
  * This class's public functions need to be kept identical to the SQLServerConnection's.
  * <p>
@@ -40,8 +40,7 @@ import java.util.logging.Level;
  * details.
  */
 
-class SQLServerConnectionPoolProxy implements ISQLServerConnection, java.io.Serializable {
-    private static final long serialVersionUID = -6412542417798843534L;
+class SQLServerConnectionPoolProxy implements ISQLServerConnection {
     private SQLServerConnection wrappedConnection;
     private boolean bIsOpen;
     static private final AtomicInteger baseConnectionID = new AtomicInteger(0);       // connection id dispenser
@@ -114,7 +113,7 @@ class SQLServerConnectionPoolProxy implements ISQLServerConnection, java.io.Seri
     }
 
     /**
-     * Rollback a transcation.
+     * Rollback a transaction.
      *
      * @throws SQLServerException
      *             if no transaction exists or if the connection is in auto-commit mode.

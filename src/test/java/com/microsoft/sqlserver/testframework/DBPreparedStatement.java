@@ -1,10 +1,11 @@
-/**
+/*
  * Microsoft JDBC Driver for SQL Server
  * 
  * Copyright(c) Microsoft Corporation All rights reserved.
  * 
  * This program is made available under the terms of the MIT License. See the LICENSE file in the project root for more information.
  */
+
 package com.microsoft.sqlserver.testframework;
 
 import java.sql.Connection;
@@ -16,25 +17,16 @@ import java.sql.SQLException;
  * 
  * Wrapper class PreparedStatement
  */
-public class DBPreparedStatement extends AbstractParentWrapper {
+public class DBPreparedStatement extends DBStatement {
 
     PreparedStatement pstmt = null;
     DBResultSet dbresultSet = null;
-    
+
     /**
      * 
      */
     public DBPreparedStatement(DBConnection dbconnection) {
-        super(dbconnection, null, "preparedStatement");
-    }
-
-    /**
-     * @param parent
-     * @param internal
-     * @param name
-     */
-    DBPreparedStatement(AbstractParentWrapper parent, Object internal, String name) {
-        super(parent, internal, name);
+        super(dbconnection);
     }
 
     /**
@@ -43,6 +35,22 @@ public class DBPreparedStatement extends AbstractParentWrapper {
      */
     DBPreparedStatement prepareStatement(String query) throws SQLException {
         pstmt = ((Connection) parent().product()).prepareStatement(query);
+        setInternal(pstmt);
+        return this;
+    }
+
+    /**
+     * 
+     * @param query
+     * @param resultSetType
+     * @param resultSetConcurrency
+     * @return
+     * @throws SQLException
+     */
+    DBPreparedStatement prepareStatement(String query,
+            int resultSetType,
+            int resultSetConcurrency) throws SQLException {
+        pstmt = ((Connection) parent().product()).prepareStatement(query, resultSetType, resultSetConcurrency);
         setInternal(pstmt);
         return this;
     }
@@ -58,7 +66,8 @@ public class DBPreparedStatement extends AbstractParentWrapper {
      * @param targetObject
      * @throws SQLException
      */
-    public void setObject(int parameterIndex, Object targetObject) throws SQLException {
+    public void setObject(int parameterIndex,
+            Object targetObject) throws SQLException {
 
         ((PreparedStatement) product()).setObject(parameterIndex, targetObject);
     }

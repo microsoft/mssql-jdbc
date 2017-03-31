@@ -89,6 +89,11 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
     /** Flag set to true when statement execution is expected to return the prepared statement handle */
     private boolean expectPrepStmtHandle = false;
+    
+    /**
+     * Flag set to true when all encryption metadata of inOutParam is retrieved
+     */
+    private boolean encryptionMetadataIsRetrieved = false;
 
     // Internal function used in tracing
     String getClassNameInternal() {
@@ -202,6 +207,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
      * @param sql
      */
     /* L0 */ final void initParams(String sql) {
+        encryptionMetadataIsRetrieved = false;
         int nParams = 0;
 
         // Figure out the expected number of parameters by counting the
@@ -219,6 +225,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     /* L0 */ public final void clearParameters() throws SQLServerException {
         loggerExternal.entering(getClassNameLogging(), "clearParameters");
         checkClosed();
+        encryptionMetadataIsRetrieved = false;
         int i;
         if (inOutParam == null)
             return;
@@ -413,16 +420,25 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
             loggerExternal.finer(toString() + " ActivityId: " + ActivityCorrelator.getNext().toString());
         }
 
-        boolean hasNewTypeDefinitions = buildPreparedStrings(inOutParam, false);
-        if ((Util.shouldHonorAEForParameters(stmtColumnEncriptionSetting, connection)) && (0 < inOutParam.length) && !isInternalEncryptionQuery) {
-            getParameterEncryptionMetadata(inOutParam);
+        boolean hasNewTypeDefinitions = true;
+        if (!encryptionMetadataIsRetrieved) {
+            hasNewTypeDefinitions = buildPreparedStrings(inOutParam, false);
+        }
 
-            // maxRows is set to 0 when retreving encryption metadata,
-            // need to set it back
-            setMaxRowsAndMaxFieldSize();
+        if ((Util.shouldHonorAEForParameters(stmtColumnEncriptionSetting, connection)) && (0 < inOutParam.length) && !isInternalEncryptionQuery) {
+
+            // retrieve paramater encryption metadata if they are not retrieved yet
+            if (!encryptionMetadataIsRetrieved) {
+                getParameterEncryptionMetadata(inOutParam);
+                encryptionMetadataIsRetrieved = true;
+
+                // maxRows is set to 0 when retreving encryption metadata,
+                // need to set it back
+                setMaxRowsAndMaxFieldSize();
+            }
 
             // fix an issue when inserting unicode into non-encrypted nchar column using setString() and AE is on on Connection
-            buildPreparedStrings(inOutParam, true);
+            hasNewTypeDefinitions = buildPreparedStrings(inOutParam, true);
         }
 
         // Start the request and detach the response reader so that we can
@@ -2136,7 +2152,8 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     String getTVPNameIfNull(int n,
             String tvpName) throws SQLServerException {
         if ((null == tvpName) || (0 == tvpName.length())) {
-            if (this instanceof SQLServerCallableStatement) {
+            // Check if the CallableStatement/PreparedStatement is a stored procedure call
+            if(null != this.procedureName) {
                 SQLServerParameterMetaData pmd = (SQLServerParameterMetaData) this.getParameterMetaData();
                 pmd.isTVP = true;
                 try {

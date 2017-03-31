@@ -161,8 +161,18 @@ public final class SQLServerDataTable {
                                 currentColumnMetadata.precision = precision;
                                 isColumnMetadataUpdated = true;
                             }
-                            if (isColumnMetadataUpdated)
+                            
+                            // precision equal: the maximum number of digits in integer part + the maximum scale
+                            int numberOfDigitsIntegerPart = precision - bd.scale();
+                            if (numberOfDigitsIntegerPart > currentColumnMetadata.numberOfDigitsIntegerPart) {
+                                currentColumnMetadata.numberOfDigitsIntegerPart = numberOfDigitsIntegerPart;
+                                isColumnMetadataUpdated = true;
+                            }
+
+                            if (isColumnMetadataUpdated) {
+                                currentColumnMetadata.precision = currentColumnMetadata.scale + currentColumnMetadata.numberOfDigitsIntegerPart;
                                 columnMetadata.put(pair.getKey(), currentColumnMetadata);
+                            }
                         }
                         rowValues[pair.getKey()] = bd;
                         break;
@@ -250,14 +260,13 @@ public final class SQLServerDataTable {
     public synchronized Map<Integer, SQLServerDataColumn> getColumnMetadata() {
         return columnMetadata;
     }
-
+    
     public String getTvpName() {
         return tvpName;
     }
 
     /**
      * Retrieves the column meta data of this data table.
-     * 
      * @param tvpName
      *            the name of TVP
      */

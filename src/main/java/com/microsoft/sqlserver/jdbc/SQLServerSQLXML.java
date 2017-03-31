@@ -119,13 +119,6 @@ final class SQLServerSQLXML implements java.sql.SQLXML {
                 SQLServerException.makeFromDriverError(con, null, form.format(msgArgs), null, true);
             }
             o = strm.getInputStream();
-
-            try {
-                strm.close();
-            }
-            catch (IOException e) {
-                throw new SQLServerException(null, e.getMessage(), null, 0, true);
-            }
         }
         else {
             assert null == outputStreamValue;

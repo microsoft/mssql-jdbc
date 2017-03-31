@@ -20,6 +20,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import org.ietf.jgss.GSSCredential;
+
 /**
  * SQLServerDriver implements the java.sql.Driver for SQLServerConnect.
  *
@@ -192,6 +194,30 @@ enum ApplicationIntent {
     }
 }
 
+enum SQLServerDriverObjectProperty {
+    GSS_CREDENTIAL("gsscredential", null);
+    private String name;
+    private Object defaultValue;
+
+    private SQLServerDriverObjectProperty(String name,
+            Object defaultValue) {
+        this.name = name;
+        this.defaultValue = defaultValue;
+    }
+
+    /**
+     * returning string due to structure of DRIVER_PROPERTIES_PROPERTY_ONLY 
+     * @return
+     */
+    public String getDefaultValue() {
+        return null;
+    }
+    
+    public String toString() {
+        return name;
+    }
+}
+
 enum SQLServerDriverStringProperty
 {
 	APPLICATION_INTENT         ("applicationIntent",       ApplicationIntent.READ_WRITE.toString()),
@@ -217,7 +243,8 @@ enum SQLServerDriverStringProperty
 	KEY_STORE_AUTHENTICATION   ("keyStoreAuthentication",  ""),
 	KEY_STORE_SECRET           ("keyStoreSecret",          ""),
 	KEY_STORE_LOCATION         ("keyStoreLocation",        ""),
-	FIPS_PROVIDER              ("fipsProvider",            "");
+	FIPS_PROVIDER              ("fipsProvider",            ""),
+	;
 
     private String name;
     private String defaultValue;
@@ -275,7 +302,8 @@ enum SQLServerDriverBooleanProperty
 	SEND_TIME_AS_DATETIME              ("sendTimeAsDatetime",              true),
 	TRANSPARENT_NETWORK_IP_RESOLUTION  ("TransparentNetworkIPResolution",  true),
 	TRUST_SERVER_CERTIFICATE           ("trustServerCertificate",          false),
-	XOPEN_STATES                       ("xopenStates",                     false);
+	XOPEN_STATES                       ("xopenStates",                     false),
+	FIPS                               ("fips",                            false);
 
     private String name;
     private boolean defaultValue;
@@ -344,15 +372,17 @@ public final class SQLServerDriver implements java.sql.Driver {
         new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.AUTHENTICATION.toString(),          				SQLServerDriverStringProperty.AUTHENTICATION.getDefaultValue(),      			                		false,      new String[] {SqlAuthentication.NotSpecified.toString(),SqlAuthentication.SqlPassword.toString(),SqlAuthentication.ActiveDirectoryPassword.toString(),SqlAuthentication.ActiveDirectoryIntegrated.toString()}),
         new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.FIPS_PROVIDER.toString(), 						SQLServerDriverStringProperty.FIPS_PROVIDER.getDefaultValue(), 											false, 		null),
         new SQLServerDriverPropertyInfo(SQLServerDriverIntProperty.SOCKET_TIMEOUT.toString(),                   		Integer.toString(SQLServerDriverIntProperty.SOCKET_TIMEOUT.getDefaultValue()),         					false,      null),
+        new SQLServerDriverPropertyInfo(SQLServerDriverBooleanProperty.FIPS.toString(),                                 Boolean.toString(SQLServerDriverBooleanProperty.FIPS.getDefaultValue()),                                false,      TRUE_FALSE),
             };
 
     // Properties that can only be set by using Properties.
     // Cannot set in connection string
     private static final SQLServerDriverPropertyInfo[] DRIVER_PROPERTIES_PROPERTY_ONLY = {
-            // default required available choices
-            // property name value property (if appropriate)
-            new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.ACCESS_TOKEN.toString(),
-                    SQLServerDriverStringProperty.ACCESS_TOKEN.getDefaultValue(), false, null),};
+            //                                                                                                                  default                                                                                         required    available choices
+            //                          property name                                                                           value                                                                                           property    (if appropriate)
+            new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.ACCESS_TOKEN.toString(),                      SQLServerDriverStringProperty.ACCESS_TOKEN.getDefaultValue(),                                           false,      null),
+            new SQLServerDriverPropertyInfo(SQLServerDriverObjectProperty.GSS_CREDENTIAL.toString(),                    SQLServerDriverObjectProperty.GSS_CREDENTIAL.getDefaultValue(),                                         false,      null),        
+    };
 
 	private static final String driverPropertiesSynonyms[][] = {
 		{"database", SQLServerDriverStringProperty.DATABASE_NAME.toString()}, 	
@@ -419,6 +449,9 @@ public final class SQLServerDriver implements java.sql.Driver {
                     // replace with the driver approved name
                     fixedup.setProperty(newname, val);
                 }
+                else if(newname.equalsIgnoreCase("gsscredential") && (props.get(name) instanceof GSSCredential)){
+                	fixedup.put(newname, props.get(name));
+                }
                 else {
                     MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidpropertyValue"));
                     Object[] msgArgs = {name};
@@ -439,9 +472,7 @@ public final class SQLServerDriver implements java.sql.Driver {
             return urlProps;
         if (suppliedProperties.isEmpty())
             return urlProps;
-
         Properties suppliedPropertiesFixed = fixupProperties(suppliedProperties);
-
         // Merge URL properties and supplied properties.
         for (int i = 0; i < DRIVER_PROPERTIES.length; i++) {
             String sProp = DRIVER_PROPERTIES[i].getName();
@@ -455,10 +486,10 @@ public final class SQLServerDriver implements java.sql.Driver {
         // Merge URL properties with property-only properties
         for (int i = 0; i < DRIVER_PROPERTIES_PROPERTY_ONLY.length; i++) {
             String sProp = DRIVER_PROPERTIES_PROPERTY_ONLY[i].getName();
-            String sPropVal = suppliedPropertiesFixed.getProperty(sProp); // supplied properties have precedence
-            if (null != sPropVal) {
+            Object oPropVal = suppliedPropertiesFixed.get(sProp); // supplied properties have precedence
+            if (null != oPropVal) {
                 // overwrite the property in urlprops if already exists. supp prop has more precedence
-                urlProps.put(sProp, sPropVal);
+                urlProps.put(sProp, oPropVal);
             }
         }
 

@@ -1,31 +1,19 @@
-// ---------------------------------------------------------------------------------------------------------------------------------
-// File: SqlVarBinary.java
-//
-//
-// Microsoft JDBC Driver for SQL Server
-// Copyright(c) Microsoft Corporation
-// All rights reserved.
-// MIT License
-// Permission is hereby granted, free of charge, to any person obtaining a copy
-// of this software and associated documentation files(the "Software"),
-// to deal in the Software without restriction, including without limitation the
-// rights to use, copy, modify, merge, publish, distribute, sublicense,
-// and / or sell copies of the Software, and to permit persons to whom the
-// Software is furnished to do so, subject to the following conditions :
-// The above copyright notice and this permission notice shall be included in
-// all copies or substantial portions of the Software.
-// THE SOFTWARE IS PROVIDED *AS IS*, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.IN NO EVENT SHALL THE
-// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
-// IN THE SOFTWARE.
-// ---------------------------------------------------------------------------------------------------------------------------------
+/*
+ * Microsoft JDBC Driver for SQL Server
+ * 
+ * Copyright(c) Microsoft Corporation All rights reserved.
+ * 
+ * This program is made available under the terms of the MIT License. See the LICENSE file in the project root for more information.
+ */
 
 package com.microsoft.sqlserver.testframework.sqlType;
 
 import java.sql.JDBCType;
+
+import com.microsoft.sqlserver.testframework.DBCoercion;
+import com.microsoft.sqlserver.testframework.Utils;
+import com.microsoft.sqlserver.testframework.Utils.DBBinaryStream;
+import com.microsoft.sqlserver.testframework.Utils.DBCharacterStream;
 
 /**
  * Contains name, jdbctype, precision, scale for varbinary data type
@@ -37,5 +25,20 @@ public class SqlVarBinary extends SqlBinary {
      */
     public SqlVarBinary() {
         super("varbinary", JDBCType.VARBINARY, 4000);
+        coercions.add(new DBCoercion(String.class, new int[] {DBCoercion.GET, DBCoercion.GETPARAM}));
+        coercions.add(new DBCoercion(Object.class, new int[] {DBCoercion.GET, DBCoercion.UPDATE, DBCoercion.UPDATEOBJECT, DBCoercion.SET,
+                DBCoercion.SETOBJECT, DBCoercion.GETPARAM, DBCoercion.REG}));
+        coercions.add(new DBCoercion(byte[].class, new int[] {DBCoercion.GET, DBCoercion.UPDATE, DBCoercion.UPDATEOBJECT, DBCoercion.SET,
+                DBCoercion.SETOBJECT, DBCoercion.GETPARAM, DBCoercion.REG}));
+
+        // TODO: Following coercions are not supported by AE. add a check later
+        // coercions.remove(String.class);
+        coercions.add(new DBCoercion(String.class,
+                new int[] {DBCoercion.GET, DBCoercion.UPDATE, DBCoercion.UPDATEOBJECT, DBCoercion.SETOBJECT, DBCoercion.GETPARAM}));
+        coercions.add(new DBCoercion(DBBinaryStream.class, new int[] {DBCoercion.GET, DBCoercion.UPDATE, DBCoercion.UPDATEOBJECT, DBCoercion.SET,
+                DBCoercion.SETOBJECT, DBCoercion.GETPARAM, DBCoercion.REG, DBCoercion.STREAM}));
+        coercions.add(new DBCoercion(DBCharacterStream.class, new int[] {DBCoercion.GET, DBCoercion.UPDATE, DBCoercion.UPDATEOBJECT,
+                DBCoercion.SETOBJECT, DBCoercion.GETPARAM, DBCoercion.REG, DBCoercion.STREAM}));
+
     }
 }

@@ -44,12 +44,44 @@ public class DBTable extends AbstractSQLGenerator {
      *            <code>true</code> : generates schema with all available dataTypes in SqlType class
      */
     public DBTable(boolean autoGenerateSchema) {
+        this(autoGenerateSchema, false, false);
+    }
+
+    /**
+     * Initializes {@link DBTable} with tableName, schema, and {@link DBColumns}
+     * 
+     * @param autoGenerateSchema
+     *            <code>true</code>: generates schema with all available dataTypes in SqlType class
+     * @param unicode
+     *            <code>true</code>: sets unicode column names if autoGenerateSchema is also set to <code>true</code>
+     */
+    public DBTable(boolean autoGenerateSchema,
+            boolean unicode) {
+        this(autoGenerateSchema, unicode, false);
+    }
+
+    /**
+     * Initializes {@link DBTable} with tableName, schema, and {@link DBColumns}
+     * 
+     * @param autoGenerateSchema
+     *            <code>true</code>: generates schema with all available dataTypes in SqlType class
+     * @param unicode
+     *            <code>true</code>: sets unicode column names if autoGenerateSchema is also set to <code>true</code>
+     * @param alternateShcema
+     *            <code>true</code>: creates table with alternate schema
+     */
+    public DBTable(boolean autoGenerateSchema,
+            boolean unicode,
+            boolean alternateSchema) {
 
         this.tableName = RandomUtil.getIdentifier("table");
         this.escapedTableName = escapeIdentifier(tableName);
-        this.schema = new DBSchema(autoGenerateSchema);
+        this.schema = new DBSchema(autoGenerateSchema, alternateSchema);
         if (autoGenerateSchema) {
-            addColumns();
+            if (unicode)
+                addColumns(unicode);
+            else
+                addColumns();
         }
         else {
             this.columns = new ArrayList<DBColumn>();
@@ -85,12 +117,34 @@ public class DBTable extends AbstractSQLGenerator {
     }
 
     /**
+     * adds a columns for each SQL type in DBSchema
+     */
+    private void addColumns(boolean unicode) {
+        totalColumns = schema.getNumberOfSqlTypes();
+        columns = new ArrayList<DBColumn>(totalColumns);
+
+        for (int i = 0; i < totalColumns; i++) {
+            SqlType sqlType = schema.getSqlType(i);
+            DBColumn column;
+            if (unicode)
+                column = new DBColumn(RandomUtil.getIdentifier(sqlType.getName()) + "ĀĂŎՖએДЕЖЗИЙਟਖਞ", sqlType);
+            else
+                column = new DBColumn(RandomUtil.getIdentifier(sqlType.getName()), sqlType);
+            columns.add(column);
+        }
+    }
+
+    /**
      * gets table name of the {@link DBTable} object
      * 
      * @return {@link String} table name
      */
     public String getTableName() {
         return tableName;
+    }
+    
+    public List<DBColumn> getColumns() {
+        return this.columns;
     }
 
     /**
@@ -322,7 +376,8 @@ public class DBTable extends AbstractSQLGenerator {
      * @param rowIndex
      * @return
      */
-    public Object getRowData(int colIndex, int rowIndex) {
+    public Object getRowData(int colIndex,
+            int rowIndex) {
         return columns.get(colIndex).getRowValue(rowIndex);
     }
 
@@ -335,7 +390,8 @@ public class DBTable extends AbstractSQLGenerator {
         return (JDBCType.CHAR == getColumn(colNum).getJdbctype() || JDBCType.VARCHAR == getColumn(colNum).getJdbctype()
                 || JDBCType.NCHAR == getColumn(colNum).getJdbctype() || JDBCType.NVARCHAR == getColumn(colNum).getJdbctype()
                 || JDBCType.TIMESTAMP == getColumn(colNum).getJdbctype() || JDBCType.DATE == getColumn(colNum).getJdbctype()
-                || JDBCType.TIME == getColumn(colNum).getJdbctype());
+                || JDBCType.TIME == getColumn(colNum).getJdbctype() || JDBCType.LONGVARCHAR == getColumn(colNum).getJdbctype()
+                || JDBCType.LONGNVARCHAR == getColumn(colNum).getJdbctype());
     }
 
     /**
@@ -345,6 +401,7 @@ public class DBTable extends AbstractSQLGenerator {
      */
 
     boolean passDataAsHex(int colNum) {
-        return (JDBCType.BINARY == getColumn(colNum).getJdbctype() || JDBCType.VARBINARY == getColumn(colNum).getJdbctype());
+        return (JDBCType.BINARY == getColumn(colNum).getJdbctype() || JDBCType.VARBINARY == getColumn(colNum).getJdbctype()
+                || JDBCType.LONGVARBINARY == getColumn(colNum).getJdbctype());
     }
 }

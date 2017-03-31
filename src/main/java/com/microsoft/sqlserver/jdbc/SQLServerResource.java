@@ -188,6 +188,7 @@ public final class SQLServerResource extends ListResourceBundle {
 				{"R_TransparentNetworkIPResolutionPropertyDescription", "Determines whether to use the Transparent Network IP Resolution feature."},
 				{"R_queryTimeoutPropertyDescription", "The number of seconds to wait before the database reports a query time-out."},
 				{"R_socketTimeoutPropertyDescription", "The number of milliseconds to wait before the java.net.SocketTimeoutException is raised."},
+				{"R_gsscredentialPropertyDescription", "Impersonated GSS Credential to access SQL Server."}, 
 				{"R_noParserSupport", "An error occurred while instantiating the required parser. Error: \"{0}\""},
 				{"R_writeOnlyXML", "Cannot read from this SQLXML instance. This instance is for writing data only."},
 				{"R_dataHasBeenReadXML", "Cannot read from this SQLXML instance. The data has already been read."},
@@ -333,7 +334,7 @@ public final class SQLServerResource extends ListResourceBundle {
 				{"R_TVPEmptyMetadata", "There are not enough fields in the Structured type. Structured types must have at least one field."},
 				{"R_TVPInvalidValue", "The value provided for Table-Valued Parameter {0} is not valid. Only SQLServerDataTable, ResultSet and ISQLServerDataRecord objects are supported."},
 				{"R_TVPInvalidColumnValue", "Input data is not in correct format."},
-				{"R_FedAuthOnNonWindows","Azure Active Directory is only supported on Windows operating systems."},
+				{"R_AADIntegratedOnNonWindows","ActiveDirectoryIntegrated is only supported on Windows operating systems."},
 				{"R_TVPSortOrdinalGreaterThanFieldCount", "The sort ordinal {0} on field {1} exceeds the total number of fields."},
 				{"R_TVPMissingSortOrderOrOrdinal", "The sort order and ordinal must either both be specified, or neither should be specified (SortOrder.Unspecified and -1). The values given were: order = {0}, ordinal = {1}."},
 				{"R_TVPDuplicateSortOrdinal", "The sort ordinal {0} was specified twice."},
@@ -372,5 +373,9 @@ public final class SQLServerResource extends ListResourceBundle {
 				{"R_TVPnotWorkWithSetObjectResultSet" , "setObject() with ResultSet is not supported for Table-Valued Parameter. Please use setStructured()"},
 				{"R_invalidQueryTimeout", "The queryTimeout {0} is not valid."},
 				{"R_invalidSocketTimeout", "The socketTimeout {0} is not valid."},
+				{"R_fipsPropertyDescription", "Determines if enable FIPS compilant SSL connection between the client and the server."},
+				{"R_invalidFipsConfig", "Could not enable FIPS."},
+				{"R_invalidFipsEncryptConfig", "Could not enable FIPS due to either encrypt is not true or using trusted certificate settings."},
+				{"R_invalidFipsProviderConfig", "Could not enable FIPS due to invalid FIPSProvider or TrustStoreType."},
     };
 }

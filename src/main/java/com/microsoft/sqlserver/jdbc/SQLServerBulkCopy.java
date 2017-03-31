@@ -289,6 +289,8 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable {
                 while (--secondsRemaining > 0);
             }
             catch (InterruptedException e) {
+                // re-interrupt the current thread, in order to restore the thread's interrupt status.
+                Thread.currentThread().interrupt();
                 return;
             }
 
@@ -799,11 +801,15 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable {
             isStreaming = (DataTypes.SHORT_VARTYPE_MAX_BYTES < bulkPrecision) || (DataTypes.SHORT_VARTYPE_MAX_BYTES < destPrecision);
         }
 
+        CryptoMetadata destCryptoMeta = destColumnMetadata.get(destColumnIndex).cryptoMeta;
+        
         /*
-         * if source is encrypted and destination is unenecrypted use destination sql type to send since there is no way of finding if source is
-         * encrypted without accessing the resultset, send destination type if source resultset set is of type SQLServer and encryption is enabled
+         * if source is encrypted and destination is unenecrypted, use destination's sql type to send since there is no way of finding if source is
+         * encrypted without accessing the resultset.
+         * 
+         * Send destination type if source resultset set is of type SQLServer, encryption is enabled and destination column is not encrypted
          */
-        if ((sourceResultSet instanceof SQLServerResultSet) && (connection.isColumnEncryptionSettingEnabled())) {
+        if ((sourceResultSet instanceof SQLServerResultSet) && (connection.isColumnEncryptionSettingEnabled()) && (null != destCryptoMeta)) {
             bulkJdbcType = destColumnMetadata.get(destColumnIndex).jdbcType;
             bulkPrecision = destPrecision;
             bulkScale = destColumnMetadata.get(destColumnIndex).scale;
@@ -839,8 +845,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable {
             writeTypeInfo(tdsWriter, bulkJdbcType, bulkScale, bulkPrecision, destSSType, collation, isStreaming, srcNullable, false);
         }
 
-        CryptoMetadata destCryptoMeta = null;
-        if ((null != (destCryptoMeta = destColumnMetadata.get(destColumnIndex).cryptoMeta))) {
+        if (null != destCryptoMeta) {
             int baseDestJDBCType = destCryptoMeta.baseTypeInfo.getSSType().getJDBCType().asJavaSqlType();
             int baseDestPrecision = destCryptoMeta.baseTypeInfo.getPrecision();
 
@@ -1268,8 +1273,13 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable {
         }
         bulkPrecision = validateSourcePrecision(srcPrecision, bulkJdbcType, destPrecision);
 
-        // if encrypted source and unencrypted destination combination
-        if ((sourceResultSet instanceof SQLServerResultSet) && (connection.isColumnEncryptionSettingEnabled())) {
+        /*
+         * if source is encrypted and destination is unenecrypted, use destination's sql type to send since there is no way of finding if source is
+         * encrypted without accessing the resultset.
+         * 
+         * Send destination type if source resultset set is of type SQLServer, encryption is enabled and destination column is not encrypted
+         */
+        if ((sourceResultSet instanceof SQLServerResultSet) && (connection.isColumnEncryptionSettingEnabled()) && (null != destCryptoMeta)) {
             bulkJdbcType = destColumnMetadata.get(destColIndx).jdbcType;
             bulkPrecision = destPrecision;
             bulkScale = destColumnMetadata.get(destColIndx).scale;

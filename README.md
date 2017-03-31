@@ -1,3 +1,8 @@
+[![GitHub license](https://img.shields.io/badge/license-MIT-blue.svg)](https://raw.githubusercontent.com/Microsoft/mssql-jdbc/master/LICENSE)
+[![Maven Central](https://maven-badges.herokuapp.com/maven-central/com.microsoft.sqlserver/mssql-jdbc/badge.svg)](http://mvnrepository.com/artifact/com.microsoft.sqlserver/mssql-jdbc)
+[![Javadocs](http://javadoc.io/badge/com.microsoft.sqlserver/mssql-jdbc.svg)](http://javadoc.io/doc/com.microsoft.sqlserver/mssql-jdbc)
+[![Gitter](https://img.shields.io/gitter/room/badges/shields.svg)](https://gitter.im/Microsoft/mssql-developers)
+</br>
 # Microsoft JDBC Driver for SQL Server
 
 Welcome to the Microsoft JDBC Driver for SQL Server project!
@@ -11,12 +16,7 @@ SQL Server Team
 ## Status of Most Recent Builds
 | AppVeyor (Windows)       | Travis CI (Linux) |
 |--------------------------|--------------------------|
-| [![av-image][]][av-site] | [![tv-image][]][tv-site] |
-
-[av-image]: https://ci.appveyor.com/api/projects/status/o6fjg16678ol64d3?svg=true "Windows"
-[av-site]: https://ci.appveyor.com/project/Microsoft-JDBC/mssql-jdbc
-[tv-image]: https://travis-ci.org/Microsoft/mssql-jdbc.svg? "Linux"
-[tv-site]: https://travis-ci.org/Microsoft/mssql-jdbc
+| [![AppVeyor ](https://ci.appveyor.com/api/projects/status/o6fjg16678ol64d3?svg=true "Windows")](https://ci.appveyor.com/project/Microsoft-JDBC/mssql-jdbc) | [![Travis CI](https://travis-ci.org/Microsoft/mssql-jdbc.svg? "Linux")](https://travis-ci.org/Microsoft/mssql-jdbc ) |vg? "Linux"
 
 ## Announcements
 What's coming next?  We will look into adding a more comprehensive set of tests, improving our javadocs, and start developing the next set of features.
@@ -30,20 +30,13 @@ What's coming next?  We will look into adding a more comprehensive set of tests,
 ## Build
 ### Prerequisites
 * Java 8
-* [Ant](http://ant.apache.org/manual/install.html) (with [Ivy](https://ant.apache.org/ivy/download.cgi)), [Maven](http://maven.apache.org/download.cgi) or [Gradle](https://gradle.org/gradle-download/)
+* [Maven](http://maven.apache.org/download.cgi) or [Gradle](https://gradle.org/gradle-download/)
 * An instance of SQL Server or Azure SQL Database that you can connect to. 
 
 ### Build the JAR files
-The build automatically triggers a set of verification tests to run.  For these tests to pass, you will first need to add an environment variable in your system called `mssql_jdbc_test_connection_properties` to provide the [correct connection properties](https://msdn.microsoft.com/en-us/library/ms378428(v=sql.110).aspx) for your SQL Server or Azure SQL Database instance.
+Maven and Gradle builds automatically trigger a set of verification tests to run.  For these tests to pass, you will first need to add an environment variable in your system called `mssql_jdbc_test_connection_properties` to provide the [correct connection properties](https://msdn.microsoft.com/en-us/library/ms378428(v=sql.110).aspx) for your SQL Server or Azure SQL Database instance.
 
-To build the jar files, you must use Java 8 with either Ant (with Ivy), Maven or Gradle.  You can choose to build a JDBC 4.1 compliant jar file (for use with JRE 7) and/or a JDBC 4.2 compliant jar file (for use with JRE 8).
-
-* Ant:
-	1. If you have not already done so, add the environment variable `mssql_jdbc_test_connection_properties` in your system with the connection properties for your SQL Server or SQL DB instance.
-	2. Run one of the commands below to build a JDBC 4.1 compliant jar, JDBC 4.2 compliant jar, or both in the \build directory. 
-		* Run `ant`. This creates both JDBC 4.1 compliant jar and JDBC 4.2 compliant jar in \build directory
-    	* Run `ant build41`. This creates JDBC 4.1 compliant jar in \build directory
-    	* Run `ant build42`. This creates JDBC 4.2 compliant jar in \build directory
+To build the jar files, you must use Java 8 with either Maven or Gradle.  You can choose to build a JDBC 4.1 compliant jar file (for use with JRE 7) and/or a JDBC 4.2 compliant jar file (for use with JRE 8).
 
 * Maven:
 	1. If you have not already done so, add the environment variable `mssql_jdbc_test_connection_properties` in your system with the connection properties for your SQL Server or SQL DB instance.
@@ -87,7 +80,8 @@ The driver can be downloaded from the [Microsoft Download Center](https://www.mi
 This project has following dependencies: 
 
 Compile Time:
- - `azure-keyvault` : Azure Key Vault Provider for Always Encrypted feature
+ - `azure-keyvault` : Azure Key Vault Provider for Always Encrypted feature (optional)
+ - `adal4j` : Azure ActiveDirectory Library for Java for Azure Active Directory Authentication feature (optional)
 
 Test Time:
  - `junit:jar`   : For Unit Test cases.
@@ -98,23 +92,29 @@ One can see all dependencies including Transitive Dependency by executing follow
 mvn dependency:tree
 ```
 
-###Exclude Dependencies
-If you wish to limit the number of run-time dependencies, and your project does not require the features named above, you can explicitly exclude them by adding exclusion tag.  
-***For Example:*** If you are not using *Always Encrypted Azure Key Vault feature* then you can exclude *azure-keyvault* dependency. Please see following snippet. 
+### Azure Key Vault and Azure Active Directory Authentication Dependencies
+Projects that require either of the two features need to explicitly declare the dependency in their pom file.
+
+***For Example:*** If you are using *Azure Key Vault feature* then you need to redeclare *azure-keyvault* dependency in your project's pom file. Please see the following snippet: 
 ```
 <dependency>
 	<groupId>com.microsoft.sqlserver</groupId>
 	<artifactId>mssql-jdbc</artifactId>
 	<version>6.1.0.jre8</version>
 	<scope>compile</scope>
-	<exclusions>
-		<exclusion>
-		         <groupId>com.microsoft.azure</groupId>
-		         <artifactId>azure-keyvault</artifactId>
-		</exclusion>
-    </exclusions>
+</dependency>
+
+<dependency>
+	<groupId>com.microsoft.azure</groupId>
+	<artifactId>azure-keyvault</artifactId>
+	<version>0.9.7</version>
 </dependency>
 ```
+
+## Guidelines for Creating Pull Requests
+We love contributions from the community.  To help improve the quality of our code, we encourage you to use the mssql-jdbc_formatter.xml formatter provided on all pull requests.
+
+Thank you!
 
 ## Guidelines for Reporting Issues
 We appreciate you taking the time to test the driver, provide feedback and report any issues.  It would be extremely helpful if you:
@@ -141,3 +141,4 @@ The Microsoft JDBC Driver for SQL Server is licensed under the MIT license. See 
 
 ## Code of conduct
 This project has adopted the [Microsoft Open Source Code of Conduct](https://opensource.microsoft.com/codeofconduct/). For more information see the [Code of Conduct FAQ](https://opensource.microsoft.com/codeofconduct/faq/) or contact [opencode@microsoft.com](mailto:opencode@microsoft.com) with any additional questions or comments.
+
