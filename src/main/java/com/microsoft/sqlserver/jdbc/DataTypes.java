@@ -363,7 +363,7 @@ enum SSType
                 SSType.Category.SQL_VARIANT,
                 EnumSet.of(
                     JDBCType.Category.CHARACTER, 
-                    JDBCType.Category.Sql_Variant));
+                    JDBCType.Category.SQL_VARIANT));
 
         private final SSType.Category from;
         private final EnumSet<JDBCType.Category> to;
@@ -848,7 +848,7 @@ enum JDBCType
     DATETIME      (Category.TIMESTAMP,       microsoft.sql.Types.DATETIME,			"java.sql.Timestamp"),
     SMALLDATETIME (Category.TIMESTAMP,       microsoft.sql.Types.SMALLDATETIME,     "java.sql.Timestamp"),
     GUID		  (Category.CHARACTER,		 microsoft.sql.Types.GUID,				"java.lang.String"),
-    SQL_VARIANT   (Category.Sql_Variant,     microsoft.sql.Types.SQL_VARIANT,       "java.lang.String");
+    SQL_VARIANT   (Category.SQL_VARIANT,     microsoft.sql.Types.SQL_VARIANT,       "java.lang.String");
 
 
     final Category category;
@@ -897,8 +897,7 @@ enum JDBCType
         UNKNOWN,
         TVP,
         GUID,
-       // Variant;
-        Sql_Variant;
+        SQL_VARIANT;
     }
 
     // This SetterConversion enum is based on the Category enum
@@ -991,7 +990,7 @@ enum JDBCType
                 JDBCType.Category.LONG_CHARACTER,
                 JDBCType.Category.NCHARACTER,
                 JDBCType.Category.LONG_NCHARACTER,
-                JDBCType.Category.Sql_Variant)), 
+                JDBCType.Category.SQL_VARIANT)), 
 
         DATE (
             JDBCType.Category.DATE,
