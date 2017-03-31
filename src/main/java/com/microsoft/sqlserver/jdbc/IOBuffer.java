@@ -73,6 +73,7 @@ import javax.net.ssl.TrustManagerFactory;
 import javax.net.ssl.X509TrustManager;
 import javax.xml.bind.DatatypeConverter;
 
+
 final class TDS {
     // TDS protocol versions
     static final int VER_DENALI = 0x74000004; // TDS 7.4
@@ -4286,6 +4287,18 @@ final class TDSWriter {
             writeInt(Float.floatToRawIntBits(floatValue.floatValue()));
         }
     }
+    
+    void writeRPCSqlVariant(String sName,
+            SqlVariant sqlVariantValue,
+            boolean bOut) throws SQLServerException {
+        writeRPCNameValType(sName, bOut, TDSType.SQL_VARIANT);
+
+        // Data and length
+        if (null == sqlVariantValue) {
+            writeInt(0); // max length
+            writeInt(0); // actual length
+        }
+    }
 
     /**
      * Append a double value in RPC transmission format.
@@ -5433,6 +5446,12 @@ final class TDSWriter {
 
         writeShort((short) minutesOffset);
     }
+    
+    void writeRPCSQLVariant(String sName,
+            String value,
+            boolean bOut) throws SQLServerException {
+        writeRPCStringUnicode(value);
+    }
 
     /**
      * Returns subSecondNanos rounded to the maximum precision supported. The maximum fractional scale is MAX_FRACTIONAL_SECONDS_SCALE(7). Eg1: if you
@@ -6456,7 +6475,7 @@ final class TDSReader {
             bytesRead += bytesToCopy;
             payloadOffset += bytesToCopy;
         }
-    }
+    }   
 
     final byte[] readWrappedBytes(int valueLength) throws SQLServerException {
         assert valueLength <= valueBytes.length;

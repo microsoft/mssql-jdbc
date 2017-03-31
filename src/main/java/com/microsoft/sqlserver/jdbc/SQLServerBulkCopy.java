@@ -1448,7 +1448,6 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable {
                 else {
                     return "datetimeoffset(" + bulkScale + ")";
                 }
-
             default: {
                 MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_BulkTypeNotSupported"));
                 Object[] msgArgs = {JDBCType.of(bulkJdbcType).toString().toLowerCase(Locale.ENGLISH)};
