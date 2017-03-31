@@ -11,6 +11,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.IOException;
+import java.sql.CallableStatement;
 import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.sql.Statement;
@@ -39,14 +40,8 @@ public class SQLVariantTest extends AbstractTest {
     static SQLServerConnection con = null;
     static Statement stmt = null;
     static String tableName = "SqlVariant_Test";
+    static String inputProc = "sqlVariant_Proc";
 
-    /**
-     * Read from a SqlVariant table int value
-     * 
-     * @throws SQLException
-     * @throws IOException
-     * @throws SecurityException
-     */
     @Test
     public void readInt() throws SQLException, SecurityException, IOException {
         int value = 2;
@@ -288,6 +283,12 @@ public class SQLVariantTest extends AbstractTest {
         }
     }
 
+    /**
+     * Read nVarChar
+     * @throws SQLException
+     * @throws SecurityException
+     * @throws IOException
+     */
     @Test
     public void readNVarChar() throws SQLException, SecurityException, IOException {
         String value = "nvarchar";
@@ -298,6 +299,12 @@ public class SQLVariantTest extends AbstractTest {
         }
     }
 
+    /**
+     * readBinary
+     * @throws SQLException
+     * @throws SecurityException
+     * @throws IOException
+     */
     @Test
     public void readBinary20() throws SQLException, SecurityException, IOException {
         String value = "hi";
@@ -308,6 +315,12 @@ public class SQLVariantTest extends AbstractTest {
         }
     }
 
+    /**
+     * read varBinary
+     * @throws SQLException
+     * @throws SecurityException
+     * @throws IOException
+     */
     @Test
     public void readVarBinary20() throws SQLException, SecurityException, IOException {
         String value = "hi";
@@ -318,6 +331,12 @@ public class SQLVariantTest extends AbstractTest {
         }
     }
 
+    /**
+     * read Binary512
+     * @throws SQLException
+     * @throws SecurityException
+     * @throws IOException
+     */
     @Test
     public void readBinary512() throws SQLException, SecurityException, IOException {
         String value = "hi";
@@ -328,6 +347,12 @@ public class SQLVariantTest extends AbstractTest {
         }
     }
 
+    /**
+     * read Binary(8000)
+     * @throws SQLException
+     * @throws SecurityException
+     * @throws IOException
+     */
     @Test
     public void readVarBinary8000() throws SQLException, SecurityException, IOException {
         String value = "hi";
@@ -362,7 +387,7 @@ public class SQLVariantTest extends AbstractTest {
                 + "and OBJECTPROPERTY(id, N'IsTable') = 1)" + " DROP TABLE " + tableName);
         stmt.executeUpdate("create table " + tableName + " (col1 sql_variant)");
         SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) con.prepareStatement("insert into " + tableName + " values (?)");
-        pstmt.setObject(1, buffer.toString());
+        pstmt.setSQLVariant(1, buffer.toString());
         try {
             pstmt.execute();
         }
@@ -396,7 +421,7 @@ public class SQLVariantTest extends AbstractTest {
      * @throws SQLException
      */
     @Test
-    public void insert() throws SQLException {
+    public void insertTest() throws SQLException {
         stmt.executeUpdate("IF EXISTS (select * from sysobjects where id = object_id(N'" + tableName + "') "
                 + "and OBJECTPROPERTY(id, N'IsTable') = 1)" + " DROP TABLE " + tableName);
         stmt.executeUpdate("create table " + tableName + " (col1 sql_variant, col2 int)");
@@ -404,10 +429,10 @@ public class SQLVariantTest extends AbstractTest {
 
         String[] col1Value = {"Hello", null};
         int[] col2Value = {1, 2};
-        pstmt.setObject(1, "Hello");
+        pstmt.setSQLVariant(1, "Hello");
         pstmt.setInt(2, 1);
         pstmt.execute();
-        pstmt.setObject(1, null);
+        pstmt.setSQLVariant(1, null);
         pstmt.setInt(2, 2);
         pstmt.execute();
 
@@ -427,7 +452,7 @@ public class SQLVariantTest extends AbstractTest {
      * @throws ParseException
      */
     @Test
-    public void test() throws SQLException {
+    public void insertSetObject() throws SQLException {
         stmt.executeUpdate("IF EXISTS (select * from sysobjects where id = object_id(N'" + tableName + "') "
                 + "and OBJECTPROPERTY(id, N'IsTable') = 1)" + " DROP TABLE " + tableName);
         stmt.executeUpdate("create table " + tableName + " (col1 sql_variant)");
@@ -443,29 +468,110 @@ public class SQLVariantTest extends AbstractTest {
     }
 
     /**
+     * Test callableStatement with SqlVariant
+     * 
+     * @throws SQLException
+     */
+    @Test
+    public void callableStatementOutputTest() throws SQLException {
+        int value = 5;
+        stmt.executeUpdate("IF EXISTS (select * from sysobjects where id = object_id(N'" + tableName + "') "
+                + "and OBJECTPROPERTY(id, N'IsTable') = 1)" + " DROP TABLE " + tableName);
+        stmt.executeUpdate("create table " + tableName + " (col1 sql_variant)");
+        stmt.executeUpdate("INSERT into " + tableName + " values (CAST (" + value + " AS " + "int" + "))");
+
+        String outPutProc = "sqlVariant_Proc";
+        String sql = " IF EXISTS (select * from sysobjects where id = object_id(N'" + outPutProc + "') and OBJECTPROPERTY(id, N'IsProcedure') = 1)"
+                + " DROP PROCEDURE " + outPutProc;
+        stmt.execute(sql);
+        sql = "CREATE PROCEDURE " + outPutProc + " @p0 sql_variant OUTPUT  AS SELECT TOP 1 @p0=col1 FROM  " + tableName;
+        stmt.execute(sql);
+
+        CallableStatement cs = con.prepareCall(" {call " + outPutProc + " (?)  }");
+        cs.registerOutParameter(1, microsoft.sql.Types.VARIANT);
+        cs.execute();
+        assertEquals(cs.getString(1), String.valueOf(value));
+    }
+
+    /**
+     * Test stored procedure with input and output params
+     * @throws SQLException
+     */
+    @Test
+    public void callableStatementInOutTest() throws SQLException {
+        int col1Value = 5;
+        int col2Value = 2;
+        stmt.executeUpdate("IF EXISTS (select * from sysobjects where id = object_id(N'" + tableName + "') "
+                + "and OBJECTPROPERTY(id, N'IsTable') = 1)" + " DROP TABLE " + tableName);
+        stmt.executeUpdate("create table " + tableName + " (col1 sql_variant, col2 int)");
+        stmt.executeUpdate("INSERT into " + tableName + "(col1, col2) values (CAST (" + col1Value + " AS " + "int" + "), " + col2Value + ")");
+        String sql = " IF EXISTS (select * from sysobjects where id = object_id(N'" + inputProc + "') and OBJECTPROPERTY(id, N'IsProcedure') = 1)"
+                + " DROP PROCEDURE " + inputProc;
+        stmt.execute(sql);
+        sql = "CREATE PROCEDURE " + inputProc + " @p0 sql_variant OUTPUT, @p1 sql_variant" + " AS" + " SELECT top 1 @p0=col1 FROM " + tableName
+                + " where col2=@p1";
+        stmt.execute(sql);
+        CallableStatement cs = con.prepareCall(" {call " + inputProc + " (?,?)  }");
+
+        cs.registerOutParameter(1, microsoft.sql.Types.VARIANT);
+        cs.setObject(2, col2Value, microsoft.sql.Types.VARIANT);
+        cs.execute();
+        assertEquals(cs.getObject(1), String.valueOf(col1Value));
+    }
+
+    /**
+     * Test stored procedure with input and output and return value
+     * @throws SQLException
+     */
+    @Test
+    public void callableStatementInOutRetTest() throws SQLException {
+        int col1Value = 5;
+        int col2Value = 2;
+        int returnValue = 12;
+        stmt.executeUpdate("IF EXISTS (select * from sysobjects where id = object_id(N'" + tableName + "') "
+                + "and OBJECTPROPERTY(id, N'IsTable') = 1)" + " DROP TABLE " + tableName);
+        stmt.executeUpdate("create table " + tableName + " (col1 sql_variant, col2 int)");
+        stmt.executeUpdate("INSERT into " + tableName + "(col1, col2) values (CAST (" + col1Value + " AS " + "int" + "), " + col2Value + ")");
+        String sql = " IF EXISTS (select * from sysobjects where id = object_id(N'" + inputProc + "') and OBJECTPROPERTY(id, N'IsProcedure') = 1)"
+                + " DROP PROCEDURE " + inputProc;
+        stmt.execute(sql);
+        sql = "CREATE PROCEDURE " + inputProc + " @p0 sql_variant OUTPUT, @p1 sql_variant" + " AS" + " SELECT top 1 @p0=col1 FROM " + tableName
+                + " where col2=@p1" + " return " + returnValue;
+        stmt.execute(sql);
+        CallableStatement cs = con.prepareCall(" {? = call " + inputProc + " (?,?)  }");
+
+        cs.registerOutParameter(1, microsoft.sql.Types.VARIANT);
+        cs.registerOutParameter(2, microsoft.sql.Types.VARIANT);
+        cs.setObject(3, col2Value, microsoft.sql.Types.VARIANT);
+        cs.execute();
+        assertEquals(cs.getString(1), String.valueOf(returnValue));
+        assertEquals(cs.getString(2), String.valueOf(col1Value));
+    }
+
+    /**
      * Create and populate table
      * 
      * @param columnType
      * @param value
      * @throws SQLException
      */
-    public void createAndPopulateTable(String columnType,
+    private void createAndPopulateTable(String columnType,
             Object value) throws SQLException {
         stmt.executeUpdate("IF EXISTS (select * from sysobjects where id = object_id(N'" + tableName + "') "
                 + "and OBJECTPROPERTY(id, N'IsTable') = 1)" + " DROP TABLE " + tableName);
         stmt.executeUpdate("create table " + tableName + " (col1 sql_variant)");
         stmt.executeUpdate("INSERT into " + tableName + " values (CAST (" + value + " AS " + columnType + "))");
     }
-    
 
     /**
      * Prepare test
+     * 
      * @throws SQLException
      * @throws SecurityException
      * @throws IOException
      */
     @BeforeAll
-    public static void setupHere() throws SQLException, SecurityException, IOException {      
+    public static void setupHere() throws SQLException, SecurityException, IOException {
         con = (SQLServerConnection) DriverManager.getConnection(connectionString);
         stmt = con.createStatement();
     }
@@ -477,8 +583,12 @@ public class SQLVariantTest extends AbstractTest {
      */
     @AfterAll
     public static void afterAll() throws SQLException {
+
+        stmt.executeUpdate(" IF EXISTS (select * from sysobjects where id = object_id(N'" + inputProc + "') and OBJECTPROPERTY(id, N'IsProcedure') = 1)"
+                + " DROP PROCEDURE " + inputProc);
         stmt.executeUpdate("IF EXISTS (select * from sysobjects where id = object_id(N'" + tableName + "') and OBJECTPROPERTY(id, N'IsTable') = 1)"
                 + " DROP TABLE " + tableName);
+
         if (null != stmt) {
             stmt.close();
         }

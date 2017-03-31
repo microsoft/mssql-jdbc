@@ -142,6 +142,9 @@ abstract class DTVExecuteOp {
 
     abstract void execute(DTV dtv,
             TVP tvpValue) throws SQLServerException;
+
+    abstract void execute(DTV dtv,
+            SqlVariant SqlVariantValue) throws SQLServerException;
 }
 
 /**
@@ -1440,8 +1443,15 @@ final class DTV {
             tdsWriter.writeRPCReaderUnicode(name, readerValue, dtv.getStreamSetterArgs().getLength(), isOutParam, collation);
         }
 
-       
-       
+        /* (non-Javadoc)
+         * @see com.microsoft.sqlserver.jdbc.DTVExecuteOp#execute(com.microsoft.sqlserver.jdbc.DTV, microsoft.sql.SqlVariant)
+         */
+        @Override
+        void execute(DTV dtv,
+                SqlVariant SqlVariantValue) throws SQLServerException {
+            tdsWriter.writeRPCSqlVariant(name, SqlVariantValue, isOutParam);
+            
+        }
     }
 
     /**
@@ -1586,6 +1596,10 @@ final class DTV {
                 case STRUCT:
                     unsupportedConversion = true;
                     break;
+                case Sql_Variant:
+                    op.execute(this, (microsoft.sql.SqlVariant) null);
+                    break;
+
                 case UNKNOWN:
                 default:
                     assert false : "Unexpected JDBCType: " + jdbcType;
@@ -1607,7 +1621,7 @@ final class DTV {
                         byte[] bArray = Util.asGuidByteArray((UUID) value);
                         op.execute(this, bArray);
                     }
-                    else if (jdbcType.Variant == jdbcType){
+                    else if (jdbcType.Sql_Variant == jdbcType){
                         op.execute(this, String.valueOf(value));
                     }
                     else {
@@ -2292,6 +2306,16 @@ final class AppDTVImpl extends DTVImpl {
                 dtv.setStreamSetterArgs(new StreamSetterArgs(StreamType.CHARACTER, DataTypes.UNKNOWN_STREAM_LENGTH));
                 execute(dtv, streamValue);
             }
+        }
+
+        /* (non-Javadoc)
+         * @see com.microsoft.sqlserver.jdbc.DTVExecuteOp#execute(com.microsoft.sqlserver.jdbc.DTV, microsoft.sql.SqlVariant)
+         */
+        @Override
+        void execute(DTV dtv,
+                SqlVariant SqlVariantValue) throws SQLServerException {
+            // TODO Auto-generated method stub
+            
         }
 
         
@@ -4076,14 +4100,14 @@ final class ServerDTVImpl extends DTVImpl {
                 break;
                 
             case NCHAR:
-               collation =  tdsReader.readCollation();
-               typeInfo.setSQLCollation(collation);
-               typeInfo.setSSLenType(SSLenType.USHORTLENTYPE);
+                collation = tdsReader.readCollation();
+                typeInfo.setSQLCollation(collation);
+                typeInfo.setSSLenType(SSLenType.USHORTLENTYPE);
                 maxLength = tdsReader.readUnsignedShort();
                 if (maxLength > DataTypes.SHORT_VARTYPE_MAX_BYTES || 0 != maxLength % 2)
                     tdsReader.throwInvalidTDS();
                 typeInfo.setDisplaySize(maxLength / 2);
-                typeInfo.setPrecision(maxLength/2);
+                typeInfo.setPrecision(maxLength / 2);
                 typeInfo.setCharset(Encoding.UNICODE.charset());
                 convertedValue = DDC.convertStreamToObject(new SimpleInputStream(tdsReader, expectedValueLength, streamGetterArgs, this), typeInfo,
                         jdbcType, streamGetterArgs);

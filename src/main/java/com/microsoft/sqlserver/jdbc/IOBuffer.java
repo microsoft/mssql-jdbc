@@ -69,6 +69,8 @@ import javax.net.ssl.TrustManagerFactory;
 import javax.net.ssl.X509TrustManager;
 import javax.xml.bind.DatatypeConverter;
 
+import microsoft.sql.SqlVariant;
+
 final class TDS {
     // TDS protocol versions
     static final int VER_DENALI = 0x74000004; // TDS 7.4
@@ -4253,6 +4255,18 @@ final class TDSWriter {
             writeInt(Float.floatToRawIntBits(floatValue.floatValue()));
         }
     }
+    
+    void writeRPCSqlVariant(String sName,
+            SqlVariant sqlVariantValue,
+            boolean bOut) throws SQLServerException {
+        writeRPCNameValType(sName, bOut, TDSType.SQL_VARIANT);
+
+        // Data and length
+        if (null == sqlVariantValue) {
+            writeInt(0); //max length
+            writeInt(0); //actual length          
+        }
+    }
 
     /**
      * Append a double value in RPC transmission format.
@@ -5399,6 +5413,12 @@ final class TDSWriter {
         writeScaledTemporal(utcCalendar, subSecondNanos, scale, SSType.DATETIMEOFFSET);
 
         writeShort((short) minutesOffset);
+    }
+    
+    void writeRPCSQLVariant(String sName,
+            String value,
+            boolean bOut) throws SQLServerException {
+        writeRPCStringUnicode(value);
     }
 
     /**

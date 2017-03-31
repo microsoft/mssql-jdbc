@@ -145,7 +145,7 @@ enum SSType
     DECIMAL        (Category.NUMERIC,         "decimal",          JDBCType.DECIMAL),
     NUMERIC        (Category.NUMERIC,         "numeric",          JDBCType.NUMERIC),
     GUID           (Category.GUID,            "uniqueidentifier", JDBCType.GUID),
-    SQL_VARIANT    (Category.VARIANT,         "sql_variant",      JDBCType.CHAR),  
+    SQL_VARIANT    (Category.Sql_Variant,         "sql_variant",      JDBCType.CHAR),  
     UDT            (Category.UDT,             "udt",              JDBCType.VARBINARY),
     XML            (Category.XML,             "xml",              JDBCType.LONGNVARCHAR),
     TIMESTAMP      (Category.TIMESTAMP,       "timestamp",        JDBCType.BINARY);
@@ -203,7 +203,7 @@ enum SSType
         TIME,
         TIMESTAMP,
         UDT,
-        VARIANT,
+        Sql_Variant,
         XML
     }
 
@@ -359,10 +359,11 @@ enum SSType
             EnumSet.of(
                 JDBCType.Category.BINARY,
                 JDBCType.Category.CHARACTER)),
-        VARIANT (
-                SSType.Category.VARIANT,
+        Sql_Variant (
+                SSType.Category.Sql_Variant,
                 EnumSet.of(
-                    JDBCType.Category.CHARACTER));
+                    JDBCType.Category.CHARACTER, 
+                    JDBCType.Category.Sql_Variant));
 
         private final SSType.Category from;
         private final EnumSet<JDBCType.Category> to;
@@ -850,7 +851,9 @@ enum JDBCType
     DATETIME      (Category.TIMESTAMP,       microsoft.sql.Types.DATETIME,			"java.sql.Timestamp"),
     SMALLDATETIME (Category.TIMESTAMP,       microsoft.sql.Types.SMALLDATETIME,     "java.sql.Timestamp"),
     GUID		  (Category.CHARACTER,		 microsoft.sql.Types.GUID,				"java.lang.String"),
-    Variant       (Category.Variant,         microsoft.sql.Types.VARIANT,           "java.lang.String");
+//    Variant       (Category.Variant,         microsoft.sql.Types.VARIANT,           "java.lang.String");
+    Sql_Variant       (Category.Sql_Variant,         microsoft.sql.Types.VARIANT,           "java.lang.String");
+
 
     final Category category;
     private final int intValue;
@@ -898,7 +901,8 @@ enum JDBCType
         UNKNOWN,
         TVP,
         GUID,
-        Variant;
+       // Variant;
+        Sql_Variant;
     }
 
     // This SetterConversion enum is based on the Category enum
@@ -990,7 +994,8 @@ enum JDBCType
                 JDBCType.Category.CHARACTER,
                 JDBCType.Category.LONG_CHARACTER,
                 JDBCType.Category.NCHARACTER,
-                JDBCType.Category.LONG_NCHARACTER)), 
+                JDBCType.Category.LONG_NCHARACTER,
+                JDBCType.Category.Sql_Variant)), 
 
         DATE (
             JDBCType.Category.DATE,
@@ -1193,7 +1198,8 @@ enum JDBCType
                 SSType.Category.CHARACTER,
                 SSType.Category.LONG_CHARACTER,
                 SSType.Category.NCHARACTER,
-                SSType.Category.LONG_NCHARACTER)),
+                SSType.Category.LONG_NCHARACTER,
+                SSType.Category.Sql_Variant)),
 
         DATE (
             JDBCType.Category.DATE,
