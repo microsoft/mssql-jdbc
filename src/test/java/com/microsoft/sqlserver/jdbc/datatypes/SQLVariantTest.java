@@ -17,6 +17,8 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.Arrays;
 
+import javax.swing.plaf.synth.SynthSpinnerUI;
+
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -362,6 +364,23 @@ public class SQLVariantTest extends AbstractTest {
             assertTrue(parseByte((byte[]) rs.getObject(1), (byte[]) value.getBytes()));
         }
     }
+    
+    /**
+     * Read SqlVariantProperty
+     * @throws SQLException
+     * @throws SecurityException
+     * @throws IOException
+     */
+    @Test
+    public void readSQLVariantProperty() throws SQLException, SecurityException, IOException {
+        String value = "hi";
+        createAndPopulateTable("binary(8000)", "'" + value + "'");
+        SQLServerResultSet rs = (SQLServerResultSet) stmt.executeQuery("SELECT SQL_VARIANT_PROPERTY(col1,'BaseType') AS 'Base Type',"
+                + " SQL_VARIANT_PROPERTY(col1,'Precision') AS 'Precision' from " + tableName);
+        while (rs.next()) {
+            assertTrue(rs.getString(1).equalsIgnoreCase("binary"), "unexpected baseType, expected: binary, retrieved:" +rs.getString(1) );
+        }
+    }
 
     private boolean parseByte(byte[] expectedData,
             byte[] retrieved) {
@@ -387,7 +406,7 @@ public class SQLVariantTest extends AbstractTest {
                 + "and OBJECTPROPERTY(id, N'IsTable') = 1)" + " DROP TABLE " + tableName);
         stmt.executeUpdate("create table " + tableName + " (col1 sql_variant)");
         SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) con.prepareStatement("insert into " + tableName + " values (?)");
-        pstmt.setSQLVariant(1, buffer.toString());
+        pstmt.setObject(1, buffer.toString());
         try {
             pstmt.execute();
         }
@@ -429,10 +448,10 @@ public class SQLVariantTest extends AbstractTest {
 
         String[] col1Value = {"Hello", null};
         int[] col2Value = {1, 2};
-        pstmt.setSQLVariant(1, "Hello");
+        pstmt.setObject(1, "Hello");
         pstmt.setInt(2, 1);
         pstmt.execute();
-        pstmt.setSQLVariant(1, null);
+        pstmt.setObject(1, null);
         pstmt.setInt(2, 2);
         pstmt.execute();
 
@@ -488,7 +507,7 @@ public class SQLVariantTest extends AbstractTest {
         stmt.execute(sql);
 
         CallableStatement cs = con.prepareCall(" {call " + outPutProc + " (?)  }");
-        cs.registerOutParameter(1, microsoft.sql.Types.VARIANT);
+        cs.registerOutParameter(1, microsoft.sql.Types.SQL_VARIANT);
         cs.execute();
         assertEquals(cs.getString(1), String.valueOf(value));
     }
@@ -513,8 +532,8 @@ public class SQLVariantTest extends AbstractTest {
         stmt.execute(sql);
         CallableStatement cs = con.prepareCall(" {call " + inputProc + " (?,?)  }");
 
-        cs.registerOutParameter(1, microsoft.sql.Types.VARIANT);
-        cs.setObject(2, col2Value, microsoft.sql.Types.VARIANT);
+        cs.registerOutParameter(1, microsoft.sql.Types.SQL_VARIANT);
+        cs.setObject(2, col2Value, microsoft.sql.Types.SQL_VARIANT);
         cs.execute();
         assertEquals(cs.getObject(1), String.valueOf(col1Value));
     }
@@ -540,9 +559,9 @@ public class SQLVariantTest extends AbstractTest {
         stmt.execute(sql);
         CallableStatement cs = con.prepareCall(" {? = call " + inputProc + " (?,?)  }");
 
-        cs.registerOutParameter(1, microsoft.sql.Types.VARIANT);
-        cs.registerOutParameter(2, microsoft.sql.Types.VARIANT);
-        cs.setObject(3, col2Value, microsoft.sql.Types.VARIANT);
+        cs.registerOutParameter(1, microsoft.sql.Types.SQL_VARIANT);
+        cs.registerOutParameter(2, microsoft.sql.Types.SQL_VARIANT);
+        cs.setObject(3, col2Value, microsoft.sql.Types.SQL_VARIANT);
         cs.execute();
         assertEquals(cs.getString(1), String.valueOf(returnValue));
         assertEquals(cs.getString(2), String.valueOf(col1Value));

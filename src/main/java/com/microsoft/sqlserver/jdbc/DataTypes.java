@@ -852,7 +852,7 @@ enum JDBCType
     SMALLDATETIME (Category.TIMESTAMP,       microsoft.sql.Types.SMALLDATETIME,     "java.sql.Timestamp"),
     GUID		  (Category.CHARACTER,		 microsoft.sql.Types.GUID,				"java.lang.String"),
 //    Variant       (Category.Variant,         microsoft.sql.Types.VARIANT,           "java.lang.String");
-    Sql_Variant       (Category.Sql_Variant,         microsoft.sql.Types.VARIANT,           "java.lang.String");
+    Sql_Variant       (Category.Sql_Variant,         microsoft.sql.Types.SQL_VARIANT,           "java.lang.String");
 
 
     final Category category;

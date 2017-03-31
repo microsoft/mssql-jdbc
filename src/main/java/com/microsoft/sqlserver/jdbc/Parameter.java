@@ -26,7 +26,6 @@ import java.time.OffsetTime;
 import java.util.Calendar;
 import java.util.Locale;
 
-import microsoft.sql.SqlVariant;
 
 /**
  * Parameter represents a JDBC parameter value that is supplied with a prepared or callable statement or an updatable result set. Parameter is JDBC
@@ -1148,7 +1147,7 @@ final class Parameter {
         @Override
         void execute(DTV dtv,
                 SqlVariant SqlVariantValue) throws SQLServerException {
-            setTypeDefinition(dtv);          
+            setTypeDefinition(dtv);
         }
 
     }

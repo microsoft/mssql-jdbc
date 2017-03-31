@@ -44,7 +44,7 @@ import java.util.UUID;
 import com.microsoft.sqlserver.jdbc.JDBCType.Category;
 import com.microsoft.sqlserver.jdbc.JavaType.SetterConversionAE;
 
-import microsoft.sql.SqlVariant;
+
 
 /**
  * Defines an abstraction for execution of type-specific operations on DTV values.
@@ -1597,7 +1597,7 @@ final class DTV {
                     unsupportedConversion = true;
                     break;
                 case Sql_Variant:
-                    op.execute(this, (microsoft.sql.SqlVariant) null);
+                    op.execute(this, (SqlVariant) null);
                     break;
 
                 case UNKNOWN:

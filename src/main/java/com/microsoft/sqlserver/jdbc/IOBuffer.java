@@ -69,7 +69,6 @@ import javax.net.ssl.TrustManagerFactory;
 import javax.net.ssl.X509TrustManager;
 import javax.xml.bind.DatatypeConverter;
 
-import microsoft.sql.SqlVariant;
 
 final class TDS {
     // TDS protocol versions
@@ -4263,8 +4262,8 @@ final class TDSWriter {
 
         // Data and length
         if (null == sqlVariantValue) {
-            writeInt(0); //max length
-            writeInt(0); //actual length          
+            writeInt(0); // max length
+            writeInt(0); // actual length
         }
     }
 

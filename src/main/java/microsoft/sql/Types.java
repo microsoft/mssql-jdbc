@@ -56,5 +56,5 @@ public final class Types extends Object {
     /**
      * 
      */
-    public static final int VARIANT = -156;
+    public static final int SQL_VARIANT = -156;
 }
