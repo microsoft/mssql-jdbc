@@ -145,7 +145,7 @@ enum SSType
     DECIMAL        (Category.NUMERIC,         "decimal",          JDBCType.DECIMAL),
     NUMERIC        (Category.NUMERIC,         "numeric",          JDBCType.NUMERIC),
     GUID           (Category.GUID,            "uniqueidentifier", JDBCType.GUID),
-    SQL_VARIANT    (Category.Sql_Variant,         "sql_variant",      JDBCType.CHAR),  
+    SQL_VARIANT    (Category.SQL_VARIANT,     "sql_variant",      JDBCType.CHAR),  
     UDT            (Category.UDT,             "udt",              JDBCType.VARBINARY),
     XML            (Category.XML,             "xml",              JDBCType.LONGNVARCHAR),
     TIMESTAMP      (Category.TIMESTAMP,       "timestamp",        JDBCType.BINARY);
@@ -203,7 +203,7 @@ enum SSType
         TIME,
         TIMESTAMP,
         UDT,
-        Sql_Variant,
+        SQL_VARIANT,
         XML
     }
 
@@ -360,7 +360,7 @@ enum SSType
                 JDBCType.Category.BINARY,
                 JDBCType.Category.CHARACTER)),
         Sql_Variant (
-                SSType.Category.Sql_Variant,
+                SSType.Category.SQL_VARIANT,
                 EnumSet.of(
                     JDBCType.Category.CHARACTER, 
                     JDBCType.Category.Sql_Variant));
@@ -848,8 +848,7 @@ enum JDBCType
     DATETIME      (Category.TIMESTAMP,       microsoft.sql.Types.DATETIME,			"java.sql.Timestamp"),
     SMALLDATETIME (Category.TIMESTAMP,       microsoft.sql.Types.SMALLDATETIME,     "java.sql.Timestamp"),
     GUID		  (Category.CHARACTER,		 microsoft.sql.Types.GUID,				"java.lang.String"),
-//    Variant       (Category.Variant,         microsoft.sql.Types.VARIANT,           "java.lang.String");
-    Sql_Variant       (Category.Sql_Variant,         microsoft.sql.Types.SQL_VARIANT,           "java.lang.String");
+    SQL_VARIANT   (Category.Sql_Variant,     microsoft.sql.Types.SQL_VARIANT,       "java.lang.String");
 
 
     final Category category;
@@ -1196,7 +1195,7 @@ enum JDBCType
                 SSType.Category.LONG_CHARACTER,
                 SSType.Category.NCHARACTER,
                 SSType.Category.LONG_NCHARACTER,
-                SSType.Category.Sql_Variant)),
+                SSType.Category.SQL_VARIANT)),
 
         DATE (
             JDBCType.Category.DATE,

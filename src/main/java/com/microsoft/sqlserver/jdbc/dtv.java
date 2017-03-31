@@ -1596,7 +1596,7 @@ final class DTV {
                 case STRUCT:
                     unsupportedConversion = true;
                     break;
-                case Sql_Variant:
+                case SQL_VARIANT:
                     op.execute(this, (SqlVariant) null);
                     break;
 
@@ -1621,7 +1621,7 @@ final class DTV {
                         byte[] bArray = Util.asGuidByteArray((UUID) value);
                         op.execute(this, bArray);
                     }
-                    else if (jdbcType.Sql_Variant == jdbcType){
+                    else if (jdbcType.SQL_VARIANT == jdbcType){
                         op.execute(this, String.valueOf(value));
                     }
                     else {
@@ -2308,16 +2308,15 @@ final class AppDTVImpl extends DTVImpl {
             }
         }
 
-        /* (non-Javadoc)
+        /*
+         * (non-Javadoc)
+         * 
          * @see com.microsoft.sqlserver.jdbc.DTVExecuteOp#execute(com.microsoft.sqlserver.jdbc.DTV, microsoft.sql.SqlVariant)
          */
         @Override
         void execute(DTV dtv,
                 SqlVariant SqlVariantValue) throws SQLServerException {
-            // TODO Auto-generated method stub
-            
         }
-
         
     }
 

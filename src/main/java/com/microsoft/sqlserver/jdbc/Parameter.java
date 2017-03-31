@@ -884,7 +884,7 @@ final class Parameter {
                 case GUID:
                     param.typeDefinition = SSType.GUID.toString();
                     break;
-                case Sql_Variant:
+                case SQL_VARIANT:
                     param.typeDefinition = SSType.SQL_VARIANT.toString();
                     break;
                 default:

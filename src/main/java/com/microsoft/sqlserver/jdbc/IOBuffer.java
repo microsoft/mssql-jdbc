@@ -6496,10 +6496,6 @@ final class TDSReader {
         return DDC.convertBigDecimalToObject(Util.readBigDecimal(valueBytes, valueLength, typeInfo.getScale()), jdbcType, streamType);
     }
 
-//    final Object readSqlVariant() {
-//
-//    }
-
     final Object readMoney(int valueLength,
             JDBCType jdbcType,
             StreamType streamType) throws SQLServerException {
