@@ -63,6 +63,9 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     /** SQL statement with expanded parameter tokens */
     private String preparedSQL;
 
+    /** True if this execute has been called for this statement at least once */
+    private boolean isExecutedAtLeastOnce = false;
+
     /**
      * Array with parameter names generated in buildParamTypeDefinitions For mapping encryption information to parameters, as the second result set
      * returned by sp_describe_parameter_encryption doesn't depend on order of input parameter
@@ -149,38 +152,50 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                 getStatementLogger().finer(this + ": Not closing PreparedHandle:" + prepStmtHandle + "; connection is already closed.");
         }
         else {
-            if (getStatementLogger().isLoggable(java.util.logging.Level.FINER))
-                getStatementLogger().finer(this + ": Closing PreparedHandle:" + prepStmtHandle);
+            isExecutedAtLeastOnce = false;
+            final int handleToClose = prepStmtHandle;
+            prepStmtHandle = 0;
 
-            final class PreparedHandleClose extends UninterruptableTDSCommand {
-                PreparedHandleClose() {
-                    super("closePreparedHandle");
-                }
-
-                final boolean doExecute() throws SQLServerException {
-                    TDSWriter tdsWriter = startRequest(TDS.PKT_RPC);
-                    tdsWriter.writeShort((short) 0xFFFF); // procedure name length -> use ProcIDs
-                    tdsWriter.writeShort(executedSqlDirectly ? TDS.PROCID_SP_UNPREPARE : TDS.PROCID_SP_CURSORUNPREPARE);
-                    tdsWriter.writeByte((byte) 0);  // RPC procedure option 1
-                    tdsWriter.writeByte((byte) 0);  // RPC procedure option 2
-                    tdsWriter.writeRPCInt(null, new Integer(prepStmtHandle), false);
-                    prepStmtHandle = 0;
-                    TDSParser.parse(startResponse(), getLogContext());
-                    return true;
-                }
+            // Using batched clean-up? If not, use old method of calling sp_unprepare.
+            if(1 < connection.getServerPreparedStatementDiscardThreshold()) {
+                // Handle unprepare actions through batching @ connection level. 
+                connection.enqueuePreparedStatementDiscardItem(handleToClose, executedSqlDirectly);
+                connection.handlePreparedStatementDiscardActions(false);
             }
-
-            // Try to close the server cursor. Any failure is caught, logged, and ignored.
-            try {
-                executeCommand(new PreparedHandleClose());
-            }
-            catch (SQLServerException e) {
+            else {
+                // Non batched behavior (same as pre batch impl.)
                 if (getStatementLogger().isLoggable(java.util.logging.Level.FINER))
-                    getStatementLogger().log(Level.FINER, this + ": Error (ignored) closing PreparedHandle:" + prepStmtHandle, e);
-            }
+                    getStatementLogger().finer(this + ": Closing PreparedHandle:" + handleToClose);
 
-            if (getStatementLogger().isLoggable(java.util.logging.Level.FINER))
-                getStatementLogger().finer(this + ": Closed PreparedHandle:" + prepStmtHandle);
+                final class PreparedHandleClose extends UninterruptableTDSCommand {
+                    PreparedHandleClose() {
+                        super("closePreparedHandle");
+                    }
+
+                    final boolean doExecute() throws SQLServerException {
+                        TDSWriter tdsWriter = startRequest(TDS.PKT_RPC);
+                        tdsWriter.writeShort((short) 0xFFFF); // procedure name length -> use ProcIDs
+                        tdsWriter.writeShort(executedSqlDirectly ? TDS.PROCID_SP_UNPREPARE : TDS.PROCID_SP_CURSORUNPREPARE);
+                        tdsWriter.writeByte((byte) 0);  // RPC procedure option 1
+                        tdsWriter.writeByte((byte) 0);  // RPC procedure option 2
+                        tdsWriter.writeRPCInt(null, new Integer(handleToClose), false);
+                        TDSParser.parse(startResponse(), getLogContext());
+                        return true;
+                    }
+                }
+
+                // Try to close the server cursor. Any failure is caught, logged, and ignored.
+                try {
+                    executeCommand(new PreparedHandleClose());
+                }
+                catch (SQLServerException e) {
+                    if (getStatementLogger().isLoggable(java.util.logging.Level.FINER))
+                        getStatementLogger().log(Level.FINER, this + ": Error (ignored) closing PreparedHandle:" + handleToClose, e);
+                }
+
+                if (getStatementLogger().isLoggable(java.util.logging.Level.FINER))
+                    getStatementLogger().finer(this + ": Closed PreparedHandle:" + handleToClose);
+            }
         }
     }
 
@@ -582,6 +597,30 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         tdsWriter.writeRPCStringUnicode(preparedSQL);
     }
 
+    private void buildExecSQLParams(TDSWriter tdsWriter) throws SQLServerException {
+        if (getStatementLogger().isLoggable(java.util.logging.Level.FINE))
+            getStatementLogger().fine(toString() + ": calling sp_executesql: SQL:" + preparedSQL);
+
+        expectPrepStmtHandle = false;
+        executedSqlDirectly = true;
+        expectCursorOutParams = false;
+        outParamIndexAdjustment = 2;
+
+        tdsWriter.writeShort((short) 0xFFFF); // procedure name length -> use ProcIDs
+        tdsWriter.writeShort(TDS.PROCID_SP_EXECUTESQL);
+        tdsWriter.writeByte((byte) 0);  // RPC procedure option 1
+        tdsWriter.writeByte((byte) 0);  // RPC procedure option 2
+
+        // No handle used.
+        prepStmtHandle = 0;
+
+        // <stmt> IN
+        tdsWriter.writeRPCStringUnicode(preparedSQL);
+
+        // <formal parameter defn> IN
+        tdsWriter.writeRPCStringUnicode((preparedTypeDefinitions.length() > 0) ? preparedTypeDefinitions : null);
+    }
+
     private void buildServerCursorExecParams(TDSWriter tdsWriter) throws SQLServerException {
         if (getStatementLogger().isLoggable(java.util.logging.Level.FINE))
             getStatementLogger().fine(toString() + ": calling sp_cursorexecute: PreparedHandle:" + prepStmtHandle + ", SQL:" + preparedSQL);
@@ -776,22 +815,32 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     private boolean doPrepExec(TDSWriter tdsWriter,
             Parameter[] params,
             boolean hasNewTypeDefinitions) throws SQLServerException {
+       
         boolean needsPrepare = hasNewTypeDefinitions || 0 == prepStmtHandle;
 
-        if (needsPrepare) {
-            if (isCursorable(executeMethod))
+        // Cursors never go the non-prepared statement route.
+        if (isCursorable(executeMethod)) {
+            if (needsPrepare) 
                 buildServerCursorPrepExecParams(tdsWriter);
             else
-                buildPrepExecParams(tdsWriter);
+                buildServerCursorExecParams(tdsWriter);
         }
         else {
-            if (isCursorable(executeMethod))
-                buildServerCursorExecParams(tdsWriter);
+            // Move overhead of needing to do prepare & unprepare to only use cases that need more than one execution.
+            // First execution, use sp_executesql, optimizing for asumption we will not re-use statement.
+            if (!connection.getEnablePrepareOnFirstPreparedStatementCall() && !isExecutedAtLeastOnce) {
+                buildExecSQLParams(tdsWriter);
+                isExecutedAtLeastOnce = true;
+            }
+            // Second execution, use prepared statements since we seem to be re-using it.
+            else if(needsPrepare)
+                buildPrepExecParams(tdsWriter);
             else
                 buildExecParams(tdsWriter);
         }
 
         sendParamsByRPC(tdsWriter, params);
+
         return needsPrepare;
     }
 
