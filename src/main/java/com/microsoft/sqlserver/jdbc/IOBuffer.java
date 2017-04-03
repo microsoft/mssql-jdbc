@@ -4535,11 +4535,29 @@ final class TDSWriter {
     void writeTVPRows(TVP value) throws SQLServerException {
         boolean isShortValue, isNull;
         int dataLength;
+        
+        boolean tdsWritterCached = false;
 
-        ByteBuffer tempStagingBuffer = ByteBuffer.allocate(stagingBuffer.capacity()).order(stagingBuffer.order());
-        tempStagingBuffer.put(stagingBuffer.array(), 0, stagingBuffer.position());
+        ByteBuffer cachedStagingBuffer = null;
         
         if (!value.isNull()) {
+
+            // If TVP is set with ResultSet and Server Cursor is used, the tdsWriter of the calling preparedStatement is overwritten
+            // by the SQLServerResultSet#next() method if the preparedStatement and the ResultSet are created by the same connection.
+            // Therefore, we need to cache the tdsWriter's value and update it with new TDS values.
+            if (TVPType.ResultSet == value.tvpType) {
+                if ((null != value.sourceResultSet) && (value.sourceResultSet instanceof SQLServerResultSet)) {
+                    SQLServerStatement src_stmt = (SQLServerStatement) ((SQLServerResultSet) value.sourceResultSet).getStatement();
+                    int resultSetServerCursorId = ((SQLServerResultSet) value.sourceResultSet).getServerCursorId();
+
+                    if (con.equals(src_stmt.getConnection()) && 0 != resultSetServerCursorId) {
+                        cachedStagingBuffer = ByteBuffer.allocate(stagingBuffer.capacity()).order(stagingBuffer.order());
+                        cachedStagingBuffer.put(stagingBuffer.array(), 0, stagingBuffer.position());
+                        tdsWritterCached = true;
+                    }
+                }
+            }
+            
             Map<Integer, SQLServerMetaData> columnMetadata = value.getColumnMetadata();
             Iterator<Entry<Integer, SQLServerMetaData>> columnsIterator;
 
@@ -4752,11 +4770,18 @@ final class TDSWriter {
                     }
                     currentColumn++;
                 }
-                tempStagingBuffer.put(stagingBuffer.array(), 0, stagingBuffer.position());
+                
+                if (tdsWritterCached) {
+                    cachedStagingBuffer.put(stagingBuffer.array(), 0, stagingBuffer.position());
+                    stagingBuffer.clear();
+                }
             }
         }
-        stagingBuffer.clear();
-        stagingBuffer.put(tempStagingBuffer.array(), 0, tempStagingBuffer.position());
+        
+        if (tdsWritterCached) {
+            stagingBuffer.clear();
+            stagingBuffer.put(cachedStagingBuffer.array(), 0, cachedStagingBuffer.position());
+        }
 
         // TVP_END_TOKEN
         writeByte((byte) 0x00);

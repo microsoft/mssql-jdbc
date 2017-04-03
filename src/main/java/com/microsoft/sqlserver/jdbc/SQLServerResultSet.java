@@ -83,6 +83,10 @@ public class SQLServerResultSet implements ISQLServerResultSet {
     private boolean isClosed = false;
 
     private final int serverCursorId;
+    
+    int getServerCursorId() {
+        return serverCursorId;
+    }
 
     /** the intended fetch direction to optimize cursor performance */
     private int fetchDirection;
