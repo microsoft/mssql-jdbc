@@ -4536,6 +4536,9 @@ final class TDSWriter {
         boolean isShortValue, isNull;
         int dataLength;
 
+        ByteBuffer tempStagingBuffer = ByteBuffer.allocate(stagingBuffer.capacity()).order(stagingBuffer.order());
+        tempStagingBuffer.put(stagingBuffer.array(), 0, stagingBuffer.position());
+        
         if (!value.isNull()) {
             Map<Integer, SQLServerMetaData> columnMetadata = value.getColumnMetadata();
             Iterator<Entry<Integer, SQLServerMetaData>> columnsIterator;
@@ -4749,8 +4752,12 @@ final class TDSWriter {
                     }
                     currentColumn++;
                 }
+                tempStagingBuffer.put(stagingBuffer.array(), 0, stagingBuffer.position());
             }
         }
+        stagingBuffer.clear();
+        stagingBuffer.put(tempStagingBuffer.array(), 0, tempStagingBuffer.position());
+
         // TVP_END_TOKEN
         writeByte((byte) 0x00);
     }
