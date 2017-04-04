@@ -81,8 +81,6 @@ import org.ietf.jgss.GSSException;
 public class SQLServerConnection implements ISQLServerConnection {
     long timerExpire;
     boolean attemptRefreshTokenLocked = false;
-    
-    boolean needsToReadTVPResponse = false;
 
     private boolean fedAuthRequiredByUser = false;
     private boolean fedAuthRequiredPreLoginResponse = false;

@@ -4539,12 +4539,14 @@ final class TDSWriter {
         boolean tdsWritterCached = false;
 
         ByteBuffer cachedStagingBuffer = null;
+        TDSCommand cachedCommand = null;
         
         if (!value.isNull()) {
 
             // If TVP is set with ResultSet and Server Cursor is used, the tdsWriter of the calling preparedStatement is overwritten
             // by the SQLServerResultSet#next() method if the preparedStatement and the ResultSet are created by the same connection.
-            // Therefore, we need to cache the tdsWriter's value and update it with new TDS values.
+            // Therefore, we need to cache the tdsWriter's values (stagingBuffer for sending data and command for retrieving data) and update
+            // stagingBuffer with new TDS values.
             if (TVPType.ResultSet == value.tvpType) {
                 if ((null != value.sourceResultSet) && (value.sourceResultSet instanceof SQLServerResultSet)) {
                     SQLServerStatement src_stmt = (SQLServerStatement) ((SQLServerResultSet) value.sourceResultSet).getStatement();
@@ -4553,6 +4555,9 @@ final class TDSWriter {
                     if (con.equals(src_stmt.getConnection()) && 0 != resultSetServerCursorId) {
                         cachedStagingBuffer = ByteBuffer.allocate(stagingBuffer.capacity()).order(stagingBuffer.order());
                         cachedStagingBuffer.put(stagingBuffer.array(), 0, stagingBuffer.position());
+
+                        cachedCommand = this.command;
+
                         tdsWritterCached = true;
                     }
                 }
@@ -4770,19 +4775,18 @@ final class TDSWriter {
                     }
                     currentColumn++;
                 }
-                
+
                 if (tdsWritterCached) {
                     cachedStagingBuffer.put(stagingBuffer.array(), 0, stagingBuffer.position());
                     stagingBuffer.clear();
                 }
             }
         }
-        
+
         if (tdsWritterCached) {
             stagingBuffer.clear();
             stagingBuffer.put(cachedStagingBuffer.array(), 0, cachedStagingBuffer.position());
-            
-            con.needsToReadTVPResponse = true;
+            this.command = cachedCommand;
         }
 
         // TVP_END_TOKEN
@@ -6239,14 +6243,8 @@ final class TDSReader {
      * that is trying to buffer it with TDSCommand.detach().
      */
     synchronized final boolean readPacket() throws SQLServerException {
-        
-        if (null != command && !command.readingResponse()){
-            
-            if(!con.needsToReadTVPResponse){
-                return false;
-            }
-            
-            con.needsToReadTVPResponse = false;
+        if (null != command && !command.readingResponse()) {
+            return false;
         }
 
         // Number of packets in should always be less than number of packets out.
