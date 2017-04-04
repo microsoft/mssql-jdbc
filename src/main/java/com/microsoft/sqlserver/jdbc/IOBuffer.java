@@ -6882,6 +6882,8 @@ final class TimeoutTimer implements Runnable {
             while (--secondsRemaining > 0);
         }
         catch (InterruptedException e) {
+            // re-interrupt the current thread, in order to restore the thread's interrupt status.
+            Thread.currentThread().interrupt();
             return;
         }
 

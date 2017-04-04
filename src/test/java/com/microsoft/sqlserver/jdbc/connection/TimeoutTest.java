@@ -20,6 +20,7 @@ import org.junit.runner.RunWith;
 import com.microsoft.sqlserver.jdbc.SQLServerConnection;
 import com.microsoft.sqlserver.jdbc.SQLServerException;
 import com.microsoft.sqlserver.testframework.AbstractTest;
+import com.microsoft.sqlserver.testframework.Utils;
 import com.microsoft.sqlserver.testframework.util.RandomUtil;
 
 @RunWith(JUnitPlatform.class)
@@ -129,9 +130,7 @@ public class TimeoutTest extends AbstractTest {
     }
 
     private void dropWaitForDelayProcedure(SQLServerConnection conn) throws SQLException {
-        String sql = " IF EXISTS (select * from sysobjects where id = object_id(N'" + waitForDelaySPName
-                + "') and OBJECTPROPERTY(id, N'IsProcedure') = 1)" + " DROP PROCEDURE " + waitForDelaySPName;
-        conn.createStatement().execute(sql);
+        Utils.dropProcedureIfExists(waitForDelaySPName, conn.createStatement());
     }
 
     private void createWaitForDelayPreocedure(SQLServerConnection conn) throws SQLException {

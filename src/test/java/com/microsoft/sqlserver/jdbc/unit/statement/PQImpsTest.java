@@ -1108,6 +1108,204 @@ public class PQImpsTest extends AbstractTest {
             compareParameterMetaData(pmd, 3, "java.lang.Integer", 4, "int", 10, 0);
         }
     }
+    
+    /**
+     * test query with simple multiple line comments
+     * 
+     * @throws SQLException
+     */
+    @Test
+    public void testQueryWithMultipleLineComments1() throws SQLException {
+        pstmt = connection.prepareStatement("/*te\nst*//*test*/select top 100 c1 from " + charTable + " where c1 = ?");
+        pstmt.setString(1, "abc");
+
+        try {
+            pstmt.getParameterMetaData();
+            pstmt.executeQuery();
+        }
+        catch (Exception e) {
+            fail(e.toString());
+        }
+    }
+
+    /**
+     * test query with complex multiple line comments
+     * 
+     * @throws SQLException
+     */
+    @Test
+    public void testQueryWithMultipleLineComments2() throws SQLException {
+        pstmt = connection
+                .prepareStatement("/*/*te\nst*/ te/*test*/st /*te\nst*/*//*te/*test*/st*/select top 100 c1 from " + charTable + " where c1 = ?");
+        pstmt.setString(1, "abc");
+
+        try {
+            pstmt.getParameterMetaData();
+            pstmt.executeQuery();
+        }
+        catch (Exception e) {
+            fail(e.toString());
+        }
+    }
+    
+    /**
+     * test insertion query with multiple line comments
+     * 
+     * @throws SQLException
+     */
+    @Test
+    public void testQueryWithMultipleLineCommentsInsert() throws SQLException {
+        pstmt = connection.prepareStatement("/*te\nst*//*test*/insert /*test*/into " + charTable + " (c1) VALUES(?)");
+        
+        try {
+            pstmt.getParameterMetaData();
+        }
+        catch (Exception e) {
+            fail(e.toString());
+        }
+    }
+    
+    /**
+     * test update query with multiple line comments
+     * 
+     * @throws SQLException
+     */
+    @Test
+    public void testQueryWithMultipleLineCommentsUpdate() throws SQLException {
+        pstmt = connection.prepareStatement("/*te\nst*//*test*/update /*test*/" + charTable + " set c1=123 where c1=?");
+        
+        try {
+            pstmt.getParameterMetaData();
+        }
+        catch (Exception e) {
+            fail(e.toString());
+        }
+    }
+    
+    /**
+     * test deletion query with multiple line comments
+     * 
+     * @throws SQLException
+     */
+    @Test
+    public void testQueryWithMultipleLineCommentsDeletion() throws SQLException {
+        pstmt = connection.prepareStatement("/*te\nst*//*test*/delete /*test*/from " + charTable + " where c1=?");
+        
+        try {
+            pstmt.getParameterMetaData();
+        }
+        catch (Exception e) {
+            fail(e.toString());
+        }
+    }
+
+    /**
+     * test query with single line comments
+     * 
+     * @throws SQLException
+     */
+    @Test
+    public void testQueryWithSingleLineComments1() throws SQLException {
+        pstmt = connection.prepareStatement("-- #test \n select top 100 c1 from " + charTable + " where c1 = ?");
+        pstmt.setString(1, "abc");
+
+        try {
+            pstmt.getParameterMetaData();
+            pstmt.executeQuery();
+        }
+        catch (Exception e) {
+            fail(e.toString());
+        }
+    }
+
+    /**
+     * test query with single line comments
+     * 
+     * @throws SQLException
+     */
+    @Test
+    public void testQueryWithSingleLineComments2() throws SQLException {
+        pstmt = connection.prepareStatement("--#test\nselect top 100 c1 from " + charTable + " where c1 = ?");
+        pstmt.setString(1, "abc");
+
+        try {
+            pstmt.getParameterMetaData();
+            pstmt.executeQuery();
+        }
+        catch (Exception e) {
+            fail(e.toString());
+        }
+    }
+
+    /**
+     * test query with single line comment
+     * 
+     * @throws SQLException
+     */
+    @Test
+    public void testQueryWithSingleLineComments3() throws SQLException {
+        pstmt = connection.prepareStatement("select top 100 c1\nfrom " + charTable + " where c1 = ?");
+        pstmt.setString(1, "abc");
+
+        try {
+            pstmt.getParameterMetaData();
+            pstmt.executeQuery();
+        }
+        catch (Exception e) {
+            fail(e.toString());
+        }
+    }
+    
+    /**
+     * test insertion query with single line comments
+     * 
+     * @throws SQLException
+     */
+    @Test
+    public void testQueryWithSingleLineCommentsInsert() throws SQLException {
+        pstmt = connection.prepareStatement("--#test\ninsert /*test*/into " + charTable + " (c1) VALUES(?)");
+        
+        try {
+            pstmt.getParameterMetaData();
+        }
+        catch (Exception e) {
+            fail(e.toString());
+        }
+    }
+    
+    /**
+     * test update query with single line comments
+     * 
+     * @throws SQLException
+     */
+    @Test
+    public void testQueryWithSingleLineCommentsUpdate() throws SQLException {
+        pstmt = connection.prepareStatement("--#test\nupdate /*test*/" + charTable + " set c1=123 where c1=?");
+        
+        try {
+            pstmt.getParameterMetaData();
+        }
+        catch (Exception e) {
+            fail(e.toString());
+        }
+    }
+    
+    /**
+     * test deletion query with single line comments
+     * 
+     * @throws SQLException
+     */
+    @Test
+    public void testQueryWithSingleLineCommentsDeletion() throws SQLException {
+        pstmt = connection.prepareStatement("--#test\ndelete /*test*/from " + charTable + " where c1=?");
+        
+        try {
+            pstmt.getParameterMetaData();
+        }
+        catch (Exception e) {
+            fail(e.toString());
+        }
+    }
 
     /**
      * Cleanup

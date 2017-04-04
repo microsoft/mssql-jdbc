@@ -120,13 +120,11 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
     }
 
     public boolean isWrapperFor(Class<?> iface) throws SQLException {
-        DriverJDBCVersion.checkSupportsJDBC4();
         boolean f = iface.isInstance(this);
         return f;
     }
 
     public <T> T unwrap(Class<T> iface) throws SQLException {
-        DriverJDBCVersion.checkSupportsJDBC4();
         T t;
         try {
             t = iface.cast(this);
@@ -358,7 +356,6 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
     }
 
     public boolean autoCommitFailureClosesAllResultSets() throws SQLException {
-        DriverJDBCVersion.checkSupportsJDBC4();
         checkClosed();
         return false;
     }
@@ -379,7 +376,6 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
     }
 
     public boolean generatedKeyAlwaysReturned() throws SQLException {
-        DriverJDBCVersion.checkSupportsJDBC41();
         checkClosed();
 
         // driver supports retrieving generated keys
@@ -617,7 +613,6 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
     public java.sql.ResultSet getFunctions(String catalog,
             String schemaPattern,
             String functionNamePattern) throws SQLException {
-        DriverJDBCVersion.checkSupportsJDBC4();
         checkClosed();
 
         /*
@@ -647,7 +642,6 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
             String schemaPattern,
             String functionNamePattern,
             String columnNamePattern) throws SQLException {
-        DriverJDBCVersion.checkSupportsJDBC4();
         checkClosed();
         /*
          * sp_sproc_columns [[@procedure_name =] 'name'] [,[@procedure_owner =] 'owner'] [,[@procedure_qualifier =] 'qualifier'] [,[@column_name =]
@@ -688,7 +682,6 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
     }
 
     public java.sql.ResultSet getClientInfoProperties() throws SQLException {
-        DriverJDBCVersion.checkSupportsJDBC4();
         checkClosed();
         return getResultSetFromInternalQueries(null, "SELECT" +
         /* 1 */ " cast(NULL as char(1)) as NAME," +
@@ -1109,8 +1102,6 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
             String schemaPattern,
             String tableNamePattern,
             String columnNamePattern) throws SQLException {
-        DriverJDBCVersion.checkSupportsJDBC41();
-
         if (loggerExternal.isLoggable(Level.FINER) && Util.IsActivityTraceOn()) {
             loggerExternal.finer(toString() + " ActivityId: " + ActivityCorrelator.getNext().toString());
         }
@@ -1217,7 +1208,6 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
         if (loggerExternal.isLoggable(Level.FINER) && Util.IsActivityTraceOn()) {
             loggerExternal.finer(toString() + " ActivityId: " + ActivityCorrelator.getNext().toString());
         }
-        DriverJDBCVersion.checkSupportsJDBC4();
         return getSchemasInternal(catalog, schemaPattern);
     }
 
@@ -2036,7 +2026,6 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
     }
 
     public RowIdLifetime getRowIdLifetime() throws SQLException {
-        DriverJDBCVersion.checkSupportsJDBC4();
         checkClosed();
         return RowIdLifetime.ROWID_UNSUPPORTED;
     }
@@ -2141,7 +2130,6 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
     }
 
     public boolean supportsStoredFunctionsUsingCallSyntax() throws SQLException {
-        DriverJDBCVersion.checkSupportsJDBC4();
         checkClosed();
         return true;
     }

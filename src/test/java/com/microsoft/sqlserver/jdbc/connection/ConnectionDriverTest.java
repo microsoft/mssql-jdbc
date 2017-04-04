@@ -19,8 +19,11 @@ import java.sql.SQLException;
 import java.sql.SQLFeatureNotSupportedException;
 import java.sql.Statement;
 import java.util.Properties;
+import java.util.UUID;
 import java.util.concurrent.Executor;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.logging.Logger;
 
 import javax.sql.ConnectionEvent;
@@ -509,5 +512,46 @@ public class ConnectionDriverTest extends AbstractTest {
     public void testGetSchema() throws SQLException {
         SQLServerConnection conn = (SQLServerConnection) DriverManager.getConnection(connectionString);
         conn.getSchema();
+    }
+    
+    static Boolean isInterrupted = false;
+
+    /**
+     * Test thread's interrupt status is not cleared.
+     * 
+     * @throws InterruptedException
+     */
+    @Test
+    public void testThreadInterruptedStatus() throws InterruptedException {
+        Runnable runnable = new Runnable() {
+            public void run() {
+                SQLServerDataSource ds = new SQLServerDataSource();
+
+                ds.setURL(connectionString);
+                ds.setServerName("invalidServerName" + UUID.randomUUID());
+                ds.setLoginTimeout(5);
+
+                try {
+                    ds.getConnection();
+                }
+                catch (SQLException e) {
+                    isInterrupted = Thread.currentThread().isInterrupted();
+                }
+            }
+        };
+
+        ExecutorService executor = Executors.newFixedThreadPool(1);
+        Future<?> future = executor.submit(runnable);
+
+        Thread.sleep(1000);
+
+        // interrupt the thread in the Runnable
+        future.cancel(true);
+
+        Thread.sleep(8000);
+
+        executor.shutdownNow();
+
+        assertTrue(isInterrupted, "Thread's interrupt status is not set.");
     }
 }
