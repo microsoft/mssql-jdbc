@@ -154,6 +154,9 @@ public final class SQLServerBlob implements java.sql.Blob, java.io.Serializable 
             return (InputStream) activeStreams.get(0);
         }
         else {
+            if (value == null) {
+                throw new SQLServerException("Unexpected Error: blob value is null while all streams are closed.", null);
+            }
             return getBinaryStreamInternal(0, value.length);
         }
     }
