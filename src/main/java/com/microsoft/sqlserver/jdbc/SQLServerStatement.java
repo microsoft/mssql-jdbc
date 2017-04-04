@@ -2132,7 +2132,7 @@ public class SQLServerStatement implements ISQLServerStatement {
                 rsPrevious.close();
             }
             catch (SQLException e) {
-                throw new SQLServerException(null, e.getMessage(), null, 0, false);
+                throw new SQLServerException(e.getMessage(), null, 0, e);
             }
         }
 

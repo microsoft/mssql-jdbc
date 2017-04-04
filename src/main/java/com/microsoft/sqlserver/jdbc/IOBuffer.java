@@ -1987,7 +1987,7 @@ final class TDSChannel {
                 con.terminate(SQLServerException.ERROR_SOCKET_TIMEOUT, e.getMessage(), e);
             }
             else {
-                con.terminate(SQLServerException.DRIVER_ERROR_IO_FAILED, e.getMessage());
+                con.terminate(SQLServerException.DRIVER_ERROR_IO_FAILED, e.getMessage(), e);
             }
 
             return 0; // Keep the compiler happy.
@@ -2004,7 +2004,7 @@ final class TDSChannel {
             if (logger.isLoggable(Level.FINER))
                 logger.finer(toString() + " write failed:" + e.getMessage());
 
-            con.terminate(SQLServerException.DRIVER_ERROR_IO_FAILED, e.getMessage());
+            con.terminate(SQLServerException.DRIVER_ERROR_IO_FAILED, e.getMessage(), e);
         }
     }
 
@@ -2016,7 +2016,7 @@ final class TDSChannel {
             if (logger.isLoggable(Level.FINER))
                 logger.finer(toString() + " flush failed:" + e.getMessage());
 
-            con.terminate(SQLServerException.DRIVER_ERROR_IO_FAILED, e.getMessage());
+            con.terminate(SQLServerException.DRIVER_ERROR_IO_FAILED, e.getMessage(), e);
         }
     }
 
@@ -3537,7 +3537,7 @@ final class TDSWriter {
             throw new SQLServerException(SQLServerException.getErrString("R_zoneOffsetError"), null, // SQLState is null as this error is generated in
                                                                                                      // the driver
                     0, // Use 0 instead of DriverError.NOT_SET to use the correct constructor
-                    null);
+                    e);
         }
         subSecondNanos = offsetDateTimeValue.getNano();
 
@@ -3593,7 +3593,7 @@ final class TDSWriter {
             throw new SQLServerException(SQLServerException.getErrString("R_zoneOffsetError"), null, // SQLState is null as this error is generated in
                                                                                                      // the driver
                     0, // Use 0 instead of DriverError.NOT_SET to use the correct constructor
-                    null);
+                    e);
         }
         subSecondNanos = offsetTimeValue.getNano();
 

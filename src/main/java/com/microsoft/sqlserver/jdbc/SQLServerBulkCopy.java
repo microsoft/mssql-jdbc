@@ -1209,7 +1209,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable {
                 connection.rollback();
             }
 
-            throw new SQLServerException(SQLServerException.getErrString("R_queryTimedOut"), SQLState.STATEMENT_CANCELED, DriverError.NOT_SET, null);
+            throw new SQLServerException(SQLServerException.getErrString("R_queryTimedOut"), SQLState.STATEMENT_CANCELED, DriverError.NOT_SET, e);
         }
     }
 

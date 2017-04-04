@@ -8,8 +8,11 @@
 
 package com.microsoft.sqlserver.testframework;
 
+import static org.junit.Assert.fail;
+
 import java.io.ByteArrayInputStream;
 import java.io.CharArrayReader;
+import java.net.URI;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.logging.Level;
@@ -248,6 +251,24 @@ public class Utils {
         }
     }
     
+    /**
+     * 
+     * @return location of resource file
+     */
+    public static String getCurrentClassPath() {
+        try {
+            String className = new Object() {
+            }.getClass().getEnclosingClass().getName();
+            String location = Class.forName(className).getProtectionDomain().getCodeSource().getLocation().getPath() + "/";
+            URI uri = new URI(location.toString());
+            return uri.getPath();
+        }
+        catch (Exception e) {
+            fail("Failed to get CSV file path. " + e.getMessage());
+        }
+        return null;
+    }
+
     /**
      * mimic "DROP TABLE IF EXISTS ..." for older versions of SQL Server
      */
