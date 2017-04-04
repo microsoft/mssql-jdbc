@@ -4781,6 +4781,8 @@ final class TDSWriter {
         if (tdsWritterCached) {
             stagingBuffer.clear();
             stagingBuffer.put(cachedStagingBuffer.array(), 0, cachedStagingBuffer.position());
+            
+            con.needsToReadTVPResponse = true;
         }
 
         // TVP_END_TOKEN
@@ -6237,8 +6239,15 @@ final class TDSReader {
      * that is trying to buffer it with TDSCommand.detach().
      */
     synchronized final boolean readPacket() throws SQLServerException {
-        if (null != command && !command.readingResponse())
-            return false;
+        
+        if (null != command && !command.readingResponse()){
+            
+            if(!con.needsToReadTVPResponse){
+                return false;
+            }
+            
+            con.needsToReadTVPResponse = false;
+        }
 
         // Number of packets in should always be less than number of packets out.
         // If the server has been notified for an interrupt, it may be less by
