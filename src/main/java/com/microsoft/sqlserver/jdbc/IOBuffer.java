@@ -4537,7 +4537,6 @@ final class TDSWriter {
         int dataLength;
         
         boolean tdsWritterCached = false;
-
         ByteBuffer cachedStagingBuffer = null;
         TDSCommand cachedCommand = null;
         
@@ -6243,9 +6242,8 @@ final class TDSReader {
      * that is trying to buffer it with TDSCommand.detach().
      */
     synchronized final boolean readPacket() throws SQLServerException {
-        if (null != command && !command.readingResponse()) {
+        if (null != command && !command.readingResponse())
             return false;
-        }
 
         // Number of packets in should always be less than number of packets out.
         // If the server has been notified for an interrupt, it may be less by
