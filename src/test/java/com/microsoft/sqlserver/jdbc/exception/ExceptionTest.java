@@ -7,12 +7,10 @@
  */
 package com.microsoft.sqlserver.jdbc.exception;
 
-import static org.junit.Assert.fail;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.UnsupportedEncodingException;
 import java.net.SocketTimeoutException;
-import java.net.URI;
 import java.sql.DriverManager;
 import java.sql.SQLException;
 
@@ -24,6 +22,7 @@ import com.microsoft.sqlserver.jdbc.SQLServerBulkCSVFileRecord;
 import com.microsoft.sqlserver.jdbc.SQLServerConnection;
 import com.microsoft.sqlserver.jdbc.SQLServerException;
 import com.microsoft.sqlserver.testframework.AbstractTest;
+import com.microsoft.sqlserver.testframework.Utils;
 
 @RunWith(JUnitPlatform.class)
 public class ExceptionTest extends AbstractTest {
@@ -36,7 +35,7 @@ public class ExceptionTest extends AbstractTest {
      */
     @Test
     public void testBulkCSVFileRecordExceptionCause() throws Exception {
-        String filePath = getCurrentClassPath();
+        String filePath = Utils.getCurrentClassPath();
 
         try {
             SQLServerBulkCSVFileRecord scvFileRecord = new SQLServerBulkCSVFileRecord(filePath + inputFile, "invalid_encoding", true);
@@ -49,25 +48,6 @@ public class ExceptionTest extends AbstractTest {
             assertTrue(null != e.getCause(), "Cause should not be null.");
             assertTrue(e.getCause() instanceof UnsupportedEncodingException, "Cause should be instance of UnsupportedEncodingException.");
         }
-    }
-
-    /**
-     * 
-     * @return location of resource file
-     */
-    static String getCurrentClassPath() {
-
-        try {
-            String className = new Object() {
-            }.getClass().getEnclosingClass().getName();
-            String location = Class.forName(className).getProtectionDomain().getCodeSource().getLocation().getPath() + "/";
-            URI uri = new URI(location.toString());
-            return uri.getPath();
-        }
-        catch (Exception e) {
-            fail("Failed to get CSV file path. " + e.getMessage());
-        }
-        return null;
     }
 
     String waitForDelaySPName = "waitForDelaySP";

@@ -8,11 +8,11 @@
 
 package com.microsoft.sqlserver.testframework;
 
+import static org.junit.Assert.fail;
+
 import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
 import java.io.CharArrayReader;
-import java.io.IOException;
-import java.io.InputStream;
+import java.net.URI;
 import java.util.ArrayList;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -249,5 +249,23 @@ public class Utils {
             super(value);
         }
     }
+    
+    /**
+     * 
+     * @return location of resource file
+     */
+    public static String getCurrentClassPath() {
 
+        try {
+            String className = new Object() {
+            }.getClass().getEnclosingClass().getName();
+            String location = Class.forName(className).getProtectionDomain().getCodeSource().getLocation().getPath() + "/";
+            URI uri = new URI(location.toString());
+            return uri.getPath();
+        }
+        catch (Exception e) {
+            fail("Failed to get CSV file path. " + e.getMessage());
+        }
+        return null;
+    }
 }
