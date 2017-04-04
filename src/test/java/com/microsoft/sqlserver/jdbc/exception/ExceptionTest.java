@@ -64,8 +64,8 @@ public class ExceptionTest extends AbstractTest {
         SQLServerConnection conn = null;
         try {
             conn = (SQLServerConnection) DriverManager.getConnection(connectionString);
-
-            dropWaitForDelayProcedure(conn);
+            
+            Utils.dropProcedureIfExists(waitForDelaySPName, conn.createStatement());
             createWaitForDelayPreocedure(conn);
 
             conn = (SQLServerConnection) DriverManager.getConnection(connectionString + ";socketTimeout=" + (waitForDelaySeconds * 1000 / 2) + ";");
@@ -88,12 +88,6 @@ public class ExceptionTest extends AbstractTest {
                 conn.close();
             }
         }
-    }
-
-    private void dropWaitForDelayProcedure(SQLServerConnection conn) throws SQLException {
-        String sql = " IF EXISTS (select * from sysobjects where id = object_id(N'" + waitForDelaySPName
-                + "') and OBJECTPROPERTY(id, N'IsProcedure') = 1)" + " DROP PROCEDURE " + waitForDelaySPName;
-        conn.createStatement().execute(sql);
     }
 
     private void createWaitForDelayPreocedure(SQLServerConnection conn) throws SQLException {
