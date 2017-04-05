@@ -83,8 +83,6 @@ public class SQLServerConnection implements ISQLServerConnection {
     long timerExpire;
     boolean attemptRefreshTokenLocked = false;
 
-    private InetAddress[] inetAddrs = null;
-
     // Threasholds related to when prepared statement handles are cleaned-up. 1 == immediately.
     /**
      * The initial default on application start-up for the prepared statement clean-up action threshold (i.e. when sp_unprepare is called). 
@@ -1641,20 +1639,17 @@ public class SQLServerConnection implements ISQLServerConnection {
                     currentConnectPlaceHolder = currentPrimaryPlaceHolder;
                 }
 
-                // DNS resolution to retrieve all IP addresses if not done yet
-                if (null == inetAddrs) {
-                    try {
-                        inetAddrs = InetAddress.getAllByName(currentConnectPlaceHolder.getServerName());
-                    }
-                    catch (IOException ex) {
-                        SQLServerException.ConvertConnectExceptionToSQLServerException(currentConnectPlaceHolder.getServerName(),
-                                currentConnectPlaceHolder.getPortNumber(), this, ex);
+                try {
+                    InetAddress[] inetAddrs = InetAddress.getAllByName(currentConnectPlaceHolder.getServerName());
+
+                    // if only one IP is resolved and user didn't set TNIR explicitly then set TNIR to false
+                    if ((1 == inetAddrs.length) && !userSetTNIR) {
+                        useTnir = false;
                     }
                 }
-
-                // if only one IP is resolved and user didn't set TNIR explicitly then set TNIR to false
-                if ((1 == inetAddrs.length) && !userSetTNIR) {
-                    useTnir = false;
+                catch (IOException ex) {
+                    SQLServerException.ConvertConnectExceptionToSQLServerException(currentConnectPlaceHolder.getServerName(),
+                            currentConnectPlaceHolder.getPortNumber(), this, ex);
                 }
 
                 // calculate timeout interval for the first attempt
@@ -1697,8 +1692,7 @@ public class SQLServerConnection implements ISQLServerConnection {
                                                                                                                                               // TNIR
                                                                                                                                               // first
                                                                                                                                               // attempt
-                        TimerRemaining(intervalExpireFullTimeout), // Only used when host resolves to >64 IPs
-                        inetAddrs);
+                        TimerRemaining(intervalExpireFullTimeout)); // Only used when host resolves to >64 IPs
 
                 if (isRoutedInCurrentAttempt) {
                     // we ignore the failoverpartner ENVCHANGE, if we got routed.
@@ -1822,7 +1816,7 @@ public class SQLServerConnection implements ISQLServerConnection {
                 intervalExpire = System.currentTimeMillis() + (timeoutUnitInterval * ((attemptNumber / 2) + 1));
             }
             else if (useTnir) {
-                long timeSlice = timeoutUnitInterval * ((long) Math.pow(2, attemptNumber));
+                long timeSlice = timeoutUnitInterval * (1 << attemptNumber);
 
                 // In case the timeout for the first slice is less than 500 ms then bump it up to 500 ms
                 if ((1 == attemptNumber) && (500 > timeSlice)) {
@@ -1994,8 +1988,7 @@ public class SQLServerConnection implements ISQLServerConnection {
             boolean useParallel,
             boolean useTnir,
             boolean isTnirFirstAttempt,
-            int timeOutsliceInMillisForFullTimeout,
-            InetAddress[] inetAddrs) throws SQLServerException {
+            int timeOutsliceInMillisForFullTimeout) throws SQLServerException {
         // Make the initial tcp-ip connection.
 
         if (connectionlogger.isLoggable(Level.FINE)) {
@@ -2006,10 +1999,10 @@ public class SQLServerConnection implements ISQLServerConnection {
         tdsChannel = new TDSChannel(this);
         if (0 == timeOutFullInSeconds)
             tdsChannel.open(serverInfo.getServerName(), serverInfo.getPortNumber(), 0, useParallel, useTnir, isTnirFirstAttempt,
-                    timeOutsliceInMillisForFullTimeout, inetAddrs);
+                    timeOutsliceInMillisForFullTimeout);
         else
             tdsChannel.open(serverInfo.getServerName(), serverInfo.getPortNumber(), timeOutsliceInMillis, useParallel, useTnir, isTnirFirstAttempt,
-                    timeOutsliceInMillisForFullTimeout, inetAddrs);
+                    timeOutsliceInMillisForFullTimeout);
 
         setState(State.Connected);
 

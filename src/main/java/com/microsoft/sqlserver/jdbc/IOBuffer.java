@@ -626,14 +626,13 @@ final class TDSChannel {
             boolean useParallel,
             boolean useTnir,
             boolean isTnirFirstAttempt,
-            int timeoutMillisForFullTimeout,
-            InetAddress[] inetAddrs) throws SQLServerException {
+            int timeoutMillisForFullTimeout) throws SQLServerException {
         if (logger.isLoggable(Level.FINER))
             logger.finer(this.toString() + ": Opening TCP socket...");
 
         SocketFinder socketFinder = new SocketFinder(traceID, con);
         channelSocket = tcpSocket = socketFinder.findSocket(host, port, timeoutMillis, useParallel, useTnir, isTnirFirstAttempt,
-                timeoutMillisForFullTimeout, inetAddrs);
+                timeoutMillisForFullTimeout);
 
         try {
 
@@ -2253,11 +2252,12 @@ final class SocketFinder {
             boolean useParallel,
             boolean useTnir,
             boolean isTnirFirstAttempt,
-            int timeoutInMilliSecondsForFullTimeout,
-            InetAddress[] inetAddrs) throws SQLServerException {
+            int timeoutInMilliSecondsForFullTimeout) throws SQLServerException {
         assert timeoutInMilliSeconds != 0 : "The driver does not allow a time out of 0";
 
         try {
+            InetAddress[] inetAddrs = InetAddress.getAllByName(hostName);
+            
             if (useParallel || useTnir) {
                 // Ignore TNIR if host resolves to more than 64 IPs. Make sure we are using original timeout for this.
                 if ((useTnir) && (inetAddrs.length > ipAddressLimit)) {
@@ -2270,10 +2270,10 @@ final class SocketFinder {
                 // MSF is false. TNIR could be true or false. DBMirroring could be true or false.
                 // For TNIR first attempt, we should do existing behavior including how host name is resolved.
                 if (useTnir && isTnirFirstAttempt) {
-                    return getDefaultSocket(inetAddrs[0], portNumber, SQLServerConnection.TnirFirstAttemptTimeoutMs);
+                    return getDefaultSocket(hostName, portNumber, SQLServerConnection.TnirFirstAttemptTimeoutMs);
                 }
                 else if (!useTnir) {
-                    return getDefaultSocket(inetAddrs[0], portNumber, timeoutInMilliSeconds);
+                    return getDefaultSocket(hostName, portNumber, timeoutInMilliSeconds);
                 }
             }
 
@@ -2573,12 +2573,12 @@ final class SocketFinder {
     // In the old code below, the logic around 0 timeout has been removed as
     // 0 timeout is not allowed. The code has been re-factored so that the logic
     // is common for hostName or InetAddress.
-    private Socket getDefaultSocket(InetAddress inetAddr,
+    private Socket getDefaultSocket(String hostName,
             int portNumber,
             int timeoutInMilliSeconds) throws IOException {
         // Open the socket, with or without a timeout, throwing an UnknownHostException
         // if there is a failure to resolve the host name to an InetSocketAddress.
-        InetSocketAddress addr = new InetSocketAddress(inetAddr, portNumber);
+        InetSocketAddress addr = new InetSocketAddress(hostName, portNumber);
         return getConnectedSocket(addr, timeoutInMilliSeconds);
     }
 
