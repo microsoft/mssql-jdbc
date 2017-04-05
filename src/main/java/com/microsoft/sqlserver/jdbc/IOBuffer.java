@@ -2256,10 +2256,12 @@ final class SocketFinder {
         assert timeoutInMilliSeconds != 0 : "The driver does not allow a time out of 0";
 
         try {
-            InetAddress[] inetAddrs = InetAddress.getAllByName(hostName);
-            
+            InetAddress[] inetAddrs = null;
+
             if (useParallel || useTnir) {
                 // Ignore TNIR if host resolves to more than 64 IPs. Make sure we are using original timeout for this.
+                inetAddrs = InetAddress.getAllByName(hostName);
+
                 if ((useTnir) && (inetAddrs.length > ipAddressLimit)) {
                     useTnir = false;
                     timeoutInMilliSeconds = timeoutInMilliSecondsForFullTimeout;
@@ -2578,6 +2580,10 @@ final class SocketFinder {
             int timeoutInMilliSeconds) throws IOException {
         // Open the socket, with or without a timeout, throwing an UnknownHostException
         // if there is a failure to resolve the host name to an InetSocketAddress.
+        //
+        // Note that Socket(host, port) throws an UnknownHostException if the host name
+        // cannot be resolved, but that InetSocketAddress(host, port) does not - it sets
+        // the returned InetSocketAddress as unresolved.
         InetSocketAddress addr = new InetSocketAddress(hostName, portNumber);
         return getConnectedSocket(addr, timeoutInMilliSeconds);
     }
