@@ -4,7 +4,7 @@
 	
 	<groupId>com.microsoft.sqlserver</groupId>
 	<artifactId>mssql-jdbc</artifactId>
-	<version>6.1.4</version>
+	<version>6.1.6-SNAPSHOT</version>
 	
 	<packaging>jar</packaging>
 	
@@ -114,7 +114,19 @@
 			<artifactId>junit-jupiter-engine</artifactId>
 			<version>5.0.0-M3</version>
 			<scope>test</scope>
-		</dependency>	
+		</dependency>
+		<dependency>
+			<groupId>com.zaxxer</groupId>
+			<artifactId>HikariCP</artifactId>
+			<version>2.6.0</version>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.apache.commons</groupId>
+			<artifactId>commons-dbcp2 </artifactId>
+			<version>2.1.1</version>
+			<scope>test</scope>
+		</dependency>
   	<!-- 
 	<dependency>
   		<groupId>org.junit.vintage</groupId>
@@ -122,7 +134,7 @@
   		<version>4.12.0-M3</version>
   		<scope>test</scope>
   	</dependency>	
-  	 -->	
+  	 -->
 	</dependencies>
 
 	<profiles>
@@ -148,9 +160,7 @@
 						<configuration>
 							<finalName>${project.artifactId}-${project.version}.jre7</finalName>
 							<archive>
-								<manifest>
-									<addDefaultImplementationEntries>true</addDefaultImplementationEntries>
-								</manifest>
+								<manifestFile>${project.build.outputDirectory}/META-INF/MANIFEST.MF</manifestFile>
 							</archive>
 						</configuration>
 					</plugin>   
@@ -184,9 +194,7 @@
 						<configuration>
 							<finalName>${project.artifactId}-${project.version}.jre8</finalName>
 							<archive>
-								<manifest>
-									<addDefaultImplementationEntries>true</addDefaultImplementationEntries>
-								</manifest>
+								<manifestFile>${project.build.outputDirectory}/META-INF/MANIFEST.MF</manifestFile>
 							</archive>
 						</configuration>
 					</plugin>
@@ -251,7 +259,28 @@
 					</execution>
 				</executions>
 			</plugin>
-			
+			<!-- Create OSGI Headers -->
+           	<plugin>
+           		<groupId>org.apache.felix</groupId>
+       			<artifactId>maven-bundle-plugin</artifactId>
+       			<version>3.2.0</version>
+                <extensions>true</extensions>
+                <configuration>
+                    <instructions>
+                    	<Export-Package>com.microsoft.sqlserver.jdbc,microsoft.sql</Export-Package>
+                    	<Import-Package>!microsoft.sql,*</Import-Package>
+                    </instructions>
+                </configuration>
+                	<executions>
+				    	<execution>
+				      		<id>bundle-manifest</id>
+				      		<phase>process-classes</phase>
+				      		<goals>    
+				        		<goal>manifest</goal>
+				      		</goals>   
+				    	</execution>
+				  	</executions>
+         	</plugin>  			
 		</plugins>
 	</build>
 </project>

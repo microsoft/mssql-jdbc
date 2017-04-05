@@ -656,7 +656,7 @@ final class DTV {
                             throw new SQLServerException(SQLServerException.getErrString("R_zoneOffsetError"), null, // SQLState is null as this error
                                                                                                                      // is generated in the driver
                                     0, // Use 0 instead of DriverError.NOT_SET to use the correct constructor
-                                    null);
+                                    e);
                         }
                         subSecondNanos = offsetTimeValue.getNano();
 
@@ -688,7 +688,7 @@ final class DTV {
                             throw new SQLServerException(SQLServerException.getErrString("R_zoneOffsetError"), null, // SQLState is null as this error
                                                                                                                      // is generated in the driver
                                     0, // Use 0 instead of DriverError.NOT_SET to use the correct constructor
-                                    null);
+                                    e);
                         }
 
                         subSecondNanos = offsetDateTimeValue.getNano();
@@ -2230,7 +2230,7 @@ final class AppDTVImpl extends DTVImpl {
                     readerValue = new InputStreamReader(inputStreamValue, "US-ASCII");
                 }
                 catch (UnsupportedEncodingException ex) {
-                    throw new SQLServerException(null, ex.getMessage(), null, 0, true);
+                    throw new SQLServerException(ex.getMessage(), null, 0, ex);
                 }
 
                 dtv.setValue(readerValue, JavaType.READER);
@@ -3556,7 +3556,7 @@ final class ServerDTVImpl extends DTVImpl {
                 catch (UnsupportedEncodingException e) {
                     // Important: we should not pass the exception here as it displays the data.
                     MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_unsupportedEncoding"));
-                    throw new SQLServerException(form.format(new Object[] {baseTypeInfo.getCharset()}), null, 0, null);
+                    throw new SQLServerException(form.format(new Object[] {baseTypeInfo.getCharset()}), null, 0, e);
                 }
             }
 

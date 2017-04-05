@@ -55,7 +55,11 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.SimpleTimeZone;
 import java.util.TimeZone;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.concurrent.SynchronousQueue;
+import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -1981,10 +1985,10 @@ final class TDSChannel {
                 logger.fine(toString() + " read failed:" + e.getMessage());
 
             if (e instanceof SocketTimeoutException) {
-                con.terminate(SQLServerException.ERROR_SOCKET_TIMEOUT, e.getMessage());
+                con.terminate(SQLServerException.ERROR_SOCKET_TIMEOUT, e.getMessage(), e);
             }
             else {
-                con.terminate(SQLServerException.DRIVER_ERROR_IO_FAILED, e.getMessage());
+                con.terminate(SQLServerException.DRIVER_ERROR_IO_FAILED, e.getMessage(), e);
             }
 
             return 0; // Keep the compiler happy.
@@ -2001,7 +2005,7 @@ final class TDSChannel {
             if (logger.isLoggable(Level.FINER))
                 logger.finer(toString() + " write failed:" + e.getMessage());
 
-            con.terminate(SQLServerException.DRIVER_ERROR_IO_FAILED, e.getMessage());
+            con.terminate(SQLServerException.DRIVER_ERROR_IO_FAILED, e.getMessage(), e);
         }
     }
 
@@ -2013,7 +2017,7 @@ final class TDSChannel {
             if (logger.isLoggable(Level.FINER))
                 logger.finer(toString() + " flush failed:" + e.getMessage());
 
-            con.terminate(SQLServerException.DRIVER_ERROR_IO_FAILED, e.getMessage());
+            con.terminate(SQLServerException.DRIVER_ERROR_IO_FAILED, e.getMessage(), e);
         }
     }
 
@@ -3526,7 +3530,7 @@ final class TDSWriter {
             throw new SQLServerException(SQLServerException.getErrString("R_zoneOffsetError"), null, // SQLState is null as this error is generated in
                                                                                                      // the driver
                     0, // Use 0 instead of DriverError.NOT_SET to use the correct constructor
-                    null);
+                    e);
         }
         subSecondNanos = offsetDateTimeValue.getNano();
 
@@ -3582,7 +3586,7 @@ final class TDSWriter {
             throw new SQLServerException(SQLServerException.getErrString("R_zoneOffsetError"), null, // SQLState is null as this error is generated in
                                                                                                      // the driver
                     0, // Use 0 instead of DriverError.NOT_SET to use the correct constructor
-                    null);
+                    e);
         }
         subSecondNanos = offsetTimeValue.getNano();
 
@@ -6820,9 +6824,23 @@ final class TDSReader {
  * a reason like "timed out".
  */
 final class TimeoutTimer implements Runnable {
+    private static final String threadGroupName = "mssql-jdbc-TimeoutTimer";
     private final int timeoutSeconds;
     private final TDSCommand command;
-    private Thread timerThread;
+    private volatile Future<?> task;
+    
+    private static final ExecutorService executor = Executors.newCachedThreadPool(new ThreadFactory() {
+        private final ThreadGroup tg = new ThreadGroup(threadGroupName);
+        private final String threadNamePrefix = tg.getName() + "-";
+        private final AtomicInteger threadNumber = new AtomicInteger(0);
+        @Override
+        public Thread newThread(Runnable r) {
+            Thread t = new Thread(tg, r, threadNamePrefix + threadNumber.incrementAndGet());
+            t.setDaemon(true);
+            return t;
+        }
+    });
+    
     private volatile boolean canceled = false;
 
     TimeoutTimer(int timeoutSeconds,
@@ -6835,17 +6853,15 @@ final class TimeoutTimer implements Runnable {
     }
 
     final void start() {
-        timerThread = new Thread(this);
-        timerThread.setDaemon(true);
-        timerThread.start();
+        task = executor.submit(this);
     }
 
     final void stop() {
+        task.cancel(true);
         canceled = true;
-        timerThread.interrupt();
     }
 
-    public void run() {
+    public void run() { 
         int secondsRemaining = timeoutSeconds;
         try {
             // Poll every second while time is left on the timer.
@@ -6859,6 +6875,8 @@ final class TimeoutTimer implements Runnable {
             while (--secondsRemaining > 0);
         }
         catch (InterruptedException e) {
+            // re-interrupt the current thread, in order to restore the thread's interrupt status.
+            Thread.currentThread().interrupt();
             return;
         }
 

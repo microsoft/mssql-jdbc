@@ -12,8 +12,6 @@ import static org.junit.jupiter.api.Assertions.fail;
 
 import java.sql.CallableStatement;
 import java.sql.Connection;
-import java.sql.DatabaseMetaData;
-import java.sql.Driver;
 import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.sql.Statement;
@@ -21,12 +19,12 @@ import java.sql.Types;
 
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
 
 import com.microsoft.sqlserver.testframework.AbstractTest;
+import com.microsoft.sqlserver.testframework.Utils;
 
 /**
  * Multipart parameters
@@ -46,8 +44,7 @@ public class NamedParamMultiPartTest extends AbstractTest {
     public static void beforeAll() throws SQLException {
         connection = DriverManager.getConnection(connectionString);
         Statement statement = connection.createStatement();
-        statement.executeUpdate(
-                "if exists (select * from dbo.sysobjects where id = object_id(N'[dbo].[mystoredproc]') and OBJECTPROPERTY(id, N'IsProcedure') = 1) DROP PROCEDURE [mystoredproc]");
+        Utils.dropProcedureIfExists("mystoredproc", statement);
         statement.executeUpdate("CREATE PROCEDURE [mystoredproc] (@p_out varchar(255) OUTPUT) AS set @p_out =  '" + dataPut + "'");
         statement.close();
     }    

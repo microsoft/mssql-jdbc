@@ -31,13 +31,16 @@ The following samples are available:
 
 7. sparse
 	* **SparseColumns** - how to detect column sets. It also shows a technique for parsing a column set's XML output, to get data from the sparse columns.
+   
+8. constrained
+	* **ConstrainedSample** - how to connect with Kerberos constrained delegation using an impersonated credential.
 
 
 ## Running Samples
 
 ###Prerequisites
 * Java 8
-* [Ant](http://ant.apache.org/manual/install.html) (with [Ivy](https://ant.apache.org/ivy/download.cgi)) or [Maven](http://maven.apache.org/download.cgi)
+* [Maven](http://maven.apache.org/download.cgi)
 * An instance of SQL Server or SQL Azure Database that you can connect to. 
 
 ###Using Maven
@@ -53,3 +56,4 @@ For example, if you wish to compile and run the executeStoredProcedure sample yo
 
 * `mvn install -PexecuteStoredProcedure`
 * `mvn exec:java -PexecuteStoredProcedure`
+

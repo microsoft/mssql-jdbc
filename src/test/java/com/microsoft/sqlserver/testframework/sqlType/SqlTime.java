@@ -30,6 +30,7 @@ public class SqlTime extends SqlDateTime {
 
     public SqlTime() {
         super("time", JDBCType.TIME, null, null);
+        type = java.sql.Time.class;
         try {
             minvalue = new Time(dateFormat.parse((String) SqlTypeValue.TIME.minValue).getTime());
             maxvalue = new Time(dateFormat.parse((String) SqlTypeValue.TIME.maxValue).getTime());

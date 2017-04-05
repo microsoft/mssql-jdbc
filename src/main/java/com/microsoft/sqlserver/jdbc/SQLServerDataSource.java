@@ -22,6 +22,8 @@ import javax.naming.Reference;
 import javax.naming.StringRefAddr;
 import javax.sql.DataSource;
 
+import org.ietf.jgss.GSSCredential;
+
 /**
  * This datasource lists properties specific for the SQLServerConnection class.
  */
@@ -109,8 +111,6 @@ public class SQLServerDataSource implements ISQLServerDataSource, DataSource, ja
     }
 
     public Logger getParentLogger() throws SQLFeatureNotSupportedException {
-        DriverJDBCVersion.checkSupportsJDBC41();
-
         return parentLogger;
     }
 
@@ -175,6 +175,25 @@ public class SQLServerDataSource implements ISQLServerDataSource, DataSource, ja
                 SQLServerDriverStringProperty.AUTHENTICATION.getDefaultValue());
     }
 
+    /**
+     * sets GSSCredential
+     * 
+     * @param userCredential
+     */
+    public void setGSSCredentials(GSSCredential userCredential){
+        setObjectProperty(connectionProps,SQLServerDriverObjectProperty.GSS_CREDENTIAL.toString(), userCredential);
+    }
+
+    /**
+     * Retrieves the GSSCredential
+     * 
+     * @return GSSCredential
+     */
+    public GSSCredential getGSSCredentials(){
+        return (GSSCredential) getObjectProperty(connectionProps, SQLServerDriverObjectProperty.GSS_CREDENTIAL.toString(),
+                SQLServerDriverObjectProperty.GSS_CREDENTIAL.getDefaultValue());
+    }
+    
     /**
      * Sets the access token.
      * 
@@ -642,6 +661,58 @@ public class SQLServerDataSource implements ISQLServerDataSource, DataSource, ja
                 SQLServerDriverIntProperty.QUERY_TIMEOUT.getDefaultValue());
     }
 
+    /**
+     * If this configuration is false the first execution of a prepared statement will call sp_executesql and not prepare 
+     * a statement, once the second execution happens it will call sp_prepexec and actually setup a prepared statement handle. Following
+     * executions will call sp_execute. This relieves the need for sp_unprepare on prepared statement close if the statement is only
+     * executed once.  
+     * 
+     * @param enablePrepareOnFirstPreparedStatementCall
+     *      Changes the setting per the description.
+     */
+    public void setEnablePrepareOnFirstPreparedStatementCall(boolean enablePrepareOnFirstPreparedStatementCall) {
+        setBooleanProperty(connectionProps, SQLServerDriverBooleanProperty.ENABLE_PREPARE_ON_FIRST_PREPARED_STATEMENT.toString(), enablePrepareOnFirstPreparedStatementCall);
+    }
+
+    /**
+     * If this configuration returns false the first execution of a prepared statement will call sp_executesql and not prepare 
+     * a statement, once the second execution happens it will call sp_prepexec and actually setup a prepared statement handle. Following
+     * executions will call sp_execute. This relieves the need for sp_unprepare on prepared statement close if the statement is only
+     * executed once.  
+     * 
+     * @return Returns the current setting per the description.
+     */
+    public boolean getEnablePrepareOnFirstPreparedStatementCall() {
+        return getBooleanProperty(connectionProps, SQLServerDriverBooleanProperty.ENABLE_PREPARE_ON_FIRST_PREPARED_STATEMENT.toString(),
+                SQLServerConnection.getDefaultEnablePrepareOnFirstPreparedStatementCall());
+    }
+
+    /**
+     * This setting controls how many outstanding prepared statement discard actions (sp_unprepare) can be outstanding per connection 
+     * before a call to clean-up the outstanding handles on the server is executed. If the setting is <= 1 unprepare actions will be 
+     * executed immedietely on prepared statement close. If it is set to >1 these calls will be batched together to avoid overhead of 
+     * calling sp_unprepare too often. 
+     * 
+     * @param serverPreparedStatementDiscardThreshold
+     *      Changes the setting per the description.
+     */
+    public void setServerPreparedStatementDiscardThreshold(int serverPreparedStatementDiscardThreshold) {
+        setIntProperty(connectionProps, SQLServerDriverIntProperty.SERVER_PREPARED_STATEMENT_DISCARD_THRESHOLD.toString(), serverPreparedStatementDiscardThreshold);
+    }
+
+    /**
+     * This setting controls how many outstanding prepared statement discard actions (sp_unprepare) can be outstanding per connection 
+     * before a call to clean-up the outstanding handles on the server is executed. If the setting is <= 1 unprepare actions will be 
+     * executed immedietely on prepared statement close. If it is set to >1 these calls will be batched together to avoid overhead of 
+     * calling sp_unprepare too often. 
+     * 
+     * @return Returns the current setting per the description.
+     */
+    public int getServerPreparedStatementDiscardThreshold() {
+        return getIntProperty(connectionProps, SQLServerDriverIntProperty.SERVER_PREPARED_STATEMENT_DISCARD_THRESHOLD.toString(),
+                SQLServerConnection.getDefaultServerPreparedStatementDiscardThreshold());
+    }
+
     public void setSocketTimeout(int socketTimeout) {
         setIntProperty(connectionProps, SQLServerDriverIntProperty.SOCKET_TIMEOUT.toString(), socketTimeout);
     }
@@ -772,6 +843,30 @@ public class SQLServerDataSource implements ISQLServerDataSource, DataSource, ja
         return value.booleanValue();
     }
 
+    private void setObjectProperty(Properties props,
+            String propKey,
+            Object propValue) {
+        if (loggerExternal.isLoggable(java.util.logging.Level.FINER)) {
+            loggerExternal.entering(getClassNameLogging(), "set" + propKey);
+        }
+        if (null != propValue) {
+            props.put(propKey, propValue);
+        }
+        loggerExternal.exiting(getClassNameLogging(), "set" + propKey);
+    }
+
+    private Object getObjectProperty(Properties props,
+            String propKey,
+            Object defaultValue) {
+        if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
+            loggerExternal.entering(getClassNameLogging(), "get" + propKey);
+        Object propValue = props.get(propKey);
+        if (null == propValue)
+            propValue = defaultValue;
+        loggerExternal.exiting(getClassNameLogging(), "get" + propKey);
+        return propValue;
+    }
+    
     // Returns a SQLServerConnection given username, password, and pooledConnection.
     // Note that the DataSource properties set to connectionProps are used when creating
     // the connection.
@@ -909,7 +1004,6 @@ public class SQLServerDataSource implements ISQLServerDataSource, DataSource, ja
 
     public boolean isWrapperFor(Class<?> iface) throws SQLException {
         loggerExternal.entering(getClassNameLogging(), "isWrapperFor", iface);
-        DriverJDBCVersion.checkSupportsJDBC4();
         boolean f = iface.isInstance(this);
         loggerExternal.exiting(getClassNameLogging(), "isWrapperFor", Boolean.valueOf(f));
         return f;
@@ -917,8 +1011,6 @@ public class SQLServerDataSource implements ISQLServerDataSource, DataSource, ja
 
     public <T> T unwrap(Class<T> iface) throws SQLException {
         loggerExternal.entering(getClassNameLogging(), "unwrap", iface);
-        DriverJDBCVersion.checkSupportsJDBC4();
-
         T t;
         try {
             t = iface.cast(this);

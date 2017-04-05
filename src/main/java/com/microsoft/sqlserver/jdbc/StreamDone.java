@@ -22,6 +22,7 @@ class StreamDone extends StreamPacket {
      * the current command (See Appendix A of TDS spec)
      */
     static final short CMD_SELECT = 0xC1;
+    static final short CMD_SELECTINTO = 0xC2;
     static final short CMD_INSERT = 0xC3;
     static final short CMD_DELETE = 0xC4;
     static final short CMD_UPDATE = 0xC5;
@@ -224,6 +225,7 @@ class StreamDone extends StreamPacket {
             case CMD_DELETE:
             case CMD_UPDATE:
             case CMD_MERGE:
+            case CMD_SELECTINTO:
                 return updateCountIsValid() ? rowCount : -1;
 
             default: // DDL assumed
@@ -238,6 +240,7 @@ class StreamDone extends StreamPacket {
             case CMD_DELETE:
             case CMD_UPDATE:
             case CMD_MERGE:
+            case CMD_SELECTINTO:
 
                 // DDL
                 // Lifted from SQL Server 2005 Books Online at:
