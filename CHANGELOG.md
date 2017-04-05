@@ -12,7 +12,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/)
 - Added cause to SQLServerException [#202](https://github.com/Microsoft/mssql-jdbc/pull/202)
 
 ### Changed
-- Removd java.io.Serializable interface from SQLServerConnectionPoolProxy [#201](https://github.com/Microsoft/mssql-jdbc/pull/201)
+- Removed java.io.Serializable interface from SQLServerConnectionPoolProxy [#201](https://github.com/Microsoft/mssql-jdbc/pull/201)
 - Refactored DROP TABLE and DROP PROCEDURE calls in test code [#222](https://github.com/Microsoft/mssql-jdbc/pull/222/files)
 - Removed obsolete methods from DriverJDBCVersion [#187](https://github.com/Microsoft/mssql-jdbc/pull/187)
 
