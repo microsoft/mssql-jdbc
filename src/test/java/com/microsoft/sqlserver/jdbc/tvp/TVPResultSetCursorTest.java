@@ -27,6 +27,7 @@ import org.junit.runner.RunWith;
 
 import com.microsoft.sqlserver.jdbc.SQLServerPreparedStatement;
 import com.microsoft.sqlserver.testframework.AbstractTest;
+import com.microsoft.sqlserver.testframework.Utils;
 
 @RunWith(JUnitPlatform.class)
 public class TVPResultSetCursorTest extends AbstractTest {
@@ -150,8 +151,8 @@ public class TVPResultSetCursorTest extends AbstractTest {
     }
 
     private static void dropTables() throws SQLException {
-        stmt.executeUpdate("if object_id('" + srcTable + "','U') is not null" + " drop table " + srcTable);
-        stmt.executeUpdate("if object_id('" + desTable + "','U') is not null" + " drop table " + desTable);
+        Utils.dropTableIfExists(srcTable, stmt);
+        Utils.dropTableIfExists(desTable, stmt);
     }
 
     private static void createTables() throws SQLException {
