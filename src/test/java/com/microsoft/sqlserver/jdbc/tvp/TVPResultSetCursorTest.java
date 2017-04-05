@@ -16,7 +16,9 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Timestamp;
+import java.util.Calendar;
 import java.util.Properties;
+import java.util.TimeZone;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
@@ -38,7 +40,7 @@ public class TVPResultSetCursorTest extends AbstractTest {
     static String[] expectedStrings = {"hello", "world", "!!!"};
 
     static Timestamp[] expectedTimestamps = {new Timestamp(1433338533461L), new Timestamp(14917485583999L), new Timestamp(1491123533000L)};
-    static String[] expectedTimestampStrings = {"2015-06-03 06:35:33.4610000", "2442-09-18 18:59:43.9990000", "2017-04-02 01:58:53.0000000"};
+    static String[] expectedTimestampStrings = {"2015-06-03 13:35:33.4610000", "2442-09-19 01:59:43.9990000", "2017-04-02 08:58:53.0000000"};
 
     private static String tvpName = "TVPResultSetCursorTest_TVP";
     private static String srcTable = "TVPResultSetCursorTest_SourceTable";
@@ -135,12 +137,14 @@ public class TVPResultSetCursorTest extends AbstractTest {
     private static void populateSourceTable() throws SQLException {
         String sql = "insert into " + srcTable + " values (?,?,?)";
 
+        Calendar calGMT = Calendar.getInstance(TimeZone.getTimeZone("GMT"));
+
         SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) conn.prepareStatement(sql);
 
         for (int i = 0; i < expectedBigDecimals.length; i++) {
             pstmt.setBigDecimal(1, expectedBigDecimals[i]);
             pstmt.setString(2, expectedStrings[i]);
-            pstmt.setTimestamp(3, expectedTimestamps[i]);
+            pstmt.setTimestamp(3, expectedTimestamps[i], calGMT);
             pstmt.execute();
         }
     }
