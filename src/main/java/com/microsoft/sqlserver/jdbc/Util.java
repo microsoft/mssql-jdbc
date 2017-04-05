@@ -853,6 +853,7 @@ final class Util {
                     else {
                         if (0 == ((BigDecimal) value).intValue()) {
                             String s = "" + value;
+                            s = s.replaceAll("\\-", "");
                             if (s.startsWith("0.")) {
                                 // remove the leading zero, eg., for 0.32, the precision should be 2 and not 3
                                 s = s.replaceAll("0\\.", "");
@@ -860,8 +861,6 @@ final class Util {
                             else {
                                 s = s.replaceAll("\\.", "");
                             }
-                            s = s.replaceAll("\\.", "");
-                            s = s.replaceAll("\\-", "");
                             length = s.length();
                         }
                         // if the value is in scientific notation format
