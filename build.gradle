@@ -77,5 +77,7 @@ dependencies {
 	'org.junit.platform:junit-platform-runner:1.0.0-M3',
 	'org.junit.platform:junit-platform-surefire-provider:1.0.0-M3',
 	'org.junit.jupiter:junit-jupiter-api:5.0.0-M3',
-	'org.junit.jupiter:junit-jupiter-engine:5.0.0-M3'
+	'org.junit.jupiter:junit-jupiter-engine:5.0.0-M3',
+	'com.zaxxer:HikariCP:2.6.0',
+	'org.apache.commons:commons-dbcp2:2.1.1'
 }
