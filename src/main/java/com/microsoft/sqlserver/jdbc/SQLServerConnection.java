@@ -281,6 +281,8 @@ public class SQLServerConnection implements ISQLServerConnection {
     final int getSocketTimeoutMilliseconds() {
         return socketTimeoutMilliseconds;
     }
+    
+    boolean userSetTNIR = true;
 
     private boolean sendTimeAsDatetime = SQLServerDriverBooleanProperty.SEND_TIME_AS_DATETIME.getDefaultValue();
 
@@ -1126,6 +1128,7 @@ public class SQLServerConnection implements ISQLServerConnection {
             sPropKey = SQLServerDriverBooleanProperty.TRANSPARENT_NETWORK_IP_RESOLUTION.toString();
             sPropValue = activeConnectionProperties.getProperty(sPropKey);
             if (sPropValue == null) {
+                userSetTNIR = false;
                 sPropValue = Boolean.toString(SQLServerDriverBooleanProperty.TRANSPARENT_NETWORK_IP_RESOLUTION.getDefaultValue());
                 activeConnectionProperties.setProperty(sPropKey, sPropValue);
             }
@@ -1285,6 +1288,13 @@ public class SQLServerConnection implements ISQLServerConnection {
             if ((!System.getProperty("os.name").toLowerCase().startsWith("windows"))
                     && (authenticationString.equalsIgnoreCase(SqlAuthentication.ActiveDirectoryIntegrated.toString()))) {
                 throw new SQLServerException(SQLServerException.getErrString("R_AADIntegratedOnNonWindows"), null);
+            }
+            
+            // Turn off TNIR for FedAuth if user does not set TNIR explicitly
+            if (!userSetTNIR) {
+                if ((!authenticationString.equalsIgnoreCase(SqlAuthentication.NotSpecified.toString())) || (null != accessTokenInByte)) {
+                    transparentNetworkIPResolution = false;
+                }
             }
 
             sPropKey = SQLServerDriverStringProperty.WORKSTATION_ID.toString();
