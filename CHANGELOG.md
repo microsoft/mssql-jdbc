@@ -9,7 +9,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/)
 - Added snapshot to identify nightly/dev builds[#221](https://github.com/Microsoft/mssql-jdbc/pull/221)
 - Clarifying public deprecated constructors in LOBs[#226](https://github.com/Microsoft/mssql-jdbc/pull/226)
 - Added OSGI Headers in MANIFEST.MF [#218](https://github.com/Microsoft/mssql-jdbc/pull/218)
-- Added cause to SQLserverException[#202](https://github.com/Microsoft/mssql-jdbc/pull/202)
+- Added cause to SQLServerException[#202](https://github.com/Microsoft/mssql-jdbc/pull/202)
 
 ### Changed
 - Removd java.io.Serializable interface from SQLServerConnectionPoolProxy[#201](https://github.com/Microsoft/mssql-jdbc/pull/201)
