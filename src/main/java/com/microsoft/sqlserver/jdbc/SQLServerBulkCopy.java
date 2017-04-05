@@ -289,6 +289,8 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable {
                 while (--secondsRemaining > 0);
             }
             catch (InterruptedException e) {
+                // re-interrupt the current thread, in order to restore the thread's interrupt status.
+                Thread.currentThread().interrupt();
                 return;
             }
 
@@ -1207,7 +1209,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable {
                 connection.rollback();
             }
 
-            throw new SQLServerException(SQLServerException.getErrString("R_queryTimedOut"), SQLState.STATEMENT_CANCELED, DriverError.NOT_SET, null);
+            throw new SQLServerException(SQLServerException.getErrString("R_queryTimedOut"), SQLState.STATEMENT_CANCELED, DriverError.NOT_SET, e);
         }
     }
 

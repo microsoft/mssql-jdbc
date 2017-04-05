@@ -25,6 +25,7 @@ import org.junit.runner.RunWith;
 
 import com.microsoft.sqlserver.jdbc.ISQLServerResultSet;
 import com.microsoft.sqlserver.testframework.AbstractTest;
+import com.microsoft.sqlserver.testframework.Utils;
 import com.microsoft.sqlserver.testframework.util.RandomUtil;
 
 @RunWith(JUnitPlatform.class)
@@ -84,7 +85,7 @@ public class ResultSetTest extends AbstractTest {
      * @throws SQLException
      */
     @Test
-    public void testTesultSetWrapper() throws SQLException {
+    public void testResultSetWrapper() throws SQLException {
         try (Connection con = DriverManager.getConnection(connectionString);
              Statement stmt = con.createStatement()) {
             
@@ -97,7 +98,7 @@ public class ResultSetTest extends AbstractTest {
                 assertSame(rs, rs.unwrap(ResultSet.class));
                 assertSame(rs, rs.unwrap(ISQLServerResultSet.class));
             } finally {
-                stmt.executeUpdate("drop table if exists " + tableName);
+                Utils.dropTableIfExists(tableName, stmt);
             }
         }
     }

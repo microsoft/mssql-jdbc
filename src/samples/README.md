@@ -31,6 +31,9 @@ The following samples are available:
 
 7. sparse
 	* **SparseColumns** - how to detect column sets. It also shows a technique for parsing a column set's XML output, to get data from the sparse columns.
+   
+8. constrained
+	* **ConstrainedSample** - how to connect with Kerberos constrained delegation using an impersonated credential.
 
 
 ## Running Samples

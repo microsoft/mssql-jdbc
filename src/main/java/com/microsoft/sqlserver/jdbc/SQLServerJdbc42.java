@@ -22,12 +22,6 @@ final class DriverJDBCVersion {
     static final int major = 4;
     static final int minor = 2;
 
-    static final void checkSupportsJDBC4() {
-    }
-
-    static final void checkSupportsJDBC41() {
-    }
-
     static final void checkSupportsJDBC42() {
     }
 
