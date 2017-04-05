@@ -71,7 +71,7 @@ public class TVPResultSetCursorTest extends AbstractTest {
         pstmt.setStructured(1, tvpName, rs);
         pstmt.execute();
 
-        verifyDestinationTableData();
+        verifyDestinationTableData(expectedBigDecimals.length);
 
         if (null != pstmt) {
             pstmt.close();
@@ -108,7 +108,7 @@ public class TVPResultSetCursorTest extends AbstractTest {
         pstmt.setStructured(1, tvpName, rs);
         pstmt.execute();
 
-        verifyDestinationTableData();
+        verifyDestinationTableData(expectedBigDecimals.length);
 
         if (null != pstmt) {
             pstmt.close();
@@ -118,21 +118,93 @@ public class TVPResultSetCursorTest extends AbstractTest {
         }
     }
 
-    private static void verifyDestinationTableData() throws SQLException {
+    /**
+     * test with multiple prepared statements and result sets
+     * 
+     * @throws SQLException
+     */
+    @Test
+    public void testMultiplePreparedStatementAndResultSet() throws SQLException {
+        conn = DriverManager.getConnection(connectionString);
+
+        stmt = conn.createStatement();
+
+        dropTVPS();
+        dropTables();
+
+        createTVPS();
+        createTables();
+
+        populateSourceTable();
+
+        ResultSet rs = conn.createStatement(ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_UPDATABLE).executeQuery("select * from " + srcTable);
+
+        SQLServerPreparedStatement pstmt1 = (SQLServerPreparedStatement) conn.prepareStatement("INSERT INTO " + desTable + " select * from ? ;");
+        pstmt1.setStructured(1, tvpName, rs);
+        pstmt1.execute();
+        verifyDestinationTableData(expectedBigDecimals.length);
+
+        rs.beforeFirst();
+        pstmt1 = (SQLServerPreparedStatement) conn.prepareStatement("INSERT INTO " + desTable + " select * from ? ;");
+        pstmt1.setStructured(1, tvpName, rs);
+        pstmt1.execute();
+        verifyDestinationTableData(expectedBigDecimals.length * 2);
+
+        rs.beforeFirst();
+        SQLServerPreparedStatement pstmt2 = (SQLServerPreparedStatement) conn.prepareStatement("INSERT INTO " + desTable + " select * from ? ;");
+        pstmt2.setStructured(1, tvpName, rs);
+        pstmt2.execute();
+        verifyDestinationTableData(expectedBigDecimals.length * 3);
+
+        String sql = "insert into " + desTable + " values (?,?,?)";
+        Calendar calGMT = Calendar.getInstance(TimeZone.getTimeZone("GMT"));
+        pstmt1 = (SQLServerPreparedStatement) conn.prepareStatement(sql);
+        for (int i = 0; i < expectedBigDecimals.length; i++) {
+            pstmt1.setBigDecimal(1, expectedBigDecimals[i]);
+            pstmt1.setString(2, expectedStrings[i]);
+            pstmt1.setTimestamp(3, expectedTimestamps[i], calGMT);
+            pstmt1.execute();
+        }
+        verifyDestinationTableData(expectedBigDecimals.length * 4);
+
+        ResultSet rs2 = conn.createStatement(ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_UPDATABLE).executeQuery("select * from " + srcTable);
+
+        pstmt1 = (SQLServerPreparedStatement) conn.prepareStatement("INSERT INTO " + desTable + " select * from ? ;");
+        pstmt1.setStructured(1, tvpName, rs2);
+        pstmt1.execute();
+        verifyDestinationTableData(expectedBigDecimals.length * 5);
+
+        if (null != pstmt1) {
+            pstmt1.close();
+        }
+        if (null != pstmt2) {
+            pstmt2.close();
+        }
+        if (null != rs) {
+            rs.close();
+        }
+        if (null != rs2) {
+            rs2.close();
+        }
+    }
+
+    private static void verifyDestinationTableData(int expectedNumberOfRows) throws SQLException {
         ResultSet rs = conn.createStatement().executeQuery("select * from " + desTable);
+
+        int expectedArrayLength = expectedBigDecimals.length;
 
         int i = 0;
         while (rs.next()) {
-            assertTrue(rs.getString(1).equals(expectedBigDecimalStrings[i]),
-                    "Expected Value:" + expectedBigDecimalStrings[i] + ", Actual Value: " + rs.getString(1));
-            assertTrue(rs.getString(2).trim().equals(expectedStrings[i]),
-                    "Expected Value:" + expectedStrings[i] + ", Actual Value: " + rs.getString(2));
-            assertTrue(rs.getString(3).equals(expectedTimestampStrings[i]),
-                    "Expected Value:" + expectedTimestampStrings[i] + ", Actual Value: " + rs.getString(3));
+            assertTrue(rs.getString(1).equals(expectedBigDecimalStrings[i % expectedArrayLength]),
+                    "Expected Value:" + expectedBigDecimalStrings[i % expectedArrayLength] + ", Actual Value: " + rs.getString(1));
+            assertTrue(rs.getString(2).trim().equals(expectedStrings[i % expectedArrayLength]),
+                    "Expected Value:" + expectedStrings[i % expectedArrayLength] + ", Actual Value: " + rs.getString(2));
+            assertTrue(rs.getString(3).equals(expectedTimestampStrings[i % expectedArrayLength]),
+                    "Expected Value:" + expectedTimestampStrings[i % expectedArrayLength] + ", Actual Value: " + rs.getString(3));
             i++;
         }
 
-        assertTrue(i == expectedBigDecimals.length);
+        assertTrue(i == expectedNumberOfRows);
     }
 
     private static void populateSourceTable() throws SQLException {
