@@ -120,9 +120,12 @@ public class TVPResultSetCursorTest extends AbstractTest {
 
         int i = 0;
         while (rs.next()) {
-            assertTrue(rs.getString(1).equals(expectedBigDecimalStrings[i]));
-            assertTrue(rs.getString(2).trim().equals(expectedStrings[i]));
-            assertTrue(rs.getString(3).equals(expectedTimestampStrings[i]));
+            assertTrue(rs.getString(1).equals(expectedBigDecimalStrings[i]),
+                    "Expected Value:" + expectedBigDecimalStrings[i] + ", Actual Value: " + rs.getString(1));
+            assertTrue(rs.getString(2).trim().equals(expectedStrings[i]),
+                    "Expected Value:" + expectedStrings[i] + ", Actual Value: " + rs.getString(2));
+            assertTrue(rs.getString(3).equals(expectedTimestampStrings[i]),
+                    "Expected Value:" + expectedTimestampStrings[i] + ", Actual Value: " + rs.getString(3));
             i++;
         }
 
