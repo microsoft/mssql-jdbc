@@ -190,6 +190,7 @@ public class SQLServerConnection implements ISQLServerConnection {
     }
 
     private final static float TIMEOUTSTEP = 0.08F;    // fraction of timeout to use for fast failover connections
+    private final static float TIMEOUTSTEP_TNIR = 0.125F;
     final static int TnirFirstAttemptTimeoutMs = 500;    // fraction of timeout to use for fast failover connections
 
     /*
@@ -1591,8 +1592,11 @@ public class SQLServerConnection implements ISQLServerConnection {
         timerExpire = timerStart + timerTimeout;
 
         // For non-dbmirroring, non-tnir and non-multisubnetfailover scenarios, full time out would be used as time slice.
-        if (isDBMirroring || useParallel || useTnir) {
+        if (isDBMirroring || useParallel) {
             timeoutUnitInterval = (long) (TIMEOUTSTEP * timerTimeout);
+        }
+        else if (useTnir) {
+            timeoutUnitInterval = (long) (TIMEOUTSTEP_TNIR * timerTimeout);
         }
         else {
             timeoutUnitInterval = timerTimeout;
