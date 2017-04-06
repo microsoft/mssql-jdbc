@@ -14,7 +14,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
-import java.sql.Savepoint;
 import java.sql.Statement;
 
 import org.junit.jupiter.api.Test;
@@ -37,7 +36,7 @@ public class TestSavepoint extends AbstractTest {
     String savePointName = RandomUtil.getIdentifier("SavePoint", 31, true, false);
 
     /**
-     * Testing savepoint with name.
+     * Testing SavePoint with name.
      */
     @Test
     public void testSavePointName() throws SQLException {
@@ -45,10 +44,17 @@ public class TestSavepoint extends AbstractTest {
 
         connection.setAutoCommit(false);
 
-        Savepoint savePoint = connection.setSavepoint(savePointName);
+        SQLServerSavepoint savePoint = (SQLServerSavepoint) connection.setSavepoint(savePointName);
         assertTrue(savePointName.equals(savePoint.getSavepointName()), "Savepoint Name should be same.");
 
-        assertTrue(savePointName.equals(((SQLServerSavepoint) savePoint).getLabel()), "Savepoint Lable should be same as Savepoint  Name.");
+        assertTrue(savePointName.equals(savePoint.getLabel()), "Savepoint Lable should be same as Savepoint  Name.");
+
+        try {
+            savePoint.getSavepointId();
+            assertTrue(false, "Expecting Exception as trying to get SavePointId when we created savepoint with name");
+        }
+        catch (SQLServerException e) {
+        }
 
         connection.rollback();
     }
@@ -96,7 +102,8 @@ public class TestSavepoint extends AbstractTest {
     }
 
     /**
-     * Test SavePoint when auto commit is true. 
+     * Test SavePoint when auto commit is true.
+     * 
      * @throws SQLException
      */
     @Test
@@ -106,7 +113,7 @@ public class TestSavepoint extends AbstractTest {
         connection.setAutoCommit(true);
 
         try {
-            SQLServerSavepoint savePoint = (SQLServerSavepoint) connection.setSavepoint(null);
+            connection.setSavepoint(null);
             assertTrue(false, "Expecting Exception as can not set SetPoint when AutoCommit mode is set to true.");
         }
         catch (SQLServerException e) {
