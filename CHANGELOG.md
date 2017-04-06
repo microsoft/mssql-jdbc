@@ -4,11 +4,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/) 
 
 ## [Unreleased]
-## Added
+### Added
 
-## Changed
+### Changed
 
-## Fixed Issues
+### Fixed Issues
 
 
 ## [6.1.6]
