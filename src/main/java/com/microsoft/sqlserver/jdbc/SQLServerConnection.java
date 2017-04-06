@@ -1785,11 +1785,15 @@ public class SQLServerConnection implements ISQLServerConnection {
             // Update timeout interval (but no more than the point where we're supposed to fail: timerExpire)
             attemptNumber++;
 
-            if (useParallel || useTnir) {
+            if (useParallel) {
                 intervalExpire = System.currentTimeMillis() + (timeoutUnitInterval * (attemptNumber + 1));
             }
             else if (isDBMirroring) {
                 intervalExpire = System.currentTimeMillis() + (timeoutUnitInterval * ((attemptNumber / 2) + 1));
+            }
+            else if (useTnir) {
+                long timeSlice = timeoutUnitInterval * (1 << (attemptNumber - 1));
+                intervalExpire = System.currentTimeMillis() + timeSlice;
             }
             else
                 intervalExpire = timerExpire;
