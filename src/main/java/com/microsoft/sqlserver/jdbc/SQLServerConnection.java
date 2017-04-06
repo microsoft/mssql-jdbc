@@ -1478,9 +1478,11 @@ public class SQLServerConnection implements ISQLServerConnection {
                         false);
             }
 
-            // transparentNetworkIPResolution is ignored if multiSubnetFailover or DBMirroring is true.
+            // transparentNetworkIPResolution is ignored if multiSubnetFailover or DBMirroring is true and user does not set TNIR explicitly
             if (multiSubnetFailover || (null != failOverPartnerPropertyValue)) {
-                transparentNetworkIPResolution = false;
+                if (!userSetTNIR) {
+                    transparentNetworkIPResolution = false;
+                }
             }
 
             // failoverPartner and applicationIntent=ReadOnly cannot be used together
