@@ -49,6 +49,7 @@ public class TestSavepoint extends AbstractTest {
 
         assertTrue(savePointName.equals(savePoint.getLabel()), "Savepoint Lable should be same as Savepoint  Name.");
 
+        assertTrue(savePoint.isNamed(), "SQLServerSavepoint.isNamed should be true");
         try {
             savePoint.getSavepointId();
             assertTrue(false, "Expecting Exception as trying to get SavePointId when we created savepoint with name");
@@ -89,6 +90,7 @@ public class TestSavepoint extends AbstractTest {
      * 
      * @throws SQLException
      */
+    @Test
     public void testSavePointIsNamed() throws SQLException {
         connection = DriverManager.getConnection(connectionString);
 
@@ -96,7 +98,7 @@ public class TestSavepoint extends AbstractTest {
 
         SQLServerSavepoint savePoint = (SQLServerSavepoint) connection.setSavepoint(null);
 
-        assertFalse(savePoint.isNamed(), "SQLServerSavepoint.isNamed should be ");
+        assertFalse(savePoint.isNamed(), "SQLServerSavepoint.isNamed should be false as savePoint is created without name");
 
         connection.rollback();
     }
