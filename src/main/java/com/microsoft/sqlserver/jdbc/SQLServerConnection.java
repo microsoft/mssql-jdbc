@@ -1793,6 +1793,12 @@ public class SQLServerConnection implements ISQLServerConnection {
             }
             else if (useTnir) {
                 long timeSlice = timeoutUnitInterval * (1 << (attemptNumber - 1));
+
+                // In case the timeout for the first slice is less than 500 ms then bump it up to 500 ms
+                if ((1 == attemptNumber) && (500 > timeSlice)) {
+                    timeSlice = 500;
+                }
+
                 intervalExpire = System.currentTimeMillis() + timeSlice;
             }
             else
