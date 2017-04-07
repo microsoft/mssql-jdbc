@@ -3,6 +3,14 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](http://keepachangelog.com/) 
 
+## [Unreleased]
+### Added
+
+### Changed
+
+### Fixed Issues
+
+
 ## [6.1.6]
 ### Added
 - Added constrained delegation to connection sample [#188](https://github.com/Microsoft/mssql-jdbc/pull/188)
