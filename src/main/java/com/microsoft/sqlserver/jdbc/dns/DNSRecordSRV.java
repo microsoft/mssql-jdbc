@@ -36,9 +36,11 @@ public class DNSRecordSRV implements Comparable<DNSRecordSRV> {
                 serverName = serverName.substring(0, serverName.length() - 1);
             }
             return new DNSRecordSRV(priority, weight, port, serverName);
-        } catch (IllegalArgumentException err) {
+        }
+        catch (IllegalArgumentException err) {
             throw err;
-        } catch (Exception err) {
+        }
+        catch (Exception err) {
             throw new IllegalArgumentException("Failed to parse DNS SRV record '" + record + "'", err);
         }
     }
@@ -62,7 +64,10 @@ public class DNSRecordSRV implements Comparable<DNSRecordSRV> {
      * @throws IllegalArgumentException
      *             if priority < 0 or weight <= 1
      */
-    public DNSRecordSRV(int priority, int weight, int port, String serverName) throws IllegalArgumentException {
+    public DNSRecordSRV(int priority,
+            int weight,
+            int port,
+            String serverName) throws IllegalArgumentException {
         if (priority < 0) {
             throw new IllegalArgumentException("priority must be >= 0, but was: " + priority);
         }

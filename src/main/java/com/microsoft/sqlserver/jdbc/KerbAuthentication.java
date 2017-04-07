@@ -275,10 +275,11 @@ final class KerbAuthentication extends SSPIAuthentication {
             authLogger.finer(toString() + "SPN enriched: " + spn + " := " + this.spn);
         }
 	}
-	
+
     private static final Pattern SPN_PATTERN = Pattern.compile("MSSQLSvc/(.*):([^:@]+)(@.+)?", Pattern.CASE_INSENSITIVE);
 
-    private String enrichSpnWithRealm(String spn, boolean allowHostnameCanonicalization) {
+    private String enrichSpnWithRealm(String spn,
+            boolean allowHostnameCanonicalization) {
         if (spn == null) {
             return spn;
         }
@@ -302,13 +303,15 @@ final class KerbAuthentication extends SSPIAuthentication {
                 // Since we have a match, our hostname is the correct one (for instance of server
                 // name was an IP), so we override dnsName as well
                 dnsName = canonicalHostName;
-            } catch (UnknownHostException cannotCanonicalize) {
+            }
+            catch (UnknownHostException cannotCanonicalize) {
                 // ignored, but we are in a bad shape
             }
         }
         if (realm == null) {
             return spn;
-        } else {
+        }
+        else {
             StringBuilder sb = new StringBuilder("MSSQLSvc/");
             sb.append(dnsName).append(":").append(portOrInstance).append("@").append(realm.toUpperCase(Locale.ENGLISH));
             return sb.toString();
@@ -320,7 +323,8 @@ final class KerbAuthentication extends SSPIAuthentication {
     /**
      * Find a suitable way of validating a REALM for given JVM.
      *
-     * @param hostnameToTest an example hostname we are gonna use to test our realm validator.
+     * @param hostnameToTest
+     *            an example hostname we are gonna use to test our realm validator.
      * @return a not null realm Validator.
      */
     static RealmValidator getRealmValidator(String hostnameToTest) {
@@ -331,7 +335,7 @@ final class KerbAuthentication extends SSPIAuthentication {
         try {
             Class<?> clz = Class.forName("sun.security.krb5.Config");
             Method getInstance = clz.getMethod("getInstance", new Class[0]);
-            final Method getKDCList = clz.getMethod("getKDCList", new Class[] { String.class });
+            final Method getKDCList = clz.getMethod("getKDCList", new Class[] {String.class});
             final Object instance = getInstance.invoke(null);
             RealmValidator oracleRealmValidator = new RealmValidator() {
 
@@ -339,8 +343,9 @@ final class KerbAuthentication extends SSPIAuthentication {
                 public boolean isRealmValid(String realm) {
                     try {
                         Object ret = getKDCList.invoke(instance, realm);
-                        return ret!=null;
-                    } catch (Exception err) {
+                        return ret != null;
+                    }
+                    catch (Exception err) {
                         return false;
                     }
                 }
@@ -349,13 +354,14 @@ final class KerbAuthentication extends SSPIAuthentication {
             // As explained here: https://github.com/Microsoft/mssql-jdbc/pull/40#issuecomment-281509304
             // The default Oracle Resolution mechanism is not bulletproof
             // If it resolves a crappy name, drop it.
-            if (!validator.isRealmValid("this.might.not.exist." + hostnameToTest)){
+            if (!validator.isRealmValid("this.might.not.exist." + hostnameToTest)) {
                 // Our realm validator is well working, return it
                 authLogger.fine("Kerberos Realm Validator: Using Built-in Oracle Realm Validation method.");
                 return oracleRealmValidator;
             }
             authLogger.fine("Kerberos Realm Validator: Detected buggy Oracle Realm Validator, using DNSKerberosLocator.");
-        } catch (ReflectiveOperationException notTheRightJVMException) {
+        }
+        catch (ReflectiveOperationException notTheRightJVMException) {
             // Ignored, we simply are not using the right JVM
             authLogger.fine("Kerberos Realm Validator: No Oracle Realm Validator Available, using DNSKerberosLocator.");
         }
@@ -365,7 +371,8 @@ final class KerbAuthentication extends SSPIAuthentication {
             public boolean isRealmValid(String realm) {
                 try {
                     return DNSKerberosLocator.isRealmValid(realm);
-                } catch (NamingException err){
+                }
+                catch (NamingException err) {
                     return false;
                 }
             }
@@ -376,11 +383,14 @@ final class KerbAuthentication extends SSPIAuthentication {
     /**
      * Try to find a REALM in the different parts of a host name.
      *
-     * @param realmValidator a function that return true if REALM is valid and exists
-     * @param hostname the name we are looking a REALM for
+     * @param realmValidator
+     *            a function that return true if REALM is valid and exists
+     * @param hostname
+     *            the name we are looking a REALM for
      * @return the realm if found, null otherwise
      */
-    private String findRealmFromHostname(RealmValidator realmValidator, String hostname) {
+    private String findRealmFromHostname(RealmValidator realmValidator,
+            String hostname) {
         if (hostname == null) {
             return null;
         }
@@ -394,7 +404,7 @@ final class KerbAuthentication extends SSPIAuthentication {
                 return realm.toUpperCase();
             }
             index = hostname.indexOf(".", index + 1);
-            if (index != -1){
+            if (index != -1) {
                 index = index + 1;
             }
         }

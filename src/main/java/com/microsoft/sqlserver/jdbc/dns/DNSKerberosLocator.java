@@ -7,14 +7,17 @@ import javax.naming.NamingException;
 
 public final class DNSKerberosLocator {
 
-    private DNSKerberosLocator() {}
+    private DNSKerberosLocator() {
+    }
 
     /**
      * Tells whether a realm is valid.
      *
-     * @param realmName the realm to test
+     * @param realmName
+     *            the realm to test
      * @return true if realm is valid, false otherwise
-     * @throws NamingException if DNS failed, so realm existence cannot be determined
+     * @throws NamingException
+     *             if DNS failed, so realm existence cannot be determined
      */
     public static boolean isRealmValid(String realmName) throws NamingException {
         if (realmName == null || realmName.length() < 2) {
@@ -26,7 +29,8 @@ public final class DNSKerberosLocator {
         try {
             Set<DNSRecordSRV> records = DNSUtilities.findSrvRecords("_kerberos._udp." + realmName);
             return !records.isEmpty();
-        } catch (NameNotFoundException wrongDomainException) {
+        }
+        catch (NameNotFoundException wrongDomainException) {
             return false;
         }
     }

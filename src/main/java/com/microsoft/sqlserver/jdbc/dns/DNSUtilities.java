@@ -21,14 +21,12 @@ public class DNSUtilities {
 
     /**
      * Find all SRV Record using DNS.
-     * You can then use {@link DNSRecordsSRVCollection#getBestRecord()} to find
-     * the best candidate (for instance for Round-Robin calls)
+     *
+     * You can then use {@link DNSRecordsSRVCollection#getBestRecord()} to find the best candidate (for instance for Round-Robin calls)
      *
      * @param dnsSrvRecordToFind
-     *            the DNS record, for instance: _ldap._tcp.dc._msdcs.DOMAIN.COM
-     *            to find all LDAP servers in DOMAIN.COM
-     * @return the collection of records with facilities to find the best
-     *         candidate
+     *            the DNS record, for instance: _ldap._tcp.dc._msdcs.DOMAIN.COM to find all LDAP servers in DOMAIN.COM
+     * @return the collection of records with facilities to find the best candidate
      * @throws NamingException
      *             if DNS is not available
      */
@@ -37,7 +35,7 @@ public class DNSUtilities {
         env.put("java.naming.factory.initial", "com.sun.jndi.dns.DnsContextFactory");
         env.put("java.naming.provider.url", "dns:");
         DirContext ctx = new InitialDirContext(env);
-        Attributes attrs = ctx.getAttributes(dnsSrvRecordToFind, new String[] { "SRV" });
+        Attributes attrs = ctx.getAttributes(dnsSrvRecordToFind, new String[] {"SRV"});
         NamingEnumeration<? extends Attribute> allServers = attrs.getAll();
         TreeSet<DNSRecordSRV> records = new TreeSet<DNSRecordSRV>();
         while (allServers.hasMoreElements()) {
@@ -50,10 +48,10 @@ public class DNSUtilities {
                     if (rec != null) {
                         records.add(rec);
                     }
-                } catch (IllegalArgumentException errorParsingRecord) {
+                }
+                catch (IllegalArgumentException errorParsingRecord) {
                     if (LOG.isLoggable(DNS_ERR_LOG_LEVEL)) {
-                        LOG.log(DNS_ERR_LOG_LEVEL, String.format("Failed to parse SRV DNS Record: '%s'", record),
-                                errorParsingRecord);
+                        LOG.log(DNS_ERR_LOG_LEVEL, String.format("Failed to parse SRV DNS Record: '%s'", record), errorParsingRecord);
                     }
                 }
             }
