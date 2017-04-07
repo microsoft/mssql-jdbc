@@ -19,23 +19,24 @@ public class KerbCallback implements CallbackHandler {
         this.con = con;
     }
 
-    private static String getAnyOf(Callback callback, Properties properties, String... names)
-            throws UnsupportedCallbackException {
+    private static String getAnyOf(Callback callback,
+            Properties properties,
+            String... names) throws UnsupportedCallbackException {
         for (String name : names) {
             String val = properties.getProperty(name);
             if (val != null && !val.trim().isEmpty()) {
                 return val;
             }
         }
-        throw new UnsupportedCallbackException(callback,
-                "Cannot get any of properties: " + Arrays.toString(names) + " from con properties");
+        throw new UnsupportedCallbackException(callback, "Cannot get any of properties: " + Arrays.toString(names) + " from con properties");
     }
 
     /**
      * If a name was retrieved By Kerberos, return it.
+     *
      * @return null if callback was not called or username was not provided
      */
-    public String getUsernameRequested(){
+    public String getUsernameRequested() {
         return usernameRequested;
     }
 
@@ -44,16 +45,15 @@ public class KerbCallback implements CallbackHandler {
         for (int i = 0; i < callbacks.length; i++) {
             Callback callback = callbacks[i];
             if (callback instanceof NameCallback) {
-                usernameRequested = getAnyOf(callback, con.activeConnectionProperties,
-                                             "user", SQLServerDriverStringProperty.USER.name());
+                usernameRequested = getAnyOf(callback, con.activeConnectionProperties, "user", SQLServerDriverStringProperty.USER.name());
                 ((NameCallback) callback).setName(usernameRequested);
-            } else if (callback instanceof PasswordCallback) {
-                String password = getAnyOf(callback, con.activeConnectionProperties,
-                        "password", SQLServerDriverStringProperty.PASSWORD.name());
-                ((PasswordCallback) callbacks[i])
-                        .setPassword(password.toCharArray());
+            }
+            else if (callback instanceof PasswordCallback) {
+                String password = getAnyOf(callback, con.activeConnectionProperties, "password", SQLServerDriverStringProperty.PASSWORD.name());
+                ((PasswordCallback) callbacks[i]).setPassword(password.toCharArray());
 
-            } else {
+            }
+            else {
                 throw new UnsupportedCallbackException(callback, "Unrecognized Callback type: " + callback.getClass());
             }
         }

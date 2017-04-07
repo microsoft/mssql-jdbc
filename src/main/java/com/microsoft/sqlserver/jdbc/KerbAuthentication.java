@@ -13,6 +13,7 @@ import java.security.AccessControlContext;
 import java.security.AccessController;
 import java.security.PrivilegedActionException;
 import java.security.PrivilegedExceptionAction;
+import java.text.MessageFormat;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.logging.Level;
@@ -158,9 +159,11 @@ final class KerbAuthentication extends SSPIAuthentication {
                         // Not very clean since it raises an Exception, but we are sure we are cleaning well everything
                         con.terminate(SQLServerException.DRIVER_ERROR_NONE, SQLServerException.getErrString("R_integratedAuthenticationFailed"), le);
                     } catch (SQLServerException alwaysTriggered) {
-                        String message = String.format("%s due to %s (%s)", alwaysTriggered.getMessage(), le.getClass().getName(), le.getMessage());
+                        String message =  MessageFormat.format(SQLServerException.getErrString("R_kerberosLoginFailed"),
+                                                               alwaysTriggered.getMessage(), le.getClass().getName(), le.getMessage());
                         if (callback.getUsernameRequested() != null) {
-                            message = String.format("Login failed for Kerberos principal '%s'. %s", callback.getUsernameRequested(), message);
+                            message = MessageFormat.format(SQLServerException.getErrString("R_kerberosLoginFailedForUsername"),
+                                                           callback.getUsernameRequested(), message);
                         }
                         // By throwing Exception with LOGON_FAILED -> we avoid looping for connection
                         // In this case, authentication will never work anyway -> fail fast
