@@ -11,6 +11,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.IOException;
+import java.math.BigDecimal;
 import java.sql.CallableStatement;
 import java.sql.DriverManager;
 import java.sql.SQLException;
@@ -25,6 +26,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
 
+import com.microsoft.sqlserver.jdbc.SQLServerBulkCopy;
 import com.microsoft.sqlserver.jdbc.SQLServerConnection;
 import com.microsoft.sqlserver.jdbc.SQLServerException;
 import com.microsoft.sqlserver.jdbc.SQLServerPreparedStatement;
@@ -50,7 +52,7 @@ public class SQLVariantTest extends AbstractTest {
         createAndPopulateTable("int", value);
         SQLServerResultSet rs = (SQLServerResultSet) stmt.executeQuery("SELECT * FROM " + tableName);
         while (rs.next()) {
-            assertEquals(rs.getObject(1), String.valueOf(value));
+            assertEquals(rs.getString(1), "" + value);
         }
 
     }
@@ -67,7 +69,7 @@ public class SQLVariantTest extends AbstractTest {
         createAndPopulateTable("Money", value);
         SQLServerResultSet rs = (SQLServerResultSet) stmt.executeQuery("SELECT * FROM " + tableName);
         while (rs.next()) {
-            assertEquals(rs.getObject(1), "123.1200");
+            assertEquals(rs.getObject(1), new BigDecimal("123.1200"));
         }
     }
 
@@ -82,7 +84,7 @@ public class SQLVariantTest extends AbstractTest {
         createAndPopulateTable("smallmoney", value);
         SQLServerResultSet rs = (SQLServerResultSet) stmt.executeQuery("SELECT * FROM " + tableName);
         while (rs.next()) {
-            assertEquals(rs.getObject(1), "123.1200");
+            assertEquals(rs.getObject(1), new BigDecimal("123.1200"));
         }
     }
 
@@ -112,7 +114,7 @@ public class SQLVariantTest extends AbstractTest {
         createAndPopulateTable("date", value);
         SQLServerResultSet rs = (SQLServerResultSet) stmt.executeQuery("SELECT * FROM " + tableName);
         while (rs.next()) {
-            assertEquals(rs.getObject(1), "2015-05-08");
+            assertEquals("" + rs.getObject(1), "2015-05-08");
         }
     }
 
@@ -123,13 +125,64 @@ public class SQLVariantTest extends AbstractTest {
      */
     @Test
     public void readTime() throws SQLException {
-        String value = "'12:26:27.123'";
-        createAndPopulateTable("time(3)", value);
+        String value = "'12:26:27.123345'";
+        createAndPopulateTable("time", value);
         SQLServerResultSet rs = (SQLServerResultSet) stmt.executeQuery("SELECT * FROM " + tableName);
         while (rs.next()) {
-            assertEquals(rs.getObject(1), "12:26:27.123");
+            assertEquals("" + rs.getObject(1).toString(), "12:26:27.1233450"); // TODO
         }
     }
+    
+  @Test
+  public void bulkCopyTest_time() throws SQLException {
+      String col1Value = "'12:26:27.1452367'";
+      String destTableName = "dest_sqlVariant";
+      stmt.executeUpdate("IF EXISTS (select * from sysobjects where id = object_id(N'" + tableName + "') "
+              + "and OBJECTPROPERTY(id, N'IsTable') = 1)" + " DROP TABLE " + tableName);
+      stmt.executeUpdate("IF EXISTS (select * from sysobjects where id = object_id(N'" + destTableName + "') "
+              + "and OBJECTPROPERTY(id, N'IsTable') = 1)" + " DROP TABLE " + destTableName);
+      stmt.executeUpdate("create table " + tableName + " (col1 sql_variant)");
+      stmt.executeUpdate("INSERT into " + tableName + "(col1) values (CAST (" + col1Value + " AS " + "time(2)" + ") )");
+      stmt.executeUpdate("create table " + destTableName + " (col1 sql_variant)");
+
+      SQLServerResultSet rs = (SQLServerResultSet) stmt.executeQuery("SELECT * FROM " + tableName);
+
+      SQLServerBulkCopy bulkCopy = new SQLServerBulkCopy(con);
+      bulkCopy.setDestinationTableName(destTableName);
+      bulkCopy.writeToServer(rs);
+
+      rs = (SQLServerResultSet) stmt.executeQuery("SELECT * FROM " + destTableName);
+      while (rs.next()) {
+          assertEquals("" + rs.getObject(1).toString(), "12:26:27.1500000"); // TODO
+      }
+
+  }
+    
+   @Test
+  public void readTime2() throws SQLException {
+      String col1Value = "'12:26:27.123345'";
+      String destTableName = "dest_sqlVariant";
+      stmt.executeUpdate("IF EXISTS (select * from sysobjects where id = object_id(N'" + tableName + "') "
+              + "and OBJECTPROPERTY(id, N'IsTable') = 1)" + " DROP TABLE " + tableName);
+      stmt.executeUpdate("IF EXISTS (select * from sysobjects where id = object_id(N'" + destTableName + "') "
+              + "and OBJECTPROPERTY(id, N'IsTable') = 1)" + " DROP TABLE " + destTableName);
+      stmt.executeUpdate("create table " + tableName + " (col1 time)");
+      stmt.executeUpdate("INSERT into " + tableName + "(col1) values (CAST (" + col1Value + " AS " + "time" + ") )");
+      stmt.executeUpdate("create table " + destTableName + " (col1 time)");
+
+      SQLServerResultSet rs = (SQLServerResultSet) stmt.executeQuery("SELECT * FROM " + tableName);
+
+      SQLServerBulkCopy bulkCopy = new SQLServerBulkCopy(con);
+      bulkCopy.setDestinationTableName(destTableName);
+      bulkCopy.writeToServer(rs);
+
+      rs = (SQLServerResultSet) stmt.executeQuery("SELECT * FROM " + destTableName);
+      while (rs.next()) {
+          assertEquals("" + rs.getString(1).toString(), "12:26:27.1233450"); // TODO
+          System.out.println(rs.getString(1));
+      }
+
+  }
 
     /**
      * Read datetime from SqlVariant
@@ -142,7 +195,7 @@ public class SQLVariantTest extends AbstractTest {
         createAndPopulateTable("datetime", value);
         SQLServerResultSet rs = (SQLServerResultSet) stmt.executeQuery("SELECT * FROM " + tableName);
         while (rs.next()) {
-            assertEquals(rs.getObject(1), "2015-05-08 12:26:24.0");
+            assertEquals("" + rs.getObject(1), "2015-05-08 12:26:24.0");
         }
     }
 
@@ -157,7 +210,7 @@ public class SQLVariantTest extends AbstractTest {
         createAndPopulateTable("smalldatetime", value);
         SQLServerResultSet rs = (SQLServerResultSet) stmt.executeQuery("SELECT * FROM " + tableName);
         while (rs.next()) {
-            assertEquals(rs.getObject(1), "2015-05-08 12:26:00.0");
+            assertEquals("" + rs.getObject(1), "2015-05-08 12:26:00.0");
         }
     }
 
@@ -191,7 +244,7 @@ public class SQLVariantTest extends AbstractTest {
         createAndPopulateTable("float", value);
         SQLServerResultSet rs = (SQLServerResultSet) stmt.executeQuery("SELECT * FROM " + tableName);
         while (rs.next()) {
-            assertEquals(rs.getObject(1), "5.0");
+            assertEquals(rs.getObject(1), Double.valueOf("5.0"));
         }
     }
 
@@ -202,11 +255,11 @@ public class SQLVariantTest extends AbstractTest {
      */
     @Test
     public void readBigInt() throws SQLException {
-        int value = 5;
+        long value = 5;
         createAndPopulateTable("bigint", value);
         SQLServerResultSet rs = (SQLServerResultSet) stmt.executeQuery("SELECT * FROM " + tableName);
         while (rs.next()) {
-            assertEquals(rs.getObject(1), "5");
+            assertEquals(rs.getObject(1), value);
         }
     }
 
@@ -217,11 +270,11 @@ public class SQLVariantTest extends AbstractTest {
      */
     @Test
     public void readSmallInt() throws SQLException {
-        int value = 5;
+        short value = 5;
         createAndPopulateTable("smallint", value);
         SQLServerResultSet rs = (SQLServerResultSet) stmt.executeQuery("SELECT * FROM " + tableName);
         while (rs.next()) {
-            assertEquals(rs.getObject(1), "5");
+            assertEquals(rs.getObject(1), value);
         }
     }
 
@@ -232,11 +285,11 @@ public class SQLVariantTest extends AbstractTest {
      */
     @Test
     public void readTinyInt() throws SQLException {
-        int value = 5;
+        short value = 5;
         createAndPopulateTable("tinyint", value);
         SQLServerResultSet rs = (SQLServerResultSet) stmt.executeQuery("SELECT * FROM " + tableName);
         while (rs.next()) {
-            assertEquals(rs.getString(1), "5");
+            assertEquals(rs.getObject(1), value);
         }
     }
 
@@ -251,7 +304,7 @@ public class SQLVariantTest extends AbstractTest {
         createAndPopulateTable("bit", value);
         SQLServerResultSet rs = (SQLServerResultSet) stmt.executeQuery("SELECT * FROM " + tableName);
         while (rs.next()) {
-            assertEquals(rs.getObject(1), "1");
+            assertEquals(rs.getObject(1), true);
         }
     }
 
@@ -266,7 +319,7 @@ public class SQLVariantTest extends AbstractTest {
         createAndPopulateTable("Real", value);
         SQLServerResultSet rs = (SQLServerResultSet) stmt.executeQuery("SELECT * FROM " + tableName);
         while (rs.next()) {
-            assertEquals(rs.getObject(1), "5.0");
+            assertEquals(rs.getObject(1), Float.valueOf("5.0"));
         }
     }
 
@@ -287,6 +340,7 @@ public class SQLVariantTest extends AbstractTest {
 
     /**
      * Read nVarChar
+     * 
      * @throws SQLException
      * @throws SecurityException
      * @throws IOException
@@ -303,6 +357,7 @@ public class SQLVariantTest extends AbstractTest {
 
     /**
      * readBinary
+     * 
      * @throws SQLException
      * @throws SecurityException
      * @throws IOException
@@ -319,6 +374,7 @@ public class SQLVariantTest extends AbstractTest {
 
     /**
      * read varBinary
+     * 
      * @throws SQLException
      * @throws SecurityException
      * @throws IOException
@@ -335,6 +391,7 @@ public class SQLVariantTest extends AbstractTest {
 
     /**
      * read Binary512
+     * 
      * @throws SQLException
      * @throws SecurityException
      * @throws IOException
@@ -351,6 +408,7 @@ public class SQLVariantTest extends AbstractTest {
 
     /**
      * read Binary(8000)
+     * 
      * @throws SQLException
      * @throws SecurityException
      * @throws IOException
@@ -364,9 +422,10 @@ public class SQLVariantTest extends AbstractTest {
             assertTrue(parseByte((byte[]) rs.getObject(1), (byte[]) value.getBytes()));
         }
     }
-    
+
     /**
      * Read SqlVariantProperty
+     * 
      * @throws SQLException
      * @throws SecurityException
      * @throws IOException
@@ -378,7 +437,7 @@ public class SQLVariantTest extends AbstractTest {
         SQLServerResultSet rs = (SQLServerResultSet) stmt.executeQuery("SELECT SQL_VARIANT_PROPERTY(col1,'BaseType') AS 'Base Type',"
                 + " SQL_VARIANT_PROPERTY(col1,'Precision') AS 'Precision' from " + tableName);
         while (rs.next()) {
-            assertTrue(rs.getString(1).equalsIgnoreCase("binary"), "unexpected baseType, expected: binary, retrieved:" +rs.getString(1) );
+            assertTrue(rs.getString(1).equalsIgnoreCase("binary"), "unexpected baseType, expected: binary, retrieved:" + rs.getString(1));
         }
     }
 
@@ -482,7 +541,7 @@ public class SQLVariantTest extends AbstractTest {
 
         SQLServerResultSet rs = (SQLServerResultSet) stmt.executeQuery("SELECT * FROM " + tableName);
         while (rs.next()) {
-            assertEquals(rs.getObject(1), String.valueOf(2));
+            assertEquals(rs.getObject(1), 2);
         }
     }
 
@@ -514,6 +573,7 @@ public class SQLVariantTest extends AbstractTest {
 
     /**
      * Test stored procedure with input and output params
+     * 
      * @throws SQLException
      */
     @Test
@@ -535,11 +595,12 @@ public class SQLVariantTest extends AbstractTest {
         cs.registerOutParameter(1, microsoft.sql.Types.SQL_VARIANT);
         cs.setObject(2, col2Value, microsoft.sql.Types.SQL_VARIANT);
         cs.execute();
-        assertEquals(cs.getObject(1), String.valueOf(col1Value));
+        assertEquals(cs.getObject(1), col1Value);
     }
 
     /**
      * Test stored procedure with input and output and return value
+     * 
      * @throws SQLException
      */
     @Test
@@ -565,6 +626,37 @@ public class SQLVariantTest extends AbstractTest {
         cs.execute();
         assertEquals(cs.getString(1), String.valueOf(returnValue));
         assertEquals(cs.getString(2), String.valueOf(col1Value));
+    }
+
+
+    /**
+     * Read GUID stored in SqlVariant
+     * 
+     * @throws SQLException
+     */
+//    @Test
+    public void bulkCopyTest_readGUID2() throws SQLException {
+        String col1Value = "'1AE740A2-2272-4B0F-8086-3DDAC595BC11'";
+      System.out.println(col1Value.getBytes().toString());
+      String destTableName = "dest_sqlVariant";
+      stmt.executeUpdate("IF EXISTS (select * from sysobjects where id = object_id(N'" + tableName + "') "
+              + "and OBJECTPROPERTY(id, N'IsTable') = 1)" + " DROP TABLE " + tableName);
+      stmt.executeUpdate("IF EXISTS (select * from sysobjects where id = object_id(N'" + destTableName + "') "
+              + "and OBJECTPROPERTY(id, N'IsTable') = 1)" + " DROP TABLE " + destTableName);
+      stmt.executeUpdate("create table " + tableName + " (col1 uniqueidentifier)");
+      stmt.executeUpdate("INSERT into " + tableName + "(col1) values (CAST (" + col1Value + " AS " + "uniqueidentifier" + ") )");
+      stmt.executeUpdate("create table " + destTableName + " (col1 uniqueidentifier)");
+
+      SQLServerResultSet rs = (SQLServerResultSet) stmt.executeQuery("SELECT * FROM " + tableName);
+
+      SQLServerBulkCopy bulkCopy = new SQLServerBulkCopy(con);
+      bulkCopy.setDestinationTableName(destTableName);
+      bulkCopy.writeToServer(rs);
+
+      rs = (SQLServerResultSet) stmt.executeQuery("SELECT * FROM " + destTableName);
+      while (rs.next()) {
+          System.out.println(rs.getString(1));
+      }
     }
 
     /**
@@ -603,8 +695,8 @@ public class SQLVariantTest extends AbstractTest {
     @AfterAll
     public static void afterAll() throws SQLException {
 
-        stmt.executeUpdate(" IF EXISTS (select * from sysobjects where id = object_id(N'" + inputProc + "') and OBJECTPROPERTY(id, N'IsProcedure') = 1)"
-                + " DROP PROCEDURE " + inputProc);
+        stmt.executeUpdate(" IF EXISTS (select * from sysobjects where id = object_id(N'" + inputProc
+                + "') and OBJECTPROPERTY(id, N'IsProcedure') = 1)" + " DROP PROCEDURE " + inputProc);
         stmt.executeUpdate("IF EXISTS (select * from sysobjects where id = object_id(N'" + tableName + "') and OBJECTPROPERTY(id, N'IsTable') = 1)"
                 + " DROP TABLE " + tableName);
 

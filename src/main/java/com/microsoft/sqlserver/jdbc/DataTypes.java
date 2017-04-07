@@ -145,7 +145,7 @@ enum SSType
     DECIMAL        (Category.NUMERIC,         "decimal",          JDBCType.DECIMAL),
     NUMERIC        (Category.NUMERIC,         "numeric",          JDBCType.NUMERIC),
     GUID           (Category.GUID,            "uniqueidentifier", JDBCType.GUID),
-    SQL_VARIANT    (Category.SQL_VARIANT,     "sql_variant",      JDBCType.CHAR),  
+    SQL_VARIANT    (Category.SQL_VARIANT,     "sql_variant",      JDBCType.JAVA_OBJECT),  
     UDT            (Category.UDT,             "udt",              JDBCType.VARBINARY),
     XML            (Category.XML,             "xml",              JDBCType.LONGNVARCHAR),
     TIMESTAMP      (Category.TIMESTAMP,       "timestamp",        JDBCType.BINARY);
@@ -363,7 +363,8 @@ enum SSType
                 SSType.Category.SQL_VARIANT,
                 EnumSet.of(
                     JDBCType.Category.CHARACTER, 
-                    JDBCType.Category.SQL_VARIANT));
+                    JDBCType.Category.SQL_VARIANT,
+                    JDBCType.Category.UNKNOWN));
 
         private final SSType.Category from;
         private final EnumSet<JDBCType.Category> to;
@@ -848,7 +849,7 @@ enum JDBCType
     DATETIME      (Category.TIMESTAMP,       microsoft.sql.Types.DATETIME,			"java.sql.Timestamp"),
     SMALLDATETIME (Category.TIMESTAMP,       microsoft.sql.Types.SMALLDATETIME,     "java.sql.Timestamp"),
     GUID		  (Category.CHARACTER,		 microsoft.sql.Types.GUID,				"java.lang.String"),
-    SQL_VARIANT   (Category.SQL_VARIANT,     microsoft.sql.Types.SQL_VARIANT,       "java.lang.String");
+    SQL_VARIANT   (Category.SQL_VARIANT,     microsoft.sql.Types.SQL_VARIANT,       "java.lang.Object");
 
 
     final Category category;
@@ -897,7 +898,8 @@ enum JDBCType
         UNKNOWN,
         TVP,
         GUID,
-        SQL_VARIANT;
+        SQL_VARIANT,
+        JAVA_OBJECT;
     }
 
     // This SetterConversion enum is based on the Category enum
@@ -1269,8 +1271,12 @@ enum JDBCType
                         SSType.Category.CHARACTER,
                         SSType.Category.LONG_CHARACTER,
                         SSType.Category.NCHARACTER,
-                        SSType.Category.LONG_NCHARACTER));
-
+                        SSType.Category.LONG_NCHARACTER)),
+        SQL_VARIANT (
+                JDBCType.Category.SQL_VARIANT,
+                EnumSet.of(
+                        SSType.Category.SQL_VARIANT));
+        
         private final JDBCType.Category from;
         private final EnumSet<SSType.Category> to;
 
