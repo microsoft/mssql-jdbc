@@ -11,6 +11,10 @@ services:
 build_script:
   - mvn install -DskipTests=true -Dmaven.javadoc.skip=true -B -V -Pbuild41
   - mvn install -DskipTests=true -Dmaven.javadoc.skip=true -B -V -Pbuild42
+  
+on_success:
+  - ps: choco install jce -y
+  
 test_script:
   - mvn test -B -Pbuild41
   - mvn test -B -Pbuild42
