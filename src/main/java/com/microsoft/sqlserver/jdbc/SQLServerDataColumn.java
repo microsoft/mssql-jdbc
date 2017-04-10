@@ -16,6 +16,7 @@ public final class SQLServerDataColumn {
     int javaSqlType;
     int precision = 0;
     int scale = 0;
+    int numberOfDigitsIntegerPart = 0;
 
     /**
      * Initializes a new instance of SQLServerDataColumn with the column name and type.

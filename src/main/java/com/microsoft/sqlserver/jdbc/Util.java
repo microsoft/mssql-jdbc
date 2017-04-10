@@ -580,7 +580,7 @@ final class Util {
             MessageFormat form = new MessageFormat(txtMsg);
             Object[] msgArgs = {new Integer(offset)};
             // Re-throw SQLServerException if conversion fails.
-            throw new SQLServerException(null, form.format(msgArgs), null, 0, true);
+            throw new SQLServerException(form.format(msgArgs), null, 0, ex);
         }
 
     }
