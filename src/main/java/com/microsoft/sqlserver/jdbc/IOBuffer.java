@@ -4566,8 +4566,10 @@ final class TDSWriter {
 
             while (value.next()) {
                 
-                // restore TDS header that has been overwritten
+                // restore command and TDS header, which have been overwritten by value.next()
                 if (tdsWritterCached) {
+                    command = cachedCommand;
+
                     stagingBuffer.clear();
                     writeBytes(cachedTVPHeaders.array(), 0, cachedTVPHeaders.position());
                 }
@@ -4781,22 +4783,29 @@ final class TDSWriter {
                     currentColumn++;
                 }
 
-                // send this row and read its response
+                // send this row, read its response and reset command status
                 if (tdsWritterCached) {
                     // TVP_END_TOKEN
                     writeByte((byte) 0x00);
 
                     writePacket(TDS.STATUS_BIT_EOM);
 
-                    command = cachedCommand;
-                    command.setReadingResponse(true);
                     while (tdsChannel.getReader(command).readPacket())
                         ;
+
+                    command.setInterruptsEnabled(true);
+                    command.setRequestComplete(false);
                 }
             }
         }
 
-        if (!tdsWritterCached) {
+        // reset command status which have been overwritten
+        if (tdsWritterCached) {
+            command.setRequestComplete(false);
+            command.setInterruptsEnabled(true);
+            command.setProcessedResponse(false);
+        }
+        else {
             // TVP_END_TOKEN
             writeByte((byte) 0x00);
         }
@@ -7000,6 +7009,10 @@ abstract class TDSCommand {
     // If the command is interrupted after interrupts have been disabled, then the
     // interrupt is ignored.
     private volatile boolean interruptsEnabled = false;
+    
+    void setInterruptsEnabled(boolean interruptsEnabled) {
+        this.interruptsEnabled = interruptsEnabled;
+    }
 
     // Flag set to indicate that an interrupt has happened.
     private volatile boolean wasInterrupted = false;
@@ -7016,6 +7029,10 @@ abstract class TDSCommand {
     // thread's responsibility to send the attention signal to the server if necessary.
     // After the request is complete, the interrupting thread must send the attention signal.
     private volatile boolean requestComplete;
+    
+    void setRequestComplete(boolean requestComplete) {
+        this.requestComplete = requestComplete;
+    }
 
     // Flag set when an attention signal has been sent to the server, indicating that a
     // TDS packet containing the attention ack message is to be expected in the response.
@@ -7030,16 +7047,16 @@ abstract class TDSCommand {
     // there may be unprocessed information left in the response, such as transaction
     // ENVCHANGE notifications.
     private volatile boolean processedResponse;
+    
+    void setProcessedResponse(boolean processedResponse) {
+        this.processedResponse = processedResponse;
+    }
 
     // Flag set when this command's response is ready to be read from the server and cleared
     // after its response has been received, but not necessarily processed, up to and including
     // any attention ack. The command's response is read either on demand as it is processed,
     // or by detaching.
     private volatile boolean readingResponse;
-
-    void setReadingResponse(boolean readingResponse) {
-        this.readingResponse = readingResponse;
-    }
 
     final boolean readingResponse() {
         return readingResponse;
