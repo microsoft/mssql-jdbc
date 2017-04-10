@@ -156,13 +156,14 @@ public class TVPResultSetCursorTest extends AbstractTest {
         pstmt2.execute();
         verifyDestinationTableData(expectedBigDecimals.length * 3);
 
-        String sql = "insert into " + desTable + " values (?,?,?)";
+        String sql = "insert into " + desTable + " values (?,?,?,?)";
         Calendar calGMT = Calendar.getInstance(TimeZone.getTimeZone("GMT"));
         pstmt1 = (SQLServerPreparedStatement) conn.prepareStatement(sql);
         for (int i = 0; i < expectedBigDecimals.length; i++) {
             pstmt1.setBigDecimal(1, expectedBigDecimals[i]);
             pstmt1.setString(2, expectedStrings[i]);
             pstmt1.setTimestamp(3, expectedTimestamps[i], calGMT);
+            pstmt1.setString(4, expectedStrings[i]);
             pstmt1.execute();
         }
         verifyDestinationTableData(expectedBigDecimals.length * 4);
@@ -201,6 +202,8 @@ public class TVPResultSetCursorTest extends AbstractTest {
                     "Expected Value:" + expectedStrings[i % expectedArrayLength] + ", Actual Value: " + rs.getString(2));
             assertTrue(rs.getString(3).equals(expectedTimestampStrings[i % expectedArrayLength]),
                     "Expected Value:" + expectedTimestampStrings[i % expectedArrayLength] + ", Actual Value: " + rs.getString(3));
+            assertTrue(rs.getString(4).trim().equals(expectedStrings[i % expectedArrayLength]),
+                    "Expected Value:" + expectedStrings[i % expectedArrayLength] + ", Actual Value: " + rs.getString(4));
             i++;
         }
 
@@ -208,7 +211,7 @@ public class TVPResultSetCursorTest extends AbstractTest {
     }
 
     private static void populateSourceTable() throws SQLException {
-        String sql = "insert into " + srcTable + " values (?,?,?)";
+        String sql = "insert into " + srcTable + " values (?,?,?,?)";
 
         Calendar calGMT = Calendar.getInstance(TimeZone.getTimeZone("GMT"));
 
@@ -218,6 +221,7 @@ public class TVPResultSetCursorTest extends AbstractTest {
             pstmt.setBigDecimal(1, expectedBigDecimals[i]);
             pstmt.setString(2, expectedStrings[i]);
             pstmt.setTimestamp(3, expectedTimestamps[i], calGMT);
+            pstmt.setString(4, expectedStrings[i]);
             pstmt.execute();
         }
     }
@@ -228,20 +232,21 @@ public class TVPResultSetCursorTest extends AbstractTest {
     }
 
     private static void createTables() throws SQLException {
-        String sql = "create table " + srcTable + " (c1 decimal(10,5) null, c2 nchar(50) null, c3 datetime2(7) null);";
+        String sql = "create table " + srcTable + " (c1 decimal(10,5) null, c2 nchar(50) null, c3 datetime2(7) null, c4 char(7000));";
         stmt.execute(sql);
 
-        sql = "create table " + desTable + " (c1 decimal(10,5) null, c2 nchar(50) null, c3 datetime2(7) null);";
+        sql = "create table " + desTable + " (c1 decimal(10,5) null, c2 nchar(50) null, c3 datetime2(7) null, c4 char(7000));";
         stmt.execute(sql);
     }
 
     private static void createTVPS() throws SQLException {
-        String TVPCreateCmd = "CREATE TYPE " + tvpName + " as table (c1 decimal(10,5) null, c2 nchar(50) null, c3 datetime2(7) null)";
-        stmt.executeUpdate(TVPCreateCmd);
+        String TVPCreateCmd = "CREATE TYPE " + tvpName
+                + " as table (c1 decimal(10,5) null, c2 nchar(50) null, c3 datetime2(7) null, c4 char(7000) null)";
+        stmt.execute(TVPCreateCmd);
     }
 
     private static void dropTVPS() throws SQLException {
-        stmt.executeUpdate("IF EXISTS (SELECT * FROM sys.types WHERE is_table_type = 1 AND name = '" + tvpName + "') " + " drop type " + tvpName);
+        stmt.execute("IF EXISTS (SELECT * FROM sys.types WHERE is_table_type = 1 AND name = '" + tvpName + "') " + " drop type " + tvpName);
     }
 
     @AfterEach
