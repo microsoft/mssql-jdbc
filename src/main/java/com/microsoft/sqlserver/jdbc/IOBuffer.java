@@ -4537,23 +4537,22 @@ final class TDSWriter {
         int dataLength;
         
         boolean tdsWritterCached = false;
-        ByteBuffer cachedStagingBuffer = null;
+        ByteBuffer cachedTVPHeaders = null;
         TDSCommand cachedCommand = null;
         
         if (!value.isNull()) {
 
-            // If TVP is set with ResultSet and Server Cursor is used, the tdsWriter of the calling preparedStatement is overwritten
-            // by the SQLServerResultSet#next() method if the preparedStatement and the ResultSet are created by the same connection.
-            // Therefore, we need to cache the tdsWriter's values (stagingBuffer for sending data and command for retrieving data) and update
-            // stagingBuffer with new TDS values.
+            // If the preparedStatement and the ResultSet are created by the same connection, and TVP is set with ResultSet and Server Cursor
+            // is used, the tdsWriter of the calling preparedStatement is overwritten by the SQLServerResultSet#next() method when fetching new rows.
+            // Therefore, we need to send TVP data row by row before fetching new row.
             if (TVPType.ResultSet == value.tvpType) {
                 if ((null != value.sourceResultSet) && (value.sourceResultSet instanceof SQLServerResultSet)) {
                     SQLServerStatement src_stmt = (SQLServerStatement) ((SQLServerResultSet) value.sourceResultSet).getStatement();
                     int resultSetServerCursorId = ((SQLServerResultSet) value.sourceResultSet).getServerCursorId();
 
                     if (con.equals(src_stmt.getConnection()) && 0 != resultSetServerCursorId) {
-                        cachedStagingBuffer = ByteBuffer.allocate(stagingBuffer.capacity()).order(stagingBuffer.order());
-                        cachedStagingBuffer.put(stagingBuffer.array(), 0, stagingBuffer.position());
+                        cachedTVPHeaders = ByteBuffer.allocate(stagingBuffer.capacity()).order(stagingBuffer.order());
+                        cachedTVPHeaders.put(stagingBuffer.array(), 0, stagingBuffer.position());
 
                         cachedCommand = this.command;
 
@@ -4566,6 +4565,13 @@ final class TDSWriter {
             Iterator<Entry<Integer, SQLServerMetaData>> columnsIterator;
 
             while (value.next()) {
+                
+                // restore TDS header that has been overwritten
+                if (tdsWritterCached) {
+                    stagingBuffer.clear();
+                    writeBytes(cachedTVPHeaders.array(), 0, cachedTVPHeaders.position());
+                }
+                
                 Object[] rowData = value.getRowData();
 
                 // ROW
@@ -4775,21 +4781,25 @@ final class TDSWriter {
                     currentColumn++;
                 }
 
+                // send this row and read its response
                 if (tdsWritterCached) {
-                    cachedStagingBuffer.put(stagingBuffer.array(), 0, stagingBuffer.position());
-                    stagingBuffer.clear();
+                    // TVP_END_TOKEN
+                    writeByte((byte) 0x00);
+
+                    writePacket(TDS.STATUS_BIT_EOM);
+
+                    command = cachedCommand;
+                    command.setReadingResponse(true);
+                    while (tdsChannel.getReader(command).readPacket())
+                        ;
                 }
             }
         }
 
-        if (tdsWritterCached) {
-            stagingBuffer.clear();
-            stagingBuffer.put(cachedStagingBuffer.array(), 0, cachedStagingBuffer.position());
-            this.command = cachedCommand;
+        if (!tdsWritterCached) {
+            // TVP_END_TOKEN
+            writeByte((byte) 0x00);
         }
-
-        // TVP_END_TOKEN
-        writeByte((byte) 0x00);
     }
 
     private static byte[] toByteArray(String s) {
@@ -7026,6 +7036,10 @@ abstract class TDSCommand {
     // any attention ack. The command's response is read either on demand as it is processed,
     // or by detaching.
     private volatile boolean readingResponse;
+
+    void setReadingResponse(boolean readingResponse) {
+        this.readingResponse = readingResponse;
+    }
 
     final boolean readingResponse() {
         return readingResponse;
