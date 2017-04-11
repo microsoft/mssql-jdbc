@@ -54,6 +54,14 @@ public class TVPResultSetCursorTest extends AbstractTest {
      */
     @Test
     public void testServerCursors() throws SQLException {
+        serverCursorsTest(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY);
+        serverCursorsTest(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE);
+        serverCursorsTest(ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_READ_ONLY);
+        serverCursorsTest(ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_UPDATABLE);
+    }
+
+    private void serverCursorsTest(int resultSetType,
+            int resultSetConcurrency) throws SQLException {
         conn = DriverManager.getConnection(connectionString);
         stmt = conn.createStatement();
 
@@ -65,7 +73,7 @@ public class TVPResultSetCursorTest extends AbstractTest {
 
         populateSourceTable();
 
-        ResultSet rs = conn.createStatement(ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_UPDATABLE).executeQuery("select * from " + srcTable);
+        ResultSet rs = conn.createStatement(resultSetType, resultSetConcurrency).executeQuery("select * from " + srcTable);
 
         SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) conn.prepareStatement("INSERT INTO " + desTable + " select * from ? ;");
         pstmt.setStructured(1, tvpName, rs);
