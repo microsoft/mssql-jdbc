@@ -4664,7 +4664,8 @@ final class TDSWriter {
                         case VARCHAR:
                         case NCHAR:
                         case NVARCHAR:
-                            isShortValue = (2 * columnPair.getValue().precision) <= DataTypes.SHORT_VARTYPE_MAX_BYTES;
+                            long columnPrecision = columnPair.getValue().precision;
+                            isShortValue = (2 * columnPrecision) <= DataTypes.SHORT_VARTYPE_MAX_BYTES; 
                             isNull = (null == currentColumnStringValue);
                             dataLength = isNull ? 0 : currentColumnStringValue.length() * 2;
                             if (!isShortValue) {
@@ -4840,7 +4841,8 @@ final class TDSWriter {
                 case NCHAR:
                 case NVARCHAR:
                     writeByte(TDSType.NVARCHAR.byteValue());
-                    isShortValue = (2 * pair.getValue().precision) <= DataTypes.SHORT_VARTYPE_MAX_BYTES;
+                    long columnPrecision = pair.getValue().precision;
+                    isShortValue = (2 * columnPrecision) <= DataTypes.SHORT_VARTYPE_MAX_BYTES;
                     // Use PLP encoding on Yukon and later with long values
                     if (!isShortValue)	// PLP
                     {
