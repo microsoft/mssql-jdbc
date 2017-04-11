@@ -4547,8 +4547,9 @@ final class TDSWriter {
             // Therefore, we need to send TVP data row by row before fetching new row.
             if (TVPType.ResultSet == value.tvpType) {
                 if ((null != value.sourceResultSet) && (value.sourceResultSet instanceof SQLServerResultSet)) {
-                    SQLServerStatement src_stmt = (SQLServerStatement) ((SQLServerResultSet) value.sourceResultSet).getStatement();
-                    int resultSetServerCursorId = ((SQLServerResultSet) value.sourceResultSet).getServerCursorId();
+                    SQLServerResultSet sourceResultSet = (SQLServerResultSet) value.sourceResultSet;
+                    SQLServerStatement src_stmt = (SQLServerStatement) sourceResultSet.getStatement();
+                    int resultSetServerCursorId = sourceResultSet.getServerCursorId();
 
                     if (con.equals(src_stmt.getConnection()) && 0 != resultSetServerCursorId) {
                         cachedTVPHeaders = ByteBuffer.allocate(stagingBuffer.capacity()).order(stagingBuffer.order());
@@ -4557,6 +4558,10 @@ final class TDSWriter {
                         cachedCommand = this.command;
 
                         tdsWritterCached = true;
+
+                        if (sourceResultSet.isForwardOnly()) {
+                            sourceResultSet.setFetchSize(1);
+                        }
                     }
                 }
             }
@@ -7010,7 +7015,7 @@ abstract class TDSCommand {
     // interrupt is ignored.
     private volatile boolean interruptsEnabled = false;
     
-    void setInterruptsEnabled(boolean interruptsEnabled) {
+    protected void setInterruptsEnabled(boolean interruptsEnabled) {
         this.interruptsEnabled = interruptsEnabled;
     }
 
@@ -7030,7 +7035,7 @@ abstract class TDSCommand {
     // After the request is complete, the interrupting thread must send the attention signal.
     private volatile boolean requestComplete;
     
-    void setRequestComplete(boolean requestComplete) {
+    protected void setRequestComplete(boolean requestComplete) {
         this.requestComplete = requestComplete;
     }
 
@@ -7048,7 +7053,7 @@ abstract class TDSCommand {
     // ENVCHANGE notifications.
     private volatile boolean processedResponse;
     
-    void setProcessedResponse(boolean processedResponse) {
+    protected void setProcessedResponse(boolean processedResponse) {
         this.processedResponse = processedResponse;
     }
 
