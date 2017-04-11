@@ -25,6 +25,7 @@ import org.junit.runner.RunWith;
 import com.microsoft.sqlserver.jdbc.SQLServerPreparedStatement;
 import com.microsoft.sqlserver.jdbc.SQLServerStatement;
 import com.microsoft.sqlserver.testframework.AbstractTest;
+import com.microsoft.sqlserver.testframework.Utils;
 
 @RunWith(JUnitPlatform.class)
 public class TVPIssuesTest extends AbstractTest {
@@ -82,9 +83,10 @@ public class TVPIssuesTest extends AbstractTest {
         connection = DriverManager.getConnection(connectionString);
         stmt = connection.createStatement();
 
-        stmt.executeUpdate("IF EXISTS (SELECT * FROM sys.types WHERE is_table_type = 1 AND name = '" + tvpName + "') " + " drop type " + tvpName);
-        stmt.executeUpdate("if object_id('" + srcTable + "','U') is not null" + " drop table " + srcTable);
-        stmt.executeUpdate("if object_id('" + desTable + "','U') is not null" + " drop table " + desTable);
+        Utils.dropTableIfExists(tvpName, stmt);
+        Utils.dropTableIfExists(srcTable, stmt);
+        Utils.dropTableIfExists(desTable, stmt);
+
         String sql = "create table " + srcTable + " (c1 varchar(max) null);";
         stmt.execute(sql);
 
@@ -99,17 +101,14 @@ public class TVPIssuesTest extends AbstractTest {
 
     @AfterAll
     public static void terminateVariation() throws SQLException {
-
-        stmt.executeUpdate("IF EXISTS (SELECT * FROM sys.types WHERE is_table_type = 1 AND name = '" + tvpName + "') " + " drop type " + tvpName);
-        stmt.executeUpdate("if object_id('" + srcTable + "','U') is not null" + " drop table " + srcTable);
-        stmt.executeUpdate("if object_id('" + desTable + "','U') is not null" + " drop table " + desTable);
+        Utils.dropTableIfExists(tvpName, stmt);
+        Utils.dropTableIfExists(srcTable, stmt);
+        Utils.dropTableIfExists(desTable, stmt);
         if (null != connection) {
             connection.close();
         }
         if (null != stmt) {
             stmt.close();
         }
-
     }
-
 }
