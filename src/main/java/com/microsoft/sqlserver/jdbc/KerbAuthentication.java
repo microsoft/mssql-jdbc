@@ -13,6 +13,7 @@ import java.security.AccessControlContext;
 import java.security.AccessController;
 import java.security.PrivilegedActionException;
 import java.security.PrivilegedExceptionAction;
+import java.text.MessageFormat;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.logging.Level;
@@ -87,7 +88,6 @@ final class KerbAuthentication extends SSPIAuthentication {
                     else {
                         Map<String, String> confDetails = new HashMap<String, String>();
                         confDetails.put("useTicketCache", "true");
-                        confDetails.put("doNotPrompt", "true");
                         appConf = new AppConfigurationEntry("com.sun.security.auth.module.Krb5LoginModule",
                                 AppConfigurationEntry.LoginModuleControlFlag.REQUIRED, confDetails);
                         if (authLogger.isLoggable(Level.FINER))
@@ -140,18 +140,36 @@ final class KerbAuthentication extends SSPIAuthentication {
             }
             else {
                 Subject currentSubject = null;
+                KerbCallback callback = new KerbCallback(con);
                 try {
                     AccessControlContext context = AccessController.getContext();
                     currentSubject = Subject.getSubject(context);
                     if (null == currentSubject) {
-                        lc = new LoginContext(CONFIGNAME);
+                        lc = new LoginContext(CONFIGNAME, callback);
                         lc.login();
                         // per documentation LoginContext will instantiate a new subject.
                         currentSubject = lc.getSubject();
                     }
                 }
                 catch (LoginException le) {
-                    con.terminate(SQLServerException.DRIVER_ERROR_NONE, SQLServerException.getErrString("R_integratedAuthenticationFailed"), le);
+                    if (authLogger.isLoggable(Level.FINE)) {
+                        authLogger.fine(toString() + "Failed to login using Kerberos due to " + le.getClass().getName() + ":" + le.getMessage());
+                    }
+                    try {
+                        // Not very clean since it raises an Exception, but we are sure we are cleaning well everything
+                        con.terminate(SQLServerException.DRIVER_ERROR_NONE, SQLServerException.getErrString("R_integratedAuthenticationFailed"), le);
+                    } catch (SQLServerException alwaysTriggered) {
+                        String message =  MessageFormat.format(SQLServerException.getErrString("R_kerberosLoginFailed"),
+                                                               alwaysTriggered.getMessage(), le.getClass().getName(), le.getMessage());
+                        if (callback.getUsernameRequested() != null) {
+                            message = MessageFormat.format(SQLServerException.getErrString("R_kerberosLoginFailedForUsername"),
+                                                           callback.getUsernameRequested(), message);
+                        }
+                        // By throwing Exception with LOGON_FAILED -> we avoid looping for connection
+                        // In this case, authentication will never work anyway -> fail fast
+                        throw new SQLServerException(message, alwaysTriggered.getSQLState(), SQLServerException.LOGON_FAILED, le);
+                    }
+                    return;
                 }
 
                 if (authLogger.isLoggable(Level.FINER)) {
