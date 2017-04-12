@@ -83,7 +83,7 @@ public class TVPIssuesTest extends AbstractTest {
         connection = DriverManager.getConnection(connectionString);
         stmt = connection.createStatement();
 
-        Utils.dropTableIfExists(tvpName, stmt);
+        stmt.executeUpdate("IF EXISTS (SELECT * FROM sys.types WHERE is_table_type = 1 AND name = '" + tvpName + "') " + " drop type " + tvpName);
         Utils.dropTableIfExists(srcTable, stmt);
         Utils.dropTableIfExists(desTable, stmt);
 
@@ -101,7 +101,7 @@ public class TVPIssuesTest extends AbstractTest {
 
     @AfterAll
     public static void terminateVariation() throws SQLException {
-        Utils.dropTableIfExists(tvpName, stmt);
+        stmt.executeUpdate("IF EXISTS (SELECT * FROM sys.types WHERE is_table_type = 1 AND name = '" + tvpName + "') " + " drop type " + tvpName);
         Utils.dropTableIfExists(srcTable, stmt);
         Utils.dropTableIfExists(desTable, stmt);
         if (null != connection) {
