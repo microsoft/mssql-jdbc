@@ -3337,7 +3337,7 @@ final class TDSWriter {
         catch (ArithmeticException e) {
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_valueOutOfRange"));
             Object[] msgArgs = {SSType.DECIMAL};
-            throw new SQLServerException(form.format(msgArgs), SQLState.DATA_EXCEPTION_DATETIME_FIELD_OVERFLOW, DriverError.NOT_SET, e);
+            throw new SQLServerException(form.format(msgArgs), e);
         }
 
         int bLength;
@@ -4609,8 +4609,16 @@ final class TDSWriter {
                                 writeByte((byte) TDSWriter.BIGDECIMAL_MAX_LENGTH); // maximum length
                                 BigDecimal bdValue = new BigDecimal(currentColumnStringValue);
 
-                                // setScale of all BigDecimal value based on metadata sent
-                                bdValue = bdValue.setScale(columnPair.getValue().scale);
+                                try {
+                                    // setScale of all BigDecimal value based on metadata sent
+                                    bdValue = bdValue.setScale(columnPair.getValue().scale);
+                                }
+                                catch (ArithmeticException e) {
+                                    MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_valueOutOfRange"));
+                                    Object[] msgArgs = {SSType.DECIMAL};
+                                    throw new SQLServerException(form.format(msgArgs), e);
+                                }
+                                
                                 byte[] valueBytes = DDC.convertBigDecimalToBytes(bdValue, bdValue.scale());
 
                                 // 1-byte for sign and 16-byte for integer

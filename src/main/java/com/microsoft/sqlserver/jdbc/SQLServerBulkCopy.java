@@ -2139,8 +2139,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable {
                     if (bulkPrecision < Util.getValueLengthBaseOnJavaType(colValue, JavaType.of(colValue), null, null, JDBCType.of(bulkJdbcType))) {
                         MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_valueOutOfRange"));
                         Object[] msgArgs = {SSType.DECIMAL};
-                        throw new SQLServerException(form.format(msgArgs), SQLState.DATA_EXCEPTION_DATETIME_FIELD_OVERFLOW, DriverError.NOT_SET,
-                                null);
+                        throw new SQLServerException(form.format(msgArgs), SQLState.DATA_EXCEPTION_LENGTH_MISMATCH, DriverError.NOT_SET, null);
                     }
                     tdsWriter.writeBigDecimal((BigDecimal) colValue, bulkJdbcType, bulkPrecision, bulkScale);
                 }
