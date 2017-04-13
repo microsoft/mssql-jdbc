@@ -146,7 +146,7 @@ public class DNSRecordSRV implements Comparable<DNSRecordSRV> {
 
     /**
      * Get the weight of DNS record from 0 to 65535.
-     * @return The weight, hi value means higher probability of selecting the given record for a given priority.
+     * @return The weight, higher value means higher probability of selecting the given record for a given priority.
      */
     public int getWeight() {
         return weight;
