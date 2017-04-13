@@ -129,18 +129,34 @@ public class DNSRecordSRV implements Comparable<DNSRecordSRV> {
         return serverName.compareTo(o.serverName);
     }
 
+    /**
+     * Get the priority of DNS SRV record.
+     * @return a positive priority, where lowest values have to be considered first.
+     */
     public int getPriority() {
         return priority;
     }
 
+    /**
+     * Get the weight of DNS record from 0 to 65535.
+     * @return The weight, hi value means higher probability of selecting the given record for a given priority.
+     */
     public int getWeight() {
         return weight;
     }
 
+    /**
+     * IP port of record.
+     * @return a value from 1 to 65535.
+     */
     public int getPort() {
         return port;
     }
 
+    /**
+     * The DNS server name.
+     * @return a not null server name.
+     */
     public String getServerName() {
         return serverName;
     }
