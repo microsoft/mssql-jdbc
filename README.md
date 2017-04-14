@@ -154,6 +154,7 @@ Up-to-date list of contributors: https://github.com/Microsoft/mssql-jdbc/graphs/
 - tonytamwk
 - sehrope (Sehrope Sarkuni)
 - jacobovazquez
+- brettwooldridge (Brett Wooldridge)  
 
 ## License
 The Microsoft JDBC Driver for SQL Server is licensed under the MIT license. See the [LICENSE](https://github.com/Microsoft/mssql-jdbc/blob/master/LICENSE) file for more details.
