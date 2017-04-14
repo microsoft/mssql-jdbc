@@ -139,6 +139,21 @@ Thank you!
 ### Reporting security issues and security bugs
 Security issues and bugs should be reported privately, via email, to the Microsoft Security Response Center (MSRC) [secure@microsoft.com](mailto:secure@microsoft.com). You should receive a response within 24 hours. If for some reason you do not, please follow up via email to ensure we received your original message. Further information, including the MSRC PGP key, can be found in the [Security TechCenter](https://technet.microsoft.com/en-us/security/ff852094.aspx).
 
+## Contributors 
+Special thanks to everyone who has contributed to the project.
+
+Up-to-date list of contributors: https://github.com/Microsoft/mssql-jdbc/graphs/contributors
+
+- marschall (Philippe Marschall)
+- pierresouchay (Pierre Souchay)
+- gordthompson (Gord Thompson)
+- gstojsic
+- cosmofrit
+- JamieMagee (Jamie Magee)
+- mfriesen (Mike Friesen)
+- tonytamwk
+- sehrope (Sehrope Sarkuni)
+- jacobovazquez
 
 ## License
 The Microsoft JDBC Driver for SQL Server is licensed under the MIT license. See the [LICENSE](https://github.com/Microsoft/mssql-jdbc/blob/master/LICENSE) file for more details.
