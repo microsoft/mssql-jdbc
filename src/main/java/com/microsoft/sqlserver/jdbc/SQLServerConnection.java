@@ -4636,14 +4636,42 @@ public class SQLServerConnection implements ISQLServerConnection {
     }
 
     public int getNetworkTimeout() throws SQLException {
-        // this operation is not supported
-        throw new SQLFeatureNotSupportedException(SQLServerException.getErrString("R_notSupported"));
+        loggerExternal.entering(getClassNameLogging(), "getNetworkTimeout");
+
+        checkClosed();
+
+        int timeout = 0;
+        try {
+            timeout = tdsChannel.getNetworkTimeout();
+        }
+        catch (IOException ioe) {
+            terminate(SQLServerException.DRIVER_ERROR_IO_FAILED, ioe.getMessage(), ioe);
+        }
+
+        loggerExternal.exiting(getClassNameLogging(), "getNetworkTimeout");
+        return timeout;
     }
 
     public void setNetworkTimeout(Executor executor,
             int timeout) throws SQLException {
-        // this operation is not supported
-        throw new SQLFeatureNotSupportedException(SQLServerException.getErrString("R_notSupported"));
+        loggerExternal.entering(getClassNameLogging(), "setNetworkTimeout");
+
+        if (timeout < 0) {
+            MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidSocketTimeout"));
+            Object[] msgArgs = {timeout};
+            SQLServerException.makeFromDriverError(this, this, form.format(msgArgs), null, false);
+        }
+
+        checkClosed();
+
+        try {
+            tdsChannel.setNetworkTimeout(timeout);
+        }
+        catch (IOException ioe) {
+            terminate(SQLServerException.DRIVER_ERROR_IO_FAILED, ioe.getMessage(), ioe);
+        }
+
+        loggerExternal.exiting(getClassNameLogging(), "setNetworkTimeout");
     }
 
     public String getSchema() throws SQLException {
