@@ -2154,6 +2154,26 @@ final class TDSChannel {
 
         packetLogger.finest(logMsg.toString());
     }
+
+    /**
+     * Get the current socket SO_TIMEOUT value.
+     *
+     * @return the current socket timeout value
+     * @throws IOException thrown if the socket timeout cannot be read
+     */
+    final int getNetworkTimeout() throws IOException {
+        return tcpSocket.getSoTimeout();
+    }
+
+    /**
+     * Set the socket SO_TIMEOUT value.
+     *
+     * @param timeout the socket timeout in milliseconds
+     * @throws IOException thrown if the socket timeout cannot be set
+     */
+    final void setNetworkTimeout(int timeout) throws IOException {
+        tcpSocket.setSoTimeout(timeout);
+    }
 }
 
 /**
