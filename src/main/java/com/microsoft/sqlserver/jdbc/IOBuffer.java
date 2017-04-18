@@ -4576,6 +4576,7 @@ final class TDSWriter {
                     command = cachedCommand;
 
                     stagingBuffer.clear();
+                    logBuffer.clear();
                     writeBytes(cachedTVPHeaders.array(), 0, cachedTVPHeaders.position());
                 }
                 
