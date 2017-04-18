@@ -4665,7 +4665,7 @@ public class SQLServerConnection implements ISQLServerConnection {
 
         checkClosed();
         
-        // check for callAbort permission
+        // check for setNetworkTimeout permission
         SecurityManager secMgr = System.getSecurityManager();
         if (secMgr != null) {
             try {
