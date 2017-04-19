@@ -4799,10 +4799,10 @@ final class TDSWriter {
                     TDSReader tdsReader = tdsChannel.getReader(command);
                     int tokenType = tdsReader.peekTokenType();
 
-                    StreamError databaseError = new StreamError();
-                    databaseError.setFromTDS(tdsReader);
-
                     if (TDS.TDS_ERR == tokenType) {
+                        StreamError databaseError = new StreamError();
+                        databaseError.setFromTDS(tdsReader);
+
                         SQLServerException.makeFromDatabaseError(con, null, databaseError.getMessage(), databaseError, false);
                     }
 

@@ -25,6 +25,8 @@ import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
 
+import com.microsoft.sqlserver.jdbc.SQLServerCallableStatement;
+import com.microsoft.sqlserver.jdbc.SQLServerException;
 import com.microsoft.sqlserver.jdbc.SQLServerPreparedStatement;
 import com.microsoft.sqlserver.testframework.AbstractTest;
 import com.microsoft.sqlserver.testframework.Utils;
@@ -44,6 +46,7 @@ public class TVPResultSetCursorTest extends AbstractTest {
     static String[] expectedTimestampStrings = {"2015-06-03 13:35:33.4610000", "2442-09-19 01:59:43.9990000", "2017-04-02 08:58:53.0000000"};
 
     private static String tvpName = "TVPResultSetCursorTest_TVP";
+    private static String procedureName = "TVPResultSetCursorTest_SP";
     private static String srcTable = "TVPResultSetCursorTest_SourceTable";
     private static String desTable = "TVPResultSetCursorTest_DestinationTable";
 
@@ -123,6 +126,146 @@ public class TVPResultSetCursorTest extends AbstractTest {
         }
         if (null != rs) {
             rs.close();
+        }
+    }
+
+    /**
+     * Test a previous failure when setting SelectMethod to cursor and using the same connection to create TVP, SP and result set.
+     * 
+     * @throws SQLException
+     */
+    @Test
+    public void testSelectMethodSetToCursorWithSP() throws SQLException {
+        Properties info = new Properties();
+        info.setProperty("SelectMethod", "cursor");
+        conn = DriverManager.getConnection(connectionString, info);
+
+        stmt = conn.createStatement();
+
+        dropProcedure();
+        dropTVPS();
+        dropTables();
+
+        createTVPS();
+        createTables();
+        createPreocedure();
+
+        populateSourceTable();
+
+        ResultSet rs = conn.createStatement().executeQuery("select * from " + srcTable);
+
+        final String sql = "{call " + procedureName + "(?)}";
+        SQLServerCallableStatement pstmt = (SQLServerCallableStatement) conn.prepareCall(sql);
+        pstmt.setStructured(1, tvpName, rs);
+
+        try {
+            pstmt.execute();
+
+            verifyDestinationTableData(expectedBigDecimals.length);
+        }
+        finally {
+            if (null != pstmt) {
+                pstmt.close();
+            }
+            if (null != rs) {
+                rs.close();
+            }
+
+            dropProcedure();
+        }
+    }
+
+    /**
+     * Test exception when giving invalid TVP name
+     * 
+     * @throws SQLException
+     */
+    @Test
+    public void testInvalidTVPName() throws SQLException {
+        Properties info = new Properties();
+        info.setProperty("SelectMethod", "cursor");
+        conn = DriverManager.getConnection(connectionString, info);
+
+        stmt = conn.createStatement();
+
+        dropTVPS();
+        dropTables();
+
+        createTVPS();
+        createTables();
+
+        populateSourceTable();
+
+        ResultSet rs = conn.createStatement().executeQuery("select * from " + srcTable);
+
+        SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) conn.prepareStatement("INSERT INTO " + desTable + " select * from ? ;");
+        pstmt.setStructured(1, "invalid" + tvpName, rs);
+
+        try {
+            pstmt.execute();
+        }
+        catch (SQLServerException e) {
+            if (!e.getMessage().contains("Cannot find data type")) {
+                throw e;
+            }
+        }
+        finally {
+            if (null != pstmt) {
+                pstmt.close();
+            }
+            if (null != rs) {
+                rs.close();
+            }
+        }
+    }
+
+    /**
+     * Test exception when giving invalid stored procedure name
+     * 
+     * @throws SQLException
+     */
+    @Test
+    public void testInvalidStoredProcedureName() throws SQLException {
+        Properties info = new Properties();
+        info.setProperty("SelectMethod", "cursor");
+        conn = DriverManager.getConnection(connectionString, info);
+
+        stmt = conn.createStatement();
+
+        dropProcedure();
+        dropTVPS();
+        dropTables();
+
+        createTVPS();
+        createTables();
+        createPreocedure();
+
+        populateSourceTable();
+
+        ResultSet rs = conn.createStatement().executeQuery("select * from " + srcTable);
+
+        final String sql = "{call invalid" + procedureName + "(?)}";
+        SQLServerCallableStatement pstmt = (SQLServerCallableStatement) conn.prepareCall(sql);
+        pstmt.setStructured(1, tvpName, rs);
+
+        try {
+            pstmt.execute();
+        }
+        catch (SQLServerException e) {
+            if (!e.getMessage().contains("Could not find stored procedure")) {
+                throw e;
+            }
+        }
+        finally {
+
+            if (null != pstmt) {
+                pstmt.close();
+            }
+            if (null != rs) {
+                rs.close();
+            }
+
+            dropProcedure();
         }
     }
 
@@ -255,6 +398,17 @@ public class TVPResultSetCursorTest extends AbstractTest {
 
     private static void dropTVPS() throws SQLException {
         stmt.execute("IF EXISTS (SELECT * FROM sys.types WHERE is_table_type = 1 AND name = '" + tvpName + "') " + " drop type " + tvpName);
+    }
+
+    private static void dropProcedure() throws SQLException {
+        Utils.dropProcedureIfExists(procedureName, stmt);
+    }
+
+    private static void createPreocedure() throws SQLException {
+        String sql = "CREATE PROCEDURE " + procedureName + " @InputData " + tvpName + " READONLY " + " AS " + " BEGIN " + " INSERT INTO " + desTable
+                + " SELECT * FROM @InputData" + " END";
+
+        stmt.execute(sql);
     }
 
     @AfterEach
