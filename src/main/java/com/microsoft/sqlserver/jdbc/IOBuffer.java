@@ -4789,15 +4789,22 @@ final class TDSWriter {
                     currentColumn++;
                 }
 
-                // send this row, read its response and reset command status
+                // send this row, read its response (throw exception in case of errors) and reset command status
                 if (tdsWritterCached) {
                     // TVP_END_TOKEN
                     writeByte((byte) 0x00);
 
                     writePacket(TDS.STATUS_BIT_EOM);
 
-                    while (tdsChannel.getReader(command).readPacket())
-                        ;
+                    TDSReader tdsReader = tdsChannel.getReader(command);
+                    int tokenType = tdsReader.peekTokenType();
+
+                    StreamError databaseError = new StreamError();
+                    databaseError.setFromTDS(tdsReader);
+
+                    if (TDS.TDS_ERR == tokenType) {
+                        SQLServerException.makeFromDatabaseError(con, null, databaseError.getMessage(), databaseError, false);
+                    }
 
                     command.setInterruptsEnabled(true);
                     command.setRequestComplete(false);
