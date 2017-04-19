@@ -3323,8 +3323,7 @@ final class TDSWriter {
             int scale) throws SQLServerException {
         /*
          * Length including sign byte One 1-byte unsigned integer that represents the sign of the decimal value (0 => Negative, 1 => positive) One 4-,
-         * 8-, 12-, or 16-byte signed integer that represents the decimal value multiplied by 10^scale. The maximum size of this integer is determined
-         * based on p as follows: 4 bytes if 1 <= p <= 9. 8 bytes if 10 <= p <= 19. 12 bytes if 20 <= p <= 28. 16 bytes if 29 <= p <= 38.
+         * 8-, 12-, or 16-byte signed integer that represents the decimal value multiplied by 10^scale.
          */
 
         /*
@@ -3333,22 +3332,8 @@ final class TDSWriter {
          */
         bigDecimalVal = bigDecimalVal.setScale(scale, RoundingMode.HALF_UP);
 
-        int bLength;
-        if (9 >= precision) {
-            bLength = BYTES4;
-        }
-        else if (19 >= precision) {
-            bLength = BYTES8;
-        }
-        else if (28 >= precision) {
-            bLength = BYTES12;
-        }
-        else {
-            bLength = BYTES16;
-        }
-
         // data length + 1 byte for sign
-        bLength += 1;
+        int bLength = BYTES16 + 1;
         writeByte((byte) (bLength));
 
         // Byte array to hold all the data and padding bytes.
@@ -3357,7 +3342,6 @@ final class TDSWriter {
         byte[] valueBytes = DDC.convertBigDecimalToBytes(bigDecimalVal, scale);
         // removing the precision and scale information from the valueBytes array
         System.arraycopy(valueBytes, 2, bytes, 0, valueBytes.length - 2);
-
         writeBytes(bytes);
     }
 
