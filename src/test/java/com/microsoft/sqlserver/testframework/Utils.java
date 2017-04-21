@@ -9,12 +9,14 @@
 package com.microsoft.sqlserver.testframework;
 
 import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.ByteArrayInputStream;
 import java.io.CharArrayReader;
 import java.net.URI;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -305,4 +307,14 @@ public class Utils {
                 bracketedObjectName);
         stmt.executeUpdate(sql);
     }
+
+    public static boolean parseByte(byte[] expectedData,
+            byte[] retrieved) {
+        assertTrue(Arrays.equals(expectedData, Arrays.copyOf(retrieved, expectedData.length)), " unexpected BINARY value, expected");
+        for (int i = expectedData.length; i < retrieved.length; i++) {
+            assertTrue(0 == retrieved[i], "unexpected data BINARY");
+        }
+        return true;
+    }
+    
 }

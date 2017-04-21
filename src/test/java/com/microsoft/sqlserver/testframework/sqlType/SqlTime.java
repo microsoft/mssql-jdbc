@@ -14,9 +14,9 @@ import java.sql.JDBCType;
 import java.sql.Time;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
-import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeFormatterBuilder;
+import java.time.format.ResolverStyle;
 import java.time.temporal.ChronoField;
 import java.util.concurrent.ThreadLocalRandom;
 
@@ -38,19 +38,26 @@ public class SqlTime extends SqlDateTime {
         catch (ParseException ex) {
             fail(ex.getMessage());
         }
-        this.precision = 7;
-        this.variableLengthType = VariableLengthType.Precision;
-        generatePrecision();
-        formatter = new DateTimeFormatterBuilder().appendPattern(basePattern).appendFraction(ChronoField.NANO_OF_SECOND, 0, this.precision, true)
+        this.scale = 7;
+        this.variableLengthType = VariableLengthType.ScaleOnly;
+        generateScale();
+        
+        formatter = new DateTimeFormatterBuilder().appendPattern(basePattern).appendFraction(ChronoField.NANO_OF_SECOND, 0, this.scale, true)
                 .toFormatter();
+        formatter = formatter.withResolverStyle(ResolverStyle.STRICT);
 
     }
 
     public Object createdata() {
         Time temp = new Time(ThreadLocalRandom.current().nextLong(((Time) minvalue).getTime(), ((Time) maxvalue).getTime()));
-        String timeNano = temp.toString() + "." + RandomStringUtils.randomNumeric(this.precision);
+        String timeNano = temp.toString() + "." + RandomStringUtils.randomNumeric(this.scale);
+        return timeNano;
+
         // can pass String rather than converting to loacTime, but leaving it
         // unchanged for now to handle prepared statements
-        return LocalTime.parse(timeNano, formatter);
+        /*
+         * converting string '20:53:44.9' to LocalTime results in 20:53:44.900, this extra scale causes failure
+         */
+//        return LocalTime.parse(timeNano, formatter);
     }
 }
