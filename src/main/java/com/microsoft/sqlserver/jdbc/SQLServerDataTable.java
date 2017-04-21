@@ -230,6 +230,9 @@ public final class SQLServerDataTable {
                     case VARCHAR:
                     case NCHAR:
                     case NVARCHAR:
+                    case LONGVARCHAR:
+                    case LONGNVARCHAR:
+                    case SQLXML:
                         bValueNull = (null == val);
                         nValueLen = bValueNull ? 0 : (2 * ((String) val).length());
 
