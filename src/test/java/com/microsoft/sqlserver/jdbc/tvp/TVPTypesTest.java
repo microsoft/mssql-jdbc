@@ -14,6 +14,7 @@ import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -29,7 +30,7 @@ import com.microsoft.sqlserver.testframework.DBResultSet;
 import com.microsoft.sqlserver.testframework.DBStatement;
 
 @RunWith(JUnitPlatform.class)
-public class TVPTypes extends AbstractTest {
+public class TVPTypesTest extends AbstractTest {
 
     private static DBConnection conn = null;
     static DBStatement stmt = null;
@@ -243,8 +244,18 @@ public class TVPTypes extends AbstractTest {
         dropTables();
         dropTVPS();
     }
+    
+    @AfterAll
+    public static void terminate() throws SQLException {
+        conn = new DBConnection(connectionString);
+        stmt = conn.createStatement();
 
-    private void dropProcedure() throws SQLException {
+        dropProcedure();
+        dropTables();
+        dropTVPS();
+    }
+
+    private static void dropProcedure() throws SQLException {
         String sql = " IF EXISTS (select * from sysobjects where id = object_id(N'" + procedureName + "') and OBJECTPROPERTY(id, N'IsProcedure') = 1)"
                 + " DROP PROCEDURE " + procedureName;
         stmt.execute(sql);
