@@ -8,11 +8,14 @@
 package com.microsoft.sqlserver.jdbc.tvp;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Statement;
+import java.util.Arrays;
 
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
@@ -25,22 +28,16 @@ import com.microsoft.sqlserver.jdbc.SQLServerCallableStatement;
 import com.microsoft.sqlserver.jdbc.SQLServerDataTable;
 import com.microsoft.sqlserver.jdbc.SQLServerPreparedStatement;
 import com.microsoft.sqlserver.testframework.AbstractTest;
-import com.microsoft.sqlserver.testframework.DBConnection;
-import com.microsoft.sqlserver.testframework.DBResultSet;
-import com.microsoft.sqlserver.testframework.DBStatement;
 
 @RunWith(JUnitPlatform.class)
 public class TVPTypesTest extends AbstractTest {
 
-    private static DBConnection conn = null;
-    static DBStatement stmt = null;
-    static DBResultSet rs = null;
+    private static Connection conn = null;
+    static Statement stmt = null;
+    static ResultSet rs = null;
     static SQLServerDataTable tvp = null;
-    static String expectecValue1 = "hello";
-    static String expectecValue2 = "world";
-    static String expectecValue3 = "again";
-    private static String tvpName = "numericTVP";
-    private static String charTable = "tvpNumericTable";
+    private static String tvpName = "MaxTypesTVP";
+    private static String charTable = "MaxTypesTVPTable";
     private static String procedureName = "procedureThatCallsTVP";
 
     /**
@@ -128,6 +125,106 @@ public class TVPTypesTest extends AbstractTest {
         ResultSet rs = con.createStatement().executeQuery("select * from " + charTable);
         while (rs.next())
             assertEquals(rs.getString(1), value);
+
+        if (null != pstmt) {
+            pstmt.close();
+        }
+    }
+
+    /**
+     * Test ntext support
+     * 
+     * @throws SQLException
+     */
+    @Test
+    public void testnText() throws SQLException {
+        createTables("ntext");
+        createTVPS("ntext");
+        StringBuffer buffer = new StringBuffer();
+        for (int i = 0; i < 9000; i++)
+            buffer.append("س");
+        String value = buffer.toString();
+        tvp = new SQLServerDataTable();
+        tvp.addColumnMetadata("c1", java.sql.Types.LONGNVARCHAR);
+        tvp.addRow(value);
+
+        SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) connection
+                .prepareStatement("INSERT INTO " + charTable + " select * from ? ;");
+        pstmt.setStructured(1, tvpName, tvp);
+
+        pstmt.execute();
+
+        Connection con = DriverManager.getConnection(connectionString);
+        ResultSet rs = con.createStatement().executeQuery("select * from " + charTable);
+        while (rs.next())
+            assertEquals(rs.getString(1), value);
+
+        if (null != pstmt) {
+            pstmt.close();
+        }
+    }
+
+    /**
+     * Test text support
+     * 
+     * @throws SQLException
+     */
+    @Test
+    public void testText() throws SQLException {
+        createTables("text");
+        createTVPS("text");
+        StringBuffer buffer = new StringBuffer();
+        for (int i = 0; i < 9000; i++)
+            buffer.append("a");
+        String value = buffer.toString();
+        tvp = new SQLServerDataTable();
+        tvp.addColumnMetadata("c1", java.sql.Types.LONGVARCHAR);
+        tvp.addRow(value);
+
+        SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) connection
+                .prepareStatement("INSERT INTO " + charTable + " select * from ? ;");
+        pstmt.setStructured(1, tvpName, tvp);
+
+        pstmt.execute();
+
+        Connection con = DriverManager.getConnection(connectionString);
+        ResultSet rs = con.createStatement().executeQuery("select * from " + charTable);
+        while (rs.next())
+            assertEquals(rs.getString(1), value);
+
+        if (null != pstmt) {
+            pstmt.close();
+        }
+    }
+
+    /**
+     * Test text support
+     * 
+     * @throws SQLException
+     */
+    @Test
+    public void testImage() throws SQLException {
+        createTables("varbinary(max)");
+        createTVPS("varbinary(max)");
+        StringBuffer buffer = new StringBuffer();
+        for (int i = 0; i < 10000; i++)
+            buffer.append("a");
+        String value = buffer.toString();
+        tvp = new SQLServerDataTable();
+        tvp.addColumnMetadata("c1", java.sql.Types.LONGVARBINARY);
+        tvp.addRow(value.getBytes());
+
+        SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) connection
+                .prepareStatement("INSERT INTO " + charTable + " select * from ? ;");
+        pstmt.setStructured(1, tvpName, tvp);
+
+        pstmt.execute();
+
+        Connection con = DriverManager.getConnection(connectionString);
+        ResultSet rs = con.createStatement().executeQuery("select * from " + charTable);
+
+        while (rs.next())
+            assertTrue(parseByte(rs.getBytes(1), value.getBytes()));
 
         if (null != pstmt) {
             pstmt.close();
@@ -235,21 +332,122 @@ public class TVPTypesTest extends AbstractTest {
         }
     }
 
+    /**
+     * Text with StoredProcedure
+     * 
+     * @throws SQLException
+     */
+    @Test
+    public void testTVPText_StoredProcedure() throws SQLException {
+        createTables("text");
+        createTVPS("text");
+        createPreocedure();
+
+        StringBuffer buffer = new StringBuffer();
+        for (int i = 0; i < 9000; i++)
+            buffer.append("a");
+        String value = buffer.toString();
+
+        tvp = new SQLServerDataTable();
+        tvp.addColumnMetadata("c1", java.sql.Types.LONGVARCHAR);
+        tvp.addRow(value);
+
+        final String sql = "{call " + procedureName + "(?)}";
+
+        SQLServerCallableStatement P_C_statement = (SQLServerCallableStatement) connection.prepareCall(sql);
+        P_C_statement.setStructured(1, tvpName, tvp);
+        P_C_statement.execute();
+
+        rs = stmt.executeQuery("select * from " + charTable);
+        while (rs.next())
+            assertEquals(rs.getString(1), value);
+        if (null != P_C_statement) {
+            P_C_statement.close();
+        }
+    }
+
+    /**
+     * Text with StoredProcedure
+     * 
+     * @throws SQLException
+     */
+    @Test
+    public void testTVPNText_StoredProcedure() throws SQLException {
+        createTables("ntext");
+        createTVPS("ntext");
+        createPreocedure();
+
+        StringBuffer buffer = new StringBuffer();
+        for (int i = 0; i < 9000; i++)
+            buffer.append("س");
+        String value = buffer.toString();
+
+        tvp = new SQLServerDataTable();
+        tvp.addColumnMetadata("c1", java.sql.Types.LONGNVARCHAR);
+        tvp.addRow(value);
+
+        final String sql = "{call " + procedureName + "(?)}";
+
+        SQLServerCallableStatement P_C_statement = (SQLServerCallableStatement) connection.prepareCall(sql);
+        P_C_statement.setStructured(1, tvpName, tvp);
+        P_C_statement.execute();
+
+        rs = stmt.executeQuery("select * from " + charTable);
+        while (rs.next())
+            assertEquals(rs.getString(1), value);
+        if (null != P_C_statement) {
+            P_C_statement.close();
+        }
+    }
+
+    /**
+     * Image with StoredProcedure acts the same as varbinary(max)
+     * 
+     * @throws SQLException
+     */
+    @Test
+    public void testTVPImage_StoredProcedure() throws SQLException {
+        createTables("image");
+        createTVPS("image");
+        createPreocedure();
+
+        StringBuffer buffer = new StringBuffer();
+        for (int i = 0; i < 9000; i++)
+            buffer.append("a");
+        String value = buffer.toString();
+
+        tvp = new SQLServerDataTable();
+        tvp.addColumnMetadata("c1", java.sql.Types.LONGVARBINARY);
+        tvp.addRow(value.getBytes());
+
+        final String sql = "{call " + procedureName + "(?)}";
+
+        SQLServerCallableStatement P_C_statement = (SQLServerCallableStatement) connection.prepareCall(sql);
+        P_C_statement.setStructured(1, tvpName, tvp);
+        P_C_statement.execute();
+
+        rs = stmt.executeQuery("select * from " + charTable);
+        while (rs.next())
+            assertTrue(parseByte(rs.getBytes(1), value.getBytes()));
+        if (null != P_C_statement) {
+            P_C_statement.close();
+        }
+    }
+
     @BeforeEach
     private void testSetup() throws SQLException {
-        conn = new DBConnection(connectionString);
+        conn = DriverManager.getConnection(connectionString);
         stmt = conn.createStatement();
 
         dropProcedure();
         dropTables();
         dropTVPS();
     }
-    
+
     @AfterAll
     public static void terminate() throws SQLException {
-        conn = new DBConnection(connectionString);
+        conn = DriverManager.getConnection(connectionString);
         stmt = conn.createStatement();
-
         dropProcedure();
         dropTables();
         dropTVPS();
@@ -284,6 +482,15 @@ public class TVPTypesTest extends AbstractTest {
     private void createTVPS(String colType) throws SQLException {
         String TVPCreateCmd = "CREATE TYPE " + tvpName + " as table (c1 " + colType + " null)";
         stmt.executeUpdate(TVPCreateCmd);
+    }
+
+    private boolean parseByte(byte[] expectedData,
+            byte[] retrieved) {
+        assertTrue(Arrays.equals(expectedData, Arrays.copyOf(retrieved, expectedData.length)), " unexpected BINARY value, expected");
+        for (int i = expectedData.length; i < retrieved.length; i++) {
+            assertTrue(0 == retrieved[i], "unexpected data BINARY");
+        }
+        return true;
     }
 
     @AfterEach

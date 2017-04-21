@@ -213,6 +213,7 @@ public final class SQLServerDataTable {
 
                     case BINARY:
                     case VARBINARY:
+                    case LONGVARBINARY:
                         bValueNull = (null == val);
                         nValueLen = bValueNull ? 0 : ((byte[]) val).length;
 

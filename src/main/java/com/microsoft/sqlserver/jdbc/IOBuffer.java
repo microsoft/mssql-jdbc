@@ -4699,6 +4699,7 @@ final class TDSWriter {
 
                         case BINARY:
                         case VARBINARY:
+                        case LONGVARBINARY:
                             // Handle conversions as done in other types.
                             isShortValue = columnPair.getValue().precision <= DataTypes.SHORT_VARTYPE_MAX_BYTES;
                             isNull = (null == currentObject);
@@ -4860,6 +4861,7 @@ final class TDSWriter {
 
                 case BINARY:
                 case VARBINARY:
+                case LONGVARBINARY:
                     writeByte(TDSType.BIGVARBINARY.byteValue());
                     isShortValue = pair.getValue().precision <= DataTypes.SHORT_VARTYPE_MAX_BYTES;
                     // Use PLP encoding on Yukon and later with long values
