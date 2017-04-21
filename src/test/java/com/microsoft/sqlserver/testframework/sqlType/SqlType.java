@@ -9,9 +9,6 @@
 package com.microsoft.sqlserver.testframework.sqlType;
 
 import java.sql.JDBCType;
-import java.sql.SQLTimeoutException;
-import java.sql.SQLType;
-import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.concurrent.ThreadLocalRandom;
 
@@ -19,7 +16,6 @@ import com.microsoft.sqlserver.testframework.DBCoercion;
 import com.microsoft.sqlserver.testframework.DBCoercions;
 import com.microsoft.sqlserver.testframework.DBConnection;
 import com.microsoft.sqlserver.testframework.DBItems;
-import com.microsoft.sqlserver.testframework.Utils;
 
 public abstract class SqlType extends DBItems {
     // TODO: add seed to generate random data -> will help to reproduce the
@@ -225,7 +221,16 @@ public abstract class SqlType extends DBItems {
         int maxPrecision = this.precision;
         this.precision = ThreadLocalRandom.current().nextInt(minPrecision, maxPrecision + 1);
     }
-
+    
+    /**
+     * generates random precision for SQL types with scale
+     */
+    void generateScale() {
+        int minScale = 1;
+        int maxScale = this.scale;
+        this.scale = ThreadLocalRandom.current().nextInt(minScale, maxScale + 1);
+    }
+    
     /**
      * @return
      */
