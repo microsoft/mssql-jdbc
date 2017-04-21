@@ -14,9 +14,9 @@ import java.sql.JDBCType;
 import java.sql.Timestamp;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
-import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeFormatterBuilder;
+import java.time.format.ResolverStyle;
 import java.time.temporal.ChronoField;
 import java.util.concurrent.ThreadLocalRandom;
 
@@ -42,15 +42,16 @@ public class SqlDateTime2 extends SqlDateTime {
         generatePrecision();
         formatter = new DateTimeFormatterBuilder().appendPattern(basePattern).appendFraction(ChronoField.NANO_OF_SECOND, 0, this.precision, true)
                 .toFormatter();
-
+        formatter = formatter.withResolverStyle(ResolverStyle.STRICT);
     }
 
     public Object createdata() {
         Timestamp temp = new Timestamp(ThreadLocalRandom.current().nextLong(((Timestamp) minvalue).getTime(), ((Timestamp) maxvalue).getTime()));
         temp.setNanos(0);
         String timeNano = temp.toString().substring(0, temp.toString().length() - 1) + RandomStringUtils.randomNumeric(this.precision);
+        return timeNano;
         // can pass string rather than converting to LocalDateTime, but leaving
         // it unchanged for now to handle prepared statements
-        return LocalDateTime.parse(timeNano, formatter);
+//        return LocalDateTime.parse(timeNano, formatter);
     }
 }
