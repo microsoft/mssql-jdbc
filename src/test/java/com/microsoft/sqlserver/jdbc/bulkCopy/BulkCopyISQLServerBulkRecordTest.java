@@ -54,7 +54,6 @@ public class BulkCopyISQLServerBulkRecordTest extends AbstractTest {
     @Test
     void testISQLServerBulkRecord() {
         dstTable = new DBTable(true);
-        dstTable.setTotalRows(1);
         stmt.createTable(dstTable);
         BulkData Bdata = new BulkData();
 
