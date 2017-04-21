@@ -1576,18 +1576,22 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable {
             throw ex;
         }
         finally {
-            // reset the cryptoMeta in IOBuffer
-            tdsWriter.setCryptoMetaData(null);
+            if (!insertRowByRow) {
+                // reset the cryptoMeta in IOBuffer
+                tdsWriter.setCryptoMetaData(null);
+            }
         }
         // Write the DONE token in the stream. We may have to append the DONE token with every packet that is sent.
         // For the current packets the driver does not generate a DONE token, but the BulkLoadBCP stream needs a DONE token
         // after every packet. For now add it manually here for one packet.
         // Note: This may break if more than one packet is sent.
         // This is an example from https://msdn.microsoft.com/en-us/library/dd340549.aspx
-        writePacketDataDone(tdsWriter);
+        if (!insertRowByRow) {
+            writePacketDataDone(tdsWriter);
 
-        // Send to the server and read response.
-        TDSParser.parse(command.startResponse(), command.getLogContext());
+            // Send to the server and read response.
+            TDSParser.parse(command.startResponse(), command.getLogContext());
+        }
 
         if (copyOptions.isUseInternalTransaction()) {
             // Commit the transaction for this batch.
@@ -3221,8 +3225,10 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable {
                 }
             }
             row++;
-            
+
             if (insertRowByRow) {
+                tdsWriter.setCryptoMetaData(null);
+
                 // Send to the server and read response.
                 TDSParser.parse(command.startResponse(), command.getLogContext());
             }
