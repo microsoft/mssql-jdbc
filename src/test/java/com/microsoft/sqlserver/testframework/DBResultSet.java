@@ -310,7 +310,7 @@ public class DBResultSet extends AbstractParentWrapper {
                 break;
 
             case java.sql.Types.BINARY:
-                assertTrue(parseByte((byte[]) expectedData, (byte[]) retrieved),
+                assertTrue(Utils.parseByte((byte[]) expectedData, (byte[]) retrieved),
                         " unexpected BINARY value, expected: " + expectedData + " ,received: " + retrieved);
                 break;
 
@@ -324,14 +324,6 @@ public class DBResultSet extends AbstractParentWrapper {
         }
     }
 
-    private boolean parseByte(byte[] expectedData,
-            byte[] retrieved) {
-        assertTrue(Arrays.equals(expectedData, Arrays.copyOf(retrieved, expectedData.length)), " unexpected BINARY value, expected");
-        for (int i = expectedData.length; i < retrieved.length; i++) {
-            assertTrue(0 == retrieved[i], "unexpected data BINARY");
-        }
-        return true;
-    }
 
     /**
      * 

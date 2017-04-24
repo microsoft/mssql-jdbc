@@ -19,6 +19,7 @@ import java.io.Reader;
 import java.io.UnsupportedEncodingException;
 import java.math.BigDecimal;
 import java.math.BigInteger;
+import java.math.RoundingMode;
 import java.net.Inet4Address;
 import java.net.Inet6Address;
 import java.net.InetAddress;
@@ -3332,67 +3333,36 @@ final class TDSWriter {
      *            the source JDBCType
      * @param precision
      *            the precision of the data value
+     * @param scale
+     *            the scale of the column
+     * @throws SQLServerException
      */
     void writeBigDecimal(BigDecimal bigDecimalVal,
             int srcJdbcType,
-            int precision) throws SQLServerException {
+            int precision,
+            int scale) throws SQLServerException {
         /*
          * Length including sign byte One 1-byte unsigned integer that represents the sign of the decimal value (0 => Negative, 1 => positive) One 4-,
-         * 8-, 12-, or 16-byte signed integer that represents the decimal value multiplied by 10^scale. The maximum size of this integer is determined
-         * based on p as follows: 4 bytes if 1 <= p <= 9. 8 bytes if 10 <= p <= 19. 12 bytes if 20 <= p <= 28. 16 bytes if 29 <= p <= 38.
+         * 8-, 12-, or 16-byte signed integer that represents the decimal value multiplied by 10^scale.
          */
 
-        boolean isNegative = (bigDecimalVal.signum() < 0);
-        BigInteger bi = bigDecimalVal.unscaledValue();
-        if (isNegative)
-            bi = bi.negate();
-        if (9 >= precision) {
-            writeByte((byte) (BYTES4 + 1));
-            writeByte((byte) (isNegative ? 0 : 1));
-            writeInt(bi.intValue());
-        }
-        else if (19 >= precision) {
-            writeByte((byte) (BYTES8 + 1));
-            writeByte((byte) (isNegative ? 0 : 1));
-            writeLong(bi.longValue());
-        }
-        else {
-            int bLength;
-            if (28 >= precision)
-                bLength = BYTES12;
-            else
-                bLength = BYTES16;
-            writeByte((byte) (bLength + 1));
-            writeByte((byte) (isNegative ? 0 : 1));
+        /*
+         * setScale of all BigDecimal value based on metadata as scale is not sent seperately for individual value. Use the rounding used in Server.
+         * Say, for BigDecimal("0.1"), if scale in metdadata is 0, then ArithmeticException would be thrown if RoundingMode is not set
+         */
+        bigDecimalVal = bigDecimalVal.setScale(scale, RoundingMode.HALF_UP);
 
-            // Get the bytes of the BigInteger value. It is in reverse order, with
-            // most significant byte in 0-th element. We need to reverse it first before sending over TDS.
-            byte[] unscaledBytes = bi.toByteArray();
+        // data length + 1 byte for sign
+        int bLength = BYTES16 + 1;
+        writeByte((byte) (bLength));
 
-            if (unscaledBytes.length > bLength) {
-                // If precession of input is greater than maximum allowed (p><= 38) throw Exception
-                MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_valueOutOfRange"));
-                Object[] msgArgs = {JDBCType.of(srcJdbcType)};
-                throw new SQLServerException(form.format(msgArgs), SQLState.DATA_EXCEPTION_LENGTH_MISMATCH, DriverError.NOT_SET, null);
-            }
+        // Byte array to hold all the data and padding bytes.
+        byte[] bytes = new byte[bLength];
 
-            // Byte array to hold all the reversed and padding bytes.
-            byte[] bytes = new byte[bLength];
-
-            // We need to fill up the rest of the array with zeros, as unscaledBytes may have less bytes
-            // than the required size for TDS.
-            int remaining = bLength - unscaledBytes.length;
-
-            // Reverse the bytes.
-            int i, j;
-            for (i = 0, j = unscaledBytes.length - 1; i < unscaledBytes.length;)
-                bytes[i++] = unscaledBytes[j--];
-
-            // Fill the rest of the array with zeros.
-            for (; i < remaining; i++)
-                bytes[i] = (byte) 0x00;
-            writeBytes(bytes);
-        }
+        byte[] valueBytes = DDC.convertBigDecimalToBytes(bigDecimalVal, scale);
+        // removing the precision and scale information from the valueBytes array
+        System.arraycopy(valueBytes, 2, bytes, 0, valueBytes.length - 2);
+        writeBytes(bytes);
     }
 
     void writeSmalldatetime(String value) throws SQLServerException {
@@ -4635,8 +4605,14 @@ final class TDSWriter {
                                 writeByte((byte) TDSWriter.BIGDECIMAL_MAX_LENGTH); // maximum length
                                 BigDecimal bdValue = new BigDecimal(currentColumnStringValue);
 
-                                // setScale of all BigDecimal value based on metadata sent
-                                bdValue = bdValue.setScale(columnPair.getValue().scale);
+                                
+                                /*
+                                 * setScale of all BigDecimal value based on metadata as scale is not sent seperately for individual value. Use the
+                                 * rounding used in Server. Say, for BigDecimal("0.1"), if scale in metdadata is 0, then ArithmeticException would be
+                                 * thrown if RoundingMode is not set
+                                 */
+                                bdValue = bdValue.setScale(columnPair.getValue().scale, RoundingMode.HALF_UP);
+
                                 byte[] valueBytes = DDC.convertBigDecimalToBytes(bdValue, bdValue.scale());
 
                                 // 1-byte for sign and 16-byte for integer
