@@ -1539,6 +1539,15 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable {
             if (connection.equals(src_stmt.getConnection()) && 0 != resultSetServerCursorId) {
                 insertRowByRow = true;
             }
+            
+            if (((SQLServerResultSet) sourceResultSet).isForwardOnly()) {
+                try {
+                    sourceResultSet.setFetchSize(1);
+                }
+                catch (SQLException e) {
+                   SQLServerException.makeFromDriverError(connection, sourceResultSet, e.getMessage(), e.getSQLState(), true);
+                }
+            }
         }
 
         TDSWriter tdsWriter = null;

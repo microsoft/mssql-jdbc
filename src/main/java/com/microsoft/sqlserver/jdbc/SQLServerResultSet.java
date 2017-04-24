@@ -448,7 +448,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
                 true);
     }
 
-    private boolean isForwardOnly() {
+    protected boolean isForwardOnly() {
         return TYPE_SS_DIRECT_FORWARD_ONLY == stmt.getSQLResultSetType() || TYPE_SS_SERVER_CURSOR_FORWARD_ONLY == stmt.getSQLResultSetType();
     }
 
