@@ -218,6 +218,8 @@ enum SQLServerDriverObjectProperty {
     }
 }
 
+
+
 enum SQLServerDriverStringProperty
 {
 	APPLICATION_INTENT         ("applicationIntent",       ApplicationIntent.READ_WRITE.toString()),
@@ -226,6 +228,7 @@ enum SQLServerDriverStringProperty
 	FAILOVER_PARTNER           ("failoverPartner",         ""),
 	HOSTNAME_IN_CERTIFICATE    ("hostNameInCertificate",   ""),
 	INSTANCE_NAME              ("instanceName",            ""),
+	JAAS_CONFIG_NAME           ("jaasConfigurationName",   "SQLJDBCDriver"),
 	PASSWORD                   ("password",                ""),
 	RESPONSE_BUFFERING         ("responseBuffering",       "adaptive"),
 	SELECT_METHOD              ("selectMethod",            "direct"),
