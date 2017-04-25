@@ -4539,6 +4539,10 @@ final class TDSWriter {
         boolean tdsWritterCached = false;
         ByteBuffer cachedTVPHeaders = null;
         TDSCommand cachedCommand = null;
+
+        boolean cachedRequestComplete = false;
+        boolean cachedInterruptsEnabled = false;
+        boolean cachedProcessedResponse = false;
         
         if (!value.isNull()) {
 
@@ -4556,6 +4560,10 @@ final class TDSWriter {
                         cachedTVPHeaders.put(stagingBuffer.array(), 0, stagingBuffer.position());
 
                         cachedCommand = this.command;
+
+                        cachedRequestComplete = command.requestComplete;
+                        cachedInterruptsEnabled = command.interruptsEnabled;
+                        cachedProcessedResponse = command.processedResponse;
 
                         tdsWritterCached = true;
 
@@ -4806,17 +4814,15 @@ final class TDSWriter {
                         SQLServerException.makeFromDatabaseError(con, null, databaseError.getMessage(), databaseError, false);
                     }
 
-                    command.setInterruptsEnabled(true);
-                    command.setRequestComplete(false);
+                    command.interruptsEnabled = true;
+                    command.requestComplete = false;
                 }
             }
         }
 
         // reset command status which have been overwritten
         if (tdsWritterCached) {
-            command.setRequestComplete(false);
-            command.setInterruptsEnabled(true);
-            command.setProcessedResponse(false);
+            command.resetCachedFlags(cachedRequestComplete, cachedInterruptsEnabled, cachedProcessedResponse);
         }
         else {
             // TVP_END_TOKEN
@@ -7021,11 +7027,7 @@ abstract class TDSCommand {
     // received, indicating that it is no longer able to respond to interrupts.
     // If the command is interrupted after interrupts have been disabled, then the
     // interrupt is ignored.
-    private volatile boolean interruptsEnabled = false;
-    
-    protected void setInterruptsEnabled(boolean interruptsEnabled) {
-        this.interruptsEnabled = interruptsEnabled;
-    }
+    protected volatile boolean interruptsEnabled = false;
 
     // Flag set to indicate that an interrupt has happened.
     private volatile boolean wasInterrupted = false;
@@ -7041,11 +7043,7 @@ abstract class TDSCommand {
     // If a command is interrupted before its request is complete, it is the executing
     // thread's responsibility to send the attention signal to the server if necessary.
     // After the request is complete, the interrupting thread must send the attention signal.
-    private volatile boolean requestComplete;
-    
-    protected void setRequestComplete(boolean requestComplete) {
-        this.requestComplete = requestComplete;
-    }
+    protected volatile boolean requestComplete;
 
     // Flag set when an attention signal has been sent to the server, indicating that a
     // TDS packet containing the attention ack message is to be expected in the response.
@@ -7059,11 +7057,7 @@ abstract class TDSCommand {
     // Flag set when this command's response has been processed. Until this flag is set,
     // there may be unprocessed information left in the response, such as transaction
     // ENVCHANGE notifications.
-    private volatile boolean processedResponse;
-    
-    protected void setProcessedResponse(boolean processedResponse) {
-        this.processedResponse = processedResponse;
-    }
+    protected volatile boolean processedResponse;
 
     // Flag set when this command's response is ready to be read from the server and cleared
     // after its response has been received, but not necessarily processed, up to and including
@@ -7521,6 +7515,16 @@ abstract class TDSCommand {
         }
 
         return tdsReader;
+    }
+
+    protected void resetCachedFlags(boolean cachedRequestComplete,
+            boolean cachedInterruptsEnabled,
+            boolean cachedProcessedResponse) {
+        synchronized (interruptLock) {
+            this.requestComplete = cachedRequestComplete;
+            this.interruptsEnabled = cachedInterruptsEnabled;
+            this.processedResponse = cachedProcessedResponse;
+        }
     }
 }
 
