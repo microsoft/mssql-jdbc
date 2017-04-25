@@ -380,6 +380,7 @@ public final class SQLServerDriver implements java.sql.Driver {
         new SQLServerDriverPropertyInfo(SQLServerDriverBooleanProperty.FIPS.toString(),                                       Boolean.toString(SQLServerDriverBooleanProperty.FIPS.getDefaultValue()),                          	  false,      TRUE_FALSE),
         new SQLServerDriverPropertyInfo(SQLServerDriverBooleanProperty.ENABLE_PREPARE_ON_FIRST_PREPARED_STATEMENT.toString(), Boolean.toString(SQLServerConnection.getDefaultEnablePrepareOnFirstPreparedStatementCall()),      	  false,      TRUE_FALSE),
         new SQLServerDriverPropertyInfo(SQLServerDriverIntProperty.SERVER_PREPARED_STATEMENT_DISCARD_THRESHOLD.toString(),    Integer.toString(SQLServerConnection.getDefaultServerPreparedStatementDiscardThreshold()),        	  false,      null),
+        new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.JAAS_CONFIG_NAME.toString(),                            SQLServerDriverStringProperty.JAAS_CONFIG_NAME.getDefaultValue(),                                       false,      null),
     };
 
     // Properties that can only be set by using Properties.
