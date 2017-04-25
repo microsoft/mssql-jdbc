@@ -4561,9 +4561,9 @@ final class TDSWriter {
 
                         cachedCommand = this.command;
 
-                        cachedRequestComplete = command.requestComplete;
-                        cachedInterruptsEnabled = command.interruptsEnabled;
-                        cachedProcessedResponse = command.processedResponse;
+                        cachedRequestComplete = command.getRequestComplete();
+                        cachedInterruptsEnabled = command.getInterruptsEnabled();
+                        cachedProcessedResponse = command.getProcessedResponse();
 
                         tdsWritterCached = true;
 
@@ -4814,15 +4814,17 @@ final class TDSWriter {
                         SQLServerException.makeFromDatabaseError(con, null, databaseError.getMessage(), databaseError, false);
                     }
 
-                    command.interruptsEnabled = true;
-                    command.requestComplete = false;
+                    command.setInterruptsEnabled(true);
+                    command.setRequestComplete(false);
                 }
             }
         }
 
         // reset command status which have been overwritten
         if (tdsWritterCached) {
-            command.resetCachedFlags(cachedRequestComplete, cachedInterruptsEnabled, cachedProcessedResponse);
+            command.setRequestComplete(cachedRequestComplete);
+            command.setInterruptsEnabled(cachedInterruptsEnabled);
+            command.setProcessedResponse(cachedProcessedResponse);
         }
         else {
             // TVP_END_TOKEN
@@ -7027,7 +7029,17 @@ abstract class TDSCommand {
     // received, indicating that it is no longer able to respond to interrupts.
     // If the command is interrupted after interrupts have been disabled, then the
     // interrupt is ignored.
-    protected volatile boolean interruptsEnabled = false;
+    private volatile boolean interruptsEnabled = false;
+
+    protected boolean getInterruptsEnabled() {
+        return interruptsEnabled;
+    }
+
+    protected void setInterruptsEnabled(boolean interruptsEnabled) {
+        synchronized (interruptLock) {
+            this.interruptsEnabled = interruptsEnabled;
+        }
+    }
 
     // Flag set to indicate that an interrupt has happened.
     private volatile boolean wasInterrupted = false;
@@ -7043,7 +7055,17 @@ abstract class TDSCommand {
     // If a command is interrupted before its request is complete, it is the executing
     // thread's responsibility to send the attention signal to the server if necessary.
     // After the request is complete, the interrupting thread must send the attention signal.
-    protected volatile boolean requestComplete;
+    private volatile boolean requestComplete;
+
+    protected boolean getRequestComplete() {
+        return requestComplete;
+    }
+
+    protected void setRequestComplete(boolean requestComplete) {
+        synchronized (interruptLock) {
+            this.requestComplete = requestComplete;
+        }
+    }
 
     // Flag set when an attention signal has been sent to the server, indicating that a
     // TDS packet containing the attention ack message is to be expected in the response.
@@ -7057,7 +7079,17 @@ abstract class TDSCommand {
     // Flag set when this command's response has been processed. Until this flag is set,
     // there may be unprocessed information left in the response, such as transaction
     // ENVCHANGE notifications.
-    protected volatile boolean processedResponse;
+    private volatile boolean processedResponse;
+
+    protected boolean getProcessedResponse() {
+        return processedResponse;
+    }
+
+    protected void setProcessedResponse(boolean processedResponse) {
+        synchronized (interruptLock) {
+            this.processedResponse = processedResponse;
+        }
+    }
 
     // Flag set when this command's response is ready to be read from the server and cleared
     // after its response has been received, but not necessarily processed, up to and including
@@ -7515,16 +7547,6 @@ abstract class TDSCommand {
         }
 
         return tdsReader;
-    }
-
-    protected void resetCachedFlags(boolean cachedRequestComplete,
-            boolean cachedInterruptsEnabled,
-            boolean cachedProcessedResponse) {
-        synchronized (interruptLock) {
-            this.requestComplete = cachedRequestComplete;
-            this.interruptsEnabled = cachedInterruptsEnabled;
-            this.processedResponse = cachedProcessedResponse;
-        }
     }
 }
 
