@@ -190,6 +190,7 @@ public class SQLServerConnection implements ISQLServerConnection {
     }
 
     private final static float TIMEOUTSTEP = 0.08F;    // fraction of timeout to use for fast failover connections
+    private final static float TIMEOUTSTEP_TNIR = 0.125F;
     final static int TnirFirstAttemptTimeoutMs = 500;    // fraction of timeout to use for fast failover connections
 
     /*
@@ -281,6 +282,8 @@ public class SQLServerConnection implements ISQLServerConnection {
     final int getSocketTimeoutMilliseconds() {
         return socketTimeoutMilliseconds;
     }
+    
+    boolean userSetTNIR = true;
 
     private boolean sendTimeAsDatetime = SQLServerDriverBooleanProperty.SEND_TIME_AS_DATETIME.getDefaultValue();
 
@@ -1126,6 +1129,7 @@ public class SQLServerConnection implements ISQLServerConnection {
             sPropKey = SQLServerDriverBooleanProperty.TRANSPARENT_NETWORK_IP_RESOLUTION.toString();
             sPropValue = activeConnectionProperties.getProperty(sPropKey);
             if (sPropValue == null) {
+                userSetTNIR = false;
                 sPropValue = Boolean.toString(SQLServerDriverBooleanProperty.TRANSPARENT_NETWORK_IP_RESOLUTION.getDefaultValue());
                 activeConnectionProperties.setProperty(sPropKey, sPropValue);
             }
@@ -1547,7 +1551,10 @@ public class SQLServerConnection implements ISQLServerConnection {
         // for all other cases, including multiSubnetFailover
         final boolean isDBMirroring = (null == mirror && null == foActual) ? false : true;
         int sleepInterval = 100;  // milliseconds to sleep (back off) between attempts.
-        long timeoutUnitInterval;
+        long timeoutUnitInterval = 0;
+        long normalTimeoutUnitInterval;
+        long parallelTimeoutUnitInterval;
+        long tnirTimeoutUnitInterval;
 
         boolean useFailoverHost = false;
         FailoverInfo tempFailover = null;
@@ -1572,7 +1579,10 @@ public class SQLServerConnection implements ISQLServerConnection {
         boolean useParallel = getMultiSubnetFailover();
         boolean useTnir = getTransparentNetworkIPResolution();
 
-        long intervalExpire;
+        long intervalExpire = 0;
+        long normalIntervalExpire = 0;
+        long parrallelIntervalExpire = 0;
+        long tnirIntervalExpire = 0;
 
         if (0 == timeout) {
             timeout = SQLServerDriverIntProperty.LOGIN_TIMEOUT.getDefaultValue();
@@ -1581,22 +1591,16 @@ public class SQLServerConnection implements ISQLServerConnection {
         timerExpire = timerStart + timerTimeout;
 
         // For non-dbmirroring, non-tnir and non-multisubnetfailover scenarios, full time out would be used as time slice.
-        if (isDBMirroring || useParallel || useTnir) {
-            timeoutUnitInterval = (long) (TIMEOUTSTEP * timerTimeout);
-        }
-        else {
-            timeoutUnitInterval = timerTimeout;
-        }
-        intervalExpire = timerStart + timeoutUnitInterval;
+        parallelTimeoutUnitInterval = (long) (TIMEOUTSTEP * timerTimeout);
+        tnirTimeoutUnitInterval = (long) (TIMEOUTSTEP_TNIR * timerTimeout);
+        normalTimeoutUnitInterval = timerTimeout;
+
+        parrallelIntervalExpire = timerStart + parallelTimeoutUnitInterval;
+        tnirIntervalExpire = timerStart + tnirTimeoutUnitInterval;
+        normalIntervalExpire = timerStart + normalTimeoutUnitInterval;
         // This is needed when the host resolves to more than 64 IP addresses. In that case, TNIR is ignored
         // and the original timeout is used instead of the timeout slice.
         long intervalExpireFullTimeout = timerStart + timerTimeout;
-
-        if (connectionlogger.isLoggable(Level.FINER)) {
-            connectionlogger.finer(
-                    toString() + " Start time: " + timerStart + " Time out time: " + timerExpire + " Timeout Unit Interval: " + timeoutUnitInterval);
-        }
-
         // Initialize loop variables
         int attemptNumber = 0;
 
@@ -1635,6 +1639,40 @@ public class SQLServerConnection implements ISQLServerConnection {
                     currentConnectPlaceHolder = currentPrimaryPlaceHolder;
                 }
 
+                try {
+                    InetAddress[] inetAddrs = InetAddress.getAllByName(currentConnectPlaceHolder.getServerName());
+
+                    // if only one IP is resolved and user didn't set TNIR explicitly then set TNIR to false
+                    if ((1 == inetAddrs.length) && !userSetTNIR) {
+                        useTnir = false;
+                    }
+                }
+                catch (IOException ex) {
+                    SQLServerException.ConvertConnectExceptionToSQLServerException(currentConnectPlaceHolder.getServerName(),
+                            currentConnectPlaceHolder.getPortNumber(), this, ex);
+                }
+
+                // calculate timeout interval for the first attempt
+                if (0 == attemptNumber) {
+                    if (isDBMirroring || useParallel) {
+                        timeoutUnitInterval = parallelTimeoutUnitInterval;
+                        intervalExpire = parrallelIntervalExpire;
+                    }
+                    else if(useTnir){
+                        timeoutUnitInterval = tnirTimeoutUnitInterval;
+                        intervalExpire = tnirIntervalExpire;
+                    }
+                    else {
+                        timeoutUnitInterval = normalTimeoutUnitInterval;
+                        intervalExpire = normalIntervalExpire;
+                    }
+
+                    if (connectionlogger.isLoggable(Level.FINE)) {
+                        connectionlogger.finer(toString() + " Start time: " + timerStart + " Time out time: " + timerExpire
+                                + " Timeout Unit Interval: " + timeoutUnitInterval);
+                    }
+                }
+                
                 // logging code
                 if (connectionlogger.isLoggable(Level.FINE)) {
                     connectionlogger.fine(toString() + " This attempt server name: " + currentConnectPlaceHolder.getServerName() + " port: "
@@ -1771,11 +1809,21 @@ public class SQLServerConnection implements ISQLServerConnection {
             // Update timeout interval (but no more than the point where we're supposed to fail: timerExpire)
             attemptNumber++;
 
-            if (useParallel || useTnir) {
+            if (useParallel) {
                 intervalExpire = System.currentTimeMillis() + (timeoutUnitInterval * (attemptNumber + 1));
             }
             else if (isDBMirroring) {
                 intervalExpire = System.currentTimeMillis() + (timeoutUnitInterval * ((attemptNumber / 2) + 1));
+            }
+            else if (useTnir) {
+                long timeSlice = timeoutUnitInterval * (1 << attemptNumber);
+
+                // In case the timeout for the first slice is less than 500 ms then bump it up to 500 ms
+                if ((1 == attemptNumber) && (500 > timeSlice)) {
+                    timeSlice = 500;
+                }
+
+                intervalExpire = System.currentTimeMillis() + timeSlice;
             }
             else
                 intervalExpire = timerExpire;

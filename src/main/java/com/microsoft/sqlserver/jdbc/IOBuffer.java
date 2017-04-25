@@ -2279,7 +2279,6 @@ final class SocketFinder {
         try {
             InetAddress[] inetAddrs = null;
 
-            // inetAddrs is only used if useParallel is true or TNIR is true. Skip resolving address if that's not the case.
             if (useParallel || useTnir) {
                 // Ignore TNIR if host resolves to more than 64 IPs. Make sure we are using original timeout for this.
                 inetAddrs = InetAddress.getAllByName(hostName);
