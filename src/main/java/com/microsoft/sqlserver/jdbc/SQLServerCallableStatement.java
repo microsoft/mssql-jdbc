@@ -33,8 +33,6 @@ import java.util.Calendar;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import com.microsoft.sqlserver.util.Utils;
-
 /**
  * CallableStatement implements JDBC callable statements. CallableStatement allows the caller to specify the procedure name to call along with input
  * parameter value and output parameter types. Callable statement also allows the return of a return status with the ? = call( ?, ..) JDBC syntax
@@ -1326,7 +1324,7 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
     /**
      * Find column index for given column name.
      * <BR/>
-     * Here new BETA feature implemented which will guess column index without calling metadata lookup if following key having values Y/YES/ON
+     * Here new <B>BETA feature</B> implemented which will guess column index without calling metadata lookup if following key having values Y/YES/ON
      * <P>
      * <B>Either system property / environment property.</B>
      * 
@@ -1349,7 +1347,7 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
             boolean isSetterMethod) throws SQLServerException {
         int colId = -1;
 
-        String metaDataLookup = Utils.getSystemEnvOrProperty("com.mssql.metadata.lookup", "Y");
+        String metaDataLookup = Util.getSystemEnvOrProperty("com.mssql.metadata.lookup", "Y");
 
         if ("Y".equalsIgnoreCase(metaDataLookup) || "YES".equalsIgnoreCase(metaDataLookup) || "ON".equalsIgnoreCase(metaDataLookup)
                 || "TRUE".equalsIgnoreCase(metaDataLookup)) {

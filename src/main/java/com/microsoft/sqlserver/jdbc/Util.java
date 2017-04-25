@@ -938,6 +938,47 @@ final class Util {
 
         return supportJDBC42 && (1.8 <= jvmVersion);
     }
+    
+    
+    /**
+     * Read variable from property files if found null try to read from env.
+     * 
+     * @param key
+     *            Key
+     * @return Return value for configured property.
+     * @since 6.1.7
+     */
+    public static String getSystemEnvOrProperty(String key) {
+        String value = System.getProperty(key);
+
+        if (value == null) {
+            value = System.getenv(key);
+        }
+
+        return value;
+    }
+
+    /**
+     * Convenient method for {@link #getSystemEnvOrProperty(String)}
+     * 
+     * @param key
+     *            Key
+     * @param defaultValue
+     *            Default value
+     * @return Return value for configured property.
+     * @since 6.1.7
+     */
+    public static String getSystemEnvOrProperty(String key,
+            String defaultValue) {
+        String value = getSystemEnvOrProperty(key);
+
+        if (value == null) {
+            value = defaultValue;
+        }
+
+        return value;
+    }
+    
 }
 
 final class SQLIdentifier {
