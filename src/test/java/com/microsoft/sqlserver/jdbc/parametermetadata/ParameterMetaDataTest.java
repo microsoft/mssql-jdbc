@@ -16,11 +16,13 @@ import java.sql.ParameterMetaData;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.UUID;
 
 import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
 
+import com.microsoft.sqlserver.jdbc.SQLServerCallableStatement;
 import com.microsoft.sqlserver.jdbc.SQLServerException;
 import com.microsoft.sqlserver.testframework.AbstractTest;
 import com.microsoft.sqlserver.testframework.Utils;
@@ -29,7 +31,7 @@ import com.microsoft.sqlserver.testframework.util.RandomUtil;
 @RunWith(JUnitPlatform.class)
 public class ParameterMetaDataTest extends AbstractTest {
     private static final String tableName = "[" + RandomUtil.getIdentifier("StatementParam") + "]";
-    
+
     /**
      * Test ParameterMetaData#isWrapperFor and ParameterMetaData#unwrap.
      * 
@@ -37,19 +39,19 @@ public class ParameterMetaDataTest extends AbstractTest {
      */
     @Test
     public void testParameterMetaDataWrapper() throws SQLException {
-        try (Connection con = DriverManager.getConnection(connectionString);
-             Statement stmt = con.createStatement()) {
+        try (Connection con = DriverManager.getConnection(connectionString); Statement stmt = con.createStatement()) {
 
             stmt.executeUpdate("create table " + tableName + " (col1 int identity(1,1) primary key)");
             try {
                 String query = "SELECT * from " + tableName + " where col1 = ?";
-                
+
                 try (PreparedStatement pstmt = con.prepareStatement(query)) {
                     ParameterMetaData parameterMetaData = pstmt.getParameterMetaData();
                     assertTrue(parameterMetaData.isWrapperFor(ParameterMetaData.class));
                     assertSame(parameterMetaData, parameterMetaData.unwrap(ParameterMetaData.class));
                 }
-            } finally {
+            }
+            finally {
                 Utils.dropTableIfExists(tableName, stmt);
             }
 
@@ -71,6 +73,32 @@ public class ParameterMetaDataTest extends AbstractTest {
         catch (SQLServerException e) {
             assertTrue(!e.getMessage().contains("com.microsoft.sqlserver.jdbc.SQLServerException"),
                     "SQLServerException should not be wrapped by another SQLServerException.");
+        }
+    }
+
+    /**
+     * Test exception when invalid stored procedure name is used.
+     * 
+     * @throws Exception
+     */
+    @Test
+    public void testExceptionWithInvalidStoredProcedureName() throws Exception {
+        String randomProcedureName = UUID.randomUUID().toString();
+        final String sql = "{call [" + randomProcedureName + "] (?)}";
+
+        try (Connection con = DriverManager.getConnection(connectionString);
+                SQLServerCallableStatement Cstmt = (SQLServerCallableStatement) con.prepareCall(sql);) {
+            Cstmt.getParameterMetaData();
+
+            throw new Exception("Expected Exception for invalied stored procedure name is not thrown.");
+        }
+        catch (Exception e) {
+            if (e instanceof SQLServerException) {
+                assertTrue(e.getMessage().contains("Could not find stored procedure"));
+            }
+            else {
+                throw e;
+            }
         }
     }
 }
