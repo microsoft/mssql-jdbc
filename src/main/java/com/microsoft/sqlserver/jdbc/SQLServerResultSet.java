@@ -83,6 +83,10 @@ public class SQLServerResultSet implements ISQLServerResultSet {
     private boolean isClosed = false;
 
     private final int serverCursorId;
+    
+    protected int getServerCursorId() {
+        return serverCursorId;
+    }
 
     /** the intended fetch direction to optimize cursor performance */
     private int fetchDirection;
@@ -444,7 +448,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
                 true);
     }
 
-    private boolean isForwardOnly() {
+    protected boolean isForwardOnly() {
         return TYPE_SS_DIRECT_FORWARD_ONLY == stmt.getSQLResultSetType() || TYPE_SS_SERVER_CURSOR_FORWARD_ONLY == stmt.getSQLResultSetType();
     }
 
