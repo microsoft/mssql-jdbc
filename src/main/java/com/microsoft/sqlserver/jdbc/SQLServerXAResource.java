@@ -380,56 +380,52 @@ public final class SQLServerXAResource implements javax.transaction.xa.XAResourc
         SQLServerCallableStatement cs = null;
         try {
             synchronized (this) {
-                if (controlConnection == null) {
+                if (!xaInitDone) {
                     try {
                         synchronized (xaInitLock) {
-                            if (!xaInitDone) {
-                                SQLServerCallableStatement initCS = null;
+                            SQLServerCallableStatement initCS = null;
 
-                                initCS = (SQLServerCallableStatement) controlConnection.prepareCall("{call master..xp_sqljdbc_xa_init_ex(?, ?,?)}");
-                                initCS.registerOutParameter(1, Types.INTEGER); // Return status
-                                initCS.registerOutParameter(2, Types.CHAR);    // Return error message
-                                initCS.registerOutParameter(3, Types.CHAR);    // Return version number
+                            initCS = (SQLServerCallableStatement) controlConnection.prepareCall("{call master..xp_sqljdbc_xa_init_ex(?, ?,?)}");
+                            initCS.registerOutParameter(1, Types.INTEGER); // Return status
+                            initCS.registerOutParameter(2, Types.CHAR);    // Return error message
+                            initCS.registerOutParameter(3, Types.CHAR);    // Return version number
+                            try {
+                                initCS.execute();
+                            }
+                            catch (SQLServerException eX) {
                                 try {
-                                    initCS.execute();
-                                }
-                                catch (SQLServerException eX) {
-                                    try {
-                                        initCS.close();
-                                        // Mapping between control connection and xaresource is 1:1
-                                        controlConnection.close();
-                                    }
-                                    catch (SQLException e3) {
-                                        // we really want to ignore this failue
-                                        if (xaLogger.isLoggable(Level.FINER))
-                                            xaLogger.finer(toString() + " Ignoring exception when closing failed execution. exception:" + e3);
-                                    }
-                                    if (xaLogger.isLoggable(Level.FINER))
-                                        xaLogger.finer(toString() + " exception:" + eX);
-                                    throw eX;
-                                }
-
-                                // Check for error response from xp_sqljdbc_xa_init.
-                                int initStatus = initCS.getInt(1);
-                                String initErr = initCS.getString(2);
-                                String versionNumberXADLL = initCS.getString(3);
-                                if (xaLogger.isLoggable(Level.FINE))
-                                    xaLogger.fine(toString() + " Server XA DLL version:" + versionNumberXADLL);
-                                initCS.close();
-                                if (XA_OK != initStatus) {
-                                    assert null != initErr && initErr.length() > 1;
+                                    initCS.close();
+                                    // Mapping between control connection and xaresource is 1:1
                                     controlConnection.close();
-
-                                    MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_failedToInitializeXA"));
-                                    Object[] msgArgs = {String.valueOf(initStatus), initErr};
-                                    XAException xex = new XAException(form.format(msgArgs));
-                                    xex.errorCode = initStatus;
-                                    if (xaLogger.isLoggable(Level.FINER))
-                                        xaLogger.finer(toString() + " exception:" + xex);
-                                    throw xex;
                                 }
+                                catch (SQLException e3) {
+                                    // we really want to ignore this failue
+                                    if (xaLogger.isLoggable(Level.FINER))
+                                        xaLogger.finer(toString() + " Ignoring exception when closing failed execution. exception:" + e3);
+                                }
+                                if (xaLogger.isLoggable(Level.FINER))
+                                    xaLogger.finer(toString() + " exception:" + eX);
+                                throw eX;
+                            }
 
-                                xaInitDone = true;
+                            // Check for error response from xp_sqljdbc_xa_init.
+                            int initStatus = initCS.getInt(1);
+                            String initErr = initCS.getString(2);
+                            String versionNumberXADLL = initCS.getString(3);
+                            if (xaLogger.isLoggable(Level.FINE))
+                                xaLogger.fine(toString() + " Server XA DLL version:" + versionNumberXADLL);
+                            initCS.close();
+                            if (XA_OK != initStatus) {
+                                assert null != initErr && initErr.length() > 1;
+                                controlConnection.close();
+
+                                MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_failedToInitializeXA"));
+                                Object[] msgArgs = {String.valueOf(initStatus), initErr};
+                                XAException xex = new XAException(form.format(msgArgs));
+                                xex.errorCode = initStatus;
+                                if (xaLogger.isLoggable(Level.FINER))
+                                    xaLogger.finer(toString() + " exception:" + xex);
+                                throw xex;
                             }
                         }
                     }
@@ -440,6 +436,7 @@ public final class SQLServerXAResource implements javax.transaction.xa.XAResourc
                             xaLogger.finer(toString() + " exception:" + form.format(msgArgs));
                         SQLServerException.makeFromDriverError(null, null, form.format(msgArgs), null, true);
                     }
+                    xaInitDone = true;
                 }
             }
 
