@@ -211,8 +211,9 @@ public class SQLServerConnection implements ISQLServerConnection {
     }
 
     // Permission targets
-    // currently only callAbort is implemented
     private static final String callAbortPerm = "callAbort";
+    
+    private static final String SET_NETWORK_TIMEOUT_PERM = "setNetworkTimeout";
 
     private boolean sendStringParametersAsUnicode = SQLServerDriverBooleanProperty.SEND_STRING_PARAMETERS_AS_UNICODE.getDefaultValue();        // see
                                                                                                                                                // connection
@@ -4689,6 +4690,20 @@ public class SQLServerConnection implements ISQLServerConnection {
         }
 
         checkClosed();
+        
+        // check for setNetworkTimeout permission
+        SecurityManager secMgr = System.getSecurityManager();
+        if (secMgr != null) {
+            try {
+                SQLPermission perm = new SQLPermission(SET_NETWORK_TIMEOUT_PERM);
+                secMgr.checkPermission(perm);
+            }
+            catch (SecurityException ex) {
+                MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_permissionDenied"));
+                Object[] msgArgs = {SET_NETWORK_TIMEOUT_PERM};
+                SQLServerException.makeFromDriverError(this, this, form.format(msgArgs), null, true);
+            }
+        }
 
         try {
             tdsChannel.setNetworkTimeout(timeout);
