@@ -39,6 +39,7 @@ public class TVPTypesTest extends AbstractTest {
     private static String tvpName = "MaxTypesTVP";
     private static String charTable = "MaxTypesTVPTable";
     private static String procedureName = "procedureThatCallsTVP";
+    private String value = null;
 
     /**
      * Test a longvarchar support
@@ -54,9 +55,10 @@ public class TVPTypesTest extends AbstractTest {
         for (int i = 0; i < 9000; i++)
             buffer.append("a");
 
+        value = buffer.toString();
         tvp = new SQLServerDataTable();
         tvp.addColumnMetadata("c1", java.sql.Types.LONGVARCHAR);
-        tvp.addRow(buffer.toString());
+        tvp.addRow(value);
 
         SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) connection
                 .prepareStatement("INSERT INTO " + charTable + " select * from ? ;");
@@ -64,6 +66,10 @@ public class TVPTypesTest extends AbstractTest {
 
         pstmt.execute();
 
+        rs = conn.createStatement().executeQuery("select * from " + charTable);
+        while (rs.next()) {
+            assertEquals(rs.getString(1), value);
+        }
         if (null != pstmt) {
             pstmt.close();
         }
@@ -83,15 +89,21 @@ public class TVPTypesTest extends AbstractTest {
         for (int i = 0; i < 8001; i++)
             buffer.append("سس");
 
+        value = buffer.toString();
         tvp = new SQLServerDataTable();
         tvp.addColumnMetadata("c1", java.sql.Types.LONGNVARCHAR);
-        tvp.addRow(buffer.toString());
+        tvp.addRow(value);
 
         SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) connection
                 .prepareStatement("INSERT INTO " + charTable + " select * from ? ;");
         pstmt.setStructured(1, tvpName, tvp);
 
         pstmt.execute();
+
+        rs = conn.createStatement().executeQuery("select * from " + charTable);
+        while (rs.next()) {
+            assertEquals(rs.getString(1), value);
+        }
 
         if (null != pstmt) {
             pstmt.close();
@@ -107,7 +119,7 @@ public class TVPTypesTest extends AbstractTest {
     public void testXML() throws SQLException {
         createTables("xml");
         createTVPS("xml");
-        String value = "<vx53_e>Variable E</vx53_e>" + "<vx53_f>Variable F</vx53_f>" + "<doc>API<!-- comments --></doc>"
+        value = "<vx53_e>Variable E</vx53_e>" + "<vx53_f>Variable F</vx53_f>" + "<doc>API<!-- comments --></doc>"
                 + "<doc>The following are Japanese chars.</doc>"
                 + "<doc>    Some UTF-8 encoded characters: Ã¯Â¿Â½Ã¯Â¿Â½Ã¯Â¿Â½Ã¯Â¿Â½Ã¯Â¿Â½Ã¯Â¿Â½Ã¯Â¿Â½</doc>";
 
@@ -143,7 +155,7 @@ public class TVPTypesTest extends AbstractTest {
         StringBuffer buffer = new StringBuffer();
         for (int i = 0; i < 9000; i++)
             buffer.append("س");
-        String value = buffer.toString();
+        value = buffer.toString();
         tvp = new SQLServerDataTable();
         tvp.addColumnMetadata("c1", java.sql.Types.LONGNVARCHAR);
         tvp.addRow(value);
@@ -176,7 +188,7 @@ public class TVPTypesTest extends AbstractTest {
         StringBuffer buffer = new StringBuffer();
         for (int i = 0; i < 9000; i++)
             buffer.append("a");
-        String value = buffer.toString();
+        value = buffer.toString();
         tvp = new SQLServerDataTable();
         tvp.addColumnMetadata("c1", java.sql.Types.LONGVARCHAR);
         tvp.addRow(value);
@@ -209,7 +221,7 @@ public class TVPTypesTest extends AbstractTest {
         StringBuffer buffer = new StringBuffer();
         for (int i = 0; i < 10000; i++)
             buffer.append("a");
-        String value = buffer.toString();
+        value = buffer.toString();
         tvp = new SQLServerDataTable();
         tvp.addColumnMetadata("c1", java.sql.Types.LONGVARBINARY);
         tvp.addRow(value.getBytes());
@@ -246,9 +258,10 @@ public class TVPTypesTest extends AbstractTest {
         for (int i = 0; i < 8001; i++)
             buffer.append("a");
 
+        value = buffer.toString();
         tvp = new SQLServerDataTable();
         tvp.addColumnMetadata("c1", java.sql.Types.LONGVARCHAR);
-        tvp.addRow(buffer.toString());
+        tvp.addRow(value);
 
         final String sql = "{call " + procedureName + "(?)}";
 
@@ -258,7 +271,7 @@ public class TVPTypesTest extends AbstractTest {
 
         rs = stmt.executeQuery("select * from " + charTable);
         while (rs.next())
-            assertEquals(rs.getString(1), buffer.toString());
+            assertEquals(rs.getString(1), value);
 
         if (null != P_C_statement) {
             P_C_statement.close();
@@ -279,7 +292,7 @@ public class TVPTypesTest extends AbstractTest {
         StringBuffer buffer = new StringBuffer();
         for (int i = 0; i < 8001; i++)
             buffer.append("سس");
-
+        value = buffer.toString();
         tvp = new SQLServerDataTable();
         tvp.addColumnMetadata("c1", java.sql.Types.LONGNVARCHAR);
         tvp.addRow(buffer.toString());
@@ -292,7 +305,7 @@ public class TVPTypesTest extends AbstractTest {
 
         rs = stmt.executeQuery("select * from " + charTable);
         while (rs.next())
-            assertEquals(rs.getString(1), buffer.toString());
+            assertEquals(rs.getString(1), value);
 
         if (null != P_C_statement) {
             P_C_statement.close();
@@ -310,7 +323,7 @@ public class TVPTypesTest extends AbstractTest {
         createTVPS("xml");
         createPreocedure();
 
-        String value = "<vx53_e>Variable E</vx53_e>" + "<vx53_f>Variable F</vx53_f>" + "<doc>API<!-- comments --></doc>"
+        value = "<vx53_e>Variable E</vx53_e>" + "<vx53_f>Variable F</vx53_f>" + "<doc>API<!-- comments --></doc>"
                 + "<doc>The following are Japanese chars.</doc>"
                 + "<doc>    Some UTF-8 encoded characters: Ã¯Â¿Â½Ã¯Â¿Â½Ã¯Â¿Â½Ã¯Â¿Â½Ã¯Â¿Â½Ã¯Â¿Â½Ã¯Â¿Â½</doc>";
 
@@ -346,7 +359,7 @@ public class TVPTypesTest extends AbstractTest {
         StringBuffer buffer = new StringBuffer();
         for (int i = 0; i < 9000; i++)
             buffer.append("a");
-        String value = buffer.toString();
+        value = buffer.toString();
 
         tvp = new SQLServerDataTable();
         tvp.addColumnMetadata("c1", java.sql.Types.LONGVARCHAR);
@@ -380,7 +393,7 @@ public class TVPTypesTest extends AbstractTest {
         StringBuffer buffer = new StringBuffer();
         for (int i = 0; i < 9000; i++)
             buffer.append("س");
-        String value = buffer.toString();
+        value = buffer.toString();
 
         tvp = new SQLServerDataTable();
         tvp.addColumnMetadata("c1", java.sql.Types.LONGNVARCHAR);
@@ -414,7 +427,7 @@ public class TVPTypesTest extends AbstractTest {
         StringBuffer buffer = new StringBuffer();
         for (int i = 0; i < 9000; i++)
             buffer.append("a");
-        String value = buffer.toString();
+        value = buffer.toString();
 
         tvp = new SQLServerDataTable();
         tvp.addColumnMetadata("c1", java.sql.Types.LONGVARBINARY);
