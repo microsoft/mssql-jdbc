@@ -364,7 +364,13 @@ enum SSType
                 EnumSet.of(
                     JDBCType.Category.CHARACTER, 
                     JDBCType.Category.SQL_VARIANT,
-                    JDBCType.Category.UNKNOWN));
+                    JDBCType.Category.UNKNOWN,
+                    JDBCType.Category.NUMERIC,
+                    JDBCType.Category.DATE,
+                    JDBCType.Category.TIME,
+                    JDBCType.Category.BINARY,
+                    JDBCType.Category.TIMESTAMP,
+                    JDBCType.Category.NCHARACTER));
 
         private final SSType.Category from;
         private final EnumSet<JDBCType.Category> to;

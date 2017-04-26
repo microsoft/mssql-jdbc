@@ -4019,43 +4019,23 @@ final class ServerDTVImpl extends DTVImpl {
                     
                 case SQL_VARIANT:   
                     /**
-                     * SQL Variant has the following structure:
+                     * SQL_Variant has the following structure:
                      * 1- basetype: the underlying type
-                     * 2- probByte: holds count of property bytes expected for a sql variant structure
+                     * 2- probByte: holds count of property bytes expected for a sql_variant structure
                      * 3- properties: For example VARCHAR type has 5 byte collation and 2 byte max length 
                      * 4- dataValue: the data value
                      */
                     int baseType = tdsReader.readUnsignedByte();
                     
                     variantInternalType = baseType;
-                    int cbPropsActual = tdsReader.readUnsignedByte(); 
-                    //don't create new one, if we have already created an internalVariant object. Forexample, in bulkcopy
+                    int cbPropsActual = tdsReader.readUnsignedByte();
+                    // don't create new one, if we have already created an internalVariant object. For example, in bulkcopy
                     // when we are reading time column, we update the same internalvarianttype's JDBC to be timestamp
-                    if ( null == internalVariant){
-                        internalVariant = new SqlVariant(baseType);    
-                    }             
-                    switch(TDSType.valueOf(baseType)){
-                        case INT8:
-                            jdbcType = JDBCType.BIGINT;
-                            convertedValue = DDC.convertLongToObject(tdsReader.readLong(), jdbcType, baseSSType, streamGetterArgs.streamType);
-                            break;
-                        case INT4:
-                            jdbcType = JDBCType.INTEGER;
-                            convertedValue = DDC.convertIntegerToObject(tdsReader.readInt(), valueLength, jdbcType, streamGetterArgs.streamType);
-                            break;
-                        case INT2:
-                            jdbcType = JDBCType.SMALLINT;
-                            convertedValue = DDC.convertIntegerToObject(tdsReader.readShort(), valueLength, jdbcType, streamGetterArgs.streamType);
-                            break;
-                        case INT1:
-                            jdbcType = JDBCType.TINYINT;
-                            convertedValue = DDC.convertIntegerToObject(tdsReader.readUnsignedByte(), valueLength, jdbcType,
-                                    streamGetterArgs.streamType);
-                            break;
-                        default:
-                        convertedValue = readSqlVariant(baseType, cbPropsActual, valueLength, tdsReader, baseSSType, typeInfo, jdbcType, streamGetterArgs, cal);
-                        break;
+                    if (null == internalVariant) {
+                        internalVariant = new SqlVariant(baseType);
                     }
+                    convertedValue = readSqlVariant(baseType, cbPropsActual, valueLength, tdsReader, baseSSType, typeInfo, jdbcType, streamGetterArgs,
+                            cal);
                     break;
                 // Unknown SSType should have already been rejected by TypeInfo.setFromTDS()
                 default:
@@ -4078,8 +4058,10 @@ final class ServerDTVImpl extends DTVImpl {
     }
     
     /**
-     * Read the value inside sqlVariant
+     * Read the value inside sqlVariant. The reading differs based on what the internal baseType is. 
      * 
+     * @return sql_variant value
+     * @since 6.1.7
      * @throws SQLServerException
      */
     private Object readSqlVariant(int intbaseType,
@@ -4092,16 +4074,35 @@ final class ServerDTVImpl extends DTVImpl {
             InputStreamGetterArgs streamGetterArgs,
             Calendar cal) throws SQLServerException {
         Object convertedValue = null;
-        int lengthTotal = valueLength;
-        int lengthConsumed = 2 + cbPropsActual;
-        int expectedValueLength = lengthTotal - lengthConsumed;
+        int lengthConsumed = 2 + cbPropsActual; //2 is from the amount of baseType that is read previously
+        int expectedValueLength = valueLength - lengthConsumed;
         SQLCollation collation = null;
+        int precision;
+        int scale;
+        int maxLength;
         TDSType baseType = TDSType.valueOf(intbaseType);
         switch (baseType) {
+            case INT8:
+                jdbcType = JDBCType.BIGINT;
+                convertedValue = DDC.convertLongToObject(tdsReader.readLong(), jdbcType, baseSSType, streamGetterArgs.streamType);
+                break;
+            case INT4:
+                jdbcType = JDBCType.INTEGER;
+                convertedValue = DDC.convertIntegerToObject(tdsReader.readInt(), valueLength, jdbcType, streamGetterArgs.streamType);
+                break;
+            case INT2:
+                jdbcType = JDBCType.SMALLINT;
+                convertedValue = DDC.convertIntegerToObject(tdsReader.readShort(), valueLength, jdbcType, streamGetterArgs.streamType);
+                break;
+            case INT1:
+                jdbcType = JDBCType.TINYINT;
+                convertedValue = DDC.convertIntegerToObject(tdsReader.readUnsignedByte(), valueLength, jdbcType,
+                        streamGetterArgs.streamType);
+                break;
             case DECIMALN:
                 jdbcType = JDBCType.DECIMAL;
-                int precision = tdsReader.readUnsignedByte();
-                int scale = tdsReader.readUnsignedByte();
+                precision = tdsReader.readUnsignedByte();
+                scale = tdsReader.readUnsignedByte();
                 typeInfo.setScale(scale);  // typeInfo needs to be updated. typeInfo is usually set when reading columnMetaData, but for sql_variant
                 // type the actual columnMetaData is is set when reading the data rows.
                 internalVariant.setPrecision(precision);
@@ -4181,7 +4182,7 @@ final class ServerDTVImpl extends DTVImpl {
                 collation = tdsReader.readCollation();
                 typeInfo.setSQLCollation(collation);
                 typeInfo.setSSLenType(SSLenType.USHORTLENTYPE);
-                int maxLength = tdsReader.readUnsignedShort();
+                maxLength = tdsReader.readUnsignedShort();
                 typeInfo.setMaxLength(maxLength);
                 if (maxLength > DataTypes.SHORT_VARTYPE_MAX_BYTES)
                     tdsReader.throwInvalidTDS();

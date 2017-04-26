@@ -18,8 +18,6 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.Arrays;
 
-import javax.swing.plaf.synth.SynthSpinnerUI;
-
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -45,6 +43,7 @@ public class SQLVariantTest extends AbstractTest {
     static Statement stmt = null;
     static String tableName = "SqlVariant_Test";
     static String inputProc = "sqlVariant_Proc";
+    static String procedureName = "TVP_SQLVariant_Proc";
 
     @Test
     public void readInt() throws SQLException, SecurityException, IOException {
@@ -126,63 +125,60 @@ public class SQLVariantTest extends AbstractTest {
     @Test
     public void readTime() throws SQLException {
         String value = "'12:26:27.123345'";
-        createAndPopulateTable("time", value);
+        createAndPopulateTable("time(3)", value);
         SQLServerResultSet rs = (SQLServerResultSet) stmt.executeQuery("SELECT * FROM " + tableName);
         while (rs.next()) {
-            assertEquals("" + rs.getObject(1).toString(), "12:26:27.1233450"); // TODO
+            assertEquals("" + rs.getObject(1).toString(), "12:26:27.123"); // TODO
         }
     }
-    
-  @Test
-  public void bulkCopyTest_time() throws SQLException {
-      String col1Value = "'12:26:27.1452367'";
-      String destTableName = "dest_sqlVariant";
-      stmt.executeUpdate("IF EXISTS (select * from sysobjects where id = object_id(N'" + tableName + "') "
-              + "and OBJECTPROPERTY(id, N'IsTable') = 1)" + " DROP TABLE " + tableName);
-      stmt.executeUpdate("IF EXISTS (select * from sysobjects where id = object_id(N'" + destTableName + "') "
-              + "and OBJECTPROPERTY(id, N'IsTable') = 1)" + " DROP TABLE " + destTableName);
-      stmt.executeUpdate("create table " + tableName + " (col1 sql_variant)");
-      stmt.executeUpdate("INSERT into " + tableName + "(col1) values (CAST (" + col1Value + " AS " + "time(2)" + ") )");
-      stmt.executeUpdate("create table " + destTableName + " (col1 sql_variant)");
 
-      SQLServerResultSet rs = (SQLServerResultSet) stmt.executeQuery("SELECT * FROM " + tableName);
+    @Test
+    public void bulkCopyTest_time() throws SQLException {
+        String col1Value = "'12:26:27.1452367'";
+        String destTableName = "dest_sqlVariant";
+        stmt.executeUpdate("IF EXISTS (select * from sysobjects where id = object_id(N'" + tableName + "') "
+                + "and OBJECTPROPERTY(id, N'IsTable') = 1)" + " DROP TABLE " + tableName);
+        stmt.executeUpdate("IF EXISTS (select * from sysobjects where id = object_id(N'" + destTableName + "') "
+                + "and OBJECTPROPERTY(id, N'IsTable') = 1)" + " DROP TABLE " + destTableName);
+        stmt.executeUpdate("create table " + tableName + " (col1 sql_variant)");
+        stmt.executeUpdate("INSERT into " + tableName + "(col1) values (CAST (" + col1Value + " AS " + "time(2)" + ") )");
+        stmt.executeUpdate("create table " + destTableName + " (col1 sql_variant)");
 
-      SQLServerBulkCopy bulkCopy = new SQLServerBulkCopy(con);
-      bulkCopy.setDestinationTableName(destTableName);
-      bulkCopy.writeToServer(rs);
+        SQLServerResultSet rs = (SQLServerResultSet) stmt.executeQuery("SELECT * FROM " + tableName);
 
-      rs = (SQLServerResultSet) stmt.executeQuery("SELECT * FROM " + destTableName);
-      while (rs.next()) {
-          assertEquals("" + rs.getObject(1).toString(), "12:26:27.1500000"); // TODO
-      }
+        SQLServerBulkCopy bulkCopy = new SQLServerBulkCopy(con);
+        bulkCopy.setDestinationTableName(destTableName);
+        bulkCopy.writeToServer(rs);
 
-  }
-    
-   @Test
-  public void readTime2() throws SQLException {
-      String col1Value = "'12:26:27.123345'";
-      String destTableName = "dest_sqlVariant";
-      stmt.executeUpdate("IF EXISTS (select * from sysobjects where id = object_id(N'" + tableName + "') "
-              + "and OBJECTPROPERTY(id, N'IsTable') = 1)" + " DROP TABLE " + tableName);
-      stmt.executeUpdate("IF EXISTS (select * from sysobjects where id = object_id(N'" + destTableName + "') "
-              + "and OBJECTPROPERTY(id, N'IsTable') = 1)" + " DROP TABLE " + destTableName);
-      stmt.executeUpdate("create table " + tableName + " (col1 time)");
-      stmt.executeUpdate("INSERT into " + tableName + "(col1) values (CAST (" + col1Value + " AS " + "time" + ") )");
-      stmt.executeUpdate("create table " + destTableName + " (col1 time)");
+        rs = (SQLServerResultSet) stmt.executeQuery("SELECT * FROM " + destTableName);
+        while (rs.next()) {
+            assertEquals("" + rs.getObject(1).toString(), "12:26:27.15"); // TODO
+        }
+    }
 
-      SQLServerResultSet rs = (SQLServerResultSet) stmt.executeQuery("SELECT * FROM " + tableName);
+    @Test
+    public void readTime2() throws SQLException {
+        String col1Value = "'12:26:27.123345'";
+        String destTableName = "dest_sqlVariant";
+        stmt.executeUpdate("IF EXISTS (select * from sysobjects where id = object_id(N'" + tableName + "') "
+                + "and OBJECTPROPERTY(id, N'IsTable') = 1)" + " DROP TABLE " + tableName);
+        stmt.executeUpdate("IF EXISTS (select * from sysobjects where id = object_id(N'" + destTableName + "') "
+                + "and OBJECTPROPERTY(id, N'IsTable') = 1)" + " DROP TABLE " + destTableName);
+        stmt.executeUpdate("create table " + tableName + " (col1 time)");
+        stmt.executeUpdate("INSERT into " + tableName + "(col1) values (CAST (" + col1Value + " AS " + "time" + ") )");
+        stmt.executeUpdate("create table " + destTableName + " (col1 time)");
 
-      SQLServerBulkCopy bulkCopy = new SQLServerBulkCopy(con);
-      bulkCopy.setDestinationTableName(destTableName);
-      bulkCopy.writeToServer(rs);
+        SQLServerResultSet rs = (SQLServerResultSet) stmt.executeQuery("SELECT * FROM " + tableName);
 
-      rs = (SQLServerResultSet) stmt.executeQuery("SELECT * FROM " + destTableName);
-      while (rs.next()) {
-          assertEquals("" + rs.getString(1).toString(), "12:26:27.1233450"); // TODO
-          System.out.println(rs.getString(1));
-      }
+        SQLServerBulkCopy bulkCopy = new SQLServerBulkCopy(con);
+        bulkCopy.setDestinationTableName(destTableName);
+        bulkCopy.writeToServer(rs);
 
-  }
+        rs = (SQLServerResultSet) stmt.executeQuery("SELECT * FROM " + destTableName);
+        while (rs.next()) {
+            assertEquals("" + rs.getString(1).toString(), "12:26:27.1233450"); // TODO
+        }
+    }
 
     /**
      * Read datetime from SqlVariant
@@ -330,11 +326,11 @@ public class SQLVariantTest extends AbstractTest {
      */
     @Test
     public void readNChar() throws SQLException, SecurityException, IOException {
-        String value = "nchar";
+        String value = "a";
         createAndPopulateTable("nchar(5)", "'" + value + "'");
         SQLServerResultSet rs = (SQLServerResultSet) stmt.executeQuery("SELECT * FROM " + tableName);
         while (rs.next()) {
-            assertEquals(rs.getObject(1), value);
+            assertEquals(rs.getNString(1).trim(), value);
         }
     }
 
@@ -523,6 +519,25 @@ public class SQLVariantTest extends AbstractTest {
         }
     }
 
+    @Test
+    public void insertTestNull() throws SQLException {
+        stmt.executeUpdate("IF EXISTS (select * from sysobjects where id = object_id(N'" + tableName + "') "
+                + "and OBJECTPROPERTY(id, N'IsTable') = 1)" + " DROP TABLE " + tableName);
+        stmt.executeUpdate("create table " + tableName + " (col1 sql_variant)");
+        SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) con.prepareStatement("insert into " + tableName + " values ( ?)");
+
+        pstmt.setObject(1, null);
+        pstmt.execute();
+
+        SQLServerResultSet rs = (SQLServerResultSet) stmt.executeQuery("SELECT * FROM " + tableName);
+        int i = 0;
+        while (rs.next()) {
+            assertEquals(rs.getBoolean(1), false);
+            // assertEquals(rs.getObject(2), col2Value[i]);
+            i++;
+        }
+    }
+
     /**
      * Test inserting using setObject
      *
@@ -626,37 +641,6 @@ public class SQLVariantTest extends AbstractTest {
         cs.execute();
         assertEquals(cs.getString(1), String.valueOf(returnValue));
         assertEquals(cs.getString(2), String.valueOf(col1Value));
-    }
-
-
-    /**
-     * Read GUID stored in SqlVariant
-     * 
-     * @throws SQLException
-     */
-//    @Test
-    public void bulkCopyTest_readGUID2() throws SQLException {
-        String col1Value = "'1AE740A2-2272-4B0F-8086-3DDAC595BC11'";
-      System.out.println(col1Value.getBytes().toString());
-      String destTableName = "dest_sqlVariant";
-      stmt.executeUpdate("IF EXISTS (select * from sysobjects where id = object_id(N'" + tableName + "') "
-              + "and OBJECTPROPERTY(id, N'IsTable') = 1)" + " DROP TABLE " + tableName);
-      stmt.executeUpdate("IF EXISTS (select * from sysobjects where id = object_id(N'" + destTableName + "') "
-              + "and OBJECTPROPERTY(id, N'IsTable') = 1)" + " DROP TABLE " + destTableName);
-      stmt.executeUpdate("create table " + tableName + " (col1 uniqueidentifier)");
-      stmt.executeUpdate("INSERT into " + tableName + "(col1) values (CAST (" + col1Value + " AS " + "uniqueidentifier" + ") )");
-      stmt.executeUpdate("create table " + destTableName + " (col1 uniqueidentifier)");
-
-      SQLServerResultSet rs = (SQLServerResultSet) stmt.executeQuery("SELECT * FROM " + tableName);
-
-      SQLServerBulkCopy bulkCopy = new SQLServerBulkCopy(con);
-      bulkCopy.setDestinationTableName(destTableName);
-      bulkCopy.writeToServer(rs);
-
-      rs = (SQLServerResultSet) stmt.executeQuery("SELECT * FROM " + destTableName);
-      while (rs.next()) {
-          System.out.println(rs.getString(1));
-      }
     }
 
     /**
