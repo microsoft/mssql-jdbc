@@ -41,6 +41,8 @@ public final class SQLServerParameterMetaData implements ParameterMetaData {
     /* Used for callable statement meta data */
     private Statement stmtCall;
     private SQLServerResultSet rsProcedureMeta;
+    
+    protected boolean procedureIsFound = false;
 
     static final private java.util.logging.Logger logger = java.util.logging.Logger
             .getLogger("com.microsoft.sqlserver.jdbc.internals.SQLServerParameterMetaData");
@@ -582,15 +584,14 @@ public final class SQLServerParameterMetaData implements ParameterMetaData {
                 else
                     rsProcedureMeta = s.executeQueryInternal("exec sp_sproc_columns " + sProc + " @ODBCVer=3");
                 
-                // if rsProcedureMeta has no next row, it means the stored procedure is not found
-                if (!rsProcedureMeta.next()) {
-                    MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_StoredProcedureNotFound"));
-                    Object[] msgArgs = {st.procedureName};
-                    SQLServerException.makeFromDriverError(con, rsProcedureMeta, form.format(msgArgs), null, false);
+                // if rsProcedureMeta has next row, it means the stored procedure is found
+                if (rsProcedureMeta.next()) {
+                    procedureIsFound = true;
                 }
                 else {
-                    rsProcedureMeta.beforeFirst();
+                    procedureIsFound = false;
                 }
+                rsProcedureMeta.beforeFirst();
 
                 // Sixth is DATA_TYPE
                 rsProcedureMeta.getColumn(6).setFilter(new DataTypeFilter());
