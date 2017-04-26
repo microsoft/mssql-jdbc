@@ -581,6 +581,17 @@ public final class SQLServerParameterMetaData implements ParameterMetaData {
                     rsProcedureMeta = s.executeQueryInternal("exec sp_sproc_columns_100 " + sProc + " @ODBCVer=3");
                 else
                     rsProcedureMeta = s.executeQueryInternal("exec sp_sproc_columns " + sProc + " @ODBCVer=3");
+                
+                // if rsProcedureMeta has no next row, it means the stored procedure is not found
+                if (!rsProcedureMeta.next()) {
+                    MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_StoredProcedureNotFound"));
+                    Object[] msgArgs = {st.procedureName};
+                    SQLServerException.makeFromDriverError(con, rsProcedureMeta, form.format(msgArgs), null, false);
+                }
+                else {
+                    rsProcedureMeta.beforeFirst();
+                }
+
                 // Sixth is DATA_TYPE
                 rsProcedureMeta.getColumn(6).setFilter(new DataTypeFilter());
                 if (con.isKatmaiOrLater()) {
