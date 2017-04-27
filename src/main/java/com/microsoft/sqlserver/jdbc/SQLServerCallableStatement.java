@@ -1315,22 +1315,22 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
                 // if the user can execute the sql, any fragments of it is potentially executed via the meta data call through injection
                 // is not a security issue.
                 SQLServerStatement s = (SQLServerStatement) connection.createStatement();
-                ThreePartName translator = ThreePartName.parse(procedureName);
+                ThreePartName threePartName = ThreePartName.parse(procedureName);
                 StringBuilder metaQuery = new StringBuilder("exec sp_sproc_columns ");
-                if (null != translator.getDatabasePart()) {
+                if (null != threePartName.getDatabasePart()) {
                     metaQuery.append("@procedure_qualifier=");
-                    metaQuery.append(translator.getDatabasePart());
+                    metaQuery.append(threePartName.getDatabasePart());
                     metaQuery.append(", ");
                 }
-                if (null != translator.getOwnerPart()) {
+                if (null != threePartName.getOwnerPart()) {
                     metaQuery.append("@procedure_owner=");
-                    metaQuery.append(translator.getOwnerPart());
+                    metaQuery.append(threePartName.getOwnerPart());
                     metaQuery.append(", ");
                 }
-                if (null != translator.getProcedurePart()) {
+                if (null != threePartName.getProcedurePart()) {
                     // we should always have a procedure name part
                     metaQuery.append("@procedure_name=");
-                    metaQuery.append(translator.getProcedurePart());
+                    metaQuery.append(threePartName.getProcedurePart());
                     metaQuery.append(" , @ODBCVer=3");
                 }
                 else {
