@@ -28,6 +28,9 @@ import java.util.Map;
 import java.util.Vector;
 import java.util.logging.Level;
 
+import com.google.common.cache.CacheBuilder;
+import com.google.common.cache.Cache;
+
 /**
  * SQLServerPreparedStatement provides JDBC prepared statement functionality. SQLServerPreparedStatement provides methods for the user to supply
  * parameters as any native Java type and many Java object types.
@@ -98,6 +101,48 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
      */
     private boolean encryptionMetadataIsRetrieved = false;
 
+    /** Size of the  prepared statement meta data cache */
+    static final private int preparedStatementMetadataSQLCacheSize = 100;
+
+    /** Cache of prepared statement meta data */
+    static private Cache<String, PreparedStatementMetadataSQLCacheItem> preparedStatementSQLMetadataCache;
+    static {
+        preparedStatementSQLMetadataCache = CacheBuilder.newBuilder()
+	       .maximumSize(preparedStatementMetadataSQLCacheSize)
+           .build();
+    }
+
+    /**
+     * Used to keep track of an individual handle ready for un-prepare.
+     */
+    private final class PreparedStatementMetadataSQLCacheItem {
+        String preparedSQLText;
+        int parameterCount; 
+        String procedureName;
+        boolean bReturnValueSyntax; 
+        
+        PreparedStatementMetadataSQLCacheItem(String preparedSQLText, int parameterCount, String procedureName, boolean bReturnValueSyntax){
+            this.preparedSQLText = preparedSQLText;
+            this.parameterCount = parameterCount;
+            this.procedureName = procedureName;
+            this.bReturnValueSyntax = bReturnValueSyntax;
+        }
+    }
+
+    /** Get prepared statement cache entry if exists */
+    public PreparedStatementMetadataSQLCacheItem getCachedPreparedStatementSQLMetadata(String initialSql){
+        return preparedStatementSQLMetadataCache.getIfPresent(initialSql);
+    }
+
+    /** Cache entry for this prepared statement */
+    public PreparedStatementMetadataSQLCacheItem metadataSQLCacheItem;
+
+    /** Add cache entry for prepared statement metadata*/
+    public void cachePreparedStatementSQLMetaData(String initialSql, PreparedStatementMetadataSQLCacheItem newItem){
+        
+        preparedStatementSQLMetadataCache.put(initialSql, newItem);
+    }
+
     // Internal function used in tracing
     String getClassNameInternal() {
         return "SQLServerPreparedStatement";
@@ -128,13 +173,34 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         stmtPoolable = true;
         sqlCommand = sql;
 
-        JDBCSyntaxTranslator translator = new JDBCSyntaxTranslator();
-        sql = translator.translate(sql);
-        procedureName = translator.getProcedureName(); // may return null
-        bReturnValueSyntax = translator.hasReturnValueSyntax();
+        // Save original SQL statement.
+        sqlCommand = sql;
+        
+        // Check for cached SQL metadata.
+        PreparedStatementMetadataSQLCacheItem cacheItem = getCachedPreparedStatementSQLMetadata(sql);
 
-        userSQL = sql;
-        initParams(userSQL);
+        // No cached meta data found, parse.
+        if(null == cacheItem) { 
+            JDBCSyntaxTranslator translator = new JDBCSyntaxTranslator();
+
+            userSQL = translator.translate(sql);
+            procedureName = translator.getProcedureName(); // may return null
+            bReturnValueSyntax = translator.hasReturnValueSyntax();
+            
+            // Save processed SQL statement.
+            initParams(userSQL);
+
+            // Cache this entry.
+            cacheItem = new PreparedStatementMetadataSQLCacheItem(userSQL, inOutParam.length, procedureName, bReturnValueSyntax);
+            cachePreparedStatementSQLMetaData(sqlCommand/*original command as key*/, cacheItem);
+        }
+        else {
+            // Retrieve from cache item.
+            procedureName = cacheItem.procedureName;
+            bReturnValueSyntax = cacheItem.bReturnValueSyntax;
+            userSQL = cacheItem.preparedSQLText;
+            initParams(cacheItem.parameterCount);
+        }    
     }
 
     /**
@@ -217,12 +283,11 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     }
 
     /**
-     * Intialize the statement parameters.
+     * Find and intialize the statement parameters.
      * 
      * @param sql
      */
     /* L0 */ final void initParams(String sql) {
-        encryptionMetadataIsRetrieved = false;
         int nParams = 0;
 
         // Figure out the expected number of parameters by counting the
@@ -231,6 +296,15 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         while ((offset = ParameterUtils.scanSQLForChar('?', sql, ++offset)) < sql.length())
             ++nParams;
 
+        initParams(nParams);
+    }
+
+    /**
+     * Intialize the statement parameters.
+     * 
+     * @param sql
+     */
+    /* L0 */ final void initParams(int nParams) {
         inOutParam = new Parameter[nParams];
         for (int i = 0; i < nParams; i++) {
             inOutParam[i] = new Parameter(Util.shouldHonorAEForParameters(stmtColumnEncriptionSetting, connection));
