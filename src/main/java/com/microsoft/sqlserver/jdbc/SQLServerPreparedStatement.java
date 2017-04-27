@@ -121,7 +121,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         String procedureName;
         boolean bReturnValueSyntax; 
         
-        PreparedStatementMetadataSQLCacheItem(String preparedSQLText, int parameterCount, String procedureName, boolean bReturnValueSyntax){
+        PreparedStatementMetadataSQLCacheItem(String preparedSQLText, int parameterCount, String procedureName, boolean bReturnValueSyntax) {
             this.preparedSQLText = preparedSQLText;
             this.parameterCount = parameterCount;
             this.procedureName = procedureName;
@@ -130,15 +130,12 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     }
 
     /** Get prepared statement cache entry if exists */
-    public PreparedStatementMetadataSQLCacheItem getCachedPreparedStatementSQLMetadata(String initialSql){
+    public PreparedStatementMetadataSQLCacheItem getCachedPreparedStatementSQLMetadata(String initialSql) {
         return preparedStatementSQLMetadataCache.getIfPresent(initialSql);
     }
 
-    /** Cache entry for this prepared statement */
-    public PreparedStatementMetadataSQLCacheItem metadataSQLCacheItem;
-
     /** Add cache entry for prepared statement metadata*/
-    public void cachePreparedStatementSQLMetaData(String initialSql, PreparedStatementMetadataSQLCacheItem newItem){
+    public void cachePreparedStatementSQLMetaData(String initialSql, PreparedStatementMetadataSQLCacheItem newItem) {
         
         preparedStatementSQLMetadataCache.put(initialSql, newItem);
     }
@@ -286,6 +283,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
      * Find and intialize the statement parameters.
      * 
      * @param sql
+     *          SQL text to parse for number of parameters to intialize.
      */
     /* L0 */ final void initParams(String sql) {
         int nParams = 0;
@@ -302,7 +300,8 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     /**
      * Intialize the statement parameters.
      * 
-     * @param sql
+     * @param nParams 
+     *          Number of parameters to Intialize.
      */
     /* L0 */ final void initParams(int nParams) {
         inOutParam = new Parameter[nParams];
