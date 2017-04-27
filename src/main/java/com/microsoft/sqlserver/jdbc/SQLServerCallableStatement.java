@@ -30,8 +30,6 @@ import java.sql.Types;
 import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 /**
  * CallableStatement implements JDBC callable statements. CallableStatement allows the caller to specify the procedure name to call along with input
@@ -1311,76 +1309,13 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
      * @return the index
      */
     /* L3 */ private int findColumn(String columnName) throws SQLServerException {
-
-        final class ThreePartNamesParser {
-
-            private String procedurePart = null;
-            private String ownerPart = null;
-            private String databasePart = null;
-
-            String getProcedurePart() {
-                return procedurePart;
-            }
-
-            String getOwnerPart() {
-                return ownerPart;
-            }
-
-            String getDatabasePart() {
-                return databasePart;
-            }
-
-            /*
-             * Three part names parsing For metdata calls we parse the procedure name into parts so we can use it in sp_sproc_columns sp_sproc_columns
-             * [[@procedure_name =] 'name'] [,[@procedure_owner =] 'owner'] [,[@procedure_qualifier =] 'qualifier']
-             * 
-             */
-            private final Pattern threePartName = Pattern.compile(JDBCSyntaxTranslator.getSQLIdentifierWithGroups());
-
-            final void parseProcedureNameIntoParts(String theProcName) {
-                Matcher matcher;
-                if (null != theProcName) {
-                    matcher = threePartName.matcher(theProcName);
-                    if (matcher.matches()) {
-                        if (matcher.group(2) != null) {
-                            databasePart = matcher.group(1);
-
-                            // if we have two parts look to see if the last part can be broken even more
-                            matcher = threePartName.matcher(matcher.group(2));
-                            if (matcher.matches()) {
-                                if (null != matcher.group(2)) {
-                                    ownerPart = matcher.group(1);
-                                    procedurePart = matcher.group(2);
-                                }
-                                else {
-                                    ownerPart = databasePart;
-                                    databasePart = null;
-                                    procedurePart = matcher.group(1);
-                                }
-                            }
-
-                        }
-                        else
-                            procedurePart = matcher.group(1);
-
-                    }
-                    else {
-                        procedurePart = theProcName;
-                    }
-                }
-
-            }
-
-        }
-
         if (paramNames == null) {
             try {
                 // Note we are concatenating the information from the passed in sql, not any arguments provided by the user
                 // if the user can execute the sql, any fragments of it is potentially executed via the meta data call through injection
                 // is not a security issue.
                 SQLServerStatement s = (SQLServerStatement) connection.createStatement();
-                ThreePartNamesParser translator = new ThreePartNamesParser();
-                translator.parseProcedureNameIntoParts(procedureName);
+                ThreePartName translator = ThreePartName.parse(procedureName);
                 StringBuilder metaQuery = new StringBuilder("exec sp_sproc_columns ");
                 if (null != translator.getDatabasePart()) {
                     metaQuery.append("@procedure_qualifier=");
