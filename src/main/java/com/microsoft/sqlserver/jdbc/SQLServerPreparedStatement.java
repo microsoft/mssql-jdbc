@@ -101,17 +101,6 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
      */
     private boolean encryptionMetadataIsRetrieved = false;
 
-    /** Size of the  prepared statement meta data cache */
-    static final private int preparedStatementMetadataSQLCacheSize = 100;
-
-    /** Cache of prepared statement meta data */
-    static private Cache<String, PreparedStatementMetadataSQLCacheItem> preparedStatementSQLMetadataCache;
-    static {
-        preparedStatementSQLMetadataCache = CacheBuilder.newBuilder()
-	       .maximumSize(preparedStatementMetadataSQLCacheSize)
-           .build();
-    }
-
     /**
      * Used to keep track of an individual handle ready for un-prepare.
      */
@@ -129,13 +118,24 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         }
     }
 
+    /** Size of the  prepared statement meta data cache */
+    static final private int preparedStatementMetadataSQLCacheSize = 100;
+
+    /** Cache of prepared statement meta data */
+    static private Cache<String, PreparedStatementMetadataSQLCacheItem> preparedStatementSQLMetadataCache;
+    static {
+        preparedStatementSQLMetadataCache = CacheBuilder.newBuilder()
+	       .maximumSize(preparedStatementMetadataSQLCacheSize)
+           .build();
+    }
+
     /** Get prepared statement cache entry if exists */
-    public PreparedStatementMetadataSQLCacheItem getCachedPreparedStatementSQLMetadata(String initialSql) {
+    private PreparedStatementMetadataSQLCacheItem getCachedPreparedStatementSQLMetadata(String initialSql) {
         return preparedStatementSQLMetadataCache.getIfPresent(initialSql);
     }
 
     /** Add cache entry for prepared statement metadata*/
-    public void cachePreparedStatementSQLMetaData(String initialSql, PreparedStatementMetadataSQLCacheItem newItem) {
+    private void cachePreparedStatementSQLMetaData(String initialSql, PreparedStatementMetadataSQLCacheItem newItem) {
         
         preparedStatementSQLMetadataCache.put(initialSql, newItem);
     }

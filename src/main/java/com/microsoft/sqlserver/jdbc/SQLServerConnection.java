@@ -118,33 +118,6 @@ public class SQLServerConnection implements ISQLServerConnection {
 
     private SqlFedAuthToken fedAuthToken = null;
 
-    /**
-     * Used to keep track of an individual handle ready for un-prepare.
-     */
-    private final class PreparedStatementHandle {
-        String preparedSQLText;
-        int parameterCount; 
-        String procedureName;
-        boolean bReturnValueSyntax; 
-        
-        PreparedStatementHandle(String preparedSQLText, int parameterCount, String procedureName, boolean bReturnValueSyntax) {
-            this.preparedSQLText = preparedSQLText;
-            this.parameterCount = parameterCount;
-            this.procedureName = procedureName;
-            this.bReturnValueSyntax = bReturnValueSyntax;
-        }
-    }
-    /** Size of the  prepared statement meta data cache */
-    static final private int preparedStatementHandleCacheSize = 100;
-
-    /** Cache of prepared statement meta data */
-    private Cache<String, PreparedStatementHandle> preparedStatementHandleCache;
-    static {
-        preparedStatementHandleCache = CacheBuilder.newBuilder()
-	       .maximumSize(preparedStatementHandleCacheSize)
-           .build();
-    }
-
     SqlFedAuthToken getAuthenticationResult() {
         return fedAuthToken;
     }
@@ -5467,17 +5440,6 @@ public class SQLServerConnection implements ISQLServerConnection {
         }
     } 
 
-    
-    /** Get prepared statement cache entry if exists */
-    public PreparedStatementHandle getCachedPreparedStatementHandle(String initialSql) {
-        return preparedStatementSQLMetadataCache.getIfPresent(initialSql);
-    }
-
-    /** Add cache entry for prepared statement metadata*/
-    public void cachePreparedStatementSQLMetaData(String initialSql, PreparedStatementMetadataSQLCacheItem newItem) {
-        
-        preparedStatementSQLMetadataCache.put(initialSql, newItem);
-    }
 }
 
 // Helper class for security manager functions used by SQLServerConnection class.
