@@ -6,7 +6,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/)
 ## [6.1.7]
 ### Added
 - Added support for data type LONGVARCHAR, LONGNVARCHAR, LONGVARBINARY and SQLXML in TVP [#259](https://github.com/Microsoft/mssql-jdbc/pull/259)
-- Added new connection property to accept custom JASS configuration for Kerberos [#254](https://github.com/Microsoft/mssql-jdbc/pull/254)
+- Added new connection property to accept custom JAAS configuration for Kerberos [#254](https://github.com/Microsoft/mssql-jdbc/pull/254)
 - Added support for server cursor with TVP [#234](https://github.com/Microsoft/mssql-jdbc/pull/234) 
 - Added new connection property to support network timeout [#253](https://github.com/Microsoft/mssql-jdbc/pull/253)
 - Added support to authenticate Kerberos with principal and password [#163](https://github.com/Microsoft/mssql-jdbc/pull/163)
