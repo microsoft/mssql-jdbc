@@ -1568,8 +1568,13 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable {
                 writeColumnMetaData(tdsWriter);
             }
 
-            // Write all ROW tokens in the stream.
-            moreDataAvailable = writeBatchData(tdsWriter, command, insertRowByRow);
+            try {
+                // Write all ROW tokens in the stream.
+                moreDataAvailable = writeBatchData(tdsWriter, command, insertRowByRow);
+            }
+            finally {
+                tdsWriter = command.getTDSWriter();
+            }
         }
         catch (SQLServerException ex) {
             // Close the TDS packet before handling the exception
@@ -1585,17 +1590,16 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable {
             throw ex;
         }
         finally {
-            if (!insertRowByRow) {
-                // reset the cryptoMeta in IOBuffer
-                tdsWriter.setCryptoMetaData(null);
-            }
+            // reset the cryptoMeta in IOBuffer
+            tdsWriter.setCryptoMetaData(null);
         }
-        // Write the DONE token in the stream. We may have to append the DONE token with every packet that is sent.
-        // For the current packets the driver does not generate a DONE token, but the BulkLoadBCP stream needs a DONE token
-        // after every packet. For now add it manually here for one packet.
-        // Note: This may break if more than one packet is sent.
-        // This is an example from https://msdn.microsoft.com/en-us/library/dd340549.aspx
+                
         if (!insertRowByRow) {
+            // Write the DONE token in the stream. We may have to append the DONE token with every packet that is sent.
+            // For the current packets the driver does not generate a DONE token, but the BulkLoadBCP stream needs a DONE token
+            // after every packet. For now add it manually here for one packet.
+            // Note: This may break if more than one packet is sent.
+            // This is an example from https://msdn.microsoft.com/en-us/library/dd340549.aspx
             writePacketDataDone(tdsWriter);
 
             // Send to the server and read response.
@@ -3196,6 +3200,9 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable {
             
             
             if (insertRowByRow) {
+                // read response gotten from goToNextRow()
+                ((SQLServerResultSet) sourceResultSet).getTDSReader().readPacket();
+
                 // Create and send the initial command for bulk copy ("INSERT BULK ...").
                 tdsWriter = command.startRequest(TDS.PKT_QUERY);
                 String bulkCmd = createInsertBulkCommand(tdsWriter);
@@ -3204,8 +3211,6 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable {
 
                 // Send the bulk data. This is the BulkLoadBCP TDS stream.
                 tdsWriter = command.startRequest(TDS.PKT_BULK);
-
-                boolean moreDataAvailable = false;
 
                 // Write the COLUMNMETADATA token in the stream.
                 writeColumnMetaData(tdsWriter);
@@ -3244,6 +3249,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable {
             row++;
 
             if (insertRowByRow) {
+                writePacketDataDone(tdsWriter);
                 tdsWriter.setCryptoMetaData(null);
 
                 // Send to the server and read response.
