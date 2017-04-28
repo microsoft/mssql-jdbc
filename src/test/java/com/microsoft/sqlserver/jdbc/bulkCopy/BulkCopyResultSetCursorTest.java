@@ -256,5 +256,4 @@ public class BulkCopyResultSetCursorTest extends AbstractTest {
             stmt.close();
         }
     }
-
 }
