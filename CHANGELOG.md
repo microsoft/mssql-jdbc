@@ -14,16 +14,16 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/)
 - Added automatic detection of REALM in SPN needed for Cross Domain authentication [#40](https://github.com/Microsoft/mssql-jdbc/pull/40)
 
 ### Changed
-- Updated minor semantics [#232] (https://github.com/Microsoft/mssql-jdbc/pull/232)
+- Updated minor semantics [#232](https://github.com/Microsoft/mssql-jdbc/pull/232)
 - Cleaned up Azure Active Directory (AAD) Authentication methods [#256](https://github.com/Microsoft/mssql-jdbc/pull/256)
-- Updated permission check before setting network timeout [#255] (https://github.com/Microsoft/mssql-jdbc/pull/255)
+- Updated permission check before setting network timeout [#255](https://github.com/Microsoft/mssql-jdbc/pull/255)
 
 ### Fixed Issues
-- Turn TNIR (TransparentNetworkIPResolution) off for Azure Active Directory (AAD) Authentication and changed TNIR multipliers [#240] (https://github.com/Microsoft/mssql-jdbc/pull/240)
-- Wrapped ClassCastException in BulkCopy with SQLServerException [#260] (https://github.com/Microsoft/mssql-jdbc/pull/260)
-- Initialized the XA transaction manager for each XAResource [#257] (https://github.com/Microsoft/mssql-jdbc/pull/257)
-- Fixed BigDecimal scale rounding issue in BulkCopy [#230] (https://github.com/Microsoft/mssql-jdbc/issues/230)
-- Fixed the invalid exception thrown when stored procedure does not exist is used with TVP [#265] (https://github.com/Microsoft/mssql-jdbc/pull/265)
+- Turn TNIR (TransparentNetworkIPResolution) off for Azure Active Directory (AAD) Authentication and changed TNIR multipliers [#240](https://github.com/Microsoft/mssql-jdbc/pull/240)
+- Wrapped ClassCastException in BulkCopy with SQLServerException [#260](https://github.com/Microsoft/mssql-jdbc/pull/260)
+- Initialized the XA transaction manager for each XAResource [#257](https://github.com/Microsoft/mssql-jdbc/pull/257)
+- Fixed BigDecimal scale rounding issue in BulkCopy [#230](https://github.com/Microsoft/mssql-jdbc/issues/230)
+- Fixed the invalid exception thrown when stored procedure does not exist is used with TVP [#265](https://github.com/Microsoft/mssql-jdbc/pull/265)
 
 
 ## [6.1.6]
