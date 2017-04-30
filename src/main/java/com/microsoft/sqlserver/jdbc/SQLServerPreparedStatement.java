@@ -988,7 +988,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     /* L0 */ private ResultSet buildExecuteMetaData() throws SQLServerException {
         String fmtSQL = sqlCommand;
         if (fmtSQL.indexOf(LEFT_CURLY_BRACKET) >= 0) {
-            fmtSQL = (new JDBCSyntaxTranslator()).translate(fmtSQL);
+            fmtSQL = userSQL; 
         }
 
         ResultSet emptyResultSet = null;
