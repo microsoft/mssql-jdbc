@@ -56,8 +56,10 @@ import javax.xml.bind.DatatypeConverter;
 import org.ietf.jgss.GSSCredential;
 import org.ietf.jgss.GSSException;
 
-import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.Cache;
+import com.google.common.cache.CacheBuilder;
+import com.google.common.cache.RemovalListener;
+import com.google.common.cache.RemovalNotification;
 
 /**
  * SQLServerConnection implements a JDBC connection to SQL Server. SQLServerConnections support JDBC connection pooling and may be either physical
@@ -117,6 +119,55 @@ public class SQLServerConnection implements ISQLServerConnection {
     private byte[] accessTokenInByte = null;
 
     private SqlFedAuthToken fedAuthToken = null;
+
+    /**
+     * Used to keep track of an individual handle ready for un-prepare.
+     */
+    final class PreparedStatementHandle {
+        int handle;
+        boolean directSql;
+        SQLServerConnection connection;
+        private AtomicInteger refCount = new AtomicInteger(1);
+
+        PreparedStatementHandle(int handle, boolean directSql, SQLServerConnection connection) {
+            this.handle = handle;
+            this.directSql = directSql;
+            this.connection = connection;
+        }
+
+        // Returns false if handle is not re-usable.
+        boolean incrementRefCountAndVerifyNotInvalidated() {
+            // If refcount is negative the handle has been killed.
+            if(0 > this.refCount.getAndIncrement()) {
+                this.refCount.getAndDecrement(); // Reduce again.
+                return false;
+            }
+            else
+                return true; 
+        }
+
+        boolean discardIfNotReferenced() {
+            // If refcount is zero or negative the handle can be killed.
+            if(1 > this.refCount.getAndDecrement()) {
+                return true;
+            }
+            else {
+                // In use.
+                this.refCount.getAndIncrement(); // Return back.
+                return false; 
+            }
+        }
+
+        void decrementRefCount() {
+            this.refCount.decrementAndGet();
+        }
+    }
+
+    /** Size of the  prepared statement meta data cache */
+    static public int preparedStatementHandleCacheSize_SHOULD_BE_CONNECTION_STRING_PROPERTY = 10;
+
+    /** Cache of prepared statement meta data */
+    private Cache<String, PreparedStatementHandle> preparedStatementHandleCache;
 
     SqlFedAuthToken getAuthenticationResult() {
         return fedAuthToken;
@@ -5438,8 +5489,51 @@ public class SQLServerConnection implements ISQLServerConnection {
                 this.discardedPreparedStatementHandleQueueCount.addAndGet(-handlesRemoved);
             }
         }
-    } 
+    }
 
+    
+    /** Get prepared statement cache entry if exists */
+    final PreparedStatementHandle getCachedPreparedStatementHandle(String sql) {
+        if(null == this.preparedStatementHandleCache)
+            return null;
+        
+        return this.preparedStatementHandleCache.getIfPresent(sql);
+    }
+
+    // Handle closing handles when removed from cache.
+    RemovalListener<String, PreparedStatementHandle> preparedStatementHandleCacheRemovalListener = new RemovalListener<String, PreparedStatementHandle>() {
+        public void onRemoval(RemovalNotification<String, PreparedStatementHandle> removal) {
+            PreparedStatementHandle handle = removal.getValue();
+            // Only discard if not referenced.
+            if(null != handle && handle.discardIfNotReferenced()) {
+                handle.connection.enqueuePreparedStatementDiscardItem(handle.handle, handle.directSql);
+                handle.connection.handlePreparedStatementDiscardActions(false);
+            }
+            else if(null != handle)
+                // Put back in cache.
+                handle.connection.cachePreparedStatementHandle(removal.getKey(), handle);
+        }
+    };
+
+    /** Add cache entry for prepared statement metadata*/
+    final void cachePreparedStatementHandle(String sql, int handle, boolean directSql) {
+        this.cachePreparedStatementHandle(sql, new PreparedStatementHandle(handle, directSql, this));
+    }
+
+    /** Add cache entry for prepared statement metadata*/
+    final void cachePreparedStatementHandle(String sql, PreparedStatementHandle handle) {
+        // Caching turned off?
+        if(0 >= SQLServerConnection.preparedStatementHandleCacheSize_SHOULD_BE_CONNECTION_STRING_PROPERTY || null == handle)
+            return;
+
+        if(null == this.preparedStatementHandleCache) {
+            preparedStatementHandleCache = CacheBuilder.newBuilder()
+            .maximumSize(preparedStatementHandleCacheSize_SHOULD_BE_CONNECTION_STRING_PROPERTY)
+            .build();
+        }
+
+        this.preparedStatementHandleCache.put(sql, handle);
+    }
 }
 
 // Helper class for security manager functions used by SQLServerConnection class.

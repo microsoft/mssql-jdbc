@@ -60,7 +60,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     /** The prepared type definitions */
     private String preparedTypeDefinitions;
 
-    /** The users SQL statement text */
+    /** Processed SQL statement text that will be executed, may not be same as what user initially passed (which is available in sqlCommand) */
     final String userSQL;
 
     /** SQL statement with expanded parameter tokens */
@@ -68,6 +68,8 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
     /** True if this execute has been called for this statement at least once */
     private boolean isExecutedAtLeastOnce = false;
+
+    private SQLServerConnection.PreparedStatementHandle cachedPreparedStatementHandle; 
 
     /**
      * Array with parameter names generated in buildParamTypeDefinitions For mapping encryption information to parameters, as the second result set
@@ -91,7 +93,21 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     ArrayList<Parameter[]> batchParamValues;
 
     /** The prepared statement handle returned by the server */
-    private int prepStmtHandle = 0;
+    private int _prepStmtHandle = 0;
+    private int getPrepStmtHandle() {
+        return _prepStmtHandle;
+    }
+
+    private void setPrepStmtHandle(int handle, String sql, boolean cache) {
+        _prepStmtHandle = handle;
+
+        if(cache)
+            this.connection.cachePreparedStatementHandle(sql, handle, executedSqlDirectly);
+    }
+
+    private void resetPrepStmtHandle() {
+        _prepStmtHandle = 0;
+    }
 
     /** Flag set to true when statement execution is expected to return the prepared statement handle */
     private boolean expectPrepStmtHandle = false;
@@ -104,13 +120,13 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     /**
      * Used to keep track of an individual handle ready for un-prepare.
      */
-    private final class PreparedStatementMetadataSQLCacheItem {
+    private final class ParsedSQLCacheItem {
         String preparedSQLText;
         int parameterCount; 
         String procedureName;
         boolean bReturnValueSyntax; 
         
-        PreparedStatementMetadataSQLCacheItem(String preparedSQLText, int parameterCount, String procedureName, boolean bReturnValueSyntax) {
+        ParsedSQLCacheItem(String preparedSQLText, int parameterCount, String procedureName, boolean bReturnValueSyntax) {
             this.preparedSQLText = preparedSQLText;
             this.parameterCount = parameterCount;
             this.procedureName = procedureName;
@@ -119,25 +135,25 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     }
 
     /** Size of the  prepared statement meta data cache */
-    static final private int preparedStatementMetadataSQLCacheSize = 100;
+    static final public int parsedSQLCacheSize = 100;
 
     /** Cache of prepared statement meta data */
-    static private Cache<String, PreparedStatementMetadataSQLCacheItem> preparedStatementSQLMetadataCache;
+    static private Cache<String, ParsedSQLCacheItem> parsedSQLCache;
     static {
-        preparedStatementSQLMetadataCache = CacheBuilder.newBuilder()
-	       .maximumSize(preparedStatementMetadataSQLCacheSize)
+        parsedSQLCache = CacheBuilder.newBuilder()
+	       .maximumSize(parsedSQLCacheSize)
            .build();
     }
 
     /** Get prepared statement cache entry if exists */
-    private PreparedStatementMetadataSQLCacheItem getCachedPreparedStatementSQLMetadata(String initialSql) {
-        return preparedStatementSQLMetadataCache.getIfPresent(initialSql);
+    private ParsedSQLCacheItem getCachedParsedSQLMetadata(String initialSql) {
+        return parsedSQLCache.getIfPresent(initialSql);
     }
 
     /** Add cache entry for prepared statement metadata*/
-    private void cachePreparedStatementSQLMetaData(String initialSql, PreparedStatementMetadataSQLCacheItem newItem) {
+    private void cacheParsedSQLMetadata(String initialSql, ParsedSQLCacheItem newItem) {
         
-        preparedStatementSQLMetadataCache.put(initialSql, newItem);
+        parsedSQLCache.put(initialSql, newItem);
     }
 
     // Internal function used in tracing
@@ -174,7 +190,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         sqlCommand = sql;
         
         // Check for cached SQL metadata.
-        PreparedStatementMetadataSQLCacheItem cacheItem = getCachedPreparedStatementSQLMetadata(sql);
+        ParsedSQLCacheItem cacheItem = getCachedParsedSQLMetadata(sql);
 
         // No cached meta data found, parse.
         if(null == cacheItem) { 
@@ -188,8 +204,8 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
             initParams(userSQL);
 
             // Cache this entry.
-            cacheItem = new PreparedStatementMetadataSQLCacheItem(userSQL, inOutParam.length, procedureName, bReturnValueSyntax);
-            cachePreparedStatementSQLMetaData(sqlCommand/*original command as key*/, cacheItem);
+            cacheItem = new ParsedSQLCacheItem(userSQL, inOutParam.length, procedureName, bReturnValueSyntax);
+            cacheParsedSQLMetadata(sqlCommand/*original command as key*/, cacheItem);
         }
         else {
             // Retrieve from cache item.
@@ -204,7 +220,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
      * Close the prepared statement's prepared handle.
      */
     private void closePreparedHandle() {
-        if (0 == prepStmtHandle)
+        if (0 == getPrepStmtHandle())
             return;
 
         // If the connection is already closed, don't bother trying to close
@@ -212,18 +228,23 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         // on the server anyway.
         if (connection.isSessionUnAvailable()) {
             if (getStatementLogger().isLoggable(java.util.logging.Level.FINER))
-                getStatementLogger().finer(this + ": Not closing PreparedHandle:" + prepStmtHandle + "; connection is already closed.");
+                getStatementLogger().finer(this + ": Not closing PreparedHandle:" + getPrepStmtHandle() + "; connection is already closed.");
         }
         else {
             isExecutedAtLeastOnce = false;
-            final int handleToClose = prepStmtHandle;
-            prepStmtHandle = 0;
+            final int handleToClose = getPrepStmtHandle();
+            resetPrepStmtHandle();
 
             // Using batched clean-up? If not, use old method of calling sp_unprepare.
             if(1 < connection.getServerPreparedStatementDiscardThreshold()) {
                 // Handle unprepare actions through batching @ connection level. 
-                connection.enqueuePreparedStatementDiscardItem(handleToClose, executedSqlDirectly);
-                connection.handlePreparedStatementDiscardActions(false);
+                // Use this only if statement caching is off, otherwise this will be called by statement cache invalidation.
+                if(1 > SQLServerConnection.preparedStatementHandleCacheSize_SHOULD_BE_CONNECTION_STRING_PROPERTY) {
+                    connection.enqueuePreparedStatementDiscardItem(handleToClose, executedSqlDirectly);
+                    connection.handlePreparedStatementDiscardActions(false);
+                }
+                else if(null != cachedPreparedStatementHandle)
+                    cachedPreparedStatementHandle.decrementRefCount();
             }
             else {
                 // Non batched behavior (same as pre batch impl.)
@@ -567,7 +588,8 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                 expectPrepStmtHandle = false;
                 Parameter param = new Parameter(Util.shouldHonorAEForParameters(stmtColumnEncriptionSetting, connection));
                 param.skipRetValStatus(tdsReader);
-                prepStmtHandle = param.getInt(tdsReader);
+                int prepStmtHandle = param.getInt(tdsReader);
+                setPrepStmtHandle(prepStmtHandle, userSQL, true);
                 param.skipValue(tdsReader, true);
                 if (getStatementLogger().isLoggable(java.util.logging.Level.FINER))
                     getStatementLogger().finer(toString() + ": Setting PreparedHandle:" + prepStmtHandle);
@@ -603,7 +625,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
     private void buildServerCursorPrepExecParams(TDSWriter tdsWriter) throws SQLServerException {
         if (getStatementLogger().isLoggable(java.util.logging.Level.FINE))
-            getStatementLogger().fine(toString() + ": calling sp_cursorprepexec: PreparedHandle:" + prepStmtHandle + ", SQL:" + preparedSQL);
+            getStatementLogger().fine(toString() + ": calling sp_cursorprepexec: PreparedHandle:" + getPrepStmtHandle() + ", SQL:" + preparedSQL);
 
         expectPrepStmtHandle = true;
         executedSqlDirectly = false;
@@ -618,8 +640,8 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         // <prepared handle>
         // IN (reprepare): Old handle to unprepare before repreparing
         // OUT: The newly prepared handle
-        tdsWriter.writeRPCInt(null, new Integer(prepStmtHandle), true);
-        prepStmtHandle = 0;
+        tdsWriter.writeRPCInt(null, new Integer(getPrepStmtHandle()), true);
+        resetPrepStmtHandle();
 
         // <cursor> OUT
         tdsWriter.writeRPCInt(null, new Integer(0), true); // cursor ID (OUTPUT)
@@ -645,7 +667,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
     private void buildPrepExecParams(TDSWriter tdsWriter) throws SQLServerException {
         if (getStatementLogger().isLoggable(java.util.logging.Level.FINE))
-            getStatementLogger().fine(toString() + ": calling sp_prepexec: PreparedHandle:" + prepStmtHandle + ", SQL:" + preparedSQL);
+            getStatementLogger().fine(toString() + ": calling sp_prepexec: PreparedHandle:" + getPrepStmtHandle() + ", SQL:" + preparedSQL);
 
         expectPrepStmtHandle = true;
         executedSqlDirectly = true;
@@ -660,8 +682,8 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         // <prepared handle>
         // IN (reprepare): Old handle to unprepare before repreparing
         // OUT: The newly prepared handle
-        tdsWriter.writeRPCInt(null, new Integer(prepStmtHandle), true);
-        prepStmtHandle = 0;
+        tdsWriter.writeRPCInt(null, new Integer(getPrepStmtHandle()), true);
+        resetPrepStmtHandle();
 
         // <formal parameter defn> IN
         tdsWriter.writeRPCStringUnicode((preparedTypeDefinitions.length() > 0) ? preparedTypeDefinitions : null);
@@ -685,7 +707,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         tdsWriter.writeByte((byte) 0);  // RPC procedure option 2
 
         // No handle used.
-        prepStmtHandle = 0;
+        resetPrepStmtHandle();
 
         // <stmt> IN
         tdsWriter.writeRPCStringUnicode(preparedSQL);
@@ -696,7 +718,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
     private void buildServerCursorExecParams(TDSWriter tdsWriter) throws SQLServerException {
         if (getStatementLogger().isLoggable(java.util.logging.Level.FINE))
-            getStatementLogger().fine(toString() + ": calling sp_cursorexecute: PreparedHandle:" + prepStmtHandle + ", SQL:" + preparedSQL);
+            getStatementLogger().fine(toString() + ": calling sp_cursorexecute: PreparedHandle:" + getPrepStmtHandle() + ", SQL:" + preparedSQL);
 
         expectPrepStmtHandle = false;
         executedSqlDirectly = false;
@@ -709,8 +731,8 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         tdsWriter.writeByte((byte) 0);  // RPC procedure option 2 */
 
         // <handle> IN
-        assert 0 != prepStmtHandle;
-        tdsWriter.writeRPCInt(null, new Integer(prepStmtHandle), false);
+        assert 0 != getPrepStmtHandle();
+        tdsWriter.writeRPCInt(null, new Integer(getPrepStmtHandle()), false);
 
         // <cursor> OUT
         tdsWriter.writeRPCInt(null, new Integer(0), true);
@@ -727,7 +749,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
     private void buildExecParams(TDSWriter tdsWriter) throws SQLServerException {
         if (getStatementLogger().isLoggable(java.util.logging.Level.FINE))
-            getStatementLogger().fine(toString() + ": calling sp_execute: PreparedHandle:" + prepStmtHandle + ", SQL:" + preparedSQL);
+            getStatementLogger().fine(toString() + ": calling sp_execute: PreparedHandle:" + getPrepStmtHandle() + ", SQL:" + preparedSQL);
 
         expectPrepStmtHandle = false;
         executedSqlDirectly = true;
@@ -740,8 +762,8 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         tdsWriter.writeByte((byte) 0);  // RPC procedure option 2 */
 
         // <handle> IN
-        assert 0 != prepStmtHandle;
-        tdsWriter.writeRPCInt(null, new Integer(prepStmtHandle), false);
+        assert 0 != getPrepStmtHandle();
+        tdsWriter.writeRPCInt(null, new Integer(getPrepStmtHandle()), false);
     }
 
     private void getParameterEncryptionMetadata(Parameter[] params) throws SQLServerException {
@@ -889,7 +911,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
             Parameter[] params,
             boolean hasNewTypeDefinitions) throws SQLServerException {
        
-        boolean needsPrepare = hasNewTypeDefinitions || 0 == prepStmtHandle;
+        boolean needsPrepare = hasNewTypeDefinitions || 0 == getPrepStmtHandle();
 
         // Cursors never go the non-prepared statement route.
         if (isCursorable(executeMethod)) {
@@ -899,17 +921,31 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                 buildServerCursorExecParams(tdsWriter);
         }
         else {
-            // Move overhead of needing to do prepare & unprepare to only use cases that need more than one execution.
-            // First execution, use sp_executesql, optimizing for asumption we will not re-use statement.
-            if (!connection.getEnablePrepareOnFirstPreparedStatementCall() && !isExecutedAtLeastOnce) {
-                buildExecSQLParams(tdsWriter);
-                isExecutedAtLeastOnce = true;
-            }
-            // Second execution, use prepared statements since we seem to be re-using it.
-            else if(needsPrepare)
-                buildPrepExecParams(tdsWriter);
-            else
+            // Check for cached handle.
+            SQLServerConnection.PreparedStatementHandle cachedHandle = this.connection.getCachedPreparedStatementHandle(userSQL);
+
+            // If handle was found then re-use.
+            if(null != cachedHandle && cachedHandle.incrementRefCountAndVerifyNotInvalidated()) {
+                cachedPreparedStatementHandle = cachedHandle;
+
+                setPrepStmtHandle(cachedHandle.handle, userSQL, false);
+                needsPrepare = false;
+
                 buildExecParams(tdsWriter);
+            }
+            else {
+                // Move overhead of needing to do prepare & unprepare to only use cases that need more than one execution.
+                // First execution, use sp_executesql, optimizing for asumption we will not re-use statement.
+                if (!connection.getEnablePrepareOnFirstPreparedStatementCall() && !isExecutedAtLeastOnce) {
+                    buildExecSQLParams(tdsWriter);
+                    isExecutedAtLeastOnce = true;
+                }
+                // Second execution, use prepared statements since we seem to be re-using it.
+                else if(needsPrepare)
+                    buildPrepExecParams(tdsWriter);
+                else
+                    buildExecParams(tdsWriter);
+            }
         }
 
         sendParamsByRPC(tdsWriter, params);

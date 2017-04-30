@@ -55,6 +55,9 @@ public class PreparedStatementTest extends AbstractTest {
     public void testBatchedUnprepare() throws SQLException {
         SQLServerConnection conOuter = null;
 
+        // Turn off use of prepared statement cache.
+        SQLServerConnection.preparedStatementHandleCacheSize_SHOULD_BE_CONNECTION_STRING_PROPERTY = 0;
+
         // Make sure correct settings are used.
         SQLServerConnection.setDefaultEnablePrepareOnFirstPreparedStatementCall(SQLServerConnection.getInitialDefaultEnablePrepareOnFirstPreparedStatementCall());
         SQLServerConnection.setDefaultServerPreparedStatementDiscardThreshold(SQLServerConnection.getInitialDefaultServerPreparedStatementDiscardThreshold());
@@ -136,6 +139,9 @@ public class PreparedStatementTest extends AbstractTest {
      */
     @Test
     public void testPreparedStatementExecAndUnprepareConfig() throws SQLException {
+
+        // Turn off use of prepared statement cache.
+        SQLServerConnection.preparedStatementHandleCacheSize_SHOULD_BE_CONNECTION_STRING_PROPERTY = 0;
 
         // Verify initial defaults are correct:
         assertTrue(SQLServerConnection.getInitialDefaultServerPreparedStatementDiscardThreshold() > 1);
