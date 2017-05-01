@@ -3,12 +3,27 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](http://keepachangelog.com/) 
 
-## [Unreleased]
+## [6.1.7]
 ### Added
+- Added support for data type LONGVARCHAR, LONGNVARCHAR, LONGVARBINARY and SQLXML in TVP [#259](https://github.com/Microsoft/mssql-jdbc/pull/259)
+- Added new connection property to accept custom JAAS configuration for Kerberos [#254](https://github.com/Microsoft/mssql-jdbc/pull/254)
+- Added support for server cursor with TVP [#234](https://github.com/Microsoft/mssql-jdbc/pull/234) 
+- Experimental Feature: Added new connection property to support network timeout [#253](https://github.com/Microsoft/mssql-jdbc/pull/253)
+- Added support to authenticate Kerberos with principal and password [#163](https://github.com/Microsoft/mssql-jdbc/pull/163)
+- Added temporal types to BulkCopyCSVTestInput.csv [#262](https://github.com/Microsoft/mssql-jdbc/pull/262)
+- Added automatic detection of REALM in SPN needed for Cross Domain authentication [#40](https://github.com/Microsoft/mssql-jdbc/pull/40)
 
 ### Changed
+- Updated minor semantics [#232](https://github.com/Microsoft/mssql-jdbc/pull/232)
+- Cleaned up Azure Active Directory (AAD) Authentication methods [#256](https://github.com/Microsoft/mssql-jdbc/pull/256)
+- Updated permission check before setting network timeout [#255](https://github.com/Microsoft/mssql-jdbc/pull/255)
 
 ### Fixed Issues
+- Turn TNIR (TransparentNetworkIPResolution) off for Azure Active Directory (AAD) Authentication and changed TNIR multipliers [#240](https://github.com/Microsoft/mssql-jdbc/pull/240)
+- Wrapped ClassCastException in BulkCopy with SQLServerException [#260](https://github.com/Microsoft/mssql-jdbc/pull/260)
+- Initialized the XA transaction manager for each XAResource [#257](https://github.com/Microsoft/mssql-jdbc/pull/257)
+- Fixed BigDecimal scale rounding issue in BulkCopy [#230](https://github.com/Microsoft/mssql-jdbc/issues/230)
+- Fixed the invalid exception thrown when stored procedure does not exist is used with TVP [#265](https://github.com/Microsoft/mssql-jdbc/pull/265)
 
 
 ## [6.1.6]
