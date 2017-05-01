@@ -157,7 +157,7 @@ public class DBTable extends AbstractSQLGenerator {
         return escapedTableName;
     }
     
-    public String getTableDefinition() {
+    public String getDefinitionOfColumns() {
         return tableDefinition;
     }
 

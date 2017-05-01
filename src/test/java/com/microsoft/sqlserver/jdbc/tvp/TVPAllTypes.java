@@ -13,8 +13,6 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
@@ -42,26 +40,34 @@ public class TVPAllTypes extends AbstractTest {
      */
     @Test
     public void testTVP_RS() throws SQLException {
-        Connection connnection = DriverManager.getConnection(connectionString);
-        Statement stmtement = connnection.createStatement();
-
-        ResultSet rs = stmtement.executeQuery("select * from " + tableNameSrc);
-
-        SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) connnection
-                .prepareStatement("INSERT INTO " + tableNameDest + " select * from ? ;");
-        pstmt.setStructured(1, tvpName, rs);
-        pstmt.execute();
+        testTVP_RS(false, null, null);
+        testTVP_RS(true, null, null);
+        testTVP_RS(false, ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY);
+        testTVP_RS(false, ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE);
+        testTVP_RS(false, ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_READ_ONLY);
+        testTVP_RS(false, ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_UPDATABLE);
     }
 
-    /**
-     * Test TVP with result set and cursors
-     * 
-     * @throws SQLException
-     */
-    @Test
-    public void testTVP_RS_WithCursor() throws SQLException {
-        Connection connnection = DriverManager.getConnection(connectionString);
-        Statement stmtement = connnection.createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE);
+    private void testTVP_RS(boolean setSelectMethod,
+            Integer resultSetType,
+            Integer resultSetConcurrency) throws SQLException {
+        setupVariation();
+
+        Connection connnection = null;
+        if (setSelectMethod) {
+            connnection = DriverManager.getConnection(connectionString + ";selectMethod=cursor;");
+        }
+        else {
+            connnection = DriverManager.getConnection(connectionString);
+        }
+
+        Statement stmtement = null;
+        if (null != resultSetType || null != resultSetConcurrency) {
+            stmtement = connnection.createStatement(resultSetType, resultSetConcurrency);
+        }
+        else {
+            stmtement = connnection.createStatement();
+        }
 
         ResultSet rs = stmtement.executeQuery("select * from " + tableNameSrc);
 
@@ -69,6 +75,8 @@ public class TVPAllTypes extends AbstractTest {
                 .prepareStatement("INSERT INTO " + tableNameDest + " select * from ? ;");
         pstmt.setStructured(1, tvpName, rs);
         pstmt.execute();
+
+        terminateVariation();
     }
 
     private static void dropTVPS(String tvpName) throws SQLException {
@@ -81,8 +89,7 @@ public class TVPAllTypes extends AbstractTest {
         stmt.executeUpdate(TVPCreateCmd);
     }
 
-    @BeforeEach
-    private void testSetup() throws SQLException {
+    private void setupVariation() throws SQLException {
         conn = DriverManager.getConnection(connectionString);
         stmt = conn.createStatement();
 
@@ -96,7 +103,7 @@ public class TVPAllTypes extends AbstractTest {
         dbStmt.createTable(tableSrc);
         dbStmt.createTable(tableDest);
 
-        createTVPS(tvpName, tableSrc.getTableDefinition());
+        createTVPS(tvpName, tableSrc.getDefinitionOfColumns());
 
         dbStmt.populateTable(tableSrc);
 
@@ -104,7 +111,6 @@ public class TVPAllTypes extends AbstractTest {
         tableNameDest = tableDest.getEscapedTableName();
     }
 
-    @AfterEach
     private void terminateVariation() throws SQLException {
         conn = DriverManager.getConnection(connectionString);
         stmt = conn.createStatement();
