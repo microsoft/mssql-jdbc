@@ -49,7 +49,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/)
 - Fix precision issue in TVP [#217](https://github.com/Microsoft/mssql-jdbc/pull/217)
 - Re-interrupt the current thread in order to restore the threads interrupt status [#196](https://github.com/Microsoft/mssql-jdbc/issues/196)
 - Re-use parameter metadata when using Always Encrypted [#195](https://github.com/Microsoft/mssql-jdbc/issues/195)
-- Implemented PreparedStatement caching for improved performance [#166](https://github.com/Microsoft/mssql-jdbc/issues/166)
+- Improved performance for PreparedStatements through minimized server round-trips [#166](https://github.com/Microsoft/mssql-jdbc/issues/166)
 
 ## [6.1.5]
 ### Added
