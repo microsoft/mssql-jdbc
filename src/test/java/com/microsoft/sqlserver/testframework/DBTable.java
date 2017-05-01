@@ -213,6 +213,11 @@ public class DBTable extends AbstractSQLGenerator {
                 sb.add("" + column.getSqlType().getScale());
                 sb.add(CLOSE_BRACKET);
             }
+            else if (VariableLengthType.ScaleOnly == column.getSqlType().getVariableLengthType()) {
+                sb.add(OPEN_BRACKET);
+                sb.add("" + column.getSqlType().getScale());
+                sb.add(CLOSE_BRACKET);
+            }
 
             sb.add(COMMA);
         }
