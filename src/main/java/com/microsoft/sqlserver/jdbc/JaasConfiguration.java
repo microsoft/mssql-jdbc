@@ -62,4 +62,10 @@ public class JaasConfiguration extends Configuration {
         }
         return conf;
     }
+    
+    @Override
+    public void refresh() {
+        if (null != delegate)
+            delegate.refresh();
+    }
 }
