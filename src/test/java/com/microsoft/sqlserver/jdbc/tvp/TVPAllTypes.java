@@ -17,6 +17,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
 
+import com.microsoft.sqlserver.jdbc.SQLServerCallableStatement;
 import com.microsoft.sqlserver.jdbc.SQLServerPreparedStatement;
 import com.microsoft.sqlserver.testframework.AbstractTest;
 import com.microsoft.sqlserver.testframework.DBConnection;
@@ -30,6 +31,7 @@ public class TVPAllTypes extends AbstractTest {
     static Statement stmt = null;
 
     private static String tvpName = "TVPAllTypesTable_char_TVP";
+    private static String procedureName = "TVPAllTypesTable_char_SP";
     private static String tableNameSrc;
     private static String tableNameDest;
 
@@ -39,16 +41,16 @@ public class TVPAllTypes extends AbstractTest {
      * @throws SQLException
      */
     @Test
-    public void testTVP_RS() throws SQLException {
-        testTVP_RS(false, null, null);
-        testTVP_RS(true, null, null);
-        testTVP_RS(false, ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY);
-        testTVP_RS(false, ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE);
-        testTVP_RS(false, ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_READ_ONLY);
-        testTVP_RS(false, ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_UPDATABLE);
+    public void testTVP_ResultSet() throws SQLException {
+        testTVP_ResultSet(false, null, null);
+        testTVP_ResultSet(true, null, null);
+        testTVP_ResultSet(false, ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY);
+        testTVP_ResultSet(false, ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE);
+        testTVP_ResultSet(false, ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_READ_ONLY);
+        testTVP_ResultSet(false, ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_UPDATABLE);
     }
 
-    private void testTVP_RS(boolean setSelectMethod,
+    private void testTVP_ResultSet(boolean setSelectMethod,
             Integer resultSetType,
             Integer resultSetConcurrency) throws SQLException {
         setupVariation();
@@ -79,6 +81,60 @@ public class TVPAllTypes extends AbstractTest {
         terminateVariation();
     }
 
+    /**
+     * Test TVP with stored procedure and result set
+     * 
+     * @throws SQLException
+     */
+    @Test
+    public void testTVP_StoredProcedure_ResultSet() throws SQLException {
+        testTVP_StoredProcedure_ResultSet(false, null, null);
+        testTVP_StoredProcedure_ResultSet(true, null, null);
+        testTVP_StoredProcedure_ResultSet(false, ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY);
+        testTVP_StoredProcedure_ResultSet(false, ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE);
+        testTVP_StoredProcedure_ResultSet(false, ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_READ_ONLY);
+        testTVP_StoredProcedure_ResultSet(false, ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_UPDATABLE);
+    }
+
+    private void testTVP_StoredProcedure_ResultSet(boolean setSelectMethod,
+            Integer resultSetType,
+            Integer resultSetConcurrency) throws SQLException {
+        setupVariation();
+
+        Connection connnection = null;
+        if (setSelectMethod) {
+            connnection = DriverManager.getConnection(connectionString + ";selectMethod=cursor;");
+        }
+        else {
+            connnection = DriverManager.getConnection(connectionString);
+        }
+
+        Statement stmtement = null;
+        if (null != resultSetType || null != resultSetConcurrency) {
+            stmtement = connnection.createStatement(resultSetType, resultSetConcurrency);
+        }
+        else {
+            stmtement = connnection.createStatement();
+        }
+
+        ResultSet rs = stmtement.executeQuery("select * from " + tableNameSrc);
+
+        String sql = "{call " + procedureName + "(?)}";
+        SQLServerCallableStatement Cstmt = (SQLServerCallableStatement) connnection.prepareCall(sql);
+        Cstmt.setStructured(1, tvpName, rs);
+        Cstmt.execute();
+
+        terminateVariation();
+    }
+
+    private static void createPreocedure(String procedureName,
+            String destTable) throws SQLException {
+        String sql = "CREATE PROCEDURE " + procedureName + " @InputData " + tvpName + " READONLY " + " AS " + " BEGIN " + " INSERT INTO " + destTable
+                + " SELECT * FROM @InputData" + " END";
+
+        stmt.execute(sql);
+    }
+
     private static void dropTVPS(String tvpName) throws SQLException {
         stmt.executeUpdate("IF EXISTS (SELECT * FROM sys.types WHERE is_table_type = 1 AND name = '" + tvpName + "') " + " drop type " + tvpName);
     }
@@ -93,6 +149,7 @@ public class TVPAllTypes extends AbstractTest {
         conn = DriverManager.getConnection(connectionString);
         stmt = conn.createStatement();
 
+        Utils.dropProcedureIfExists(procedureName, stmt);
         dropTVPS(tvpName);
 
         DBConnection dbConnection = new DBConnection(connectionString);
@@ -104,6 +161,7 @@ public class TVPAllTypes extends AbstractTest {
         dbStmt.createTable(tableDest);
 
         createTVPS(tvpName, tableSrc.getDefinitionOfColumns());
+        createPreocedure(procedureName, tableDest.getEscapedTableName());
 
         dbStmt.populateTable(tableSrc);
 
@@ -115,6 +173,7 @@ public class TVPAllTypes extends AbstractTest {
         conn = DriverManager.getConnection(connectionString);
         stmt = conn.createStatement();
 
+        Utils.dropProcedureIfExists(procedureName, stmt);
         Utils.dropTableIfExists(tableNameSrc, stmt);
         Utils.dropTableIfExists(tableNameDest, stmt);
         dropTVPS(tvpName);
