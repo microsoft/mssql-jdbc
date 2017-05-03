@@ -26,7 +26,8 @@ public class SQLServerMetaData {
     boolean isUniqueKey = false;
     SQLServerSortOrder sortOrder = SQLServerSortOrder.Unspecified;
     int sortOrdinal;
-
+    private SQLCollation collation;
+    
     static final int defaultSortOrdinal = -1;
 
     /**
@@ -185,6 +186,10 @@ public class SQLServerMetaData {
      */
     public int getSortOrdinal() {
         return sortOrdinal;
+    }
+    
+    SQLCollation getCollation() {
+        return this.collation;
     }
 
     void validateSortOrder() throws SQLServerException {

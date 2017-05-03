@@ -1922,7 +1922,20 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         lastValueWasNull = (null == o);
         return o;
     }
-
+    
+    int getInternalVariantType(int columnIndex) throws SQLServerException {
+        return getterGetColumn(columnIndex).getVariantInternalType();
+    }
+    
+    void setInternalVariantType(int columnIndex, SqlVariant type) throws SQLServerException{
+        getterGetColumn(columnIndex).setInternalVariant(type);
+    }
+    
+    SqlVariant getVariantInternalType(int columnIndex) throws SQLServerException {
+        return getterGetColumn(columnIndex).getInternalVariant();
+    }
+    
+    
     private Object getStream(int columnIndex,
             StreamType streamType) throws SQLServerException {
         Object value = getValue(columnIndex, streamType.getJDBCType(),
@@ -2163,7 +2176,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         loggerExternal.exiting(getClassNameLogging(), "getObject", value);
         return value;
     }
-
+    
     public <T> T getObject(int columnIndex,
             Class<T> type) throws SQLException {
         DriverJDBCVersion.checkSupportsJDBC41();

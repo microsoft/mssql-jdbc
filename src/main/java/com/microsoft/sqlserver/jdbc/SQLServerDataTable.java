@@ -25,7 +25,7 @@ public final class SQLServerDataTable {
     int columnCount = 0;
     Map<Integer, SQLServerDataColumn> columnMetadata = null;
     Map<Integer, Object[]> rows = null;
-
+    private SqlVariant internalVariant;
     private String tvpName = null;
 
     /**
@@ -116,135 +116,14 @@ public final class SQLServerDataTable {
             int currentColumn = 0;
             while (columnsIterator.hasNext()) {
                 Object val = null;
-                boolean bValueNull;
-                int nValueLen;
+               
 
                 if ((null != values) && (currentColumn < values.length) && (null != values[currentColumn]))
                     val = (null == values[currentColumn]) ? null : values[currentColumn];
                 currentColumn++;
                 Map.Entry<Integer, SQLServerDataColumn> pair = columnsIterator.next();
-                SQLServerDataColumn currentColumnMetadata = pair.getValue();
                 JDBCType jdbcType = JDBCType.of(pair.getValue().javaSqlType);
-
-                boolean isColumnMetadataUpdated = false;
-                switch (jdbcType) {
-                    case BIGINT:
-                        rowValues[pair.getKey()] = (null == val) ? null : Long.parseLong(val.toString());
-                        break;
-
-                    case BIT:
-                        rowValues[pair.getKey()] = (null == val) ? null : Boolean.parseBoolean(val.toString());
-                        break;
-
-                    case INTEGER:
-                        rowValues[pair.getKey()] = (null == val) ? null : Integer.parseInt(val.toString());
-                        break;
-
-                    case SMALLINT:
-                    case TINYINT:
-                        rowValues[pair.getKey()] = (null == val) ? null : Short.parseShort(val.toString());
-                        break;
-
-                    case DECIMAL:
-                    case NUMERIC:
-                        BigDecimal bd = null;
-                        if (null != val) {
-                            bd = new BigDecimal(val.toString());
-                            // BigDecimal#precision returns number of digits in the unscaled value.
-                            // Say, for value 0.01, it returns 1 but the precision should be 3 for SQLServer
-                            int precision = Util.getValueLengthBaseOnJavaType(bd, JavaType.of(bd), null, null, jdbcType);
-                            if (bd.scale() > currentColumnMetadata.scale) {
-                                currentColumnMetadata.scale = bd.scale();
-                                isColumnMetadataUpdated = true;
-                            }
-                            if (precision > currentColumnMetadata.precision) {
-                                currentColumnMetadata.precision = precision;
-                                isColumnMetadataUpdated = true;
-                            }
-                            
-                            // precision equal: the maximum number of digits in integer part + the maximum scale
-                            int numberOfDigitsIntegerPart = precision - bd.scale();
-                            if (numberOfDigitsIntegerPart > currentColumnMetadata.numberOfDigitsIntegerPart) {
-                                currentColumnMetadata.numberOfDigitsIntegerPart = numberOfDigitsIntegerPart;
-                                isColumnMetadataUpdated = true;
-                            }
-
-                            if (isColumnMetadataUpdated) {
-                                currentColumnMetadata.precision = currentColumnMetadata.scale + currentColumnMetadata.numberOfDigitsIntegerPart;
-                                columnMetadata.put(pair.getKey(), currentColumnMetadata);
-                            }
-                        }
-                        rowValues[pair.getKey()] = bd;
-                        break;
-
-                    case DOUBLE:
-                        rowValues[pair.getKey()] = (null == val) ? null : Double.parseDouble(val.toString());
-                        break;
-
-                    case FLOAT:
-                    case REAL:
-                        rowValues[pair.getKey()] = (null == val) ? null : Float.parseFloat(val.toString());
-                        break;
-
-                    case TIMESTAMP_WITH_TIMEZONE:
-                    case TIME_WITH_TIMEZONE:
-                        DriverJDBCVersion.checkSupportsJDBC42();
-                    case DATE:
-                    case TIME:
-                    case TIMESTAMP:
-                    case DATETIMEOFFSET:
-                        // Sending temporal types as string. Error from database is thrown if parsing fails
-                        // no need to send precision for temporal types, string literal will never exceed DataTypes.SHORT_VARTYPE_MAX_BYTES
-
-                        if (null == val)
-                            rowValues[pair.getKey()] = null;
-                        // java.sql.Date, java.sql.Time and java.sql.Timestamp are subclass of java.util.Date
-                        else if (val instanceof java.util.Date)
-                            rowValues[pair.getKey()] = val.toString();
-                        else if (val instanceof microsoft.sql.DateTimeOffset)
-                            rowValues[pair.getKey()] = val.toString();
-                        else if (val instanceof OffsetDateTime)
-                            rowValues[pair.getKey()] = val.toString();
-                        else if (val instanceof OffsetTime)
-                            rowValues[pair.getKey()] = val.toString();
-                        else
-                            rowValues[pair.getKey()] = (null == val) ? null : (String) val;
-                        break;
-
-                    case BINARY:
-                    case VARBINARY:
-                        bValueNull = (null == val);
-                        nValueLen = bValueNull ? 0 : ((byte[]) val).length;
-
-                        if (nValueLen > currentColumnMetadata.precision) {
-                            currentColumnMetadata.precision = nValueLen;
-                            columnMetadata.put(pair.getKey(), currentColumnMetadata);
-                        }
-                        rowValues[pair.getKey()] = (bValueNull) ? null : (byte[]) val;
-
-                        break;
-
-                    case CHAR:
-                        if (val instanceof UUID && (val != null))
-                            val = val.toString();
-                    case VARCHAR:
-                    case NCHAR:
-                    case NVARCHAR:
-                        bValueNull = (null == val);
-                        nValueLen = bValueNull ? 0 : (2 * ((String) val).length());
-
-                        if (nValueLen > currentColumnMetadata.precision) {
-                            currentColumnMetadata.precision = nValueLen;
-                            columnMetadata.put(pair.getKey(), currentColumnMetadata);
-                        }
-                        rowValues[pair.getKey()] = (bValueNull) ? null : (String) val;
-                        break;
-
-                    default:
-                        MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_unsupportedDataTypeTVP"));
-                        Object[] msgArgs = {jdbcType};
-                        throw new SQLServerException(null, form.format(msgArgs), null, 0, false);
-                }
+                internalAddrow(jdbcType, val, rowValues, pair);
             }
             rows.put(rowCount++, rowValues);
         }
@@ -256,17 +135,167 @@ public final class SQLServerDataTable {
         }
 
     }
+    
+    private void internalAddrow(JDBCType jdbcType,
+            Object val,
+            Object[] rowValues,
+            Map.Entry<Integer, SQLServerDataColumn> pair) throws SQLServerException {
+        
+        SQLServerDataColumn currentColumnMetadata = pair.getValue();
+        boolean isColumnMetadataUpdated = false;
+        boolean bValueNull;
+        int nValueLen;
+//     //   if ( null == internalVariant){
+//        internalVariant = new SqlVariant(jdbcType.getIntValue());    
+//   //   }   
+        switch (jdbcType) {
+            case BIGINT:
+                rowValues[pair.getKey()] = (null == val) ? null : Long.parseLong(val.toString());
+                break;
 
+            case BIT:
+                rowValues[pair.getKey()] = (null == val) ? null : Boolean.parseBoolean(val.toString());
+                break;
+
+            case INTEGER:
+                rowValues[pair.getKey()] = (null == val) ? null : Integer.parseInt(val.toString());
+                break;
+
+            case SMALLINT:
+            case TINYINT:
+                rowValues[pair.getKey()] = (null == val) ? null : Short.parseShort(val.toString());
+                break;
+
+            case DECIMAL:
+            case NUMERIC:
+                BigDecimal bd = null;
+                if (null != val) {
+                    bd = new BigDecimal(val.toString());
+                    // BigDecimal#precision returns number of digits in the unscaled value.
+                    // Say, for value 0.01, it returns 1 but the precision should be 3 for SQLServer
+                    int precision = Util.getValueLengthBaseOnJavaType(bd, JavaType.of(bd), null, null, jdbcType);
+                    if (bd.scale() > currentColumnMetadata.scale) {
+                        currentColumnMetadata.scale = bd.scale();
+                        isColumnMetadataUpdated = true;
+                    }
+                    if (precision > currentColumnMetadata.precision) {
+                        currentColumnMetadata.precision = precision;
+                        isColumnMetadataUpdated = true;
+                    }
+
+                    // precision equal: the maximum number of digits in integer part + the maximum scale
+                    int numberOfDigitsIntegerPart = precision - bd.scale();
+                    if (numberOfDigitsIntegerPart > currentColumnMetadata.numberOfDigitsIntegerPart) {
+                        currentColumnMetadata.numberOfDigitsIntegerPart = numberOfDigitsIntegerPart;
+                        isColumnMetadataUpdated = true;
+                    }
+
+                    if (isColumnMetadataUpdated) {
+                        currentColumnMetadata.precision = currentColumnMetadata.scale + currentColumnMetadata.numberOfDigitsIntegerPart;
+                        columnMetadata.put(pair.getKey(), currentColumnMetadata);
+                    }
+                }
+                rowValues[pair.getKey()] = bd;
+                break;
+
+            case DOUBLE:
+                rowValues[pair.getKey()] = (null == val) ? null : Double.parseDouble(val.toString());
+                break;
+
+            case FLOAT:
+            case REAL:
+                rowValues[pair.getKey()] = (null == val) ? null : Float.parseFloat(val.toString());
+                break;
+
+            case TIMESTAMP_WITH_TIMEZONE:
+            case TIME_WITH_TIMEZONE:
+                DriverJDBCVersion.checkSupportsJDBC42();
+            case DATE:
+            case TIME:
+            case TIMESTAMP:
+            case DATETIMEOFFSET:
+                // Sending temporal types as string. Error from database is thrown if parsing fails
+                // no need to send precision for temporal types, string literal will never exceed DataTypes.SHORT_VARTYPE_MAX_BYTES
+
+                if (null == val)
+                    rowValues[pair.getKey()] = null;
+                // java.sql.Date, java.sql.Time and java.sql.Timestamp are subclass of java.util.Date
+                else if (val instanceof java.util.Date)
+                    rowValues[pair.getKey()] = val.toString();
+                else if (val instanceof microsoft.sql.DateTimeOffset)
+                    rowValues[pair.getKey()] = val.toString();
+                else if (val instanceof OffsetDateTime)
+                    rowValues[pair.getKey()] = val.toString();
+                else if (val instanceof OffsetTime)
+                    rowValues[pair.getKey()] = val.toString();
+                else
+                    rowValues[pair.getKey()] = (null == val) ? null : (String) val;
+                break;
+
+            case BINARY:
+            case VARBINARY:
+                bValueNull = (null == val);
+                nValueLen = bValueNull ? 0 : ((byte[]) val).length;
+
+                if (nValueLen > currentColumnMetadata.precision) {
+                    currentColumnMetadata.precision = nValueLen;
+                    columnMetadata.put(pair.getKey(), currentColumnMetadata);
+                }
+                rowValues[pair.getKey()] = (bValueNull) ? null : (byte[]) val;
+
+                break;
+
+            case CHAR:
+                if (val instanceof UUID && (val != null))
+                    val = val.toString();
+            case VARCHAR:
+                bValueNull = (null == val);
+                nValueLen = bValueNull ? 0 :  ((String) val).length();
+
+                if (nValueLen > currentColumnMetadata.precision) {
+                    currentColumnMetadata.precision = nValueLen;
+                    columnMetadata.put(pair.getKey(), currentColumnMetadata);
+                }
+                rowValues[pair.getKey()] = (bValueNull) ? null : (String) val;
+                break;
+            case NCHAR:
+            case NVARCHAR:
+                bValueNull = (null == val);
+                nValueLen = bValueNull ? 0 : (2 * ((String) val).length());
+
+                if (nValueLen > currentColumnMetadata.precision) {
+                    currentColumnMetadata.precision = nValueLen;
+                    columnMetadata.put(pair.getKey(), currentColumnMetadata);
+                }
+                rowValues[pair.getKey()] = (bValueNull) ? null : (String) val;
+                break;
+            case SQL_VARIANT:
+                JDBCType internalJDBCType;
+                if (null == val) {
+                    throw new SQLServerException("Sending null value with column type sql_variant in TVP is not supported! ", null);
+                }
+                JavaType javaType = JavaType.of(val);
+                internalJDBCType = javaType.getJDBCType(SSType.UNKNOWN, jdbcType);             
+                internalAddrow(internalJDBCType, val, rowValues, pair);
+                break;
+            default:
+                MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_unsupportedDataTypeTVP"));
+                Object[] msgArgs = {jdbcType};
+                throw new SQLServerException(null, form.format(msgArgs), null, 0, false);
+        }
+    }
+    
     public synchronized Map<Integer, SQLServerDataColumn> getColumnMetadata() {
         return columnMetadata;
     }
-    
+
     public String getTvpName() {
         return tvpName;
     }
 
     /**
      * Retrieves the column meta data of this data table.
+     * 
      * @param tvpName
      *            the name of TVP
      */
