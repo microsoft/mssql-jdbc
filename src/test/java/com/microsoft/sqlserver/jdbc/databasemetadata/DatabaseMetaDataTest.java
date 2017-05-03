@@ -59,8 +59,8 @@ public class DatabaseMetaDataTest extends AbstractTest {
     /**
      * Testing if driver version is matching with manifest file or not. Will be useful while releasing preview / RTW release.
      * 
-     * //TODO: Test for capability 1.7 for JDK 1.7 and 1.8 for 1.8 //Require-Capability: osgi.ee;filter:="(&(osgi.ee=JavaSE)(version=1.8))" //String
-     * capability = attributes.getValue("Require-Capability");
+     * //TODO: OSGI: Test for capability 1.7 for JDK 1.7 and 1.8 for 1.8 //Require-Capability: osgi.ee;filter:="(&(osgi.ee=JavaSE)(version=1.8))" //String
+     * capability = attributes.getValue("Require-Capability");  
      * 
      * @throws SQLServerException
      *             Our Wrapped Exception
@@ -76,7 +76,7 @@ public class DatabaseMetaDataTest extends AbstractTest {
 
         File f = new File(manifestFile);
 
-        assumeTrue(f.exists(), "Manifest file is not exist on classpath so ignoring test");
+        assumeTrue(f.exists(), "Manifest file does not exist on classpath so ignoring test");
 
         InputStream in = new BufferedInputStream(new FileInputStream(f));
         Manifest manifest = new Manifest(in);
@@ -101,7 +101,8 @@ public class DatabaseMetaDataTest extends AbstractTest {
         int intDriverVersion = Integer.valueOf(driverVersion);
 
         if (isSnapshot) {
-            assertTrue(intDriverVersion < intBuildVersion, "In case of SNAPSHOT version build version should be always greater than BuildVersion");
+            assertTrue(intDriverVersion == (intBuildVersion - 1),
+                    "In case of SNAPSHOT version build version should be always greater than BuildVersion");
         }
         else {
             assertTrue(intDriverVersion == intBuildVersion, "For NON SNAPSHOT versions build & driver versions should match.");
@@ -172,7 +173,7 @@ public class DatabaseMetaDataTest extends AbstractTest {
         ResultSet rs = databaseMetaData.getSchemas();
 
         while (rs.next()) {
-            assertTrue(!StringUtils.isEmpty(rs.getString(1)), "Schema Name should not Empty");
+            assertTrue(!StringUtils.isEmpty(rs.getString(1)), "Schema Name should not be Empty");
         }
     }
 
@@ -194,7 +195,7 @@ public class DatabaseMetaDataTest extends AbstractTest {
         ResultSet rs = databaseMetaData.getTables(rsCatalog.getString("TABLE_CAT"), null, "%", types);
         
         while (rs.next()) {
-            assertTrue(!StringUtils.isEmpty(rs.getString("TABLE_NAME")),"Table Name should not Empty"); 
+            assertTrue(!StringUtils.isEmpty(rs.getString("TABLE_NAME")),"Table Name should not be Empty"); 
         }
     }
 
@@ -221,16 +222,16 @@ public class DatabaseMetaDataTest extends AbstractTest {
         ResultSet rs1 = databaseMetaData.getColumns(null, null, rs.getString("TABLE_NAME"), "%");
         
         while (rs1.next()) {
-            assertTrue(!StringUtils.isEmpty(rs1.getString("TABLE_CAT")),"Category Name should not Empty"); //1
-            assertTrue(!StringUtils.isEmpty(rs1.getString("TABLE_SCHEM")),"SCHEMA Name should not Empty");
-            assertTrue(!StringUtils.isEmpty(rs1.getString("TABLE_NAME")),"Table Name should not Empty");
-            assertTrue(!StringUtils.isEmpty(rs1.getString("COLUMN_NAME")),"COLUMN NAME should not Empty");
-            assertTrue(!StringUtils.isEmpty(rs1.getString("DATA_TYPE")),"Data Type should not Empty");
-            assertTrue(!StringUtils.isEmpty(rs1.getString("TYPE_NAME")),"Data Type Name should not Empty"); //6
-            assertTrue(!StringUtils.isEmpty(rs1.getString("COLUMN_SIZE")),"Column Size should not Empty"); //7
-            assertTrue(!StringUtils.isEmpty(rs1.getString("NULLABLE")),"Nullable value should not Empty"); //11
-            assertTrue(!StringUtils.isEmpty(rs1.getString("IS_NULLABLE")),"Nullable value should not Empty"); //18
-            assertTrue(!StringUtils.isEmpty(rs1.getString("IS_AUTOINCREMENT")),"Nullable value should not Empty"); //22
+            assertTrue(!StringUtils.isEmpty(rs1.getString("TABLE_CAT")), "Category Name should not be Empty"); // 1
+            assertTrue(!StringUtils.isEmpty(rs1.getString("TABLE_SCHEM")), "SCHEMA Name should not be Empty");
+            assertTrue(!StringUtils.isEmpty(rs1.getString("TABLE_NAME")), "Table Name should not be Empty");
+            assertTrue(!StringUtils.isEmpty(rs1.getString("COLUMN_NAME")), "COLUMN NAME should not be Empty");
+            assertTrue(!StringUtils.isEmpty(rs1.getString("DATA_TYPE")), "Data Type should not be Empty");
+            assertTrue(!StringUtils.isEmpty(rs1.getString("TYPE_NAME")), "Data Type Name should not be Empty"); // 6
+            assertTrue(!StringUtils.isEmpty(rs1.getString("COLUMN_SIZE")), "Column Size should not be Empty"); // 7
+            assertTrue(!StringUtils.isEmpty(rs1.getString("NULLABLE")), "Nullable value should not be Empty"); // 11
+            assertTrue(!StringUtils.isEmpty(rs1.getString("IS_NULLABLE")), "Nullable value should not be Empty"); // 18
+            assertTrue(!StringUtils.isEmpty(rs1.getString("IS_AUTOINCREMENT")), "Nullable value should not be Empty"); // 22
         }
     }
     
@@ -256,13 +257,13 @@ public class DatabaseMetaDataTest extends AbstractTest {
         ResultSet rs1 = databaseMetaData.getColumnPrivileges(null, null, rsTables.getString("TABLE_NAME"), "%");
         
         while(rs1.next()) {
-            assertTrue(!StringUtils.isEmpty(rs1.getString("TABLE_CAT")),"Category Name should not Empty"); //1
-            assertTrue(!StringUtils.isEmpty(rs1.getString("TABLE_SCHEM")),"SCHEMA Name should not Empty");
-            assertTrue(!StringUtils.isEmpty(rs1.getString("TABLE_NAME")),"Table Name should not Empty");
-            assertTrue(!StringUtils.isEmpty(rs1.getString("COLUMN_NAME")),"COLUMN NAME should not Empty");
-            assertTrue(!StringUtils.isEmpty(rs1.getString("GRANTOR")),"GRANTOR should not Empty");
-            assertTrue(!StringUtils.isEmpty(rs1.getString("GRANTEE")),"GRANTEE should not Empty");
-            assertTrue(!StringUtils.isEmpty(rs1.getString("PRIVILEGE")),"PRIVILEGE should not Empty");
+            assertTrue(!StringUtils.isEmpty(rs1.getString("TABLE_CAT")),"Category Name should not be Empty"); //1
+            assertTrue(!StringUtils.isEmpty(rs1.getString("TABLE_SCHEM")),"SCHEMA Name should not be Empty");
+            assertTrue(!StringUtils.isEmpty(rs1.getString("TABLE_NAME")),"Table Name should not be Empty");
+            assertTrue(!StringUtils.isEmpty(rs1.getString("COLUMN_NAME")),"COLUMN NAME should not be Empty");
+            assertTrue(!StringUtils.isEmpty(rs1.getString("GRANTOR")),"GRANTOR should not be Empty");
+            assertTrue(!StringUtils.isEmpty(rs1.getString("GRANTEE")),"GRANTEE should not be Empty");
+            assertTrue(!StringUtils.isEmpty(rs1.getString("PRIVILEGE")),"PRIVILEGE should not be Empty");
             assertTrue(!StringUtils.isEmpty(rs1.getString("IS_GRANTABLE")),"IS_GRANTABLE should be YES / NO");
 
         }

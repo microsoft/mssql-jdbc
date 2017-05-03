@@ -47,7 +47,7 @@ public class TestSavepoint extends AbstractTest {
         SQLServerSavepoint savePoint = (SQLServerSavepoint) connection.setSavepoint(savePointName);
         assertTrue(savePointName.equals(savePoint.getSavepointName()), "Savepoint Name should be same.");
 
-        assertTrue(savePointName.equals(savePoint.getLabel()), "Savepoint Lable should be same as Savepoint  Name.");
+        assertTrue(savePointName.equals(savePoint.getLabel()), "Savepoint Label should be same as Savepoint  Name.");
 
         assertTrue(savePoint.isNamed(), "SQLServerSavepoint.isNamed should be true");
         try {
@@ -72,7 +72,7 @@ public class TestSavepoint extends AbstractTest {
         connection.setAutoCommit(false);
 
         SQLServerSavepoint savePoint = (SQLServerSavepoint) connection.setSavepoint(null);
-        assertNotNull(savePoint.getLabel(), "Savepoint Lable should not be null.");
+        assertNotNull(savePoint.getLabel(), "Savepoint Label should not be null.");
 
         try {
             savePoint.getSavepointName();
