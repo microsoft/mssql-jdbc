@@ -8,6 +8,9 @@
 
 package com.microsoft.sqlserver.jdbc;
 
+import org.apache.commons.codec.digest.DigestUtils;
+import java.nio.ByteBuffer;
+
 /**
  * Used to keep track of parsed SQL text and its properties for prepared statements.
  */
@@ -24,4 +27,17 @@ final class ParsedSQLCacheItem {
         this.procedureName = procedureName;
         this.bReturnValueSyntax = bReturnValueSyntax;
     }
+
+    static ByteBuffer generateHash(String originalKey) {
+        try {
+            if(null == originalKey)
+                return null;
+            else 
+                return ByteBuffer.wrap(DigestUtils.sha1(originalKey));
+        }
+        catch(Exception e) {
+            return null;
+        }
+    }
 }
+
