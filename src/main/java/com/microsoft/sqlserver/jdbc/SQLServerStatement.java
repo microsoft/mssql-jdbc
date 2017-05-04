@@ -761,10 +761,17 @@ public class SQLServerStatement implements ISQLServerStatement {
 
     private String ensureSQLSyntax(String sql) throws SQLServerException {
         if (sql.indexOf(LEFT_CURLY_BRACKET) >= 0) {
-            JDBCSyntaxTranslator translator = new JDBCSyntaxTranslator();
-            String execSyntax = translator.translate(sql);
-            procedureName = translator.getProcedureName();
-            return execSyntax;
+
+            // Check for cached SQL metadata.
+            ParsedSQLCacheItem cacheItem = SQLServerPreparedStatement.getCachedParsedSQLMetadata(sql);
+            
+            // No cached SQL-text meta datafound, parse.
+            if(null == cacheItem) 
+                cacheItem = SQLServerPreparedStatement.parseAndCacheSQLMetadata(sql); 
+ 
+            // Retrieve from cache item.
+            procedureName = cacheItem.procedureName;
+            return cacheItem.preparedSQLText;
         }
 
         return sql;

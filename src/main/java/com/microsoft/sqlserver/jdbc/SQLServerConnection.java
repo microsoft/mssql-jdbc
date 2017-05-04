@@ -123,30 +123,44 @@ public class SQLServerConnection implements ISQLServerConnection {
     /**
      * Used to keep track of an individual handle ready for un-prepare.
      */
-    final class PreparedStatementHandle {
+    final class PreparedStatementCacheItem {
         int handle;
-        boolean directSql;
+        boolean hasExecutedSpExecuteSql;
+        boolean handleIsDirectSql;
         SQLServerConnection connection;
         private AtomicInteger refCount = new AtomicInteger(1);
+        SQLServerParameterMetaData parameterMetadata;
 
-        PreparedStatementHandle(int handle, boolean directSql, SQLServerConnection connection) {
+        PreparedStatementCacheItem(int handle, boolean handleIsDirectSql, boolean hasExecutedSpExecuteSql, SQLServerParameterMetaData parameterMetadata,  SQLServerConnection connection) {
             this.handle = handle;
-            this.directSql = directSql;
+            this.handleIsDirectSql = handleIsDirectSql;
+            this.hasExecutedSpExecuteSql = hasExecutedSpExecuteSql;
             this.connection = connection;
+            this.parameterMetadata = parameterMetadata;
+        }
+
+        boolean hasHandle() {
+            return 0 < this.handle;
+        }
+
+        boolean hasParameterMetadata() {
+            return null != this.parameterMetadata;
         }
 
         // Returns false if handle is not re-usable.
-        boolean incrementRefCountAndVerifyNotInvalidated() {
+        boolean incrementHandleRefCountAndVerifyNotInvalidated(SQLServerPreparedStatement statement) {
             // If refcount is negative the handle has been killed.
             if(0 > this.refCount.getAndIncrement()) {
                 this.refCount.getAndDecrement(); // Reduce again.
                 return false;
             }
-            else
-                return true; 
+            else {
+                statement.cachedPreparedStatementHandle = this;
+                return true;
+            }
         }
-
-        boolean discardIfNotReferenced() {
+        
+        boolean discardIfHandleNotReferenced() {
             // If refcount is zero or negative the handle can be killed.
             if(1 > this.refCount.getAndDecrement()) {
                 return true;
@@ -158,16 +172,16 @@ public class SQLServerConnection implements ISQLServerConnection {
             }
         }
 
-        void decrementRefCount() {
+        void decrementHandleRefCount() {
             this.refCount.decrementAndGet();
         }
     }
 
-    /** Size of the  prepared statement meta data cache */
-    static public int preparedStatementHandleCacheSize_SHOULD_BE_CONNECTION_STRING_PROPERTY = 10;
+    /** Size of the  prepared statement handle cache */
+    private int statementPoolingCacheSize = 10;
 
-    /** Cache of prepared statement meta data */
-    private Cache<String, PreparedStatementHandle> preparedStatementHandleCache;
+    /** Cache of prepared statement handles */
+    private Cache<String, PreparedStatementCacheItem> preparedStatementCache;
 
     SqlFedAuthToken getAuthenticationResult() {
         return fedAuthToken;
@@ -1246,14 +1260,28 @@ public class SQLServerConnection implements ISQLServerConnection {
 
             sendTimeAsDatetime = booleanPropertyOn(sPropKey, sPropValue);
 
-            sPropKey = SQLServerDriverBooleanProperty.DISABLE_STATEMENT_POOLING.toString();
-            sPropValue = activeConnectionProperties.getProperty(sPropKey);
-            if (sPropValue != null) // if the user does not set it, it is ok but if set the value can only be true
-                if (false == booleanPropertyOn(sPropKey, sPropValue)) {
-                    MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invaliddisableStatementPooling"));
-                    Object[] msgArgs = {new String(sPropValue)};
+            // Must be set before DISABLE_STATEMENT_POOLING
+            sPropKey = SQLServerDriverIntProperty.STATEMENT_POOLING_CACHE_SIZE.toString();
+            if (activeConnectionProperties.getProperty(sPropKey) != null && activeConnectionProperties.getProperty(sPropKey).length() > 0) {
+                try {
+                    int n = (new Integer(activeConnectionProperties.getProperty(sPropKey))).intValue();
+                    this.setStatementPoolingCacheSize(n);
+                }
+                catch (NumberFormatException e) {
+                    MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_statementPoolingCacheSize"));
+                    Object[] msgArgs = {activeConnectionProperties.getProperty(sPropKey)};
                     SQLServerException.makeFromDriverError(this, this, form.format(msgArgs), null, false);
                 }
+            }
+
+            // Must be set after STATEMENT_POOLING_CACHE_SIZE
+            sPropKey = SQLServerDriverBooleanProperty.DISABLE_STATEMENT_POOLING.toString();
+            sPropValue = activeConnectionProperties.getProperty(sPropKey);
+            if (null != sPropValue) {
+                // If disabled set cache size to 0 if disabled.
+                if(booleanPropertyOn(sPropKey, sPropValue))
+                    this.setStatementPoolingCacheSize(0);
+            }
 
             sPropKey = SQLServerDriverBooleanProperty.INTEGRATED_SECURITY.toString();
             sPropValue = activeConnectionProperties.getProperty(sPropKey);
@@ -2725,6 +2753,10 @@ public class SQLServerConnection implements ISQLServerConnection {
         if (null != tdsChannel) {
             tdsChannel.close();
         }
+
+        // Invalidate statement cache.
+        if(null != this.preparedStatementCache)
+            this.preparedStatementCache.invalidateAll();
 
         // Clean-up queue etc. related to batching of prepared statement discard actions (sp_unprepare).
         cleanupPreparedStatementDiscardActions();
@@ -5492,47 +5524,119 @@ public class SQLServerConnection implements ISQLServerConnection {
     }
 
     
+    /**
+     * Returns the size of the prepared statement cache for this connection. A value less than 1 means no cache.
+     * @return Returns the current setting per the description.
+     */
+    public int getStatementPoolingCacheSize() {
+        return this.statementPoolingCacheSize;
+    }
+
+    /**
+     * Whether statement pooling is enabled or not for this connection.
+     * @return Returns the current setting per the description.
+     */
+    public boolean isStatementPoolingEnabled() {
+        return 0 < this.getStatementPoolingCacheSize();
+    }
+
+    /**
+     * Specifies the size of the prepared statement cache for this conection. A value less than 1 means no cache.
+     * @value The new cache size.
+     */
+    public void setStatementPoolingCacheSize(int value) {
+        this.statementPoolingCacheSize = value;
+    }
+
     /** Get prepared statement cache entry if exists */
-    final PreparedStatementHandle getCachedPreparedStatementHandle(String sql) {
-        if(null == this.preparedStatementHandleCache)
+    final PreparedStatementCacheItem getCachedPreparedStatementMetadata(String sql) {
+        if(null == this.preparedStatementCache)
             return null;
         
-        return this.preparedStatementHandleCache.getIfPresent(sql);
+        PreparedStatementCacheItem cacheItem = this.preparedStatementCache.getIfPresent(sql);
+        
+        return cacheItem;
     }
 
     // Handle closing handles when removed from cache.
-    RemovalListener<String, PreparedStatementHandle> preparedStatementHandleCacheRemovalListener = new RemovalListener<String, PreparedStatementHandle>() {
-        public void onRemoval(RemovalNotification<String, PreparedStatementHandle> removal) {
-            PreparedStatementHandle handle = removal.getValue();
+    RemovalListener<String, PreparedStatementCacheItem> preparedStatementHandleCacheRemovalListener = new RemovalListener<String, PreparedStatementCacheItem>() {
+        public void onRemoval(RemovalNotification<String, PreparedStatementCacheItem> removal) {
+            PreparedStatementCacheItem cacheItem = removal.getValue();
             // Only discard if not referenced.
-            if(null != handle && handle.discardIfNotReferenced()) {
-                handle.connection.enqueuePreparedStatementDiscardItem(handle.handle, handle.directSql);
-                handle.connection.handlePreparedStatementDiscardActions(false);
+            if(null != cacheItem && cacheItem.discardIfHandleNotReferenced()) {
+                if(cacheItem.hasHandle()) {
+                    cacheItem.connection.enqueuePreparedStatementDiscardItem(cacheItem.handle, cacheItem.handleIsDirectSql);
+                    cacheItem.connection.handlePreparedStatementDiscardActions(false);
+                }
             }
-            else if(null != handle)
+            else if(null != cacheItem)
                 // Put back in cache.
-                handle.connection.cachePreparedStatementHandle(removal.getKey(), handle);
+                cacheItem.connection.cachePreparedStatementMetadata(removal.getKey(), cacheItem);
         }
     };
 
     /** Add cache entry for prepared statement metadata*/
-    final void cachePreparedStatementHandle(String sql, int handle, boolean directSql) {
-        this.cachePreparedStatementHandle(sql, new PreparedStatementHandle(handle, directSql, this));
+    final void cachePreparedStatementExecuteSqlUse(String sql) {
+        // Caching turned off?
+        if(0 >= this.getStatementPoolingCacheSize())
+            return;
+        
+        PreparedStatementCacheItem cacheItem = this.getCachedPreparedStatementMetadata(sql);
+
+        if(null != cacheItem) 
+            cacheItem.hasExecutedSpExecuteSql = true;
+        else {
+            cacheItem = new PreparedStatementCacheItem(0, false, true, null, this);
+
+            this.cachePreparedStatementMetadata(sql, cacheItem);   
+        }
     }
 
     /** Add cache entry for prepared statement metadata*/
-    final void cachePreparedStatementHandle(String sql, PreparedStatementHandle handle) {
+    final void cachePreparedStatementHandle(String sql, int handle, boolean directSql, SQLServerPreparedStatement statement) {
         // Caching turned off?
-        if(0 >= SQLServerConnection.preparedStatementHandleCacheSize_SHOULD_BE_CONNECTION_STRING_PROPERTY || null == handle)
+        if(0 >= this.getStatementPoolingCacheSize())
             return;
 
-        if(null == this.preparedStatementHandleCache) {
-            preparedStatementHandleCache = CacheBuilder.newBuilder()
-            .maximumSize(preparedStatementHandleCacheSize_SHOULD_BE_CONNECTION_STRING_PROPERTY)
+        PreparedStatementCacheItem cacheItem = this.getCachedPreparedStatementMetadata(sql);
+
+        if(null != cacheItem) {
+            cacheItem.handle = handle;
+            cacheItem.handleIsDirectSql = directSql;
+        }
+        else {
+            cacheItem = new PreparedStatementCacheItem(handle, directSql, false,  null, this);
+
+            this.cachePreparedStatementMetadata(sql, cacheItem);   
+        }
+    }
+
+    /** Add cache entry for prepared statement metadata*/
+    final void cacheParameterMetadata(String sql, SQLServerParameterMetaData metadata, SQLServerPreparedStatement statement) {
+        // Caching turned off?
+        if(0 >= this.getStatementPoolingCacheSize())
+            return;
+
+        PreparedStatementCacheItem cacheItem = this.getCachedPreparedStatementMetadata(sql);
+        if(null != cacheItem) 
+            cacheItem.parameterMetadata = metadata;
+        else
+            this.cachePreparedStatementMetadata(sql, new PreparedStatementCacheItem(0, false, false, metadata, this));
+    }
+
+    /** Add cache entry for prepared statement metadata*/
+    private void cachePreparedStatementMetadata(String sql, PreparedStatementCacheItem cacheItem) {
+        // Caching turned off?
+        if(0 >= this.getStatementPoolingCacheSize() || null == cacheItem)
+            return;
+
+        if(null == this.preparedStatementCache) {
+            preparedStatementCache = CacheBuilder.newBuilder()
+            .maximumSize(this.getStatementPoolingCacheSize())
             .build();
         }
 
-        this.preparedStatementHandleCache.put(sql, handle);
+        this.preparedStatementCache.put(sql, cacheItem);
     }
 }
 

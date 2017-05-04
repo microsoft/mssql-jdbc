@@ -55,15 +55,15 @@ public class PreparedStatementTest extends AbstractTest {
     public void testBatchedUnprepare() throws SQLException {
         SQLServerConnection conOuter = null;
 
-        // Turn off use of prepared statement cache.
-        SQLServerConnection.preparedStatementHandleCacheSize_SHOULD_BE_CONNECTION_STRING_PROPERTY = 0;
-
         // Make sure correct settings are used.
         SQLServerConnection.setDefaultEnablePrepareOnFirstPreparedStatementCall(SQLServerConnection.getInitialDefaultEnablePrepareOnFirstPreparedStatementCall());
         SQLServerConnection.setDefaultServerPreparedStatementDiscardThreshold(SQLServerConnection.getInitialDefaultServerPreparedStatementDiscardThreshold());
 
         try (SQLServerConnection con = (SQLServerConnection)DriverManager.getConnection(connectionString)) {
             conOuter = con;
+
+            // Turn off use of prepared statement cache.
+            con.setStatementPoolingCacheSize(0);
 
             // Clean-up proc cache
             this.executeSQL(con, "DBCC FREEPROCCACHE;"); 
@@ -133,15 +133,70 @@ public class PreparedStatementTest extends AbstractTest {
     }
 
     /**
+     * Test handling of statement pooling for prepared statements.
+     * 
+     * @throws SQLException
+     */
+    @Test
+    public void testStatementPooling() throws SQLException {
+        // Make sure correct settings are used.
+        SQLServerConnection.setDefaultEnablePrepareOnFirstPreparedStatementCall(SQLServerConnection.getInitialDefaultEnablePrepareOnFirstPreparedStatementCall());
+        SQLServerConnection.setDefaultServerPreparedStatementDiscardThreshold(SQLServerConnection.getInitialDefaultServerPreparedStatementDiscardThreshold());
+
+        try (SQLServerConnection con = (SQLServerConnection)DriverManager.getConnection(connectionString)) {
+
+            // Test behvaior with statement pooling.
+            con.setStatementPoolingCacheSize(10);
+
+            String lookupUniqueifier = UUID.randomUUID().toString();
+            String query = String.format("/*statementpoolingtest_%s*/SELECT * FROM sys.tables;", lookupUniqueifier);
+
+            // Execute statement first, should create cache entry WITHOUT handle (since sp_executesql was used).
+            try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement)con.prepareStatement(query)) {
+                pstmt.execute(); // sp_executesql
+
+                assertSame(0, pstmt.getPreparedStatementHandle());
+            } 
+
+            // Execute statement again, should now create handle.
+            try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement)con.prepareStatement(query)) {
+                pstmt.execute(); // sp_prepexec
+            } 
+
+            // Execute statement again and save handle, should now have used handle from cache. 
+            int handle = 0;
+            try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement)con.prepareStatement(query)) {
+                pstmt.execute(); // sp_execute
+
+                handle = pstmt.getPreparedStatementHandle();
+                assertNotSame(0, pstmt.getPreparedStatementHandle());
+            } 
+
+            // Execute statement again and verify same handle was used. 
+            try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement)con.prepareStatement(query)) {
+                pstmt.execute(); // sp_execute
+
+                assertNotSame(0, pstmt.getPreparedStatementHandle());
+                assertSame(handle, pstmt.getPreparedStatementHandle());
+            } 
+
+            // Execute new statement with different SQL text and verify it does NOT get same handle (should now fall back to using sp_executesql). 
+            try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement)con.prepareStatement(query + ";")) {
+                pstmt.execute(); // sp_executesql
+
+                assertSame(0, pstmt.getPreparedStatementHandle());
+                assertNotSame(handle, pstmt.getPreparedStatementHandle());
+            } 
+        } 
+    }
+
+    /**
      * Test handling of the two configuration knobs related to prepared statement handling.
      * 
      * @throws SQLException
      */
     @Test
-    public void testPreparedStatementExecAndUnprepareConfig() throws SQLException {
-
-        // Turn off use of prepared statement cache.
-        SQLServerConnection.preparedStatementHandleCacheSize_SHOULD_BE_CONNECTION_STRING_PROPERTY = 0;
+    public void testStatementPoolingPreparedStatementExecAndUnprepareConfig() throws SQLException {
 
         // Verify initial defaults are correct:
         assertTrue(SQLServerConnection.getInitialDefaultServerPreparedStatementDiscardThreshold() > 1);
@@ -153,15 +208,19 @@ public class PreparedStatementTest extends AbstractTest {
         SQLServerDataSource dataSource = new SQLServerDataSource();
         dataSource.setURL(connectionString);
         // Verify defaults.
+        assertTrue(0 < dataSource.getStatementPoolingCacheSize());
         assertSame(SQLServerConnection.getDefaultEnablePrepareOnFirstPreparedStatementCall(), dataSource.getEnablePrepareOnFirstPreparedStatementCall());
         assertSame(SQLServerConnection.getDefaultServerPreparedStatementDiscardThreshold(), dataSource.getServerPreparedStatementDiscardThreshold());
         // Verify change
+        dataSource.setStatementPoolingCacheSize(0);
+        assertSame(0, dataSource.getStatementPoolingCacheSize());
         dataSource.setEnablePrepareOnFirstPreparedStatementCall(!dataSource.getEnablePrepareOnFirstPreparedStatementCall());
         assertNotSame(SQLServerConnection.getDefaultEnablePrepareOnFirstPreparedStatementCall(), dataSource.getEnablePrepareOnFirstPreparedStatementCall());
         dataSource.setServerPreparedStatementDiscardThreshold(dataSource.getServerPreparedStatementDiscardThreshold() + 1);
         assertNotSame(SQLServerConnection.getDefaultServerPreparedStatementDiscardThreshold(), dataSource.getServerPreparedStatementDiscardThreshold());
         // Verify connection from data source has same parameters.
         SQLServerConnection connDataSource = (SQLServerConnection)dataSource.getConnection();
+        assertSame(dataSource.getStatementPoolingCacheSize(), connDataSource.getStatementPoolingCacheSize());
         assertSame(dataSource.getEnablePrepareOnFirstPreparedStatementCall(), connDataSource.getEnablePrepareOnFirstPreparedStatementCall());
         assertSame(dataSource.getServerPreparedStatementDiscardThreshold(), connDataSource.getServerPreparedStatementDiscardThreshold());
 
@@ -169,6 +228,15 @@ public class PreparedStatementTest extends AbstractTest {
         // Make sure default is not same as test.
         assertNotSame(true, SQLServerConnection.getDefaultEnablePrepareOnFirstPreparedStatementCall());
         assertNotSame(3, SQLServerConnection.getDefaultServerPreparedStatementDiscardThreshold());
+
+        // Test disableStatementPooling
+        String connectionStringDisableStatementPooling = connectionString + ";disableStatementPooling=true;";
+        SQLServerConnection connectionDisableStatementPooling = (SQLServerConnection)DriverManager.getConnection(connectionStringDisableStatementPooling);
+        assertSame(0, connectionDisableStatementPooling.getStatementPoolingCacheSize());
+        assertTrue(!connectionDisableStatementPooling.isStatementPoolingEnabled());
+        String connectionStringEnableStatementPooling = connectionString + ";disableStatementPooling=false;";
+        SQLServerConnection connectionEnableStatementPooling = (SQLServerConnection)DriverManager.getConnection(connectionStringEnableStatementPooling);
+        assertTrue(0 < connectionEnableStatementPooling.getStatementPoolingCacheSize());
 
         // Test EnablePrepareOnFirstPreparedStatementCall
         String connectionStringNoExecuteSQL = connectionString + ";enablePrepareOnFirstPreparedStatementCall=true;";
@@ -231,6 +299,9 @@ public class PreparedStatementTest extends AbstractTest {
         // Verify instance setting is followed.
         SQLServerConnection.setDefaultServerPreparedStatementDiscardThreshold(SQLServerConnection.getInitialDefaultServerPreparedStatementDiscardThreshold());
         try (SQLServerConnection con = (SQLServerConnection)DriverManager.getConnection(connectionString)) {
+
+            // Turn off use of prepared statement cache.
+            con.setStatementPoolingCacheSize(0);
 
             String query = "/*unprepSettingsTest*/SELECT * FROM sys.objects;";
 
