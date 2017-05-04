@@ -18,7 +18,6 @@ import java.net.IDN;
 import java.net.InetAddress;
 import java.net.SocketException;
 import java.net.UnknownHostException;
-import java.security.NoSuchAlgorithmException;
 import java.sql.Blob;
 import java.sql.CallableStatement;
 import java.sql.Clob;
@@ -50,7 +49,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.logging.Level;
-import java.nio.ByteBuffer;
 
 import javax.sql.XAConnection;
 import javax.xml.bind.DatatypeConverter;
@@ -183,7 +181,7 @@ public class SQLServerConnection implements ISQLServerConnection {
     private int statementPoolingCacheSize = 10;
 
     /** Cache of prepared statement handles */
-    private Cache<java.nio.ByteBuffer, PreparedStatementCacheItem> preparedStatementCache;
+    private Cache<String, PreparedStatementCacheItem> preparedStatementCache;
 
     SqlFedAuthToken getAuthenticationResult() {
         return fedAuthToken;
@@ -5596,11 +5594,10 @@ public class SQLServerConnection implements ISQLServerConnection {
         if(null == this.preparedStatementCache)
             return null;
         
-        ByteBuffer key = ParsedSQLCacheItem.generateHash(sql);
-        if(null == key)
+        if(null == sql)
             return null;
-
-        return this.preparedStatementCache.getIfPresent(key);
+        else
+            return this.preparedStatementCache.getIfPresent(sql);
     }
 
     // Handle closing handles when removed from cache.
@@ -5681,9 +5678,8 @@ public class SQLServerConnection implements ISQLServerConnection {
             .build();
         }
 
-        ByteBuffer key = ParsedSQLCacheItem.generateHash(sql);
-        if(null != key)
-            this.preparedStatementCache.put(key, cacheItem);
+        if(null != sql)
+            this.preparedStatementCache.put(sql, cacheItem);
     }
 }
 

@@ -27,7 +27,6 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Vector;
 import java.util.logging.Level;
-import java.nio.ByteBuffer;
 
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.Cache;
@@ -149,7 +148,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     static final private int parsedSQLCacheSize = 100;
 
     /** Cache of prepared statement meta data */
-    static private Cache<ByteBuffer, ParsedSQLCacheItem> parsedSQLCache;
+    static private Cache<String, ParsedSQLCacheItem> parsedSQLCache;
     static {
         parsedSQLCache = CacheBuilder.newBuilder()
 	       .maximumSize(parsedSQLCacheSize)
@@ -158,8 +157,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
     /** Get prepared statement cache entry if exists */
     static ParsedSQLCacheItem getCachedParsedSQLMetadata(String initialSql) {
-        ByteBuffer key = ParsedSQLCacheItem.generateHash(initialSql);
-        if(null == key)
+        if(null == initialSql)
             return null;
         else
             return parsedSQLCache.getIfPresent(initialSql);
@@ -177,9 +175,8 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
         // Cache this entry.
         ParsedSQLCacheItem cacheItem = new ParsedSQLCacheItem(parsedSql, paramCount, procName, returnValueSyntax);
-        ByteBuffer key = ParsedSQLCacheItem.generateHash(initialSql);
-        if(null != key)
-            parsedSQLCache.put(key, cacheItem);
+        if(null != initialSql)
+            parsedSQLCache.put(initialSql, cacheItem);
 
         return cacheItem;
     }
