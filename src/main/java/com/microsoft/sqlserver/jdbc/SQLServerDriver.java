@@ -218,6 +218,8 @@ enum SQLServerDriverObjectProperty {
     }
 }
 
+
+
 enum SQLServerDriverStringProperty
 {
 	APPLICATION_INTENT         ("applicationIntent",       ApplicationIntent.READ_WRITE.toString()),
@@ -226,6 +228,7 @@ enum SQLServerDriverStringProperty
 	FAILOVER_PARTNER           ("failoverPartner",         ""),
 	HOSTNAME_IN_CERTIFICATE    ("hostNameInCertificate",   ""),
 	INSTANCE_NAME              ("instanceName",            ""),
+	JAAS_CONFIG_NAME           ("jaasConfigurationName",   "SQLJDBCDriver"),
 	PASSWORD                   ("password",                ""),
 	RESPONSE_BUFFERING         ("responseBuffering",       "adaptive"),
 	SELECT_METHOD              ("selectMethod",            "direct"),
@@ -380,6 +383,7 @@ public final class SQLServerDriver implements java.sql.Driver {
         new SQLServerDriverPropertyInfo(SQLServerDriverBooleanProperty.ENABLE_PREPARE_ON_FIRST_PREPARED_STATEMENT.toString(), Boolean.toString(SQLServerConnection.getDefaultEnablePrepareOnFirstPreparedStatementCall()),      	  false,      TRUE_FALSE),
         new SQLServerDriverPropertyInfo(SQLServerDriverIntProperty.SERVER_PREPARED_STATEMENT_DISCARD_THRESHOLD.toString(),    Integer.toString(SQLServerConnection.getDefaultServerPreparedStatementDiscardThreshold()),        	  false,      null),
         new SQLServerDriverPropertyInfo(SQLServerDriverIntProperty.STATEMENT_POOLING_CACHE_SIZE.toString(),                   Integer.toString(SQLServerDriverIntProperty.STATEMENT_POOLING_CACHE_SIZE.getDefaultValue()),        	  false,      null),
+        new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.JAAS_CONFIG_NAME.toString(),                            SQLServerDriverStringProperty.JAAS_CONFIG_NAME.getDefaultValue(),                                       false,      null),
     };
 
     // Properties that can only be set by using Properties.

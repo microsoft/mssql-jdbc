@@ -2330,6 +2330,13 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
             if(null != this.procedureName) {
                 SQLServerParameterMetaData pmd = (SQLServerParameterMetaData) this.getParameterMetaData();
                 pmd.isTVP = true;
+                
+                if (!pmd.procedureIsFound) {
+                    MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_StoredProcedureNotFound"));
+                    Object[] msgArgs = {this.procedureName};
+                    SQLServerException.makeFromDriverError(connection, pmd, form.format(msgArgs), null, false);
+                }
+                
                 try {
                     String tvpNameWithoutSchema = pmd.getParameterTypeName(n);
                     String tvpSchema = pmd.getTVPSchemaFromStoredProcedure(n);

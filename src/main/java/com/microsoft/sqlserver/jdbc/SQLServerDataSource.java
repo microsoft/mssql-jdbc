@@ -742,6 +742,27 @@ public class SQLServerDataSource implements ISQLServerDataSource, DataSource, ja
         return getIntProperty(connectionProps, SQLServerDriverIntProperty.SOCKET_TIMEOUT.toString(), defaultTimeOut);
     }
 
+    /**
+     * Sets the login configuration file for Kerberos authentication. This
+     * overrides the default configuration <i> SQLJDBCDriver </i>
+     * 
+     * @param configurationName
+     */
+    public void setJASSConfigurationName(String configurationName) {
+        setStringProperty(connectionProps, SQLServerDriverStringProperty.JAAS_CONFIG_NAME.toString(),
+                configurationName);
+    }
+
+    /**
+     * Retrieves the login configuration file for Kerberos authentication.
+     * 
+     * @return
+     */
+    public String getJASSConfigurationName() {
+        return getStringProperty(connectionProps, SQLServerDriverStringProperty.JAAS_CONFIG_NAME.toString(),
+                SQLServerDriverStringProperty.JAAS_CONFIG_NAME.getDefaultValue());
+    }
+    
     // responseBuffering controls the driver's buffering of responses from SQL Server.
     // Possible values are:
     //
