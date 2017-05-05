@@ -4750,44 +4750,49 @@ final class TDSWriter {
                             // Handle conversions as done in other types.
                             isShortValue = columnPair.getValue().precision <= DataTypes.SHORT_VARTYPE_MAX_BYTES;
                             isNull = (null == currentObject);
-                            if (currentObject instanceof String)
-                                dataLength = isNull ? 0 : (toByteArray(currentObject.toString())).length;
-                            else
-                                dataLength = isNull ? 0 : ((byte[]) currentObject).length;
-                            if (!isShortValue) {
-                                // check null
-                                if (isNull)
-                                    // Null header for v*max types is 0xFFFFFFFFFFFFFFFF.
-                                    writeLong(0xFFFFFFFFFFFFFFFFL);
-                                else if (DataTypes.UNKNOWN_STREAM_LENGTH == dataLength)
-                                    // Append v*max length.
-                                    // UNKNOWN_PLP_LEN is 0xFFFFFFFFFFFFFFFE
-                                    writeLong(0xFFFFFFFFFFFFFFFEL);
+                            try {
+                                if (currentObject instanceof String)
+                                    dataLength = isNull ? 0 : (toByteArray(currentObject.toString())).length;
                                 else
-                                    // For v*max types with known length, length is <totallength8><chunklength4>
-                                    writeLong(dataLength);
-                                if (!isNull) {
-                                    if (dataLength > 0) {
-                                        writeInt(dataLength);
+                                    dataLength = isNull ? 0 : ((byte[]) currentObject).length;
+                                if (!isShortValue) {
+                                    // check null
+                                    if (isNull)
+                                        // Null header for v*max types is 0xFFFFFFFFFFFFFFFF.
+                                        writeLong(0xFFFFFFFFFFFFFFFFL);
+                                    else if (DataTypes.UNKNOWN_STREAM_LENGTH == dataLength)
+                                        // Append v*max length.
+                                        // UNKNOWN_PLP_LEN is 0xFFFFFFFFFFFFFFFE
+                                        writeLong(0xFFFFFFFFFFFFFFFEL);
+                                    else
+                                        // For v*max types with known length, length is <totallength8><chunklength4>
+                                        writeLong(dataLength);
+                                    if (!isNull) {
+                                        if (dataLength > 0) {
+                                            writeInt(dataLength);
+                                            if (currentObject instanceof String)
+                                                writeBytes(toByteArray(currentObject.toString()));
+                                            else
+                                                writeBytes((byte[]) currentObject);
+                                        }
+                                        // Send the terminator PLP chunk.
+                                        writeInt(0);
+                                    }
+                                }
+                                else {
+                                    if (isNull)
+                                        writeShort((short) -1); // actual len
+                                    else {
+                                        writeShort((short) dataLength);
                                         if (currentObject instanceof String)
                                             writeBytes(toByteArray(currentObject.toString()));
                                         else
                                             writeBytes((byte[]) currentObject);
                                     }
-                                    // Send the terminator PLP chunk.
-                                    writeInt(0);
                                 }
                             }
-                            else {
-                                if (isNull)
-                                    writeShort((short) -1); // actual len
-                                else {
-                                    writeShort((short) dataLength);
-                                    if (currentObject instanceof String)
-                                        writeBytes(toByteArray(currentObject.toString()));
-                                    else
-                                        writeBytes((byte[]) currentObject);
-                                }
+                            catch (IllegalArgumentException e) {
+                                throw new SQLServerException(SQLServerException.getErrString("R_TVPInvalidColumnValue"), e);
                             }
                             break;
 
