@@ -762,12 +762,14 @@ public class SQLServerStatement implements ISQLServerStatement {
     private String ensureSQLSyntax(String sql) throws SQLServerException {
         if (sql.indexOf(LEFT_CURLY_BRACKET) >= 0) {
 
+            SQLServerPreparedStatement.Sha1HashKey cacheKey = new SQLServerPreparedStatement.Sha1HashKey(sql);
+
             // Check for cached SQL metadata.
-            ParsedSQLCacheItem cacheItem = SQLServerPreparedStatement.getCachedParsedSQLMetadata(sql);
+            ParsedSQLCacheItem cacheItem = SQLServerPreparedStatement.getCachedParsedSQLMetadata(cacheKey);
             
             // No cached SQL-text meta datafound, parse.
             if(null == cacheItem) 
-                cacheItem = SQLServerPreparedStatement.parseAndCacheSQLMetadata(sql); 
+                cacheItem = SQLServerPreparedStatement.parseAndCacheSQLMetadata(sql, cacheKey); 
  
             // Retrieve from cache item.
             procedureName = cacheItem.procedureName;

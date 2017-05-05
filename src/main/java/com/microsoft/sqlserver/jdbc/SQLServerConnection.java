@@ -56,10 +56,9 @@ import javax.xml.bind.DatatypeConverter;
 import org.ietf.jgss.GSSCredential;
 import org.ietf.jgss.GSSException;
 
-import com.google.common.cache.Cache;
-import com.google.common.cache.CacheBuilder;
-import com.google.common.cache.RemovalListener;
-import com.google.common.cache.RemovalNotification;
+import com.googlecode.concurrentlinkedhashmap.ConcurrentLinkedHashMap;
+import com.googlecode.concurrentlinkedhashmap.ConcurrentLinkedHashMap.Builder;;
+import com.googlecode.concurrentlinkedhashmap.EvictionListener;
 
 /**
  * SQLServerConnection implements a JDBC connection to SQL Server. SQLServerConnections support JDBC connection pooling and may be either physical
@@ -127,6 +126,7 @@ public class SQLServerConnection implements ISQLServerConnection {
         int handle;
         boolean hasExecutedSpExecuteSql;
         boolean handleIsDirectSql;
+        boolean evictedFromCache;
         SQLServerConnection connection;
         private AtomicInteger refCount = new AtomicInteger(1);
         SQLServerParameterMetaData parameterMetadata;
@@ -181,7 +181,7 @@ public class SQLServerConnection implements ISQLServerConnection {
     private int statementPoolingCacheSize = 10;
 
     /** Cache of prepared statement handles */
-    private Cache<String, PreparedStatementCacheItem> preparedStatementCache;
+    private ConcurrentLinkedHashMap<SQLServerPreparedStatement.Sha1HashKey, PreparedStatementCacheItem> preparedStatementCache;
 
     SqlFedAuthToken getAuthenticationResult() {
         return fedAuthToken;
@@ -2783,7 +2783,7 @@ public class SQLServerConnection implements ISQLServerConnection {
 
         // Invalidate statement cache.
         if(null != this.preparedStatementCache)
-            this.preparedStatementCache.invalidateAll();
+            this.preparedStatementCache.clear();
 
         // Clean-up queue etc. related to batching of prepared statement discard actions (sp_unprepare).
         cleanupPreparedStatementDiscardActions();
@@ -5590,56 +5590,56 @@ public class SQLServerConnection implements ISQLServerConnection {
     }
 
     /** Get prepared statement cache entry if exists */
-    final PreparedStatementCacheItem getCachedPreparedStatementMetadata(String sql) {
+    final PreparedStatementCacheItem getCachedPreparedStatementMetadata(SQLServerPreparedStatement.Sha1HashKey key) {
         if(null == this.preparedStatementCache)
             return null;
         
-        PreparedStatementCacheItem cacheItem = this.preparedStatementCache.getIfPresent(sql);
-        
-        return cacheItem;
+        if(null == key)
+            return null;
+        else
+            return this.preparedStatementCache.get(key);
     }
 
     // Handle closing handles when removed from cache.
-    RemovalListener<String, PreparedStatementCacheItem> preparedStatementHandleCacheRemovalListener = new RemovalListener<String, PreparedStatementCacheItem>() {
-        public void onRemoval(RemovalNotification<String, PreparedStatementCacheItem> removal) {
-            PreparedStatementCacheItem cacheItem = removal.getValue();
-            // Only discard if not referenced.
-            if(null != cacheItem && cacheItem.discardIfHandleNotReferenced()) {
-                if(cacheItem.hasHandle()) {
+    final class PreparedStatementHandleEvictionListener 
+        implements EvictionListener<SQLServerPreparedStatement.Sha1HashKey, PreparedStatementCacheItem> {
+        public void onEviction(SQLServerPreparedStatement.Sha1HashKey key, PreparedStatementCacheItem cacheItem) {
+            if(null != cacheItem) {
+                cacheItem.evictedFromCache = true; // Mark as evicted from cache.
+
+                // Only discard if not referenced.
+                if(cacheItem.hasHandle() && cacheItem.discardIfHandleNotReferenced()) {
                     cacheItem.connection.enqueuePreparedStatementDiscardItem(cacheItem.handle, cacheItem.handleIsDirectSql);
                     cacheItem.connection.handlePreparedStatementDiscardActions(false);
                 }
             }
-            else if(null != cacheItem)
-                // Put back in cache.
-                cacheItem.connection.cachePreparedStatementMetadata(removal.getKey(), cacheItem);
         }
-    };
-
+    }
+    
     /** Add cache entry for prepared statement metadata*/
-    final void cachePreparedStatementExecuteSqlUse(String sql) {
+    final void cachePreparedStatementExecuteSqlUse(SQLServerPreparedStatement.Sha1HashKey key) {
         // Caching turned off?
         if(0 >= this.getStatementPoolingCacheSize())
             return;
         
-        PreparedStatementCacheItem cacheItem = this.getCachedPreparedStatementMetadata(sql);
+        PreparedStatementCacheItem cacheItem = this.getCachedPreparedStatementMetadata(key);
 
         if(null != cacheItem) 
             cacheItem.hasExecutedSpExecuteSql = true;
         else {
             cacheItem = new PreparedStatementCacheItem(0, false, true, null, this);
 
-            this.cachePreparedStatementMetadata(sql, cacheItem);   
+            this.cachePreparedStatementMetadata(key, cacheItem);   
         }
     }
 
     /** Add cache entry for prepared statement metadata*/
-    final void cachePreparedStatementHandle(String sql, int handle, boolean directSql, SQLServerPreparedStatement statement) {
+    final void cachePreparedStatementHandle(SQLServerPreparedStatement.Sha1HashKey key, int handle, boolean directSql, SQLServerPreparedStatement statement) {
         // Caching turned off?
         if(0 >= this.getStatementPoolingCacheSize())
             return;
 
-        PreparedStatementCacheItem cacheItem = this.getCachedPreparedStatementMetadata(sql);
+        PreparedStatementCacheItem cacheItem = this.getCachedPreparedStatementMetadata(key);
 
         if(null != cacheItem) {
             cacheItem.handle = handle;
@@ -5648,36 +5648,38 @@ public class SQLServerConnection implements ISQLServerConnection {
         else {
             cacheItem = new PreparedStatementCacheItem(handle, directSql, false,  null, this);
 
-            this.cachePreparedStatementMetadata(sql, cacheItem);   
+            this.cachePreparedStatementMetadata(key, cacheItem);   
         }
     }
 
     /** Add cache entry for prepared statement metadata*/
-    final void cacheParameterMetadata(String sql, SQLServerParameterMetaData metadata, SQLServerPreparedStatement statement) {
+    final void cacheParameterMetadata(SQLServerPreparedStatement.Sha1HashKey key, SQLServerParameterMetaData metadata, SQLServerPreparedStatement statement) {
         // Caching turned off?
         if(0 >= this.getStatementPoolingCacheSize())
             return;
 
-        PreparedStatementCacheItem cacheItem = this.getCachedPreparedStatementMetadata(sql);
+        PreparedStatementCacheItem cacheItem = this.getCachedPreparedStatementMetadata(key);
         if(null != cacheItem) 
             cacheItem.parameterMetadata = metadata;
         else
-            this.cachePreparedStatementMetadata(sql, new PreparedStatementCacheItem(0, false, false, metadata, this));
+            this.cachePreparedStatementMetadata(key, new PreparedStatementCacheItem(0, false, false, metadata, this));
     }
 
     /** Add cache entry for prepared statement metadata*/
-    private void cachePreparedStatementMetadata(String sql, PreparedStatementCacheItem cacheItem) {
+    private void cachePreparedStatementMetadata(SQLServerPreparedStatement.Sha1HashKey key, PreparedStatementCacheItem cacheItem) {
         // Caching turned off?
         if(0 >= this.getStatementPoolingCacheSize() || null == cacheItem)
             return;
 
         if(null == this.preparedStatementCache) {
-            preparedStatementCache = CacheBuilder.newBuilder()
-            .maximumSize(this.getStatementPoolingCacheSize())
-            .build();
+            this.preparedStatementCache = new Builder<SQLServerPreparedStatement.Sha1HashKey, PreparedStatementCacheItem>()
+                                        .maximumWeightedCapacity(this.getStatementPoolingCacheSize())
+                                        .listener(new PreparedStatementHandleEvictionListener())
+                                        .build();
         }
 
-        this.preparedStatementCache.put(sql, cacheItem);
+        if(null != key)
+            this.preparedStatementCache.put(key, cacheItem);
     }
 }
 

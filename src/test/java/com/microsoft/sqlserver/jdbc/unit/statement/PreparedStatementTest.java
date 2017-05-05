@@ -154,27 +154,26 @@ public class PreparedStatementTest extends AbstractTest {
             // Execute statement first, should create cache entry WITHOUT handle (since sp_executesql was used).
             try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement)con.prepareStatement(query)) {
                 pstmt.execute(); // sp_executesql
+                pstmt.getMoreResults(); // Make sure handle is updated.
 
                 assertSame(0, pstmt.getPreparedStatementHandle());
             } 
 
             // Execute statement again, should now create handle.
-            try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement)con.prepareStatement(query)) {
-                pstmt.execute(); // sp_prepexec
-            } 
-
-            // Execute statement again and save handle, should now have used handle from cache. 
             int handle = 0;
             try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement)con.prepareStatement(query)) {
-                pstmt.execute(); // sp_execute
+                pstmt.execute(); // sp_prepexec
+                
+                pstmt.getMoreResults(); // Make sure handle is updated.
 
                 handle = pstmt.getPreparedStatementHandle();
-                assertNotSame(0, pstmt.getPreparedStatementHandle());
+                assertNotSame(0, handle);
             } 
 
             // Execute statement again and verify same handle was used. 
             try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement)con.prepareStatement(query)) {
                 pstmt.execute(); // sp_execute
+                pstmt.getMoreResults(); // Make sure handle is updated.
 
                 assertNotSame(0, pstmt.getPreparedStatementHandle());
                 assertSame(handle, pstmt.getPreparedStatementHandle());
@@ -183,6 +182,7 @@ public class PreparedStatementTest extends AbstractTest {
             // Execute new statement with different SQL text and verify it does NOT get same handle (should now fall back to using sp_executesql). 
             try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement)con.prepareStatement(query + ";")) {
                 pstmt.execute(); // sp_executesql
+                pstmt.getMoreResults(); // Make sure handle is updated.
 
                 assertSame(0, pstmt.getPreparedStatementHandle());
                 assertNotSame(handle, pstmt.getPreparedStatementHandle());

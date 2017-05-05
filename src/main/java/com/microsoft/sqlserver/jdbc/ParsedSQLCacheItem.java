@@ -25,3 +25,4 @@ final class ParsedSQLCacheItem {
         this.bReturnValueSyntax = bReturnValueSyntax;
     }
 }
+
