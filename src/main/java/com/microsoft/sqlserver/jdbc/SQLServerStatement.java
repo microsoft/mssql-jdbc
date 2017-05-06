@@ -773,7 +773,7 @@ public class SQLServerStatement implements ISQLServerStatement {
  
             // Retrieve from cache item.
             procedureName = cacheItem.procedureName;
-            return cacheItem.preparedSQLText;
+            return cacheItem.processedSQL;
         }
 
         return sql;

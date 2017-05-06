@@ -54,13 +54,10 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     private static final int BATCH_STATEMENT_DELIMITER_TDS_72 = 0xFF;
     final int nBatchStatementDelimiter = BATCH_STATEMENT_DELIMITER_TDS_72;
 
-    /** the user's prepared sql syntax */
-    //private String sqlCommand;
-
     /** The prepared type definitions */
     private String preparedTypeDefinitions;
 
-    /** Processed SQL statement text that will be executed, may not be same as what user initially passed. */
+    /** Processed SQL statement text, may not be same as what user initially passed. */
     final String userSQL;
 
     /** SQL statement with expanded parameter tokens */
@@ -145,7 +142,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
 
     /** Size of the parsed SQL-text metadata cache */
-    static final private int parsedSQLCacheSize = 100;
+    static final private int PARSED_SQL_CACHE_SIZE = 100;
 
     static class Sha1HashKey {
         private byte[] bytes;
@@ -173,16 +170,16 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         }
     }
 
-    /** Cache of prepared statement meta data */
+    /** Cache of parsed SQL meta data */
     static private ConcurrentLinkedHashMap<Sha1HashKey, ParsedSQLCacheItem> parsedSQLCache;
 
     static {
         parsedSQLCache = new Builder<Sha1HashKey, ParsedSQLCacheItem>()
-	        .maximumWeightedCapacity(parsedSQLCacheSize)
+	        .maximumWeightedCapacity(PARSED_SQL_CACHE_SIZE)
             .build();
     }
 
-    /** Get prepared statement cache entry if exists */
+    /** Get parsed SQL cache entry if exists */
     static ParsedSQLCacheItem getCachedParsedSQLMetadata(Sha1HashKey key) {
         if(null == key)
             return null;
@@ -190,7 +187,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
             return parsedSQLCache.get(key);
     }
 
-    /** Add cache entry for prepared statement metadata*/
+    /** Add cache entry for parsed SQL metadata*/
     static ParsedSQLCacheItem parseAndCacheSQLMetadata(String initialSql, Sha1HashKey key) throws SQLServerException {
 
         JDBCSyntaxTranslator translator = new JDBCSyntaxTranslator();
@@ -202,7 +199,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
         // Cache this entry.
         ParsedSQLCacheItem cacheItem = new ParsedSQLCacheItem(parsedSql, paramCount, procName, returnValueSyntax);
-        if(null != initialSql)
+        if(null != key)
             parsedSQLCache.put(key, cacheItem);
 
         return cacheItem;
@@ -246,17 +243,17 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         // Check for cached SQL metadata.
         ParsedSQLCacheItem cacheItem = getCachedParsedSQLMetadata(cacheKey);
 
-        // No cached meta data found, parse.
+        // No cached meta data found, parse and cache.
         if(null == cacheItem) 
             cacheItem = SQLServerPreparedStatement.parseAndCacheSQLMetadata(sql, cacheKey); 
             
-        // Retrieve from cache item.
+        // Retrieve meta data from cache item.
         procedureName = cacheItem.procedureName;
         bReturnValueSyntax = cacheItem.bReturnValueSyntax;
-        userSQL = cacheItem.preparedSQLText;
+        userSQL = cacheItem.processedSQL;
         initParams(cacheItem.parameterCount);
 
-        // See if existing handle can be re-used.
+        // See if existing prepared statement handle can be re-used.
         handleUsingCachedStmtHandle();
     }
 
@@ -290,7 +287,8 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                     !this.connection.isStatementPoolingEnabled() // No caching
                     || (
                         null != cachedPreparedStatementHandle // Cache ref. exists
-                        && cachedPreparedStatementHandle.evictedFromCache // Evicted from cache
+                        && cachedPreparedStatementHandle.hasHandle()// Has a handle to discard
+                        && cachedPreparedStatementHandle.evictedFromCache // Evicted from cache, will not be re-used by other stmts.
                         && cachedPreparedStatementHandle.discardIfHandleNotReferenced() // Not used by any other statements.
                     )
                 ) {
@@ -621,6 +619,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         }
     }
 
+    /** Lookup existing prepared statement handle in cache and re-use if available. */
     private void handleUsingCachedStmtHandle() {
         if(!hasPreparedStatementHandle()) { 
             // Check for cached handle.
@@ -629,7 +628,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
             // If handle was found then re-use.
             if(null != cachedHandle && (cachedHandle.hasHandle() || cachedHandle.hasExecutedSpExecuteSql)) {
 
-                // If existing handle was found use it and specify no need for prepare.
+                // If existing handle was found use it.
                 if(cachedHandle.hasHandle() && cachedHandle.incrementHandleRefCountAndVerifyNotInvalidated(this)) {
                     setPrepStmtHandle(cachedHandle.handle, userSQL, false);
                 }
@@ -1050,11 +1049,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
      */
     /* L0 */ private ResultSet buildExecuteMetaData() throws SQLServerException {
         String fmtSQL = userSQL;
-        /*
-        if (fmtSQL.indexOf(LEFT_CURLY_BRACKET) >= 0) {
-            fmtSQL = userSQL; 
-        }
-        */
+
         ResultSet emptyResultSet = null;
         try {
             fmtSQL = replaceMarkerWithNull(fmtSQL);

@@ -9,17 +9,17 @@
 package com.microsoft.sqlserver.jdbc;
 
 /**
- * Used to keep track of parsed SQL text and its properties for prepared statements.
+ * Used for caching of meta data from parsed SQL text.
  */
 final class ParsedSQLCacheItem {
     /** The SQL text AFTER processing. */
-    String preparedSQLText;
+    String processedSQL;
     int parameterCount; 
     String procedureName;
     boolean bReturnValueSyntax; 
     
-    ParsedSQLCacheItem(String preparedSQLText, int parameterCount, String procedureName, boolean bReturnValueSyntax) {
-        this.preparedSQLText = preparedSQLText;
+    ParsedSQLCacheItem(String processedSQL, int parameterCount, String procedureName, boolean bReturnValueSyntax) {
+        this.processedSQL = processedSQL;
         this.parameterCount = parameterCount;
         this.procedureName = procedureName;
         this.bReturnValueSyntax = bReturnValueSyntax;

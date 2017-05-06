@@ -57,7 +57,7 @@ import org.ietf.jgss.GSSCredential;
 import org.ietf.jgss.GSSException;
 
 import com.googlecode.concurrentlinkedhashmap.ConcurrentLinkedHashMap;
-import com.googlecode.concurrentlinkedhashmap.ConcurrentLinkedHashMap.Builder;;
+import com.googlecode.concurrentlinkedhashmap.ConcurrentLinkedHashMap.Builder;
 import com.googlecode.concurrentlinkedhashmap.EvictionListener;
 
 /**
@@ -5619,7 +5619,7 @@ public class SQLServerConnection implements ISQLServerConnection {
     /** Add cache entry for prepared statement metadata*/
     final void cachePreparedStatementExecuteSqlUse(SQLServerPreparedStatement.Sha1HashKey key) {
         // Caching turned off?
-        if(0 >= this.getStatementPoolingCacheSize())
+        if(!this.isStatementPoolingEnabled())
             return;
         
         PreparedStatementCacheItem cacheItem = this.getCachedPreparedStatementMetadata(key);
@@ -5636,7 +5636,7 @@ public class SQLServerConnection implements ISQLServerConnection {
     /** Add cache entry for prepared statement metadata*/
     final void cachePreparedStatementHandle(SQLServerPreparedStatement.Sha1HashKey key, int handle, boolean directSql, SQLServerPreparedStatement statement) {
         // Caching turned off?
-        if(0 >= this.getStatementPoolingCacheSize())
+        if(!this.isStatementPoolingEnabled())
             return;
 
         PreparedStatementCacheItem cacheItem = this.getCachedPreparedStatementMetadata(key);
@@ -5655,7 +5655,7 @@ public class SQLServerConnection implements ISQLServerConnection {
     /** Add cache entry for prepared statement metadata*/
     final void cacheParameterMetadata(SQLServerPreparedStatement.Sha1HashKey key, SQLServerParameterMetaData metadata, SQLServerPreparedStatement statement) {
         // Caching turned off?
-        if(0 >= this.getStatementPoolingCacheSize())
+        if(!this.isStatementPoolingEnabled())
             return;
 
         PreparedStatementCacheItem cacheItem = this.getCachedPreparedStatementMetadata(key);
@@ -5668,18 +5668,16 @@ public class SQLServerConnection implements ISQLServerConnection {
     /** Add cache entry for prepared statement metadata*/
     private void cachePreparedStatementMetadata(SQLServerPreparedStatement.Sha1HashKey key, PreparedStatementCacheItem cacheItem) {
         // Caching turned off?
-        if(0 >= this.getStatementPoolingCacheSize() || null == cacheItem)
+        if(!this.isStatementPoolingEnabled() || null == cacheItem || null == key)
             return;
 
-        if(null == this.preparedStatementCache) {
+        if(null == this.preparedStatementCache)
             this.preparedStatementCache = new Builder<SQLServerPreparedStatement.Sha1HashKey, PreparedStatementCacheItem>()
                                         .maximumWeightedCapacity(this.getStatementPoolingCacheSize())
                                         .listener(new PreparedStatementHandleEvictionListener())
                                         .build();
-        }
 
-        if(null != key)
-            this.preparedStatementCache.put(key, cacheItem);
+        this.preparedStatementCache.put(key, cacheItem);
     }
 }
 
