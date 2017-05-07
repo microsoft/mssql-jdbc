@@ -214,7 +214,7 @@ public class PreparedStatementTest extends AbstractTest {
                 String query = String.format("/*statementpoolingevictiontest_%s*/SELECT * FROM sys.tables; -- ", lookupUniqueifier);
 
                 // Add new statements to fill up the statement pool.
-                for(int i = 0; i < cacheSize; ++i) {
+                for (int i = 0; i < cacheSize; ++i) {
                     try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement)con.prepareStatement(query + new Integer(i).toString())) {
                         pstmt.execute(); // sp_executesql
                         pstmt.execute(); // sp_prepexec, actual handle created and cached.
@@ -229,7 +229,7 @@ public class PreparedStatementTest extends AbstractTest {
                 // Add new statements to fill up the statement discard action queue 
                 // (new statement pushes existing statement from pool into discard 
                 // action queue).
-                for(int i = cacheSize; i < cacheSize + 5; ++i) {
+                for (int i = cacheSize; i < cacheSize + 5; ++i) {
                     try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement)con.prepareStatement(query + new Integer(i).toString())) {
                         pstmt.execute(); // sp_executesql
                         pstmt.execute(); // sp_prepexec, actual handle created and cached.
@@ -242,7 +242,7 @@ public class PreparedStatementTest extends AbstractTest {
                 }
 
                 // If we use it, now discard queue should be "full".
-                if(0 == testNo)
+                if (0 == testNo)
                     assertSame(discardedStatementCount, con.getDiscardedServerPreparedStatementCount());
                 else
                     assertSame(0, con.getDiscardedServerPreparedStatementCount());
@@ -257,6 +257,28 @@ public class PreparedStatementTest extends AbstractTest {
 
                 // Discard queue should now be empty.
                 assertSame(0, con.getDiscardedServerPreparedStatementCount());
+
+                // Set statement pool size to 0 and verify statements get discarded.
+                int statementsInCache = con.getStatementPoolingCacheEntryCount(); 
+                con.setStatementPoolingCacheSize(0);
+                assertSame(0, con.getStatementPoolingCacheEntryCount());
+
+                if(0 == testNo) 
+                    // Verify statements moved over to discard action queue.
+                    assertSame(statementsInCache, con.getDiscardedServerPreparedStatementCount());
+
+                // Run discard actions (otherwise run on pstmt.close)
+                con.closeDiscardedServerPreparedStatements();
+
+                assertSame(0, con.getDiscardedServerPreparedStatementCount());
+
+                // Verify new statement does not go into cache (since cache is now off)
+                try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement)con.prepareStatement(query)) {
+                    pstmt.execute(); // sp_executesql
+                    pstmt.execute(); // sp_prepexec, actual handle created and cached.
+
+                    assertSame(0, con.getStatementPoolingCacheEntryCount());
+                } 
             } 
         }
     }

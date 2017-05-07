@@ -5597,7 +5597,14 @@ public class SQLServerConnection implements ISQLServerConnection {
      * @value The new cache size.
      */
     public void setStatementPoolingCacheSize(int value) {
-        this.statementPoolingCacheSize = value;
+        if (value != this.statementPoolingCacheSize) {
+            value = Math.max(0, value);
+            this.statementPoolingCacheSize = value;
+
+            if (null != this.preparedStatementCache) {
+                this.preparedStatementCache.setCapacity(value);
+            }
+        }
     }
 
     /** Get prepared statement cache entry if exists */
