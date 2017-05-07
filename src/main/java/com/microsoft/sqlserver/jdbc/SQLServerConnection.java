@@ -5574,6 +5574,17 @@ public class SQLServerConnection implements ISQLServerConnection {
     }
 
     /**
+     * Returns the current number of pooled prepared statements.
+     * @return Returns the current setting per the description.
+     */
+    public int getStatementPoolingCacheEntryCount() {
+        if(null == this.preparedStatementCache)
+            return 0;
+        else
+            return this.preparedStatementCache.size();
+    }
+
+    /**
      * Whether statement pooling is enabled or not for this connection.
      * @return Returns the current setting per the description.
      */
@@ -5610,8 +5621,8 @@ public class SQLServerConnection implements ISQLServerConnection {
                 // Only discard if not referenced.
                 if(cacheItem.hasHandle() && cacheItem.discardIfHandleNotReferenced()) {
                     cacheItem.connection.enqueuePreparedStatementDiscardItem(cacheItem.handle, cacheItem.handleIsDirectSql);
-                    cacheItem.connection.handlePreparedStatementDiscardActions(false);
-                }
+                    // Do not run discard actions here! Can interfere with executing statement.
+                }                    
             }
         }
     }
@@ -5634,10 +5645,10 @@ public class SQLServerConnection implements ISQLServerConnection {
     }
 
     /** Add cache entry for prepared statement metadata*/
-    final void cachePreparedStatementHandle(SQLServerPreparedStatement.Sha1HashKey key, int handle, boolean directSql, SQLServerPreparedStatement statement) {
+    final PreparedStatementCacheItem cachePreparedStatementHandle(SQLServerPreparedStatement.Sha1HashKey key, int handle, boolean directSql, SQLServerPreparedStatement statement) {
         // Caching turned off?
         if(!this.isStatementPoolingEnabled())
-            return;
+            return null;
 
         PreparedStatementCacheItem cacheItem = this.getCachedPreparedStatementMetadata(key);
 
@@ -5650,6 +5661,8 @@ public class SQLServerConnection implements ISQLServerConnection {
 
             this.cachePreparedStatementMetadata(key, cacheItem);   
         }
+
+        return cacheItem;
     }
 
     /** Add cache entry for prepared statement metadata*/

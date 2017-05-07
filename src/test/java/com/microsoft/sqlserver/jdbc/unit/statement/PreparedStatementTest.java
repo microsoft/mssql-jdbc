@@ -191,6 +191,77 @@ public class PreparedStatementTest extends AbstractTest {
     }
 
     /**
+     * Test handling of eviction from statement pooling for prepared statements.
+     * 
+     * @throws SQLException
+     */
+    @Test
+    public void testStatementPoolingEviction() throws SQLException {
+        // Make sure correct settings are used.
+        SQLServerConnection.setDefaultEnablePrepareOnFirstPreparedStatementCall(SQLServerConnection.getInitialDefaultEnablePrepareOnFirstPreparedStatementCall());
+        SQLServerConnection.setDefaultServerPreparedStatementDiscardThreshold(SQLServerConnection.getInitialDefaultServerPreparedStatementDiscardThreshold());
+
+        for (int testNo = 0; testNo < 2; ++testNo) {
+            try (SQLServerConnection con = (SQLServerConnection)DriverManager.getConnection(connectionString)) {
+
+                int cacheSize = 10;                
+                int discardedStatementCount = testNo == 0 ? 5 /*batched unprepares*/ : 0 /*regular unprepares*/;
+
+                con.setStatementPoolingCacheSize(cacheSize);
+                con.setServerPreparedStatementDiscardThreshold(discardedStatementCount);
+
+                String lookupUniqueifier = UUID.randomUUID().toString();
+                String query = String.format("/*statementpoolingevictiontest_%s*/SELECT * FROM sys.tables; -- ", lookupUniqueifier);
+
+                // Add new statements to fill up the statement pool.
+                for(int i = 0; i < cacheSize; ++i) {
+                    try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement)con.prepareStatement(query + new Integer(i).toString())) {
+                        pstmt.execute(); // sp_executesql
+                        pstmt.execute(); // sp_prepexec, actual handle created and cached.
+                    } 
+                    // Make sure no handles in discard queue (still only in statement pool).
+                    assertSame(0, con.getDiscardedServerPreparedStatementCount());
+                }
+
+                // No discarded handles yet, all in statement pool.
+                assertSame(0, con.getDiscardedServerPreparedStatementCount());
+
+                // Add new statements to fill up the statement discard action queue 
+                // (new statement pushes existing statement from pool into discard 
+                // action queue).
+                for(int i = cacheSize; i < cacheSize + 5; ++i) {
+                    try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement)con.prepareStatement(query + new Integer(i).toString())) {
+                        pstmt.execute(); // sp_executesql
+                        pstmt.execute(); // sp_prepexec, actual handle created and cached.
+                    } 
+                    // If we use discard queue handles should start going into discard queue.
+                    if(0 == testNo)
+                        assertNotSame(0, con.getDiscardedServerPreparedStatementCount());
+                    else
+                        assertSame(0, con.getDiscardedServerPreparedStatementCount());
+                }
+
+                // If we use it, now discard queue should be "full".
+                if(0 == testNo)
+                    assertSame(discardedStatementCount, con.getDiscardedServerPreparedStatementCount());
+                else
+                    assertSame(0, con.getDiscardedServerPreparedStatementCount());
+
+                // Adding one more statement should cause one more pooled statement to be invalidated and 
+                // discarding actions should be executed (i.e. sp_unprepare batch), clearing out the discard
+                // action queue.
+                try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement)con.prepareStatement(query)) {
+                    pstmt.execute(); // sp_executesql
+                    pstmt.execute(); // sp_prepexec, actual handle created and cached.
+                } 
+
+                // Discard queue should now be empty.
+                assertSame(0, con.getDiscardedServerPreparedStatementCount());
+            } 
+        }
+    }
+
+    /**
      * Test handling of the two configuration knobs related to prepared statement handling.
      * 
      * @throws SQLException

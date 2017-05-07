@@ -122,8 +122,8 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
         prepStmtHandle = handle;
 
-        if(cache) 
-            connection.cachePreparedStatementHandle(cacheKey, handle, executedSqlDirectly, this);
+        if(cache)
+            cachedPreparedStatementHandle = connection.cachePreparedStatementHandle(cacheKey, handle, executedSqlDirectly, this);
     }
 
     /** Resets the server handle for this prepared statement to no handle. 
@@ -276,27 +276,31 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
             final int handleToClose = getPreparedStatementHandle();
             resetPrepStmtHandle();
 
+            // Handle unprepare actions through batching @ connection level. 
+            if (null != cachedPreparedStatementHandle && cachedPreparedStatementHandle.hasHandle()) {
+                cachedPreparedStatementHandle.decrementHandleRefCount();                    
+            }
+
+            boolean notReferencedByStatementCache = !this.connection.isStatementPoolingEnabled() // No caching
+                                                        || null == cachedPreparedStatementHandle // No cache reference
+                                                        || (
+                                                            null != cachedPreparedStatementHandle // Cache ref. exists
+                                                            && cachedPreparedStatementHandle.evictedFromCache // Evicted from cache, will not be re-used by other stmts.
+                                                            && cachedPreparedStatementHandle.discardIfHandleNotReferenced() // Not used by any other statements.
+                                                        );
+
             // Using batched clean-up? If not, use old method of calling sp_unprepare.
             if(1 < connection.getServerPreparedStatementDiscardThreshold()) {
-                // Handle unprepare actions through batching @ connection level. 
-                // Use this only if statement caching is off, otherwise this will be called by statement cache invalidation.
-                if(null != cachedPreparedStatementHandle && cachedPreparedStatementHandle.hasHandle())
-                    cachedPreparedStatementHandle.decrementHandleRefCount();
-
-                if(
-                    !this.connection.isStatementPoolingEnabled() // No caching
-                    || (
-                        null != cachedPreparedStatementHandle // Cache ref. exists
-                        && cachedPreparedStatementHandle.hasHandle()// Has a handle to discard
-                        && cachedPreparedStatementHandle.evictedFromCache // Evicted from cache, will not be re-used by other stmts.
-                        && cachedPreparedStatementHandle.discardIfHandleNotReferenced() // Not used by any other statements.
-                    )
-                ) {
+                // Handle properly with statement caching .
+                if(notReferencedByStatementCache) {
                     connection.enqueuePreparedStatementDiscardItem(handleToClose, executedSqlDirectly);
-                    connection.handlePreparedStatementDiscardActions(false);
                 }
             }
-            else {
+            
+            // Always run any outstanding discard actions as statement pooling always uses batched sp_unprepare.
+            connection.handlePreparedStatementDiscardActions(false);
+
+            if(notReferencedByStatementCache) {
                 // Non batched behavior (same as pre batch impl.)
                 if (getStatementLogger().isLoggable(java.util.logging.Level.FINER))
                     getStatementLogger().finer(this + ": Closing PreparedHandle:" + handleToClose);
