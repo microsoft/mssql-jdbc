@@ -371,9 +371,9 @@ public class PreparedStatementTest extends AbstractTest {
         assertNotSame(SQLServerConnection.getInitialDefaultServerPreparedStatementDiscardThreshold(), SQLServerConnection.getDefaultServerPreparedStatementDiscardThreshold());
         assertNotSame(SQLServerConnection.getInitialDefaultEnablePrepareOnFirstPreparedStatementCall(), SQLServerConnection.getDefaultEnablePrepareOnFirstPreparedStatementCall());
 
-        // Verify invalid (negative) change does not stick for threshold.
+        // Verify invalid (negative) changes are handled correctly.
         SQLServerConnection.setDefaultServerPreparedStatementDiscardThreshold(-1);
-        assertTrue(0 < SQLServerConnection.getDefaultServerPreparedStatementDiscardThreshold());
+        assertSame(0, SQLServerConnection.getDefaultServerPreparedStatementDiscardThreshold());
 
         // Verify instance settings.
         SQLServerConnection conn1 = (SQLServerConnection)DriverManager.getConnection(connectionString);
