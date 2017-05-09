@@ -1529,25 +1529,48 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable {
             // Begin a manual transaction for this batch.
             connection.setAutoCommit(false);
         }
+        
+        boolean insertRowByRow = false;
 
-        // Create and send the initial command for bulk copy ("INSERT BULK ...").
-        TDSWriter tdsWriter = command.startRequest(TDS.PKT_QUERY);
-        String bulkCmd = createInsertBulkCommand(tdsWriter);
-        tdsWriter.writeString(bulkCmd);
-        TDSParser.parse(command.startResponse(), command.getLogContext());
+        if (null != sourceResultSet && sourceResultSet instanceof SQLServerResultSet) {
+            SQLServerStatement src_stmt = (SQLServerStatement) ((SQLServerResultSet) sourceResultSet).getStatement();
+            int resultSetServerCursorId = ((SQLServerResultSet) sourceResultSet).getServerCursorId();
 
-        // Send the bulk data. This is the BulkLoadBCP TDS stream.
-        tdsWriter = command.startRequest(TDS.PKT_BULK);
+            if (connection.equals(src_stmt.getConnection()) && 0 != resultSetServerCursorId) {
+                insertRowByRow = true;
+            }
+            
+            if (((SQLServerResultSet) sourceResultSet).isForwardOnly()) {
+                try {
+                    sourceResultSet.setFetchSize(1);
+                }
+                catch (SQLException e) {
+                   SQLServerException.makeFromDriverError(connection, sourceResultSet, e.getMessage(), e.getSQLState(), true);
+                }
+            }
+        }
 
+        TDSWriter tdsWriter = null;
         boolean moreDataAvailable = false;
-        try {
-            // Write the COLUMNMETADATA token in the stream.
-            writeColumnMetaData(tdsWriter);
 
-            // Write all ROW tokens in the stream.
-            moreDataAvailable = writeBatchData(tdsWriter);
+        try {
+            if (!insertRowByRow) {
+                tdsWriter = sendBulkCopyCommand(command);
+            }
+
+            try {
+                // Write all ROW tokens in the stream.
+                moreDataAvailable = writeBatchData(tdsWriter, command, insertRowByRow);
+            }
+            finally {
+                tdsWriter = command.getTDSWriter();
+            }
         }
         catch (SQLServerException ex) {
+            if (null == tdsWriter) {
+                tdsWriter = command.getTDSWriter();
+            }
+
             // Close the TDS packet before handling the exception
             writePacketDataDone(tdsWriter);
 
@@ -1561,18 +1584,25 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable {
             throw ex;
         }
         finally {
+            if (null == tdsWriter) {
+                tdsWriter = command.getTDSWriter();
+            }
+            
             // reset the cryptoMeta in IOBuffer
             tdsWriter.setCryptoMetaData(null);
         }
-        // Write the DONE token in the stream. We may have to append the DONE token with every packet that is sent.
-        // For the current packets the driver does not generate a DONE token, but the BulkLoadBCP stream needs a DONE token
-        // after every packet. For now add it manually here for one packet.
-        // Note: This may break if more than one packet is sent.
-        // This is an example from https://msdn.microsoft.com/en-us/library/dd340549.aspx
-        writePacketDataDone(tdsWriter);
+                
+        if (!insertRowByRow) {
+            // Write the DONE token in the stream. We may have to append the DONE token with every packet that is sent.
+            // For the current packets the driver does not generate a DONE token, but the BulkLoadBCP stream needs a DONE token
+            // after every packet. For now add it manually here for one packet.
+            // Note: This may break if more than one packet is sent.
+            // This is an example from https://msdn.microsoft.com/en-us/library/dd340549.aspx
+            writePacketDataDone(tdsWriter);
 
-        // Send to the server and read response.
-        TDSParser.parse(command.startResponse(), command.getLogContext());
+            // Send to the server and read response.
+            TDSParser.parse(command.startResponse(), command.getLogContext());
+        }
 
         if (copyOptions.isUseInternalTransaction()) {
             // Commit the transaction for this batch.
@@ -1580,6 +1610,22 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable {
         }
 
         return moreDataAvailable;
+    }
+
+    private TDSWriter sendBulkCopyCommand(TDSCommand command) throws SQLServerException {
+        // Create and send the initial command for bulk copy ("INSERT BULK ...").
+        TDSWriter tdsWriter = command.startRequest(TDS.PKT_QUERY);
+        String bulkCmd = createInsertBulkCommand(tdsWriter);
+        tdsWriter.writeString(bulkCmd);
+        TDSParser.parse(command.startResponse(), command.getLogContext());
+
+        // Send the bulk data. This is the BulkLoadBCP TDS stream.
+        tdsWriter = command.startRequest(TDS.PKT_BULK);
+
+        // Write the COLUMNMETADATA token in the stream.
+        writeColumnMetaData(tdsWriter);
+
+        return tdsWriter;
     }
 
     private void writePacketDataDone(TDSWriter tdsWriter) throws SQLServerException {
@@ -3151,7 +3197,9 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable {
      * Writes data for a batch of rows to the TDSWriter object. Writes the following part in the BulkLoadBCP stream
      * (https://msdn.microsoft.com/en-us/library/dd340549.aspx) <ROW> ... </ROW>
      */
-    private boolean writeBatchData(TDSWriter tdsWriter) throws SQLServerException {
+    private boolean writeBatchData(TDSWriter tdsWriter,
+            TDSCommand command,
+            boolean insertRowByRow) throws SQLServerException {
         int batchsize = copyOptions.getBatchSize();
         int row = 0;
         while (true) {
@@ -3163,6 +3211,13 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable {
             // No more data available, return false so we do not execute any more batches.
             if (!goToNextRow())
                 return false;
+            
+            if (insertRowByRow) {
+                // read response gotten from goToNextRow()
+                ((SQLServerResultSet) sourceResultSet).getTDSReader().readPacket();
+
+                tdsWriter = sendBulkCopyCommand(command);
+            }
 
             // Write row header for each row.
             tdsWriter.writeByte((byte) TDS.TDS_ROW);
@@ -3195,6 +3250,14 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable {
                 }
             }
             row++;
+
+            if (insertRowByRow) {
+                writePacketDataDone(tdsWriter);
+                tdsWriter.setCryptoMetaData(null);
+
+                // Send to the server and read response.
+                TDSParser.parse(command.startResponse(), command.getLogContext());
+            }
         }
     }
 }

@@ -7023,6 +7023,10 @@ abstract class TDSCommand {
     // Volatile ensures visibility to execution thread and interrupt thread
     private volatile TDSWriter tdsWriter;
     private volatile TDSReader tdsReader;
+    
+    protected TDSWriter getTDSWriter(){
+        return tdsWriter;
+    }
 
     // Lock to ensure atomicity when manipulating more than one of the following
     // shared interrupt state variables below.
