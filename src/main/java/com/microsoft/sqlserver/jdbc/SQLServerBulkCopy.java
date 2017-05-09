@@ -3210,6 +3210,6 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable {
                 }
             }
             row++;
-            }
+        }
     }
 }
