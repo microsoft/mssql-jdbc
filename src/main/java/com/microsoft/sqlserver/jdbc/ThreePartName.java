@@ -21,19 +21,19 @@ class ThreePartName {
         this.procedurePart = procedurePart;
     }
 
-    public String getDatabasePart() {
+    String getDatabasePart() {
         return databasePart;
     }
 
-    public String getOwnerPart() {
+    String getOwnerPart() {
         return ownerPart;
     }
 
-    public String getProcedurePart() {
+    String getProcedurePart() {
         return procedurePart;
     }
 
-    public static ThreePartName parse(String theProcName) {
+    static ThreePartName parse(String theProcName) {
         String procedurePart = null;
         String ownerPart = null;
         String databasePart = null;
