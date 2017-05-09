@@ -1653,7 +1653,9 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable {
 
         if ((Util.isCharType(srcJdbcType) && Util.isCharType(destSSType)) || (Util.isBinaryType(srcJdbcType) && Util.isBinaryType(destSSType))) {
             if (colValue instanceof String) {
-                if (Util.isBinaryType(destSSType)) {  // if the dest value is binary and the value is of type string
+                if (Util.isBinaryType(destSSType)) {  
+                    // if the dest value is binary and the value is of type string. 
+                    //Repro in test case: ImpISQLServerBulkRecord_IssuesTest#testSendValidValueforBinaryColumnAsString
                     sourcePrecision = (((String) colValue).getBytes().length) / 2;
                 }
                 else
@@ -2633,7 +2635,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable {
             }
         }
         //If we are using ISQLBulckRecord and the data we are passing is char type, we need to check the source and dest precision
-        else if (null != sourceBulkRecord) {
+        else if (null != sourceBulkRecord && (null == destCryptoMeta)) {
             validateStringBinaryLengths(colValue, srcColOrdinal, destColOrdinal);
         }
         else if ((null != sourceBulkRecord) && (null != destCryptoMeta)) {

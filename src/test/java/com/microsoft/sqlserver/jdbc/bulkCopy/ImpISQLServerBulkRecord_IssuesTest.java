@@ -183,7 +183,25 @@ public class ImpISQLServerBulkRecord_IssuesTest extends AbstractTest {
                 fail(e.getMessage());
             }
         }
-    }
+    }  
+    
+    @Test
+    public void testSendValidValueforBinaryColumnAsString() throws Exception {
+        variation = "testSendValidValueforBinaryColumnAsString";
+        BulkDat bData = new BulkDat(variation);
+        query = "CREATE TABLE " + destTable + " (col1 binary(5))";
+        stmt.executeUpdate(query);
+
+        try {
+            SQLServerBulkCopy bcOperation = new SQLServerBulkCopy(connectionString);
+            bcOperation.setDestinationTableName(destTable);
+            bcOperation.writeToServer(bData);
+            bcOperation.close();
+        }
+        catch (Exception e) {
+            fail(e.getMessage());
+        }
+    }  
 
     /**
      * Prepare test
@@ -302,6 +320,18 @@ class BulkDat implements ISQLServerBulkRecord {
 
             stringData = new ArrayList<String>();
             stringData.add("616368697412");
+            rowCount = stringData.size();
+
+        }
+        
+        else if (variation.equalsIgnoreCase("testSendValidValueforBinaryColumnAsString")) {
+            isStringData = true;
+            columnMetadata = new HashMap<Integer, ColumnMetadata>();
+
+            columnMetadata.put(1, new ColumnMetadata("binary(5)", java.sql.Types.BINARY, 5, 0));
+
+            stringData = new ArrayList<String>();
+            stringData.add("616345");
             rowCount = stringData.size();
 
         }
