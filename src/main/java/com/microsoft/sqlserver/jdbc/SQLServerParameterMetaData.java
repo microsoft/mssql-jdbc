@@ -477,77 +477,26 @@ public final class SQLServerParameterMetaData implements ParameterMetaData {
         }
     }
 
-    String parseThreePartNames(String threeName) throws SQLServerException {
-        int noofitems = 0;
-        String procedureName = null;
-        String procedureOwner = null;
-        String procedureQualifier = null;
-        StringTokenizer st = new StringTokenizer(threeName, ".", true);
-
-        // parse left to right looking for three part name
-        // note the user can provide three part, two part or one part name
-        while (st.hasMoreTokens()) {
-            String sToken = st.nextToken();
-            String nextItem = escapeParse(st, sToken);
-            if (nextItem.equals(".") == false) {
-                switch (noofitems) {
-                    case 2:
-                        procedureQualifier = procedureOwner;
-                        procedureOwner = procedureName;
-                        procedureName = nextItem;
-                        noofitems++;
-                        break;
-                    case 1:
-                        procedureOwner = procedureName;
-                        procedureName = nextItem;
-                        noofitems++;
-                        break;
-                    case 0:
-                        procedureName = nextItem;
-                        noofitems++;
-                        break;
-                    default:
-                        noofitems++;
-                        break;
-                }
-            }
+    String parseProcIdentifier(String procIdentifier) throws SQLServerException {
+        ThreePartName threePartName = ThreePartName.parse(procIdentifier);
+        StringBuilder sb = new StringBuilder();
+        if (threePartName.getDatabasePart() != null) {
+            sb.append("@procedure_qualifier=");
+            sb.append(threePartName.getDatabasePart());
+            sb.append(", ");
         }
-        StringBuilder sb = new StringBuilder(100);
-
-        if (noofitems > 3 && 1 < noofitems)
+        if (threePartName.getOwnerPart() != null) {
+            sb.append("@procedure_owner=");
+            sb.append(threePartName.getOwnerPart());
+            sb.append(", ");
+        }
+        if (threePartName.getProcedurePart() != null) {
+            sb.append("@procedure_name=");
+            sb.append(threePartName.getProcedurePart());
+        } else {
             SQLServerException.makeFromDriverError(con, stmtParent, SQLServerException.getErrString("R_noMetadata"), null, false);
-
-        switch (noofitems) {
-            case 3:
-                sb.append("@procedure_qualifier =");
-                sb.append(procedureQualifier);
-                sb.append(", ");
-                sb.append("@procedure_owner =");
-                sb.append(procedureOwner);
-                sb.append(", ");
-                sb.append("@procedure_name =");
-                sb.append(procedureName);
-                sb.append(", ");
-                break;
-
-            case 2:
-                sb.append("@procedure_owner =");
-                sb.append(procedureOwner);
-                sb.append(", ");
-                sb.append("@procedure_name =");
-                sb.append(procedureName);
-                sb.append(", ");
-                break;
-            case 1:
-                sb.append("@procedure_name =");
-                sb.append(procedureName);
-                sb.append(", ");
-                break;
-            default:
-                break;
         }
         return sb.toString();
-
     }
 
     private void checkClosed() throws SQLServerException {
@@ -578,11 +527,11 @@ public final class SQLServerParameterMetaData implements ParameterMetaData {
             // then we can extract metadata using sp_sproc_columns
             if (null != st.procedureName) {
                 SQLServerStatement s = (SQLServerStatement) con.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
-                String sProc = parseThreePartNames(st.procedureName);
+                String sProc = parseProcIdentifier(st.procedureName);
                 if (con.isKatmaiOrLater())
-                    rsProcedureMeta = s.executeQueryInternal("exec sp_sproc_columns_100 " + sProc + " @ODBCVer=3");
+                    rsProcedureMeta = s.executeQueryInternal("exec sp_sproc_columns_100 " + sProc + ", @ODBCVer=3");
                 else
-                    rsProcedureMeta = s.executeQueryInternal("exec sp_sproc_columns " + sProc + " @ODBCVer=3");
+                    rsProcedureMeta = s.executeQueryInternal("exec sp_sproc_columns " + sProc + ", @ODBCVer=3");
                 
                 // if rsProcedureMeta has next row, it means the stored procedure is found
                 if (rsProcedureMeta.next()) {
