@@ -2634,7 +2634,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable {
                 validateDataTypeConversions(srcColOrdinal, destColOrdinal);
             }
         }
-        //If we are using ISQLBulckRecord and the data we are passing is char type, we need to check the source and dest precision
+        //If we are using ISQLBulkRecord and the data we are passing is char type, we need to check the source and dest precision
         else if (null != sourceBulkRecord && (null == destCryptoMeta)) {
             validateStringBinaryLengths(colValue, srcColOrdinal, destColOrdinal);
         }

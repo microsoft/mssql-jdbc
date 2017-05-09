@@ -66,15 +66,15 @@ public class ImpISQLServerBulkRecord_IssuesTest extends AbstractTest {
             bcOperation.setDestinationTableName(destTable);
             bcOperation.writeToServer(bData);
             bcOperation.close();
+            fail("BulkCopy executed for testVarchar when it it was expected to fail");
         }
         catch (Exception e) {
             if (e instanceof SQLServerException) {
                 assertTrue(e.getMessage().contains("The given value of type"), "Invalid Error message: " + e.toString());
             }
-        }
-        ResultSet rs = stmt.executeQuery("select * from " + destTable);
-        while (rs.next()) {
-            assertEquals(rs.getString(1), value);
+            else {
+                fail(e.getMessage());
+            }
         }
     }
 
@@ -111,8 +111,7 @@ public class ImpISQLServerBulkRecord_IssuesTest extends AbstractTest {
     public void testSmalldatetimeOutofRange() throws Exception {
         variation = "testSmalldatetimeOutofRange";
         BulkDat bData = new BulkDat(variation);
-        String value = ("1954-05-22 02:44:00.0").toString();
-
+        
         query = "CREATE TABLE " + destTable + " (smallDATA smalldatetime)";
         stmt.executeUpdate(query);
 
@@ -121,16 +120,16 @@ public class ImpISQLServerBulkRecord_IssuesTest extends AbstractTest {
             bcOperation.setDestinationTableName(destTable);
             bcOperation.writeToServer(bData);
             bcOperation.close();
+            fail("BulkCopy executed for testSmalldatetimeOutofRange when it it was expected to fail");
         }
         catch (Exception e) {
             if (e instanceof SQLServerException) {
                 assertTrue(e.getMessage().contains("Conversion failed when converting character string to smalldatetime data type"),
                         "Invalid Error message: " + e.toString());
             }
-        }
-        ResultSet rs = stmt.executeQuery("select * from " + destTable);
-        while (rs.next()) {
-            assertEquals(rs.getString(1), value);
+            else {
+                fail(e.getMessage());
+            }
         }
     }
 
@@ -151,6 +150,7 @@ public class ImpISQLServerBulkRecord_IssuesTest extends AbstractTest {
             bcOperation.setDestinationTableName(destTable);
             bcOperation.writeToServer(bData);
             bcOperation.close();
+            fail("BulkCopy executed for testBinaryColumnAsByte when it it was expected to fail");
         }
         catch (Exception e) {
             if (e instanceof SQLServerException) {
@@ -162,6 +162,11 @@ public class ImpISQLServerBulkRecord_IssuesTest extends AbstractTest {
         }
     }
 
+    /**
+     * Test sending longer value for binary column while data is sent as string format
+     * 
+     * @throws Exception
+     */
     @Test
     public void testBinaryColumnAsString() throws Exception {
         variation = "testBinaryColumnAsString";
@@ -174,6 +179,7 @@ public class ImpISQLServerBulkRecord_IssuesTest extends AbstractTest {
             bcOperation.setDestinationTableName(destTable);
             bcOperation.writeToServer(bData);
             bcOperation.close();
+            fail("BulkCopy executed for testBinaryColumnAsString when it it was expected to fail");
         }
         catch (Exception e) {
             if (e instanceof SQLServerException) {
@@ -183,8 +189,13 @@ public class ImpISQLServerBulkRecord_IssuesTest extends AbstractTest {
                 fail(e.getMessage());
             }
         }
-    }  
-    
+    }
+
+    /**
+     * Verify that sending valid value in string format for binary column is successful
+     * 
+     * @throws Exception
+     */
     @Test
     public void testSendValidValueforBinaryColumnAsString() throws Exception {
         variation = "testSendValidValueforBinaryColumnAsString";
@@ -197,11 +208,17 @@ public class ImpISQLServerBulkRecord_IssuesTest extends AbstractTest {
             bcOperation.setDestinationTableName(destTable);
             bcOperation.writeToServer(bData);
             bcOperation.close();
+            
+            ResultSet rs = stmt.executeQuery("select * from " + destTable);
+            String value = "0101010000";
+            while (rs.next()) {
+                assertEquals(rs.getString(1), value);
+            }
         }
         catch (Exception e) {
-            fail(e.getMessage());
+           fail(e.getMessage());
         }
-    }  
+    }
 
     /**
      * Prepare test
@@ -323,7 +340,7 @@ class BulkDat implements ISQLServerBulkRecord {
             rowCount = stringData.size();
 
         }
-        
+
         else if (variation.equalsIgnoreCase("testSendValidValueforBinaryColumnAsString")) {
             isStringData = true;
             columnMetadata = new HashMap<Integer, ColumnMetadata>();
@@ -331,7 +348,7 @@ class BulkDat implements ISQLServerBulkRecord {
             columnMetadata.put(1, new ColumnMetadata("binary(5)", java.sql.Types.BINARY, 5, 0));
 
             stringData = new ArrayList<String>();
-            stringData.add("616345");
+            stringData.add("010101");
             rowCount = stringData.size();
 
         }
