@@ -309,6 +309,12 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable {
     }
 
     private BulkTimeoutTimer timeoutTimer = null;
+    
+    /**
+     * The maximum temporal precision we can send when using varchar(precision) in bulkcommand, to send a smalldatetime/datetime 
+     * value.
+     */
+    private static final int sourceBulkRecordTemporalMaxPrecision = 50;
 
     /**
      * Initializes a new instance of the SQLServerBulkCopy class using the specified open instance of SQLServerConnection.
@@ -1240,6 +1246,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable {
             int destColIndx,
             TDSWriter tdsWriter) throws SQLServerException {
         boolean isStreaming;
+
         SSType destSSType = (null != destColumnMetadata.get(destColIndx).cryptoMeta)
                 ? destColumnMetadata.get(destColIndx).cryptoMeta.baseTypeInfo.getSSType() : destColumnMetadata.get(destColIndx).ssType;
 
@@ -1378,14 +1385,14 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable {
                 switch (destSSType) {
                     case SMALLDATETIME:
                         if (null != sourceBulkRecord) {
-                            return "varchar(" + ((0 == bulkPrecision) ? destPrecision : bulkPrecision) + ")";
+                            return "varchar(" + ((0 == bulkPrecision) ? sourceBulkRecordTemporalMaxPrecision  : bulkPrecision) + ")";
                         }
                         else {
                             return "smalldatetime";
                         }
                     case DATETIME:
                         if (null != sourceBulkRecord) {
-                            return "varchar(" + ((0 == bulkPrecision) ? destPrecision : bulkPrecision) + ")";
+                            return "varchar(" + ((0 == bulkPrecision) ? sourceBulkRecordTemporalMaxPrecision  : bulkPrecision) + ")";
                         }
                         else {
                             return "datetime";
@@ -1694,7 +1701,13 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable {
 
         if ((Util.isCharType(srcJdbcType) && Util.isCharType(destSSType)) || (Util.isBinaryType(srcJdbcType) && Util.isBinaryType(destSSType))) {
             if (colValue instanceof String) {
-                sourcePrecision = ((String) colValue).length();
+                if (Util.isBinaryType(destSSType)) {  
+                    // if the dest value is binary and the value is of type string. 
+                    //Repro in test case: ImpISQLServerBulkRecord_IssuesTest#testSendValidValueforBinaryColumnAsString
+                    sourcePrecision = (((String) colValue).getBytes().length) / 2;
+                }
+                else
+                    sourcePrecision = ((String) colValue).length();
             }
             else if (colValue instanceof byte[]) {
                 sourcePrecision = ((byte[]) colValue).length;
@@ -2668,6 +2681,10 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable {
                     || ((null != destCryptoMeta) && (null != colValue)))) {
                 validateDataTypeConversions(srcColOrdinal, destColOrdinal);
             }
+        }
+        //If we are using ISQLBulkRecord and the data we are passing is char type, we need to check the source and dest precision
+        else if (null != sourceBulkRecord && (null == destCryptoMeta)) {
+            validateStringBinaryLengths(colValue, srcColOrdinal, destColOrdinal);
         }
         else if ((null != sourceBulkRecord) && (null != destCryptoMeta)) {
             // From CSV to encrypted column. Convert to respective object.
