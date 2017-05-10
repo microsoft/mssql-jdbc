@@ -482,7 +482,7 @@ public class SQLServerBulkCSVFileRecord implements ISQLServerBulkRecord, java.la
 
                 // Source header has more columns than current line read
                 if (columnNames != null && (columnNames.length > data.length)) {
-                    MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_BulkCSVDataSchemaMismatch"));
+                    MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_CSVDataSchemaMismatch"));
                     Object[] msgArgs = {};
                     throw new SQLServerException(form.format(msgArgs), SQLState.COL_NOT_FOUND, DriverError.NOT_SET, null);
                 }
@@ -651,7 +651,7 @@ public class SQLServerBulkCSVFileRecord implements ISQLServerBulkRecord, java.la
                     throw new SQLServerException(form.format(new Object[] {value, JDBCType.of(cm.columnType)}), null, 0, e);
                 }
                 catch (ArrayIndexOutOfBoundsException e) {
-                    throw new SQLServerException(SQLServerException.getErrString("R_BulkCSVDataSchemaMismatch"), e);
+                    throw new SQLServerException(SQLServerException.getErrString("R_CSVDataSchemaMismatch"), e);
                 }
 
             }
