@@ -309,6 +309,12 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable {
     }
 
     private BulkTimeoutTimer timeoutTimer = null;
+    
+    /**
+     * The maximum temporal precision we can send when using varchar(precision) in bulkcommand, to send a smalldatetime/datetime 
+     * value.
+     */
+    private static final int sourceBulkRecordTemporalMaxPrecision = 50;
 
     /**
      * Initializes a new instance of the SQLServerBulkCopy class using the specified open instance of SQLServerConnection.
@@ -1240,11 +1246,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable {
             int destColIndx,
             TDSWriter tdsWriter) throws SQLServerException {
         boolean isStreaming;
-        /**
-         * The maximum temporal precision we can send when using varchar(precision) in bulkcommand, to send a smalldatetime/datetime 
-         * value.
-         */
-        int sourceBulkRecordTemporalMaxPrecision = 50;
+
         SSType destSSType = (null != destColumnMetadata.get(destColIndx).cryptoMeta)
                 ? destColumnMetadata.get(destColIndx).cryptoMeta.baseTypeInfo.getSSType() : destColumnMetadata.get(destColIndx).ssType;
 
