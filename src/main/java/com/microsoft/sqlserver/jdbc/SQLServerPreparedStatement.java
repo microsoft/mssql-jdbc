@@ -8,7 +8,7 @@
 
 package com.microsoft.sqlserver.jdbc; 
 
-import static com.microsoft.sqlserver.jdbc.SQLServerConnection.getOrCreateCachedParsedSQLMetadata;
+import static com.microsoft.sqlserver.jdbc.SQLServerConnection.getOrCreateCachedParsedSQL;
 
 import java.io.InputStream;
 import java.io.Reader;
@@ -30,8 +30,7 @@ import java.util.Map;
 import java.util.Vector;
 import java.util.logging.Level;
 
-import com.microsoft.sqlserver.jdbc.SQLServerConnection.PreparedStatementCacheItem;
-import com.microsoft.sqlserver.jdbc.SQLServerConnection.PreparedStatementHandle;
+import com.microsoft.sqlserver.jdbc.SQLServerConnection.PreparedStatementMetadata;
 import com.microsoft.sqlserver.jdbc.SQLServerConnection.Sha1HashKey;
 
 /**
@@ -69,8 +68,11 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     /** True if this execute has been called for this statement at least once */
     private boolean isExecutedAtLeastOnce = false;
 
+    /** SHA1 hash of user supplied SQL statement used for various cache lookups */
+    private Sha1HashKey sha1CacheKey;
+
     /** Reference to cache item for statement pooling. Only used to decrement ref count on statement close. */
-    private final PreparedStatementCacheItem cachedPreparedStatementItem; 
+    private final PreparedStatementMetadata cachedPreparedStatementMetadata; 
 
     /**
      * Array with parameter names generated in buildParamTypeDefinitions For mapping encryption information to parameters, as the second result set
@@ -165,30 +167,19 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         stmtPoolable = true;
 
         // Create a cache key for this statement.
-        Sha1HashKey cacheKey = new Sha1HashKey(sql);
+        sha1CacheKey = new Sha1HashKey(sql);
 
         // Parse or fetch SQL metadata from cache.
-        ParsedSQLCacheItem cacheItem = getOrCreateCachedParsedSQLMetadata(cacheKey, sql);
+        ParsedSQLCacheItem parsedSql = getOrCreateCachedParsedSQL(sha1CacheKey, sql);
 
         // Retrieve meta data from cache item.
-        procedureName = cacheItem.procedureName;
-        bReturnValueSyntax = cacheItem.bReturnValueSyntax;
-        userSQL = cacheItem.processedSQL;
-        initParams(cacheItem.parameterCount);
+        procedureName = parsedSql.procedureName;
+        bReturnValueSyntax = parsedSql.bReturnValueSyntax;
+        userSQL = parsedSql.processedSQL;
+        initParams(parsedSql.parameterCount);
 
-        // See if existing prepared statement handle can be re-used.
-        cachedPreparedStatementItem = connection.borrowCachedPreparedStatementMetadata(cacheKey);
-        // If handle was found then re-use.
-        if(null != cachedPreparedStatementItem && cachedPreparedStatementItem.hasExecutedSpExecuteSql()) {
-            // If existing handle was found use it.
-            if(cachedPreparedStatementItem.hasHandle()) {
-                prepStmtHandle = cachedPreparedStatementItem.getHandleAndIncrementRefCount();
-            }
-            else {
-                // Because sp_executesql was already called on this SQL-text use regular prep/exec pattern.
-                isExecutedAtLeastOnce = true;
-            }
-        }
+        // See if existing prepared statement parameter metadata can be re-used, this will be null if not.
+        cachedPreparedStatementMetadata = connection.getPreparedStatementMetadata(sha1CacheKey);
     }
 
     /**
@@ -210,13 +201,12 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
             final int handleToClose = getPreparedStatementHandle();
             resetPrepStmtHandle();
 
-            // Handle unprepare actions through batching @ connection level. 
-            if (null != cachedPreparedStatementItem) {
-                connection.returnCachedPreparedStatementMetadata(cachedPreparedStatementItem);                    
-            }
-            // Using batched clean-up? If not, use old method of calling sp_unprepare.
-            else if(1 < connection.getServerPreparedStatementDiscardThreshold()) {
-                connection.enqueueUnprepareStatementHandle(new PreparedStatementHandle(getPreparedStatementHandle(), executedSqlDirectly));
+            // Using batched clean-up?  If not, use old method of calling sp_unprepare.
+            if (connection.isPreparedStatementUnprepareBatchingEnabled()) {
+                connection.returnStatementHandle(sha1CacheKey);
+
+                // Run any batched sp_unprepares if we have crossed the discard threshold
+                connection.unprepareUnreferencedPreparedStatementHandles(false);
             }
             else {
                 // Non batched behavior (same as pre batch impl.)
@@ -252,9 +242,6 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                 if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
                     loggerExternal.finer(this + ": Closed PreparedHandle:" + handleToClose);
             }
-
-            // Always run any outstanding discard actions as statement pooling always uses batched sp_unprepare.
-            connection.handlePreparedStatementDiscardActions(false);
         }
     }
 
@@ -548,9 +535,8 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                 param.skipRetValStatus(tdsReader);
                 prepStmtHandle = param.getInt(tdsReader);
 
-                if (null != cachedPreparedStatementItem)
-                    cachedPreparedStatementItem.setHandle(prepStmtHandle, executedSqlDirectly);
-                
+                connection.registerStatementHandle(sha1CacheKey, prepStmtHandle, executedSqlDirectly);
+
                 param.skipValue(tdsReader, true);
                 if (getStatementLogger().isLoggable(java.util.logging.Level.FINER))
                     getStatementLogger().finer(toString() + ": Setting PreparedHandle:" + prepStmtHandle);
@@ -888,13 +874,9 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
             if (needsPrepare && !connection.getEnablePrepareOnFirstPreparedStatementCall() && !isExecutedAtLeastOnce) {
                 buildExecSQLParams(tdsWriter);
                 isExecutedAtLeastOnce = true;
-
-                // Enable re-use if caching is on by moving to sp_prepexec on next call even from separate instance.
-                if (null != cachedPreparedStatementItem)
-                    cachedPreparedStatementItem.setHasExecutedSpExecuteSql(true);
             }
             // Second execution, use prepared statements since we seem to be re-using it.
-            else if(needsPrepare)
+            else if (needsPrepare)
                 buildPrepExecParams(tdsWriter);
             else
                 buildExecParams(tdsWriter);
@@ -2860,16 +2842,15 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
      *              Per the description.
      */
     public final ParameterMetaData getParameterMetaData(boolean forceRefresh) throws SQLServerException {
-        if (!forceRefresh && null != cachedPreparedStatementItem && cachedPreparedStatementItem.hasParameterMetadata()) {
-            return cachedPreparedStatementItem.getParameterMetadata();
+        if (!forceRefresh && null != cachedPreparedStatementMetadata) {
+            return cachedPreparedStatementMetadata.getParameterMetadata();
         }
         else {
             loggerExternal.entering(getClassNameLogging(), "getParameterMetaData");
             checkClosed();
             SQLServerParameterMetaData pmd = new SQLServerParameterMetaData(this, userSQL);
 
-            if(null != cachedPreparedStatementItem)
-                cachedPreparedStatementItem.setParameterMetadata(pmd);
+            connection.registerPreparedStatementMetadata(sha1CacheKey, pmd);
 
             loggerExternal.exiting(getClassNameLogging(), "getParameterMetaData", pmd);
  
