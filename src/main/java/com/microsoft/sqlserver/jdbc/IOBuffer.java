@@ -1577,6 +1577,7 @@ final class TDSChannel {
         boolean isFips = false;
         String trustStoreType = null;
         String fipsProvider = null;
+        String sslProtocol = null;
 
         // If anything in here fails, terminate the connection and throw an exception
         try {
@@ -1595,7 +1596,10 @@ final class TDSChannel {
             }
             
             fipsProvider = con.activeConnectionProperties.getProperty(SQLServerDriverStringProperty.FIPS_PROVIDER.toString());
-            isFips = Boolean.valueOf(con.activeConnectionProperties.getProperty(SQLServerDriverBooleanProperty.FIPS.toString())); 
+            isFips = Boolean.valueOf(con.activeConnectionProperties.getProperty(SQLServerDriverBooleanProperty.FIPS.toString()));
+            
+            sslProtocol = con.activeConnectionProperties.getProperty(SQLServerDriverStringProperty.SSL_PROTOCOL.toString(),
+                    SQLServerDriverStringProperty.SSL_PROTOCOL.getDefaultValue());
             
             if (isFips) {
                 validateFips(fipsProvider, trustStoreType, trustStoreFileName);
@@ -1723,9 +1727,9 @@ final class TDSChannel {
             SSLContext sslContext = null;
 
             if (logger.isLoggable(Level.FINEST))
-                logger.finest(toString() + " Getting TLS or better SSL context");
+                logger.finest(toString() + " Getting TLS or better SSL context with " + sslProtocol );
 
-            sslContext = SSLContext.getInstance("TLS");
+            sslContext = SSLContext.getInstance(sslProtocol);
             sslContextProvider = sslContext.getProvider();
 
             if (logger.isLoggable(Level.FINEST))

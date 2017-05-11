@@ -247,7 +247,7 @@ enum SQLServerDriverStringProperty
 	KEY_STORE_SECRET           ("keyStoreSecret",          ""),
 	KEY_STORE_LOCATION         ("keyStoreLocation",        ""),
 	FIPS_PROVIDER              ("fipsProvider",            ""),
-	;
+	SSL_PROTOCOL              ("sslProtocol",            "TLS") ;
 
     private String name;
     private String defaultValue;
@@ -381,6 +381,8 @@ public final class SQLServerDriver implements java.sql.Driver {
         new SQLServerDriverPropertyInfo(SQLServerDriverBooleanProperty.ENABLE_PREPARE_ON_FIRST_PREPARED_STATEMENT.toString(), Boolean.toString(SQLServerConnection.getDefaultEnablePrepareOnFirstPreparedStatementCall()),      	  false,      TRUE_FALSE),
         new SQLServerDriverPropertyInfo(SQLServerDriverIntProperty.SERVER_PREPARED_STATEMENT_DISCARD_THRESHOLD.toString(),    Integer.toString(SQLServerConnection.getDefaultServerPreparedStatementDiscardThreshold()),        	  false,      null),
         new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.JAAS_CONFIG_NAME.toString(),                            SQLServerDriverStringProperty.JAAS_CONFIG_NAME.getDefaultValue(),                                       false,      null),
+        new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.SELECT_METHOD.toString(),                               SQLServerDriverStringProperty.SELECT_METHOD.getDefaultValue(),                                          false,      new String[] {"direct", "cursor"}),
+        new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.SSL_PROTOCOL.toString(),                               SQLServerDriverStringProperty.SSL_PROTOCOL.getDefaultValue(),                                            false,      new String[] {"TLS", "TLSv1.1", "TLSv1.2"}),
     };
 
     // Properties that can only be set by using Properties.

@@ -44,10 +44,10 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Properties;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.Executor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.logging.Level;
 
 import javax.sql.XAConnection;
@@ -1465,6 +1465,16 @@ public class SQLServerConnection implements ISQLServerConnection {
             sPropValue = activeConnectionProperties.getProperty(sPropKey);
             if (null != sPropValue) {
                 setEnablePrepareOnFirstPreparedStatementCall(booleanPropertyOn(sPropKey, sPropValue));
+            }
+            
+            sPropKey = SQLServerDriverStringProperty.SSL_PROTOCOL.toString();
+            sPropValue = activeConnectionProperties.getProperty(sPropKey, SQLServerDriverStringProperty.SSL_PROTOCOL.getDefaultValue());
+            if ("TLS".equalsIgnoreCase(sPropValue) || "TLSv1.1".equalsIgnoreCase(sPropValue) || "TLSv1.2".equalsIgnoreCase(sPropValue)) {
+                activeConnectionProperties.setProperty(sPropKey, sPropValue);
+            }else {
+                MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidSSLProtocol"));
+                Object[] msgArgs = {sPropValue};
+                SQLServerException.makeFromDriverError(this, this, form.format(msgArgs), null, false);
             }
 
             FailoverInfo fo = null;
