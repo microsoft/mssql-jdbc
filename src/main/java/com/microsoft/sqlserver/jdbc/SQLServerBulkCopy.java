@@ -1809,11 +1809,11 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable {
         }
         else if (null != sourceBulkRecord) {
             Set<Integer> columnOrdinals = sourceBulkRecord.getColumnOrdinals();
-            srcColumnCount = columnOrdinals.size();
-            if (0 == srcColumnCount) {
+            if (null == columnOrdinals || 0 == columnOrdinals.size()) {
                 throw new SQLServerException(SQLServerException.getErrString("R_unableRetrieveColMeta"), null);
             }
             else {
+                srcColumnCount = columnOrdinals.size();
                 Iterator<Integer> columnsIterator = columnOrdinals.iterator();
                 while (columnsIterator.hasNext()) {
                     currentColumn = columnsIterator.next();
@@ -3257,7 +3257,15 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable {
             // Copy from a file.
             else {
                 // Get all the column values of the current row.
-                Object[] rowObjects = sourceBulkRecord.getRowData();
+                Object[] rowObjects;
+
+                try {
+                    rowObjects = sourceBulkRecord.getRowData();
+                }
+                catch (Exception ex) {
+                    // if no more data available to retrive
+                    throw new SQLServerException(SQLServerException.getErrString("R_unableRetrieveSourceData"), ex);
+                }
 
                 for (int i = 0; i < mappingColumnCount; ++i) {
                     // If the SQLServerBulkCSVRecord does not have metadata for columns, it returns strings in the object array.
