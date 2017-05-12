@@ -101,8 +101,8 @@ public class DatabaseMetaDataTest extends AbstractTest {
         int intDriverVersion = Integer.valueOf(driverVersion);
 
         if (isSnapshot) {
-            assertTrue(intDriverVersion == (intBuildVersion - 1),
-                    "In case of SNAPSHOT version build version should be always greater than BuildVersion by 1");
+            assertTrue(intDriverVersion < intBuildVersion,
+                    "In case of SNAPSHOT version, build version should be always greater than BuildVersion");
         }
         else {
             assertTrue(intDriverVersion == intBuildVersion, "For NON SNAPSHOT versions build & driver versions should match.");
