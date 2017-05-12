@@ -36,18 +36,21 @@ import java.sql.Savepoint;
 import java.sql.Statement;
 import java.sql.Struct;
 import java.text.MessageFormat;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Enumeration;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Properties;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executor;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.logging.Level;
 
 import javax.sql.XAConnection;
@@ -102,9 +105,9 @@ public class SQLServerConnection implements ISQLServerConnection {
     static private Boolean defaultEnablePrepareOnFirstPreparedStatementCall = null; // Current default for new connections
     private Boolean enablePrepareOnFirstPreparedStatementCall = null; // Current limit for this particular connection.
 
-    // Handle the actual queue of discarded prepared statements.
-    private ConcurrentLinkedQueue<PreparedStatementHandle> discardedPreparedStatementHandles = new ConcurrentLinkedQueue<PreparedStatementHandle>();
-    private AtomicInteger discardedPreparedStatementHandleCount = new AtomicInteger(0);
+    // A map of SQL text SHA1 hash keys to session-shared prepared statement handles
+    private ConcurrentHashMap<Sha1HashKey, PreparedStatementHandle> preparedStatementHandleMap = new ConcurrentHashMap<>();
+    private AtomicBoolean isUnprepareInProgress = new AtomicBoolean();
 
     private boolean fedAuthRequiredByUser = false;
     private boolean fedAuthRequiredPreLoginResponse = false;
@@ -161,7 +164,7 @@ public class SQLServerConnection implements ISQLServerConnection {
     }
 
      /** Get prepared statement cache entry if exists, if not parse and create a new one */
-     static ParsedSQLCacheItem getOrCreateCachedParsedSQLMetadata(Sha1HashKey key, String sql) throws SQLServerException {
+     static ParsedSQLCacheItem getOrCreateCachedParsedSQL(Sha1HashKey key, String sql) throws SQLServerException {
          ParsedSQLCacheItem cacheItem = parsedSQLCache.get(key);
          if (null == cacheItem) {
              JDBCSyntaxTranslator translator = new JDBCSyntaxTranslator();
@@ -199,51 +202,24 @@ public class SQLServerConnection implements ISQLServerConnection {
     /**
      * Used to keep track of an individual handle ready for un-prepare.
      */
-    final class PreparedStatementCacheItem {
-        private final PreparedStatementHandle statementHandle = new PreparedStatementHandle();
-        private volatile SQLServerParameterMetaData parameterMetadata;
-        private volatile boolean hasExecutedSpExecuteSql;
-        volatile boolean evictedFromCache;
+    final class PreparedStatementMetadata {
+        private final SQLServerParameterMetaData parameterMetadata;
+        private final Sha1HashKey sha1HashKey;
 
-        boolean hasExecutedSpExecuteSql() {
-            return hasExecutedSpExecuteSql;
-        }
+        PreparedStatementMetadata(Sha1HashKey sha1HashKey, SQLServerParameterMetaData parameterMetadata) {
+            this.sha1HashKey = sha1HashKey;
+            this.parameterMetadata = parameterMetadata;
 
-        void setHasExecutedSpExecuteSql(boolean hasExecutedSpExecuteSql) {
-            this.hasExecutedSpExecuteSql = hasExecutedSpExecuteSql;
-        }
-
-        boolean hasHandle() {
-            return 0 < statementHandle.getHandle();
-        }
-
-        int getHandleAndIncrementRefCount() {
-            statementHandle.incrementRefCount();
-            return statementHandle.getHandle();
-        }
-
-        void setHandle(int handle, boolean isDirectSql) {
-            statementHandle.setHandle(handle, isDirectSql);
-        }
-        
-        boolean hasParameterMetadata() {
-            return null != this.parameterMetadata;
+            // keep the statement handle alive for the life of the prepared statement metadata
+            borrowStatementHandle(sha1HashKey);
         }
 
         SQLServerParameterMetaData getParameterMetadata() {
             return parameterMetadata;
         }
 
-        void setParameterMetadata(SQLServerParameterMetaData metadata) {
-            parameterMetadata = metadata;
-        }
-
-        int decrementHandleRefCount() {
-            return statementHandle.decrementRefCount();
-        }
-
-        int getHandleRefCount() {
-            return statementHandle.getRefCount();
+        void releaseStatementHandle() {
+            returnStatementHandle(sha1HashKey);
         }
     }
 
@@ -251,7 +227,7 @@ public class SQLServerConnection implements ISQLServerConnection {
     private int statementPoolingCacheSize = 10;
 
     /** Cache of prepared statement handles */
-    private ConcurrentLinkedHashMap<Sha1HashKey, PreparedStatementCacheItem> preparedStatementCache;
+    private ConcurrentLinkedHashMap<Sha1HashKey, PreparedStatementMetadata> preparedStatementMetadataCache;
 
     SqlFedAuthToken getAuthenticationResult() {
         return fedAuthToken;
@@ -353,13 +329,8 @@ public class SQLServerConnection implements ISQLServerConnection {
     
     private static final String SET_NETWORK_TIMEOUT_PERM = "setNetworkTimeout";
 
-    private boolean sendStringParametersAsUnicode = SQLServerDriverBooleanProperty.SEND_STRING_PARAMETERS_AS_UNICODE.getDefaultValue();        // see
-                                                                                                                                               // connection
-                                                                                                                                               // properties
-                                                                                                                                               // doc
-                                                                                                                                               // (default
-                                                                                                                                               // is
-                                                                                                                                               // false).
+    // see connection properties doc (default is false).
+    private boolean sendStringParametersAsUnicode = SQLServerDriverBooleanProperty.SEND_STRING_PARAMETERS_AS_UNICODE.getDefaultValue();
 
     boolean sendStringParametersAsUnicode() {
         return sendStringParametersAsUnicode;
@@ -857,14 +828,6 @@ public class SQLServerConnection implements ISQLServerConnection {
             String message = form.format(msgArgs);
             connectionlogger.severe(message);
             throw new UnsupportedOperationException(message);
-        }
-
-        // Caching turned off?
-        if (isStatementPoolingEnabled()) {
-            preparedStatementCache = new Builder<Sha1HashKey, PreparedStatementCacheItem>()
-                                        .maximumWeightedCapacity(getStatementPoolingCacheSize())
-                                        .listener(new PreparedStatementCacheEvictionListener())
-                                        .build();
         }
     }
 
@@ -1666,6 +1629,18 @@ public class SQLServerConnection implements ISQLServerConnection {
             String mirror = null;
             if (null == fo)
                 mirror = failOverPartnerPropertyValue;
+
+            // Caching turned off?
+            if (0 < statementPoolingCacheSize && null == preparedStatementMetadataCache) {
+                preparedStatementMetadataCache = new Builder<Sha1HashKey, PreparedStatementMetadata>()
+                                            .maximumWeightedCapacity(getStatementPoolingCacheSize())
+                                            .listener(new EvictionListener<Sha1HashKey, PreparedStatementMetadata>() {
+                                                public void onEviction(Sha1HashKey key, PreparedStatementMetadata statementMetadata) {
+                                                    statementMetadata.releaseStatementHandle();
+                                                }
+                                            })
+                                            .build();
+            }
 
             long startTime = System.currentTimeMillis();
             login(activeConnectionProperties.getProperty(serverNameProperty), instanceValue, nPort, mirror, fo, loginTimeoutSeconds, startTime);
@@ -2860,11 +2835,11 @@ public class SQLServerConnection implements ISQLServerConnection {
         }
 
         // Invalidate statement cache.
-        if(null != this.preparedStatementCache)
-            this.preparedStatementCache.clear();
+        if(null != this.preparedStatementMetadataCache)
+            this.preparedStatementMetadataCache.clear();
 
         // Clean-up queue etc. related to batching of prepared statement discard actions (sp_unprepare).
-        cleanupPreparedStatementDiscardActions();
+        clearPreparedStatementHandles();
 
         loggerExternal.exiting(getClassNameLogging(), "close");
     }
@@ -5397,29 +5372,18 @@ public class SQLServerConnection implements ISQLServerConnection {
     /**
      * Used to keep track of an individual prepared statement handle on the server side.
      */
-    static class PreparedStatementHandle  {
-        private final AtomicInteger handle;
-        private final AtomicInteger handleRefCount = new AtomicInteger();
-        private boolean isDirectSql;
-
-        PreparedStatementHandle() {
-            handle = new AtomicInteger();
-        }
+    public static class PreparedStatementHandle {
+        private final int handle;
+        private final boolean isDirectSql;
+        private final AtomicInteger handleRefCount = new AtomicInteger(1);
 
         PreparedStatementHandle(int handle, boolean isDirectSql) {
-            this.handle = new AtomicInteger(handle);
-            this.isDirectSql = isDirectSql;        
+            this.handle = handle;
+            this.isDirectSql = isDirectSql;
         }
 
         int getHandle() {
-            return handle.get();
-        }
-
-        void setHandle(int handle, boolean isDirectSql) {
-            if (handleRefCount.compareAndSet(0, 1)) {
-                this.handle.compareAndSet(0, handle);
-                this.isDirectSql = isDirectSql;
-            }
+            return handle;
         }
 
         public boolean isDirectSql() {
@@ -5439,20 +5403,44 @@ public class SQLServerConnection implements ISQLServerConnection {
         }
     }
 
+    final int borrowStatementHandle(Sha1HashKey key) {
+        if (!isPreparedStatementUnprepareBatchingEnabled())
+            return 0;
 
-    /**
-     * Enqueue a discarded prepared statement handle to be clean-up on the server.
-     * 
-     * @param statementHandle
-     *      The prepared statement handle that should be scheduled for unprepare.
-     */
-    final void enqueueUnprepareStatementHandle(PreparedStatementHandle statementHandle) {
-        if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
-            loggerExternal.finer(this + ": Adding PreparedHandle to queue for un-prepare:" + statementHandle.getHandle());
+        // We MUST synchronize because the map.get() and incrementRefCount() cannot be made atomic
+        synchronized (preparedStatementHandleMap) {
+            PreparedStatementHandle statementHandle = preparedStatementHandleMap.get(key);
+            if (null != statementHandle) {
+                statementHandle.incrementRefCount();
+                return statementHandle.getHandle();
+            }
+        }
 
-        // Add the new handle to the discarding queue and find out current # enqueued.
-        this.discardedPreparedStatementHandles.add(statementHandle);
-        this.discardedPreparedStatementHandleCount.incrementAndGet();
+        return 0;
+    }
+
+
+    final void returnStatementHandle(Sha1HashKey key) {
+        if (!isPreparedStatementUnprepareBatchingEnabled())
+            return;
+
+        // No map synchronization needed here, the entry can never be removed in a racey fashion because the refcount is still > 0
+        PreparedStatementHandle statementHandle = preparedStatementHandleMap.get(key);
+        if (null != statementHandle)
+            statementHandle.decrementRefCount();
+    }
+
+
+    final void registerStatementHandle(Sha1HashKey key, int handle, boolean isDirectSql) {
+        if (!isPreparedStatementUnprepareBatchingEnabled())
+            return;
+
+        // We MUST synchronize because the map.get() and [possible but rare] incrementRefCount() cannot be made atomic
+        synchronized (preparedStatementHandleMap) {
+            PreparedStatementHandle existingHandle = preparedStatementHandleMap.putIfAbsent(key, new PreparedStatementHandle(handle, isDirectSql));
+            if (null != existingHandle)
+                existingHandle.incrementRefCount();
+        }
     }
 
 
@@ -5461,23 +5449,28 @@ public class SQLServerConnection implements ISQLServerConnection {
      * 
      * @return Returns the current value per the description.
      */
-    public int getDiscardedServerPreparedStatementCount() {
-        return this.discardedPreparedStatementHandleCount.get();
+    public int getDiscardableServerPreparedStatementCount() {
+        int discardCount = 0;
+        for (PreparedStatementHandle handle : preparedStatementHandleMap.values()) {
+            if (0 == handle.getRefCount()) {
+                discardCount++;
+            }
+        }
+        return discardCount;
     }
 
     /**
      * Forces the un-prepare requests for any outstanding discarded prepared statements to be executed.
      */
-    public void closeDiscardedServerPreparedStatements() {
-        this.handlePreparedStatementDiscardActions(true);
+    public void closeUnreferencedPreparedStatementHandles() {
+        this.unprepareUnreferencedPreparedStatementHandles(true);
     }
 
     /**
      * Remove references to outstanding un-prepare requests. Should be run when connection is closed.
      */
-    private final void cleanupPreparedStatementDiscardActions() {
-        this.discardedPreparedStatementHandles.clear();
-        this.discardedPreparedStatementHandleCount.set(0);
+    private final void clearPreparedStatementHandles() {
+        this.preparedStatementHandleMap.clear();
     }
 
     /**
@@ -5613,59 +5606,79 @@ public class SQLServerConnection implements ISQLServerConnection {
         this.serverPreparedStatementDiscardThreshold = Math.max(0, value);
     }
 
+    final boolean isPreparedStatementUnprepareBatchingEnabled() {
+    	return 1 < getServerPreparedStatementDiscardThreshold();
+    }
+
     /**
      * Cleans-up discarded prepared statement handles on the server using batched un-prepare actions if the batching threshold has been reached.
      * 
      * @param force 
      *      When force is set to true we ignore the current threshold for if the discard actions should run and run them anyway.
      */
-    final void handlePreparedStatementDiscardActions(boolean force) {
-        // Skip out if session is unavailable to adhere to previous non-batched behavior.
-        if (isSessionUnAvailable()) 
+    final void unprepareUnreferencedPreparedStatementHandles(boolean force) {
+        // Skip out if session is unavailable to adhere to previous non-batched behavior
+        if (isSessionUnAvailable())
             return;
 
+        // Skip out if we are not forced and:
+        //   * another thread is already doing the work of un-preparing, OR
+        //   * number of handles in the map have not crossed the threshold (optimization)
         final int threshold = getServerPreparedStatementDiscardThreshold();
+        if (!force && (isUnprepareInProgress.get() || threshold >= preparedStatementHandleMap.size()))
+            return;
 
-        // Met threshold to clean-up?
-        if (force || threshold < getDiscardedServerPreparedStatementCount()) {
-
-            // Create batch of sp_unprepare statements.
-            StringBuilder sql = new StringBuilder(threshold  * 32/*EXEC sp_cursorunprepare++;*/);
-
-            // Build the string containing no more than the # of handles to remove.
-            // Note that sp_unprepare can fail if the statement is already removed. 
-            // However, the server will only abort that statement and continue with 
-            // the remaining clean-up.
-            int handlesRemoved = 0;
-            PreparedStatementHandle statementHandle = null;
-
-            while (null != (statementHandle = discardedPreparedStatementHandles.poll())){
-                if (0 < statementHandle.getRefCount())
-                    continue; // Will get discarded when remaining prepared statements get closed.
-                    
-                    ++handlesRemoved;
-                
-                sql.append(statementHandle.isDirectSql() ? "EXEC sp_unprepare " : "EXEC sp_cursorunprepare ")
-                    .append(statementHandle.getHandle())
-                    .append(';');
-            }
-
+        boolean shouldUnprepare = force || threshold < getDiscardableServerPreparedStatementCount();
+        if (shouldUnprepare && isUnprepareInProgress.compareAndSet(false, true)) {
             try {
-                // Execute the batched set.
-                try(Statement stmt = this.createStatement()) {
-                    stmt.execute(sql.toString());
+                List<PreparedStatementHandle> removalCandidates = new ArrayList<>(threshold);
+
+                Iterator<PreparedStatementHandle> iterator = preparedStatementHandleMap.values().iterator();
+                while (iterator.hasNext()) {
+                    PreparedStatementHandle statementHandle = iterator.next();
+                    synchronized (preparedStatementHandleMap) {  // leverages JVM biased locking
+                        if (0 < statementHandle.getRefCount())
+                            continue;
+
+                        iterator.remove();
+                    }
+
+                    removalCandidates.add(statementHandle);
                 }
 
-                if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
-                    loggerExternal.finer(this + ": Finished un-preparing handle count:" + handlesRemoved);
-            }
-            catch(SQLException e) {
-                if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
-                    loggerExternal.log(Level.FINER, this + ": Error batch-closing at least one prepared handle", e);
-            }
+                if (removalCandidates.isEmpty())
+                    return;
 
-            // Decrement threshold counter
-            this.discardedPreparedStatementHandleCount.addAndGet(-handlesRemoved);
+                // Create batch of sp_unprepare statements.
+                StringBuilder sql = new StringBuilder(removalCandidates.size()  * 32 /*EXEC sp_cursorunprepare++;*/);
+
+                // Build the string containing no more than the # of handles to remove.
+                // Note that sp_unprepare can fail if the statement is already removed.
+                // However, the server will only abort that statement and continue with
+                // the remaining clean-up.
+                for (PreparedStatementHandle statementHandle : removalCandidates) {
+                    sql.append(statementHandle.isDirectSql() ? "EXEC sp_unprepare " : "EXEC sp_cursorunprepare ")
+                       .append(statementHandle.getHandle())
+                       .append(';');
+                }
+
+                try {
+                    // Execute the batched set.
+                    try(Statement stmt = this.createStatement()) {
+                        stmt.execute(sql.toString());
+                    }
+
+                    if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
+                        loggerExternal.finer(this + ": Finished un-preparing handle count:" + removalCandidates.size());
+                }
+                catch(SQLException e) {
+                    if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
+                        loggerExternal.log(Level.FINER, this + ": Error batch-closing at least one prepared handle", e);
+                }
+            }
+            finally {
+                isUnprepareInProgress.set(false);
+            }
         }
     }
 
@@ -5675,18 +5688,18 @@ public class SQLServerConnection implements ISQLServerConnection {
      * @return Returns the current setting per the description.
      */
     public int getStatementPoolingCacheSize() {
-        return this.statementPoolingCacheSize;
+        return statementPoolingCacheSize;
     }
 
     /**
      * Returns the current number of pooled prepared statements.
      * @return Returns the current setting per the description.
      */
-    public int getStatementPoolingCacheEntryCount() {
-        if(null == this.preparedStatementCache)
+    public int getStatementMetadataCacheEntryCount() {
+        if (!isStatementPoolingEnabled())
             return 0;
         else
-            return this.preparedStatementCache.size();
+            return preparedStatementMetadataCache.size();
     }
 
     /**
@@ -5694,57 +5707,39 @@ public class SQLServerConnection implements ISQLServerConnection {
      * @return Returns the current setting per the description.
      */
     public boolean isStatementPoolingEnabled() {
-        return 0 < this.getStatementPoolingCacheSize();
+        return null != preparedStatementMetadataCache;
     }
 
     /**
-     * Specifies the size of the prepared statement cache for this conection. A value less than 1 means no cache.
+     * Specifies the size of the prepared statement metadata cache for this connection. A value less than 1 means no cache.
      * @value The new cache size.
      */
     public void setStatementPoolingCacheSize(int value) {
-        if (value != this.statementPoolingCacheSize) {
+        if (value != statementPoolingCacheSize) {
             value = Math.max(0, value);
-            this.statementPoolingCacheSize = value;
+            statementPoolingCacheSize = value;
 
-            if (null != this.preparedStatementCache) {
-                this.preparedStatementCache.setCapacity(value);
+            if (isStatementPoolingEnabled()) {
+                preparedStatementMetadataCache.setCapacity(value);
             }
         }
     }
 
     /** Get or create prepared statement cache entry if statement pooling is enabled */
-    final PreparedStatementCacheItem borrowCachedPreparedStatementMetadata(Sha1HashKey key) {
-        if(!isStatementPoolingEnabled())
+    final PreparedStatementMetadata getPreparedStatementMetadata(Sha1HashKey key) {
+        if (!isStatementPoolingEnabled())
             return null;
-        
-        PreparedStatementCacheItem cacheItem = preparedStatementCache.get(key);
-        if (null == cacheItem) {
-            cacheItem = new PreparedStatementCacheItem();
-            preparedStatementCache.putIfAbsent(key, cacheItem);
-        }
 
-        return cacheItem;
+        return preparedStatementMetadataCache.get(key);
     }
 
-    /** Return prepared statement cache entry so it can be un-prepared. */
-    final void returnCachedPreparedStatementMetadata(PreparedStatementCacheItem cacheItem) {
-        if (0 >= cacheItem.decrementHandleRefCount() && cacheItem.evictedFromCache && cacheItem.hasHandle())
-            enqueueUnprepareStatementHandle(cacheItem.statementHandle);
-    }
+    final void registerPreparedStatementMetadata(Sha1HashKey key, SQLServerParameterMetaData parameterMetadata) {
+        if (!isStatementPoolingEnabled())
+            return;
 
-    // Handle closing handles when removed from cache.
-    final class PreparedStatementCacheEvictionListener implements EvictionListener<Sha1HashKey, PreparedStatementCacheItem> {
-        public void onEviction(Sha1HashKey key, PreparedStatementCacheItem cacheItem) {
-            if(null != cacheItem) {
-                cacheItem.evictedFromCache = true; // Mark as evicted from cache.
-
-                // Only discard if not referenced.
-                if(cacheItem.hasHandle() && 0 >= cacheItem.getHandleRefCount()) {
-                    enqueueUnprepareStatementHandle(cacheItem.statementHandle);
-                    // Do not run discard actions here! Can interfere with executing statement.
-                }                    
-            }
-        }
+        PreparedStatementMetadata existingMetadata = preparedStatementMetadataCache.putIfAbsent(key, new PreparedStatementMetadata(key, parameterMetadata));
+        if (null != existingMetadata)
+            existingMetadata.releaseStatementHandle();
     }
 }
 
