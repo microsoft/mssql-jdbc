@@ -62,7 +62,9 @@ public class DNSUtilities {
                     }
                 }
             }
+            srvRecord.close();
         }
+        allServers.close();
         return records;
     }
 }
