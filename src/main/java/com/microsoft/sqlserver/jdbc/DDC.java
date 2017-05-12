@@ -467,7 +467,7 @@ final class DDC {
 
                 if ((SSType.BINARY == baseTypeInfo.getSSType()) && (str.length() < (baseTypeInfo.getPrecision() * 2))) {
 
-                    StringBuffer strbuf = new StringBuffer(str);
+                    StringBuilder strbuf = new StringBuilder(str);
 
                     while (strbuf.length() < (baseTypeInfo.getPrecision() * 2)) {
                         strbuf.append('0');
