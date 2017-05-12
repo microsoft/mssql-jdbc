@@ -7,17 +7,24 @@
  */
 package com.microsoft.sqlserver.jdbc.unit.statement;
 
-import static org.junit.jupiter.api.Assertions.assertSame;
+import static java.util.concurrent.TimeUnit.SECONDS;
+import static org.junit.Assert.assertNull;
 import static org.junit.jupiter.api.Assertions.assertNotSame;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
 import java.sql.DriverManager;
+import java.sql.ParameterMetaData;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.UUID;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicReference;
 
+import org.junit.Assert;
 import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
@@ -52,6 +59,7 @@ public class PreparedStatementTest extends AbstractTest {
      * @throws SQLException
      */
     @Test
+    @SuppressWarnings("resource")
     public void testBatchedUnprepare() throws SQLException {
         SQLServerConnection conOuter = null;
 
@@ -63,8 +71,8 @@ public class PreparedStatementTest extends AbstractTest {
             conOuter = con;
 
             // Clean-up proc cache
-            this.executeSQL(con, "DBCC FREEPROCCACHE;"); 
-            
+            this.executeSQL(con, "DBCC FREEPROCCACHE;");
+
             String lookupUniqueifier = UUID.randomUUID().toString();
 
             String queryCacheLookup = String.format("%%/*unpreparetest_%s%%*/SELECT * FROM sys.tables;", lookupUniqueifier);
@@ -78,55 +86,146 @@ public class PreparedStatementTest extends AbstractTest {
             int iterations = 25;
 
             // Verify no prepares for 1 time only uses.
-            for(int i = 0; i < iterations; ++i) {
+            for (int i = 0; i < iterations; ++i) {
                 try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement)con.prepareStatement(query)) {
                     pstmt.execute();
-                } 
-                assertSame(0, con.getDiscardedServerPreparedStatementCount());
+                }
+                assertSame(0, con.getDiscardableServerPreparedStatementCount());
             }
 
             // Verify total cache use.
             assertSame(iterations, executeSQLReturnFirstInt(con, verifyTotalCacheUsesQuery));
 
-            query = String.format("/*unpreparetest_%s, sp_executesql->sp_prepexec->sp_execute- batched sp_unprepare*/SELECT * FROM sys.tables;", lookupUniqueifier);
             int prevDiscardActionCount = 0;
-    
-            // Now verify unprepares are needed.                 
-            for(int i = 0; i < iterations; ++i) {
+
+            // Now verify unprepares are needed.
+            int handle = 0;
+            for (int i = 0; i < iterations; ++i) {
 
                 // Verify current queue depth is expected.
-                assertSame(prevDiscardActionCount, con.getDiscardedServerPreparedStatementCount());
-                
+                assertSame(prevDiscardActionCount, con.getDiscardableServerPreparedStatementCount());
+
+                query = String.format("/*unpreparetest_%s, sp_executesql->sp_prepexec->sp_execute- batched sp_unprepare*/SELECT * FROM sys.tables;", UUID.randomUUID().toString());
                 try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement)con.prepareStatement(query)) {
                     pstmt.execute(); // sp_executesql
-            
+
                     pstmt.execute(); // sp_prepexec
                     ++prevDiscardActionCount;
 
                     pstmt.execute(); // sp_execute
+
+                    if (i > 0)
+                        assertNotSame(handle, pstmt.getPreparedStatementHandle());
+
+                    handle = pstmt.getPreparedStatementHandle();
                 }
 
                 // Verify clean-up is happening as expected.
-                if(prevDiscardActionCount > con.getServerPreparedStatementDiscardThreshold()) {
+                if (prevDiscardActionCount > con.getServerPreparedStatementDiscardThreshold()) {
                     prevDiscardActionCount = 0;
                 }
 
-                assertSame(prevDiscardActionCount, con.getDiscardedServerPreparedStatementCount());
-            }  
+                assertSame(prevDiscardActionCount, con.getDiscardableServerPreparedStatementCount());
+            }
 
             // Skipped for now due to unexpected failures. Not functional so not critical.
-            /*
+
             // Verify total cache use.
-            int expectedCacheHits = iterations * 4;
-            int allowedDiscrepency = 20;
-            // Allow some discrepency in number of cache hits to not fail test (
-            // TODO: Follow up on why there is sometimes a discrepency in number of cache hits (less than expected).
-            assertTrue(expectedCacheHits >= executeSQLReturnFirstInt(con, verifyTotalCacheUsesQuery));              
-            assertTrue(expectedCacheHits - allowedDiscrepency < executeSQLReturnFirstInt(con, verifyTotalCacheUsesQuery));              
-            */
-        } 
+            int expectedCacheHits = iterations;
+            int actualCacheHits = executeSQLReturnFirstInt(con, verifyTotalCacheUsesQuery);
+            assertTrue(expectedCacheHits == actualCacheHits,
+                       String.format("expectedCacheHits not as expected, %d != %d", expectedCacheHits, actualCacheHits));
+        }
+
         // Verify clean-up happened on connection close.
-        assertSame(0, conOuter.getDiscardedServerPreparedStatementCount());        
+        assertSame(0, conOuter.getDiscardableServerPreparedStatementCount());
+    }
+
+    /**
+     * Test handling of statement pooling for prepared statements.
+     *
+     * @throws SQLException
+     */
+    @Test
+    public void testMetadataCaching() throws SQLException {
+        // Make sure correct settings are used.
+        SQLServerConnection.setDefaultEnablePrepareOnFirstPreparedStatementCall(SQLServerConnection.getInitialDefaultEnablePrepareOnFirstPreparedStatementCall());
+        SQLServerConnection.setDefaultServerPreparedStatementDiscardThreshold(SQLServerConnection.getInitialDefaultServerPreparedStatementDiscardThreshold());
+
+        String lookupUniqueifier = UUID.randomUUID().toString();
+        String query = String.format("/*statementpoolingtest_%s*/SELECT * FROM sys.tables;", lookupUniqueifier);
+
+        ParameterMetaData metadata;
+        try (SQLServerConnection con = (SQLServerConnection)DriverManager.getConnection(connectionString)) {
+            // Execute query first, creates metadata cache entry
+            try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement)con.prepareStatement(query)) {
+                pstmt.execute(); // sp_executesql
+
+                metadata = pstmt.getParameterMetaData();  // causes population of parameter metadata cache
+                Assert.assertNotNull(metadata);
+            }
+
+            // Execute query again, should get the same ParameterMetaData instance as above
+            try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement)con.prepareStatement(query)) {
+                pstmt.execute(); // sp_prepexec
+
+                assertSame(metadata, pstmt.getParameterMetaData());
+            }
+
+            // Execute new statement with different SQL text and verify it does NOT get same metadata instance
+            try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement)con.prepareStatement(query + ";")) {
+                pstmt.execute(); // sp_executesql
+
+                assertNotSame(metadata, pstmt.getParameterMetaData());
+            }
+        }
+    }
+
+    @Test
+    public void testPrepareRace() throws Exception {
+        // Make sure correct settings are used.
+        SQLServerConnection.setDefaultEnablePrepareOnFirstPreparedStatementCall(true);
+        SQLServerConnection.setDefaultServerPreparedStatementDiscardThreshold(2);
+
+        String[] queries = new String[3];
+        queries[0] = String.format("SELECT * FROM sys.tables -- %s", UUID.randomUUID());
+        queries[1] = String.format("SELECT * FROM sys.tables -- %s", UUID.randomUUID());
+        queries[2] = String.format("SELECT * FROM sys.tables -- %s", UUID.randomUUID());
+
+        ExecutorService threadPool = Executors.newFixedThreadPool(4);
+        AtomicReference<Exception> exception = new AtomicReference<>();
+        try (SQLServerConnection con = (SQLServerConnection)DriverManager.getConnection(connectionString)) {
+
+            for (int i = 0; i < 4; i++) {
+                threadPool.execute(() -> {
+                    for (int j = 0; j < 500; j++) {
+                        try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) con.prepareStatement(queries[j % 3])) {
+                            pstmt.execute(); // sp_executesql
+                        }
+                        catch (SQLException e) {
+                            exception.set(e);
+                            break;
+                        }
+                    }
+                });
+            }
+
+            threadPool.shutdown();
+            threadPool.awaitTermination(120, SECONDS);
+
+            assertNull(exception.get());
+
+            // Force un-prepares.
+            con.closeUnreferencedPreparedStatementHandles();
+
+            // Verify that queue is now empty.
+            assertSame(0, con.getDiscardableServerPreparedStatementCount());
+
+        }
+        finally {
+            SQLServerConnection.setDefaultEnablePrepareOnFirstPreparedStatementCall(SQLServerConnection.getInitialDefaultEnablePrepareOnFirstPreparedStatementCall());
+            SQLServerConnection.setDefaultServerPreparedStatementDiscardThreshold(SQLServerConnection.getInitialDefaultServerPreparedStatementDiscardThreshold());
+        }
     }
 
     /**
@@ -135,7 +234,7 @@ public class PreparedStatementTest extends AbstractTest {
      * @throws SQLException
      */
     @Test
-    public void testPreparedStatementExecAndUnprepareConfig() throws SQLException {
+    public void testStatementPoolingPreparedStatementExecAndUnprepareConfig() throws SQLException {
 
         // Verify initial defaults are correct:
         assertTrue(SQLServerConnection.getInitialDefaultServerPreparedStatementDiscardThreshold() > 1);
@@ -147,15 +246,19 @@ public class PreparedStatementTest extends AbstractTest {
         SQLServerDataSource dataSource = new SQLServerDataSource();
         dataSource.setURL(connectionString);
         // Verify defaults.
+        assertTrue(0 < dataSource.getStatementPoolingCacheSize());
         assertSame(SQLServerConnection.getDefaultEnablePrepareOnFirstPreparedStatementCall(), dataSource.getEnablePrepareOnFirstPreparedStatementCall());
         assertSame(SQLServerConnection.getDefaultServerPreparedStatementDiscardThreshold(), dataSource.getServerPreparedStatementDiscardThreshold());
         // Verify change
+        dataSource.setStatementPoolingCacheSize(0);
+        assertSame(0, dataSource.getStatementPoolingCacheSize());
         dataSource.setEnablePrepareOnFirstPreparedStatementCall(!dataSource.getEnablePrepareOnFirstPreparedStatementCall());
         assertNotSame(SQLServerConnection.getDefaultEnablePrepareOnFirstPreparedStatementCall(), dataSource.getEnablePrepareOnFirstPreparedStatementCall());
         dataSource.setServerPreparedStatementDiscardThreshold(dataSource.getServerPreparedStatementDiscardThreshold() + 1);
         assertNotSame(SQLServerConnection.getDefaultServerPreparedStatementDiscardThreshold(), dataSource.getServerPreparedStatementDiscardThreshold());
         // Verify connection from data source has same parameters.
         SQLServerConnection connDataSource = (SQLServerConnection)dataSource.getConnection();
+        assertSame(dataSource.getStatementPoolingCacheSize(), connDataSource.getStatementPoolingCacheSize());
         assertSame(dataSource.getEnablePrepareOnFirstPreparedStatementCall(), connDataSource.getEnablePrepareOnFirstPreparedStatementCall());
         assertSame(dataSource.getServerPreparedStatementDiscardThreshold(), connDataSource.getServerPreparedStatementDiscardThreshold());
 
@@ -163,6 +266,15 @@ public class PreparedStatementTest extends AbstractTest {
         // Make sure default is not same as test.
         assertNotSame(true, SQLServerConnection.getDefaultEnablePrepareOnFirstPreparedStatementCall());
         assertNotSame(3, SQLServerConnection.getDefaultServerPreparedStatementDiscardThreshold());
+
+        // Test disableStatementPooling
+        String connectionStringDisableStatementPooling = connectionString + ";disableStatementPooling=true;";
+        SQLServerConnection connectionDisableStatementPooling = (SQLServerConnection)DriverManager.getConnection(connectionStringDisableStatementPooling);
+        assertSame(0, connectionDisableStatementPooling.getStatementPoolingCacheSize());
+        assertTrue(!connectionDisableStatementPooling.isStatementPoolingEnabled());
+        String connectionStringEnableStatementPooling = connectionString + ";disableStatementPooling=false;";
+        SQLServerConnection connectionEnableStatementPooling = (SQLServerConnection)DriverManager.getConnection(connectionStringEnableStatementPooling);
+        assertTrue(0 < connectionEnableStatementPooling.getStatementPoolingCacheSize());
 
         // Test EnablePrepareOnFirstPreparedStatementCall
         String connectionStringNoExecuteSQL = connectionString + ";enablePrepareOnFirstPreparedStatementCall=true;";
@@ -204,27 +316,30 @@ public class PreparedStatementTest extends AbstractTest {
         assertNotSame(SQLServerConnection.getInitialDefaultServerPreparedStatementDiscardThreshold(), SQLServerConnection.getDefaultServerPreparedStatementDiscardThreshold());
         assertNotSame(SQLServerConnection.getInitialDefaultEnablePrepareOnFirstPreparedStatementCall(), SQLServerConnection.getDefaultEnablePrepareOnFirstPreparedStatementCall());
 
-        // Verify invalid (negative) change does not stick for threshold.
+        // Verify invalid (negative) changes are handled correctly.
         SQLServerConnection.setDefaultServerPreparedStatementDiscardThreshold(-1);
-        assertTrue(0 < SQLServerConnection.getDefaultServerPreparedStatementDiscardThreshold());
+        assertSame(0, SQLServerConnection.getDefaultServerPreparedStatementDiscardThreshold());
 
         // Verify instance settings.
         SQLServerConnection conn1 = (SQLServerConnection)DriverManager.getConnection(connectionString);
-        assertSame(SQLServerConnection.getDefaultServerPreparedStatementDiscardThreshold(), conn1.getServerPreparedStatementDiscardThreshold());        
-        assertSame(SQLServerConnection.getDefaultEnablePrepareOnFirstPreparedStatementCall(), conn1.getEnablePrepareOnFirstPreparedStatementCall());        
+        assertSame(SQLServerConnection.getDefaultServerPreparedStatementDiscardThreshold(), conn1.getServerPreparedStatementDiscardThreshold());
+        assertSame(SQLServerConnection.getDefaultEnablePrepareOnFirstPreparedStatementCall(), conn1.getEnablePrepareOnFirstPreparedStatementCall());
         conn1.setServerPreparedStatementDiscardThreshold(SQLServerConnection.getDefaultServerPreparedStatementDiscardThreshold() + 1);
         conn1.setEnablePrepareOnFirstPreparedStatementCall(!SQLServerConnection.getDefaultEnablePrepareOnFirstPreparedStatementCall());
-        assertNotSame(SQLServerConnection.getDefaultServerPreparedStatementDiscardThreshold(), conn1.getServerPreparedStatementDiscardThreshold());        
-        assertNotSame(SQLServerConnection.getDefaultEnablePrepareOnFirstPreparedStatementCall(), conn1.getEnablePrepareOnFirstPreparedStatementCall());        
-        
+        assertNotSame(SQLServerConnection.getDefaultServerPreparedStatementDiscardThreshold(), conn1.getServerPreparedStatementDiscardThreshold());
+        assertNotSame(SQLServerConnection.getDefaultEnablePrepareOnFirstPreparedStatementCall(), conn1.getEnablePrepareOnFirstPreparedStatementCall());
+
         // Verify new instance not same as changed instance.
         SQLServerConnection conn2 = (SQLServerConnection)DriverManager.getConnection(connectionString);
-        assertNotSame(conn1.getServerPreparedStatementDiscardThreshold(), conn2.getServerPreparedStatementDiscardThreshold());        
-        assertNotSame(conn1.getEnablePrepareOnFirstPreparedStatementCall(), conn2.getEnablePrepareOnFirstPreparedStatementCall());        
+        assertNotSame(conn1.getServerPreparedStatementDiscardThreshold(), conn2.getServerPreparedStatementDiscardThreshold());
+        assertNotSame(conn1.getEnablePrepareOnFirstPreparedStatementCall(), conn2.getEnablePrepareOnFirstPreparedStatementCall());
 
         // Verify instance setting is followed.
         SQLServerConnection.setDefaultServerPreparedStatementDiscardThreshold(SQLServerConnection.getInitialDefaultServerPreparedStatementDiscardThreshold());
         try (SQLServerConnection con = (SQLServerConnection)DriverManager.getConnection(connectionString)) {
+
+            // Turn off use of prepared statement cache.
+            con.setStatementPoolingCacheSize(0);
 
             String query = "/*unprepSettingsTest*/SELECT * FROM sys.objects;";
 
@@ -236,22 +351,22 @@ public class PreparedStatementTest extends AbstractTest {
                 pstmt.execute();
             }
             // Verify that the un-prepare action was not handled immediately.
-            assertSame(1, con.getDiscardedServerPreparedStatementCount());
+            assertSame(1, con.getDiscardableServerPreparedStatementCount());
 
             // Force un-prepares.
-            con.closeDiscardedServerPreparedStatements();
+            con.closeUnreferencedPreparedStatementHandles();
 
             // Verify that queue is now empty.
-            assertSame(0, con.getDiscardedServerPreparedStatementCount());
+            assertSame(0, con.getDiscardableServerPreparedStatementCount());
 
             // Set instance setting to serial execution of un-prepare actions.
-            con.setServerPreparedStatementDiscardThreshold(1);                
+            con.setServerPreparedStatementDiscardThreshold(1);
 
             try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement)con.prepareStatement(query)) {
                 pstmt.execute();
             }
             // Verify that the un-prepare action was handled immediately.
-            assertSame(0, con.getDiscardedServerPreparedStatementCount());
+            assertSame(0, con.getDiscardableServerPreparedStatementCount());
         }
     }
 }
