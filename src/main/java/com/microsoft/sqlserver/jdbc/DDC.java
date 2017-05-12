@@ -120,7 +120,7 @@ final class DDC {
                 return new Float(longVal);
             case BINARY:
                 byte[] convertedBytes = convertLongToBytes(longVal);
-                int bytesToReturnLength = 0;
+                int bytesToReturnLength;
                 byte[] bytesToReturn;
 
                 switch (baseSSType) {
