@@ -1601,12 +1601,14 @@ final class TDSChannel {
                 validateFips(fipsProvider, trustStoreType, trustStoreFileName);
             }
 
-            assert TDS.ENCRYPT_OFF == con.getRequestedEncryptionLevel() || // Login only SSL
-                    TDS.ENCRYPT_ON == con.getRequestedEncryptionLevel();   // Full SSL
+            byte requestedEncryptionLevel = con.getRequestedEncryptionLevel();
+            assert TDS.ENCRYPT_OFF == requestedEncryptionLevel || // Login only SSL
+                    TDS.ENCRYPT_ON == requestedEncryptionLevel;   // Full SSL
 
-            assert TDS.ENCRYPT_OFF == con.getNegotiatedEncryptionLevel() || // Login only SSL
-                    TDS.ENCRYPT_ON == con.getNegotiatedEncryptionLevel() || // Full SSL
-                    TDS.ENCRYPT_REQ == con.getNegotiatedEncryptionLevel();   // Full SSL
+            byte negotiatedEncryptionLevel = con.getNegotiatedEncryptionLevel();
+            assert TDS.ENCRYPT_OFF == negotiatedEncryptionLevel || // Login only SSL
+                    TDS.ENCRYPT_ON == negotiatedEncryptionLevel || // Full SSL
+                    TDS.ENCRYPT_REQ == negotiatedEncryptionLevel;   // Full SSL
 
             // If we requested login only SSL or full SSL without server certificate validation,
             // then we'll "validate" the server certificate using a naive TrustManager that trusts
