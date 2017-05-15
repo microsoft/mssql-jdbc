@@ -7,9 +7,11 @@
  */
 package com.microsoft.sqlserver.jdbc.unit.statement;
 
+import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertNotSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.fail;
 
 import java.sql.DriverManager;
@@ -17,6 +19,9 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.UUID;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicReference;
 
 import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
@@ -280,6 +285,54 @@ public class PreparedStatementTest extends AbstractTest {
                     assertSame(0, con.getStatementPoolingCacheEntryCount());
                 } 
             } 
+        }
+    }
+
+
+    @Test
+    public void testPrepareRace() throws Exception {
+        // Make sure correct settings are used.
+        SQLServerConnection.setDefaultEnablePrepareOnFirstPreparedStatementCall(true);
+        SQLServerConnection.setDefaultServerPreparedStatementDiscardThreshold(2);
+
+        String[] queries = new String[3];
+        queries[0] = String.format("SELECT * FROM sys.tables -- %s", UUID.randomUUID());
+        queries[1] = String.format("SELECT * FROM sys.tables -- %s", UUID.randomUUID());
+        queries[2] = String.format("SELECT * FROM sys.tables -- %s", UUID.randomUUID());
+
+        ExecutorService threadPool = Executors.newFixedThreadPool(4);
+        AtomicReference<Exception> exception = new AtomicReference<>();
+        try (SQLServerConnection con = (SQLServerConnection)DriverManager.getConnection(connectionString)) {
+
+            for (int i = 0; i < 4; i++) {
+                threadPool.execute(() -> {
+                    for (int j = 0; j < 500000; j++) {
+                        try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) con.prepareStatement(queries[j % 3])) {
+                            pstmt.execute();
+                        }
+                        catch (SQLException e) {
+                            exception.set(e);
+                            break;
+                        }
+                    }
+                });
+            }
+
+            threadPool.shutdown();
+            threadPool.awaitTermination(12000, SECONDS);
+
+            assertNull(exception.get());
+
+            // Force un-prepares.
+            con.closeDiscardedServerPreparedStatements();
+
+            // Verify that queue is now empty.
+            assertSame(0, con.getDiscardedServerPreparedStatementCount());
+
+        }
+        finally {
+            SQLServerConnection.setDefaultEnablePrepareOnFirstPreparedStatementCall(SQLServerConnection.getInitialDefaultEnablePrepareOnFirstPreparedStatementCall());
+            SQLServerConnection.setDefaultServerPreparedStatementDiscardThreshold(SQLServerConnection.getInitialDefaultServerPreparedStatementDiscardThreshold());
         }
     }
 

@@ -214,12 +214,12 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
             if (null != cachedPreparedStatementItem) {
                 connection.returnCachedPreparedStatementMetadata(cachedPreparedStatementItem);                    
             }
-            // Using batched clean-up? If not, use old method of calling sp_unprepare.
+            // Using batched clean-up? 
             else if(1 < connection.getServerPreparedStatementDiscardThreshold()) {
                 connection.enqueueUnprepareStatementHandle(new PreparedStatementHandle(getPreparedStatementHandle(), executedSqlDirectly));
             }
             else {
-                // Non batched behavior (same as pre batch impl.)
+                // Non batched behavior (same as pre batch clean-up implementation)
                 if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
                     loggerExternal.finer(this + ": Closing PreparedHandle:" + handleToClose);
 
