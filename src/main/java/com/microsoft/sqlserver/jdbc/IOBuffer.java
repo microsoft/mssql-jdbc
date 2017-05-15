@@ -2640,7 +2640,9 @@ final class SocketFinder {
             int portNumber,
             int timeoutInMilliSeconds) throws IOException, InterruptedException {
         assert timeoutInMilliSeconds != 0 : "The timeout cannot be zero";
-        assert inetAddrs.isEmpty() == false : "Number of inetAddresses should not be zero in this function";
+        
+        boolean empty = inetAddrs.isEmpty();
+        assert empty == false : "Number of inetAddresses should not be zero in this function";
 
         LinkedList<Socket> sockets = new LinkedList<Socket>();
         LinkedList<SocketConnector> socketConnectors = new LinkedList<SocketConnector>();
