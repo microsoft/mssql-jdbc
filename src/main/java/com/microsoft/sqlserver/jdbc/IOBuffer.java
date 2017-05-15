@@ -2155,7 +2155,9 @@ final class TDSChannel {
             logMsg.append("\r\n");
         }
 
-        packetLogger.finest(logMsg.toString());
+        if (packetLogger.isLoggable(Level.FINEST)) {
+            packetLogger.finest(logMsg.toString());
+        }
     }
 
     /**
