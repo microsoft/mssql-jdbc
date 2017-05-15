@@ -70,7 +70,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     private boolean isExecutedAtLeastOnce = false;
 
     /** Reference to cache item for statement pooling. Only used to decrement ref count on statement close. */
-    private final PreparedStatementCacheItem cachedPreparedStatementItem; 
+    private PreparedStatementCacheItem cachedPreparedStatementItem; 
 
     /**
      * Array with parameter names generated in buildParamTypeDefinitions For mapping encryption information to parameters, as the second result set
@@ -180,9 +180,10 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         cachedPreparedStatementItem = connection.borrowCachedPreparedStatementMetadata(cacheKey);
         // If handle was found then re-use.
         if(null != cachedPreparedStatementItem && cachedPreparedStatementItem.hasExecutedSpExecuteSql()) {
-            // If existing handle was found use it.
-            if(cachedPreparedStatementItem.hasHandle()) {
-                prepStmtHandle = cachedPreparedStatementItem.getHandleAndIncrementRefCount();
+            // If existing handle was found and we can add reference use it.
+            PreparedStatementHandle handle = cachedPreparedStatementItem.getPreparedStatementHandle();
+            if (handle.addReference()) {
+                prepStmtHandle = handle.getHandle();
             }
             else {
                 // Because sp_executesql was already called on this SQL-text use regular prep/exec pattern.
@@ -548,8 +549,12 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                 param.skipRetValStatus(tdsReader);
                 prepStmtHandle = param.getInt(tdsReader);
 
-                if (null != cachedPreparedStatementItem)
-                    cachedPreparedStatementItem.setHandle(prepStmtHandle, executedSqlDirectly);
+                if(null != cachedPreparedStatementItem
+                    && !cachedPreparedStatementItem
+                        .getPreparedStatementHandle()
+                        .setHandle(prepStmtHandle, executedSqlDirectly) 
+                    )
+                    cachedPreparedStatementItem = null; // Handle could not be set, treat as not cached. 
                 
                 param.skipValue(tdsReader, true);
                 if (getStatementLogger().isLoggable(java.util.logging.Level.FINER))
@@ -885,7 +890,10 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         else {
             // Move overhead of needing to do prepare & unprepare to only use cases that need more than one execution.
             // First execution, use sp_executesql, optimizing for asumption we will not re-use statement.
-            if (needsPrepare && !connection.getEnablePrepareOnFirstPreparedStatementCall() && !isExecutedAtLeastOnce) {
+            if (needsPrepare 
+                && !connection.getEnablePrepareOnFirstPreparedStatementCall() 
+                && !isExecutedAtLeastOnce
+            ) {
                 buildExecSQLParams(tdsWriter);
                 isExecutedAtLeastOnce = true;
 
