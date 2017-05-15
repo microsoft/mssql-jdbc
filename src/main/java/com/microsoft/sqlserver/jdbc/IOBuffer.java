@@ -2341,7 +2341,8 @@ final class SocketFinder {
                         inet4Addrs.add((Inet4Address) inetAddr);
                     }
                     else {
-                        assert inetAddr instanceof Inet6Address : "Unexpected IP address " + inetAddr.toString();
+                        boolean instanceOfIPv6 = inetAddr instanceof Inet6Address;
+                        assert instanceOfIPv6 : "Unexpected IP address " + inetAddr.toString();
                         inet6Addrs.add((Inet6Address) inetAddr);
                     }
                 }
