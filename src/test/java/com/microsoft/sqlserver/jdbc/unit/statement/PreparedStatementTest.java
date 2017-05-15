@@ -168,7 +168,6 @@ public class PreparedStatementTest extends AbstractTest {
             int handle = 0;
             try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement)con.prepareStatement(query)) {
                 pstmt.execute(); // sp_prepexec
-                
                 pstmt.getMoreResults(); // Make sure handle is updated.
 
                 handle = pstmt.getPreparedStatementHandle();

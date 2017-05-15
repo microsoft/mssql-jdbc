@@ -217,13 +217,8 @@ public class SQLServerConnection implements ISQLServerConnection {
             return 0 < statementHandle.getHandle();
         }
 
-        int getHandleAndIncrementRefCount() {
-            statementHandle.incrementRefCount();
-            return statementHandle.getHandle();
-        }
-
-        void setHandle(int handle, boolean isDirectSql) {
-            statementHandle.setHandle(handle, isDirectSql);
+        PreparedStatementHandle getPreparedStatementHandle() {
+            return statementHandle;
         }
         
         boolean hasParameterMetadata() {
@@ -236,14 +231,6 @@ public class SQLServerConnection implements ISQLServerConnection {
 
         void setParameterMetadata(SQLServerParameterMetaData metadata) {
             parameterMetadata = metadata;
-        }
-
-        int decrementHandleRefCount() {
-            return statementHandle.decrementRefCount();
-        }
-
-        int getHandleRefCount() {
-            return statementHandle.getRefCount();
         }
     }
 
@@ -5398,44 +5385,63 @@ public class SQLServerConnection implements ISQLServerConnection {
      * Used to keep track of an individual prepared statement handle on the server side.
      */
     static class PreparedStatementHandle  {
-        private final AtomicInteger handle;
+        private int handle;
         private final AtomicInteger handleRefCount = new AtomicInteger();
         private boolean isDirectSql;
 
         PreparedStatementHandle() {
-            handle = new AtomicInteger();
+            handle = 0;
         }
 
         PreparedStatementHandle(int handle, boolean isDirectSql) {
-            this.handle = new AtomicInteger(handle);
+            this.handle = handle;
             this.isDirectSql = isDirectSql;        
         }
 
         int getHandle() {
-            return handle.get();
+            return handle;
         }
 
-        void setHandle(int handle, boolean isDirectSql) {
+        boolean setHandle(int handle, boolean isDirectSql) {
             if (handleRefCount.compareAndSet(0, 1)) {
-                this.handle.compareAndSet(0, handle);
+                this.handle = handle;
                 this.isDirectSql = isDirectSql;
+                return true;
             }
+            else
+                return false;
         }
 
         public boolean isDirectSql() {
             return isDirectSql;
         }
 
-        public int getRefCount() {
-            return handleRefCount.get();
+        public boolean killHandle() {
+            if(!hasHandle())
+                return false;
+            else
+                return handleRefCount.compareAndSet(0, -999);
         }
 
-        public void incrementRefCount() {
-            this.handleRefCount.incrementAndGet();
+        public boolean isKilled() {
+            return 0 > handleRefCount.intValue();
         }
 
-        public int decrementRefCount() {
-            return this.handleRefCount.decrementAndGet();
+        boolean hasHandle() {
+            return 0 < getHandle();
+        }
+
+        public boolean addReference() {
+            if (!hasHandle() || isKilled())
+                return false;
+            else {
+                int refCount = handleRefCount.incrementAndGet();
+                return refCount > 0;
+            }
+        }
+
+        public void removeReference() {
+            handleRefCount.decrementAndGet();
         }
     }
 
@@ -5640,10 +5646,7 @@ public class SQLServerConnection implements ISQLServerConnection {
             PreparedStatementHandle statementHandle = null;
 
             while (null != (statementHandle = discardedPreparedStatementHandles.poll())){
-                if (0 < statementHandle.getRefCount())
-                    continue; // Will get discarded when remaining prepared statements get closed.
-                    
-                    ++handlesRemoved;
+                ++handlesRemoved;
                 
                 sql.append(statementHandle.isDirectSql() ? "EXEC sp_unprepare " : "EXEC sp_cursorunprepare ")
                     .append(statementHandle.getHandle())
@@ -5728,8 +5731,12 @@ public class SQLServerConnection implements ISQLServerConnection {
 
     /** Return prepared statement cache entry so it can be un-prepared. */
     final void returnCachedPreparedStatementMetadata(PreparedStatementCacheItem cacheItem) {
-        if (0 >= cacheItem.decrementHandleRefCount() && cacheItem.evictedFromCache && cacheItem.hasHandle())
-            enqueueUnprepareStatementHandle(cacheItem.statementHandle);
+        if(cacheItem.hasHandle()) {
+            cacheItem.statementHandle.removeReference();
+
+            if (cacheItem.evictedFromCache && cacheItem.statementHandle.killHandle())
+                enqueueUnprepareStatementHandle(cacheItem.statementHandle);
+        }
     }
 
     // Handle closing handles when removed from cache.
@@ -5739,7 +5746,7 @@ public class SQLServerConnection implements ISQLServerConnection {
                 cacheItem.evictedFromCache = true; // Mark as evicted from cache.
 
                 // Only discard if not referenced.
-                if(cacheItem.hasHandle() && 0 >= cacheItem.getHandleRefCount()) {
+                if(cacheItem.hasHandle() && cacheItem.statementHandle.killHandle()) {
                     enqueueUnprepareStatementHandle(cacheItem.statementHandle);
                     // Do not run discard actions here! Can interfere with executing statement.
                 }                    
