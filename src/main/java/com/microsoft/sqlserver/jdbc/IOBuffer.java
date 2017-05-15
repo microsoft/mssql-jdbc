@@ -3684,7 +3684,10 @@ final class TDSWriter {
         // what remains in the current staging buffer. However, the value must
         // be short enough to fit in an empty buffer.
         assert valueLength <= value.length;
-        assert stagingBuffer.remaining() < valueLength;
+        
+        int remaining = stagingBuffer.remaining();
+        assert remaining < valueLength;
+        
         assert valueLength <= stagingBuffer.capacity();
 
         // Fill any remaining space in the staging buffer
