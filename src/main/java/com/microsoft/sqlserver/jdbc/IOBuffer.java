@@ -3451,7 +3451,7 @@ final class TDSWriter {
 
     void writeDate(String value) throws SQLServerException {
         GregorianCalendar calendar = initializeCalender(TimeZone.getDefault());
-        long utcMillis = 0;
+        long utcMillis;
         java.sql.Date dateValue = java.sql.Date.valueOf(value);
         utcMillis = dateValue.getTime();
 
@@ -3466,8 +3466,8 @@ final class TDSWriter {
     void writeTime(java.sql.Timestamp value,
             int scale) throws SQLServerException {
         GregorianCalendar calendar = initializeCalender(TimeZone.getDefault());
-        long utcMillis = 0;    // Value to which the calendar is to be set (in milliseconds 1/1/1970 00:00:00 GMT)
-        int subSecondNanos = 0;
+        long utcMillis;    // Value to which the calendar is to be set (in milliseconds 1/1/1970 00:00:00 GMT)
+        int subSecondNanos;
         utcMillis = value.getTime();
         subSecondNanos = value.getNanos();
 
@@ -3480,11 +3480,11 @@ final class TDSWriter {
     void writeDateTimeOffset(Object value,
             int scale,
             SSType destSSType) throws SQLServerException {
-        GregorianCalendar calendar = null;
-        TimeZone timeZone = TimeZone.getDefault(); // Time zone to associate with the value in the Gregorian calendar
-        long utcMillis = 0;    // Value to which the calendar is to be set (in milliseconds 1/1/1970 00:00:00 GMT)
-        int subSecondNanos = 0;
-        int minutesOffset = 0;
+        GregorianCalendar calendar;
+        TimeZone timeZone; // Time zone to associate with the value in the Gregorian calendar
+        long utcMillis;    // Value to which the calendar is to be set (in milliseconds 1/1/1970 00:00:00 GMT)
+        int subSecondNanos;
+        int minutesOffset;
 
         microsoft.sql.DateTimeOffset dtoValue = (microsoft.sql.DateTimeOffset) value;
         utcMillis = dtoValue.getTimestamp().getTime();
@@ -3510,10 +3510,10 @@ final class TDSWriter {
 
     void writeOffsetDateTimeWithTimezone(OffsetDateTime offsetDateTimeValue,
             int scale) throws SQLServerException {
-        GregorianCalendar calendar = null;
+        GregorianCalendar calendar;
         TimeZone timeZone;
-        long utcMillis = 0;
-        int subSecondNanos = 0;
+        long utcMillis;
+        int subSecondNanos;
         int minutesOffset = 0;
 
         try {
@@ -3566,10 +3566,10 @@ final class TDSWriter {
 
     void writeOffsetTimeWithTimezone(OffsetTime offsetTimeValue,
             int scale) throws SQLServerException {
-        GregorianCalendar calendar = null;
+        GregorianCalendar calendar;
         TimeZone timeZone;
-        long utcMillis = 0;
-        int subSecondNanos = 0;
+        long utcMillis;
+        int subSecondNanos;
         int minutesOffset = 0;
 
         try {
