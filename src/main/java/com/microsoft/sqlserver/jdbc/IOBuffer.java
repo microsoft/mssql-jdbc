@@ -2435,7 +2435,8 @@ final class SocketFinder {
 
         }
 
-        assert result.equals(Result.SUCCESS) == true;
+        boolean equalSuccess = result.equals(Result.SUCCESS);
+        assert equalSuccess;
         assert selectedSocket != null : "Bug in code. Selected Socket cannot be null here.";
 
         return selectedSocket;
