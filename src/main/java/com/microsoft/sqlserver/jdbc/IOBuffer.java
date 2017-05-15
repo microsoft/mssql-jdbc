@@ -3403,8 +3403,8 @@ final class TDSWriter {
 
     void writeDatetime(String value) throws SQLServerException {
         GregorianCalendar calendar = initializeCalender(TimeZone.getDefault());
-        long utcMillis = 0;    // Value to which the calendar is to be set (in milliseconds 1/1/1970 00:00:00 GMT)
-        int subSecondNanos = 0;
+        long utcMillis;    // Value to which the calendar is to be set (in milliseconds 1/1/1970 00:00:00 GMT)
+        int subSecondNanos;
         java.sql.Timestamp timestampValue = java.sql.Timestamp.valueOf(value);
         utcMillis = timestampValue.getTime();
         subSecondNanos = timestampValue.getNanos();
