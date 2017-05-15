@@ -101,15 +101,15 @@ class DLLException extends Exception {
             String parameter2,
             String parameter3) {
 
-        if (errMessage.equalsIgnoreCase("R_AECertLocBad")) {
+        if ("R_AECertLocBad".equalsIgnoreCase(errMessage)) {
             msgArgs[0] = parameter1;
             msgArgs[1] = parameter1 + "/" + parameter2 + "/" + parameter3;
         }
-        else if (errMessage.equalsIgnoreCase("R_AECertStoreBad")) {
+        else if ("R_AECertStoreBad".equalsIgnoreCase(errMessage)) {
             msgArgs[0] = parameter2;
             msgArgs[1] = parameter1 + "/" + parameter2 + "/" + parameter3;
         }
-        else if (errMessage.equalsIgnoreCase("R_AECertHashEmpty")) {
+        else if ("R_AECertHashEmpty".equalsIgnoreCase(errMessage)) {
             msgArgs[0] = parameter1 + "/" + parameter2 + "/" + parameter3;
 
         }
