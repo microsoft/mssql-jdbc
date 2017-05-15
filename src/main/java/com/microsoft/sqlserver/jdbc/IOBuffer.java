@@ -3687,11 +3687,12 @@ final class TDSWriter {
         
         int remaining = stagingBuffer.remaining();
         assert remaining < valueLength;
-        
-        assert valueLength <= stagingBuffer.capacity();
+
+        int capacity = stagingBuffer.capacity();
+        assert valueLength <= capacity;
 
         // Fill any remaining space in the staging buffer
-        int remaining = stagingBuffer.remaining();
+        remaining = stagingBuffer.remaining();
         if (remaining > 0) {
             stagingBuffer.put(value, 0, remaining);
             if (tdsChannel.isLoggingPackets()) {
