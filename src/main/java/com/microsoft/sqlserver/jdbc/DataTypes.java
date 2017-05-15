@@ -1384,6 +1384,7 @@ enum JDBCType
                 case NCHAR:
                     return java.sql.Types.CHAR;
                 case NVARCHAR:
+                case SQLXML:
                     return java.sql.Types.VARCHAR;
                 case LONGNVARCHAR:
                     return java.sql.Types.LONGVARCHAR;
@@ -1391,8 +1392,6 @@ enum JDBCType
                     return java.sql.Types.CLOB;
                 case ROWID:
                     return java.sql.Types.OTHER;
-                case SQLXML:
-                    return java.sql.Types.VARCHAR;
                 default:
                     return intValue;
             }
