@@ -3292,19 +3292,7 @@ final class TDSWriter {
      *            the data value
      */
     void writeReal(Float value) throws SQLServerException {
-        if (false) // stagingBuffer.remaining() >= 4)
-        {
-            stagingBuffer.putFloat(value);
-            if (tdsChannel.isLoggingPackets()) {
-                if (dataIsLoggable)
-                    logBuffer.putFloat(value);
-                else
-                    logBuffer.position(logBuffer.position() + 4);
-            }
-        }
-        else {
-            writeInt(Float.floatToRawIntBits(value.floatValue()));
-        }
+        writeInt(Float.floatToRawIntBits(value.floatValue()));
     }
 
     /**
