@@ -1463,7 +1463,7 @@ final class TDSChannel {
                 logger.finer(logContext + " The DN name in certificate:" + nameInCertDN);
             }
 
-            boolean isServerNameValidated = false;
+            boolean isServerNameValidated;
 
             // the name in cert is in RFC2253 format parse it to get the actual subject name
             String subjectCN = parseCommonName(nameInCertDN);
