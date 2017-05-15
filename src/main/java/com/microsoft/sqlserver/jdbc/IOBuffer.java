@@ -2414,6 +2414,9 @@ final class SocketFinder {
 
         }
         catch (InterruptedException ex) {
+            // re-interrupt the current thread, in order to restore the thread's interrupt status.
+            Thread.currentThread().interrupt();
+            
             close(selectedSocket);
             SQLServerException.ConvertConnectExceptionToSQLServerException(hostName, portNumber, conn, ex);
         }
