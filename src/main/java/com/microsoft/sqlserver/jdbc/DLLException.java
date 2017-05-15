@@ -121,7 +121,7 @@ class DLLException extends Exception {
     }
 
     private static String getErrMessage(int errCode) {
-        String message = null;
+        String message;
         switch (errCode) {
             case 1:
                 message = "R_AEKeypathEmpty";
