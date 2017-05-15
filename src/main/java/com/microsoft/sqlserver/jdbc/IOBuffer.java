@@ -2308,12 +2308,12 @@ final class SocketFinder {
             // Code reaches here only if MSF = true or (TNIR = true and not TNIR first attempt)
 
             if (logger.isLoggable(Level.FINER)) {
-                String loggingString = this.toString() + " Total no of InetAddresses: " + inetAddrs.length + ". They are: ";
+                StringBuilder loggingString = new StringBuilder(this.toString() + " Total no of InetAddresses: " + inetAddrs.length + ". They are: ");
                 for (InetAddress inetAddr : inetAddrs) {
-                    loggingString = loggingString + inetAddr.toString() + ";";
+                    loggingString.append(inetAddr.toString() + ";");
                 }
 
-                logger.finer(loggingString);
+                logger.finer(loggingString.toString());
             }
 
             if (inetAddrs.length > ipAddressLimit) {
