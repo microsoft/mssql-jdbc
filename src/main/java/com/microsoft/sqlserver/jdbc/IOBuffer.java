@@ -7266,7 +7266,7 @@ abstract class TDSCommand {
             // terminate the connection to prevent any other command from executing.
             if (attentionPending) {
                 if (logger.isLoggable(Level.SEVERE)) {
-                    logger.severe(this + ": expected attn ack missing or not processed; terminating connection...");
+                    logger.severe(this.toString() + ": expected attn ack missing or not processed; terminating connection...");
                 }
 
                 try {
