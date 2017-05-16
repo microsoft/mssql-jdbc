@@ -2308,7 +2308,11 @@ final class SocketFinder {
             // Code reaches here only if MSF = true or (TNIR = true and not TNIR first attempt)
 
             if (logger.isLoggable(Level.FINER)) {
-                StringBuilder loggingString = new StringBuilder(this.toString() + " Total no of InetAddresses: " + inetAddrs.length + ". They are: ");
+                StringBuilder loggingString = new StringBuilder(this.toString());
+                loggingString.append(" Total no of InetAddresses: ");
+                loggingString.append(inetAddrs.length);
+                loggingString.append(". They are: ");
+                
                 for (InetAddress inetAddr : inetAddrs) {
                     loggingString.append(inetAddr.toString() + ";");
                 }
