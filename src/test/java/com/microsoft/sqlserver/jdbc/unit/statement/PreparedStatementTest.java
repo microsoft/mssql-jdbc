@@ -276,6 +276,32 @@ public class PreparedStatementTest extends AbstractTest {
         }
     }
 
+    final class TestPrepareRace implements Runnable {
+
+        SQLServerConnection con;
+        String[] queries;
+        AtomicReference<Exception> exception;
+
+        TestPrepareRace(SQLServerConnection con, String[] queries, AtomicReference<Exception> exception) {
+            this.con = con;
+            this.queries = queries;
+            this.exception = exception;
+        }
+
+        @Override
+        public void run() 
+        {
+            for (int j = 0; j < 500000; j++) {
+                try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) con.prepareStatement(queries[j % 3])) {
+                    pstmt.execute();
+                }
+                catch (SQLException e) {
+                    exception.set(e);
+                    break;
+                }
+            }
+        }
+    }
 
     @Test
     public void testPrepareRace() throws Exception {
@@ -290,21 +316,11 @@ public class PreparedStatementTest extends AbstractTest {
         try (SQLServerConnection con = (SQLServerConnection)DriverManager.getConnection(connectionString)) {
 
             for (int i = 0; i < 4; i++) {
-                threadPool.execute(() -> {
-                    for (int j = 0; j < 500000; j++) {
-                        try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) con.prepareStatement(queries[j % 3])) {
-                            pstmt.execute();
-                        }
-                        catch (SQLException e) {
-                            exception.set(e);
-                            break;
-                        }
-                    }
-                });
+                threadPool.execute(new TestPrepareRace(con, queries, exception));
             }
 
             threadPool.shutdown();
-            threadPool.awaitTermination(20, SECONDS);
+            threadPool.awaitTermination(10, SECONDS);
 
             assertNull(exception.get());
 
