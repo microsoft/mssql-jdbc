@@ -3941,7 +3941,7 @@ final class TDSWriter {
     }
 
     GregorianCalendar initializeCalender(TimeZone timeZone) {
-        GregorianCalendar calendar = null;
+        GregorianCalendar calendar;
 
         // Create the calendar that will hold the value. For DateTimeOffset values, the calendar's
         // time zone is UTC. For other values, the calendar's time zone is a local time zone.
@@ -5207,7 +5207,7 @@ final class TDSWriter {
             int subSecondNanos,
             boolean bOut) throws SQLServerException {
         assert (subSecondNanos >= 0) && (subSecondNanos < Nanos.PER_SECOND) : "Invalid subNanoSeconds value: " + subSecondNanos;
-        assert (cal != null) || (cal == null && subSecondNanos == 0) : "Invalid subNanoSeconds value when calendar is null: " + subSecondNanos;
+        assert (cal != null) || (subSecondNanos == 0) : "Invalid subNanoSeconds value when calendar is null: " + subSecondNanos;
 
         writeRPCNameValType(sName, bOut, TDSType.DATETIMEN);
         writeByte((byte) 8); // max length of datatype
@@ -5347,7 +5347,7 @@ final class TDSWriter {
             boolean bOut,
             JDBCType jdbcType) throws SQLServerException {
         assert (subSecondNanos >= 0) && (subSecondNanos < Nanos.PER_SECOND) : "Invalid subNanoSeconds value: " + subSecondNanos;
-        assert (cal != null) || (cal == null && subSecondNanos == 0) : "Invalid subNanoSeconds value when calendar is null: " + subSecondNanos;
+        assert (cal != null) || (subSecondNanos == 0) : "Invalid subNanoSeconds value when calendar is null: " + subSecondNanos;
 
         writeRPCNameValType(sName, bOut, TDSType.BIGVARBINARY);
 
@@ -6330,7 +6330,10 @@ final class TDSReader {
 
         // Make header size is properly bounded and compute length of the packet payload.
         if (packetLength < TDS.PACKET_HEADER_SIZE || packetLength > con.getTDSPacketSize()) {
-            logger.warning(toString() + " TDS header contained invalid packet length:" + packetLength + "; packet size:" + con.getTDSPacketSize());
+            if (logger.isLoggable(Level.WARNING)) {
+                logger.warning(
+                        toString() + " TDS header contained invalid packet length:" + packetLength + "; packet size:" + con.getTDSPacketSize());
+            }
             throwInvalidTDS();
         }
 
@@ -6564,7 +6567,9 @@ final class TDSReader {
             JDBCType jdbcType,
             StreamType streamType) throws SQLServerException {
         if (valueLength > valueBytes.length) {
-            logger.warning(toString() + " Invalid value length:" + valueLength);
+            if (logger.isLoggable(Level.WARNING)) {
+                logger.warning(toString() + " Invalid value length:" + valueLength);
+            }
             throwInvalidTDS();
         }
 
@@ -7260,7 +7265,9 @@ abstract class TDSCommand {
             // then assume that no attention ack is forthcoming from the server and
             // terminate the connection to prevent any other command from executing.
             if (attentionPending) {
-                logger.severe(this + ": expected attn ack missing or not processed; terminating connection...");
+                if (logger.isLoggable(Level.SEVERE)) {
+                    logger.severe(this + ": expected attn ack missing or not processed; terminating connection...");
+                }
 
                 try {
                     tdsReader.throwInvalidTDS();
@@ -7586,6 +7593,8 @@ abstract class UninterruptableTDSCommand extends TDSCommand {
     final void interrupt(String reason) throws SQLServerException {
         // Interrupting an uninterruptable command is a no-op. That is,
         // it can happen, but it should have no effect.
-        logger.finest(toString() + " Ignoring interrupt of uninterruptable TDS command; Reason:" + reason);
+        if (logger.isLoggable(Level.FINEST)) {
+            logger.finest(toString() + " Ignoring interrupt of uninterruptable TDS command; Reason:" + reason);
+        }
     }
 }
