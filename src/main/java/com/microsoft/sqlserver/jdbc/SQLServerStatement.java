@@ -769,7 +769,7 @@ public class SQLServerStatement implements ISQLServerStatement {
             Sha1HashKey cacheKey = new Sha1HashKey(sql);
 
             // Check for cached SQL metadata.
-            ParsedSQLCacheItem cacheItem = getOrCreateCachedParsedSQLMetadata(cacheKey, sql);
+            ParsedSQLMetadata cacheItem = getOrCreateCachedParsedSQLMetadata(cacheKey, sql);
 
             // Retrieve from cache item.
             procedureName = cacheItem.procedureName;

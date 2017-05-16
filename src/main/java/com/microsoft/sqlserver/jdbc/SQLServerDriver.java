@@ -274,8 +274,8 @@ enum SQLServerDriverIntProperty {
 	QUERY_TIMEOUT                              ("queryTimeout",                            -1),
 	PORT_NUMBER                                ("portNumber",                              1433),
 	SOCKET_TIMEOUT                             ("socketTimeout",                           0),
-    SERVER_PREPARED_STATEMENT_DISCARD_THRESHOLD("serverPreparedStatementDiscardThreshold", -1/*This is not the default, default handled in SQLServerConnection and is not final/const*/),
-    STATEMENT_POOLING_CACHE_SIZE               ("statementPoolingCacheSize",               10),
+    SERVER_PREPARED_STATEMENT_DISCARD_THRESHOLD("serverPreparedStatementDiscardThreshold", SQLServerConnection.DEFAULT_SERVER_PREPARED_STATEMENT_DISCARD_THRESHOLD),
+    STATEMENT_POOLING_CACHE_SIZE               ("statementPoolingCacheSize",               SQLServerConnection.DEFAULT_STATEMENT_POOLING_CACHE_SIZE),
     ;  
     
     private String name;
@@ -310,7 +310,7 @@ enum SQLServerDriverBooleanProperty
 	TRUST_SERVER_CERTIFICATE                  ("trustServerCertificate",                    false),
 	XOPEN_STATES                              ("xopenStates",                               false),
 	FIPS                                      ("fips",                                      false),
-	ENABLE_PREPARE_ON_FIRST_PREPARED_STATEMENT("enablePrepareOnFirstPreparedStatementCall", false/*This is not the default, default handled in SQLServerConnection and is not final/const*/);
+	ENABLE_PREPARE_ON_FIRST_PREPARED_STATEMENT("enablePrepareOnFirstPreparedStatementCall", SQLServerConnection.DEFAULT_ENABLE_PREPARE_ON_FIRST_PREPARED_STATEMENT_CALL);
 
     private String name;
     private boolean defaultValue;
@@ -380,8 +380,8 @@ public final class SQLServerDriver implements java.sql.Driver {
         new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.FIPS_PROVIDER.toString(), 						      SQLServerDriverStringProperty.FIPS_PROVIDER.getDefaultValue(), 										  false, 	  null),
         new SQLServerDriverPropertyInfo(SQLServerDriverIntProperty.SOCKET_TIMEOUT.toString(),                   		      Integer.toString(SQLServerDriverIntProperty.SOCKET_TIMEOUT.getDefaultValue()),         				  false,      null),
         new SQLServerDriverPropertyInfo(SQLServerDriverBooleanProperty.FIPS.toString(),                                       Boolean.toString(SQLServerDriverBooleanProperty.FIPS.getDefaultValue()),                          	  false,      TRUE_FALSE),
-        new SQLServerDriverPropertyInfo(SQLServerDriverBooleanProperty.ENABLE_PREPARE_ON_FIRST_PREPARED_STATEMENT.toString(), Boolean.toString(SQLServerConnection.getDefaultEnablePrepareOnFirstPreparedStatementCall()),      	  false,      TRUE_FALSE),
-        new SQLServerDriverPropertyInfo(SQLServerDriverIntProperty.SERVER_PREPARED_STATEMENT_DISCARD_THRESHOLD.toString(),    Integer.toString(SQLServerConnection.getDefaultServerPreparedStatementDiscardThreshold()),        	  false,      null),
+        new SQLServerDriverPropertyInfo(SQLServerDriverBooleanProperty.ENABLE_PREPARE_ON_FIRST_PREPARED_STATEMENT.toString(), Boolean.toString(SQLServerDriverBooleanProperty.ENABLE_PREPARE_ON_FIRST_PREPARED_STATEMENT.getDefaultValue()), false,TRUE_FALSE),
+        new SQLServerDriverPropertyInfo(SQLServerDriverIntProperty.SERVER_PREPARED_STATEMENT_DISCARD_THRESHOLD.toString(),    Integer.toString(SQLServerDriverIntProperty.SERVER_PREPARED_STATEMENT_DISCARD_THRESHOLD.getDefaultValue()), false,  null),
         new SQLServerDriverPropertyInfo(SQLServerDriverIntProperty.STATEMENT_POOLING_CACHE_SIZE.toString(),                   Integer.toString(SQLServerDriverIntProperty.STATEMENT_POOLING_CACHE_SIZE.getDefaultValue()),        	  false,      null),
         new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.JAAS_CONFIG_NAME.toString(),                            SQLServerDriverStringProperty.JAAS_CONFIG_NAME.getDefaultValue(),                                       false,      null),
     };
