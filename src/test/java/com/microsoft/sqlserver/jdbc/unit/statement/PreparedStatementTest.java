@@ -33,7 +33,7 @@ import com.microsoft.sqlserver.jdbc.SQLServerPreparedStatement;
 import com.microsoft.sqlserver.testframework.AbstractTest;
 
 @RunWith(JUnitPlatform.class)
-public class PreparedStatementTest extends AbstractTest {
+public class PreparedStatementTest extends AbstractTest { 
     private void executeSQL(SQLServerConnection conn, String sql) throws SQLException {
         Statement stmt = conn.createStatement();
         stmt.execute(sql);
