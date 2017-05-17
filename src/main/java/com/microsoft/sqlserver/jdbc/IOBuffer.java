@@ -1601,14 +1601,12 @@ final class TDSChannel {
                 validateFips(fipsProvider, trustStoreType, trustStoreFileName);
             }
 
-            byte requestedEncryptionLevel = con.getRequestedEncryptionLevel();
-            assert TDS.ENCRYPT_OFF == requestedEncryptionLevel || // Login only SSL
-                    TDS.ENCRYPT_ON == requestedEncryptionLevel;   // Full SSL
+            assert TDS.ENCRYPT_OFF == con.getRequestedEncryptionLevel() || // Login only SSL
+                    TDS.ENCRYPT_ON == con.getRequestedEncryptionLevel();   // Full SSL
 
-            byte negotiatedEncryptionLevel = con.getNegotiatedEncryptionLevel();
-            assert TDS.ENCRYPT_OFF == negotiatedEncryptionLevel || // Login only SSL
-                    TDS.ENCRYPT_ON == negotiatedEncryptionLevel || // Full SSL
-                    TDS.ENCRYPT_REQ == negotiatedEncryptionLevel;   // Full SSL
+            assert TDS.ENCRYPT_OFF == con.getNegotiatedEncryptionLevel() || // Login only SSL
+                    TDS.ENCRYPT_ON == con.getNegotiatedEncryptionLevel() || // Full SSL
+                    TDS.ENCRYPT_REQ == con.getNegotiatedEncryptionLevel();   // Full SSL
 
             // If we requested login only SSL or full SSL without server certificate validation,
             // then we'll "validate" the server certificate using a naive TrustManager that trusts
@@ -2345,8 +2343,7 @@ final class SocketFinder {
                         inet4Addrs.add((Inet4Address) inetAddr);
                     }
                     else {
-                        boolean instanceOfIPv6 = inetAddr instanceof Inet6Address;
-                        assert instanceOfIPv6 : "Unexpected IP address " + inetAddr.toString();
+                        assert inetAddr instanceof Inet6Address : "Unexpected IP address " + inetAddr.toString();
                         inet6Addrs.add((Inet6Address) inetAddr);
                     }
                 }
@@ -2439,8 +2436,7 @@ final class SocketFinder {
 
         }
 
-        boolean equalSuccess = result.equals(Result.SUCCESS);
-        assert equalSuccess;
+        assert result.equals(Result.SUCCESS);
         assert selectedSocket != null : "Bug in code. Selected Socket cannot be null here.";
 
         return selectedSocket;
@@ -2645,8 +2641,7 @@ final class SocketFinder {
             int timeoutInMilliSeconds) throws IOException, InterruptedException {
         assert timeoutInMilliSeconds != 0 : "The timeout cannot be zero";
         
-        boolean empty = inetAddrs.isEmpty();
-        assert empty == false : "Number of inetAddresses should not be zero in this function";
+        assert inetAddrs.isEmpty() == false : "Number of inetAddresses should not be zero in this function";
 
         LinkedList<Socket> sockets = new LinkedList<Socket>();
         LinkedList<SocketConnector> socketConnectors = new LinkedList<SocketConnector>();
@@ -3692,8 +3687,7 @@ final class TDSWriter {
         int remaining = stagingBuffer.remaining();
         assert remaining < valueLength;
 
-        int capacity = stagingBuffer.capacity();
-        assert valueLength <= capacity;
+        assert valueLength <= stagingBuffer.capacity();
 
         // Fill any remaining space in the staging buffer
         remaining = stagingBuffer.remaining();
