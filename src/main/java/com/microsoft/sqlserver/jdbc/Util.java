@@ -741,7 +741,6 @@ final class Util {
             case Disabled:
                 return false;
             case Enabled:
-                return true;
             case ResultSetOnly:
                 return true;
             default:
@@ -761,11 +760,10 @@ final class Util {
         // Command leve setting trumps all
         switch (stmtColumnEncryptionSetting) {
             case Disabled:
+            case ResultSetOnly:
                 return false;
             case Enabled:
                 return true;
-            case ResultSetOnly:
-                return false;
             default:
                 // Check connection level setting!
                 assert SQLServerStatementColumnEncryptionSetting.UseConnectionSetting == stmtColumnEncryptionSetting : "Unexpected value for command level override";
