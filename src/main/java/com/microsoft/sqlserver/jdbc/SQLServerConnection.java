@@ -1277,13 +1277,17 @@ public class SQLServerConnection implements ISQLServerConnection {
             }
 
             if ((!authenticationString.equalsIgnoreCase(SqlAuthentication.NotSpecified.toString())) && (null != accessTokenInByte)) {
-                connectionlogger.severe(toString() + " " + SQLServerException.getErrString("R_SetBothAuthenticationAndAccessToken"));
+                if (connectionlogger.isLoggable(Level.SEVERE)) {
+                    connectionlogger.severe(toString() + " " + SQLServerException.getErrString("R_SetBothAuthenticationAndAccessToken"));
+                }
                 throw new SQLServerException(SQLServerException.getErrString("R_SetBothAuthenticationAndAccessToken"), null);
             }
 
             if ((null != accessTokenInByte) && ((!activeConnectionProperties.getProperty(SQLServerDriverStringProperty.USER.toString()).isEmpty())
                     || (!activeConnectionProperties.getProperty(SQLServerDriverStringProperty.PASSWORD.toString()).isEmpty()))) {
-                connectionlogger.severe(toString() + " " + SQLServerException.getErrString("R_AccessTokenWithUserPassword"));
+                if (connectionlogger.isLoggable(Level.SEVERE)) {
+                    connectionlogger.severe(toString() + " " + SQLServerException.getErrString("R_AccessTokenWithUserPassword"));
+                }
                 throw new SQLServerException(SQLServerException.getErrString("R_AccessTokenWithUserPassword"), null);
             }
 
@@ -1517,8 +1521,10 @@ public class SQLServerConnection implements ISQLServerConnection {
                 int sslRecordSize = Util.isIBM() ? 8192 : 16384;
 
                 if (tdsPacketSize > sslRecordSize) {
-                    connectionlogger.finer(toString() + " Negotiated tdsPacketSize " + tdsPacketSize + " is too large for SSL with JRE "
-                            + Util.SYSTEM_JRE + " (max size is " + sslRecordSize + ")");
+                    if (connectionlogger.isLoggable(Level.FINER)) {
+                        connectionlogger.finer(toString() + " Negotiated tdsPacketSize " + tdsPacketSize + " is too large for SSL with JRE "
+                                + Util.SYSTEM_JRE + " (max size is " + sslRecordSize + ")");
+                    }
                     MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_packetSizeTooBigForSSL"));
                     Object[] msgArgs = {Integer.toString(sslRecordSize)};
                     terminate(SQLServerException.DRIVER_ERROR_UNSUPPORTED_CONFIG, form.format(msgArgs));
@@ -1591,7 +1597,7 @@ public class SQLServerConnection implements ISQLServerConnection {
         if (0 == timeout) {
             timeout = SQLServerDriverIntProperty.LOGIN_TIMEOUT.getDefaultValue();
         }
-        long timerTimeout = timeout * 1000;   // ConnectTimeout is in seconds, we need timer millis
+        long timerTimeout = timeout * 1000L;   // ConnectTimeout is in seconds, we need timer millis
         timerExpire = timerStart + timerTimeout;
 
         // For non-dbmirroring, non-tnir and non-multisubnetfailover scenarios, full time out would be used as time slice.
@@ -2149,8 +2155,10 @@ public class SQLServerConnection implements ISQLServerConnection {
             // then maybe we are just trying to talk to an older server that doesn't support prelogin
             // (and that we don't support with this driver).
             if (-1 == bytesRead) {
-                connectionlogger.warning(
-                        toString() + preloginErrorLogString + " Unexpected end of prelogin response after " + responseBytesRead + " bytes read");
+                if (connectionlogger.isLoggable(Level.WARNING)) {
+                    connectionlogger.warning(
+                            toString() + preloginErrorLogString + " Unexpected end of prelogin response after " + responseBytesRead + " bytes read");
+                }
                 MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_tcpipConnectionFailed"));
                 Object[] msgArgs = {serverName, Integer.toString(portNumber), SQLServerException.getErrString("R_notSQLServer")};
                 terminate(SQLServerException.DRIVER_ERROR_IO_FAILED, form.format(msgArgs));

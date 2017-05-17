@@ -9,6 +9,7 @@
 package com.microsoft.sqlserver.jdbc;
 
 import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Represents a single encrypted value for a CEK. It contains the encrypted CEK,the store type, name,the key path and encryption algorithm.
@@ -50,14 +51,14 @@ class EncryptionKeyInfo {
 class CekTableEntry {
     static final private java.util.logging.Logger aeLogger = java.util.logging.Logger.getLogger("com.microsoft.sqlserver.jdbc.AE");
 
-    ArrayList<EncryptionKeyInfo> columnEncryptionKeyValues;
+    List<EncryptionKeyInfo> columnEncryptionKeyValues;
     int ordinal;
     int databaseId;
     int cekId;
     int cekVersion;
     byte[] cekMdVersion;
 
-    ArrayList<EncryptionKeyInfo> getColumnEncryptionKeyValues() {
+    List<EncryptionKeyInfo> getColumnEncryptionKeyValues() {
         return columnEncryptionKeyValues;
     }
 
