@@ -1364,7 +1364,7 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
         // 1. Search using case-sensitive non-locale specific (binary) compare first.
         // 2. Search using case-insensitive, non-locale specific (binary) compare last.
 
-        int i = 0;
+        int i;
         int matchPos = -1;
         // Search using case-sensitive, non-locale specific (binary) compare.
         // If the user supplies a true match for the parameter name, we will find it here.
