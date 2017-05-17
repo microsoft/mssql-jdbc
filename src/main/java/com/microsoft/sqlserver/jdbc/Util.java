@@ -886,13 +886,12 @@ final class Util {
             case TIME:
             case DATETIMEOFFSET:
                 return ((null == scale) ? TDS.MAX_FRACTIONAL_SECONDS_SCALE : scale);
-            case READER:
-                return ((null == value) ? 0 : DataTypes.NTEXT_MAX_CHARS);
-
+                
             case CLOB:
                 return ((null == value) ? 0 : (DataTypes.NTEXT_MAX_CHARS * 2));
 
             case NCLOB:
+            case READER:
                 return ((null == value) ? 0 : DataTypes.NTEXT_MAX_CHARS);
         }
         return 0;
