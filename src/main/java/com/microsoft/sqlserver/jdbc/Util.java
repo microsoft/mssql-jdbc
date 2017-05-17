@@ -243,12 +243,13 @@ final class Util {
         String result = "";
         String name = "";
         String value = "";
-
+        StringBuilder builder;
+        
         if (!tmpUrl.startsWith(sPrefix))
             return null;
 
         tmpUrl = tmpUrl.substring(sPrefix.length());
-        int i = 0;
+        int i;
 
         // Simple finite state machine.
         // always look at one char at a time
@@ -273,7 +274,10 @@ final class Util {
                         state = inName;
                     }
                     else {
-                        result = result + ch;
+                        builder = new StringBuilder();
+                        builder.append(result);
+                        builder.append(ch);
+                        result = builder.toString();
                         state = inServerName;
                     }
                     break;
@@ -299,7 +303,10 @@ final class Util {
                             state = inInstanceName;
                     }
                     else {
-                        result = result + ch;
+                        builder = new StringBuilder();
+                        builder.append(result);
+                        builder.append(ch);
+                        result = builder.toString();
                         // same state
                     }
                     break;
@@ -316,7 +323,10 @@ final class Util {
                         state = inName;
                     }
                     else {
-                        result = result + ch;
+                        builder = new StringBuilder();
+                        builder.append(result);
+                        builder.append(ch);
+                        result = builder.toString();
                         // same state
                     }
                     break;
@@ -337,7 +347,10 @@ final class Util {
                             state = inPort;
                     }
                     else {
-                        result = result + ch;
+                        builder = new StringBuilder();
+                        builder.append(result);
+                        builder.append(ch);
+                        result = builder.toString();
                         // same state
                     }
                     break;
@@ -361,7 +374,10 @@ final class Util {
                         // same state
                     }
                     else {
-                        name = name + ch;
+                        builder = new StringBuilder();
+                        builder.append(name);
+                        builder.append(ch);
+                        name = builder.toString();
                         // same state
                     }
                     break;
@@ -393,7 +409,10 @@ final class Util {
                         }
                     }
                     else {
-                        value = value + ch;
+                        builder = new StringBuilder();
+                        builder.append(value);
+                        builder.append(ch);
+                        value = builder.toString();
                         // same state
                     }
                     break;
@@ -418,7 +437,10 @@ final class Util {
                         state = inEscapedValueEnd;
                     }
                     else {
-                        value = value + ch;
+                        builder = new StringBuilder();
+                        builder.append(value);
+                        builder.append(ch);
+                        value = builder.toString();
                         // same state
                     }
                     break;
