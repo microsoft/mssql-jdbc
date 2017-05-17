@@ -373,8 +373,7 @@ final class Util {
                         name = SQLServerDriver.getNormalizedPropertyName(name, logger);
                         if (null != name) {
                             if (logger.isLoggable(Level.FINE)) {
-                                if ((false == name.equals(SQLServerDriverStringProperty.USER.toString()))
-                                        && (false == name.equals(SQLServerDriverStringProperty.PASSWORD.toString()))) {
+                                if (false == name.equals(SQLServerDriverStringProperty.USER.toString())) {
                                     if (!name.contains("password") && !name.contains("Password")) {
                                         logger.fine("Property:" + name + " Value:" + value);
                                     }
