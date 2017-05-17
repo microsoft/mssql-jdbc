@@ -3744,8 +3744,7 @@ final class ServerDTVImpl extends DTVImpl {
 
         // If column encryption is not enabled on connection or on statement, cryptoMeta will be null.
         if (null != cryptoMetadata) {
-            SSType typeInfoSSType = typeInfo.getSSType();
-            assert (SSType.VARBINARY == typeInfoSSType) || (SSType.VARBINARYMAX == typeInfoSSType);
+            assert (SSType.VARBINARY == typeInfo.getSSType())  || (SSType.VARBINARYMAX == typeInfo.getSSType()) ;
             baseSSType = cryptoMetadata.baseTypeInfo.getSSType();
             encrypted = true;
 
