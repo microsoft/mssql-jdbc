@@ -844,7 +844,7 @@ final class Util {
                 return ((null == value) ? 0 : ((byte[]) value).length);
 
             case BIGDECIMAL:
-                int length = -1;
+                int length;
 
                 if (null == precision) {
                     if (null == value) {
