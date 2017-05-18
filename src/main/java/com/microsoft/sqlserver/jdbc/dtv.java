@@ -1523,10 +1523,7 @@ final class DTV {
                 case LONGVARCHAR:
                 case CLOB:
                 case GUID:
-                    if (null != cryptoMeta)
-                        op.execute(this, (byte[]) null);
-                    else
-                        op.execute(this, (byte[]) null);
+                    op.execute(this, (byte[]) null);
                     break;
 
                 case TINYINT:
