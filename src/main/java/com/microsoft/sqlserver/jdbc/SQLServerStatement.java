@@ -2555,7 +2555,7 @@ final class JDBCSyntaxTranslator {
             // Search for LIMIT escape syntax. Do further processing if present.
             matcher = limitSyntaxGeneric.matcher(sql);
             if (matcher.find()) {
-                StringBuffer sqlbuf = new StringBuffer(sql);
+                StringB sqlbuf = new StringBuffer(sql);
                 translateLimit(sqlbuf, 0, '\0');
                 return sqlbuf.toString();
             }
