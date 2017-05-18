@@ -29,8 +29,6 @@ public class DNSUtilities {
     /**
      * Find all SRV Record using DNS.
      *
-     * You can then use {@link DNSRecordsSRVCollection#getBestRecord()} to find the best candidate (for instance for Round-Robin calls)
-     *
      * @param dnsSrvRecordToFind
      *            the DNS record, for instance: _ldap._tcp.dc._msdcs.DOMAIN.COM to find all LDAP servers in DOMAIN.COM
      * @return the collection of records with facilities to find the best candidate
