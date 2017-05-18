@@ -5362,11 +5362,11 @@ public class SQLServerConnection implements ISQLServerConnection {
     }
 
     /**
-     * Returns the default behavior for new connection instances. This setting controls how many outstanding prepared statement discard
-     * actions (sp_unprepare) can be outstanding per connection before a call to clean-up the outstanding handles on the server is executed.
-     * If the setting is <= 1 unprepare actions will be executed immedietely on prepared statement close. If it is set to >1 these calls will
-     * be batched together to avoid overhead of calling sp_unprepare too often. 
-     * Initial setting for this option is available in INITIAL_DEFAULT_SERVER_PREPARED_STATEMENT_DISCARD_THRESHOLD.
+     * Returns the default behavior for new connection instances. This setting controls how many outstanding prepared statement discard actions
+     * (sp_unprepare) can be outstanding per connection before a call to clean-up the outstanding handles on the server is executed. If the setting is
+     * {@literal <=} 1 unprepare actions will be executed immedietely on prepared statement close. If it is set to {@literal >} 1 these calls will be
+     * batched together to avoid overhead of calling sp_unprepare too often. Initial setting for this option is available in
+     * INITIAL_DEFAULT_SERVER_PREPARED_STATEMENT_DISCARD_THRESHOLD.
      * 
      * @return Returns the current setting per the description.
      */
@@ -5378,25 +5378,25 @@ public class SQLServerConnection implements ISQLServerConnection {
     }
 
     /**
-     * Specifies the default behavior for new connection instances. This setting controls how many outstanding prepared statement discard
-     * actions (sp_unprepare) can be outstanding per connection before a call to clean-up the outstanding handles on the server is executed.
-     * If the setting is <= 1 unprepare actions will be executed immedietely on prepared statement close. If it is set to >1 these calls will
-     * be batched together to avoid overhead of calling sp_unprepare too often. 
-     * Initial setting for this option is available in INITIAL_DEFAULT_SERVER_PREPARED_STATEMENT_DISCARD_THRESHOLD.
+     * Specifies the default behavior for new connection instances. This setting controls how many outstanding prepared statement discard actions
+     * (sp_unprepare) can be outstanding per connection before a call to clean-up the outstanding handles on the server is executed. If the setting is
+     * {@literal <=} 1 unprepare actions will be executed immedietely on prepared statement close. If it is set to {@literal >} 1 these calls will be
+     * batched together to avoid overhead of calling sp_unprepare too often. Initial setting for this option is available in
+     * INITIAL_DEFAULT_SERVER_PREPARED_STATEMENT_DISCARD_THRESHOLD.
      * 
      * @param value
-     *      Changes the setting per the description.
+     *            Changes the setting per the description.
      */
     static public void setDefaultServerPreparedStatementDiscardThreshold(int value) {
         defaultServerPreparedStatementDiscardThreshold = value; 
     }
 
     /**
-     * Returns the behavior for a specific connection instance. This setting controls how many outstanding prepared statement discard
-     * actions (sp_unprepare) can be outstanding per connection before a call to clean-up the outstanding handles on the server is executed.
-     * If the setting is <= 1 unprepare actions will be executed immedietely on prepared statement close. If it is set to >1 these calls will
-     * be batched together to avoid overhead of calling sp_unprepare too often. 
-     * The default for this option can be changed by calling getDefaultServerPreparedStatementDiscardThreshold(). 
+     * Returns the behavior for a specific connection instance. This setting controls how many outstanding prepared statement discard actions
+     * (sp_unprepare) can be outstanding per connection before a call to clean-up the outstanding handles on the server is executed. If the setting is
+     * {@literal <=} 1 unprepare actions will be executed immedietely on prepared statement close. If it is set to {@literal >} 1 these calls will be
+     * batched together to avoid overhead of calling sp_unprepare too often. The default for this option can be changed by calling
+     * getDefaultServerPreparedStatementDiscardThreshold().
      * 
      * @return Returns the current setting per the description.
      */
@@ -5408,13 +5408,13 @@ public class SQLServerConnection implements ISQLServerConnection {
     }
 
     /**
-     * Specifies the behavior for a specific connection instance. This setting controls how many outstanding prepared statement discard
-     * actions (sp_unprepare) can be outstanding per connection before a call to clean-up the outstanding handles on the server is executed.
-     * If the setting is <= 1 unprepare actions will be executed immedietely on prepared statement close. If it is set to >1 these calls will
-     * be batched together to avoid overhead of calling sp_unprepare too often. 
+     * Specifies the behavior for a specific connection instance. This setting controls how many outstanding prepared statement discard actions
+     * (sp_unprepare) can be outstanding per connection before a call to clean-up the outstanding handles on the server is executed. If the setting is
+     * {@literal <=} 1 unprepare actions will be executed immedietely on prepared statement close. If it is set to {@literal >} 1 these calls will be
+     * batched together to avoid overhead of calling sp_unprepare too often.
      * 
      * @param value
-     *      Changes the setting per the description.
+     *            Changes the setting per the description.
      */
     public void setServerPreparedStatementDiscardThreshold(int value) {
         this.serverPreparedStatementDiscardThreshold = value;
