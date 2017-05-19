@@ -2358,7 +2358,7 @@ final class JDBCSyntaxTranslator {
      */
     private final static Pattern limitOnlyPattern = Pattern.compile("\\{\\s*[lL][iI][mM][iI][tT]\\s+(((\\(|\\s)*)(\\d*|\\?)((\\)|\\s)*))\\s*\\}");
 
-    /*
+    /**
      * This function translates the LIMIT escape syntax, {LIMIT <row> [OFFSET <offset>]} SQL Server does not support LIMIT syntax, the LIMIT escape
      * syntax is thus translated to use "TOP" syntax The OFFSET clause is not supported, and will throw an exception if used.
      * 
