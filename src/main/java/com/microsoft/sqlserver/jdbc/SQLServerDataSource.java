@@ -652,10 +652,21 @@ public class SQLServerDataSource implements ISQLServerDataSource, DataSource, ja
                 SQLServerDriverIntProperty.PACKET_SIZE.getDefaultValue());
     }
 
+    /**
+     * Setting the query timeout
+     * 
+     * @param queryTimeout
+     *            The number of seconds to wait before a timeout has occurred on a query. The default value is 0, which means infinite timeout.
+     */
     public void setQueryTimeout(int queryTimeout) {
         setIntProperty(connectionProps, SQLServerDriverIntProperty.QUERY_TIMEOUT.toString(), queryTimeout);
     }
 
+    /**
+     * Getting the query timeout
+     * 
+     * @return The number of seconds to wait before a timeout has occurred on a query.
+     */
     public int getQueryTimeout() {
         return getIntProperty(connectionProps, SQLServerDriverIntProperty.QUERY_TIMEOUT.toString(),
                 SQLServerDriverIntProperty.QUERY_TIMEOUT.getDefaultValue());
@@ -713,10 +724,22 @@ public class SQLServerDataSource implements ISQLServerDataSource, DataSource, ja
                 SQLServerConnection.getDefaultServerPreparedStatementDiscardThreshold());
     }
 
+    /**
+     * Setting the socket timeout
+     * 
+     * @param socketTimeout
+     *            The number of milliseconds to wait before a timeout is occurred on a socket read or accept. The default value is 0, which means
+     *            infinite timeout.
+     */
     public void setSocketTimeout(int socketTimeout) {
         setIntProperty(connectionProps, SQLServerDriverIntProperty.SOCKET_TIMEOUT.toString(), socketTimeout);
     }
 
+    /**
+     * Getting the socket timeout
+     * 
+     * @return The number of milliseconds to wait before a timeout is occurred on a socket read or accept.
+     */
     public int getSocketTimeout() {
         int defaultTimeOut = SQLServerDriverIntProperty.SOCKET_TIMEOUT.getDefaultValue();
         return getIntProperty(connectionProps, SQLServerDriverIntProperty.SOCKET_TIMEOUT.toString(), defaultTimeOut);
