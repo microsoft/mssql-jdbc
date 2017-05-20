@@ -517,11 +517,13 @@ class GregorianChange {
     }
 }
 
-// UTC/GMT time zone singleton. The enum type delays initialization until first use.
-enum UTC {
-    INSTANCE;
+final class UTC {
 
+    // UTC/GMT time zone singleton.
     static final TimeZone timeZone = new SimpleTimeZone(0, "UTC");
+
+    private UTC() {
+    }
 }
 
 final class TDSChannel {
