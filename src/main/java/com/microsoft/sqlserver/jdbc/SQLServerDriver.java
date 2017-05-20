@@ -161,7 +161,7 @@ enum ApplicationIntent {
     READ_ONLY("readonly");
 
     // the value of the enum
-    private String value;
+    private final String value;
 
     // constructor that sets the string value of the enum
     private ApplicationIntent(String value) {
@@ -196,11 +196,11 @@ enum ApplicationIntent {
 
 enum SQLServerDriverObjectProperty {
     GSS_CREDENTIAL("gsscredential", null);
-    private String name;
-    private Object defaultValue;
+    private final String name;
+    private final String defaultValue;
 
     private SQLServerDriverObjectProperty(String name,
-            Object defaultValue) {
+            String defaultValue) {
         this.name = name;
         this.defaultValue = defaultValue;
     }
@@ -210,7 +210,7 @@ enum SQLServerDriverObjectProperty {
      * @return
      */
     public String getDefaultValue() {
-        return null;
+        return defaultValue;
     }
     
     public String toString() {
@@ -249,8 +249,8 @@ enum SQLServerDriverStringProperty
 	FIPS_PROVIDER              ("fipsProvider",            ""),
 	;
 
-    private String name;
-    private String defaultValue;
+    private final String name;
+    private final String defaultValue;
 
     private SQLServerDriverStringProperty(String name,
             String defaultValue) {
@@ -276,8 +276,8 @@ enum SQLServerDriverIntProperty {
 	SOCKET_TIMEOUT ("socketTimeout",   0),
     SERVER_PREPARED_STATEMENT_DISCARD_THRESHOLD("serverPreparedStatementDiscardThreshold", -1/*This is not the default, default handled in SQLServerConnection and is not final/const*/);  
     
-    private String name;
-    private int defaultValue;
+    private final String name;
+    private final int defaultValue;
 
     private SQLServerDriverIntProperty(String name,
             int defaultValue) {
@@ -310,8 +310,8 @@ enum SQLServerDriverBooleanProperty
 	FIPS                                      ("fips",                                      false),
 	ENABLE_PREPARE_ON_FIRST_PREPARED_STATEMENT("enablePrepareOnFirstPreparedStatementCall", false/*This is not the default, default handled in SQLServerConnection and is not final/const*/);
 
-    private String name;
-    private boolean defaultValue;
+    private final String name;
+    private final boolean defaultValue;
 
     private SQLServerDriverBooleanProperty(String name,
             boolean defaultValue) {

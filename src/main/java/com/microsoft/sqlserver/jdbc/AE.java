@@ -254,17 +254,9 @@ enum DescribeParameterEncryptionResultSet1 {
     KeyPath,
     KeyEncryptionAlgorithm;
 
-    private int value;
-
-    // Column indexing starts from 1;
-    static {
-        for (int i = 0; i < values().length; ++i) {
-            values()[i].value = i + 1;
-        }
-    }
-
     int value() {
-        return value;
+        // Column indexing starts from 1;
+        return ordinal() + 1;
     }
 }
 
@@ -279,17 +271,9 @@ enum DescribeParameterEncryptionResultSet2 {
     ColumnEncryptionKeyOrdinal,
     NormalizationRuleVersion;
 
-    private int value;
-
-    // Column indexing starts from 1;
-    static {
-        for (int i = 0; i < values().length; ++i) {
-            values()[i].value = i + 1;
-        }
-    }
-
     int value() {
-        return value;
+        // Column indexing starts from 1;
+        return ordinal() + 1;
     }
 
 }
