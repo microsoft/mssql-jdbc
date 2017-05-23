@@ -6442,9 +6442,6 @@ final class TDSReader {
             return value;
         }
 
-        // as per TDS protocol, TDS_DONE packet should always be followed by status flag
-        // throw exception if status packet is not available
-        throwInvalidTDS();
         return 0;
     }
 
