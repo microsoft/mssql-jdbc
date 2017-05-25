@@ -9,6 +9,7 @@
 package com.microsoft.sqlserver.jdbc;
 
 import java.sql.ParameterMetaData;
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
@@ -580,11 +581,14 @@ public final class SQLServerParameterMetaData implements ParameterMetaData {
                     if (metaInfo.fields.length() <= 0)
                         return;
 
-                    Statement stmt = con.createStatement();
-                    String sCom = "sp_executesql N'SET FMTONLY ON SELECT " + metaInfo.fields + " FROM " + metaInfo.table + " WHERE 1 = 2'";
-                    ResultSet rs = stmt.executeQuery(sCom);
+                    String sCom = "sp_executesql N'SET FMTONLY ON SELECT ? FROM ? WHERE 1 = 2'";
+                    PreparedStatement pstmt = con.prepareStatement(sCom);
+                    pstmt.setString(1, metaInfo.fields);
+                    pstmt.setString(2, metaInfo.table);
+                    ResultSet rs = pstmt.executeQuery();
+                    
                     parseQueryMetaFor2008(rs);
-                    stmt.close();
+                    pstmt.close();
                     rs.close();
                 }
             }

@@ -8,6 +8,8 @@
 
 package com.microsoft.sqlserver.jdbc;
 
+import java.util.logging.Level;
+
 class FedAuthDllInfo {
     byte[] accessTokenBytes = null;
     long expiresIn = 0;
@@ -102,7 +104,9 @@ final class AuthenticationJNI extends SSPIAuthentication {
         int failure = SNISecGenClientContext(sniSec, sniSecLen, pin, pin.length, pOut, outsize, done, DNSName, port, null, null, authLogger);
 
         if (failure != 0) {
-            authLogger.warning(toString() + " Authentication failed code : " + failure);
+            if (authLogger.isLoggable(Level.WARNING)) {
+                authLogger.warning(toString() + " Authentication failed code : " + failure);
+            }
             con.terminate(SQLServerException.DRIVER_ERROR_NONE, SQLServerException.getErrString("R_integratedAuthenticationFailed"), linkError);
         }
         // allocate space based on the size returned

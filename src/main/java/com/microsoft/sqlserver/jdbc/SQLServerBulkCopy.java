@@ -29,6 +29,7 @@ import java.text.MessageFormat;
 import java.time.OffsetDateTime;
 import java.time.OffsetTime;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.GregorianCalendar;
 import java.util.HashMap;
@@ -41,7 +42,6 @@ import java.util.Set;
 import java.util.SimpleTimeZone;
 import java.util.TimeZone;
 import java.util.UUID;
-import java.util.Vector;
 import java.util.logging.Level;
 
 import javax.sql.RowSet;
@@ -358,7 +358,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable {
      */
     public SQLServerBulkCopy(String connectionUrl) throws SQLServerException {
         loggerExternal.entering(loggerClassName, "SQLServerBulkCopy", "connectionUrl not traced.");
-        if ((connectionUrl == null) || connectionUrl.trim().equals("")) {
+        if ((connectionUrl == null) || "".equals(connectionUrl.trim())) {
             throw new SQLServerException(null, SQLServerException.getErrString("R_nullConnection"), null, 0, false);
         }
 
@@ -744,10 +744,10 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable {
      */
     private void writeColumnMetaDataColumnData(TDSWriter tdsWriter,
             int idx) throws SQLServerException {
-        int srcColumnIndex = 0, destPrecision = 0;
-        int bulkJdbcType = 0, bulkPrecision = 0, bulkScale = 0;
-        SQLCollation collation = null;
-        SSType destSSType = null;
+        int srcColumnIndex, destPrecision;
+        int bulkJdbcType, bulkPrecision, bulkScale;
+        SQLCollation collation;
+        SSType destSSType;
         boolean isStreaming, srcNullable;
         // For varchar, precision is the size of the varchar type.
         /*
@@ -1250,8 +1250,8 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable {
         SSType destSSType = (null != destColumnMetadata.get(destColIndx).cryptoMeta)
                 ? destColumnMetadata.get(destColIndx).cryptoMeta.baseTypeInfo.getSSType() : destColumnMetadata.get(destColIndx).ssType;
 
-        int bulkJdbcType = 0, bulkPrecision = 0, bulkScale = 0;
-        int srcPrecision = 0;
+        int bulkJdbcType, bulkPrecision, bulkScale;
+        int srcPrecision;
 
         bulkJdbcType = srcColumnMetadata.get(srcColIndx).jdbcType;
         // For char/varchar precision is the size.
@@ -1467,7 +1467,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable {
 
     private String createInsertBulkCommand(TDSWriter tdsWriter) throws SQLServerException {
         StringBuilder bulkCmd = new StringBuilder();
-        List<String> bulkOptions = new Vector<String>();
+        List<String> bulkOptions = new ArrayList<String>();
         String endColumn = " , ";
         bulkCmd.append("INSERT BULK " + destinationTableName + " (");
 
@@ -1694,7 +1694,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable {
     private void validateStringBinaryLengths(Object colValue,
             int srcCol,
             int destCol) throws SQLServerException {
-        int sourcePrecision = 0;
+        int sourcePrecision;
         int destPrecision = destColumnMetadata.get(destCol).precision;
         int srcJdbcType = srcColumnMetadata.get(srcCol).jdbcType;
         SSType destSSType = destColumnMetadata.get(destCol).ssType;
@@ -2224,7 +2224,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable {
                             try {
                                 // Read and Send the data as chunks
                                 // VARBINARYMAX --- only when streaming.
-                                Reader reader = null;
+                                Reader reader;
                                 if (colValue instanceof Reader) {
                                     reader = (Reader) colValue;
                                 }
@@ -2307,7 +2307,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable {
                             tdsWriter.writeLong(PLPInputStream.UNKNOWN_PLP_LEN);
                             try {
                                 // Read and Send the data as chunks.
-                                Reader reader = null;
+                                Reader reader;
                                 if (colValue instanceof Reader) {
                                     reader = (Reader) colValue;
                                 }
@@ -2354,7 +2354,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable {
                             tdsWriter.writeLong(PLPInputStream.UNKNOWN_PLP_LEN);
                             try {
                                 // Read and Send the data as chunks
-                                InputStream iStream = null;
+                                InputStream iStream;
                                 if (colValue instanceof InputStream) {
                                     iStream = (InputStream) colValue;
                                 }
@@ -2518,6 +2518,11 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable {
             } // End of switch
         }
         catch (ClassCastException ex) {
+            if (null == colValue) {
+                // this should not really happen, since ClassCastException should only happen when colValue is not null.
+                // just do one more checking here to make sure
+                throwInvalidArgument("colValue");
+            }
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_errorConvertingValue"));
             Object[] msgArgs = {colValue.getClass().getSimpleName(), JDBCType.of(bulkJdbcType)};
             throw new SQLServerException(form.format(msgArgs), SQLState.DATA_EXCEPTION_NOT_SPECIFIC, DriverError.NOT_SET, ex);
@@ -2612,16 +2617,14 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable {
                 case microsoft.sql.Types.DATETIME:
                 case microsoft.sql.Types.SMALLDATETIME:
                 case java.sql.Types.TIMESTAMP:
-                    return sourceResultSet.getTimestamp(srcColOrdinal);
-
-                case java.sql.Types.DATE:
-                    return sourceResultSet.getDate(srcColOrdinal);
-
                 case java.sql.Types.TIME:
                     // java.sql.Types.TIME allows maximum of 3 fractional second precision
                     // SQL Server time(n) allows maximum of 7 fractional second precision, to avoid truncation
                     // values are read as java.sql.Types.TIMESTAMP if srcJdbcType is java.sql.Types.TIME
                     return sourceResultSet.getTimestamp(srcColOrdinal);
+
+                case java.sql.Types.DATE:
+                    return sourceResultSet.getDate(srcColOrdinal);
 
                 case microsoft.sql.Types.DATETIMEOFFSET:
                     // We can safely cast the result set to a SQLServerResultSet as the DatetimeOffset type is only available in the JDBC driver.
@@ -2647,9 +2650,9 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable {
             int srcColOrdinal,
             int destColOrdinal,
             Object colValue) throws SQLServerException {
-        int srcPrecision = 0, srcScale = 0, destPrecision = 0, srcJdbcType = 0;
+        int srcPrecision, srcScale, destPrecision, srcJdbcType;
         SSType destSSType = null;
-        boolean isStreaming = false, srcNullable;
+        boolean isStreaming, srcNullable;
         srcPrecision = srcColumnMetadata.get(srcColOrdinal).precision;
         srcScale = srcColumnMetadata.get(srcColOrdinal).scale;
         srcJdbcType = srcColumnMetadata.get(srcColOrdinal).jdbcType;
@@ -2805,16 +2808,14 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable {
             switch (srcJdbcType) {
                 case java.sql.Types.TIMESTAMP:
                 case java.sql.Types.TIME:
-                    return null;
                 case java.sql.Types.DATE:
-                    return null;
                 case microsoft.sql.Types.DATETIMEOFFSET:
                     return null;
             }
         }
 
         // If we are here value is non-null.
-        Calendar cal = null;
+        Calendar cal;
 
         // Get the temporal values from the formatter
         DateTimeFormatter dateTimeFormatter = srcColumnMetadata.get(srcColOrdinal).dateTimeFormatter;
@@ -2859,7 +2860,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable {
 
                     startIndx = ++endIndx; // skip the :
                     endIndx = valueStr.indexOf('.', startIndx);
-                    int seconds = 0, offsethour, offsetMinute, totalOffset = 0, fractionalSeconds = 0;
+                    int seconds, offsethour, offsetMinute, totalOffset = 0, fractionalSeconds = 0;
                     boolean isNegativeOffset = false;
                     boolean hasTimeZone = false;
                     int fractionalSecondsLength = 0;
@@ -2889,7 +2890,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable {
                         }
                         else {
                             seconds = Integer.parseInt(valueStr.substring(startIndx));
-                            startIndx = ++endIndx; // skip the space
+                            ++endIndx; // skip the space
                         }
                     }
                     if (hasTimeZone) {
@@ -2949,8 +2950,8 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable {
             Object colValue,
             int srcColOrdinal,
             int scale) throws SQLServerException {
-        long utcMillis = 0;
-        GregorianCalendar calendar = null;
+        long utcMillis;
+        GregorianCalendar calendar;
 
         switch (srcTemporalJdbcType) {
             case DATE:
@@ -2968,7 +2969,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable {
                 calendar.clear();
                 utcMillis = ((java.sql.Timestamp) colValue).getTime();
                 calendar.setTimeInMillis(utcMillis);
-                int subSecondNanos = 0;
+                int subSecondNanos;
                 if (colValue instanceof java.sql.Timestamp) {
                     subSecondNanos = ((java.sql.Timestamp) colValue).getNanos();
                 }
@@ -3084,7 +3085,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable {
                 case BINARY:
                 case VARBINARY:
                 case LONGVARBINARY:
-                    byte[] byteArrayValue = null;
+                    byte[] byteArrayValue;
                     if (value instanceof String) {
                         byteArrayValue = ParameterUtils.HexToBin((String) value);
                     }

@@ -110,7 +110,7 @@ final class SQLServerSymmetricKeyCache {
             }
             Boolean[] hasEntry = new Boolean[1];
             List<String> trustedKeyPaths = SQLServerConnection.getColumnEncryptionTrustedMasterKeyPaths(serverName, hasEntry);
-            if (true == hasEntry[0]) {
+            if (hasEntry[0]) {
                 if ((null == trustedKeyPaths) || (0 == trustedKeyPaths.size()) || (!trustedKeyPaths.contains(keyInfo.keyPath))) {
                     MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_UntrustedKeyPath"));
                     Object[] msgArgs = {keyInfo.keyPath, serverName};
