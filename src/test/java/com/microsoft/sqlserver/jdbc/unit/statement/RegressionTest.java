@@ -137,7 +137,7 @@ public class RegressionTest extends AbstractTest {
     public void testUpdateQuery() throws SQLException {
         SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(connectionString);
         String sql;
-        PreparedStatement pstmt = null;
+        SQLServerPreparedStatement pstmt = null;
         JDBCType[] targets = {JDBCType.INTEGER, JDBCType.SMALLINT};
         int rows = 3;       
         final String tableName = "[updateQuery]";
@@ -150,7 +150,7 @@ public class RegressionTest extends AbstractTest {
          * populate table
          */
         sql = "insert into " + tableName + " values(" + "?,?" + ")";
-        pstmt =  (connection).prepareStatement(sql, ResultSet.TYPE_FORWARD_ONLY,
+        pstmt =  (SQLServerPreparedStatement)con.prepareStatement(sql, ResultSet.TYPE_FORWARD_ONLY,
                 ResultSet.CONCUR_READ_ONLY, connection.getHoldability());
         
         for (int i = 1; i <= rows; i++) {
@@ -164,7 +164,7 @@ public class RegressionTest extends AbstractTest {
          */
         sql = "update " + tableName + " SET c1= ? where PK =1";
         for (int i = 1; i <= rows; i++) {
-            pstmt = (connection).prepareStatement(sql, ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY);
+            pstmt = (SQLServerPreparedStatement)con.prepareStatement(sql, ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY);
             for (int t = 0; t < targets.length; t++) {
                 pstmt.setObject(1, 5 + i, targets[t]);
                 pstmt.executeUpdate();
