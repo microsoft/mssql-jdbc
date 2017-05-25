@@ -35,7 +35,7 @@ public class DBTable extends AbstractSQLGenerator {
     String tableDefinition;
     List<DBColumn> columns;
     int totalColumns;
-    static int totalRows = 3; // default row count set to 3
+    int totalRows = 3; // default row count set to 3
     DBSchema schema;
 
     /**
@@ -165,7 +165,7 @@ public class DBTable extends AbstractSQLGenerator {
      * 
      * @return total rows in the table
      */
-    public static int getTotalRows() {
+    public int getTotalRows() {
         return totalRows;
     }
 

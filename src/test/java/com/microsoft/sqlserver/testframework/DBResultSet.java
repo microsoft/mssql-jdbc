@@ -411,7 +411,7 @@ public class DBResultSet extends AbstractParentWrapper {
      */
     public void afterLast() throws SQLException {
         ((ResultSet) product()).afterLast();
-        _currentrow = DBTable.getTotalRows();
+        _currentrow = currentTable.getTotalRows();
     }
 
     /**
