@@ -18,12 +18,14 @@ import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
 
 import com.microsoft.sqlserver.jdbc.SQLServerCallableStatement;
+import com.microsoft.sqlserver.jdbc.SQLServerDataTable;
 import com.microsoft.sqlserver.jdbc.SQLServerPreparedStatement;
 import com.microsoft.sqlserver.testframework.AbstractTest;
 import com.microsoft.sqlserver.testframework.DBConnection;
 import com.microsoft.sqlserver.testframework.DBStatement;
 import com.microsoft.sqlserver.testframework.DBTable;
 import com.microsoft.sqlserver.testframework.Utils;
+import com.microsoft.sqlserver.testframework.sqlType.SqlType;
 
 @RunWith(JUnitPlatform.class)
 public class TVPAllTypes extends AbstractTest {
@@ -32,6 +34,9 @@ public class TVPAllTypes extends AbstractTest {
 
     private static String tvpName = "TVPAllTypesTable_char_TVP";
     private static String procedureName = "TVPAllTypesTable_char_SP";
+
+    private static DBTable tableSrc = null;
+    private static DBTable tableDest = null;
     private static String tableNameSrc;
     private static String tableNameDest;
 
@@ -127,6 +132,36 @@ public class TVPAllTypes extends AbstractTest {
         terminateVariation();
     }
 
+    /**
+     * Test TVP with DataTable
+     * 
+     * @throws SQLException
+     */
+    @Test
+    public void testTVP_DataTable() throws SQLException {
+        setupVariation();
+
+        SQLServerDataTable dt = new SQLServerDataTable();
+
+        int numberOfColumns = tableDest.getColumns().size();
+        Object[] values = new Object[numberOfColumns];
+        for (int i = 0; i < numberOfColumns; i++) {
+            SqlType sqlType = tableDest.getColumns().get(i).getSqlType();
+            dt.addColumnMetadata(tableDest.getColumnName(i), sqlType.getJdbctype().getVendorTypeNumber());
+            values[i] = sqlType.createdata();
+        }
+
+        int numberOfRows = 10;
+        for (int i = 0; i < numberOfRows; i++) {
+            dt.addRow(values);
+        }
+
+        SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) connection
+                .prepareStatement("INSERT INTO " + tableNameDest + " select * from ? ;");
+        pstmt.setStructured(1, tvpName, dt);
+        pstmt.execute();
+    }
+
     private static void createPreocedure(String procedureName,
             String destTable) throws SQLException {
         String sql = "CREATE PROCEDURE " + procedureName + " @InputData " + tvpName + " READONLY " + " AS " + " BEGIN " + " INSERT INTO " + destTable
@@ -155,8 +190,8 @@ public class TVPAllTypes extends AbstractTest {
         DBConnection dbConnection = new DBConnection(connectionString);
         DBStatement dbStmt = dbConnection.createStatement();
 
-        DBTable tableSrc = new DBTable(true);
-        DBTable tableDest = tableSrc.cloneSchema();
+        tableSrc = new DBTable(true);
+        tableDest = tableSrc.cloneSchema();
         dbStmt.createTable(tableSrc);
         dbStmt.createTable(tableDest);
 
