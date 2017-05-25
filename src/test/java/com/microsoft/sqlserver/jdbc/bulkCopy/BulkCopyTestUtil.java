@@ -29,6 +29,7 @@ import com.microsoft.sqlserver.testframework.DBResultSet;
 import com.microsoft.sqlserver.testframework.DBStatement;
 import com.microsoft.sqlserver.testframework.DBTable;
 import com.microsoft.sqlserver.testframework.Utils;
+import com.microsoft.sqlserver.testframework.util.ComparisonUtil;
 
 /**
  * Utility class
@@ -351,96 +352,7 @@ class BulkCopyTestUtil {
                 srcValue = srcResultSet.getObject(i);
                 dstValue = dstResultSet.getObject(i);
 
-                comapreSourceDest(destMeta.getColumnType(i), srcValue, dstValue);
-            }
-    }
-
-    /**
-     * validate if both expected and actual value are same
-     * 
-     * @param dataType
-     * @param expectedValue
-     * @param actualValue
-     */
-    static void comapreSourceDest(int dataType,
-            Object expectedValue,
-            Object actualValue) {
-        // Bulkcopy doesn't guarantee order of insertion - if we need to test several rows either use primary key or
-        // validate result based on sql JOIN
-
-        if ((null == expectedValue) || (null == actualValue)) {
-            // if one value is null other should be null too
-            assertEquals(expectedValue, actualValue, "Expected null in source and destination");
-        }
-        else
-            switch (dataType) {
-                case java.sql.Types.BIGINT:
-                    assertTrue((((Long) expectedValue).longValue() == ((Long) actualValue).longValue()), "Unexpected bigint value");
-                    break;
-
-                case java.sql.Types.INTEGER:
-                    assertTrue((((Integer) expectedValue).intValue() == ((Integer) actualValue).intValue()), "Unexpected int value");
-                    break;
-
-                case java.sql.Types.SMALLINT:
-                case java.sql.Types.TINYINT:
-                    assertTrue((((Short) expectedValue).shortValue() == ((Short) actualValue).shortValue()), "Unexpected smallint/tinyint value");
-                    break;
-
-                case java.sql.Types.BIT:
-                    assertTrue((((Boolean) expectedValue).booleanValue() == ((Boolean) actualValue).booleanValue()), "Unexpected bit value");
-                    break;
-
-                case java.sql.Types.DECIMAL:
-                case java.sql.Types.NUMERIC:
-                    assertTrue(0 == (((BigDecimal) expectedValue).compareTo((BigDecimal) actualValue)),
-                            "Unexpected decimal/numeric/money/smallmoney value");
-                    break;
-
-                case java.sql.Types.DOUBLE:
-                    assertTrue((((Double) expectedValue).doubleValue() == ((Double) actualValue).doubleValue()), "Unexpected float value");
-                    break;
-
-                case java.sql.Types.REAL:
-                    assertTrue((((Float) expectedValue).floatValue() == ((Float) actualValue).floatValue()), "Unexpected real value");
-                    break;
-
-                case java.sql.Types.VARCHAR:
-                case java.sql.Types.NVARCHAR:
-                    assertTrue(((((String) expectedValue).trim()).equals(((String) actualValue).trim())), "Unexpected varchar/nvarchar value ");
-                    break;
-
-                case java.sql.Types.CHAR:
-                case java.sql.Types.NCHAR:
-                    assertTrue(((((String) expectedValue).trim()).equals(((String) actualValue).trim())), "Unexpected char/nchar value ");
-                    break;
-
-                case java.sql.Types.BINARY:
-                case java.sql.Types.VARBINARY:
-                    assertTrue(Utils.parseByte((byte[]) expectedValue, (byte[]) actualValue), "Unexpected bianry/varbinary value ");
-                    break;
-
-                case java.sql.Types.TIMESTAMP:
-                    assertTrue((((Timestamp) expectedValue).getTime() == (((Timestamp) actualValue).getTime())),
-                            "Unexpected datetime/smalldatetime/datetime2 value");
-                    break;
-
-                case java.sql.Types.DATE:
-                    assertTrue((((Date) expectedValue).getDate() == (((Date) actualValue).getDate())), "Unexpected datetime value");
-                    break;
-
-                case java.sql.Types.TIME:
-                    assertTrue(((Time) expectedValue).getTime() == ((Time) actualValue).getTime(), "Unexpected time value ");
-                    break;
-
-                case microsoft.sql.Types.DATETIMEOFFSET:
-                    assertTrue(0 == ((microsoft.sql.DateTimeOffset) expectedValue).compareTo((microsoft.sql.DateTimeOffset) actualValue),
-                            "Unexpected time value ");
-                    break;
-
-                default:
-                    fail("Unhandled JDBCType " + JDBCType.valueOf(dataType));
-                    break;
+                ComparisonUtil.compareExpectedAndActual(destMeta.getColumnType(i), srcValue, dstValue);
             }
     }
 
@@ -512,7 +424,7 @@ class BulkCopyTestUtil {
                         && java.sql.Types.TIME != dstType
                         && microsoft.sql.Types.DATETIMEOFFSET != dstType){
                     // skip validation for temporal types due to rounding eg 7986-10-21 09:51:15.114 is rounded as 7986-10-21 09:51:15.113 in server
-                comapreSourceDest(dstType, srcValue, dstValue);
+                    ComparisonUtil.compareExpectedAndActual(dstType, srcValue, dstValue);
                 }
             }
         }
