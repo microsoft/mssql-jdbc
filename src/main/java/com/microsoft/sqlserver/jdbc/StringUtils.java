@@ -54,16 +54,14 @@ public class StringUtils {
      * @return {@link Boolean} if provided String is Integer or not.
      */
     public static boolean isInteger(final String str) {
-        boolean isInteger = false;
-        
         try {
-            int i = Integer.parseInt(str);
-            isInteger = true;
-        }catch(NumberFormatException e) {
-            //Nothing. this is not integer. 
+            Integer.parseInt(str);
+            return true;
         }
-        
-        return isInteger;
+        catch (NumberFormatException e) {
+            // Nothing. this is not integer.
+        }
+        return false;
     }
 
 }

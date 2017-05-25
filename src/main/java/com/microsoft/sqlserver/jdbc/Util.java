@@ -243,12 +243,13 @@ final class Util {
         String result = "";
         String name = "";
         String value = "";
-
+        StringBuilder builder;
+        
         if (!tmpUrl.startsWith(sPrefix))
             return null;
 
         tmpUrl = tmpUrl.substring(sPrefix.length());
-        int i = 0;
+        int i;
 
         // Simple finite state machine.
         // always look at one char at a time
@@ -273,7 +274,10 @@ final class Util {
                         state = inName;
                     }
                     else {
-                        result = result + ch;
+                        builder = new StringBuilder();
+                        builder.append(result);
+                        builder.append(ch);
+                        result = builder.toString();
                         state = inServerName;
                     }
                     break;
@@ -299,7 +303,10 @@ final class Util {
                             state = inInstanceName;
                     }
                     else {
-                        result = result + ch;
+                        builder = new StringBuilder();
+                        builder.append(result);
+                        builder.append(ch);
+                        result = builder.toString();
                         // same state
                     }
                     break;
@@ -316,7 +323,10 @@ final class Util {
                         state = inName;
                     }
                     else {
-                        result = result + ch;
+                        builder = new StringBuilder();
+                        builder.append(result);
+                        builder.append(ch);
+                        result = builder.toString();
                         // same state
                     }
                     break;
@@ -337,7 +347,10 @@ final class Util {
                             state = inPort;
                     }
                     else {
-                        result = result + ch;
+                        builder = new StringBuilder();
+                        builder.append(result);
+                        builder.append(ch);
+                        result = builder.toString();
                         // same state
                     }
                     break;
@@ -361,7 +374,10 @@ final class Util {
                         // same state
                     }
                     else {
-                        name = name + ch;
+                        builder = new StringBuilder();
+                        builder.append(name);
+                        builder.append(ch);
+                        name = builder.toString();
                         // same state
                     }
                     break;
@@ -398,7 +414,10 @@ final class Util {
                         }
                     }
                     else {
-                        value = value + ch;
+                        builder = new StringBuilder();
+                        builder.append(value);
+                        builder.append(ch);
+                        value = builder.toString();
                         // same state
                     }
                     break;
@@ -423,7 +442,10 @@ final class Util {
                         state = inEscapedValueEnd;
                     }
                     else {
-                        value = value + ch;
+                        builder = new StringBuilder();
+                        builder.append(value);
+                        builder.append(ch);
+                        value = builder.toString();
                         // same state
                     }
                     break;
@@ -728,7 +750,7 @@ final class Util {
     static boolean IsActivityTraceOn() {
         LogManager lm = LogManager.getLogManager();
         String activityTrace = lm.getProperty(ActivityIdTraceProperty);
-        if (null != activityTrace && activityTrace.equalsIgnoreCase("on"))
+        if ("on".equalsIgnoreCase(activityTrace))
             return true;
         else
             return false;
@@ -746,7 +768,6 @@ final class Util {
             case Disabled:
                 return false;
             case Enabled:
-                return true;
             case ResultSetOnly:
                 return true;
             default:
@@ -766,11 +787,10 @@ final class Util {
         // Command leve setting trumps all
         switch (stmtColumnEncryptionSetting) {
             case Disabled:
+            case ResultSetOnly:
                 return false;
             case Enabled:
                 return true;
-            case ResultSetOnly:
-                return false;
             default:
                 // Check connection level setting!
                 assert SQLServerStatementColumnEncryptionSetting.UseConnectionSetting == stmtColumnEncryptionSetting : "Unexpected value for command level override";
@@ -849,7 +869,7 @@ final class Util {
                 return ((null == value) ? 0 : ((byte[]) value).length);
 
             case BIGDECIMAL:
-                int length = -1;
+                int length;
 
                 if (null == precision) {
                     if (null == value) {
@@ -891,13 +911,12 @@ final class Util {
             case TIME:
             case DATETIMEOFFSET:
                 return ((null == scale) ? TDS.MAX_FRACTIONAL_SECONDS_SCALE : scale);
-            case READER:
-                return ((null == value) ? 0 : DataTypes.NTEXT_MAX_CHARS);
-
+                
             case CLOB:
                 return ((null == value) ? 0 : (DataTypes.NTEXT_MAX_CHARS * 2));
 
             case NCLOB:
+            case READER:
                 return ((null == value) ? 0 : DataTypes.NTEXT_MAX_CHARS);
         }
         return 0;
