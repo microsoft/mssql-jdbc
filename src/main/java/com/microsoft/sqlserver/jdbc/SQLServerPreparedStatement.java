@@ -72,7 +72,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     private PreparedStatementHandle cachedPreparedStatementHandle; 
 
     /** Hash of user supplied SQL statement used for various cache lookups */
-    private Sha1HashKey cacheKey;
+    private Sha1HashKey sqlTextCacheKey;
 
     /**
      * Array with parameter names generated in buildParamTypeDefinitions For mapping encryption information to parameters, as the second result set
@@ -97,16 +97,6 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
     /** The prepared statement handle returned by the server */
     private int prepStmtHandle = 0;
-    /** Whether the prepared statement handle is used for cursors or not (then default result set) */
-    private boolean isPrepStmtHandleCursorable = false;
-
-    private boolean isPrepStmtHandleCursorable() {
-        return isPrepStmtHandleCursorable;
-    }
-
-    private void setIsPrepStmtHandleCursorable(boolean value) {
-        this.isPrepStmtHandleCursorable = value;
-    }
 
     private void setPreparedStatementHandle(int handle) {
         this.prepStmtHandle = handle;
@@ -134,7 +124,6 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     */
     private void resetPrepStmtHandle() {
         prepStmtHandle = 0;
-        setIsPrepStmtHandleCursorable(false);
     }
 
     /** Flag set to true when statement execution is expected to return the prepared statement handle */
@@ -182,30 +171,16 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         stmtPoolable = true;
 
         // Create a cache key for this statement.
-        cacheKey = new Sha1HashKey(sql);
+        sqlTextCacheKey = new Sha1HashKey(sql);
 
         // Parse or fetch SQL metadata from cache.
-        ParsedSQLMetadata parsedSQL = getOrCreateCachedParsedSQLMetadata(cacheKey, sql);
+        ParsedSQLMetadata parsedSQL = getOrCreateCachedParsedSQLMetadata(sqlTextCacheKey, sql);
 
         // Retrieve meta data from cache item.
         procedureName = parsedSQL.procedureName;
         bReturnValueSyntax = parsedSQL.bReturnValueSyntax;
         userSQL = parsedSQL.processedSQL;
         initParams(parsedSQL.parameterCount);
-
-        // See if existing prepared statement handle can be re-used.
-        cachedPreparedStatementHandle = connection.getOrRegisterCachedPreparedStatementHandle(cacheKey);
-        // If handle was found then re-use.
-        if (null != cachedPreparedStatementHandle && cachedPreparedStatementHandle.hasExecutedAtLeastOnce()) {
-            // Because sp_executesql was already called on this SQL-text use regular prep/exec pattern.
-            isExecutedAtLeastOnce = true;
-
-            // If existing handle was found and we can add reference to it, use it.
-            if (cachedPreparedStatementHandle.tryAddReference()) {
-                setIsPrepStmtHandleCursorable(false);
-                setPreparedStatementHandle(cachedPreparedStatementHandle.getHandle());
-            }
-        }
     }
 
     /**
@@ -233,7 +208,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
             }
             // If no reference to a statement pool cache item is found handle unprepare actions through batching @ connection level. 
             else if(connection.isPreparedStatementUnprepareBatchingEnabled()) {
-                connection.enqueueUnprepareStatementHandle(new PreparedStatementHandle(handleToClose, executedSqlDirectly, true));
+                connection.enqueueUnprepareStatementHandle(connection.new PreparedStatementHandle(null, handleToClose, executedSqlDirectly, true));
             }
             else {
                 // Non batched behavior (same as pre batch clean-up implementation)
@@ -525,15 +500,35 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
             hasNewTypeDefinitions = buildPreparedStrings(inOutParam, true);
         }
 
-        // Start the request and detach the response reader so that we can
-        // continue using it after we return.
-        TDSWriter tdsWriter = command.startRequest(TDS.PKT_RPC);
-
-        doPrepExec(tdsWriter, inOutParam, hasNewTypeDefinitions, hasExistingTypeDefinitions);
-
-        ensureExecuteResultsReader(command.startResponse(getIsResponseBufferingAdaptive()));
-        startResults();
-        getNextResult();
+        // Retry execution if existing handle could not be re-used.
+    	int attempt = 0;
+        while (true) {
+        	
+        	++attempt;
+        	try {
+    			// Re-use handle if available, requires parameter definitions which are not available until here.
+    			if (reuseCachedHandle(hasNewTypeDefinitions, 1 < attempt)) {
+    				hasNewTypeDefinitions = false;
+    			}
+    	
+    	        // Start the request and detach the response reader so that we can
+    	        // continue using it after we return.
+    	        TDSWriter tdsWriter = command.startRequest(TDS.PKT_RPC);
+    	
+    	        doPrepExec(tdsWriter, inOutParam, hasNewTypeDefinitions, hasExistingTypeDefinitions);
+    	
+    	        ensureExecuteResultsReader(command.startResponse(getIsResponseBufferingAdaptive()));
+    	        startResults();
+    	        getNextResult();
+        	}
+        	catch(SQLException e) {
+        		if (retryBasedOnFailedReuseOfCachedHandle(e, attempt))
+    				continue;
+                else
+    				throw e;
+        	}
+        	break;	
+        }
 
         if (EXECUTE_QUERY == executeMethod && null == resultSet) {
             SQLServerException.makeFromDriverError(connection, this, SQLServerException.getErrString("R_noResultset"), null, true);
@@ -541,6 +536,14 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         else if (EXECUTE_UPDATE == executeMethod && null != resultSet) {
             SQLServerException.makeFromDriverError(connection, this, SQLServerException.getErrString("R_resultsetGeneratedForUpdate"), null, false);
         }
+    }
+
+    /** Should the execution be retried because the re-used cached handle could not be re-used due to server side state changes? */
+    private boolean retryBasedOnFailedReuseOfCachedHandle(SQLException e, int attempt) {
+        // Only retry based on these error codes:
+        // 586: The prepared statement handle %d is not valid in this context.  Please verify that current database, user default schema, and ANSI_NULLS and QUOTED_IDENTIFIER set options are not changed since the handle is prepared.
+        // 8179: Could not find prepared statement with handle %d.
+        return 1 == attempt && (586 == e.getErrorCode() || 8179 == e.getErrorCode());
     }
 
     /**
@@ -567,7 +570,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                 setPreparedStatementHandle(param.getInt(tdsReader));
 
                 // Check if a cache reference should be updated with the newly created handle, NOT for cursorable handles.
-                if (null != cachedPreparedStatementHandle && !isPrepStmtHandleCursorable()) {
+                if (null != cachedPreparedStatementHandle && !isCursorable(executeMethod)) {
                     // Attempt to update the handle, if the update fails remove the reference to the cache item since it references a different handle.
                     if (!cachedPreparedStatementHandle.setHandle(prepStmtHandle, executedSqlDirectly))
                         cachedPreparedStatementHandle = null; // Handle could not be set, treat as not cached.                 
@@ -890,23 +893,68 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         connection.resetCurrentCommand();
     }
 
+	/** Manage re-using cached handles */
+	private boolean reuseCachedHandle(boolean hasNewTypeDefinitions, boolean discardCurrentCacheItem) {
+		
+		// No re-use of caching for cursorable statements (statements that WILL use sp_cursor*)
+		if (isCursorable(executeMethod))
+			return false;
+		
+		// If current cache item should be discarded make sure it is not used again.
+		if (discardCurrentCacheItem && null != cachedPreparedStatementHandle) {
+			
+			if(cachedPreparedStatementHandle.hasHandle())
+				cachedPreparedStatementHandle.removeReference();
+            
+            // Make sure the cached handle does not get re-used more.
+			resetPrepStmtHandle();
+			cachedPreparedStatementHandle.setIsExplicitlyDiscarded();
+			cachedPreparedStatementHandle = null;
+
+            return false;
+		}
+		
+		// New type definitions and existing cached handle reference then deregister cached handle.
+		if(hasNewTypeDefinitions) {
+			if (null != cachedPreparedStatementHandle && hasPreparedStatementHandle() && getPreparedStatementHandle() == cachedPreparedStatementHandle.getHandle()) {
+				cachedPreparedStatementHandle.removeReference();
+			}
+			cachedPreparedStatementHandle = null;
+		}
+		
+		// Check for new cache reference.
+		if (null == cachedPreparedStatementHandle) {
+			cachedPreparedStatementHandle = connection.getOrRegisterCachedPreparedStatementHandle(new Sha1HashKey(preparedSQL, preparedTypeDefinitions));
+	
+			// If handle was found then re-use.
+			if (null != cachedPreparedStatementHandle) {
+
+				// Because sp_executesql was already called on this SQL-text use
+				// regular prep/exec pattern.
+				if (cachedPreparedStatementHandle.hasExecutedAtLeastOnce())
+					isExecutedAtLeastOnce = true;
+
+				// If existing handle was found and we can add reference to it, use
+				// it.
+				if (cachedPreparedStatementHandle.tryAddReference()) {
+					setPreparedStatementHandle(cachedPreparedStatementHandle.getHandle());
+					return true;
+				}
+			}
+		}
+		return false;
+	}
+
     private boolean doPrepExec(TDSWriter tdsWriter,
             Parameter[] params,
             boolean hasNewTypeDefinitions,
             boolean hasExistingTypeDefinitions) throws SQLServerException {
         
-        // We only have a handle to re-use if it is both available and same "cursorability".
-        boolean isCursorableHandle = isCursorable(executeMethod);
-        
-        boolean hasHandle = hasPreparedStatementHandle() && isCursorableHandle == isPrepStmtHandleCursorable();
-
+        boolean hasHandle = hasPreparedStatementHandle();
         boolean needsPrepare = (hasNewTypeDefinitions && hasExistingTypeDefinitions) || !hasHandle;
 
-        // Remember cursorability.
-        setIsPrepStmtHandleCursorable(isCursorableHandle);
-
         // Cursors don't use statement pooling.
-        if (isCursorableHandle) {
+        if (isCursorable(executeMethod)) {
             
             if (needsPrepare) 
                 buildServerCursorPrepExecParams(tdsWriter);
@@ -2541,6 +2589,11 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                 }
             }
 
+			// Re-use handle if available, requires parameter definitions which are not available until here.
+    		if (reuseCachedHandle(hasNewTypeDefinitions, false)) {
+    			hasNewTypeDefinitions = false;
+    		}
+
             if (numBatchesExecuted < numBatchesPrepared) {
                 // assert null != tdsWriter;
                 tdsWriter.writeByte((byte) nBatchStatementDelimiter);
@@ -2896,7 +2949,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
      */
     public final ParameterMetaData getParameterMetaData(boolean forceRefresh) throws SQLServerException {
 
-        SQLServerParameterMetaData pmd = this.connection.getCachedParameterMetadata(cacheKey);
+        SQLServerParameterMetaData pmd = this.connection.getCachedParameterMetadata(sqlTextCacheKey);
 
         if (!forceRefresh && null != pmd) {
             return pmd;
@@ -2906,7 +2959,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
             checkClosed();
             pmd = new SQLServerParameterMetaData(this, userSQL);
 
-            connection.registerCachedParameterMetadata(cacheKey, pmd);
+            connection.registerCachedParameterMetadata(sqlTextCacheKey, pmd);
 
             loggerExternal.exiting(getClassNameLogging(), "getParameterMetaData", pmd);
  

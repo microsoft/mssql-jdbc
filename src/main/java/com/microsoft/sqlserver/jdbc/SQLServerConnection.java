@@ -120,8 +120,12 @@ public class SQLServerConnection implements ISQLServerConnection {
     static class Sha1HashKey {
         private byte[] bytes;
 
+        Sha1HashKey(String sql, String parametersDefinition) {
+            this(String.format("%s%s", sql, parametersDefinition));
+        }
+
         Sha1HashKey(String s) {
-            bytes = getSha1Digest().digest(s.getBytes());
+        	bytes = getSha1Digest().digest(s.getBytes());
         }
 
         public boolean equals(Object obj) {
@@ -149,14 +153,26 @@ public class SQLServerConnection implements ISQLServerConnection {
     /**
      * Used to keep track of an individual prepared statement handle.
      */
-    static class PreparedStatementHandle  {
+    class PreparedStatementHandle  {
         private int handle = 0;
         private final AtomicInteger handleRefCount = new AtomicInteger();
         private boolean isDirectSql;
         private volatile boolean hasExecutedAtLeastOnce;
         private volatile boolean evictedFromCache; 
+        private volatile boolean explicitlyDiscarded; 
+        private Sha1HashKey key;
+        
+        PreparedStatementHandle(Sha1HashKey key) {
+        	this.key = key;
+        }
 
-        PreparedStatementHandle() {
+        PreparedStatementHandle(Sha1HashKey key, int handle, boolean isDirectSql, boolean isEvictedFromCache) {
+        	this(key);
+        	
+            this.handle = handle;
+            this.isDirectSql = isDirectSql;
+            this.setHasExecutedAtLeastOnce(true);
+            this.setIsEvictedFromCache(isEvictedFromCache);
         }
 
         /** Has the statement been evicted from the statement handle cache. */
@@ -169,6 +185,18 @@ public class SQLServerConnection implements ISQLServerConnection {
             this.evictedFromCache = isEvictedFromCache;
         }
 
+        /** Specify that this statement has been explicitly discarded from being used by the cache. */
+        void setIsExplicitlyDiscarded() {
+        	this.explicitlyDiscarded = true;
+        	
+    		evictCachedPreparedStatementHandle(this);
+        }
+
+        /** Has the statement been explicitly discarded. */
+        private boolean isExplicitlyDiscarded() {
+            return explicitlyDiscarded;
+        }
+
         /** Has the statement that this instance is related to ever been executed (with or without handle) */
         boolean hasExecutedAtLeastOnce() {
             return hasExecutedAtLeastOnce;
@@ -179,16 +207,14 @@ public class SQLServerConnection implements ISQLServerConnection {
             this.hasExecutedAtLeastOnce = hasExecutedAtLeastOnce;
         }
 
-        PreparedStatementHandle(int handle, boolean isDirectSql, boolean isEvictedFromCache) {
-            this.handle = handle;
-            this.isDirectSql = isDirectSql;
-            this.setHasExecutedAtLeastOnce(true);
-            this.setIsEvictedFromCache(isEvictedFromCache);
-        }
-
         /** Get the actual handle. */
         int getHandle() {
             return handle;
+        }
+
+        /** Get the cache key. */
+        Sha1HashKey getKey() {
+            return key;
         }
 
         /** Specify the handle. 
@@ -230,7 +256,7 @@ public class SQLServerConnection implements ISQLServerConnection {
         }
 
        /** Returns whether this statement has an actual server handle associated with it. */
-        private boolean hasHandle() {
+        boolean hasHandle() {
             return 0 < getHandle();
         }
 
@@ -241,7 +267,7 @@ public class SQLServerConnection implements ISQLServerConnection {
          *      true: Reference was successfully added.
         */
         boolean tryAddReference() {
-            if (!hasHandle() || isDiscarded())
+            if (!hasHandle() || isDiscarded() || isExplicitlyDiscarded())
                 return false;
             else {
                 int refCount = handleRefCount.incrementAndGet();
@@ -250,7 +276,7 @@ public class SQLServerConnection implements ISQLServerConnection {
         }
 
         /** Remove a reference from this handle*/ 
-        private void removeReference() {
+        void removeReference() {
             handleRefCount.decrementAndGet();
         }
     }
@@ -277,7 +303,7 @@ public class SQLServerConnection implements ISQLServerConnection {
              String procName = translator.getProcedureName(); // may return null        
              boolean returnValueSyntax = translator.hasReturnValueSyntax();
              int paramCount = countParams(parsedSql);
- 
+             
              cacheItem = new ParsedSQLMetadata(parsedSql, paramCount, procName, returnValueSyntax);
              parsedSQLCache.putIfAbsent(key, cacheItem);
          }
@@ -5688,7 +5714,7 @@ public class SQLServerConnection implements ISQLServerConnection {
         
         PreparedStatementHandle cacheItem = preparedStatementHandleCache.get(key);
         if (null == cacheItem) {
-            cacheItem = new PreparedStatementHandle();
+            cacheItem = new PreparedStatementHandle(key);
             preparedStatementHandleCache.putIfAbsent(key, cacheItem);
         }
 
@@ -5703,6 +5729,14 @@ public class SQLServerConnection implements ISQLServerConnection {
             if (handle.isEvictedFromCache() && handle.tryDiscardHandle())
                 enqueueUnprepareStatementHandle(handle);
         }
+    }
+
+    /** Force eviction of prepared statement handle cache entry. */
+    final void evictCachedPreparedStatementHandle(PreparedStatementHandle handle) {
+    	if(null == handle || null == handle.getKey())
+    		return;
+    	
+    	preparedStatementHandleCache.remove(handle.getKey());
     }
 
     // Handle closing handles when removed from cache.
