@@ -182,8 +182,7 @@ public class bvtTest extends bvtTestSetup {
             conn = new DBConnection(connectionString);
             stmt = conn.createStatement(DBResultSetTypes.TYPE_SCROLL_INSENSITIVE_CONCUR_READ_ONLY);
 
-            String query = "SELECT * FROM" + table1.getEscapedTableName();
-            rs = stmt.executeQuery(query);
+            rs = stmt.selectAll(table1);
             rs.next();
             rs.verifyCurrentRow(table1);
             rs.afterLast();
@@ -303,8 +302,7 @@ public class bvtTest extends bvtTestSetup {
             conn = new DBConnection(connectionString);
             stmt = conn.createStatement(DBResultSetTypes.TYPE_DYNAMIC_CONCUR_OPTIMISTIC);
 
-            String query = "SELECT * FROM " + table1.getEscapedTableName();
-            rs = stmt.executeQuery(query);
+            rs = stmt.selectAll(table1);
 
             // Verify resultset behavior
             rs.next();
