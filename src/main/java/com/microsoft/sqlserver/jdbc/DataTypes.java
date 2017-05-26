@@ -1379,11 +1379,12 @@ enum JDBCType
      * JDBC3 types are expected for SE 5. JDBC4 types are expected for SE 6 and later.
      */
     int asJavaSqlType() {
-        if (Util.SYSTEM_SPEC_VERSION.equals("1.5")) {
+        if ("1.5".equals(Util.SYSTEM_SPEC_VERSION)) {
             switch (this) {
                 case NCHAR:
                     return java.sql.Types.CHAR;
                 case NVARCHAR:
+                case SQLXML:
                     return java.sql.Types.VARCHAR;
                 case LONGNVARCHAR:
                     return java.sql.Types.LONGVARCHAR;
@@ -1391,8 +1392,6 @@ enum JDBCType
                     return java.sql.Types.CLOB;
                 case ROWID:
                     return java.sql.Types.OTHER;
-                case SQLXML:
-                    return java.sql.Types.VARCHAR;
                 default:
                     return intValue;
             }

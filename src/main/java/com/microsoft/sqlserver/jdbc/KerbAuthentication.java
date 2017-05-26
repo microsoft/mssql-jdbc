@@ -77,7 +77,7 @@ final class KerbAuthentication extends SSPIAuthentication {
             else {
                 String configName = con.activeConnectionProperties.getProperty(SQLServerDriverStringProperty.JAAS_CONFIG_NAME.toString(),
                                                                                SQLServerDriverStringProperty.JAAS_CONFIG_NAME.getDefaultValue());
-                Subject currentSubject = null;
+                Subject currentSubject;
                 KerbCallback callback = new KerbCallback(con);
                 try {
                     AccessControlContext context = AccessController.getContext();
@@ -169,7 +169,9 @@ final class KerbAuthentication extends SSPIAuthentication {
             }
             else if (null == byteToken) {
                 // The documentation is not clear on when this can happen but it does say this could happen
-                authLogger.info(toString() + "byteToken is null in initSecContext.");
+                if (authLogger.isLoggable(Level.INFO)) {
+                    authLogger.info(toString() + "byteToken is null in initSecContext.");
+                }
                 con.terminate(SQLServerException.DRIVER_ERROR_NONE, SQLServerException.getErrString("R_integratedAuthenticationFailed"));
             }
             return byteToken;
