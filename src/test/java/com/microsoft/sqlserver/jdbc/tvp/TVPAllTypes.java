@@ -26,6 +26,7 @@ import com.microsoft.sqlserver.testframework.DBStatement;
 import com.microsoft.sqlserver.testframework.DBTable;
 import com.microsoft.sqlserver.testframework.Utils;
 import com.microsoft.sqlserver.testframework.sqlType.SqlType;
+import com.microsoft.sqlserver.testframework.util.ComparisonUtil;
 
 @RunWith(JUnitPlatform.class)
 public class TVPAllTypes extends AbstractTest {
@@ -83,6 +84,8 @@ public class TVPAllTypes extends AbstractTest {
         pstmt.setStructured(1, tvpName, rs);
         pstmt.execute();
 
+        ComparisonUtil.compareSrcTableAndDestTable(new DBConnection(connectionString), tableSrc, tableDest);
+
         terminateVariation();
     }
 
@@ -128,6 +131,8 @@ public class TVPAllTypes extends AbstractTest {
         SQLServerCallableStatement Cstmt = (SQLServerCallableStatement) connnection.prepareCall(sql);
         Cstmt.setStructured(1, tvpName, rs);
         Cstmt.execute();
+
+        ComparisonUtil.compareSrcTableAndDestTable(new DBConnection(connectionString), tableSrc, tableDest);
 
         terminateVariation();
     }

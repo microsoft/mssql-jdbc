@@ -7,10 +7,12 @@ import static org.junit.jupiter.api.Assertions.fail;
 import java.math.BigDecimal;
 import java.sql.Date;
 import java.sql.JDBCType;
+import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Time;
 import java.sql.Timestamp;
 
+import com.microsoft.sqlserver.jdbc.SQLServerResultSetMetaData;
 import com.microsoft.sqlserver.testframework.DBConnection;
 import com.microsoft.sqlserver.testframework.DBResultSet;
 import com.microsoft.sqlserver.testframework.DBTable;
@@ -42,8 +44,11 @@ public class ComparisonUtil {
 
         while (srcResultSet.next() && dstResultSet.next()) {
             for (int i = 0; i < destTable.getColumns().size(); i++) {
-                int srcJDBCTypeInt = srcTable.getColumns().get(i).getSqlType().getJdbctype().getVendorTypeNumber();
-                int destJDBCTypeInt = destTable.getColumns().get(i).getSqlType().getJdbctype().getVendorTypeNumber();
+                SQLServerResultSetMetaData srcMeta = (SQLServerResultSetMetaData) ((ResultSet) srcResultSet.product()).getMetaData();
+                SQLServerResultSetMetaData destMeta = (SQLServerResultSetMetaData) ((ResultSet) dstResultSet.product()).getMetaData();
+
+                int srcJDBCTypeInt = srcMeta.getColumnType(i + 1);
+                int destJDBCTypeInt = destMeta.getColumnType(i + 1);
 
                 // varify column types
                 if (srcJDBCTypeInt != destJDBCTypeInt) {
@@ -53,9 +58,7 @@ public class ComparisonUtil {
                 Object expectedValue = srcResultSet.getObject(i + 1);
                 Object actualValue = dstResultSet.getObject(i + 1);
 
-                int precision = destTable.getColumns().get(i).getSqlType().getPrecision();
-
-                compareExpectedAndActual(destJDBCTypeInt, precision, expectedValue, actualValue);
+                compareExpectedAndActual(destJDBCTypeInt, expectedValue, actualValue);
             }
         }
     }
@@ -68,21 +71,6 @@ public class ComparisonUtil {
      * @param actualValue
      */
     public static void compareExpectedAndActual(int dataType,
-            Object expectedValue,
-            Object actualValue) {
-
-        compareExpectedAndActual(dataType, null, expectedValue, actualValue);
-    }
-
-    /**
-     * validate if both expected and actual value are same
-     * 
-     * @param dataType
-     * @param expectedValue
-     * @param actualValue
-     */
-    public static void compareExpectedAndActual(int dataType,
-            Integer precision,
             Object expectedValue,
             Object actualValue) {
         // Bulkcopy doesn't guarantee order of insertion - if we need to test several rows either use primary key or
@@ -118,18 +106,7 @@ public class ComparisonUtil {
                     break;
 
                 case java.sql.Types.DOUBLE:
-
-                    if (null != precision) {
-                        if (24 >= precision) {
-                            assertTrue((((Float) expectedValue).floatValue() == ((Float) actualValue).floatValue()), "Unexpected float value");
-                        }
-                        else {
-                            assertTrue((((Double) expectedValue).doubleValue() == ((Double) actualValue).doubleValue()), "Unexpected float value");
-                        }
-                    }
-                    else {
-                        assertTrue((((Double) expectedValue).doubleValue() == ((Double) actualValue).doubleValue()), "Unexpected float value");
-                    }
+                    assertTrue((((Double) expectedValue).doubleValue() == ((Double) actualValue).doubleValue()), "Unexpected float value");
                     break;
 
                 case java.sql.Types.REAL:
