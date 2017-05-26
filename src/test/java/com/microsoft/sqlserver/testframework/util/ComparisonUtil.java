@@ -18,6 +18,14 @@ import com.microsoft.sqlserver.testframework.Utils;
 
 public class ComparisonUtil {
 
+    /**
+     * test if source table and destination table are the same
+     * 
+     * @param con
+     * @param srcTable
+     * @param destTable
+     * @throws SQLException
+     */
     public static void compareSrcTableAndDestTable(DBConnection con,
             DBTable srcTable,
             DBTable destTable) throws SQLException {
@@ -45,7 +53,9 @@ public class ComparisonUtil {
                 Object expectedValue = srcResultSet.getObject(i + 1);
                 Object actualValue = dstResultSet.getObject(i + 1);
 
-                compareExpectedAndActual(destJDBCTypeInt, expectedValue, actualValue);
+                int precision = destTable.getColumns().get(i).getSqlType().getPrecision();
+
+                compareExpectedAndActual(destJDBCTypeInt, precision, expectedValue, actualValue);
             }
         }
     }
@@ -58,6 +68,21 @@ public class ComparisonUtil {
      * @param actualValue
      */
     public static void compareExpectedAndActual(int dataType,
+            Object expectedValue,
+            Object actualValue) {
+
+        compareExpectedAndActual(dataType, null, expectedValue, actualValue);
+    }
+
+    /**
+     * validate if both expected and actual value are same
+     * 
+     * @param dataType
+     * @param expectedValue
+     * @param actualValue
+     */
+    public static void compareExpectedAndActual(int dataType,
+            Integer precision,
             Object expectedValue,
             Object actualValue) {
         // Bulkcopy doesn't guarantee order of insertion - if we need to test several rows either use primary key or
@@ -93,7 +118,18 @@ public class ComparisonUtil {
                     break;
 
                 case java.sql.Types.DOUBLE:
-                    assertTrue((((Double) expectedValue).doubleValue() == ((Double) actualValue).doubleValue()), "Unexpected float value");
+
+                    if (null != precision) {
+                        if (24 >= precision) {
+                            assertTrue((((Float) expectedValue).floatValue() == ((Float) actualValue).floatValue()), "Unexpected float value");
+                        }
+                        else {
+                            assertTrue((((Double) expectedValue).doubleValue() == ((Double) actualValue).doubleValue()), "Unexpected float value");
+                        }
+                    }
+                    else {
+                        assertTrue((((Double) expectedValue).doubleValue() == ((Double) actualValue).doubleValue()), "Unexpected float value");
+                    }
                     break;
 
                 case java.sql.Types.REAL:
