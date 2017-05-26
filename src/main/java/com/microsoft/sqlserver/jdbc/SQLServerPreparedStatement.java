@@ -107,7 +107,8 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
      * @return 
      *      Per the description.
     */
-    public int getPreparedStatementHandle() {
+    public int getPreparedStatementHandle() throws SQLServerException {
+        checkClosed();        
         return prepStmtHandle;
     }
 
@@ -195,11 +196,11 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         // on the server anyway.
         if (connection.isSessionUnAvailable()) {
             if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
-                loggerExternal.finer(this + ": Not closing PreparedHandle:" + getPreparedStatementHandle() + "; connection is already closed.");
+                loggerExternal.finer(this + ": Not closing PreparedHandle:" + prepStmtHandle + "; connection is already closed.");
         }
         else {
             isExecutedAtLeastOnce = false;
-            final int handleToClose = getPreparedStatementHandle();
+            final int handleToClose = prepStmtHandle;
             resetPrepStmtHandle();
 
             // Handle unprepare actions through statement pooling.
@@ -916,7 +917,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 		
 		// New type definitions and existing cached handle reference then deregister cached handle.
 		if(hasNewTypeDefinitions) {
-			if (null != cachedPreparedStatementHandle && hasPreparedStatementHandle() && getPreparedStatementHandle() == cachedPreparedStatementHandle.getHandle()) {
+			if (null != cachedPreparedStatementHandle && hasPreparedStatementHandle() && prepStmtHandle == cachedPreparedStatementHandle.getHandle()) {
 				cachedPreparedStatementHandle.removeReference();
 			}
 			cachedPreparedStatementHandle = null;

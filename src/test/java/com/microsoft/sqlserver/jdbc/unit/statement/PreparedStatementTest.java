@@ -176,13 +176,22 @@ public class PreparedStatementTest extends AbstractTest {
             } 
 
             // Execute new statement with different SQL text and verify it does NOT get same handle (should now fall back to using sp_executesql). 
+            SQLServerPreparedStatement outer = null;
             try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement)con.prepareStatement(query + ";")) {
+                outer = pstmt;
                 pstmt.execute(); // sp_executesql
                 pstmt.getMoreResults(); // Make sure handle is updated.
 
                 assertSame(0, pstmt.getPreparedStatementHandle());
                 assertNotSame(handle, pstmt.getPreparedStatementHandle());
             } 
+            try {
+                System.out.println(outer.getPreparedStatementHandle());
+                fail("Error for invalid use of getPreparedStatementHandle() after statement close expected.");
+            }
+            catch(Exception e) {
+                // Good!
+            }
         } 
     }
 
