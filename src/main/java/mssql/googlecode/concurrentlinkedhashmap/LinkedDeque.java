@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.googlecode.concurrentlinkedhashmap;
+package mssql.googlecode.concurrentlinkedhashmap;
 
 import java.util.AbstractCollection;
 import java.util.Collection;

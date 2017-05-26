@@ -38,4 +38,4 @@
  * @see <a href="http://code.google.com/p/concurrentlinkedhashmap/">
  *      http://code.google.com/p/concurrentlinkedhashmap/</a>
  */
-package com.googlecode.concurrentlinkedhashmap;
+package mssql.googlecode.concurrentlinkedhashmap;
