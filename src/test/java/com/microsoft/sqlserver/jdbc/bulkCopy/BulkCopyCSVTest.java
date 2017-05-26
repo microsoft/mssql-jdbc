@@ -8,14 +8,19 @@
 package com.microsoft.sqlserver.jdbc.bulkCopy;
 
 import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.io.BufferedReader;
 import java.io.FileInputStream;
+import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.net.URL;
 import java.sql.Connection;
+import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.Arrays;
 
 import org.junit.jupiter.api.AfterAll;
@@ -28,6 +33,8 @@ import org.junit.runner.RunWith;
 import com.microsoft.sqlserver.jdbc.ISQLServerBulkRecord;
 import com.microsoft.sqlserver.jdbc.SQLServerBulkCSVFileRecord;
 import com.microsoft.sqlserver.jdbc.SQLServerBulkCopy;
+import com.microsoft.sqlserver.jdbc.SQLServerConnection;
+import com.microsoft.sqlserver.jdbc.SQLServerStatement;
 import com.microsoft.sqlserver.testframework.AbstractTest;
 import com.microsoft.sqlserver.testframework.DBConnection;
 import com.microsoft.sqlserver.testframework.DBResultSet;
@@ -132,6 +139,62 @@ public class BulkCopyCSVTest extends AbstractTest {
                 stmt.dropTable(destTable);
             }
         }
+    }
+
+    /**
+     * test simple csv file for bulkcopy by passing a file from url
+     * 
+     * @throws SQLException
+     */
+    @Test
+    @DisplayName("Test SQLServerBulkCSVFileRecord with passing file from url")
+    void testCSVFromURL() throws SQLException {
+        Statement stmt = null;
+        String destinationTable = "CSVBulkCopy_Remote";
+        SQLServerBulkCopy bulkCopy = null;
+        try {
+            InputStream csvFileURL = new URL("https://s3.ca-central-1.amazonaws.com/ns1-public/csv/csv.csv").openStream();
+
+            connection = (SQLServerConnection) DriverManager.getConnection(connectionString);
+            stmt = (SQLServerStatement) connection.createStatement();
+
+            // drop table
+            String query = "if object_id('" + destinationTable + "','U') is " + "not null drop table " + destinationTable;
+            stmt.executeUpdate(query);
+
+            query = "CREATE TABLE " + destinationTable + " (col1 varchar(4))";
+            stmt.executeUpdate(query);
+
+            // BulkCopy
+            SQLServerBulkCSVFileRecord fileRecord = new SQLServerBulkCSVFileRecord(csvFileURL, "UTF-8", ",", true);
+            fileRecord.addColumnMetadata(1, null, java.sql.Types.VARCHAR, 4, 0);
+            bulkCopy = new SQLServerBulkCopy(connection);
+            bulkCopy.setDestinationTableName(destinationTable);
+            bulkCopy.writeToServer(fileRecord);
+
+            bulkCopy.close();
+            fileRecord.close();
+
+            ResultSet rs = stmt.executeQuery("select * from " + destinationTable);
+            while (rs.next()) {
+                assertEquals(rs.getString(1), "hi", "Verification failed for bulkcopy! Expected: hi, received is: " + rs.getString(1));
+            }
+        }
+        catch (Exception e) {
+            fail(e.getMessage());
+        }
+        finally {
+            // drop table
+            String query = "if object_id('" + destinationTable + "','U') is " + "not null drop table " + destinationTable;
+            stmt.executeUpdate(query);
+            if (null != stmt) {
+                stmt.close();
+            }
+            if (null != connection) {
+                connection.close();
+            }
+        }
+
     }
 
     /**
