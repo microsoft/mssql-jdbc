@@ -112,7 +112,12 @@ class TVP {
             Object[] rowData = new Object[colCount];
             for (int i = 0; i < colCount; i++) {
                 try {
-                    rowData[i] = sourceResultSet.getObject(i + 1);
+                    if (java.sql.Types.TIME == sourceResultSet.getMetaData().getColumnType(i + 1)) {
+                        rowData[i] = sourceResultSet.getTimestamp(i + 1);
+                    }
+                    else {
+                        rowData[i] = sourceResultSet.getObject(i + 1);
+                    }
                 }
                 catch (SQLException e) {
                     throw new SQLServerException(SQLServerException.getErrString("R_unableRetrieveSourceData"), e);
