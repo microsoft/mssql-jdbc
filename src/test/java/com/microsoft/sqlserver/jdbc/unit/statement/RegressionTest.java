@@ -8,6 +8,7 @@
 package com.microsoft.sqlserver.jdbc.unit.statement;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 import java.sql.DriverManager;
 import java.sql.JDBCType;
@@ -135,6 +136,8 @@ public class RegressionTest extends AbstractTest {
      */
     @Test
     public void testUpdateQuery() throws SQLException {
+        assumeTrue("JDBC41".equals(Utils.getConfiguredProperty("JDBC_Version")), "Aborting test case as JDBC version is not compatible. ");
+
         SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(connectionString);
         String sql;
         SQLServerPreparedStatement pstmt = null;
@@ -194,6 +197,7 @@ public class RegressionTest extends AbstractTest {
      */
     @Test
     public void testXmlQuery() throws SQLException {
+        assumeTrue("JDBC41".equals(Utils.getConfiguredProperty("JDBC_Version")), "Aborting test case as JDBC version is not compatible. ");
 
         Connection connection = DriverManager.getConnection(connectionString);
 
