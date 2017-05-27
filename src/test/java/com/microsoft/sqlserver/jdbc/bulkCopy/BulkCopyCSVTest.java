@@ -34,6 +34,7 @@ import com.microsoft.sqlserver.jdbc.ISQLServerBulkRecord;
 import com.microsoft.sqlserver.jdbc.SQLServerBulkCSVFileRecord;
 import com.microsoft.sqlserver.jdbc.SQLServerBulkCopy;
 import com.microsoft.sqlserver.jdbc.SQLServerConnection;
+import com.microsoft.sqlserver.jdbc.SQLServerException;
 import com.microsoft.sqlserver.jdbc.SQLServerStatement;
 import com.microsoft.sqlserver.testframework.AbstractTest;
 import com.microsoft.sqlserver.testframework.DBConnection;
@@ -80,8 +81,39 @@ public class BulkCopyCSVTest extends AbstractTest {
     @Test
     @DisplayName("Test SQLServerBulkCSVFileRecord")
     void testCSV() {
+        SQLServerBulkCSVFileRecord fileRecord;
+        try {
+            fileRecord = new SQLServerBulkCSVFileRecord(filePath + inputFile, encoding, delimiter, true);
+            testBulkCopyCSV(fileRecord);
+        }
+        catch (SQLServerException e) {
+            fail(e.getMessage());
+        }
+    }
+
+    /**
+     * test simple csv file for bulkcopy by passing a file from url
+     * 
+     * @throws SQLException
+     */
+    @Test
+    @DisplayName("Test SQLServerBulkCSVFileRecord with passing file from url")
+    void testCSVFromURL() throws SQLException {
+        try {
+            InputStream csvFileURL = new URL(
+                    "https://raw.githubusercontent.com/Microsoft/mssql-jdbc/master/src/test/resources/BulkCopyCSVTestInput.csv").openStream();
+            SQLServerBulkCSVFileRecord fileRecord = new SQLServerBulkCSVFileRecord(csvFileURL, encoding, delimiter, true);
+            testBulkCopyCSV(fileRecord);
+        }
+        catch (Exception e) {
+            fail(e.getMessage());
+        }
+    }
+
+    private void testBulkCopyCSV(SQLServerBulkCSVFileRecord fileRecord) {
         DBTable destTable = null;
         try {
+
             BufferedReader br = new BufferedReader(new InputStreamReader(new FileInputStream(filePath + inputFile), encoding));
             // read the first line from csv and parse it to get datatypes to create destination column
             String[] columnTypes = br.readLine().substring(1)/* Skip the Byte order mark */.split(delimiter, -1);
@@ -89,7 +121,6 @@ public class BulkCopyCSVTest extends AbstractTest {
 
             int numberOfColumns = columnTypes.length;
             destTable = new DBTable(false);
-            SQLServerBulkCSVFileRecord fileRecord = new SQLServerBulkCSVFileRecord(filePath + inputFile, encoding, delimiter, true);
             SQLServerBulkCopy bulkCopy = new SQLServerBulkCopy((Connection) con.product());
             bulkCopy.setDestinationTableName(destTable.getEscapedTableName());
 
@@ -137,61 +168,6 @@ public class BulkCopyCSVTest extends AbstractTest {
         finally {
             if (null != destTable) {
                 stmt.dropTable(destTable);
-            }
-        }
-    }
-
-    /**
-     * test simple csv file for bulkcopy by passing a file from url
-     * 
-     * @throws SQLException
-     */
-    @Test
-    @DisplayName("Test SQLServerBulkCSVFileRecord with passing file from url")
-    void testCSVFromURL() throws SQLException {
-        Statement stmt = null;
-        String destinationTable = "CSVBulkCopy_Remote";
-        SQLServerBulkCopy bulkCopy = null;
-        try {
-            InputStream csvFileURL = new URL("https://s3.ca-central-1.amazonaws.com/ns1-public/csv/csv.csv").openStream();
-
-            connection = (SQLServerConnection) DriverManager.getConnection(connectionString);
-            stmt = (SQLServerStatement) connection.createStatement();
-
-            // drop table
-            String query = "if object_id('" + destinationTable + "','U') is " + "not null drop table " + destinationTable;
-            stmt.executeUpdate(query);
-
-            query = "CREATE TABLE " + destinationTable + " (col1 varchar(4))";
-            stmt.executeUpdate(query);
-
-            // BulkCopy
-            SQLServerBulkCSVFileRecord fileRecord = new SQLServerBulkCSVFileRecord(csvFileURL, "UTF-8", ",", true);
-            fileRecord.addColumnMetadata(1, null, java.sql.Types.VARCHAR, 4, 0);
-            bulkCopy = new SQLServerBulkCopy(connection);
-            bulkCopy.setDestinationTableName(destinationTable);
-            bulkCopy.writeToServer(fileRecord);
-
-            bulkCopy.close();
-            fileRecord.close();
-
-            ResultSet rs = stmt.executeQuery("select * from " + destinationTable);
-            while (rs.next()) {
-                assertEquals(rs.getString(1), "hi", "Verification failed for bulkcopy! Expected: hi, received is: " + rs.getString(1));
-            }
-        }
-        catch (Exception e) {
-            fail(e.getMessage());
-        }
-        finally {
-            // drop table
-            String query = "if object_id('" + destinationTable + "','U') is " + "not null drop table " + destinationTable;
-            stmt.executeUpdate(query);
-            if (null != stmt) {
-                stmt.close();
-            }
-            if (null != connection) {
-                connection.close();
             }
         }
 
