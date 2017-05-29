@@ -82,7 +82,7 @@ public class TVPAllTypes extends AbstractTest {
         pstmt.setStructured(1, tvpName, rs);
         pstmt.execute();
 
-        ComparisonUtil.compareSrcTableAndDestTable(new DBConnection(connectionString), tableSrc, tableDest);
+        ComparisonUtil.compareSrcTableAndDestTableIgnoreRowOrder(new DBConnection(connectionString), tableSrc, tableDest);
 
         terminateVariation();
     }
@@ -130,7 +130,7 @@ public class TVPAllTypes extends AbstractTest {
         Cstmt.setStructured(1, tvpName, rs);
         Cstmt.execute();
 
-        ComparisonUtil.compareSrcTableAndDestTable(new DBConnection(connectionString), tableSrc, tableDest);
+        ComparisonUtil.compareSrcTableAndDestTableIgnoreRowOrder(new DBConnection(connectionString), tableSrc, tableDest);
 
         terminateVariation();
     }
@@ -195,6 +195,7 @@ public class TVPAllTypes extends AbstractTest {
 
         tableSrc = new DBTable(true);
         tableDest = tableSrc.cloneSchema();
+        
         dbStmt.createTable(tableSrc);
         dbStmt.createTable(tableDest);
 

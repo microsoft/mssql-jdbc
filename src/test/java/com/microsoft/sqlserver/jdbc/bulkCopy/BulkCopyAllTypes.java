@@ -76,7 +76,7 @@ public class BulkCopyAllTypes extends AbstractTest {
         bcOperation.writeToServer(rs);
         bcOperation.close();
 
-        ComparisonUtil.compareSrcTableAndDestTable(new DBConnection(connectionString), tableSrc, tableDest);
+        ComparisonUtil.compareSrcTableAndDestTableIgnoreRowOrder(new DBConnection(connectionString), tableSrc, tableDest);
 
         terminateVariation();
     }
@@ -90,6 +90,7 @@ public class BulkCopyAllTypes extends AbstractTest {
 
         tableSrc = new DBTable(true);
         tableDest = tableSrc.cloneSchema();
+        
         dbStmt.createTable(tableSrc);
         dbStmt.createTable(tableDest);
 
