@@ -38,8 +38,6 @@ public class TVPAllTypes extends AbstractTest {
 
     private static DBTable tableSrc = null;
     private static DBTable tableDest = null;
-    private static String tableNameSrc;
-    private static String tableNameDest;
 
     /**
      * Test TVP with result set
@@ -77,10 +75,10 @@ public class TVPAllTypes extends AbstractTest {
             stmtement = connnection.createStatement();
         }
 
-        ResultSet rs = stmtement.executeQuery("select * from " + tableNameSrc);
+        ResultSet rs = stmtement.executeQuery("select * from " + tableSrc.getEscapedTableName());
 
         SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) connnection
-                .prepareStatement("INSERT INTO " + tableNameDest + " select * from ? ;");
+                .prepareStatement("INSERT INTO " + tableDest.getEscapedTableName() + " select * from ? ;");
         pstmt.setStructured(1, tvpName, rs);
         pstmt.execute();
 
@@ -125,7 +123,7 @@ public class TVPAllTypes extends AbstractTest {
             stmtement = connnection.createStatement();
         }
 
-        ResultSet rs = stmtement.executeQuery("select * from " + tableNameSrc);
+        ResultSet rs = stmtement.executeQuery("select * from " + tableSrc.getEscapedTableName());
 
         String sql = "{call " + procedureName + "(?)}";
         SQLServerCallableStatement Cstmt = (SQLServerCallableStatement) connnection.prepareCall(sql);
@@ -162,7 +160,7 @@ public class TVPAllTypes extends AbstractTest {
         }
 
         SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) connection
-                .prepareStatement("INSERT INTO " + tableNameDest + " select * from ? ;");
+                .prepareStatement("INSERT INTO " + tableDest.getEscapedTableName() + " select * from ? ;");
         pstmt.setStructured(1, tvpName, dt);
         pstmt.execute();
     }
@@ -204,9 +202,6 @@ public class TVPAllTypes extends AbstractTest {
         createPreocedure(procedureName, tableDest.getEscapedTableName());
 
         dbStmt.populateTable(tableSrc);
-
-        tableNameSrc = tableSrc.getEscapedTableName();
-        tableNameDest = tableDest.getEscapedTableName();
     }
 
     private void terminateVariation() throws SQLException {
@@ -214,8 +209,8 @@ public class TVPAllTypes extends AbstractTest {
         stmt = conn.createStatement();
 
         Utils.dropProcedureIfExists(procedureName, stmt);
-        Utils.dropTableIfExists(tableNameSrc, stmt);
-        Utils.dropTableIfExists(tableNameDest, stmt);
+        Utils.dropTableIfExists(tableSrc.getEscapedTableName(), stmt);
+        Utils.dropTableIfExists(tableDest.getEscapedTableName(), stmt);
         dropTVPS(tvpName);
     }
 }

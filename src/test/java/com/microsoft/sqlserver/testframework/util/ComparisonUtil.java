@@ -31,16 +31,23 @@ public class ComparisonUtil {
     public static void compareSrcTableAndDestTable(DBConnection con,
             DBTable srcTable,
             DBTable destTable) throws SQLException {
-        DBResultSet srcResultSet = con.createStatement().executeQuery("SELECT * FROM " + srcTable.getEscapedTableName() + ";");
-        DBResultSet dstResultSet = con.createStatement().executeQuery("SELECT * FROM " + destTable.getEscapedTableName() + ";");
+        DBResultSet srcResultSetCount = con.createStatement().executeQuery("SELECT COUNT(*) FROM " + srcTable.getEscapedTableName() + ";");
+        DBResultSet dstResultSetCount = con.createStatement().executeQuery("SELECT COUNT(*) FROM " + destTable.getEscapedTableName() + ";");
+        srcResultSetCount.next();
+        dstResultSetCount.next();
+        int srcRows = srcResultSetCount.getInt(1);
+        int destRows = dstResultSetCount.getInt(1);
 
-        if (srcTable.getTotalRows() != destTable.getTotalRows()) {
+        if (srcRows != destRows) {
             fail("Souce table and Destination table have different number of rows.");
         }
 
         if (srcTable.getColumns().size() != destTable.getColumns().size()) {
             fail("Souce table and Destination table have different number of columns.");
         }
+
+        DBResultSet srcResultSet = con.createStatement().executeQuery("SELECT * FROM " + srcTable.getEscapedTableName() + ";");
+        DBResultSet dstResultSet = con.createStatement().executeQuery("SELECT * FROM " + destTable.getEscapedTableName() + ";");
 
         while (srcResultSet.next() && dstResultSet.next()) {
             for (int i = 0; i < destTable.getColumns().size(); i++) {
