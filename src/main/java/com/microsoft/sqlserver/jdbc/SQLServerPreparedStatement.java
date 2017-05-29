@@ -2590,78 +2590,98 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                 }
             }
 
-			// Re-use handle if available, requires parameter definitions which are not available until here.
-    		if (reuseCachedHandle(hasNewTypeDefinitions, false)) {
-    			hasNewTypeDefinitions = false;
-    		}
+            // Retry execution if existing handle could not be re-used.
+            int attempt = 0;
+            while (true) {
+                
+                ++attempt;
+                try {
 
-            if (numBatchesExecuted < numBatchesPrepared) {
-                // assert null != tdsWriter;
-                tdsWriter.writeByte((byte) nBatchStatementDelimiter);
-            }
-            else {
-                resetForReexecute();
-                tdsWriter = batchCommand.startRequest(TDS.PKT_RPC);
-            }
+                    // Re-use handle if available, requires parameter definitions which are not available until here.
+                    if (reuseCachedHandle(hasNewTypeDefinitions, false)) {
+                        hasNewTypeDefinitions = false;
+                    }
 
-            // If we have to (re)prepare the statement then we must execute it so
-            // that we get back a (new) prepared statement handle to use to
-            // execute additional batches.
-            //
-            // We must always prepare the statement the first time through.
-            // But we may also need to reprepare the statement if, for example,
-            // the size of a batch's string parameter values changes such
-            // that repreparation is necessary.
-            ++numBatchesPrepared;
-            if (doPrepExec(tdsWriter, batchParam, hasNewTypeDefinitions, hasExistingTypeDefinitions) || numBatchesPrepared == numBatches) {
-                ensureExecuteResultsReader(batchCommand.startResponse(getIsResponseBufferingAdaptive()));
+                    if (numBatchesExecuted < numBatchesPrepared) {
+                        // assert null != tdsWriter;
+                        tdsWriter.writeByte((byte) nBatchStatementDelimiter);
+                    }
+                    else {
+                        resetForReexecute();
+                        tdsWriter = batchCommand.startRequest(TDS.PKT_RPC);
+                    }
 
-                while (numBatchesExecuted < numBatchesPrepared) {
-                    // NOTE:
-                    // When making changes to anything below, consider whether similar changes need
-                    // to be made to Statement batch execution.
+                    // If we have to (re)prepare the statement then we must execute it so
+                    // that we get back a (new) prepared statement handle to use to
+                    // execute additional batches.
+                    //
+                    // We must always prepare the statement the first time through.
+                    // But we may also need to reprepare the statement if, for example,
+                    // the size of a batch's string parameter values changes such
+                    // that repreparation is necessary.
+                    if(1 == attempt) 
+                        ++numBatchesPrepared;
 
-                    startResults();
+                    if (doPrepExec(tdsWriter, batchParam, hasNewTypeDefinitions, hasExistingTypeDefinitions) || numBatchesPrepared == numBatches) {
+                        ensureExecuteResultsReader(batchCommand.startResponse(getIsResponseBufferingAdaptive()));
 
-                    try {
-                        // Get the first result from the batch. If there is no result for this batch
-                        // then bail, leaving EXECUTE_FAILED in the current and remaining slots of
-                        // the update count array.
-                        if (!getNextResult())
-                            return;
+                        while (numBatchesExecuted < numBatchesPrepared) {
+                            // NOTE:
+                            // When making changes to anything below, consider whether similar changes need
+                            // to be made to Statement batch execution.
 
-                        // If the result is a ResultSet (rather than an update count) then throw an
-                        // exception for this result. The exception gets caught immediately below and
-                        // translated into (or added to) a BatchUpdateException.
-                        if (null != resultSet) {
-                            SQLServerException.makeFromDriverError(connection, this, SQLServerException.getErrString("R_resultsetGeneratedForUpdate"),
-                                    null, false);
+                            startResults();
+
+                            try {
+                                // Get the first result from the batch. If there is no result for this batch
+                                // then bail, leaving EXECUTE_FAILED in the current and remaining slots of
+                                // the update count array.
+                                if (!getNextResult())
+                                    return;
+
+                                // If the result is a ResultSet (rather than an update count) then throw an
+                                // exception for this result. The exception gets caught immediately below and
+                                // translated into (or added to) a BatchUpdateException.
+                                if (null != resultSet) {
+                                    SQLServerException.makeFromDriverError(connection, this, SQLServerException.getErrString("R_resultsetGeneratedForUpdate"),
+                                            null, false);
+                                }
+                            }
+                            catch (SQLServerException e) {
+                                // If the failure was severe enough to close the connection or roll back a
+                                // manual transaction, then propagate the error up as a SQLServerException
+                                // now, rather than continue with the batch.
+                                if (connection.isSessionUnAvailable() || connection.rolledBackTransaction())
+                                    throw e;
+
+                                // Otherwise, the connection is OK and the transaction is still intact,
+                                // so just record the failure for the particular batch item.
+                                updateCount = Statement.EXECUTE_FAILED;
+                                if (null == batchCommand.batchException)
+                                    batchCommand.batchException = e;
+                            }
+
+                            // In batch execution, we have a special update count
+                            // to indicate that no information was returned
+                            batchCommand.updateCounts[numBatchesExecuted] = (-1 == updateCount) ? Statement.SUCCESS_NO_INFO : updateCount;
+                            if(1 == attempt) 
+                                numBatchesExecuted++;
+
+                            processBatch();
                         }
+
+                        // Only way to proceed with preparing the next set of batches is if
+                        // we successfully executed the previously prepared set.
+                        assert numBatchesExecuted == numBatchesPrepared;
                     }
-                    catch (SQLServerException e) {
-                        // If the failure was severe enough to close the connection or roll back a
-                        // manual transaction, then propagate the error up as a SQLServerException
-                        // now, rather than continue with the batch.
-                        if (connection.isSessionUnAvailable() || connection.rolledBackTransaction())
-                            throw e;
-
-                        // Otherwise, the connection is OK and the transaction is still intact,
-                        // so just record the failure for the particular batch item.
-                        updateCount = Statement.EXECUTE_FAILED;
-                        if (null == batchCommand.batchException)
-                            batchCommand.batchException = e;
-                    }
-
-                    // In batch execution, we have a special update count
-                    // to indicate that no information was returned
-                    batchCommand.updateCounts[numBatchesExecuted++] = (-1 == updateCount) ? Statement.SUCCESS_NO_INFO : updateCount;
-
-                    processBatch();
                 }
-
-                // Only way to proceed with preparing the next set of batches is if
-                // we successfully executed the previously prepared set.
-                assert numBatchesExecuted == numBatchesPrepared;
+                catch(SQLException e) {
+                    if (retryBasedOnFailedReuseOfCachedHandle(e, attempt))
+                        continue;
+                    else
+                        throw e;
+                }
+                break;	
             }
         }
     }
