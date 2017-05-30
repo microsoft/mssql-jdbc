@@ -8,7 +8,8 @@
 
 package com.microsoft.sqlserver.jdbc; 
 
-import static com.microsoft.sqlserver.jdbc.SQLServerConnection.getOrCreateCachedParsedSQL;
+import static com.microsoft.sqlserver.jdbc.SQLServerConnection.getCachedParsedSQL;
+import static com.microsoft.sqlserver.jdbc.SQLServerConnection.parseAndCacheSQL;
 
 import java.io.InputStream;
 import java.io.Reader;
@@ -170,7 +171,13 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         cacheKey = new CityHash128Key(sql);
 
         // Parse or fetch SQL metadata from cache.
-        ParsedSQLCacheItem parsedSql = getOrCreateCachedParsedSQL(cacheKey, sql);
+        ParsedSQLCacheItem parsedSql = getCachedParsedSQL(cacheKey, sql);
+        if (null != parsedSql) {
+            isExecutedAtLeastOnce = true;
+        }
+        else {
+            parsedSql = parseAndCacheSQL(cacheKey, sql);
+        }
 
         // Retrieve meta data from cache item.
         procedureName = parsedSql.procedureName;
@@ -180,8 +187,6 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
         // Attempt to borrow the statement handle, if statement handle caching is enabled, this will be 0 if not.
         prepStmtHandle = connection.borrowStatementHandle(cacheKey);
-        if (0 < prepStmtHandle)
-            isExecutedAtLeastOnce = true;
 
         // See if existing prepared statement parameter metadata can be re-used, this will be null if not.
         cachedPreparedStatementMetadata = connection.getPreparedStatementMetadata(cacheKey);

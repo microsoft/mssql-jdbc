@@ -158,20 +158,20 @@ public class SQLServerConnection implements ISQLServerConnection {
     }
 
      /** Get prepared statement cache entry if exists, if not parse and create a new one */
-     static ParsedSQLCacheItem getOrCreateCachedParsedSQL(CityHash128Key key, String sql) throws SQLServerException {
-         ParsedSQLCacheItem cacheItem = parsedSQLCache.get(key);
-         if (null == cacheItem) {
-             JDBCSyntaxTranslator translator = new JDBCSyntaxTranslator();
- 
-             String parsedSql = translator.translate(sql);
-             String procName = translator.getProcedureName(); // may return null        
-             boolean returnValueSyntax = translator.hasReturnValueSyntax();
-             int paramCount = countParams(parsedSql);
- 
-             cacheItem = new ParsedSQLCacheItem(parsedSql, paramCount, procName, returnValueSyntax);
-             parsedSQLCache.putIfAbsent(key, cacheItem);
-         }
- 
+     static ParsedSQLCacheItem getCachedParsedSQL(CityHash128Key key, String sql) {
+         return parsedSQLCache.get(key);
+     }
+
+     static ParsedSQLCacheItem parseAndCacheSQL(CityHash128Key key, String sql) throws SQLServerException {
+         JDBCSyntaxTranslator translator = new JDBCSyntaxTranslator();
+         
+         String parsedSql = translator.translate(sql);
+         String procName = translator.getProcedureName(); // may return null        
+         boolean returnValueSyntax = translator.hasReturnValueSyntax();
+         int paramCount = countParams(parsedSql);
+
+         ParsedSQLCacheItem cacheItem = new ParsedSQLCacheItem(parsedSql, paramCount, procName, returnValueSyntax);
+         parsedSQLCache.putIfAbsent(key, cacheItem);
          return cacheItem;
      }
  
