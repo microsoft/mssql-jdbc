@@ -2597,11 +2597,13 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                 ++attempt;
                 try {
 
+                    /*
                     // Re-use handle if available, requires parameter definitions which are not available until here.
                     if (reuseCachedHandle(hasNewTypeDefinitions, false)) {
                         hasNewTypeDefinitions = false;
                     }
-
+                    */
+                    
                     if (numBatchesExecuted < numBatchesPrepared) {
                         // assert null != tdsWriter;
                         tdsWriter.writeByte((byte) nBatchStatementDelimiter);
