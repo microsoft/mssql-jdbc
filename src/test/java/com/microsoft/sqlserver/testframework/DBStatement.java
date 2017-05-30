@@ -142,16 +142,6 @@ public class DBStatement extends AbstractParentWrapper {
     public boolean populateTable(DBTable table) {
         return table.populateTable(this);
     }
-    
-    /**
-     * using PreparedStatement to populate table with values
-     * 
-     * @param table
-     * @return <code>true</code> if table is populated
-     */
-    public boolean populateTableWithPreparedStatement(DBTable table) {
-        return table.populateTableWithPreparedStatement(this);
-    }
 
     /**
      * Drop table from Database

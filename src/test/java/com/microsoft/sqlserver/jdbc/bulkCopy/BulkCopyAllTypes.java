@@ -94,7 +94,7 @@ public class BulkCopyAllTypes extends AbstractTest {
         dbStmt.createTable(tableSrc);
         dbStmt.createTable(tableDest);
 
-        dbStmt.populateTableWithPreparedStatement(tableSrc);
+        dbStmt.populateTable(tableSrc);
     }
 
     private void terminateVariation() throws SQLException {

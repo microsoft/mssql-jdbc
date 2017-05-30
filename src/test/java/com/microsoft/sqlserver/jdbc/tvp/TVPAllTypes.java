@@ -202,7 +202,7 @@ public class TVPAllTypes extends AbstractTest {
         createTVPS(tvpName, tableSrc.getDefinitionOfColumns());
         createPreocedure(procedureName, tableDest.getEscapedTableName());
 
-        dbStmt.populateTableWithPreparedStatement(tableSrc);
+        dbStmt.populateTable(tableSrc);
     }
 
     private void terminateVariation() throws SQLException {
