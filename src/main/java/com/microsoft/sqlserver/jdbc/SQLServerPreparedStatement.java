@@ -2598,7 +2598,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                 try {
 
                     // Re-use handle if available, requires parameter definitions which are not available until here.
-                    if (reuseCachedHandle(hasNewTypeDefinitions, false)) {
+                    if (reuseCachedHandle(hasNewTypeDefinitions, 1 < attempt)) {
                         hasNewTypeDefinitions = false;
                     }
                     
