@@ -2602,7 +2602,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                         hasNewTypeDefinitions = false;
                     }
                     
-                    if (numBatchesExecuted < numBatchesPrepared) {
+                    if (numBatchesExecuted < numBatchesPrepared && 1 == attempt) {
                         // assert null != tdsWriter;
                         tdsWriter.writeByte((byte) nBatchStatementDelimiter);
                     }
