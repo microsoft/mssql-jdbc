@@ -377,7 +377,7 @@ public final class SQLServerResource extends ListResourceBundle {
 				{"R_fipsPropertyDescription", "Determines if enable FIPS compilant SSL connection between the client and the server."},
 				{"R_invalidFipsConfig", "Could not enable FIPS."},
 				{"R_invalidFipsEncryptConfig", "Could not enable FIPS due to either encrypt is not true or using trusted certificate settings."},
-				{"R_invalidFipsProviderConfig", "Could not enable FIPS due to invalid FIPSProvider or TrustStoreType."},
+				{"R_invalidFipsProviderConfig", "FIPS may not enable due to invalid FIPSProvider or TrustStoreType."},
 				{"R_serverPreparedStatementDiscardThreshold", "The serverPreparedStatementDiscardThreshold {0} is not valid."},
 				{"R_kerberosLoginFailedForUsername", "Cannot login with Kerberos principal {0}, check your credentials. {1}"},
 				{"R_kerberosLoginFailed", "Kerberos Login failed: {0} due to {1} ({2})"},

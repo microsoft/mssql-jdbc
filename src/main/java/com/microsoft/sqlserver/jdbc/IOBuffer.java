@@ -1648,7 +1648,7 @@ final class TDSChannel {
                     if (logger.isLoggable(Level.FINEST))
                         logger.finest(toString() + " Finding key store interface");
 
-                    if (isFips) {
+                    if (isFips && !StringUtils.isEmpty(fipsProvider)) {
                         ks = KeyStore.getInstance(trustStoreType, fipsProvider);
                     }
                     else {
@@ -1830,6 +1830,8 @@ final class TDSChannel {
      * <LI>trustServerCertificate should be false
      * <LI>if certificate is not installed FIPSProvider & TrustStoreType should be present.
      * 
+     * @since 6.2.x It will not generate any error. We found out for some FIPS implementation like IBM one should not pass FIPSProvider. 
+     * 
      * @param fipsProvider
      *            FIPS Provider
      * @param trustStoreType
@@ -1881,7 +1883,9 @@ final class TDSChannel {
         }
 
         if (!isValid) {
-            throw new SQLServerException(strError, null, 0, null);
+            // In some FIPS implementations e.g. BouncyCastle we need to pass FIPSProvider for getting appropriate KeyStore. 
+            // While IBM FIPS implementation, one should not pass FIPSProvider, instead rely on security configuration file. 
+            logger.warning(strError); 
         }
 
     }
