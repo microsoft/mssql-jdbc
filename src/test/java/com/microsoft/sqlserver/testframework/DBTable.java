@@ -11,7 +11,9 @@ package com.microsoft.sqlserver.testframework;
 import static org.junit.jupiter.api.Assertions.fail;
 
 import java.sql.JDBCType;
+import java.sql.PreparedStatement;
 import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.StringJoiner;
@@ -256,6 +258,38 @@ public class DBTable extends AbstractSQLGenerator {
         }
         return false;
     }
+    
+    /**
+     * using PreparedStatement to populate table with values
+     * 
+     * @param dbstatement
+     * @return
+     */
+    boolean populateTableWithPreparedStatement(DBStatement dbstatement) {
+        try {
+            populateValues();
+            String sql = insertCommandForPreparedStatement();
+
+            PreparedStatement pstmt = ((Statement) dbstatement.product()).getConnection().prepareStatement(sql);
+            for (int i = 0; i < totalRows; i++) {
+                for (int colNum = 0; colNum < totalColumns; colNum++) {
+                    if (passDataAsHex(colNum)) {
+                        pstmt.setBytes(colNum + 1, (byte[]) (getColumn(colNum).getRowValue(i)));
+                    }
+                    else {
+                        pstmt.setObject(colNum + 1, String.valueOf(getColumn(colNum).getRowValue(i)));
+                    }
+                }
+                pstmt.execute();
+            }
+
+            return true;
+        }
+        catch (SQLException ex) {
+            fail(ex.getMessage());
+        }
+        return false;
+    }
 
     private void populateValues() {
         // generate values for all columns
@@ -325,6 +359,28 @@ public class DBTable extends AbstractSQLGenerator {
         }
 
         return (sb.toString());
+    }
+    
+    String insertCommandForPreparedStatement() {
+        StringJoiner sb = new StringJoiner(SPACE_CHAR);
+
+        sb.add("INSERT");
+        sb.add("INTO");
+        sb.add(escapedTableName);
+        sb.add("VALUES");
+
+        sb.add(OPEN_BRACKET);
+        for (int colNum = 0; colNum < totalColumns; colNum++) {
+
+            sb.add("?");
+
+            if (colNum < totalColumns - 1) {
+                sb.add(COMMA);
+            }
+        }
+        sb.add(CLOSE_BRACKET);
+
+        return sb.toString();
     }
 
     /**

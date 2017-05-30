@@ -195,14 +195,14 @@ public class TVPAllTypes extends AbstractTest {
 
         tableSrc = new DBTable(true);
         tableDest = tableSrc.cloneSchema();
-        
+
         dbStmt.createTable(tableSrc);
         dbStmt.createTable(tableDest);
 
         createTVPS(tvpName, tableSrc.getDefinitionOfColumns());
         createPreocedure(procedureName, tableDest.getEscapedTableName());
 
-        dbStmt.populateTable(tableSrc);
+        dbStmt.populateTableWithPreparedStatement(tableSrc);
     }
 
     private void terminateVariation() throws SQLException {
