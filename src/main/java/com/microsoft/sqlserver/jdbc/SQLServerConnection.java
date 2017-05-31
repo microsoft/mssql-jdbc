@@ -44,10 +44,10 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Properties;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.Executor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.logging.Level;
 
 import javax.sql.XAConnection;
@@ -2702,6 +2702,7 @@ public class SQLServerConnection implements ISQLServerConnection {
         // Clean-up queue etc. related to batching of prepared statement discard actions (sp_unprepare).
         cleanupPreparedStatementDiscardActions();
 
+        ActivityCorrelator.reset();
         loggerExternal.exiting(getClassNameLogging(), "close");
     }
 
@@ -5516,5 +5517,15 @@ final class SQLServerConnectionSecurityManager {
         if (null != security) {
             security.checkLink(dllName);
         }
+    }
+    
+    /**
+     * Although {@link ActivityCorrelator} used in different part of programs releasing connection might be good point to release {@link ThreadLocal}
+     * resource. We are releasing {@link ThreadLocal} resource in {@link SQLServerConnection#close()} too.
+     * @since 6.1.8
+     */
+    @Override
+    protected void finalize() throws Throwable {
+        ActivityCorrelator.reset();
     }
 }
