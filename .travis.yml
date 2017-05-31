@@ -14,10 +14,9 @@ env:
   # Enabling logging with console / file handler for JUnit Test Framework. 
   #- mssql_jdbc_logging_handler='console'|'file'
   
-#Cache the m2 folder
+#Cache the .m2 folder
 cache:
  directories:
-  - .autoconf
   - $HOME/.m2
 
 install: 
