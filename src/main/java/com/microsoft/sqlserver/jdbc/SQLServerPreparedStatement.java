@@ -502,11 +502,8 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         }
 
         // Retry execution if existing handle could not be re-used.
-    	int attempt = 0;
-        while (true) {
-        	
-        	++attempt;
-        	try {
+        for(int attempt = 1; attempt <= 2; ++attempt) {
+            try {
     			// Re-use handle if available, requires parameter definitions which are not available until here.
     			if (reuseCachedHandle(hasNewTypeDefinitions, 1 < attempt)) {
     				hasNewTypeDefinitions = false;
@@ -544,7 +541,8 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         // Only retry based on these error codes:
         // 586: The prepared statement handle %d is not valid in this context.  Please verify that current database, user default schema, and ANSI_NULLS and QUOTED_IDENTIFIER set options are not changed since the handle is prepared.
         // 8179: Could not find prepared statement with handle %d.
-        return 1 == attempt && (586 == e.getErrorCode() || 8179 == e.getErrorCode());
+        // 99586: Error used for testing.
+        return 1 == attempt && (586 == e.getErrorCode() || 8179 == e.getErrorCode() || 99586 == e.getErrorCode());
     }
 
     /**
@@ -2591,10 +2589,8 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
             }
 
             // Retry execution if existing handle could not be re-used.
-            int attempt = 0;
-            while (true) {
-                
-                ++attempt;
+            for(int attempt = 1; attempt <= 2; ++attempt) {
+
                 try {
 
                     // Re-use handle if available, requires parameter definitions which are not available until here.
@@ -2602,7 +2598,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                         hasNewTypeDefinitions = false;
                     }
                     
-                    if (numBatchesExecuted < numBatchesPrepared && 1 == attempt) {
+                    if (numBatchesExecuted < numBatchesPrepared) {
                         // assert null != tdsWriter;
                         tdsWriter.writeByte((byte) nBatchStatementDelimiter);
                     }
@@ -2619,8 +2615,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                     // But we may also need to reprepare the statement if, for example,
                     // the size of a batch's string parameter values changes such
                     // that repreparation is necessary.
-                    if(1 == attempt) 
-                        ++numBatchesPrepared;
+                    ++numBatchesPrepared;
 
                     if (doPrepExec(tdsWriter, batchParam, hasNewTypeDefinitions, hasExistingTypeDefinitions) || numBatchesPrepared == numBatches) {
                         ensureExecuteResultsReader(batchCommand.startResponse(getIsResponseBufferingAdaptive()));
@@ -2657,6 +2652,8 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
                                 // Retry if invalid handle exception.
                                 if (retryBasedOnFailedReuseOfCachedHandle(e, attempt)) {
+                                    // Reset number of batches prepared.
+                                    numBatchesPrepared = numBatchesExecuted;
                                     retry = true;
                                     break;
                                 }
@@ -2673,8 +2670,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                             batchCommand.updateCounts[numBatchesExecuted] = (-1 == updateCount) ? Statement.SUCCESS_NO_INFO : updateCount;
                             processBatch();
 
-                            if(1 == attempt) 
-                                numBatchesExecuted++;
+                            numBatchesExecuted++;
                         }
                         if(retry)
                             continue; 
@@ -2685,8 +2681,11 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                     }
                 }
                 catch(SQLException e) {
-                    if (retryBasedOnFailedReuseOfCachedHandle(e, attempt))
+                    if (retryBasedOnFailedReuseOfCachedHandle(e, attempt)) {
+                        // Reset number of batches prepared.
+                        numBatchesPrepared = numBatchesExecuted;
                         continue;
+                    }
                     else
                         throw e;
                 }

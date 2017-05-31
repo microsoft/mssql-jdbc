@@ -145,6 +145,35 @@ public class PreparedStatementTest extends AbstractTest {
             // Test behvaior with statement pooling.
             con.setStatementPoolingCacheSize(10);
 
+            // Test with missing handle failures (fake).
+            this.executeSQL(con, "CREATE TABLE #update1 (col INT);INSERT #update1 VALUES (1);");
+            this.executeSQL(con, "CREATE PROC #updateProc1 AS UPDATE #update1 SET col += 1; IF EXISTS (SELECT * FROM #update1 WHERE col % 5 = 0) THROW 99586, 'Prepared handle GAH!', 1;");
+            try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) con.prepareStatement("#updateProc1")) {
+                for (int i = 0; i < 100; ++i) {
+                    assertSame(1, pstmt.executeUpdate());
+                }
+            }
+
+            // Test batching with missing handle failures (fake).
+            this.executeSQL(con, "CREATE TABLE #update2 (col INT);INSERT #update2 VALUES (1);");
+            this.executeSQL(con, "CREATE PROC #updateProc2 AS UPDATE #update2 SET col += 1; IF EXISTS (SELECT * FROM #update2 WHERE col % 5 = 0) THROW 99586, 'Prepared handle GAH!', 1;");
+            try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) con.prepareStatement("#updateProc2")) {
+                for (int i = 0; i < 100; ++i)
+                    pstmt.addBatch();
+
+                int[] updateCounts = pstmt.executeBatch();
+
+                // Verify update counts are correct
+                for (int i : updateCounts) {
+                    assertSame(1, i);
+                }
+            }
+        }
+
+        try (SQLServerConnection con = (SQLServerConnection)DriverManager.getConnection(connectionString)) {
+            // Test behvaior with statement pooling.
+            con.setStatementPoolingCacheSize(10);
+
             String lookupUniqueifier = UUID.randomUUID().toString();
             String query = String.format("/*statementpoolingtest_%s*/SELECT * FROM sys.tables;", lookupUniqueifier);
 
