@@ -11,14 +11,14 @@ package com.microsoft.sqlserver.jdbc;
 /**
  * Used for caching of meta data from parsed SQL text.
  */
-final class ParsedSQLMetadata {
+final class ParsedSQLCacheItem {
     /** The SQL text AFTER processing. */
     String processedSQL;
     int parameterCount; 
     String procedureName;
     boolean bReturnValueSyntax; 
     
-    ParsedSQLMetadata(String processedSQL, int parameterCount, String procedureName, boolean bReturnValueSyntax) {
+    ParsedSQLCacheItem(String processedSQL, int parameterCount, String procedureName, boolean bReturnValueSyntax) {
         this.processedSQL = processedSQL;
         this.parameterCount = parameterCount;
         this.procedureName = procedureName;

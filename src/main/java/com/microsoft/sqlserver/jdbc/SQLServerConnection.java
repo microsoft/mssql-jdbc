@@ -157,22 +157,16 @@ public class SQLServerConnection implements ISQLServerConnection {
         private int handle = 0;
         private final AtomicInteger handleRefCount = new AtomicInteger();
         private boolean isDirectSql;
-        private volatile boolean hasExecutedAtLeastOnce;
         private volatile boolean evictedFromCache; 
         private volatile boolean explicitlyDiscarded; 
         private Sha1HashKey key;
-        
-        PreparedStatementHandle(Sha1HashKey key) {
-        	this.key = key;
-        }
 
         PreparedStatementHandle(Sha1HashKey key, int handle, boolean isDirectSql, boolean isEvictedFromCache) {
-        	this(key);
-        	
+        	this.key = key;
             this.handle = handle;
             this.isDirectSql = isDirectSql;
-            this.setHasExecutedAtLeastOnce(true);
             this.setIsEvictedFromCache(isEvictedFromCache);
+            handleRefCount.set(1);
         }
 
         /** Has the statement been evicted from the statement handle cache. */
@@ -197,16 +191,6 @@ public class SQLServerConnection implements ISQLServerConnection {
             return explicitlyDiscarded;
         }
 
-        /** Has the statement that this instance is related to ever been executed (with or without handle) */
-        boolean hasExecutedAtLeastOnce() {
-            return hasExecutedAtLeastOnce;
-        }
-        
-        /**  Specify whether the statement that this instance is related to ever been executed (with or without handle) */
-        void setHasExecutedAtLeastOnce(boolean hasExecutedAtLeastOnce) {
-            this.hasExecutedAtLeastOnce = hasExecutedAtLeastOnce;
-        }
-
         /** Get the actual handle. */
         int getHandle() {
             return handle;
@@ -215,22 +199,6 @@ public class SQLServerConnection implements ISQLServerConnection {
         /** Get the cache key. */
         Sha1HashKey getKey() {
             return key;
-        }
-
-        /** Specify the handle. 
-         * 
-         * @return 
-         *      false: Handle could not be referenced (already references other handle).
-         *      true: Handle was successfully set.
-        */
-        boolean setHandle(int handle, boolean isDirectSql) {
-            if (handleRefCount.compareAndSet(0, 1)) {
-                this.handle = handle;
-                this.isDirectSql = isDirectSql;
-                return true;
-            }
-            else
-                return false;
         }
 
         boolean isDirectSql() {
@@ -244,20 +212,12 @@ public class SQLServerConnection implements ISQLServerConnection {
          *      true: Handle was successfully put on path for discarding.
         */
         private boolean tryDiscardHandle() {
-            if(!hasHandle())
-                return false;
-            else
-                return handleRefCount.compareAndSet(0, -999);
+            return handleRefCount.compareAndSet(0, -999);
         }
 
         /** Returns whether this statement has been discarded and can no longer be re-used. */
         private boolean isDiscarded() {
             return 0 > handleRefCount.intValue();
-        }
-
-       /** Returns whether this statement has an actual server handle associated with it. */
-        boolean hasHandle() {
-            return 0 < getHandle();
         }
 
         /** Adds a new reference to this handle, i.e. re-using it. 
@@ -267,7 +227,7 @@ public class SQLServerConnection implements ISQLServerConnection {
          *      true: Reference was successfully added.
         */
         boolean tryAddReference() {
-            if (!hasHandle() || isDiscarded() || isExplicitlyDiscarded())
+            if (isDiscarded() || isExplicitlyDiscarded())
                 return false;
             else {
                 int refCount = handleRefCount.incrementAndGet();
@@ -285,31 +245,32 @@ public class SQLServerConnection implements ISQLServerConnection {
     static final private int PARSED_SQL_CACHE_SIZE = 100;
 
     /** Cache of parsed SQL meta data */
-    static private ConcurrentLinkedHashMap<Sha1HashKey, ParsedSQLMetadata> parsedSQLCache;
+    static private ConcurrentLinkedHashMap<Sha1HashKey, ParsedSQLCacheItem> parsedSQLCache;
 
     static {
-        parsedSQLCache = new Builder<Sha1HashKey, ParsedSQLMetadata>()
+        parsedSQLCache = new Builder<Sha1HashKey, ParsedSQLCacheItem>()
 	        .maximumWeightedCapacity(PARSED_SQL_CACHE_SIZE)
             .build();
     }
 
-     /** Get prepared statement cache entry if exists, if not parse and create a new one */
-     static ParsedSQLMetadata getOrCreateCachedParsedSQLMetadata(Sha1HashKey key, String sql) throws SQLServerException {
-         ParsedSQLMetadata cacheItem = parsedSQLCache.get(key);
-         if (null == cacheItem) {
-             JDBCSyntaxTranslator translator = new JDBCSyntaxTranslator();
- 
-             String parsedSql = translator.translate(sql);
-             String procName = translator.getProcedureName(); // may return null        
-             boolean returnValueSyntax = translator.hasReturnValueSyntax();
-             int paramCount = countParams(parsedSql);
-             
-             cacheItem = new ParsedSQLMetadata(parsedSql, paramCount, procName, returnValueSyntax);
-             parsedSQLCache.putIfAbsent(key, cacheItem);
-         }
- 
-         return cacheItem;
-     }
+    /** Get prepared statement cache entry if exists, if not parse and create a new one */
+    static ParsedSQLCacheItem  getCachedParsedSQL(Sha1HashKey key) {
+        return parsedSQLCache.get(key);
+    }
+
+    /** Parse and create a information about parsed SQL text */
+    static ParsedSQLCacheItem  parseAndCacheSQL(Sha1HashKey key, String sql) throws SQLServerException {
+        JDBCSyntaxTranslator translator = new JDBCSyntaxTranslator();
+
+        String parsedSql = translator.translate(sql);
+        String procName = translator.getProcedureName(); // may return null        
+        boolean returnValueSyntax = translator.hasReturnValueSyntax();
+        int paramCount = countParams(parsedSql);
+
+        ParsedSQLCacheItem  cacheItem = new ParsedSQLCacheItem (parsedSql, paramCount, procName, returnValueSyntax);
+        parsedSQLCache.putIfAbsent(key, cacheItem);
+        return cacheItem;
+    }
  
     /** Size of the  prepared statement handle cache */
     private int statementPoolingCacheSize = 10;
@@ -5501,10 +5462,8 @@ public class SQLServerConnection implements ISQLServerConnection {
             loggerExternal.finer(this + ": Adding PreparedHandle to queue for un-prepare:" + statementHandle.getHandle());
 
         // Add the new handle to the discarding queue and find out current # enqueued.
-        if(statementHandle.hasHandle()) {
-            this.discardedPreparedStatementHandles.add(statementHandle);
-            this.discardedPreparedStatementHandleCount.incrementAndGet();
-        }
+        this.discardedPreparedStatementHandles.add(statementHandle);
+        this.discardedPreparedStatementHandleCount.incrementAndGet();
     }
 
 
@@ -5708,27 +5667,29 @@ public class SQLServerConnection implements ISQLServerConnection {
     }
 
     /** Get or create prepared statement handle cache entry if statement pooling is enabled */
-    final PreparedStatementHandle getOrRegisterCachedPreparedStatementHandle(Sha1HashKey key) {
+    final PreparedStatementHandle getCachedPreparedStatementHandle(Sha1HashKey key) {
         if(!isStatementPoolingEnabled())
             return null;
         
-        PreparedStatementHandle cacheItem = preparedStatementHandleCache.get(key);
-        if (null == cacheItem) {
-            cacheItem = new PreparedStatementHandle(key);
-            preparedStatementHandleCache.putIfAbsent(key, cacheItem);
-        }
+        return preparedStatementHandleCache.get(key);
+    }
 
+    /** Get or create prepared statement handle cache entry if statement pooling is enabled */
+    final PreparedStatementHandle registerCachedPreparedStatementHandle(Sha1HashKey key, int handle, boolean isDirectSql) {
+        if(!isStatementPoolingEnabled() || null == key)
+            return null;
+        
+        PreparedStatementHandle cacheItem = new PreparedStatementHandle(key, handle, isDirectSql, false);
+        preparedStatementHandleCache.putIfAbsent(key, cacheItem);
         return cacheItem;
     }
 
     /** Return prepared statement handle cache entry so it can be un-prepared. */
     final void returnCachedPreparedStatementHandle(PreparedStatementHandle handle) {
-        if(handle.hasHandle()) {
-            handle.removeReference();
+        handle.removeReference();
 
-            if (handle.isEvictedFromCache() && handle.tryDiscardHandle())
-                enqueueUnprepareStatementHandle(handle);
-        }
+        if (handle.isEvictedFromCache() && handle.tryDiscardHandle())
+            enqueueUnprepareStatementHandle(handle);
     }
 
     /** Force eviction of prepared statement handle cache entry. */
@@ -5746,7 +5707,7 @@ public class SQLServerConnection implements ISQLServerConnection {
                 handle.setIsEvictedFromCache(true); // Mark as evicted from cache.
 
                 // Only discard if not referenced.
-                if(handle.hasHandle() && handle.tryDiscardHandle()) {
+                if(handle.tryDiscardHandle()) {
                     enqueueUnprepareStatementHandle(handle);
                     // Do not run discard actions here! Can interfere with executing statement.
                 }                    

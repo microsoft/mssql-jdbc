@@ -8,7 +8,8 @@
 
 package com.microsoft.sqlserver.jdbc;
 
-import static com.microsoft.sqlserver.jdbc.SQLServerConnection.getOrCreateCachedParsedSQLMetadata;
+import static com.microsoft.sqlserver.jdbc.SQLServerConnection.getCachedParsedSQL;
+import static com.microsoft.sqlserver.jdbc.SQLServerConnection.parseAndCacheSQL;
 
 import java.sql.BatchUpdateException;
 import java.sql.ResultSet;
@@ -769,7 +770,9 @@ public class SQLServerStatement implements ISQLServerStatement {
             Sha1HashKey cacheKey = new Sha1HashKey(sql);
 
             // Check for cached SQL metadata.
-            ParsedSQLMetadata cacheItem = getOrCreateCachedParsedSQLMetadata(cacheKey, sql);
+            ParsedSQLCacheItem cacheItem = getCachedParsedSQL(cacheKey);
+            if (null == cacheItem)
+                cacheItem = parseAndCacheSQL(cacheKey, sql);
 
             // Retrieve from cache item.
             procedureName = cacheItem.procedureName;

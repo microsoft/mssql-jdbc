@@ -18,6 +18,7 @@ import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.Random;
 import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -31,6 +32,7 @@ import com.microsoft.sqlserver.jdbc.SQLServerConnection;
 import com.microsoft.sqlserver.jdbc.SQLServerDataSource;
 import com.microsoft.sqlserver.jdbc.SQLServerPreparedStatement;
 import com.microsoft.sqlserver.testframework.AbstractTest;
+import com.microsoft.sqlserver.testframework.util.RandomUtil;
 
 @RunWith(JUnitPlatform.class)
 public class PreparedStatementTest extends AbstractTest { 
@@ -81,17 +83,6 @@ public class PreparedStatementTest extends AbstractTest {
 
             int iterations = 25;
 
-            // Verify no prepares for 1 time only uses.
-            for(int i = 0; i < iterations; ++i) {
-                try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement)con.prepareStatement(query)) {
-                    pstmt.execute();
-                } 
-                assertSame(0, con.getDiscardedServerPreparedStatementCount());
-            }
-
-            // Verify total cache use.
-            assertSame(iterations, executeSQLReturnFirstInt(con, verifyTotalCacheUsesQuery));
-
             query = String.format("/*unpreparetest_%s, sp_executesql->sp_prepexec->sp_execute- batched sp_unprepare*/SELECT * FROM sys.tables;", lookupUniqueifier);
             int prevDiscardActionCount = 0;
     
@@ -101,7 +92,7 @@ public class PreparedStatementTest extends AbstractTest {
                 // Verify current queue depth is expected.
                 assertSame(prevDiscardActionCount, con.getDiscardedServerPreparedStatementCount());
                 
-                try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement)con.prepareStatement(query)) {
+                try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement)con.prepareStatement(String.format("%s--%s", query, i))) {
                     pstmt.execute(); // sp_executesql
             
                     pstmt.execute(); // sp_prepexec
@@ -140,6 +131,45 @@ public class PreparedStatementTest extends AbstractTest {
      */
     @Test
     public void testStatementPooling() throws SQLException {
+        // Test % handle re-use
+        try (SQLServerConnection con = (SQLServerConnection)DriverManager.getConnection(connectionString)) {
+            String query = String.format("/*statementpoolingtest_re-use_%s*/SELECT TOP(1) * FROM sys.tables;", UUID.randomUUID().toString());
+
+            con.setStatementPoolingCacheSize(10);
+
+            boolean[] prepOnFirstCalls = {false, true};
+
+            for(boolean prepOnFirstCall : prepOnFirstCalls) {
+
+                con.setEnablePrepareOnFirstPreparedStatementCall(prepOnFirstCall);
+
+                int[] queryCounts = {10, 20, 30, 40};
+                for(int queryCount : queryCounts) {
+                    String[] queries = new String[queryCount];
+                    for(int i = 0; i < queries.length; ++i) {
+                        queries[i] = String.format("%s--%s--%s--%s", query, i, queryCount, prepOnFirstCall);
+                    }
+
+                    int testsWithHandleReuse = 0;
+                    final int testCount = 500;
+                    for(int i = 0; i < testCount; ++i) {
+                        Random random = new Random();
+                        int queryNumber = random.nextInt(queries.length);
+                        try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) con.prepareStatement(queries[queryNumber])) {
+                            pstmt.execute();
+
+                            // Grab handle-reuse before it would be populated if initially created.
+                            if(0 < pstmt.getPreparedStatementHandle())
+                                testsWithHandleReuse++;
+
+                            pstmt.getMoreResults(); // Make sure handle is updated.
+                        }
+                    }
+                    System.out.println(String.format("Prep on first call: %s Query count:%s: %s of %s (%s)", prepOnFirstCall, queryCount, testsWithHandleReuse, testCount, (double)testsWithHandleReuse/(double)testCount));
+                }
+            }
+        }
+
         try (SQLServerConnection con = (SQLServerConnection)DriverManager.getConnection(connectionString)) {
 
             // Test behvaior with statement pooling.
