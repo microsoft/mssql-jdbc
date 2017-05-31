@@ -13,6 +13,11 @@ env:
   - mssql_jdbc_logging='true'
   # Enabling logging with console / file handler for JUnit Test Framework. 
   #- mssql_jdbc_logging_handler='console'|'file'
+  
+cache:
+ directories:
+  - .autoconf
+  - $HOME/.m2
 
 install: 
   - mvn install -DskipTests=true -Dmaven.javadoc.skip=true -B -V -Pbuild41
