@@ -12,6 +12,7 @@ import java.util.Properties;
 
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
@@ -39,10 +40,11 @@ public class FipsTest {
 
     /**
      * Test after setting TrustServerCertificate as true.
-     * 
+     * This is disable due to IBM FIPS environment behavior. We should not mandate FIPS Provider & other parameters.
      * @throws Exception
      */
     @Test
+    @Disabled
     public void fipsTrustServerCertificateTest() throws Exception {
         try {
             Properties props = buildConnectionProperties();
@@ -62,6 +64,7 @@ public class FipsTest {
      * 
      * @throws Exception
      */
+    @Disabled
     @Test
     public void fipsEncryptTest() throws Exception {
         try {
@@ -82,6 +85,7 @@ public class FipsTest {
      * 
      * @throws Exception
      */
+    @Disabled
     @Test
     public void fipsProviderTest() throws Exception {
         try {
@@ -120,6 +124,7 @@ public class FipsTest {
      * @throws Exception
      */
     @Test
+    @Disabled
     public void fipsDataSourcePropertyTest() throws Exception {
         SQLServerDataSource ds = new SQLServerDataSource();
         setDataSourceProperties(ds);
@@ -137,6 +142,7 @@ public class FipsTest {
      * Test after removing encrypt in FIPS Data Source.
      */
     @Test
+    @Disabled
     public void fipsDatSourceEncrypt() {
         try {
             SQLServerDataSource ds = new SQLServerDataSource();
@@ -159,6 +165,7 @@ public class FipsTest {
      * @throws Exception
      */
     @Test
+    @Disabled
     public void fipsDataSourceProviderTest() throws Exception {
         try {
             SQLServerDataSource ds = new SQLServerDataSource();
@@ -180,6 +187,7 @@ public class FipsTest {
      * @throws Exception
      */
     @Test
+    @Disabled
     public void fipsDataSourceTrustServerCertificateTest() throws Exception {
         try {
             SQLServerDataSource ds = new SQLServerDataSource();
