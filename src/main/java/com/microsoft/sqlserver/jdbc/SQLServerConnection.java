@@ -1995,8 +1995,7 @@ public class SQLServerConnection implements ISQLServerConnection {
         }
         
         // Before opening the TDSChannel, calculate local hostname
-        // as the InetAddress.getLocalHost() takes more than usual time in certian OS and JVM combination, 
-        // get the hostName prior to opening TDSChannel, it avoids connection loss
+        // as the InetAddress.getLocalHost() takes more than usual time in certian OS and JVM combination, it avoids connection loss
         hostName = activeConnectionProperties.getProperty(SQLServerDriverStringProperty.WORKSTATION_ID.toString());
         if (hostName == null || hostName.length() == 0) {
             hostName = Util.lookupHostName();
