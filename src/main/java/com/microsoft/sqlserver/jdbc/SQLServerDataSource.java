@@ -683,8 +683,8 @@ public class SQLServerDataSource implements ISQLServerDataSource, DataSource, ja
      * @return Returns the current setting per the description.
      */
     public boolean getEnablePrepareOnFirstPreparedStatementCall() {
-        return getBooleanProperty(connectionProps, SQLServerDriverBooleanProperty.ENABLE_PREPARE_ON_FIRST_PREPARED_STATEMENT.toString(),
-                SQLServerConnection.getDefaultEnablePrepareOnFirstPreparedStatementCall());
+        boolean defaultValue = SQLServerDriverBooleanProperty.ENABLE_PREPARE_ON_FIRST_PREPARED_STATEMENT.getDefaultValue();
+        return getBooleanProperty(connectionProps, SQLServerDriverBooleanProperty.ENABLE_PREPARE_ON_FIRST_PREPARED_STATEMENT.toString(), defaultValue);
     }
 
     /**
@@ -709,8 +709,28 @@ public class SQLServerDataSource implements ISQLServerDataSource, DataSource, ja
      * @return Returns the current setting per the description.
      */
     public int getServerPreparedStatementDiscardThreshold() {
-        return getIntProperty(connectionProps, SQLServerDriverIntProperty.SERVER_PREPARED_STATEMENT_DISCARD_THRESHOLD.toString(),
-                SQLServerConnection.getDefaultServerPreparedStatementDiscardThreshold());
+        int defaultSize = SQLServerDriverIntProperty.SERVER_PREPARED_STATEMENT_DISCARD_THRESHOLD.getDefaultValue();
+        return getIntProperty(connectionProps, SQLServerDriverIntProperty.SERVER_PREPARED_STATEMENT_DISCARD_THRESHOLD.toString(), defaultSize);
+    }
+
+    /**
+     * Specifies the size of the prepared statement cache for this conection. A value less than 1 means no cache.
+     * 
+     * @param statementPoolingCacheSize
+     *      Changes the setting per the description.
+     */
+    public void setStatementPoolingCacheSize(int statementPoolingCacheSize) {
+        setIntProperty(connectionProps, SQLServerDriverIntProperty.STATEMENT_POOLING_CACHE_SIZE.toString(), statementPoolingCacheSize);
+    }
+
+    /**
+     * Returns the size of the prepared statement cache for this conection. A value less than 1 means no cache.
+     * 
+     * @return Returns the current setting per the description.
+     */
+    public int getStatementPoolingCacheSize() {
+        int defaultSize = SQLServerDriverIntProperty.STATEMENT_POOLING_CACHE_SIZE.getDefaultValue();
+        return getIntProperty(connectionProps, SQLServerDriverIntProperty.STATEMENT_POOLING_CACHE_SIZE.toString(), defaultSize);
     }
 
     public void setSocketTimeout(int socketTimeout) {
