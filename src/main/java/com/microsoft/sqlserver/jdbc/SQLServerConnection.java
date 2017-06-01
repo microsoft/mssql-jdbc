@@ -44,10 +44,10 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Properties;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.Executor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.logging.Level;
 
 import javax.sql.XAConnection;
@@ -223,6 +223,8 @@ public class SQLServerConnection implements ISQLServerConnection {
                                                                                                                                                // is
                                                                                                                                                // false).
 
+    private static String hostName = null;
+    
     boolean sendStringParametersAsUnicode() {
         return sendStringParametersAsUnicode;
     }
@@ -1991,6 +1993,15 @@ public class SQLServerConnection implements ISQLServerConnection {
             connectionlogger.fine(toString() + " Connecting with server: " + serverInfo.getServerName() + " port: " + serverInfo.getPortNumber()
                     + " Timeout slice: " + timeOutsliceInMillis + " Timeout Full: " + timeOutFullInSeconds);
         }
+        
+        // Before opening the TDSChannel, calculate local hostname
+        // as the InetAddress.getLocalHost() takes more than usual time in certian OS and JVM combination, 
+        // get the hostName prior to opening TDSChannel, it avoids connection loss
+        hostName = activeConnectionProperties.getProperty(SQLServerDriverStringProperty.WORKSTATION_ID.toString());
+        if (hostName == null || hostName.length() == 0) {
+            hostName = Util.lookupHostName();
+        }
+        
         // if the timeout is infinite slices are infinite too.
         tdsChannel = new TDSChannel(this);
         if (0 == timeOutFullInSeconds)
@@ -4015,7 +4026,6 @@ public class SQLServerConnection implements ISQLServerConnection {
         // Fed Auth feature requested without specifying fedAuthFeatureExtensionData.
         assert (null != fedAuthFeatureExtensionData || !(federatedAuthenticationInfoRequested || federatedAuthenticationRequested));
 
-        String hostName = activeConnectionProperties.getProperty(SQLServerDriverStringProperty.WORKSTATION_ID.toString());
         String sUser = activeConnectionProperties.getProperty(SQLServerDriverStringProperty.USER.toString());
         String sPwd = activeConnectionProperties.getProperty(SQLServerDriverStringProperty.PASSWORD.toString());
         String appName = activeConnectionProperties.getProperty(SQLServerDriverStringProperty.APPLICATION_NAME.toString());
@@ -4033,10 +4043,6 @@ public class SQLServerConnection implements ISQLServerConnection {
 
         if (serverName != null && serverName.length() > 128)
             serverName = serverName.substring(0, 128);
-
-        if (hostName == null || hostName.length() == 0) {
-            hostName = Util.lookupHostName();
-        }
 
         byte[] secBlob = new byte[0];
         boolean[] done = {false};
