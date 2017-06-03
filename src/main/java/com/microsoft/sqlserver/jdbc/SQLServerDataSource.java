@@ -177,8 +177,7 @@ public class SQLServerDataSource implements ISQLServerDataSource, DataSource, ja
 
     /**
      * sets GSSCredential
-     * 
-     * @param userCredential
+     * @param userCredential {@link GSSCredential}
      */
     public void setGSSCredentials(GSSCredential userCredential){
         setObjectProperty(connectionProps,SQLServerDriverObjectProperty.GSS_CREDENTIAL.toString(), userCredential);
@@ -187,7 +186,7 @@ public class SQLServerDataSource implements ISQLServerDataSource, DataSource, ja
     /**
      * Retrieves the GSSCredential
      * 
-     * @return GSSCredential
+     * @return GSSCredential {@link GSSCredential}
      */
     public GSSCredential getGSSCredentials(){
         return (GSSCredential) getObjectProperty(connectionProps, SQLServerDriverObjectProperty.GSS_CREDENTIAL.toString(),
@@ -689,8 +688,8 @@ public class SQLServerDataSource implements ISQLServerDataSource, DataSource, ja
 
     /**
      * This setting controls how many outstanding prepared statement discard actions (sp_unprepare) can be outstanding per connection 
-     * before a call to clean-up the outstanding handles on the server is executed. If the setting is <= 1 unprepare actions will be 
-     * executed immedietely on prepared statement close. If it is set to >1 these calls will be batched together to avoid overhead of 
+     * before a call to clean-up the outstanding handles on the server is executed. If the setting is &lt;= 1 unprepare actions will be 
+     * executed immediately on prepared statement close. If it is set to &gt; 1 these calls will be batched together to avoid overhead of 
      * calling sp_unprepare too often. 
      * 
      * @param serverPreparedStatementDiscardThreshold
@@ -702,8 +701,8 @@ public class SQLServerDataSource implements ISQLServerDataSource, DataSource, ja
 
     /**
      * This setting controls how many outstanding prepared statement discard actions (sp_unprepare) can be outstanding per connection 
-     * before a call to clean-up the outstanding handles on the server is executed. If the setting is <= 1 unprepare actions will be 
-     * executed immedietely on prepared statement close. If it is set to >1 these calls will be batched together to avoid overhead of 
+     * before a call to clean-up the outstanding handles on the server is executed. If the setting is &lt;= 1 unprepare actions will be 
+     * executed immediately on prepared statement close. If it is set to &gt; 1 these calls will be batched together to avoid overhead of 
      * calling sp_unprepare too often. 
      * 
      * @return Returns the current setting per the description.
@@ -726,7 +725,7 @@ public class SQLServerDataSource implements ISQLServerDataSource, DataSource, ja
      * Sets the login configuration file for Kerberos authentication. This
      * overrides the default configuration <i> SQLJDBCDriver </i>
      * 
-     * @param configurationName
+     * @param configurationName Configuration Name 
      */
     public void setJASSConfigurationName(String configurationName) {
         setStringProperty(connectionProps, SQLServerDriverStringProperty.JAAS_CONFIG_NAME.toString(),
@@ -736,7 +735,6 @@ public class SQLServerDataSource implements ISQLServerDataSource, DataSource, ja
     /**
      * Retrieves the login configuration file for Kerberos authentication.
      * 
-     * @return
      */
     public String getJASSConfigurationName() {
         return getStringProperty(connectionProps, SQLServerDriverStringProperty.JAAS_CONFIG_NAME.toString(),
