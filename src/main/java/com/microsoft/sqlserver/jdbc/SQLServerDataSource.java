@@ -734,7 +734,7 @@ public class SQLServerDataSource implements ISQLServerDataSource, DataSource, ja
 
     /**
      * Retrieves the login configuration file for Kerberos authentication.
-     * 
+     * @return Configuration Name.
      */
     public String getJASSConfigurationName() {
         return getStringProperty(connectionProps, SQLServerDriverStringProperty.JAAS_CONFIG_NAME.toString(),
