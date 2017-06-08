@@ -21,7 +21,7 @@ choco install jce -fdv -s . -y
 ```
 
 ### Disclaimers:
-All contents within this directory originate from [this GitHub project](https://github.com/TobseF/jce-chocolatey-package).
+All contents within this directory originate from [this GitHub project](https://github.com/TobseF/jce-chocolatey-package). This project was added to allow us to test the Always Encrypted feature on AppVeyor builds.
 
 This is not an official project of Oracle. It\`s only easy of the manual installation: It downloads the JCE from oracle.com and unpacks it to the installed JDK.
 
