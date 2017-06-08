@@ -899,8 +899,8 @@ public class SQLServerDataSource implements ISQLServerDataSource, DataSource, ja
     SQLServerConnection getConnectionInternal(String username,
             String password,
             SQLServerPooledConnection pooledConnection) throws SQLServerException {
-        Properties userSuppliedProps = null;
-        Properties mergedProps = null;
+        Properties userSuppliedProps;
+        Properties mergedProps;
         // Trust store password stripped and this object got created via Objectfactory referencing.
         if (trustStorePasswordStripped)
             SQLServerException.makeFromDriverError(null, null, SQLServerException.getErrString("R_referencingFailedTSP"), null, true);
@@ -1006,17 +1006,17 @@ public class SQLServerDataSource implements ISQLServerDataSource, DataSource, ja
             String propertyValue = (String) addr.getContent();
 
             // Special case dataSourceURL and dataSourceDescription.
-            if (propertyName.equals("dataSourceURL")) {
+            if ("dataSourceURL".equals(propertyName)) {
                 dataSourceURL = propertyValue;
             }
-            else if (propertyName.equals("dataSourceDescription")) {
+            else if ("dataSourceDescription".equals(propertyName)) {
                 dataSourceDescription = propertyValue;
             }
-            else if (propertyName.equals("trustStorePasswordStripped")) {
+            else if ("trustStorePasswordStripped".equals(propertyName)) {
                 trustStorePasswordStripped = true;
             }
             // Just skip "class" StringRefAddr, it does not go into connectionProps
-            else if (false == propertyName.equals("class")) {
+            else if (!"class".equals(propertyName)) {
 
                 connectionProps.setProperty(propertyName, propertyValue);
             }

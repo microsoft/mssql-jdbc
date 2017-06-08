@@ -582,7 +582,7 @@ public class SQLServerBulkCSVFileRecord implements ISQLServerBulkRecord, java.la
                         case 2013:	// java.sql.Types.TIME_WITH_TIMEZONE
                         {
                             DriverJDBCVersion.checkSupportsJDBC42();
-                            OffsetTime offsetTimeValue = null;
+                            OffsetTime offsetTimeValue;
 
                             // The per-column DateTimeFormatter gets priority.
                             if (null != cm.dateTimeFormatter)
@@ -599,7 +599,7 @@ public class SQLServerBulkCSVFileRecord implements ISQLServerBulkRecord, java.la
                         case 2014: // java.sql.Types.TIMESTAMP_WITH_TIMEZONE
                         {
                             DriverJDBCVersion.checkSupportsJDBC42();
-                            OffsetDateTime offsetDateTimeValue = null;
+                            OffsetDateTime offsetDateTimeValue;
 
                             // The per-column DateTimeFormatter gets priority.
                             if (null != cm.dateTimeFormatter)

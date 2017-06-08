@@ -203,7 +203,7 @@ abstract class SQLServerClobBase implements Serializable {
             DataTypes.throwConversionError(getDisplayClassName(), "AsciiStream");
 
         // Need to use a BufferedInputStream since the stream returned by this method is assumed to support mark/reset
-        InputStream getterStream = null;
+        InputStream getterStream;
         if (null == value && !activeStreams.isEmpty()) {
             InputStream inputStream = (InputStream) activeStreams.get(0);
             try {
@@ -390,7 +390,7 @@ abstract class SQLServerClobBase implements Serializable {
 
         int pos = value.indexOf(searchstr, (int) (start - 1));
         if (-1 != pos)
-            return pos + 1;
+            return pos + 1L;
 
         return -1;
     }

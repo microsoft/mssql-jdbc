@@ -146,7 +146,7 @@ public final class SQLServerColumnEncryptionCertificateStoreProvider extends SQL
     private CertificateDetails getCertificateByThumbprint(String storeLocation,
             String thumbprint,
             String masterKeyPath) throws SQLServerException {
-        FileInputStream fis = null;
+        FileInputStream fis;
 
         if ((null == keyStoreDirectoryPath)) {
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_AEKeyPathEmptyOrReserved"));
@@ -169,7 +169,7 @@ public final class SQLServerColumnEncryptionCertificateStoreProvider extends SQL
         File keyStoreDirectory = keyStoreFullPath.toFile();
         File[] listOfFiles = keyStoreDirectory.listFiles();
 
-        if ((null == listOfFiles) || ((null != listOfFiles) && (0 == listOfFiles.length))) {
+        if ((null == listOfFiles) || (0 == listOfFiles.length)) {
             throw new SQLServerException(SQLServerException.getErrString("R_KeyStoreNotFound"), null);
         }
 
@@ -232,7 +232,7 @@ public final class SQLServerColumnEncryptionCertificateStoreProvider extends SQL
             byte[] encryptedColumnEncryptionKey) throws SQLServerException {
         windowsCertificateStoreLogger.entering(SQLServerColumnEncryptionCertificateStoreProvider.class.getName(), "decryptColumnEncryptionKey",
                 "Decrypting Column Encryption Key.");
-        byte[] plainCek = null;
+        byte[] plainCek;
         if (isWindows) {
             plainCek = decryptColumnEncryptionKeyWindows(masterKeyPath, encryptionAlgorithm, encryptedColumnEncryptionKey);
         }
