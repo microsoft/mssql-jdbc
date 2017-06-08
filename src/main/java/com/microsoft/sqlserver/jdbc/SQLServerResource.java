@@ -224,7 +224,7 @@ public final class SQLServerResource extends ListResourceBundle {
 				{"R_invalidTransactionOption", "UseInternalTransaction option can not be set to TRUE when used with a Connection object."},
 				{"R_invalidNegativeArg", "The {0} argument cannot be negative."},
 				{"R_BulkColumnMappingsIsEmpty", "Cannot perform bulk copy operation if the only mapping is an identity column and KeepIdentity is set to false."},        
-				{"R_BulkCSVDataSchemaMismatch", "Source data does not match source schema."},
+				{"R_CSVDataSchemaMismatch", "Source data does not match source schema."},
 				{"R_BulkCSVDataDuplicateColumn", "Duplicate column names are not allowed."},
 				{"R_invalidColumnOrdinal", "Column {0} is invalid. Column number should be greater than zero."},
 				{"R_unsupportedEncoding", "The encoding {0} is not supported."},
@@ -371,7 +371,6 @@ public final class SQLServerResource extends ListResourceBundle {
 				{"R_invalidKeyStoreFile", "Cannot parse \"{0}\". Either the file format is not valid or the password is not correct."}, // for JKS/PKCS
 				{"R_invalidCEKCacheTtl", "Invalid column encryption key cache time-to-live specified. The columnEncryptionKeyCacheTtl value cannot be negative and timeUnit can only be DAYS, HOURS, MINUTES or SECONDS."}, 
 				{"R_sendTimeAsDateTimeForAE", "Use sendTimeAsDateTime=false with Always Encrypted."}, 
-				{"R_invalidServerCursorForTVP" , "Use different Connection for source ResultSet and prepared query, if selectMethod is set to cursor for Table-Valued Parameter."},
 				{"R_TVPnotWorkWithSetObjectResultSet" , "setObject() with ResultSet is not supported for Table-Valued Parameter. Please use setStructured()"},
 				{"R_invalidQueryTimeout", "The queryTimeout {0} is not valid."},
 				{"R_invalidSocketTimeout", "The socketTimeout {0} is not valid."},
@@ -382,5 +381,7 @@ public final class SQLServerResource extends ListResourceBundle {
 				{"R_serverPreparedStatementDiscardThreshold", "The serverPreparedStatementDiscardThreshold {0} is not valid."},
 				{"R_kerberosLoginFailedForUsername", "Cannot login with Kerberos principal {0}, check your credentials. {1}"},
 				{"R_kerberosLoginFailed", "Kerberos Login failed: {0} due to {1} ({2})"},
+				{"R_StoredProcedureNotFound", "Could not find stored procedure ''{0}''."},
+				{"R_jaasConfigurationNamePropertyDescription", "Login configuration file for Kerberos authentication."},
     };
 }

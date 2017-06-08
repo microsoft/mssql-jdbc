@@ -9,6 +9,7 @@ package com.microsoft.sqlserver.jdbc.connection;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import java.sql.DriverManager;
 import java.sql.SQLException;
@@ -87,6 +88,10 @@ public class TimeoutTest extends AbstractTest {
         assertTrue(timeDiff > 14000);
     }
 
+    /**
+     * When query timeout occurs, the connection is still usable. 
+     * @throws Exception
+     */
     @Test
     public void testQueryTimeout() throws Exception {
         SQLServerConnection conn = (SQLServerConnection) DriverManager.getConnection(connectionString);
@@ -106,8 +111,17 @@ public class TimeoutTest extends AbstractTest {
             }
             assertEquals(e.getMessage(), "The query has timed out.", "Invalid exception message");
         }
+        try{
+            conn.createStatement().execute("SELECT @@version");
+        }catch (Exception e) {
+           fail("Unexpected error message occured! "+ e.toString() );
+        }
     }
 
+    /**
+     * When socketTimeout occurs, the connection will be marked as closed.
+     * @throws Exception
+     */
     @Test
     public void testSocketTimeout() throws Exception {
         SQLServerConnection conn = (SQLServerConnection) DriverManager.getConnection(connectionString);
@@ -126,6 +140,11 @@ public class TimeoutTest extends AbstractTest {
                 throw e;
             }
             assertEquals(e.getMessage(), "Read timed out", "Invalid exception message");
+        }
+        try{
+            conn.createStatement().execute("SELECT @@version");
+        }catch (SQLServerException e) {
+            assertEquals(e.getMessage(), "The connection is closed.", "Invalid exception message");
         }
     }
 

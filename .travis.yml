@@ -8,7 +8,16 @@ services:
   - docker
 
 env:
+ global:	
   - mssql_jdbc_test_connection_properties='jdbc:sqlserver://localhost:1433;databaseName=master;username=sa;password=<YourStrong!Passw0rd>;'
+  - mssql_jdbc_logging='true'
+  # Enabling logging with console / file handler for JUnit Test Framework. 
+  #- mssql_jdbc_logging_handler='console'|'file'
+  
+#Cache the .m2 folder
+cache:
+ directories:
+  - $HOME/.m2
 
 install: 
   - mvn install -DskipTests=true -Dmaven.javadoc.skip=true -B -V -Pbuild41

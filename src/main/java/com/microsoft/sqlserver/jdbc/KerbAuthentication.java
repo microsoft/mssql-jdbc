@@ -17,16 +17,13 @@ import java.security.AccessController;
 import java.security.PrivilegedActionException;
 import java.security.PrivilegedExceptionAction;
 import java.text.MessageFormat;
-import java.util.HashMap;
 import java.util.Locale;
-import java.util.Map;
 import java.util.logging.Level;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import javax.naming.NamingException;
 import javax.security.auth.Subject;
-import javax.security.auth.login.AppConfigurationEntry;
 import javax.security.auth.login.Configuration;
 import javax.security.auth.login.LoginContext;
 import javax.security.auth.login.LoginException;
@@ -44,7 +41,6 @@ import com.microsoft.sqlserver.jdbc.dns.DNSKerberosLocator;
  * KerbAuthentication for int auth.
  */
 final class KerbAuthentication extends SSPIAuthentication {
-    private final static String CONFIGNAME = "SQLJDBCDriver";
     private final static java.util.logging.Logger authLogger = java.util.logging.Logger
             .getLogger("com.microsoft.sqlserver.jdbc.internals.KerbAuthentication");
 
@@ -57,78 +53,9 @@ final class KerbAuthentication extends SSPIAuthentication {
     private GSSContext peerContext = null;
 
     static {
-        // The driver on load will look to see if there is a configuration set for the SQLJDBCDriver, if not it will install its
-        // own configuration. Note it is possible that there is a configuration exists but it does not contain a configuration entry
-        // for the driver in that case, we will override the configuration but will flow the configuration requests to existing
-        // config for anything other than SQLJDBCDriver
-        //
-        class SQLJDBCDriverConfig extends Configuration {
-            Configuration current = null;
-            AppConfigurationEntry[] driverConf;
-
-            SQLJDBCDriverConfig() {
-                try {
-                    current = Configuration.getConfiguration();
-                }
-                catch (SecurityException e) {
-                    // if we cant get the configuration, it is likely that no configuration has been specified. So go ahead and set the config
-                    authLogger.finer(toString() + " No configurations provided, setting driver default");
-                }
-                AppConfigurationEntry[] config = null;
-
-                if (null != current) {
-                    config = current.getAppConfigurationEntry(CONFIGNAME);
-                }
-                // If there is user provided configuration we leave use that and not install our configuration
-                if (null == config) {
-                    if (authLogger.isLoggable(Level.FINER))
-                        authLogger.finer(toString() + " SQLJDBCDriver configuration entry is not provided, setting driver default");
-
-                    AppConfigurationEntry appConf;
-                    if (Util.isIBM()) {
-                        Map<String, String> confDetails = new HashMap<String, String>();
-                        confDetails.put("useDefaultCcache", "true");
-                        confDetails.put("moduleBanner", "false");
-                        appConf = new AppConfigurationEntry("com.ibm.security.auth.module.Krb5LoginModule",
-                                AppConfigurationEntry.LoginModuleControlFlag.REQUIRED, confDetails);
-                        if (authLogger.isLoggable(Level.FINER))
-                            authLogger.finer(toString() + " Setting IBM Krb5LoginModule");
-                    }
-                    else {
-                        Map<String, String> confDetails = new HashMap<String, String>();
-                        confDetails.put("useTicketCache", "true");
-                        appConf = new AppConfigurationEntry("com.sun.security.auth.module.Krb5LoginModule",
-                                AppConfigurationEntry.LoginModuleControlFlag.REQUIRED, confDetails);
-                        if (authLogger.isLoggable(Level.FINER))
-                            authLogger.finer(toString() + " Setting Sun Krb5LoginModule");
-                    }
-                    driverConf = new AppConfigurationEntry[1];
-                    driverConf[0] = appConf;
-                    Configuration.setConfiguration(this);
-                }
-
-            }
-
-            public AppConfigurationEntry[] getAppConfigurationEntry(String name) {
-                // we should only handle anything that is related to our part, everything else is handled by the configuration
-                // already existing configuration if there is one.
-                if (name.equals(CONFIGNAME)) {
-                    return driverConf;
-                }
-                else {
-                    if (null != current)
-                        return current.getAppConfigurationEntry(name);
-                    else
-                        return null;
-                }
-            }
-
-            public void refresh() {
-                if (null != current)
-                    current.refresh();
-            }
-        }
-        SQLJDBCDriverConfig driverconfig = new SQLJDBCDriverConfig();
+        // Overrides the default JAAS configuration loader.
+        // This one will forward to the default one in all cases but the default configuration is empty.
+        Configuration.setConfiguration(new JaasConfiguration(Configuration.getConfiguration()));
     }
 
     private void intAuthInit() throws SQLServerException {
@@ -148,13 +75,15 @@ final class KerbAuthentication extends SSPIAuthentication {
                 peerContext.requestInteg(true);
             }
             else {
-                Subject currentSubject = null;
+                String configName = con.activeConnectionProperties.getProperty(SQLServerDriverStringProperty.JAAS_CONFIG_NAME.toString(),
+                                                                               SQLServerDriverStringProperty.JAAS_CONFIG_NAME.getDefaultValue());
+                Subject currentSubject;
                 KerbCallback callback = new KerbCallback(con);
                 try {
                     AccessControlContext context = AccessController.getContext();
                     currentSubject = Subject.getSubject(context);
                     if (null == currentSubject) {
-                        lc = new LoginContext(CONFIGNAME, callback);
+                        lc = new LoginContext(configName, callback);
                         lc.login();
                         // per documentation LoginContext will instantiate a new subject.
                         currentSubject = lc.getSubject();
@@ -240,7 +169,9 @@ final class KerbAuthentication extends SSPIAuthentication {
             }
             else if (null == byteToken) {
                 // The documentation is not clear on when this can happen but it does say this could happen
-                authLogger.info(toString() + "byteToken is null in initSecContext.");
+                if (authLogger.isLoggable(Level.INFO)) {
+                    authLogger.info(toString() + "byteToken is null in initSecContext.");
+                }
                 con.terminate(SQLServerException.DRIVER_ERROR_NONE, SQLServerException.getErrString("R_integratedAuthenticationFailed"));
             }
             return byteToken;
