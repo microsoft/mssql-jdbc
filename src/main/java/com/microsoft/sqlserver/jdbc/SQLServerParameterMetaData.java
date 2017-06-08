@@ -329,7 +329,7 @@ public final class SQLServerParameterMetaData implements ParameterMetaData {
         String fullName;
         nameFragment = firstToken;
         // skip spaces
-        while (nameFragment.equals(" ") && st.hasMoreTokens()) {
+        while (" ".equals(nameFragment) && st.hasMoreTokens()) {
             nameFragment = st.nextToken();
         }
         fullName = nameFragment;
