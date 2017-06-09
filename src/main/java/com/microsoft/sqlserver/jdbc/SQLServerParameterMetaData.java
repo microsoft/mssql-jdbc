@@ -581,14 +581,12 @@ public final class SQLServerParameterMetaData implements ParameterMetaData {
                     if (metaInfo.fields.length() <= 0)
                         return;
 
-                    String sCom = "sp_executesql N'SET FMTONLY ON SELECT ? FROM ? WHERE 1 = 2'";
-                    PreparedStatement pstmt = con.prepareStatement(sCom);
-                    pstmt.setString(1, metaInfo.fields);
-                    pstmt.setString(2, metaInfo.table);
-                    ResultSet rs = pstmt.executeQuery();
-                    
+                    Statement stmt = con.createStatement();
+                    String sCom = "sp_executesql N'SET FMTONLY ON SELECT " + metaInfo.fields + " FROM " + metaInfo.table + " WHERE 1 = 2'";
+                    ResultSet rs = stmt.executeQuery(sCom);
+
                     parseQueryMetaFor2008(rs);
-                    pstmt.close();
+                    stmt.close();
                     rs.close();
                 }
             }
