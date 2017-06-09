@@ -11,6 +11,7 @@ package com.microsoft.sqlserver.testframework;
 import static org.junit.jupiter.api.Assertions.fail;
 
 import java.sql.JDBCType;
+import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
@@ -142,7 +143,7 @@ public class DBTable extends AbstractSQLGenerator {
     public String getTableName() {
         return tableName;
     }
-    
+
     public List<DBColumn> getColumns() {
         return this.columns;
     }
@@ -243,6 +244,56 @@ public class DBTable extends AbstractSQLGenerator {
         return false;
     }
 
+    /**
+     * using prepared statement to populate table with values
+     * 
+     * @param dbstatement
+     * @return
+     */
+    boolean populateTableWithPreparedStatement(DBPreparedStatement dbPStmt) {
+        try {
+            populateValues();
+
+            // create the insertion query
+            StringJoiner sb = new StringJoiner(SPACE_CHAR);
+            sb.add("INSERT");
+            sb.add("INTO");
+            sb.add(escapedTableName);
+            sb.add("VALUES");
+            sb.add(OPEN_BRACKET);
+            for (int colNum = 0; colNum < totalColumns; colNum++) {
+                sb.add(QUESTION_MARK);
+
+                if (colNum < totalColumns - 1) {
+                    sb.add(COMMA);
+                }
+            }
+            sb.add(CLOSE_BRACKET);
+            String sql = sb.toString();
+
+            dbPStmt.prepareStatement(sql);
+
+            // insert data
+            for (int i = 0; i < totalRows; i++) {
+                for (int colNum = 0; colNum < totalColumns; colNum++) {
+                    if (passDataAsHex(colNum)) {
+                        ((PreparedStatement) dbPStmt.product()).setBytes(colNum + 1, ((byte[]) (getColumn(colNum).getRowValue(i))));
+                    }
+                    else {
+                        dbPStmt.setObject(colNum + 1, String.valueOf(getColumn(colNum).getRowValue(i)));
+                    }
+                }
+                dbPStmt.execute();
+            }
+
+            return true;
+        }
+        catch (SQLException ex) {
+            fail(ex.getMessage());
+        }
+        return false;
+    }
+
     private void populateValues() {
         // generate values for all columns
         for (int i = 0; i < totalColumns; i++) {
@@ -292,7 +343,8 @@ public class DBTable extends AbstractSQLGenerator {
             sb.add(OPEN_BRACKET);
             for (int colNum = 0; colNum < totalColumns; colNum++) {
 
-                // TODO: consider how to enclose data in case of preparedStatemets
+                // TODO: consider how to enclose data in case of
+                // preparedStatemets
                 if (passDataAsString(colNum)) {
                     sb.add("'" + String.valueOf(getColumn(colNum).getRowValue(i)) + "'");
                 }

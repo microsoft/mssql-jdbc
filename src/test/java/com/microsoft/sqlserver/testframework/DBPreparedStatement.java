@@ -30,8 +30,10 @@ public class DBPreparedStatement extends DBStatement {
     }
 
     /**
+     * set up internal PreparedStatement with query
+     * @param query
+     * @return
      * @throws SQLException
-     * 
      */
     DBPreparedStatement prepareStatement(String query) throws SQLException {
         pstmt = ((Connection) parent().product()).prepareStatement(query);
@@ -83,5 +85,23 @@ public class DBPreparedStatement extends DBStatement {
         dbresultSet = new DBResultSet(this, rs);
         return dbresultSet;
     }
+    
+    /**
+     * populate table with values using prepared statement
+     * 
+     * @param table
+     * @return <code>true</code> if table is populated
+     */
+    public boolean populateTable(DBTable table) {
+        return table.populateTableWithPreparedStatement(this);
+    }
 
+    /**
+     * 
+     * @return
+     * @throws SQLException
+     */
+    public boolean execute() throws SQLException {
+        return pstmt.execute();
+    }
 }
