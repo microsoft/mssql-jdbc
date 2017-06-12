@@ -190,6 +190,7 @@ public class SQLServerConnection implements ISQLServerConnection {
     }
 
     private final static float TIMEOUTSTEP = 0.08F;    // fraction of timeout to use for fast failover connections
+    private final static float TIMEOUTSTEP_TNIR = 0.125F;
     final static int TnirFirstAttemptTimeoutMs = 500;    // fraction of timeout to use for fast failover connections
 
     /*
@@ -210,8 +211,9 @@ public class SQLServerConnection implements ISQLServerConnection {
     }
 
     // Permission targets
-    // currently only callAbort is implemented
     private static final String callAbortPerm = "callAbort";
+    
+    private static final String SET_NETWORK_TIMEOUT_PERM = "setNetworkTimeout";
 
     private boolean sendStringParametersAsUnicode = SQLServerDriverBooleanProperty.SEND_STRING_PARAMETERS_AS_UNICODE.getDefaultValue();        // see
                                                                                                                                                // connection
@@ -281,6 +283,8 @@ public class SQLServerConnection implements ISQLServerConnection {
     final int getSocketTimeoutMilliseconds() {
         return socketTimeoutMilliseconds;
     }
+    
+    boolean userSetTNIR = true;
 
     private boolean sendTimeAsDatetime = SQLServerDriverBooleanProperty.SEND_TIME_AS_DATETIME.getDefaultValue();
 
@@ -1126,6 +1130,7 @@ public class SQLServerConnection implements ISQLServerConnection {
             sPropKey = SQLServerDriverBooleanProperty.TRANSPARENT_NETWORK_IP_RESOLUTION.toString();
             sPropValue = activeConnectionProperties.getProperty(sPropKey);
             if (sPropValue == null) {
+                userSetTNIR = false;
                 sPropValue = Boolean.toString(SQLServerDriverBooleanProperty.TRANSPARENT_NETWORK_IP_RESOLUTION.getDefaultValue());
                 activeConnectionProperties.setProperty(sPropKey, sPropValue);
             }
@@ -1285,6 +1290,13 @@ public class SQLServerConnection implements ISQLServerConnection {
             if ((!System.getProperty("os.name").toLowerCase().startsWith("windows"))
                     && (authenticationString.equalsIgnoreCase(SqlAuthentication.ActiveDirectoryIntegrated.toString()))) {
                 throw new SQLServerException(SQLServerException.getErrString("R_AADIntegratedOnNonWindows"), null);
+            }
+            
+            // Turn off TNIR for FedAuth if user does not set TNIR explicitly
+            if (!userSetTNIR) {
+                if ((!authenticationString.equalsIgnoreCase(SqlAuthentication.NotSpecified.toString())) || (null != accessTokenInByte)) {
+                    transparentNetworkIPResolution = false;
+                }
             }
 
             sPropKey = SQLServerDriverStringProperty.WORKSTATION_ID.toString();
@@ -1467,9 +1479,11 @@ public class SQLServerConnection implements ISQLServerConnection {
                         false);
             }
 
-            // transparentNetworkIPResolution is ignored if multiSubnetFailover or DBMirroring is true.
+            // transparentNetworkIPResolution is ignored if multiSubnetFailover or DBMirroring is true and user does not set TNIR explicitly
             if (multiSubnetFailover || (null != failOverPartnerPropertyValue)) {
-                transparentNetworkIPResolution = false;
+                if (!userSetTNIR) {
+                    transparentNetworkIPResolution = false;
+                }
             }
 
             // failoverPartner and applicationIntent=ReadOnly cannot be used together
@@ -1581,8 +1595,11 @@ public class SQLServerConnection implements ISQLServerConnection {
         timerExpire = timerStart + timerTimeout;
 
         // For non-dbmirroring, non-tnir and non-multisubnetfailover scenarios, full time out would be used as time slice.
-        if (isDBMirroring || useParallel || useTnir) {
+        if (isDBMirroring || useParallel) {
             timeoutUnitInterval = (long) (TIMEOUTSTEP * timerTimeout);
+        }
+        else if (useTnir) {
+            timeoutUnitInterval = (long) (TIMEOUTSTEP_TNIR * timerTimeout);
         }
         else {
             timeoutUnitInterval = timerTimeout;
@@ -1771,11 +1788,21 @@ public class SQLServerConnection implements ISQLServerConnection {
             // Update timeout interval (but no more than the point where we're supposed to fail: timerExpire)
             attemptNumber++;
 
-            if (useParallel || useTnir) {
+            if (useParallel) {
                 intervalExpire = System.currentTimeMillis() + (timeoutUnitInterval * (attemptNumber + 1));
             }
             else if (isDBMirroring) {
                 intervalExpire = System.currentTimeMillis() + (timeoutUnitInterval * ((attemptNumber / 2) + 1));
+            }
+            else if (useTnir) {
+                long timeSlice = timeoutUnitInterval * (1 << attemptNumber);
+
+                // In case the timeout for the first slice is less than 500 ms then bump it up to 500 ms
+                if ((1 == attemptNumber) && (500 > timeSlice)) {
+                    timeSlice = 500;
+                }
+
+                intervalExpire = System.currentTimeMillis() + timeSlice;
             }
             else
                 intervalExpire = timerExpire;
@@ -4636,14 +4663,56 @@ public class SQLServerConnection implements ISQLServerConnection {
     }
 
     public int getNetworkTimeout() throws SQLException {
-        // this operation is not supported
-        throw new SQLFeatureNotSupportedException(SQLServerException.getErrString("R_notSupported"));
+        loggerExternal.entering(getClassNameLogging(), "getNetworkTimeout");
+
+        checkClosed();
+
+        int timeout = 0;
+        try {
+            timeout = tdsChannel.getNetworkTimeout();
+        }
+        catch (IOException ioe) {
+            terminate(SQLServerException.DRIVER_ERROR_IO_FAILED, ioe.getMessage(), ioe);
+        }
+
+        loggerExternal.exiting(getClassNameLogging(), "getNetworkTimeout");
+        return timeout;
     }
 
     public void setNetworkTimeout(Executor executor,
             int timeout) throws SQLException {
-        // this operation is not supported
-        throw new SQLFeatureNotSupportedException(SQLServerException.getErrString("R_notSupported"));
+        loggerExternal.entering(getClassNameLogging(), "setNetworkTimeout", timeout);
+
+        if (timeout < 0) {
+            MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidSocketTimeout"));
+            Object[] msgArgs = {timeout};
+            SQLServerException.makeFromDriverError(this, this, form.format(msgArgs), null, false);
+        }
+
+        checkClosed();
+        
+        // check for setNetworkTimeout permission
+        SecurityManager secMgr = System.getSecurityManager();
+        if (secMgr != null) {
+            try {
+                SQLPermission perm = new SQLPermission(SET_NETWORK_TIMEOUT_PERM);
+                secMgr.checkPermission(perm);
+            }
+            catch (SecurityException ex) {
+                MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_permissionDenied"));
+                Object[] msgArgs = {SET_NETWORK_TIMEOUT_PERM};
+                SQLServerException.makeFromDriverError(this, this, form.format(msgArgs), null, true);
+            }
+        }
+
+        try {
+            tdsChannel.setNetworkTimeout(timeout);
+        }
+        catch (IOException ioe) {
+            terminate(SQLServerException.DRIVER_ERROR_IO_FAILED, ioe.getMessage(), ioe);
+        }
+
+        loggerExternal.exiting(getClassNameLogging(), "setNetworkTimeout");
     }
 
     public String getSchema() throws SQLException {

@@ -554,14 +554,14 @@ class SQLServerConnectionPoolProxy implements ISQLServerConnection {
     }
 
     public int getNetworkTimeout() throws SQLException {
-        // The driver currently does not implement the optional JDBC APIs
-        throw new SQLFeatureNotSupportedException(SQLServerException.getErrString("R_notSupported"));
+        checkClosed();
+        return wrappedConnection.getNetworkTimeout();
     }
 
     public void setNetworkTimeout(Executor executor,
             int timeout) throws SQLException {
-        // The driver currently does not implement the optional JDBC APIs
-        throw new SQLFeatureNotSupportedException(SQLServerException.getErrString("R_notSupported"));
+        checkClosed();
+        wrappedConnection.setNetworkTimeout(executor, timeout);
     }
 
     public String getSchema() throws SQLException {
