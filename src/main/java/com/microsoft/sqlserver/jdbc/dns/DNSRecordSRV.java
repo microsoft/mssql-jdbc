@@ -69,7 +69,7 @@ public class DNSRecordSRV implements Comparable<DNSRecordSRV> {
      * @param serverName
      *            the host
      * @throws IllegalArgumentException
-     *             if priority &lt; 0 or weight &lt;= 1
+     *             if priority {@literal <} 0 or weight {@literal <=} 1
      */
     public DNSRecordSRV(int priority,
             int weight,

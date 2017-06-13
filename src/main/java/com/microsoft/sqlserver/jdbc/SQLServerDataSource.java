@@ -688,8 +688,8 @@ public class SQLServerDataSource implements ISQLServerDataSource, DataSource, ja
 
     /**
      * This setting controls how many outstanding prepared statement discard actions (sp_unprepare) can be outstanding per connection 
-     * before a call to clean-up the outstanding handles on the server is executed. If the setting is &lt;= 1 unprepare actions will be 
-     * executed immediately on prepared statement close. If it is set to &gt; 1 these calls will be batched together to avoid overhead of 
+     * before a call to clean-up the outstanding handles on the server is executed. If the setting is {@literal <=} 1 unprepare actions will be 
+     * executed immediately on prepared statement close. If it is set to {@literal >} 1 these calls will be batched together to avoid overhead of 
      * calling sp_unprepare too often. 
      * 
      * @param serverPreparedStatementDiscardThreshold
@@ -701,8 +701,8 @@ public class SQLServerDataSource implements ISQLServerDataSource, DataSource, ja
 
     /**
      * This setting controls how many outstanding prepared statement discard actions (sp_unprepare) can be outstanding per connection 
-     * before a call to clean-up the outstanding handles on the server is executed. If the setting is &lt;= 1 unprepare actions will be 
-     * executed immediately on prepared statement close. If it is set to &gt; 1 these calls will be batched together to avoid overhead of 
+     * before a call to clean-up the outstanding handles on the server is executed. If the setting is {@literal <=} 1 unprepare actions will be 
+     * executed immediately on prepared statement close. If it is set to {@literal >} 1 these calls will be batched together to avoid overhead of 
      * calling sp_unprepare too often. 
      * 
      * @return Returns the current setting per the description.
