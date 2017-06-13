@@ -69,8 +69,12 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
         Utils.dropTableIfExists(numericTable, stmt);
         dropCEK();
         dropCMK();
-        stmt.close();
-        con.close();
+        if (null != stmt) {
+            stmt.close();
+        }
+        if (null != con) {
+            con.close();
+        }
     }
 
     /**

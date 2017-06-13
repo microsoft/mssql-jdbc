@@ -89,6 +89,12 @@ public class AESetup extends AbstractTest {
         certStore = keyStoreName;        
     }
 
+    /**
+     * Read the alias from file which is created during java
+     * @param inputFile
+     * @param lookupValue
+     * @throws IOException
+     */
     private static void readFromFile(String inputFile,
             String lookupValue) throws IOException {
         BufferedReader buffer = null;
