@@ -222,6 +222,13 @@
 					<include>**/*.csv</include>
 				</includes>
 			</testResource>
+			<testResource>
+				<directory>AE_Certificates</directory>
+				<includes>
+					<include>**/*.txt</include>
+					<include>**/*.jks</include>
+				</includes>
+			</testResource>
 		</testResources>
  
 		<plugins>
