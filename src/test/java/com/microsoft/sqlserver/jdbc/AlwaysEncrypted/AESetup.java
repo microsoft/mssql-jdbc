@@ -35,6 +35,8 @@ import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 /**
  * Setup for Always Encrypted test
+ * This test will work on Appveyor and Travis-ci as java key store gets created from the .yml scripts. Users on their local machine should create the 
+ * keystore manually and save the alias name in JavaKeyStore.txt file. For local test purposes, put this in the target/test-classes directory
  *
  */
 @RunWith(JUnitPlatform.class)
@@ -90,7 +92,8 @@ public class AESetup extends AbstractTest {
     }
 
     /**
-     * Read the alias from file which is created during java
+     * Read the alias from file which is created during creating jks
+     * If the jks and alias name in JavaKeyStore.txt does not exists, will not run!
      * @param inputFile
      * @param lookupValue
      * @throws IOException
@@ -101,6 +104,7 @@ public class AESetup extends AbstractTest {
         filePath = Utils.getCurrentClassPath();
         try {
             File f = new File(filePath + inputFile);
+            assumeTrue(f.exists(), "Aborting test case since no java key store and alias name exists!");
             buffer = new BufferedReader(new FileReader(f));
             String readLine = "";
             String[] linecontents;
