@@ -377,5 +377,6 @@ public final class SQLServerResource extends ListResourceBundle {
 				{"R_invalidFipsConfig", "Could not enable FIPS."},
 				{"R_invalidFipsEncryptConfig", "Could not enable FIPS due to either encrypt is not true or using trusted certificate settings."},
 				{"R_invalidFipsProviderConfig", "Could not enable FIPS due to invalid FIPSProvider or TrustStoreType."},
+				{"R_SQLVariantSupport", "sql-Variant datatype is not supported in pre-SQL 2008 version!"},
     };
 }

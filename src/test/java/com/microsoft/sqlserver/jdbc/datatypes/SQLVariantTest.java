@@ -642,6 +642,32 @@ public class SQLVariantTest extends AbstractTest {
         assertEquals(cs.getString(1), String.valueOf(returnValue));
         assertEquals(cs.getString(2), String.valueOf(col1Value));
     }
+    
+    /**
+     * Read several rows from SqlVariant
+     * 
+     * @throws SQLException
+     */
+    @Test
+    public void readSeveralRows() throws SQLException {
+        short value1 = 5;
+        int value2 = 10;
+        String value3 = "hi";
+        stmt.executeUpdate("IF EXISTS (select * from sysobjects where id = object_id(N'" + tableName + "') "
+                + "and OBJECTPROPERTY(id, N'IsTable') = 1)" + " DROP TABLE " + tableName);
+        stmt.executeUpdate("create table " + tableName + " (col1 sql_variant, col2 sql_variant, col3 sql_variant)");
+        stmt.executeUpdate("INSERT into " + tableName + " values (CAST (" + value1 + " AS " + "tinyint" + ")"
+                + ",CAST (" + value2 + " AS " + "int" + ")"
+                        + ",CAST ('" + value3 + "' AS " + "char(2)" + ")"
+                                + ")");  
+      
+        SQLServerResultSet rs = (SQLServerResultSet) stmt.executeQuery("SELECT * FROM " + tableName);
+        while (rs.next()) {
+            assertEquals(rs.getObject(1), value1);
+            assertEquals(rs.getObject(2), value2);
+            assertEquals(rs.getObject(3), value3);
+        }
+    }
 
     /**
      * Create and populate table

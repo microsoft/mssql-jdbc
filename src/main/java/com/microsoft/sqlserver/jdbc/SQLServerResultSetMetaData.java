@@ -37,7 +37,6 @@ public final class SQLServerResultSetMetaData implements java.sql.ResultSetMetaD
         return traceID;
     }
 
-    private int variantInternalType;
     /**
      * Create a new meta data object for the result set.
      * 

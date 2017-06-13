@@ -295,10 +295,6 @@ final class DTV {
     Object getSetterValue() {
         return impl.getSetterValue();
     }
-
-    Object getVariantBaseType(){
-        return impl.getBaseType();
-    }
     
     SqlVariant getInternalVariant(){
         return impl.getInternalVariant();
@@ -1991,7 +1987,7 @@ abstract class DTVImpl {
 
     abstract void initFromCompressedNull();
     
-    abstract int getBaseType();
+//    abstract int getBaseType();
     
     abstract SqlVariant getInternalVariant();
 }
@@ -2426,15 +2422,15 @@ final class AppDTVImpl extends DTVImpl {
     /* (non-Javadoc)
      * @see com.microsoft.sqlserver.jdbc.DTVImpl#getBaseType()
      */
-    @Override
-    int getBaseType() {
-        // TODO Auto-generated method stub
-        return variantInternal;
-    }
-    
-    void setBaseType(int type){
-        this.variantInternal = type;
-    }
+//    @Override
+//    int getBaseType() {
+//        // TODO Auto-generated method stub
+//        return variantInternal;
+//    }
+//    
+//    void setBaseType(int type){
+//        this.variantInternal = type;
+//    }
 
     /* (non-Javadoc)
      * @see com.microsoft.sqlserver.jdbc.DTVImpl#getInternalVariant()
@@ -3387,7 +3383,6 @@ final class ServerDTVImpl extends DTVImpl {
     private int valueLength;
     private TDSReaderMark valueMark;
     private boolean isNull;
-    private int variantInternalType;
     private SqlVariant internalVariant;
     /**
      * Sets the value of the DTV to an app-specified Java type.
@@ -4027,7 +4022,6 @@ final class ServerDTVImpl extends DTVImpl {
                      */
                     int baseType = tdsReader.readUnsignedByte();
                     
-                    variantInternalType = baseType;
                     int cbPropsActual = tdsReader.readUnsignedByte();
                     // don't create new one, if we have already created an internalVariant object. For example, in bulkcopy
                     // when we are reading time column, we update the same internalvarianttype's JDBC to be timestamp
@@ -4048,11 +4042,7 @@ final class ServerDTVImpl extends DTVImpl {
         assert isNull || null != convertedValue;
         return convertedValue;
     }
-    
-    int getBaseType(){       
-        return variantInternalType;       
-    }
-    
+        
     SqlVariant getInternalVariant(){
         return internalVariant;
     }
@@ -4074,7 +4064,7 @@ final class ServerDTVImpl extends DTVImpl {
             InputStreamGetterArgs streamGetterArgs,
             Calendar cal) throws SQLServerException {
         Object convertedValue = null;
-        int lengthConsumed = 2 + cbPropsActual; //2 is from the amount of baseType that is read previously
+        int lengthConsumed = 2 + cbPropsActual; // We have already read 2bytes for baseType earlier.
         int expectedValueLength = valueLength - lengthConsumed;
         SQLCollation collation = null;
         int precision;

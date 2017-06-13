@@ -455,7 +455,7 @@ public class TVPWithSqlVariant extends AbstractTest {
 
     @BeforeEach
     private void testSetup() throws SQLException {
-        conn = (SQLServerConnection) DriverManager.getConnection(connectionString + "sendStringParametersAsUnicode=true;");
+        conn = (SQLServerConnection) DriverManager.getConnection(connectionString + ";sendStringParametersAsUnicode=true;");
         stmt = (SQLServerStatement) conn.createStatement();
 
         dropProcedure();

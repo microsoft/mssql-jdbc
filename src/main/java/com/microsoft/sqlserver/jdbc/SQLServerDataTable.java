@@ -9,6 +9,7 @@
 package com.microsoft.sqlserver.jdbc;
 
 import java.math.BigDecimal;
+import java.sql.Connection;
 import java.text.MessageFormat;
 import java.time.OffsetDateTime;
 import java.time.OffsetTime;
@@ -25,7 +26,6 @@ public final class SQLServerDataTable {
     int columnCount = 0;
     Map<Integer, SQLServerDataColumn> columnMetadata = null;
     Map<Integer, Object[]> rows = null;
-    private SqlVariant internalVariant;
     private String tvpName = null;
 
     /**
@@ -144,10 +144,7 @@ public final class SQLServerDataTable {
         SQLServerDataColumn currentColumnMetadata = pair.getValue();
         boolean isColumnMetadataUpdated = false;
         boolean bValueNull;
-        int nValueLen;
-//     //   if ( null == internalVariant){
-//        internalVariant = new SqlVariant(jdbcType.getIntValue());    
-//   //   }   
+        int nValueLen;   
         switch (jdbcType) {
             case BIGINT:
                 rowValues[pair.getKey()] = (null == val) ? null : Long.parseLong(val.toString());
@@ -269,9 +266,9 @@ public final class SQLServerDataTable {
                 }
                 rowValues[pair.getKey()] = (bValueNull) ? null : (String) val;
                 break;
-            case SQL_VARIANT:
+            case SQL_VARIANT:               
                 JDBCType internalJDBCType;
-                if (null == val) {
+                if (null == val) { //TODO:Check this later
                     throw new SQLServerException("Sending null value with column type sql_variant in TVP is not supported! ", null);
                 }
                 JavaType javaType = JavaType.of(val);

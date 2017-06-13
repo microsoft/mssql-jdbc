@@ -370,6 +370,7 @@ enum SSType
                     JDBCType.Category.TIME,
                     JDBCType.Category.BINARY,
                     JDBCType.Category.TIMESTAMP,
+                    JDBCType.Category.LONG_BINARY, //TODO: Check this!
                     JDBCType.Category.NCHARACTER));
 
         private final SSType.Category from;

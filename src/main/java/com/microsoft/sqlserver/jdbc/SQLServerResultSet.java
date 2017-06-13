@@ -1923,18 +1923,13 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         return o;
     }
     
-    int getInternalVariantType(int columnIndex) throws SQLServerException {
-        return getterGetColumn(columnIndex).getVariantInternalType();
-    }
-    
     void setInternalVariantType(int columnIndex, SqlVariant type) throws SQLServerException{
         getterGetColumn(columnIndex).setInternalVariant(type);
     }
     
     SqlVariant getVariantInternalType(int columnIndex) throws SQLServerException {
         return getterGetColumn(columnIndex).getInternalVariant();
-    }
-    
+    }    
     
     private Object getStream(int columnIndex,
             StreamType streamType) throws SQLServerException {

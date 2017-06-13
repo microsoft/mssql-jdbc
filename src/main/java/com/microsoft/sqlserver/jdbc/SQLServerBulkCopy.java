@@ -46,7 +46,6 @@ import java.util.logging.Level;
 
 import javax.sql.RowSet;
 
-import com.sun.java.swing.plaf.windows.WindowsTreeUI.CollapsedIcon;
 
 /**
  * Lets you efficiently bulk load a SQL Server table with data from another source. <br>
@@ -1132,9 +1131,9 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable {
                     tdsWriter.writeByte((byte) srcScale);
                 }
                 break;
-            case microsoft.sql.Types.SQL_VARIANT: //
+            case microsoft.sql.Types.SQL_VARIANT: 
                 tdsWriter.writeByte(TDSType.SQL_VARIANT.byteValue());
-                tdsWriter.writeInt(8009);//write lenght of sql variant 8009
+                tdsWriter.writeInt(8009); //write lenght of sql variant 8009
                 break;
             default:
                 MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_BulkTypeNotSupported"));
@@ -1535,7 +1534,6 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable {
             // Begin a manual transaction for this batch.
             connection.setAutoCommit(false);
         }
-        boolean isShiloh = 8 >=connection.getServerMajorVersion() ? true : false;
         // Create and send the initial command for bulk copy ("INSERT BULK ...").
         TDSWriter tdsWriter = command.startRequest(TDS.PKT_QUERY);
         String bulkCmd = createInsertBulkCommand(tdsWriter);
@@ -1551,7 +1549,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable {
             writeColumnMetaData(tdsWriter);
 
             // Write all ROW tokens in the stream.
-            moreDataAvailable = writeBatchData(tdsWriter, isShiloh);
+            moreDataAvailable = writeBatchData(tdsWriter);
         }
         catch (SQLServerException ex) {
             // Close the TDS packet before handling the exception
@@ -2010,8 +2008,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable {
             int srcColOrdinal,
             int destColOrdinal,
             boolean isStreaming,
-            Object colValue,
-            boolean isShiloh) throws SQLServerException {
+            Object colValue) throws SQLServerException {
         SSType destSSType = destColumnMetadata.get(destColOrdinal).ssType;
 
         bulkPrecision = validateSourcePrecision(bulkPrecision, bulkJdbcType, destColumnMetadata.get(destColOrdinal).precision);
@@ -2450,8 +2447,12 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable {
                     tdsWriter.writeDateTimeOffset(colValue, bulkScale, destSSType);
                 }
                 break;
-            case microsoft.sql.Types.SQL_VARIANT:
-                assert isShiloh == false: "Shouldn't be dealing with sql_variant in pre-SQL2000 server!"; 
+            case microsoft.sql.Types.SQL_VARIANT:               
+                boolean isShiloh = 8 >=connection.getServerMajorVersion() ? true : false;
+                if (isShiloh) {
+                    MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_SQLVariantSupport"));
+                    throw new SQLServerException(null, form.format(new Object[] {}), null, 0, false);
+                }
                 writeSqlVariant(tdsWriter, colValue, sourceResultSet, srcColOrdinal, destColOrdinal, bulkJdbcType, bulkScale, isStreaming);
                 break;
             default:
@@ -2474,12 +2475,12 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable {
             int bulkJdbcType,
             int bulkScale,
             boolean isStreaming) throws SQLServerException {
-        int baseType = ((SQLServerResultSet) sourceResultSet).getInternalVariantType(srcColOrdinal);
         if (null == colValue) {
             writeNullToTdsWriter(tdsWriter, bulkJdbcType, isStreaming);
             return;
         }
         SqlVariant variantType = ((SQLServerResultSet) sourceResultSet).getVariantInternalType(srcColOrdinal);
+        int baseType = variantType.getBaseType();
         // for sql variant we normally should return the colvalue for time as time string. but for 
         // bulkcopy we need it to be timestamp. so we have to retrieve it again once we are in bulkcopy 
         // and make sure that the base type is time. 
@@ -2515,14 +2516,14 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable {
                 break;
             case MONEY8:
                 writeSqlVariantHeader(21, TDSType.DECIMALN.byteValue(), (byte)2, tdsWriter);
-                tdsWriter.writeByte((byte)38); //scale  (byte)variantType.getScale()
-                tdsWriter.writeByte((byte)4); //scale   (byte)variantType.getScale()
+                tdsWriter.writeByte((byte)38); 
+                tdsWriter.writeByte((byte)4); 
                 tdsWriter.writeSqlVariantInternalBigDecimal((BigDecimal) colValue, bulkJdbcType);
                 break;
             case MONEY4:
                 writeSqlVariantHeader(21, TDSType.DECIMALN.byteValue(), (byte)2, tdsWriter);
-                tdsWriter.writeByte((byte)38); //scale  (byte)variantType.getScale()
-                tdsWriter.writeByte((byte)4); //scale   (byte)variantType.getScale()
+                tdsWriter.writeByte((byte)38);
+                tdsWriter.writeByte((byte)4); 
                 tdsWriter.writeSqlVariantInternalBigDecimal((BigDecimal) colValue, bulkJdbcType);
                 break;
             case BIT1:
@@ -2550,17 +2551,17 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable {
                 tdsWriter.writeTime((java.sql.Timestamp) colValue,bulkScale); 
                 break;
             case DATETIME8:
-                writeSqlVariantHeader(10, TDSType.DATETIME8.byteValue(), (byte)0, tdsWriter); // 1 is probbytes for time
+                writeSqlVariantHeader(10, TDSType.DATETIME8.byteValue(), (byte)0, tdsWriter); 
                 tdsWriter.writeDatetime(colValue.toString());
                 break;
             case DATETIME4:
                 // when the type is ambiguous, we write to bigger type
-                writeSqlVariantHeader(10, TDSType.DATETIME8.byteValue(), (byte)0, tdsWriter); // 1 is probbytes for time
+                writeSqlVariantHeader(10, TDSType.DATETIME8.byteValue(), (byte)0, tdsWriter); 
                 tdsWriter.writeDatetime(colValue.toString());
                 break;
             case DATETIME2N:
                 writeSqlVariantHeader(10, TDSType.DATETIME2N.byteValue(), (byte)1, tdsWriter); // 1 is probbytes for time
-                tdsWriter.writeByte((byte)0x03); //scale  (byte)variantType.getScale()
+                tdsWriter.writeByte((byte)0x03); 
                 String timeStampValue = colValue.toString();
                 tdsWriter.writeTime(java.sql.Timestamp.valueOf(timeStampValue), 0x03); //datetime2 in sql_variant has up to scale 3 support
                 // Send only the date part
@@ -2827,8 +2828,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable {
     private void writeColumn(TDSWriter tdsWriter,
             int srcColOrdinal,
             int destColOrdinal,
-            Object colValue,
-            boolean isShiloh) throws SQLServerException {
+            Object colValue) throws SQLServerException {
         int srcPrecision = 0, srcScale = 0, destPrecision = 0, srcJdbcType = 0;
         SSType destSSType = null;
         boolean isStreaming = false, srcNullable;
@@ -2938,7 +2938,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable {
                         destCryptoMeta, connection);
             }
         }
-        writeColumnToTdsWriter(tdsWriter, srcPrecision, srcScale, srcJdbcType, srcNullable, srcColOrdinal, destColOrdinal, isStreaming, colValue, isShiloh);
+        writeColumnToTdsWriter(tdsWriter, srcPrecision, srcScale, srcJdbcType, srcNullable, srcColOrdinal, destColOrdinal, isStreaming, colValue);
     }
 
     // this method is called against jdbc41, but it require jdbc42 to work
@@ -3392,7 +3392,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable {
      * Writes data for a batch of rows to the TDSWriter object. Writes the following part in the BulkLoadBCP stream
      * (https://msdn.microsoft.com/en-us/library/dd340549.aspx) <ROW> ... </ROW>
      */
-    private boolean writeBatchData(TDSWriter tdsWriter, boolean isShiloh) throws SQLServerException {
+    private boolean writeBatchData(TDSWriter tdsWriter) throws SQLServerException {
         int batchsize = copyOptions.getBatchSize();
         int row = 0;
         while (true) {
@@ -3414,7 +3414,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable {
                 // Loop for each destination column. The mappings is a many to one mapping
                 // where multiple source columns can be mapped to one destination column.
                 for (int i = 0; i < mappingColumnCount; ++i) {
-                    writeColumn(tdsWriter, columnMappings.get(i).sourceColumnOrdinal, columnMappings.get(i).destinationColumnOrdinal, null, isShiloh // cell
+                    writeColumn(tdsWriter, columnMappings.get(i).sourceColumnOrdinal, columnMappings.get(i).destinationColumnOrdinal, null // cell
                                                                                                                                            // value is
                                                                                                                                            // retrieved
                                                                                                                                            // inside
@@ -3432,7 +3432,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable {
                     // If the SQLServerBulkCSVRecord does not have metadata for columns, it returns strings in the object array.
                     // COnvert the strings using destination table types.
                     writeColumn(tdsWriter, columnMappings.get(i).sourceColumnOrdinal, columnMappings.get(i).destinationColumnOrdinal,
-                            rowObjects[columnMappings.get(i).sourceColumnOrdinal - 1], isShiloh);
+                            rowObjects[columnMappings.get(i).sourceColumnOrdinal - 1]);
                 }
             }
             row++;

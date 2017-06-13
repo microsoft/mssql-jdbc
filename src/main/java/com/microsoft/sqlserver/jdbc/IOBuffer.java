@@ -3314,6 +3314,42 @@ final class TDSWriter {
         }
     }
 
+    private void writeInternalBigDecimal(BigDecimal bigDecimalVal,
+            int srcJdbcType,
+            boolean isNegative,
+            BigInteger bi,
+            int bLength) throws SQLServerException{
+        
+        writeByte((byte) (isNegative ? 0 : 1));
+
+        // Get the bytes of the BigInteger value. It is in reverse order, with
+        // most significant byte in 0-th element. We need to reverse it first before sending over TDS.
+        byte[] unscaledBytes = bi.toByteArray();
+
+        if (unscaledBytes.length > bLength) {
+            // If precession of input is greater than maximum allowed (p><= 38) throw Exception
+            MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_valueOutOfRange"));
+            Object[] msgArgs = {JDBCType.of(srcJdbcType)};
+            throw new SQLServerException(form.format(msgArgs), SQLState.DATA_EXCEPTION_LENGTH_MISMATCH, DriverError.NOT_SET, null);
+        }
+
+        // Byte array to hold all the reversed and padding bytes.
+        byte[] bytes = new byte[bLength];
+
+        // We need to fill up the rest of the array with zeros, as unscaledBytes may have less bytes
+        // than the required size for TDS.
+        int remaining = bLength - unscaledBytes.length;
+
+        // Reverse the bytes.
+        int i, j;
+        for (i = 0, j = unscaledBytes.length - 1; i < unscaledBytes.length;)
+            bytes[i++] = unscaledBytes[j--];
+
+        // Fill the rest of the array with zeros.
+        for (; i < remaining; i++)
+            bytes[i] = (byte) 0x00;
+        writeBytes(bytes);
+    }
     /**
      * Append a big decimal in the TDS stream.
      * 
@@ -3354,35 +3390,7 @@ final class TDSWriter {
             else
                 bLength = BYTES16;
             writeByte((byte) (bLength + 1));
-            writeByte((byte) (isNegative ? 0 : 1));
-
-            // Get the bytes of the BigInteger value. It is in reverse order, with
-            // most significant byte in 0-th element. We need to reverse it first before sending over TDS.
-            byte[] unscaledBytes = bi.toByteArray();
-
-            if (unscaledBytes.length > bLength) {
-                // If precession of input is greater than maximum allowed (p><= 38) throw Exception
-                MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_valueOutOfRange"));
-                Object[] msgArgs = {JDBCType.of(srcJdbcType)};
-                throw new SQLServerException(form.format(msgArgs), SQLState.DATA_EXCEPTION_LENGTH_MISMATCH, DriverError.NOT_SET, null);
-            }
-
-            // Byte array to hold all the reversed and padding bytes.
-            byte[] bytes = new byte[bLength];
-
-            // We need to fill up the rest of the array with zeros, as unscaledBytes may have less bytes
-            // than the required size for TDS.
-            int remaining = bLength - unscaledBytes.length;
-
-            // Reverse the bytes.
-            int i, j;
-            for (i = 0, j = unscaledBytes.length - 1; i < unscaledBytes.length;)
-                bytes[i++] = unscaledBytes[j--];
-
-            // Fill the rest of the array with zeros.
-            for (; i < remaining; i++)
-                bytes[i] = (byte) 0x00;
-            writeBytes(bytes);
+            writeInternalBigDecimal(bigDecimalVal, srcJdbcType, isNegative, bi, bLength);
         }
     }
 
@@ -3408,35 +3416,7 @@ final class TDSWriter {
             bi = bi.negate();
         int bLength;
         bLength = BYTES16;
-        writeByte((byte) (isNegative ? 0 : 1));
-
-        // Get the bytes of the BigInteger value. It is in reverse order, with
-        // most significant byte in 0-th element. We need to reverse it first before sending over TDS.
-        byte[] unscaledBytes = bi.toByteArray();
-
-        if (unscaledBytes.length > bLength) {
-            // If precession of input is greater than maximum allowed (p><= 38) throw Exception
-            MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_valueOutOfRange"));
-            Object[] msgArgs = {JDBCType.of(srcJdbcType)};
-            throw new SQLServerException(form.format(msgArgs), SQLState.DATA_EXCEPTION_LENGTH_MISMATCH, DriverError.NOT_SET, null);
-        }
-
-        // Byte array to hold all the reversed and padding bytes.
-        byte[] bytes = new byte[bLength];
-
-        // We need to fill up the rest of the array with zeros, as unscaledBytes may have less bytes
-        // than the required size for TDS.
-        int remaining = bLength - unscaledBytes.length;
-
-        // Reverse the bytes.
-        int i, j;
-        for (i = 0, j = unscaledBytes.length - 1; i < unscaledBytes.length;)
-            bytes[i++] = unscaledBytes[j--];
-
-        // Fill the rest of the array with zeros.
-        for (; i < remaining; i++)
-            bytes[i] = (byte) 0x00;
-        writeBytes(bytes);
+        writeInternalBigDecimal(bigDecimalVal, srcJdbcType, isNegative, bi, bLength);
     }
 
     void writeSmalldatetime(String value) throws SQLServerException {
@@ -4845,14 +4825,14 @@ final class TDSWriter {
             case FLOAT:
             case REAL:
                 if (null == currentColumnStringValue)
-                    writeByte((byte) 0); // actual length (0 == null)
+                    writeByte((byte) 0); 
                 else {
                     if (isSqlVariant) {
                         writeSqlVariantHeader(6, TDSType.FLOAT4.byteValue(), (byte) 0);
                         writeInt(Float.floatToRawIntBits(Float.valueOf(currentColumnStringValue).floatValue()));
                     }
                     else {
-                        writeByte((byte) 4); // actual length
+                        writeByte((byte) 4); 
                         writeInt(Float.floatToRawIntBits(Float.valueOf(currentColumnStringValue).floatValue()));
                     }
                 }
@@ -4880,7 +4860,7 @@ final class TDSWriter {
                       //for now we send as bigger type, but is sendStringParameterAsUnicoe is set to false we can't send nvarchar
                       //since we are writing as nvarchar we need to write as tdstype.bigvarchar value because if we 
                       // want to supprot varchar(8000) it becomes as nvarchar, 8000*2 therefore we should send as longvarchar,
-                      // but we cannot send more than 8000 cause sql_variant datatype in sql does not support it.
+                      // but we cannot send more than 8000 cause sql_variant datatype in sql server does not support it.
                       // then throw exception if user is sending more than that
                       if (dataLength > 16000) {
                           throw new SQLServerException("Cannot insert more than 8000 char type", null);
@@ -4987,9 +4967,14 @@ final class TDSWriter {
                 }
                 break;
             case SQL_VARIANT:
+                boolean isShiloh = 8 >= con.getServerMajorVersion() ? true : false;
+                if (isShiloh) {
+                    MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_SQLVariantSupport"));
+                    throw new SQLServerException(null, form.format(new Object[] {}), null, 0, false);
+                }
                 JDBCType internalJDBCType;
                 JavaType javaType = JavaType.of(currentObject);
-                internalJDBCType = javaType.getJDBCType(SSType.UNKNOWN, jdbcType);                
+                internalJDBCType = javaType.getJDBCType(SSType.UNKNOWN, jdbcType);
                 writeInternalTVPRowValues(internalJDBCType, currentColumnStringValue, currentObject, columnPair, true);
                 break;
             default:
