@@ -94,8 +94,8 @@ final class SQLServerSymmetricKeyCache {
             String serverName = connection.getTrustedServerNameAE();
             assert null != serverName : "serverName should not be null in getKey.";
 
-            StringBuilder keyLookupValuebuffer = new StringBuilder(serverName);
-            String keyLookupValue;
+            StringBuffer keyLookupValuebuffer = new StringBuffer(serverName);
+            String keyLookupValue = null;      
             keyLookupValuebuffer.append(":");
 
             keyLookupValuebuffer.append(DatatypeConverter.printBase64Binary((new String(keyInfo.encryptedKey, UTF_8)).getBytes()));

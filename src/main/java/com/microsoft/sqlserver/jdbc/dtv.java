@@ -3612,7 +3612,7 @@ final class ServerDTVImpl extends DTVImpl {
                             (null == baseTypeInfo.getCharset()) ? con.getDatabaseCollation().getCharset() : baseTypeInfo.getCharset());
                     if ((SSType.CHAR == baseSSType) || (SSType.NCHAR == baseSSType)) {
                         // Right pad the string for CHAR types.
-                        StringBuilder sb = new StringBuilder(strVal);
+                        StringBuffer sb = new StringBuffer(strVal);
                         int padLength = baseTypeInfo.getPrecision() - strVal.length();
                         for (int i = 0; i < padLength; i++) {
                             sb.append(' ');
@@ -3810,7 +3810,7 @@ final class ServerDTVImpl extends DTVImpl {
             TDSReader tdsReader) throws SQLServerException {
         SQLServerConnection con = tdsReader.getConnection();
         Object convertedValue = null;
-        byte[] decryptedValue;
+        byte[] decryptedValue = null;
         boolean encrypted = false;
         SSType baseSSType = typeInfo.getSSType();
         

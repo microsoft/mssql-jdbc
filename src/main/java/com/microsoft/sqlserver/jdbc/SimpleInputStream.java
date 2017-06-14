@@ -302,7 +302,7 @@ final class SimpleInputStream extends BaseInputStream {
         if (isEOS())
             return -1;
 
-        int readAmount;
+        int readAmount = 0;
         if (streamPos + maxBytes > payloadLength) {
             readAmount = payloadLength - streamPos;
         }
