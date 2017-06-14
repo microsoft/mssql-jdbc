@@ -303,7 +303,7 @@
 		</plugins>
 	</build>
 	
-	<!--  Reports will integrate to site report. mvn site -->
+	<!--  Reports will integrate to site report. mvn site 
  	<reporting>
 		<plugins>
 			<plugin>
@@ -318,5 +318,6 @@
  			</plugin>
  		</plugins>
  	</reporting>
+	-->
 	
 </project>
