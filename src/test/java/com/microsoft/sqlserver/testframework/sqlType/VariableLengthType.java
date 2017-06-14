@@ -15,5 +15,6 @@ public enum VariableLengthType {
     Fixed,      // primitive types with fixed Length
     Precision,  // variable length type that just has precision char/varchar
     Scale,      // variable length type with scale and precision
+    ScaleOnly,  // variable length type with just scale like Time
     Variable
 }

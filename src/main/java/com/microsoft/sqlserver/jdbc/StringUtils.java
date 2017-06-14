@@ -55,14 +55,15 @@ public class StringUtils {
      */
     public static boolean isInteger(final String str) {
         boolean isInteger = false;
-        
+
         try {
             int i = Integer.parseInt(str);
             isInteger = true;
-        }catch(NumberFormatException e) {
-            //Nothing. this is not integer. 
         }
-        
+        catch (NumberFormatException e) {
+            // Nothing. this is not integer.
+        }
+
         return isInteger;
     }
 

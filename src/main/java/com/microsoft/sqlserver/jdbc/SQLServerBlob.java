@@ -107,8 +107,6 @@ public final class SQLServerBlob implements java.sql.Blob, java.io.Serializable 
      * multiple times, the subsequent calls to free are treated as a no-op.
      */
     public void free() throws SQLException {
-        DriverJDBCVersion.checkSupportsJDBC4();
-
         if (!isClosed) {
             // Close active streams, ignoring any errors, since nothing can be done with them after that point anyway.
             if (null != activeStreams) {
@@ -154,14 +152,15 @@ public final class SQLServerBlob implements java.sql.Blob, java.io.Serializable 
             return (InputStream) activeStreams.get(0);
         }
         else {
+            if (value == null) {
+                throw new SQLServerException("Unexpected Error: blob value is null while all streams are closed.", null);
+            }
             return getBinaryStreamInternal(0, value.length);
         }
     }
 
     public InputStream getBinaryStream(long pos,
             long length) throws SQLException {
-        DriverJDBCVersion.checkSupportsJDBC4();
-
         // Not implemented - partial materialization
         throw new SQLFeatureNotSupportedException(SQLServerException.getErrString("R_notSupported"));
     }

@@ -20,14 +20,15 @@ import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.Time;
 import java.sql.Timestamp;
-import java.util.Arrays;
 
+import com.microsoft.sqlserver.jdbc.ISQLServerBulkRecord;
 import com.microsoft.sqlserver.jdbc.SQLServerBulkCopy;
 import com.microsoft.sqlserver.jdbc.bulkCopy.BulkCopyTestWrapper.ColumnMap;
 import com.microsoft.sqlserver.testframework.DBConnection;
 import com.microsoft.sqlserver.testframework.DBResultSet;
 import com.microsoft.sqlserver.testframework.DBStatement;
 import com.microsoft.sqlserver.testframework.DBTable;
+import com.microsoft.sqlserver.testframework.Utils;
 
 /**
  * Utility class
@@ -406,17 +407,17 @@ class BulkCopyTestUtil {
 
                 case java.sql.Types.VARCHAR:
                 case java.sql.Types.NVARCHAR:
-                    assertTrue((((String) expectedValue).equals((String) actualValue)), "Unexpected varchar/nvarchar value ");
+                    assertTrue(((((String) expectedValue).trim()).equals(((String) actualValue).trim())), "Unexpected varchar/nvarchar value ");
                     break;
 
                 case java.sql.Types.CHAR:
                 case java.sql.Types.NCHAR:
-                    assertTrue((((String) expectedValue).equals((String) actualValue)), "Unexpected char/nchar value ");
+                    assertTrue(((((String) expectedValue).trim()).equals(((String) actualValue).trim())), "Unexpected char/nchar value ");
                     break;
 
                 case java.sql.Types.BINARY:
                 case java.sql.Types.VARBINARY:
-                    assertTrue(Arrays.equals(((byte[]) expectedValue), ((byte[]) actualValue)), "Unexpected bianry/varbinary value ");
+                    assertTrue(Utils.parseByte((byte[]) expectedValue, (byte[]) actualValue), "Unexpected bianry/varbinary value ");
                     break;
 
                 case java.sql.Types.TIMESTAMP:
@@ -425,7 +426,7 @@ class BulkCopyTestUtil {
                     break;
 
                 case java.sql.Types.DATE:
-                    assertTrue((((Date) expectedValue).getTime() == (((Date) actualValue).getTime())), "Unexpected datetime value");
+                    assertTrue((((Date) expectedValue).getDate() == (((Date) actualValue).getDate())), "Unexpected datetime value");
                     break;
 
                 case java.sql.Types.TIME:
@@ -441,5 +442,79 @@ class BulkCopyTestUtil {
                     fail("Unhandled JDBCType " + JDBCType.valueOf(dataType));
                     break;
             }
+    }
+
+    /**
+     * 
+     * @param bulkWrapper
+     * @param srcData
+     * @param dstTable
+     */
+    static void performBulkCopy(BulkCopyTestWrapper bulkWrapper,
+            ISQLServerBulkRecord srcData,
+            DBTable dstTable) {
+        SQLServerBulkCopy bc;
+        DBConnection con = new DBConnection(bulkWrapper.getConnectionString());
+        DBStatement stmt = con.createStatement();
+        try {
+            bc = new SQLServerBulkCopy(bulkWrapper.getConnectionString());
+            bc.setDestinationTableName(dstTable.getEscapedTableName());
+            bc.writeToServer(srcData);
+            bc.close();
+            validateValues(con, srcData, dstTable);
+        }
+        catch (Exception e) {
+            fail(e.getMessage());
+        }
+        finally {
+            con.close();
+        }
+    }
+    
+    /**
+     * 
+     * @param con
+     * @param srcData
+     * @param destinationTable
+     * @throws Exception
+     */
+    static void validateValues(
+            DBConnection con,
+            ISQLServerBulkRecord srcData,
+            DBTable destinationTable) throws Exception {
+        
+        DBStatement dstStmt = con.createStatement();
+        DBResultSet dstResultSet = dstStmt.executeQuery("SELECT * FROM " + destinationTable.getEscapedTableName() + ";");
+        ResultSetMetaData destMeta = ((ResultSet) dstResultSet.product()).getMetaData();
+        int totalColumns = destMeta.getColumnCount();
+        
+        // reset the counter in ISQLServerBulkRecord, which was incremented during read by BulkCopy 
+        java.lang.reflect.Method method  = srcData.getClass().getMethod("reset");
+        method.invoke(srcData);
+        
+        
+        // verify data from sourceType and resultSet
+        while (srcData.next() && dstResultSet.next())
+        {
+            Object[] srcValues = srcData.getRowData();
+            for (int i = 1; i <= totalColumns; i++) {
+
+                Object srcValue, dstValue;
+                srcValue = srcValues[i-1];
+                if(srcValue.getClass().getName().equalsIgnoreCase("java.lang.Double")){
+                    // in case of SQL Server type Float (ie java type double), in float(n) if n is <=24 ie precsion is <=7 SQL Server type Real is returned(ie java type float)
+                    if(destMeta.getPrecision(i) <8)
+                        srcValue = new Float(((Double)srcValue));
+                }
+                dstValue = dstResultSet.getObject(i);
+                int dstType = destMeta.getColumnType(i);
+                if(java.sql.Types.TIMESTAMP != dstType
+                        && java.sql.Types.TIME != dstType
+                        && microsoft.sql.Types.DATETIMEOFFSET != dstType){
+                    // skip validation for temporal types due to rounding eg 7986-10-21 09:51:15.114 is rounded as 7986-10-21 09:51:15.113 in server
+                comapreSourceDest(dstType, srcValue, dstValue);
+                }
+            }
+        }
     }
 }

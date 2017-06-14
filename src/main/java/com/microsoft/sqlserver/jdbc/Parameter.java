@@ -332,16 +332,6 @@ final class Parameter {
                 tvpValue = new TVP(tvpName, (SQLServerDataTable) value);
             }
             else if (value instanceof ResultSet) {
-                // if ResultSet and PreparedStatemet/CallableStatement are created from same connection object
-                // with property SelectMethod=cursor, TVP is not supported
-                if (con.getSelectMethod().equalsIgnoreCase("cursor") && (value instanceof SQLServerResultSet)) {
-                    SQLServerStatement stmt = (SQLServerStatement) ((SQLServerResultSet) value).getStatement();
-
-                    if (con.equals(stmt.connection)) {
-                        throw new SQLServerException(SQLServerException.getErrString("R_invalidServerCursorForTVP"), null);
-                    }
-                }
-
                 tvpValue = new TVP(tvpName, (ResultSet) value);
             }
             else if (value instanceof ISQLServerDataRecord) {

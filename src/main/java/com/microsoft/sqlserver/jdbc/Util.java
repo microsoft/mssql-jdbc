@@ -243,7 +243,7 @@ final class Util {
         String result = "";
         String name = "";
         String value = "";
-
+        
         if (!tmpUrl.startsWith(sPrefix))
             return null;
 
@@ -580,7 +580,7 @@ final class Util {
             MessageFormat form = new MessageFormat(txtMsg);
             Object[] msgArgs = {new Integer(offset)};
             // Re-throw SQLServerException if conversion fails.
-            throw new SQLServerException(null, form.format(msgArgs), null, 0, true);
+            throw new SQLServerException(form.format(msgArgs), null, 0, ex);
         }
 
     }
@@ -853,8 +853,14 @@ final class Util {
                     else {
                         if (0 == ((BigDecimal) value).intValue()) {
                             String s = "" + value;
-                            s = s.replaceAll("\\.", "");
                             s = s.replaceAll("\\-", "");
+                            if (s.startsWith("0.")) {
+                                // remove the leading zero, eg., for 0.32, the precision should be 2 and not 3
+                                s = s.replaceAll("0\\.", "");
+                            }
+                            else {
+                                s = s.replaceAll("\\.", "");
+                            }
                             length = s.length();
                         }
                         // if the value is in scientific notation format
@@ -880,9 +886,10 @@ final class Util {
             case TIME:
             case DATETIMEOFFSET:
                 return ((null == scale) ? TDS.MAX_FRACTIONAL_SECONDS_SCALE : scale);
+
             case READER:
                 return ((null == value) ? 0 : DataTypes.NTEXT_MAX_CHARS);
-
+                
             case CLOB:
                 return ((null == value) ? 0 : (DataTypes.NTEXT_MAX_CHARS * 2));
 

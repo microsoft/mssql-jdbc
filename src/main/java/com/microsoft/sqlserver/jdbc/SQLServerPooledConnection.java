@@ -198,15 +198,11 @@ public class SQLServerPooledConnection implements PooledConnection {
     }
 
     public void addStatementEventListener(StatementEventListener listener) {
-        DriverJDBCVersion.checkSupportsJDBC4();
-
         // Not implemented
         throw new UnsupportedOperationException(SQLServerException.getErrString("R_notSupported"));
     }
 
     public void removeStatementEventListener(StatementEventListener listener) {
-        DriverJDBCVersion.checkSupportsJDBC4();
-
         // Not implemented
         throw new UnsupportedOperationException(SQLServerException.getErrString("R_notSupported"));
     }

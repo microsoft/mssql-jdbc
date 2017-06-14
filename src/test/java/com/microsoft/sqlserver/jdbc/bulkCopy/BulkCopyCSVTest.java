@@ -12,7 +12,6 @@ import static org.junit.Assert.fail;
 import java.io.BufferedReader;
 import java.io.FileInputStream;
 import java.io.InputStreamReader;
-import java.net.URI;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
@@ -34,6 +33,7 @@ import com.microsoft.sqlserver.testframework.DBConnection;
 import com.microsoft.sqlserver.testframework.DBResultSet;
 import com.microsoft.sqlserver.testframework.DBStatement;
 import com.microsoft.sqlserver.testframework.DBTable;
+import com.microsoft.sqlserver.testframework.Utils;
 import com.microsoft.sqlserver.testframework.sqlType.SqlType;
 
 /**
@@ -63,7 +63,7 @@ public class BulkCopyCSVTest extends AbstractTest {
     static void setUpConnection() {
         con = new DBConnection(connectionString);
         stmt = con.createStatement();
-        filePath = getCurrentClassPath();
+        filePath = Utils.getCurrentClassPath();
     }
 
     /**
@@ -131,25 +131,6 @@ public class BulkCopyCSVTest extends AbstractTest {
                 stmt.dropTable(destTable);
             }
         }
-    }
-
-    /**
-     * 
-     * @return location of resource file
-     */
-    static String getCurrentClassPath() {
-
-        try {
-            String className = new Object() {
-            }.getClass().getEnclosingClass().getName();
-            String location = Class.forName(className).getProtectionDomain().getCodeSource().getLocation().getPath()+ "/";
-            URI uri = new URI(location.toString());
-            return uri.getPath();
-        }
-        catch (Exception e) {
-            fail("Failed to get CSV file path. " + e.getMessage());
-        }
-        return null;
     }
 
     /**
