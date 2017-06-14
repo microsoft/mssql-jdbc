@@ -8,10 +8,15 @@
 
 package com.microsoft.sqlserver.testframework;
 
+import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
 import java.io.ByteArrayInputStream;
 import java.io.CharArrayReader;
+import java.net.URI;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -249,6 +254,24 @@ public class Utils {
     }
     
     /**
+     * 
+     * @return location of resource file
+     */
+    public static String getCurrentClassPath() {
+        try {
+            String className = new Object() {
+            }.getClass().getEnclosingClass().getName();
+            String location = Class.forName(className).getProtectionDomain().getCodeSource().getLocation().getPath() + "/";
+            URI uri = new URI(location.toString());
+            return uri.getPath();
+        }
+        catch (Exception e) {
+            fail("Failed to get CSV file path. " + e.getMessage());
+        }
+        return null;
+    }
+
+    /**
      * mimic "DROP TABLE IF EXISTS ..." for older versions of SQL Server
      */
     public static void dropTableIfExists(String tableName, java.sql.Statement stmt) throws SQLException {
@@ -284,4 +307,14 @@ public class Utils {
                 bracketedObjectName);
         stmt.executeUpdate(sql);
     }
+
+    public static boolean parseByte(byte[] expectedData,
+            byte[] retrieved) {
+        assertTrue(Arrays.equals(expectedData, Arrays.copyOf(retrieved, expectedData.length)), " unexpected BINARY value, expected");
+        for (int i = expectedData.length; i < retrieved.length; i++) {
+            assertTrue(0 == retrieved[i], "unexpected data BINARY");
+        }
+        return true;
+    }
+    
 }

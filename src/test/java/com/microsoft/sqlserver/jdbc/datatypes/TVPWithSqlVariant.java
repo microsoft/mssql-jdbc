@@ -137,7 +137,6 @@ public class TVPWithSqlVariant extends AbstractTest {
         // tvp.addRow(12.23);
         // tvp.addRow(1.123);
         String[] numeric = createNumericValues();
-        System.out.println(Short.valueOf(numeric[2]));
         tvp.addRow(Short.valueOf(numeric[2]));
 
         SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) connection
@@ -166,7 +165,6 @@ public class TVPWithSqlVariant extends AbstractTest {
         // tvp.addRow(12.23);
         // tvp.addRow(1.123);
         String[] numeric = createNumericValues();
-        System.out.println(Long.parseLong(numeric[4]));
         tvp.addRow(Long.parseLong(numeric[4]));
 
         SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) connection
@@ -190,7 +188,6 @@ public class TVPWithSqlVariant extends AbstractTest {
         tvp = new SQLServerDataTable();
         tvp.addColumnMetadata("c1", microsoft.sql.Types.SQL_VARIANT);// microsoft.sql.Types.SQL_VARIANT);// java.sql.Types.DATE
         String[] numeric = createNumericValues();
-        System.out.println(Boolean.parseBoolean(numeric[0]));
         tvp.addRow(Boolean.parseBoolean(numeric[0]));
 
         SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) connection
@@ -218,7 +215,6 @@ public class TVPWithSqlVariant extends AbstractTest {
         // tvp.addRow(12.23);
         // tvp.addRow(1.123);
         String[] numeric = createNumericValues();
-        System.out.println(Float.parseFloat(numeric[1]));
         tvp.addRow(Float.parseFloat(numeric[1]));
 
         SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) connection
@@ -455,7 +451,7 @@ public class TVPWithSqlVariant extends AbstractTest {
 
     @BeforeEach
     private void testSetup() throws SQLException {
-        conn = (SQLServerConnection) DriverManager.getConnection(connectionString + "sendStringParametersAsUnicode=true;");
+        conn = (SQLServerConnection) DriverManager.getConnection(connectionString + ";sendStringParametersAsUnicode=true;");
         stmt = (SQLServerStatement) conn.createStatement();
 
         dropProcedure();

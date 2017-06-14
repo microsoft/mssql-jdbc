@@ -152,7 +152,7 @@ public class SQLServerBulkCSVFileRecord implements ISQLServerBulkRecord, java.la
         }
         catch (UnsupportedEncodingException unsupportedEncoding) {
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_unsupportedEncoding"));
-            throw new SQLServerException(form.format(new Object[] {encoding}), null, 0, null);
+            throw new SQLServerException(form.format(new Object[] {encoding}), null, 0, unsupportedEncoding);
         }
         catch (Exception e) {
             throw new SQLServerException(null, e.getMessage(), null, 0, false);
@@ -482,7 +482,7 @@ public class SQLServerBulkCSVFileRecord implements ISQLServerBulkRecord, java.la
 
                 // Source header has more columns than current line read
                 if (columnNames != null && (columnNames.length > data.length)) {
-                    MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_BulkCSVDataSchemaMismatch"));
+                    MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_CSVDataSchemaMismatch"));
                     Object[] msgArgs = {};
                     throw new SQLServerException(form.format(msgArgs), SQLState.COL_NOT_FOUND, DriverError.NOT_SET, null);
                 }
@@ -523,7 +523,7 @@ public class SQLServerBulkCSVFileRecord implements ISQLServerBulkRecord, java.la
                             catch (ArithmeticException ex) {
                                 String value = "'" + data[pair.getKey() - 1] + "'";
                                 MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_errorConvertingValue"));
-                                throw new SQLServerException(form.format(new Object[] {value, JDBCType.of(cm.columnType)}), null, 0, null);
+                                throw new SQLServerException(form.format(new Object[] {value, JDBCType.of(cm.columnType)}), null, 0, ex);
                             }
                             break;
                         }
@@ -648,10 +648,10 @@ public class SQLServerBulkCSVFileRecord implements ISQLServerBulkRecord, java.la
                 catch (IllegalArgumentException e) {
                     String value = "'" + data[pair.getKey() - 1] + "'";
                     MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_errorConvertingValue"));
-                    throw new SQLServerException(form.format(new Object[] {value, JDBCType.of(cm.columnType)}), null, 0, null);
+                    throw new SQLServerException(form.format(new Object[] {value, JDBCType.of(cm.columnType)}), null, 0, e);
                 }
                 catch (ArrayIndexOutOfBoundsException e) {
-                    throw new SQLServerException(SQLServerException.getErrString("R_BulkCSVDataSchemaMismatch"), null);
+                    throw new SQLServerException(SQLServerException.getErrString("R_CSVDataSchemaMismatch"), e);
                 }
 
             }
@@ -665,7 +665,7 @@ public class SQLServerBulkCSVFileRecord implements ISQLServerBulkRecord, java.la
             currentLine = fileReader.readLine();
         }
         catch (IOException e) {
-            throw new SQLServerException(null, e.getMessage(), null, 0, false);
+            throw new SQLServerException(e.getMessage(), null, 0, e);
         }
         return (null != currentLine);
     }

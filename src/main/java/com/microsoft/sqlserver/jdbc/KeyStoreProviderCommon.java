@@ -134,7 +134,7 @@ class KeyStoreProviderCommon {
         catch (InvalidKeyException | NoSuchAlgorithmException | NoSuchPaddingException | IllegalBlockSizeException | BadPaddingException e) {
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_CEKDecryptionFailed"));
             Object[] msgArgs = {e.getMessage()};
-            throw new SQLServerException(form.format(msgArgs), null);
+            throw new SQLServerException(form.format(msgArgs), e);
         }
 
         return plainCEK;
@@ -156,7 +156,7 @@ class KeyStoreProviderCommon {
         catch (InvalidKeyException | NoSuchAlgorithmException | SignatureException e) {
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_InvalidCertificateSignature"));
             Object[] msgArgs = {masterKeyPath};
-            throw new SQLServerException(form.format(msgArgs), null);
+            throw new SQLServerException(form.format(msgArgs), e);
         }
 
         return verificationSucess;

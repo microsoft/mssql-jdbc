@@ -244,7 +244,6 @@ public class BulkCopyWithSqlVariant extends AbstractTest {
 
         rs = (SQLServerResultSet) stmt.executeQuery("SELECT * FROM " + destTableName);
         while (rs.next()) {
-            System.out.println(rs.getString(1));
             assertEquals("" + rs.getString(1), "12:26:27.15");  // getTime does not work
         }
 
@@ -309,10 +308,6 @@ public class BulkCopyWithSqlVariant extends AbstractTest {
     @Test
     public void bulkCopyTest_nvarchar() throws SQLException {
         String col1Value = "'hello'";
-        byte[] temp = col1Value.getBytes();
-        for (int i = 0; i < temp.length; i++)
-            System.out.println(temp[i]);
-
         beforeEachSetup("nvarchar", col1Value);
 
         SQLServerResultSet rs = (SQLServerResultSet) stmt.executeQuery("SELECT * FROM " + tableName);
@@ -331,10 +326,6 @@ public class BulkCopyWithSqlVariant extends AbstractTest {
     @Test
     public void bulkCopyTest_binary20() throws SQLException {
         String col1Value = "hello";
-        byte[] temp = col1Value.getBytes();
-        for (int i = 0; i < temp.length; i++)
-            System.out.println(temp[i]);
-
         beforeEachSetup("binary(20)", "'" + col1Value + "'");
 
         SQLServerResultSet rs = (SQLServerResultSet) stmt.executeQuery("SELECT * FROM " + tableName);

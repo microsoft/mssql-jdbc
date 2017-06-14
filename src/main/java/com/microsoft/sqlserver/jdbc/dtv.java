@@ -295,10 +295,6 @@ final class DTV {
     Object getSetterValue() {
         return impl.getSetterValue();
     }
-
-    Object getVariantBaseType(){
-        return impl.getBaseType();
-    }
     
     SqlVariant getInternalVariant(){
         return impl.getInternalVariant();
@@ -670,7 +666,7 @@ final class DTV {
                             throw new SQLServerException(SQLServerException.getErrString("R_zoneOffsetError"), null, // SQLState is null as this error
                                                                                                                      // is generated in the driver
                                     0, // Use 0 instead of DriverError.NOT_SET to use the correct constructor
-                                    null);
+                                    e);
                         }
                         subSecondNanos = offsetTimeValue.getNano();
 
@@ -702,7 +698,7 @@ final class DTV {
                             throw new SQLServerException(SQLServerException.getErrString("R_zoneOffsetError"), null, // SQLState is null as this error
                                                                                                                      // is generated in the driver
                                     0, // Use 0 instead of DriverError.NOT_SET to use the correct constructor
-                                    null);
+                                    e);
                         }
 
                         subSecondNanos = offsetDateTimeValue.getNano();
@@ -1991,7 +1987,7 @@ abstract class DTVImpl {
 
     abstract void initFromCompressedNull();
     
-    abstract int getBaseType();
+//    abstract int getBaseType();
     
     abstract SqlVariant getInternalVariant();
 }
@@ -2267,7 +2263,7 @@ final class AppDTVImpl extends DTVImpl {
                     readerValue = new InputStreamReader(inputStreamValue, "US-ASCII");
                 }
                 catch (UnsupportedEncodingException ex) {
-                    throw new SQLServerException(null, ex.getMessage(), null, 0, true);
+                    throw new SQLServerException(ex.getMessage(), null, 0, ex);
                 }
 
                 dtv.setValue(readerValue, JavaType.READER);
@@ -2426,15 +2422,15 @@ final class AppDTVImpl extends DTVImpl {
     /* (non-Javadoc)
      * @see com.microsoft.sqlserver.jdbc.DTVImpl#getBaseType()
      */
-    @Override
-    int getBaseType() {
-        // TODO Auto-generated method stub
-        return variantInternal;
-    }
-    
-    void setBaseType(int type){
-        this.variantInternal = type;
-    }
+//    @Override
+//    int getBaseType() {
+//        // TODO Auto-generated method stub
+//        return variantInternal;
+//    }
+//    
+//    void setBaseType(int type){
+//        this.variantInternal = type;
+//    }
 
     /* (non-Javadoc)
      * @see com.microsoft.sqlserver.jdbc.DTVImpl#getInternalVariant()
@@ -3387,7 +3383,6 @@ final class ServerDTVImpl extends DTVImpl {
     private int valueLength;
     private TDSReaderMark valueMark;
     private boolean isNull;
-    private int variantInternalType;
     private SqlVariant internalVariant;
     /**
      * Sets the value of the DTV to an app-specified Java type.
@@ -3633,7 +3628,7 @@ final class ServerDTVImpl extends DTVImpl {
                 catch (UnsupportedEncodingException e) {
                     // Important: we should not pass the exception here as it displays the data.
                     MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_unsupportedEncoding"));
-                    throw new SQLServerException(form.format(new Object[] {baseTypeInfo.getCharset()}), null, 0, null);
+                    throw new SQLServerException(form.format(new Object[] {baseTypeInfo.getCharset()}), null, 0, e);
                 }
             }
 
@@ -4027,7 +4022,6 @@ final class ServerDTVImpl extends DTVImpl {
                      */
                     int baseType = tdsReader.readUnsignedByte();
                     
-                    variantInternalType = baseType;
                     int cbPropsActual = tdsReader.readUnsignedByte();
                     // don't create new one, if we have already created an internalVariant object. For example, in bulkcopy
                     // when we are reading time column, we update the same internalvarianttype's JDBC to be timestamp
@@ -4048,11 +4042,7 @@ final class ServerDTVImpl extends DTVImpl {
         assert isNull || null != convertedValue;
         return convertedValue;
     }
-    
-    int getBaseType(){       
-        return variantInternalType;       
-    }
-    
+        
     SqlVariant getInternalVariant(){
         return internalVariant;
     }
@@ -4074,7 +4064,7 @@ final class ServerDTVImpl extends DTVImpl {
             InputStreamGetterArgs streamGetterArgs,
             Calendar cal) throws SQLServerException {
         Object convertedValue = null;
-        int lengthConsumed = 2 + cbPropsActual; //2 is from the amount of baseType that is read previously
+        int lengthConsumed = 2 + cbPropsActual; // We have already read 2bytes for baseType earlier.
         int expectedValueLength = valueLength - lengthConsumed;
         SQLCollation collation = null;
         int precision;

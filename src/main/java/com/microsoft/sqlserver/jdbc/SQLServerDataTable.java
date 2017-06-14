@@ -9,6 +9,7 @@
 package com.microsoft.sqlserver.jdbc;
 
 import java.math.BigDecimal;
+import java.sql.Connection;
 import java.text.MessageFormat;
 import java.time.OffsetDateTime;
 import java.time.OffsetTime;
@@ -25,7 +26,7 @@ public final class SQLServerDataTable {
     int columnCount = 0;
     Map<Integer, SQLServerDataColumn> columnMetadata = null;
     Map<Integer, Object[]> rows = null;
-    private SqlVariant internalVariant;
+
     private String tvpName = null;
 
     /**
@@ -116,12 +117,14 @@ public final class SQLServerDataTable {
             int currentColumn = 0;
             while (columnsIterator.hasNext()) {
                 Object val = null;
-               
+                boolean bValueNull;
+                int nValueLen;
 
                 if ((null != values) && (currentColumn < values.length) && (null != values[currentColumn]))
                     val = (null == values[currentColumn]) ? null : values[currentColumn];
                 currentColumn++;
                 Map.Entry<Integer, SQLServerDataColumn> pair = columnsIterator.next();
+                SQLServerDataColumn currentColumnMetadata = pair.getValue();
                 JDBCType jdbcType = JDBCType.of(pair.getValue().javaSqlType);
                 internalAddrow(jdbcType, val, rowValues, pair);
             }
@@ -144,10 +147,7 @@ public final class SQLServerDataTable {
         SQLServerDataColumn currentColumnMetadata = pair.getValue();
         boolean isColumnMetadataUpdated = false;
         boolean bValueNull;
-        int nValueLen;
-//     //   if ( null == internalVariant){
-//        internalVariant = new SqlVariant(jdbcType.getIntValue());    
-//   //   }   
+        int nValueLen;   
         switch (jdbcType) {
             case BIGINT:
                 rowValues[pair.getKey()] = (null == val) ? null : Long.parseLong(val.toString());
@@ -232,10 +232,11 @@ public final class SQLServerDataTable {
                     rowValues[pair.getKey()] = (null == val) ? null : (String) val;
                 break;
 
-            case BINARY:
-            case VARBINARY:
-                bValueNull = (null == val);
-                nValueLen = bValueNull ? 0 : ((byte[]) val).length;
+                    case BINARY:
+                    case VARBINARY:
+                    case LONGVARBINARY:
+                        bValueNull = (null == val);
+                        nValueLen = bValueNull ? 0 : ((byte[]) val).length;
 
                 if (nValueLen > currentColumnMetadata.precision) {
                     currentColumnMetadata.precision = nValueLen;
@@ -263,15 +264,21 @@ public final class SQLServerDataTable {
                 bValueNull = (null == val);
                 nValueLen = bValueNull ? 0 : (2 * ((String) val).length());
 
+             case LONGVARCHAR:
+             case LONGNVARCHAR:
+             case SQLXML:
+                 bValueNull = (null == val);
+                 nValueLen = bValueNull ? 0 : (2 * ((String) val).length());
+
                 if (nValueLen > currentColumnMetadata.precision) {
                     currentColumnMetadata.precision = nValueLen;
                     columnMetadata.put(pair.getKey(), currentColumnMetadata);
                 }
                 rowValues[pair.getKey()] = (bValueNull) ? null : (String) val;
                 break;
-            case SQL_VARIANT:
+            case SQL_VARIANT:               
                 JDBCType internalJDBCType;
-                if (null == val) {
+                if (null == val) { //TODO:Check this later
                     throw new SQLServerException("Sending null value with column type sql_variant in TVP is not supported! ", null);
                 }
                 JavaType javaType = JavaType.of(val);
