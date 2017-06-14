@@ -232,11 +232,11 @@ public final class SQLServerDataTable {
                     rowValues[pair.getKey()] = (null == val) ? null : (String) val;
                 break;
 
-                    case BINARY:
-                    case VARBINARY:
-                    case LONGVARBINARY:
-                        bValueNull = (null == val);
-                        nValueLen = bValueNull ? 0 : ((byte[]) val).length;
+            case BINARY:
+            case VARBINARY:
+            case LONGVARBINARY:
+                bValueNull = (null == val);
+                nValueLen = bValueNull ? 0 : ((byte[]) val).length;
 
                 if (nValueLen > currentColumnMetadata.precision) {
                     currentColumnMetadata.precision = nValueLen;
@@ -252,7 +252,6 @@ public final class SQLServerDataTable {
             case VARCHAR:
             case NCHAR:
             case NVARCHAR:
-
             case LONGVARCHAR:
             case LONGNVARCHAR:
             case SQLXML:

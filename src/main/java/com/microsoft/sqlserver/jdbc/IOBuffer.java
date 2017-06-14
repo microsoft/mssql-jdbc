@@ -4683,7 +4683,7 @@ final class TDSWriter {
     void writeTVPRows(TVP value) throws SQLServerException {
         boolean isShortValue, isNull;
         int dataLength;
-        
+
         boolean tdsWritterCached = false;
         ByteBuffer cachedTVPHeaders = null;
         TDSCommand cachedCommand = null;
@@ -4691,7 +4691,7 @@ final class TDSWriter {
         boolean cachedRequestComplete = false;
         boolean cachedInterruptsEnabled = false;
         boolean cachedProcessedResponse = false;
-        
+
         if (!value.isNull()) {
 
             // If the preparedStatement and the ResultSet are created by the same connection, and TVP is set with ResultSet and Server Cursor
@@ -4721,7 +4721,7 @@ final class TDSWriter {
                     }
                 }
             }
-            
+
             Map<Integer, SQLServerMetaData> columnMetadata = value.getColumnMetadata();
             Iterator<Entry<Integer, SQLServerMetaData>> columnsIterator;
 
@@ -4735,7 +4735,7 @@ final class TDSWriter {
                     logBuffer.clear();
                     writeBytes(cachedTVPHeaders.array(), 0, cachedTVPHeaders.position());
                 }
-                
+
                 Object[] rowData = value.getRowData();
 
                 // ROW
@@ -4767,10 +4767,40 @@ final class TDSWriter {
                     writeInternalTVPRowValues(jdbcType, currentColumnStringValue, currentObject, columnPair, false);
                     currentColumn++;
                 }
+
+                // send this row, read its response (throw exception in case of errors) and reset command status
+                if (tdsWritterCached) {
+                    // TVP_END_TOKEN
+                    writeByte((byte) 0x00);
+
+                    writePacket(TDS.STATUS_BIT_EOM);
+
+                    TDSReader tdsReader = tdsChannel.getReader(command);
+                    int tokenType = tdsReader.peekTokenType();
+
+                    if (TDS.TDS_ERR == tokenType) {
+                        StreamError databaseError = new StreamError();
+                        databaseError.setFromTDS(tdsReader);
+
+                        SQLServerException.makeFromDatabaseError(con, null, databaseError.getMessage(), databaseError, false);
+                    }
+
+                    command.setInterruptsEnabled(true);
+                    command.setRequestComplete(false);
+                }
             }
         }
-        // TVP_END_TOKEN
-        writeByte((byte) 0x00);
+
+        // reset command status which have been overwritten
+        if (tdsWritterCached) {
+            command.setRequestComplete(cachedRequestComplete);
+            command.setInterruptsEnabled(cachedInterruptsEnabled);
+            command.setProcessedResponse(cachedProcessedResponse);
+        }
+        else {
+            // TVP_END_TOKEN
+            writeByte((byte) 0x00);
+        }
     }
 
     private void writeInternalTVPRowValues(JDBCType jdbcType,
@@ -4915,6 +4945,9 @@ final class TDSWriter {
             case VARCHAR:               
             case NCHAR:
             case NVARCHAR:
+            case LONGVARCHAR:
+            case LONGNVARCHAR:
+            case SQLXML:
                 isShortValue = (2L * columnPair.getValue().precision) <= DataTypes.SHORT_VARTYPE_MAX_BYTES;
                 isNull = (null == currentColumnStringValue);
                 dataLength = isNull ? 0 : currentColumnStringValue.length() * 2;
@@ -4990,6 +5023,7 @@ final class TDSWriter {
 
             case BINARY:
             case VARBINARY:
+            case LONGVARBINARY:
                 // Handle conversions as done in other types.
                 isShortValue = columnPair.getValue().precision <= DataTypes.SHORT_VARTYPE_MAX_BYTES;
                 isNull = (null == currentObject);
