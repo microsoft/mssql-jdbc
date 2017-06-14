@@ -112,14 +112,7 @@ class TVP {
             Object[] rowData = new Object[colCount];
             for (int i = 0; i < colCount; i++) {
                 try {
-                    // for Time types, getting Timestamp instead of Time, because this value will be converted to String later on. If the value is a
-                    // time object, the millisecond would be removed.
-                    if (java.sql.Types.TIME == sourceResultSet.getMetaData().getColumnType(i + 1)) {
-                        rowData[i] = sourceResultSet.getTimestamp(i + 1);
-                    }
-                    else {
-                        rowData[i] = sourceResultSet.getObject(i + 1);
-                    }
+                    rowData[i] = sourceResultSet.getObject(i + 1);
                 }
                 catch (SQLException e) {
                     throw new SQLServerException(SQLServerException.getErrString("R_unableRetrieveSourceData"), e);

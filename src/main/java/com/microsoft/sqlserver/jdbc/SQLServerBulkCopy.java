@@ -3515,15 +3515,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable {
             // Copy from a file.
             else {
                 // Get all the column values of the current row.
-                Object[] rowObjects;
-
-                try {
-                    rowObjects = sourceBulkRecord.getRowData();
-                }
-                catch (Exception ex) {
-                    // if no more data available to retrive
-                    throw new SQLServerException(SQLServerException.getErrString("R_unableRetrieveSourceData"), ex);
-                }
+                Object[] rowObjects = sourceBulkRecord.getRowData();
 
                 for (int i = 0; i < mappingColumnCount; ++i) {
                     // If the SQLServerBulkCSVRecord does not have metadata for columns, it returns strings in the object array.
