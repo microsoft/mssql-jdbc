@@ -26,6 +26,7 @@ public final class SQLServerDataTable {
     int columnCount = 0;
     Map<Integer, SQLServerDataColumn> columnMetadata = null;
     Map<Integer, Object[]> rows = null;
+
     private String tvpName = null;
 
     /**
@@ -116,12 +117,14 @@ public final class SQLServerDataTable {
             int currentColumn = 0;
             while (columnsIterator.hasNext()) {
                 Object val = null;
-               
+                boolean bValueNull;
+                int nValueLen;
 
                 if ((null != values) && (currentColumn < values.length) && (null != values[currentColumn]))
                     val = (null == values[currentColumn]) ? null : values[currentColumn];
                 currentColumn++;
                 Map.Entry<Integer, SQLServerDataColumn> pair = columnsIterator.next();
+                SQLServerDataColumn currentColumnMetadata = pair.getValue();
                 JDBCType jdbcType = JDBCType.of(pair.getValue().javaSqlType);
                 internalAddrow(jdbcType, val, rowValues, pair);
             }
@@ -229,10 +232,11 @@ public final class SQLServerDataTable {
                     rowValues[pair.getKey()] = (null == val) ? null : (String) val;
                 break;
 
-            case BINARY:
-            case VARBINARY:
-                bValueNull = (null == val);
-                nValueLen = bValueNull ? 0 : ((byte[]) val).length;
+                    case BINARY:
+                    case VARBINARY:
+                    case LONGVARBINARY:
+                        bValueNull = (null == val);
+                        nValueLen = bValueNull ? 0 : ((byte[]) val).length;
 
                 if (nValueLen > currentColumnMetadata.precision) {
                     currentColumnMetadata.precision = nValueLen;
@@ -259,6 +263,12 @@ public final class SQLServerDataTable {
             case NVARCHAR:
                 bValueNull = (null == val);
                 nValueLen = bValueNull ? 0 : (2 * ((String) val).length());
+
+             case LONGVARCHAR:
+             case LONGNVARCHAR:
+             case SQLXML:
+                 bValueNull = (null == val);
+                 nValueLen = bValueNull ? 0 : (2 * ((String) val).length());
 
                 if (nValueLen > currentColumnMetadata.precision) {
                     currentColumnMetadata.precision = nValueLen;

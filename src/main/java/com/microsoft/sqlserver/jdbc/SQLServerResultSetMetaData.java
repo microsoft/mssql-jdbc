@@ -63,13 +63,11 @@ public final class SQLServerResultSetMetaData implements java.sql.ResultSetMetaD
     /* ------------------ JDBC API Methods --------------------- */
 
     public boolean isWrapperFor(Class<?> iface) throws SQLException {
-        DriverJDBCVersion.checkSupportsJDBC4();
         boolean f = iface.isInstance(this);
         return f;
     }
 
     public <T> T unwrap(Class<T> iface) throws SQLException {
-        DriverJDBCVersion.checkSupportsJDBC4();
         T t;
         try {
             t = iface.cast(this);

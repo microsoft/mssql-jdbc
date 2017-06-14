@@ -18,7 +18,7 @@ public enum SQLServerSortOrder {
     Descending  (1),
     Unspecified (-1);
 
-    int value;
+    final int value;
 
     SQLServerSortOrder(int sortOrderVal) {
         value = sortOrderVal;

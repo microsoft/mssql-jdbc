@@ -25,6 +25,7 @@ import org.junit.runner.RunWith;
 
 import com.microsoft.sqlserver.jdbc.ISQLServerResultSet;
 import com.microsoft.sqlserver.testframework.AbstractTest;
+import com.microsoft.sqlserver.testframework.Utils;
 import com.microsoft.sqlserver.testframework.util.RandomUtil;
 
 @RunWith(JUnitPlatform.class)
@@ -97,8 +98,7 @@ public class ResultSetTest extends AbstractTest {
                 assertSame(rs, rs.unwrap(ResultSet.class));
                 assertSame(rs, rs.unwrap(ISQLServerResultSet.class));
             } finally {
-                stmt.executeUpdate("IF EXISTS (select * from sysobjects where id = object_id(N'" + tableName + "') and OBJECTPROPERTY(id, N'IsTable') = 1)"
-                        + " DROP TABLE " + tableName);
+                Utils.dropTableIfExists(tableName, stmt);
             }
         }
     }

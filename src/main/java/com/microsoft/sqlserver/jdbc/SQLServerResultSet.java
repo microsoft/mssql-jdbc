@@ -83,6 +83,10 @@ public class SQLServerResultSet implements ISQLServerResultSet {
     private boolean isClosed = false;
 
     private final int serverCursorId;
+    
+    protected int getServerCursorId() {
+        return serverCursorId;
+    }
 
     /** the intended fetch direction to optimize cursor performance */
     private int fetchDirection;
@@ -200,6 +204,10 @@ public class SQLServerResultSet implements ISQLServerResultSet {
 
     /** TDS reader from which row values are read */
     private TDSReader tdsReader;
+    
+    protected TDSReader getTDSReader() {
+        return tdsReader;
+    }
 
     private final FetchBuffer fetchBuffer;
 
@@ -386,7 +394,6 @@ public class SQLServerResultSet implements ISQLServerResultSet {
 
     public boolean isWrapperFor(Class<?> iface) throws SQLException {
         loggerExternal.entering(getClassNameLogging(), "isWrapperFor");
-        DriverJDBCVersion.checkSupportsJDBC4();
         boolean f = iface.isInstance(this);
         loggerExternal.exiting(getClassNameLogging(), "isWrapperFor", Boolean.valueOf(f));
         return f;
@@ -394,7 +401,6 @@ public class SQLServerResultSet implements ISQLServerResultSet {
 
     public <T> T unwrap(Class<T> iface) throws SQLException {
         loggerExternal.entering(getClassNameLogging(), "unwrap");
-        DriverJDBCVersion.checkSupportsJDBC4();
         T t;
         try {
             t = iface.cast(this);
@@ -429,8 +435,6 @@ public class SQLServerResultSet implements ISQLServerResultSet {
     }
 
     public boolean isClosed() throws SQLException {
-        DriverJDBCVersion.checkSupportsJDBC4();
-
         loggerExternal.entering(getClassNameLogging(), "isClosed");
         boolean result = isClosed || stmt.isClosed();
         loggerExternal.exiting(getClassNameLogging(), "isClosed", result);
@@ -448,7 +452,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
                 true);
     }
 
-    private boolean isForwardOnly() {
+    protected boolean isForwardOnly() {
         return TYPE_SS_DIRECT_FORWARD_ONLY == stmt.getSQLResultSetType() || TYPE_SS_SERVER_CURSOR_FORWARD_ONLY == stmt.getSQLResultSetType();
     }
 
@@ -2174,8 +2178,6 @@ public class SQLServerResultSet implements ISQLServerResultSet {
     
     public <T> T getObject(int columnIndex,
             Class<T> type) throws SQLException {
-        DriverJDBCVersion.checkSupportsJDBC41();
-
         // The driver currently does not implement the optional JDBC APIs
         throw new SQLFeatureNotSupportedException(SQLServerException.getErrString("R_notSupported"));
     }
@@ -2190,8 +2192,6 @@ public class SQLServerResultSet implements ISQLServerResultSet {
 
     public <T> T getObject(String columnName,
             Class<T> type) throws SQLException {
-        DriverJDBCVersion.checkSupportsJDBC41();
-
         // The driver currently does not implement the optional JDBC APIs
         throw new SQLFeatureNotSupportedException(SQLServerException.getErrString("R_notSupported"));
     }
@@ -2240,7 +2240,6 @@ public class SQLServerResultSet implements ISQLServerResultSet {
 
     public String getNString(int columnIndex) throws SQLException {
         loggerExternal.entering(getClassNameLogging(), "getNString", columnIndex);
-        DriverJDBCVersion.checkSupportsJDBC4();
         checkClosed();
         String value = (String) getValue(columnIndex, JDBCType.NCHAR);
         loggerExternal.exiting(getClassNameLogging(), "getNString", value);
@@ -2249,7 +2248,6 @@ public class SQLServerResultSet implements ISQLServerResultSet {
 
     public String getNString(String columnLabel) throws SQLException {
         loggerExternal.entering(getClassNameLogging(), "getNString", columnLabel);
-        DriverJDBCVersion.checkSupportsJDBC4();
         checkClosed();
         String value = (String) getValue(findColumn(columnLabel), JDBCType.NCHAR);
         loggerExternal.exiting(getClassNameLogging(), "getNString", value);
@@ -2614,7 +2612,6 @@ public class SQLServerResultSet implements ISQLServerResultSet {
     }
 
     public NClob getNClob(int columnIndex) throws SQLException {
-        DriverJDBCVersion.checkSupportsJDBC4();
         loggerExternal.entering(getClassNameLogging(), "getNClob", columnIndex);
         checkClosed();
         NClob value = (NClob) getValue(columnIndex, JDBCType.NCLOB);
@@ -2623,7 +2620,6 @@ public class SQLServerResultSet implements ISQLServerResultSet {
     }
 
     public NClob getNClob(String columnLabel) throws SQLException {
-        DriverJDBCVersion.checkSupportsJDBC4();
         loggerExternal.entering(getClassNameLogging(), "getNClob", columnLabel);
         checkClosed();
         NClob value = (NClob) getValue(findColumn(columnLabel), JDBCType.NCLOB);
@@ -2676,7 +2672,6 @@ public class SQLServerResultSet implements ISQLServerResultSet {
     }
 
     public Reader getNCharacterStream(int columnIndex) throws SQLException {
-        DriverJDBCVersion.checkSupportsJDBC4();
         loggerExternal.entering(getClassNameLogging(), "getNCharacterStream", columnIndex);
         checkClosed();
         Reader value = (Reader) getStream(columnIndex, StreamType.NCHARACTER);
@@ -2685,7 +2680,6 @@ public class SQLServerResultSet implements ISQLServerResultSet {
     }
 
     public Reader getNCharacterStream(String columnLabel) throws SQLException {
-        DriverJDBCVersion.checkSupportsJDBC4();
         loggerExternal.entering(getClassNameLogging(), "getNCharacterStream", columnLabel);
         checkClosed();
         Reader value = (Reader) getStream(findColumn(columnLabel), StreamType.NCHARACTER);
@@ -2778,21 +2772,17 @@ public class SQLServerResultSet implements ISQLServerResultSet {
     }
 
     public RowId getRowId(int columnIndex) throws SQLException {
-        DriverJDBCVersion.checkSupportsJDBC4();
-
         // Not implemented
         throw new SQLFeatureNotSupportedException(SQLServerException.getErrString("R_notSupported"));
     }
 
     public RowId getRowId(String columnLabel) throws SQLException {
-        DriverJDBCVersion.checkSupportsJDBC4();
 
         // Not implemented
         throw new SQLFeatureNotSupportedException(SQLServerException.getErrString("R_notSupported"));
     }
 
     public SQLXML getSQLXML(int columnIndex) throws SQLException {
-        DriverJDBCVersion.checkSupportsJDBC4();
         loggerExternal.entering(getClassNameLogging(), "getSQLXML", columnIndex);
         SQLXML xml = getSQLXMLInternal(columnIndex);
         loggerExternal.exiting(getClassNameLogging(), "getSQLXML", xml);
@@ -2800,7 +2790,6 @@ public class SQLServerResultSet implements ISQLServerResultSet {
     }
 
     public SQLXML getSQLXML(String columnLabel) throws SQLException {
-        DriverJDBCVersion.checkSupportsJDBC4();
         loggerExternal.entering(getClassNameLogging(), "getSQLXML", columnLabel);
         SQLXML xml = getSQLXMLInternal(findColumn(columnLabel));
         loggerExternal.exiting(getClassNameLogging(), "getSQLXML", xml);
@@ -3545,7 +3534,6 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "updateNString", new Object[] {columnIndex, nString});
 
-        DriverJDBCVersion.checkSupportsJDBC4();
         checkClosed();
         updateValue(columnIndex, JDBCType.NVARCHAR, nString, JavaType.STRING, false);
 
@@ -3575,7 +3563,6 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "updateNString", new Object[] {columnIndex, nString, forceEncrypt});
 
-        DriverJDBCVersion.checkSupportsJDBC4();
         checkClosed();
         updateValue(columnIndex, JDBCType.NVARCHAR, nString, JavaType.STRING, forceEncrypt);
 
@@ -3587,7 +3574,6 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "updateNString", new Object[] {columnLabel, nString});
 
-        DriverJDBCVersion.checkSupportsJDBC4();
         checkClosed();
         updateValue(findColumn(columnLabel), JDBCType.NVARCHAR, nString, JavaType.STRING, false);
 
@@ -3618,7 +3604,6 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "updateNString", new Object[] {columnLabel, nString, forceEncrypt});
 
-        DriverJDBCVersion.checkSupportsJDBC4();
         checkClosed();
         updateValue(findColumn(columnLabel), JDBCType.NVARCHAR, nString, JavaType.STRING, forceEncrypt);
 
@@ -4116,7 +4101,6 @@ public class SQLServerResultSet implements ISQLServerResultSet {
 
     public void updateAsciiStream(int columnIndex,
             InputStream x) throws SQLException {
-        DriverJDBCVersion.checkSupportsJDBC4();
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "updateAsciiStream", new Object[] {columnIndex, x});
 
@@ -4141,7 +4125,6 @@ public class SQLServerResultSet implements ISQLServerResultSet {
     public void updateAsciiStream(int columnIndex,
             InputStream x,
             long length) throws SQLException {
-        DriverJDBCVersion.checkSupportsJDBC4();
         loggerExternal.entering(getClassNameLogging(), "updateAsciiStream", new Object[] {columnIndex, x, length});
 
         checkClosed();
@@ -4152,7 +4135,6 @@ public class SQLServerResultSet implements ISQLServerResultSet {
 
     public void updateAsciiStream(String columnLabel,
             InputStream x) throws SQLException {
-        DriverJDBCVersion.checkSupportsJDBC4();
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "updateAsciiStream", new Object[] {columnLabel, x});
 
@@ -4177,7 +4159,6 @@ public class SQLServerResultSet implements ISQLServerResultSet {
     public void updateAsciiStream(String columnName,
             InputStream streamValue,
             long length) throws SQLException {
-        DriverJDBCVersion.checkSupportsJDBC4();
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "updateAsciiStream", new Object[] {columnName, streamValue, length});
 
@@ -4189,7 +4170,6 @@ public class SQLServerResultSet implements ISQLServerResultSet {
 
     public void updateBinaryStream(int columnIndex,
             InputStream x) throws SQLException {
-        DriverJDBCVersion.checkSupportsJDBC4();
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "updateBinaryStream", new Object[] {columnIndex, x});
 
@@ -4214,7 +4194,6 @@ public class SQLServerResultSet implements ISQLServerResultSet {
     public void updateBinaryStream(int columnIndex,
             InputStream x,
             long length) throws SQLException {
-        DriverJDBCVersion.checkSupportsJDBC4();
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "updateBinaryStream", new Object[] {columnIndex, x, length});
 
@@ -4226,7 +4205,6 @@ public class SQLServerResultSet implements ISQLServerResultSet {
 
     public void updateBinaryStream(String columnLabel,
             InputStream x) throws SQLException {
-        DriverJDBCVersion.checkSupportsJDBC4();
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "updateBinaryStream", new Object[] {columnLabel, x});
 
@@ -4251,7 +4229,6 @@ public class SQLServerResultSet implements ISQLServerResultSet {
     public void updateBinaryStream(String columnLabel,
             InputStream x,
             long length) throws SQLException {
-        DriverJDBCVersion.checkSupportsJDBC4();
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "updateBinaryStream", new Object[] {columnLabel, x, length});
 
@@ -4263,7 +4240,6 @@ public class SQLServerResultSet implements ISQLServerResultSet {
 
     public void updateCharacterStream(int columnIndex,
             Reader x) throws SQLException {
-        DriverJDBCVersion.checkSupportsJDBC4();
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "updateCharacterStream", new Object[] {columnIndex, x});
 
@@ -4288,7 +4264,6 @@ public class SQLServerResultSet implements ISQLServerResultSet {
     public void updateCharacterStream(int columnIndex,
             Reader x,
             long length) throws SQLException {
-        DriverJDBCVersion.checkSupportsJDBC4();
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "updateCharacterStream", new Object[] {columnIndex, x, length});
 
@@ -4300,7 +4275,6 @@ public class SQLServerResultSet implements ISQLServerResultSet {
 
     public void updateCharacterStream(String columnLabel,
             Reader reader) throws SQLException {
-        DriverJDBCVersion.checkSupportsJDBC4();
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "updateCharacterStream", new Object[] {columnLabel, reader});
 
@@ -4325,7 +4299,6 @@ public class SQLServerResultSet implements ISQLServerResultSet {
     public void updateCharacterStream(String columnLabel,
             Reader reader,
             long length) throws SQLException {
-        DriverJDBCVersion.checkSupportsJDBC4();
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "updateCharacterStream", new Object[] {columnLabel, reader, length});
 
@@ -4337,7 +4310,6 @@ public class SQLServerResultSet implements ISQLServerResultSet {
 
     public void updateNCharacterStream(int columnIndex,
             Reader x) throws SQLException {
-        DriverJDBCVersion.checkSupportsJDBC4();
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "updateNCharacterStream", new Object[] {columnIndex, x});
 
@@ -4350,7 +4322,6 @@ public class SQLServerResultSet implements ISQLServerResultSet {
     public void updateNCharacterStream(int columnIndex,
             Reader x,
             long length) throws SQLException {
-        DriverJDBCVersion.checkSupportsJDBC4();
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "updateNCharacterStream", new Object[] {columnIndex, x, length});
 
@@ -4362,7 +4333,6 @@ public class SQLServerResultSet implements ISQLServerResultSet {
 
     public void updateNCharacterStream(String columnLabel,
             Reader reader) throws SQLException {
-        DriverJDBCVersion.checkSupportsJDBC4();
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "updateNCharacterStream", new Object[] {columnLabel, reader});
 
@@ -4375,7 +4345,6 @@ public class SQLServerResultSet implements ISQLServerResultSet {
     public void updateNCharacterStream(String columnLabel,
             Reader reader,
             long length) throws SQLException {
-        DriverJDBCVersion.checkSupportsJDBC4();
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "updateNCharacterStream", new Object[] {columnLabel, reader, length});
 
@@ -5537,23 +5506,18 @@ public class SQLServerResultSet implements ISQLServerResultSet {
 
     public void updateRowId(int columnIndex,
             RowId x) throws SQLException {
-        DriverJDBCVersion.checkSupportsJDBC4();
-
         // Not implemented
         throw new SQLFeatureNotSupportedException(SQLServerException.getErrString("R_notSupported"));
     }
 
     public void updateRowId(String columnLabel,
             RowId x) throws SQLException {
-        DriverJDBCVersion.checkSupportsJDBC4();
-
         // Not implemented
         throw new SQLFeatureNotSupportedException(SQLServerException.getErrString("R_notSupported"));
     }
 
     public void updateSQLXML(int columnIndex,
             SQLXML xmlObject) throws SQLException {
-        DriverJDBCVersion.checkSupportsJDBC4();
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "updateSQLXML", new Object[] {columnIndex, xmlObject});
         updateSQLXMLInternal(columnIndex, xmlObject);
@@ -5564,7 +5528,6 @@ public class SQLServerResultSet implements ISQLServerResultSet {
             SQLXML x) throws SQLException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "updateSQLXML", new Object[] {columnLabel, x});
-        DriverJDBCVersion.checkSupportsJDBC4();
         updateSQLXMLInternal(findColumn(columnLabel), x);
         loggerExternal.exiting(getClassNameLogging(), "updateSQLXML");
     }
@@ -5572,7 +5535,6 @@ public class SQLServerResultSet implements ISQLServerResultSet {
     public int getHoldability() throws SQLException {
         loggerExternal.entering(getClassNameLogging(), "getHoldability");
 
-        DriverJDBCVersion.checkSupportsJDBC4();
         checkClosed();
 
         int holdability =
@@ -5984,7 +5946,6 @@ public class SQLServerResultSet implements ISQLServerResultSet {
 
     public void updateClob(int columnIndex,
             Reader reader) throws SQLException {
-        DriverJDBCVersion.checkSupportsJDBC4();
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "updateClob", new Object[] {columnIndex, reader});
 
@@ -5997,7 +5958,6 @@ public class SQLServerResultSet implements ISQLServerResultSet {
     public void updateClob(int columnIndex,
             Reader reader,
             long length) throws SQLException {
-        DriverJDBCVersion.checkSupportsJDBC4();
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "updateClob", new Object[] {columnIndex, reader, length});
 
@@ -6020,7 +5980,6 @@ public class SQLServerResultSet implements ISQLServerResultSet {
 
     public void updateClob(String columnLabel,
             Reader reader) throws SQLException {
-        DriverJDBCVersion.checkSupportsJDBC4();
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "updateClob", new Object[] {columnLabel, reader});
 
@@ -6033,7 +5992,6 @@ public class SQLServerResultSet implements ISQLServerResultSet {
     public void updateClob(String columnLabel,
             Reader reader,
             long length) throws SQLException {
-        DriverJDBCVersion.checkSupportsJDBC4();
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "updateClob", new Object[] {columnLabel, reader, length});
 
@@ -6045,7 +6003,6 @@ public class SQLServerResultSet implements ISQLServerResultSet {
 
     public void updateNClob(int columnIndex,
             NClob nClob) throws SQLException {
-        DriverJDBCVersion.checkSupportsJDBC4();
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "updateClob", new Object[] {columnIndex, nClob});
 
@@ -6057,7 +6014,6 @@ public class SQLServerResultSet implements ISQLServerResultSet {
 
     public void updateNClob(int columnIndex,
             Reader reader) throws SQLException {
-        DriverJDBCVersion.checkSupportsJDBC4();
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "updateNClob", new Object[] {columnIndex, reader});
 
@@ -6070,7 +6026,6 @@ public class SQLServerResultSet implements ISQLServerResultSet {
     public void updateNClob(int columnIndex,
             Reader reader,
             long length) throws SQLException {
-        DriverJDBCVersion.checkSupportsJDBC4();
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "updateNClob", new Object[] {columnIndex, reader, length});
 
@@ -6082,7 +6037,6 @@ public class SQLServerResultSet implements ISQLServerResultSet {
 
     public void updateNClob(String columnLabel,
             NClob nClob) throws SQLException {
-        DriverJDBCVersion.checkSupportsJDBC4();
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "updateNClob", new Object[] {columnLabel, nClob});
 
@@ -6094,7 +6048,6 @@ public class SQLServerResultSet implements ISQLServerResultSet {
 
     public void updateNClob(String columnLabel,
             Reader reader) throws SQLException {
-        DriverJDBCVersion.checkSupportsJDBC4();
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "updateNClob", new Object[] {columnLabel, reader});
 
@@ -6107,7 +6060,6 @@ public class SQLServerResultSet implements ISQLServerResultSet {
     public void updateNClob(String columnLabel,
             Reader reader,
             long length) throws SQLException {
-        DriverJDBCVersion.checkSupportsJDBC4();
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "updateNClob", new Object[] {columnLabel, reader, length});
 
@@ -6130,7 +6082,6 @@ public class SQLServerResultSet implements ISQLServerResultSet {
 
     public void updateBlob(int columnIndex,
             InputStream inputStream) throws SQLException {
-        DriverJDBCVersion.checkSupportsJDBC4();
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "updateBlob", new Object[] {columnIndex, inputStream});
 
@@ -6143,7 +6094,6 @@ public class SQLServerResultSet implements ISQLServerResultSet {
     public void updateBlob(int columnIndex,
             InputStream inputStream,
             long length) throws SQLException {
-        DriverJDBCVersion.checkSupportsJDBC4();
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "updateBlob", new Object[] {columnIndex, inputStream, length});
 
@@ -6166,7 +6116,6 @@ public class SQLServerResultSet implements ISQLServerResultSet {
 
     public void updateBlob(String columnLabel,
             InputStream inputStream) throws SQLException {
-        DriverJDBCVersion.checkSupportsJDBC4();
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "updateBlob", new Object[] {columnLabel, inputStream});
 
@@ -6179,7 +6128,6 @@ public class SQLServerResultSet implements ISQLServerResultSet {
     public void updateBlob(String columnLabel,
             InputStream inputStream,
             long length) throws SQLException {
-        DriverJDBCVersion.checkSupportsJDBC4();
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "updateBlob", new Object[] {columnLabel, inputStream, length});
 
