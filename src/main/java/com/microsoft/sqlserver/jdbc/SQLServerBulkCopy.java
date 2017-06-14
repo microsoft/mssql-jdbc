@@ -2532,8 +2532,10 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable {
                     break;
             } // End of switch
         }// End of Try
-        catch (SQLException e) {
-            throw new SQLServerException(SQLServerException.getErrString("R_unableRetrieveSourceData"), e);
+        catch (ClassCastException ex) {
+            MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_errorConvertingValue"));
+            Object[] msgArgs = {colValue.getClass().getSimpleName(), JDBCType.of(bulkJdbcType)};
+            throw new SQLServerException(form.format(msgArgs), SQLState.DATA_EXCEPTION_NOT_SPECIFIC, DriverError.NOT_SET, ex);
         }
     }
     
@@ -2924,7 +2926,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable {
         if (null != destCryptoMeta) {
             destSSType = destCryptoMeta.baseTypeInfo.getSSType();
         }
-        
+
         // Get the cell from the source result set if we are copying from result set.
         // If we are copying from a bulk reader colValue will be passed as the argument.
         if (null != sourceResultSet) {          
@@ -3513,7 +3515,15 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable {
             // Copy from a file.
             else {
                 // Get all the column values of the current row.
-                Object[] rowObjects = sourceBulkRecord.getRowData();
+                Object[] rowObjects;
+
+                try {
+                    rowObjects = sourceBulkRecord.getRowData();
+                }
+                catch (Exception ex) {
+                    // if no more data available to retrive
+                    throw new SQLServerException(SQLServerException.getErrString("R_unableRetrieveSourceData"), ex);
+                }
 
                 for (int i = 0; i < mappingColumnCount; ++i) {
                     // If the SQLServerBulkCSVRecord does not have metadata for columns, it returns strings in the object array.

@@ -246,43 +246,32 @@ public final class SQLServerDataTable {
 
                 break;
 
-            case CHAR:
-                if (val instanceof UUID && (val != null))
-                    val = val.toString();
+                    case CHAR:
+                        if (val instanceof UUID && (val != null))
+                            val = val.toString();
             case VARCHAR:
-                bValueNull = (null == val);
-                nValueLen = bValueNull ? 0 :  ((String) val).length();
-
-                if (nValueLen > currentColumnMetadata.precision) {
-                    currentColumnMetadata.precision = nValueLen;
-                    columnMetadata.put(pair.getKey(), currentColumnMetadata);
-                }
-                rowValues[pair.getKey()] = (bValueNull) ? null : (String) val;
-                break;
             case NCHAR:
             case NVARCHAR:
+
+            case LONGVARCHAR:
+            case LONGNVARCHAR:
+            case SQLXML:
                 bValueNull = (null == val);
                 nValueLen = bValueNull ? 0 : (2 * ((String) val).length());
 
-             case LONGVARCHAR:
-             case LONGNVARCHAR:
-             case SQLXML:
-                 bValueNull = (null == val);
-                 nValueLen = bValueNull ? 0 : (2 * ((String) val).length());
-
                 if (nValueLen > currentColumnMetadata.precision) {
                     currentColumnMetadata.precision = nValueLen;
                     columnMetadata.put(pair.getKey(), currentColumnMetadata);
                 }
                 rowValues[pair.getKey()] = (bValueNull) ? null : (String) val;
                 break;
-            case SQL_VARIANT:               
+            case SQL_VARIANT:
                 JDBCType internalJDBCType;
-                if (null == val) { //TODO:Check this later
+                if (null == val) { // TODO:Check this later
                     throw new SQLServerException("Sending null value with column type sql_variant in TVP is not supported! ", null);
                 }
                 JavaType javaType = JavaType.of(val);
-                internalJDBCType = javaType.getJDBCType(SSType.UNKNOWN, jdbcType);             
+                internalJDBCType = javaType.getJDBCType(SSType.UNKNOWN, jdbcType);
                 internalAddrow(internalJDBCType, val, rowValues, pair);
                 break;
             default:
@@ -302,7 +291,6 @@ public final class SQLServerDataTable {
 
     /**
      * Retrieves the column meta data of this data table.
-     * 
      * @param tvpName
      *            the name of TVP
      */
