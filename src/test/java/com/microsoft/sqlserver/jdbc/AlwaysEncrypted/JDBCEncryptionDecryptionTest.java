@@ -48,7 +48,7 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
                 "Aborting test case as SQL Server version is not compatible with Always encrypted ");
 
         try {
-            createCEK(storeProvider, certStore);
+            createCEK(storeProvider);
             createNumericTable();
             populateNumeric(values);
             verifyResults();
