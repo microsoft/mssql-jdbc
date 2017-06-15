@@ -4056,7 +4056,8 @@ public class SQLServerConnection implements ISQLServerConnection {
         byte appNameBytes[] = toUCS16(appName);
         byte serverNameBytes[] = toUCS16(serverName);
         byte interfaceLibNameBytes[] = toUCS16(interfaceLibName);
-        byte interfaceLibVersionBytes[] = {SQLJdbcVersion.build, SQLJdbcVersion.patch, SQLJdbcVersion.minor, SQLJdbcVersion.major};
+        byte interfaceLibVersionBytes[] = {(byte) SQLJdbcVersion.build, (byte) SQLJdbcVersion.patch, (byte) SQLJdbcVersion.minor,
+                (byte) SQLJdbcVersion.major};
         byte databaseNameBytes[] = toUCS16(databaseName);
         byte netAddress[] = new byte[6];
         int dataLen = 0;
