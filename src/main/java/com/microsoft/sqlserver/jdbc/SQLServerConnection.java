@@ -4290,52 +4290,6 @@ public class SQLServerConnection implements ISQLServerConnection {
         while (!logonProcessor.complete(logonCommand, tdsReader));
     }
 
-    private String generateInterfaceLibVersion() {
-
-        StringBuilder outputInterfaceLibVersion = new StringBuilder();
-
-        String interfaceLibMajor = Integer.toHexString(SQLJdbcVersion.major);
-        String interfaceLibMinor = Integer.toHexString(SQLJdbcVersion.minor);
-        String interfaceLibPatch = Integer.toHexString(SQLJdbcVersion.patch);
-        String interfaceLibBuild = Integer.toHexString(SQLJdbcVersion.build);
-
-        // build the interface lib name
-        // 2 characters reserved for build
-        // 2 characters reserved for patch
-        // 2 characters reserved for minor
-        // 2 characters reserved for major
-        if (2 == interfaceLibBuild.length()) {
-            outputInterfaceLibVersion.append(interfaceLibBuild);
-        }
-        else {
-            outputInterfaceLibVersion.append("0");
-            outputInterfaceLibVersion.append(interfaceLibBuild);
-        }
-        if (2 == interfaceLibPatch.length()) {
-            outputInterfaceLibVersion.append(interfaceLibPatch);
-        }
-        else {
-            outputInterfaceLibVersion.append("0");
-            outputInterfaceLibVersion.append(interfaceLibPatch);
-        }
-        if (2 == interfaceLibMinor.length()) {
-            outputInterfaceLibVersion.append(interfaceLibMinor);
-        }
-        else {
-            outputInterfaceLibVersion.append("0");
-            outputInterfaceLibVersion.append(interfaceLibMinor);
-        }
-        if (2 == interfaceLibMajor.length()) {
-            outputInterfaceLibVersion.append(interfaceLibMajor);
-        }
-        else {
-            outputInterfaceLibVersion.append("0");
-            outputInterfaceLibVersion.append(interfaceLibMajor);
-        }
-
-        return outputInterfaceLibVersion.toString();
-    }
-
     /* --------------- JDBC 3.0 ------------- */
 
     /**
