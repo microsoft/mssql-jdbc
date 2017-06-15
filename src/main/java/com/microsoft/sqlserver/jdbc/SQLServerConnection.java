@@ -51,7 +51,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
 
 import javax.sql.XAConnection;
-import javax.xml.bind.DatatypeConverter;
 
 import org.ietf.jgss.GSSCredential;
 import org.ietf.jgss.GSSException;
@@ -4029,7 +4028,6 @@ public class SQLServerConnection implements ISQLServerConnection {
         String sPwd = activeConnectionProperties.getProperty(SQLServerDriverStringProperty.PASSWORD.toString());
         String appName = activeConnectionProperties.getProperty(SQLServerDriverStringProperty.APPLICATION_NAME.toString());
         String interfaceLibName = "Microsoft JDBC Driver " + SQLJdbcVersion.major + "." + SQLJdbcVersion.minor;
-        String interfaceLibVersion = generateInterfaceLibVersion();
         String databaseName = activeConnectionProperties.getProperty(SQLServerDriverStringProperty.DATABASE_NAME.toString());
         String serverName;
         // currentConnectPlaceHolder should not be null here. Still doing the check for extra security.
@@ -4058,7 +4056,7 @@ public class SQLServerConnection implements ISQLServerConnection {
         byte appNameBytes[] = toUCS16(appName);
         byte serverNameBytes[] = toUCS16(serverName);
         byte interfaceLibNameBytes[] = toUCS16(interfaceLibName);
-        byte interfaceLibVersionBytes[] = DatatypeConverter.parseHexBinary(interfaceLibVersion);
+        byte interfaceLibVersionBytes[] = {SQLJdbcVersion.build, SQLJdbcVersion.patch, SQLJdbcVersion.minor, SQLJdbcVersion.major};
         byte databaseNameBytes[] = toUCS16(databaseName);
         byte netAddress[] = new byte[6];
         int dataLen = 0;
