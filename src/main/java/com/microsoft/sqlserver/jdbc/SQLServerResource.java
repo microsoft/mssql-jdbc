@@ -225,7 +225,7 @@ public final class SQLServerResource extends ListResourceBundle {
 				{"R_invalidTransactionOption", "UseInternalTransaction option can not be set to TRUE when used with a Connection object."},
 				{"R_invalidNegativeArg", "The {0} argument cannot be negative."},
 				{"R_BulkColumnMappingsIsEmpty", "Cannot perform bulk copy operation if the only mapping is an identity column and KeepIdentity is set to false."},        
-				{"R_BulkCSVDataSchemaMismatch", "Source data does not match source schema."},
+				{"R_CSVDataSchemaMismatch", "Source data does not match source schema."},
 				{"R_BulkCSVDataDuplicateColumn", "Duplicate column names are not allowed."},
 				{"R_invalidColumnOrdinal", "Column {0} is invalid. Column number should be greater than zero."},
 				{"R_unsupportedEncoding", "The encoding {0} is not supported."},

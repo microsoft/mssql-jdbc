@@ -166,7 +166,7 @@ class KeyStoreProviderCommon {
     private static short convertTwoBytesToShort(byte[] input,
             int index) throws SQLServerException {
 
-        short shortVal = -1;
+        short shortVal;
         if (index + 1 >= input.length) {
             throw new SQLServerException(null, SQLServerException.getErrString("R_ByteToShortConversion"), null, 0, false);
         }

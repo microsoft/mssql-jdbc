@@ -14,6 +14,7 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Types;
 import java.text.MessageFormat;
+import java.util.ArrayList;
 import java.util.Properties;
 import java.util.Vector;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -791,7 +792,7 @@ public final class SQLServerXAResource implements javax.transaction.xa.XAResourc
     /* L0 */ public Xid[] recover(int flags) throws XAException {
         XAReturnValue r = DTC_XA_Interface(XA_RECOVER, null, flags | tightlyCoupled);
         int offset = 0;
-        Vector<XidImpl> v = new Vector<XidImpl>();
+        ArrayList<XidImpl> al = new ArrayList<XidImpl>();
 
         // If no XID's found, return zero length XID array (don't return null).
         //
@@ -824,11 +825,11 @@ public final class SQLServerXAResource implements javax.transaction.xa.XAResourc
             System.arraycopy(r.bData, offset, bid, 0, bid_len);
             offset += bid_len;
             XidImpl xid = new XidImpl(formatId, gid, bid);
-            v.add(xid);
+            al.add(xid);
         }
-        XidImpl xids[] = new XidImpl[v.size()];
-        for (int i = 0; i < v.size(); i++) {
-            xids[i] = v.elementAt(i);
+        XidImpl xids[] = new XidImpl[al.size()];
+        for (int i = 0; i < al.size(); i++) {
+            xids[i] = al.get(i);
             if (xaLogger.isLoggable(Level.FINER))
                 xaLogger.finer(toString() + xids[i].toString());
         }

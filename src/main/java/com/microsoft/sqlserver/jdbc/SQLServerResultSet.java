@@ -204,6 +204,10 @@ public class SQLServerResultSet implements ISQLServerResultSet {
 
     /** TDS reader from which row values are read */
     private TDSReader tdsReader;
+    
+    protected TDSReader getTDSReader() {
+        return tdsReader;
+    }
 
     private final FetchBuffer fetchBuffer;
 

@@ -178,7 +178,7 @@ public class SQLServerDataSource implements ISQLServerDataSource, DataSource, ja
     /**
      * sets GSSCredential
      * 
-     * @param userCredential
+     * @param userCredential the credential
      */
     public void setGSSCredentials(GSSCredential userCredential){
         setObjectProperty(connectionProps,SQLServerDriverObjectProperty.GSS_CREDENTIAL.toString(), userCredential);
@@ -652,10 +652,21 @@ public class SQLServerDataSource implements ISQLServerDataSource, DataSource, ja
                 SQLServerDriverIntProperty.PACKET_SIZE.getDefaultValue());
     }
 
+    /**
+     * Setting the query timeout
+     * 
+     * @param queryTimeout
+     *            The number of seconds to wait before a timeout has occurred on a query. The default value is 0, which means infinite timeout.
+     */
     public void setQueryTimeout(int queryTimeout) {
         setIntProperty(connectionProps, SQLServerDriverIntProperty.QUERY_TIMEOUT.toString(), queryTimeout);
     }
 
+    /**
+     * Getting the query timeout
+     * 
+     * @return The number of seconds to wait before a timeout has occurred on a query.
+     */
     public int getQueryTimeout() {
         return getIntProperty(connectionProps, SQLServerDriverIntProperty.QUERY_TIMEOUT.toString(),
                 SQLServerDriverIntProperty.QUERY_TIMEOUT.getDefaultValue());
@@ -688,23 +699,23 @@ public class SQLServerDataSource implements ISQLServerDataSource, DataSource, ja
     }
 
     /**
-     * This setting controls how many outstanding prepared statement discard actions (sp_unprepare) can be outstanding per connection 
-     * before a call to clean-up the outstanding handles on the server is executed. If the setting is <= 1 unprepare actions will be 
-     * executed immedietely on prepared statement close. If it is set to >1 these calls will be batched together to avoid overhead of 
-     * calling sp_unprepare too often. 
+     * This setting controls how many outstanding prepared statement discard actions (sp_unprepare) can be outstanding per connection before a call to
+     * clean-up the outstanding handles on the server is executed. If the setting is {@literal <=} 1 unprepare actions will be executed immedietely on
+     * prepared statement close. If it is set to {@literal >} 1 these calls will be batched together to avoid overhead of calling sp_unprepare too
+     * often.
      * 
      * @param serverPreparedStatementDiscardThreshold
-     *      Changes the setting per the description.
+     *            Changes the setting per the description.
      */
     public void setServerPreparedStatementDiscardThreshold(int serverPreparedStatementDiscardThreshold) {
         setIntProperty(connectionProps, SQLServerDriverIntProperty.SERVER_PREPARED_STATEMENT_DISCARD_THRESHOLD.toString(), serverPreparedStatementDiscardThreshold);
     }
 
     /**
-     * This setting controls how many outstanding prepared statement discard actions (sp_unprepare) can be outstanding per connection 
-     * before a call to clean-up the outstanding handles on the server is executed. If the setting is <= 1 unprepare actions will be 
-     * executed immedietely on prepared statement close. If it is set to >1 these calls will be batched together to avoid overhead of 
-     * calling sp_unprepare too often. 
+     * This setting controls how many outstanding prepared statement discard actions (sp_unprepare) can be outstanding per connection before a call to
+     * clean-up the outstanding handles on the server is executed. If the setting is {@literal <=} 1 unprepare actions will be executed immedietely on
+     * prepared statement close. If it is set to {@literal >} 1 these calls will be batched together to avoid overhead of calling sp_unprepare too
+     * often.
      * 
      * @return Returns the current setting per the description.
      */
@@ -733,10 +744,22 @@ public class SQLServerDataSource implements ISQLServerDataSource, DataSource, ja
         return getIntProperty(connectionProps, SQLServerDriverIntProperty.STATEMENT_POOLING_CACHE_SIZE.toString(), defaultSize);
     }
 
+    /**
+     * Setting the socket timeout
+     * 
+     * @param socketTimeout
+     *            The number of milliseconds to wait before a timeout is occurred on a socket read or accept. The default value is 0, which means
+     *            infinite timeout.
+     */
     public void setSocketTimeout(int socketTimeout) {
         setIntProperty(connectionProps, SQLServerDriverIntProperty.SOCKET_TIMEOUT.toString(), socketTimeout);
     }
 
+    /**
+     * Getting the socket timeout
+     * 
+     * @return The number of milliseconds to wait before a timeout is occurred on a socket read or accept.
+     */
     public int getSocketTimeout() {
         int defaultTimeOut = SQLServerDriverIntProperty.SOCKET_TIMEOUT.getDefaultValue();
         return getIntProperty(connectionProps, SQLServerDriverIntProperty.SOCKET_TIMEOUT.toString(), defaultTimeOut);
@@ -746,7 +769,7 @@ public class SQLServerDataSource implements ISQLServerDataSource, DataSource, ja
      * Sets the login configuration file for Kerberos authentication. This
      * overrides the default configuration <i> SQLJDBCDriver </i>
      * 
-     * @param configurationName
+     * @param configurationName the configuration name
      */
     public void setJASSConfigurationName(String configurationName) {
         setStringProperty(connectionProps, SQLServerDriverStringProperty.JAAS_CONFIG_NAME.toString(),
@@ -756,7 +779,7 @@ public class SQLServerDataSource implements ISQLServerDataSource, DataSource, ja
     /**
      * Retrieves the login configuration file for Kerberos authentication.
      * 
-     * @return
+     * @return login configuration file name
      */
     public String getJASSConfigurationName() {
         return getStringProperty(connectionProps, SQLServerDriverStringProperty.JAAS_CONFIG_NAME.toString(),
@@ -919,8 +942,8 @@ public class SQLServerDataSource implements ISQLServerDataSource, DataSource, ja
     SQLServerConnection getConnectionInternal(String username,
             String password,
             SQLServerPooledConnection pooledConnection) throws SQLServerException {
-        Properties userSuppliedProps = null;
-        Properties mergedProps = null;
+        Properties userSuppliedProps;
+        Properties mergedProps;
         // Trust store password stripped and this object got created via Objectfactory referencing.
         if (trustStorePasswordStripped)
             SQLServerException.makeFromDriverError(null, null, SQLServerException.getErrString("R_referencingFailedTSP"), null, true);
@@ -1026,17 +1049,17 @@ public class SQLServerDataSource implements ISQLServerDataSource, DataSource, ja
             String propertyValue = (String) addr.getContent();
 
             // Special case dataSourceURL and dataSourceDescription.
-            if (propertyName.equals("dataSourceURL")) {
+            if ("dataSourceURL".equals(propertyName)) {
                 dataSourceURL = propertyValue;
             }
-            else if (propertyName.equals("dataSourceDescription")) {
+            else if ("dataSourceDescription".equals(propertyName)) {
                 dataSourceDescription = propertyValue;
             }
-            else if (propertyName.equals("trustStorePasswordStripped")) {
+            else if ("trustStorePasswordStripped".equals(propertyName)) {
                 trustStorePasswordStripped = true;
             }
             // Just skip "class" StringRefAddr, it does not go into connectionProps
-            else if (false == propertyName.equals("class")) {
+            else if (!"class".equals(propertyName)) {
 
                 connectionProps.setProperty(propertyName, propertyValue);
             }

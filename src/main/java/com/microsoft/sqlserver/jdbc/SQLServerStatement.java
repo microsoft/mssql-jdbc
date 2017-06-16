@@ -2221,11 +2221,11 @@ public class SQLServerStatement implements ISQLServerStatement {
     public final void setResponseBuffering(String value) throws SQLServerException {
         loggerExternal.entering(getClassNameLogging(), "setResponseBuffering", value);
         checkClosed();
-        if (value.equalsIgnoreCase("full")) {
+        if ("full".equalsIgnoreCase(value)) {
             isResponseBufferingAdaptive = false;
             wasResponseBufferingSet = true;
         }
-        else if (value.equalsIgnoreCase("adaptive")) {
+        else if ("adaptive".equalsIgnoreCase(value)) {
             isResponseBufferingAdaptive = true;
             wasResponseBufferingSet = true;
         }
