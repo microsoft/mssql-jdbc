@@ -501,7 +501,9 @@ public final class SQLServerParameterMetaData implements ParameterMetaData {
     }
 
     private void checkClosed() throws SQLServerException {
-        stmtParent.checkClosed();
+        // stmtParent does not seem to be re-used, should just verify connection is not closed.
+        // stmtParent.checkClosed();
+        con.checkClosed();
     }
 
     /**
