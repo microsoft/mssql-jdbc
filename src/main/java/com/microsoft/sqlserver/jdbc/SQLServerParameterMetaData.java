@@ -51,6 +51,8 @@ public final class SQLServerParameterMetaData implements ParameterMetaData {
     static private final AtomicInteger baseID = new AtomicInteger(0);	// Unique id generator for each instance (used for logging).
     final private String traceID = " SQLServerParameterMetaData:" + nextInstanceID();
     boolean isTVP = false;
+    
+    private String stringToParse = null;
 
     // Returns unique id for each instance.
     private static int nextInstanceID() {
@@ -290,7 +292,7 @@ public final class SQLServerParameterMetaData implements ParameterMetaData {
         }
     }
 
-    private void parseQueryMetaFor2008(ResultSet rsQueryMeta) throws SQLServerException {
+    private int parseQueryMetaFor2008(ResultSet rsQueryMeta, int startIndex) throws SQLServerException {
         ResultSetMetaData md;
 
         try {
@@ -307,8 +309,12 @@ public final class SQLServerParameterMetaData implements ParameterMetaData {
                 qm.isNullable = md.isNullable(i);
                 qm.isSigned = md.isSigned(i);
 
-                queryMetaMap.put(i, qm);
+                queryMetaMap.put(startIndex, qm);
+                
+                startIndex++;
             }
+
+            return startIndex;
 
         }
         catch (SQLException e) {
@@ -397,7 +403,12 @@ public final class SQLServerParameterMetaData implements ParameterMetaData {
                 metaFields = parseInsertColumns(sql, "("); // Get the value fields
             else
                 metaFields = parseColumns(sql, "WHERE"); // Get the where fields
-
+            
+            stringToParse = "";
+            while (st.hasMoreTokens()) {
+                stringToParse = stringToParse + st.nextToken();
+            }
+            
             return new MetaInfo(metaTable, metaFields);
         }
 
@@ -565,7 +576,7 @@ public final class SQLServerParameterMetaData implements ParameterMetaData {
                     // new implementation for SQL verser 2012 and above
                     String preparedSQL = con.replaceParameterMarkers(((SQLServerPreparedStatement) stmtParent).userSQL,
                             ((SQLServerPreparedStatement) stmtParent).inOutParam, ((SQLServerPreparedStatement) stmtParent).bReturnValueSyntax);
-
+                    
                     SQLServerCallableStatement cstmt = (SQLServerCallableStatement) con.prepareCall("exec sp_describe_undeclared_parameters ?");
                     cstmt.setNString(1, preparedSQL);
                     parseQueryMeta(cstmt.executeQueryInternal());
@@ -573,23 +584,36 @@ public final class SQLServerParameterMetaData implements ParameterMetaData {
                 }
                 else {
                     // old implementation for SQL server 2008
-                    MetaInfo metaInfo = parseStatement(sProcString);
-                    if (null == metaInfo) {
-                        MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_cantIdentifyTableMetadata"));
-                        Object[] msgArgs = {sProcString};
-                        SQLServerException.makeFromDriverError(con, stmtParent, form.format(msgArgs), null, false);
+                    int numberOfParameters = 0;
+                    for (char c : sProcString.toCharArray()) {
+                        if (c == '?') {
+                            numberOfParameters++;
+                        }
                     }
 
-                    if (metaInfo.fields.length() <= 0)
-                        return;
+                    int startIndex = 1;
+                    stringToParse = sProcString;
+                    for (int i = 0; i < numberOfParameters; i++) {
 
-                    Statement stmt = con.createStatement();
-                    String sCom = "sp_executesql N'SET FMTONLY ON SELECT " + metaInfo.fields + " FROM " + metaInfo.table + " WHERE 1 = 2'";
-                    ResultSet rs = stmt.executeQuery(sCom);
+                        MetaInfo metaInfo = parseStatement(stringToParse);
+                        if (null == metaInfo) {
+                            MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_cantIdentifyTableMetadata"));
+                            Object[] msgArgs = {stringToParse};
+                            SQLServerException.makeFromDriverError(con, stmtParent, form.format(msgArgs), null, false);
+                        }
 
-                    parseQueryMetaFor2008(rs);
-                    stmt.close();
-                    rs.close();
+                        if (metaInfo.fields.length() <= 0)
+                            return;
+
+                        Statement stmt = con.createStatement();
+                        String sCom = "sp_executesql N'SET FMTONLY ON SELECT " + metaInfo.fields + " FROM " + metaInfo.table + " WHERE 1 = 2'";
+
+                        ResultSet rs = stmt.executeQuery(sCom);
+
+                        startIndex = parseQueryMetaFor2008(rs, startIndex);
+                        stmt.close();
+                        rs.close();
+                    }
                 }
             }
         }
