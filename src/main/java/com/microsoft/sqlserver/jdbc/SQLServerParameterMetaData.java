@@ -629,6 +629,10 @@ public final class SQLServerParameterMetaData implements ParameterMetaData {
                             sbTablesAndJoins = sbTablesAndJoins.append(metaInfoList.get(i).table);
                         }
                         else {
+                            if (metaInfoList.get(i).table.equals(metaInfoList.get(i - 1).table)
+                                    && metaInfoList.get(i).fields.equals(metaInfoList.get(i - 1).fields)) {
+                                continue;
+                            }
                             sbTablesAndJoins = sbTablesAndJoins
                                     .append(" LEFT JOIN " + metaInfoList.get(i).table + " ON " + metaInfoList.get(i - 1).table + "."
                                             + metaInfoList.get(i - 1).fields + "=" + metaInfoList.get(i).table + "." + metaInfoList.get(i).fields);
