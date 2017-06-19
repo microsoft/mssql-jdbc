@@ -52,6 +52,7 @@ public class PQImpsTest extends AbstractTest {
     private static String mergeNameDesTable = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("mergeNameDesTable_DB"));
     private static String numericTable = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("numericTable_DB"));
     private static String charTable = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("charTable_DB"));
+    private static String charTable2 = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("charTable2_DB"));
     private static String binaryTable = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("binaryTable_DB"));
     private static String dateAndTimeTable = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("dateAndTimeTable_DB"));
     private static String multipleTypesTable = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("multipleTypesTable_DB"));
@@ -68,6 +69,7 @@ public class PQImpsTest extends AbstractTest {
         createMultipleTypesTable();
         createNumericTable();
         createCharTable();
+        createChar2Table();
         createBinaryTable();
         createDateAndTimeTable();
         createTablesForCompexQueries();
@@ -415,6 +417,11 @@ public class PQImpsTest extends AbstractTest {
 
         stmt.execute("Create table " + charTable + " (" + "c1 char(50) not null," + "c2 varchar(20) not null," + "c3 nchar(30) not null,"
                 + "c4 nvarchar(60) not null," + "c5 text not null," + "c6 ntext not null" + ")");
+    }
+    
+    private static void createChar2Table() throws SQLException {
+
+        stmt.execute("Create table " + charTable2 + " (" + "table2c1 char(50) not null)");
     }
     
     private static void createSpaceTable() throws SQLException {
@@ -1318,11 +1325,12 @@ public class PQImpsTest extends AbstractTest {
     /**
      * test getting parameter count with a complex query with multiple table
      * 
-     * @throws SQLServerException 
+     * @throws SQLServerException
      */
     @Test
     public void testComplexQueryWithMultipleTables() throws SQLServerException {
-        pstmt = connection.prepareStatement("insert into table1 (c1) select ? where not exists (select * from table2 where c2 = ?)");
+        pstmt = connection.prepareStatement(
+                "insert into " + charTable + " (c1) select ? where not exists (select * from " + charTable2 + " where table2c1 = ?)");
 
         try {
             SQLServerParameterMetaData pMD = (SQLServerParameterMetaData) pstmt.getParameterMetaData();
@@ -1364,6 +1372,7 @@ public class PQImpsTest extends AbstractTest {
         stmt.execute("if object_id('" + mergeNameDesTable + "','U') is not null" + " drop table " + mergeNameDesTable);
         stmt.execute("if object_id('" + numericTable + "','U') is not null" + " drop table " + numericTable);
         stmt.execute("if object_id('" + charTable + "','U') is not null" + " drop table " + charTable);
+        stmt.execute("if object_id('" + charTable2 + "','U') is not null" + " drop table " + charTable2);
         stmt.execute("if object_id('" + binaryTable + "','U') is not null" + " drop table " + binaryTable);
         stmt.execute("if object_id('" + dateAndTimeTable + "','U') is not null" + " drop table " + dateAndTimeTable);
         stmt.execute("if object_id('" + multipleTypesTable + "','U') is not null" + " drop table " + multipleTypesTable);
