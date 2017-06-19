@@ -1343,7 +1343,7 @@ public class PQImpsTest extends AbstractTest {
      */
     @Test
     public void testQueryWithSpaceAndEndCommentMarkInColumnName() throws SQLServerException {
-        pstmt = connection.prepareStatement("SELECT [c1*/someStrintg withspace]=? from " + spaceTable);
+        pstmt = connection.prepareStatement("SELECT [c1*/someStrintg withspace] from " + spaceTable);
 
         try {
             pstmt.getParameterMetaData();
