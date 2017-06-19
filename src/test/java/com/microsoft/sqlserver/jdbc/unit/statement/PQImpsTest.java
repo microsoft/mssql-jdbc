@@ -27,6 +27,7 @@ import org.junit.runner.RunWith;
 
 import com.microsoft.sqlserver.jdbc.SQLServerConnection;
 import com.microsoft.sqlserver.jdbc.SQLServerException;
+import com.microsoft.sqlserver.jdbc.SQLServerParameterMetaData;
 import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
 import com.microsoft.sqlserver.testframework.AbstractTest;
 import com.microsoft.sqlserver.testframework.util.RandomUtil;
@@ -1301,6 +1302,26 @@ public class PQImpsTest extends AbstractTest {
         
         try {
             pstmt.getParameterMetaData();
+        }
+        catch (Exception e) {
+            fail(e.toString());
+        }
+    }
+    
+    /**
+     * test getting parameter count with a complex query with multiple table
+     * 
+     * @throws SQLException
+     */
+    @Test
+    public void testComplexQueryWithMultipleTables() throws SQLException {
+        pstmt = connection.prepareStatement("insert into table1 (c1) select ? where not exists (select * from table2 where c2 = ?)");
+
+        try {
+            SQLServerParameterMetaData pMD = (SQLServerParameterMetaData) pstmt.getParameterMetaData();
+            int parameterCount = pMD.getParameterCount();
+
+            assertTrue(2 == parameterCount, "Parameter Count should be 2.");
         }
         catch (Exception e) {
             fail(e.toString());
