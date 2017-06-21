@@ -75,7 +75,8 @@ public final class SQLServerParameterMetaData implements ParameterMetaData {
      */
     /* L2 */ private String parseColumns(String columnSet,
             String columnStartToken) {
-        StringTokenizer st = new StringTokenizer(columnSet, " =?<>!", true);
+        StringTokenizer st = new StringTokenizer(columnSet, " =?<>!\r\n", true);
+        
         final int START = 0;
         final int PARAMNAME = 1;
         final int PARAMVALUE = 2;
@@ -368,7 +369,7 @@ public final class SQLServerParameterMetaData implements ParameterMetaData {
      */
     private MetaInfo parseStatement(String sql,
             String sTableMarker) {
-        StringTokenizer st = new StringTokenizer(sql, " ,\r\n", true);
+        StringTokenizer st = new StringTokenizer(sql, " ,\r\n(");
 
         /* Find the table */
 
@@ -411,7 +412,8 @@ public final class SQLServerParameterMetaData implements ParameterMetaData {
      * @throws SQLServerException
      */
     private MetaInfo parseStatement(String sql) throws SQLServerException {
-        StringTokenizer st = new StringTokenizer(sql, " ");
+        StringTokenizer st = new StringTokenizer(sql, " \r\n");
+        
         if (st.hasMoreTokens()) {
             String sToken = st.nextToken().trim();
 
