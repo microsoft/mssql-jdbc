@@ -330,7 +330,7 @@ public final class SQLServerParameterMetaData implements ParameterMetaData {
         String fullName;
         nameFragment = firstToken;
         // skip spaces
-        while (nameFragment.equals(" ") && st.hasMoreTokens()) {
+        while ((0 == nameFragment.trim().length()) && st.hasMoreTokens()) {
             nameFragment = st.nextToken();
         }
         fullName = nameFragment;
@@ -369,7 +369,7 @@ public final class SQLServerParameterMetaData implements ParameterMetaData {
      */
     private MetaInfo parseStatement(String sql,
             String sTableMarker) {
-        StringTokenizer st = new StringTokenizer(sql, " ,\r\n(");
+        StringTokenizer st = new StringTokenizer(sql, " ,\r\n(", true);
 
         /* Find the table */
 
