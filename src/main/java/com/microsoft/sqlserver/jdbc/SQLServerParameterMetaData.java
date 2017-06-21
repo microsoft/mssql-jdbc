@@ -474,6 +474,10 @@ public final class SQLServerParameterMetaData implements ParameterMetaData {
         }
         // filter out first end comment mark
         else {
+            if (Integer.MAX_VALUE == endCommentMarkIndex) {
+                return sql;
+            }
+            
             String sqlWithoutCommentsInBeginning = sql.substring(endCommentMarkIndex + endMark.length());
             return removeCommentsInTheBeginning(sqlWithoutCommentsInBeginning, startCommentMarkCount, ++endCommentMarkCount, startMark, endMark);
         }
