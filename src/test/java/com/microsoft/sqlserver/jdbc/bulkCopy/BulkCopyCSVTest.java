@@ -113,29 +113,9 @@ public class BulkCopyCSVTest extends AbstractTest {
     void testCSVFromURL() throws SQLException {
         try {
             InputStream csvFileInputStream = new URL(
-                    "https://raw.githubusercontent.com/Microsoft/mssql-jdbc/dev/src/test/resources/BulkCopyCSVTestInput.csv").openStream();
+                    "https://raw.githubusercontent.com/Microsoft/mssql-jdbc/master/src/test/resources/BulkCopyCSVTestInput.csv").openStream();
             SQLServerBulkCSVFileRecord fileRecord = new SQLServerBulkCSVFileRecord(csvFileInputStream, encoding, delimiter, true);
             testBulkCopyCSV(fileRecord, true);
-        }
-        catch (Exception e) {
-            fail(e.getMessage());
-        }
-    }
-
-    /**
-     * test simple csv file for bulkcopy by passing a file from url with setting firstLineIsColumnNames to false
-     * 
-     * @throws SQLException
-     */
-    @Test
-    @DisplayName("Test SQLServerBulkCSVFileRecord with passing file from url First line not being column name")
-    void testCSVFromURL_NoColumnName() throws SQLException {
-        try {
-            InputStream csvFileInputStream = new URL(
-                    "https://raw.githubusercontent.com/Microsoft/mssql-jdbc/master/src/test/resources/BulkCopyCSVTestInputNoColumnName.csv")
-                            .openStream();
-            SQLServerBulkCSVFileRecord fileRecord = new SQLServerBulkCSVFileRecord(csvFileInputStream, encoding, delimiter, false);
-            testBulkCopyCSV(fileRecord, false);
         }
         catch (Exception e) {
             fail(e.getMessage());
