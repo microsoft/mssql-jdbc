@@ -5593,11 +5593,11 @@ public class SQLServerConnection implements ISQLServerConnection {
     }
 
     /**
-     * Returns the behavior for a specific connection instance. This setting controls how many outstanding prepared statement discard
-     * actions (sp_unprepare) can be outstanding per connection before a call to clean-up the outstanding handles on the server is executed.
-     * If the setting is <= 1 unprepare actions will be executed immedietely on prepared statement close. If it is set to >1 these calls will
-     * be batched together to avoid overhead of calling sp_unprepare too often. 
-     * The default for this option can be changed by calling getDefaultServerPreparedStatementDiscardThreshold(). 
+     * Returns the behavior for a specific connection instance. This setting controls how many outstanding prepared statement discard actions
+     * (sp_unprepare) can be outstanding per connection before a call to clean-up the outstanding handles on the server is executed. If the setting is
+     * less than or equal to 1, unprepare actions will be executed immedietely on prepared statement close. If it is set to more than 1, these calls
+     * will be batched together to avoid overhead of calling sp_unprepare too often. The default for this option can be changed by calling
+     * getDefaultServerPreparedStatementDiscardThreshold().
      * 
      * @return Returns the current setting per the description.
      */
@@ -5708,7 +5708,8 @@ public class SQLServerConnection implements ISQLServerConnection {
 
     /**
      * Specifies the size of the prepared statement cache for this conection. A value less than 1 means no cache.
-     * @value The new cache size.
+     * @param value The new cache size.
+     * 
      */
     public void setStatementPoolingCacheSize(int value) {
         if (value != this.statementPoolingCacheSize) {
