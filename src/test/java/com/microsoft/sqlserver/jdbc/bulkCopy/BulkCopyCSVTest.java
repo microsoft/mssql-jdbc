@@ -8,7 +8,6 @@
 package com.microsoft.sqlserver.jdbc.bulkCopy;
 
 import static org.junit.Assert.fail;
-import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.io.BufferedReader;
 import java.io.FileInputStream;
@@ -16,11 +15,9 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.URL;
 import java.sql.Connection;
-import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
-import java.sql.Statement;
 import java.util.Arrays;
 
 import org.junit.jupiter.api.AfterAll;
@@ -33,9 +30,7 @@ import org.junit.runner.RunWith;
 import com.microsoft.sqlserver.jdbc.ISQLServerBulkRecord;
 import com.microsoft.sqlserver.jdbc.SQLServerBulkCSVFileRecord;
 import com.microsoft.sqlserver.jdbc.SQLServerBulkCopy;
-import com.microsoft.sqlserver.jdbc.SQLServerConnection;
 import com.microsoft.sqlserver.jdbc.SQLServerException;
-import com.microsoft.sqlserver.jdbc.SQLServerStatement;
 import com.microsoft.sqlserver.testframework.AbstractTest;
 import com.microsoft.sqlserver.testframework.DBConnection;
 import com.microsoft.sqlserver.testframework.DBResultSet;
@@ -58,6 +53,7 @@ import com.microsoft.sqlserver.testframework.util.ComparisonUtil;
 public class BulkCopyCSVTest extends AbstractTest {
 
     static String inputFile = "BulkCopyCSVTestInput.csv";
+    static String inputFileNoColumnName = "BulkCopyCSVTestInputNoColumnName.csv";
     static String encoding = "UTF-8";
     static String delimiter = ",";
 
@@ -84,7 +80,23 @@ public class BulkCopyCSVTest extends AbstractTest {
         SQLServerBulkCSVFileRecord fileRecord;
         try {
             fileRecord = new SQLServerBulkCSVFileRecord(filePath + inputFile, encoding, delimiter, true);
-            testBulkCopyCSV(fileRecord);
+            testBulkCopyCSV(fileRecord, true);
+        }
+        catch (SQLServerException e) {
+            fail(e.getMessage());
+        }
+    }
+
+    /**
+     * test simple csv file for bulkcopy first line not being column name
+     */
+    @Test
+    @DisplayName("Test SQLServerBulkCSVFileRecord First line not being column name")
+    void testCSVFirstLineNotColumnName() {
+        SQLServerBulkCSVFileRecord fileRecord;
+        try {
+            fileRecord = new SQLServerBulkCSVFileRecord(filePath + inputFileNoColumnName, encoding, delimiter, false);
+            testBulkCopyCSV(fileRecord, false);
         }
         catch (SQLServerException e) {
             fail(e.getMessage());
@@ -100,20 +112,40 @@ public class BulkCopyCSVTest extends AbstractTest {
     @DisplayName("Test SQLServerBulkCSVFileRecord with passing file from url")
     void testCSVFromURL() throws SQLException {
         try {
-            InputStream csvFileURL = new URL(
-                    "https://raw.githubusercontent.com/Microsoft/mssql-jdbc/master/src/test/resources/BulkCopyCSVTestInput.csv").openStream();
-            SQLServerBulkCSVFileRecord fileRecord = new SQLServerBulkCSVFileRecord(csvFileURL, encoding, delimiter, true);
-            testBulkCopyCSV(fileRecord);
+            InputStream csvFileInputStream = new URL(
+                    "https://raw.githubusercontent.com/Microsoft/mssql-jdbc/dev/src/test/resources/BulkCopyCSVTestInput.csv").openStream();
+            SQLServerBulkCSVFileRecord fileRecord = new SQLServerBulkCSVFileRecord(csvFileInputStream, encoding, delimiter, true);
+            testBulkCopyCSV(fileRecord, true);
         }
         catch (Exception e) {
             fail(e.getMessage());
         }
     }
 
-    private void testBulkCopyCSV(SQLServerBulkCSVFileRecord fileRecord) {
+    /**
+     * test simple csv file for bulkcopy by passing a file from url with setting firstLineIsColumnNames to false
+     * 
+     * @throws SQLException
+     */
+    @Test
+    @DisplayName("Test SQLServerBulkCSVFileRecord with passing file from url First line not being column name")
+    void testCSVFromURL_NoColumnName() throws SQLException {
+        try {
+            InputStream csvFileInputStream = new URL(
+                    "https://raw.githubusercontent.com/Microsoft/mssql-jdbc/master/src/test/resources/BulkCopyCSVTestInputNoColumnName.csv")
+                            .openStream();
+            SQLServerBulkCSVFileRecord fileRecord = new SQLServerBulkCSVFileRecord(csvFileInputStream, encoding, delimiter, false);
+            testBulkCopyCSV(fileRecord, false);
+        }
+        catch (Exception e) {
+            fail(e.getMessage());
+        }
+    }
+
+    private void testBulkCopyCSV(SQLServerBulkCSVFileRecord fileRecord,
+            boolean firstLineIsColumnNames) {
         DBTable destTable = null;
         try {
-
             BufferedReader br = new BufferedReader(new InputStreamReader(new FileInputStream(filePath + inputFile), encoding));
             // read the first line from csv and parse it to get datatypes to create destination column
             String[] columnTypes = br.readLine().substring(1)/* Skip the Byte order mark */.split(delimiter, -1);
@@ -160,7 +192,11 @@ public class BulkCopyCSVTest extends AbstractTest {
             stmt.createTable(destTable);
             bulkCopy.writeToServer((ISQLServerBulkRecord) fileRecord);
             bulkCopy.close();
-            validateValuesFromCSV(destTable);
+            if (firstLineIsColumnNames)
+                validateValuesFromCSV(destTable, inputFile);
+            else
+                validateValuesFromCSV(destTable, inputFileNoColumnName);
+
         }
         catch (Exception e) {
             fail(e.getMessage());
@@ -178,11 +214,13 @@ public class BulkCopyCSVTest extends AbstractTest {
      * 
      * @param destinationTable
      */
-    static void validateValuesFromCSV(DBTable destinationTable) {
+    static void validateValuesFromCSV(DBTable destinationTable,
+            String inputFile) {
         BufferedReader br;
         try {
             br = new BufferedReader(new InputStreamReader(new FileInputStream(filePath + inputFile), encoding));
-            br.readLine();   // skip first line as it is header
+            if (inputFile.equalsIgnoreCase("BulkCopyCSVTestInput.csv"))
+                br.readLine();   // skip first line as it is header
 
             DBResultSet dstResultSet = stmt.executeQuery("SELECT * FROM " + destinationTable.getEscapedTableName() + ";");
             ResultSetMetaData destMeta = ((ResultSet) dstResultSet.product()).getMetaData();
