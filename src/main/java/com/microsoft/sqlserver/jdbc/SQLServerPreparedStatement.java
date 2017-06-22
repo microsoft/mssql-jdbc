@@ -103,7 +103,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         this.prepStmtHandle = handle;
     }
 
-    /** The server handle for this prepared statement. If a value less than 1 is returned no handle has been created. 
+    /** The server handle for this prepared statement. If a value {@literal <} 1 is returned no handle has been created. 
      * 
      * @return 
      *      Per the description.
