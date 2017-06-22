@@ -16,7 +16,6 @@ import java.text.MessageFormat;
 
 /**
  * Enum for valid probBytes for different TDSTypes
- * @author v-afrafi
  *
  */
 enum SqlVariant_ProbBytes
