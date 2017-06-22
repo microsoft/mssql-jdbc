@@ -410,9 +410,26 @@ public class SQLVariantTest extends AbstractTest {
      * @throws IOException
      */
     @Test
-    public void readVarBinary8000() throws SQLException, SecurityException, IOException {
+    public void readBinary8000() throws SQLException, SecurityException, IOException {
         String value = "hi";
         createAndPopulateTable("binary(8000)", "'" + value + "'");
+        SQLServerResultSet rs = (SQLServerResultSet) stmt.executeQuery("SELECT * FROM " + tableName);
+        while (rs.next()) {
+            assertTrue(parseByte((byte[]) rs.getObject(1), (byte[]) value.getBytes()));
+        }
+    }
+
+    /**
+     * read varBinary(8000)
+     * 
+     * @throws SQLException
+     * @throws SecurityException
+     * @throws IOException
+     */
+    @Test
+    public void readvarBinary8000() throws SQLException, SecurityException, IOException {
+        String value = "hi";
+        createAndPopulateTable("varbinary(8000)", "'" + value + "'");
         SQLServerResultSet rs = (SQLServerResultSet) stmt.executeQuery("SELECT * FROM " + tableName);
         while (rs.next()) {
             assertTrue(parseByte((byte[]) rs.getObject(1), (byte[]) value.getBytes()));
@@ -435,15 +452,6 @@ public class SQLVariantTest extends AbstractTest {
         while (rs.next()) {
             assertTrue(rs.getString(1).equalsIgnoreCase("binary"), "unexpected baseType, expected: binary, retrieved:" + rs.getString(1));
         }
-    }
-
-    private boolean parseByte(byte[] expectedData,
-            byte[] retrieved) {
-        assertTrue(Arrays.equals(expectedData, Arrays.copyOf(retrieved, expectedData.length)), " unexpected BINARY value, expected");
-        for (int i = expectedData.length; i < retrieved.length; i++) {
-            assertTrue(0 == retrieved[i], "unexpected data BINARY");
-        }
-        return true;
     }
 
     /**
@@ -530,11 +538,9 @@ public class SQLVariantTest extends AbstractTest {
         pstmt.execute();
 
         SQLServerResultSet rs = (SQLServerResultSet) stmt.executeQuery("SELECT * FROM " + tableName);
-        int i = 0;
         while (rs.next()) {
             assertEquals(rs.getBoolean(1), false);
             // assertEquals(rs.getObject(2), col2Value[i]);
-            i++;
         }
     }
 
@@ -642,7 +648,7 @@ public class SQLVariantTest extends AbstractTest {
         assertEquals(cs.getString(1), String.valueOf(returnValue));
         assertEquals(cs.getString(2), String.valueOf(col1Value));
     }
-    
+
     /**
      * Read several rows from SqlVariant
      * 
@@ -656,17 +662,24 @@ public class SQLVariantTest extends AbstractTest {
         stmt.executeUpdate("IF EXISTS (select * from sysobjects where id = object_id(N'" + tableName + "') "
                 + "and OBJECTPROPERTY(id, N'IsTable') = 1)" + " DROP TABLE " + tableName);
         stmt.executeUpdate("create table " + tableName + " (col1 sql_variant, col2 sql_variant, col3 sql_variant)");
-        stmt.executeUpdate("INSERT into " + tableName + " values (CAST (" + value1 + " AS " + "tinyint" + ")"
-                + ",CAST (" + value2 + " AS " + "int" + ")"
-                        + ",CAST ('" + value3 + "' AS " + "char(2)" + ")"
-                                + ")");  
-      
+        stmt.executeUpdate("INSERT into " + tableName + " values (CAST (" + value1 + " AS " + "tinyint" + ")" + ",CAST (" + value2 + " AS " + "int"
+                + ")" + ",CAST ('" + value3 + "' AS " + "char(2)" + ")" + ")");
+
         SQLServerResultSet rs = (SQLServerResultSet) stmt.executeQuery("SELECT * FROM " + tableName);
         while (rs.next()) {
             assertEquals(rs.getObject(1), value1);
             assertEquals(rs.getObject(2), value2);
             assertEquals(rs.getObject(3), value3);
         }
+    }
+
+    private boolean parseByte(byte[] expectedData,
+            byte[] retrieved) {
+        assertTrue(Arrays.equals(expectedData, Arrays.copyOf(retrieved, expectedData.length)), " unexpected BINARY value, expected");
+        for (int i = expectedData.length; i < retrieved.length; i++) {
+            assertTrue(0 == retrieved[i], "unexpected data BINARY");
+        }
+        return true;
     }
 
     /**

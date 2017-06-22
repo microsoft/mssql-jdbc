@@ -7,10 +7,70 @@
  */
 package com.microsoft.sqlserver.jdbc;
 
+import java.text.MessageFormat;
+
 /**
  * This class holds information regarding the basetype of a sql_variant data. 
  *
  */
+
+/**
+ * Enum for valid probBytes for different TDSTypes
+ *
+ */
+enum SqlVariant_ProbBytes
+{  
+    INTN      (0), 
+    INT8      (0),
+    INT4      (0), 
+    INT2      (0), 
+    INT1      (0),   
+    FLOAT4    (0), 
+    FLOAT8    (0), 
+    DATETIME4 (0), 
+    DATETIME8 (0), 
+    MONEY4    (0), 
+    MONEY8    (0), 
+    BITN      (0),      
+    GUID      (0), 
+    DATEN     (0), 
+    TIMEN     (1),
+    DATETIME2N (1),  
+    DECIMALN   (2), 
+    NUMERICN   (2), 
+    BIGBINARY    (2), 
+    BIGVARBINARY (2),
+    BIGCHAR      (7), 
+    BIGVARCHAR   (7),  
+    NCHAR        (7), 
+    NVARCHAR     (7); 
+
+    private final int intValue;
+
+    private static final int MAXELEMENTS = 23;
+    private static final SqlVariant_ProbBytes valuesTypes[] = new SqlVariant_ProbBytes[MAXELEMENTS];
+
+    int intValue() {
+        return intValue;
+    }
+
+    private SqlVariant_ProbBytes(int intValue) {
+        this.intValue = intValue;
+    }
+    
+    static SqlVariant_ProbBytes valueOf(int intValue) throws IllegalArgumentException {
+        SqlVariant_ProbBytes tdsType;
+
+        if (!(0 <= intValue && intValue < valuesTypes.length) || null == (tdsType = valuesTypes[intValue])) {
+            MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_unknownSSType"));
+            Object[] msgArgs = {new Integer(intValue)};
+            throw new IllegalArgumentException(form.format(msgArgs));
+        }
+
+        return tdsType;
+    }
+   
+}
 public class SqlVariant {
 
     private int baseType;
@@ -24,6 +84,7 @@ public class SqlVariant {
     private boolean isBaseTypeTime = false;  //we need this when we need to read time as timestamp (for instance in bulkcopy)
     private JDBCType baseJDBCType;
     
+
     /**
      * Check if the basetype for variant is of time value
      * @return
