@@ -51,7 +51,6 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.logging.Level;
 
 import javax.sql.XAConnection;
-import javax.xml.bind.DatatypeConverter;
 
 import org.ietf.jgss.GSSCredential;
 import org.ietf.jgss.GSSException;
@@ -3948,7 +3947,6 @@ public class SQLServerConnection implements ISQLServerConnection {
         String sPwd = activeConnectionProperties.getProperty(SQLServerDriverStringProperty.PASSWORD.toString());
         String appName = activeConnectionProperties.getProperty(SQLServerDriverStringProperty.APPLICATION_NAME.toString());
         String interfaceLibName = "Microsoft JDBC Driver " + SQLJdbcVersion.major + "." + SQLJdbcVersion.minor;
-        String interfaceLibVersion = generateInterfaceLibVersion();
         String databaseName = activeConnectionProperties.getProperty(SQLServerDriverStringProperty.DATABASE_NAME.toString());
         String serverName = null;
         // currentConnectPlaceHolder should not be null here. Still doing the check for extra security.
@@ -3981,7 +3979,8 @@ public class SQLServerConnection implements ISQLServerConnection {
         byte appNameBytes[] = toUCS16(appName);
         byte serverNameBytes[] = toUCS16(serverName);
         byte interfaceLibNameBytes[] = toUCS16(interfaceLibName);
-        byte interfaceLibVersionBytes[] = DatatypeConverter.parseHexBinary(interfaceLibVersion);
+        byte interfaceLibVersionBytes[] = {(byte) SQLJdbcVersion.build, (byte) SQLJdbcVersion.patch, (byte) SQLJdbcVersion.minor,
+                (byte) SQLJdbcVersion.major};
         byte databaseNameBytes[] = toUCS16(databaseName);
         byte netAddress[] = new byte[6];
         int len2 = 0;
@@ -4214,52 +4213,6 @@ public class SQLServerConnection implements ISQLServerConnection {
             TDSParser.parse(tdsReader, logonProcessor);
         }
         while (!logonProcessor.complete(logonCommand, tdsReader));
-    }
-
-    private String generateInterfaceLibVersion() {
-
-        StringBuffer outputInterfaceLibVersion = new StringBuffer();
-
-        String interfaceLibMajor = Integer.toHexString(SQLJdbcVersion.major);
-        String interfaceLibMinor = Integer.toHexString(SQLJdbcVersion.minor);
-        String interfaceLibPatch = Integer.toHexString(SQLJdbcVersion.patch);
-        String interfaceLibBuild = Integer.toHexString(SQLJdbcVersion.build);
-
-        // build the interface lib name
-        // 2 characters reserved for build
-        // 2 characters reserved for patch
-        // 2 characters reserved for minor
-        // 2 characters reserved for major
-        if (2 == interfaceLibBuild.length()) {
-            outputInterfaceLibVersion.append(interfaceLibBuild);
-        }
-        else {
-            outputInterfaceLibVersion.append("0");
-            outputInterfaceLibVersion.append(interfaceLibBuild);
-        }
-        if (2 == interfaceLibPatch.length()) {
-            outputInterfaceLibVersion.append(interfaceLibPatch);
-        }
-        else {
-            outputInterfaceLibVersion.append("0");
-            outputInterfaceLibVersion.append(interfaceLibPatch);
-        }
-        if (2 == interfaceLibMinor.length()) {
-            outputInterfaceLibVersion.append(interfaceLibMinor);
-        }
-        else {
-            outputInterfaceLibVersion.append("0");
-            outputInterfaceLibVersion.append(interfaceLibMinor);
-        }
-        if (2 == interfaceLibMajor.length()) {
-            outputInterfaceLibVersion.append(interfaceLibMajor);
-        }
-        else {
-            outputInterfaceLibVersion.append("0");
-            outputInterfaceLibVersion.append(interfaceLibMajor);
-        }
-
-        return outputInterfaceLibVersion.toString();
     }
 
     /* --------------- JDBC 3.0 ------------- */
