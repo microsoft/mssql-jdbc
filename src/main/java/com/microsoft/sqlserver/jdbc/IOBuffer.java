@@ -4962,8 +4962,9 @@ final class TDSWriter {
                       // want to supprot varchar(8000) it becomes as nvarchar, 8000*2 therefore we should send as longvarchar,
                       // but we cannot send more than 8000 cause sql_variant datatype in sql server does not support it.
                       // then throw exception if user is sending more than that
-                      if (dataLength > 16000) {
-                          throw new SQLServerException("Cannot insert more than 8000 char type", null);
+                      if (dataLength > 2 * DataTypes.SHORT_VARTYPE_MAX_BYTES) {
+                          MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidStringValue"));
+                          throw new SQLServerException(null, form.format(new Object[] {}), null, 0, false);
                       }
                       int length = currentColumnStringValue.length();
                       writeSqlVariantHeader(9 + length, TDSType.BIGVARCHAR.byteValue(), (byte) 0x07);

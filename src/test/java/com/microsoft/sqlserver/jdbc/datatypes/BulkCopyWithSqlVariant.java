@@ -26,6 +26,7 @@ import com.microsoft.sqlserver.jdbc.SQLServerBulkCopy;
 import com.microsoft.sqlserver.jdbc.SQLServerConnection;
 import com.microsoft.sqlserver.jdbc.SQLServerResultSet;
 import com.microsoft.sqlserver.testframework.AbstractTest;
+import com.microsoft.sqlserver.testframework.Utils;
 
 /**
  * Test Bulkcopy with sql_variant datatype, testing all underlying supported datatypes
@@ -43,7 +44,7 @@ public class BulkCopyWithSqlVariant extends AbstractTest {
      * 
      * @throws SQLException
      */
-    // @Test
+    @Test
     public void bulkCopyTest_int() throws SQLException {
         int col1Value = 5;
         beforeEachSetup("int", col1Value);
@@ -378,8 +379,8 @@ public class BulkCopyWithSqlVariant extends AbstractTest {
     public void bulkCopyTest_bitNull() throws SQLException {
         int col1Value = 5000;
         beforeEachSetup("bit", null);
-  
-         SQLServerResultSet rs = (SQLServerResultSet) stmt.executeQuery("SELECT * FROM " + tableName);
+
+        SQLServerResultSet rs = (SQLServerResultSet) stmt.executeQuery("SELECT * FROM " + tableName);
 
         SQLServerBulkCopy bulkCopy = new SQLServerBulkCopy(con);
         bulkCopy.setDestinationTableName(destTableName);
