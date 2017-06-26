@@ -24,6 +24,7 @@ import org.junit.runner.RunWith;
 
 import com.microsoft.sqlserver.jdbc.SQLServerConnection;
 import com.microsoft.sqlserver.testframework.AbstractTest;
+import com.microsoft.sqlserver.testframework.Utils;
 import com.microsoft.sqlserver.testframework.util.RandomUtil;
 
 @RunWith(JUnitPlatform.class)
@@ -41,7 +42,7 @@ public class ParameterMetaDataWhiteSpaceTest extends AbstractTest {
 
     @AfterAll
     public static void dropTables() throws SQLException {
-        stmt.execute("if object_id('" + tableName + "','U') is not null" + " drop table " + tableName);
+        Utils.dropTableIfExists(tableName, stmt);
 
         if (null != stmt) {
             stmt.close();
