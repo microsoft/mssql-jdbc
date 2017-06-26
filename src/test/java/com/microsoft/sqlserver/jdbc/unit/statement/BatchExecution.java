@@ -54,10 +54,6 @@ public class BatchExecution extends AbstractTest {
         int retValue[] = {0, 0, 0};
         try {
             String sPrepStmt = "update ctstable2 set PRICE=PRICE*20 where TYPE_ID=?";
-
-            System.out.println("Prepared Statement String :" + sPrepStmt);
-
-            System.out.println("get the PreparedStatement object");
             pstmt = connection.prepareStatement(sPrepStmt);
             pstmt.setInt(1, 2);
             pstmt.addBatch();
