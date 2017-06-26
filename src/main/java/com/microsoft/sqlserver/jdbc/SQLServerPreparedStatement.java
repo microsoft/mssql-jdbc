@@ -925,22 +925,23 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 			cachedPreparedStatementHandle = null;
 		}
 		
-		// Check for new cache reference.
-		if (null == cachedPreparedStatementHandle) {
-			PreparedStatementHandle cachedHandle = connection.getCachedPreparedStatementHandle(new Sha1HashKey(preparedSQL, preparedTypeDefinitions));
-	
-			// If handle was found then re-use.
-			if (null != cachedHandle) {
+		 // Check for new cache reference.
+        if (null == cachedPreparedStatementHandle) {
+            PreparedStatementHandle cachedHandle = connection.getCachedPreparedStatementHandle(new Sha1HashKey(preparedSQL, preparedTypeDefinitions));
 
-				// If existing handle was found and we can add reference to it, use it.
-				if (cachedHandle.tryAddReference()) {
-					setPreparedStatementHandle(cachedHandle.getHandle());
-					cachedPreparedStatementHandle = cachedHandle;
-                    return true;
-				}
-			}
-		}
-		return false;
+            // If handle was found then re-use, only if AE is not on, or if it is on, make sure encryptionMetadataIsRetrieved is retrieved.
+            if (null != cachedHandle) {
+                if (!connection.isColumnEncryptionSettingEnabled()
+                        || (connection.isColumnEncryptionSettingEnabled() && encryptionMetadataIsRetrieved)) {
+                    if (cachedHandle.tryAddReference()) {
+                        setPreparedStatementHandle(cachedHandle.getHandle());
+                        cachedPreparedStatementHandle = cachedHandle;
+                        return true;
+                    }
+                }
+            }
+        }
+        return false;
 	}
 
     private boolean doPrepExec(TDSWriter tdsWriter,
