@@ -41,6 +41,8 @@ public final class Weighers {
    * A entry weigher backed by the specified weigher. The weight of the value
    * determines the weight of the entry.
    *
+   * @param <K> K
+   * @param <V> V
    * @param weigher the weigher to be "wrapped" in a entry weigher.
    * @return A entry weigher view of the specified weigher.
    */
@@ -56,6 +58,8 @@ public final class Weighers {
    * this weigher will evict when the number of key-value pairs exceeds the
    * capacity.
    *
+   * @param <K> K
+   * @param <V> V
    * @return A weigher where a value takes one unit of capacity.
    */
   @SuppressWarnings({"cast", "unchecked"})
@@ -68,6 +72,7 @@ public final class Weighers {
    * this weigher will evict when the number of key-value pairs exceeds the
    * capacity.
    *
+   * @param <V> V
    * @return A weigher where a value takes one unit of capacity.
    */
   @SuppressWarnings({"cast", "unchecked"})
@@ -105,7 +110,8 @@ public final class Weighers {
    * with this weight can occur then the caller should eagerly evaluate the
    * value and treat it as a removal operation. Alternatively, a custom weigher
    * may be specified on the map to assign an empty value a positive weight.
-   *
+   * 
+   * @param <E> E
    * @return A weigher where each element takes one unit of capacity.
    */
   @SuppressWarnings({"cast", "unchecked"})
@@ -124,6 +130,7 @@ public final class Weighers {
    * value and treat it as a removal operation. Alternatively, a custom weigher
    * may be specified on the map to assign an empty value a positive weight.
    *
+   * @param <E> E
    * @return A weigher where each element takes one unit of capacity.
    */
   @SuppressWarnings({"cast", "unchecked"})
@@ -142,6 +149,7 @@ public final class Weighers {
    * value and treat it as a removal operation. Alternatively, a custom weigher
    * may be specified on the map to assign an empty value a positive weight.
    *
+   * @param <E> E
    * @return A weigher where each element takes one unit of capacity.
    */
   @SuppressWarnings({"cast", "unchecked"})
@@ -160,6 +168,7 @@ public final class Weighers {
    * value and treat it as a removal operation. Alternatively, a custom weigher
    * may be specified on the map to assign an empty value a positive weight.
    *
+   * @param <E> E
    * @return A weigher where each element takes one unit of capacity.
    */
   @SuppressWarnings({"cast", "unchecked"})
@@ -178,6 +187,8 @@ public final class Weighers {
    * value and treat it as a removal operation. Alternatively, a custom weigher
    * may be specified on the map to assign an empty value a positive weight.
    *
+   * @param <A> A
+   * @param <B> B
    * @return A weigher where each entry takes one unit of capacity.
    */
   @SuppressWarnings({"cast", "unchecked"})
