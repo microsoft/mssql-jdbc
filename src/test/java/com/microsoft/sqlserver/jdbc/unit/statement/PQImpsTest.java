@@ -418,7 +418,7 @@ public class PQImpsTest extends AbstractTest {
     }
     
     private static void createSpaceTable() throws SQLException {
-        stmt.execute("Create table " + spaceTable + " (" + "[c1*/someStrintg withspace] char(50) not null," + "c2 varchar(20) not null,"
+        stmt.execute("Create table " + spaceTable + " (" + "[c1*/someString withspace] char(50) not null," + "c2 varchar(20) not null,"
                 + "c3 nchar(30) not null," + "c4 nvarchar(60) not null," + "c5 text not null," + "c6 ntext not null" + ")");
     }
 
@@ -1321,7 +1321,7 @@ public class PQImpsTest extends AbstractTest {
      */
     @Test
     public void testQueryWithSpaceAndEndCommentMarkInColumnName() throws SQLServerException {
-        pstmt = connection.prepareStatement("SELECT [c1*/someStrintg withspace] from " + spaceTable);
+        pstmt = connection.prepareStatement("SELECT [c1*/someString withspace] from " + spaceTable);
 
         try {
             pstmt.getParameterMetaData();
