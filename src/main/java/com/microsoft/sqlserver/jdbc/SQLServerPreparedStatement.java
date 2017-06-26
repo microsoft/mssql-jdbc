@@ -103,10 +103,11 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         this.prepStmtHandle = handle;
     }
 
-    /** The server handle for this prepared statement. If a value < 1 is returned no handle has been created. 
+    /** The server handle for this prepared statement. If a value {@literal <} 1 is returned no handle has been created. 
      * 
      * @return 
      *      Per the description.
+     * @throws SQLServerException when an error occurs
     */
     public int getPreparedStatementHandle() throws SQLServerException {
         checkClosed();        
@@ -2963,11 +2964,13 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     /**
      * Returns parameter metadata for the prepared statement.
      * 
-     * @forceRefresh
+     * @param forceRefresh:
      *               If true the cache will not be used to retrieve the metadata.
      * 
      * @return 
      *              Per the description.
+     * 
+     * @throws SQLServerException when an error occurs
      */
     public final ParameterMetaData getParameterMetaData(boolean forceRefresh) throws SQLServerException {
 

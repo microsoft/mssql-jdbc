@@ -1479,6 +1479,8 @@ public final class ConcurrentLinkedHashMap<K, V> extends AbstractMap<K, V>
      *
      * @param initialCapacity the initial capacity used to size the hash table
      *     to accommodate this many entries.
+     *     
+     * @return Builder
      * @throws IllegalArgumentException if the initialCapacity is negative
      */
     public Builder<K, V> initialCapacity(int initialCapacity) {
@@ -1492,6 +1494,7 @@ public final class ConcurrentLinkedHashMap<K, V> extends AbstractMap<K, V>
      * exceed it temporarily.
      *
      * @param capacity the weighted threshold to bound the map by
+     * @return Builder
      * @throws IllegalArgumentException if the maximumWeightedCapacity is
      *     negative
      */
@@ -1508,6 +1511,7 @@ public final class ConcurrentLinkedHashMap<K, V> extends AbstractMap<K, V>
      *
      * @param concurrencyLevel the estimated number of concurrently updating
      *     threads
+     * @return Builder
      * @throws IllegalArgumentException if the concurrencyLevel is less than or
      *     equal to zero
      */
@@ -1522,6 +1526,7 @@ public final class ConcurrentLinkedHashMap<K, V> extends AbstractMap<K, V>
      * an entry is evicted.
      *
      * @param listener the object to forward evicted entries to
+     * @return Builder
      * @throws NullPointerException if the listener is null
      */
     public Builder<K, V> listener(EvictionListener<K, V> listener) {
@@ -1536,6 +1541,7 @@ public final class ConcurrentLinkedHashMap<K, V> extends AbstractMap<K, V>
      * key-value pairs by giving each entry a weight of <tt>1</tt>.
      *
      * @param weigher the algorithm to determine a value's weight
+     * @return Builder
      * @throws NullPointerException if the weigher is null
      */
     public Builder<K, V> weigher(Weigher<? super V> weigher) {
@@ -1551,6 +1557,7 @@ public final class ConcurrentLinkedHashMap<K, V> extends AbstractMap<K, V>
      * key-value pairs by giving each entry a weight of <tt>1</tt>.
      *
      * @param weigher the algorithm to determine a entry's weight
+     * @return Builder
      * @throws NullPointerException if the weigher is null
      */
     public Builder<K, V> weigher(EntryWeigher<? super K, ? super V> weigher) {
@@ -1563,6 +1570,7 @@ public final class ConcurrentLinkedHashMap<K, V> extends AbstractMap<K, V>
     /**
      * Creates a new {@link ConcurrentLinkedHashMap} instance.
      *
+     * @return ConcurrentLinkedHashMap
      * @throws IllegalStateException if the maximum weighted capacity was
      *     not set
      */
