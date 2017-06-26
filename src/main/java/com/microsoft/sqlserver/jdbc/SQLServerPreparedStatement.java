@@ -2562,7 +2562,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
             // Get the encryption metadata for the first batch only.
             if ((0 == numBatchesExecuted) && (Util.shouldHonorAEForParameters(stmtColumnEncriptionSetting, connection)) && (0 < batchParam.length)
-                    && !isInternalEncryptionQuery) {
+                    && !isInternalEncryptionQuery && !encryptionMetadataIsRetrieved) {
                 getParameterEncryptionMetadata(batchParam);
 
                 // fix an issue when inserting unicode into non-encrypted nchar column using setString() and AE is on on Connection
