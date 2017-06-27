@@ -132,14 +132,14 @@ public final class SQLServerException extends java.sql.SQLException {
      * @param cause
      *            The exception that caused this exception
      */
-    SQLServerException(String errText,
+    public SQLServerException(String errText,
             SQLState sqlState,
             DriverError driverError,
             Throwable cause) {
         this(errText, sqlState.getSQLStateCode(), driverError.getErrorCode(), cause);
     }
 
-    SQLServerException(String errText,
+    public SQLServerException(String errText,
             String errState,
             int errNum,
             Throwable cause) {
@@ -149,7 +149,7 @@ public final class SQLServerException extends java.sql.SQLException {
         ActivityCorrelator.setCurrentActivityIdSentFlag(); // set the activityid flag so that we don't send the current ActivityId later.
     }
 
-    SQLServerException(String errText,
+    public SQLServerException(String errText,
             Throwable cause) {
         super(errText);
         initCause(cause);
@@ -157,7 +157,7 @@ public final class SQLServerException extends java.sql.SQLException {
         ActivityCorrelator.setCurrentActivityIdSentFlag();
     }
 
-    /* L0 */ SQLServerException(Object obj,
+    /* L0 */ public SQLServerException(Object obj,
             String errText,
             String errState,
             int errNum,
@@ -180,7 +180,7 @@ public final class SQLServerException extends java.sql.SQLException {
      * @param bStack
      *            true to generate the stack trace
      */
-    /* L0 */ SQLServerException(Object obj,
+    /* L0 */ public SQLServerException(Object obj,
             String errText,
             String errState,
             StreamError streamError,
