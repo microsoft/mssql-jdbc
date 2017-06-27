@@ -45,9 +45,11 @@ public class ComparisonUtil {
         if (srcTable.getColumns().size() != destTable.getColumns().size()) {
             fail("Souce table and Destination table have different number of columns.");
         }
-        
-        DBResultSet srcResultSet = con.createStatement().executeQuery("SELECT * FROM " + srcTable.getEscapedTableName() + " ORDER BY [" + srcTable.getColumnName(1) + "], [" + srcTable.getColumnName(2) + "],[" + srcTable.getColumnName(3)+"];");
-        DBResultSet dstResultSet = con.createStatement().executeQuery("SELECT * FROM " + destTable.getEscapedTableName() + " ORDER BY [" + destTable.getColumnName(1) + "], [" + destTable.getColumnName(2) + "],[" + destTable.getColumnName(3)+"];");
+
+        DBResultSet srcResultSet = con.createStatement().executeQuery("SELECT * FROM " + srcTable.getEscapedTableName() + " ORDER BY ["
+                + srcTable.getColumnName(1) + "], [" + srcTable.getColumnName(2) + "],[" + srcTable.getColumnName(3) + "];");
+        DBResultSet dstResultSet = con.createStatement().executeQuery("SELECT * FROM " + destTable.getEscapedTableName() + " ORDER BY ["
+                + destTable.getColumnName(1) + "], [" + destTable.getColumnName(2) + "],[" + destTable.getColumnName(3) + "];");
 
         while (srcResultSet.next() && dstResultSet.next()) {
             for (int i = 0; i < destTable.getColumns().size(); i++) {
@@ -57,7 +59,7 @@ public class ComparisonUtil {
                 int srcJDBCTypeInt = srcMeta.getColumnType(i + 1);
                 int destJDBCTypeInt = destMeta.getColumnType(i + 1);
 
-                // varify column types
+                // verify column types
                 if (srcJDBCTypeInt != destJDBCTypeInt) {
                     fail("Souce table and Destination table have different number of columns.");
                 }
