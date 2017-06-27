@@ -4087,7 +4087,6 @@ final class TDSWriter {
             logger.finest(toString() + " Writing " + length + " bytes");
 
         while ((bytesToWrite = length - bytesWritten) > 0) {
-            System.out.println("stagingBuffer remaining is: " + stagingBuffer.remaining());
             if (0 == stagingBuffer.remaining())
                 writePacket(TDS.STATUS_NORMAL);
 
@@ -4144,7 +4143,6 @@ final class TDSWriter {
         int charsCopied = 0;
         int length = value.length();
         while (charsCopied < length) {
-            System.out.println("chars coppied: " + charsCopied);
             int bytesToCopy = 2 * (length - charsCopied);
 
             if (bytesToCopy > valueBytes.length)
