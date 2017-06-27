@@ -308,7 +308,8 @@ enum SQLServerDriverBooleanProperty
 	TRUST_SERVER_CERTIFICATE                  ("trustServerCertificate",                    false),
 	XOPEN_STATES                              ("xopenStates",                               false),
 	FIPS                                      ("fips",                                      false),
-	ENABLE_PREPARE_ON_FIRST_PREPARED_STATEMENT("enablePrepareOnFirstPreparedStatementCall", false/*This is not the default, default handled in SQLServerConnection and is not final/const*/);
+	ENABLE_PREPARE_ON_FIRST_PREPARED_STATEMENT("enablePrepareOnFirstPreparedStatementCall", false/*This is not the default, default handled in SQLServerConnection and is not final/const*/),
+	MULTIPLE_ACTIVE_RESULT_SETS               ("MultipleActiveResultSets",                  false);
 
     private final String name;
     private final boolean defaultValue;
@@ -381,6 +382,8 @@ public final class SQLServerDriver implements java.sql.Driver {
         new SQLServerDriverPropertyInfo(SQLServerDriverBooleanProperty.ENABLE_PREPARE_ON_FIRST_PREPARED_STATEMENT.toString(), Boolean.toString(SQLServerConnection.getDefaultEnablePrepareOnFirstPreparedStatementCall()),      	  false,      TRUE_FALSE),
         new SQLServerDriverPropertyInfo(SQLServerDriverIntProperty.SERVER_PREPARED_STATEMENT_DISCARD_THRESHOLD.toString(),    Integer.toString(SQLServerConnection.getDefaultServerPreparedStatementDiscardThreshold()),        	  false,      null),
         new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.JAAS_CONFIG_NAME.toString(),                            SQLServerDriverStringProperty.JAAS_CONFIG_NAME.getDefaultValue(),                                       false,      null),
+        new SQLServerDriverPropertyInfo(SQLServerDriverBooleanProperty.MULTIPLE_ACTIVE_RESULT_SETS.toString(),                Boolean.toString(SQLServerDriverBooleanProperty.MULTIPLE_ACTIVE_RESULT_SETS.getDefaultValue()),         false,      TRUE_FALSE)
+
     };
 
     // Properties that can only be set by using Properties.

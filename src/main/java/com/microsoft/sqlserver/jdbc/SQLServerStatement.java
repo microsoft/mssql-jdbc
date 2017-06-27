@@ -24,6 +24,8 @@ import java.util.logging.Level;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import com.microsoft.sqlserver.jdbc.TDSChannel.SMPSession;
+
 /**
  * SQLServerStatment provides the basic implementation of JDBC statement functionality. It also provides a number of base class implementation methods
  * for the JDBC prepared statement and callable Statements. SQLServerStatement's basic role is to execute SQL statements and return update counts and
@@ -46,6 +48,8 @@ import java.util.regex.Pattern;
 public class SQLServerStatement implements ISQLServerStatement {
     final static char LEFT_CURLY_BRACKET = 123;
     final static char RIGHT_CURLY_BRACKET = 125;
+    
+    int SID;
 
     private boolean isResponseBufferingAdaptive = false;
 
@@ -216,7 +220,13 @@ public class SQLServerStatement implements ISQLServerStatement {
         // Set the new command as the current command so that
         // its execution can be cancelled from another thread
         currentCommand = newCommand;
-        connection.executeCommand(newCommand);
+        
+        if(connection.getMultipleActiveResultSets()){
+            connection.executeCommand(newCommand, this);
+        }
+        else{
+            connection.executeCommand(newCommand);
+        }
     }
 
     /**
@@ -840,7 +850,7 @@ public class SQLServerStatement implements ISQLServerStatement {
                 stmtlogger.fine(toString() + " Executing (not server cursor) " + sql);
 
             // Start the response
-            ensureExecuteResultsReader(execCmd.startResponse(isResponseBufferingAdaptive));
+            ensureExecuteResultsReader(execCmd.startResponse(isResponseBufferingAdaptive, connection.getMultipleActiveResultSets(), this.SID));
             startResults();
             getNextResult();
         }
@@ -906,7 +916,7 @@ public class SQLServerStatement implements ISQLServerStatement {
         }
 
         // Start the response
-        ensureExecuteResultsReader(execCmd.startResponse(isResponseBufferingAdaptive));
+        ensureExecuteResultsReader(execCmd.startResponse(isResponseBufferingAdaptive, connection.getMultipleActiveResultSets(), this.SID));
         startResults();
         getNextResult();
 
@@ -1931,7 +1941,7 @@ public class SQLServerStatement implements ISQLServerStatement {
         // <rowcount> OUT
         tdsWriter.writeRPCInt(null, new Integer(0), true);
 
-        ensureExecuteResultsReader(execCmd.startResponse(isResponseBufferingAdaptive));
+        ensureExecuteResultsReader(execCmd.startResponse(isResponseBufferingAdaptive, connection.getMultipleActiveResultSets(), this.SID));
         startResults();
         getNextResult();
     }

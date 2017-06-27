@@ -141,6 +141,36 @@ final class Util {
         valueBytes[offset + 0] = (byte) ((value >> 8) & 0xFF);
         valueBytes[offset + 1] = (byte) ((value >> 0) & 0xFF);
     }
+    
+    static void writeUnsignedShort(int value, 
+            byte valueBytes[], 
+            int offset) { 
+        valueBytes[offset + 0] = (byte) ((value >> 0) & 0xFF); 
+        valueBytes[offset + 1] = (byte) ((value >> 8) & 0xFF); 
+    } 
+ 
+    /** 
+     * Read an unsigned int (32 bits) from a byte stream. Stored in long to preserve unsigned value 
+     *  
+     * @param data 
+     *            the databytes 
+     * @param nOffset 
+     *            offset to read from 
+     * @return the value 
+     */ 
+    static long readUnsignedInt(byte data[], 
+            int nOffset) { 
+        return (readUnsignedShort(data, nOffset) & 0xFFFFFFFF) | ((readUnsignedShort(data, nOffset + 2) & 0xFFFFFFFF) << 16); 
+    } 
+ 
+    static void writeUnsignedInt(long value, 
+            byte valueBytes[], 
+            int offset) { 
+        valueBytes[offset + 0] = (byte) ((value >> 0) & 0xFF); 
+        valueBytes[offset + 1] = (byte) ((value >> 8) & 0xFF); 
+        valueBytes[offset + 2] = (byte) ((value >> 16) & 0xFF); 
+        valueBytes[offset + 3] = (byte) ((value >> 24) & 0xFF); 
+    } 
 
     /**
      * Read an int from a byte stream

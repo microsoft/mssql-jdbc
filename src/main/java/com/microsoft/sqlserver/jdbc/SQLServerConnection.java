@@ -54,6 +54,7 @@ import javax.sql.XAConnection;
 
 import org.ietf.jgss.GSSCredential;
 import org.ietf.jgss.GSSException;
+import com.microsoft.sqlserver.jdbc.TDSChannel.SMPSession; 
 
 /**
  * SQLServerConnection implements a JDBC connection to SQL Server. SQLServerConnections support JDBC connection pooling and may be either physical
@@ -277,6 +278,12 @@ public class SQLServerConnection implements ISQLServerConnection {
         return queryTimeoutSeconds;
     }
 
+    private boolean multipleActiveResultSets;
+    
+    final boolean getMultipleActiveResultSets(){
+        return multipleActiveResultSets;
+    }
+    
     private int socketTimeoutMilliseconds;
 
     final int getSocketTimeoutMilliseconds() {
@@ -2042,9 +2049,10 @@ public class SQLServerConnection implements ISQLServerConnection {
 
         byte[] preloginOptionsBeforeFedAuth = {
                 // OPTION_TOKEN (BYTE), OFFSET (USHORT), LENGTH (USHORT)
-                TDS.B_PRELOGIN_OPTION_VERSION, 0, (byte) (16 + fedAuthOffset), 0, 6, // UL_VERSION + US_SUBBUILD
-                TDS.B_PRELOGIN_OPTION_ENCRYPTION, 0, (byte) (22 + fedAuthOffset), 0, 1, // B_FENCRYPTION
-                TDS.B_PRELOGIN_OPTION_TRACEID, 0, (byte) (23 + fedAuthOffset), 0, 36, // ClientConnectionId + ActivityId
+                TDS.B_PRELOGIN_OPTION_VERSION, 0, (byte) (21 + fedAuthOffset), 0, 6, // UL_VERSION + US_SUBBUILD
+                TDS.B_PRELOGIN_OPTION_ENCRYPTION, 0, (byte) (27 + fedAuthOffset), 0, 1, // B_FENCRYPTION
+                TDS.B_PRELOGIN_OPTION_MARS, 0, (byte) (28 + fedAuthOffset), 0, 1, // B_MARS
+                TDS.B_PRELOGIN_OPTION_TRACEID, 0, (byte) (29 + fedAuthOffset), 0, 36, // ClientConnectionId + ActivityId
         };
         System.arraycopy(preloginOptionsBeforeFedAuth, 0, preloginRequest, preloginRequestOffset, preloginOptionsBeforeFedAuth.length);
         preloginRequestOffset = preloginRequestOffset + preloginOptionsBeforeFedAuth.length;
@@ -2057,6 +2065,19 @@ public class SQLServerConnection implements ISQLServerConnection {
 
         preloginRequest[preloginRequestOffset] = TDS.B_PRELOGIN_OPTION_TERMINATOR;
         preloginRequestOffset++;
+        
+        try{
+            multipleActiveResultSets = activeConnectionProperties.getProperty("MultipleActiveResultSets").contains("true"); 
+        }
+        catch(Exception e){
+            multipleActiveResultSets = false;
+        }
+        
+        byte marsByte;
+        if(multipleActiveResultSets)
+            marsByte = 1;
+        else
+            marsByte = 0;
 
         // PL_OPTION_DATA
         byte[] preloginOptionData = {
@@ -2066,6 +2087,9 @@ public class SQLServerConnection implements ISQLServerConnection {
 
                 // - Encryption -
                 requestedEncryptionLevel,
+                
+                // - MARS -
+                marsByte,
 
                 // TRACEID Data Session (ClientConnectionId + ActivityId) - Initialize to 0
                 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,};
@@ -2326,6 +2350,21 @@ public class SQLServerConnection implements ISQLServerConnection {
                     }
                     break;
 
+                case TDS.B_PRELOGIN_OPTION_MARS:
+                    System.out.println("reading mars response");
+                    
+                    if(1 != optionLength){
+                        connectionlogger.warning(toString() + " MARS option length:" + optionLength + " is incorrect.  Correct value is 1."); 
+                        throwInvalidTDS();
+                    }
+                    
+                    if(0 != preloginResponse[optionOffset] && 1 != preloginResponse[optionOffset]){
+                        connectionlogger.warning(toString() + " MARS option set to:" + preloginResponse[optionOffset] 
+                                + " is incorrect.  Correct value is 1 for Enabled or 0 for Disabled."); 
+                        throwInvalidTDS();
+                    }
+                    break;
+                    
                 default:
                     if (connectionlogger.isLoggable(Level.FINER))
                         connectionlogger.finer(toString() + " Ignoring prelogin response option:" + optionToken);
@@ -2388,6 +2427,11 @@ public class SQLServerConnection implements ISQLServerConnection {
     }
 
     private final Object schedulerLock = new Object();
+    
+    boolean executeCommand(TDSCommand newCommand) throws SQLServerException { 
+        return executeCommand(newCommand, null); 
+ 
+    } 
 
     /**
      * Executes a command through the scheduler.
@@ -2395,14 +2439,14 @@ public class SQLServerConnection implements ISQLServerConnection {
      * @param newCommand
      *            the command to execute
      */
-    boolean executeCommand(TDSCommand newCommand) throws SQLServerException {
+    boolean executeCommand(TDSCommand newCommand, SQLServerStatement sqlServerStatement) throws SQLServerException {
         synchronized (schedulerLock) {
             // Detach (buffer) the response from any previously executing
             // command so that we can execute the new command.
             //
             // Note that detaching the response does not process it. Detaching just
             // buffers the response off of the wire to clear the TDS channel.
-            if (null != currentCommand) {
+            if (null != currentCommand && (!getMultipleActiveResultSets())) {
                 currentCommand.detach();
                 currentCommand = null;
             }
@@ -2413,6 +2457,18 @@ public class SQLServerConnection implements ISQLServerConnection {
             // serialize command execution.
             boolean commandComplete = false;
             try {
+                System.out.println(newCommand.getClass().getSimpleName()); 
+                if ((newCommand.getClass().getSimpleName().toString().equalsIgnoreCase("StmtExecCmd") 
+                        || (newCommand.getClass().getSimpleName().toString().equalsIgnoreCase("PrepStmtExecCmd"))) && getMultipleActiveResultSets()) { 
+                    System.out.println("Sending syn packet"); 
+                    SMPSession session = new SMPSession(); 
+                    session.prepareControlPacket(FLAGTYPE.SYN); 
+                    tdsChannel.write(session.SMPpacket, 0, (int) session.length); 
+ 
+                    tdsChannel.flush(); 
+                    sqlServerStatement.SID = session.sid;
+                }
+                
                 commandComplete = newCommand.execute(tdsChannel.getWriter(), tdsChannel.getReader(newCommand));
             }
             finally {
@@ -3121,6 +3177,14 @@ public class SQLServerConnection implements ISQLServerConnection {
                             connectionlogger.finer(toString() + " Release of the credentials failed GSSException: " + e);
                     }
                 }
+            }
+            
+            if(getMultipleActiveResultSets()){
+                
+                System.out.println("Sending syn packet");
+                SMPSession session = new SMPSession();
+                session.prepareControlPacket(FLAGTYPE.SYN);
+                tdsChannel.write(session.SMPpacket, 0, (int) session.length);
             }
         }
     }
