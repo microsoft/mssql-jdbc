@@ -29,6 +29,7 @@ import org.opentest4j.TestAbortedException;
 import com.microsoft.sqlserver.jdbc.SQLServerStatement;
 import com.microsoft.sqlserver.testframework.AbstractTest;
 import com.microsoft.sqlserver.testframework.DBConnection;
+import com.microsoft.sqlserver.testframework.Utils;
 
 /**
  * Tests batch execution with AE On connection
@@ -49,6 +50,10 @@ public class BatchExecution extends AbstractTest {
         testExecuteBatch1();
     }
 
+    /**
+     * Get a PreparedStatement object and call the addBatch() method with 3 SQL statements and call the executeBatch() method and it should return
+     * array of Integer values of length 3
+     */
     public void testAddBatch1() {
         int i = 0;
         int retValue[] = {0, 0, 0};
@@ -85,7 +90,6 @@ public class BatchExecution extends AbstractTest {
 
             for (int j = 0; j < updateCount.length; j++) {
 
-                System.out.println("" + updateCount[j] + ", " + retValue[j]);
                 if (updateCount[j] != retValue[j] && updateCount[j] != Statement.SUCCESS_NO_INFO) {
                     fail("affected row count does not match with the updateCount value, Call to addBatch is Failed!");
                 }
@@ -102,6 +106,10 @@ public class BatchExecution extends AbstractTest {
         }
     }
 
+    /**
+     * Get a PreparedStatement object and call the addBatch() method with a 3 valid SQL statements and call the executeBatch() method It should return
+     * an array of Integer values of length 3.
+     */
     public void testExecuteBatch1() {
         int i = 0;
         int retValue[] = {0, 0, 0};
@@ -138,7 +146,6 @@ public class BatchExecution extends AbstractTest {
             pstmt1.close();
 
             for (int j = 0; j < updateCount.length; j++) {
-                System.out.println("" + updateCount[j] + ", " + retValue[j]);
                 if (updateCount[j] != retValue[j] && updateCount[j] != Statement.SUCCESS_NO_INFO) {
                     fail("executeBatch does not execute the Batch of SQL statements, Call to executeBatch is Failed!");
                 }
@@ -188,8 +195,8 @@ public class BatchExecution extends AbstractTest {
     }
 
     private static void dropTable() throws SQLException {
-        stmt.executeUpdate("if object_id('" + "ctstable2" + "','U') is not null" + " drop table " + "ctstable2");
-        stmt.executeUpdate("if object_id('" + "ctstable1" + "','U') is not null" + " drop table " + "ctstable1");
+        Utils.dropTableIfExists("ctstable2", stmt);
+        Utils.dropTableIfExists("ctstable1", stmt);
     }
 
     @AfterAll
@@ -208,6 +215,9 @@ public class BatchExecution extends AbstractTest {
         }
         if (null != stmt) {
             stmt.close();
+        }
+        if (null != rs) {
+            rs.close();
         }
     }
 }
