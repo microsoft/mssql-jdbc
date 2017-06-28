@@ -44,6 +44,11 @@ public class BatchExecutionTest extends AbstractTest {
     static PreparedStatement pstmt1 = null;
     static ResultSet rs = null;
 
+    /**
+     * testAddBatch1 and testExecutionBatch one looks similar except for the parameters being passed for select query. 
+     * TODO: we should look and simply the test later by parameterized values
+     * @throws Exception
+     */
     @Test
     public void testBatchExceptionAEOn() throws Exception {
         testAddBatch1();
