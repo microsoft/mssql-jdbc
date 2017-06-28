@@ -462,7 +462,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
         doPrepExec(tdsWriter, inOutParam, hasNewTypeDefinitions);
 
-        ensureExecuteResultsReader(command.startResponse(getIsResponseBufferingAdaptive()));
+        ensureExecuteResultsReader(command.startResponse(getIsResponseBufferingAdaptive(), connection.getMultipleActiveResultSets(), this.SID));
         startResults();
         getNextResult();
 
@@ -2465,7 +2465,8 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
             // that repreparation is necessary.
             ++numBatchesPrepared;
             if (doPrepExec(tdsWriter, batchParam, hasNewTypeDefinitions) || numBatchesPrepared == numBatches) {
-                ensureExecuteResultsReader(batchCommand.startResponse(getIsResponseBufferingAdaptive()));
+                ensureExecuteResultsReader( 
+                        batchCommand.startResponse(getIsResponseBufferingAdaptive(), connection.getMultipleActiveResultSets(), this.SID));
 
                 while (numBatchesExecuted < numBatchesPrepared) {
                     // NOTE:

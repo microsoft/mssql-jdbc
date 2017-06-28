@@ -6349,7 +6349,8 @@ public class SQLServerResultSet implements ISQLServerResultSet {
             // can do a forward only updatable pass through a ResultSet with large
             // data values.
             tdsReader = startResponse(isForwardOnly() && CONCUR_READ_ONLY != stmt.resultSetConcurrency
-                    && stmt.getExecProps().wasResponseBufferingSet() && stmt.getExecProps().isResponseBufferingAdaptive());
+                    && stmt.getExecProps().wasResponseBufferingSet() && stmt.getExecProps().isResponseBufferingAdaptive(),
+                    stmt.connection.getMultipleActiveResultSets(), stmt.SID);
 
             return false;
         }

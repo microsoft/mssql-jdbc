@@ -383,5 +383,6 @@ public final class SQLServerResource extends ListResourceBundle {
 				{"R_kerberosLoginFailed", "Kerberos Login failed: {0} due to {1} ({2})"},
 				{"R_StoredProcedureNotFound", "Could not find stored procedure ''{0}''."},
 				{"R_jaasConfigurationNamePropertyDescription", "Login configuration file for Kerberos authentication."},
+				{"R_MultipleActiveResultSetsPropertyDescription", "The connection property which dictates if MARS is enabled on disabled"},
     };
 }

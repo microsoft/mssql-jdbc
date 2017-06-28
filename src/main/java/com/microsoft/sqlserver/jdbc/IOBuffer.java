@@ -47,12 +47,14 @@ import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Collection;
 import java.util.GregorianCalendar;
+import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Queue;
 import java.util.Set;
 import java.util.SimpleTimeZone;
 import java.util.TimeZone;
@@ -73,6 +75,8 @@ import javax.net.ssl.TrustManager;
 import javax.net.ssl.TrustManagerFactory;
 import javax.net.ssl.X509TrustManager;
 import javax.xml.bind.DatatypeConverter;
+
+import com.microsoft.sqlserver.jdbc.TDSChannel.SMPSession;
 
 final class TDS {
     // TDS protocol versions
@@ -236,6 +240,18 @@ final class TDS {
     static final byte PKT_SSPI = 17;
     static final byte PKT_PRELOGIN = 18; // 0x12
     static final byte PKT_FEDAUTH_TOKEN_MESSAGE = 8;	// Authentication token for federated authentication
+    
+    // SMID
+    static final byte PKT_SMP = 83; // 0x53
+    // SIZE of SMP packet header
+    static final int SMP_HEADER_SIZE = 16; 
+    // Index of feids in SMP packet header
+    static final int SMP_HEADER_SMID = 0; 
+    static final int SMP_HEADER_FLAGS = 1; 
+    static final int SMP_HEADER_SID = 2; 
+    static final int SMP_HEADER_LENGTH = 4; 
+    static final int SMP_HEADER_SEQNUM = 8; 
+    static final int SMP_HEADER_WNDW = 12;
 
     static final byte STATUS_NORMAL = 0x00;
     static final byte STATUS_BIT_EOM = 0x01;
@@ -364,8 +380,8 @@ final class TDS {
     // version, encrpytion, and traceid data sessions.
     // For detailed info, please check the definition of
     // preloginRequest in Prelogin function.
-    static final byte B_PRELOGIN_MESSAGE_LENGTH = 67;
-    static final byte B_PRELOGIN_MESSAGE_LENGTH_WITH_FEDAUTH = 73;
+    static final byte B_PRELOGIN_MESSAGE_LENGTH = 73;
+    static final byte B_PRELOGIN_MESSAGE_LENGTH_WITH_FEDAUTH = 79; // NEEDS TO BE TESTED
 
     // Scroll options and concurrency options lifted out
     // of the the Yukon cursors spec for sp_cursoropen.
@@ -525,6 +541,28 @@ final class UTC {
     private UTC() {
     }
 }
+
+// enum of all packet types
+enum FLAGTYPE {
+
+    SYN,
+    ACK,
+    FIN,
+    DATA;
+
+    static int getFlag(FLAGTYPE flag) {
+        if (flag == FLAGTYPE.SYN)
+            return 0x01;
+        else if (flag == FLAGTYPE.ACK)
+            return 0x02;
+        else if (flag == FLAGTYPE.FIN)
+            return 0x04;
+        else if (flag == FLAGTYPE.DATA)
+            return 0x08;
+        else
+            return 0;
+    }
+};
 
 final class TDSChannel {
     private static final Logger logger = Logger.getLogger("com.microsoft.sqlserver.jdbc.internals.TDS.Channel");
@@ -1975,6 +2013,341 @@ final class TDSChannel {
 
         return is;
     }
+    
+    public static volatile boolean dataSent = false;
+    public static volatile boolean startReading = false; // make it true when we want to read
+
+    public class ReadInStream implements Runnable {
+
+        public void run() {
+            System.out.println("vvvvvvvvvvvv reading thread has begun vvvvvvvvvvvv");
+            byte[] SMPheader = new byte[16];
+
+            while (startReading) {
+                // check if there are any packets coming our way from servr (ACK/FIN/DATA)
+                // if any data, process packet
+                int bytesToRead;
+                try {
+                    synchronized (inputStream) {
+                        bytesToRead = inputStream.available();
+
+                        System.out.println("inputStream.available= " + inputStream.available() + " will be same");
+                        System.out.println("bytes to read        = " + bytesToRead + " will be same");
+
+                        // need at least 16 bytes for a valid SMP header
+                        if (bytesToRead >= 16) {
+
+                            System.out.println("------reading inStream------");
+                            inputStream.read(SMPheader, 0, 16); // read 16 bytes
+                            bytesToRead = bytesToRead - 16;
+
+                            System.out.println("inputStream.available= " + inputStream.available() + " should be same");
+                            System.out.println("bytes to read        = " + bytesToRead + " should be same");
+                            assert (inputStream.available() >= bytesToRead);
+
+                            // precess SMP packet type
+                            // process FLAGS
+                            if (FLAGTYPE.getFlag(FLAGTYPE.SYN) == SMPheader[TDS.SMP_HEADER_FLAGS]) {
+                                // handle recieving SYN packet (should never happen since client sends SYN packet)
+                                System.out.println("(THREADED)        SYN PACKET FROM SERVER:");
+                                System.out.println("        SID   = " + Util.readUnsignedShort(SMPheader, TDS.SMP_HEADER_SID));
+                                System.out.println("        SEQNUM= " + Util.readUnsignedInt(SMPheader, TDS.SMP_HEADER_SEQNUM));
+                                System.out.println("        WNDW  = " + Util.readUnsignedInt(SMPheader, TDS.SMP_HEADER_WNDW));
+                                System.out.println("        LENGTH= " + Util.readUnsignedInt(SMPheader, TDS.SMP_HEADER_LENGTH));
+                                // throw error
+
+                                startReading = false;
+
+                            }
+                            else if (FLAGTYPE.getFlag(FLAGTYPE.ACK) == SMPheader[TDS.SMP_HEADER_FLAGS]) {
+                                System.out.println("(THREADED)        ACK PACKET FROM SERVER:");
+                                System.out.println("        SID   = " + Util.readUnsignedShort(SMPheader, TDS.SMP_HEADER_SID));
+                                System.out.println("        SEQNUM= " + Util.readUnsignedInt(SMPheader, TDS.SMP_HEADER_SEQNUM));
+                                System.out.println("        WNDW  = " + Util.readUnsignedInt(SMPheader, TDS.SMP_HEADER_WNDW));
+                                System.out.println("        LENGTH= " + Util.readUnsignedInt(SMPheader, TDS.SMP_HEADER_LENGTH));
+                                // process ack
+                                SMPSession.processACK(SMPheader);
+
+                                startReading = false;
+
+                            }
+                            else if (FLAGTYPE.getFlag(FLAGTYPE.FIN) == SMPheader[TDS.SMP_HEADER_FLAGS]) {
+                                System.out.println("(THREADED)        FIN PACKET FROM SERVER:");
+                                System.out.println("        SID   = " + Util.readUnsignedShort(SMPheader, TDS.SMP_HEADER_SID));
+                                System.out.println("        SEQNUM= " + Util.readUnsignedInt(SMPheader, TDS.SMP_HEADER_SEQNUM));
+                                System.out.println("        WNDW  = " + Util.readUnsignedInt(SMPheader, TDS.SMP_HEADER_WNDW));
+                                System.out.println("        LENGTH= " + Util.readUnsignedInt(SMPheader, TDS.SMP_HEADER_LENGTH));
+                                // process fin
+
+                                startReading = false;
+                            }
+                            else if (FLAGTYPE.getFlag(FLAGTYPE.DATA) == SMPheader[TDS.SMP_HEADER_FLAGS]) {
+                                System.out.println("(THREADED)        DATA PACKET FROM SERVER:");
+                                System.out.println("        SID   = " + Util.readUnsignedShort(SMPheader, TDS.SMP_HEADER_SID));
+                                System.out.println("        SEQNUM= " + Util.readUnsignedInt(SMPheader, TDS.SMP_HEADER_SEQNUM));
+                                System.out.println("        WNDW  = " + Util.readUnsignedInt(SMPheader, TDS.SMP_HEADER_WNDW));
+                                System.out.println("        LENGTH= " + Util.readUnsignedInt(SMPheader, TDS.SMP_HEADER_LENGTH));
+
+                                while (inputStream.available() < (Util.readUnsignedInt(SMPheader, TDS.SMP_HEADER_LENGTH) - 16)) {
+                                    System.out.println("--------------SLEEPING: DATA NOT IN INPUTSTREAM YET!");
+                                    try {
+                                        Thread.sleep(1);
+                                    }
+                                    catch (InterruptedException e) {
+                                        e.printStackTrace();
+                                    }
+                                }
+
+                                // get data from data packet (read more bytes from input stream, base amount we read on length field)
+                                byte[] FullSMP = new byte[con.getTDSPacketSize() + 16];
+                                System.arraycopy(SMPheader, 0, FullSMP, 0, SMPheader.length);
+
+                                System.out.println("Copying Data Packet");
+                                int a = inputStream.available();
+
+                                inputStream.read(FullSMP, SMPheader.length, (int) (Util.readUnsignedInt(SMPheader, TDS.SMP_HEADER_LENGTH) - 16));
+                                int b = inputStream.available();
+                                System.out.println("val= " + a + " " + b);
+
+                                // process and store in recievePacketQueue
+                                SMPSession.processDATA(FullSMP);
+                                startReading = false;
+
+                            }
+                            else {
+                                // throw exception because SMP packet is not SYN ACK FIN or DATA
+                                // should never happen
+                                System.out.println(SMPheader[0] + " " + SMPheader[1] + " " + SMPheader[2] + " " + SMPheader[3] + " " + SMPheader[4]
+                                        + " " + SMPheader[5] + " " + SMPheader[6] + " " + SMPheader[7] + " " + SMPheader[8] + " " + SMPheader[9] + " "
+                                        + SMPheader[10] + " " + SMPheader[11] + " " + SMPheader[12] + " " + SMPheader[13] + " " + SMPheader[14] + " "
+                                        + SMPheader[15]);
+                                System.out.println("%%%%%%%%%%%%%%%% NOT PROPERLY READING %%%%%%%%%%%%%%%%%%%%%");
+                                startReading = false;
+                            }
+                        }
+                        else {
+                            startReading = false;
+                        }
+                    }
+                }
+                catch (IOException e) {
+                    e.printStackTrace();
+                    startReading = false;
+                }
+            }
+        }
+    }
+    
+    public static class SMPSession { 
+        
+        static Hashtable<Integer, SMPSession> activeSessions = new Hashtable<Integer, SMPSession>(); 
+ 
+        byte smid;      // byte 
+        byte flag;      // byte 
+        int sid;        // signed int to store unsigned short 
+        long length;    // signed long to store unsigned int 
+        long seqNumForSend;    // signed long to store unsigned int 
+        long highWaterForSend; 
+        long seqNumForRecv; 
+        long highWaterForRecv;      // signed long to store unsigned int 
+        long lastHighWaterForRecv; 
+        byte[] SMPpacket; 
+        Queue<byte[]> receivedPacketQueue = new LinkedList<byte[]>(); 
+ 
+        SMPSession() { // creates syn 
+ 
+            // assumes a syn packet uppon contruction 
+            this.smid = 0x53; 
+            this.flag = 0x01; // SYN packet when constructing 
+            this.sid = activeSessions.size(); 
+            this.length = 16; 
+            this.seqNumForSend = 0; 
+            this.highWaterForSend = 4; 
+            this.seqNumForRecv = 0; 
+            this.highWaterForRecv = 4; 
+            this.lastHighWaterForRecv = 4; 
+ 
+            activeSessions.put(this.sid, this); 
+ 
+        } 
+        
+        SMPSession(FLAGTYPE flag) {
+            
+            this.smid = 0x53; 
+            if (flag == FLAGTYPE.SYN) { 
+ 
+                // assumes a syn packet uppon contruction 
+                this.flag = 0x01; // SYN packet when constructing 
+                this.sid = activeSessions.size(); 
+                this.length = 16; 
+                this.seqNumForSend = 0; 
+                this.highWaterForSend = 4; 
+                this.seqNumForRecv = 0; 
+                this.highWaterForRecv = 4; 
+                this.lastHighWaterForRecv = 4; 
+ 
+                activeSessions.put(this.sid, this); 
+            } 
+            else if (flag == FLAGTYPE.ACK) { 
+ 
+                // session already exists 
+                // assuming that last session created is our session 
+                this.flag = 0x02; 
+                this.sid = activeSessions.get(activeSessions.size() - 1).sid; 
+                this.length = 16; 
+                this.seqNumForSend = activeSessions.get(activeSessions.size() - 1).seqNumForSend; 
+                this.highWaterForSend = activeSessions.get(activeSessions.size() - 1).highWaterForSend; 
+                this.seqNumForRecv = activeSessions.get(activeSessions.size() - 1).seqNumForRecv; 
+                this.highWaterForRecv = activeSessions.get(activeSessions.size() - 1).highWaterForRecv; 
+                this.lastHighWaterForRecv = activeSessions.get(activeSessions.size() - 1).lastHighWaterForRecv; 
+            } 
+            else if (flag == FLAGTYPE.FIN) { 
+ 
+                // session already exists 
+                // assuming that last session created is our session 
+                this.flag = 0x04; 
+                this.sid = activeSessions.get(activeSessions.size() - 1).sid; 
+                this.length = 16; 
+                this.seqNumForSend = activeSessions.get(activeSessions.size() - 1).seqNumForSend; 
+                this.highWaterForSend = activeSessions.get(activeSessions.size() - 1).highWaterForSend; 
+                this.seqNumForRecv = activeSessions.get(activeSessions.size() - 1).seqNumForRecv; 
+                this.highWaterForRecv = activeSessions.get(activeSessions.size() - 1).highWaterForRecv; 
+                this.lastHighWaterForRecv = activeSessions.get(activeSessions.size() - 1).lastHighWaterForRecv; 
+            } 
+            else if (flag == FLAGTYPE.DATA) { 
+                
+                // session already exists 
+                // assuming that last session created is our session 
+                this.flag = 0x08; 
+                this.sid = activeSessions.get(activeSessions.size() - 1).sid; 
+                this.length = 16; // we dont know data yet so set to header size 
+                this.seqNumForSend = activeSessions.get(activeSessions.size() - 1).seqNumForSend; 
+                this.seqNumForSend += 1; 
+                this.highWaterForSend = activeSessions.get(activeSessions.size() - 1).highWaterForSend; 
+                this.seqNumForRecv = activeSessions.get(activeSessions.size() - 1).seqNumForRecv; 
+                this.highWaterForRecv = activeSessions.get(activeSessions.size() - 1).highWaterForRecv; 
+                this.lastHighWaterForRecv = activeSessions.get(activeSessions.size() - 1).lastHighWaterForRecv; 
+ 
+                activeSessions.replace(this.sid, this); 
+            } 
+        }
+        
+        public synchronized void prepareControlPacket(FLAGTYPE flag) { 
+            if (FLAGTYPE.ACK == flag) { 
+                // note: not final behaviour, just simulates Delayed Acknowledgment Algorithm 
+                this.highWaterForRecv += 2; 
+                activeSessions.replace(this.sid, this); 
+ 
+            } 
+            else if (FLAGTYPE.FIN == flag) { 
+                // not sure if anything should be done yet 
+ 
+            } 
+            else if (FLAGTYPE.DATA == flag) { 
+                // errorCase 
+            } 
+            else if (FLAGTYPE.SYN == flag) { 
+                // should do nothing 
+            } 
+ 
+            // prepare SMPpacket 
+            byte[] SMPheader = {this.smid, this.flag, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}; 
+ 
+            // update SID LENGTH SEQNUM and WNDW 
+            Util.writeUnsignedShort(this.sid, SMPheader, TDS.SMP_HEADER_SID); 
+            Util.writeUnsignedInt(this.length, SMPheader, TDS.SMP_HEADER_LENGTH); 
+            Util.writeUnsignedInt(this.seqNumForSend, SMPheader, TDS.SMP_HEADER_SEQNUM); 
+            Util.writeUnsignedInt(this.highWaterForRecv, SMPheader, TDS.SMP_HEADER_WNDW); 
+ 
+            SMPpacket = SMPheader; 
+        } 
+        
+        public synchronized void prepareDataPacket(FLAGTYPE flag, 
+                byte[] data, 
+                int length) { 
+ 
+            if (FLAGTYPE.DATA == flag) { 
+ 
+                // write DATA header wtih TDS data tacket on 
+                this.length += length; 
+                activeSessions.replace(this.sid, this); 
+            } 
+            else { 
+                // error case 
+            } 
+ 
+            // prepare SMPpacket 
+            byte[] SMPheader = {this.smid, this.flag, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}; 
+ 
+            // update SID LENGTH SEQNUM and WNDW 
+            Util.writeUnsignedShort(this.sid, SMPheader, TDS.SMP_HEADER_SID); 
+            Util.writeUnsignedInt(this.length, SMPheader, TDS.SMP_HEADER_LENGTH); 
+            Util.writeUnsignedInt(this.seqNumForSend, SMPheader, TDS.SMP_HEADER_SEQNUM); 
+            Util.writeUnsignedInt(this.highWaterForRecv, SMPheader, TDS.SMP_HEADER_WNDW); 
+ 
+            // add DATA to packet 
+            byte[] tempDataPacket = new byte[SMPheader.length + length]; 
+            System.arraycopy(SMPheader, 0, tempDataPacket, 0, SMPheader.length); 
+            System.arraycopy(data, 0, tempDataPacket, SMPheader.length, length); 
+ 
+            SMPpacket = tempDataPacket; 
+ 
+        } 
+        
+        public static void processACK(byte[] ackPacket) { 
+            
+            // get session 
+            SMPSession currentSession = SMPSession.activeSessions.get(Util.readUnsignedShort(ackPacket, TDS.SMP_HEADER_SID)); 
+ 
+            System.out.println("got session for ack"); 
+            if (Util.readUnsignedInt(ackPacket, TDS.SMP_HEADER_WNDW) >= currentSession.highWaterForSend) { 
+ 
+                currentSession.highWaterForSend = Util.readUnsignedInt(ackPacket, TDS.SMP_HEADER_WNDW); 
+            } 
+            else { 
+                System.out.println("supposed to throw exception"); 
+            } 
+            // if SEQNUM > HighQWaterForRecv 
+            if (Util.readUnsignedInt(ackPacket, TDS.SMP_HEADER_SEQNUM) > currentSession.highWaterForRecv) { 
+                System.out.println("supposed to throw exception"); 
+            } 
+ 
+            SMPSession.activeSessions.replace(Util.readUnsignedShort(ackPacket, TDS.SMP_HEADER_SID), currentSession); 
+        } 
+        
+        public static void processDATA(byte[] dataPacket) { 
+            
+            SMPSession currentSession = SMPSession.activeSessions.get(Util.readUnsignedShort(dataPacket, TDS.SMP_HEADER_SID)); 
+            // if no currentSession exists with this SID we must throw an error 
+ 
+            System.out.println("got session for data"); 
+            if (Util.readUnsignedInt(dataPacket, TDS.SMP_HEADER_WNDW) >= currentSession.highWaterForSend) { 
+ 
+                currentSession.highWaterForSend = Util.readUnsignedInt(dataPacket, TDS.SMP_HEADER_WNDW); 
+            } 
+            else { 
+                System.out.println("supposed to throw exception 1"); 
+            } 
+            // if SEQNUM > HighQWaterForRecv 
+            if (Util.readUnsignedInt(dataPacket, TDS.SMP_HEADER_SEQNUM) > currentSession.highWaterForRecv) { 
+                System.out.println("supposed to throw exception 2"); 
+            } 
+ 
+            // if SEQNUM != SeqNumForRec+1 
+            if (Util.readUnsignedInt(dataPacket, TDS.SMP_HEADER_SEQNUM) != (currentSession.seqNumForRecv + 1)) { 
+                System.out.println("supposed to throw exception 3"); 
+            } 
+            // update seqNumForRecv 
+            currentSession.seqNumForRecv = Util.readUnsignedInt(dataPacket, TDS.SMP_HEADER_SEQNUM); 
+ 
+            // add dataPacket to queue 
+            currentSession.receivedPacketQueue.add(dataPacket); 
+ 
+            // update session 
+            SMPSession.activeSessions.replace(Util.readUnsignedShort(dataPacket, TDS.SMP_HEADER_SID), currentSession); 
+        } 
+    } 
+ 
 
     final int read(byte[] data,
             int offset,
@@ -2001,7 +2374,43 @@ final class TDSChannel {
             int offset,
             int length) throws SQLServerException {
         try {
-            outputStream.write(data, offset, length);
+            if (con.getMultipleActiveResultSets() && (TDS.PKT_QUERY == data[0] && length > 0)) { 
+                dataSent = false; // boolean used to track if data has been sent to server 
+ 
+                SMPSession session = new SMPSession(FLAGTYPE.DATA); 
+                session.prepareDataPacket(FLAGTYPE.DATA, data, length); 
+                while (!dataSent) { 
+                    if (session.highWaterForSend > session.seqNumForSend) { 
+                        startReading = false; 
+                        System.out.println("Writing SMUX"); 
+                        System.out.println("        DATA PACKET TO SERVER:"); 
+                        System.out.println("        SID   = " + session.sid); 
+                        System.out.println("        SEQNUM= " + session.seqNumForSend); 
+                        System.out.println("        WNDW  = " + session.highWaterForRecv); 
+                        System.out.println("        LENGTH= " + session.length); 
+                        outputStream.write(session.SMPpacket, 0, length + 16); 
+                        dataSent = true; 
+                    } 
+                    else { 
+ 
+                        System.out.println("STARTING THREAD TO READINPUTSTREAM WITHIN WRTIE SMUX"); 
+                        Thread readIS = new Thread(new ReadInStream()); 
+                        startReading = true; 
+                        readIS.start(); 
+                        try { 
+                            readIS.join(); // wait till reading thread is finished 
+                            startReading = false; 
+                        } 
+                        catch (InterruptedException e) { 
+                            // TODO Auto-generated catch block 
+                            e.printStackTrace(); 
+                        } 
+                    } 
+                } 
+            } 
+            else { 
+                outputStream.write(data, offset, length); 
+            } 
         }
         catch (IOException e) {
             if (logger.isLoggable(Level.FINER))
@@ -2177,6 +2586,21 @@ final class TDSChannel {
     final void setNetworkTimeout(int timeout) throws IOException {
         tcpSocket.setSoTimeout(timeout);
     }
+    
+    public void readInStream() { 
+        
+        Thread readIS = new Thread(new ReadInStream()); 
+        startReading = true; 
+        readIS.start(); 
+        try { 
+            readIS.join(); 
+            startReading = false; 
+        } 
+        catch (InterruptedException e) { 
+            // TODO Auto-generated catch block 
+            e.printStackTrace(); 
+        } 
+    } 
 }
 
 /**
@@ -6112,6 +6536,34 @@ final class TDSWriter {
     }
 }
 
+/** 
+ *  
+ * SMPPacket is comprised of 16 byte SMP header, followed by the payload which is the TDSPacket 
+ *  
+ */ 
+final class SMPPacket { 
+    final byte[] header = new byte[TDS.SMP_HEADER_SIZE]; 
+    final byte[] payload; // DATA which would be TDS packet 
+    long payloadLength; 
+    volatile SMPPacket next; 
+ 
+    final public String toString() { 
+        return "SMPPacket(SMID:" + header[TDS.SMP_HEADER_SMID] + " FLAG:" + header[TDS.SMP_HEADER_FLAGS] + " SID:" 
+                + Util.readUnsignedShort(header, TDS.SMP_HEADER_SID) + " LENGTH:" + Util.readUnsignedInt(header, TDS.SMP_HEADER_LENGTH) + " SEQNUM:" 
+                + Util.readUnsignedInt(header, TDS.SMP_HEADER_SEQNUM) + " WNDW:" + Util.readUnsignedInt(header, TDS.SMP_HEADER_WNDW) + ")"; 
+    } 
+ 
+    SMPPacket(int size) { 
+        payload = new byte[size]; 
+        payloadLength = 0; 
+        next = null; 
+    } 
+ 
+    final boolean isEOM() { 
+        return TDS.STATUS_BIT_EOM == (header[TDS.PACKET_HEADER_MESSAGE_STATUS] & TDS.STATUS_BIT_EOM); 
+    } 
+}; 
+
 /**
  * TDSPacket provides a mechanism for chaining TDS response packets together in a singly-linked list.
  *
@@ -6172,6 +6624,12 @@ final class TDSReader {
     }
 
     private final TDSChannel tdsChannel;
+    
+    final public TDSChannel getTDSChannel() { 
+        assert null != tdsChannel; 
+        return tdsChannel; 
+    } 
+    
     private final SQLServerConnection con;
 
     private final TDSCommand command;
@@ -6287,6 +6745,118 @@ final class TDSReader {
         payloadOffset = 0;
         return true;
     }
+    
+    synchronized final boolean readPacketQueue(int sid) throws SQLServerException { 
+        if (null != command && !command.readingResponse()) 
+            return false; 
+ 
+        // Number of packets in should always be less than number of packets out. 
+        // If the server has been notified for an interrupt, it may be less by 
+        // more than one packet. 
+        assert tdsChannel.numMsgsRcvd < tdsChannel.numMsgsSent : "numMsgsRcvd:" + tdsChannel.numMsgsRcvd + " should be less than numMsgsSent:" 
+                + tdsChannel.numMsgsSent; 
+ 
+        TDSPacket newPacket = new TDSPacket(con.getTDSPacketSize()); 
+ 
+        // get it only the packet we want 
+ 
+        SMPSession currentSession = SMPSession.activeSessions.get(sid); 
+ 
+        byte[] dataPacket = null; 
+ 
+        if (!currentSession.receivedPacketQueue.isEmpty()) { 
+            dataPacket = currentSession.receivedPacketQueue.poll(); 
+            SMPSession.activeSessions.replace(sid, currentSession); 
+        } 
+        else { 
+            // nothing read from receivePacketQueue, need to return and read inputStream to fill the queue 
+            return true; 
+        } 
+ 
+        // we have the dataPacket, process header, update the DATA portion into TDSPacket newPacket 
+        System.out.println("received SMP packet from receivePacketQueue, processing..."); 
+        SMPPacket newSmpPacket = new SMPPacket(con.getTDSPacketSize() + 16); // 16 larger than tds because it also contains smp header 
+ 
+        System.arraycopy(dataPacket, 0, newSmpPacket.header, 0, 16); 
+        System.out.println("done reading smp packet header"); 
+        System.out.println("processing smp header"); 
+ 
+        long smpPacketLength = Util.readUnsignedInt(newSmpPacket.header, TDS.SMP_HEADER_LENGTH); 
+ 
+        // Make sure header size is properly bounded and compute length of the packet payload. 
+        if (smpPacketLength < TDS.SMP_HEADER_SIZE || smpPacketLength > con.getTDSPacketSize() + 16) { 
+            logger.warning( 
+                    toString() + " SMP header contained invalid packet length:" + smpPacketLength + "; packet size:" + con.getTDSPacketSize() + 16); 
+            throwInvalidTDS(); 
+        } 
+        
+        newSmpPacket.payloadLength = smpPacketLength - TDS.SMP_HEADER_SIZE; 
+        
+        System.out.println("@@@@@@@ STARTING PACKET FROM RECEIVEPACKETQUEUE"); 
+        if (processFlag(newSmpPacket)) 
+            return true; 
+        System.out.println("@@@@@@@ ENDING PACKET FROM RECEIVEPACKETQUEUE"); 
+        System.out.println("done processing smp header"); 
+        System.out.println("starting to process tds section of smp"); 
+ 
+        System.arraycopy(dataPacket, 16, newSmpPacket.payload, 0, (int) newSmpPacket.payloadLength); 
+ 
+        // store DATA from SMP packet into TDS packet 
+ 
+        // First, read the packet header. 
+        System.arraycopy(newSmpPacket.payload, 0, newPacket.header, 0, TDS.PACKET_HEADER_SIZE); 
+ 
+        // Header size is a 2 byte unsigned short integer in big-endian order. 
+        int packetLength = Util.readUnsignedShortBigEndian(newPacket.header, TDS.PACKET_HEADER_MESSAGE_LENGTH); 
+ 
+        // Make sure header size is properly bounded and compute length of the packet payload. 
+        if (packetLength < TDS.PACKET_HEADER_SIZE || packetLength > con.getTDSPacketSize()) { 
+            logger.warning(toString() + " TDS header contained invalid packet length:" + packetLength + "; packet size:" + con.getTDSPacketSize()); 
+            throwInvalidTDS(); 
+        } 
+ 
+        newPacket.payloadLength = packetLength - TDS.PACKET_HEADER_SIZE; 
+ 
+        // Just grab the SPID for logging (another big-endian unsigned short). 
+        tdsChannel.setSPID(Util.readUnsignedShortBigEndian(newPacket.header, TDS.PACKET_HEADER_SPID)); 
+ 
+        // Packet header looks good enough. 
+        // When logging, copy the packet header to the log buffer. 
+        byte[] logBuffer = null; 
+        if (tdsChannel.isLoggingPackets()) { 
+            logBuffer = new byte[packetLength]; 
+            System.arraycopy(newPacket.header, 0, logBuffer, 0, TDS.PACKET_HEADER_SIZE); 
+        } 
+        
+     // Now for the payload... 
+        System.arraycopy(newSmpPacket.payload, 8, newPacket.payload, 0, newPacket.payloadLength); 
+ 
+        ++packetNum; 
+ 
+        lastPacket.next = newPacket; 
+        lastPacket = newPacket; 
+ 
+        // When logging, append the payload to hte log buffer and write out the whole thing. 
+        if (tdsChannel.isLoggingPackets()) { 
+            System.arraycopy(newPacket.payload, 0, logBuffer, TDS.PACKET_HEADER_SIZE, newPacket.payloadLength); 
+            tdsChannel.logPacket(logBuffer, 0, packetLength, 
+                    this.toString() + " received Packet:" + packetNum + " (" + newPacket.payloadLength + " bytes)"); 
+        } 
+ 
+        // If end of message, then bump the count of messages received and disable 
+        // interrupts. If an interrupt happened prior to disabling, then expect 
+        // to read the attention ack packet as well. 
+        if (newPacket.isEOM()) { 
+            ++tdsChannel.numMsgsRcvd; 
+ 
+            // Notify the command (if any) that we've reached the end of the response. 
+            if (null != command) 
+                command.onResponseEOM(); 
+        } 
+ 
+        return true; 
+        // done processing packet from receivePacketQueue 
+    } 
 
     /**
      * Reads the next packet of the TDS channel.
@@ -6376,6 +6946,79 @@ final class TDSReader {
 
         return true;
     }
+    
+    
+    private boolean processFlag(SMPPacket newSmpPacket) throws SQLServerException { 
+        if (FLAGTYPE.getFlag(FLAGTYPE.SYN) == newSmpPacket.header[TDS.SMP_HEADER_FLAGS]) { 
+            // handle recieving SYN packet (should never happen since client sends SYN packet) 
+            // throw error 
+            System.out.println("        SYN PACKET FROM SERVER:"); 
+            System.out.println("        SID   = " + Util.readUnsignedShort(newSmpPacket.header, TDS.SMP_HEADER_SID)); 
+            System.out.println("        SEQNUM= " + Util.readUnsignedInt(newSmpPacket.header, TDS.SMP_HEADER_SEQNUM)); 
+            System.out.println("        WNDW  = " + Util.readUnsignedInt(newSmpPacket.header, TDS.SMP_HEADER_WNDW)); 
+            System.out.println("        LENGTH= " + Util.readUnsignedInt(newSmpPacket.header, TDS.SMP_HEADER_LENGTH)); 
+ 
+            return true; 
+        } 
+        else if (FLAGTYPE.getFlag(FLAGTYPE.ACK) == newSmpPacket.header[TDS.SMP_HEADER_FLAGS]) { 
+            // handle recieving ACK packet 
+            // update WNDW SEQNUM of our session, etc 
+            System.out.println("        ACK PACKET FROM SERVER:"); 
+            System.out.println("        SID   = " + Util.readUnsignedShort(newSmpPacket.header, TDS.SMP_HEADER_SID)); 
+            System.out.println("        SEQNUM= " + Util.readUnsignedInt(newSmpPacket.header, TDS.SMP_HEADER_SEQNUM)); 
+            System.out.println("        WNDW  = " + Util.readUnsignedInt(newSmpPacket.header, TDS.SMP_HEADER_WNDW)); 
+            System.out.println("        LENGTH= " + Util.readUnsignedInt(newSmpPacket.header, TDS.SMP_HEADER_LENGTH)); 
+ 
+            SMPSession.processACK(newSmpPacket.header); 
+ 
+            return true; 
+        } 
+        else if (FLAGTYPE.getFlag(FLAGTYPE.FIN) == newSmpPacket.header[TDS.SMP_HEADER_FLAGS]) { 
+            // handle recieving FIN packet 
+            // did we already send a FIN? end session 
+            // else, send FIN and end session 
+            System.out.println("        FIN PACKET FROM SERVER:"); 
+            System.out.println("        SID   = " + Util.readUnsignedShort(newSmpPacket.header, TDS.SMP_HEADER_SID)); 
+            System.out.println("        SEQNUM= " + Util.readUnsignedInt(newSmpPacket.header, TDS.SMP_HEADER_SEQNUM)); 
+            System.out.println("        WNDW  = " + Util.readUnsignedInt(newSmpPacket.header, TDS.SMP_HEADER_WNDW)); 
+            System.out.println("        LENGTH= " + Util.readUnsignedInt(newSmpPacket.header, TDS.SMP_HEADER_LENGTH)); 
+ 
+            return true; 
+        } 
+        else if (FLAGTYPE.getFlag(FLAGTYPE.DATA) == newSmpPacket.header[TDS.SMP_HEADER_FLAGS]) { 
+            // handle recieving DATA packet accounting for SEQNUM and WNDW of packet 
+ 
+            // use readUnsignedShort for SID 
+            // use readUnsignedInt for SEQNUM and WNDW 
+ 
+            System.out.println("        DATA PACKET FROM SERVER:"); 
+            System.out.println("        SID   = " + Util.readUnsignedShort(newSmpPacket.header, TDS.SMP_HEADER_SID)); 
+            System.out.println("        SEQNUM= " + Util.readUnsignedInt(newSmpPacket.header, TDS.SMP_HEADER_SEQNUM)); 
+            System.out.println("        WNDW  = " + Util.readUnsignedInt(newSmpPacket.header, TDS.SMP_HEADER_WNDW)); 
+            System.out.println("        LENGTH= " + Util.readUnsignedInt(newSmpPacket.header, TDS.SMP_HEADER_LENGTH)); 
+ 
+            // try sending an ack to server if seqnum is multiple of 2 
+            if ((newSmpPacket.header[TDS.SMP_HEADER_SEQNUM] % 2 == 0) && (newSmpPacket.header[TDS.SMP_HEADER_SEQNUM] != 0)) { 
+                SMPSession session = new SMPSession(FLAGTYPE.ACK); 
+                session.prepareControlPacket(FLAGTYPE.ACK); // modify this so that it does not assume last session and uses actual session 
+                System.out.println("        ACK PACKET TO SERVER:"); 
+                System.out.println("        SID   = " + session.sid); 
+                System.out.println("        SEQNUM= " + session.seqNumForSend); 
+                System.out.println("        WNDW  = " + session.highWaterForRecv); 
+                System.out.println("        LENGTH= " + session.length); 
+ 
+                tdsChannel.write(session.SMPpacket, 0, (int) session.length); 
+            } 
+            return false; 
+        } 
+        else { 
+            // error case 
+            return true; 
+        } 
+ 
+    } 
+    
+    
 
     final TDSReaderMark mark() {
         TDSReaderMark mark = new TDSReaderMark(currentPacket, payloadOffset);
@@ -7501,10 +8144,12 @@ abstract class TDSCommand {
      *             if there is any kind of error.
      */
     final TDSReader startResponse() throws SQLServerException {
-        return startResponse(false);
+        return startResponse(false, false, 0);
     }
 
-    final TDSReader startResponse(boolean isAdaptive) throws SQLServerException {
+    final TDSReader startResponse(boolean isAdaptive,
+            boolean isMARS,
+            int sid) throws SQLServerException {
         // Finish sending the request message. If this command was interrupted
         // at any point before endMessage() returns, then endMessage() throws an
         // exception with the reason for the interrupt. Request interrupts
@@ -7542,8 +8187,22 @@ abstract class TDSCommand {
                 tdsReader.readPacket();
             }
             else {
-                while (tdsReader.readPacket())
-                    ;
+                if (isMARS) { 
+                    // start thread to read from input stream and store in receive Packet Queue 
+                    // read from receivePacketQueue of session sid 
+                    System.out.println("()()()()()()()()()() MARS ENABLED, only read from receivePacketQueue"); 
+                    while (tdsReader.readPacketQueue(sid)) { 
+ 
+                        TDSChannel tdschannel = tdsReader.getTDSChannel(); 
+                        System.out.println("STARTING THREAD TO READINPUTSTREAM WITHIN ADAPTIVE"); 
+                        tdschannel.readInStream(); 
+                    } 
+                } 
+                else { 
+                    System.out.println("<><><><><><><><><><> NON MARS, read from inputStream"); 
+                    while (tdsReader.readPacket()) 
+                        ; 
+                } 
             }
         }
         catch (SQLServerException e) {
