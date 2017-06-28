@@ -926,22 +926,23 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 			cachedPreparedStatementHandle = null;
 		}
 		
-		// Check for new cache reference.
-		if (null == cachedPreparedStatementHandle) {
-			PreparedStatementHandle cachedHandle = connection.getCachedPreparedStatementHandle(new Sha1HashKey(preparedSQL, preparedTypeDefinitions));
-	
-			// If handle was found then re-use.
-			if (null != cachedHandle) {
+		 // Check for new cache reference.
+        if (null == cachedPreparedStatementHandle) {
+            PreparedStatementHandle cachedHandle = connection.getCachedPreparedStatementHandle(new Sha1HashKey(preparedSQL, preparedTypeDefinitions));
 
-				// If existing handle was found and we can add reference to it, use it.
-				if (cachedHandle.tryAddReference()) {
-					setPreparedStatementHandle(cachedHandle.getHandle());
-					cachedPreparedStatementHandle = cachedHandle;
-                    return true;
-				}
-			}
-		}
-		return false;
+            // If handle was found then re-use, only if AE is not on, or if it is on, make sure encryptionMetadataIsRetrieved is retrieved.
+            if (null != cachedHandle) {
+                if (!connection.isColumnEncryptionSettingEnabled()
+                        || (connection.isColumnEncryptionSettingEnabled() && encryptionMetadataIsRetrieved)) {
+                    if (cachedHandle.tryAddReference()) {
+                        setPreparedStatementHandle(cachedHandle.getHandle());
+                        cachedPreparedStatementHandle = cachedHandle;
+                        return true;
+                    }
+                }
+            }
+        }
+        return false;
 	}
 
     private boolean doPrepExec(TDSWriter tdsWriter,
@@ -2562,7 +2563,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
             // Get the encryption metadata for the first batch only.
             if ((0 == numBatchesExecuted) && (Util.shouldHonorAEForParameters(stmtColumnEncriptionSetting, connection)) && (0 < batchParam.length)
-                    && !isInternalEncryptionQuery) {
+                    && !isInternalEncryptionQuery && !encryptionMetadataIsRetrieved) {
                 getParameterEncryptionMetadata(batchParam);
 
                 // fix an issue when inserting unicode into non-encrypted nchar column using setString() and AE is on on Connection
