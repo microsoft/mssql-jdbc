@@ -5,20 +5,31 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/)
 
 ## [6.2.0]
 ### Added
-- Upgrade azure-keyvault to 0.9.7
-- Enabled AAD Authentication with Access Token on Linux
-- Enabled AAD Authentication with ActiveDirectoryPassword on Linux
-- Driver now supports queryTimeout, socketTimeout, Constrained delegation 
-- Driver accepts custom JAAS configuration per Kerberos connection
-- Added Support for FIPS enabled JVM (Tested with BCFIPS on Oracle JVM)
-- Added OSGI Headers in MANIFEST.MF
-- Added automatic detection of REALM in SPN needed for Cross Domain authentication
-- Added support to authenticate Kerberos with principal and password
-- Added support for data type LONGVARCHAR, LONGNVARCHAR, LONGVARBINARY and SQLXML in TVP
+- Added TVP and BulkCopy random data test for all data types with server cursor [#319] (https://github.com/Microsoft/mssql-jdbc/pull/319)
+- Added AE setup and test [#337] (https://github.com/Microsoft/mssql-jdbc/pull/337),[328] (https://github.com/Microsoft/mssql-jdbc/pull/328)
+- Added validation for javadocs for every commit [#338] (https://github.com/Microsoft/mssql-jdbc/pull/338)
+- Added metdata caching [#345] (https://github.com/Microsoft/mssql-jdbc/pull/345)
+- Added caching mvn dependencies for Appveyor [#320] (https://github.com/Microsoft/mssql-jdbc/pull/320)
+- Added caching mvn dependencies for Travis-CI [#322] (https://github.com/Microsoft/mssql-jdbc/pull/322)
+- Added handle for bulkcopy exceptions [#286] (https://github.com/Microsoft/mssql-jdbc/pull/286)
+- Added handle for TVP exceptions [#285] (https://github.com/Microsoft/mssql-jdbc/pull/285)
 
 ### Fixed Issues
-- Initialized the XA transaction manager for each XAResource
-- Turn TNIR (TransparentNetworkIPResolution) off for Azure Active Directory (AAD) Authentication and changed TNIR multipliers
+- Fixed metadata caching issue with AE on connection [#361] (https://github.com/Microsoft/mssql-jdbc/pull/361)
+- Fixed issue with String index out of range parameter metadata [#353] (https://github.com/Microsoft/mssql-jdbc/pull/353)
+- Fixed javaDocs [#354] (https://github.com/Microsoft/mssql-jdbc/pull/354) 
+- Fixed javaDocs [#299] (https://github.com/Microsoft/mssql-jdbc/pull/299)
+- Performance fix from @brettwooldridge [#347] (https://github.com/Microsoft/mssql-jdbc/pull/347)
+- Get local host name before opening TDSChannel [#324] (https://github.com/Microsoft/mssql-jdbc/pull/324)
+- Fixed TVP Time issue [#317] (https://github.com/Microsoft/mssql-jdbc/pull/317)
+- Fixed SonarQube issues [#300] (https://github.com/Microsoft/mssql-jdbc/pull/300)
+- Fixed SonarQube issues [#301] (https://github.com/Microsoft/mssql-jdbc/pull/301)
+- Fixed random TDS invalid error [#310] (https://github.com/Microsoft/mssql-jdbc/pull/310)
+- Fixed password logging [#298] (https://github.com/Microsoft/mssql-jdbc/pull/298)
+- Fixed bulkcopy cursor issue [#270] (https://github.com/Microsoft/mssql-jdbc/pull/270)
+
+### Changed
+- refresh Kerberos configuration [#279] (https://github.com/Microsoft/mssql-jdbc/pull/279)
 
 ## [6.1.7]
 ### Added
