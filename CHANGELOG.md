@@ -3,7 +3,7 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](http://keepachangelog.com/) 
 
-## [6.2.0] This is a stable release. 
+## [6.2.0] Stable Release
 ### Added
 - Added TVP and BulkCopy random data test for all data types with server cursor [#319](https://github.com/Microsoft/mssql-jdbc/pull/319)
 - Added AE setup and test [#337](https://github.com/Microsoft/mssql-jdbc/pull/337),[328](https://github.com/Microsoft/mssql-jdbc/pull/328)
@@ -14,7 +14,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/)
 - Added handle for bulkcopy exceptions [#286](https://github.com/Microsoft/mssql-jdbc/pull/286)
 - Added handle for TVP exceptions [#285](https://github.com/Microsoft/mssql-jdbc/pull/285)
 
-### Fixed Issues
+### Fixed Issues 
 - Fixed metadata caching issue with AE on connection [#361](https://github.com/Microsoft/mssql-jdbc/pull/361)
 - Fixed issue with String index out of range parameter metadata [#353](https://github.com/Microsoft/mssql-jdbc/pull/353)
 - Fixed javaDocs [#354](https://github.com/Microsoft/mssql-jdbc/pull/354) 
@@ -31,7 +31,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/)
 ### Changed
 - refresh Kerberos configuration [#279](https://github.com/Microsoft/mssql-jdbc/pull/279)
 
-## [6.1.7]
+## [6.1.7] Preview Release
 ### Added
 - Added support for data type LONGVARCHAR, LONGNVARCHAR, LONGVARBINARY and SQLXML in TVP [#259](https://github.com/Microsoft/mssql-jdbc/pull/259)
 - Added new connection property to accept custom JAAS configuration for Kerberos [#254](https://github.com/Microsoft/mssql-jdbc/pull/254)
@@ -53,8 +53,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/)
 - Fixed BigDecimal scale rounding issue in BulkCopy [#230](https://github.com/Microsoft/mssql-jdbc/issues/230)
 - Fixed the invalid exception thrown when stored procedure does not exist is used with TVP [#265](https://github.com/Microsoft/mssql-jdbc/pull/265)
 
-
-## [6.1.6]
+## [6.1.6] Preview Release
 ### Added
 - Added constrained delegation to connection sample [#188](https://github.com/Microsoft/mssql-jdbc/pull/188)
 - Added snapshot to identify nightly/dev builds [#221](https://github.com/Microsoft/mssql-jdbc/pull/221)
@@ -79,7 +78,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/)
 - Re-use parameter metadata when using Always Encrypted [#195](https://github.com/Microsoft/mssql-jdbc/issues/195)
 - Improved performance for PreparedStatements through minimized server round-trips [#166](https://github.com/Microsoft/mssql-jdbc/issues/166)
 
-## [6.1.5]
+## [6.1.5] Preview Release
 ### Added
 - Added socket timeout exception as cause[#180](https://github.com/Microsoft/mssql-jdbc/pull/180)
 - Added Constrained delegation support[#178](https://github.com/Microsoft/mssql-jdbc/pull/178)
@@ -97,7 +96,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/)
 - Fixed local test failures [#179](https://github.com/Microsoft/mssql-jdbc/pull/179) 
 - Fixed random failure in BulkCopyColumnMapping test[#165](https://github.com/Microsoft/mssql-jdbc/pull/165)
 
-## [6.1.4]
+## [6.1.4] Preview Release
 ### Added
 - Added isWrapperFor methods for MetaData classes[#94](https://github.com/Microsoft/mssql-jdbc/pull/94)
 - Added Code Coverage [#136](https://github.com/Microsoft/mssql-jdbc/pull/136)
@@ -116,7 +115,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/)
 - Fixed an issue of Bulk Copy when AlwaysEncrypted is enabled on connection and destination table is not encrypted [#151](https://github.com/Microsoft/mssql-jdbc/pull/151)
 
 
-## [6.1.3]
+## [6.1.3] Preview Release
 ### Added
  - Added Binary and Varbinary types to the jUnit test framework [#119](https://github.com/Microsoft/mssql-jdbc/pull/119)
  - Added BulkCopy test cases for csv [#123](https://github.com/Microsoft/mssql-jdbc/pull/123)
@@ -133,7 +132,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/)
  - Fixed NullPointerException in case when SocketTimeout occurs [#65](https://github.com/Microsoft/mssql-jdbc/issues/121) 
 
  
-## [6.1.2]
+## [6.1.2] Preview Release
 ### Added
  - Socket timeout implementation for both connection string and data source [#85](https://github.com/Microsoft/mssql-jdbc/pull/85)
  - Query timeout API for datasource [#88](https://github.com/Microsoft/mssql-jdbc/pull/88)
@@ -156,7 +155,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/)
  - Fixed the connection close issue on using variant type [#91] (https://github.com/Microsoft/mssql-jdbc/issues/91)
 
 
-## [6.1.1]
+## [6.1.1] Preview Release
 ### Added
 - Java Docs [#46](https://github.com/Microsoft/mssql-jdbc/pull/46)
 - Driver version number in LOGIN7 packet [#43](https://github.com/Microsoft/mssql-jdbc/pull/43)
@@ -179,6 +178,6 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/)
 - Update Maven Plugin [#55](https://github.com/Microsoft/mssql-jdbc/pull/55)
  
 
-## [6.1.0]
+## [6.1.0] Stable Release
 ### Changed
 - Open Sourced.
