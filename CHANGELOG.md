@@ -29,7 +29,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/)
 - Fixed bulkcopy cursor issue [#270](https://github.com/Microsoft/mssql-jdbc/pull/270)
 
 ### Changed
-- refresh Kerberos configuration [#279](https://github.com/Microsoft/mssql-jdbc/pull/279)
+- Refresh Kerberos configuration [#279](https://github.com/Microsoft/mssql-jdbc/pull/279)
 
 ## [6.1.7] Preview Release
 ### Added
