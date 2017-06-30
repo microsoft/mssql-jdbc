@@ -3,6 +3,23 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](http://keepachangelog.com/) 
 
+## [6.2.0]
+### Added
+- Upgrade azure-keyvault to 0.9.7
+- Enabled AAD Authentication with Access Token on Linux
+- Enabled AAD Authentication with ActiveDirectoryPassword on Linux
+- Driver now supports queryTimeout, socketTimeout, Constrained delegation 
+- Driver accepts custom JAAS configuration per Kerberos connection
+- Added Support for FIPS enabled JVM (Tested with BCFIPS on Oracle JVM)
+- Added OSGI Headers in MANIFEST.MF
+- Added automatic detection of REALM in SPN needed for Cross Domain authentication
+- Added support to authenticate Kerberos with principal and password
+- Added support for data type LONGVARCHAR, LONGNVARCHAR, LONGVARBINARY and SQLXML in TVP
+
+### Fixed Issues
+- Initialized the XA transaction manager for each XAResource
+- Turn TNIR (TransparentNetworkIPResolution) off for Azure Active Directory (AAD) Authentication and changed TNIR multipliers
+
 ## [6.1.7]
 ### Added
 - Added support for data type LONGVARCHAR, LONGNVARCHAR, LONGVARBINARY and SQLXML in TVP [#259](https://github.com/Microsoft/mssql-jdbc/pull/259)
