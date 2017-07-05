@@ -120,7 +120,7 @@ final class DDC {
                 return new Float(longVal);
             case BINARY:
                 byte[] convertedBytes = convertLongToBytes(longVal);
-                int bytesToReturnLength = 0;
+                int bytesToReturnLength;
                 byte[] bytesToReturn;
 
                 switch (baseSSType) {
@@ -467,7 +467,7 @@ final class DDC {
 
                 if ((SSType.BINARY == baseTypeInfo.getSSType()) && (str.length() < (baseTypeInfo.getPrecision() * 2))) {
 
-                    StringBuffer strbuf = new StringBuffer(str);
+                    StringBuilder strbuf = new StringBuilder(str);
 
                     while (strbuf.length() < (baseTypeInfo.getPrecision() * 2)) {
                         strbuf.append('0');
@@ -781,7 +781,7 @@ final class DDC {
         // For other data types, the date and time parts are assumed to be relative to the local time zone.
         TimeZone componentTimeZone = (SSType.DATETIMEOFFSET == ssType) ? UTC.timeZone : localTimeZone;
 
-        int subSecondNanos = 0;
+        int subSecondNanos;
 
         // The date and time parts assume a Gregorian calendar with Gregorian leap year behavior
         // over the entire supported range of values. Create and initialize such a calendar to
@@ -909,7 +909,7 @@ final class DDC {
             default:
                 throw new AssertionError("Unexpected SSType: " + ssType);
         }
-        int localMillisOffset = 0;
+        int localMillisOffset;
         if (null == timeZoneCalendar) {
             TimeZone tz = TimeZone.getDefault();
             GregorianCalendar _cal = new GregorianCalendar(componentTimeZone, Locale.US);

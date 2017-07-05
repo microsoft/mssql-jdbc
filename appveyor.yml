@@ -7,10 +7,32 @@ environment:
 
 services:
   - mssql2016
+  
+install:
+  - ps: Write-Host 'Installing JCE with powershell'
+  - ps: cd AppVeyorJCE
+  - ps: choco pack
+  - ps: choco install jce -fdv -s . -y -failonstderr
+  - ps: cd..
+  - ps: mkdir AE_Certificates
+  - ps: cd AE_Certificates
+  - ps: $cert = New-SelfSignedCertificate -dns "AlwaysEncryptedCert" -CertStoreLocation Cert:CurrentUser\My  
+  - ps: $pwd = ConvertTo-SecureString -String "password" -Force -AsPlainText
+  - ps: $path = 'cert:\CurrentUser\My\' + $cert.thumbprint
+  - ps: $certificate = Export-PfxCertificate -cert $path -FilePath cert.pfx -Password $pwd 
+  - ps: Get-ChildItem -path cert:\CurrentUser\My > certificate.txt
+
+cache:
+  - C:\Users\appveyor\.m2 -> pom.xml
 
 build_script:
+  - keytool -importkeystore -srckeystore cert.pfx -srcstoretype pkcs12 -destkeystore clientcert.jks -deststoretype JKS -srcstorepass password -deststorepass password   
+  - keytool -list -v -keystore clientcert.jks -storepass "password" > JavaKeyStore.txt
+  - cd..
   - mvn install -DskipTests=true -Dmaven.javadoc.skip=true -B -V -Pbuild41
   - mvn install -DskipTests=true -Dmaven.javadoc.skip=true -B -V -Pbuild42
+  
 test_script:
   - mvn test -B -Pbuild41
   - mvn test -B -Pbuild42
+  

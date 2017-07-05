@@ -29,6 +29,7 @@ import java.text.MessageFormat;
 import java.time.OffsetDateTime;
 import java.time.OffsetTime;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.GregorianCalendar;
 import java.util.HashMap;
@@ -41,7 +42,6 @@ import java.util.Set;
 import java.util.SimpleTimeZone;
 import java.util.TimeZone;
 import java.util.UUID;
-import java.util.Vector;
 import java.util.logging.Level;
 
 import javax.sql.RowSet;
@@ -309,6 +309,12 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable {
     }
 
     private BulkTimeoutTimer timeoutTimer = null;
+    
+    /**
+     * The maximum temporal precision we can send when using varchar(precision) in bulkcommand, to send a smalldatetime/datetime 
+     * value.
+     */
+    private static final int sourceBulkRecordTemporalMaxPrecision = 50;
 
     /**
      * Initializes a new instance of the SQLServerBulkCopy class using the specified open instance of SQLServerConnection.
@@ -352,7 +358,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable {
      */
     public SQLServerBulkCopy(String connectionUrl) throws SQLServerException {
         loggerExternal.entering(loggerClassName, "SQLServerBulkCopy", "connectionUrl not traced.");
-        if ((connectionUrl == null) || connectionUrl.trim().equals("")) {
+        if ((connectionUrl == null) || "".equals(connectionUrl.trim())) {
             throw new SQLServerException(null, SQLServerException.getErrString("R_nullConnection"), null, 0, false);
         }
 
@@ -738,10 +744,10 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable {
      */
     private void writeColumnMetaDataColumnData(TDSWriter tdsWriter,
             int idx) throws SQLServerException {
-        int srcColumnIndex = 0, destPrecision = 0;
-        int bulkJdbcType = 0, bulkPrecision = 0, bulkScale = 0;
-        SQLCollation collation = null;
-        SSType destSSType = null;
+        int srcColumnIndex, destPrecision;
+        int bulkJdbcType, bulkPrecision, bulkScale;
+        SQLCollation collation;
+        SSType destSSType;
         boolean isStreaming, srcNullable;
         // For varchar, precision is the size of the varchar type.
         /*
@@ -1240,11 +1246,12 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable {
             int destColIndx,
             TDSWriter tdsWriter) throws SQLServerException {
         boolean isStreaming;
+
         SSType destSSType = (null != destColumnMetadata.get(destColIndx).cryptoMeta)
                 ? destColumnMetadata.get(destColIndx).cryptoMeta.baseTypeInfo.getSSType() : destColumnMetadata.get(destColIndx).ssType;
 
-        int bulkJdbcType = 0, bulkPrecision = 0, bulkScale = 0;
-        int srcPrecision = 0;
+        int bulkJdbcType, bulkPrecision, bulkScale;
+        int srcPrecision;
 
         bulkJdbcType = srcColumnMetadata.get(srcColIndx).jdbcType;
         // For char/varchar precision is the size.
@@ -1378,14 +1385,14 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable {
                 switch (destSSType) {
                     case SMALLDATETIME:
                         if (null != sourceBulkRecord) {
-                            return "varchar(" + ((0 == bulkPrecision) ? destPrecision : bulkPrecision) + ")";
+                            return "varchar(" + ((0 == bulkPrecision) ? sourceBulkRecordTemporalMaxPrecision  : bulkPrecision) + ")";
                         }
                         else {
                             return "smalldatetime";
                         }
                     case DATETIME:
                         if (null != sourceBulkRecord) {
-                            return "varchar(" + ((0 == bulkPrecision) ? destPrecision : bulkPrecision) + ")";
+                            return "varchar(" + ((0 == bulkPrecision) ? sourceBulkRecordTemporalMaxPrecision  : bulkPrecision) + ")";
                         }
                         else {
                             return "datetime";
@@ -1460,7 +1467,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable {
 
     private String createInsertBulkCommand(TDSWriter tdsWriter) throws SQLServerException {
         StringBuilder bulkCmd = new StringBuilder();
-        List<String> bulkOptions = new Vector<String>();
+        List<String> bulkOptions = new ArrayList<String>();
         String endColumn = " , ";
         bulkCmd.append("INSERT BULK " + destinationTableName + " (");
 
@@ -1529,25 +1536,48 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable {
             // Begin a manual transaction for this batch.
             connection.setAutoCommit(false);
         }
+        
+        boolean insertRowByRow = false;
 
-        // Create and send the initial command for bulk copy ("INSERT BULK ...").
-        TDSWriter tdsWriter = command.startRequest(TDS.PKT_QUERY);
-        String bulkCmd = createInsertBulkCommand(tdsWriter);
-        tdsWriter.writeString(bulkCmd);
-        TDSParser.parse(command.startResponse(), command.getLogContext());
+        if (null != sourceResultSet && sourceResultSet instanceof SQLServerResultSet) {
+            SQLServerStatement src_stmt = (SQLServerStatement) ((SQLServerResultSet) sourceResultSet).getStatement();
+            int resultSetServerCursorId = ((SQLServerResultSet) sourceResultSet).getServerCursorId();
 
-        // Send the bulk data. This is the BulkLoadBCP TDS stream.
-        tdsWriter = command.startRequest(TDS.PKT_BULK);
+            if (connection.equals(src_stmt.getConnection()) && 0 != resultSetServerCursorId) {
+                insertRowByRow = true;
+            }
+            
+            if (((SQLServerResultSet) sourceResultSet).isForwardOnly()) {
+                try {
+                    sourceResultSet.setFetchSize(1);
+                }
+                catch (SQLException e) {
+                   SQLServerException.makeFromDriverError(connection, sourceResultSet, e.getMessage(), e.getSQLState(), true);
+                }
+            }
+        }
 
+        TDSWriter tdsWriter = null;
         boolean moreDataAvailable = false;
-        try {
-            // Write the COLUMNMETADATA token in the stream.
-            writeColumnMetaData(tdsWriter);
 
-            // Write all ROW tokens in the stream.
-            moreDataAvailable = writeBatchData(tdsWriter);
+        try {
+            if (!insertRowByRow) {
+                tdsWriter = sendBulkCopyCommand(command);
+            }
+
+            try {
+                // Write all ROW tokens in the stream.
+                moreDataAvailable = writeBatchData(tdsWriter, command, insertRowByRow);
+            }
+            finally {
+                tdsWriter = command.getTDSWriter();
+            }
         }
         catch (SQLServerException ex) {
+            if (null == tdsWriter) {
+                tdsWriter = command.getTDSWriter();
+            }
+
             // Close the TDS packet before handling the exception
             writePacketDataDone(tdsWriter);
 
@@ -1561,18 +1591,25 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable {
             throw ex;
         }
         finally {
+            if (null == tdsWriter) {
+                tdsWriter = command.getTDSWriter();
+            }
+            
             // reset the cryptoMeta in IOBuffer
             tdsWriter.setCryptoMetaData(null);
         }
-        // Write the DONE token in the stream. We may have to append the DONE token with every packet that is sent.
-        // For the current packets the driver does not generate a DONE token, but the BulkLoadBCP stream needs a DONE token
-        // after every packet. For now add it manually here for one packet.
-        // Note: This may break if more than one packet is sent.
-        // This is an example from https://msdn.microsoft.com/en-us/library/dd340549.aspx
-        writePacketDataDone(tdsWriter);
+                
+        if (!insertRowByRow) {
+            // Write the DONE token in the stream. We may have to append the DONE token with every packet that is sent.
+            // For the current packets the driver does not generate a DONE token, but the BulkLoadBCP stream needs a DONE token
+            // after every packet. For now add it manually here for one packet.
+            // Note: This may break if more than one packet is sent.
+            // This is an example from https://msdn.microsoft.com/en-us/library/dd340549.aspx
+            writePacketDataDone(tdsWriter);
 
-        // Send to the server and read response.
-        TDSParser.parse(command.startResponse(), command.getLogContext());
+            // Send to the server and read response.
+            TDSParser.parse(command.startResponse(), command.getLogContext());
+        }
 
         if (copyOptions.isUseInternalTransaction()) {
             // Commit the transaction for this batch.
@@ -1580,6 +1617,22 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable {
         }
 
         return moreDataAvailable;
+    }
+
+    private TDSWriter sendBulkCopyCommand(TDSCommand command) throws SQLServerException {
+        // Create and send the initial command for bulk copy ("INSERT BULK ...").
+        TDSWriter tdsWriter = command.startRequest(TDS.PKT_QUERY);
+        String bulkCmd = createInsertBulkCommand(tdsWriter);
+        tdsWriter.writeString(bulkCmd);
+        TDSParser.parse(command.startResponse(), command.getLogContext());
+
+        // Send the bulk data. This is the BulkLoadBCP TDS stream.
+        tdsWriter = command.startRequest(TDS.PKT_BULK);
+
+        // Write the COLUMNMETADATA token in the stream.
+        writeColumnMetaData(tdsWriter);
+
+        return tdsWriter;
     }
 
     private void writePacketDataDone(TDSWriter tdsWriter) throws SQLServerException {
@@ -1641,14 +1694,20 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable {
     private void validateStringBinaryLengths(Object colValue,
             int srcCol,
             int destCol) throws SQLServerException {
-        int sourcePrecision = 0;
+        int sourcePrecision;
         int destPrecision = destColumnMetadata.get(destCol).precision;
         int srcJdbcType = srcColumnMetadata.get(srcCol).jdbcType;
         SSType destSSType = destColumnMetadata.get(destCol).ssType;
 
         if ((Util.isCharType(srcJdbcType) && Util.isCharType(destSSType)) || (Util.isBinaryType(srcJdbcType) && Util.isBinaryType(destSSType))) {
             if (colValue instanceof String) {
-                sourcePrecision = ((String) colValue).length();
+                if (Util.isBinaryType(destSSType)) {  
+                    // if the dest value is binary and the value is of type string. 
+                    //Repro in test case: ImpISQLServerBulkRecord_IssuesTest#testSendValidValueforBinaryColumnAsString
+                    sourcePrecision = (((String) colValue).getBytes().length) / 2;
+                }
+                else
+                    sourcePrecision = ((String) colValue).length();
             }
             else if (colValue instanceof byte[]) {
                 sourcePrecision = ((byte[]) colValue).length;
@@ -1750,11 +1809,11 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable {
         }
         else if (null != sourceBulkRecord) {
             Set<Integer> columnOrdinals = sourceBulkRecord.getColumnOrdinals();
-            srcColumnCount = columnOrdinals.size();
-            if (0 == srcColumnCount) {
+            if (null == columnOrdinals || 0 == columnOrdinals.size()) {
                 throw new SQLServerException(SQLServerException.getErrString("R_unableRetrieveColMeta"), null);
             }
             else {
+                srcColumnCount = columnOrdinals.size();
                 Iterator<Integer> columnsIterator = columnOrdinals.iterator();
                 while (columnsIterator.hasNext()) {
                     currentColumn = columnsIterator.next();
@@ -2165,7 +2224,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable {
                             try {
                                 // Read and Send the data as chunks
                                 // VARBINARYMAX --- only when streaming.
-                                Reader reader = null;
+                                Reader reader;
                                 if (colValue instanceof Reader) {
                                     reader = (Reader) colValue;
                                 }
@@ -2248,7 +2307,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable {
                             tdsWriter.writeLong(PLPInputStream.UNKNOWN_PLP_LEN);
                             try {
                                 // Read and Send the data as chunks.
-                                Reader reader = null;
+                                Reader reader;
                                 if (colValue instanceof Reader) {
                                     reader = (Reader) colValue;
                                 }
@@ -2295,7 +2354,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable {
                             tdsWriter.writeLong(PLPInputStream.UNKNOWN_PLP_LEN);
                             try {
                                 // Read and Send the data as chunks
-                                InputStream iStream = null;
+                                InputStream iStream;
                                 if (colValue instanceof InputStream) {
                                     iStream = (InputStream) colValue;
                                 }
@@ -2459,6 +2518,11 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable {
             } // End of switch
         }
         catch (ClassCastException ex) {
+            if (null == colValue) {
+                // this should not really happen, since ClassCastException should only happen when colValue is not null.
+                // just do one more checking here to make sure
+                throwInvalidArgument("colValue");
+            }
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_errorConvertingValue"));
             Object[] msgArgs = {colValue.getClass().getSimpleName(), JDBCType.of(bulkJdbcType)};
             throw new SQLServerException(form.format(msgArgs), SQLState.DATA_EXCEPTION_NOT_SPECIFIC, DriverError.NOT_SET, ex);
@@ -2553,16 +2617,14 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable {
                 case microsoft.sql.Types.DATETIME:
                 case microsoft.sql.Types.SMALLDATETIME:
                 case java.sql.Types.TIMESTAMP:
-                    return sourceResultSet.getTimestamp(srcColOrdinal);
-
-                case java.sql.Types.DATE:
-                    return sourceResultSet.getDate(srcColOrdinal);
-
                 case java.sql.Types.TIME:
                     // java.sql.Types.TIME allows maximum of 3 fractional second precision
                     // SQL Server time(n) allows maximum of 7 fractional second precision, to avoid truncation
                     // values are read as java.sql.Types.TIMESTAMP if srcJdbcType is java.sql.Types.TIME
                     return sourceResultSet.getTimestamp(srcColOrdinal);
+
+                case java.sql.Types.DATE:
+                    return sourceResultSet.getDate(srcColOrdinal);
 
                 case microsoft.sql.Types.DATETIMEOFFSET:
                     // We can safely cast the result set to a SQLServerResultSet as the DatetimeOffset type is only available in the JDBC driver.
@@ -2588,9 +2650,9 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable {
             int srcColOrdinal,
             int destColOrdinal,
             Object colValue) throws SQLServerException {
-        int srcPrecision = 0, srcScale = 0, destPrecision = 0, srcJdbcType = 0;
+        int srcPrecision, srcScale, destPrecision, srcJdbcType;
         SSType destSSType = null;
-        boolean isStreaming = false, srcNullable;
+        boolean isStreaming, srcNullable;
         srcPrecision = srcColumnMetadata.get(srcColOrdinal).precision;
         srcScale = srcColumnMetadata.get(srcColOrdinal).scale;
         srcJdbcType = srcColumnMetadata.get(srcColOrdinal).jdbcType;
@@ -2622,6 +2684,10 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable {
                     || ((null != destCryptoMeta) && (null != colValue)))) {
                 validateDataTypeConversions(srcColOrdinal, destColOrdinal);
             }
+        }
+        //If we are using ISQLBulkRecord and the data we are passing is char type, we need to check the source and dest precision
+        else if (null != sourceBulkRecord && (null == destCryptoMeta)) {
+            validateStringBinaryLengths(colValue, srcColOrdinal, destColOrdinal);
         }
         else if ((null != sourceBulkRecord) && (null != destCryptoMeta)) {
             // From CSV to encrypted column. Convert to respective object.
@@ -2742,16 +2808,14 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable {
             switch (srcJdbcType) {
                 case java.sql.Types.TIMESTAMP:
                 case java.sql.Types.TIME:
-                    return null;
                 case java.sql.Types.DATE:
-                    return null;
                 case microsoft.sql.Types.DATETIMEOFFSET:
                     return null;
             }
         }
 
         // If we are here value is non-null.
-        Calendar cal = null;
+        Calendar cal;
 
         // Get the temporal values from the formatter
         DateTimeFormatter dateTimeFormatter = srcColumnMetadata.get(srcColOrdinal).dateTimeFormatter;
@@ -2796,7 +2860,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable {
 
                     startIndx = ++endIndx; // skip the :
                     endIndx = valueStr.indexOf('.', startIndx);
-                    int seconds = 0, offsethour, offsetMinute, totalOffset = 0, fractionalSeconds = 0;
+                    int seconds, offsethour, offsetMinute, totalOffset = 0, fractionalSeconds = 0;
                     boolean isNegativeOffset = false;
                     boolean hasTimeZone = false;
                     int fractionalSecondsLength = 0;
@@ -2826,7 +2890,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable {
                         }
                         else {
                             seconds = Integer.parseInt(valueStr.substring(startIndx));
-                            startIndx = ++endIndx; // skip the space
+                            ++endIndx; // skip the space
                         }
                     }
                     if (hasTimeZone) {
@@ -2886,8 +2950,8 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable {
             Object colValue,
             int srcColOrdinal,
             int scale) throws SQLServerException {
-        long utcMillis = 0;
-        GregorianCalendar calendar = null;
+        long utcMillis;
+        GregorianCalendar calendar;
 
         switch (srcTemporalJdbcType) {
             case DATE:
@@ -2905,7 +2969,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable {
                 calendar.clear();
                 utcMillis = ((java.sql.Timestamp) colValue).getTime();
                 calendar.setTimeInMillis(utcMillis);
-                int subSecondNanos = 0;
+                int subSecondNanos;
                 if (colValue instanceof java.sql.Timestamp) {
                     subSecondNanos = ((java.sql.Timestamp) colValue).getNanos();
                 }
@@ -3021,7 +3085,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable {
                 case BINARY:
                 case VARBINARY:
                 case LONGVARBINARY:
-                    byte[] byteArrayValue = null;
+                    byte[] byteArrayValue;
                     if (value instanceof String) {
                         byteArrayValue = ParameterUtils.HexToBin((String) value);
                     }
@@ -3151,7 +3215,9 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable {
      * Writes data for a batch of rows to the TDSWriter object. Writes the following part in the BulkLoadBCP stream
      * (https://msdn.microsoft.com/en-us/library/dd340549.aspx) <ROW> ... </ROW>
      */
-    private boolean writeBatchData(TDSWriter tdsWriter) throws SQLServerException {
+    private boolean writeBatchData(TDSWriter tdsWriter,
+            TDSCommand command,
+            boolean insertRowByRow) throws SQLServerException {
         int batchsize = copyOptions.getBatchSize();
         int row = 0;
         while (true) {
@@ -3163,6 +3229,13 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable {
             // No more data available, return false so we do not execute any more batches.
             if (!goToNextRow())
                 return false;
+            
+            if (insertRowByRow) {
+                // read response gotten from goToNextRow()
+                ((SQLServerResultSet) sourceResultSet).getTDSReader().readPacket();
+
+                tdsWriter = sendBulkCopyCommand(command);
+            }
 
             // Write row header for each row.
             tdsWriter.writeByte((byte) TDS.TDS_ROW);
@@ -3185,7 +3258,15 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable {
             // Copy from a file.
             else {
                 // Get all the column values of the current row.
-                Object[] rowObjects = sourceBulkRecord.getRowData();
+                Object[] rowObjects;
+
+                try {
+                    rowObjects = sourceBulkRecord.getRowData();
+                }
+                catch (Exception ex) {
+                    // if no more data available to retrive
+                    throw new SQLServerException(SQLServerException.getErrString("R_unableRetrieveSourceData"), ex);
+                }
 
                 for (int i = 0; i < mappingColumnCount; ++i) {
                     // If the SQLServerBulkCSVRecord does not have metadata for columns, it returns strings in the object array.
@@ -3195,6 +3276,14 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable {
                 }
             }
             row++;
+
+            if (insertRowByRow) {
+                writePacketDataDone(tdsWriter);
+                tdsWriter.setCryptoMetaData(null);
+
+                // Send to the server and read response.
+                TDSParser.parse(command.startResponse(), command.getLogContext());
+            }
         }
     }
 }

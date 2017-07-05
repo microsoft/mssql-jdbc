@@ -35,6 +35,7 @@ import com.microsoft.sqlserver.testframework.DBStatement;
 import com.microsoft.sqlserver.testframework.DBTable;
 import com.microsoft.sqlserver.testframework.Utils;
 import com.microsoft.sqlserver.testframework.sqlType.SqlType;
+import com.microsoft.sqlserver.testframework.util.ComparisonUtil;
 
 /**
  * Test bulkcopy with CSV file input
@@ -160,7 +161,7 @@ public class BulkCopyCSVTest extends AbstractTest {
                     dstValue = (null != dstValue) ? dstValue.trim() : dstValue;
 
                     // get the value from csv as string and compare them
-                    BulkCopyTestUtil.comapreSourceDest(java.sql.Types.VARCHAR, srcValue, dstValue);
+                    ComparisonUtil.compareExpectedAndActual(java.sql.Types.VARCHAR, srcValue, dstValue);
                 }
             }
         }

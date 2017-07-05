@@ -415,6 +415,7 @@ final class Column {
                     return JDBCType.GUID;
                 if (SSType.VARCHARMAX == basicSSType)
                     return JDBCType.LONGVARCHAR;
+                return jdbcType;
 
             default:
                 return jdbcType;

@@ -56,8 +56,7 @@ class SQLServerBulkCopy42Helper {
             if (ta.isSupported(ChronoField.YEAR))
                 taYear = ta.get(ChronoField.YEAR);
 
-            Calendar cal = null;
-            cal = new GregorianCalendar(new SimpleTimeZone(taOffsetSec * 1000, ""));
+            Calendar cal = new GregorianCalendar(new SimpleTimeZone(taOffsetSec * 1000, ""));
             cal.clear();
             cal.set(Calendar.HOUR_OF_DAY, taHour);
             cal.set(Calendar.MINUTE, taMin);

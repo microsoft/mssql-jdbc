@@ -321,8 +321,9 @@ public final class SQLServerBlob implements java.sql.Blob, java.io.Serializable 
                 }
             }
 
-            if (match)
-                return pos + 1;
+            if (match) {
+                return pos + 1L;
+            }
         }
 
         return -1;

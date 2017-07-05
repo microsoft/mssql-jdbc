@@ -1,4 +1,4 @@
-sudo: required
+﻿sudo: required
 
 language: java
 jdk:
@@ -8,9 +8,27 @@ services:
   - docker
 
 env:
+ global:	
   - mssql_jdbc_test_connection_properties='jdbc:sqlserver://localhost:1433;databaseName=master;username=sa;password=<YourStrong!Passw0rd>;'
-
+  - mssql_jdbc_logging='true'
+  # Enabling logging with console / file handler for JUnit Test Framework. 
+  #- mssql_jdbc_logging_handler='console'|'file'
+  
+#Cache the .m2 folder
+cache:
+ directories:
+  - $HOME/.m2
+  
+before_install:
+  - mkdir AE_Certificates
+  
 install: 
+  - cd AE_Certificates
+  - openssl req -newkey rsa:2048 -x509 -keyout cakey.pem -out cacert.pem -days 3650 -subj "/C=US/ST=WA/L=Redmond/O=Microsoft Corporation/OU=SQL Server/CN=JDBC Driver" -nodes
+  - openssl pkcs12 -export -in cacert.pem -inkey cakey.pem -out identity.p12 -password pass:password
+  - keytool -importkeystore -destkeystore clientcert.jks -deststorepass password -srckeystore identity.p12 -srcstoretype PKCS12 -srcstorepass password
+  - keytool -list -v -keystore clientcert.jks -storepass "password" > JavaKeyStore.txt
+  - cd ..
   - mvn install -DskipTests=true -Dmaven.javadoc.skip=true -B -V -Pbuild41
   - mvn install -DskipTests=true -Dmaven.javadoc.skip=true -B -V -Pbuild42
 
