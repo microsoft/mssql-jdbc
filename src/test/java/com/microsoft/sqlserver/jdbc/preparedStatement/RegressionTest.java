@@ -36,19 +36,24 @@ public class RegressionTest extends AbstractTest {
     static PreparedStatement pstmt3 = null;
     static PreparedStatement pstmt4 = null;
 
+    /**
+     * Setup before test
+     * 
+     * @throws SQLException
+     */
     @BeforeAll
     public static void setupTest() throws SQLException {
         con = DriverManager.getConnection(connectionString);
         Statement stmt = con.createStatement();
         Utils.dropTableIfExists("x", stmt);
-        Utils.dropViewIfExists("x", stmt);
-        if (null != stmt){
+        if (null != stmt) {
             stmt.close();
         }
     }
 
     /**
      * Tests creating view using preparedStatement
+     * 
      * @throws SQLException
      */
     @Test
@@ -72,9 +77,10 @@ public class RegressionTest extends AbstractTest {
             }
         }
     }
-    
+
     /**
      * Tests creating schema using preparedStatement
+     * 
      * @throws SQLException
      */
     @Test
@@ -98,7 +104,12 @@ public class RegressionTest extends AbstractTest {
             }
         }
     }
-    
+
+    /**
+     * Test creating and dropping tabel with preparedStatement
+     * 
+     * @throws SQLException
+     */
     @Test
     public void createTableTest() throws SQLException {
         try {
@@ -120,11 +131,16 @@ public class RegressionTest extends AbstractTest {
             }
         }
     }
-    
+
+    /**
+     * Tests creating/altering/dropping table
+     * 
+     * @throws SQLException
+     */
     @Test
     public void alterTableTest() throws SQLException {
         try {
-            pstmt1 = con.prepareStatement("create table x (col1 int)"); 
+            pstmt1 = con.prepareStatement("create table x (col1 int)");
             pstmt2 = con.prepareStatement("ALTER TABLE x ADD column_name char;");
             pstmt3 = con.prepareStatement("drop table x");
             pstmt1.execute();
@@ -147,7 +163,12 @@ public class RegressionTest extends AbstractTest {
             }
         }
     }
-    
+
+    /**
+     * Tests with grant queries
+     * 
+     * @throws SQLException
+     */
     @Test
     public void grantTest() throws SQLException {
         try {
@@ -161,7 +182,7 @@ public class RegressionTest extends AbstractTest {
             pstmt4.execute();
         }
         catch (SQLException e) {
-            fail("Create/drop/alter table with preparedStatement failed! Error message:" + e.getMessage());
+            fail("grant with preparedStatement failed! Error message:" + e.getMessage());
         }
 
         finally {
@@ -179,13 +200,17 @@ public class RegressionTest extends AbstractTest {
             }
         }
     }
-    
+
+    /**
+     * Cleanup after test
+     * 
+     * @throws SQLException
+     */
     @AfterAll
-    public static void cleanup() throws SQLException{
+    public static void cleanup() throws SQLException {
         Statement stmt = con.createStatement();
         Utils.dropTableIfExists("x", stmt);
-        Utils.dropViewIfExists("x", stmt);
-        if (null != stmt){
+        if (null != stmt) {
             stmt.close();
         }
         if (null != con) {
@@ -197,7 +222,7 @@ public class RegressionTest extends AbstractTest {
         if (null != pstmt2) {
             pstmt2.close();
         }
-        
+
     }
 
 }
