@@ -15,6 +15,7 @@ import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.text.MessageFormat;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.StringTokenizer;
@@ -51,6 +52,9 @@ public final class SQLServerParameterMetaData implements ParameterMetaData {
     static private final AtomicInteger baseID = new AtomicInteger(0);	// Unique id generator for each instance (used for logging).
     final private String traceID = " SQLServerParameterMetaData:" + nextInstanceID();
     boolean isTVP = false;
+    
+    private String stringToParse = null;
+    private int indexToBeginParse = -1;
 
     // Returns unique id for each instance.
     private static int nextInstanceID() {
@@ -85,9 +89,12 @@ public final class SQLServerParameterMetaData implements ParameterMetaData {
         String sLastField = null;
         StringBuilder sb = new StringBuilder();
 
+        int sTokenIndex = 0;
         while (st.hasMoreTokens()) {
 
             String sToken = st.nextToken();
+            sTokenIndex = sTokenIndex + sToken.length();
+            
             if (sToken.equalsIgnoreCase(columnStartToken)) {
                 nState = PARAMNAME;
                 continue;
@@ -120,6 +127,7 @@ public final class SQLServerParameterMetaData implements ParameterMetaData {
             }
         }
 
+        indexToBeginParse = sTokenIndex;
         return sb.toString();
     }
 
@@ -138,8 +146,11 @@ public final class SQLServerParameterMetaData implements ParameterMetaData {
         String sLastField = null;
         StringBuilder sb = new StringBuilder();
 
+        int sTokenIndex = 0;
         while (st.hasMoreTokens()) {
             String sToken = st.nextToken();
+            sTokenIndex = sTokenIndex + sToken.length();
+            
             if (sToken.equalsIgnoreCase(columnMarker)) {
                 nState = 1;
                 continue;
@@ -169,6 +180,7 @@ public final class SQLServerParameterMetaData implements ParameterMetaData {
             }
         }
 
+        indexToBeginParse = sTokenIndex;
         return sb.toString();
     }
 
@@ -391,12 +403,24 @@ public final class SQLServerParameterMetaData implements ParameterMetaData {
         }
 
         if (null != metaTable) {
-            if (sTableMarker.equalsIgnoreCase("UPDATE"))
+            if (sTableMarker.equalsIgnoreCase("UPDATE")) {
                 metaFields = parseColumns(sql, "SET"); // Get the set fields
-            else if (sTableMarker.equalsIgnoreCase("INTO")) // insert
+                stringToParse = "";
+            }
+            else if (sTableMarker.equalsIgnoreCase("INTO")) { // insert
                 metaFields = parseInsertColumns(sql, "("); // Get the value fields
-            else
+                stringToParse = sql.substring(indexToBeginParse); // the index of ')'
+
+                // skip VALUES() clause
+                if (stringToParse.trim().toLowerCase().startsWith("values")) {
+                    parseInsertColumns(stringToParse, "(");
+                    stringToParse = stringToParse.substring(indexToBeginParse); // the index of ')'
+                }
+            }
+            else {
                 metaFields = parseColumns(sql, "WHERE"); // Get the where fields
+                stringToParse = "";
+            }
 
             return new MetaInfo(metaTable, metaFields);
         }
@@ -577,20 +601,54 @@ public final class SQLServerParameterMetaData implements ParameterMetaData {
                 }
                 else {
                     // old implementation for SQL server 2008
-                    MetaInfo metaInfo = parseStatement(sProcString);
-                    if (null == metaInfo) {
-                        MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_cantIdentifyTableMetadata"));
-                        Object[] msgArgs = {sProcString};
-                        SQLServerException.makeFromDriverError(con, stmtParent, form.format(msgArgs), null, false);
+                    stringToParse = sProcString;
+                    ArrayList<MetaInfo> metaInfoList = new ArrayList<MetaInfo>();
+                    
+                    while (stringToParse.length() > 0) {
+                        MetaInfo metaInfo = parseStatement(stringToParse);
+                        if (null == metaInfo) {
+                            MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_cantIdentifyTableMetadata"));
+                            Object[] msgArgs = {stringToParse};
+                            SQLServerException.makeFromDriverError(con, stmtParent, form.format(msgArgs), null, false);
+                        }
+
+                        metaInfoList.add(metaInfo);
+                    }
+                    if (metaInfoList.size() <= 0 || metaInfoList.get(0).fields.length() <= 0) {
+                        return;
+                    }
+                    
+                    StringBuilder sbColumns = new StringBuilder();
+
+                    for (MetaInfo mi : metaInfoList) {
+                        sbColumns = sbColumns.append(mi.fields + ",");
+                    }
+                    sbColumns.deleteCharAt(sbColumns.length() - 1);
+
+                    String columns = sbColumns.toString();
+
+                    StringBuilder sbTablesAndJoins = new StringBuilder();
+                    for (int i = 0; i < metaInfoList.size(); i++) {
+                        if (i == 0) {
+                            sbTablesAndJoins = sbTablesAndJoins.append(metaInfoList.get(i).table);
+                        }
+                        else {
+                            if (metaInfoList.get(i).table.equals(metaInfoList.get(i - 1).table)
+                                    && metaInfoList.get(i).fields.equals(metaInfoList.get(i - 1).fields)) {
+                                continue;
+                            }
+                            sbTablesAndJoins = sbTablesAndJoins
+                                    .append(" LEFT JOIN " + metaInfoList.get(i).table + " ON " + metaInfoList.get(i - 1).table + "."
+                                            + metaInfoList.get(i - 1).fields + "=" + metaInfoList.get(i).table + "." + metaInfoList.get(i).fields);
+                        }
                     }
 
-                    if (metaInfo.fields.length() <= 0)
-                        return;
+                    String tablesAndJoins = sbTablesAndJoins.toString();
 
                     Statement stmt = con.createStatement();
-                    String sCom = "sp_executesql N'SET FMTONLY ON SELECT " + metaInfo.fields + " FROM " + metaInfo.table + " WHERE 1 = 2'";
-                    ResultSet rs = stmt.executeQuery(sCom);
+                    String sCom = "sp_executesql N'SET FMTONLY ON SELECT " + columns + " FROM " + tablesAndJoins + " '";
 
+                    ResultSet rs = stmt.executeQuery(sCom);
                     parseQueryMetaFor2008(rs);
                     stmt.close();
                     rs.close();
