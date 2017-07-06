@@ -966,6 +966,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
             if (needsPrepare 
                 && !connection.getEnablePrepareOnFirstPreparedStatementCall() 
                 && !isExecutedAtLeastOnce
+                && preparedTypeDefinitions.length() > 0
             ) {
                 buildExecSQLParams(tdsWriter);
                 isExecutedAtLeastOnce = true;
