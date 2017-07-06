@@ -233,7 +233,7 @@ public final class SQLServerParameterMetaData implements ParameterMetaData {
                             }
                             catch (NumberFormatException e) {
                                 MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_metaDataErrorForParameter"));
-                                Object[] msgArgs = {new Integer(paramOrdinal)};
+                                Object[] msgArgs = {paramOrdinal};
                                 SQLServerException.makeFromDriverError(con, stmtParent, form.format(msgArgs) + " " + e.toString(), null, false);
                             }
                         }
@@ -637,12 +637,12 @@ public final class SQLServerParameterMetaData implements ParameterMetaData {
         }
         catch (SQLException e) {
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_metaDataErrorForParameter"));
-            Object[] msgArgs = {new Integer(param)};
+            Object[] msgArgs = {param};
             SQLServerException.makeFromDriverError(con, stmtParent, form.format(msgArgs) + " " + e.toString(), null, false);
         }
         if (!bFound) {
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidParameterNumber"));
-            Object[] msgArgs = {new Integer(param)};
+            Object[] msgArgs = {param};
             SQLServerException.makeFromDriverError(con, stmtParent, form.format(msgArgs), null, false);
         }
     }

@@ -235,7 +235,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                         tdsWriter.writeShort(executedSqlDirectly ? TDS.PROCID_SP_UNPREPARE : TDS.PROCID_SP_CURSORUNPREPARE);
                         tdsWriter.writeByte((byte) 0);  // RPC procedure option 1
                         tdsWriter.writeByte((byte) 0);  // RPC procedure option 2
-                        tdsWriter.writeRPCInt(null, new Integer(handleToClose), false);
+                        tdsWriter.writeRPCInt(null, handleToClose, false);
                         TDSParser.parse(startResponse(), getLogContext());
                         return true;
                     }
@@ -355,7 +355,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
             String typeDefinition = params[i].getTypeDefinition(connection, resultsReader());
             if (null == typeDefinition) {
                 MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_valueNotSetForParameter"));
-                Object[] msgArgs = {new Integer(i + 1)};
+                Object[] msgArgs = {i + 1};
                 SQLServerException.makeFromDriverError(connection, this, form.format(msgArgs), null, false);
             }
 
@@ -411,7 +411,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         if (updateCount < Integer.MIN_VALUE || updateCount > Integer.MAX_VALUE)
             SQLServerException.makeFromDriverError(connection, this, SQLServerException.getErrString("R_updateCountOutofRange"), null, true);
 
-        loggerExternal.exiting(getClassNameLogging(), "executeUpdate", new Long(updateCount));
+        loggerExternal.exiting(getClassNameLogging(), "executeUpdate", updateCount);
 
         return (int) updateCount;
     }
@@ -425,7 +425,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         }
         checkClosed();
         executeStatement(new PrepStmtExecCmd(this, EXECUTE_UPDATE));
-        loggerExternal.exiting(getClassNameLogging(), "executeLargeUpdate", new Long(updateCount));
+        loggerExternal.exiting(getClassNameLogging(), "executeLargeUpdate", updateCount);
         return updateCount;
     }
 
@@ -443,7 +443,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         }
         checkClosed();
         executeStatement(new PrepStmtExecCmd(this, EXECUTE));
-        loggerExternal.exiting(getClassNameLogging(), "execute", Boolean.valueOf(null != resultSet));
+        loggerExternal.exiting(getClassNameLogging(), "execute", null != resultSet);
         return null != resultSet;
     }
 
@@ -631,11 +631,11 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         // <prepared handle>
         // IN (reprepare): Old handle to unprepare before repreparing
         // OUT: The newly prepared handle
-        tdsWriter.writeRPCInt(null, new Integer(getPreparedStatementHandle()), true);
+        tdsWriter.writeRPCInt(null, getPreparedStatementHandle(), true);
         resetPrepStmtHandle();
 
         // <cursor> OUT
-        tdsWriter.writeRPCInt(null, new Integer(0), true); // cursor ID (OUTPUT)
+        tdsWriter.writeRPCInt(null, 0, true); // cursor ID (OUTPUT)
 
         // <formal parameter defn> IN
         tdsWriter.writeRPCStringUnicode((preparedTypeDefinitions.length() > 0) ? preparedTypeDefinitions : null);
@@ -647,13 +647,13 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         // Note: we must strip out SCROLLOPT_PARAMETERIZED_STMT if we don't
         // actually have any parameters.
         tdsWriter.writeRPCInt(null,
-                new Integer(getResultSetScrollOpt() & ~((0 == preparedTypeDefinitions.length()) ? TDS.SCROLLOPT_PARAMETERIZED_STMT : 0)), false);
+                getResultSetScrollOpt() & ~((0 == preparedTypeDefinitions.length()) ? TDS.SCROLLOPT_PARAMETERIZED_STMT : 0), false);
 
         // <ccopt> IN
-        tdsWriter.writeRPCInt(null, new Integer(getResultSetCCOpt()), false);
+        tdsWriter.writeRPCInt(null, getResultSetCCOpt(), false);
 
         // <rowcount> OUT
-        tdsWriter.writeRPCInt(null, new Integer(0), true);
+        tdsWriter.writeRPCInt(null, 0, true);
     }
 
     private void buildPrepExecParams(TDSWriter tdsWriter) throws SQLServerException {
@@ -673,7 +673,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         // <prepared handle>
         // IN (reprepare): Old handle to unprepare before repreparing
         // OUT: The newly prepared handle
-        tdsWriter.writeRPCInt(null, new Integer(getPreparedStatementHandle()), true);
+        tdsWriter.writeRPCInt(null, getPreparedStatementHandle(), true);
         resetPrepStmtHandle();
 
         // <formal parameter defn> IN
@@ -723,19 +723,19 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
         // <handle> IN
         assert hasPreparedStatementHandle();
-        tdsWriter.writeRPCInt(null, new Integer(getPreparedStatementHandle()), false);
+        tdsWriter.writeRPCInt(null, getPreparedStatementHandle(), false);
 
         // <cursor> OUT
-        tdsWriter.writeRPCInt(null, new Integer(0), true);
+        tdsWriter.writeRPCInt(null, 0, true);
 
         // <scrollopt> IN
-        tdsWriter.writeRPCInt(null, new Integer(getResultSetScrollOpt() & ~TDS.SCROLLOPT_PARAMETERIZED_STMT), false);
+        tdsWriter.writeRPCInt(null, getResultSetScrollOpt() & ~TDS.SCROLLOPT_PARAMETERIZED_STMT, false);
 
         // <ccopt> IN
-        tdsWriter.writeRPCInt(null, new Integer(getResultSetCCOpt()), false);
+        tdsWriter.writeRPCInt(null, getResultSetCCOpt(), false);
 
         // <rowcount> OUT
-        tdsWriter.writeRPCInt(null, new Integer(0), true);
+        tdsWriter.writeRPCInt(null, 0, true);
     }
 
     private void buildExecParams(TDSWriter tdsWriter) throws SQLServerException {
@@ -754,7 +754,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
         // <handle> IN
         assert hasPreparedStatementHandle();
-        tdsWriter.writeRPCInt(null, new Integer(getPreparedStatementHandle()), false);
+        tdsWriter.writeRPCInt(null, getPreparedStatementHandle(), false);
     }
 
     private void getParameterEncryptionMetadata(Parameter[] params) throws SQLServerException {
@@ -1049,7 +1049,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     /* L0 */ final Parameter setterGetParam(int index) throws SQLServerException {
         if (index < 1 || index > inOutParam.length) {
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_indexOutOfRange"));
-            Object[] msgArgs = {new Integer(index)};
+            Object[] msgArgs = {index};
             SQLServerException.makeFromDriverError(connection, this, form.format(msgArgs), "07009", false);
         }
 
@@ -1144,7 +1144,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         index--;
         if (index < 0 || index >= inOutParam.length) {
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_indexOutOfRange"));
-            Object[] msgArgs = {new Integer(index + 1)};
+            Object[] msgArgs = {index + 1};
             SQLServerException.makeFromDriverError(connection, this, form.format(msgArgs), "07009", false);
         }
         return inOutParam[index];
@@ -1340,7 +1340,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setBoolean", new Object[] {n, x});
         checkClosed();
-        setValue(n, JDBCType.BIT, Boolean.valueOf(x), JavaType.BOOLEAN, false);
+        setValue(n, JDBCType.BIT, x, JavaType.BOOLEAN, false);
         loggerExternal.exiting(getClassNameLogging(), "setBoolean");
     }
 
@@ -1365,7 +1365,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setBoolean", new Object[] {n, x, forceEncrypt});
         checkClosed();
-        setValue(n, JDBCType.BIT, Boolean.valueOf(x), JavaType.BOOLEAN, forceEncrypt);
+        setValue(n, JDBCType.BIT, x, JavaType.BOOLEAN, forceEncrypt);
         loggerExternal.exiting(getClassNameLogging(), "setBoolean");
     }
 
@@ -1374,7 +1374,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setByte", new Object[] {n, x});
         checkClosed();
-        setValue(n, JDBCType.TINYINT, Byte.valueOf(x), JavaType.BYTE, false);
+        setValue(n, JDBCType.TINYINT, x, JavaType.BYTE, false);
         loggerExternal.exiting(getClassNameLogging(), "setByte");
     }
 
@@ -1399,7 +1399,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setByte", new Object[] {n, x, forceEncrypt});
         checkClosed();
-        setValue(n, JDBCType.TINYINT, Byte.valueOf(x), JavaType.BYTE, forceEncrypt);
+        setValue(n, JDBCType.TINYINT, x, JavaType.BYTE, forceEncrypt);
         loggerExternal.exiting(getClassNameLogging(), "setByte");
     }
 
@@ -1486,7 +1486,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setDouble", new Object[] {n, x});
         checkClosed();
-        setValue(n, JDBCType.DOUBLE, Double.valueOf(x), JavaType.DOUBLE, false);
+        setValue(n, JDBCType.DOUBLE, x, JavaType.DOUBLE, false);
         loggerExternal.exiting(getClassNameLogging(), "setDouble");
     }
 
@@ -1511,7 +1511,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setDouble", new Object[] {n, x, forceEncrypt});
         checkClosed();
-        setValue(n, JDBCType.DOUBLE, Double.valueOf(x), JavaType.DOUBLE, forceEncrypt);
+        setValue(n, JDBCType.DOUBLE, x, JavaType.DOUBLE, forceEncrypt);
         loggerExternal.exiting(getClassNameLogging(), "setDouble");
     }
 
@@ -1520,7 +1520,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setFloat", new Object[] {n, x});
         checkClosed();
-        setValue(n, JDBCType.REAL, Float.valueOf(x), JavaType.FLOAT, false);
+        setValue(n, JDBCType.REAL, x, JavaType.FLOAT, false);
         loggerExternal.exiting(getClassNameLogging(), "setFloat");
     }
 
@@ -1545,7 +1545,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setFloat", new Object[] {n, x, forceEncrypt});
         checkClosed();
-        setValue(n, JDBCType.REAL, Float.valueOf(x), JavaType.FLOAT, forceEncrypt);
+        setValue(n, JDBCType.REAL, x, JavaType.FLOAT, forceEncrypt);
         loggerExternal.exiting(getClassNameLogging(), "setFloat");
     }
 
@@ -1554,7 +1554,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setInt", new Object[] {n, value});
         checkClosed();
-        setValue(n, JDBCType.INTEGER, Integer.valueOf(value), JavaType.INTEGER, false);
+        setValue(n, JDBCType.INTEGER, value, JavaType.INTEGER, false);
         loggerExternal.exiting(getClassNameLogging(), "setInt");
     }
 
@@ -1579,7 +1579,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setInt", new Object[] {n, value, forceEncrypt});
         checkClosed();
-        setValue(n, JDBCType.INTEGER, Integer.valueOf(value), JavaType.INTEGER, forceEncrypt);
+        setValue(n, JDBCType.INTEGER, value, JavaType.INTEGER, forceEncrypt);
         loggerExternal.exiting(getClassNameLogging(), "setInt");
     }
 
@@ -1588,7 +1588,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setLong", new Object[] {n, x});
         checkClosed();
-        setValue(n, JDBCType.BIGINT, Long.valueOf(x), JavaType.LONG, false);
+        setValue(n, JDBCType.BIGINT, x, JavaType.LONG, false);
         loggerExternal.exiting(getClassNameLogging(), "setLong");
     }
 
@@ -1613,7 +1613,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setLong", new Object[] {n, x, forceEncrypt});
         checkClosed();
-        setValue(n, JDBCType.BIGINT, Long.valueOf(x), JavaType.LONG, forceEncrypt);
+        setValue(n, JDBCType.BIGINT, x, JavaType.LONG, forceEncrypt);
         loggerExternal.exiting(getClassNameLogging(), "setLong");
     }
 
@@ -1703,7 +1703,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         setObject(setterGetParam(parameterIndex), x, JavaType.of(x), JDBCType.of(targetSqlType),
                 (java.sql.Types.NUMERIC == targetSqlType || java.sql.Types.DECIMAL == targetSqlType || java.sql.Types.TIMESTAMP == targetSqlType
                         || java.sql.Types.TIME == targetSqlType || microsoft.sql.Types.DATETIMEOFFSET == targetSqlType
-                        || InputStream.class.isInstance(x) || Reader.class.isInstance(x)) ? Integer.valueOf(scaleOrLength) : null,
+                        || InputStream.class.isInstance(x) || Reader.class.isInstance(x)) ? scaleOrLength : null,
                 null, false, parameterIndex, null);
 
         loggerExternal.exiting(getClassNameLogging(), "setObject");
@@ -1753,7 +1753,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
         setObject(setterGetParam(parameterIndex), x, JavaType.of(x),
                 JDBCType.of(targetSqlType), (java.sql.Types.NUMERIC == targetSqlType || java.sql.Types.DECIMAL == targetSqlType
-                        || InputStream.class.isInstance(x) || Reader.class.isInstance(x)) ? Integer.valueOf(scale) : null,
+                        || InputStream.class.isInstance(x) || Reader.class.isInstance(x)) ? scale : null,
                 precision, false, parameterIndex, null);
 
         loggerExternal.exiting(getClassNameLogging(), "setObject");
@@ -1809,7 +1809,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
         setObject(setterGetParam(parameterIndex), x, JavaType.of(x),
                 JDBCType.of(targetSqlType), (java.sql.Types.NUMERIC == targetSqlType || java.sql.Types.DECIMAL == targetSqlType
-                        || InputStream.class.isInstance(x) || Reader.class.isInstance(x)) ? Integer.valueOf(scale) : null,
+                        || InputStream.class.isInstance(x) || Reader.class.isInstance(x)) ? scale : null,
                 precision, forceEncrypt, parameterIndex, null);
 
         loggerExternal.exiting(getClassNameLogging(), "setObject");
@@ -1880,7 +1880,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setShort", new Object[] {index, x});
         checkClosed();
-        setValue(index, JDBCType.SMALLINT, Short.valueOf(x), JavaType.SHORT, false);
+        setValue(index, JDBCType.SMALLINT, x, JavaType.SHORT, false);
         loggerExternal.exiting(getClassNameLogging(), "setShort");
     }
 
@@ -1905,7 +1905,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setShort", new Object[] {index, x, forceEncrypt});
         checkClosed();
-        setValue(index, JDBCType.SMALLINT, Short.valueOf(x), JavaType.SHORT, forceEncrypt);
+        setValue(index, JDBCType.SMALLINT, x, JavaType.SHORT, forceEncrypt);
         loggerExternal.exiting(getClassNameLogging(), "setShort");
     }
 

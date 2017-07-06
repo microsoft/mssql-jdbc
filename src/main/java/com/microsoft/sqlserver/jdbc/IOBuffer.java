@@ -3293,7 +3293,7 @@ final class TDSWriter {
      *            the data value
      */
     void writeReal(Float value) throws SQLServerException {
-        writeInt(Float.floatToRawIntBits(value.floatValue()));
+        writeInt(Float.floatToRawIntBits(value));
     }
 
     /**
@@ -3781,7 +3781,7 @@ final class TDSWriter {
         // the actual stream length did not match then cancel the request.
         if (DataTypes.UNKNOWN_STREAM_LENGTH != advertisedLength && actualLength != advertisedLength) {
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_mismatchedStreamLength"));
-            Object[] msgArgs = {Long.valueOf(advertisedLength), Long.valueOf(actualLength)};
+            Object[] msgArgs = {advertisedLength, actualLength};
             error(form.format(msgArgs), SQLState.DATA_EXCEPTION_LENGTH_MISMATCH, DriverError.NOT_SET);
         }
     }
@@ -3866,7 +3866,7 @@ final class TDSWriter {
         // the actual stream length did not match then cancel the request.
         if (DataTypes.UNKNOWN_STREAM_LENGTH != advertisedLength && actualLength != advertisedLength) {
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_mismatchedStreamLength"));
-            Object[] msgArgs = {Long.valueOf(advertisedLength), Long.valueOf(actualLength)};
+            Object[] msgArgs = {advertisedLength, actualLength};
             error(form.format(msgArgs), SQLState.DATA_EXCEPTION_LENGTH_MISMATCH, DriverError.NOT_SET);
         }
     }
@@ -3931,7 +3931,7 @@ final class TDSWriter {
         // the actual stream length did not match then cancel the request.
         if (DataTypes.UNKNOWN_STREAM_LENGTH != advertisedLength && actualLength != advertisedLength) {
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_mismatchedStreamLength"));
-            Object[] msgArgs = {Long.valueOf(advertisedLength), Long.valueOf(actualLength)};
+            Object[] msgArgs = {advertisedLength, actualLength};
             error(form.format(msgArgs), SQLState.DATA_EXCEPTION_LENGTH_MISMATCH, DriverError.NOT_SET);
         }
     }
@@ -4153,7 +4153,7 @@ final class TDSWriter {
         }
         else {
             writeByte((byte) 1); // length of datatype
-            writeByte((byte) (booleanValue.booleanValue() ? 1 : 0));
+            writeByte((byte) (booleanValue ? 1 : 0));
         }
     }
 
@@ -4177,7 +4177,7 @@ final class TDSWriter {
         }
         else {
             writeByte((byte) 1); // length of datatype
-            writeByte(byteValue.byteValue());
+            writeByte(byteValue);
         }
     }
 
@@ -4201,7 +4201,7 @@ final class TDSWriter {
         }
         else {
             writeByte((byte) 2); // length of datatype
-            writeShort(shortValue.shortValue());
+            writeShort(shortValue);
         }
     }
 
@@ -4225,7 +4225,7 @@ final class TDSWriter {
         }
         else {
             writeByte((byte) 4); // length of datatype
-            writeInt(intValue.intValue());
+            writeInt(intValue);
         }
     }
 
@@ -4249,7 +4249,7 @@ final class TDSWriter {
         }
         else {
             writeByte((byte) 8); // length of datatype
-            writeLong(longValue.longValue());
+            writeLong(longValue);
         }
     }
 
@@ -4276,7 +4276,7 @@ final class TDSWriter {
         else {
             writeByte((byte) 4); // max length
             writeByte((byte) 4); // actual length
-            writeInt(Float.floatToRawIntBits(floatValue.floatValue()));
+            writeInt(Float.floatToRawIntBits(floatValue));
         }
     }
 
@@ -4304,7 +4304,7 @@ final class TDSWriter {
         }
         else {
             writeByte((byte) l); // len of data bytes
-            long bits = Double.doubleToLongBits(doubleValue.doubleValue());
+            long bits = Double.doubleToLongBits(doubleValue);
             long mask = 0xFF;
             int nShift = 0;
             for (int i = 0; i < 8; i++) {
@@ -4616,7 +4616,7 @@ final class TDSWriter {
                                     writeByte((byte) 0);
                                 else {
                                     writeByte((byte) 8);
-                                    writeLong(Long.valueOf(currentColumnStringValue).longValue());
+                                    writeLong(Long.valueOf(currentColumnStringValue));
                                 }
                                 break;
 
@@ -4625,7 +4625,7 @@ final class TDSWriter {
                                     writeByte((byte) 0);
                                 else {
                                     writeByte((byte) 1);
-                                    writeByte((byte) (Boolean.valueOf(currentColumnStringValue).booleanValue() ? 1 : 0));
+                                    writeByte((byte) (Boolean.valueOf(currentColumnStringValue) ? 1 : 0));
                                 }
                                 break;
 
@@ -4634,7 +4634,7 @@ final class TDSWriter {
                                     writeByte((byte) 0);
                                 else {
                                     writeByte((byte) 4);
-                                    writeInt(Integer.valueOf(currentColumnStringValue).intValue());
+                                    writeInt(Integer.valueOf(currentColumnStringValue));
                                 }
                                 break;
 
@@ -4644,7 +4644,7 @@ final class TDSWriter {
                                     writeByte((byte) 0);
                                 else {
                                     writeByte((byte) 2); // length of datatype
-                                    writeShort(Short.valueOf(currentColumnStringValue).shortValue());
+                                    writeShort(Short.valueOf(currentColumnStringValue));
                                 }
                                 break;
 
@@ -4679,7 +4679,7 @@ final class TDSWriter {
                                     writeByte((byte) 0); // len of data bytes
                                 else {
                                     writeByte((byte) 8); // len of data bytes
-                                    long bits = Double.doubleToLongBits(Double.valueOf(currentColumnStringValue).doubleValue());
+                                    long bits = Double.doubleToLongBits(Double.valueOf(currentColumnStringValue));
                                     long mask = 0xFF;
                                     int nShift = 0;
                                     for (int i = 0; i < 8; i++) {
@@ -4696,7 +4696,7 @@ final class TDSWriter {
                                     writeByte((byte) 0); // actual length (0 == null)
                                 else {
                                     writeByte((byte) 4); // actual length
-                                    writeInt(Float.floatToRawIntBits(Float.valueOf(currentColumnStringValue).floatValue()));
+                                    writeInt(Float.floatToRawIntBits(Float.valueOf(currentColumnStringValue)));
                                 }
                                 break;
 
@@ -5962,7 +5962,7 @@ final class TDSWriter {
 
                 if (streamLength >= maxStreamLength) {
                     MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidLength"));
-                    Object[] msgArgs = {Long.valueOf(streamLength)};
+                    Object[] msgArgs = {streamLength};
                     SQLServerException.makeFromDriverError(null, null, form.format(msgArgs), "", true);
                 }
 

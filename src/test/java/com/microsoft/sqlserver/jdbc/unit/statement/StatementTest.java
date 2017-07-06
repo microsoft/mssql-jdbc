@@ -1134,7 +1134,7 @@ public class StatementTest extends AbstractTest {
             // SQL Server only supports integer limits for setting max rows
             // If the value MAX_VALUE + 1 is accepted, throw exception
             try {
-                newValue = new Long(java.lang.Integer.MAX_VALUE) + 1;
+                newValue = (long) Integer.MAX_VALUE + 1;
                 dbstmt.setLargeMaxRows(newValue);
                 throw new SQLException("setLargeMaxRows(): Long values should not be set");
             }
