@@ -32,8 +32,6 @@ import com.microsoft.sqlserver.jdbc.SQLServerConnection;
 import com.microsoft.sqlserver.jdbc.SQLServerDataSource;
 import com.microsoft.sqlserver.jdbc.SQLServerPreparedStatement;
 import com.microsoft.sqlserver.testframework.AbstractTest;
-import com.microsoft.sqlserver.testframework.Utils;
-import com.microsoft.sqlserver.testframework.util.RandomUtil;
 
 @RunWith(JUnitPlatform.class)
 public class PreparedStatementTest extends AbstractTest { 
@@ -208,18 +206,18 @@ public class PreparedStatementTest extends AbstractTest {
             String lookupUniqueifier = UUID.randomUUID().toString();
             String query = String.format("/*statementpoolingtest_%s*/SELECT * FROM sys.tables;", lookupUniqueifier);
 
-            // Execute statement first, should create cache entry with handle (since sp_prepexec was used) for queries without parameter.
+            // Execute statement first, should create cache entry WITHOUT handle (since sp_executesql was used).
             try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement)con.prepareStatement(query)) {
-                pstmt.execute(); // sp_prepexec
+                pstmt.execute(); // sp_executesql
                 pstmt.getMoreResults(); // Make sure handle is updated.
 
-                assertSame(1, pstmt.getPreparedStatementHandle());
+                assertSame(0, pstmt.getPreparedStatementHandle());
             } 
 
-            // Execute statement again, should reuse create handle.
+            // Execute statement again, should now create handle.
             int handle = 0;
             try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement)con.prepareStatement(query)) {
-                pstmt.execute(); // sp_execute
+                pstmt.execute(); // sp_prepexec
                 pstmt.getMoreResults(); // Make sure handle is updated.
                 
                 handle = pstmt.getPreparedStatementHandle();
@@ -239,67 +237,6 @@ public class PreparedStatementTest extends AbstractTest {
             SQLServerPreparedStatement outer = null;
             try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement)con.prepareStatement(query + ";")) {
                 outer = pstmt;
-                pstmt.execute(); // sp_prepexec
-                pstmt.getMoreResults(); // Make sure handle is updated.
-
-                assertSame(2, pstmt.getPreparedStatementHandle());
-                assertNotSame(handle, pstmt.getPreparedStatementHandle());
-            } 
-            try {
-                System.out.println(outer.getPreparedStatementHandle());
-                fail("Error for invalid use of getPreparedStatementHandle() after statement close expected.");
-            }
-            catch(Exception e) {
-                // Good!
-            }
-        } 
-        
-        try (SQLServerConnection con = (SQLServerConnection)DriverManager.getConnection(connectionString)) {
-            // Test behvaior with statement pooling.
-            con.setStatementPoolingCacheSize(10);
-            String tableName = "tempTable";
-            Statement stmt = con.createStatement();
-            Utils.dropTableIfExists(tableName, stmt);
-            stmt.executeUpdate("create table "+ tableName + " (col1 int)");
-           
-            String query = "insert into " + tableName + " values(?) ";
-
-            // Execute statement first, should create cache entry WITHOUT handle (since sp_executesql was used).
-            try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement)con.prepareStatement(query)) {
-                pstmt.setInt(1, 1);
-                pstmt.execute(); // sp_executesql
-                pstmt.getMoreResults(); // Make sure handle is updated.
-
-                assertSame(0, pstmt.getPreparedStatementHandle());
-            } 
-
-            // Execute statement again, should now create handle.
-            int handle = 0;
-            try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement)con.prepareStatement(query)) {
-                pstmt.setInt(1, 2);
-                pstmt.execute(); // sp_prepexec
-                pstmt.getMoreResults(); // Make sure handle is updated.
-                
-                handle = pstmt.getPreparedStatementHandle();
-                assertNotSame(0, handle);
-            } 
-
-            // Execute statement again and verify same handle was used. 
-            try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement)con.prepareStatement(query)) {
-                pstmt.setInt(1, 3);
-                pstmt.execute(); // sp_execute
-                pstmt.getMoreResults(); // Make sure handle is updated.
-
-                assertNotSame(0, pstmt.getPreparedStatementHandle());
-                assertSame(handle, pstmt.getPreparedStatementHandle());
-            } 
-
-            // Execute new statement with different SQL text and verify it does NOT get same handle (should now fall back to using sp_executesql). 
-            SQLServerPreparedStatement outer = null;
-            query = "Update " + tableName + " set col1=? ";
-            try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement)con.prepareStatement(query)) {
-                outer = pstmt;
-                pstmt.setInt(1, 4);
                 pstmt.execute(); // sp_executesql
                 pstmt.getMoreResults(); // Make sure handle is updated.
 
@@ -314,8 +251,6 @@ public class PreparedStatementTest extends AbstractTest {
                 // Good!
             }
         } 
-        
-        
     }
 
     /**
