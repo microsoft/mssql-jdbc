@@ -127,7 +127,7 @@ import com.microsoft.sqlserver.testframework.Utils;
  *
  */
 @RunWith(JUnitPlatform.class)
-public class BatchExecutionTestWithNull extends AbstractTest {
+public class BatchExecutionWithNullTest extends AbstractTest {
 
     static Statement stmt = null;
     static Connection connection = null;
