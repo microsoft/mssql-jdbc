@@ -125,10 +125,11 @@ public final class SQLServerException extends java.sql.SQLException {
      * Make a new SQLException
      * 
      * @param errText
-     *            the excception message
-     * @param errState
-     *            the excpeption state
+     *            the exception message
+     * @param sqlState
+     *            the statement
      * @param driverError
+     *            the driver error object
      * @param cause
      *            The exception that caused this exception
      */
@@ -171,6 +172,7 @@ public final class SQLServerException extends java.sql.SQLException {
      * Make a new SQLException
      * 
      * @param obj
+     *            the object
      * @param errText
      *            the exception message
      * @param errState
