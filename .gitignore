@@ -16,7 +16,6 @@ local.properties
 .classpath
 .vscode/
 .settings/
-.gradle/
 .loadpath
 
 # External tool builders
