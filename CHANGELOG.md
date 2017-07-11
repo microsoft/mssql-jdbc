@@ -3,6 +3,10 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](http://keepachangelog.com/) 
 
+## [6.2.1] Stable Release
+### Changed
+- removed metadata caching [#377](https://github.com/Microsoft/mssql-jdbc/pull/377)
+
 ## [6.2.0] Stable Release
 ### Added
 - Added TVP and BulkCopy random data test for all data types with server cursor [#319](https://github.com/Microsoft/mssql-jdbc/pull/319)
