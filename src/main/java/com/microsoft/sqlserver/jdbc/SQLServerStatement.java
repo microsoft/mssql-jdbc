@@ -8,9 +8,6 @@
 
 package com.microsoft.sqlserver.jdbc;
 
-import static com.microsoft.sqlserver.jdbc.SQLServerConnection.getCachedParsedSQL;
-import static com.microsoft.sqlserver.jdbc.SQLServerConnection.parseAndCacheSQL;
-
 import java.sql.BatchUpdateException;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -26,8 +23,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-
-import com.microsoft.sqlserver.jdbc.SQLServerConnection.Sha1HashKey;
 
 /**
  * SQLServerStatment provides the basic implementation of JDBC statement functionality. It also provides a number of base class implementation methods
@@ -766,17 +761,10 @@ public class SQLServerStatement implements ISQLServerStatement {
 
     private String ensureSQLSyntax(String sql) throws SQLServerException {
         if (sql.indexOf(LEFT_CURLY_BRACKET) >= 0) {
-
-            Sha1HashKey cacheKey = new Sha1HashKey(sql);
-
-            // Check for cached SQL metadata.
-            ParsedSQLCacheItem cacheItem = getCachedParsedSQL(cacheKey);
-            if (null == cacheItem)
-                cacheItem = parseAndCacheSQL(cacheKey, sql);
-
-            // Retrieve from cache item.
-            procedureName = cacheItem.procedureName;
-            return cacheItem.processedSQL;
+            JDBCSyntaxTranslator translator = new JDBCSyntaxTranslator();
+            String execSyntax = translator.translate(sql);
+            procedureName = translator.getProcedureName();
+            return execSyntax;
         }
 
         return sql;
