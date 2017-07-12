@@ -4,8 +4,10 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/) 
 
 ## [6.2.1] Stable Release
+### Fixed Issues 
+- Fixed queries without parameters using preparedStatement [#372](https://github.com/Microsoft/mssql-jdbc/pull/372)
 ### Changed
-- removed metadata caching [#377](https://github.com/Microsoft/mssql-jdbc/pull/377)
+- Removed metadata caching [#377](https://github.com/Microsoft/mssql-jdbc/pull/377)
 
 ## [6.2.0] Stable Release
 ### Added
