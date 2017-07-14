@@ -11,6 +11,7 @@ package com.microsoft.sqlserver.testframework;
 import static org.junit.jupiter.api.Assertions.fail;
 
 import java.sql.JDBCType;
+import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
@@ -143,7 +144,7 @@ public class DBTable extends AbstractSQLGenerator {
     public String getTableName() {
         return tableName;
     }
-    
+
     public List<DBColumn> getColumns() {
         return this.columns;
     }
@@ -156,7 +157,7 @@ public class DBTable extends AbstractSQLGenerator {
     public String getEscapedTableName() {
         return escapedTableName;
     }
-    
+
     public String getDefinitionOfColumns() {
         return tableDefinition;
     }
@@ -234,7 +235,7 @@ public class DBTable extends AbstractSQLGenerator {
         tableDefinition = tableDefinition.substring(0, indexOfLastComma);
 
         sb.add(tableDefinition);
-        
+
         sb.add(CLOSE_BRACKET);
         return sb.toString();
     }
@@ -250,6 +251,56 @@ public class DBTable extends AbstractSQLGenerator {
             populateValues();
             String sql = populateTableSql();
             return dbstatement.execute(sql);
+        }
+        catch (SQLException ex) {
+            fail(ex.getMessage());
+        }
+        return false;
+    }
+
+    /**
+     * using prepared statement to populate table with values
+     * 
+     * @param dbstatement
+     * @return
+     */
+    boolean populateTableWithPreparedStatement(DBPreparedStatement dbPStmt) {
+        try {
+            populateValues();
+
+            // create the insertion query
+            StringJoiner sb = new StringJoiner(SPACE_CHAR);
+            sb.add("INSERT");
+            sb.add("INTO");
+            sb.add(escapedTableName);
+            sb.add("VALUES");
+            sb.add(OPEN_BRACKET);
+            for (int colNum = 0; colNum < totalColumns; colNum++) {
+                sb.add(QUESTION_MARK);
+
+                if (colNum < totalColumns - 1) {
+                    sb.add(COMMA);
+                }
+            }
+            sb.add(CLOSE_BRACKET);
+            String sql = sb.toString();
+
+            dbPStmt.prepareStatement(sql);
+
+            // insert data
+            for (int i = 0; i < totalRows; i++) {
+                for (int colNum = 0; colNum < totalColumns; colNum++) {
+                    if (passDataAsHex(colNum)) {
+                        ((PreparedStatement) dbPStmt.product()).setBytes(colNum + 1, ((byte[]) (getColumn(colNum).getRowValue(i))));
+                    }
+                    else {
+                        dbPStmt.setObject(colNum + 1, String.valueOf(getColumn(colNum).getRowValue(i)));
+                    }
+                }
+                dbPStmt.execute();
+            }
+
+            return true;
         }
         catch (SQLException ex) {
             fail(ex.getMessage());
