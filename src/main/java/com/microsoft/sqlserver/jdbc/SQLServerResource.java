@@ -190,6 +190,7 @@ public final class SQLServerResource extends ListResourceBundle {
 				{"R_socketTimeoutPropertyDescription", "The number of milliseconds to wait before the java.net.SocketTimeoutException is raised."},
 				{"R_serverPreparedStatementDiscardThresholdPropertyDescription", "The threshold for when to close discarded prepare statements on the server (calling a batch of sp_unprepares). A value of 1 or less will cause sp_unprepare to be called immediately on PreparedStatment close."},
 				{"R_enablePrepareOnFirstPreparedStatementCallPropertyDescription", "This setting specifies whether a prepared statement is prepared (sp_prepexec) on first use (property=true) or on second after first calling sp_executesql (property=false)."},
+                {"R_statementPoolingCacheSizePropertyDescription", "This setting specifies the size of the prepared statement cache for a conection. A value less than 1 means no cache."},
 				{"R_gsscredentialPropertyDescription", "Impersonated GSS Credential to access SQL Server."}, 
 				{"R_noParserSupport", "An error occurred while instantiating the required parser. Error: \"{0}\""},
 				{"R_writeOnlyXML", "Cannot read from this SQLXML instance. This instance is for writing data only."},
@@ -383,9 +384,9 @@ public final class SQLServerResource extends ListResourceBundle {
 				{"R_kerberosLoginFailed", "Kerberos Login failed: {0} due to {1} ({2})"},
 				{"R_StoredProcedureNotFound", "Could not find stored procedure ''{0}''."},
 				{"R_jaasConfigurationNamePropertyDescription", "Login configuration file for Kerberos authentication."},
-				{"R_SQLVariantSupport", "sql-variant datatype is not supported in pre-SQL 2008 version!"},
-                {"R_invalidProbbytes", "sql-variant: invalid probBytes for {0} type!."},
-                {"R_invalidStringValue", "sql_variant does not support string values more than 8000!"},
+				{"R_SQLVariantSupport", "sql-variant datatype is not supported in pre-SQL 2008 version"},
+                {"R_invalidProbbytes", "sql-variant: invalid probBytes for {0} type."},
+                {"R_invalidStringValue", "sql_variant does not support string values more than 8000"},
 
     };
 }

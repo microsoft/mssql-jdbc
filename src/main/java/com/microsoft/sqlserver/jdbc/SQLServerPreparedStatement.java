@@ -6,7 +6,10 @@
  * This program is made available under the terms of the MIT License. See the LICENSE file in the project root for more information.
  */
 
-package com.microsoft.sqlserver.jdbc;
+package com.microsoft.sqlserver.jdbc; 
+
+import static com.microsoft.sqlserver.jdbc.SQLServerConnection.getCachedParsedSQL;
+import static com.microsoft.sqlserver.jdbc.SQLServerConnection.parseAndCacheSQL;
 
 import java.io.InputStream;
 import java.io.Reader;
@@ -27,6 +30,9 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Vector;
 import java.util.logging.Level;
+
+import com.microsoft.sqlserver.jdbc.SQLServerConnection.PreparedStatementHandle;
+import com.microsoft.sqlserver.jdbc.SQLServerConnection.Sha1HashKey;
 
 /**
  * SQLServerPreparedStatement provides JDBC prepared statement functionality. SQLServerPreparedStatement provides methods for the user to supply
@@ -51,13 +57,10 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     private static final int BATCH_STATEMENT_DELIMITER_TDS_72 = 0xFF;
     final int nBatchStatementDelimiter = BATCH_STATEMENT_DELIMITER_TDS_72;
 
-    /** the user's prepared sql syntax */
-    private String sqlCommand;
-
     /** The prepared type definitions */
     private String preparedTypeDefinitions;
 
-    /** The users SQL statement text */
+    /** Processed SQL statement text, may not be same as what user initially passed. */
     final String userSQL;
 
     /** SQL statement with expanded parameter tokens */
@@ -65,6 +68,12 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
     /** True if this execute has been called for this statement at least once */
     private boolean isExecutedAtLeastOnce = false;
+
+    /** Reference to cache item for statement handle pooling. Only used to decrement ref count on statement close. */
+    private PreparedStatementHandle cachedPreparedStatementHandle; 
+
+    /** Hash of user supplied SQL statement used for various cache lookups */
+    private Sha1HashKey sqlTextCacheKey;
 
     /**
      * Array with parameter names generated in buildParamTypeDefinitions For mapping encryption information to parameters, as the second result set
@@ -478,6 +487,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
             loggerExternal.finer(toString() + " ActivityId: " + ActivityCorrelator.getNext().toString());
         }
 
+        boolean hasExistingTypeDefinitions = preparedTypeDefinitions != null;
         boolean hasNewTypeDefinitions = true;
         if (!encryptionMetadataIsRetrieved) {
             hasNewTypeDefinitions = buildPreparedStrings(inOutParam, false);

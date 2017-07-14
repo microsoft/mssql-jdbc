@@ -2175,7 +2175,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         loggerExternal.exiting(getClassNameLogging(), "getObject", value);
         return value;
     }
-    
+
     public <T> T getObject(int columnIndex,
             Class<T> type) throws SQLException {
         // The driver currently does not implement the optional JDBC APIs

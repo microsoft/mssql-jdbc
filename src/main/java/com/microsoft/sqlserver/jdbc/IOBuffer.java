@@ -4682,9 +4682,6 @@ final class TDSWriter {
     }
 
     void writeTVPRows(TVP value) throws SQLServerException {
-        boolean isShortValue, isNull;
-        int dataLength;
-
         boolean tdsWritterCached = false;
         ByteBuffer cachedTVPHeaders = null;
         TDSCommand cachedCommand = null;
@@ -4727,7 +4724,7 @@ final class TDSWriter {
             Iterator<Entry<Integer, SQLServerMetaData>> columnsIterator;
 
             while (value.next()) {
-                
+
                 // restore command and TDS header, which have been overwritten by value.next()
                 if (tdsWritterCached) {
                     command = cachedCommand;
@@ -4831,8 +4828,8 @@ final class TDSWriter {
                     writeByte((byte) 0);
                 else {
                     if (isSqlVariant)
-                        writeSqlVariantHeader(3, TDSType.BIT1.byteValue(), (byte)0);
-                    else 
+                        writeSqlVariantHeader(3, TDSType.BIT1.byteValue(), (byte) 0);
+                    else
                         writeByte((byte) 1);
                     writeByte((byte) (Boolean.valueOf(currentColumnStringValue).booleanValue() ? 1 : 0));
                 }
@@ -4846,7 +4843,7 @@ final class TDSWriter {
                         writeByte((byte) 4);
                     else
                         writeSqlVariantHeader(6, TDSType.INT4.byteValue(), (byte) 0);
-                       writeInt(Integer.valueOf(currentColumnStringValue).intValue());
+                    writeInt(Integer.valueOf(currentColumnStringValue).intValue());
                 }
                 break;
 
@@ -4881,23 +4878,23 @@ final class TDSWriter {
                     }
                     BigDecimal bdValue = new BigDecimal(currentColumnStringValue);
 
-                                    /*
-                                     * setScale of all BigDecimal value based on metadata as scale is not sent seperately for individual value. Use
-                                     * the rounding used in Server. Say, for BigDecimal("0.1"), if scale in metdadata is 0, then ArithmeticException
-                                     * would be thrown if RoundingMode is not set
-                                     */
-                                    bdValue = bdValue.setScale(columnPair.getValue().scale, RoundingMode.HALF_UP);
+                    /*
+                     * setScale of all BigDecimal value based on metadata as scale is not sent seperately for individual value. Use the rounding used
+                     * in Server. Say, for BigDecimal("0.1"), if scale in metdadata is 0, then ArithmeticException would be thrown if RoundingMode is
+                     * not set
+                     */
+                    bdValue = bdValue.setScale(columnPair.getValue().scale, RoundingMode.HALF_UP);
 
-                                    byte[] valueBytes = DDC.convertBigDecimalToBytes(bdValue, bdValue.scale());
+                    byte[] valueBytes = DDC.convertBigDecimalToBytes(bdValue, bdValue.scale());
 
-                                    // 1-byte for sign and 16-byte for integer
-                                    byte[] byteValue = new byte[17];
+                    // 1-byte for sign and 16-byte for integer
+                    byte[] byteValue = new byte[17];
 
-                                    // removing the precision and scale information from the valueBytes array
-                                    System.arraycopy(valueBytes, 2, byteValue, 0, valueBytes.length - 2);
-                                    writeBytes(byteValue);
-                                }
-                                break;
+                    // removing the precision and scale information from the valueBytes array
+                    System.arraycopy(valueBytes, 2, byteValue, 0, valueBytes.length - 2);
+                    writeBytes(byteValue);
+                }
+                break;
 
             case DOUBLE:
                 if (null == currentColumnStringValue)
@@ -4923,14 +4920,14 @@ final class TDSWriter {
             case FLOAT:
             case REAL:
                 if (null == currentColumnStringValue)
-                    writeByte((byte) 0); 
+                    writeByte((byte) 0);
                 else {
                     if (isSqlVariant) {
                         writeSqlVariantHeader(6, TDSType.FLOAT4.byteValue(), (byte) 0);
                         writeInt(Float.floatToRawIntBits(Float.valueOf(currentColumnStringValue).floatValue()));
                     }
                     else {
-                        writeByte((byte) 4); 
+                        writeByte((byte) 4);
                         writeInt(Float.floatToRawIntBits(Float.valueOf(currentColumnStringValue).floatValue()));
                     }
                 }
@@ -4943,7 +4940,7 @@ final class TDSWriter {
             case TIMESTAMP_WITH_TIMEZONE:
             case TIME_WITH_TIMEZONE:
             case CHAR:
-            case VARCHAR:               
+            case VARCHAR:
             case NCHAR:
             case NVARCHAR:
             case LONGVARCHAR:
@@ -4958,26 +4955,26 @@ final class TDSWriter {
                         // Null header for v*max types is 0xFFFFFFFFFFFFFFFF.
                         writeLong(0xFFFFFFFFFFFFFFFFL);
                     if (isSqlVariant) {
-                      //for now we send as bigger type, but is sendStringParameterAsUnicoe is set to false we can't send nvarchar
-                      //since we are writing as nvarchar we need to write as tdstype.bigvarchar value because if we 
-                      // want to supprot varchar(8000) it becomes as nvarchar, 8000*2 therefore we should send as longvarchar,
-                      // but we cannot send more than 8000 cause sql_variant datatype in sql server does not support it.
-                      // then throw exception if user is sending more than that
-                      if (dataLength > 2 * DataTypes.SHORT_VARTYPE_MAX_BYTES) {
-                          MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidStringValue"));
-                          throw new SQLServerException(null, form.format(new Object[] {}), null, 0, false);
-                      }
-                      int length = currentColumnStringValue.length();
-                      writeSqlVariantHeader(9 + length, TDSType.BIGVARCHAR.byteValue(), (byte) 0x07);
-                      SQLCollation col = con.getDatabaseCollation();
-                      // write collation for sql variant
-                      writeInt(col.getCollationInfo());
-                      writeByte((byte) col.getCollationSortID());
-                      writeShort((short) (length)); 
-                      writeBytes(currentColumnStringValue.getBytes());
-                      break;
-                  }
-                    
+                        // for now we send as bigger type, but is sendStringParameterAsUnicoe is set to false we can't send nvarchar
+                        // since we are writing as nvarchar we need to write as tdstype.bigvarchar value because if we
+                        // want to supprot varchar(8000) it becomes as nvarchar, 8000*2 therefore we should send as longvarchar,
+                        // but we cannot send more than 8000 cause sql_variant datatype in sql server does not support it.
+                        // then throw exception if user is sending more than that
+                        if (dataLength > 2 * DataTypes.SHORT_VARTYPE_MAX_BYTES) {
+                            MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidStringValue"));
+                            throw new SQLServerException(null, form.format(new Object[] {}), null, 0, false);
+                        }
+                        int length = currentColumnStringValue.length();
+                        writeSqlVariantHeader(9 + length, TDSType.BIGVARCHAR.byteValue(), (byte) 0x07);
+                        SQLCollation col = con.getDatabaseCollation();
+                        // write collation for sql variant
+                        writeInt(col.getCollationInfo());
+                        writeByte((byte) col.getCollationSortID());
+                        writeShort((short) (length));
+                        writeBytes(currentColumnStringValue.getBytes());
+                        break;
+                    }
+
                     else if (DataTypes.UNKNOWN_STREAM_LENGTH == dataLength)
                         // Append v*max length.
                         // UNKNOWN_PLP_LEN is 0xFFFFFFFFFFFFFFFE
@@ -4999,20 +4996,20 @@ final class TDSWriter {
                         writeShort((short) -1); // actual len
                     else {
                         if (isSqlVariant) {
-                            //for now we send as bigger type, but is sendStringParameterAsUnicoe is set to false we can't send nvarchar
+                            // for now we send as bigger type, but is sendStringParameterAsUnicoe is set to false we can't send nvarchar
                             // check for this
-                            int length = currentColumnStringValue.length() *2;
-                            writeSqlVariantHeader(9 + length, TDSType.NVARCHAR.byteValue(), (byte)7);
-                              SQLCollation col = con.getDatabaseCollation();
-                              // write collation for sql variant
-                              writeInt(col.getCollationInfo());
-                              writeByte((byte) col.getCollationSortID());
+                            int length = currentColumnStringValue.length() * 2;
+                            writeSqlVariantHeader(9 + length, TDSType.NVARCHAR.byteValue(), (byte) 7);
+                            SQLCollation col = con.getDatabaseCollation();
+                            // write collation for sql variant
+                            writeInt(col.getCollationInfo());
+                            writeByte((byte) col.getCollationSortID());
                             int stringLength = currentColumnStringValue.length();
                             byte[] typevarlen = new byte[2];
                             typevarlen[0] = (byte) (2 * stringLength & 0xFF);
                             typevarlen[1] = (byte) ((2 * stringLength >> 8) & 0xFF);
                             writeBytes(typevarlen);
-                            writeString(currentColumnStringValue);                            
+                            writeString(currentColumnStringValue);
                             break;
                         }
                         else {
@@ -7211,7 +7208,7 @@ final class TimeoutTimer implements Runnable {
             return t;
         }
     });
-    
+
     private volatile boolean canceled = false;
 
     TimeoutTimer(int timeoutSeconds,

@@ -117,14 +117,11 @@ public final class SQLServerDataTable {
             int currentColumn = 0;
             while (columnsIterator.hasNext()) {
                 Object val = null;
-                boolean bValueNull;
-                int nValueLen;
 
                 if ((null != values) && (currentColumn < values.length) && (null != values[currentColumn]))
                     val = (null == values[currentColumn]) ? null : values[currentColumn];
                 currentColumn++;
                 Map.Entry<Integer, SQLServerDataColumn> pair = columnsIterator.next();
-                SQLServerDataColumn currentColumnMetadata = pair.getValue();
                 JDBCType jdbcType = JDBCType.of(pair.getValue().javaSqlType);
                 internalAddrow(jdbcType, val, rowValues, pair);
             }
@@ -139,15 +136,23 @@ public final class SQLServerDataTable {
 
     }
     
+    /**
+     * Adding rows one row of data to data table.
+     * @param jdbcType The jdbcType
+     * @param val The data value
+     * @param rowValues Row of data
+     * @param pair pair to be added to data table
+     * @throws SQLServerException
+     */
     private void internalAddrow(JDBCType jdbcType,
             Object val,
             Object[] rowValues,
             Map.Entry<Integer, SQLServerDataColumn> pair) throws SQLServerException {
-        
+
         SQLServerDataColumn currentColumnMetadata = pair.getValue();
         boolean isColumnMetadataUpdated = false;
         boolean bValueNull;
-        int nValueLen;   
+        int nValueLen;
         switch (jdbcType) {
             case BIGINT:
                 rowValues[pair.getKey()] = (null == val) ? null : Long.parseLong(val.toString());
@@ -246,9 +251,9 @@ public final class SQLServerDataTable {
 
                 break;
 
-                    case CHAR:
-                        if (val instanceof UUID && (val != null))
-                            val = val.toString();
+            case CHAR:
+                if (val instanceof UUID && (val != null))
+                    val = val.toString();
             case VARCHAR:
             case NCHAR:
             case NVARCHAR:

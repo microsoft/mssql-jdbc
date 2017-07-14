@@ -2970,6 +2970,13 @@ public class SQLServerConnection implements ISQLServerConnection {
             tdsChannel.close();
         }
 
+        // Invalidate statement caches.
+        if (null != preparedStatementHandleCache)
+            preparedStatementHandleCache.clear();
+
+        if (null != parameterMetadataCache)
+            parameterMetadataCache.clear();
+
         // Clean-up queue etc. related to batching of prepared statement discard actions (sp_unprepare).
         cleanupPreparedStatementDiscardActions();
 

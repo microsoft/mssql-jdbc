@@ -350,6 +350,4 @@ public final class SQLServerResultSetMetaData implements java.sql.ResultSetMetaD
 
         return rs.getColumn(column).getTypeInfo().getSSType().getJDBCType().className();
     }
-    
-
 }

@@ -295,8 +295,8 @@ final class DTV {
     Object getSetterValue() {
         return impl.getSetterValue();
     }
-    
-    SqlVariant getInternalVariant(){
+
+    SqlVariant getInternalVariant() {
         return impl.getInternalVariant();
     }
     
@@ -1880,7 +1880,6 @@ final class DTV {
                 case SQLXML:
                     op.execute(this, (SQLServerSQLXML) value);
                     break;
-                
 
                 default:
                     assert false : "Unexpected JavaType: " + javaType;
@@ -1983,7 +1982,7 @@ abstract class DTVImpl {
             boolean isDiscard) throws SQLServerException;
 
     abstract void initFromCompressedNull();
-        
+    
     abstract SqlVariant getInternalVariant();
 }
 
@@ -2414,15 +2413,17 @@ final class AppDTVImpl extends DTVImpl {
         return value;
     }
 
-    /* (non-Javadoc)
+    /*
+     * (non-Javadoc)
+     * 
      * @see com.microsoft.sqlserver.jdbc.DTVImpl#getInternalVariant()
      */
     @Override
     SqlVariant getInternalVariant() {
         return this.internalVariant;
     }
-    
-    void setInternalVariant( SqlVariant type) {
+
+    void setInternalVariant(SqlVariant type) {
         this.internalVariant = type;
     }
 }
@@ -2472,6 +2473,7 @@ final class TypeInfo {
     int getMaxLength() {
         return maxLength;
     }
+    
     void setMaxLength(int maxLength) {
         this.maxLength = maxLength;
     }
@@ -3547,12 +3549,12 @@ final class ServerDTVImpl extends DTVImpl {
                         valueLength = tdsReader.readInt();
                     }
                 }
-                
-                else if(SSType.SQL_VARIANT == typeInfo.getSSType()) {
-                    valueLength = tdsReader.readInt(); 
+
+                else if (SSType.SQL_VARIANT == typeInfo.getSSType()) {
+                    valueLength = tdsReader.readInt();
                     isNull = (0 == valueLength);
                 }
-                if (SSType.SQL_VARIANT == typeInfo.getSSType()){
+                if (SSType.SQL_VARIANT == typeInfo.getSSType()) {
                     typeInfo.setSSType(SSType.SQL_VARIANT);
                 }
                 break;
@@ -3795,7 +3797,7 @@ final class ServerDTVImpl extends DTVImpl {
         byte[] decryptedValue;
         boolean encrypted = false;
         SSType baseSSType = typeInfo.getSSType();
-        
+
         // If column encryption is not enabled on connection or on statement, cryptoMeta will be null.
         if (null != cryptoMetadata) {
             assert (SSType.VARBINARY == typeInfo.getSSType()) || (SSType.VARBINARYMAX == typeInfo.getSSType());
@@ -4023,15 +4025,15 @@ final class ServerDTVImpl extends DTVImpl {
         return convertedValue;
     }
         
-    SqlVariant getInternalVariant(){
+    SqlVariant getInternalVariant() {
         return internalVariant;
     }
-    
+
     /**
-     * Read the value inside sqlVariant. The reading differs based on what the internal baseType is. 
+     * Read the value inside sqlVariant. The reading differs based on what the internal baseType is.
      * 
      * @return sql_variant value
-     * @since 6.1.7
+     * @since 6.2.2
      * @throws SQLServerException
      */
     private Object readSqlVariant(int intbaseType,
@@ -4050,7 +4052,7 @@ final class ServerDTVImpl extends DTVImpl {
         int precision;
         int scale;
         int maxLength;
-        TDSType baseType = TDSType.valueOf(intbaseType); 
+        TDSType baseType = TDSType.valueOf(intbaseType);
         switch (baseType) {
             case INT8:
                 jdbcType = JDBCType.BIGINT;
@@ -4066,8 +4068,7 @@ final class ServerDTVImpl extends DTVImpl {
                 break;
             case INT1:
                 jdbcType = JDBCType.TINYINT;
-                convertedValue = DDC.convertIntegerToObject(tdsReader.readUnsignedByte(), valueLength, jdbcType,
-                        streamGetterArgs.streamType);
+                convertedValue = DDC.convertIntegerToObject(tdsReader.readUnsignedByte(), valueLength, jdbcType, streamGetterArgs.streamType);
                 break;
             case DECIMALN:
             case NUMERICN:
@@ -4075,7 +4076,7 @@ final class ServerDTVImpl extends DTVImpl {
                     jdbcType = JDBCType.DECIMAL;
                 else if (TDSType.NUMERICN == baseType)
                     jdbcType = JDBCType.NUMERIC;
-                if (cbPropsActual != SqlVariant_ProbBytes.DECIMALN.intValue()){   //Numeric and decimal have the same probbytes value
+                if (cbPropsActual != SqlVariant_ProbBytes.DECIMALN.intValue()) {   // Numeric and decimal have the same probbytes value
                     MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidProbbytes"));
                     throw new SQLServerException(form.format(new Object[] {baseType}), null, 0, null);
                 }
@@ -4149,12 +4150,12 @@ final class ServerDTVImpl extends DTVImpl {
                 break;
             case BIGVARCHAR:   // varchar8000
             case BIGCHAR:
-                if (cbPropsActual != SqlVariant_ProbBytes.BIGCHAR.intValue()){   
+                if (cbPropsActual != SqlVariant_ProbBytes.BIGCHAR.intValue()) {
                     MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidProbbytes"));
                     throw new SQLServerException(form.format(new Object[] {baseType}), null, 0, null);
                 }
                 if (TDSType.BIGVARCHAR == baseType)
-                    jdbcType = JDBCType.VARCHAR;//LONGVARCHAR;
+                    jdbcType = JDBCType.VARCHAR;// LONGVARCHAR;
                 else if (TDSType.BIGCHAR == baseType)
                     jdbcType = JDBCType.CHAR;
                 collation = tdsReader.readCollation();
@@ -4174,12 +4175,12 @@ final class ServerDTVImpl extends DTVImpl {
                 break;
             case NCHAR:
             case NVARCHAR:
-                if (cbPropsActual != SqlVariant_ProbBytes.NCHAR.intValue()){   
+                if (cbPropsActual != SqlVariant_ProbBytes.NCHAR.intValue()) {
                     MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidProbbytes"));
                     throw new SQLServerException(form.format(new Object[] {baseType}), null, 0, null);
                 }
                 if (TDSType.NCHAR == baseType)
-                    jdbcType = JDBCType.NCHAR;//LONGVARCHAR;
+                    jdbcType = JDBCType.NCHAR;// LONGVARCHAR;
                 else if (TDSType.NVARCHAR == baseType)
                     jdbcType = JDBCType.NVARCHAR;
                 collation = tdsReader.readCollation();
@@ -4223,7 +4224,7 @@ final class ServerDTVImpl extends DTVImpl {
                 convertedValue = tdsReader.readTime(expectedValueLength, typeInfo, cal, jdbcType);
                 break;
             case DATETIME2N:
-                if (cbPropsActual != SqlVariant_ProbBytes.DATETIME2N.intValue()){   
+                if (cbPropsActual != SqlVariant_ProbBytes.DATETIME2N.intValue()) {
                     MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidProbbytes"));
                     throw new SQLServerException(form.format(new Object[] {baseType}), null, 0, null);
                 }
@@ -4235,7 +4236,7 @@ final class ServerDTVImpl extends DTVImpl {
                 break;
             case BIGBINARY:   // binary20, binary 512, binary 8000 -> reads as bigbinary
             case BIGVARBINARY:
-                if (cbPropsActual != SqlVariant_ProbBytes.BIGBINARY.intValue()){   
+                if (cbPropsActual != SqlVariant_ProbBytes.BIGBINARY.intValue()) {
                     MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidProbbytes"));
                     throw new SQLServerException(form.format(new Object[] {baseType}), null, 0, null);
                 }

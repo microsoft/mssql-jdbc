@@ -166,10 +166,8 @@ public class BulkCopyWithSqlVariant extends AbstractTest {
     public void bulkCopyTest_smallmoney() throws SQLException {
         String col1Value = "126.1230";
         String destTableName = "dest_sqlVariant";
-        stmt.executeUpdate("IF EXISTS (select * from sysobjects where id = object_id(N'" + tableName + "') "
-                + "and OBJECTPROPERTY(id, N'IsTable') = 1)" + " DROP TABLE " + tableName);
-        stmt.executeUpdate("IF EXISTS (select * from sysobjects where id = object_id(N'" + destTableName + "') "
-                + "and OBJECTPROPERTY(id, N'IsTable') = 1)" + " DROP TABLE " + destTableName);
+        Utils.dropTableIfExists(tableName, stmt);
+        Utils.dropTableIfExists(destTableName, stmt);
         stmt.executeUpdate("create table " + tableName + " (col1 sql_variant)");
         stmt.executeUpdate("INSERT into " + tableName + "(col1) values (CAST (" + col1Value + " AS " + "smallmoney" + ") )");
         stmt.executeUpdate("create table " + destTableName + " (col1 sql_variant)");
@@ -210,10 +208,8 @@ public class BulkCopyWithSqlVariant extends AbstractTest {
         String col1Value = "2015-05-05";
         String col2Value = "126.1230";
         String destTableName = "dest_sqlVariant";
-        stmt.executeUpdate("IF EXISTS (select * from sysobjects where id = object_id(N'" + tableName + "') "
-                + "and OBJECTPROPERTY(id, N'IsTable') = 1)" + " DROP TABLE " + tableName);
-        stmt.executeUpdate("IF EXISTS (select * from sysobjects where id = object_id(N'" + destTableName + "') "
-                + "and OBJECTPROPERTY(id, N'IsTable') = 1)" + " DROP TABLE " + destTableName);
+        Utils.dropTableIfExists(tableName, stmt);
+        Utils.dropTableIfExists(destTableName, stmt);
         stmt.executeUpdate("create table " + tableName + " (col1 sql_variant, col2 sql_variant)");
         stmt.executeUpdate("INSERT into " + tableName + "(col1, col2) values (CAST ('" + col1Value + "' AS " + "date" + ")" + ",CAST (" + col2Value
                 + " AS " + "smallmoney" + ")   )");
@@ -513,10 +509,8 @@ public class BulkCopyWithSqlVariant extends AbstractTest {
 
     private void beforeEachSetup(String colType,
             Object colValue) throws SQLException {
-        stmt.executeUpdate("IF EXISTS (select * from sysobjects where id = object_id(N'" + tableName + "') "
-                + "and OBJECTPROPERTY(id, N'IsTable') = 1)" + " DROP TABLE " + tableName);
-        stmt.executeUpdate("IF EXISTS (select * from sysobjects where id = object_id(N'" + destTableName + "') "
-                + "and OBJECTPROPERTY(id, N'IsTable') = 1)" + " DROP TABLE " + destTableName);
+        Utils.dropTableIfExists(tableName, stmt);
+        Utils.dropTableIfExists(destTableName, stmt);
         stmt.executeUpdate("create table " + tableName + " (col1 sql_variant)");
         stmt.executeUpdate("INSERT into " + tableName + "(col1) values (CAST (" + colValue + " AS " + colType + ") )");
         stmt.executeUpdate("create table " + destTableName + " (col1 sql_variant)");
@@ -542,9 +536,8 @@ public class BulkCopyWithSqlVariant extends AbstractTest {
      */
     @AfterAll
     public static void afterAll() throws SQLException {
-
-        stmt.executeUpdate("IF EXISTS (select * from sysobjects where id = object_id(N'" + tableName + "') and OBJECTPROPERTY(id, N'IsTable') = 1)"
-                + " DROP TABLE " + tableName);
+        Utils.dropTableIfExists(tableName, stmt);
+        Utils.dropTableIfExists(destTableName, stmt);
 
         if (null != stmt) {
             stmt.close();
