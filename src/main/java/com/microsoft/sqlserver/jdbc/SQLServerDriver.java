@@ -268,15 +268,15 @@ enum SQLServerDriverStringProperty
 }
 
 enum SQLServerDriverIntProperty {
-	PACKET_SIZE    ("packetSize",      TDS.DEFAULT_PACKET_SIZE),			
-	LOCK_TIMEOUT   ("lockTimeout",     -1),
-	LOGIN_TIMEOUT  ("loginTimeout",    15),
-	QUERY_TIMEOUT  ("queryTimeout",    -1),
-	PORT_NUMBER    ("portNumber",      1433),
-	SOCKET_TIMEOUT ("socketTimeout",   0),
+    PACKET_SIZE                                ("packetSize",                              TDS.DEFAULT_PACKET_SIZE),            
+    LOCK_TIMEOUT                               ("lockTimeout",                             -1),
+    LOGIN_TIMEOUT                              ("loginTimeout",                            15),
+    QUERY_TIMEOUT                              ("queryTimeout",                            -1),
+    PORT_NUMBER                                ("portNumber",                              1433),
+    SOCKET_TIMEOUT                             ("socketTimeout",                           0),
     SERVER_PREPARED_STATEMENT_DISCARD_THRESHOLD("serverPreparedStatementDiscardThreshold", SQLServerConnection.DEFAULT_SERVER_PREPARED_STATEMENT_DISCARD_THRESHOLD),
     STATEMENT_POOLING_CACHE_SIZE               ("statementPoolingCacheSize",               SQLServerConnection.DEFAULT_STATEMENT_POOLING_CACHE_SIZE),
-    ; 
+    ;  
     
     private final String name;
     private final int defaultValue;
@@ -296,20 +296,20 @@ enum SQLServerDriverIntProperty {
     }
 }
 
-enum SQLServerDriverBooleanProperty
+enum SQLServerDriverBooleanProperty 
 {
-	DISABLE_STATEMENT_POOLING                 ("disableStatementPooling",                   false),
-	ENCRYPT                                   ("encrypt",                                   false),	
-	INTEGRATED_SECURITY                       ("integratedSecurity",                        false),
-	LAST_UPDATE_COUNT                         ("lastUpdateCount",                           true),
-	MULTI_SUBNET_FAILOVER                     ("multiSubnetFailover",                       false),
-	SERVER_NAME_AS_ACE                        ("serverNameAsACE",                           false),
-	SEND_STRING_PARAMETERS_AS_UNICODE         ("sendStringParametersAsUnicode",             true),
-	SEND_TIME_AS_DATETIME                     ("sendTimeAsDatetime",                        true),
-	TRANSPARENT_NETWORK_IP_RESOLUTION         ("TransparentNetworkIPResolution",            true),
-	TRUST_SERVER_CERTIFICATE                  ("trustServerCertificate",                    false),
-	XOPEN_STATES                              ("xopenStates",                               false),
-	FIPS                                      ("fips",                                      false),
+    DISABLE_STATEMENT_POOLING                 ("disableStatementPooling",                   false),
+    ENCRYPT                                   ("encrypt",                                   false), 
+    INTEGRATED_SECURITY                       ("integratedSecurity",                        false),
+    LAST_UPDATE_COUNT                         ("lastUpdateCount",                           true),
+    MULTI_SUBNET_FAILOVER                     ("multiSubnetFailover",                       false),
+    SERVER_NAME_AS_ACE                        ("serverNameAsACE",                           false),
+    SEND_STRING_PARAMETERS_AS_UNICODE         ("sendStringParametersAsUnicode",             true),
+    SEND_TIME_AS_DATETIME                     ("sendTimeAsDatetime",                        true),
+    TRANSPARENT_NETWORK_IP_RESOLUTION         ("TransparentNetworkIPResolution",            true),
+    TRUST_SERVER_CERTIFICATE                  ("trustServerCertificate",                    false),
+    XOPEN_STATES                              ("xopenStates",                               false),
+    FIPS                                      ("fips",                                      false),
     ENABLE_PREPARE_ON_FIRST_PREPARED_STATEMENT("enablePrepareOnFirstPreparedStatementCall", SQLServerConnection.DEFAULT_ENABLE_PREPARE_ON_FIRST_PREPARED_STATEMENT_CALL);
 
     private final String name;

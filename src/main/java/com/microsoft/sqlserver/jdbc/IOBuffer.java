@@ -1591,14 +1591,14 @@ final class TDSChannel {
                     .getProperty(SQLServerDriverStringProperty.HOSTNAME_IN_CERTIFICATE.toString());
 
             trustStoreType = con.activeConnectionProperties.getProperty(SQLServerDriverStringProperty.TRUST_STORE_TYPE.toString());
-
-            if (StringUtils.isEmpty(trustStoreType)) {
+            
+            if(StringUtils.isEmpty(trustStoreType)) {
                 trustStoreType = SQLServerDriverStringProperty.TRUST_STORE_TYPE.getDefaultValue();
             }
-
+            
             fipsProvider = con.activeConnectionProperties.getProperty(SQLServerDriverStringProperty.FIPS_PROVIDER.toString());
-            isFips = Boolean.valueOf(con.activeConnectionProperties.getProperty(SQLServerDriverBooleanProperty.FIPS.toString()));
-
+            isFips = Boolean.valueOf(con.activeConnectionProperties.getProperty(SQLServerDriverBooleanProperty.FIPS.toString())); 
+            
             if (isFips) {
                 validateFips(fipsProvider, trustStoreType, trustStoreFileName);
             }
@@ -2589,18 +2589,18 @@ final class SocketFinder {
         }
 
         // if a channel was selected, make the necessary updates
-        if (selectedChannel != null) {
-            // the selectedChannel has the address that is connected successfully
-            // convert it to a java.net.Socket object with the address
-            SocketAddress iadd = selectedChannel.getRemoteAddress();
-            selectedSocket = new Socket();
-            selectedSocket.connect(iadd);
+           if (selectedChannel != null) {
+               //the selectedChannel has the address that is connected successfully
+               //convert it to a java.net.Socket object with the address
+               SocketAddress  iadd = selectedChannel.getRemoteAddress();
+               selectedSocket = new Socket();
+               selectedSocket.connect(iadd);
 
-            result = Result.SUCCESS;
-
-            // close the channel since it is not used anymore
-            selectedChannel.close();
-        }
+               result = Result.SUCCESS;
+               
+               //close the channel since it is not used anymore
+               selectedChannel.close();
+           }
     }
 
     // This method contains the old logic of connecting to
@@ -7229,7 +7229,7 @@ final class TimeoutTimer implements Runnable {
         canceled = true;
     }
 
-    public void run() { 
+    public void run() {
         int secondsRemaining = timeoutSeconds;
         try {
             // Poll every second while time is left on the timer.

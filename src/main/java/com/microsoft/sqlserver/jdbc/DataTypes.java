@@ -906,7 +906,6 @@ enum JDBCType
         TVP,
         GUID,
         SQL_VARIANT,
-        JAVA_OBJECT;
     }
 
     // This SetterConversion enum is based on the Category enum

@@ -9,7 +9,6 @@
 package com.microsoft.sqlserver.jdbc;
 
 import java.math.BigDecimal;
-import java.sql.Connection;
 import java.text.MessageFormat;
 import java.time.OffsetDateTime;
 import java.time.OffsetTime;
