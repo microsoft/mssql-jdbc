@@ -390,7 +390,7 @@ final class Util {
                         if (null != name) {
                             if (logger.isLoggable(Level.FINE)) {
                                 if (false == name.equals(SQLServerDriverStringProperty.USER.toString())) {
-                                    if (!name.toLowerCase().contains("password")) {
+                                    if (!name.toLowerCase(Locale.ENGLISH).contains("password")) {
                                         logger.fine("Property:" + name + " Value:" + value);
                                     }
                                     else {
