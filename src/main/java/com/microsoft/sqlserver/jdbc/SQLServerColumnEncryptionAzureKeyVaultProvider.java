@@ -17,6 +17,7 @@ import java.nio.ByteOrder;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.text.MessageFormat;
+import java.util.Locale;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 
@@ -263,7 +264,7 @@ public class SQLServerColumnEncryptionAzureKeyVaultProvider extends SQLServerCol
         byte[] version = new byte[] {firstVersion[0]};
 
         // Get the Unicode encoded bytes of cultureinvariant lower case masterKeyPath
-        byte[] masterKeyPathBytes = masterKeyPath.toLowerCase().getBytes(UTF_16LE);
+        byte[] masterKeyPathBytes = masterKeyPath.toLowerCase(Locale.ENGLISH).getBytes(UTF_16LE);
 
         byte[] keyPathLength = new byte[2];
         keyPathLength[0] = (byte) (((short) masterKeyPathBytes.length) & 0xff);
@@ -405,7 +406,7 @@ public class SQLServerColumnEncryptionAzureKeyVaultProvider extends SQLServerCol
 
             // A valid URI.
             // Check if it is pointing to AKV.
-            if (!parsedUri.getHost().toLowerCase().endsWith(azureKeyVaultDomainName)) {
+            if (!parsedUri.getHost().toLowerCase(Locale.ENGLISH).endsWith(azureKeyVaultDomainName)) {
                 // Return an error indicating that the AKV url is invalid.
                 MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_AKVMasterKeyPathInvalid"));
                 Object[] msgArgs = {masterKeyPath};
