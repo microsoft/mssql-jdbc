@@ -94,8 +94,8 @@ final class SQLServerSymmetricKeyCache {
             String serverName = connection.getTrustedServerNameAE();
             assert null != serverName : "serverName should not be null in getKey.";
 
-            StringBuffer keyLookupValuebuffer = new StringBuffer(serverName);
-            String keyLookupValue = null;      
+            StringBuilder keyLookupValuebuffer = new StringBuilder(serverName);
+            String keyLookupValue;
             keyLookupValuebuffer.append(":");
 
             keyLookupValuebuffer.append(DatatypeConverter.printBase64Binary((new String(keyInfo.encryptedKey, UTF_8)).getBytes()));
@@ -110,7 +110,7 @@ final class SQLServerSymmetricKeyCache {
             }
             Boolean[] hasEntry = new Boolean[1];
             List<String> trustedKeyPaths = SQLServerConnection.getColumnEncryptionTrustedMasterKeyPaths(serverName, hasEntry);
-            if (true == hasEntry[0]) {
+            if (hasEntry[0]) {
                 if ((null == trustedKeyPaths) || (0 == trustedKeyPaths.size()) || (!trustedKeyPaths.contains(keyInfo.keyPath))) {
                     MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_UntrustedKeyPath"));
                     Object[] msgArgs = {keyInfo.keyPath, serverName};

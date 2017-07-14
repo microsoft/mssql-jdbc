@@ -115,7 +115,7 @@ public class BulkCopyISQLServerBulkRecordTest extends AbstractTest {
             }
 
             // add data
-            rowCount = DBTable.getTotalRows();
+            rowCount = dstTable.getTotalRows();
             data = new ArrayList<Object[]>(rowCount);
             for (int i = 0; i < rowCount; i++) {
                 Object[] CurrentRow = new Object[totalColumn];

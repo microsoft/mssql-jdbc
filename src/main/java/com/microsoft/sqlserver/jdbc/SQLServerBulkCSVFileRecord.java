@@ -11,6 +11,7 @@ package com.microsoft.sqlserver.jdbc;
 import java.io.BufferedReader;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.UnsupportedEncodingException;
 import java.math.BigDecimal;
@@ -141,6 +142,63 @@ public class SQLServerBulkCSVFileRecord implements ISQLServerBulkRecord, java.la
                 sr = new InputStreamReader(fis, encoding);
             }
 
+            fileReader = new BufferedReader(sr);
+
+            if (firstLineIsColumnNames) {
+                currentLine = fileReader.readLine();
+                if (null != currentLine) {
+                    columnNames = currentLine.split(delimiter, -1);
+                }
+            }
+        }
+        catch (UnsupportedEncodingException unsupportedEncoding) {
+            MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_unsupportedEncoding"));
+            throw new SQLServerException(form.format(new Object[] {encoding}), null, 0, unsupportedEncoding);
+        }
+        catch (Exception e) {
+            throw new SQLServerException(null, e.getMessage(), null, 0, false);
+        }
+        columnMetadata = new HashMap<Integer, SQLServerBulkCSVFileRecord.ColumnMetadata>();
+
+        loggerExternal.exiting(loggerClassName, "SQLServerBulkCSVFileRecord");
+    }
+    
+    /**
+     * Creates a simple reader to parse data from a delimited file with the given encoding.
+     * 
+     * @param fileToParse
+     *            InputStream to parse data from
+     * @param encoding
+     *            Charset encoding to use for reading the file, or NULL for the default encoding.
+     * @param delimiter
+     *            Delimiter to used to separate each column
+     * @param firstLineIsColumnNames
+     *            True if the first line of the file should be parsed as column names; false otherwise
+     * @throws SQLServerException
+     *             If the arguments are invalid, there are any errors in reading the file, or the file is empty
+     */
+    public SQLServerBulkCSVFileRecord(InputStream fileToParse,
+            String encoding,
+            String delimiter,
+            boolean firstLineIsColumnNames) throws SQLServerException {
+        loggerExternal.entering(loggerClassName, "SQLServerBulkCSVFileRecord",
+                new Object[] {fileToParse, encoding, delimiter, firstLineIsColumnNames});
+
+        if (null == fileToParse) {
+            throwInvalidArgument("fileToParse");
+        }
+        else if (null == delimiter) {
+            throwInvalidArgument("delimiter");
+        }
+
+        this.delimiter = delimiter;
+        try {
+            if (null == encoding || 0 == encoding.length()) {
+                sr = new InputStreamReader(fileToParse);
+            }
+            else {
+                sr = new InputStreamReader(fileToParse, encoding);
+            }
             fileReader = new BufferedReader(sr);
 
             if (firstLineIsColumnNames) {
@@ -582,7 +640,7 @@ public class SQLServerBulkCSVFileRecord implements ISQLServerBulkRecord, java.la
                         case 2013:	// java.sql.Types.TIME_WITH_TIMEZONE
                         {
                             DriverJDBCVersion.checkSupportsJDBC42();
-                            OffsetTime offsetTimeValue = null;
+                            OffsetTime offsetTimeValue;
 
                             // The per-column DateTimeFormatter gets priority.
                             if (null != cm.dateTimeFormatter)
@@ -599,7 +657,7 @@ public class SQLServerBulkCSVFileRecord implements ISQLServerBulkRecord, java.la
                         case 2014: // java.sql.Types.TIMESTAMP_WITH_TIMEZONE
                         {
                             DriverJDBCVersion.checkSupportsJDBC42();
-                            OffsetDateTime offsetDateTimeValue = null;
+                            OffsetDateTime offsetDateTimeValue;
 
                             // The per-column DateTimeFormatter gets priority.
                             if (null != cm.dateTimeFormatter)

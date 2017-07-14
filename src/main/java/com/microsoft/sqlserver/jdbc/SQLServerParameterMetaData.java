@@ -9,6 +9,7 @@
 package com.microsoft.sqlserver.jdbc;
 
 import java.sql.ParameterMetaData;
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
@@ -329,7 +330,7 @@ public final class SQLServerParameterMetaData implements ParameterMetaData {
         String fullName;
         nameFragment = firstToken;
         // skip spaces
-        while (nameFragment.equals(" ") && st.hasMoreTokens()) {
+        while (" ".equals(nameFragment) && st.hasMoreTokens()) {
             nameFragment = st.nextToken();
         }
         fullName = nameFragment;
@@ -472,6 +473,10 @@ public final class SQLServerParameterMetaData implements ParameterMetaData {
         }
         // filter out first end comment mark
         else {
+            if (Integer.MAX_VALUE == endCommentMarkIndex) {
+                return sql;
+            }
+
             String sqlWithoutCommentsInBeginning = sql.substring(endCommentMarkIndex + endMark.length());
             return removeCommentsInTheBeginning(sqlWithoutCommentsInBeginning, startCommentMarkCount, ++endCommentMarkCount, startMark, endMark);
         }
@@ -583,6 +588,7 @@ public final class SQLServerParameterMetaData implements ParameterMetaData {
                     Statement stmt = con.createStatement();
                     String sCom = "sp_executesql N'SET FMTONLY ON SELECT " + metaInfo.fields + " FROM " + metaInfo.table + " WHERE 1 = 2'";
                     ResultSet rs = stmt.executeQuery(sCom);
+
                     parseQueryMetaFor2008(rs);
                     stmt.close();
                     rs.close();

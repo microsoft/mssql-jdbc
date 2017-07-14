@@ -1465,7 +1465,7 @@ final class TDSChannel {
                 logger.finer(logContext + " The DN name in certificate:" + nameInCertDN);
             }
 
-            boolean isServerNameValidated = false;
+            boolean isServerNameValidated;
 
             // the name in cert is in RFC2253 format parse it to get the actual subject name
             String subjectCN = parseCommonName(nameInCertDN);
@@ -1855,7 +1855,7 @@ final class TDSChannel {
         isValidTrustStore = !StringUtils.isEmpty(trustStoreFileName);
         isTrustServerCertificate = con.trustServerCertificate();
 
-        if (isEncryptOn & !isTrustServerCertificate) {
+        if (isEncryptOn && !isTrustServerCertificate) {
             if (logger.isLoggable(Level.FINER))
                 logger.finer(toString() + " Found parameters are encrypt is true & trustServerCertificate false");
             
@@ -2155,7 +2155,9 @@ final class TDSChannel {
             logMsg.append("\r\n");
         }
 
-        packetLogger.finest(logMsg.toString());
+        if (packetLogger.isLoggable(Level.FINEST)) {
+            packetLogger.finest(logMsg.toString());
+        }
     }
 
     /**
@@ -2306,12 +2308,16 @@ final class SocketFinder {
             // Code reaches here only if MSF = true or (TNIR = true and not TNIR first attempt)
 
             if (logger.isLoggable(Level.FINER)) {
-                String loggingString = this.toString() + " Total no of InetAddresses: " + inetAddrs.length + ". They are: ";
+                StringBuilder loggingString = new StringBuilder(this.toString());
+                loggingString.append(" Total no of InetAddresses: ");
+                loggingString.append(inetAddrs.length);
+                loggingString.append(". They are: ");
+                
                 for (InetAddress inetAddr : inetAddrs) {
-                    loggingString = loggingString + inetAddr.toString() + ";";
+                    loggingString.append(inetAddr.toString() + ";");
                 }
 
-                logger.finer(loggingString);
+                logger.finer(loggingString.toString());
             }
 
             if (inetAddrs.length > ipAddressLimit) {
@@ -2411,6 +2417,9 @@ final class SocketFinder {
 
         }
         catch (InterruptedException ex) {
+            // re-interrupt the current thread, in order to restore the thread's interrupt status.
+            Thread.currentThread().interrupt();
+            
             close(selectedSocket);
             SQLServerException.ConvertConnectExceptionToSQLServerException(hostName, portNumber, conn, ex);
         }
@@ -2429,7 +2438,7 @@ final class SocketFinder {
 
         }
 
-        assert result.equals(Result.SUCCESS) == true;
+        assert result.equals(Result.SUCCESS);
         assert selectedSocket != null : "Bug in code. Selected Socket cannot be null here.";
 
         return selectedSocket;
@@ -2633,6 +2642,7 @@ final class SocketFinder {
             int portNumber,
             int timeoutInMilliSeconds) throws IOException, InterruptedException {
         assert timeoutInMilliSeconds != 0 : "The timeout cannot be zero";
+        
         assert inetAddrs.isEmpty() == false : "Number of inetAddresses should not be zero in this function";
 
         LinkedList<Socket> sockets = new LinkedList<Socket>();
@@ -3294,19 +3304,7 @@ final class TDSWriter {
      *            the data value
      */
     void writeReal(Float value) throws SQLServerException {
-        if (false) // stagingBuffer.remaining() >= 4)
-        {
-            stagingBuffer.putFloat(value);
-            if (tdsChannel.isLoggingPackets()) {
-                if (dataIsLoggable)
-                    logBuffer.putFloat(value);
-                else
-                    logBuffer.position(logBuffer.position() + 4);
-            }
-        }
-        else {
-            writeInt(Float.floatToRawIntBits(value.floatValue()));
-        }
+        writeInt(Float.floatToRawIntBits(value.floatValue()));
     }
 
     /**
@@ -3434,7 +3432,7 @@ final class TDSWriter {
 
     void writeSmalldatetime(String value) throws SQLServerException {
         GregorianCalendar calendar = initializeCalender(TimeZone.getDefault());
-        long utcMillis = 0;    // Value to which the calendar is to be set (in milliseconds 1/1/1970 00:00:00 GMT)
+        long utcMillis;    // Value to which the calendar is to be set (in milliseconds 1/1/1970 00:00:00 GMT)
         java.sql.Timestamp timestampValue = java.sql.Timestamp.valueOf(value);
         utcMillis = timestampValue.getTime();
 
@@ -3471,8 +3469,8 @@ final class TDSWriter {
 
     void writeDatetime(String value) throws SQLServerException {
         GregorianCalendar calendar = initializeCalender(TimeZone.getDefault());
-        long utcMillis = 0;    // Value to which the calendar is to be set (in milliseconds 1/1/1970 00:00:00 GMT)
-        int subSecondNanos = 0;
+        long utcMillis;    // Value to which the calendar is to be set (in milliseconds 1/1/1970 00:00:00 GMT)
+        int subSecondNanos;
         java.sql.Timestamp timestampValue = java.sql.Timestamp.valueOf(value);
         utcMillis = timestampValue.getTime();
         subSecondNanos = timestampValue.getNanos();
@@ -3519,7 +3517,7 @@ final class TDSWriter {
 
     void writeDate(String value) throws SQLServerException {
         GregorianCalendar calendar = initializeCalender(TimeZone.getDefault());
-        long utcMillis = 0;
+        long utcMillis;
         java.sql.Date dateValue = java.sql.Date.valueOf(value);
         utcMillis = dateValue.getTime();
 
@@ -3534,8 +3532,8 @@ final class TDSWriter {
     void writeTime(java.sql.Timestamp value,
             int scale) throws SQLServerException {
         GregorianCalendar calendar = initializeCalender(TimeZone.getDefault());
-        long utcMillis = 0;    // Value to which the calendar is to be set (in milliseconds 1/1/1970 00:00:00 GMT)
-        int subSecondNanos = 0;
+        long utcMillis;    // Value to which the calendar is to be set (in milliseconds 1/1/1970 00:00:00 GMT)
+        int subSecondNanos;
         utcMillis = value.getTime();
         subSecondNanos = value.getNanos();
 
@@ -3548,11 +3546,11 @@ final class TDSWriter {
     void writeDateTimeOffset(Object value,
             int scale,
             SSType destSSType) throws SQLServerException {
-        GregorianCalendar calendar = null;
-        TimeZone timeZone = TimeZone.getDefault(); // Time zone to associate with the value in the Gregorian calendar
-        long utcMillis = 0;    // Value to which the calendar is to be set (in milliseconds 1/1/1970 00:00:00 GMT)
-        int subSecondNanos = 0;
-        int minutesOffset = 0;
+        GregorianCalendar calendar;
+        TimeZone timeZone; // Time zone to associate with the value in the Gregorian calendar
+        long utcMillis;    // Value to which the calendar is to be set (in milliseconds 1/1/1970 00:00:00 GMT)
+        int subSecondNanos;
+        int minutesOffset;
 
         microsoft.sql.DateTimeOffset dtoValue = (microsoft.sql.DateTimeOffset) value;
         utcMillis = dtoValue.getTimestamp().getTime();
@@ -3578,10 +3576,10 @@ final class TDSWriter {
 
     void writeOffsetDateTimeWithTimezone(OffsetDateTime offsetDateTimeValue,
             int scale) throws SQLServerException {
-        GregorianCalendar calendar = null;
+        GregorianCalendar calendar;
         TimeZone timeZone;
-        long utcMillis = 0;
-        int subSecondNanos = 0;
+        long utcMillis;
+        int subSecondNanos;
         int minutesOffset = 0;
 
         try {
@@ -3634,10 +3632,10 @@ final class TDSWriter {
 
     void writeOffsetTimeWithTimezone(OffsetTime offsetTimeValue,
             int scale) throws SQLServerException {
-        GregorianCalendar calendar = null;
+        GregorianCalendar calendar;
         TimeZone timeZone;
-        long utcMillis = 0;
-        int subSecondNanos = 0;
+        long utcMillis;
+        int subSecondNanos;
         int minutesOffset = 0;
 
         try {
@@ -3752,11 +3750,14 @@ final class TDSWriter {
         // what remains in the current staging buffer. However, the value must
         // be short enough to fit in an empty buffer.
         assert valueLength <= value.length;
-        assert stagingBuffer.remaining() < valueLength;
+        
+        int remaining = stagingBuffer.remaining();
+        assert remaining < valueLength;
+
         assert valueLength <= stagingBuffer.capacity();
 
         // Fill any remaining space in the staging buffer
-        int remaining = stagingBuffer.remaining();
+        remaining = stagingBuffer.remaining();
         if (remaining > 0) {
             stagingBuffer.put(value, 0, remaining);
             if (tdsChannel.isLoggingPackets()) {
@@ -4080,7 +4081,7 @@ final class TDSWriter {
     }
 
     GregorianCalendar initializeCalender(TimeZone timeZone) {
-        GregorianCalendar calendar = null;
+        GregorianCalendar calendar;
 
         // Create the calendar that will hold the value. For DateTimeOffset values, the calendar's
         // time zone is UTC. For other values, the calendar's time zone is a local time zone.
@@ -5466,7 +5467,7 @@ final class TDSWriter {
             int subSecondNanos,
             boolean bOut) throws SQLServerException {
         assert (subSecondNanos >= 0) && (subSecondNanos < Nanos.PER_SECOND) : "Invalid subNanoSeconds value: " + subSecondNanos;
-        assert (cal != null) || (cal == null && subSecondNanos == 0) : "Invalid subNanoSeconds value when calendar is null: " + subSecondNanos;
+        assert (cal != null) || (subSecondNanos == 0) : "Invalid subNanoSeconds value when calendar is null: " + subSecondNanos;
 
         writeRPCNameValType(sName, bOut, TDSType.DATETIMEN);
         writeByte((byte) 8); // max length of datatype
@@ -5606,7 +5607,7 @@ final class TDSWriter {
             boolean bOut,
             JDBCType jdbcType) throws SQLServerException {
         assert (subSecondNanos >= 0) && (subSecondNanos < Nanos.PER_SECOND) : "Invalid subNanoSeconds value: " + subSecondNanos;
-        assert (cal != null) || (cal == null && subSecondNanos == 0) : "Invalid subNanoSeconds value when calendar is null: " + subSecondNanos;
+        assert (cal != null) || (subSecondNanos == 0) : "Invalid subNanoSeconds value when calendar is null: " + subSecondNanos;
 
         writeRPCNameValType(sName, bOut, TDSType.BIGVARBINARY);
 
@@ -6595,7 +6596,10 @@ final class TDSReader {
 
         // Make header size is properly bounded and compute length of the packet payload.
         if (packetLength < TDS.PACKET_HEADER_SIZE || packetLength > con.getTDSPacketSize()) {
-            logger.warning(toString() + " TDS header contained invalid packet length:" + packetLength + "; packet size:" + con.getTDSPacketSize());
+            if (logger.isLoggable(Level.WARNING)) {
+                logger.warning(
+                        toString() + " TDS header contained invalid packet length:" + packetLength + "; packet size:" + con.getTDSPacketSize());
+            }
             throwInvalidTDS();
         }
 
@@ -6826,7 +6830,9 @@ final class TDSReader {
             JDBCType jdbcType,
             StreamType streamType) throws SQLServerException {
         if (valueLength > valueBytes.length) {
-            logger.warning(toString() + " Invalid value length:" + valueLength);
+            if (logger.isLoggable(Level.WARNING)) {
+                logger.warning(toString() + " Invalid value length:" + valueLength);
+            }
             throwInvalidTDS();
         }
 
@@ -7523,7 +7529,9 @@ abstract class TDSCommand {
             // then assume that no attention ack is forthcoming from the server and
             // terminate the connection to prevent any other command from executing.
             if (attentionPending) {
-                logger.severe(this + ": expected attn ack missing or not processed; terminating connection...");
+                if (logger.isLoggable(Level.SEVERE)) {
+                    logger.severe(this.toString() + ": expected attn ack missing or not processed; terminating connection...");
+                }
 
                 try {
                     tdsReader.throwInvalidTDS();
@@ -7849,6 +7857,8 @@ abstract class UninterruptableTDSCommand extends TDSCommand {
     final void interrupt(String reason) throws SQLServerException {
         // Interrupting an uninterruptable command is a no-op. That is,
         // it can happen, but it should have no effect.
-        logger.finest(toString() + " Ignoring interrupt of uninterruptable TDS command; Reason:" + reason);
+        if (logger.isLoggable(Level.FINEST)) {
+            logger.finest(toString() + " Ignoring interrupt of uninterruptable TDS command; Reason:" + reason);
+        }
     }
 }

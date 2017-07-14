@@ -1,0 +1,28 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<!-- Do not remove this test for UTF-8: if “Ω” doesn’t appear as greek uppercase omega letter enclosed in quotation marks, you should use an editor that supports UTF-8, not this one. -->
+<package xmlns="http://schemas.microsoft.com/packaging/2010/07/nuspec.xsd">
+  <metadata>
+    <!-- Read this before publishing packages to chocolatey.org: https://github.com/chocolatey/chocolatey/wiki/CreatePackages -->
+    <id>jce</id>
+    <title>JCE (Java Cryptography Extension)</title>
+    <version>7.0.0</version>
+    <authors>Sun Microsystems/Oracle Corporation</authors>
+    <owners>Tobse Fritz</owners>
+    <summary>Java Cryptography Extension (JCE) Unlimited Strength Jurisdiction Policy Files 7</summary>
+    <description>Downloads and installs the Java Cryptography Extension (JCE) to the lastest JDK. The The JAVA_HOME environment variable has to point to the JDK. If JAVA_HOME is not set, nothing will be changed. The original files are backuped (renamed to *_old) and can be reverted at any time.</description>
+    <projectUrl>https://github.com/TobseF/jce-chocolatey-package</projectUrl>
+    <tags>java jce admin</tags>
+    <copyright></copyright>
+    <licenseUrl>http://www.oracle.com/technetwork/java/javase/downloads/jce-7-download-432124.html</licenseUrl>
+    <requireLicenseAcceptance>false</requireLicenseAcceptance>
+    <iconUrl>http://cdn.rawgit.com/chocolatey/chocolatey-coreteampackages/50fd97744110dcbce1acde889c0870599c9d5584/icons/java.svg</iconUrl>
+    <!--<dependencies>
+      <dependency id="" version="__VERSION__" />
+      <dependency id="" />
+    </dependencies>-->
+    <releaseNotes></releaseNotes>
+  </metadata>
+  <files>
+    <file src="tools\**" target="tools" />
+  </files>
+</package>

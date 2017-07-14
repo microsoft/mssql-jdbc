@@ -65,6 +65,14 @@ public class DBResultSet extends AbstractParentWrapper {
         resultSet = internal;
     }
 
+    DBResultSet(DBStatement dbstatement,
+            ResultSet internal,
+            DBTable table) {
+        super(dbstatement, internal, "resultSet");
+        resultSet = internal;
+        currentTable = table;
+    }
+
     DBResultSet(DBPreparedStatement dbpstmt,
             ResultSet internal) {
         super(dbpstmt, internal, "resultSet");
@@ -324,7 +332,6 @@ public class DBResultSet extends AbstractParentWrapper {
         }
     }
 
-
     /**
      * 
      * @param idx
@@ -411,7 +418,7 @@ public class DBResultSet extends AbstractParentWrapper {
      */
     public void afterLast() throws SQLException {
         ((ResultSet) product()).afterLast();
-        _currentrow = DBTable.getTotalRows();
+        _currentrow = currentTable.getTotalRows();
     }
 
     /**

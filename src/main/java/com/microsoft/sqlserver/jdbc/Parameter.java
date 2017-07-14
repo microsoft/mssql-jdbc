@@ -324,7 +324,7 @@ final class Parameter {
         }
 
         if (JavaType.TVP == javaType) {
-            TVP tvpValue = null;
+            TVP tvpValue;
             if (null == value) {
                 tvpValue = new TVP(tvpName);
             }
@@ -472,8 +472,13 @@ final class Parameter {
                          * specific type info, otherwise generic type info can be used as before.
                          */
                         param.typeDefinition = SSType.REAL.toString();
-                        break;
                     }
+                    else {
+                        // use FLOAT if column is not encrypted
+                        param.typeDefinition = SSType.FLOAT.toString();
+                    }
+                    break;
+                    
                 case FLOAT:
                 case DOUBLE:
                     param.typeDefinition = SSType.FLOAT.toString();

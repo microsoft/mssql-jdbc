@@ -1543,10 +1543,7 @@ final class DTV {
                 case LONGVARCHAR:
                 case CLOB:
                 case GUID:
-                    if (null != cryptoMeta)
-                        op.execute(this, (byte[]) null);
-                    else
-                        op.execute(this, (byte[]) null);
+                    op.execute(this, (byte[]) null);
                     break;
 
                 case TINYINT:
@@ -3597,7 +3594,7 @@ final class ServerDTVImpl extends DTVImpl {
                             (null == baseTypeInfo.getCharset()) ? con.getDatabaseCollation().getCharset() : baseTypeInfo.getCharset());
                     if ((SSType.CHAR == baseSSType) || (SSType.NCHAR == baseSSType)) {
                         // Right pad the string for CHAR types.
-                        StringBuffer sb = new StringBuffer(strVal);
+                        StringBuilder sb = new StringBuilder(strVal);
                         int padLength = baseTypeInfo.getPrecision() - strVal.length();
                         for (int i = 0; i < padLength; i++) {
                             sb.append(' ');
@@ -3795,7 +3792,7 @@ final class ServerDTVImpl extends DTVImpl {
             TDSReader tdsReader) throws SQLServerException {
         SQLServerConnection con = tdsReader.getConnection();
         Object convertedValue = null;
-        byte[] decryptedValue = null;
+        byte[] decryptedValue;
         boolean encrypted = false;
         SSType baseSSType = typeInfo.getSSType();
         
@@ -3821,8 +3818,6 @@ final class ServerDTVImpl extends DTVImpl {
         // either there should be a valueMark
         // or valueMark should be null and isNull should be set to true(NBCROW case)
         assert ((valueMark != null) || (valueMark == null && isNull));
-
-        boolean isAdaptive = false;
 
         if (null != streamGetterArgs) {
             if (!streamGetterArgs.streamType.convertsFrom(typeInfo))

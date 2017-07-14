@@ -54,7 +54,8 @@ public class PQImpsTest extends AbstractTest {
     private static String binaryTable = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("binaryTable_DB"));
     private static String dateAndTimeTable = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("dateAndTimeTable_DB"));
     private static String multipleTypesTable = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("multipleTypesTable_DB"));
-
+    private static String spaceTable = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("spaceTable_DB"));
+    
     /**
      * Setup
      * @throws SQLException
@@ -70,6 +71,7 @@ public class PQImpsTest extends AbstractTest {
         createBinaryTable();
         createDateAndTimeTable();
         createTablesForCompexQueries();
+        createSpaceTable();
         populateTablesForCompexQueries();
     }
 
@@ -413,6 +415,11 @@ public class PQImpsTest extends AbstractTest {
 
         stmt.execute("Create table " + charTable + " (" + "c1 char(50) not null," + "c2 varchar(20) not null," + "c3 nchar(30) not null,"
                 + "c4 nvarchar(60) not null," + "c5 text not null," + "c6 ntext not null" + ")");
+    }
+    
+    private static void createSpaceTable() throws SQLException {
+        stmt.execute("Create table " + spaceTable + " (" + "[c1*/someString withspace] char(50) not null," + "c2 varchar(20) not null,"
+                + "c3 nchar(30) not null," + "c4 nvarchar(60) not null," + "c5 text not null," + "c6 ntext not null" + ")");
     }
 
     private static void populateCharTable() throws SQLException {
@@ -1306,6 +1313,23 @@ public class PQImpsTest extends AbstractTest {
             fail(e.toString());
         }
     }
+    
+    /**
+     * test column name with end comment mark and space
+     * 
+     * @throws SQLServerException
+     */
+    @Test
+    public void testQueryWithSpaceAndEndCommentMarkInColumnName() throws SQLServerException {
+        pstmt = connection.prepareStatement("SELECT [c1*/someString withspace] from " + spaceTable);
+
+        try {
+            pstmt.getParameterMetaData();
+        }
+        catch (Exception e) {
+            fail(e.toString());
+        }
+    }
 
     /**
      * Cleanup
@@ -1321,6 +1345,7 @@ public class PQImpsTest extends AbstractTest {
         stmt.execute("if object_id('" + binaryTable + "','U') is not null" + " drop table " + binaryTable);
         stmt.execute("if object_id('" + dateAndTimeTable + "','U') is not null" + " drop table " + dateAndTimeTable);
         stmt.execute("if object_id('" + multipleTypesTable + "','U') is not null" + " drop table " + multipleTypesTable);
+        stmt.execute("if object_id('" + spaceTable + "','U') is not null" + " drop table " + spaceTable);
 
         if (null != rs) {
             rs.close();

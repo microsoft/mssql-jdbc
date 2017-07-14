@@ -36,9 +36,8 @@ class SQLServerAeadAes256CbcHmac256Factory extends SQLServerEncryptionAlgorithmF
             throw new SQLServerException(this, form.format(msgArgs), null, 0, false);
 
         }
-        String factoryKey = "";
 
-        StringBuffer factoryKeyBuilder = new StringBuffer();
+        StringBuilder factoryKeyBuilder = new StringBuilder();
         factoryKeyBuilder.append(DatatypeConverter.printBase64Binary(new String(columnEncryptionKey.getRootKey(), UTF_8).getBytes()));
 
         factoryKeyBuilder.append(":");
@@ -46,7 +45,7 @@ class SQLServerAeadAes256CbcHmac256Factory extends SQLServerEncryptionAlgorithmF
         factoryKeyBuilder.append(":");
         factoryKeyBuilder.append(algorithmVersion);
 
-        factoryKey = factoryKeyBuilder.toString();
+        String factoryKey = factoryKeyBuilder.toString();
 
         SQLServerAeadAes256CbcHmac256Algorithm aesAlgorithm;
 
