@@ -2589,18 +2589,18 @@ final class SocketFinder {
         }
 
         // if a channel was selected, make the necessary updates
-           if (selectedChannel != null) {
-               //the selectedChannel has the address that is connected successfully
-               //convert it to a java.net.Socket object with the address
-               SocketAddress  iadd = selectedChannel.getRemoteAddress();
-               selectedSocket = new Socket();
-               selectedSocket.connect(iadd);
+        if (selectedChannel != null) {
+            // the selectedChannel has the address that is connected successfully
+            // convert it to a java.net.Socket object with the address
+            SocketAddress iadd = selectedChannel.getRemoteAddress();
+            selectedSocket = new Socket();
+            selectedSocket.connect(iadd);
 
-               result = Result.SUCCESS;
-               
-               //close the channel since it is not used anymore
-               selectedChannel.close();
-           }
+            result = Result.SUCCESS;
+
+            // close the channel since it is not used anymore
+            selectedChannel.close();
+        }
     }
 
     // This method contains the old logic of connecting to
