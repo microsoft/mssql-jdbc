@@ -704,7 +704,8 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         tdsWriter.writeRPCStringUnicode(preparedSQL);
 
         // <formal parameter defn> IN
-        tdsWriter.writeRPCStringUnicode((preparedTypeDefinitions.length() > 0) ? preparedTypeDefinitions : null);
+        if (preparedTypeDefinitions.length() > 0) 
+            tdsWriter.writeRPCStringUnicode(preparedTypeDefinitions);
     }
 
     private void buildServerCursorExecParams(TDSWriter tdsWriter) throws SQLServerException {
