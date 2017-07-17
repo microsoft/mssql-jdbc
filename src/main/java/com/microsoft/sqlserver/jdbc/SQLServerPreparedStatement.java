@@ -927,24 +927,43 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 			cachedPreparedStatementHandle = null;
 		}
 		
-		 // Check for new cache reference.
+        // Check for new cache reference.
         if (null == cachedPreparedStatementHandle) {
             PreparedStatementHandle cachedHandle = connection.getCachedPreparedStatementHandle(new Sha1HashKey(preparedSQL, preparedTypeDefinitions));
 
-            // If handle was found then re-use, only if AE is not on, or if it is on, make sure encryptionMetadataIsRetrieved is retrieved.
+            // If handle was found then re-use, only if AE is not on and is not a batch query with new type definitions (We shouldn't reuse handle
+            // if it is batch query and has new type definition, or if it is on, make sure encryptionMetadataIsRetrieved is retrieved.
             if (null != cachedHandle) {
-                if (!connection.isColumnEncryptionSettingEnabled()
+                if ((!connection.isColumnEncryptionSettingEnabled())
                         || (connection.isColumnEncryptionSettingEnabled() && encryptionMetadataIsRetrieved)) {
-                    if (cachedHandle.tryAddReference()) {
-                        setPreparedStatementHandle(cachedHandle.getHandle());
-                        cachedPreparedStatementHandle = cachedHandle;
-                        return true;
+                    if (reuseCacheHandleCheck(hasNewTypeDefinitions)) {
+                        if (cachedHandle.tryAddReference()) {
+                            setPreparedStatementHandle(cachedHandle.getHandle());
+                            cachedPreparedStatementHandle = cachedHandle;
+                            return true;
+                        }
                     }
                 }
             }
         }
         return false;
 	}
+	
+    /**
+     * Check reusing cache handle for batch queries
+     * 
+     * @param hasNewTypeDefinitions
+     *            is set to true if new query
+     * @return
+     */
+    private boolean reuseCacheHandleCheck(boolean hasNewTypeDefinitions) {
+        if (!hasNewTypeDefinitions && null != batchParamValues) // If it is a batch query, make sure it does not have newTypeDefinitions
+            return true;
+        if (null == batchParamValues) // if it is being called from prepared statement query, it should always reuse cache handle
+            return true;
+        else
+            return false;
+    }
 
     private boolean doPrepExec(TDSWriter tdsWriter,
             Parameter[] params,
