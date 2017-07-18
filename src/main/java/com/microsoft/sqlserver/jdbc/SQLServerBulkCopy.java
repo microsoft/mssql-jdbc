@@ -1483,7 +1483,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable {
                     .toUpperCase(Locale.ENGLISH);
             if (null != columnCollation && columnCollation.trim().length() > 0) {
                 // we are adding collate in command only for char and varchar
-                if (null != destType && (destType.toLowerCase().trim().startsWith("char") || destType.toLowerCase().trim().startsWith("varchar")))
+                if (null != destType && (destType.toLowerCase(Locale.ENGLISH).trim().startsWith("char") || destType.toLowerCase(Locale.ENGLISH).trim().startsWith("varchar")))
                     addCollate = " COLLATE " + columnCollation;
             }
             bulkCmd.append("[" + colMapping.destinationColumnName + "] " + destType + addCollate + endColumn);

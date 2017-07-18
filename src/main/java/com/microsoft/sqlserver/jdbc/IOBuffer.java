@@ -1383,7 +1383,7 @@ final class TDSChannel {
             this.logContext = tdsChannel.toString() + " (HostNameOverrideX509TrustManager):";
             defaultTrustManager = tm;
             // canonical name is in lower case so convert this to lowercase too.
-            this.hostName = hostName.toLowerCase();
+            this.hostName = hostName.toLowerCase(Locale.ENGLISH);
             ;
         }
 
@@ -1506,13 +1506,11 @@ final class TDSChannel {
                                 if (value != null && value instanceof String) {
                                     String dnsNameInSANCert = (String) value;
 
-                                    // convert to upper case and then to lower case in english locale
-                                    // to avoid Turkish i issues.
+                                    // Use English locale to avoid Turkish i issues.
                                     // Note that, this conversion was not necessary for
                                     // cert.getSubjectX500Principal().getName("canonical");
                                     // as the above API already does this by default as per documentation.
-                                    dnsNameInSANCert = dnsNameInSANCert.toUpperCase(Locale.US);
-                                    dnsNameInSANCert = dnsNameInSANCert.toLowerCase(Locale.US);
+                                    dnsNameInSANCert = dnsNameInSANCert.toLowerCase(Locale.ENGLISH);
 
                                     isServerNameValidated = validateServerName(dnsNameInSANCert);
 
