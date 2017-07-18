@@ -934,18 +934,18 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
             // If handle was found then re-use, only if AE is not on and is not a batch query with new type definitions (We shouldn't reuse handle
             // if it is batch query and has new type definition, or if it is on, make sure encryptionMetadataIsRetrieved is retrieved.
             if (null != cachedHandle) {
-                if ((!connection.isColumnEncryptionSettingEnabled())
+                if (!connection.isColumnEncryptionSettingEnabled()
                         || (connection.isColumnEncryptionSettingEnabled() && encryptionMetadataIsRetrieved)) {
-                        if (cachedHandle.tryAddReference()) {
-                            setPreparedStatementHandle(cachedHandle.getHandle());
-                            cachedPreparedStatementHandle = cachedHandle;
-                            return true;
+                    if (cachedHandle.tryAddReference()) {
+                        setPreparedStatementHandle(cachedHandle.getHandle());
+                        cachedPreparedStatementHandle = cachedHandle;
+                        return true;
                     }
                 }
             }
         }
         return false;
-	}	
+    }
 
     private boolean doPrepExec(TDSWriter tdsWriter,
             Parameter[] params,
