@@ -512,6 +512,14 @@ public class SQLServerColumnEncryptionAzureKeyVaultProvider extends SQLServerCol
     private int getAKVKeySize(String masterKeyPath) throws SQLServerException {
         KeyBundle retrievedKey = keyVaultClient.getKey(masterKeyPath);
 
+        if (null == retrievedKey) {
+            String[] keyTokens = masterKeyPath.split("/");
+
+            MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_AKVKeyNotFound"));
+            Object[] msgArgs = {keyTokens[keyTokens.length - 1]};
+            throw new SQLServerException(null, form.format(msgArgs), null, 0, false);
+        }
+
         if (!"RSA".equalsIgnoreCase(retrievedKey.key().kty().toString()) && !"RSA-HSM".equalsIgnoreCase(retrievedKey.key().kty().toString())) {
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_NonRSAKey"));
             Object[] msgArgs = {retrievedKey.key().kty().toString()};
