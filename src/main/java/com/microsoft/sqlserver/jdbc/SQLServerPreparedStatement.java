@@ -936,34 +936,16 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
             if (null != cachedHandle) {
                 if ((!connection.isColumnEncryptionSettingEnabled())
                         || (connection.isColumnEncryptionSettingEnabled() && encryptionMetadataIsRetrieved)) {
-                    if (reuseCacheHandleCheck(hasNewTypeDefinitions)) {
                         if (cachedHandle.tryAddReference()) {
                             setPreparedStatementHandle(cachedHandle.getHandle());
                             cachedPreparedStatementHandle = cachedHandle;
                             return true;
-                        }
                     }
                 }
             }
         }
         return false;
-	}
-	
-    /**
-     * Check reusing cache handle for batch queries
-     * 
-     * @param hasNewTypeDefinitions
-     *            is set to true if new query
-     * @return
-     */
-    private boolean reuseCacheHandleCheck(boolean hasNewTypeDefinitions) {
-        if (!hasNewTypeDefinitions && null != batchParamValues) // If it is a batch query, make sure it does not have newTypeDefinitions
-            return true;
-        if (null == batchParamValues) // if it is being called from prepared statement query, it should always reuse cache handle
-            return true;
-        else
-            return false;
-    }
+	}	
 
     private boolean doPrepExec(TDSWriter tdsWriter,
             Parameter[] params,
@@ -2604,10 +2586,9 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
             }
 
             // Retry execution if existing handle could not be re-used.
-            for(int attempt = 1; attempt <= 2; ++attempt) {
-
+            for(int attempt = 1; attempt <= 2; ++attempt) {               
                 try {
-
+                    
                     // Re-use handle if available, requires parameter definitions which are not available until here.
                     if (reuseCachedHandle(hasNewTypeDefinitions, 1 < attempt)) {
                         hasNewTypeDefinitions = false;
@@ -2667,9 +2648,13 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
                                 // Retry if invalid handle exception.
                                 if (retryBasedOnFailedReuseOfCachedHandle(e, attempt)) {
-                                    // Reset number of batches prepared.
+                                    // Reset number of batches prepare and reset the prepared type definitions
                                     numBatchesPrepared = numBatchesExecuted;
-                                    retry = true;
+                                    paramValues = batchParamValues.get(numBatchesPrepared);
+                                    for (int i = 0; i < paramValues.length; i++)
+                                        batchParam[i] = paramValues[i];
+                                    buildPreparedStrings(batchParam, false);
+                                    retry = true;                                    
                                     break;
                                 }
 
