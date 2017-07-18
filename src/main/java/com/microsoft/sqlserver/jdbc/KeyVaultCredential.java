@@ -8,13 +8,14 @@
 
 package com.microsoft.sqlserver.jdbc;
 
-import java.util.Map;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 
-import org.apache.http.Header;
-import org.apache.http.message.BasicHeader;
-
+import com.microsoft.aad.adal4j.AuthenticationContext;
+import com.microsoft.aad.adal4j.AuthenticationResult;
+import com.microsoft.aad.adal4j.ClientCredential;
 import com.microsoft.azure.keyvault.authentication.KeyVaultCredentials;
-import com.microsoft.windowsazure.core.pipeline.filter.ServiceRequestContext;
 
 /**
  * 
@@ -23,42 +24,46 @@ import com.microsoft.windowsazure.core.pipeline.filter.ServiceRequestContext;
  */
 class KeyVaultCredential extends KeyVaultCredentials {
 
-    // this is the only supported access token type
-    // https://msdn.microsoft.com/en-us/library/azure/dn645538.aspx
-    private final String accessTokenType = "Bearer";
-
-    SQLServerKeyVaultAuthenticationCallback authenticationCallback = null;
     String clientId = null;
     String clientKey = null;
-    String accessToken = null;
 
-    KeyVaultCredential(SQLServerKeyVaultAuthenticationCallback authenticationCallback) {
-        this.authenticationCallback = authenticationCallback;
+    KeyVaultCredential(String clientId,
+            String clientKey) {
+        this.clientId = clientId;
+        this.clientKey = clientKey;
     }
 
-    /**
-     * Authenticates the service request
-     * 
-     * @param request
-     *            the ServiceRequestContext
-     * @param challenge
-     *            used to get the accessToken
-     * @return BasicHeader
-     */
-    @Override
-    public Header doAuthenticate(ServiceRequestContext request,
-            Map<String, String> challenge) {
-        assert null != challenge;
-
-        String authorization = challenge.get("authorization");
-        String resource = challenge.get("resource");
-
-        accessToken = authenticationCallback.getAccessToken(authorization, resource, "");
-        return new BasicHeader("Authorization", accessTokenType + " " + accessToken);
+    public String doAuthenticate(String authorization,
+            String resource,
+            String scope) {
+        AuthenticationResult token = getAccessTokenFromClientCredentials(authorization, resource, clientId, clientKey);
+        return token.getAccessToken();
     }
 
-    void setAccessToken(String accessToken) {
-        this.accessToken = accessToken;
-    }
+    private static AuthenticationResult getAccessTokenFromClientCredentials(String authorization,
+            String resource,
+            String clientId,
+            String clientKey) {
+        AuthenticationContext context = null;
+        AuthenticationResult result = null;
+        ExecutorService service = null;
+        try {
+            service = Executors.newFixedThreadPool(1);
+            context = new AuthenticationContext(authorization, false, service);
+            ClientCredential credentials = new ClientCredential(clientId, clientKey);
+            Future<AuthenticationResult> future = context.acquireToken(resource, credentials, null);
+            result = future.get();
+        }
+        catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+        finally {
+            service.shutdown();
+        }
 
+        if (result == null) {
+            throw new RuntimeException("authentication result was null");
+        }
+        return result;
+    }
 }
