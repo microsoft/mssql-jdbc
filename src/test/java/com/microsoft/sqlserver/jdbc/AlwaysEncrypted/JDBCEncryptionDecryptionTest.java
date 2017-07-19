@@ -29,6 +29,7 @@ import org.opentest4j.TestAbortedException;
 
 import com.microsoft.sqlserver.jdbc.SQLServerException;
 import com.microsoft.sqlserver.jdbc.SQLServerPreparedStatement;
+import com.microsoft.sqlserver.jdbc.SQLServerPreparedStatement42;
 import com.microsoft.sqlserver.jdbc.SQLServerResultSet;
 import com.microsoft.sqlserver.jdbc.SQLServerStatement;
 
@@ -827,6 +828,10 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
 
 		pstmt = (SQLServerPreparedStatement) Util.getPreparedStmt(con, sql, stmtColEncSetting);
 
+		System.out.println("swag " + stmtColEncSetting);
+		System.out.println("swag2 " + (pstmt instanceof SQLServerPreparedStatement));
+		System.out.println("swag3 " + (pstmt instanceof SQLServerPreparedStatement42));
+		
 		// char
 		for (int i = 1; i <= 3; i++) {
 			pstmt.setObject(i, charValues[0], JDBCType.CHAR);
