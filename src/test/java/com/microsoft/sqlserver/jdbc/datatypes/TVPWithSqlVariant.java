@@ -307,11 +307,15 @@ public class TVPWithSqlVariant extends AbstractTest {
      * 
      * @throws SQLServerException
      */
-    // @Test //TODO check that we throw either error message or check that the correct error message is sent
-    public void testnull() throws SQLServerException {
+     @Test //TODO We need to check this later. Right now sending null with TVP is not supported 
+    public void testNull() throws SQLServerException {
         tvp = new SQLServerDataTable();
         tvp.addColumnMetadata("c1", microsoft.sql.Types.SQL_VARIANT);
+        try{
         tvp.addRow((Date) null);
+        }catch (Exception e) {
+            assertTrue(e.getMessage().startsWith("Sending null value with column"));
+        }
 
         SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) connection
                 .prepareStatement("INSERT INTO " + destTable + " select * from ? ;");
@@ -331,7 +335,7 @@ public class TVPWithSqlVariant extends AbstractTest {
      * @throws SQLServerException
      */
     @Test
-    public void testInt_StoredProcedure() throws SQLServerException {
+    public void testIntStoredProcedure() throws SQLServerException {
         java.sql.Timestamp timestamp = java.sql.Timestamp.valueOf("2007-09-23 10:10:10.0");
         final String sql = "{call " + procedureName + "(?)}";
         tvp = new SQLServerDataTable();

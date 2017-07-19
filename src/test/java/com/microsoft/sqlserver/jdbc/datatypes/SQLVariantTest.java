@@ -126,7 +126,7 @@ public class SQLVariantTest extends AbstractTest {
     }
 
     @Test
-    public void bulkCopyTest_time() throws SQLException {
+    public void bulkCopyTestTime() throws SQLException {
         String col1Value = "'12:26:27.1452367'";
         String destTableName = "dest_sqlVariant";
         Utils.dropTableIfExists(tableName, stmt);
@@ -602,6 +602,26 @@ public class SQLVariantTest extends AbstractTest {
         cs.execute();
         assertEquals(cs.getString(1), String.valueOf(returnValue));
         assertEquals(cs.getString(2), String.valueOf(col1Value));
+    }
+
+    @Test
+    public void callableStatementInOutTestString() throws SQLException {
+        String col1Value = "aa";
+        int col2Value = 2;
+        Utils.dropTableIfExists(tableName, stmt);
+        stmt.executeUpdate("create table " + tableName + " (col1 sql_variant, col2 sql_variant)");
+        stmt.executeUpdate("INSERT into " + tableName + "(col1, col2) values (CAST ('" + col1Value + "' AS " + "varchar(5)" + "), CAST (" + col2Value
+                + " AS " + "int" + "))");
+        Utils.dropProcedureIfExists(inputProc, stmt);
+        String sql = "CREATE PROCEDURE " + inputProc + " @p0 sql_variant OUTPUT, @p1 sql_variant" + " AS" + " SELECT top 1 @p0=col1 FROM " + tableName
+                + " where col2=@p1";
+        stmt.execute(sql);
+        CallableStatement cs = con.prepareCall(" {call " + inputProc + " (?,?)  }");
+
+        cs.registerOutParameter(1, microsoft.sql.Types.SQL_VARIANT);
+        cs.setObject(2, col2Value, microsoft.sql.Types.SQL_VARIANT);
+        cs.execute();
+        assertEquals(cs.getObject(1), col1Value);
     }
 
     /**

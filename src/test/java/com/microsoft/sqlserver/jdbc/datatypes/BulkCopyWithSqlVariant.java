@@ -45,7 +45,7 @@ public class BulkCopyWithSqlVariant extends AbstractTest {
      * @throws SQLException
      */
     @Test
-    public void bulkCopyTest_int() throws SQLException {
+    public void bulkCopyTestInt() throws SQLException {
         int col1Value = 5;
         beforeEachSetup("int", col1Value);
         SQLServerResultSet rs = (SQLServerResultSet) stmt.executeQuery("SELECT * FROM " + tableName);
@@ -61,7 +61,7 @@ public class BulkCopyWithSqlVariant extends AbstractTest {
     }
 
     @Test
-    public void bulkCopyTest_SmallInt() throws SQLException {
+    public void bulkCopyTestSmallInt() throws SQLException {
         int col1Value = 5;
         beforeEachSetup("smallint", col1Value);
 
@@ -78,7 +78,7 @@ public class BulkCopyWithSqlVariant extends AbstractTest {
     }
 
     @Test
-    public void bulkCopyTest_tinyint() throws SQLException {
+    public void bulkCopyTestTinyint() throws SQLException {
         int col1Value = 5;
         beforeEachSetup("tinyint", col1Value);
         SQLServerResultSet rs = (SQLServerResultSet) stmt.executeQuery("SELECT * FROM " + tableName);
@@ -94,7 +94,7 @@ public class BulkCopyWithSqlVariant extends AbstractTest {
     }
 
     @Test
-    public void bulkCopyTest_bigint() throws SQLException {
+    public void bulkCopyTestBigint() throws SQLException {
         int col1Value = 5;
         beforeEachSetup("bigint", col1Value);
 
@@ -111,7 +111,7 @@ public class BulkCopyWithSqlVariant extends AbstractTest {
     }
 
     @Test
-    public void bulkCopyTest_float() throws SQLException {
+    public void bulkCopyTestFloat() throws SQLException {
         int col1Value = 5;
         beforeEachSetup("float", col1Value);
 
@@ -128,7 +128,7 @@ public class BulkCopyWithSqlVariant extends AbstractTest {
     }
 
     @Test
-    public void bulkCopyTest_real() throws SQLException {
+    public void bulkCopyTestReal() throws SQLException {
         int col1Value = 5;
         beforeEachSetup("real", col1Value);
         SQLServerResultSet rs = (SQLServerResultSet) stmt.executeQuery("SELECT * FROM " + tableName);
@@ -145,7 +145,7 @@ public class BulkCopyWithSqlVariant extends AbstractTest {
     }
 
     @Test
-    public void bulkCopyTest_money() throws SQLException {
+    public void bulkCopyTestMoney() throws SQLException {
         String col1Value = "126.1230";
         beforeEachSetup("money", col1Value);
 
@@ -163,7 +163,7 @@ public class BulkCopyWithSqlVariant extends AbstractTest {
     }
 
     @Test
-    public void bulkCopyTest_smallmoney() throws SQLException {
+    public void bulkCopyTestSmallmoney() throws SQLException {
         String col1Value = "126.1230";
         String destTableName = "dest_sqlVariant";
         Utils.dropTableIfExists(tableName, stmt);
@@ -186,7 +186,7 @@ public class BulkCopyWithSqlVariant extends AbstractTest {
     }
 
     @Test
-    public void bulkCopyTest_date() throws SQLException {
+    public void bulkCopyTestDate() throws SQLException {
         String col1Value = "2015-05-05";
         beforeEachSetup("date", "'" + col1Value + "'");
 
@@ -204,7 +204,7 @@ public class BulkCopyWithSqlVariant extends AbstractTest {
     }
 
     @Test
-    public void bulkCopyTest_TwoCols() throws SQLException {
+    public void bulkCopyTestTwoCols() throws SQLException {
         String col1Value = "2015-05-05";
         String col2Value = "126.1230";
         String destTableName = "dest_sqlVariant";
@@ -230,7 +230,7 @@ public class BulkCopyWithSqlVariant extends AbstractTest {
     }
 
     @Test
-    public void bulkCopyTest_time() throws SQLException {
+    public void bulkCopyTestTime() throws SQLException {
         String col1Value = "'12:26:27.1452367'";
         beforeEachSetup("time(2)", col1Value);
         SQLServerResultSet rs = (SQLServerResultSet) stmt.executeQuery("SELECT * FROM " + tableName);
@@ -247,7 +247,7 @@ public class BulkCopyWithSqlVariant extends AbstractTest {
     }
 
     @Test
-    public void bulkCopyTest_char() throws SQLException {
+    public void bulkCopyTestChar() throws SQLException {
         String col1Value = "'sample'";
 
         beforeEachSetup("char", col1Value);
@@ -266,7 +266,7 @@ public class BulkCopyWithSqlVariant extends AbstractTest {
     }
 
     @Test
-    public void bulkCopyTest_nchar() throws SQLException {
+    public void bulkCopyTestNchar() throws SQLException {
         String col1Value = "'a'";
 
         beforeEachSetup("nchar", col1Value);
@@ -284,7 +284,7 @@ public class BulkCopyWithSqlVariant extends AbstractTest {
     }
 
     @Test
-    public void bulkCopyTest_varchar() throws SQLException {
+    public void bulkCopyTestVarchar() throws SQLException {
         String col1Value = "'hello'";
 
         beforeEachSetup("varchar", col1Value);
@@ -303,7 +303,7 @@ public class BulkCopyWithSqlVariant extends AbstractTest {
     }
 
     @Test
-    public void bulkCopyTest_nvarchar() throws SQLException {
+    public void bulkCopyTestNvarchar() throws SQLException {
         String col1Value = "'hello'";
         beforeEachSetup("nvarchar", col1Value);
 
@@ -321,7 +321,7 @@ public class BulkCopyWithSqlVariant extends AbstractTest {
     }
 
     @Test
-    public void bulkCopyTest_binary20() throws SQLException {
+    public void bulkCopyTestBinary20() throws SQLException {
         String col1Value = "hello";
         beforeEachSetup("binary(20)", "'" + col1Value + "'");
 
@@ -338,7 +338,7 @@ public class BulkCopyWithSqlVariant extends AbstractTest {
     }
 
     @Test
-    public void bulkCopyTest_varbinary20() throws SQLException {
+    public void bulkCopyTestVarbinary20() throws SQLException {
         String col1Value = "hello";
 
         String destTableName = "dest_sqlVariant";
@@ -356,7 +356,7 @@ public class BulkCopyWithSqlVariant extends AbstractTest {
     }
 
     @Test
-    public void bulkCopyTest_varbinary8000() throws SQLException {
+    public void bulkCopyTestVarbinary8000() throws SQLException {
         String col1Value = "hello";
         beforeEachSetup("binary(8000)", "'" + col1Value + "'");
         SQLServerResultSet rs = (SQLServerResultSet) stmt.executeQuery("SELECT * FROM " + tableName);
@@ -372,7 +372,7 @@ public class BulkCopyWithSqlVariant extends AbstractTest {
     }
 
     @Test // TODO: check bitnull
-    public void bulkCopyTest_bitNull() throws SQLException {
+    public void bulkCopyTestBitNull() throws SQLException {
         int col1Value = 5000;
         beforeEachSetup("bit", null);
 
@@ -389,7 +389,7 @@ public class BulkCopyWithSqlVariant extends AbstractTest {
     }
 
     @Test
-    public void bulkCopyTest_bit() throws SQLException {
+    public void bulkCopyTestBit() throws SQLException {
         int col1Value = 5000;
         beforeEachSetup("bit", col1Value);
         SQLServerResultSet rs = (SQLServerResultSet) stmt.executeQuery("SELECT * FROM " + tableName);
@@ -405,7 +405,7 @@ public class BulkCopyWithSqlVariant extends AbstractTest {
     }
 
     @Test
-    public void bulkCopyTest_datetime() throws SQLException {
+    public void bulkCopyTestDatetime() throws SQLException {
         String col1Value = "2015-05-08 12:26:24.0";
         beforeEachSetup("datetime", "'" + col1Value + "'");
 
@@ -424,7 +424,7 @@ public class BulkCopyWithSqlVariant extends AbstractTest {
     }
 
     @Test
-    public void bulkCopyTest_smalldatetime() throws SQLException {
+    public void bulkCopyTestSmalldatetime() throws SQLException {
         String col1Value = "2015-05-08 12:26:24";
         beforeEachSetup("smalldatetime", "'" + col1Value + "'");
 
@@ -442,7 +442,7 @@ public class BulkCopyWithSqlVariant extends AbstractTest {
     }
 
     @Test
-    public void bulkCopyTest_datetime2() throws SQLException {
+    public void bulkCopyTestDatetime2() throws SQLException {
         String col1Value = "2015-05-08 12:26:24.12645";
         beforeEachSetup("datetime2(2)", "'" + col1Value + "'");
 
@@ -465,7 +465,7 @@ public class BulkCopyWithSqlVariant extends AbstractTest {
      * @throws SQLException
      */
     @Test
-    public void bulkCopyTest_readGUID() throws SQLException {
+    public void bulkCopyTestReadGUID() throws SQLException {
         String col1Value = "1AE740A2-2272-4B0F-8086-3DDAC595BC11";
         beforeEachSetup("uniqueidentifier", "'" + col1Value + "'");
         SQLServerResultSet rs = (SQLServerResultSet) stmt.executeQuery("SELECT * FROM " + tableName);
@@ -487,7 +487,7 @@ public class BulkCopyWithSqlVariant extends AbstractTest {
      * @throws SQLException
      */
     @Test
-    public void bulkCopyTest_Varchar8000() throws SQLException {
+    public void bulkCopyTestVarchar8000() throws SQLException {
         StringBuffer buffer = new StringBuffer();
         for (int i = 0; i < 8000; i++) {
             buffer.append("a");
