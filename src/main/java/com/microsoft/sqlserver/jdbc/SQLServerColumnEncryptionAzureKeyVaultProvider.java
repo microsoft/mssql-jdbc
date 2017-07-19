@@ -64,7 +64,7 @@ public class SQLServerColumnEncryptionAzureKeyVaultProvider extends SQLServerCol
     }
 
     /**
-     * Constructor that takes a callback function to authenticate to AAD. This is used by KeyVaultClient at runtime to authenticate to Azure Key
+     * Constructor that authenticates to AAD. This is used by KeyVaultClient at runtime to authenticate to Azure Key
      * Vault.
      * 
      * @param clientId
