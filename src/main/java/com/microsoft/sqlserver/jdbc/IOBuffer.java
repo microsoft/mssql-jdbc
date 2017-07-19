@@ -134,6 +134,9 @@ final class TDS {
     static final int FLAG_TVP_DEFAULT_COLUMN = 0x200;
 
     static final int FEATURE_EXT_TERMINATOR = -1;
+    
+    // Sql_variant length
+    static final int SQL_VARIANT_LENGTH = 8009;
 
     static final String getTokenName(int tdsTokenType) {
         switch (tdsTokenType) {
@@ -3395,7 +3398,9 @@ final class TDSWriter {
         boolean isNegative = (bigDecimalVal.signum() < 0);
         BigInteger bi = bigDecimalVal.unscaledValue();
         if (isNegative)
+        {
             bi = bi.negate();
+        }
         int bLength;
         bLength = BYTES16;
 
@@ -3426,7 +3431,9 @@ final class TDSWriter {
 
         // Fill the rest of the array with zeros.
         for (; i < remaining; i++)
+        {
             bytes[i] = (byte) 0x00;
+        }
         writeBytes(bytes);
     }
 
@@ -4735,7 +4742,7 @@ final class TDSWriter {
                     writeByte((byte) 0);
                 else {
                     if (isSqlVariant) {
-                        writeSqlVariantHeader(10, TDSType.INT8.byteValue(), (byte) 0);
+                        writeTVPSqlVariantHeader(10, TDSType.INT8.byteValue(), (byte) 0);
                     }
                     else {
                         writeByte((byte) 8);
@@ -4749,7 +4756,7 @@ final class TDSWriter {
                     writeByte((byte) 0);
                 else {
                     if (isSqlVariant)
-                        writeSqlVariantHeader(3, TDSType.BIT1.byteValue(), (byte) 0);
+                        writeTVPSqlVariantHeader(3, TDSType.BIT1.byteValue(), (byte) 0);
                     else
                         writeByte((byte) 1);
                     writeByte((byte) (Boolean.valueOf(currentColumnStringValue).booleanValue() ? 1 : 0));
@@ -4763,7 +4770,7 @@ final class TDSWriter {
                     if (!isSqlVariant)
                         writeByte((byte) 4);
                     else
-                        writeSqlVariantHeader(6, TDSType.INT4.byteValue(), (byte) 0);
+                        writeTVPSqlVariantHeader(6, TDSType.INT4.byteValue(), (byte) 0);
                     writeInt(Integer.valueOf(currentColumnStringValue).intValue());
                 }
                 break;
@@ -4774,7 +4781,7 @@ final class TDSWriter {
                     writeByte((byte) 0);
                 else {
                     if (isSqlVariant) {
-                        writeSqlVariantHeader(6, TDSType.INT4.byteValue(), (byte) 0);
+                        writeTVPSqlVariantHeader(6, TDSType.INT4.byteValue(), (byte) 0);
                         writeInt(Integer.valueOf(currentColumnStringValue));
                     }
                     else {
@@ -4790,7 +4797,7 @@ final class TDSWriter {
                     writeByte((byte) 0);
                 else {
                     if (isSqlVariant) {
-                        writeSqlVariantHeader(21, TDSType.DECIMALN.byteValue(), (byte) 2);
+                        writeTVPSqlVariantHeader(21, TDSType.DECIMALN.byteValue(), (byte) 2);
                         writeByte((byte) 38); // scale (byte)variantType.getScale()
                         writeByte((byte) 4); // scale (byte)variantType.getScale()
                     }
@@ -4822,7 +4829,7 @@ final class TDSWriter {
                     writeByte((byte) 0); // len of data bytes
                 else {
                     if (isSqlVariant) {
-                        writeSqlVariantHeader(10, TDSType.FLOAT8.byteValue(), (byte) 0);
+                        writeTVPSqlVariantHeader(10, TDSType.FLOAT8.byteValue(), (byte) 0);
                         writeDouble(Double.valueOf(currentColumnStringValue.toString()));
                         break;
                     }
@@ -4844,7 +4851,7 @@ final class TDSWriter {
                     writeByte((byte) 0);
                 else {
                     if (isSqlVariant) {
-                        writeSqlVariantHeader(6, TDSType.FLOAT4.byteValue(), (byte) 0);
+                        writeTVPSqlVariantHeader(6, TDSType.FLOAT4.byteValue(), (byte) 0);
                         writeInt(Float.floatToRawIntBits(Float.valueOf(currentColumnStringValue).floatValue()));
                     }
                     else {
@@ -4886,7 +4893,7 @@ final class TDSWriter {
                             throw new SQLServerException(null, form.format(new Object[] {}), null, 0, false);
                         }
                         int length = currentColumnStringValue.length();
-                        writeSqlVariantHeader(9 + length, TDSType.BIGVARCHAR.byteValue(), (byte) 0x07);
+                        writeTVPSqlVariantHeader(9 + length, TDSType.BIGVARCHAR.byteValue(), (byte) 0x07);
                         SQLCollation col = con.getDatabaseCollation();
                         // write collation for sql variant
                         writeInt(col.getCollationInfo());
@@ -4920,7 +4927,7 @@ final class TDSWriter {
                             // for now we send as bigger type, but is sendStringParameterAsUnicoe is set to false we can't send nvarchar
                             // check for this
                             int length = currentColumnStringValue.length() * 2;
-                            writeSqlVariantHeader(9 + length, TDSType.NVARCHAR.byteValue(), (byte) 7);
+                            writeTVPSqlVariantHeader(9 + length, TDSType.NVARCHAR.byteValue(), (byte) 7);
                             SQLCollation col = con.getDatabaseCollation();
                             // write collation for sql variant
                             writeInt(col.getCollationInfo());
@@ -4988,7 +4995,7 @@ final class TDSWriter {
                 }
                 break;
             case SQL_VARIANT:
-                boolean isShiloh = 8 >= con.getServerMajorVersion() ? true : false;
+                boolean isShiloh = (8 >= con.getServerMajorVersion() ? true : false);
                 if (isShiloh) {
                     MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_SQLVariantSupport"));
                     throw new SQLServerException(null, form.format(new Object[] {}), null, 0, false);
@@ -5010,7 +5017,7 @@ final class TDSWriter {
      * @param probBytes
      * @throws SQLServerException
      */
-    private void writeSqlVariantHeader(int length,
+    private void writeTVPSqlVariantHeader(int length,
             byte tdsType,
             byte probBytes) throws SQLServerException {
         writeInt(length);
@@ -5135,9 +5142,8 @@ final class TDSWriter {
                         writeShort((short) DataTypes.SHORT_VARTYPE_MAX_BYTES);
                     break;
                 case SQL_VARIANT:
-                case OTHER:                  
                     writeByte(TDSType.SQL_VARIANT.byteValue());
-                    writeInt(8009);// write length of sql variant 8009
+                    writeInt(TDS.SQL_VARIANT_LENGTH);// write length of sql variant 8009
                     
                     break;
 

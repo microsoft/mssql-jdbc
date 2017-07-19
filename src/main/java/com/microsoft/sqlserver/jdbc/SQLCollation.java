@@ -49,17 +49,19 @@ final class SQLCollation implements java.io.Serializable
 
     /**
      * Returns the collation info
+     * 
      * @return
      */
-    int getCollationInfo(){
+    int getCollationInfo() {
         return this.info;
     }
     
     /**
      * return sort ID
+     * 
      * @return
      */
-    int getCollationSortID(){
+    int getCollationSortID() {
         return this.sortId;
     }
     

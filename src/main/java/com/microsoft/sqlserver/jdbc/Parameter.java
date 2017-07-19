@@ -879,6 +879,7 @@ final class Parameter {
                 case GUID:
                     param.typeDefinition = SSType.GUID.toString();
                     break;
+                    
                 case SQL_VARIANT:
                     param.typeDefinition = SSType.SQL_VARIANT.toString();
                     break;
@@ -1136,7 +1137,9 @@ final class Parameter {
             setTypeDefinition(dtv);
         }
 
-        /* (non-Javadoc)
+        /*
+         * (non-Javadoc)
+         * 
          * @see com.microsoft.sqlserver.jdbc.DTVExecuteOp#execute(com.microsoft.sqlserver.jdbc.DTV, microsoft.sql.SqlVariant)
          */
         @Override

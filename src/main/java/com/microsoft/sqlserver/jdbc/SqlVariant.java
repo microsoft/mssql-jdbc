@@ -10,7 +10,7 @@ package com.microsoft.sqlserver.jdbc;
 import java.text.MessageFormat;
 
 /**
- * This class holds information regarding the basetype of a sql_variant data. 
+ * This class holds information regarding the basetype of a sql_variant data.
  *
  */
 
@@ -18,32 +18,31 @@ import java.text.MessageFormat;
  * Enum for valid probBytes for different TDSTypes
  *
  */
-enum SqlVariant_ProbBytes
-{  
-    INTN      (0), 
-    INT8      (0),
-    INT4      (0), 
-    INT2      (0), 
-    INT1      (0),   
-    FLOAT4    (0), 
-    FLOAT8    (0), 
-    DATETIME4 (0), 
-    DATETIME8 (0), 
-    MONEY4    (0), 
-    MONEY8    (0), 
-    BITN      (0),      
-    GUID      (0), 
-    DATEN     (0), 
-    TIMEN     (1),
-    DATETIME2N (1),  
-    DECIMALN   (2), 
-    NUMERICN   (2), 
-    BIGBINARY    (2), 
-    BIGVARBINARY (2),
-    BIGCHAR      (7), 
-    BIGVARCHAR   (7),  
-    NCHAR        (7), 
-    NVARCHAR     (7); 
+enum SqlVariant_ProbBytes {
+    INTN(0),
+    INT8(0),
+    INT4(0),
+    INT2(0),
+    INT1(0),
+    FLOAT4(0),
+    FLOAT8(0),
+    DATETIME4(0),
+    DATETIME8(0),
+    MONEY4(0),
+    MONEY8(0),
+    BITN(0),
+    GUID(0),
+    DATEN(0),
+    TIMEN(1),
+    DATETIME2N(1),
+    DECIMALN(2),
+    NUMERICN(2),
+    BIGBINARY(2),
+    BIGVARBINARY(2),
+    BIGCHAR(7),
+    BIGVARCHAR(7),
+    NCHAR(7),
+    NVARCHAR(7);
 
     private final int intValue;
 
@@ -57,7 +56,7 @@ enum SqlVariant_ProbBytes
     private SqlVariant_ProbBytes(int intValue) {
         this.intValue = intValue;
     }
-    
+
     static SqlVariant_ProbBytes valueOf(int intValue) throws IllegalArgumentException {
         SqlVariant_ProbBytes tdsType;
 
@@ -69,8 +68,9 @@ enum SqlVariant_ProbBytes
 
         return tdsType;
     }
-   
+
 }
+
 public class SqlVariant {
 
     private int baseType;
@@ -80,123 +80,135 @@ public class SqlVariant {
     private int precision;
     private int scale;
     private int maxLength;  // for Character basetypes in sqlVariant
-    private SQLCollation collation; //for Character basetypes in sqlVariant
-    private boolean isBaseTypeTime = false;  //we need this when we need to read time as timestamp (for instance in bulkcopy)
+    private SQLCollation collation; // for Character basetypes in sqlVariant
+    private boolean isBaseTypeTime = false;  // we need this when we need to read time as timestamp (for instance in bulkcopy)
     private JDBCType baseJDBCType;
-    
 
     /**
      * Check if the basetype for variant is of time value
+     * 
      * @return
      */
-    boolean isBaseTypeTimeValue(){
+    boolean isBaseTypeTimeValue() {
         return this.isBaseTypeTime;
     }
-    
-    void setIsBaseTypeTimeValue(boolean isBaseTypeTime){
+
+    void setIsBaseTypeTimeValue(boolean isBaseTypeTime) {
         this.isBaseTypeTime = isBaseTypeTime;
     }
-    
+
     /**
      * Constructor for sqlVariant
      */
-     SqlVariant(int baseType) {
+    SqlVariant(int baseType) {
         this.baseType = baseType;
     }
-    
-     /**
-      * store the base type for sql-variant
-      * @param baseType
-      */
-     void setBaseType(int baseType){
+
+    /**
+     * store the base type for sql-variant
+     * 
+     * @param baseType
+     */
+    void setBaseType(int baseType) {
         this.baseType = baseType;
     }
-     
-     /**
-      * retrieves the base type for sql-variant
-      * @return
-      */
-     int getBaseType(){
-         return this.baseType;
-     }
-     
-     /**
-      * Store the basetype as jdbc type
-      * @param baseJDBCType
-      */
-     void setBaseJDBCType(JDBCType baseJDBCType){
-         this.baseJDBCType = baseJDBCType;
-     }
-     
-     /**
-      * retrieves the base type as jdbc type
-      * @return
-      */
-     JDBCType getBaseJDBCType() {
-         return this.baseJDBCType;
-     }
-    
-     /**
-      * stores the scale if applicable
-      * @param scale
-      */
-     void setScale(int scale){
+
+    /**
+     * retrieves the base type for sql-variant
+     * 
+     * @return
+     */
+    int getBaseType() {
+        return this.baseType;
+    }
+
+    /**
+     * Store the basetype as jdbc type
+     * 
+     * @param baseJDBCType
+     */
+    void setBaseJDBCType(JDBCType baseJDBCType) {
+        this.baseJDBCType = baseJDBCType;
+    }
+
+    /**
+     * retrieves the base type as jdbc type
+     * 
+     * @return
+     */
+    JDBCType getBaseJDBCType() {
+        return this.baseJDBCType;
+    }
+
+    /**
+     * stores the scale if applicable
+     * 
+     * @param scale
+     */
+    void setScale(int scale) {
         this.scale = scale;
     }
-    
-     /**
-      * stores the precision if applicable
-      * @param precision
-      */
-     void setPrecision(int precision){
+
+    /**
+     * stores the precision if applicable
+     * 
+     * @param precision
+     */
+    void setPrecision(int precision) {
         this.precision = precision;
     }
-    
-     /**
-      * retrieves the precision
-      * @return
-      */
-     int getPrecision(){
-         return this.precision;
-     }
-     
-     /**
-      * retrieves the scale
-      * @return
-      */
-     int getScale() {
-         return this.scale;
-     }
-     
-     /**
-      * stores the collation if applicable
-      * @param collation
-      */
-     void setCollation (SQLCollation collation){
-         this.collation = collation;
-     }
-     
-     /**
-      * Retrieves the collation
-      * @return
-      */
-     SQLCollation getCollation(){
-         return this.collation;
-     }
-     
-     /**
-      * stores the maximum length 
-      * @param maxLength
-      */
-     void setMaxLength(int maxLength){
-         this.maxLength = maxLength;
-     }
-     
-     /**
-      * retrieves the maximum length
-      * @return
-      */
-     int getMaxLength(){
-         return this.maxLength;
-     }
+
+    /**
+     * retrieves the precision
+     * 
+     * @return
+     */
+    int getPrecision() {
+        return this.precision;
+    }
+
+    /**
+     * retrieves the scale
+     * 
+     * @return
+     */
+    int getScale() {
+        return this.scale;
+    }
+
+    /**
+     * stores the collation if applicable
+     * 
+     * @param collation
+     */
+    void setCollation(SQLCollation collation) {
+        this.collation = collation;
+    }
+
+    /**
+     * Retrieves the collation
+     * 
+     * @return
+     */
+    SQLCollation getCollation() {
+        return this.collation;
+    }
+
+    /**
+     * stores the maximum length
+     * 
+     * @param maxLength
+     */
+    void setMaxLength(int maxLength) {
+        this.maxLength = maxLength;
+    }
+
+    /**
+     * retrieves the maximum length
+     * 
+     * @return
+     */
+    int getMaxLength() {
+        return this.maxLength;
+    }
 }

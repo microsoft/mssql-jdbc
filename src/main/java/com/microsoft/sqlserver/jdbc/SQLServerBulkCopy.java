@@ -1138,7 +1138,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable {
                 break;
             case microsoft.sql.Types.SQL_VARIANT: 
                 tdsWriter.writeByte(TDSType.SQL_VARIANT.byteValue());
-                tdsWriter.writeInt(8009); //write lenght of sql variant 8009
+                tdsWriter.writeInt(TDS.SQL_VARIANT_LENGTH); //write length of sql variant 8009
                 break;
             default:
                 MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_BulkTypeNotSupported"));
@@ -2518,7 +2518,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable {
                     }
                     break;
                 case microsoft.sql.Types.SQL_VARIANT:
-                    boolean isShiloh = 8 >= connection.getServerMajorVersion() ? true : false;
+                    boolean isShiloh = (8 >= connection.getServerMajorVersion() ? true : false);
                     if (isShiloh) {
                         MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_SQLVariantSupport"));
                         throw new SQLServerException(null, form.format(new Object[] {}), null, 0, false);
@@ -2531,7 +2531,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable {
                     SQLServerException.makeFromDriverError(null, null, form.format(msgArgs), null, true);
                     break;
             } // End of switch
-        }// End of Try
+        }
         catch (ClassCastException ex) {
             if (null == colValue) {
                 // this should not really happen, since ClassCastException should only happen when colValue is not null.
@@ -2573,49 +2573,49 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable {
         }
         switch (TDSType.valueOf(baseType)) {
             case INT8:
-                writeSqlVariantHeader(10, TDSType.INT8.byteValue(), (byte) 0, tdsWriter);
+                writeBulkCopySqlVariantHeader(10, TDSType.INT8.byteValue(), (byte) 0, tdsWriter);
                 tdsWriter.writeLong(Long.valueOf(colValue.toString()));
                 break;
             case INT4:
-                writeSqlVariantHeader(6, TDSType.INT4.byteValue(), (byte) 0, tdsWriter);
+                writeBulkCopySqlVariantHeader(6, TDSType.INT4.byteValue(), (byte) 0, tdsWriter);
                 tdsWriter.writeInt(Integer.valueOf(colValue.toString()));
                 break;
             case INT2:
-                writeSqlVariantHeader(4, TDSType.INT2.byteValue(), (byte) 0, tdsWriter);
+                writeBulkCopySqlVariantHeader(4, TDSType.INT2.byteValue(), (byte) 0, tdsWriter);
                 tdsWriter.writeShort(Short.valueOf(colValue.toString()));
                 break;
             case INT1:
-                writeSqlVariantHeader(3, TDSType.INT1.byteValue(), (byte) 0, tdsWriter);
+                writeBulkCopySqlVariantHeader(3, TDSType.INT1.byteValue(), (byte) 0, tdsWriter);
                 tdsWriter.writeByte(Byte.valueOf(colValue.toString()));
                 break;
             case FLOAT8:
-                writeSqlVariantHeader(10, TDSType.FLOAT8.byteValue(), (byte) 0, tdsWriter);
+                writeBulkCopySqlVariantHeader(10, TDSType.FLOAT8.byteValue(), (byte) 0, tdsWriter);
                 tdsWriter.writeDouble(Double.valueOf(colValue.toString()));
                 break;
             case FLOAT4:
-                writeSqlVariantHeader(6, TDSType.FLOAT4.byteValue(), (byte) 0, tdsWriter);
+                writeBulkCopySqlVariantHeader(6, TDSType.FLOAT4.byteValue(), (byte) 0, tdsWriter);
                 tdsWriter.writeReal(Float.valueOf(colValue.toString()));
                 break;
             case MONEY8:
                 // For decimalN we right TDSWriter.BIGDECIMAL_MAX_LENGTH as maximum length = 17
                 // 17 + 2 for basetype and probBytes + 2 for precision and length = 21 the length of data in header
-                writeSqlVariantHeader(21, TDSType.DECIMALN.byteValue(), (byte) 2, tdsWriter);
+                writeBulkCopySqlVariantHeader(21, TDSType.DECIMALN.byteValue(), (byte) 2, tdsWriter);
                 tdsWriter.writeByte((byte) 38);
                 tdsWriter.writeByte((byte) 4);
                 tdsWriter.writeSqlVariantInternalBigDecimal((BigDecimal) colValue, bulkJdbcType);
                 break;
             case MONEY4:
-                writeSqlVariantHeader(21, TDSType.DECIMALN.byteValue(), (byte) 2, tdsWriter);
+                writeBulkCopySqlVariantHeader(21, TDSType.DECIMALN.byteValue(), (byte) 2, tdsWriter);
                 tdsWriter.writeByte((byte) 38);
                 tdsWriter.writeByte((byte) 4);
                 tdsWriter.writeSqlVariantInternalBigDecimal((BigDecimal) colValue, bulkJdbcType);
                 break;
             case BIT1:
-                writeSqlVariantHeader(3, TDSType.BIT1.byteValue(), (byte) 0, tdsWriter);
+                writeBulkCopySqlVariantHeader(3, TDSType.BIT1.byteValue(), (byte) 0, tdsWriter);
                 tdsWriter.writeByte((byte) (((Boolean) colValue).booleanValue() ? 1 : 0));
                 break;
             case DATEN:
-                writeSqlVariantHeader(5, TDSType.DATEN.byteValue(), (byte) 0, tdsWriter);
+                writeBulkCopySqlVariantHeader(5, TDSType.DATEN.byteValue(), (byte) 0, tdsWriter);
                 tdsWriter.writeDate(colValue.toString());
                 break;
             case TIMEN:
@@ -2630,22 +2630,23 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable {
                 else {
                     timeHeaderLength = 0x08;
                 }
-                writeSqlVariantHeader(timeHeaderLength, TDSType.TIMEN.byteValue(), (byte) 1, tdsWriter); // depending on scale, the header length
-                                                                                                         // defers
+                writeBulkCopySqlVariantHeader(timeHeaderLength, TDSType.TIMEN.byteValue(), (byte) 1, tdsWriter); // depending on scale, the header
+                                                                                                                 // length
+                // defers
                 tdsWriter.writeByte((byte) bulkScale);
                 tdsWriter.writeTime((java.sql.Timestamp) colValue, bulkScale);
                 break;
             case DATETIME8:
-                writeSqlVariantHeader(10, TDSType.DATETIME8.byteValue(), (byte) 0, tdsWriter);
+                writeBulkCopySqlVariantHeader(10, TDSType.DATETIME8.byteValue(), (byte) 0, tdsWriter);
                 tdsWriter.writeDatetime(colValue.toString());
                 break;
             case DATETIME4:
                 // when the type is ambiguous, we write to bigger type
-                writeSqlVariantHeader(10, TDSType.DATETIME8.byteValue(), (byte) 0, tdsWriter);
+                writeBulkCopySqlVariantHeader(10, TDSType.DATETIME8.byteValue(), (byte) 0, tdsWriter);
                 tdsWriter.writeDatetime(colValue.toString());
                 break;
             case DATETIME2N:
-                writeSqlVariantHeader(10, TDSType.DATETIME2N.byteValue(), (byte) 1, tdsWriter); // 1 is probbytes for time
+                writeBulkCopySqlVariantHeader(10, TDSType.DATETIME2N.byteValue(), (byte) 1, tdsWriter); // 1 is probbytes for time
                 tdsWriter.writeByte((byte) 0x03);
                 String timeStampValue = colValue.toString();
                 tdsWriter.writeTime(java.sql.Timestamp.valueOf(timeStampValue), 0x03); // datetime2 in sql_variant has up to scale 3 support
@@ -2654,7 +2655,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable {
                 break;
             case BIGCHAR:
                 int length = colValue.toString().length();
-                writeSqlVariantHeader(9 + length, TDSType.BIGCHAR.byteValue(), (byte) 7, tdsWriter);
+                writeBulkCopySqlVariantHeader(9 + length, TDSType.BIGCHAR.byteValue(), (byte) 7, tdsWriter);
                 tdsWriter.writeCollationForSqlVariant(variantType);   // writes collation info and sortID
                 tdsWriter.writeShort((short) (length));
                 SQLCollation destCollation = destColumnMetadata.get(destColOrdinal).collation;
@@ -2667,7 +2668,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable {
                 break;
             case BIGVARCHAR:
                 length = colValue.toString().length();
-                writeSqlVariantHeader(9 + length, TDSType.BIGVARCHAR.byteValue(), (byte) 7, tdsWriter);
+                writeBulkCopySqlVariantHeader(9 + length, TDSType.BIGVARCHAR.byteValue(), (byte) 7, tdsWriter);
                 tdsWriter.writeCollationForSqlVariant(variantType);   // writes collation info and sortID
                 tdsWriter.writeShort((short) (length));
 
@@ -2681,7 +2682,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable {
                 break;
             case NCHAR:
                 length = colValue.toString().length() * 2;
-                writeSqlVariantHeader(9 + length, TDSType.NCHAR.byteValue(), (byte) 7, tdsWriter);
+                writeBulkCopySqlVariantHeader(9 + length, TDSType.NCHAR.byteValue(), (byte) 7, tdsWriter);
                 tdsWriter.writeCollationForSqlVariant(variantType);   // writes collation info and sortID
                 int stringLength = colValue.toString().length();
                 byte[] typevarlen = new byte[2];
@@ -2692,7 +2693,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable {
                 break;
             case NVARCHAR:
                 length = colValue.toString().length() * 2;
-                writeSqlVariantHeader(9 + length, TDSType.NVARCHAR.byteValue(), (byte) 7, tdsWriter);
+                writeBulkCopySqlVariantHeader(9 + length, TDSType.NVARCHAR.byteValue(), (byte) 7, tdsWriter);
                 tdsWriter.writeCollationForSqlVariant(variantType);   // writes collation info and sortID
                 stringLength = colValue.toString().length();
                 typevarlen = new byte[2];
@@ -2703,7 +2704,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable {
                 break;
             case GUID:
                 length = colValue.toString().length();
-                writeSqlVariantHeader(9 + length, TDSType.BIGCHAR.byteValue(), (byte) 7, tdsWriter);
+                writeBulkCopySqlVariantHeader(9 + length, TDSType.BIGCHAR.byteValue(), (byte) 7, tdsWriter);
                 // since while reading collation from sourceMetaData in guid we don't read collation, cause we are reading binary
                 // but in writing it we are using char, we need to get the collation.
                 SQLCollation collation = (null != destColumnMetadata.get(srcColOrdinal).collation) ? destColumnMetadata.get(srcColOrdinal).collation
@@ -2723,7 +2724,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable {
             case BIGBINARY:
                 byte[] b = (byte[]) colValue;
                 length = b.length;
-                writeSqlVariantHeader(4 + length, TDSType.BIGVARBINARY.byteValue(), (byte) 2, tdsWriter);
+                writeBulkCopySqlVariantHeader(4 + length, TDSType.BIGVARBINARY.byteValue(), (byte) 2, tdsWriter);
                 tdsWriter.writeShort((short) (variantType.getMaxLength())); // length
                 if (null == colValue) {
                     writeNullToTdsWriter(tdsWriter, bulkJdbcType, isStreaming);
@@ -2747,7 +2748,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable {
             case BIGVARBINARY:
                 b = (byte[]) colValue;
                 length = b.length;
-                writeSqlVariantHeader(4 + length, TDSType.BIGVARBINARY.byteValue(), (byte) 2, tdsWriter);
+                writeBulkCopySqlVariantHeader(4 + length, TDSType.BIGVARBINARY.byteValue(), (byte) 2, tdsWriter);
                 tdsWriter.writeShort((short) (variantType.getMaxLength())); // length
                 if (null == colValue) {
                     writeNullToTdsWriter(tdsWriter, bulkJdbcType, isStreaming);
@@ -2778,13 +2779,18 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable {
     
     /**
      * Write header for sql_variant
-     * @param length: length of base type + Basetype + probBytes
+     * 
+     * @param length:
+     *            length of base type + Basetype + probBytes
      * @param tdsType
      * @param probBytes
      * @param tdsWriter
      * @throws SQLServerException
      */
-    private void writeSqlVariantHeader (int length, byte tdsType, byte probBytes, TDSWriter tdsWriter) throws SQLServerException{
+    private void writeBulkCopySqlVariantHeader(int length,
+            byte tdsType,
+            byte probBytes,
+            TDSWriter tdsWriter) throws SQLServerException {
         tdsWriter.writeInt(length);
         tdsWriter.writeByte(tdsType);
         tdsWriter.writeByte(probBytes);

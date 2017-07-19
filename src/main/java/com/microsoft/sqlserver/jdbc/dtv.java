@@ -3553,8 +3553,6 @@ final class ServerDTVImpl extends DTVImpl {
                 else if (SSType.SQL_VARIANT == typeInfo.getSSType()) {
                     valueLength = tdsReader.readInt();
                     isNull = (0 == valueLength);
-                }
-                if (SSType.SQL_VARIANT == typeInfo.getSSType()) {
                     typeInfo.setSSType(SSType.SQL_VARIANT);
                 }
                 break;
