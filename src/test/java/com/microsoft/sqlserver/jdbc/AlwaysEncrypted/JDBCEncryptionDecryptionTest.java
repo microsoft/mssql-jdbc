@@ -831,6 +831,8 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
 		System.out.println("swag " + stmtColEncSetting);
 		System.out.println("swag2 " + (pstmt instanceof SQLServerPreparedStatement));
 		System.out.println("swag3 " + (pstmt instanceof SQLServerPreparedStatement42));
+		System.out.println("swag4 " + Double.parseDouble(System.getProperty("java.specification.version")));
+
 		
 		// char
 		for (int i = 1; i <= 3; i++) {

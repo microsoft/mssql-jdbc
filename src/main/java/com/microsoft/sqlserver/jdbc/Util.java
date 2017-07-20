@@ -964,6 +964,8 @@ final class Util {
         }
 
         double jvmVersion = Double.parseDouble(Util.SYSTEM_SPEC_VERSION);
+        
+        System.out.println("swagutil " + supportJDBC42 + " " + jvmVersion);
 
         use42Wrapper = supportJDBC42 && (1.8 <= jvmVersion);
     }

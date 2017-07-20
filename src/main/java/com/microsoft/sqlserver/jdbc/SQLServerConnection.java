@@ -4610,10 +4610,14 @@ public class SQLServerConnection implements ISQLServerConnection {
 
         PreparedStatement st;
 
+		System.out.println("swag-1 " + Util.use42Wrapper());
+        
         if (Util.use42Wrapper()) {
+        	System.out.println("swag-2");
             st = new SQLServerPreparedStatement42(this, sql, nType, nConcur, stmtColEncSetting);
         }
         else {
+        	System.out.println("swag-3");
             st = new SQLServerPreparedStatement(this, sql, nType, nConcur, stmtColEncSetting);
         }
 
