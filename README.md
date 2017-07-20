@@ -77,7 +77,7 @@ We're now on the Maven Central Repository. Add the following to your POM file:
 <dependency>
 	<groupId>com.microsoft.sqlserver</groupId>
 	<artifactId>mssql-jdbc</artifactId>
-	<version>6.1.0.jre8</version>
+	<version>6.2.1.jre8</version>
 </dependency>
 ```
 The driver can be downloaded from the [Microsoft Download Center](https://www.microsoft.com/en-us/download/details.aspx?displaylang=en&id=11774).
@@ -117,7 +117,7 @@ Projects that require either of the two features need to explicitly declare the 
 <dependency>
 	<groupId>com.microsoft.sqlserver</groupId>
 	<artifactId>mssql-jdbc</artifactId>
-	<version>6.1.0.jre8</version>
+	<version>6.2.1.jre8</version>
 	<scope>compile</scope>
 </dependency>
 
