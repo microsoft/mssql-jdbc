@@ -33,7 +33,7 @@ import com.microsoft.sqlserver.testframework.Utils;
  *
  */
 @RunWith(JUnitPlatform.class)
-public class BulkCopyWithSqlVariant extends AbstractTest {
+public class BulkCopyWithSqlVariantTest extends AbstractTest {
 
     static SQLServerConnection con = null;
     static Statement stmt = null;

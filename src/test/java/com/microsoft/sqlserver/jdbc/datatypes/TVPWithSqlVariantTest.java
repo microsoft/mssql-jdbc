@@ -34,7 +34,7 @@ import com.microsoft.sqlserver.testframework.sqlType.SqlDate;
 import com.microsoft.sqlserver.testframework.Utils;
 
 @RunWith(JUnitPlatform.class)
-public class TVPWithSqlVariant extends AbstractTest {
+public class TVPWithSqlVariantTest extends AbstractTest {
 
     private static SQLServerConnection conn = null;
     static SQLServerStatement stmt = null;
@@ -242,7 +242,7 @@ public class TVPWithSqlVariant extends AbstractTest {
     }
 
     /**
-     * Check that we throw proper error message when inserting more than 8000 
+     * Check that we throw proper error message when inserting more than 8000
      * 
      * @throws SQLServerException
      */
@@ -307,13 +307,14 @@ public class TVPWithSqlVariant extends AbstractTest {
      * 
      * @throws SQLServerException
      */
-     @Test //TODO We need to check this later. Right now sending null with TVP is not supported 
+    @Test // TODO We need to check this later. Right now sending null with TVP is not supported
     public void testNull() throws SQLServerException {
         tvp = new SQLServerDataTable();
         tvp.addColumnMetadata("c1", microsoft.sql.Types.SQL_VARIANT);
-        try{
-        tvp.addRow((Date) null);
-        }catch (Exception e) {
+        try {
+            tvp.addRow((Date) null);
+        }
+        catch (Exception e) {
             assertTrue(e.getMessage().startsWith("Sending null value with column"));
         }
 
