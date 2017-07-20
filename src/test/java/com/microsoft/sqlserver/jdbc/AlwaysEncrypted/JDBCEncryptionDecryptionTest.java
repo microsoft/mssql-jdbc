@@ -29,7 +29,6 @@ import org.opentest4j.TestAbortedException;
 
 import com.microsoft.sqlserver.jdbc.SQLServerException;
 import com.microsoft.sqlserver.jdbc.SQLServerPreparedStatement;
-import com.microsoft.sqlserver.jdbc.SQLServerPreparedStatement42;
 import com.microsoft.sqlserver.jdbc.SQLServerResultSet;
 import com.microsoft.sqlserver.jdbc.SQLServerStatement;
 
@@ -828,12 +827,6 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
 
 		pstmt = (SQLServerPreparedStatement) Util.getPreparedStmt(con, sql, stmtColEncSetting);
 
-		System.out.println("swag " + stmtColEncSetting);
-		System.out.println("swag2 " + (pstmt instanceof SQLServerPreparedStatement));
-		System.out.println("swag3 " + (pstmt instanceof SQLServerPreparedStatement42));
-		System.out.println("swag4 " + Double.parseDouble(System.getProperty("java.specification.version")));
-
-		
 		// char
 		for (int i = 1; i <= 3; i++) {
 			pstmt.setObject(i, charValues[0], JDBCType.CHAR);
@@ -2422,7 +2415,6 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
 	}
 	
 	private void skipTestForJava7() {
-    	double version = Double.parseDouble(System.getProperty("java.specification.version"));
-    	assumeTrue(version > 1.7); // With Java 7, skip tests for JDBCType.
+    	assumeTrue(com.microsoft.sqlserver.jdbc.Util.use42Wrapper()); // With Java 7, skip tests for JDBCType.
 	}
 }
