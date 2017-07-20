@@ -41,10 +41,7 @@ import java.util.SimpleTimeZone;
 import java.util.TimeZone;
 import java.util.UUID;
 
-import com.microsoft.sqlserver.jdbc.JDBCType.Category;
 import com.microsoft.sqlserver.jdbc.JavaType.SetterConversionAE;
-
-
 
 /**
  * Defines an abstraction for execution of type-specific operations on DTV values.
@@ -1447,14 +1444,16 @@ final class DTV {
             tdsWriter.writeRPCReaderUnicode(name, readerValue, dtv.getStreamSetterArgs().getLength(), isOutParam, collation);
         }
 
-        /* (non-Javadoc)
+        /*
+         * (non-Javadoc)
+         * 
          * @see com.microsoft.sqlserver.jdbc.DTVExecuteOp#execute(com.microsoft.sqlserver.jdbc.DTV, microsoft.sql.SqlVariant)
          */
         @Override
         void execute(DTV dtv,
                 SqlVariant SqlVariantValue) throws SQLServerException {
             tdsWriter.writeRPCSqlVariant(name, SqlVariantValue, isOutParam);
-            
+
         }
     }
 
@@ -1597,6 +1596,7 @@ final class DTV {
                 case STRUCT:
                     unsupportedConversion = true;
                     break;
+                    
                 case SQL_VARIANT:
                     op.execute(this, (SqlVariant) null);
                     break;
@@ -1622,7 +1622,7 @@ final class DTV {
                         byte[] bArray = Util.asGuidByteArray((UUID) value);
                         op.execute(this, bArray);
                     }
-                    else if (jdbcType.SQL_VARIANT == jdbcType){
+                    else if (jdbcType.SQL_VARIANT == jdbcType) {
                         op.execute(this, String.valueOf(value));
                     }
                     else {
@@ -2321,7 +2321,7 @@ final class AppDTVImpl extends DTVImpl {
         void execute(DTV dtv,
                 SqlVariant SqlVariantValue) throws SQLServerException {
         }
-        
+
     }
 
     void setValue(DTV dtv,
@@ -2423,6 +2423,10 @@ final class AppDTVImpl extends DTVImpl {
         return this.internalVariant;
     }
 
+    /**
+     * Sets the internal datatype of variant type
+     * @param type sql_variant internal type
+     */
     void setInternalVariant(SqlVariant type) {
         this.internalVariant = type;
     }
@@ -4001,7 +4005,7 @@ final class ServerDTVImpl extends DTVImpl {
                      * 4- dataValue: the data value
                      */
                     int baseType = tdsReader.readUnsignedByte();
-                    
+
                     int cbPropsActual = tdsReader.readUnsignedByte();
                     // don't create new one, if we have already created an internalVariant object. For example, in bulkcopy
                     // when we are reading time column, we update the same internalvarianttype's JDBC to be timestamp
@@ -4031,7 +4035,7 @@ final class ServerDTVImpl extends DTVImpl {
      * Read the value inside sqlVariant. The reading differs based on what the internal baseType is.
      * 
      * @return sql_variant value
-     * @since 6.2.2
+     * @since 6.3.0
      * @throws SQLServerException
      */
     private Object readSqlVariant(int intbaseType,
@@ -4146,14 +4150,14 @@ final class ServerDTVImpl extends DTVImpl {
                         break;
                 }
                 break;
-            case BIGVARCHAR:   // varchar8000
+            case BIGVARCHAR:   
             case BIGCHAR:
                 if (cbPropsActual != SqlVariant_ProbBytes.BIGCHAR.intValue()) {
                     MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidProbbytes"));
                     throw new SQLServerException(form.format(new Object[] {baseType}), null, 0, null);
                 }
                 if (TDSType.BIGVARCHAR == baseType)
-                    jdbcType = JDBCType.VARCHAR;// LONGVARCHAR;
+                    jdbcType = JDBCType.VARCHAR;
                 else if (TDSType.BIGCHAR == baseType)
                     jdbcType = JDBCType.CHAR;
                 collation = tdsReader.readCollation();
@@ -4178,7 +4182,7 @@ final class ServerDTVImpl extends DTVImpl {
                     throw new SQLServerException(form.format(new Object[] {baseType}), null, 0, null);
                 }
                 if (TDSType.NCHAR == baseType)
-                    jdbcType = JDBCType.NCHAR;// LONGVARCHAR;
+                    jdbcType = JDBCType.NCHAR;
                 else if (TDSType.NVARCHAR == baseType)
                     jdbcType = JDBCType.NVARCHAR;
                 collation = tdsReader.readCollation();
@@ -4232,7 +4236,7 @@ final class ServerDTVImpl extends DTVImpl {
                 internalVariant.setScale(scale);
                 convertedValue = tdsReader.readDateTime2(expectedValueLength, typeInfo, cal, jdbcType);
                 break;
-            case BIGBINARY:   // binary20, binary 512, binary 8000 -> reads as bigbinary
+            case BIGBINARY:   // e.g binary20, binary 512, binary 8000 -> reads as bigbinary
             case BIGVARBINARY:
                 if (cbPropsActual != SqlVariant_ProbBytes.BIGBINARY.intValue()) {
                     MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidProbbytes"));

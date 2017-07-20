@@ -265,7 +265,7 @@ public class TVPWithSqlVariantTest extends AbstractTest {
             pstmt.execute();
         }
         catch (SQLServerException e) {
-            assertTrue(e.getMessage().contains("sql_variant does not support string values more than 8000"));
+            assertTrue(e.getMessage().contains("SQL_VARIANT does not support string values more than 8000 length."));
         }
         catch (Exception e) {
             // Otherwise fail the test
