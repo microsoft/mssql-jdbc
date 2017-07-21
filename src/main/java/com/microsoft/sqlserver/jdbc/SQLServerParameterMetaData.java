@@ -324,31 +324,29 @@ public final class SQLServerParameterMetaData implements ParameterMetaData {
      * @param st
      *            string tokenizer
      * @param firstToken
-     * @throws SQLServerException 
+     * @throws SQLServerException
      * @returns the full token
      */
     private String escapeParse(StringTokenizer st,
             String firstToken) throws SQLServerException {
-        String nameFragment;
-        String fullName;
-        nameFragment = firstToken;
 
-        if (null == nameFragment) {
+        if (null == firstToken) {
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_NullValue"));
-            Object[] msgArgs1 = {"nameFragment"};
+            Object[] msgArgs1 = {"firstToken"};
             throw new SQLServerException(form.format(msgArgs1), null);
         }
 
         // skip spaces
-        while ((0 == nameFragment.trim().length()) && st.hasMoreTokens()) {
-            nameFragment = st.nextToken();
+        while ((0 == firstToken.trim().length()) && st.hasMoreTokens()) {
+            firstToken = st.nextToken();
         }
-        fullName = nameFragment;
-        if (nameFragment.charAt(0) == '[' && nameFragment.charAt(nameFragment.length() - 1) != ']') {
+
+        String fullName = firstToken;
+        if (firstToken.charAt(0) == '[' && firstToken.charAt(firstToken.length() - 1) != ']') {
             while (st.hasMoreTokens()) {
-                nameFragment = st.nextToken();
-                fullName = fullName.concat(nameFragment);
-                if (nameFragment.charAt(nameFragment.length() - 1) == ']') {
+                firstToken = st.nextToken();
+                fullName = fullName.concat(firstToken);
+                if (firstToken.charAt(firstToken.length() - 1) == ']') {
                     break;
                 }
 
