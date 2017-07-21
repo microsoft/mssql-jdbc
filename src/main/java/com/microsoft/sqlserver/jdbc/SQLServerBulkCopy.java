@@ -1136,9 +1136,9 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable {
                     tdsWriter.writeByte((byte) srcScale);
                 }
                 break;
-            case microsoft.sql.Types.SQL_VARIANT: 
+            case microsoft.sql.Types.SQL_VARIANT:  //0x62
                 tdsWriter.writeByte(TDSType.SQL_VARIANT.byteValue());
-                tdsWriter.writeInt(TDS.SQL_VARIANT_LENGTH); //write length of sql variant 8009
+                tdsWriter.writeInt(TDS.SQL_VARIANT_LENGTH); 
                 break;
             default:
                 MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_BulkTypeNotSupported"));
@@ -2905,8 +2905,8 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable {
                     SQLServerException.makeFromDriverError(null, null, form.format(msgArgs), null, true);
                     // This return will never be executed, but it is needed as Eclipse complains otherwise.
                     return null;
-            } // End of switch
-        }// End of Try
+            } 
+        }
         catch (SQLException e) {
             throw new SQLServerException(SQLServerException.getErrString("R_unableRetrieveSourceData"), e);
         }

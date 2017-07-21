@@ -145,7 +145,7 @@ enum SSType
     DECIMAL        (Category.NUMERIC,         "decimal",          JDBCType.DECIMAL),
     NUMERIC        (Category.NUMERIC,         "numeric",          JDBCType.NUMERIC),
     GUID           (Category.GUID,            "uniqueidentifier", JDBCType.GUID),
-    SQL_VARIANT    (Category.SQL_VARIANT,     "sql_variant",      JDBCType.VARCHAR),  
+    SQL_VARIANT    (Category.SQL_VARIANT,     "sql_variant",      JDBCType.SQL_VARIANT),  
     UDT            (Category.UDT,             "udt",              JDBCType.VARBINARY),
     XML            (Category.XML,             "xml",              JDBCType.LONGNVARCHAR),
     TIMESTAMP      (Category.TIMESTAMP,       "timestamp",        JDBCType.BINARY);
@@ -359,7 +359,8 @@ enum SSType
             EnumSet.of(
                 JDBCType.Category.BINARY,
                 JDBCType.Category.CHARACTER)),
-        Sql_Variant (
+        
+        SQL_VARIANT (
                 SSType.Category.SQL_VARIANT,
                 EnumSet.of(
                     JDBCType.Category.CHARACTER, 
@@ -370,7 +371,6 @@ enum SSType
                     JDBCType.Category.TIME,
                     JDBCType.Category.BINARY,
                     JDBCType.Category.TIMESTAMP,
-                    JDBCType.Category.LONG_BINARY, 
                     JDBCType.Category.NCHARACTER));
 
         private final SSType.Category from;
@@ -924,7 +924,9 @@ enum JDBCType
                 JDBCType.Category.LONG_NCHARACTER,
                 JDBCType.Category.BINARY,
                 JDBCType.Category.LONG_BINARY,
-                JDBCType.Category.GUID)),
+                JDBCType.Category.GUID,
+                JDBCType.Category.SQL_VARIANT
+                )),
 
         LONG_CHARACTER (
             JDBCType.Category.LONG_CHARACTER,
@@ -998,7 +1000,8 @@ enum JDBCType
                 JDBCType.Category.LONG_CHARACTER,
                 JDBCType.Category.NCHARACTER,
                 JDBCType.Category.LONG_NCHARACTER,
-                JDBCType.Category.SQL_VARIANT)), 
+                JDBCType.Category.SQL_VARIANT
+                )), 
 
         DATE (
             JDBCType.Category.DATE,
@@ -1201,8 +1204,8 @@ enum JDBCType
                 SSType.Category.CHARACTER,
                 SSType.Category.LONG_CHARACTER,
                 SSType.Category.NCHARACTER,
-                SSType.Category.LONG_NCHARACTER,
-                SSType.Category.SQL_VARIANT)),
+                SSType.Category.LONG_NCHARACTER
+                )),
 
         DATE (
             JDBCType.Category.DATE,
@@ -1278,6 +1281,7 @@ enum JDBCType
                         SSType.Category.LONG_CHARACTER,
                         SSType.Category.NCHARACTER,
                         SSType.Category.LONG_NCHARACTER)),
+        
         SQL_VARIANT (
                 JDBCType.Category.SQL_VARIANT,
                 EnumSet.of(
