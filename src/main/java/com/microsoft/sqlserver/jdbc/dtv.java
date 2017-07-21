@@ -1997,7 +1997,6 @@ final class AppDTVImpl extends DTVImpl {
     private Calendar cal;
     private Integer scale;
     private boolean forceEncrypt;
-    private int variantInternal;
     private SqlVariant internalVariant;
     
     final void skipValue(TypeInfo typeInfo,
@@ -2425,7 +2424,9 @@ final class AppDTVImpl extends DTVImpl {
 
     /**
      * Sets the internal datatype of variant type
-     * @param type sql_variant internal type
+     * 
+     * @param type
+     *            sql_variant internal type
      */
     void setInternalVariant(SqlVariant type) {
         this.internalVariant = type;
@@ -4078,7 +4079,7 @@ final class ServerDTVImpl extends DTVImpl {
                     jdbcType = JDBCType.DECIMAL;
                 else if (TDSType.NUMERICN == baseType)
                     jdbcType = JDBCType.NUMERIC;
-                if (cbPropsActual != SqlVariant_ProbBytes.DECIMALN.intValue()) {   // Numeric and decimal have the same probbytes value
+                if (cbPropsActual != sqlVariantProbBytes.DECIMALN.getIntValue()) {   // Numeric and decimal have the same probbytes value
                     MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidProbbytes"));
                     throw new SQLServerException(form.format(new Object[] {baseType}), null, 0, null);
                 }
@@ -4152,7 +4153,7 @@ final class ServerDTVImpl extends DTVImpl {
                 break;
             case BIGVARCHAR:   
             case BIGCHAR:
-                if (cbPropsActual != SqlVariant_ProbBytes.BIGCHAR.intValue()) {
+                if (cbPropsActual != sqlVariantProbBytes.BIGCHAR.getIntValue()) {
                     MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidProbbytes"));
                     throw new SQLServerException(form.format(new Object[] {baseType}), null, 0, null);
                 }
@@ -4177,7 +4178,7 @@ final class ServerDTVImpl extends DTVImpl {
                 break;
             case NCHAR:
             case NVARCHAR:
-                if (cbPropsActual != SqlVariant_ProbBytes.NCHAR.intValue()) {
+                if (cbPropsActual != sqlVariantProbBytes.NCHAR.getIntValue()) {
                     MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidProbbytes"));
                     throw new SQLServerException(form.format(new Object[] {baseType}), null, 0, null);
                 }
@@ -4212,7 +4213,7 @@ final class ServerDTVImpl extends DTVImpl {
                 convertedValue = tdsReader.readDate(expectedValueLength, cal, jdbcType);
                 break;
             case TIMEN:
-                if (cbPropsActual != SqlVariant_ProbBytes.TIMEN.intValue()) {
+                if (cbPropsActual != sqlVariantProbBytes.TIMEN.getIntValue()) {
                     MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidProbbytes"));
                     throw new SQLServerException(form.format(new Object[] {baseType}), null, 0, null);
                 }
@@ -4226,7 +4227,7 @@ final class ServerDTVImpl extends DTVImpl {
                 convertedValue = tdsReader.readTime(expectedValueLength, typeInfo, cal, jdbcType);
                 break;
             case DATETIME2N:
-                if (cbPropsActual != SqlVariant_ProbBytes.DATETIME2N.intValue()) {
+                if (cbPropsActual != sqlVariantProbBytes.DATETIME2N.getIntValue()) {
                     MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidProbbytes"));
                     throw new SQLServerException(form.format(new Object[] {baseType}), null, 0, null);
                 }
@@ -4238,7 +4239,7 @@ final class ServerDTVImpl extends DTVImpl {
                 break;
             case BIGBINARY:   // e.g binary20, binary 512, binary 8000 -> reads as bigbinary
             case BIGVARBINARY:
-                if (cbPropsActual != SqlVariant_ProbBytes.BIGBINARY.intValue()) {
+                if (cbPropsActual != sqlVariantProbBytes.BIGBINARY.getIntValue()) {
                     MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidProbbytes"));
                     throw new SQLServerException(form.format(new Object[] {baseType}), null, 0, null);
                 }

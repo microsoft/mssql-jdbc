@@ -18,7 +18,7 @@ import java.text.MessageFormat;
  * Enum for valid probBytes for different TDSTypes
  *
  */
-enum SqlVariant_ProbBytes {
+enum sqlVariantProbBytes {
     INTN(0),
     INT8(0),
     INT4(0),
@@ -47,18 +47,18 @@ enum SqlVariant_ProbBytes {
     private final int intValue;
 
     private static final int MAXELEMENTS = 23;
-    private static final SqlVariant_ProbBytes valuesTypes[] = new SqlVariant_ProbBytes[MAXELEMENTS];
+    private static final sqlVariantProbBytes valuesTypes[] = new sqlVariantProbBytes[MAXELEMENTS];
 
-    int intValue() {
-        return intValue;
-    }
-
-    private SqlVariant_ProbBytes(int intValue) {
+    private sqlVariantProbBytes(int intValue) {
         this.intValue = intValue;
     }
 
-    static SqlVariant_ProbBytes valueOf(int intValue) throws IllegalArgumentException {
-        SqlVariant_ProbBytes tdsType;
+    int getIntValue() {
+        return intValue;
+    }
+
+    static sqlVariantProbBytes valueOf(int intValue) {
+        sqlVariantProbBytes tdsType;
 
         if (!(0 <= intValue && intValue < valuesTypes.length) || null == (tdsType = valuesTypes[intValue])) {
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_unknownSSType"));
@@ -74,15 +74,19 @@ enum SqlVariant_ProbBytes {
 public class SqlVariant {
 
     private int baseType;
-    private int cbPropsActual;
-    private int properties;
-    private int value;
     private int precision;
     private int scale;
     private int maxLength;  // for Character basetypes in sqlVariant
     private SQLCollation collation; // for Character basetypes in sqlVariant
     private boolean isBaseTypeTime = false;  // we need this when we need to read time as timestamp (for instance in bulkcopy)
     private JDBCType baseJDBCType;
+
+    /**
+     * Constructor for sqlVariant
+     */
+    SqlVariant(int baseType) {
+        this.baseType = baseType;
+    }
 
     /**
      * Check if the basetype for variant is of time value
@@ -95,13 +99,6 @@ public class SqlVariant {
 
     void setIsBaseTypeTimeValue(boolean isBaseTypeTime) {
         this.isBaseTypeTime = isBaseTypeTime;
-    }
-
-    /**
-     * Constructor for sqlVariant
-     */
-    SqlVariant(int baseType) {
-        this.baseType = baseType;
     }
 
     /**
@@ -150,6 +147,15 @@ public class SqlVariant {
     }
 
     /**
+     * retrieves the scale
+     * 
+     * @return
+     */
+    int getScale() {
+        return this.scale;
+    }
+
+    /**
      * stores the precision if applicable
      * 
      * @param precision
@@ -165,15 +171,6 @@ public class SqlVariant {
      */
     int getPrecision() {
         return this.precision;
-    }
-
-    /**
-     * retrieves the scale
-     * 
-     * @return
-     */
-    int getScale() {
-        return this.scale;
     }
 
     /**
