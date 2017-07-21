@@ -73,9 +73,10 @@ public final class SQLServerParameterMetaData implements ParameterMetaData {
      *            the list of columns
      * @param columnStartToken
      *            the token that prfixes the column set
+     * @throws SQLServerException 
      */
     /* L2 */ private String parseColumns(String columnSet,
-            String columnStartToken) {
+            String columnStartToken) throws SQLServerException {
         StringTokenizer st = new StringTokenizer(columnSet, " =?<>!\r\n\t\f", true);
         final int START = 0;
         final int PARAMNAME = 1;
@@ -130,9 +131,10 @@ public final class SQLServerParameterMetaData implements ParameterMetaData {
      *            the sql syntax
      * @param columnMarker
      *            the token that denotes the start of the column set
+     * @throws SQLServerException 
      */
     /* L2 */ private String parseInsertColumns(String sql,
-            String columnMarker) {
+            String columnMarker) throws SQLServerException {
         StringTokenizer st = new StringTokenizer(sql, " (),", true);
         int nState = 0;
         String sLastField = null;
@@ -322,13 +324,21 @@ public final class SQLServerParameterMetaData implements ParameterMetaData {
      * @param st
      *            string tokenizer
      * @param firstToken
+     * @throws SQLServerException 
      * @returns the full token
      */
     private String escapeParse(StringTokenizer st,
-            String firstToken) {
+            String firstToken) throws SQLServerException {
         String nameFragment;
         String fullName;
         nameFragment = firstToken;
+
+        if (null == nameFragment) {
+            MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_NullValue"));
+            Object[] msgArgs1 = {"nameFragment"};
+            throw new SQLServerException(form.format(msgArgs1), null);
+        }
+
         // skip spaces
         while ((0 == nameFragment.trim().length()) && st.hasMoreTokens()) {
             nameFragment = st.nextToken();
@@ -366,9 +376,10 @@ public final class SQLServerParameterMetaData implements ParameterMetaData {
      *            String
      * @param sTableMarker
      *            the location of the table in the syntax
+     * @throws SQLServerException 
      */
     private MetaInfo parseStatement(String sql,
-            String sTableMarker) {
+            String sTableMarker) throws SQLServerException {
         StringTokenizer st = new StringTokenizer(sql, " ,\r\n\t\f(", true);
 
         /* Find the table */
