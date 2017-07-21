@@ -77,10 +77,11 @@ public final class SQLServerParameterMetaData implements ParameterMetaData {
      *            the list of columns
      * @param columnStartToken
      *            the token that prfixes the column set
+     * @throws SQLServerException 
      */
     /* L2 */ private String parseColumns(String columnSet,
-            String columnStartToken) {
-        StringTokenizer st = new StringTokenizer(columnSet, " =?<>!", true);
+            String columnStartToken) throws SQLServerException {
+        StringTokenizer st = new StringTokenizer(columnSet, " =?<>!\r\n\t\f", true);
         final int START = 0;
         final int PARAMNAME = 1;
         final int PARAMVALUE = 2;
@@ -138,9 +139,10 @@ public final class SQLServerParameterMetaData implements ParameterMetaData {
      *            the sql syntax
      * @param columnMarker
      *            the token that denotes the start of the column set
+     * @throws SQLServerException 
      */
     /* L2 */ private String parseInsertColumns(String sql,
-            String columnMarker) {
+            String columnMarker) throws SQLServerException {
         StringTokenizer st = new StringTokenizer(sql, " (),", true);
         int nState = 0;
         String sLastField = null;
@@ -334,23 +336,29 @@ public final class SQLServerParameterMetaData implements ParameterMetaData {
      * @param st
      *            string tokenizer
      * @param firstToken
+     * @throws SQLServerException
      * @returns the full token
      */
     private String escapeParse(StringTokenizer st,
-            String firstToken) {
-        String nameFragment;
-        String fullName;
-        nameFragment = firstToken;
-        // skip spaces
-        while (" ".equals(nameFragment) && st.hasMoreTokens()) {
-            nameFragment = st.nextToken();
+            String firstToken) throws SQLServerException {
+
+        if (null == firstToken) {
+            MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_NullValue"));
+            Object[] msgArgs1 = {"firstToken"};
+            throw new SQLServerException(form.format(msgArgs1), null);
         }
-        fullName = nameFragment;
-        if (nameFragment.charAt(0) == '[' && nameFragment.charAt(nameFragment.length() - 1) != ']') {
+
+        // skip spaces
+        while ((0 == firstToken.trim().length()) && st.hasMoreTokens()) {
+            firstToken = st.nextToken();
+        }
+
+        String fullName = firstToken;
+        if (firstToken.charAt(0) == '[' && firstToken.charAt(firstToken.length() - 1) != ']') {
             while (st.hasMoreTokens()) {
-                nameFragment = st.nextToken();
-                fullName = fullName.concat(nameFragment);
-                if (nameFragment.charAt(nameFragment.length() - 1) == ']') {
+                firstToken = st.nextToken();
+                fullName = fullName.concat(firstToken);
+                if (firstToken.charAt(firstToken.length() - 1) == ']') {
                     break;
                 }
 
@@ -378,10 +386,11 @@ public final class SQLServerParameterMetaData implements ParameterMetaData {
      *            String
      * @param sTableMarker
      *            the location of the table in the syntax
+     * @throws SQLServerException 
      */
     private MetaInfo parseStatement(String sql,
-            String sTableMarker) {
-        StringTokenizer st = new StringTokenizer(sql, " ,\r\n", true);
+            String sTableMarker) throws SQLServerException {
+        StringTokenizer st = new StringTokenizer(sql, " ,\r\n\t\f(", true);
 
         /* Find the table */
 
@@ -436,7 +445,7 @@ public final class SQLServerParameterMetaData implements ParameterMetaData {
      * @throws SQLServerException
      */
     private MetaInfo parseStatement(String sql) throws SQLServerException {
-        StringTokenizer st = new StringTokenizer(sql, " ");
+        StringTokenizer st = new StringTokenizer(sql, " \r\n\t\f");
         if (st.hasMoreTokens()) {
             String sToken = st.nextToken().trim();
 
