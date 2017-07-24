@@ -714,6 +714,46 @@ final class Util {
         return buffer;
     }
 
+    static final UUID readGUIDtoUUID(byte[] inputGUID) throws SQLServerException {
+        if (inputGUID.length != 16) {
+            throw new SQLServerException("guid length must be 16", null);
+        }
+
+        // For the first three fields, UUID uses network byte order,
+        // Guid uses native byte order. So we need to reverse
+        // the first three fields before creating a UUID.
+
+        byte tmpByte;
+
+        // Reverse the first 4 bytes
+        tmpByte = inputGUID[0];
+        inputGUID[0] = inputGUID[3];
+        inputGUID[3] = tmpByte;
+        tmpByte = inputGUID[1];
+        inputGUID[1] = inputGUID[2];
+        inputGUID[2] = tmpByte;
+
+        // Reverse the 5th and the 6th
+        tmpByte = inputGUID[4];
+        inputGUID[4] = inputGUID[5];
+        inputGUID[5] = tmpByte;
+
+        // Reverse the 7th and the 8th
+        tmpByte = inputGUID[6];
+        inputGUID[6] = inputGUID[7];
+        inputGUID[7] = tmpByte;
+
+        long msb = 0L;
+        for (int i = 0; i < 8; i++) {
+            msb = msb << 8 | ((long) inputGUID[i]  & 0xFFL);
+        }
+        long lsb = 0L;
+        for (int i = 8; i < 16; i++) {
+            lsb = lsb << 8 | ((long) inputGUID[i]  & 0xFFL);
+        }
+        return new UUID(msb, lsb);
+    }
+
     static final String readGUID(byte[] inputGUID) throws SQLServerException {
         String guidTemplate = "NNNNNNNN-NNNN-NNNN-NNNN-NNNNNNNNNNNN";
         byte guid[] = inputGUID;
