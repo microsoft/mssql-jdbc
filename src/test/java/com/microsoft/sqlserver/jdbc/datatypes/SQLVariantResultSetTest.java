@@ -512,15 +512,92 @@ public class SQLVariantResultSetTest extends AbstractTest {
         stmt.executeUpdate("create table " + tableName + " (col1 sql_variant)");
         stmt.executeUpdate("INSERT into " + tableName + " values (CAST (" + value + " AS " + "int" + "))");
 
-        String outPutProc = "sqlVariant_Proc";
-        Utils.dropProcedureIfExists(outPutProc, stmt);
-        String sql = "CREATE PROCEDURE " + outPutProc + " @p0 sql_variant OUTPUT  AS SELECT TOP 1 @p0=col1 FROM  " + tableName;
+        Utils.dropProcedureIfExists(inputProc, stmt);
+        String sql = "CREATE PROCEDURE " + inputProc + " @p0 sql_variant OUTPUT  AS SELECT TOP 1 @p0=col1 FROM  " + tableName;
         stmt.execute(sql);
 
-        CallableStatement cs = con.prepareCall(" {call " + outPutProc + " (?)  }");
+        CallableStatement cs = con.prepareCall(" {call " + inputProc + " (?)  }");
         cs.registerOutParameter(1, microsoft.sql.Types.SQL_VARIANT);
         cs.execute();
         assertEquals(cs.getString(1), String.valueOf(value));
+        if (null != cs) {
+            cs.close();
+        }
+    }
+
+    /**
+     * Test callableStatement with SqlVariant
+     * 
+     * @throws SQLException
+     */
+    @Test
+    public void callableStatementOutputDateTest() throws SQLException {
+        String value = "2015-05-08";
+
+        Utils.dropTableIfExists(tableName, stmt);
+        stmt.executeUpdate("create table " + tableName + " (col1 sql_variant)");
+        stmt.executeUpdate("INSERT into " + tableName + " values (CAST ('" + value + "' AS " + "date" + "))");
+
+        Utils.dropProcedureIfExists(inputProc, stmt);
+        String sql = "CREATE PROCEDURE " + inputProc + " @p0 sql_variant OUTPUT  AS SELECT TOP 1 @p0=col1 FROM  " + tableName;
+        stmt.execute(sql);
+
+        CallableStatement cs = con.prepareCall(" {call " + inputProc + " (?)  }");
+        cs.registerOutParameter(1, microsoft.sql.Types.SQL_VARIANT);
+        cs.execute();
+        assertEquals(cs.getString(1), String.valueOf(value));
+        if (null != cs) {
+            cs.close();
+        }
+    }
+
+    /**
+     * Test callableStatement with SqlVariant
+     * 
+     * @throws SQLException
+     */
+    @Test
+    public void callableStatementOutputTimeTest() throws SQLException {
+        String value = "12:26:27.123345";
+        String returnValue = "12:26:27.123";
+        Utils.dropTableIfExists(tableName, stmt);
+        stmt.executeUpdate("create table " + tableName + " (col1 sql_variant)");
+        stmt.executeUpdate("INSERT into " + tableName + " values (CAST ('" + value + "' AS " + "time(3)" + "))");
+
+        Utils.dropProcedureIfExists(inputProc, stmt);
+        String sql = "CREATE PROCEDURE " + inputProc + " @p0 sql_variant OUTPUT  AS SELECT TOP 1 @p0=col1 FROM  " + tableName;
+        stmt.execute(sql);
+
+        CallableStatement cs = con.prepareCall(" {call " + inputProc + " (?)  }");
+        cs.registerOutParameter(1, microsoft.sql.Types.SQL_VARIANT, 3);
+        cs.execute();
+        assertEquals(cs.getString(1), String.valueOf(returnValue));
+        if (null != cs) {
+            cs.close();
+        }
+    }
+
+    /**
+     * Test callableStatement with SqlVariant Binary value
+     * 
+     * @throws SQLException
+     */
+    @Test
+    public void callableStatementOutputBinaryTest() throws SQLException {
+        byte[] binary20 = RandomData.generateBinaryTypes("20", false, false);
+        Utils.dropTableIfExists(tableName, stmt);
+        stmt.executeUpdate("create table " + tableName + " (col1 sql_variant)");
+        pstmt = (SQLServerPreparedStatement) con.prepareStatement("insert into " + tableName + " values (?)");
+        pstmt.setObject(1, binary20);
+        pstmt.execute();
+        Utils.dropProcedureIfExists(inputProc, stmt);
+        String sql = "CREATE PROCEDURE " + inputProc + " @p0 sql_variant OUTPUT  AS SELECT TOP 1 @p0=col1 FROM  " + tableName;
+        stmt.execute(sql);
+
+        CallableStatement cs = con.prepareCall(" {call " + inputProc + " (?)  }");
+        cs.registerOutParameter(1, microsoft.sql.Types.SQL_VARIANT);
+        cs.execute();
+        assertTrue(parseByte((byte[]) cs.getBytes(1), binary20));
         if (null != cs) {
             cs.close();
         }
@@ -635,6 +712,9 @@ public class SQLVariantResultSetTest extends AbstractTest {
         assertEquals(rs.getObject(1), value1);
         assertEquals(rs.getObject(2), value2);
         assertEquals(rs.getObject(3), value3);
+        if (null != rs) {
+            rs.close();
+        }
 
     }
 
