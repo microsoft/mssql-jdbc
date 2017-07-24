@@ -1451,8 +1451,8 @@ final class DTV {
          */
         @Override
         void execute(DTV dtv,
-                SqlVariant SqlVariantValue) throws SQLServerException {
-            tdsWriter.writeRPCSqlVariant(name, SqlVariantValue, isOutParam);
+                SqlVariant sqlVariantValue) throws SQLServerException {
+            tdsWriter.writeRPCSqlVariant(name, sqlVariantValue, isOutParam);
 
         }
     }
