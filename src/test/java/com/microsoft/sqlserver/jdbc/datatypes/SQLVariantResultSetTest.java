@@ -24,7 +24,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
 
-import com.microsoft.sqlserver.jdbc.SQLServerBulkCopy;
 import com.microsoft.sqlserver.jdbc.SQLServerConnection;
 import com.microsoft.sqlserver.jdbc.SQLServerException;
 import com.microsoft.sqlserver.jdbc.SQLServerPreparedStatement;
@@ -41,12 +40,18 @@ public class SQLVariantResultSetTest extends AbstractTest {
 
     static SQLServerConnection con = null;
     static Statement stmt = null;
-    static String tableName = "SqlVariant_Test";
-    static String inputProc = "sqlVariant_Proc";
-    static String procedureName = "TVP_SQLVariant_Proc";
+    static String tableName = "sqlVariantTestSrcTable";
+    static String inputProc = "sqlVariantProc";
     static SQLServerResultSet rs = null;
     static SQLServerPreparedStatement pstmt = null;
 
+    /**
+     * Read int value
+     * 
+     * @throws SQLException
+     * @throws SecurityException
+     * @throws IOException
+     */
     @Test
     public void readInt() throws SQLException, SecurityException, IOException {
         int value = 2;
@@ -125,48 +130,6 @@ public class SQLVariantResultSetTest extends AbstractTest {
         rs = (SQLServerResultSet) stmt.executeQuery("SELECT * FROM " + tableName);
         rs.next();
         assertEquals("" + rs.getObject(1).toString(), "12:26:27.123"); // TODO
-    }
-
-    @Test
-    public void bulkCopyTestTime() throws SQLException {
-        String col1Value = "'12:26:27.1452367'";
-        String destTableName = "dest_sqlVariant";
-        Utils.dropTableIfExists(tableName, stmt);
-        Utils.dropTableIfExists(destTableName, stmt);
-        stmt.executeUpdate("create table " + tableName + " (col1 sql_variant)");
-        stmt.executeUpdate("INSERT into " + tableName + "(col1) values (CAST (" + col1Value + " AS " + "time(2)" + ") )");
-        stmt.executeUpdate("create table " + destTableName + " (col1 sql_variant)");
-
-        rs = (SQLServerResultSet) stmt.executeQuery("SELECT * FROM " + tableName);
-
-        SQLServerBulkCopy bulkCopy = new SQLServerBulkCopy(con);
-        bulkCopy.setDestinationTableName(destTableName);
-        bulkCopy.writeToServer(rs);
-
-        rs = (SQLServerResultSet) stmt.executeQuery("SELECT * FROM " + destTableName);
-        rs.next();
-        assertEquals("" + rs.getObject(1).toString(), "12:26:27.15"); // TODO
-    }
-
-    @Test
-    public void readTime2() throws SQLException {
-        String col1Value = "'12:26:27.123345'";
-        String destTableName = "dest_sqlVariant";
-        Utils.dropTableIfExists(tableName, stmt);
-        Utils.dropTableIfExists(destTableName, stmt);
-        stmt.executeUpdate("create table " + tableName + " (col1 time)");
-        stmt.executeUpdate("INSERT into " + tableName + "(col1) values (CAST (" + col1Value + " AS " + "time" + ") )");
-        stmt.executeUpdate("create table " + destTableName + " (col1 time)");
-
-        rs = (SQLServerResultSet) stmt.executeQuery("SELECT * FROM " + tableName);
-
-        SQLServerBulkCopy bulkCopy = new SQLServerBulkCopy(con);
-        bulkCopy.setDestinationTableName(destTableName);
-        bulkCopy.writeToServer(rs);
-
-        rs = (SQLServerResultSet) stmt.executeQuery("SELECT * FROM " + destTableName);
-        rs.next();
-        assertEquals("" + rs.getString(1).toString(), "12:26:27.1233450");
     }
 
     /**
@@ -498,6 +461,11 @@ public class SQLVariantResultSetTest extends AbstractTest {
         while (rs.next());
     }
 
+    /**
+     * test inserting null value
+     * 
+     * @throws SQLException
+     */
     @Test
     public void insertTestNull() throws SQLException {
         Utils.dropTableIfExists(tableName, stmt);
@@ -538,7 +506,7 @@ public class SQLVariantResultSetTest extends AbstractTest {
      * @throws SQLException
      */
     @Test
-    public void callableStatementOutputTest() throws SQLException {
+    public void callableStatementOutputIntTest() throws SQLException {
         int value = 5;
         Utils.dropTableIfExists(tableName, stmt);
         stmt.executeUpdate("create table " + tableName + " (col1 sql_variant)");
@@ -564,7 +532,7 @@ public class SQLVariantResultSetTest extends AbstractTest {
      * @throws SQLException
      */
     @Test
-    public void callableStatementInOutTest() throws SQLException {
+    public void callableStatementInputOutputIntTest() throws SQLException {
         int col1Value = 5;
         int col2Value = 2;
         Utils.dropTableIfExists(tableName, stmt);
@@ -591,7 +559,7 @@ public class SQLVariantResultSetTest extends AbstractTest {
      * @throws SQLException
      */
     @Test
-    public void callableStatementInOutRetTest() throws SQLException {
+    public void callableStatementInputOutputReturnIntTest() throws SQLException {
         int col1Value = 5;
         int col2Value = 2;
         int returnValue = 12;
@@ -615,24 +583,33 @@ public class SQLVariantResultSetTest extends AbstractTest {
         }
     }
 
+    /**
+     * test input output procedure
+     * 
+     * @throws SQLException
+     */
     @Test
-    public void callableStatementInOutTestString() throws SQLException {
+    public void callableStatementInputOutputReturnStringTest() throws SQLException {
         String col1Value = "aa";
-        int col2Value = 2;
+        String col2Value = "bb";
+        int returnValue = 12;
+
         Utils.dropTableIfExists(tableName, stmt);
         stmt.executeUpdate("create table " + tableName + " (col1 sql_variant, col2 sql_variant)");
-        stmt.executeUpdate("INSERT into " + tableName + "(col1, col2) values (CAST ('" + col1Value + "' AS " + "varchar(5)" + "), CAST (" + col2Value
-                + " AS " + "int" + "))");
+        stmt.executeUpdate("INSERT into " + tableName + "(col1,col2) values" + " (CAST ('" + col1Value + "' AS " + "varchar(5)" + ")" + " ,CAST ('"
+                + col2Value + "' AS " + "varchar(5)" + ")" + ")");
         Utils.dropProcedureIfExists(inputProc, stmt);
         String sql = "CREATE PROCEDURE " + inputProc + " @p0 sql_variant OUTPUT, @p1 sql_variant" + " AS" + " SELECT top 1 @p0=col1 FROM " + tableName
-                + " where col2=@p1";
+                + " where col2=@p1 " + " return " + returnValue;
         stmt.execute(sql);
-        CallableStatement cs = con.prepareCall(" {call " + inputProc + " (?,?)  }");
+        CallableStatement cs = con.prepareCall(" {? = call " + inputProc + " (?,?) }");
+        cs.registerOutParameter(1, java.sql.Types.INTEGER);
+        cs.registerOutParameter(2, microsoft.sql.Types.SQL_VARIANT);
+        cs.setObject(3, col2Value, microsoft.sql.Types.SQL_VARIANT);
 
-        cs.registerOutParameter(1, microsoft.sql.Types.SQL_VARIANT);
-        cs.setObject(2, col2Value, microsoft.sql.Types.SQL_VARIANT);
         cs.execute();
-        assertEquals(cs.getObject(1), col1Value);
+        assertEquals(returnValue, cs.getObject(1));
+        assertEquals(cs.getObject(2), col1Value);
         if (null != cs) {
             cs.close();
         }

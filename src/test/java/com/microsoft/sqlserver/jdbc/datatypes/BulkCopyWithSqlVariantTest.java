@@ -37,11 +37,12 @@ public class BulkCopyWithSqlVariantTest extends AbstractTest {
 
     static SQLServerConnection con = null;
     static Statement stmt = null;
-    static String tableName = "SqlVariant_Test";
-    static String destTableName = "dest_sqlVariant";
+    static String tableName = "sqlVariantTestSrcTable";
+    static String destTableName = "sqlVariantDestTable";
     static SQLServerResultSet rs = null;
 
     /**
+     * Test integer value
      * 
      * @throws SQLException
      */
@@ -62,6 +63,11 @@ public class BulkCopyWithSqlVariantTest extends AbstractTest {
         }
     }
 
+    /**
+     * Test smallInt value
+     * 
+     * @throws SQLException
+     */
     @Test
     public void bulkCopyTestSmallInt() throws SQLException {
         int col1Value = 5;
@@ -81,6 +87,11 @@ public class BulkCopyWithSqlVariantTest extends AbstractTest {
         bulkCopy.close();
     }
 
+    /**
+     * Test tinyInt value
+     * 
+     * @throws SQLException
+     */
     @Test
     public void bulkCopyTestTinyint() throws SQLException {
         int col1Value = 5;
@@ -99,6 +110,11 @@ public class BulkCopyWithSqlVariantTest extends AbstractTest {
         bulkCopy.close();
     }
 
+    /**
+     * test Bigint value
+     * 
+     * @throws SQLException
+     */
     @Test
     public void bulkCopyTestBigint() throws SQLException {
         int col1Value = 5;
@@ -117,6 +133,11 @@ public class BulkCopyWithSqlVariantTest extends AbstractTest {
         }
     }
 
+    /**
+     * test float value
+     * 
+     * @throws SQLException
+     */
     @Test
     public void bulkCopyTestFloat() throws SQLException {
         int col1Value = 5;
@@ -135,6 +156,11 @@ public class BulkCopyWithSqlVariantTest extends AbstractTest {
         }
     }
 
+    /**
+     * test real value
+     * 
+     * @throws SQLException
+     */
     @Test
     public void bulkCopyTestReal() throws SQLException {
         int col1Value = 5;
@@ -153,6 +179,11 @@ public class BulkCopyWithSqlVariantTest extends AbstractTest {
 
     }
 
+    /**
+     * test money value
+     * 
+     * @throws SQLException
+     */
     @Test
     public void bulkCopyTestMoney() throws SQLException {
         String col1Value = "126.1230";
@@ -172,6 +203,11 @@ public class BulkCopyWithSqlVariantTest extends AbstractTest {
 
     }
 
+    /**
+     * test smallmoney
+     * 
+     * @throws SQLException
+     */
     @Test
     public void bulkCopyTestSmallmoney() throws SQLException {
         String col1Value = "126.1230";
@@ -196,6 +232,11 @@ public class BulkCopyWithSqlVariantTest extends AbstractTest {
 
     }
 
+    /**
+     * test date value
+     * 
+     * @throws SQLException
+     */
     @Test
     public void bulkCopyTestDate() throws SQLException {
         String col1Value = "2015-05-05";
@@ -215,6 +256,11 @@ public class BulkCopyWithSqlVariantTest extends AbstractTest {
 
     }
 
+    /**
+     * Test bulkcoping two column with sql_variant datatype
+     * 
+     * @throws SQLException
+     */
     @Test
     public void bulkCopyTestTwoCols() throws SQLException {
         String col1Value = "2015-05-05";
@@ -242,8 +288,13 @@ public class BulkCopyWithSqlVariantTest extends AbstractTest {
 
     }
 
+    /**
+     * test time with scale value
+     * 
+     * @throws SQLException
+     */
     @Test
-    public void bulkCopyTestTime() throws SQLException {
+    public void bulkCopyTestTimeWithScale() throws SQLException {
         String col1Value = "'12:26:27.1452367'";
         beforeEachSetup("time(2)", col1Value);
         rs = (SQLServerResultSet) stmt.executeQuery("SELECT * FROM " + tableName);
@@ -260,6 +311,11 @@ public class BulkCopyWithSqlVariantTest extends AbstractTest {
 
     }
 
+    /**
+     * test char value
+     * 
+     * @throws SQLException
+     */
     @Test
     public void bulkCopyTestChar() throws SQLException {
         String col1Value = "'sample'";
@@ -280,6 +336,11 @@ public class BulkCopyWithSqlVariantTest extends AbstractTest {
 
     }
 
+    /**
+     * test nchar value
+     * 
+     * @throws SQLException
+     */
     @Test
     public void bulkCopyTestNchar() throws SQLException {
         String col1Value = "'a'";
@@ -299,6 +360,11 @@ public class BulkCopyWithSqlVariantTest extends AbstractTest {
 
     }
 
+    /**
+     * test varchar value
+     * 
+     * @throws SQLException
+     */
     @Test
     public void bulkCopyTestVarchar() throws SQLException {
         String col1Value = "'hello'";
@@ -319,6 +385,11 @@ public class BulkCopyWithSqlVariantTest extends AbstractTest {
 
     }
 
+    /**
+     * test nvarchar value
+     * 
+     * @throws SQLException
+     */
     @Test
     public void bulkCopyTestNvarchar() throws SQLException {
         String col1Value = "'hello'";
@@ -338,6 +409,11 @@ public class BulkCopyWithSqlVariantTest extends AbstractTest {
 
     }
 
+    /**
+     * test Binary value
+     * 
+     * @throws SQLException
+     */
     @Test
     public void bulkCopyTestBinary20() throws SQLException {
         String col1Value = "hello";
@@ -356,11 +432,15 @@ public class BulkCopyWithSqlVariantTest extends AbstractTest {
         }
     }
 
+    /**
+     * test varbinary value
+     * 
+     * @throws SQLException
+     */
     @Test
     public void bulkCopyTestVarbinary20() throws SQLException {
         String col1Value = "hello";
 
-        String destTableName = "dest_sqlVariant";
         beforeEachSetup("varbinary(20)", "'" + col1Value + "'");
         rs = (SQLServerResultSet) stmt.executeQuery("SELECT * FROM " + tableName);
 
@@ -375,6 +455,11 @@ public class BulkCopyWithSqlVariantTest extends AbstractTest {
         }
     }
 
+    /**
+     * test varbinary8000
+     * 
+     * @throws SQLException
+     */
     @Test
     public void bulkCopyTestVarbinary8000() throws SQLException {
         String col1Value = "hello";
@@ -392,6 +477,11 @@ public class BulkCopyWithSqlVariantTest extends AbstractTest {
         }
     }
 
+    /**
+     * test null value for underlying bit data type
+     * 
+     * @throws SQLException
+     */
     @Test // TODO: check bitnull
     public void bulkCopyTestBitNull() throws SQLException {
         beforeEachSetup("bit", null);
@@ -409,6 +499,11 @@ public class BulkCopyWithSqlVariantTest extends AbstractTest {
         }
     }
 
+    /**
+     * test bit value
+     * 
+     * @throws SQLException
+     */
     @Test
     public void bulkCopyTestBit() throws SQLException {
         int col1Value = 5000;
@@ -426,6 +521,11 @@ public class BulkCopyWithSqlVariantTest extends AbstractTest {
         }
     }
 
+    /**
+     * test datetime value
+     * 
+     * @throws SQLException
+     */
     @Test
     public void bulkCopyTestDatetime() throws SQLException {
         String col1Value = "2015-05-08 12:26:24.0";
@@ -446,6 +546,11 @@ public class BulkCopyWithSqlVariantTest extends AbstractTest {
 
     }
 
+    /**
+     * test smalldatetime
+     * 
+     * @throws SQLException
+     */
     @Test
     public void bulkCopyTestSmalldatetime() throws SQLException {
         String col1Value = "2015-05-08 12:26:24";
@@ -465,6 +570,11 @@ public class BulkCopyWithSqlVariantTest extends AbstractTest {
 
     }
 
+    /**
+     * test datetime2
+     * 
+     * @throws SQLException
+     */
     @Test
     public void bulkCopyTestDatetime2() throws SQLException {
         String col1Value = "2015-05-08 12:26:24.12645";
@@ -482,6 +592,32 @@ public class BulkCopyWithSqlVariantTest extends AbstractTest {
             assertEquals("" + rs.getTimestamp(1), "2015-05-08 12:26:24.13");
         }
 
+    }
+
+    /**
+     * test time
+     * 
+     * @throws SQLException
+     */
+    @Test
+    public void bulkCopyTestTime() throws SQLException {
+        String col1Value = "'12:26:27.1452367'";
+        String destTableName = "dest_sqlVariant";
+        Utils.dropTableIfExists(tableName, stmt);
+        Utils.dropTableIfExists(destTableName, stmt);
+        stmt.executeUpdate("create table " + tableName + " (col1 sql_variant)");
+        stmt.executeUpdate("INSERT into " + tableName + "(col1) values (CAST (" + col1Value + " AS " + "time(2)" + ") )");
+        stmt.executeUpdate("create table " + destTableName + " (col1 sql_variant)");
+
+        rs = (SQLServerResultSet) stmt.executeQuery("SELECT * FROM " + tableName);
+
+        SQLServerBulkCopy bulkCopy = new SQLServerBulkCopy(con);
+        bulkCopy.setDestinationTableName(destTableName);
+        bulkCopy.writeToServer(rs);
+
+        rs = (SQLServerResultSet) stmt.executeQuery("SELECT * FROM " + destTableName);
+        rs.next();
+        assertEquals("" + rs.getObject(1).toString(), "12:26:27.15"); // TODO
     }
 
     /**
@@ -569,11 +705,11 @@ public class BulkCopyWithSqlVariantTest extends AbstractTest {
         if (null != stmt) {
             stmt.close();
         }
-        
+
         if (null != rs) {
             rs.close();
         }
-        
+
         if (null != con) {
             con.close();
         }

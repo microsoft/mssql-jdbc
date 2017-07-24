@@ -17,6 +17,7 @@ import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.util.Random;
 
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -41,9 +42,6 @@ public class TVPWithSqlVariantTest extends AbstractTest {
     static SQLServerStatement stmt = null;
     static SQLServerResultSet rs = null;
     static SQLServerDataTable tvp = null;
-    static String expectecValue1 = "hello";
-    static String expectecValue2 = "world";
-    static String expectecValue3 = "again";
     private static String tvpName = "numericTVP";
     private static String destTable = "destTvpSqlVariantTable";
     private static String procedureName = "procedureThatCallsTVP";
@@ -464,21 +462,34 @@ public class TVPWithSqlVariantTest extends AbstractTest {
 
     @AfterEach
     private void terminateVariation() throws SQLException {
-        if (null != conn) {
-            conn.close();
-        }
+        Utils.dropProcedureIfExists(procedureName, stmt);
+        Utils.dropTableIfExists(destTable, stmt);
+        dropTVPS();
+    }
+
+    /**
+     * drop the tables
+     * 
+     * @throws SQLException
+     */
+    @AfterAll
+    public static void afterAll() throws SQLException {
         if (null != stmt) {
             stmt.close();
         }
+
         if (null != pstmt) {
-            stmt.close();
+            pstmt.close();
         }
+
         if (null != rs) {
             rs.close();
         }
-        if (null != tvp) {
-            tvp.clear();
+
+        if (null != conn) {
+            conn.close();
         }
+
     }
 
 }
