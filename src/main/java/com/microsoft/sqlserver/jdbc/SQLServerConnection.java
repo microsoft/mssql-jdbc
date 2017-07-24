@@ -1357,7 +1357,7 @@ public class SQLServerConnection implements ISQLServerConnection {
             if (sPropValue == null)
                 sPropValue = SQLServerDriverStringProperty.SELECT_METHOD.getDefaultValue();
             if ("cursor".equalsIgnoreCase(sPropValue) || "direct".equalsIgnoreCase(sPropValue)) {
-                activeConnectionProperties.setProperty(sPropKey, sPropValue.toLowerCase());
+                activeConnectionProperties.setProperty(sPropKey, sPropValue.toLowerCase(Locale.ENGLISH));
             }
             else {
                 MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidselectMethod"));
@@ -1370,7 +1370,7 @@ public class SQLServerConnection implements ISQLServerConnection {
             if (sPropValue == null)
                 sPropValue = SQLServerDriverStringProperty.RESPONSE_BUFFERING.getDefaultValue();
             if ("full".equalsIgnoreCase(sPropValue) || "adaptive".equalsIgnoreCase(sPropValue)) {
-                activeConnectionProperties.setProperty(sPropKey, sPropValue.toLowerCase());
+                activeConnectionProperties.setProperty(sPropKey, sPropValue.toLowerCase(Locale.ENGLISH));
             }
             else {
                 MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidresponseBuffering"));
@@ -1514,7 +1514,7 @@ public class SQLServerConnection implements ISQLServerConnection {
                 throw new SQLServerException(SQLServerException.getErrString("R_AccessTokenWithUserPassword"), null);
             }
 
-            if ((!System.getProperty("os.name").toLowerCase().startsWith("windows"))
+            if ((!System.getProperty("os.name").toLowerCase(Locale.ENGLISH).startsWith("windows"))
                     && (authenticationString.equalsIgnoreCase(SqlAuthentication.ActiveDirectoryIntegrated.toString()))) {
                 throw new SQLServerException(SQLServerException.getErrString("R_AADIntegratedOnNonWindows"), null);
             }

@@ -388,6 +388,5 @@ public final class SQLServerResource extends ListResourceBundle {
 				{"R_SQLVariantSupport", "SQL_VARIANT datatype is not supported in pre-SQL 2008 version."},
                 {"R_invalidProbbytes", "SQL_VARIANT: invalid probBytes for {0} type."},
                 {"R_invalidStringValue", "SQL_VARIANT does not support string values more than 8000 length."},
-
     };
 }
