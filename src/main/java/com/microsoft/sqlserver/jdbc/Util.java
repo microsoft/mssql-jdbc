@@ -244,7 +244,7 @@ public final class Util {
         String name = "";
         String value = "";
         StringBuilder builder;
-        
+
         if (!tmpUrl.startsWith(sPrefix))
             return null;
 
@@ -911,7 +911,7 @@ public final class Util {
             case TIME:
             case DATETIMEOFFSET:
                 return ((null == scale) ? TDS.MAX_FRACTIONAL_SECONDS_SCALE : scale);
-                
+
             case CLOB:
                 return ((null == value) ? 0 : (DataTypes.NTEXT_MAX_CHARS * 2));
 
@@ -953,7 +953,7 @@ public final class Util {
     }
 
     static final boolean use42Wrapper;
-    
+
     static {
         boolean supportJDBC42 = true;
         try {

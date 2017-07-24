@@ -67,8 +67,7 @@ public abstract class AbstractTest {
         applicationKey = getConfiguredProperty("applicationKey");
         keyIDs = getConfiguredProperty("keyID", "").split(";");
 
-        connectionString = getConfiguredProperty("mssql_jdbc_test_connection_properties")
-        		+ ";sendTimeAsDateTime=false";
+        connectionString = getConfiguredProperty("mssql_jdbc_test_connection_properties");
 
         jksPaths = getConfiguredProperty("jksPaths", "").split(";");
         javaKeyAliases = getConfiguredProperty("javaKeyAliases", "").split(";");
@@ -150,14 +149,14 @@ public abstract class AbstractTest {
         Handler handler = null;
 
         String enableLogging = getConfiguredProperty("mssql_jdbc_logging", "false");
-        
-        //If logging is not enable then return. 
-        if(!"true".equalsIgnoreCase(enableLogging)) {
+
+        // If logging is not enable then return.
+        if (!"true".equalsIgnoreCase(enableLogging)) {
             return;
         }
 
         String loggingHandler = getConfiguredProperty("mssql_jdbc_logging_handler", "not_configured");
-        
+
         try {
             // handler = new FileHandler("Driver.log");
             if ("console".equalsIgnoreCase(loggingHandler)) {
