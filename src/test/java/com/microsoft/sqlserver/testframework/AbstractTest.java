@@ -67,7 +67,8 @@ public abstract class AbstractTest {
         applicationKey = getConfiguredProperty("applicationKey");
         keyIDs = getConfiguredProperty("keyID", "").split(";");
 
-        connectionString = getConfiguredProperty("mssql_jdbc_test_connection_properties");
+        connectionString = getConfiguredProperty("mssql_jdbc_test_connection_properties")
+        		+ ";sendTimeAsDateTime=false";
 
         jksPaths = getConfiguredProperty("jksPaths", "").split(";");
         javaKeyAliases = getConfiguredProperty("javaKeyAliases", "").split(";");

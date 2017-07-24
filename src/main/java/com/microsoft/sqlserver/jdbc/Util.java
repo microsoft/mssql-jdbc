@@ -29,7 +29,7 @@ import java.util.logging.Logger;
  *
  */
 
-final class Util {
+public final class Util {
     final static String SYSTEM_SPEC_VERSION = System.getProperty("java.specification.version");
     final static char[] hexChars = {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F'};
     final static String WSIDNotAvailable = ""; // default string when WSID is not available
@@ -970,7 +970,7 @@ final class Util {
 
     // if driver is for JDBC 42 and jvm version is 8 or higher, then always return as SQLServerPreparedStatement42,
     // otherwise return SQLServerPreparedStatement
-    static boolean use42Wrapper() {
+    public static boolean use42Wrapper() {
         return use42Wrapper;
     }
 }
