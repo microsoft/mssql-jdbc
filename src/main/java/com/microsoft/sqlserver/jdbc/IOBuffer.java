@@ -5711,11 +5711,6 @@ final class TDSWriter {
         writeShort((short) minutesOffset);
     }
 
-    void writeRPCSQLVariant(String sName,
-            String value,
-            boolean bOut) throws SQLServerException {
-        writeRPCStringUnicode(value);
-    }
 
     /**
      * Returns subSecondNanos rounded to the maximum precision supported. The maximum fractional scale is MAX_FRACTIONAL_SECONDS_SCALE(7). Eg1: if you
