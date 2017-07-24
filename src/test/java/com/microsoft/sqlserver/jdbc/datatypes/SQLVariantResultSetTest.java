@@ -14,6 +14,7 @@ import java.io.IOException;
 import java.math.BigDecimal;
 import java.sql.CallableStatement;
 import java.sql.DriverManager;
+import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.Arrays;
@@ -101,7 +102,7 @@ public class SQLVariantResultSetTest extends AbstractTest {
         createAndPopulateTable("uniqueidentifier", "'" + value + "'");
         rs = (SQLServerResultSet) stmt.executeQuery("SELECT * FROM " + tableName);
         rs.next();
-        assertEquals(rs.getObject(1), value);
+        assertEquals(rs.getUniqueIdentifier(1), value);
     }
 
     /**
@@ -431,6 +432,85 @@ public class SQLVariantResultSetTest extends AbstractTest {
     }
 
     /**
+     * Update int value
+     * 
+     * @throws SQLException
+     * @throws SecurityException
+     * @throws IOException
+     */
+    @Test
+    public void UpdateInt() throws SQLException, SecurityException, IOException {
+        int value = 2;
+        int updatedValue = 3;
+        createAndPopulateTable("int", value);
+        stmt = con.createStatement(ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_UPDATABLE);
+        rs = (SQLServerResultSet) stmt.executeQuery("SELECT * FROM " + tableName);
+        rs.next();
+        assertEquals(rs.getString(1), "" + value);
+        rs.updateInt(1, updatedValue);
+        rs.updateRow();
+        rs = (SQLServerResultSet) stmt.executeQuery("SELECT * FROM " + tableName);
+        rs.next();
+        assertEquals(rs.getString(1), "" + updatedValue);
+        if (null != rs) {
+            rs.close();
+        }
+    }
+
+    /**
+     * Update nChar value
+     * 
+     * @throws SQLException
+     * @throws SecurityException
+     * @throws IOException
+     */
+    @Test
+    public void UpdateNChar() throws SQLException, SecurityException, IOException {
+        String value = "a";
+        String updatedValue = "b";
+
+        createAndPopulateTable("nchar", "'" + value + "'");
+        stmt = con.createStatement(ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_UPDATABLE);
+        rs = (SQLServerResultSet) stmt.executeQuery("SELECT * FROM " + tableName);
+        rs.next();
+        assertEquals(rs.getString(1).trim(), "" + value);
+        rs.updateNString(1, updatedValue);
+        rs.updateRow();
+        rs = (SQLServerResultSet) stmt.executeQuery("SELECT * FROM " + tableName);
+        rs.next();
+        assertEquals(rs.getString(1), "" + updatedValue);
+        if (null != rs) {
+            rs.close();
+        }
+    }
+
+    /**
+     * update Binary
+     * 
+     * @throws SQLException
+     * @throws SecurityException
+     * @throws IOException
+     */
+    @Test
+    public void updateBinary20() throws SQLException, SecurityException, IOException {
+        String value = "hi";
+        String updatedValue = "bye";
+        createAndPopulateTable("binary(20)", "'" + value + "'");
+        stmt = con.createStatement(ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_UPDATABLE);
+        rs = (SQLServerResultSet) stmt.executeQuery("SELECT * FROM " + tableName);
+        rs.next();
+        assertTrue(parseByte((byte[]) rs.getObject(1), (byte[]) value.getBytes()));
+        rs.updateBytes(1, updatedValue.getBytes());
+        rs.updateRow();
+        rs = (SQLServerResultSet) stmt.executeQuery("SELECT * FROM " + tableName);
+        rs.next();
+        assertTrue(parseByte((byte[]) rs.getBytes(1), updatedValue.getBytes()));
+        if (null != rs) {
+            rs.close();
+        }
+    }
+
+    /**
      * Testing inserting and reading from SqlVariant and int column
      *
      * @throws SQLException
@@ -463,7 +543,7 @@ public class SQLVariantResultSetTest extends AbstractTest {
 
     /**
      * test inserting null value
-     * 
+     *
      * @throws SQLException
      */
     @Test
@@ -502,7 +582,7 @@ public class SQLVariantResultSetTest extends AbstractTest {
 
     /**
      * Test callableStatement with SqlVariant
-     * 
+     *
      * @throws SQLException
      */
     @Test
@@ -513,10 +593,10 @@ public class SQLVariantResultSetTest extends AbstractTest {
         stmt.executeUpdate("INSERT into " + tableName + " values (CAST (" + value + " AS " + "int" + "))");
 
         Utils.dropProcedureIfExists(inputProc, stmt);
-        String sql = "CREATE PROCEDURE " + inputProc + " @p0 sql_variant OUTPUT  AS SELECT TOP 1 @p0=col1 FROM  " + tableName;
+        String sql = "CREATE PROCEDURE " + inputProc + " @p0 sql_variant OUTPUT AS SELECT TOP 1 @p0=col1 FROM " + tableName;
         stmt.execute(sql);
 
-        CallableStatement cs = con.prepareCall(" {call " + inputProc + " (?)  }");
+        CallableStatement cs = con.prepareCall(" {call " + inputProc + " (?) }");
         cs.registerOutParameter(1, microsoft.sql.Types.SQL_VARIANT);
         cs.execute();
         assertEquals(cs.getString(1), String.valueOf(value));
@@ -527,7 +607,7 @@ public class SQLVariantResultSetTest extends AbstractTest {
 
     /**
      * Test callableStatement with SqlVariant
-     * 
+     *
      * @throws SQLException
      */
     @Test
@@ -539,10 +619,10 @@ public class SQLVariantResultSetTest extends AbstractTest {
         stmt.executeUpdate("INSERT into " + tableName + " values (CAST ('" + value + "' AS " + "date" + "))");
 
         Utils.dropProcedureIfExists(inputProc, stmt);
-        String sql = "CREATE PROCEDURE " + inputProc + " @p0 sql_variant OUTPUT  AS SELECT TOP 1 @p0=col1 FROM  " + tableName;
+        String sql = "CREATE PROCEDURE " + inputProc + " @p0 sql_variant OUTPUT AS SELECT TOP 1 @p0=col1 FROM " + tableName;
         stmt.execute(sql);
 
-        CallableStatement cs = con.prepareCall(" {call " + inputProc + " (?)  }");
+        CallableStatement cs = con.prepareCall(" {call " + inputProc + " (?) }");
         cs.registerOutParameter(1, microsoft.sql.Types.SQL_VARIANT);
         cs.execute();
         assertEquals(cs.getString(1), String.valueOf(value));
@@ -553,7 +633,7 @@ public class SQLVariantResultSetTest extends AbstractTest {
 
     /**
      * Test callableStatement with SqlVariant
-     * 
+     *
      * @throws SQLException
      */
     @Test
@@ -565,10 +645,10 @@ public class SQLVariantResultSetTest extends AbstractTest {
         stmt.executeUpdate("INSERT into " + tableName + " values (CAST ('" + value + "' AS " + "time(3)" + "))");
 
         Utils.dropProcedureIfExists(inputProc, stmt);
-        String sql = "CREATE PROCEDURE " + inputProc + " @p0 sql_variant OUTPUT  AS SELECT TOP 1 @p0=col1 FROM  " + tableName;
+        String sql = "CREATE PROCEDURE " + inputProc + " @p0 sql_variant OUTPUT AS SELECT TOP 1 @p0=col1 FROM " + tableName;
         stmt.execute(sql);
 
-        CallableStatement cs = con.prepareCall(" {call " + inputProc + " (?)  }");
+        CallableStatement cs = con.prepareCall(" {call " + inputProc + " (?) }");
         cs.registerOutParameter(1, microsoft.sql.Types.SQL_VARIANT, 3);
         cs.execute();
         assertEquals(cs.getString(1), String.valueOf(returnValue));
@@ -579,23 +659,28 @@ public class SQLVariantResultSetTest extends AbstractTest {
 
     /**
      * Test callableStatement with SqlVariant Binary value
-     * 
+     *
      * @throws SQLException
      */
     @Test
     public void callableStatementOutputBinaryTest() throws SQLException {
         byte[] binary20 = RandomData.generateBinaryTypes("20", false, false);
+        byte[] secondBinary20 = RandomData.generateBinaryTypes("20", false, false);
         Utils.dropTableIfExists(tableName, stmt);
-        stmt.executeUpdate("create table " + tableName + " (col1 sql_variant)");
-        pstmt = (SQLServerPreparedStatement) con.prepareStatement("insert into " + tableName + " values (?)");
+        stmt.executeUpdate("create table " + tableName + " (col1 sql_variant, col2 sql_variant)");
+        pstmt = (SQLServerPreparedStatement) con.prepareStatement("insert into " + tableName + " values (?,?)");
         pstmt.setObject(1, binary20);
+        pstmt.setObject(2, secondBinary20);
         pstmt.execute();
         Utils.dropProcedureIfExists(inputProc, stmt);
-        String sql = "CREATE PROCEDURE " + inputProc + " @p0 sql_variant OUTPUT  AS SELECT TOP 1 @p0=col1 FROM  " + tableName;
+        String sql = "CREATE PROCEDURE " + inputProc + " @p0 sql_variant OUTPUT, @p1 sql_variant" + " AS" + " SELECT top 1 @p0=col1 FROM " + tableName
+                + " where col2=@p1 ";
         stmt.execute(sql);
 
-        CallableStatement cs = con.prepareCall(" {call " + inputProc + " (?)  }");
+        CallableStatement cs = con.prepareCall(" {call " + inputProc + " (?,?) }");
         cs.registerOutParameter(1, microsoft.sql.Types.SQL_VARIANT);
+        cs.setObject(2, secondBinary20, microsoft.sql.Types.SQL_VARIANT);
+
         cs.execute();
         assertTrue(parseByte((byte[]) cs.getBytes(1), binary20));
         if (null != cs) {
@@ -605,7 +690,7 @@ public class SQLVariantResultSetTest extends AbstractTest {
 
     /**
      * Test stored procedure with input and output params
-     * 
+     *
      * @throws SQLException
      */
     @Test
@@ -619,7 +704,7 @@ public class SQLVariantResultSetTest extends AbstractTest {
         String sql = "CREATE PROCEDURE " + inputProc + " @p0 sql_variant OUTPUT, @p1 sql_variant" + " AS" + " SELECT top 1 @p0=col1 FROM " + tableName
                 + " where col2=@p1";
         stmt.execute(sql);
-        CallableStatement cs = con.prepareCall(" {call " + inputProc + " (?,?)  }");
+        CallableStatement cs = con.prepareCall(" {call " + inputProc + " (?,?) }");
 
         cs.registerOutParameter(1, microsoft.sql.Types.SQL_VARIANT);
         cs.setObject(2, col2Value, microsoft.sql.Types.SQL_VARIANT);
@@ -632,7 +717,7 @@ public class SQLVariantResultSetTest extends AbstractTest {
 
     /**
      * Test stored procedure with input and output and return value
-     * 
+     *
      * @throws SQLException
      */
     @Test
@@ -647,7 +732,7 @@ public class SQLVariantResultSetTest extends AbstractTest {
         String sql = "CREATE PROCEDURE " + inputProc + " @p0 sql_variant OUTPUT, @p1 sql_variant" + " AS" + " SELECT top 1 @p0=col1 FROM " + tableName
                 + " where col2=@p1" + " return " + returnValue;
         stmt.execute(sql);
-        CallableStatement cs = con.prepareCall(" {? = call " + inputProc + " (?,?)  }");
+        CallableStatement cs = con.prepareCall(" {? = call " + inputProc + " (?,?) }");
 
         cs.registerOutParameter(1, microsoft.sql.Types.SQL_VARIANT);
         cs.registerOutParameter(2, microsoft.sql.Types.SQL_VARIANT);
@@ -662,7 +747,7 @@ public class SQLVariantResultSetTest extends AbstractTest {
 
     /**
      * test input output procedure
-     * 
+     *
      * @throws SQLException
      */
     @Test
@@ -694,7 +779,7 @@ public class SQLVariantResultSetTest extends AbstractTest {
 
     /**
      * Read several rows from SqlVariant
-     * 
+     *
      * @throws SQLException
      */
     @Test
