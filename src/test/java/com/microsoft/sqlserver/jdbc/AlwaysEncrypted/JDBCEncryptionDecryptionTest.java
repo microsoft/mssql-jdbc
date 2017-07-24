@@ -2461,7 +2461,7 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
         return list;
     }
 
-    private void skipTestForJava7() {
-        assumeTrue(com.microsoft.sqlserver.jdbc.Util.use42Wrapper()); // With Java 7, skip tests for JDBCType.
+    private void skipTestForJava7() throws TestAbortedException, SQLException {
+        assumeTrue(Util.supportJDBC42(con)); // With Java 7, skip tests for JDBCType.
     }
 }

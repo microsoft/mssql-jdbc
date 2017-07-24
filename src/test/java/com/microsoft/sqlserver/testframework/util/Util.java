@@ -10,6 +10,7 @@ import java.sql.Timestamp;
 import java.util.Calendar;
 
 import com.microsoft.sqlserver.jdbc.SQLServerConnection;
+import com.microsoft.sqlserver.jdbc.SQLServerDatabaseMetaData;
 import com.microsoft.sqlserver.jdbc.SQLServerStatementColumnEncryptionSetting;
 
 /**
@@ -276,5 +277,16 @@ public class Util {
                 System.out.println("The data source connection cannot be closed.");
             }
         }
+    }
+
+    /**
+     * Utility function for checking if the system supports JDBC 4.2
+     * 
+     * @param con
+     * @return
+     */
+    public static boolean supportJDBC42(Connection con) throws SQLException {
+        SQLServerDatabaseMetaData meta = (SQLServerDatabaseMetaData) con.getMetaData();
+        return (meta.getJDBCMajorVersion() >= 4 && meta.getJDBCMinorVersion() >= 2);
     }
 }
