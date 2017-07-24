@@ -62,6 +62,8 @@ To build the jar files, you must use Java 8 with Maven.  You can choose to build
 ## Resources
 
 ### Documentation
+API reference documentation is available in [Javadocs](https://aka.ms/jdbcjavadocs).
+
 This driver is documented on [Microsoft's Documentation web site](https://msdn.microsoft.com/en-us/library/mt720657).
 
 ### Sample Code
