@@ -141,7 +141,7 @@ abstract class DTVExecuteOp {
             TVP tvpValue) throws SQLServerException;
 
     abstract void execute(DTV dtv,
-            SqlVariant SqlVariantValue) throws SQLServerException;
+            SqlVariant sqlVariantValue) throws SQLServerException;
 }
 
 /**
@@ -4061,18 +4061,22 @@ final class ServerDTVImpl extends DTVImpl {
                 jdbcType = JDBCType.BIGINT;
                 convertedValue = DDC.convertLongToObject(tdsReader.readLong(), jdbcType, baseSSType, streamGetterArgs.streamType);
                 break;
+                
             case INT4:
                 jdbcType = JDBCType.INTEGER;
                 convertedValue = DDC.convertIntegerToObject(tdsReader.readInt(), valueLength, jdbcType, streamGetterArgs.streamType);
                 break;
+                
             case INT2:
                 jdbcType = JDBCType.SMALLINT;
                 convertedValue = DDC.convertIntegerToObject(tdsReader.readShort(), valueLength, jdbcType, streamGetterArgs.streamType);
                 break;
+                
             case INT1:
                 jdbcType = JDBCType.TINYINT;
                 convertedValue = DDC.convertIntegerToObject(tdsReader.readUnsignedByte(), valueLength, jdbcType, streamGetterArgs.streamType);
                 break;
+                
             case DECIMALN:
             case NUMERICN:
                 if (TDSType.DECIMALN == baseType)
@@ -4092,14 +4096,17 @@ final class ServerDTVImpl extends DTVImpl {
                 internalVariant.setScale(scale);
                 convertedValue = tdsReader.readDecimal(expectedValueLength, typeInfo, jdbcType, streamGetterArgs.streamType);
                 break;
+                
             case FLOAT4:
                 jdbcType = JDBCType.REAL;
                 convertedValue = tdsReader.readReal(expectedValueLength, jdbcType, streamGetterArgs.streamType);
                 break;
+                
             case FLOAT8:
                 jdbcType = JDBCType.FLOAT;
                 convertedValue = tdsReader.readFloat(expectedValueLength, jdbcType, streamGetterArgs.streamType);
                 break;
+                
             case MONEY4:
                 jdbcType = JDBCType.SMALLMONEY;
                 typeInfo.setMaxLength(4);
@@ -4112,6 +4119,7 @@ final class ServerDTVImpl extends DTVImpl {
                 internalVariant.setScale(scale);
                 convertedValue = tdsReader.readMoney(expectedValueLength, jdbcType, streamGetterArgs.streamType);
                 break;
+                
             case MONEY8:
                 jdbcType = JDBCType.MONEY;
                 typeInfo.setMaxLength(8);
@@ -4124,6 +4132,7 @@ final class ServerDTVImpl extends DTVImpl {
                 internalVariant.setScale(scale);
                 convertedValue = tdsReader.readMoney(expectedValueLength, jdbcType, streamGetterArgs.streamType);
                 break;
+                
             case BIT1:
             case BITN:
                 jdbcType = JDBCType.BIT;
@@ -4151,6 +4160,7 @@ final class ServerDTVImpl extends DTVImpl {
                         break;
                 }
                 break;
+                
             case BIGVARCHAR:   
             case BIGCHAR:
                 if (cbPropsActual != sqlVariantProbBytes.BIGCHAR.getIntValue()) {
@@ -4176,6 +4186,7 @@ final class ServerDTVImpl extends DTVImpl {
                 convertedValue = DDC.convertStreamToObject(new SimpleInputStream(tdsReader, expectedValueLength, streamGetterArgs, this), typeInfo,
                         jdbcType, streamGetterArgs);
                 break;
+                
             case NCHAR:
             case NVARCHAR:
                 if (cbPropsActual != sqlVariantProbBytes.NCHAR.getIntValue()) {
@@ -4200,18 +4211,22 @@ final class ServerDTVImpl extends DTVImpl {
                 convertedValue = DDC.convertStreamToObject(new SimpleInputStream(tdsReader, expectedValueLength, streamGetterArgs, this), typeInfo,
                         jdbcType, streamGetterArgs);
                 break;
+                
             case DATETIME8:
                 jdbcType = JDBCType.DATETIME;
                 convertedValue = tdsReader.readDateTime(expectedValueLength, cal, jdbcType, streamGetterArgs.streamType);
                 break;
+                
             case DATETIME4:
                 jdbcType = JDBCType.SMALLDATETIME;
                 convertedValue = tdsReader.readDateTime(expectedValueLength, cal, jdbcType, streamGetterArgs.streamType);
                 break;
+                
             case DATEN:
                 jdbcType = JDBCType.DATE;
                 convertedValue = tdsReader.readDate(expectedValueLength, cal, jdbcType);
                 break;
+                
             case TIMEN:
                 if (cbPropsActual != sqlVariantProbBytes.TIMEN.getIntValue()) {
                     MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidProbbytes"));
@@ -4226,6 +4241,7 @@ final class ServerDTVImpl extends DTVImpl {
                 internalVariant.setScale(scale);
                 convertedValue = tdsReader.readTime(expectedValueLength, typeInfo, cal, jdbcType);
                 break;
+                
             case DATETIME2N:
                 if (cbPropsActual != sqlVariantProbBytes.DATETIME2N.getIntValue()) {
                     MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidProbbytes"));
@@ -4237,6 +4253,7 @@ final class ServerDTVImpl extends DTVImpl {
                 internalVariant.setScale(scale);
                 convertedValue = tdsReader.readDateTime2(expectedValueLength, typeInfo, cal, jdbcType);
                 break;
+                
             case BIGBINARY:   // e.g binary20, binary 512, binary 8000 -> reads as bigbinary
             case BIGVARBINARY:
                 if (cbPropsActual != sqlVariantProbBytes.BIGBINARY.getIntValue()) {
@@ -4257,6 +4274,7 @@ final class ServerDTVImpl extends DTVImpl {
                 convertedValue = DDC.convertStreamToObject(new SimpleInputStream(tdsReader, expectedValueLength, streamGetterArgs, this), typeInfo,
                         jdbcType, streamGetterArgs);
                 break;
+                
             case GUID:
                 jdbcType = JDBCType.GUID;
                 internalVariant.setBaseType(intbaseType);
@@ -4265,6 +4283,7 @@ final class ServerDTVImpl extends DTVImpl {
                 lengthConsumed = 2 + cbPropsActual;
                 convertedValue = tdsReader.readGUID(expectedValueLength, jdbcType, streamGetterArgs.streamType);
                 break;
+                
             // Unknown SSType should have already been rejected by TypeInfo.setFromTDS()
             default:
                 assert false : "Unexpected TDSType in Sql-Variant " + baseType;
