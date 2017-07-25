@@ -271,7 +271,7 @@ public final class SQLServerDataTable {
             case SQL_VARIANT:
                 JDBCType internalJDBCType;
                 if (null == val) { // TODO:Check this later
-                    throw new SQLServerException("Sending null value with column type sql_variant in TVP is not supported! ", null);
+                    throw new SQLServerException(SQLServerException.getErrString("R_invalidValueForTVPWithSQLVariant"), null);
                 }
                 JavaType javaType = JavaType.of(val);
                 internalJDBCType = javaType.getJDBCType(SSType.UNKNOWN, jdbcType);

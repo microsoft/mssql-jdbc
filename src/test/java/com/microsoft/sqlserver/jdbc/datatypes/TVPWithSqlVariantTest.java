@@ -339,7 +339,7 @@ public class TVPWithSqlVariantTest extends AbstractTest {
             tvp.addRow((Date) null);
         }
         catch (Exception e) {
-            assertTrue(e.getMessage().startsWith("Sending null value with column"));
+            assertTrue(e.getMessage().startsWith("Inserting null value with column"));
         }
 
         pstmt = (SQLServerPreparedStatement) connection.prepareStatement("INSERT INTO " + destTable + " select * from ? ;");
