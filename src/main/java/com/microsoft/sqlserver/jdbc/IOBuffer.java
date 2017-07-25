@@ -2226,7 +2226,7 @@ final class SocketFinder {
 
     // no of threads that finished their socket connection
     // attempts and notified socketFinder about their result
-    private volatile int noOfThreadsThatNotified = 0;
+    private int noOfThreadsThatNotified = 0;
 
     // If a valid connected socket is found, this value would be non-null,
     // else this would be null
@@ -3071,7 +3071,7 @@ final class TDSWriter {
     private byte valueBytes[] = new byte[256];
 
     // Monotonically increasing packet number associated with the current message
-    private volatile int packetNum = 0;
+    private int packetNum = 0;
 
     // Bytes for sending decimal/numeric data
     private final static int BYTES4 = 4;
