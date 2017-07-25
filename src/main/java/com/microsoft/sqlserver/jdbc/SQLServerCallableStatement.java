@@ -30,6 +30,7 @@ import java.sql.Types;
 import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.UUID;
 
 /**
  * CallableStatement implements JDBC callable statements. CallableStatement allows the caller to specify the procedure name to call along with input
@@ -674,8 +675,84 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
 
     public <T> T getObject(int index,
             Class<T> type) throws SQLException {
-        // The driver currently does not implement the optional JDBC APIs
-        throw new SQLFeatureNotSupportedException(SQLServerException.getErrString("R_notSupported"));
+        loggerExternal.entering(getClassNameLogging(), "getObject", index);
+        checkClosed();
+        Object returnValue;
+        if (type == String.class) {
+            returnValue = getString(index);
+        }
+        else if (type == Byte.class) {
+            byte byteValue = getByte(index);
+            returnValue = wasNull() ? null : byteValue;
+        }
+        else if (type == Short.class) {
+            short shortValue = getShort(index);
+            returnValue = wasNull() ? null : shortValue;
+        }
+        else if (type == Integer.class) {
+            int intValue = getInt(index);
+            returnValue = wasNull() ? null : intValue;
+        }
+        else if (type == Long.class) {
+            long longValue = getLong(index);
+            returnValue = wasNull() ? null : longValue;
+        }
+        else if (type == BigDecimal.class) {
+            returnValue = getBigDecimal(index);
+        }
+        else if (type == Boolean.class) {
+            boolean booleanValue = getBoolean(index);
+            returnValue = wasNull() ? null : booleanValue;
+        }
+        else if (type == java.sql.Date.class) {
+            returnValue = getDate(index);
+        }
+        else if (type == java.sql.Time.class) {
+            returnValue = getTime(index);
+        }
+        else if (type == java.sql.Timestamp.class) {
+            returnValue = getTimestamp(index);
+        }
+        else if (type == microsoft.sql.DateTimeOffset.class) {
+            returnValue = getDateTimeOffset(index);
+        }
+        else if (type == UUID.class) {
+            // read binary, avoid string allocation and parsing
+            byte[] guid = getBytes(index);
+            returnValue = guid != null ? Util.readGUIDtoUUID(guid) : null;
+        }
+        else if (type == SQLXML.class) {
+            returnValue = getSQLXML(index);
+        }
+        else if (type == Blob.class) {
+            returnValue = getBlob(index);
+        }
+        else if (type == Clob.class) {
+            returnValue = getClob(index);
+        }
+        else if (type == NClob.class) {
+            returnValue = getNClob(index);
+        }
+        else if (type == byte[].class) {
+            returnValue = getBytes(index);
+        }
+        else if (type == Float.class) {
+            float floatValue = getFloat(index);
+            returnValue = wasNull() ? null : floatValue;
+        }
+        else if (type == Double.class) {
+            double doubleValue = getDouble(index);
+            returnValue = wasNull() ? null : doubleValue;
+        }
+        else {
+            // if the type is not supported the specification says the should
+            // a SQLException instead of SQLFeatureNotSupportedException
+            MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_unsupportedConversionTo"));
+            Object[] msgArgs = {type};
+            throw new SQLServerException(form.format(msgArgs), SQLState.DATA_EXCEPTION_NOT_SPECIFIC, DriverError.NOT_SET, null);
+        }
+        loggerExternal.exiting(getClassNameLogging(), "getObject", index);
+        return type.cast(returnValue);
     }
 
     public Object getObject(String sCol) throws SQLServerException {
@@ -690,8 +767,12 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
 
     public <T> T getObject(String sCol,
             Class<T> type) throws SQLException {
-        // The driver currently does not implement the optional JDBC APIs
-        throw new SQLFeatureNotSupportedException(SQLServerException.getErrString("R_notSupported"));
+        loggerExternal.entering(getClassNameLogging(), "getObject", sCol);
+        checkClosed();
+        int parameterIndex = findColumn(sCol);
+        T value = getObject(parameterIndex, type);
+        loggerExternal.exiting(getClassNameLogging(), "getObject", value);
+        return value;
     }
 
     public short getShort(int index) throws SQLServerException {

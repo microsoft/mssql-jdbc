@@ -27,6 +27,7 @@ import java.sql.SQLWarning;
 import java.sql.SQLXML;
 import java.text.MessageFormat;
 import java.util.Calendar;
+import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
 
@@ -2170,8 +2171,84 @@ public class SQLServerResultSet implements ISQLServerResultSet {
 
     public <T> T getObject(int columnIndex,
             Class<T> type) throws SQLException {
-        // The driver currently does not implement the optional JDBC APIs
-        throw new SQLFeatureNotSupportedException(SQLServerException.getErrString("R_notSupported"));
+        loggerExternal.entering(getClassNameLogging(), "getObject", columnIndex);
+        checkClosed();
+        Object returnValue;
+        if (type == String.class) {
+            returnValue = getString(columnIndex);
+        }
+        else if (type == Byte.class) {
+            byte byteValue = getByte(columnIndex);
+            returnValue = wasNull() ? null : byteValue;
+        }
+        else if (type == Short.class) {
+            short shortValue = getShort(columnIndex);
+            returnValue = wasNull() ? null : shortValue;
+        }
+        else if (type == Integer.class) {
+            int intValue = getInt(columnIndex);
+            returnValue = wasNull() ? null : intValue;
+        }
+        else if (type == Long.class) {
+            long longValue = getLong(columnIndex);
+            returnValue = wasNull() ? null : longValue;
+        }
+        else if (type == BigDecimal.class) {
+            returnValue = getBigDecimal(columnIndex);
+        }
+        else if (type == Boolean.class) {
+            boolean booleanValue = getBoolean(columnIndex);
+            returnValue = wasNull() ? null : booleanValue;
+        }
+        else if (type == java.sql.Date.class) {
+            returnValue = getDate(columnIndex);
+        }
+        else if (type == java.sql.Time.class) {
+            returnValue = getTime(columnIndex);
+        }
+        else if (type == java.sql.Timestamp.class) {
+            returnValue = getTimestamp(columnIndex);
+        }
+        else if (type == microsoft.sql.DateTimeOffset.class) {
+            returnValue = getDateTimeOffset(columnIndex);
+        }
+        else if (type == UUID.class) {
+            // read binary, avoid string allocation and parsing
+            byte[] guid = getBytes(columnIndex);
+            returnValue = guid != null ? Util.readGUIDtoUUID(guid) : null;
+        }
+        else if (type == SQLXML.class) {
+            returnValue = getSQLXML(columnIndex);
+        }
+        else if (type == Blob.class) {
+            returnValue = getBlob(columnIndex);
+        }
+        else if (type == Clob.class) {
+            returnValue = getClob(columnIndex);
+        }
+        else if (type == NClob.class) {
+            returnValue = getNClob(columnIndex);
+        }
+        else if (type == byte[].class) {
+            returnValue = getBytes(columnIndex);
+        }
+        else if (type == Float.class) {
+            float floatValue = getFloat(columnIndex);
+            returnValue = wasNull() ? null : floatValue;
+        }
+        else if (type == Double.class) {
+            double doubleValue = getDouble(columnIndex);
+            returnValue = wasNull() ? null : doubleValue;
+        }
+        else {
+            // if the type is not supported the specification says the should
+            // a SQLException instead of SQLFeatureNotSupportedException
+            MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_unsupportedConversionTo"));
+            Object[] msgArgs = {type};
+            throw new SQLServerException(form.format(msgArgs), SQLState.DATA_EXCEPTION_NOT_SPECIFIC, DriverError.NOT_SET, null);
+        }
+        loggerExternal.exiting(getClassNameLogging(), "getObject", columnIndex);
+        return type.cast(returnValue);
     }
 
     public Object getObject(String columnName) throws SQLServerException {
@@ -2184,8 +2261,11 @@ public class SQLServerResultSet implements ISQLServerResultSet {
 
     public <T> T getObject(String columnName,
             Class<T> type) throws SQLException {
-        // The driver currently does not implement the optional JDBC APIs
-        throw new SQLFeatureNotSupportedException(SQLServerException.getErrString("R_notSupported"));
+        loggerExternal.entering(getClassNameLogging(), "getObject", columnName);
+        checkClosed();
+        T value = getObject(findColumn(columnName), type);
+        loggerExternal.exiting(getClassNameLogging(), "getObject", value);
+        return value;
     }
 
     public short getShort(int columnIndex) throws SQLServerException {

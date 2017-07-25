@@ -104,6 +104,7 @@ public final class SQLServerResource extends ListResourceBundle {
 				{"R_invalidConnection", "The connection URL is invalid."},
 				{"R_cannotTakeArgumentsPreparedOrCallable", "The method {0} cannot take arguments on a PreparedStatement or CallableStatement."},
 				{"R_unsupportedConversionFromTo", "The conversion from {0} to {1} is unsupported."}, // Invalid conversion (e.g. MONEY to Timestamp)
+				{"R_unsupportedConversionTo", "The conversion to {0} is unsupported."}, // Invalid conversion to an unknown type
 				{"R_errorConvertingValue","An error occurred while converting the {0} value to JDBC data type {1}."}, // Data-dependent conversion failure (e.g. "foo" vs. "123", to Integer)
 				{"R_streamIsClosed", "The stream is closed."},
 				{"R_invalidTDS", "The TDS protocol stream is not valid."},
@@ -385,5 +386,6 @@ public final class SQLServerResource extends ListResourceBundle {
 				{"R_kerberosLoginFailed", "Kerberos Login failed: {0} due to {1} ({2})"},
 				{"R_StoredProcedureNotFound", "Could not find stored procedure ''{0}''."},
 				{"R_jaasConfigurationNamePropertyDescription", "Login configuration file for Kerberos authentication."},
+				{"R_AKVKeyNotFound", "Key not found: {0}"},
     };
 }
