@@ -4702,6 +4702,8 @@ final class TDSWriter {
                             case TIME:
                             case TIMESTAMP:
                             case DATETIMEOFFSET:
+                            case DATETIME:
+                            case SMALLDATETIME:
                             case TIMESTAMP_WITH_TIMEZONE:
                             case TIME_WITH_TIMEZONE:
                             case CHAR:
@@ -4918,6 +4920,8 @@ final class TDSWriter {
                 case TIME:
                 case TIMESTAMP:
                 case DATETIMEOFFSET:
+                case DATETIME:
+                case SMALLDATETIME:
                 case TIMESTAMP_WITH_TIMEZONE:
                 case TIME_WITH_TIMEZONE:
                 case CHAR:
