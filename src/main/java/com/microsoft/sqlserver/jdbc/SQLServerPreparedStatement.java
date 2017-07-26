@@ -2647,13 +2647,17 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                                     throw e;
 
                                 // Retry if invalid handle exception.
-                                if (retryBasedOnFailedReuseOfCachedHandle(e, attempt)) {
-                                    // Reset number of batches prepare and reset the prepared type definitions
+                                if (retryBasedOnFailedReuseOfCachedHandle(e, attempt)) {                                 
+                                    // Reset number of batches prepare and reset the prepared type definitions and force eviction of prepared statement cache handle entry 
                                     numBatchesPrepared = numBatchesExecuted;
                                     paramValues = batchParamValues.get(numBatchesPrepared);
                                     for (int i = 0; i < paramValues.length; i++)
                                         batchParam[i] = paramValues[i];
                                     buildPreparedStrings(batchParam, false);
+                                    PreparedStatementHandle cachedHandle = connection.getCachedPreparedStatementHandle(new Sha1HashKey(preparedSQL, preparedTypeDefinitions));
+                                    if (null != cachedHandle) {  
+                                        connection.evictCachedPreparedStatementHandle(cachedHandle);                                     
+                                    }
                                     retry = true;                                    
                                     break;
                                 }

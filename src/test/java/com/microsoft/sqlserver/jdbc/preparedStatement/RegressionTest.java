@@ -314,6 +314,101 @@ public class RegressionTest extends AbstractTest {
     }
 
     /**
+     * Test with large string and tests with more batch queries
+     * 
+     * @throws SQLException
+     */
+    @Test
+    public void addBatchWithLargeStringTest() throws SQLException {
+        Statement stmt = con.createStatement();
+        PreparedStatement pstmt = null;
+        Utils.dropTableIfExists("TEST_TABLE", stmt);
+
+        con.setAutoCommit(false);
+
+        // create a table with two columns
+        boolean createPrimaryKey = false;
+        try {
+            stmt.execute("if object_id('testTable', 'U') is not null\ndrop table testTable;");
+            if (createPrimaryKey) {
+                stmt.execute("create table testTable ( ID int, DATA nvarchar(max), primary key (ID) );");
+            }
+            else {
+                stmt.execute("create table testTable ( ID int, DATA nvarchar(max) );");
+            }
+        }
+        catch (Exception e) {
+            fail(e.toString());
+        }
+        con.commit();
+
+        // build a String with 4001 characters
+        StringBuilder stringBuilder = new StringBuilder();
+        for (int i = 0; i < 4001; i++) {
+            stringBuilder.append('x');
+        }
+        String largeString = stringBuilder.toString();
+
+        // insert five rows into the table; use a batch for each row
+        try {
+            pstmt = con.prepareStatement("insert into testTable values (?,?), (?,?);");
+            // 0,a
+            // 1,b
+            pstmt.setInt(1, 0);
+            pstmt.setNString(2, "a");
+            pstmt.setInt(3, 1);
+            pstmt.setNString(4, "b");
+            pstmt.addBatch();
+
+            // 2,c
+            // 3,d
+            pstmt.setInt(1, 2);
+            pstmt.setNString(2, "c");
+            pstmt.setInt(3, 3);
+            pstmt.setNString(4, "d");
+            pstmt.addBatch();
+
+            // 4,xxx...
+            // 5,f
+            pstmt.setInt(1, 4);
+            pstmt.setNString(2, largeString);
+            pstmt.setInt(3, 5);
+            pstmt.setNString(4, "f");
+            pstmt.addBatch();
+
+            // 6,g
+            // 7,h
+            pstmt.setInt(1, 6);
+            pstmt.setNString(2, "g");
+            pstmt.setInt(3, 7);
+            pstmt.setNString(4, "h");
+            pstmt.addBatch();
+
+            // 8,i
+            // 9,xxx...
+            pstmt.setInt(1, 8);
+            pstmt.setNString(2, "i");
+            pstmt.setInt(3, 9);
+            pstmt.setNString(4, largeString);
+            pstmt.addBatch();
+
+            pstmt.executeBatch();
+
+            con.commit();
+        }
+
+        catch (Exception e) {
+            fail(e.toString());
+        }
+        finally {
+            Utils.dropTableIfExists("testTable", stmt);
+            if (null != stmt) {
+                stmt.close();
+            }
+        }
+    }
+
+    /**
      * Cleanup after test
      * 
      * @throws SQLException
