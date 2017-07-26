@@ -20,6 +20,6 @@ public class SqlReal extends SqlFloat {
 
     @Override
     public Object createdata() {
-        return new Float(ThreadLocalRandom.current().nextDouble((Float) minvalue, (Float) maxvalue));
+        return (float) ThreadLocalRandom.current().nextDouble((Float) minvalue, (Float) maxvalue);
     }
 }

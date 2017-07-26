@@ -605,7 +605,7 @@ final class Util {
         catch (IndexOutOfBoundsException ex) {
             String txtMsg = SQLServerException.checkAndAppendClientConnId(SQLServerException.getErrString("R_stringReadError"), conn);
             MessageFormat form = new MessageFormat(txtMsg);
-            Object[] msgArgs = {new Integer(offset)};
+            Object[] msgArgs = {offset};
             // Re-throw SQLServerException if conversion fails.
             throw new SQLServerException(form.format(msgArgs), null, 0, ex);
         }

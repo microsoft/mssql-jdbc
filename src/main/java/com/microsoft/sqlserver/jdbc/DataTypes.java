@@ -95,7 +95,7 @@ enum TDSType
 
         if (!(0 <= intValue && intValue < valuesTypes.length) || null == (tdsType = valuesTypes[intValue])) {
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_unknownSSType"));
-            Object[] msgArgs = {new Integer(intValue)};
+            Object[] msgArgs = {intValue};
             throw new IllegalArgumentException(form.format(msgArgs));
         }
 

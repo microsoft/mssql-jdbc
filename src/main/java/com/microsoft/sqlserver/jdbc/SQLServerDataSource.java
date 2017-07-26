@@ -844,7 +844,7 @@ public class SQLServerDataSource implements ISQLServerDataSource, DataSource, ja
             String propKey,
             int propValue) {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
-            loggerExternal.entering(getClassNameLogging(), "set" + propKey, new Integer(propValue));
+            loggerExternal.entering(getClassNameLogging(), "set" + propKey, propValue);
         props.setProperty(propKey, new Integer(propValue).toString());
         loggerExternal.exiting(getClassNameLogging(), "set" + propKey);
     }
@@ -870,7 +870,7 @@ public class SQLServerDataSource implements ISQLServerDataSource, DataSource, ja
             }
         }
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
-            loggerExternal.exiting(getClassNameLogging(), "get" + propKey, new Integer(value));
+            loggerExternal.exiting(getClassNameLogging(), "get" + propKey, value);
         return value;
     }
 
@@ -880,7 +880,7 @@ public class SQLServerDataSource implements ISQLServerDataSource, DataSource, ja
             String propKey,
             boolean propValue) {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
-            loggerExternal.entering(getClassNameLogging(), "set" + propKey, Boolean.valueOf(propValue));
+            loggerExternal.entering(getClassNameLogging(), "set" + propKey, propValue);
         props.setProperty(propKey, (propValue) ? "true" : "false");
         loggerExternal.exiting(getClassNameLogging(), "set" + propKey);
     }
@@ -904,7 +904,7 @@ public class SQLServerDataSource implements ISQLServerDataSource, DataSource, ja
             value = Boolean.valueOf(propValue);
         }
         loggerExternal.exiting(getClassNameLogging(), "get" + propKey, value);
-        return value.booleanValue();
+        return value;
     }
 
     private void setObjectProperty(Properties props,
@@ -1069,7 +1069,7 @@ public class SQLServerDataSource implements ISQLServerDataSource, DataSource, ja
     public boolean isWrapperFor(Class<?> iface) throws SQLException {
         loggerExternal.entering(getClassNameLogging(), "isWrapperFor", iface);
         boolean f = iface.isInstance(this);
-        loggerExternal.exiting(getClassNameLogging(), "isWrapperFor", Boolean.valueOf(f));
+        loggerExternal.exiting(getClassNameLogging(), "isWrapperFor", f);
         return f;
     }
 
