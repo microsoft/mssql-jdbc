@@ -52,7 +52,6 @@ public class ParameterMetaDataTest extends AbstractTest {
             finally {
                 Utils.dropTableIfExists(tableName, stmt);
             }
-
         }
     }
 
@@ -94,7 +93,6 @@ public class ParameterMetaDataTest extends AbstractTest {
             finally {
                 Utils.dropTableIfExists(tableName, stmt);
             }
-
         }
     }
 }
