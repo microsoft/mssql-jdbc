@@ -176,8 +176,13 @@ public final class SQLServerParameterMetaData implements ParameterMetaData {
             }
             if (nState == 1) {
                 if (sToken.trim().length() > 0) {
-                    if (sToken.charAt(0) != ',')
+                    if (sToken.charAt(0) != ',') {
                         sLastField = escapeParse(st, sToken);
+
+                        // in case the parameter has braces in its name, e.g. [c2_nvarchar(max)], the original sToken variable just
+                        // contains [c2_nvarchar, sLastField actually has the whole name [c2_nvarchar(max)]
+                        sTokenIndex = sTokenIndex + (sLastField.length() - sToken.length());
+                    }
                 }
             }
         }
@@ -247,7 +252,7 @@ public final class SQLServerParameterMetaData implements ParameterMetaData {
                             }
                             catch (NumberFormatException e) {
                                 MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_metaDataErrorForParameter"));
-                                Object[] msgArgs = {new Integer(paramOrdinal)};
+                                Object[] msgArgs = {paramOrdinal};
                                 SQLServerException.makeFromDriverError(con, stmtParent, form.format(msgArgs) + " " + e.toString(), null, false);
                             }
                         }
@@ -704,12 +709,12 @@ public final class SQLServerParameterMetaData implements ParameterMetaData {
         }
         catch (SQLException e) {
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_metaDataErrorForParameter"));
-            Object[] msgArgs = {new Integer(param)};
+            Object[] msgArgs = {param};
             SQLServerException.makeFromDriverError(con, stmtParent, form.format(msgArgs) + " " + e.toString(), null, false);
         }
         if (!bFound) {
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidParameterNumber"));
-            Object[] msgArgs = {new Integer(param)};
+            Object[] msgArgs = {param};
             SQLServerException.makeFromDriverError(con, stmtParent, form.format(msgArgs), null, false);
         }
     }

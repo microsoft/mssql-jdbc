@@ -201,7 +201,7 @@ final class Column {
     }
 
     int getInt(TDSReader tdsReader) throws SQLServerException {
-        return ((Integer) getValue(JDBCType.INTEGER, null, null, tdsReader)).intValue();
+        return (Integer) getValue(JDBCType.INTEGER, null, null, tdsReader);
     }
 
     void updateValue(JDBCType jdbcType,

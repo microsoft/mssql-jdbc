@@ -54,15 +54,15 @@ final class DDC {
             StreamType streamType) {
         switch (jdbcType) {
             case INTEGER:
-                return new Integer(intValue);
+                return intValue;
             case SMALLINT: // 2.21 small and tinyint returned as short
             case TINYINT:
-                return new Short((short) intValue);
+                return (short) intValue;
             case BIT:
             case BOOLEAN:
-                return new Boolean(0 != intValue);
+                return 0 != intValue;
             case BIGINT:
-                return new Long(intValue);
+                return (long) intValue;
             case DECIMAL:
             case NUMERIC:
             case MONEY:
@@ -70,9 +70,9 @@ final class DDC {
                 return new BigDecimal(Integer.toString(intValue));
             case FLOAT:
             case DOUBLE:
-                return new Double(intValue);
+                return (double) intValue;
             case REAL:
-                return new Float(intValue);
+                return (float) intValue;
             case BINARY:
                 return convertIntToBytes(intValue, valueLength);
             default:
@@ -99,15 +99,15 @@ final class DDC {
             StreamType streamType) {
         switch (jdbcType) {
             case BIGINT:
-                return new Long(longVal);
+                return longVal;
             case INTEGER:
-                return new Integer((int) longVal);
+                return (int) longVal;
             case SMALLINT: // small and tinyint returned as short
             case TINYINT:
-                return new Short((short) longVal);
+                return (short) longVal;
             case BIT:
             case BOOLEAN:
-                return new Boolean(0 != longVal);
+                return 0 != longVal;
             case DECIMAL:
             case NUMERIC:
             case MONEY:
@@ -115,9 +115,9 @@ final class DDC {
                 return new BigDecimal(Long.toString(longVal));
             case FLOAT:
             case DOUBLE:
-                return new Double(longVal);
+                return (double) longVal;
             case REAL:
-                return new Float(longVal);
+                return (float) longVal;
             case BINARY:
                 byte[] convertedBytes = convertLongToBytes(longVal);
                 int bytesToReturnLength;
@@ -152,23 +152,23 @@ final class DDC {
             case VARBINARY:
                 switch (baseSSType) {
                     case BIGINT:
-                        return new Long(longVal);
+                        return longVal;
                     case INTEGER:
-                        return new Integer((int) longVal);
+                        return (int) longVal;
                     case SMALLINT: // small and tinyint returned as short
                     case TINYINT:
-                        return new Short((short) longVal);
+                        return (short) longVal;
                     case BIT:
-                        return new Boolean(0 != longVal);
+                        return 0 != longVal;
                     case DECIMAL:
                     case NUMERIC:
                     case MONEY:
                     case SMALLMONEY:
                         return new BigDecimal(Long.toString(longVal));
                     case FLOAT:
-                        return new Double(longVal);
+                        return (double) longVal;
                     case REAL:
-                        return new Float(longVal);
+                        return (float) longVal;
                     case BINARY:
                         return convertLongToBytes(longVal);
                     default:
@@ -214,17 +214,17 @@ final class DDC {
             StreamType streamType) {
         switch (jdbcType) {
             case REAL:
-                return new Float(floatVal);
+                return floatVal;
             case INTEGER:
-                return new Integer((int) floatVal);
+                return (int) floatVal;
             case SMALLINT: // small and tinyint returned as short
             case TINYINT:
-                return new Short((short) floatVal);
+                return (short) floatVal;
             case BIT:
             case BOOLEAN:
-                return new Boolean(0 != Float.compare(0.0f, floatVal));
+                return 0 != Float.compare(0.0f, floatVal);
             case BIGINT:
-                return new Long((long) floatVal);
+                return (long) floatVal;
             case DECIMAL:
             case NUMERIC:
             case MONEY:
@@ -232,7 +232,7 @@ final class DDC {
                 return new BigDecimal(Float.toString(floatVal));
             case FLOAT:
             case DOUBLE:
-                return new Double((new Float(floatVal)).doubleValue());
+                return (new Float(floatVal)).doubleValue();
             case BINARY:
                 return convertIntToBytes(Float.floatToRawIntBits(floatVal), 4);
             default:
@@ -273,19 +273,19 @@ final class DDC {
         switch (jdbcType) {
             case FLOAT:
             case DOUBLE:
-                return new Double(doubleVal);
+                return doubleVal;
             case REAL:
-                return new Float((new Double(doubleVal)).floatValue());
+                return (new Double(doubleVal)).floatValue();
             case INTEGER:
-                return new Integer((int) doubleVal);
+                return (int) doubleVal;
             case SMALLINT: // small and tinyint returned as short
             case TINYINT:
-                return new Short((short) doubleVal);
+                return (short) doubleVal;
             case BIT:
             case BOOLEAN:
-                return new Boolean(0 != Double.compare(0.0d, doubleVal));
+                return 0 != Double.compare(0.0d, doubleVal);
             case BIGINT:
-                return new Long((long) doubleVal);
+                return (long) doubleVal;
             case DECIMAL:
             case NUMERIC:
             case MONEY:
@@ -355,19 +355,19 @@ final class DDC {
                 return bigDecimalVal;
             case FLOAT:
             case DOUBLE:
-                return new Double(bigDecimalVal.doubleValue());
+                return bigDecimalVal.doubleValue();
             case REAL:
-                return new Float(bigDecimalVal.floatValue());
+                return bigDecimalVal.floatValue();
             case INTEGER:
-                return new Integer(bigDecimalVal.intValue());
+                return bigDecimalVal.intValue();
             case SMALLINT: // small and tinyint returned as short
             case TINYINT:
-                return new Short(bigDecimalVal.shortValue());
+                return bigDecimalVal.shortValue();
             case BIT:
             case BOOLEAN:
-                return new Boolean(0 != bigDecimalVal.compareTo(BigDecimal.valueOf(0)));
+                return 0 != bigDecimalVal.compareTo(BigDecimal.valueOf(0));
             case BIGINT:
-                return new Long(bigDecimalVal.longValue());
+                return bigDecimalVal.longValue();
             case BINARY:
                 return convertBigDecimalToBytes(bigDecimalVal, bigDecimalVal.scale());
             default:
@@ -400,19 +400,19 @@ final class DDC {
                 return bigDecimalVal;
             case FLOAT:
             case DOUBLE:
-                return new Double(bigDecimalVal.doubleValue());
+                return bigDecimalVal.doubleValue();
             case REAL:
-                return new Float(bigDecimalVal.floatValue());
+                return bigDecimalVal.floatValue();
             case INTEGER:
-                return new Integer(bigDecimalVal.intValue());
+                return bigDecimalVal.intValue();
             case SMALLINT: // small and tinyint returned as short
             case TINYINT:
-                return new Short(bigDecimalVal.shortValue());
+                return bigDecimalVal.shortValue();
             case BIT:
             case BOOLEAN:
-                return new Boolean(0 != bigDecimalVal.compareTo(BigDecimal.valueOf(0)));
+                return 0 != bigDecimalVal.compareTo(BigDecimal.valueOf(0));
             case BIGINT:
-                return new Long(bigDecimalVal.longValue());
+                return bigDecimalVal.longValue();
             case BINARY:
                 return convertToBytes(bigDecimalVal, bigDecimalVal.scale(), numberOfBytes);
             default:

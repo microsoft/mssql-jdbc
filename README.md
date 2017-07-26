@@ -18,7 +18,7 @@ SQL Server Team
 
 Let us know how you think we're doing.
 
-<a href="https://www.surveybuilder.com/s/9TQ1T"><img style="float: right;"  height="67" width="156" src="https://meetsstorenew.blob.core.windows.net/contianerhd/survey.png?st=2017-02-17T22%3A03%3A00Z&se=2100-02-18T22%3A03%3A00Z&sp=rl&sv=2015-12-11&sr=b&sig=DJSFoihBptSvO%2BjvWzwpHecf8o5yfAbJoD2qW5oB8tc%3D"></a>
+<a href="https://aka.ms/mssqljdbcsurvey"><img style="float: right;"  height="67" width="156" src="https://meetsstorenew.blob.core.windows.net/contianerhd/survey.png?st=2017-02-17T22%3A03%3A00Z&se=2100-02-18T22%3A03%3A00Z&sp=rl&sv=2015-12-11&sr=b&sig=DJSFoihBptSvO%2BjvWzwpHecf8o5yfAbJoD2qW5oB8tc%3D"></a>
 
 ## Status of Most Recent Builds
 | AppVeyor (Windows)       | Travis CI (Linux) |
@@ -62,6 +62,8 @@ To build the jar files, you must use Java 8 with Maven.  You can choose to build
 ## Resources
 
 ### Documentation
+API reference documentation is available in [Javadocs](https://aka.ms/jdbcjavadocs).
+
 This driver is documented on [Microsoft's Documentation web site](https://msdn.microsoft.com/en-us/library/mt720657).
 
 ### Sample Code

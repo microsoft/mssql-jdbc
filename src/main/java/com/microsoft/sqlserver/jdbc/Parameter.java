@@ -254,7 +254,7 @@ final class Parameter {
         if (null == getterDTV)
             getterDTV = new DTV();
 
-        getterDTV.setValue(null, JDBCType.INTEGER, new Integer(returnStatus), JavaType.INTEGER, null, null, null, con, getForceEncryption());
+        getterDTV.setValue(null, JDBCType.INTEGER, returnStatus, JavaType.INTEGER, null, null, null, con, getForceEncryption());
     }
 
     void setValue(JDBCType jdbcType,
@@ -416,7 +416,7 @@ final class Parameter {
 
     int getInt(TDSReader tdsReader) throws SQLServerException {
         Integer value = (Integer) getValue(JDBCType.INTEGER, null, null, tdsReader);
-        return null != value ? value.intValue() : 0;
+        return null != value ? value : 0;
     }
 
     /**
@@ -495,8 +495,8 @@ final class Parameter {
                     // - the specified input scale (if any)
                     // - the registered output scale
                     Integer inScale = dtv.getScale();
-                    if (null != inScale && scale < inScale.intValue())
-                        scale = inScale.intValue();
+                    if (null != inScale && scale < inScale)
+                        scale = inScale;
 
                     if (param.isOutput() && scale < param.getOutScale())
                         scale = param.getOutScale();

@@ -2148,7 +2148,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable {
                         if (bulkNullable) {
                             tdsWriter.writeByte((byte) 0x01);
                         }
-                        tdsWriter.writeByte((byte) (((Boolean) colValue).booleanValue() ? 1 : 0));
+                        tdsWriter.writeByte((byte) ((Boolean) colValue ? 1 : 0));
                     }
                     break;
 
@@ -3320,57 +3320,57 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable {
         try {
             switch (destJdbcType) {
                 case BIT:
-                    longValue = Long.valueOf((Boolean) value ? 1 : 0);
-                    return ByteBuffer.allocate(Long.SIZE / Byte.SIZE).order(ByteOrder.LITTLE_ENDIAN).putLong(longValue.longValue()).array();
+                    longValue = (long) ((Boolean) value ? 1 : 0);
+                    return ByteBuffer.allocate(Long.SIZE / Byte.SIZE).order(ByteOrder.LITTLE_ENDIAN).putLong(longValue).array();
 
                 case TINYINT:
                 case SMALLINT:
                     switch (srcJdbcType) {
                         case BIT:
-                            longValue = new Long((Boolean) value ? 1 : 0);
+                            longValue = (long) ((Boolean) value ? 1 : 0);
                             break;
                         default:
                             if (value instanceof Integer) {
                                 int intValue = (int) value;
                                 short shortValue = (short) intValue;
-                                longValue = new Long(shortValue);
+                                longValue = (long) shortValue;
                             }
                             else
-                                longValue = new Long((short) value);
+                                longValue = (long) (short) value;
 
                     }
-                    return ByteBuffer.allocate(Long.SIZE / Byte.SIZE).order(ByteOrder.LITTLE_ENDIAN).putLong(longValue.longValue()).array();
+                    return ByteBuffer.allocate(Long.SIZE / Byte.SIZE).order(ByteOrder.LITTLE_ENDIAN).putLong(longValue).array();
 
                 case INTEGER:
                     switch (srcJdbcType) {
                         case BIT:
-                            longValue = new Long((Boolean) value ? 1 : 0);
+                            longValue = (long) ((Boolean) value ? 1 : 0);
                             break;
                         case TINYINT:
                         case SMALLINT:
-                            longValue = new Long((short) value);
+                            longValue = (long) (short) value;
                             break;
                         default:
                             longValue = new Long((Integer) value);
                     }
-                    return ByteBuffer.allocate(Long.SIZE / Byte.SIZE).order(ByteOrder.LITTLE_ENDIAN).putLong(longValue.longValue()).array();
+                    return ByteBuffer.allocate(Long.SIZE / Byte.SIZE).order(ByteOrder.LITTLE_ENDIAN).putLong(longValue).array();
 
                 case BIGINT:
                     switch (srcJdbcType) {
                         case BIT:
-                            longValue = new Long((Boolean) value ? 1 : 0);
+                            longValue = (long) ((Boolean) value ? 1 : 0);
                             break;
                         case TINYINT:
                         case SMALLINT:
-                            longValue = new Long((short) value);
+                            longValue = (long) (short) value;
                             break;
                         case INTEGER:
                             longValue = new Long((Integer) value);
                             break;
                         default:
-                            longValue = new Long((long) value);
+                            longValue = (long) value;
                     }
-                    return ByteBuffer.allocate(Long.SIZE / Byte.SIZE).order(ByteOrder.LITTLE_ENDIAN).putLong(longValue.longValue()).array();
+                    return ByteBuffer.allocate(Long.SIZE / Byte.SIZE).order(ByteOrder.LITTLE_ENDIAN).putLong(longValue).array();
 
                 case BINARY:
                 case VARBINARY:

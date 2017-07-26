@@ -639,13 +639,13 @@ public final class SQLServerDriver implements java.sql.Driver {
 
     public int getMajorVersion() {
         loggerExternal.entering(getClassNameLogging(), "getMajorVersion");
-        loggerExternal.exiting(getClassNameLogging(), "getMajorVersion", new Integer(SQLJdbcVersion.major));
+        loggerExternal.exiting(getClassNameLogging(), "getMajorVersion", SQLJdbcVersion.major);
         return SQLJdbcVersion.major;
     }
 
     public int getMinorVersion() {
         loggerExternal.entering(getClassNameLogging(), "getMinorVersion");
-        loggerExternal.exiting(getClassNameLogging(), "getMinorVersion", new Integer(SQLJdbcVersion.minor));
+        loggerExternal.exiting(getClassNameLogging(), "getMinorVersion", SQLJdbcVersion.minor);
         return SQLJdbcVersion.minor;
     }
 
@@ -655,7 +655,7 @@ public final class SQLServerDriver implements java.sql.Driver {
 
     /* L0 */ public boolean jdbcCompliant() {
         loggerExternal.entering(getClassNameLogging(), "jdbcCompliant");
-        loggerExternal.exiting(getClassNameLogging(), "jdbcCompliant", Boolean.valueOf(true));
+        loggerExternal.exiting(getClassNameLogging(), "jdbcCompliant", Boolean.TRUE);
         return true;
     }
 }

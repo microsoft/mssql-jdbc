@@ -1077,7 +1077,7 @@ final class DTV {
                  * simply the assignment in the Java runtime). So the only way found is to convert the float to a string and init the double with that
                  * string
                  */
-                Double doubleValue = (null == floatValue) ? null : new Double(floatValue.floatValue());
+                Double doubleValue = (null == floatValue) ? null : (double) floatValue;
                 tdsWriter.writeRPCDouble(name, doubleValue, isOutParam);
             }
         }
@@ -2201,8 +2201,8 @@ final class AppDTVImpl extends DTVImpl {
             // Rescale the value if necessary
             if (null != bigDecimalValue) {
                 Integer inScale = dtv.getScale();
-                if (null != inScale && inScale.intValue() != bigDecimalValue.scale())
-                    bigDecimalValue = bigDecimalValue.setScale(inScale.intValue(), BigDecimal.ROUND_DOWN);
+                if (null != inScale && inScale != bigDecimalValue.scale())
+                    bigDecimalValue = bigDecimalValue.setScale(inScale, BigDecimal.ROUND_DOWN);
             }
 
             dtv.setValue(bigDecimalValue, JavaType.BIGDECIMAL);
@@ -2290,7 +2290,7 @@ final class AppDTVImpl extends DTVImpl {
                 // the actual stream length did not match then cancel the request.
                 if (DataTypes.UNKNOWN_STREAM_LENGTH != readerLength && stringValue.length() != readerLength) {
                     MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_mismatchedStreamLength"));
-                    Object[] msgArgs = {Long.valueOf(readerLength), Integer.valueOf(stringValue.length())};
+                    Object[] msgArgs = {readerLength, stringValue.length()};
                     SQLServerException.makeFromDriverError(null, null, form.format(msgArgs), "", true);
                 }
 
