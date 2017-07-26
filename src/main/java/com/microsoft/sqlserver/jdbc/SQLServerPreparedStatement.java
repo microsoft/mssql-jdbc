@@ -577,7 +577,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                 setPreparedStatementHandle(param.getInt(tdsReader));
 
                 // Cache the reference to the newly created handle, NOT for cursorable handles.
-                if (null == cachedPreparedStatementHandle && !isCursorable(executeMethod)) {
+                if (null == cachedPreparedStatementHandle && !isCursorable(executeMethod)) {                
                     cachedPreparedStatementHandle = connection.registerCachedPreparedStatementHandle(new Sha1HashKey(preparedSQL, preparedTypeDefinitions), prepStmtHandle, executedSqlDirectly);
                 }
                 
@@ -923,8 +923,9 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 		if(hasNewTypeDefinitions) {
 			if (null != cachedPreparedStatementHandle && hasPreparedStatementHandle() && prepStmtHandle == cachedPreparedStatementHandle.getHandle()) {
 				cachedPreparedStatementHandle.removeReference();
+	            cachedPreparedStatementHandle.setIsExplicitlyDiscarded();
 			}
-			cachedPreparedStatementHandle = null;
+			cachedPreparedStatementHandle = null; 			
 		}
 		
         // Check for new cache reference.
@@ -2647,17 +2648,9 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                                     throw e;
 
                                 // Retry if invalid handle exception.
-                                if (retryBasedOnFailedReuseOfCachedHandle(e, attempt)) {                                 
-                                    // Reset number of batches prepare and reset the prepared type definitions and force eviction of prepared statement cache handle entry 
+                                if (retryBasedOnFailedReuseOfCachedHandle(e, attempt)) {
+                                    //reset number of batches prepare
                                     numBatchesPrepared = numBatchesExecuted;
-                                    paramValues = batchParamValues.get(numBatchesPrepared);
-                                    for (int i = 0; i < paramValues.length; i++)
-                                        batchParam[i] = paramValues[i];
-                                    buildPreparedStrings(batchParam, false);
-                                    PreparedStatementHandle cachedHandle = connection.getCachedPreparedStatementHandle(new Sha1HashKey(preparedSQL, preparedTypeDefinitions));
-                                    if (null != cachedHandle) {  
-                                        connection.evictCachedPreparedStatementHandle(cachedHandle);                                     
-                                    }
                                     retry = true;                                    
                                     break;
                                 }
