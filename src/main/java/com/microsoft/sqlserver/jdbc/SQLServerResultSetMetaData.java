@@ -120,8 +120,12 @@ public final class SQLServerResultSetMetaData implements java.sql.ResultSetMetaD
         if (null != cryptoMetadata) {
             typeInfo = cryptoMetadata.getBaseTypeInfo();
         }
-
+        
         JDBCType jdbcType = typeInfo.getSSType().getJDBCType();
+        // in bulkcopy for instance, we need to return the real jdbc type which is sql variant and not the default Char one. 
+        if ( SSType.SQL_VARIANT == typeInfo.getSSType()){
+            jdbcType = JDBCType.SQL_VARIANT;
+        }
         int r = jdbcType.asJavaSqlType();
         if (con.isKatmaiOrLater()) {
             SSType sqlType = typeInfo.getSSType();

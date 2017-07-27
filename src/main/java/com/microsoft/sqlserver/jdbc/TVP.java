@@ -47,7 +47,6 @@ class TVP {
     Map<Integer, SQLServerMetaData> columnMetadata = null;
     Iterator<Entry<Integer, Object[]>> sourceDataTableRowIterator = null;
     ISQLServerDataRecord sourceRecord = null;
-
     TVPType tvpType = null;
 
     // MultiPartIdentifierState

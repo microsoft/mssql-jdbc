@@ -1927,7 +1927,15 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         lastValueWasNull = (null == o);
         return o;
     }
-
+    
+    void setInternalVariantType(int columnIndex, SqlVariant type) throws SQLServerException{
+        getterGetColumn(columnIndex).setInternalVariant(type);
+    }
+    
+    SqlVariant getVariantInternalType(int columnIndex) throws SQLServerException {
+        return getterGetColumn(columnIndex).getInternalVariant();
+    }    
+    
     private Object getStream(int columnIndex,
             StreamType streamType) throws SQLServerException {
         Object value = getValue(columnIndex, streamType.getJDBCType(),

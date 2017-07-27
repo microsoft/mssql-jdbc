@@ -2971,10 +2971,10 @@ public class SQLServerConnection implements ISQLServerConnection {
         }
 
         // Invalidate statement caches.
-        if(null != preparedStatementHandleCache)
+        if (null != preparedStatementHandleCache)
             preparedStatementHandleCache.clear();
 
-        if(null != parameterMetadataCache)
+        if (null != parameterMetadataCache)
             parameterMetadataCache.clear();
 
         // Clean-up queue etc. related to batching of prepared statement discard actions (sp_unprepare).

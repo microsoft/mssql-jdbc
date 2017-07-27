@@ -472,15 +472,23 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
     public String getString(int index) throws SQLServerException {
         loggerExternal.entering(getClassNameLogging(), "getString", index);
         checkClosed();
-        String value = (String) getValue(index, JDBCType.CHAR);
+        String value = null;
+        Object objectValue = getValue(index, JDBCType.CHAR);
+        if (null != objectValue) {
+            value = objectValue.toString();
+        }
         loggerExternal.exiting(getClassNameLogging(), "getString", value);
         return value;
     }
-
+    
     public String getString(String sCol) throws SQLServerException {
         loggerExternal.entering(getClassNameLogging(), "getString", sCol);
         checkClosed();
-        String value = (String) getValue(findColumn(sCol), JDBCType.CHAR);
+        String value = null;
+        Object objectValue = getValue(findColumn(sCol), JDBCType.CHAR);
+        if (null != objectValue) {
+            value = objectValue.toString();
+        }
         loggerExternal.exiting(getClassNameLogging(), "getString", value);
         return value;
     }
