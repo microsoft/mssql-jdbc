@@ -4877,9 +4877,10 @@ final class TDSWriter {
                 dataLength = isNull ? 0 : currentColumnStringValue.length() * 2;
                 if (!isShortValue) {
                     // check null
-                    if (isNull) 
+                    if (isNull) {
                         // Null header for v*max types is 0xFFFFFFFFFFFFFFFF.
                         writeLong(0xFFFFFFFFFFFFFFFFL);
+                    }
                     else if (isSqlVariant) {
                         // for now we send as bigger type, but is sendStringParameterAsUnicoe is set to false we can't send nvarchar
                         // since we are writing as nvarchar we need to write as tdstype.bigvarchar value because if we
