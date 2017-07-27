@@ -3,7 +3,7 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](http://keepachangelog.com/) 
 
-## [6.3.0]
+## [6.3.0] Preview Release
 ### Added
 - Added support for sql_variant datatype [#387](https://github.com/Microsoft/mssql-jdbc/pull/387)
 - Added more Junit tests for AlwaysEncrpyted [#404](https://github.com/Microsoft/mssql-jdbc/pull/404)
