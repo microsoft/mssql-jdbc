@@ -577,7 +577,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                 setPreparedStatementHandle(param.getInt(tdsReader));
 
                 // Cache the reference to the newly created handle, NOT for cursorable handles.
-                if (null == cachedPreparedStatementHandle && !isCursorable(executeMethod)) {
+                if (null == cachedPreparedStatementHandle && !isCursorable(executeMethod)) {                
                     cachedPreparedStatementHandle = connection.registerCachedPreparedStatementHandle(new Sha1HashKey(preparedSQL, preparedTypeDefinitions), prepStmtHandle, executedSqlDirectly);
                 }
                 
@@ -923,15 +923,17 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 		if(hasNewTypeDefinitions) {
 			if (null != cachedPreparedStatementHandle && hasPreparedStatementHandle() && prepStmtHandle == cachedPreparedStatementHandle.getHandle()) {
 				cachedPreparedStatementHandle.removeReference();
+	            cachedPreparedStatementHandle.setIsExplicitlyDiscarded();
 			}
-			cachedPreparedStatementHandle = null;
+			cachedPreparedStatementHandle = null; 			
 		}
 		
-		 // Check for new cache reference.
+        // Check for new cache reference.
         if (null == cachedPreparedStatementHandle) {
             PreparedStatementHandle cachedHandle = connection.getCachedPreparedStatementHandle(new Sha1HashKey(preparedSQL, preparedTypeDefinitions));
 
-            // If handle was found then re-use, only if AE is not on, or if it is on, make sure encryptionMetadataIsRetrieved is retrieved.
+            // If handle was found then re-use, only if AE is not on and is not a batch query with new type definitions (We shouldn't reuse handle
+            // if it is batch query and has new type definition, or if it is on, make sure encryptionMetadataIsRetrieved is retrieved.
             if (null != cachedHandle) {
                 if (!connection.isColumnEncryptionSettingEnabled()
                         || (connection.isColumnEncryptionSettingEnabled() && encryptionMetadataIsRetrieved)) {
@@ -944,7 +946,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
             }
         }
         return false;
-	}
+    }
 
     private boolean doPrepExec(TDSWriter tdsWriter,
             Parameter[] params,
@@ -2585,10 +2587,9 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
             }
 
             // Retry execution if existing handle could not be re-used.
-            for(int attempt = 1; attempt <= 2; ++attempt) {
-
+            for(int attempt = 1; attempt <= 2; ++attempt) {               
                 try {
-
+                    
                     // Re-use handle if available, requires parameter definitions which are not available until here.
                     if (reuseCachedHandle(hasNewTypeDefinitions, 1 < attempt)) {
                         hasNewTypeDefinitions = false;
@@ -2648,9 +2649,9 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
                                 // Retry if invalid handle exception.
                                 if (retryBasedOnFailedReuseOfCachedHandle(e, attempt)) {
-                                    // Reset number of batches prepared.
+                                    //reset number of batches prepare
                                     numBatchesPrepared = numBatchesExecuted;
-                                    retry = true;
+                                    retry = true;                                    
                                     break;
                                 }
 
