@@ -686,16 +686,16 @@ public class SQLServerDataSource implements ISQLServerDataSource, DataSource, ja
     }
 
     /**
-     * If this configuration returns false the first execution of a prepared statement will call sp_executesql and not prepare 
-     * a statement, once the second execution happens it will call sp_prepexec and actually setup a prepared statement handle. Following
-     * executions will call sp_execute. This relieves the need for sp_unprepare on prepared statement close if the statement is only
-     * executed once.  
+     * If this configuration returns false the first execution of a prepared statement will call sp_executesql and not prepare a statement, once the
+     * second execution happens it will call sp_prepexec and actually setup a prepared statement handle. Following executions will call sp_execute.
+     * This relieves the need for sp_unprepare on prepared statement close if the statement is only executed once.
      * 
      * @return Returns the current setting per the description.
      */
     public boolean getEnablePrepareOnFirstPreparedStatementCall() {
         boolean defaultValue = SQLServerDriverBooleanProperty.ENABLE_PREPARE_ON_FIRST_PREPARED_STATEMENT.getDefaultValue();
-        return getBooleanProperty(connectionProps, SQLServerDriverBooleanProperty.ENABLE_PREPARE_ON_FIRST_PREPARED_STATEMENT.toString(), defaultValue);
+        return getBooleanProperty(connectionProps, SQLServerDriverBooleanProperty.ENABLE_PREPARE_ON_FIRST_PREPARED_STATEMENT.toString(),
+                defaultValue);
     }
 
     /**
@@ -728,7 +728,7 @@ public class SQLServerDataSource implements ISQLServerDataSource, DataSource, ja
      * Specifies the size of the prepared statement cache for this conection. A value less than 1 means no cache.
      * 
      * @param statementPoolingCacheSize
-     *      Changes the setting per the description.
+     *            Changes the setting per the description.
      */
     public void setStatementPoolingCacheSize(int statementPoolingCacheSize) {
         setIntProperty(connectionProps, SQLServerDriverIntProperty.STATEMENT_POOLING_CACHE_SIZE.toString(), statementPoolingCacheSize);
@@ -844,7 +844,7 @@ public class SQLServerDataSource implements ISQLServerDataSource, DataSource, ja
             String propKey,
             int propValue) {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
-            loggerExternal.entering(getClassNameLogging(), "set" + propKey, new Integer(propValue));
+            loggerExternal.entering(getClassNameLogging(), "set" + propKey, propValue);
         props.setProperty(propKey, new Integer(propValue).toString());
         loggerExternal.exiting(getClassNameLogging(), "set" + propKey);
     }
@@ -870,7 +870,7 @@ public class SQLServerDataSource implements ISQLServerDataSource, DataSource, ja
             }
         }
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
-            loggerExternal.exiting(getClassNameLogging(), "get" + propKey, new Integer(value));
+            loggerExternal.exiting(getClassNameLogging(), "get" + propKey, value);
         return value;
     }
 
@@ -880,7 +880,7 @@ public class SQLServerDataSource implements ISQLServerDataSource, DataSource, ja
             String propKey,
             boolean propValue) {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
-            loggerExternal.entering(getClassNameLogging(), "set" + propKey, Boolean.valueOf(propValue));
+            loggerExternal.entering(getClassNameLogging(), "set" + propKey, propValue);
         props.setProperty(propKey, (propValue) ? "true" : "false");
         loggerExternal.exiting(getClassNameLogging(), "set" + propKey);
     }
@@ -904,7 +904,7 @@ public class SQLServerDataSource implements ISQLServerDataSource, DataSource, ja
             value = Boolean.valueOf(propValue);
         }
         loggerExternal.exiting(getClassNameLogging(), "get" + propKey, value);
-        return value.booleanValue();
+        return value;
     }
 
     private void setObjectProperty(Properties props,
@@ -1069,7 +1069,7 @@ public class SQLServerDataSource implements ISQLServerDataSource, DataSource, ja
     public boolean isWrapperFor(Class<?> iface) throws SQLException {
         loggerExternal.entering(getClassNameLogging(), "isWrapperFor", iface);
         boolean f = iface.isInstance(this);
-        loggerExternal.exiting(getClassNameLogging(), "isWrapperFor", Boolean.valueOf(f));
+        loggerExternal.exiting(getClassNameLogging(), "isWrapperFor", f);
         return f;
     }
 

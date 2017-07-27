@@ -268,12 +268,12 @@ enum SQLServerDriverStringProperty
 }
 
 enum SQLServerDriverIntProperty {
-	PACKET_SIZE                                ("packetSize",                              TDS.DEFAULT_PACKET_SIZE),			
-	LOCK_TIMEOUT                               ("lockTimeout",                             -1),
-	LOGIN_TIMEOUT                              ("loginTimeout",                            15),
-	QUERY_TIMEOUT                              ("queryTimeout",                            -1),
-	PORT_NUMBER                                ("portNumber",                              1433),
-	SOCKET_TIMEOUT                             ("socketTimeout",                           0),
+    PACKET_SIZE                                ("packetSize",                              TDS.DEFAULT_PACKET_SIZE),            
+    LOCK_TIMEOUT                               ("lockTimeout",                             -1),
+    LOGIN_TIMEOUT                              ("loginTimeout",                            15),
+    QUERY_TIMEOUT                              ("queryTimeout",                            -1),
+    PORT_NUMBER                                ("portNumber",                              1433),
+    SOCKET_TIMEOUT                             ("socketTimeout",                           0),
     SERVER_PREPARED_STATEMENT_DISCARD_THRESHOLD("serverPreparedStatementDiscardThreshold", SQLServerConnection.DEFAULT_SERVER_PREPARED_STATEMENT_DISCARD_THRESHOLD),
     STATEMENT_POOLING_CACHE_SIZE               ("statementPoolingCacheSize",               SQLServerConnection.DEFAULT_STATEMENT_POOLING_CACHE_SIZE),
     ;  
@@ -298,19 +298,19 @@ enum SQLServerDriverIntProperty {
 
 enum SQLServerDriverBooleanProperty 
 {
-	DISABLE_STATEMENT_POOLING                 ("disableStatementPooling",                   false),
-	ENCRYPT                                   ("encrypt",                                   false),	
-	INTEGRATED_SECURITY                       ("integratedSecurity",                        false),
-	LAST_UPDATE_COUNT                         ("lastUpdateCount",                           true),
-	MULTI_SUBNET_FAILOVER                     ("multiSubnetFailover",                       false),
-	SERVER_NAME_AS_ACE                        ("serverNameAsACE",                           false),
-	SEND_STRING_PARAMETERS_AS_UNICODE         ("sendStringParametersAsUnicode",             true),
-	SEND_TIME_AS_DATETIME                     ("sendTimeAsDatetime",                        true),
-	TRANSPARENT_NETWORK_IP_RESOLUTION         ("TransparentNetworkIPResolution",            true),
-	TRUST_SERVER_CERTIFICATE                  ("trustServerCertificate",                    false),
-	XOPEN_STATES                              ("xopenStates",                               false),
-	FIPS                                      ("fips",                                      false),
-	ENABLE_PREPARE_ON_FIRST_PREPARED_STATEMENT("enablePrepareOnFirstPreparedStatementCall", SQLServerConnection.DEFAULT_ENABLE_PREPARE_ON_FIRST_PREPARED_STATEMENT_CALL);
+    DISABLE_STATEMENT_POOLING                 ("disableStatementPooling",                   false),
+    ENCRYPT                                   ("encrypt",                                   false), 
+    INTEGRATED_SECURITY                       ("integratedSecurity",                        false),
+    LAST_UPDATE_COUNT                         ("lastUpdateCount",                           true),
+    MULTI_SUBNET_FAILOVER                     ("multiSubnetFailover",                       false),
+    SERVER_NAME_AS_ACE                        ("serverNameAsACE",                           false),
+    SEND_STRING_PARAMETERS_AS_UNICODE         ("sendStringParametersAsUnicode",             true),
+    SEND_TIME_AS_DATETIME                     ("sendTimeAsDatetime",                        true),
+    TRANSPARENT_NETWORK_IP_RESOLUTION         ("TransparentNetworkIPResolution",            true),
+    TRUST_SERVER_CERTIFICATE                  ("trustServerCertificate",                    false),
+    XOPEN_STATES                              ("xopenStates",                               false),
+    FIPS                                      ("fips",                                      false),
+    ENABLE_PREPARE_ON_FIRST_PREPARED_STATEMENT("enablePrepareOnFirstPreparedStatementCall", SQLServerConnection.DEFAULT_ENABLE_PREPARE_ON_FIRST_PREPARED_STATEMENT_CALL);
 
     private final String name;
     private final boolean defaultValue;
@@ -356,7 +356,7 @@ public final class SQLServerDriver implements java.sql.Driver {
         new SQLServerDriverPropertyInfo(SQLServerDriverIntProperty.LOCK_TIMEOUT.toString(),                   			      Integer.toString(SQLServerDriverIntProperty.LOCK_TIMEOUT.getDefaultValue()),         				      false,      null),
         new SQLServerDriverPropertyInfo(SQLServerDriverIntProperty.LOGIN_TIMEOUT.toString(),                  			      Integer.toString(SQLServerDriverIntProperty.LOGIN_TIMEOUT.getDefaultValue()),         				  false,      null),
         new SQLServerDriverPropertyInfo(SQLServerDriverBooleanProperty.MULTI_SUBNET_FAILOVER.toString(),            	      Boolean.toString(SQLServerDriverBooleanProperty.MULTI_SUBNET_FAILOVER.getDefaultValue()),       		  false,      TRUE_FALSE),        
-        new SQLServerDriverPropertyInfo(SQLServerDriverIntProperty.PACKET_SIZE.toString(),                    			      Integer.toString(SQLServerDriverIntProperty.PACKET_SIZE.getDefaultValue()), 							  false,      null),
+        new SQLServerDriverPropertyInfo(SQLServerDriverIntProperty.PACKET_SIZE.toString(),                    			      Integer.toString(SQLServerDriverIntProperty.PACKET_SIZE.getDefaultValue()), 							  false, 	  null),
         new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.PASSWORD.toString(),                      		      SQLServerDriverStringProperty.PASSWORD.getDefaultValue(),           									  true,       null),
         new SQLServerDriverPropertyInfo(SQLServerDriverIntProperty.PORT_NUMBER.toString(),                    			      Integer.toString(SQLServerDriverIntProperty.PORT_NUMBER.getDefaultValue()),       					  false,      null),
         new SQLServerDriverPropertyInfo(SQLServerDriverIntProperty.QUERY_TIMEOUT.toString(),                                  Integer.toString(SQLServerDriverIntProperty.QUERY_TIMEOUT.getDefaultValue()),                           false,      null),
@@ -382,7 +382,7 @@ public final class SQLServerDriver implements java.sql.Driver {
         new SQLServerDriverPropertyInfo(SQLServerDriverBooleanProperty.FIPS.toString(),                                       Boolean.toString(SQLServerDriverBooleanProperty.FIPS.getDefaultValue()),                          	  false,      TRUE_FALSE),
         new SQLServerDriverPropertyInfo(SQLServerDriverBooleanProperty.ENABLE_PREPARE_ON_FIRST_PREPARED_STATEMENT.toString(), Boolean.toString(SQLServerDriverBooleanProperty.ENABLE_PREPARE_ON_FIRST_PREPARED_STATEMENT.getDefaultValue()), false,TRUE_FALSE),
         new SQLServerDriverPropertyInfo(SQLServerDriverIntProperty.SERVER_PREPARED_STATEMENT_DISCARD_THRESHOLD.toString(),    Integer.toString(SQLServerDriverIntProperty.SERVER_PREPARED_STATEMENT_DISCARD_THRESHOLD.getDefaultValue()), false,  null),
-        new SQLServerDriverPropertyInfo(SQLServerDriverIntProperty.STATEMENT_POOLING_CACHE_SIZE.toString(),                   Integer.toString(SQLServerDriverIntProperty.STATEMENT_POOLING_CACHE_SIZE.getDefaultValue()),        	  false,      null),
+        new SQLServerDriverPropertyInfo(SQLServerDriverIntProperty.STATEMENT_POOLING_CACHE_SIZE.toString(),                   Integer.toString(SQLServerDriverIntProperty.STATEMENT_POOLING_CACHE_SIZE.getDefaultValue()),            false,      null),
         new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.JAAS_CONFIG_NAME.toString(),                            SQLServerDriverStringProperty.JAAS_CONFIG_NAME.getDefaultValue(),                                       false,      null),
     };
 
@@ -639,13 +639,13 @@ public final class SQLServerDriver implements java.sql.Driver {
 
     public int getMajorVersion() {
         loggerExternal.entering(getClassNameLogging(), "getMajorVersion");
-        loggerExternal.exiting(getClassNameLogging(), "getMajorVersion", new Integer(SQLJdbcVersion.major));
+        loggerExternal.exiting(getClassNameLogging(), "getMajorVersion", SQLJdbcVersion.major);
         return SQLJdbcVersion.major;
     }
 
     public int getMinorVersion() {
         loggerExternal.entering(getClassNameLogging(), "getMinorVersion");
-        loggerExternal.exiting(getClassNameLogging(), "getMinorVersion", new Integer(SQLJdbcVersion.minor));
+        loggerExternal.exiting(getClassNameLogging(), "getMinorVersion", SQLJdbcVersion.minor);
         return SQLJdbcVersion.minor;
     }
 
@@ -655,7 +655,7 @@ public final class SQLServerDriver implements java.sql.Driver {
 
     /* L0 */ public boolean jdbcCompliant() {
         loggerExternal.entering(getClassNameLogging(), "jdbcCompliant");
-        loggerExternal.exiting(getClassNameLogging(), "jdbcCompliant", Boolean.valueOf(true));
+        loggerExternal.exiting(getClassNameLogging(), "jdbcCompliant", Boolean.TRUE);
         return true;
     }
 }

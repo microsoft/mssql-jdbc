@@ -52,4 +52,9 @@ public final class Types extends Object {
      * The constant in the Java programming language, sometimes referred to as a type code, that identifies the Microsoft SQL type GUID.
      */
     public static final int GUID = -145;
+    
+    /**
+     * The constant in the Java programming language, sometimes referred to as a type code, that identifies the Microsoft SQL type SQL_VARIANT.
+     */
+    public static final int SQL_VARIANT = -156;
 }

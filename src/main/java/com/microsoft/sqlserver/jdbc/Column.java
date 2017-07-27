@@ -18,7 +18,16 @@ import java.util.Calendar;
 final class Column {
     private TypeInfo typeInfo;
     private CryptoMetadata cryptoMetadata;
-
+    private SqlVariant internalVariant;   
+    
+    final void setInternalVariant(SqlVariant type){
+        this.internalVariant = type;
+    }
+    
+    final SqlVariant getInternalVariant(){
+        return this.internalVariant;
+    }
+    
     final TypeInfo getTypeInfo() {
         return typeInfo;
     }
@@ -187,11 +196,12 @@ final class Column {
             Calendar cal,
             TDSReader tdsReader) throws SQLServerException {
         Object value = getterDTV.getValue(jdbcType, typeInfo.getScale(), getterArgs, cal, typeInfo, cryptoMetadata, tdsReader);
+        setInternalVariant(getterDTV.getInternalVariant());
         return (null != filter) ? filter.apply(value, jdbcType) : value;
     }
 
     int getInt(TDSReader tdsReader) throws SQLServerException {
-        return ((Integer) getValue(JDBCType.INTEGER, null, null, tdsReader)).intValue();
+        return (Integer) getValue(JDBCType.INTEGER, null, null, tdsReader);
     }
 
     void updateValue(JDBCType jdbcType,

@@ -48,6 +48,24 @@ final class SQLCollation implements java.io.Serializable
     static final int tdsLength() { return 5; } // Length of collation in TDS (in bytes)
 
     /**
+     * Returns the collation info
+     * 
+     * @return
+     */
+    int getCollationInfo() {
+        return this.info;
+    }
+    
+    /**
+     * return sort ID
+     * 
+     * @return
+     */
+    int getCollationSortID() {
+        return this.sortId;
+    }
+    
+    /**
      * Reads TDS collation from TDS buffer into SQLCollation class.
      * @param tdsReader
      */
