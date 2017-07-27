@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/) 
 
 ## [6.3.0] Stable Release
+### Added
+- Added support for sql_variant datatype [#387](https://github.com/Microsoft/mssql-jdbc/pull/387)
+- Added more Junit tests for AlwaysEncrpyted [#404](https://github.com/Microsoft/mssql-jdbc/pull/404)
+
 ### Fixed Issues 
 - Fixed Turkey locale issue when lowercasing an "i" [#384](https://github.com/Microsoft/mssql-jdbc/pull/384)
 - Fixed issue with incorrect parameter count for INSERT with subquery [#373](https://github.com/Microsoft/mssql-jdbc/pull/373)
@@ -12,10 +16,6 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/)
 - Fixed handling of explicit boxing and unboxing [#84](https://github.com/Microsoft/mssql-jdbc/pull/84)
 - Fixed metadata caching batch query issue [#393](https://github.com/Microsoft/mssql-jdbc/pull/393)
 - Fixed javadoc issue for the newest maven version [#385](https://github.com/Microsoft/mssql-jdbc/pull/385)
-
-### Added
-- Added support for sql_variant datatype [#387](https://github.com/Microsoft/mssql-jdbc/pull/387)
-- Added more Junit tests for AlwaysEncrpyted [#404](https://github.com/Microsoft/mssql-jdbc/pull/404)
 
 ## [6.2.1] Hotfix & Stable Release
 ### Fixed Issues 
