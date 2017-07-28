@@ -127,7 +127,7 @@ Projects that require either of the two features need to explicitly declare the 
 <dependency>
 	<groupId>com.microsoft.azure</groupId>
 	<artifactId>azure-keyvault</artifactId>
-	<version>0.9.7</version>
+	<version>1.0.0</version>
 </dependency>
 ```
 
