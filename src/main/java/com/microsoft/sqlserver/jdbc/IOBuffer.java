@@ -1577,6 +1577,7 @@ final class TDSChannel {
         boolean isFips = false;
         String trustStoreType = null;
         String fipsProvider = null;
+        String sslProtocol = null;
 
         // If anything in here fails, terminate the connection and throw an exception
         try {
@@ -1596,6 +1597,7 @@ final class TDSChannel {
             
             fipsProvider = con.activeConnectionProperties.getProperty(SQLServerDriverStringProperty.FIPS_PROVIDER.toString());
             isFips = Boolean.valueOf(con.activeConnectionProperties.getProperty(SQLServerDriverBooleanProperty.FIPS.toString())); 
+            sslProtocol = con.activeConnectionProperties.getProperty(SQLServerDriverStringProperty.SSL_PROTOCOL.toString());
             
             if (isFips) {
                 validateFips(fipsProvider, trustStoreType, trustStoreFileName);
@@ -1725,7 +1727,7 @@ final class TDSChannel {
             if (logger.isLoggable(Level.FINEST))
                 logger.finest(toString() + " Getting TLS or better SSL context");
 
-            sslContext = SSLContext.getInstance("TLS");
+            sslContext = SSLContext.getInstance(sslProtocol);
             sslContextProvider = sslContext.getProvider();
 
             if (logger.isLoggable(Level.FINEST))
@@ -1741,9 +1743,8 @@ final class TDSChannel {
             if (logger.isLoggable(Level.FINEST))
                 logger.finest(toString() + " Creating SSL socket");
 
-            sslSocket = (SSLSocket) sslContext.getSocketFactory().createSocket(proxySocket, host, port, false); // don't close proxy when SSL socket
-                                                                                                                // is closed
-
+            sslSocket = (SSLSocket) sslContext.getSocketFactory().createSocket(proxySocket, host, port, false); // don't close proxy when SSL socket                                                                                                 // is closed
+            
             // At long last, start the SSL handshake ...
             if (logger.isLoggable(Level.FINER))
                 logger.finer(toString() + " Starting SSL handshake");
