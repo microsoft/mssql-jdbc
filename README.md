@@ -80,7 +80,7 @@ We're now on the Maven Central Repository. Add the following to your POM file:
 <dependency>
 	<groupId>com.microsoft.sqlserver</groupId>
 	<artifactId>mssql-jdbc</artifactId>
-	<version>6.2.1.jre8</version>
+	<version>6.3.0.jre8-preview</version>
 </dependency>
 ```
 The driver can be downloaded from the [Microsoft Download Center](https://www.microsoft.com/en-us/download/details.aspx?displaylang=en&id=11774).
@@ -90,7 +90,7 @@ To get the latest preview version of the driver, add the following to your POM f
 <dependency>
 	<groupId>com.microsoft.sqlserver</groupId>
 	<artifactId>mssql-jdbc</artifactId>
-	<version>6.1.7.jre8-preview</version>
+	<version>6.3.0.jre8-preview</version>
 </dependency>
 ```
 
@@ -120,14 +120,14 @@ Projects that require either of the two features need to explicitly declare the 
 <dependency>
 	<groupId>com.microsoft.sqlserver</groupId>
 	<artifactId>mssql-jdbc</artifactId>
-	<version>6.2.1.jre8</version>
+	<version>6.3.0.jre8-preview</version>
 	<scope>compile</scope>
 </dependency>
 
 <dependency>
 	<groupId>com.microsoft.azure</groupId>
 	<artifactId>azure-keyvault</artifactId>
-	<version>0.9.7</version>
+	<version>1.0.0</version>
 </dependency>
 ```
 
