@@ -244,7 +244,7 @@ final class Util {
         String name = "";
         String value = "";
         StringBuilder builder;
-        
+
         if (!tmpUrl.startsWith(sPrefix))
             return null;
 
@@ -390,7 +390,7 @@ final class Util {
                         if (null != name) {
                             if (logger.isLoggable(Level.FINE)) {
                                 if (false == name.equals(SQLServerDriverStringProperty.USER.toString())) {
-                                    if (!name.toLowerCase().contains("password")) {
+                                    if (!name.toLowerCase(Locale.ENGLISH).contains("password")) {
                                         logger.fine("Property:" + name + " Value:" + value);
                                     }
                                     else {
@@ -605,7 +605,7 @@ final class Util {
         catch (IndexOutOfBoundsException ex) {
             String txtMsg = SQLServerException.checkAndAppendClientConnId(SQLServerException.getErrString("R_stringReadError"), conn);
             MessageFormat form = new MessageFormat(txtMsg);
-            Object[] msgArgs = {new Integer(offset)};
+            Object[] msgArgs = {offset};
             // Re-throw SQLServerException if conversion fails.
             throw new SQLServerException(form.format(msgArgs), null, 0, ex);
         }
@@ -712,6 +712,46 @@ final class Util {
         buffer[7] = tmpByte;
 
         return buffer;
+    }
+
+    static final UUID readGUIDtoUUID(byte[] inputGUID) throws SQLServerException {
+        if (inputGUID.length != 16) {
+            throw new SQLServerException("guid length must be 16", null);
+        }
+
+        // For the first three fields, UUID uses network byte order,
+        // Guid uses native byte order. So we need to reverse
+        // the first three fields before creating a UUID.
+
+        byte tmpByte;
+
+        // Reverse the first 4 bytes
+        tmpByte = inputGUID[0];
+        inputGUID[0] = inputGUID[3];
+        inputGUID[3] = tmpByte;
+        tmpByte = inputGUID[1];
+        inputGUID[1] = inputGUID[2];
+        inputGUID[2] = tmpByte;
+
+        // Reverse the 5th and the 6th
+        tmpByte = inputGUID[4];
+        inputGUID[4] = inputGUID[5];
+        inputGUID[5] = tmpByte;
+
+        // Reverse the 7th and the 8th
+        tmpByte = inputGUID[6];
+        inputGUID[6] = inputGUID[7];
+        inputGUID[7] = tmpByte;
+
+        long msb = 0L;
+        for (int i = 0; i < 8; i++) {
+            msb = msb << 8 | ((long) inputGUID[i]  & 0xFFL);
+        }
+        long lsb = 0L;
+        for (int i = 8; i < 16; i++) {
+            lsb = lsb << 8 | ((long) inputGUID[i]  & 0xFFL);
+        }
+        return new UUID(msb, lsb);
     }
 
     static final String readGUID(byte[] inputGUID) throws SQLServerException {
@@ -911,7 +951,7 @@ final class Util {
             case TIME:
             case DATETIMEOFFSET:
                 return ((null == scale) ? TDS.MAX_FRACTIONAL_SECONDS_SCALE : scale);
-                
+
             case CLOB:
                 return ((null == value) ? 0 : (DataTypes.NTEXT_MAX_CHARS * 2));
 
@@ -953,7 +993,7 @@ final class Util {
     }
 
     static final boolean use42Wrapper;
-    
+
     static {
         boolean supportJDBC42 = true;
         try {

@@ -33,7 +33,7 @@ public final class SQLServerResource extends ListResourceBundle {
 				{"R_dbMirroringWithMultiSubnetFailover", "Connecting to a mirrored SQL Server instance using the multiSubnetFailover connection property is not supported."},
 				{"R_dbMirroringWithReadOnlyIntent", "Connecting to a mirrored SQL Server instance using the ApplicationIntent ReadOnly connection property is not supported."},
 				{"R_ipAddressLimitWithMultiSubnetFailover", "Connecting with the multiSubnetFailover connection property to a SQL Server instance configured with more than {0} IP addresses is not supported."},
-				{"R_connectionTimedOut", "Connection timed out: no further information"},
+				{"R_connectionTimedOut", "Connection timed out: no further information."},
 				{"R_invalidPositionIndex", "The position index {0} is not valid."},  
 				{"R_invalidLength", "The length {0} is not valid."},                         
 				{"R_unknownSSType", "Invalid SQL Server data type {0}."},                        
@@ -96,7 +96,6 @@ public final class SQLServerResource extends ListResourceBundle {
 				{"R_noColumnParameterValue", "No column parameter values were specified to update the row."},
 				{"R_statementMustBeExecuted", "The statement must be executed before any results can be obtained."},
 				{"R_modeSuppliedNotValid", "The supplied mode is not valid."},
-				{"R_variantNotSupported", "The \"variant\" data type is not supported."},
 				{"R_errorConnectionString", "The connection string contains a badly formed name or value."},
 				{"R_errorProcessingComplexQuery", "An error occurred while processing the complex query."},
 				{"R_invalidOffset", "The offset {0} is not valid."},
@@ -104,6 +103,7 @@ public final class SQLServerResource extends ListResourceBundle {
 				{"R_invalidConnection", "The connection URL is invalid."},
 				{"R_cannotTakeArgumentsPreparedOrCallable", "The method {0} cannot take arguments on a PreparedStatement or CallableStatement."},
 				{"R_unsupportedConversionFromTo", "The conversion from {0} to {1} is unsupported."}, // Invalid conversion (e.g. MONEY to Timestamp)
+				{"R_unsupportedConversionTo", "The conversion to {0} is unsupported."}, // Invalid conversion to an unknown type
 				{"R_errorConvertingValue","An error occurred while converting the {0} value to JDBC data type {1}."}, // Data-dependent conversion failure (e.g. "foo" vs. "123", to Integer)
 				{"R_streamIsClosed", "The stream is closed."},
 				{"R_invalidTDS", "The TDS protocol stream is not valid."},
@@ -190,7 +190,7 @@ public final class SQLServerResource extends ListResourceBundle {
 				{"R_socketTimeoutPropertyDescription", "The number of milliseconds to wait before the java.net.SocketTimeoutException is raised."},
 				{"R_serverPreparedStatementDiscardThresholdPropertyDescription", "The threshold for when to close discarded prepare statements on the server (calling a batch of sp_unprepares). A value of 1 or less will cause sp_unprepare to be called immediately on PreparedStatment close."},
 				{"R_enablePrepareOnFirstPreparedStatementCallPropertyDescription", "This setting specifies whether a prepared statement is prepared (sp_prepexec) on first use (property=true) or on second after first calling sp_executesql (property=false)."},
-				{"R_statementPoolingCacheSizePropertyDescription", "This setting specifies the size of the prepared statement cache for a conection. A value less than 1 means no cache."},
+                {"R_statementPoolingCacheSizePropertyDescription", "This setting specifies the size of the prepared statement cache for a conection. A value less than 1 means no cache."},
 				{"R_gsscredentialPropertyDescription", "Impersonated GSS Credential to access SQL Server."}, 
 				{"R_noParserSupport", "An error occurred while instantiating the required parser. Error: \"{0}\""},
 				{"R_writeOnlyXML", "Cannot read from this SQLXML instance. This instance is for writing data only."},
@@ -203,7 +203,7 @@ public final class SQLServerResource extends ListResourceBundle {
 				{"R_isFreed", "This {0} object has been freed. It can no longer be accessed."},
 				{"R_invalidProperty", "This property is not supported: {0}." },
 				{"R_referencingFailedTSP", "The DataSource trustStore password needs to be set." },
-				{"R_valueOutOfRange", "One or more values is out of range of values for the {0} SQL Server data type" },
+				{"R_valueOutOfRange", "One or more values is out of range of values for the {0} SQL Server data type." },
 				{"R_integratedAuthenticationFailed", "Integrated authentication failed."},
 				{"R_permissionDenied", "Security violation. Permission to target \"{0}\" denied."},
 				{"R_getSchemaError", "Error getting default schema name."},
@@ -372,7 +372,7 @@ public final class SQLServerResource extends ListResourceBundle {
 				{"R_invalidKeyStoreFile", "Cannot parse \"{0}\". Either the file format is not valid or the password is not correct."}, // for JKS/PKCS
 				{"R_invalidCEKCacheTtl", "Invalid column encryption key cache time-to-live specified. The columnEncryptionKeyCacheTtl value cannot be negative and timeUnit can only be DAYS, HOURS, MINUTES or SECONDS."}, 
 				{"R_sendTimeAsDateTimeForAE", "Use sendTimeAsDateTime=false with Always Encrypted."}, 
-				{"R_TVPnotWorkWithSetObjectResultSet" , "setObject() with ResultSet is not supported for Table-Valued Parameter. Please use setStructured()"},
+				{"R_TVPnotWorkWithSetObjectResultSet" , "setObject() with ResultSet is not supported for Table-Valued Parameter. Please use setStructured()."},
 				{"R_invalidQueryTimeout", "The queryTimeout {0} is not valid."},
 				{"R_invalidSocketTimeout", "The socketTimeout {0} is not valid."},
 				{"R_fipsPropertyDescription", "Determines if enable FIPS compilant SSL connection between the client and the server."},
@@ -385,5 +385,10 @@ public final class SQLServerResource extends ListResourceBundle {
 				{"R_kerberosLoginFailed", "Kerberos Login failed: {0} due to {1} ({2})"},
 				{"R_StoredProcedureNotFound", "Could not find stored procedure ''{0}''."},
 				{"R_jaasConfigurationNamePropertyDescription", "Login configuration file for Kerberos authentication."},
+				{"R_AKVKeyNotFound", "Key not found: {0}"},
+				{"R_SQLVariantSupport", "SQL_VARIANT datatype is not supported in pre-SQL 2008 version."},
+                {"R_invalidProbbytes", "SQL_VARIANT: invalid probBytes for {0} type."},
+                {"R_invalidStringValue", "SQL_VARIANT does not support string values more than 8000 length."},
+                {"R_invalidValueForTVPWithSQLVariant", "Inserting null value with column type sql_variant in TVP is not supported."},
     };
 }

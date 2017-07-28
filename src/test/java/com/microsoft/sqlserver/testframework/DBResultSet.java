@@ -233,18 +233,18 @@ public class DBResultSet extends AbstractParentWrapper {
         switch (metaData.getColumnType(ordinal + 1)) {
             case java.sql.Types.BIGINT:
                 assertTrue((((Long) expectedData).longValue() == ((Long) retrieved).longValue()),
-                        "Unexpected bigint value, expected: " + ((Long) expectedData).longValue() + " .Retrieved: " + ((Long) retrieved).longValue());
+                        "Unexpected bigint value, expected: " + (Long) expectedData + " .Retrieved: " + (Long) retrieved);
                 break;
 
             case java.sql.Types.INTEGER:
                 assertTrue((((Integer) expectedData).intValue() == ((Integer) retrieved).intValue()), "Unexpected int value, expected : "
-                        + ((Integer) expectedData).intValue() + " ,received: " + ((Integer) retrieved).intValue());
+                        + (Integer) expectedData + " ,received: " + (Integer) retrieved);
                 break;
 
             case java.sql.Types.SMALLINT:
             case java.sql.Types.TINYINT:
                 assertTrue((((Short) expectedData).shortValue() == ((Short) retrieved).shortValue()), "Unexpected smallint/tinyint value, expected: "
-                        + " " + ((Short) expectedData).shortValue() + " received: " + ((Short) retrieved).shortValue());
+                        + " " + (Short) expectedData + " received: " + (Short) retrieved);
                 break;
 
             case java.sql.Types.BIT:
@@ -253,7 +253,7 @@ public class DBResultSet extends AbstractParentWrapper {
                 else
                     expectedData = false;
                 assertTrue((((Boolean) expectedData).booleanValue() == ((Boolean) retrieved).booleanValue()), "Unexpected bit value, expected: "
-                        + ((Boolean) expectedData).booleanValue() + " ,received: " + ((Boolean) retrieved).booleanValue());
+                        + (Boolean) expectedData + " ,received: " + (Boolean) retrieved);
                 break;
 
             case java.sql.Types.DECIMAL:
@@ -264,12 +264,12 @@ public class DBResultSet extends AbstractParentWrapper {
 
             case java.sql.Types.DOUBLE:
                 assertTrue((((Double) expectedData).doubleValue() == ((Double) retrieved).doubleValue()), "Unexpected float value, expected: "
-                        + ((Double) expectedData).doubleValue() + " received: " + ((Double) retrieved).doubleValue());
+                        + (Double) expectedData + " received: " + (Double) retrieved);
                 break;
 
             case java.sql.Types.REAL:
                 assertTrue((((Float) expectedData).floatValue() == ((Float) retrieved).floatValue()),
-                        "Unexpected real value, expected: " + ((Float) expectedData).floatValue() + " received: " + ((Float) retrieved).floatValue());
+                        "Unexpected real value, expected: " + (Float) expectedData + " received: " + (Float) retrieved);
                 break;
 
             case java.sql.Types.VARCHAR:
@@ -350,7 +350,7 @@ public class DBResultSet extends AbstractParentWrapper {
         }
         else if (idx instanceof Integer) {
             isInteger = true;
-            intOrdinal = ((Integer) idx).intValue();
+            intOrdinal = (Integer) idx;
         }
         else {
             // Otherwise

@@ -52,7 +52,6 @@ public class ParameterMetaDataTest extends AbstractTest {
             finally {
                 Utils.dropTableIfExists(tableName, stmt);
             }
-
         }
     }
 
@@ -71,6 +70,29 @@ public class ParameterMetaDataTest extends AbstractTest {
         catch (SQLServerException e) {
             assertTrue(!e.getMessage().contains("com.microsoft.sqlserver.jdbc.SQLServerException"),
                     "SQLServerException should not be wrapped by another SQLServerException.");
+        }
+    }
+    
+    /**
+     * Test ParameterMetaData when parameter name contains braces
+     * 
+     * @throws SQLException
+     */
+    @Test
+    public void testNameWithBraces() throws SQLException {
+        try (Connection con = DriverManager.getConnection(connectionString); Statement stmt = con.createStatement()) {
+
+            stmt.executeUpdate("create table " + tableName + " ([c1_varchar(max)] varchar(max))");
+            try {
+                String query = "insert into " + tableName + " ([c1_varchar(max)]) values (?)";
+
+                try (PreparedStatement pstmt = con.prepareStatement(query)) {
+                    pstmt.getParameterMetaData();
+                }
+            }
+            finally {
+                Utils.dropTableIfExists(tableName, stmt);
+            }
         }
     }
 }

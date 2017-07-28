@@ -34,10 +34,10 @@ public class SQLServerCallableStatement42 extends SQLServerCallableStatement imp
         DriverJDBCVersion.checkSupportsJDBC42();
 
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
-            loggerExternal.entering(getClassNameLogging(), "registerOutParameter", new Object[] {new Integer(index), sqlType});
+            loggerExternal.entering(getClassNameLogging(), "registerOutParameter", new Object[] {index, sqlType});
 
         // getVendorTypeNumber() returns the same constant integer values as in java.sql.Types
-        registerOutParameter(index, sqlType.getVendorTypeNumber().intValue());
+        registerOutParameter(index, sqlType.getVendorTypeNumber());
         loggerExternal.exiting(getClassNameLogging(), "registerOutParameter");
     }
 
@@ -47,10 +47,10 @@ public class SQLServerCallableStatement42 extends SQLServerCallableStatement imp
         DriverJDBCVersion.checkSupportsJDBC42();
 
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
-            loggerExternal.entering(getClassNameLogging(), "registerOutParameter", new Object[] {new Integer(index), sqlType, typeName});
+            loggerExternal.entering(getClassNameLogging(), "registerOutParameter", new Object[] {index, sqlType, typeName});
 
         // getVendorTypeNumber() returns the same constant integer values as in java.sql.Types
-        registerOutParameter(index, sqlType.getVendorTypeNumber().intValue(), typeName);
+        registerOutParameter(index, sqlType.getVendorTypeNumber(), typeName);
 
         loggerExternal.exiting(getClassNameLogging(), "registerOutParameter");
     }
@@ -61,10 +61,10 @@ public class SQLServerCallableStatement42 extends SQLServerCallableStatement imp
         DriverJDBCVersion.checkSupportsJDBC42();
 
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
-            loggerExternal.entering(getClassNameLogging(), "registerOutParameter", new Object[] {new Integer(index), sqlType, new Integer(scale)});
+            loggerExternal.entering(getClassNameLogging(), "registerOutParameter", new Object[] {index, sqlType, scale});
 
         // getVendorTypeNumber() returns the same constant integer values as in java.sql.Types
-        registerOutParameter(index, sqlType.getVendorTypeNumber().intValue(), scale);
+        registerOutParameter(index, sqlType.getVendorTypeNumber(), scale);
 
         loggerExternal.exiting(getClassNameLogging(), "registerOutParameter");
     }
@@ -76,10 +76,10 @@ public class SQLServerCallableStatement42 extends SQLServerCallableStatement imp
         DriverJDBCVersion.checkSupportsJDBC42();
 
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
-            loggerExternal.entering(getClassNameLogging(), "registerOutParameter", new Object[] {new Integer(index), sqlType, new Integer(scale)});
+            loggerExternal.entering(getClassNameLogging(), "registerOutParameter", new Object[] {index, sqlType, scale});
 
         // getVendorTypeNumber() returns the same constant integer values as in java.sql.Types
-        registerOutParameter(index, sqlType.getVendorTypeNumber().intValue(), precision, scale);
+        registerOutParameter(index, sqlType.getVendorTypeNumber(), precision, scale);
 
         loggerExternal.exiting(getClassNameLogging(), "registerOutParameter");
     }
@@ -93,7 +93,7 @@ public class SQLServerCallableStatement42 extends SQLServerCallableStatement imp
             loggerExternal.entering(getClassNameLogging(), "setObject", new Object[] {sCol, obj, jdbcType});
 
         // getVendorTypeNumber() returns the same constant integer values as in java.sql.Types
-        setObject(sCol, obj, jdbcType.getVendorTypeNumber().intValue());
+        setObject(sCol, obj, jdbcType.getVendorTypeNumber());
 
         loggerExternal.exiting(getClassNameLogging(), "setObject");
     }
@@ -108,7 +108,7 @@ public class SQLServerCallableStatement42 extends SQLServerCallableStatement imp
             loggerExternal.entering(getClassNameLogging(), "setObject", new Object[] {sCol, obj, jdbcType, scale});
 
         // getVendorTypeNumber() returns the same constant integer values as in java.sql.Types
-        setObject(sCol, obj, jdbcType.getVendorTypeNumber().intValue(), scale);
+        setObject(sCol, obj, jdbcType.getVendorTypeNumber(), scale);
 
         loggerExternal.exiting(getClassNameLogging(), "setObject");
     }
@@ -124,7 +124,7 @@ public class SQLServerCallableStatement42 extends SQLServerCallableStatement imp
             loggerExternal.entering(getClassNameLogging(), "setObject", new Object[] {sCol, obj, jdbcType, scale, forceEncrypt});
 
         // getVendorTypeNumber() returns the same constant integer values as in java.sql.Types
-        setObject(sCol, obj, jdbcType.getVendorTypeNumber().intValue(), scale, forceEncrypt);
+        setObject(sCol, obj, jdbcType.getVendorTypeNumber(), scale, forceEncrypt);
 
         loggerExternal.exiting(getClassNameLogging(), "setObject");
     }
@@ -138,7 +138,7 @@ public class SQLServerCallableStatement42 extends SQLServerCallableStatement imp
             loggerExternal.entering(getClassNameLogging(), "registerOutParameter", new Object[] {parameterName, sqlType, typeName});
 
         // getVendorTypeNumber() returns the same constant integer values as in java.sql.Types
-        registerOutParameter(parameterName, sqlType.getVendorTypeNumber().intValue(), typeName);
+        registerOutParameter(parameterName, sqlType.getVendorTypeNumber(), typeName);
 
         loggerExternal.exiting(getClassNameLogging(), "registerOutParameter");
     }
@@ -149,10 +149,10 @@ public class SQLServerCallableStatement42 extends SQLServerCallableStatement imp
         DriverJDBCVersion.checkSupportsJDBC42();
 
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
-            loggerExternal.entering(getClassNameLogging(), "registerOutParameter", new Object[] {parameterName, sqlType, new Integer(scale)});
+            loggerExternal.entering(getClassNameLogging(), "registerOutParameter", new Object[] {parameterName, sqlType, scale});
 
         // getVendorTypeNumber() returns the same constant integer values as in java.sql.Types
-        registerOutParameter(parameterName, sqlType.getVendorTypeNumber().intValue(), scale);
+        registerOutParameter(parameterName, sqlType.getVendorTypeNumber(), scale);
 
         loggerExternal.exiting(getClassNameLogging(), "registerOutParameter");
     }
@@ -164,10 +164,10 @@ public class SQLServerCallableStatement42 extends SQLServerCallableStatement imp
         DriverJDBCVersion.checkSupportsJDBC42();
 
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
-            loggerExternal.entering(getClassNameLogging(), "registerOutParameter", new Object[] {parameterName, sqlType, new Integer(scale)});
+            loggerExternal.entering(getClassNameLogging(), "registerOutParameter", new Object[] {parameterName, sqlType, scale});
 
         // getVendorTypeNumber() returns the same constant integer values as in java.sql.Types
-        registerOutParameter(parameterName, sqlType.getVendorTypeNumber().intValue(), precision, scale);
+        registerOutParameter(parameterName, sqlType.getVendorTypeNumber(), precision, scale);
 
         loggerExternal.exiting(getClassNameLogging(), "registerOutParameter");
     }
@@ -180,7 +180,7 @@ public class SQLServerCallableStatement42 extends SQLServerCallableStatement imp
             loggerExternal.entering(getClassNameLogging(), "registerOutParameter", new Object[] {parameterName, sqlType});
 
         // getVendorTypeNumber() returns the same constant integer values as in java.sql.Types
-        registerOutParameter(parameterName, sqlType.getVendorTypeNumber().intValue());
+        registerOutParameter(parameterName, sqlType.getVendorTypeNumber());
 
         loggerExternal.exiting(getClassNameLogging(), "registerOutParameter");
     }

@@ -1357,7 +1357,7 @@ public class SQLServerConnection implements ISQLServerConnection {
             if (sPropValue == null)
                 sPropValue = SQLServerDriverStringProperty.SELECT_METHOD.getDefaultValue();
             if ("cursor".equalsIgnoreCase(sPropValue) || "direct".equalsIgnoreCase(sPropValue)) {
-                activeConnectionProperties.setProperty(sPropKey, sPropValue.toLowerCase());
+                activeConnectionProperties.setProperty(sPropKey, sPropValue.toLowerCase(Locale.ENGLISH));
             }
             else {
                 MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidselectMethod"));
@@ -1370,7 +1370,7 @@ public class SQLServerConnection implements ISQLServerConnection {
             if (sPropValue == null)
                 sPropValue = SQLServerDriverStringProperty.RESPONSE_BUFFERING.getDefaultValue();
             if ("full".equalsIgnoreCase(sPropValue) || "adaptive".equalsIgnoreCase(sPropValue)) {
-                activeConnectionProperties.setProperty(sPropKey, sPropValue.toLowerCase());
+                activeConnectionProperties.setProperty(sPropKey, sPropValue.toLowerCase(Locale.ENGLISH));
             }
             else {
                 MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidresponseBuffering"));
@@ -1398,7 +1398,7 @@ public class SQLServerConnection implements ISQLServerConnection {
             sPropKey = SQLServerDriverIntProperty.STATEMENT_POOLING_CACHE_SIZE.toString();
             if (activeConnectionProperties.getProperty(sPropKey) != null && activeConnectionProperties.getProperty(sPropKey).length() > 0) {
                 try {
-                    int n = (new Integer(activeConnectionProperties.getProperty(sPropKey))).intValue();
+                    int n = new Integer(activeConnectionProperties.getProperty(sPropKey));
                     this.setStatementPoolingCacheSize(n);
                 }
                 catch (NumberFormatException e) {
@@ -1514,7 +1514,7 @@ public class SQLServerConnection implements ISQLServerConnection {
                 throw new SQLServerException(SQLServerException.getErrString("R_AccessTokenWithUserPassword"), null);
             }
 
-            if ((!System.getProperty("os.name").toLowerCase().startsWith("windows"))
+            if ((!System.getProperty("os.name").toLowerCase(Locale.ENGLISH).startsWith("windows"))
                     && (authenticationString.equalsIgnoreCase(SqlAuthentication.ActiveDirectoryIntegrated.toString()))) {
                 throw new SQLServerException(SQLServerException.getErrString("R_AADIntegratedOnNonWindows"), null);
             }
@@ -1535,7 +1535,7 @@ public class SQLServerConnection implements ISQLServerConnection {
             try {
                 String strPort = activeConnectionProperties.getProperty(sPropKey);
                 if (null != strPort) {
-                    nPort = (new Integer(strPort)).intValue();
+                    nPort = new Integer(strPort);
 
                     if ((nPort < 0) || (nPort > 65535)) {
                         MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidPortNumber"));
@@ -1615,7 +1615,7 @@ public class SQLServerConnection implements ISQLServerConnection {
             nLockTimeout = defaultLockTimeOut; // Wait forever
             if (activeConnectionProperties.getProperty(sPropKey) != null && activeConnectionProperties.getProperty(sPropKey).length() > 0) {
                 try {
-                    int n = (new Integer(activeConnectionProperties.getProperty(sPropKey))).intValue();
+                    int n = new Integer(activeConnectionProperties.getProperty(sPropKey));
                     if (n >= defaultLockTimeOut)
                         nLockTimeout = n;
                     else {
@@ -1636,7 +1636,7 @@ public class SQLServerConnection implements ISQLServerConnection {
             queryTimeoutSeconds = defaultQueryTimeout; // Wait forever
             if (activeConnectionProperties.getProperty(sPropKey) != null && activeConnectionProperties.getProperty(sPropKey).length() > 0) {
                 try {
-                    int n = (new Integer(activeConnectionProperties.getProperty(sPropKey))).intValue();
+                    int n = new Integer(activeConnectionProperties.getProperty(sPropKey));
                     if (n >= defaultQueryTimeout) {
                         queryTimeoutSeconds = n;
                     }
@@ -1658,7 +1658,7 @@ public class SQLServerConnection implements ISQLServerConnection {
             socketTimeoutMilliseconds = defaultSocketTimeout; // Wait forever
             if (activeConnectionProperties.getProperty(sPropKey) != null && activeConnectionProperties.getProperty(sPropKey).length() > 0) {
                 try {
-                    int n = (new Integer(activeConnectionProperties.getProperty(sPropKey))).intValue();
+                    int n = new Integer(activeConnectionProperties.getProperty(sPropKey));
                     if (n >= defaultSocketTimeout) {
                         socketTimeoutMilliseconds = n;
                     }
@@ -1678,7 +1678,7 @@ public class SQLServerConnection implements ISQLServerConnection {
             sPropKey = SQLServerDriverIntProperty.SERVER_PREPARED_STATEMENT_DISCARD_THRESHOLD.toString();
             if (activeConnectionProperties.getProperty(sPropKey) != null && activeConnectionProperties.getProperty(sPropKey).length() > 0) {
                 try {
-                    int n = (new Integer(activeConnectionProperties.getProperty(sPropKey))).intValue();
+                    int n = new Integer(activeConnectionProperties.getProperty(sPropKey));
                     setServerPreparedStatementDiscardThreshold(n);
                 }
                 catch (NumberFormatException e) {
@@ -2128,7 +2128,7 @@ public class SQLServerConnection implements ISQLServerConnection {
                     connectionlogger.fine(toString() + " SQL Server port returned by SQL Browser: " + instancePort);
                 try {
                     if (null != instancePort) {
-                        primaryPortNumber = (new Integer(instancePort)).intValue();
+                        primaryPortNumber = new Integer(instancePort);
 
                         if ((primaryPortNumber < 0) || (primaryPortNumber > 65535)) {
                             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidPortNumber"));
@@ -2838,7 +2838,7 @@ public class SQLServerConnection implements ISQLServerConnection {
 
     public void setAutoCommit(boolean newAutoCommitMode) throws SQLServerException {
         if (loggerExternal.isLoggable(Level.FINER)) {
-            loggerExternal.entering(getClassNameLogging(), "setAutoCommit", Boolean.valueOf(newAutoCommitMode));
+            loggerExternal.entering(getClassNameLogging(), "setAutoCommit", newAutoCommitMode);
             if (Util.IsActivityTraceOn())
                 loggerExternal.finer(toString() + " ActivityId: " + ActivityCorrelator.getNext().toString());
         }
@@ -2868,7 +2868,7 @@ public class SQLServerConnection implements ISQLServerConnection {
         checkClosed();
         boolean res = !inXATransaction && databaseAutoCommitMode;
         if (loggerExternal.isLoggable(Level.FINER))
-            loggerExternal.exiting(getClassNameLogging(), "getAutoCommit", Boolean.valueOf(res));
+            loggerExternal.exiting(getClassNameLogging(), "getAutoCommit", res);
         return res;
     }
 
@@ -2971,10 +2971,10 @@ public class SQLServerConnection implements ISQLServerConnection {
         }
 
         // Invalidate statement caches.
-        if(null != preparedStatementHandleCache)
+        if (null != preparedStatementHandleCache)
             preparedStatementHandleCache.clear();
 
-        if(null != parameterMetadataCache)
+        if (null != parameterMetadataCache)
             parameterMetadataCache.clear();
 
         // Clean-up queue etc. related to batching of prepared statement discard actions (sp_unprepare).
@@ -3008,7 +3008,7 @@ public class SQLServerConnection implements ISQLServerConnection {
 
     /* L0 */ public boolean isClosed() throws SQLServerException {
         loggerExternal.entering(getClassNameLogging(), "isClosed");
-        loggerExternal.exiting(getClassNameLogging(), "isClosed", Boolean.valueOf(isSessionUnAvailable()));
+        loggerExternal.exiting(getClassNameLogging(), "isClosed", isSessionUnAvailable());
         return isSessionUnAvailable();
     }
 
@@ -3024,7 +3024,7 @@ public class SQLServerConnection implements ISQLServerConnection {
 
     /* L0 */ public void setReadOnly(boolean readOnly) throws SQLServerException {
         if (loggerExternal.isLoggable(Level.FINER))
-            loggerExternal.entering(getClassNameLogging(), "setReadOnly", Boolean.valueOf(readOnly));
+            loggerExternal.entering(getClassNameLogging(), "setReadOnly", readOnly);
         checkClosed();
         // do nothing per spec
         loggerExternal.exiting(getClassNameLogging(), "setReadOnly");
@@ -3034,7 +3034,7 @@ public class SQLServerConnection implements ISQLServerConnection {
         loggerExternal.entering(getClassNameLogging(), "isReadOnly");
         checkClosed();
         if (loggerExternal.isLoggable(Level.FINER))
-            loggerExternal.exiting(getClassNameLogging(), "isReadOnly", Boolean.valueOf(false));
+            loggerExternal.exiting(getClassNameLogging(), "isReadOnly", Boolean.FALSE);
         return false;
     }
 
@@ -3060,7 +3060,7 @@ public class SQLServerConnection implements ISQLServerConnection {
 
     /* L0 */ public void setTransactionIsolation(int level) throws SQLServerException {
         if (loggerExternal.isLoggable(Level.FINER)) {
-            loggerExternal.entering(getClassNameLogging(), "setTransactionIsolation", new Integer(level));
+            loggerExternal.entering(getClassNameLogging(), "setTransactionIsolation", level);
             if (Util.IsActivityTraceOn()) {
                 loggerExternal.finer(toString() + " ActivityId: " + ActivityCorrelator.getNext().toString());
             }
@@ -3080,7 +3080,7 @@ public class SQLServerConnection implements ISQLServerConnection {
         loggerExternal.entering(getClassNameLogging(), "getTransactionIsolation");
         checkClosed();
         if (loggerExternal.isLoggable(Level.FINER))
-            loggerExternal.exiting(getClassNameLogging(), "getTransactionIsolation", new Integer(transactionIsolationLevel));
+            loggerExternal.exiting(getClassNameLogging(), "getTransactionIsolation", transactionIsolationLevel);
         return transactionIsolationLevel;
     }
 
@@ -3124,7 +3124,7 @@ public class SQLServerConnection implements ISQLServerConnection {
             int resultSetConcurrency) throws SQLServerException {
         if (loggerExternal.isLoggable(Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "createStatement",
-                    new Object[] {new Integer(resultSetType), new Integer(resultSetConcurrency)});
+                    new Object[] {resultSetType, resultSetConcurrency});
         checkClosed();
         Statement st = new SQLServerStatement(this, resultSetType, resultSetConcurrency,
                 SQLServerStatementColumnEncryptionSetting.UseConnectionSetting);
@@ -3137,7 +3137,7 @@ public class SQLServerConnection implements ISQLServerConnection {
             int resultSetConcurrency) throws SQLServerException {
         if (loggerExternal.isLoggable(Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "prepareStatement",
-                    new Object[] {sql, new Integer(resultSetType), new Integer(resultSetConcurrency)});
+                    new Object[] {sql, resultSetType, resultSetConcurrency});
         checkClosed();
 
         PreparedStatement st;
@@ -3161,7 +3161,7 @@ public class SQLServerConnection implements ISQLServerConnection {
             SQLServerStatementColumnEncryptionSetting stmtColEncSetting) throws SQLServerException {
         if (loggerExternal.isLoggable(Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "prepareStatement",
-                    new Object[] {sql, new Integer(resultSetType), new Integer(resultSetConcurrency), stmtColEncSetting});
+                    new Object[] {sql, resultSetType, resultSetConcurrency, stmtColEncSetting});
         checkClosed();
 
         PreparedStatement st;
@@ -3182,7 +3182,7 @@ public class SQLServerConnection implements ISQLServerConnection {
             int resultSetConcurrency) throws SQLServerException {
         if (loggerExternal.isLoggable(Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "prepareCall",
-                    new Object[] {sql, new Integer(resultSetType), new Integer(resultSetConcurrency)});
+                    new Object[] {sql, resultSetType, resultSetConcurrency});
         checkClosed();
 
         CallableStatement st;
@@ -4539,7 +4539,7 @@ public class SQLServerConnection implements ISQLServerConnection {
             int nConcur,
             int resultSetHoldability) throws SQLServerException {
         loggerExternal.entering(getClassNameLogging(), "createStatement",
-                new Object[] {new Integer(nType), new Integer(nConcur), resultSetHoldability});
+                new Object[] {nType, nConcur, resultSetHoldability});
         Statement st = createStatement(nType, nConcur, resultSetHoldability, SQLServerStatementColumnEncryptionSetting.UseConnectionSetting);
         loggerExternal.exiting(getClassNameLogging(), "createStatement", st);
         return st;
@@ -4550,7 +4550,7 @@ public class SQLServerConnection implements ISQLServerConnection {
             int resultSetHoldability,
             SQLServerStatementColumnEncryptionSetting stmtColEncSetting) throws SQLServerException {
         loggerExternal.entering(getClassNameLogging(), "createStatement",
-                new Object[] {new Integer(nType), new Integer(nConcur), resultSetHoldability, stmtColEncSetting});
+                new Object[] {nType, nConcur, resultSetHoldability, stmtColEncSetting});
         checkClosed();
         checkValidHoldability(resultSetHoldability);
         checkMatchesCurrentHoldability(resultSetHoldability);
@@ -4564,7 +4564,7 @@ public class SQLServerConnection implements ISQLServerConnection {
             int nConcur,
             int resultSetHoldability) throws SQLServerException {
         loggerExternal.entering(getClassNameLogging(), "prepareStatement",
-                new Object[] {new Integer(nType), new Integer(nConcur), resultSetHoldability});
+                new Object[] {nType, nConcur, resultSetHoldability});
         PreparedStatement st = prepareStatement(sql, nType, nConcur, resultSetHoldability,
                 SQLServerStatementColumnEncryptionSetting.UseConnectionSetting);
         loggerExternal.exiting(getClassNameLogging(), "prepareStatement", st);
@@ -4603,7 +4603,7 @@ public class SQLServerConnection implements ISQLServerConnection {
             int resultSetHoldability,
             SQLServerStatementColumnEncryptionSetting stmtColEncSetting) throws SQLServerException {
         loggerExternal.entering(getClassNameLogging(), "prepareStatement",
-                new Object[] {new Integer(nType), new Integer(nConcur), resultSetHoldability, stmtColEncSetting});
+                new Object[] {nType, nConcur, resultSetHoldability, stmtColEncSetting});
         checkClosed();
         checkValidHoldability(resultSetHoldability);
         checkMatchesCurrentHoldability(resultSetHoldability);
@@ -4626,7 +4626,7 @@ public class SQLServerConnection implements ISQLServerConnection {
             int nConcur,
             int resultSetHoldability) throws SQLServerException {
         loggerExternal.entering(getClassNameLogging(), "prepareStatement",
-                new Object[] {new Integer(nType), new Integer(nConcur), resultSetHoldability});
+                new Object[] {nType, nConcur, resultSetHoldability});
         CallableStatement st = prepareCall(sql, nType, nConcur, resultSetHoldability, SQLServerStatementColumnEncryptionSetting.UseConnectionSetting);
         loggerExternal.exiting(getClassNameLogging(), "prepareCall", st);
         return st;
@@ -4638,7 +4638,7 @@ public class SQLServerConnection implements ISQLServerConnection {
             int resultSetHoldability,
             SQLServerStatementColumnEncryptionSetting stmtColEncSetiing) throws SQLServerException {
         loggerExternal.entering(getClassNameLogging(), "prepareStatement",
-                new Object[] {new Integer(nType), new Integer(nConcur), resultSetHoldability, stmtColEncSetiing});
+                new Object[] {nType, nConcur, resultSetHoldability, stmtColEncSetiing});
         checkClosed();
         checkValidHoldability(resultSetHoldability);
         checkMatchesCurrentHoldability(resultSetHoldability);
@@ -4660,7 +4660,7 @@ public class SQLServerConnection implements ISQLServerConnection {
 
     /* L3 */ public PreparedStatement prepareStatement(String sql,
             int flag) throws SQLServerException {
-        loggerExternal.entering(getClassNameLogging(), "prepareStatement", new Object[] {sql, new Integer(flag)});
+        loggerExternal.entering(getClassNameLogging(), "prepareStatement", new Object[] {sql, flag});
 
         SQLServerPreparedStatement ps = (SQLServerPreparedStatement) prepareStatement(sql, flag,
                 SQLServerStatementColumnEncryptionSetting.UseConnectionSetting);
@@ -4699,7 +4699,7 @@ public class SQLServerConnection implements ISQLServerConnection {
     public PreparedStatement prepareStatement(String sql,
             int flag,
             SQLServerStatementColumnEncryptionSetting stmtColEncSetting) throws SQLServerException {
-        loggerExternal.entering(getClassNameLogging(), "prepareStatement", new Object[] {sql, new Integer(flag), stmtColEncSetting});
+        loggerExternal.entering(getClassNameLogging(), "prepareStatement", new Object[] {sql, flag, stmtColEncSetting});
         checkClosed();
         SQLServerPreparedStatement ps = (SQLServerPreparedStatement) prepareStatement(sql, ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY,
                 stmtColEncSetting);
@@ -5184,7 +5184,7 @@ public class SQLServerConnection implements ISQLServerConnection {
     public boolean isWrapperFor(Class<?> iface) throws SQLException {
         loggerExternal.entering(getClassNameLogging(), "isWrapperFor", iface);
         boolean f = iface.isInstance(this);
-        loggerExternal.exiting(getClassNameLogging(), "isWrapperFor", Boolean.valueOf(f));
+        loggerExternal.exiting(getClassNameLogging(), "isWrapperFor", f);
         return f;
     }
 

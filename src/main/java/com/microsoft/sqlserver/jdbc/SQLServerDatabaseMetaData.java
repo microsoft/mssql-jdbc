@@ -1917,7 +1917,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
         }
         // if the value is outside of the valid values throw error.
         MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidArgument"));
-        Object[] msgArgs = {new Integer(type)};
+        Object[] msgArgs = {type};
         throw new SQLServerException(null, form.format(msgArgs), null, 0, true);
     }
 
@@ -1933,7 +1933,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
         }
         // if the value is outside of the valid values throw error.
         MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidArgument"));
-        Object[] msgArgs = {new Integer(type)};
+        Object[] msgArgs = {type};
         throw new SQLServerException(null, form.format(msgArgs), null, 0, true);
     }
 
@@ -1988,7 +1988,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
         if (p > 0)
             s = s.substring(0, p);
         try {
-            return new Integer(s).intValue();
+            return new Integer(s);
         }
         catch (NumberFormatException e) {
             return 0;
@@ -2003,7 +2003,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
         if (p > 0 && q > 0)
             s = s.substring(p + 1, q);
         try {
-            return new Integer(s).intValue();
+            return new Integer(s);
         }
         catch (NumberFormatException e) {
             return 0;
@@ -2038,7 +2038,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
 
         // if the value is outside of the valid values throw error.
         MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidArgument"));
-        Object[] msgArgs = {new Integer(holdability)};
+        Object[] msgArgs = {holdability};
         throw new SQLServerException(null, form.format(msgArgs), null, 0, true);
     }
 
@@ -2202,12 +2202,12 @@ abstract class IntColumnFilter extends ColumnFilter {
 
         switch (asJDBCType) {
             case INTEGER:
-                return new Integer(oneValueToAnother(((Integer) value).intValue()));
+                return oneValueToAnother((Integer) value);
             case SMALLINT: // small and tinyint returned as short
             case TINYINT:
-                return new Short((short) oneValueToAnother(((Short) value).intValue()));
+                return (short) oneValueToAnother(((Short) value).intValue());
             case BIGINT:
-                return new Long(oneValueToAnother(((Long) value).intValue()));
+                return (long) oneValueToAnother(((Long) value).intValue());
             case CHAR:
             case VARCHAR:
             case LONGVARCHAR:

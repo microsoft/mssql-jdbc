@@ -134,6 +134,9 @@ final class TDS {
     static final int FLAG_TVP_DEFAULT_COLUMN = 0x200;
 
     static final int FEATURE_EXT_TERMINATOR = -1;
+    
+    // Sql_variant length
+    static final int SQL_VARIANT_LENGTH = 8009;
 
     static final String getTokenName(int tdsTokenType) {
         switch (tdsTokenType) {
@@ -1383,7 +1386,7 @@ final class TDSChannel {
             this.logContext = tdsChannel.toString() + " (HostNameOverrideX509TrustManager):";
             defaultTrustManager = tm;
             // canonical name is in lower case so convert this to lowercase too.
-            this.hostName = hostName.toLowerCase();
+            this.hostName = hostName.toLowerCase(Locale.ENGLISH);
             ;
         }
 
@@ -1506,13 +1509,11 @@ final class TDSChannel {
                                 if (value != null && value instanceof String) {
                                     String dnsNameInSANCert = (String) value;
 
-                                    // convert to upper case and then to lower case in english locale
-                                    // to avoid Turkish i issues.
+                                    // Use English locale to avoid Turkish i issues.
                                     // Note that, this conversion was not necessary for
                                     // cert.getSubjectX500Principal().getName("canonical");
                                     // as the above API already does this by default as per documentation.
-                                    dnsNameInSANCert = dnsNameInSANCert.toUpperCase(Locale.US);
-                                    dnsNameInSANCert = dnsNameInSANCert.toLowerCase(Locale.US);
+                                    dnsNameInSANCert = dnsNameInSANCert.toLowerCase(Locale.ENGLISH);
 
                                     isServerNameValidated = validateServerName(dnsNameInSANCert);
 
@@ -2588,17 +2589,17 @@ final class SocketFinder {
             }
         }
 
-     // if a channel was selected, make the necessary updates
+        // if a channel was selected, make the necessary updates
         if (selectedChannel != null) {
-            //the selectedChannel has the address that is connected successfully
-            //convert it to a java.net.Socket object with the address
-            SocketAddress  iadd = selectedChannel.getRemoteAddress();
+            // the selectedChannel has the address that is connected successfully
+            // convert it to a java.net.Socket object with the address
+            SocketAddress iadd = selectedChannel.getRemoteAddress();
             selectedSocket = new Socket();
             selectedSocket.connect(iadd);
 
             result = Result.SUCCESS;
-            
-            //close the channel since it is not used anymore
+
+            // close the channel since it is not used anymore
             selectedChannel.close();
         }
     }
@@ -3238,6 +3239,17 @@ final class TDSWriter {
         }
     }
 
+    /**
+     * writing sqlCollation information for sqlVariant type when sending character types.
+     * 
+     * @param variantType
+     * @throws SQLServerException
+     */
+    void writeCollationForSqlVariant(SqlVariant variantType) throws SQLServerException {
+        writeInt(variantType.getCollation().getCollationInfo());
+        writeByte((byte) (variantType.getCollation().getCollationSortID() & 0xFF));
+    }
+
     void writeChar(char value) throws SQLServerException {
         if (stagingBuffer.remaining() >= 2) {
             stagingBuffer.putChar(value);
@@ -3293,7 +3305,7 @@ final class TDSWriter {
      *            the data value
      */
     void writeReal(Float value) throws SQLServerException {
-        writeInt(Float.floatToRawIntBits(value.floatValue()));
+        writeInt(Float.floatToRawIntBits(value));
     }
 
     /**
@@ -3362,6 +3374,64 @@ final class TDSWriter {
         byte[] valueBytes = DDC.convertBigDecimalToBytes(bigDecimalVal, scale);
         // removing the precision and scale information from the valueBytes array
         System.arraycopy(valueBytes, 2, bytes, 0, valueBytes.length - 2);
+        writeBytes(bytes);
+    }
+    
+    /**
+     * Append a big decimal inside sql_variant in the TDS stream.
+     * 
+     * @param bigDecimalVal
+     *            the big decimal data value
+     * @param srcJdbcType
+     *            the source JDBCType
+     */
+    void writeSqlVariantInternalBigDecimal(BigDecimal bigDecimalVal,
+            int srcJdbcType) throws SQLServerException {
+        /*
+         * Length including sign byte One 1-byte unsigned integer that represents the sign of the decimal value (0 => Negative, 1 => positive) One
+         * 16-byte signed integer that represents the decimal value multiplied by 10^scale. In sql_variant, we send the bigdecimal with precision 38,
+         * therefore we use 16 bytes for the maximum size of this integer.
+         */
+
+        boolean isNegative = (bigDecimalVal.signum() < 0);
+        BigInteger bi = bigDecimalVal.unscaledValue();
+        if (isNegative)
+        {
+            bi = bi.negate();
+        }
+        int bLength;
+        bLength = BYTES16;
+
+        writeByte((byte) (isNegative ? 0 : 1));
+
+        // Get the bytes of the BigInteger value. It is in reverse order, with
+        // most significant byte in 0-th element. We need to reverse it first before sending over TDS.
+        byte[] unscaledBytes = bi.toByteArray();
+
+        if (unscaledBytes.length > bLength) {
+            // If precession of input is greater than maximum allowed (p><= 38) throw Exception
+            MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_valueOutOfRange"));
+            Object[] msgArgs = {JDBCType.of(srcJdbcType)};
+            throw new SQLServerException(form.format(msgArgs), SQLState.DATA_EXCEPTION_LENGTH_MISMATCH, DriverError.NOT_SET, null);
+        }
+
+        // Byte array to hold all the reversed and padding bytes.
+        byte[] bytes = new byte[bLength];
+
+        // We need to fill up the rest of the array with zeros, as unscaledBytes may have less bytes
+        // than the required size for TDS.
+        int remaining = bLength - unscaledBytes.length;
+
+        // Reverse the bytes.
+        int i, j;
+        for (i = 0, j = unscaledBytes.length - 1; i < unscaledBytes.length;)
+            bytes[i++] = unscaledBytes[j--];
+
+        // Fill the rest of the array with zeros.
+        for (; i < remaining; i++)
+        {
+            bytes[i] = (byte) 0x00;
+        }
         writeBytes(bytes);
     }
 
@@ -3781,7 +3851,7 @@ final class TDSWriter {
         // the actual stream length did not match then cancel the request.
         if (DataTypes.UNKNOWN_STREAM_LENGTH != advertisedLength && actualLength != advertisedLength) {
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_mismatchedStreamLength"));
-            Object[] msgArgs = {Long.valueOf(advertisedLength), Long.valueOf(actualLength)};
+            Object[] msgArgs = {advertisedLength, actualLength};
             error(form.format(msgArgs), SQLState.DATA_EXCEPTION_LENGTH_MISMATCH, DriverError.NOT_SET);
         }
     }
@@ -3866,10 +3936,10 @@ final class TDSWriter {
         // the actual stream length did not match then cancel the request.
         if (DataTypes.UNKNOWN_STREAM_LENGTH != advertisedLength && actualLength != advertisedLength) {
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_mismatchedStreamLength"));
-            Object[] msgArgs = {Long.valueOf(advertisedLength), Long.valueOf(actualLength)};
+            Object[] msgArgs = {advertisedLength, actualLength};
             error(form.format(msgArgs), SQLState.DATA_EXCEPTION_LENGTH_MISMATCH, DriverError.NOT_SET);
         }
-    }
+    }   
 
     /*
      * Note: There is another method with same code logic for non unicode reader, writeNonUnicodeReader(), implemented for performance efficiency. Any
@@ -3931,7 +4001,7 @@ final class TDSWriter {
         // the actual stream length did not match then cancel the request.
         if (DataTypes.UNKNOWN_STREAM_LENGTH != advertisedLength && actualLength != advertisedLength) {
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_mismatchedStreamLength"));
-            Object[] msgArgs = {Long.valueOf(advertisedLength), Long.valueOf(actualLength)};
+            Object[] msgArgs = {advertisedLength, actualLength};
             error(form.format(msgArgs), SQLState.DATA_EXCEPTION_LENGTH_MISMATCH, DriverError.NOT_SET);
         }
     }
@@ -4153,7 +4223,7 @@ final class TDSWriter {
         }
         else {
             writeByte((byte) 1); // length of datatype
-            writeByte((byte) (booleanValue.booleanValue() ? 1 : 0));
+            writeByte((byte) (booleanValue ? 1 : 0));
         }
     }
 
@@ -4177,7 +4247,7 @@ final class TDSWriter {
         }
         else {
             writeByte((byte) 1); // length of datatype
-            writeByte(byteValue.byteValue());
+            writeByte(byteValue);
         }
     }
 
@@ -4201,7 +4271,7 @@ final class TDSWriter {
         }
         else {
             writeByte((byte) 2); // length of datatype
-            writeShort(shortValue.shortValue());
+            writeShort(shortValue);
         }
     }
 
@@ -4225,7 +4295,7 @@ final class TDSWriter {
         }
         else {
             writeByte((byte) 4); // length of datatype
-            writeInt(intValue.intValue());
+            writeInt(intValue);
         }
     }
 
@@ -4249,7 +4319,7 @@ final class TDSWriter {
         }
         else {
             writeByte((byte) 8); // length of datatype
-            writeLong(longValue.longValue());
+            writeLong(longValue);
         }
     }
 
@@ -4276,7 +4346,19 @@ final class TDSWriter {
         else {
             writeByte((byte) 4); // max length
             writeByte((byte) 4); // actual length
-            writeInt(Float.floatToRawIntBits(floatValue.floatValue()));
+            writeInt(Float.floatToRawIntBits(floatValue));
+        }
+    }
+
+    void writeRPCSqlVariant(String sName,
+            SqlVariant sqlVariantValue,
+            boolean bOut) throws SQLServerException {
+        writeRPCNameValType(sName, bOut, TDSType.SQL_VARIANT);
+
+        // Data and length
+        if (null == sqlVariantValue) {
+            writeInt(0); // max length
+            writeInt(0); // actual length
         }
     }
 
@@ -4304,7 +4386,7 @@ final class TDSWriter {
         }
         else {
             writeByte((byte) l); // len of data bytes
-            long bits = Double.doubleToLongBits(doubleValue.doubleValue());
+            long bits = Double.doubleToLongBits(doubleValue);
             long mask = 0xFF;
             int nShift = 0;
             for (int i = 0; i < 8; i++) {
@@ -4526,9 +4608,6 @@ final class TDSWriter {
     }
 
     void writeTVPRows(TVP value) throws SQLServerException {
-        boolean isShortValue, isNull;
-        int dataLength;
-        
         boolean tdsWritterCached = false;
         ByteBuffer cachedTVPHeaders = null;
         TDSCommand cachedCommand = null;
@@ -4536,7 +4615,7 @@ final class TDSWriter {
         boolean cachedRequestComplete = false;
         boolean cachedInterruptsEnabled = false;
         boolean cachedProcessedResponse = false;
-        
+
         if (!value.isNull()) {
 
             // If the preparedStatement and the ResultSet are created by the same connection, and TVP is set with ResultSet and Server Cursor
@@ -4566,12 +4645,12 @@ final class TDSWriter {
                     }
                 }
             }
-            
+
             Map<Integer, SQLServerMetaData> columnMetadata = value.getColumnMetadata();
             Iterator<Entry<Integer, SQLServerMetaData>> columnsIterator;
 
             while (value.next()) {
-                
+
                 // restore command and TDS header, which have been overwritten by value.next()
                 if (tdsWritterCached) {
                     command = cachedCommand;
@@ -4580,7 +4659,7 @@ final class TDSWriter {
                     logBuffer.clear();
                     writeBytes(cachedTVPHeaders.array(), 0, cachedTVPHeaders.position());
                 }
-                
+
                 Object[] rowData = value.getRowData();
 
                 // ROW
@@ -4609,201 +4688,7 @@ final class TDSWriter {
                             }
                         }
                     }
-                    try {
-                        switch (jdbcType) {
-                            case BIGINT:
-                                if (null == currentColumnStringValue)
-                                    writeByte((byte) 0);
-                                else {
-                                    writeByte((byte) 8);
-                                    writeLong(Long.valueOf(currentColumnStringValue).longValue());
-                                }
-                                break;
-
-                            case BIT:
-                                if (null == currentColumnStringValue)
-                                    writeByte((byte) 0);
-                                else {
-                                    writeByte((byte) 1);
-                                    writeByte((byte) (Boolean.valueOf(currentColumnStringValue).booleanValue() ? 1 : 0));
-                                }
-                                break;
-
-                            case INTEGER:
-                                if (null == currentColumnStringValue)
-                                    writeByte((byte) 0);
-                                else {
-                                    writeByte((byte) 4);
-                                    writeInt(Integer.valueOf(currentColumnStringValue).intValue());
-                                }
-                                break;
-
-                            case SMALLINT:
-                            case TINYINT:
-                                if (null == currentColumnStringValue)
-                                    writeByte((byte) 0);
-                                else {
-                                    writeByte((byte) 2); // length of datatype
-                                    writeShort(Short.valueOf(currentColumnStringValue).shortValue());
-                                }
-                                break;
-
-                            case DECIMAL:
-                            case NUMERIC:
-                                if (null == currentColumnStringValue)
-                                    writeByte((byte) 0);
-                                else {
-                                    writeByte((byte) TDSWriter.BIGDECIMAL_MAX_LENGTH); // maximum length
-                                    BigDecimal bdValue = new BigDecimal(currentColumnStringValue);
-
-                                    /*
-                                     * setScale of all BigDecimal value based on metadata as scale is not sent seperately for individual value. Use
-                                     * the rounding used in Server. Say, for BigDecimal("0.1"), if scale in metdadata is 0, then ArithmeticException
-                                     * would be thrown if RoundingMode is not set
-                                     */
-                                    bdValue = bdValue.setScale(columnPair.getValue().scale, RoundingMode.HALF_UP);
-
-                                    byte[] valueBytes = DDC.convertBigDecimalToBytes(bdValue, bdValue.scale());
-
-                                    // 1-byte for sign and 16-byte for integer
-                                    byte[] byteValue = new byte[17];
-
-                                    // removing the precision and scale information from the valueBytes array
-                                    System.arraycopy(valueBytes, 2, byteValue, 0, valueBytes.length - 2);
-                                    writeBytes(byteValue);
-                                }
-                                break;
-
-                            case DOUBLE:
-                                if (null == currentColumnStringValue)
-                                    writeByte((byte) 0); // len of data bytes
-                                else {
-                                    writeByte((byte) 8); // len of data bytes
-                                    long bits = Double.doubleToLongBits(Double.valueOf(currentColumnStringValue).doubleValue());
-                                    long mask = 0xFF;
-                                    int nShift = 0;
-                                    for (int i = 0; i < 8; i++) {
-                                        writeByte((byte) ((bits & mask) >> nShift));
-                                        nShift += 8;
-                                        mask = mask << 8;
-                                    }
-                                }
-                                break;
-
-                            case FLOAT:
-                            case REAL:
-                                if (null == currentColumnStringValue)
-                                    writeByte((byte) 0); // actual length (0 == null)
-                                else {
-                                    writeByte((byte) 4); // actual length
-                                    writeInt(Float.floatToRawIntBits(Float.valueOf(currentColumnStringValue).floatValue()));
-                                }
-                                break;
-
-                            case DATE:
-                            case TIME:
-                            case TIMESTAMP:
-                            case DATETIMEOFFSET:
-                            case TIMESTAMP_WITH_TIMEZONE:
-                            case TIME_WITH_TIMEZONE:
-                            case CHAR:
-                            case VARCHAR:
-                            case NCHAR:
-                            case NVARCHAR:
-                            case LONGVARCHAR:
-                            case LONGNVARCHAR:
-                            case SQLXML:
-                                isShortValue = (2L * columnPair.getValue().precision) <= DataTypes.SHORT_VARTYPE_MAX_BYTES;
-                                isNull = (null == currentColumnStringValue);
-                                dataLength = isNull ? 0 : currentColumnStringValue.length() * 2;
-                                if (!isShortValue) {
-                                    // check null
-                                    if (isNull)
-                                        // Null header for v*max types is 0xFFFFFFFFFFFFFFFF.
-                                        writeLong(0xFFFFFFFFFFFFFFFFL);
-                                    else if (DataTypes.UNKNOWN_STREAM_LENGTH == dataLength)
-                                        // Append v*max length.
-                                        // UNKNOWN_PLP_LEN is 0xFFFFFFFFFFFFFFFE
-                                        writeLong(0xFFFFFFFFFFFFFFFEL);
-                                    else
-                                        // For v*max types with known length, length is <totallength8><chunklength4>
-                                        writeLong(dataLength);
-                                    if (!isNull) {
-                                        if (dataLength > 0) {
-                                            writeInt(dataLength);
-                                            writeString(currentColumnStringValue);
-                                        }
-                                        // Send the terminator PLP chunk.
-                                        writeInt(0);
-                                    }
-                                }
-                                else {
-                                    if (isNull)
-                                        writeShort((short) -1); // actual len
-                                    else {
-                                        writeShort((short) dataLength);
-                                        writeString(currentColumnStringValue);
-                                    }
-                                }
-                                break;
-
-                            case BINARY:
-                            case VARBINARY:
-                            case LONGVARBINARY:
-                                // Handle conversions as done in other types.
-                                isShortValue = columnPair.getValue().precision <= DataTypes.SHORT_VARTYPE_MAX_BYTES;
-                                isNull = (null == currentObject);
-                                if (currentObject instanceof String)
-                                    dataLength = isNull ? 0 : (toByteArray(currentObject.toString())).length;
-                                else
-                                    dataLength = isNull ? 0 : ((byte[]) currentObject).length;
-                                if (!isShortValue) {
-                                    // check null
-                                    if (isNull)
-                                        // Null header for v*max types is 0xFFFFFFFFFFFFFFFF.
-                                        writeLong(0xFFFFFFFFFFFFFFFFL);
-                                    else if (DataTypes.UNKNOWN_STREAM_LENGTH == dataLength)
-                                        // Append v*max length.
-                                        // UNKNOWN_PLP_LEN is 0xFFFFFFFFFFFFFFFE
-                                        writeLong(0xFFFFFFFFFFFFFFFEL);
-                                    else
-                                        // For v*max types with known length, length is <totallength8><chunklength4>
-                                        writeLong(dataLength);
-                                    if (!isNull) {
-                                        if (dataLength > 0) {
-                                            writeInt(dataLength);
-                                            if (currentObject instanceof String)
-                                                writeBytes(toByteArray(currentObject.toString()));
-                                            else
-                                                writeBytes((byte[]) currentObject);
-                                        }
-                                        // Send the terminator PLP chunk.
-                                        writeInt(0);
-                                    }
-                                }
-                                else {
-                                    if (isNull)
-                                        writeShort((short) -1); // actual len
-                                    else {
-                                        writeShort((short) dataLength);
-                                        if (currentObject instanceof String)
-                                            writeBytes(toByteArray(currentObject.toString()));
-                                        else
-                                            writeBytes((byte[]) currentObject);
-                                    }
-                                }
-                                break;
-
-                            default:
-                                assert false : "Unexpected JDBC type " + jdbcType.toString();
-                        }
-                    }
-                    catch (IllegalArgumentException e) {
-                        throw new SQLServerException(SQLServerException.getErrString("R_errorConvertingValue"), e);
-                    }
-                    catch (ArrayIndexOutOfBoundsException e) {
-                        throw new SQLServerException(SQLServerException.getErrString("R_CSVDataSchemaMismatch"), e);
-                    }
+                    writeInternalTVPRowValues(jdbcType, currentColumnStringValue, currentObject, columnPair, false);
                     currentColumn++;
                 }
 
@@ -4840,6 +4725,303 @@ final class TDSWriter {
             // TVP_END_TOKEN
             writeByte((byte) 0x00);
         }
+    }
+
+    private void writeInternalTVPRowValues(JDBCType jdbcType,
+            String currentColumnStringValue,
+            Object currentObject,
+            Map.Entry<Integer, SQLServerMetaData> columnPair,
+            boolean isSqlVariant) throws SQLServerException {
+        boolean isShortValue, isNull;
+        int dataLength;
+        switch (jdbcType) {
+            case BIGINT:
+                if (null == currentColumnStringValue)
+                    writeByte((byte) 0);
+                else {
+                    if (isSqlVariant) {
+                        writeTVPSqlVariantHeader(10, TDSType.INT8.byteValue(), (byte) 0);
+                    }
+                    else {
+                        writeByte((byte) 8);
+                    }
+                    writeLong(Long.valueOf(currentColumnStringValue).longValue());
+                }
+                break;
+
+            case BIT:
+                if (null == currentColumnStringValue)
+                    writeByte((byte) 0);
+                else {
+                    if (isSqlVariant)
+                        writeTVPSqlVariantHeader(3, TDSType.BIT1.byteValue(), (byte) 0);
+                    else
+                        writeByte((byte) 1);
+                    writeByte((byte) (Boolean.valueOf(currentColumnStringValue).booleanValue() ? 1 : 0));
+                }
+                break;
+
+            case INTEGER:
+                if (null == currentColumnStringValue)
+                    writeByte((byte) 0);
+                else {
+                    if (!isSqlVariant)
+                        writeByte((byte) 4);
+                    else
+                        writeTVPSqlVariantHeader(6, TDSType.INT4.byteValue(), (byte) 0);
+                    writeInt(Integer.valueOf(currentColumnStringValue).intValue());
+                }
+                break;
+
+            case SMALLINT:
+            case TINYINT:
+                if (null == currentColumnStringValue)
+                    writeByte((byte) 0);
+                else {
+                    if (isSqlVariant) {
+                        writeTVPSqlVariantHeader(6, TDSType.INT4.byteValue(), (byte) 0);
+                        writeInt(Integer.valueOf(currentColumnStringValue));
+                    }
+                    else {
+                        writeByte((byte) 2); // length of datatype
+                        writeShort(Short.valueOf(currentColumnStringValue).shortValue());
+                    }
+                }
+                break;
+
+            case DECIMAL:
+            case NUMERIC:
+                if (null == currentColumnStringValue)
+                    writeByte((byte) 0);
+                else {
+                    if (isSqlVariant) {
+                        writeTVPSqlVariantHeader(21, TDSType.DECIMALN.byteValue(), (byte) 2);
+                        writeByte((byte) 38); // scale (byte)variantType.getScale()
+                        writeByte((byte) 4); // scale (byte)variantType.getScale()
+                    }
+                    else {
+                        writeByte((byte) TDSWriter.BIGDECIMAL_MAX_LENGTH); // maximum length
+                    }
+                    BigDecimal bdValue = new BigDecimal(currentColumnStringValue);
+
+                    /*
+                     * setScale of all BigDecimal value based on metadata as scale is not sent seperately for individual value. Use the rounding used
+                     * in Server. Say, for BigDecimal("0.1"), if scale in metdadata is 0, then ArithmeticException would be thrown if RoundingMode is
+                     * not set
+                     */
+                    bdValue = bdValue.setScale(columnPair.getValue().scale, RoundingMode.HALF_UP);
+
+                    byte[] valueBytes = DDC.convertBigDecimalToBytes(bdValue, bdValue.scale());
+
+                    // 1-byte for sign and 16-byte for integer
+                    byte[] byteValue = new byte[17];
+
+                    // removing the precision and scale information from the valueBytes array
+                    System.arraycopy(valueBytes, 2, byteValue, 0, valueBytes.length - 2);
+                    writeBytes(byteValue);
+                }
+                break;
+
+            case DOUBLE:
+                if (null == currentColumnStringValue)
+                    writeByte((byte) 0); // len of data bytes
+                else {
+                    if (isSqlVariant) {
+                        writeTVPSqlVariantHeader(10, TDSType.FLOAT8.byteValue(), (byte) 0);
+                        writeDouble(Double.valueOf(currentColumnStringValue.toString()));
+                        break;
+                    }
+                    writeByte((byte) 8); // len of data bytes
+                    long bits = Double.doubleToLongBits(Double.valueOf(currentColumnStringValue).doubleValue());
+                    long mask = 0xFF;
+                    int nShift = 0;
+                    for (int i = 0; i < 8; i++) {
+                        writeByte((byte) ((bits & mask) >> nShift));
+                        nShift += 8;
+                        mask = mask << 8;
+                    }
+                }
+                break;
+
+            case FLOAT:
+            case REAL:
+                if (null == currentColumnStringValue)
+                    writeByte((byte) 0);
+                else {
+                    if (isSqlVariant) {
+                        writeTVPSqlVariantHeader(6, TDSType.FLOAT4.byteValue(), (byte) 0);
+                        writeInt(Float.floatToRawIntBits(Float.valueOf(currentColumnStringValue).floatValue()));
+                    }
+                    else {
+                        writeByte((byte) 4);
+                        writeInt(Float.floatToRawIntBits(Float.valueOf(currentColumnStringValue).floatValue()));
+                    }
+                }
+                break;
+
+            case DATE:
+            case TIME:
+            case TIMESTAMP:
+            case DATETIMEOFFSET:
+            case TIMESTAMP_WITH_TIMEZONE:
+            case TIME_WITH_TIMEZONE:
+            case CHAR:
+            case VARCHAR:
+            case NCHAR:
+            case NVARCHAR:
+            case LONGVARCHAR:
+            case LONGNVARCHAR:
+            case SQLXML:
+                isShortValue = (2L * columnPair.getValue().precision) <= DataTypes.SHORT_VARTYPE_MAX_BYTES;
+                isNull = (null == currentColumnStringValue);
+                dataLength = isNull ? 0 : currentColumnStringValue.length() * 2;
+                if (!isShortValue) {
+                    // check null
+                    if (isNull) {
+                        // Null header for v*max types is 0xFFFFFFFFFFFFFFFF.
+                        writeLong(0xFFFFFFFFFFFFFFFFL);
+                    }
+                    else if (isSqlVariant) {
+                        // for now we send as bigger type, but is sendStringParameterAsUnicoe is set to false we can't send nvarchar
+                        // since we are writing as nvarchar we need to write as tdstype.bigvarchar value because if we
+                        // want to supprot varchar(8000) it becomes as nvarchar, 8000*2 therefore we should send as longvarchar,
+                        // but we cannot send more than 8000 cause sql_variant datatype in sql server does not support it.
+                        // then throw exception if user is sending more than that
+                        if (dataLength > 2 * DataTypes.SHORT_VARTYPE_MAX_BYTES) {
+                            MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidStringValue"));
+                            throw new SQLServerException(null, form.format(new Object[] {}), null, 0, false);
+                        }
+                        int length = currentColumnStringValue.length();
+                        writeTVPSqlVariantHeader(9 + length, TDSType.BIGVARCHAR.byteValue(), (byte) 0x07);
+                        SQLCollation col = con.getDatabaseCollation();
+                        // write collation for sql variant
+                        writeInt(col.getCollationInfo());
+                        writeByte((byte) col.getCollationSortID());
+                        writeShort((short) (length));
+                        writeBytes(currentColumnStringValue.getBytes());
+                        break;
+                    }
+
+                    else if (DataTypes.UNKNOWN_STREAM_LENGTH == dataLength)
+                        // Append v*max length.
+                        // UNKNOWN_PLP_LEN is 0xFFFFFFFFFFFFFFFE
+                        writeLong(0xFFFFFFFFFFFFFFFEL);
+                    else
+                        // For v*max types with known length, length is <totallength8><chunklength4>
+                        writeLong(dataLength);
+                    if (!isNull) {
+                        if (dataLength > 0) {
+                            writeInt(dataLength);
+                            writeString(currentColumnStringValue);
+                        }
+                        // Send the terminator PLP chunk.
+                        writeInt(0);
+                    }
+                }
+                else {
+                    if (isNull)
+                        writeShort((short) -1); // actual len
+                    else {
+                        if (isSqlVariant) {
+                            // for now we send as bigger type, but is sendStringParameterAsUnicoe is set to false we can't send nvarchar
+                            // check for this
+                            int length = currentColumnStringValue.length() * 2;
+                            writeTVPSqlVariantHeader(9 + length, TDSType.NVARCHAR.byteValue(), (byte) 7);
+                            SQLCollation col = con.getDatabaseCollation();
+                            // write collation for sql variant
+                            writeInt(col.getCollationInfo());
+                            writeByte((byte) col.getCollationSortID());
+                            int stringLength = currentColumnStringValue.length();
+                            byte[] typevarlen = new byte[2];
+                            typevarlen[0] = (byte) (2 * stringLength & 0xFF);
+                            typevarlen[1] = (byte) ((2 * stringLength >> 8) & 0xFF);
+                            writeBytes(typevarlen);
+                            writeString(currentColumnStringValue);
+                            break;
+                        }
+                        else {
+                            writeShort((short) dataLength);
+                            writeString(currentColumnStringValue);
+                        }
+                    }
+                }
+                break;
+
+            case BINARY:
+            case VARBINARY:
+            case LONGVARBINARY:
+                // Handle conversions as done in other types.
+                isShortValue = columnPair.getValue().precision <= DataTypes.SHORT_VARTYPE_MAX_BYTES;
+                isNull = (null == currentObject);
+                if (currentObject instanceof String)
+                    dataLength = isNull ? 0 : (toByteArray(currentObject.toString())).length;
+                else
+                    dataLength = isNull ? 0 : ((byte[]) currentObject).length;
+                if (!isShortValue) {
+                    // check null
+                    if (isNull)
+                        // Null header for v*max types is 0xFFFFFFFFFFFFFFFF.
+                        writeLong(0xFFFFFFFFFFFFFFFFL);
+                    else if (DataTypes.UNKNOWN_STREAM_LENGTH == dataLength)
+                        // Append v*max length.
+                        // UNKNOWN_PLP_LEN is 0xFFFFFFFFFFFFFFFE
+                        writeLong(0xFFFFFFFFFFFFFFFEL);
+                    else
+                        // For v*max types with known length, length is <totallength8><chunklength4>
+                        writeLong(dataLength);
+                    if (!isNull) {
+                        if (dataLength > 0) {
+                            writeInt(dataLength);
+                            if (currentObject instanceof String)
+                                writeBytes(toByteArray(currentObject.toString()));
+                            else
+                                writeBytes((byte[]) currentObject);
+                        }
+                        // Send the terminator PLP chunk.
+                        writeInt(0);
+                    }
+                }
+                else {
+                    if (isNull)
+                        writeShort((short) -1); // actual len
+                    else {
+                        writeShort((short) dataLength);
+                        if (currentObject instanceof String)
+                            writeBytes(toByteArray(currentObject.toString()));
+                        else
+                            writeBytes((byte[]) currentObject);
+                    }
+                }
+                break;
+            case SQL_VARIANT:
+                boolean isShiloh = (8 >= con.getServerMajorVersion() ? true : false);
+                if (isShiloh) {
+                    MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_SQLVariantSupport"));
+                    throw new SQLServerException(null, form.format(new Object[] {}), null, 0, false);
+                }
+                JDBCType internalJDBCType;
+                JavaType javaType = JavaType.of(currentObject);
+                internalJDBCType = javaType.getJDBCType(SSType.UNKNOWN, jdbcType);
+                writeInternalTVPRowValues(internalJDBCType, currentColumnStringValue, currentObject, columnPair, true);
+                break;
+            default:
+                assert false : "Unexpected JDBC type " + jdbcType.toString();
+        }
+    }
+
+    /**
+     * writes Header for sql_variant for TVP
+     * @param length
+     * @param tdsType
+     * @param probBytes
+     * @throws SQLServerException
+     */
+    private void writeTVPSqlVariantHeader(int length,
+            byte tdsType,
+            byte probBytes) throws SQLServerException {
+        writeInt(length);
+        writeByte(tdsType);
+        writeByte(probBytes);
     }
 
     private static byte[] toByteArray(String s) {
@@ -4957,6 +5139,11 @@ final class TDSWriter {
                         writeShort((short) 0xFFFF);
                     else	// non PLP
                         writeShort((short) DataTypes.SHORT_VARTYPE_MAX_BYTES);
+                    break;
+                case SQL_VARIANT:
+                    writeByte(TDSType.SQL_VARIANT.byteValue());
+                    writeInt(TDS.SQL_VARIANT_LENGTH);// write length of sql variant 8009
+                    
                     break;
 
                 default:
@@ -5525,6 +5712,7 @@ final class TDSWriter {
         writeShort((short) minutesOffset);
     }
 
+
     /**
      * Returns subSecondNanos rounded to the maximum precision supported. The maximum fractional scale is MAX_FRACTIONAL_SECONDS_SCALE(7). Eg1: if you
      * pass 456,790,123 the function would return 456,790,100 Eg2: if you pass 456,790,150 the function would return 456,790,200 Eg3: if you pass
@@ -5962,7 +6150,7 @@ final class TDSWriter {
 
                 if (streamLength >= maxStreamLength) {
                     MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidLength"));
-                    Object[] msgArgs = {Long.valueOf(streamLength)};
+                    Object[] msgArgs = {streamLength};
                     SQLServerException.makeFromDriverError(null, null, form.format(msgArgs), "", true);
                 }
 
@@ -6928,11 +7116,12 @@ final class TimeoutTimer implements Runnable {
     private final int timeoutSeconds;
     private final TDSCommand command;
     private volatile Future<?> task;
-    
+
     private static final ExecutorService executor = Executors.newCachedThreadPool(new ThreadFactory() {
         private final ThreadGroup tg = new ThreadGroup(threadGroupName);
         private final String threadNamePrefix = tg.getName() + "-";
         private final AtomicInteger threadNumber = new AtomicInteger(0);
+
         @Override
         public Thread newThread(Runnable r) {
             Thread t = new Thread(tg, r, threadNamePrefix + threadNumber.incrementAndGet());
@@ -6940,7 +7129,7 @@ final class TimeoutTimer implements Runnable {
             return t;
         }
     });
-    
+
     private volatile boolean canceled = false;
 
     TimeoutTimer(int timeoutSeconds,
@@ -6961,7 +7150,7 @@ final class TimeoutTimer implements Runnable {
         canceled = true;
     }
 
-    public void run() { 
+    public void run() {
         int secondsRemaining = timeoutSeconds;
         try {
             // Poll every second while time is left on the timer.

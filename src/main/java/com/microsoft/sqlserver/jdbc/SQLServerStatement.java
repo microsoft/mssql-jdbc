@@ -688,7 +688,7 @@ public class SQLServerStatement implements ISQLServerStatement {
         if (updateCount < Integer.MIN_VALUE || updateCount > Integer.MAX_VALUE)
             SQLServerException.makeFromDriverError(connection, this, SQLServerException.getErrString("R_updateCountOutofRange"), null, true);
 
-        loggerExternal.exiting(getClassNameLogging(), "executeUpdate", new Long(updateCount));
+        loggerExternal.exiting(getClassNameLogging(), "executeUpdate", updateCount);
 
         return (int) updateCount;
     }
@@ -712,7 +712,7 @@ public class SQLServerStatement implements ISQLServerStatement {
         checkClosed();
         executeStatement(new StmtExecCmd(this, sql, EXECUTE_UPDATE, NO_GENERATED_KEYS));
 
-        loggerExternal.exiting(getClassNameLogging(), "executeLargeUpdate", new Long(updateCount));
+        loggerExternal.exiting(getClassNameLogging(), "executeLargeUpdate", updateCount);
         return updateCount;
     }
 
@@ -732,7 +732,7 @@ public class SQLServerStatement implements ISQLServerStatement {
         }
         checkClosed();
         executeStatement(new StmtExecCmd(this, sql, EXECUTE, NO_GENERATED_KEYS));
-        loggerExternal.exiting(getClassNameLogging(), "execute", Boolean.valueOf(null != resultSet));
+        loggerExternal.exiting(getClassNameLogging(), "execute", null != resultSet);
         return null != resultSet;
     }
 
@@ -1032,16 +1032,16 @@ public class SQLServerStatement implements ISQLServerStatement {
     /* L0 */ public final int getMaxFieldSize() throws SQLServerException {
         loggerExternal.entering(getClassNameLogging(), "getMaxFieldSize");
         checkClosed();
-        loggerExternal.exiting(getClassNameLogging(), "getMaxFieldSize", new Integer(maxFieldSize));
+        loggerExternal.exiting(getClassNameLogging(), "getMaxFieldSize", maxFieldSize);
         return maxFieldSize;
     }
 
     /* L0 */ public final void setMaxFieldSize(int max) throws SQLServerException {
-        loggerExternal.entering(getClassNameLogging(), "setMaxFieldSize", new Integer(max));
+        loggerExternal.entering(getClassNameLogging(), "setMaxFieldSize", max);
         checkClosed();
         if (max < 0) {
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidLength"));
-            Object[] msgArgs = {new Integer(max)};
+            Object[] msgArgs = {max};
             SQLServerException.makeFromDriverError(connection, this, form.format(msgArgs), null, true);
         }
         maxFieldSize = max;
@@ -1051,7 +1051,7 @@ public class SQLServerStatement implements ISQLServerStatement {
     /* L0 */ public final int getMaxRows() throws SQLServerException {
         loggerExternal.entering(getClassNameLogging(), "getMaxRows");
         checkClosed();
-        loggerExternal.exiting(getClassNameLogging(), "getMaxRows", new Integer(maxRows));
+        loggerExternal.exiting(getClassNameLogging(), "getMaxRows", maxRows);
         return maxRows;
     }
 
@@ -1062,18 +1062,18 @@ public class SQLServerStatement implements ISQLServerStatement {
 
         // SQL Server only supports integer limits for setting max rows.
         // So, getLargeMaxRows() and getMaxRows() will return the same value.
-        loggerExternal.exiting(getClassNameLogging(), "getLargeMaxRows", new Long(maxRows));
+        loggerExternal.exiting(getClassNameLogging(), "getLargeMaxRows", (long) maxRows);
 
         return (long) getMaxRows();
     }
 
     /* L0 */ public final void setMaxRows(int max) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
-            loggerExternal.entering(getClassNameLogging(), "setMaxRows", new Integer(max));
+            loggerExternal.entering(getClassNameLogging(), "setMaxRows", max);
         checkClosed();
         if (max < 0) {
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidRowcount"));
-            Object[] msgArgs = {new Integer(max)};
+            Object[] msgArgs = {max};
             SQLServerException.makeFromDriverError(connection, this, form.format(msgArgs), null, true);
         }
 
@@ -1089,7 +1089,7 @@ public class SQLServerStatement implements ISQLServerStatement {
         DriverJDBCVersion.checkSupportsJDBC42();
 
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
-            loggerExternal.entering(getClassNameLogging(), "setLargeMaxRows", new Long(max));
+            loggerExternal.entering(getClassNameLogging(), "setLargeMaxRows", max);
 
         // SQL server only supports integer limits for setting max rows.
         // If <max> is bigger than integer limits then throw an exception, otherwise call setMaxRows(int)
@@ -1102,7 +1102,7 @@ public class SQLServerStatement implements ISQLServerStatement {
 
     /* L0 */ public final void setEscapeProcessing(boolean enable) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
-            loggerExternal.entering(getClassNameLogging(), "setEscapeProcessing", Boolean.valueOf(enable));
+            loggerExternal.entering(getClassNameLogging(), "setEscapeProcessing", enable);
         checkClosed();
         escapeProcessing = enable;
         loggerExternal.exiting(getClassNameLogging(), "setEscapeProcessing");
@@ -1111,16 +1111,16 @@ public class SQLServerStatement implements ISQLServerStatement {
     /* L0 */ public final int getQueryTimeout() throws SQLServerException {
         loggerExternal.entering(getClassNameLogging(), "getQueryTimeout");
         checkClosed();
-        loggerExternal.exiting(getClassNameLogging(), "getQueryTimeout", new Integer(queryTimeout));
+        loggerExternal.exiting(getClassNameLogging(), "getQueryTimeout", queryTimeout);
         return queryTimeout;
     }
 
     /* L0 */ public final void setQueryTimeout(int seconds) throws SQLServerException {
-        loggerExternal.entering(getClassNameLogging(), "setQueryTimeout", new Integer(seconds));
+        loggerExternal.entering(getClassNameLogging(), "setQueryTimeout", seconds);
         checkClosed();
         if (seconds < 0) {
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidQueryTimeOutValue"));
-            Object[] msgArgs = {new Integer(seconds)};
+            Object[] msgArgs = {seconds};
             SQLServerException.makeFromDriverError(connection, this, form.format(msgArgs), null, true);
         }
         queryTimeout = seconds;
@@ -1183,7 +1183,7 @@ public class SQLServerStatement implements ISQLServerStatement {
         if (updateCount < Integer.MIN_VALUE || updateCount > Integer.MAX_VALUE)
             SQLServerException.makeFromDriverError(connection, this, SQLServerException.getErrString("R_updateCountOutofRange"), null, true);
 
-        loggerExternal.exiting(getClassNameLogging(), "getUpdateCount", new Long(updateCount));
+        loggerExternal.exiting(getClassNameLogging(), "getUpdateCount", updateCount);
 
         return (int) updateCount;
     }
@@ -1193,7 +1193,7 @@ public class SQLServerStatement implements ISQLServerStatement {
 
         loggerExternal.entering(getClassNameLogging(), "getUpdateCount");
         checkClosed();
-        loggerExternal.exiting(getClassNameLogging(), "getUpdateCount", new Long(updateCount));
+        loggerExternal.exiting(getClassNameLogging(), "getUpdateCount", updateCount);
         return updateCount;
     }
 
@@ -1268,7 +1268,7 @@ public class SQLServerStatement implements ISQLServerStatement {
         // Don't just return the value from the getNextResult() call, however.
         // The getMoreResults method has a subtle spec for its return value (see above).
         getNextResult();
-        loggerExternal.exiting(getClassNameLogging(), "getMoreResults", Boolean.valueOf(null != resultSet));
+        loggerExternal.exiting(getClassNameLogging(), "getMoreResults", null != resultSet);
         return null != resultSet;
     }
 
@@ -1609,14 +1609,14 @@ public class SQLServerStatement implements ISQLServerStatement {
 
     public final void setFetchDirection(int nDir) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
-            loggerExternal.entering(getClassNameLogging(), "setFetchDirection", new Integer(nDir));
+            loggerExternal.entering(getClassNameLogging(), "setFetchDirection", nDir);
         checkClosed();
         if ((ResultSet.FETCH_FORWARD != nDir && ResultSet.FETCH_REVERSE != nDir && ResultSet.FETCH_UNKNOWN != nDir) ||
 
                 (ResultSet.FETCH_FORWARD != nDir && (SQLServerResultSet.TYPE_SS_DIRECT_FORWARD_ONLY == resultSetType
                         || SQLServerResultSet.TYPE_SS_SERVER_CURSOR_FORWARD_ONLY == resultSetType))) {
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidFetchDirection"));
-            Object[] msgArgs = {new Integer(nDir)};
+            Object[] msgArgs = {nDir};
             SQLServerException.makeFromDriverError(connection, this, form.format(msgArgs), null, false);
         }
 
@@ -1627,13 +1627,13 @@ public class SQLServerStatement implements ISQLServerStatement {
     public final int getFetchDirection() throws SQLServerException {
         loggerExternal.entering(getClassNameLogging(), "getFetchDirection");
         checkClosed();
-        loggerExternal.exiting(getClassNameLogging(), "getFetchDirection", new Integer(nFetchDirection));
+        loggerExternal.exiting(getClassNameLogging(), "getFetchDirection", nFetchDirection);
         return nFetchDirection;
     }
 
     /* L0 */ public final void setFetchSize(int rows) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
-            loggerExternal.entering(getClassNameLogging(), "setFetchSize", new Integer(rows));
+            loggerExternal.entering(getClassNameLogging(), "setFetchSize", rows);
         checkClosed();
         if (rows < 0)
             SQLServerException.makeFromDriverError(connection, this, SQLServerException.getErrString("R_invalidFetchSize"), null, false);
@@ -1645,21 +1645,21 @@ public class SQLServerStatement implements ISQLServerStatement {
     /* L0 */ public final int getFetchSize() throws SQLServerException {
         loggerExternal.entering(getClassNameLogging(), "getFetchSize");
         checkClosed();
-        loggerExternal.exiting(getClassNameLogging(), "getFetchSize", new Integer(nFetchSize));
+        loggerExternal.exiting(getClassNameLogging(), "getFetchSize", nFetchSize);
         return nFetchSize;
     }
 
     /* L0 */ public final int getResultSetConcurrency() throws SQLServerException {
         loggerExternal.entering(getClassNameLogging(), "getResultSetConcurrency");
         checkClosed();
-        loggerExternal.exiting(getClassNameLogging(), "getResultSetConcurrency", new Integer(resultSetConcurrency));
+        loggerExternal.exiting(getClassNameLogging(), "getResultSetConcurrency", resultSetConcurrency);
         return resultSetConcurrency;
     }
 
     /* L0 */ public final int getResultSetType() throws SQLServerException {
         loggerExternal.entering(getClassNameLogging(), "getResultSetType");
         checkClosed();
-        loggerExternal.exiting(getClassNameLogging(), "getResultSetType", new Integer(appResultSetType));
+        loggerExternal.exiting(getClassNameLogging(), "getResultSetType", appResultSetType);
         return appResultSetType;
     }
 
@@ -1929,19 +1929,19 @@ public class SQLServerStatement implements ISQLServerStatement {
         tdsWriter.writeByte((byte) 0);  // RPC procedure option 2
 
         // <cursor> OUT
-        tdsWriter.writeRPCInt(null, new Integer(0), true);
+        tdsWriter.writeRPCInt(null, 0, true);
 
         // <stmt> IN
         tdsWriter.writeRPCStringUnicode(sql);
 
         // <scrollopt> IN
-        tdsWriter.writeRPCInt(null, new Integer(getResultSetScrollOpt()), false);
+        tdsWriter.writeRPCInt(null, getResultSetScrollOpt(), false);
 
         // <ccopt> IN
-        tdsWriter.writeRPCInt(null, new Integer(getResultSetCCOpt()), false);
+        tdsWriter.writeRPCInt(null, getResultSetCCOpt(), false);
 
         // <rowcount> OUT
-        tdsWriter.writeRPCInt(null, new Integer(0), true);
+        tdsWriter.writeRPCInt(null, 0, true);
 
         ensureExecuteResultsReader(execCmd.startResponse(isResponseBufferingAdaptive));
         startResults();
@@ -1954,14 +1954,14 @@ public class SQLServerStatement implements ISQLServerStatement {
         loggerExternal.entering(getClassNameLogging(), "getResultSetHoldability");
         checkClosed();
         int holdability = connection.getHoldability(); // For SQL Server must be the same as the connection
-        loggerExternal.exiting(getClassNameLogging(), "getResultSetHoldability", new Integer(holdability));
+        loggerExternal.exiting(getClassNameLogging(), "getResultSetHoldability", holdability);
         return holdability;
     }
 
     public final boolean execute(java.lang.String sql,
             int autoGeneratedKeys) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER)) {
-            loggerExternal.entering(getClassNameLogging(), "execute", new Object[] {sql, new Integer(autoGeneratedKeys)});
+            loggerExternal.entering(getClassNameLogging(), "execute", new Object[] {sql, autoGeneratedKeys});
             if (Util.IsActivityTraceOn()) {
                 loggerExternal.finer(toString() + " ActivityId: " + ActivityCorrelator.getNext().toString());
             }
@@ -1969,12 +1969,12 @@ public class SQLServerStatement implements ISQLServerStatement {
         checkClosed();
         if (autoGeneratedKeys != Statement.RETURN_GENERATED_KEYS && autoGeneratedKeys != Statement.NO_GENERATED_KEYS) {
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidAutoGeneratedKeys"));
-            Object[] msgArgs = {new Integer(autoGeneratedKeys)};
+            Object[] msgArgs = {autoGeneratedKeys};
             SQLServerException.makeFromDriverError(connection, this, form.format(msgArgs), null, false);
         }
 
         executeStatement(new StmtExecCmd(this, sql, EXECUTE, autoGeneratedKeys));
-        loggerExternal.exiting(getClassNameLogging(), "execute", Boolean.valueOf(null != resultSet));
+        loggerExternal.exiting(getClassNameLogging(), "execute", null != resultSet);
         return null != resultSet;
     }
 
@@ -1987,7 +1987,7 @@ public class SQLServerStatement implements ISQLServerStatement {
             SQLServerException.makeFromDriverError(connection, this, SQLServerException.getErrString("R_invalidColumnArrayLength"), null, false);
         }
         boolean fSuccess = execute(sql, Statement.RETURN_GENERATED_KEYS);
-        loggerExternal.exiting(getClassNameLogging(), "execute", Boolean.valueOf(fSuccess));
+        loggerExternal.exiting(getClassNameLogging(), "execute", fSuccess);
         return fSuccess;
     }
 
@@ -2000,14 +2000,14 @@ public class SQLServerStatement implements ISQLServerStatement {
             SQLServerException.makeFromDriverError(connection, this, SQLServerException.getErrString("R_invalidColumnArrayLength"), null, false);
         }
         boolean fSuccess = execute(sql, Statement.RETURN_GENERATED_KEYS);
-        loggerExternal.exiting(getClassNameLogging(), "execute", Boolean.valueOf(fSuccess));
+        loggerExternal.exiting(getClassNameLogging(), "execute", fSuccess);
         return fSuccess;
     }
 
     public final int executeUpdate(String sql,
             int autoGeneratedKeys) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER)) {
-            loggerExternal.entering(getClassNameLogging(), "executeUpdate", new Object[] {sql, new Integer(autoGeneratedKeys)});
+            loggerExternal.entering(getClassNameLogging(), "executeUpdate", new Object[] {sql, autoGeneratedKeys});
             if (Util.IsActivityTraceOn()) {
                 loggerExternal.finer(toString() + " ActivityId: " + ActivityCorrelator.getNext().toString());
             }
@@ -2015,7 +2015,7 @@ public class SQLServerStatement implements ISQLServerStatement {
         checkClosed();
         if (autoGeneratedKeys != Statement.RETURN_GENERATED_KEYS && autoGeneratedKeys != Statement.NO_GENERATED_KEYS) {
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidAutoGeneratedKeys"));
-            Object[] msgArgs = {new Integer(autoGeneratedKeys)};
+            Object[] msgArgs = {autoGeneratedKeys};
             SQLServerException.makeFromDriverError(connection, this, form.format(msgArgs), null, false);
         }
         executeStatement(new StmtExecCmd(this, sql, EXECUTE_UPDATE, autoGeneratedKeys));
@@ -2024,7 +2024,7 @@ public class SQLServerStatement implements ISQLServerStatement {
         if (updateCount < Integer.MIN_VALUE || updateCount > Integer.MAX_VALUE)
             SQLServerException.makeFromDriverError(connection, this, SQLServerException.getErrString("R_updateCountOutofRange"), null, true);
 
-        loggerExternal.exiting(getClassNameLogging(), "executeUpdate", new Long(updateCount));
+        loggerExternal.exiting(getClassNameLogging(), "executeUpdate", updateCount);
 
         return (int) updateCount;
     }
@@ -2034,7 +2034,7 @@ public class SQLServerStatement implements ISQLServerStatement {
         DriverJDBCVersion.checkSupportsJDBC42();
 
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER)) {
-            loggerExternal.entering(getClassNameLogging(), "executeLargeUpdate", new Object[] {sql, new Integer(autoGeneratedKeys)});
+            loggerExternal.entering(getClassNameLogging(), "executeLargeUpdate", new Object[] {sql, autoGeneratedKeys});
             if (Util.IsActivityTraceOn()) {
                 loggerExternal.finer(toString() + " ActivityId: " + ActivityCorrelator.getNext().toString());
             }
@@ -2042,11 +2042,11 @@ public class SQLServerStatement implements ISQLServerStatement {
         checkClosed();
         if (autoGeneratedKeys != Statement.RETURN_GENERATED_KEYS && autoGeneratedKeys != Statement.NO_GENERATED_KEYS) {
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidAutoGeneratedKeys"));
-            Object[] msgArgs = {new Integer(autoGeneratedKeys)};
+            Object[] msgArgs = {autoGeneratedKeys};
             SQLServerException.makeFromDriverError(connection, this, form.format(msgArgs), null, false);
         }
         executeStatement(new StmtExecCmd(this, sql, EXECUTE_UPDATE, autoGeneratedKeys));
-        loggerExternal.exiting(getClassNameLogging(), "executeLargeUpdate", new Long(updateCount));
+        loggerExternal.exiting(getClassNameLogging(), "executeLargeUpdate", updateCount);
         return updateCount;
     }
 
@@ -2059,7 +2059,7 @@ public class SQLServerStatement implements ISQLServerStatement {
             SQLServerException.makeFromDriverError(connection, this, SQLServerException.getErrString("R_invalidColumnArrayLength"), null, false);
         }
         int count = executeUpdate(sql, Statement.RETURN_GENERATED_KEYS);
-        loggerExternal.exiting(getClassNameLogging(), "executeUpdate", new Integer(count));
+        loggerExternal.exiting(getClassNameLogging(), "executeUpdate", count);
         return count;
     }
 
@@ -2074,7 +2074,7 @@ public class SQLServerStatement implements ISQLServerStatement {
             SQLServerException.makeFromDriverError(connection, this, SQLServerException.getErrString("R_invalidColumnArrayLength"), null, false);
         }
         long count = executeLargeUpdate(sql, Statement.RETURN_GENERATED_KEYS);
-        loggerExternal.exiting(getClassNameLogging(), "executeLargeUpdate", new Long(count));
+        loggerExternal.exiting(getClassNameLogging(), "executeLargeUpdate", count);
         return count;
     }
 
@@ -2087,7 +2087,7 @@ public class SQLServerStatement implements ISQLServerStatement {
             SQLServerException.makeFromDriverError(connection, this, SQLServerException.getErrString("R_invalidColumnArrayLength"), null, false);
         }
         int count = executeUpdate(sql, Statement.RETURN_GENERATED_KEYS);
-        loggerExternal.exiting(getClassNameLogging(), "executeUpdate", new Integer(count));
+        loggerExternal.exiting(getClassNameLogging(), "executeUpdate", count);
         return count;
     }
 
@@ -2102,7 +2102,7 @@ public class SQLServerStatement implements ISQLServerStatement {
             SQLServerException.makeFromDriverError(connection, this, SQLServerException.getErrString("R_invalidColumnArrayLength"), null, false);
         }
         long count = executeLargeUpdate(sql, Statement.RETURN_GENERATED_KEYS);
-        loggerExternal.exiting(getClassNameLogging(), "executeLargeUpdate", new Long(count));
+        loggerExternal.exiting(getClassNameLogging(), "executeLargeUpdate", count);
         return count;
     }
 
@@ -2129,7 +2129,7 @@ public class SQLServerStatement implements ISQLServerStatement {
 
     /* L3 */ public final boolean getMoreResults(int mode) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
-            loggerExternal.entering(getClassNameLogging(), "getMoreResults", new Integer(mode));
+            loggerExternal.entering(getClassNameLogging(), "getMoreResults", mode);
         checkClosed();
         if (KEEP_CURRENT_RESULT == mode)
             NotImplemented();
@@ -2148,7 +2148,7 @@ public class SQLServerStatement implements ISQLServerStatement {
             }
         }
 
-        loggerExternal.exiting(getClassNameLogging(), "getMoreResults", Boolean.valueOf(fResults));
+        loggerExternal.exiting(getClassNameLogging(), "getMoreResults", fResults);
         return fResults;
     }
 
@@ -2183,7 +2183,7 @@ public class SQLServerStatement implements ISQLServerStatement {
     public boolean isWrapperFor(Class<?> iface) throws SQLException {
         loggerExternal.entering(getClassNameLogging(), "isWrapperFor");
         boolean f = iface.isInstance(this);
-        loggerExternal.exiting(getClassNameLogging(), "isWrapperFor", Boolean.valueOf(f));
+        loggerExternal.exiting(getClassNameLogging(), "isWrapperFor", f);
         return f;
     }
 

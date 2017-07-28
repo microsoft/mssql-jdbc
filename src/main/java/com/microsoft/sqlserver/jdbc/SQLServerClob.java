@@ -275,13 +275,13 @@ abstract class SQLServerClobBase implements Serializable {
         getStringFromStream();
         if (pos < 1) {
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidPositionIndex"));
-            Object[] msgArgs = {new Long(pos)};
+            Object[] msgArgs = {pos};
             SQLServerException.makeFromDriverError(con, null, form.format(msgArgs), null, true);
         }
 
         if (length < 0) {
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidLength"));
-            Object[] msgArgs = {new Integer(length)};
+            Object[] msgArgs = {length};
             SQLServerException.makeFromDriverError(con, null, form.format(msgArgs), null, true);
         }
 
@@ -350,7 +350,7 @@ abstract class SQLServerClobBase implements Serializable {
         getStringFromStream();
         if (start < 1) {
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidPositionIndex"));
-            Object[] msgArgs = {new Long(start)};
+            Object[] msgArgs = {start};
             SQLServerException.makeFromDriverError(con, null, form.format(msgArgs), null, true);
         }
 
@@ -379,7 +379,7 @@ abstract class SQLServerClobBase implements Serializable {
         getStringFromStream();
         if (start < 1) {
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidPositionIndex"));
-            Object[] msgArgs = {new Long(start)};
+            Object[] msgArgs = {start};
             SQLServerException.makeFromDriverError(con, null, form.format(msgArgs), null, true);
         }
 
@@ -411,7 +411,7 @@ abstract class SQLServerClobBase implements Serializable {
         getStringFromStream();
         if (len < 0) {
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidLength"));
-            Object[] msgArgs = {new Long(len)};
+            Object[] msgArgs = {len};
             SQLServerException.makeFromDriverError(con, null, form.format(msgArgs), null, true);
         }
 
@@ -433,7 +433,7 @@ abstract class SQLServerClobBase implements Serializable {
 
         if (pos < 1) {
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidPositionIndex"));
-            Object[] msgArgs = {new Long(pos)};
+            Object[] msgArgs = {pos};
             SQLServerException.makeFromDriverError(con, null, form.format(msgArgs), null, true);
         }
 
@@ -454,7 +454,7 @@ abstract class SQLServerClobBase implements Serializable {
 
         if (pos < 1) {
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidPositionIndex"));
-            Object[] msgArgs = {new Long(pos)};
+            Object[] msgArgs = {pos};
             SQLServerException.makeFromDriverError(con, null, form.format(msgArgs), null, true);
         }
 
@@ -514,14 +514,14 @@ abstract class SQLServerClobBase implements Serializable {
         // Offset must be within incoming string str boundary.
         if (offset < 0 || offset > str.length()) {
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidOffset"));
-            Object[] msgArgs = {new Integer(offset)};
+            Object[] msgArgs = {offset};
             SQLServerException.makeFromDriverError(con, null, form.format(msgArgs), null, true);
         }
 
         // len must be within incoming string str boundary.
         if (len < 0 || len > str.length() - offset) {
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidLength"));
-            Object[] msgArgs = {new Integer(len)};
+            Object[] msgArgs = {len};
             SQLServerException.makeFromDriverError(con, null, form.format(msgArgs), null, true);
         }
 
@@ -530,7 +530,7 @@ abstract class SQLServerClobBase implements Serializable {
         // past the end of data to request "append" mode.
         if (pos < 1 || pos > value.length() + 1) {
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidPositionIndex"));
-            Object[] msgArgs = {new Long(pos)};
+            Object[] msgArgs = {pos};
             SQLServerException.makeFromDriverError(con, null, form.format(msgArgs), null, true);
         }
 
