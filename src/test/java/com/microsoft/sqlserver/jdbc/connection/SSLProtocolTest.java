@@ -40,10 +40,18 @@ public class SSLProtocolTest extends AbstractTest {
 	 */
 	public void testWithSupportedProtocols(String sslProtocol) throws Exception {
 		String url = connectionString + ";sslProtocol=" + sslProtocol;
-		con = DriverManager.getConnection(url);
-		DatabaseMetaData dbmd = con.getMetaData();
-		assertNotNull(dbmd);
-		assertTrue(!StringUtils.isEmpty(dbmd.getDatabaseProductName()));
+		try {
+			con = DriverManager.getConnection(url);
+			DatabaseMetaData dbmd = con.getMetaData();
+			assertNotNull(dbmd);
+			assertTrue(!StringUtils.isEmpty(dbmd.getDatabaseProductName()));
+		}catch (SQLServerException e){ 	
+			// Some older versions of SQLServer might not have all the TLS protocol versions enabled. 
+			// Example, if the highest TLS version enabled in the server is TLSv1.1,
+			// the connection will fail if we enable only TLSv1.2
+			assertTrue(sslProtocol!="TLS", "TLS protocol label should never fail, because all versions are enabled.");
+			assertTrue(e.getMessage().contains("protocol version is not enabled or not supported by the client."));
+		}
 	}
 
 	/**
@@ -58,7 +66,7 @@ public class SSLProtocolTest extends AbstractTest {
 			assertFalse(true, "Any protocol other than TLSv1, TLSv1.1 & TLSv1.2 should throw Exception");
 		}catch(SQLServerException e) {
 			assertTrue(true,"Should throw exception");
-			String errMsg = "SSL Protocol "+ sslProtocol +" is not valid. Only TLSv1, TLSv1.1 & TLSv1.2 are supported.";
+			String errMsg = "SSL Protocol "+ sslProtocol +" label is not valid. Only TLS, TLSv1, TLSv1.1 & TLSv1.2 are supported.";
 			assertTrue(errMsg.equals(e.getMessage()),"Message should be from SQL Server resources : " + e.getMessage());
 		}
 	}
@@ -69,7 +77,7 @@ public class SSLProtocolTest extends AbstractTest {
 	 */
 	@Test
 	public void testConnectWithWrongProtocols() throws Exception {
-		String[] wrongProtocols = {"SSLv1111","SSLv2222","SSLv3111", "SSLv2Hello1111","TLSv1.11","TLSv2.4","TLS", "random"};
+		String[] wrongProtocols = {"SSLv1111","SSLv2222","SSLv3111", "SSLv2Hello1111","TLSv1.11","TLSv2.4", "random"};
 		for(String wrongProtocol : wrongProtocols) {
 			testWithUnSupportedProtocols(wrongProtocol); 
 		}
@@ -81,7 +89,7 @@ public class SSLProtocolTest extends AbstractTest {
 	 */
 	@Test
 	public void testConnectWithSupportedProtocols() throws Exception {
-		String[] supportedProtocols = {"TLSv1","TLSv1.1","TLSv1.2"};
+		String[] supportedProtocols = {"TLS","TLSv1","TLSv1.1","TLSv1.2"};
 		for(String supportedProtocol : supportedProtocols) {
 			testWithSupportedProtocols(supportedProtocol); 
 		}

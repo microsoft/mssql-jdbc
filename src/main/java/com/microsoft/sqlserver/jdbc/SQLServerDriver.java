@@ -118,11 +118,11 @@ enum ColumnEncryptionSetting {
 }
 
 enum SSLProtocol {
+	// SSL_TLSv2 protocol label should be used to enable TLS V1.0, V1.1, and V1.2 protocols with the IBM SDK. 
+	TLS                                   (Util.isIBM() ? "SSL_TLSv2" : "TLS"),
 	TLS_V10                               ("TLSv1"),			
 	TLS_V11                               ("TLSv1.1"),
 	TLS_V12                               ("TLSv1.2"),
-	// SSL_TLSv2 protocol label should be used to enable TLS V1.0, V1.1, and V1.2 protocols with the IBM SDK. 
-	TLS_ALL                               (Util.isIBM() ? "SSL_TLSv2" : "TLS")
     ;  
     
     private final String name;
@@ -137,8 +137,11 @@ enum SSLProtocol {
     
     static SSLProtocol valueOfString(String value) throws SQLServerException {
     	SSLProtocol protocol = null;
-    	
-    	if(value.toLowerCase(Locale.ENGLISH).equalsIgnoreCase(SSLProtocol.TLS_V10.toString())) {
+    	// We need to map TLS to SSL_TLSv2 here.
+    	if(value.toLowerCase(Locale.ENGLISH).equalsIgnoreCase("TLS")) {
+    		protocol = SSLProtocol.TLS;
+    	}
+    	else if(value.toLowerCase(Locale.ENGLISH).equalsIgnoreCase(SSLProtocol.TLS_V10.toString())) {
     		protocol = SSLProtocol.TLS_V10;
     	}
     	else if(value.toLowerCase(Locale.ENGLISH).equalsIgnoreCase(SSLProtocol.TLS_V11.toString())) {
@@ -286,7 +289,7 @@ enum SQLServerDriverStringProperty
 	KEY_STORE_SECRET           ("keyStoreSecret",          ""),
 	KEY_STORE_LOCATION         ("keyStoreLocation",        ""),
 	FIPS_PROVIDER              ("fipsProvider",            ""),
-	SSL_PROTOCOL               ("sslProtocol",             SSLProtocol.TLS_ALL.toString()),
+	SSL_PROTOCOL               ("sslProtocol",             SSLProtocol.TLS.toString()),
 	;
 
     private final String name;
@@ -424,7 +427,7 @@ public final class SQLServerDriver implements java.sql.Driver {
         new SQLServerDriverPropertyInfo(SQLServerDriverIntProperty.SERVER_PREPARED_STATEMENT_DISCARD_THRESHOLD.toString(),    Integer.toString(SQLServerDriverIntProperty.SERVER_PREPARED_STATEMENT_DISCARD_THRESHOLD.getDefaultValue()), false,  null),
         new SQLServerDriverPropertyInfo(SQLServerDriverIntProperty.STATEMENT_POOLING_CACHE_SIZE.toString(),                   Integer.toString(SQLServerDriverIntProperty.STATEMENT_POOLING_CACHE_SIZE.getDefaultValue()),        	  false,      null),
         new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.JAAS_CONFIG_NAME.toString(),                            SQLServerDriverStringProperty.JAAS_CONFIG_NAME.getDefaultValue(),                                       false,      null),
-        new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.SSL_PROTOCOL.toString(),                                SQLServerDriverStringProperty.SSL_PROTOCOL.getDefaultValue(),                                           false,      new String[] {SSLProtocol.TLS_V10.toString(), SSLProtocol.TLS_V11.toString(), SSLProtocol.TLS_V12.toString()}),
+        new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.SSL_PROTOCOL.toString(),                                SQLServerDriverStringProperty.SSL_PROTOCOL.getDefaultValue(),                                           false,      new String[] {"TLS", SSLProtocol.TLS_V10.toString(), SSLProtocol.TLS_V11.toString(), SSLProtocol.TLS_V12.toString()}),
     };
 
     // Properties that can only be set by using Properties.

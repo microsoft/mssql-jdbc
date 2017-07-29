@@ -387,7 +387,7 @@ public final class SQLServerResource extends ListResourceBundle {
 				{"R_StoredProcedureNotFound", "Could not find stored procedure ''{0}''."},
 				{"R_jaasConfigurationNamePropertyDescription", "Login configuration file for Kerberos authentication."},
 				{"R_AKVKeyNotFound", "Key not found: {0}"},
-				{"R_sslProtocolPropertyDescription", "Single SSL protocol to enable from TLSv1, TLSv1.1 & TLSv1.2. All three protocols are enabled by default."},
-				{"R_invalidSSLProtocol", "SSL Protocol {0} is not valid. Only TLSv1, TLSv1.1 & TLSv1.2 are supported."},
+				{"R_sslProtocolPropertyDescription", "SSL protocol label from TLS, TLSv1, TLSv1.1 & TLSv1.2. The default is TLS."},
+				{"R_invalidSSLProtocol", "SSL Protocol {0} label is not valid. Only TLS, TLSv1, TLSv1.1 & TLSv1.2 are supported."},
     };
 }
