@@ -2338,8 +2338,8 @@ final class SocketFinder {
                 findSocketUsingJavaNIO(inetAddrs, portNumber, timeoutInMilliSeconds);
             }
             else {
-                LinkedList<Inet4Address> inet4Addrs = new LinkedList<Inet4Address>();
-                LinkedList<Inet6Address> inet6Addrs = new LinkedList<Inet6Address>();
+                LinkedList<Inet4Address> inet4Addrs = new LinkedList<>();
+                LinkedList<Inet6Address> inet6Addrs = new LinkedList<>();
 
                 for (InetAddress inetAddr : inetAddrs) {
                     if (inetAddr instanceof Inet4Address) {
@@ -2467,7 +2467,7 @@ final class SocketFinder {
         assert inetAddrs.length != 0 : "Number of inetAddresses should not be zero in this function";
 
         Selector selector = null;
-        LinkedList<SocketChannel> socketChannels = new LinkedList<SocketChannel>();
+        LinkedList<SocketChannel> socketChannels = new LinkedList<>();
         SocketChannel selectedChannel = null;
 
         try {
@@ -2646,8 +2646,8 @@ final class SocketFinder {
         
         assert inetAddrs.isEmpty() == false : "Number of inetAddresses should not be zero in this function";
 
-        LinkedList<Socket> sockets = new LinkedList<Socket>();
-        LinkedList<SocketConnector> socketConnectors = new LinkedList<SocketConnector>();
+        LinkedList<Socket> sockets = new LinkedList<>();
+        LinkedList<SocketConnector> socketConnectors = new LinkedList<>();
 
         try {
 
@@ -5164,7 +5164,7 @@ final class TDSWriter {
 
         Map<Integer, SQLServerMetaData> columnMetadata = value.getColumnMetadata();
         Iterator<Entry<Integer, SQLServerMetaData>> columnsIterator = columnMetadata.entrySet().iterator();
-        LinkedList<TdsOrderUnique> columnList = new LinkedList<TdsOrderUnique>();
+        LinkedList<TdsOrderUnique> columnList = new LinkedList<>();
 
         while (columnsIterator.hasNext()) {
             byte flags = 0;

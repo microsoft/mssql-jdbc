@@ -601,7 +601,7 @@ public final class SQLServerParameterMetaData implements ParameterMetaData {
             // procedure "sp_describe_undeclared_parameters" to retrieve parameter meta data
             // if SQL server version is 2008, then use FMTONLY
             else {
-                queryMetaMap = new HashMap<Integer, QueryMeta>();
+                queryMetaMap = new HashMap<>();
 
                 if (con.getServerMajorVersion() >= SQL_SERVER_2012_VERSION) {
                     // new implementation for SQL verser 2012 and above
@@ -616,7 +616,7 @@ public final class SQLServerParameterMetaData implements ParameterMetaData {
                 else {
                     // old implementation for SQL server 2008
                     stringToParse = sProcString;
-                    ArrayList<MetaInfo> metaInfoList = new ArrayList<MetaInfo>();
+                    ArrayList<MetaInfo> metaInfoList = new ArrayList<>();
                     
                     while (stringToParse.length() > 0) {
                         MetaInfo metaInfo = parseStatement(stringToParse);

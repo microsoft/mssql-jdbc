@@ -161,7 +161,7 @@ public class BulkCopyConnectionTest extends BulkCopyTestSetUp {
      */
     List<BulkCopyTestWrapper> createTestData_testBulkCopyConstructor() {
         String testCaseName = "BulkCopyConstructor ";
-        List<BulkCopyTestWrapper> testData = new ArrayList<BulkCopyTestWrapper>();
+        List<BulkCopyTestWrapper> testData = new ArrayList<>();
         BulkCopyTestWrapper bulkWrapper1 = new BulkCopyTestWrapper(connectionString);
         bulkWrapper1.testName = testCaseName;
         bulkWrapper1.setUsingConnection(true);
@@ -182,7 +182,7 @@ public class BulkCopyConnectionTest extends BulkCopyTestSetUp {
      */
     private List<BulkCopyTestWrapper> createTestData_testBulkCopyOption() {
         String testCaseName = "BulkCopyOption ";
-        List<BulkCopyTestWrapper> testData = new ArrayList<BulkCopyTestWrapper>();
+        List<BulkCopyTestWrapper> testData = new ArrayList<>();
 
         Class<SQLServerBulkCopyOptions> bulkOptions = SQLServerBulkCopyOptions.class;
         Method[] methods = bulkOptions.getDeclaredMethods();
