@@ -1617,10 +1617,16 @@ final class DTV {
             switch (javaType) {
                 case STRING:
                     if (JDBCType.GUID == jdbcType) {
-                        if (value instanceof String)
-                            value = UUID.fromString((String) value);
-                        byte[] bArray = Util.asGuidByteArray((UUID) value);
-                        op.execute(this, bArray);
+                        if (null != cryptoMeta) {
+                            if (value instanceof String) {
+                                value = UUID.fromString((String) value);
+                            }
+                            byte[] bArray = Util.asGuidByteArray((UUID) value);
+                            op.execute(this, bArray);
+                        }
+                        else {
+                            op.execute(this, String.valueOf(value));
+                        }
                     }
                     else if (jdbcType.SQL_VARIANT == jdbcType) {
                         op.execute(this, String.valueOf(value));
