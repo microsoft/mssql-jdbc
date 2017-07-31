@@ -1622,7 +1622,7 @@ final class DTV {
                         byte[] bArray = Util.asGuidByteArray((UUID) value);
                         op.execute(this, bArray);
                     }
-                    else if (jdbcType.SQL_VARIANT == jdbcType) {
+                    else if (JDBCType.SQL_VARIANT == jdbcType) {
                         op.execute(this, String.valueOf(value));
                     }
                     else {
