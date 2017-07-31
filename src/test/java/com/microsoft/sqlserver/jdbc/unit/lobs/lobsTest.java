@@ -101,10 +101,10 @@ public class lobsTest extends AbstractTest {
         List<Boolean> isResultSetTypes = new ArrayList<>(Arrays.asList(true, false));
         Collection<DynamicTest> dynamicTests = new ArrayList<>();
 
-        for (int i = 0; i < classes.size(); i++) {
-            for (int j = 0; j < isResultSetTypes.size(); j++) {
-                final Class lobClass = classes.get(i);
-                final boolean isResultSet = isResultSetTypes.get(j);
+        for (Class aClass : classes) {
+            for (Boolean isResultSetType : isResultSetTypes) {
+                final Class lobClass = aClass;
+                final boolean isResultSet = isResultSetType;
                 Executable exec = new Executable() {
                     @Override
                     public void execute() throws Throwable {
@@ -572,8 +572,8 @@ public class lobsTest extends AbstractTest {
         DBStatement stmt = new DBConnection(connectionString).createStatement();
         table = new DBTable(false);
 
-        for (int i = 0; i < types.length; i++) {
-            SqlType type = Utils.find(types[i]);
+        for (String type1 : types) {
+            SqlType type = Utils.find(type1);
             table.addColumn(type);
 
         }

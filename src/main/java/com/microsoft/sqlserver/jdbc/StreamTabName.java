@@ -44,9 +44,7 @@ final class StreamTabName extends StreamPacket {
             tableNames[i] = tdsReader.readSQLIdentifier();
 
         // Apply the table names to their appropriate columns
-        for (int i = 0; i < columns.length; i++) {
-            Column col = columns[i];
-
+        for (Column col : columns) {
             if (col.getTableNum() > 0)
                 col.setTableName(tableNames[col.getTableNum() - 1]);
         }

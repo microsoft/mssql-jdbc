@@ -2417,10 +2417,9 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                 //
                 // OUT and INOUT parameter checking is done here, before executing the batch. If any
                 // OUT or INOUT are present, the entire batch fails.
-                for (int batch = 0; batch < batchParamValues.size(); ++batch) {
-                    Parameter paramValues[] = batchParamValues.get(batch);
-                    for (int param = 0; param < paramValues.length; ++param) {
-                        if (paramValues[param].isOutput()) {
+                for (Parameter[] paramValues : batchParamValues) {
+                    for (Parameter paramValue : paramValues) {
+                        if (paramValue.isOutput()) {
                             throw new BatchUpdateException(SQLServerException.getErrString("R_outParamsNotPermittedinBatch"), null, 0, null);
                         }
                     }
@@ -2475,10 +2474,9 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                 //
                 // OUT and INOUT parameter checking is done here, before executing the batch. If any
                 // OUT or INOUT are present, the entire batch fails.
-                for (int batch = 0; batch < batchParamValues.size(); ++batch) {
-                    Parameter paramValues[] = batchParamValues.get(batch);
-                    for (int param = 0; param < paramValues.length; ++param) {
-                        if (paramValues[param].isOutput()) {
+                for (Parameter[] paramValues : batchParamValues) {
+                    for (Parameter paramValue : paramValues) {
+                        if (paramValue.isOutput()) {
                             throw new BatchUpdateException(SQLServerException.getErrString("R_outParamsNotPermittedinBatch"), null, 0, null);
                         }
                     }
@@ -2573,8 +2571,8 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                 buildPreparedStrings(batchParam, true);
 
                 // Save the crypto metadata retrieved for the first batch. We will re-use these for the rest of the batches.
-                for (int i = 0; i < batchParam.length; i++) {
-                    cryptoMetaBatch.add(batchParam[i].cryptoMeta);
+                for (Parameter aBatchParam : batchParam) {
+                    cryptoMetaBatch.add(aBatchParam.cryptoMeta);
                 }
             }
 
