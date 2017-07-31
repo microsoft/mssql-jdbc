@@ -118,8 +118,7 @@ enum ColumnEncryptionSetting {
 }
 
 enum SSLProtocol {
-	// SSL_TLSv2 protocol label should be used to enable TLS V1.0, V1.1, and V1.2 protocols with the IBM SDK. 
-	TLS                                   (Util.isIBM() ? "SSL_TLSv2" : "TLS"),
+	TLS                                   ("TLS"),
 	TLS_V10                               ("TLSv1"),			
 	TLS_V11                               ("TLSv1.1"),
 	TLS_V12                               ("TLSv1.2"),
@@ -137,8 +136,8 @@ enum SSLProtocol {
     
     static SSLProtocol valueOfString(String value) throws SQLServerException {
     	SSLProtocol protocol = null;
-    	// We need to map TLS to SSL_TLSv2 here.
-    	if(value.toLowerCase(Locale.ENGLISH).equalsIgnoreCase("TLS")) {
+
+    	if(value.toLowerCase(Locale.ENGLISH).equalsIgnoreCase(SSLProtocol.TLS.toString())) {
     		protocol = SSLProtocol.TLS;
     	}
     	else if(value.toLowerCase(Locale.ENGLISH).equalsIgnoreCase(SSLProtocol.TLS_V10.toString())) {
