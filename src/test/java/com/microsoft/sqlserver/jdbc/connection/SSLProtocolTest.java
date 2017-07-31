@@ -49,7 +49,6 @@ public class SSLProtocolTest extends AbstractTest {
 			// Some older versions of SQLServer might not have all the TLS protocol versions enabled. 
 			// Example, if the highest TLS version enabled in the server is TLSv1.1,
 			// the connection will fail if we enable only TLSv1.2
-			assertTrue(sslProtocol!="TLS", "TLS protocol label should never fail, because all versions are enabled.");
 			assertTrue(e.getMessage().contains("protocol version is not enabled or not supported by the client."));
 		}
 	}
