@@ -472,8 +472,16 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
     public String getString(int index) throws SQLServerException {
         loggerExternal.entering(getClassNameLogging(), "getString", index);
         checkClosed();
+
+        Object objectValue = null;
+        if (JDBCType.GUID == getterGetParam(index).getJdbcType()) {
+            objectValue = getValue(index, JDBCType.GUID);
+        }
+        else {
+            objectValue = getValue(index, JDBCType.CHAR);
+        }
+
         String value = null;
-        Object objectValue = getValue(index, JDBCType.CHAR);
         if (null != objectValue) {
             value = objectValue.toString();
         }
