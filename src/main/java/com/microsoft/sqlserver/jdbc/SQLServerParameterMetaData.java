@@ -176,8 +176,13 @@ public final class SQLServerParameterMetaData implements ParameterMetaData {
             }
             if (nState == 1) {
                 if (sToken.trim().length() > 0) {
-                    if (sToken.charAt(0) != ',')
+                    if (sToken.charAt(0) != ',') {
                         sLastField = escapeParse(st, sToken);
+
+                        // in case the parameter has braces in its name, e.g. [c2_nvarchar(max)], the original sToken variable just
+                        // contains [c2_nvarchar, sLastField actually has the whole name [c2_nvarchar(max)]
+                        sTokenIndex = sTokenIndex + (sLastField.length() - sToken.length());
+                    }
                 }
             }
         }
