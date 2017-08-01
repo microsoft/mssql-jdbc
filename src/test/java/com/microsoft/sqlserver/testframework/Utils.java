@@ -10,16 +10,21 @@ package com.microsoft.sqlserver.testframework;
 
 import static org.junit.Assert.fail;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 import java.io.ByteArrayInputStream;
 import java.io.CharArrayReader;
 import java.net.URI;
+import java.sql.DatabaseMetaData;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import org.opentest4j.TestAbortedException;
+
+import com.microsoft.sqlserver.jdbc.SQLServerConnection;
 import com.microsoft.sqlserver.testframework.sqlType.SqlBigInt;
 import com.microsoft.sqlserver.testframework.sqlType.SqlBinary;
 import com.microsoft.sqlserver.testframework.sqlType.SqlBit;
@@ -47,6 +52,7 @@ import com.microsoft.sqlserver.testframework.sqlType.SqlVarBinary;
 import com.microsoft.sqlserver.testframework.sqlType.SqlVarBinaryMax;
 import com.microsoft.sqlserver.testframework.sqlType.SqlVarChar;
 import com.microsoft.sqlserver.testframework.sqlType.SqlVarCharMax;
+import com.microsoft.sqlserver.testframework.util.Util;
 
 /**
  * Generic Utility class which we can access by test classes.
@@ -61,6 +67,8 @@ public class Utils {
     public static final String SERVER_TYPE_SQL_AZURE = "SQLAzure";
     // private static SqlType types = null;
     private static ArrayList<SqlType> types = null;
+    
+    private final static int SQL_SERVER_2012_VERSION = 11;
 
     /**
      * Returns serverType
@@ -317,4 +325,24 @@ public class Utils {
         return true;
     }
     
+    /**
+     * With Java 7, skip tests
+     */
+    public static void skipTestForJava7(SQLServerConnection con) throws TestAbortedException, SQLException {
+        assumeTrue(Util.supportJDBC42(con));
+    }
+
+    /**
+     * skip tests on SQL Server 2008
+     */
+    public static void skipTestForSQLServer2008(SQLServerConnection con) throws TestAbortedException, SQLException {
+
+        DatabaseMetaData meta = con.getMetaData();
+        String serverVersionString = meta.getDatabaseProductVersion();
+
+        String[] versions = serverVersionString.split("\\.");
+        int serverVersion = Integer.parseInt(versions[0]);
+
+        assumeTrue(serverVersion >= SQL_SERVER_2012_VERSION, "Skipping test case on SQL Server 2008.");
+    }
 }

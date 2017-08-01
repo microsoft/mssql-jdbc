@@ -7,7 +7,6 @@
  */
 package com.microsoft.sqlserver.jdbc.AlwaysEncrypted;
 
-import static org.junit.jupiter.api.Assumptions.assumeTrue;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
@@ -31,6 +30,7 @@ import com.microsoft.sqlserver.jdbc.SQLServerException;
 import com.microsoft.sqlserver.jdbc.SQLServerPreparedStatement;
 import com.microsoft.sqlserver.jdbc.SQLServerResultSet;
 import com.microsoft.sqlserver.jdbc.SQLServerStatement;
+import com.microsoft.sqlserver.testframework.Utils;
 import com.microsoft.sqlserver.testframework.util.RandomData;
 import com.microsoft.sqlserver.testframework.util.Util;
 
@@ -93,7 +93,7 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
      */
     @Test
     public void testCharSetObjectWithJDBCTypes() throws SQLException {
-        skipTestForJava7();
+        Utils.skipTestForJava7(con);
 
         charValues = createCharValues();
         dropTables();
@@ -230,7 +230,7 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
      */
     @Test
     public void testBinarySetObjectWithJDBCTypes() throws SQLException {
-        skipTestForJava7();
+        Utils.skipTestForJava7(con);
 
         byteValuesSetObject = createbinaryValues(false);
         dropTables();
@@ -401,7 +401,7 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
      */
     @Test
     public void testNumericSetObjectWithJDBCTypes() throws SQLException {
-        skipTestForJava7();
+        Utils.skipTestForJava7(con);
 
         numericValues = createNumericValues();
         numericValues2 = new String[numericValues.length];
@@ -998,7 +998,7 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
     private void populateDateSetObject(LinkedList<Object> dateValues,
             String setter) throws SQLException {
         if (setter.equalsIgnoreCase("setwithJDBCType")) {
-            skipTestForJava7();
+            Utils.skipTestForJava7(con);
         }
 
         String sql = "insert into " + dateTable + " values( " + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?" + ")";
@@ -2461,7 +2461,5 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
         return list;
     }
 
-    private void skipTestForJava7() throws TestAbortedException, SQLException {
-        assumeTrue(Util.supportJDBC42(con)); // With Java 7, skip tests for JDBCType.
-    }
+
 }

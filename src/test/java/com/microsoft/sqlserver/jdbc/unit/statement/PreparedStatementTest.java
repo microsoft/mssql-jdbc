@@ -32,7 +32,7 @@ import com.microsoft.sqlserver.jdbc.SQLServerConnection;
 import com.microsoft.sqlserver.jdbc.SQLServerDataSource;
 import com.microsoft.sqlserver.jdbc.SQLServerPreparedStatement;
 import com.microsoft.sqlserver.testframework.AbstractTest;
-import com.microsoft.sqlserver.testframework.util.RandomUtil;
+import com.microsoft.sqlserver.testframework.Utils;
 
 @RunWith(JUnitPlatform.class)
 public class PreparedStatementTest extends AbstractTest { 
@@ -170,6 +170,8 @@ public class PreparedStatementTest extends AbstractTest {
             }
         }
 
+        Utils.skipTestForSQLServer2008((SQLServerConnection) DriverManager.getConnection(connectionString));
+        
         try (SQLServerConnection con = (SQLServerConnection)DriverManager.getConnection(connectionString)) {
 
             // Test behvaior with statement pooling.
