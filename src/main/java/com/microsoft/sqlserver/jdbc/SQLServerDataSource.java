@@ -597,10 +597,10 @@ public class SQLServerDataSource implements ISQLServerDataSource, DataSource, ja
     public void setSSLProtocol(String sslProtocol) {
         setStringProperty(connectionProps, SQLServerDriverStringProperty.SSL_PROTOCOL.toString(), sslProtocol);
     }
-    
+
     public String getSSLProtocol() {
-        return getStringProperty(connectionProps, SQLServerDriverStringProperty.SSL_PROTOCOL.toString(), 
-        		SQLServerDriverStringProperty.SSL_PROTOCOL.getDefaultValue());
+        return getStringProperty(connectionProps, SQLServerDriverStringProperty.SSL_PROTOCOL.toString(),
+                SQLServerDriverStringProperty.SSL_PROTOCOL.getDefaultValue());
     }
 
     // The URL property is exposed for backwards compatibility reasons. Also, several

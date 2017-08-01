@@ -118,12 +118,11 @@ enum ColumnEncryptionSetting {
 }
 
 enum SSLProtocol {
-	TLS                                   ("TLS"),
-	TLS_V10                               ("TLSv1"),			
-	TLS_V11                               ("TLSv1.1"),
-	TLS_V12                               ("TLSv1.2"),
-    ;  
-    
+    TLS("TLS"),
+    TLS_V10("TLSv1"),
+    TLS_V11("TLSv1.1"),
+    TLS_V12("TLSv1.2"),;
+
     private final String name;
 
     private SSLProtocol(String name) {
@@ -133,28 +132,28 @@ enum SSLProtocol {
     public String toString() {
         return name;
     }
-    
-    static SSLProtocol valueOfString(String value) throws SQLServerException {
-    	SSLProtocol protocol = null;
 
-    	if(value.toLowerCase(Locale.ENGLISH).equalsIgnoreCase(SSLProtocol.TLS.toString())) {
-    		protocol = SSLProtocol.TLS;
-    	}
-    	else if(value.toLowerCase(Locale.ENGLISH).equalsIgnoreCase(SSLProtocol.TLS_V10.toString())) {
-    		protocol = SSLProtocol.TLS_V10;
-    	}
-    	else if(value.toLowerCase(Locale.ENGLISH).equalsIgnoreCase(SSLProtocol.TLS_V11.toString())) {
-    		protocol = SSLProtocol.TLS_V11;
-    	}
-    	else if(value.toLowerCase(Locale.ENGLISH).equalsIgnoreCase(SSLProtocol.TLS_V12.toString())) {
-    		protocol = SSLProtocol.TLS_V12;
-    	}
-    	else {
+    static SSLProtocol valueOfString(String value) throws SQLServerException {
+        SSLProtocol protocol = null;
+
+        if (value.toLowerCase(Locale.ENGLISH).equalsIgnoreCase(SSLProtocol.TLS.toString())) {
+            protocol = SSLProtocol.TLS;
+        }
+        else if (value.toLowerCase(Locale.ENGLISH).equalsIgnoreCase(SSLProtocol.TLS_V10.toString())) {
+            protocol = SSLProtocol.TLS_V10;
+        }
+        else if (value.toLowerCase(Locale.ENGLISH).equalsIgnoreCase(SSLProtocol.TLS_V11.toString())) {
+            protocol = SSLProtocol.TLS_V11;
+        }
+        else if (value.toLowerCase(Locale.ENGLISH).equalsIgnoreCase(SSLProtocol.TLS_V12.toString())) {
+            protocol = SSLProtocol.TLS_V12;
+        }
+        else {
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidSSLProtocol"));
             Object[] msgArgs = {value};
-            throw new SQLServerException(null, form.format(msgArgs), null, 0, false); 		
-    	}
-    	return protocol;   	
+            throw new SQLServerException(null, form.format(msgArgs), null, 0, false);
+        }
+        return protocol;
     }
 }
 

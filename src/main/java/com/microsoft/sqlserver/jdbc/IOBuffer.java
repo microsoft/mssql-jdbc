@@ -1746,7 +1746,8 @@ final class TDSChannel {
             if (logger.isLoggable(Level.FINEST))
                 logger.finest(toString() + " Creating SSL socket");
 
-            sslSocket = (SSLSocket) sslContext.getSocketFactory().createSocket(proxySocket, host, port, false); // don't close proxy when SSL socket is closed
+            sslSocket = (SSLSocket) sslContext.getSocketFactory().createSocket(proxySocket, host, port, false); // don't close proxy when SSL socket
+                                                                                                                // is closed
             
             // At long last, start the SSL handshake ...
             if (logger.isLoggable(Level.FINER))

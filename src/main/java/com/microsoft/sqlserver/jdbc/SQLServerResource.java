@@ -385,12 +385,11 @@ public final class SQLServerResource extends ListResourceBundle {
 				{"R_kerberosLoginFailed", "Kerberos Login failed: {0} due to {1} ({2})"},
 				{"R_StoredProcedureNotFound", "Could not find stored procedure ''{0}''."},
 				{"R_jaasConfigurationNamePropertyDescription", "Login configuration file for Kerberos authentication."},
-				{"R_AKVKeyNotFound", "Key not found: {0}"},
-				{"R_sslProtocolPropertyDescription", "SSL protocol label from TLS, TLSv1, TLSv1.1 & TLSv1.2. The default is TLS."},
-				{"R_invalidSSLProtocol", "SSL Protocol {0} label is not valid. Only TLS, TLSv1, TLSv1.1 & TLSv1.2 are supported."},
-				{"R_SQLVariantSupport", "SQL_VARIANT datatype is not supported in pre-SQL 2008 version."},
-        {"R_invalidProbbytes", "SQL_VARIANT: invalid probBytes for {0} type."},
-        {"R_invalidStringValue", "SQL_VARIANT does not support string values more than 8000 length."},
-        {"R_invalidValueForTVPWithSQLVariant", "Inserting null value with column type sql_variant in TVP is not supported."},
+            {"R_AKVKeyNotFound", "Key not found: {0}"}, {"R_SQLVariantSupport", "SQL_VARIANT datatype is not supported in pre-SQL 2008 version."},
+            {"R_invalidProbbytes", "SQL_VARIANT: invalid probBytes for {0} type."},
+            {"R_invalidStringValue", "SQL_VARIANT does not support string values more than 8000 length."},
+            {"R_invalidValueForTVPWithSQLVariant", "Inserting null value with column type sql_variant in TVP is not supported."},
+            {"R_sslProtocolPropertyDescription", "SSL protocol label from TLS, TLSv1, TLSv1.1 & TLSv1.2. The default is TLS."},
+            {"R_invalidSSLProtocol", "SSL Protocol {0} label is not valid. Only TLS, TLSv1, TLSv1.1 & TLSv1.2 are supported."},
     };
 }

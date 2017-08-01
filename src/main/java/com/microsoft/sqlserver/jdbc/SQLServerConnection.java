@@ -1701,7 +1701,7 @@ public class SQLServerConnection implements ISQLServerConnection {
                 activeConnectionProperties.setProperty(sPropKey, sPropValue);
             }
             else {
-            	activeConnectionProperties.setProperty(sPropKey, SSLProtocol.valueOfString(sPropValue).toString());
+                activeConnectionProperties.setProperty(sPropKey, SSLProtocol.valueOfString(sPropValue).toString());
             }
             
             FailoverInfo fo = null;
