@@ -32,7 +32,6 @@ import com.microsoft.sqlserver.jdbc.SQLServerResultSet;
 import com.microsoft.sqlserver.jdbc.SQLServerStatement;
 import com.microsoft.sqlserver.testframework.Utils;
 import com.microsoft.sqlserver.testframework.util.RandomData;
-import com.microsoft.sqlserver.testframework.util.Util;
 
 import microsoft.sql.DateTimeOffset;
 
@@ -531,13 +530,13 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
         dropTables();
         dropCEK();
         dropCMK();
-        Util.close(null, stmt, connection);
+        Utils.close(null, stmt, connection);
     }
 
     private void populateBinaryNormalCase(LinkedList<byte[]> byteValues) throws SQLException {
         String sql = "insert into " + binaryTable + " values( " + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?" + ")";
 
-        pstmt = (SQLServerPreparedStatement) Util.getPreparedStmt(con, sql, stmtColEncSetting);
+        pstmt = (SQLServerPreparedStatement) Utils.getPreparedStmt(con, sql, stmtColEncSetting);
 
         // binary20
         for (int i = 1; i <= 3; i++) {
@@ -590,13 +589,13 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
         }
 
         pstmt.execute();
-        Util.close(null, pstmt, null);
+        Utils.close(null, pstmt, null);
     }
 
     private void populateBinarySetObject(LinkedList<byte[]> byteValues) throws SQLException {
         String sql = "insert into " + binaryTable + " values( " + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?" + ")";
 
-        pstmt = (SQLServerPreparedStatement) Util.getPreparedStmt(con, sql, stmtColEncSetting);
+        pstmt = (SQLServerPreparedStatement) Utils.getPreparedStmt(con, sql, stmtColEncSetting);
 
         // binary(20)
         for (int i = 1; i <= 3; i++) {
@@ -649,13 +648,13 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
         }
 
         pstmt.execute();
-        Util.close(null, pstmt, null);
+        Utils.close(null, pstmt, null);
     }
 
     private void populateBinarySetObjectWithJDBCType(LinkedList<byte[]> byteValues) throws SQLException {
         String sql = "insert into " + binaryTable + " values( " + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?" + ")";
 
-        pstmt = (SQLServerPreparedStatement) Util.getPreparedStmt(con, sql, stmtColEncSetting);
+        pstmt = (SQLServerPreparedStatement) Utils.getPreparedStmt(con, sql, stmtColEncSetting);
 
         // binary(20)
         for (int i = 1; i <= 3; i++) {
@@ -708,13 +707,13 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
         }
 
         pstmt.execute();
-        Util.close(null, pstmt, null);
+        Utils.close(null, pstmt, null);
     }
 
     private void populateBinaryNullCase() throws SQLException {
         String sql = "insert into " + binaryTable + " values( " + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?" + ")";
 
-        pstmt = (SQLServerPreparedStatement) Util.getPreparedStmt(con, sql, stmtColEncSetting);
+        pstmt = (SQLServerPreparedStatement) Utils.getPreparedStmt(con, sql, stmtColEncSetting);
 
         // binary
         for (int i = 1; i <= 3; i++) {
@@ -737,14 +736,14 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
         }
 
         pstmt.execute();
-        Util.close(null, pstmt, null);
+        Utils.close(null, pstmt, null);
     }
 
     private void populateCharNormalCase(String[] charValues) throws SQLException {
         String sql = "insert into " + charTable + " values( " + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?,"
                 + "?,?,?" + ")";
 
-        pstmt = (SQLServerPreparedStatement) Util.getPreparedStmt(con, sql, stmtColEncSetting);
+        pstmt = (SQLServerPreparedStatement) Utils.getPreparedStmt(con, sql, stmtColEncSetting);
 
         // char
         for (int i = 1; i <= 3; i++) {
@@ -797,14 +796,14 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
         }
 
         pstmt.execute();
-        Util.close(null, pstmt, null);
+        Utils.close(null, pstmt, null);
     }
 
     private void populateCharSetObject(String[] charValues) throws SQLException {
         String sql = "insert into " + charTable + " values( " + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?,"
                 + "?,?,?" + ")";
 
-        pstmt = (SQLServerPreparedStatement) Util.getPreparedStmt(con, sql, stmtColEncSetting);
+        pstmt = (SQLServerPreparedStatement) Utils.getPreparedStmt(con, sql, stmtColEncSetting);
 
         // char
         for (int i = 1; i <= 3; i++) {
@@ -852,14 +851,14 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
         }
 
         pstmt.execute();
-        Util.close(null, pstmt, null);
+        Utils.close(null, pstmt, null);
     }
 
     private void populateCharSetObjectWithJDBCTypes(String[] charValues) throws SQLException {
         String sql = "insert into " + charTable + " values( " + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?,"
                 + "?,?,?" + ")";
 
-        pstmt = (SQLServerPreparedStatement) Util.getPreparedStmt(con, sql, stmtColEncSetting);
+        pstmt = (SQLServerPreparedStatement) Utils.getPreparedStmt(con, sql, stmtColEncSetting);
 
         // char
         for (int i = 1; i <= 3; i++) {
@@ -907,14 +906,14 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
         }
 
         pstmt.execute();
-        Util.close(null, pstmt, null);
+        Utils.close(null, pstmt, null);
     }
 
     private void populateCharNullCase() throws SQLException {
         String sql = "insert into " + charTable + " values( " + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?,"
                 + "?,?,?" + ")";
 
-        pstmt = (SQLServerPreparedStatement) Util.getPreparedStmt(con, sql, stmtColEncSetting);
+        pstmt = (SQLServerPreparedStatement) Utils.getPreparedStmt(con, sql, stmtColEncSetting);
 
         // char
         for (int i = 1; i <= 3; i++) {
@@ -953,13 +952,13 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
         }
 
         pstmt.execute();
-        Util.close(null, pstmt, null);
+        Utils.close(null, pstmt, null);
     }
 
     private void populateDateNormalCase(LinkedList<Object> dateValues) throws SQLException {
         String sql = "insert into " + dateTable + " values( " + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?" + ")";
 
-        SQLServerPreparedStatement sqlPstmt = (SQLServerPreparedStatement) Util.getPreparedStmt(con, sql, stmtColEncSetting);
+        SQLServerPreparedStatement sqlPstmt = (SQLServerPreparedStatement) Utils.getPreparedStmt(con, sql, stmtColEncSetting);
 
         // date
         for (int i = 1; i <= 3; i++) {
@@ -992,7 +991,7 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
         }
 
         sqlPstmt.execute();
-        Util.close(null, sqlPstmt, null);
+        Utils.close(null, sqlPstmt, null);
     }
 
     private void populateDateSetObject(LinkedList<Object> dateValues,
@@ -1003,7 +1002,7 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
 
         String sql = "insert into " + dateTable + " values( " + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?" + ")";
 
-        SQLServerPreparedStatement sqlPstmt = (SQLServerPreparedStatement) Util.getPreparedStmt(con, sql, stmtColEncSetting);
+        SQLServerPreparedStatement sqlPstmt = (SQLServerPreparedStatement) Utils.getPreparedStmt(con, sql, stmtColEncSetting);
 
         // date
         for (int i = 1; i <= 3; i++) {
@@ -1056,13 +1055,13 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
         }
 
         sqlPstmt.execute();
-        Util.close(null, sqlPstmt, null);
+        Utils.close(null, sqlPstmt, null);
     }
 
     private void populateDateSetObjectNull() throws SQLException {
         String sql = "insert into " + dateTable + " values( " + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?" + ")";
 
-        SQLServerPreparedStatement sqlPstmt = (SQLServerPreparedStatement) Util.getPreparedStmt(con, sql, stmtColEncSetting);
+        SQLServerPreparedStatement sqlPstmt = (SQLServerPreparedStatement) Utils.getPreparedStmt(con, sql, stmtColEncSetting);
 
         // date
         for (int i = 1; i <= 3; i++) {
@@ -1095,13 +1094,13 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
         }
 
         sqlPstmt.execute();
-        Util.close(null, sqlPstmt, null);
+        Utils.close(null, sqlPstmt, null);
     }
 
     private void populateDateNullCase() throws SQLException {
         String sql = "insert into " + dateTable + " values( " + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?" + ")";
 
-        SQLServerPreparedStatement sqlPstmt = (SQLServerPreparedStatement) Util.getPreparedStmt(con, sql, stmtColEncSetting);
+        SQLServerPreparedStatement sqlPstmt = (SQLServerPreparedStatement) Utils.getPreparedStmt(con, sql, stmtColEncSetting);
 
         // date
         for (int i = 1; i <= 3; i++) {
@@ -1134,7 +1133,7 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
         }
 
         sqlPstmt.execute();
-        Util.close(null, sqlPstmt, null);
+        Utils.close(null, sqlPstmt, null);
     }
 
     /**
@@ -1147,7 +1146,7 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
         String sql = "insert into " + numericTable + " values( " + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?,"
                 + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?" + ")";
 
-        pstmt = (SQLServerPreparedStatement) Util.getPreparedStmt(con, sql, stmtColEncSetting);
+        pstmt = (SQLServerPreparedStatement) Utils.getPreparedStmt(con, sql, stmtColEncSetting);
 
         // bit
         for (int i = 1; i <= 3; i++) {
@@ -1241,14 +1240,14 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
         }
 
         pstmt.execute();
-        Util.close(null, pstmt, null);
+        Utils.close(null, pstmt, null);
     }
 
     private void populateNumericSetObject(String[] values) throws SQLException {
         String sql = "insert into " + numericTable + " values( " + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?,"
                 + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?" + ")";
 
-        pstmt = (SQLServerPreparedStatement) Util.getPreparedStmt(con, sql, stmtColEncSetting);
+        pstmt = (SQLServerPreparedStatement) Utils.getPreparedStmt(con, sql, stmtColEncSetting);
 
         // bit
         for (int i = 1; i <= 3; i++) {
@@ -1342,14 +1341,14 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
         }
 
         pstmt.execute();
-        Util.close(null, pstmt, null);
+        Utils.close(null, pstmt, null);
     }
 
     private void populateNumericSetObjectWithJDBCTypes(String[] values) throws SQLException {
         String sql = "insert into " + numericTable + " values( " + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?,"
                 + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?" + ")";
 
-        pstmt = (SQLServerPreparedStatement) Util.getPreparedStmt(con, sql, stmtColEncSetting);
+        pstmt = (SQLServerPreparedStatement) Utils.getPreparedStmt(con, sql, stmtColEncSetting);
 
         // bit
         for (int i = 1; i <= 3; i++) {
@@ -1443,14 +1442,14 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
         }
 
         pstmt.execute();
-        Util.close(null, pstmt, null);
+        Utils.close(null, pstmt, null);
     }
 
     private void populateNumericSetObjectNull() throws SQLException {
         String sql = "insert into " + numericTable + " values( " + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?,"
                 + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?" + ")";
 
-        pstmt = (SQLServerPreparedStatement) Util.getPreparedStmt(con, sql, stmtColEncSetting);
+        pstmt = (SQLServerPreparedStatement) Utils.getPreparedStmt(con, sql, stmtColEncSetting);
 
         // bit
         for (int i = 1; i <= 3; i++) {
@@ -1533,7 +1532,7 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
         }
 
         pstmt.execute();
-        Util.close(null, pstmt, null);
+        Utils.close(null, pstmt, null);
     }
 
     private void populateNumericNullCase(String[] values) throws SQLException {
@@ -1542,7 +1541,7 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
 
                 + ")";
 
-        pstmt = (SQLServerPreparedStatement) Util.getPreparedStmt(con, sql, stmtColEncSetting);
+        pstmt = (SQLServerPreparedStatement) Utils.getPreparedStmt(con, sql, stmtColEncSetting);
 
         // bit
         for (int i = 1; i <= 3; i++) {
@@ -1624,7 +1623,7 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
             pstmt.setBigDecimal(i, null, 28, 4);
         }
         pstmt.execute();
-        Util.close(null, pstmt, null);
+        Utils.close(null, pstmt, null);
     }
 
     private void populateNumericNormalization(String[] numericValues) throws SQLException {
@@ -1633,7 +1632,7 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
 
                 + ")";
 
-        pstmt = (SQLServerPreparedStatement) Util.getPreparedStmt(con, sql, stmtColEncSetting);
+        pstmt = (SQLServerPreparedStatement) Utils.getPreparedStmt(con, sql, stmtColEncSetting);
 
         // bit
         for (int i = 1; i <= 3; i++) {
@@ -1731,13 +1730,13 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
         }
 
         pstmt.execute();
-        Util.close(null, pstmt, null);
+        Utils.close(null, pstmt, null);
     }
 
     private void testChar(SQLServerStatement stmt,
             String[] values) throws SQLException {
         String sql = "select * from " + charTable;
-        SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) Util.getPreparedStmt(con, sql, stmtColEncSetting);
+        SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) Utils.getPreparedStmt(con, sql, stmtColEncSetting);
         ResultSet rs = null;
         if (stmt == null) {
             rs = pstmt.executeQuery();
@@ -1752,13 +1751,13 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
             testGetObject(rs, numberOfColumns, values);
         }
 
-        Util.close(rs, pstmt, null);
+        Utils.close(rs, pstmt, null);
     }
 
     private void testBinary(SQLServerStatement stmt,
             LinkedList<byte[]> values) throws SQLException {
         String sql = "select * from " + binaryTable;
-        SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) Util.getPreparedStmt(con, sql, stmtColEncSetting);
+        SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) Utils.getPreparedStmt(con, sql, stmtColEncSetting);
         ResultSet rs = null;
         if (stmt == null) {
             rs = pstmt.executeQuery();
@@ -1774,14 +1773,14 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
             testGetObjectForBinary(rs, numberOfColumns, values);
         }
 
-        Util.close(rs, pstmt, null);
+        Utils.close(rs, pstmt, null);
     }
 
     private void testDate(SQLServerStatement stmt,
             LinkedList<Object> values1) throws SQLException {
 
         String sql = "select * from " + dateTable;
-        SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) Util.getPreparedStmt(con, sql, stmtColEncSetting);
+        SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) Utils.getPreparedStmt(con, sql, stmtColEncSetting);
         ResultSet rs = null;
         if (stmt == null) {
             rs = pstmt.executeQuery();
@@ -1798,7 +1797,7 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
             testGetDate(rs, numberOfColumns, values1);
         }
 
-        Util.close(rs, pstmt, null);
+        Utils.close(rs, pstmt, null);
     }
 
     private void testGetObject(ResultSet rs,
@@ -1841,10 +1840,10 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
 
                 Object expected = null;
                 if (rs.getMetaData().getColumnTypeName(i).equalsIgnoreCase("smalldatetime")) {
-                    expected = Util.roundSmallDateTimeValue(values.get(index));
+                    expected = Utils.roundSmallDateTimeValue(values.get(index));
                 }
                 else if (rs.getMetaData().getColumnTypeName(i).equalsIgnoreCase("datetime")) {
-                    expected = Util.roundDatetimeValue(values.get(index));
+                    expected = Utils.roundDatetimeValue(values.get(index));
                 }
                 else {
                     expected = values.get(index);
@@ -2004,7 +2003,7 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
                 }
                 else if (index == 4) // round value for datetime
                 {
-                    Object datetimeValue = "" + Util.roundDatetimeValue(values.get(index));
+                    Object datetimeValue = "" + Utils.roundDatetimeValue(values.get(index));
                     assertTrue(
                             stringValue1.equalsIgnoreCase("" + datetimeValue) && stringValue2.equalsIgnoreCase("" + datetimeValue)
                                     && stringValue3.equalsIgnoreCase("" + datetimeValue),
@@ -2013,7 +2012,7 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
                 }
                 else if (index == 5) // round value for smalldatetime
                 {
-                    Object smalldatetimeValue = "" + Util.roundSmallDateTimeValue(values.get(index));
+                    Object smalldatetimeValue = "" + Utils.roundSmallDateTimeValue(values.get(index));
                     assertTrue(
                             stringValue1.equalsIgnoreCase("" + smalldatetimeValue) && stringValue2.equalsIgnoreCase("" + smalldatetimeValue)
                                     && stringValue3.equalsIgnoreCase("" + smalldatetimeValue),
@@ -2143,14 +2142,14 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
                         stringValue1 = "" + ((SQLServerResultSet) rs).getDateTime(i);
                         stringValue2 = "" + ((SQLServerResultSet) rs).getDateTime(i + 1);
                         stringValue3 = "" + ((SQLServerResultSet) rs).getDateTime(i + 2);
-                        expected = "" + Util.roundDatetimeValue(values.get(4));
+                        expected = "" + Utils.roundDatetimeValue(values.get(4));
                         break;
 
                     case 16:
                         stringValue1 = "" + ((SQLServerResultSet) rs).getSmallDateTime(i);
                         stringValue2 = "" + ((SQLServerResultSet) rs).getSmallDateTime(i + 1);
                         stringValue3 = "" + ((SQLServerResultSet) rs).getSmallDateTime(i + 2);
-                        expected = "" + Util.roundSmallDateTimeValue(values.get(5));
+                        expected = "" + Utils.roundSmallDateTimeValue(values.get(5));
                         break;
 
                     default:
@@ -2173,7 +2172,7 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
             String[] numericValues,
             boolean isNull) throws SQLException {
         String sql = "select * from " + numericTable;
-        SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) Util.getPreparedStmt(con, sql, stmtColEncSetting);
+        SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) Utils.getPreparedStmt(con, sql, stmtColEncSetting);
         SQLServerResultSet rs = null;
         if (stmt == null) {
             rs = (SQLServerResultSet) pstmt.executeQuery();
@@ -2195,7 +2194,7 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
             }
         }
 
-        Util.close(rs, pstmt, null);
+        Utils.close(rs, pstmt, null);
     }
 
     private void testWithSpecifiedtype(SQLServerResultSet rs,
