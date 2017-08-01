@@ -1696,7 +1696,7 @@ public class SQLServerConnection implements ISQLServerConnection {
 
             sPropKey = SQLServerDriverStringProperty.SSL_PROTOCOL.toString();
             sPropValue = activeConnectionProperties.getProperty(sPropKey);
-            if (sPropValue == null) {
+            if (null == sPropValue) {
                 sPropValue = SQLServerDriverStringProperty.SSL_PROTOCOL.getDefaultValue().toString();
                 activeConnectionProperties.setProperty(sPropKey, sPropValue);
             }
