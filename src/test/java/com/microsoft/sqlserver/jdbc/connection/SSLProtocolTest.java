@@ -56,6 +56,7 @@ public class SSLProtocolTest extends AbstractTest {
         }
     }
 
+
     /**
      * Connect with unsupported protocol
      * 
@@ -101,3 +102,4 @@ public class SSLProtocolTest extends AbstractTest {
         }
     }
 }
+
