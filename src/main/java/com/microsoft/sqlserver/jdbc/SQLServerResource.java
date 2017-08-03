@@ -363,7 +363,6 @@ public final class SQLServerResource extends ListResourceBundle {
 				{"R_keyStoreAuthenticationPropertyDescription", "The name that identifies a key store."},
 				{"R_keyStoreSecretPropertyDescription", "The authentication secret or information needed to locate the secret."},
 				{"R_keyStoreLocationPropertyDescription", "The key store location."},
-				{"R_fipsProviderPropertyDescription", "FIPS Provider."},
 				{"R_keyStoreAuthenticationNotSet", "\"keyStoreAuthentication\" connection string keyword must be specified,  if \"{0}\" is specified."},
 				{"R_keyStoreSecretOrLocationNotSet", "Both \"keyStoreSecret\" and \"keyStoreLocation\" must be set, if \"keyStoreAuthentication=JavaKeyStorePassword\" has been specified in the connection string."},
 				{"R_certificateStoreInvalidKeyword", "Cannot set \"keyStoreSecret\", if \"keyStoreAuthentication=CertificateStore\" has been specified in the connection string."},

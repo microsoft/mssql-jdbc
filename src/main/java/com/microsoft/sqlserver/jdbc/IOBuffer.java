@@ -1579,7 +1579,6 @@ final class TDSChannel {
 
         boolean isFips = false;
         String trustStoreType = null;
-        String fipsProvider = null;
 
         // If anything in here fails, terminate the connection and throw an exception
         try {
@@ -1597,11 +1596,10 @@ final class TDSChannel {
                 trustStoreType = SQLServerDriverStringProperty.TRUST_STORE_TYPE.getDefaultValue();
             }
             
-            fipsProvider = con.activeConnectionProperties.getProperty(SQLServerDriverStringProperty.FIPS_PROVIDER.toString());
             isFips = Boolean.valueOf(con.activeConnectionProperties.getProperty(SQLServerDriverBooleanProperty.FIPS.toString())); 
             
             if (isFips) {
-                validateFips(fipsProvider, trustStoreType, trustStoreFileName);
+                validateFips(trustStoreType, trustStoreFileName);
             }
 
             assert TDS.ENCRYPT_OFF == con.getRequestedEncryptionLevel() || // Login only SSL
@@ -1647,12 +1645,8 @@ final class TDSChannel {
                     if (logger.isLoggable(Level.FINEST))
                         logger.finest(toString() + " Finding key store interface");
 
-                    if (isFips) {
-                        ks = KeyStore.getInstance(trustStoreType, fipsProvider);
-                    }
-                    else {
-                        ks = KeyStore.getInstance(trustStoreType);
-                    }
+
+                    ks = KeyStore.getInstance(trustStoreType);
                     ksProvider = ks.getProvider();
 
                     // Next, load up the trust store file from the specified location.
@@ -1829,29 +1823,23 @@ final class TDSChannel {
      * <LI>trustServerCertificate should be false
      * <LI>if certificate is not installed FIPSProvider & TrustStoreType should be present.
      * 
-     * @param fipsProvider
-     *            FIPS Provider
      * @param trustStoreType
      * @param trustStoreFileName
      * @throws SQLServerException
      * @since 6.1.4
      */
-    private void validateFips(final String fipsProvider,
-            final String trustStoreType,
-            final String trustStoreFileName) throws SQLServerException {
+    private void validateFips(final String trustStoreType,final String trustStoreFileName) throws SQLServerException {
         boolean isValid = false;
         boolean isEncryptOn;
         boolean isValidTrustStoreType;
         boolean isValidTrustStore;
         boolean isTrustServerCertificate;
-        boolean isValidFipsProvider;
 
         String strError = SQLServerException.getErrString("R_invalidFipsConfig");
 
         isEncryptOn = (TDS.ENCRYPT_ON == con.getRequestedEncryptionLevel());
 
         // Here different FIPS provider supports different KeyStore type along with different JVM Implementation.
-        isValidFipsProvider = !StringUtils.isEmpty(fipsProvider);
         isValidTrustStoreType = !StringUtils.isEmpty(trustStoreType);
         isValidTrustStore = !StringUtils.isEmpty(trustStoreFileName);
         isTrustServerCertificate = con.trustServerCertificate();
@@ -1863,8 +1851,7 @@ final class TDSChannel {
             isValid = true;
 
             if (isValidTrustStore) {
-                // In case of valid trust store we need to check fipsProvider and TrustStoreType.
-                if (!isValidFipsProvider || !isValidTrustStoreType) {
+                if (!isValidTrustStoreType) {
                     isValid = false;
                     strError = SQLServerException.getErrString("R_invalidFipsProviderConfig");
                     

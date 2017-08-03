@@ -586,13 +586,6 @@ public class SQLServerDataSource implements ISQLServerDataSource, DataSource, ja
                 SQLServerDriverBooleanProperty.FIPS.getDefaultValue());
     }
 
-    public void setFIPSProvider(String fipsProvider) {
-        setStringProperty(connectionProps, SQLServerDriverStringProperty.FIPS_PROVIDER.toString(), fipsProvider);
-    }
-
-    public String getFIPSProvider() {
-        return getStringProperty(connectionProps, SQLServerDriverStringProperty.FIPS_PROVIDER.toString(), null);
-    }
 
     // The URL property is exposed for backwards compatibility reasons. Also, several
     // Java Application servers expect a setURL function on the DataSource and set it
