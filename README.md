@@ -130,7 +130,7 @@ Projects that require either of the two features need to explicitly declare the 
 	<version>1.0.0</version>
 </dependency>
 ```
-Please notice, as of v6.3.0-preview, the way to construct a `SQLServerColumnEncryptionAzureKeyVaultProvider` is changed, please refer to this [Wiki](https://github.com/Microsoft/mssql-jdbc/wiki/New-Constructor-Definition-for-SQLServerColumnEncryptionAzureKeyVaultProvider-after-6.3.0-Preview-Release) page.
+***Please notice,*** as of v6.3.0-preview, the way to construct a `SQLServerColumnEncryptionAzureKeyVaultProvider` object is changed, please refer to this [Wiki](https://github.com/Microsoft/mssql-jdbc/wiki/New-Constructor-Definition-for-SQLServerColumnEncryptionAzureKeyVaultProvider-after-6.3.0-Preview-Release) page.
 
 ## Guidelines for Creating Pull Requests
 We love contributions from the community.  To help improve the quality of our code, we encourage you to use the mssql-jdbc_formatter.xml formatter provided on all pull requests.
