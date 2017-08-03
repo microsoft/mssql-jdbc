@@ -30,15 +30,27 @@ public class PrecisionScaleTest extends AESetup {
     private static SQLServerPreparedStatement pstmt = null;
 
     private static java.util.Date date = null;
+    private static int offsetFromGMT = 0;
+    private static int offset = 60000;
+    private static String GMTDate = "";
+    private static String GMTDateWithoutDate = "";
+    private static String dateTimeOffsetExpectedValue = "";
 
     static {
         TimeZone tz = TimeZone.getDefault();
-        int offsetFromGMT = tz.getOffset(1450812362177L);
-        // since the Date object already accounts for timezone, subtracting the timezone difference will give us the
-        // GMT version of the Date object.
-        // Then we will subtract another 8 hours from it to make it PST. This will allow us to preserve our test data as it was
-        // and the test will work regardless of timezone.
-        date = new Date(1450812362177L - offsetFromGMT - 28800000);
+        offsetFromGMT = tz.getOffset(1450812362177L);
+
+        // since the Date object already accounts for timezone, subtracting the timezone difference will always give us the
+        // GMT version of the Date object. I can't make this PST because there are datetimeoffset tests, so I have to use GMT.
+        date = new Date(1450812362177L - offsetFromGMT);
+
+        // Cannot use date.toGMTString() here directly since the date object is used elsewhere for population of data.
+        GMTDate = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(date);
+        GMTDateWithoutDate = new SimpleDateFormat("HH:mm:ss").format(date);
+
+        // datetimeoffset is aware of timezone as well as Date, so we must apply the timezone value twice.
+        dateTimeOffsetExpectedValue = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss")
+                .format(new Date(1450812362177L - offsetFromGMT - offsetFromGMT + offset));
     }
 
     @Test
@@ -58,10 +70,10 @@ public class PrecisionScaleTest extends AESetup {
     public void testDateScale2() throws Exception {
         dropTables(stmt);
 
-        String[] dateNormalCase = {"2015-12-22 11:26:02.18", "2015-12-22 11:26:02.1770000", "2015-12-22 19:27:02.1770000 +00:01", "11:26:02.1770000",
-                "11:26:02.18", "2015-12-22 19:27:02.18 +00:01"};
-        String[] dateSetObject = {"2015-12-22 11:26:02.18", "2015-12-22 11:26:02.177", "2015-12-22 19:27:02.177 +00:01", "11:26:02", "11:26:02",
-                "2015-12-22 19:27:02.18 +00:01"};
+        String[] dateNormalCase = {GMTDate + ".18", GMTDate + ".1770000", dateTimeOffsetExpectedValue + ".1770000 +00:01",
+                GMTDateWithoutDate + ".1770000", GMTDateWithoutDate + ".18", dateTimeOffsetExpectedValue + ".18 +00:01"};
+        String[] dateSetObject = {GMTDate + ".18", GMTDate + ".177", dateTimeOffsetExpectedValue + ".177 +00:01", GMTDateWithoutDate,
+                GMTDateWithoutDate, dateTimeOffsetExpectedValue + ".18 +00:01"};
 
         createDatePrecisionTable(2);
         populateDateNormalCase(2);
@@ -87,10 +99,10 @@ public class PrecisionScaleTest extends AESetup {
     public void testDateScale0() throws Exception {
         dropTables(stmt);
 
-        String[] dateNormalCase2 = {"2015-12-22 11:26:02", "2015-12-22 11:26:02.1770000", "2015-12-22 19:27:02.1770000 +00:01", "11:26:02.1770000",
-                "11:26:02", "2015-12-22 19:27:02 +00:01"};
-        String[] dateSetObject2 = {"2015-12-22 11:26:02.0", "2015-12-22 11:26:02.177", "2015-12-22 19:27:02.177 +00:01", "11:26:02", "11:26:02",
-                "2015-12-22 19:27:02 +00:01"};
+        String[] dateNormalCase2 = {GMTDate, GMTDate + ".1770000", dateTimeOffsetExpectedValue + ".1770000 +00:01", GMTDateWithoutDate + ".1770000",
+                GMTDateWithoutDate, dateTimeOffsetExpectedValue + " +00:01"};
+        String[] dateSetObject2 = {GMTDate + ".0", GMTDate + ".177", dateTimeOffsetExpectedValue + ".177 +00:01", GMTDateWithoutDate,
+                GMTDateWithoutDate, dateTimeOffsetExpectedValue + " +00:01"};
 
         createDatePrecisionTable(0);
         populateDateNormalCase(0);
