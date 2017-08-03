@@ -83,7 +83,7 @@ We're now on the Maven Central Repository. Add the following to your POM file to
 	<version>6.2.1.jre8</version>
 </dependency>
 ```
-The driver can be downloaded from the [Microsoft Download Center](https://www.microsoft.com/en-us/download/details.aspx?displaylang=en&id=11774).
+The driver can be downloaded from the [Microsoft Download Center](https://go.microsoft.com/fwlink/?linkid=852460).
 
 To get the latest preview version of the driver, add the following to your POM file: 
 ```xml
