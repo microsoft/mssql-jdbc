@@ -70,7 +70,7 @@ This driver is documented on [Microsoft's Documentation web site](https://msdn.m
 For samples, please see the src\sample directory.
 
 ### Download the DLLs
-For some features (e.g. Integrated Authentication and Distributed Transactions), you may need to use the `sqljdbc_xa` and `sqljdbc_auth` DLLs. They can be downloaded from the [Microsoft Download Center](https://www.microsoft.com/en-us/download/details.aspx?displaylang=en&id=11774)
+For some features (e.g. Integrated Authentication and Distributed Transactions), you may need to use the `sqljdbc_xa` and `sqljdbc_auth` DLLs. They can be downloaded from the [Microsoft Download Center](https://go.microsoft.com/fwlink/?linkid=852460)
 
 ### Download the driver
 Don't want to compile anything?
@@ -83,7 +83,7 @@ We're now on the Maven Central Repository. Add the following to your POM file to
 	<version>6.2.1.jre8</version>
 </dependency>
 ```
-The driver can be downloaded from the [Microsoft Download Center](https://www.microsoft.com/en-us/download/details.aspx?displaylang=en&id=11774).
+The driver can be downloaded from the [Microsoft Download Center](https://go.microsoft.com/fwlink/?linkid=852460).
 
 To get the latest preview version of the driver, add the following to your POM file: 
 ```xml
