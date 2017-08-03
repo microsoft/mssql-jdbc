@@ -78,26 +78,6 @@ public class FipsTest {
     }
 
     /**
-     * Test after removing FIPS PROVIDER
-     * 
-     * @throws Exception
-     */
-    @Test
-    public void fipsProviderTest() throws Exception {
-        try {
-            Properties props = buildConnectionProperties();
-            props.remove("fipsProvider");
-            props.setProperty("trustStore", "/SOME_PATH");
-            Connection con = PrepUtil.getConnection(connectionString, props);
-            Assertions.fail("It should fail as we are not passing appropriate params");
-        }
-        catch (SQLServerException e) {
-            Assertions.assertTrue(e.getMessage().contains("Could not enable FIPS due to invalid FIPSProvider or TrustStoreType"),
-                    "Should create exception for invalid FIPSProvider");
-        }
-    }
-
-    /**
      * Test after removing fips, encrypt & trustStore it should work appropriately.
      * 
      * @throws Exception
@@ -124,7 +104,6 @@ public class FipsTest {
         SQLServerDataSource ds = new SQLServerDataSource();
         setDataSourceProperties(ds);
         ds.setFIPS(false);
-        ds.setFIPSProvider("");
         ds.setEncrypt(false);
         ds.setTrustStoreType("JKS");
         Connection con = ds.getConnection();
@@ -150,27 +129,6 @@ public class FipsTest {
             Assertions.assertTrue(
                     e.getMessage().contains("Could not enable FIPS due to either encrypt is not true or using trusted certificate settings."),
                     "Should create exception for invalid encrypt value");
-        }
-    }
-
-    /**
-     * Test after removing FIPS PROVIDER
-     * 
-     * @throws Exception
-     */
-    @Test
-    public void fipsDataSourceProviderTest() throws Exception {
-        try {
-            SQLServerDataSource ds = new SQLServerDataSource();
-            setDataSourceProperties(ds);
-            ds.setFIPSProvider("");
-            ds.setTrustStore("/SOME_PATH");
-            Connection con = ds.getConnection();
-            Assertions.fail("It should fail as we are not passing appropriate params");
-        }
-        catch (SQLServerException e) {
-            Assertions.assertTrue(e.getMessage().contains("Could not enable FIPS due to invalid FIPSProvider or TrustStoreType"),
-                    "Should create exception for invalid FIPSProvider");
         }
     }
 
@@ -216,7 +174,6 @@ public class FipsTest {
         ds.setTrustServerCertificate(false);
         ds.setIntegratedSecurity(false);
         ds.setTrustStoreType("PKCS12");
-        ds.setFIPSProvider("BCFIPS");
     }
 
     /**
@@ -235,7 +192,6 @@ public class FipsTest {
 
         // For New Code
         connectionProps.setProperty("trustStoreType", "PKCS12");
-        connectionProps.setProperty("fipsProvider", "BCFIPS");
         connectionProps.setProperty("fips", "true");
 
         return connectionProps;
