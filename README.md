@@ -75,12 +75,12 @@ For some features (e.g. Integrated Authentication and Distributed Transactions),
 ### Download the driver
 Don't want to compile anything?
 
-We're now on the Maven Central Repository. Add the following to your POM file:
+We're now on the Maven Central Repository. Add the following to your POM file to get the most stable release:
 ```xml
 <dependency>
 	<groupId>com.microsoft.sqlserver</groupId>
 	<artifactId>mssql-jdbc</artifactId>
-	<version>6.3.0.jre8-preview</version>
+	<version>6.2.1.jre8</version>
 </dependency>
 ```
 The driver can be downloaded from the [Microsoft Download Center](https://www.microsoft.com/en-us/download/details.aspx?displaylang=en&id=11774).
