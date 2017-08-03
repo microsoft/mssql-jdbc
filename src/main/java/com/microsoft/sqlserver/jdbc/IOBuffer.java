@@ -1828,7 +1828,8 @@ final class TDSChannel {
      * @throws SQLServerException
      * @since 6.1.4
      */
-    private void validateFips(final String trustStoreType,final String trustStoreFileName) throws SQLServerException {
+    private void validateFips(final String trustStoreType,
+            final String trustStoreFileName) throws SQLServerException {
         boolean isValid = false;
         boolean isEncryptOn;
         boolean isValidTrustStoreType;
@@ -1856,10 +1857,10 @@ final class TDSChannel {
                     strError = SQLServerException.getErrString("R_invalidFipsProviderConfig");
                     
                     if (logger.isLoggable(Level.FINER))
-                        logger.finer(toString() + " FIPS provider & TrustStoreType should pass with TrustStore.");
+                        logger.finer(toString() + "TrustStoreType is required alongside with TrustStore.");
                 }
                 if (logger.isLoggable(Level.FINER))
-                    logger.finer(toString() + " Found FIPS parameters seems to be valid.");
+                    logger.finer(toString() + "Found FIPS parameters seem to be valid.");
             }
         }
         else {
