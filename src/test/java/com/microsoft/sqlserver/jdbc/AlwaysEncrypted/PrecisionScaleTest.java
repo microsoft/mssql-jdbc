@@ -11,12 +11,14 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
 import java.math.BigDecimal;
-import java.sql.Date;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Time;
 import java.sql.Timestamp;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
+import java.util.TimeZone;
 
 import org.junit.jupiter.api.Test;
 
@@ -27,7 +29,17 @@ import com.microsoft.sqlserver.testframework.util.Util;
 public class PrecisionScaleTest extends AESetup {
     private static SQLServerPreparedStatement pstmt = null;
 
-    private static java.util.Date date = new Date(1450812362177L);
+    private static java.util.Date date = null;
+
+    static {
+        TimeZone tz = TimeZone.getDefault();
+        int offsetFromGMT = tz.getOffset(1450812362177L);
+        // since the Date object already accounts for timezone, subtracting the timezone difference will give us the
+        // GMT version of the Date object.
+        // Then we will subtract another 8 hours from it to make it PST. This will allow us to preserve our test data as it was
+        // and the test will work regardless of timezone.
+        date = new Date(1450812362177L - offsetFromGMT - 28800000);
+    }
 
     @Test
     public void testNumericPrecision8Scale2() throws Exception {

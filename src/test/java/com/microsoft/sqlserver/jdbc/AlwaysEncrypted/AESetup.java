@@ -62,11 +62,11 @@ public class AESetup extends AbstractTest {
     static final String cmkName = "JDBC_CMK";
     static final String cekName = "JDBC_CEK";
     static final String secretstrJks = "password";
-    static final String charTable = "JDBCEncrpytedCharTable";
-    static final String binaryTable = "JDBCEncrpytedBinaryTable";
-    static final String dateTable = "JDBCEncrpytedDateTable";
-    static final String numericTable = "JDBCEncrpytedNumericTable";
-    static final String scaleDateTable = "JDBCEncrpytedScaleDateTable";
+    static final String charTable = "JDBCEncryptedCharTable";
+    static final String binaryTable = "JDBCEncryptedBinaryTable";
+    static final String dateTable = "JDBCEncryptedDateTable";
+    static final String numericTable = "JDBCEncryptedNumericTable";
+    static final String scaleDateTable = "JDBCEncryptedScaleDateTable";
 
     static final String uid = "171fbe25-4331-4765-a838-b2e3eea3e7ea";
 
