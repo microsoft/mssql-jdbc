@@ -1577,7 +1577,6 @@ final class TDSChannel {
         String tmfDefaultAlgorithm = null;  // Default algorithm (typically X.509) used by the TrustManagerFactory
         SSLHandhsakeState handshakeState = SSLHandhsakeState.SSL_HANDHSAKE_NOT_STARTED;
 
-        boolean isFips = false;
         String trustStoreType = null;
 
         // If anything in here fails, terminate the connection and throw an exception
@@ -1596,12 +1595,6 @@ final class TDSChannel {
                 trustStoreType = SQLServerDriverStringProperty.TRUST_STORE_TYPE.getDefaultValue();
             }
             
-            isFips = Boolean.valueOf(con.activeConnectionProperties.getProperty(SQLServerDriverBooleanProperty.FIPS.toString())); 
-            
-            if (isFips) {
-                validateFips(trustStoreType, trustStoreFileName);
-            }
-
             assert TDS.ENCRYPT_OFF == con.getRequestedEncryptionLevel() || // Login only SSL
                     TDS.ENCRYPT_ON == con.getRequestedEncryptionLevel();   // Full SSL
 
@@ -1704,14 +1697,12 @@ final class TDSChannel {
                 tmf.init(ks);
                 tm = tmf.getTrustManagers();
 
-                // if the host name in cert provided use it or use the host name Only if it is not FIPS
-                if (!isFips) {
-                    if (null != hostNameInCertificate) {
-                        tm = new TrustManager[] {new HostNameOverrideX509TrustManager(this, (X509TrustManager) tm[0], hostNameInCertificate)};
-                    }
-                    else {
-                        tm = new TrustManager[] {new HostNameOverrideX509TrustManager(this, (X509TrustManager) tm[0], host)};
-                    }
+                // if the host name in cert provided use it or use the host name 
+                if (null != hostNameInCertificate) {
+                    tm = new TrustManager[] {new HostNameOverrideX509TrustManager(this, (X509TrustManager) tm[0], hostNameInCertificate)};
+                }
+                else {
+                    tm = new TrustManager[] {new HostNameOverrideX509TrustManager(this, (X509TrustManager) tm[0], host)};
                 }
             } // end if (!con.trustServerCertificate())
 
@@ -1813,64 +1804,6 @@ final class TDSChannel {
                 con.terminate(SQLServerException.DRIVER_ERROR_SSL_FAILED, form.format(msgArgs), e);
             }
         }
-    }
-
-    /**
-     * Validate FIPS if fips set as true
-     * 
-     * Valid FIPS settings:
-     * <LI>Encrypt should be true
-     * <LI>trustServerCertificate should be false
-     * <LI>if certificate is not installed FIPSProvider & TrustStoreType should be present.
-     * 
-     * @param trustStoreType
-     * @param trustStoreFileName
-     * @throws SQLServerException
-     * @since 6.1.4
-     */
-    private void validateFips(final String trustStoreType,
-            final String trustStoreFileName) throws SQLServerException {
-        boolean isValid = false;
-        boolean isEncryptOn;
-        boolean isValidTrustStoreType;
-        boolean isValidTrustStore;
-        boolean isTrustServerCertificate;
-
-        String strError = SQLServerException.getErrString("R_invalidFipsConfig");
-
-        isEncryptOn = (TDS.ENCRYPT_ON == con.getRequestedEncryptionLevel());
-
-        // Here different FIPS provider supports different KeyStore type along with different JVM Implementation.
-        isValidTrustStoreType = !StringUtils.isEmpty(trustStoreType);
-        isValidTrustStore = !StringUtils.isEmpty(trustStoreFileName);
-        isTrustServerCertificate = con.trustServerCertificate();
-
-        if (isEncryptOn && !isTrustServerCertificate) {
-            if (logger.isLoggable(Level.FINER))
-                logger.finer(toString() + " Found parameters are encrypt is true & trustServerCertificate false");
-            
-            isValid = true;
-
-            if (isValidTrustStore) {
-                if (!isValidTrustStoreType) {
-                    isValid = false;
-                    strError = SQLServerException.getErrString("R_invalidFipsProviderConfig");
-                    
-                    if (logger.isLoggable(Level.FINER))
-                        logger.finer(toString() + "TrustStoreType is required alongside with TrustStore.");
-                }
-                if (logger.isLoggable(Level.FINER))
-                    logger.finer(toString() + "Found FIPS parameters seem to be valid.");
-            }
-        }
-        else {
-            strError = SQLServerException.getErrString("R_invalidFipsEncryptConfig");
-        }
-
-        if (!isValid) {
-            throw new SQLServerException(strError, null, 0, null);
-        }
-
     }
 
     private final static String SEPARATOR = System.getProperty("file.separator");

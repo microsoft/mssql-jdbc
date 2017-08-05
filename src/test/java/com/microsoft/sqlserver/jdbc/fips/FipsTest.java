@@ -8,7 +8,6 @@
 package com.microsoft.sqlserver.jdbc.fips;
 
 import java.sql.Connection;
-import java.util.Properties;
 
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
@@ -17,9 +16,7 @@ import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
 
 import com.microsoft.sqlserver.jdbc.SQLServerDataSource;
-import com.microsoft.sqlserver.jdbc.SQLServerException;
 import com.microsoft.sqlserver.jdbc.StringUtils;
-import com.microsoft.sqlserver.testframework.PrepUtil;
 import com.microsoft.sqlserver.testframework.Utils;
 
 /**
@@ -38,63 +35,6 @@ public class FipsTest {
     }
 
     /**
-     * Test after setting TrustServerCertificate as true.
-     * 
-     * @throws Exception
-     */
-    @Test
-    public void fipsTrustServerCertificateTest() throws Exception {
-        try {
-            Properties props = buildConnectionProperties();
-            props.setProperty("TrustServerCertificate", "true");
-            Connection con = PrepUtil.getConnection(connectionString, props);
-            Assertions.fail("It should fail as we are not passing appropriate params");
-        }
-        catch (SQLServerException e) {
-            Assertions.assertTrue(
-                    e.getMessage().contains("Could not enable FIPS due to either encrypt is not true or using trusted certificate settings."),
-                    "Should create exception for invalid TrustServerCertificate value");
-        }
-    }
-
-    /**
-     * Test after passing encrypt as false.
-     * 
-     * @throws Exception
-     */
-    @Test
-    public void fipsEncryptTest() throws Exception {
-        try {
-            Properties props = buildConnectionProperties();
-            props.setProperty("encrypt", "false");
-            Connection con = PrepUtil.getConnection(connectionString, props);
-            Assertions.fail("It should fail as we are not passing appropriate params");
-        }
-        catch (SQLServerException e) {
-            Assertions.assertTrue(
-                    e.getMessage().contains("Could not enable FIPS due to either encrypt is not true or using trusted certificate settings."),
-                    "Should create exception for invalid encrypt value");
-        }
-    }
-
-    /**
-     * Test after removing fips, encrypt & trustStore it should work appropriately.
-     * 
-     * @throws Exception
-     */
-    @Test
-    public void fipsPropertyTest() throws Exception {
-        Properties props = buildConnectionProperties();
-        props.remove("fips");
-        props.remove("trustStoreType");
-        props.remove("encrypt");
-        Connection con = PrepUtil.getConnection(connectionString, props);
-        Assertions.assertTrue(!StringUtils.isEmpty(con.getSchema()));
-        con.close();
-        con = null;
-    }
-
-    /**
      * Tests after removing all FIPS related properties.
      * 
      * @throws Exception
@@ -103,54 +43,12 @@ public class FipsTest {
     public void fipsDataSourcePropertyTest() throws Exception {
         SQLServerDataSource ds = new SQLServerDataSource();
         setDataSourceProperties(ds);
-        ds.setFIPS(false);
         ds.setEncrypt(false);
         ds.setTrustStoreType("JKS");
         Connection con = ds.getConnection();
         Assertions.assertTrue(!StringUtils.isEmpty(con.getSchema()));
         con.close();
         con = null;
-    }
-
-    /**
-     * Test after removing encrypt in FIPS Data Source.
-     */
-    @Test
-    public void fipsDatSourceEncrypt() {
-        try {
-            SQLServerDataSource ds = new SQLServerDataSource();
-            setDataSourceProperties(ds);
-            ds.setEncrypt(false);
-            Connection con = ds.getConnection();
-
-            Assertions.fail("It should fail as we are not passing appropriate params");
-        }
-        catch (SQLServerException e) {
-            Assertions.assertTrue(
-                    e.getMessage().contains("Could not enable FIPS due to either encrypt is not true or using trusted certificate settings."),
-                    "Should create exception for invalid encrypt value");
-        }
-    }
-
-    /**
-     * Test after setting TrustServerCertificate as true.
-     * 
-     * @throws Exception
-     */
-    @Test
-    public void fipsDataSourceTrustServerCertificateTest() throws Exception {
-        try {
-            SQLServerDataSource ds = new SQLServerDataSource();
-            setDataSourceProperties(ds);
-            ds.setTrustServerCertificate(true);
-            Connection con = ds.getConnection();
-            Assertions.fail("It should fail as we are not passing appropriate params");
-        }
-        catch (SQLServerException e) {
-            Assertions.assertTrue(
-                    e.getMessage().contains("Could not enable FIPS due to either encrypt is not true or using trusted certificate settings."),
-                    "Should create exception for invalid TrustServerCertificate value");
-        }
     }
 
     /**
@@ -169,32 +67,10 @@ public class FipsTest {
         ds.setDatabaseName(dataSourceProps[4]);
 
         // Set all properties for FIPS
-        ds.setFIPS(true);
         ds.setEncrypt(true);
         ds.setTrustServerCertificate(false);
         ds.setIntegratedSecurity(false);
         ds.setTrustStoreType("PKCS12");
-    }
-
-    /**
-     * Build Connection properties for FIPS
-     * 
-     * @return
-     */
-    private Properties buildConnectionProperties() {
-        Properties connectionProps = new Properties();
-
-        connectionProps.setProperty("encrypt", "true");
-        connectionProps.setProperty("integratedSecurity", "false");
-
-        // In case of false we need to pass keystore etc. which is not passing by default.
-        connectionProps.setProperty("TrustServerCertificate", "false");
-
-        // For New Code
-        connectionProps.setProperty("trustStoreType", "PKCS12");
-        connectionProps.setProperty("fips", "true");
-
-        return connectionProps;
     }
 
     /**
