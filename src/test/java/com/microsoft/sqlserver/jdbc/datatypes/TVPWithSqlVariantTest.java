@@ -34,6 +34,7 @@ import com.microsoft.sqlserver.jdbc.SQLServerStatement;
 import com.microsoft.sqlserver.testframework.AbstractTest;
 import com.microsoft.sqlserver.testframework.Utils;
 import com.microsoft.sqlserver.testframework.sqlType.SqlDate;
+import com.microsoft.sqlserver.testframework.util.RandomData;
 
 @RunWith(JUnitPlatform.class)
 public class TVPWithSqlVariantTest extends AbstractTest {

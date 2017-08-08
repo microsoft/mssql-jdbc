@@ -285,10 +285,10 @@ public class lobsTest extends AbstractTest {
      * @throws Exception
      */
     @Test
-    @DisplayName("testlLobs_InsertRetrive")
+    @DisplayName("testlLobsInsertRetrive")
     public void testNClob() throws Exception {
         String types[] = {"nvarchar(max)"};
-        testLobs_InsertRetrive(types, NClob.class);
+        testLobsInsertRetrive(types, NClob.class);
     }
 
     /**
@@ -297,10 +297,10 @@ public class lobsTest extends AbstractTest {
      * @throws Exception
      */
     @Test
-    @DisplayName("testlLobs_InsertRetrive")
+    @DisplayName("testlLobsInsertRetrive")
     public void testBlob() throws Exception {
         String types[] = {"varbinary(max)"};
-        testLobs_InsertRetrive(types, Blob.class);
+        testLobsInsertRetrive(types, Blob.class);
     }
 
     /**
@@ -309,13 +309,13 @@ public class lobsTest extends AbstractTest {
      * @throws Exception
      */
     @Test
-    @DisplayName("testlLobs_InsertRetrive")
+    @DisplayName("testlLobsInsertRetrive")
     public void testClob() throws Exception {
         String types[] = {"varchar(max)"};
-        testLobs_InsertRetrive(types, Clob.class);
+        testLobsInsertRetrive(types, Clob.class);
     }
 
-    private void testLobs_InsertRetrive(String types[],
+    private void testLobsInsertRetrive(String types[],
             Class lobClass) throws Exception {
         table = createTable(table, types, false);  // create empty table
         int size = 10000;

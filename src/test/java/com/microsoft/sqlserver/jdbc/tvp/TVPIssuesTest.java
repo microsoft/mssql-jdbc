@@ -47,7 +47,7 @@ public class TVPIssuesTest extends AbstractTest {
     private static String expectedTime6value = "15:39:27.616667";
 
     @Test
-    public void tryTVP_RS_varcharMax_4001_Issue() throws Exception {
+    public void tryTVPRSvarcharMax4000Issue() throws Exception {
 
         setup();
 
@@ -98,7 +98,7 @@ public class TVPIssuesTest extends AbstractTest {
      * @throws Exception
      */
     @Test
-    public void tryTVP_Precision_missed_issue_315() throws Exception {
+    public void tryTVPPrecisionmissedissue315() throws Exception {
 
         setup();
 
