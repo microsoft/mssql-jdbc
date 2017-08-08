@@ -21,17 +21,24 @@ import java.util.Date;
 import java.util.TimeZone;
 
 import org.junit.jupiter.api.Test;
+import org.junit.platform.runner.JUnitPlatform;
+import org.junit.runner.RunWith;
 
 import com.microsoft.sqlserver.jdbc.SQLServerPreparedStatement;
 import com.microsoft.sqlserver.jdbc.SQLServerResultSet;
 import com.microsoft.sqlserver.testframework.util.Util;
 
+/**
+ * Tests datatypes that have precision and/or scale.
+ *
+ */
+@RunWith(JUnitPlatform.class)
 public class PrecisionScaleTest extends AESetup {
     private static SQLServerPreparedStatement pstmt = null;
 
     private static java.util.Date date = null;
     private static int offsetFromGMT = 0;
-    private static int offset = 60000;
+    private static final int offset = 60000;
     private static String GMTDate = "";
     private static String GMTDateWithoutDate = "";
     private static String dateTimeOffsetExpectedValue = "";
@@ -112,7 +119,7 @@ public class PrecisionScaleTest extends AESetup {
     }
 
     @Test
-    public void testNumericPrecision8Scale2_Null() throws Exception {
+    public void testNumericPrecision8Scale2Null() throws Exception {
         dropTables(stmt);
 
         String[] numericNull = {"null", "null", "null"};

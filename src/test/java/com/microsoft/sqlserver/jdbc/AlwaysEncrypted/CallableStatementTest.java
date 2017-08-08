@@ -1,3 +1,10 @@
+/*
+ * Microsoft JDBC Driver for SQL Server
+ * 
+ * Copyright(c) Microsoft Corporation All rights reserved.
+ * 
+ * This program is made available under the terms of the MIT License. See the LICENSE file in the project root for more information.
+ */
 package com.microsoft.sqlserver.jdbc.AlwaysEncrypted;
 
 import static org.junit.jupiter.api.Assertions.fail;
@@ -12,7 +19,6 @@ import org.junit.runner.RunWith;
 
 import java.math.BigDecimal;
 import java.sql.Date;
-import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Time;
@@ -20,16 +26,19 @@ import java.sql.Timestamp;
 import java.util.LinkedList;
 
 import com.microsoft.sqlserver.jdbc.SQLServerCallableStatement;
-import com.microsoft.sqlserver.jdbc.SQLServerColumnEncryptionKeyStoreProvider;
 import com.microsoft.sqlserver.jdbc.SQLServerException;
 import com.microsoft.sqlserver.jdbc.SQLServerPreparedStatement;
 import com.microsoft.sqlserver.jdbc.SQLServerResultSet;
-import com.microsoft.sqlserver.jdbc.SQLServerStatementColumnEncryptionSetting;
+import com.microsoft.sqlserver.testframework.Utils;
 import com.microsoft.sqlserver.testframework.util.RandomData;
 import com.microsoft.sqlserver.testframework.util.Util;
 
 import microsoft.sql.DateTimeOffset;
 
+/**
+ * Test cases related to SQLServerCallableStatement.
+ *
+ */
 @RunWith(JUnitPlatform.class)
 public class CallableStatementTest extends AESetup {
 
@@ -239,27 +248,27 @@ public class CallableStatementTest extends AESetup {
     }
 
     private static void dropTables() throws SQLException {
-        stmt.executeUpdate("if object_id('" + table1 + "','U') is not null" + " drop table " + table1);
+        Utils.dropTableIfExists(table1, stmt);
 
-        stmt.executeUpdate("if object_id('" + table2 + "','U') is not null" + " drop table " + table2);
+        Utils.dropTableIfExists(table2, stmt);
 
-        stmt.executeUpdate("if object_id('" + table3 + "','U') is not null" + " drop table " + table3);
+        Utils.dropTableIfExists(table3, stmt);
 
-        stmt.executeUpdate("if object_id('" + table4 + "','U') is not null" + " drop table " + table4);
+        Utils.dropTableIfExists(table4, stmt);
 
-        stmt.executeUpdate("if object_id('" + charTable + "','U') is not null" + " drop table " + charTable);
+        Utils.dropTableIfExists(charTable, stmt);
 
-        stmt.executeUpdate("if object_id('" + numericTable + "','U') is not null" + " drop table " + numericTable);
+        Utils.dropTableIfExists(numericTable, stmt);
 
-        stmt.executeUpdate("if object_id('" + binaryTable + "','U') is not null" + " drop table " + binaryTable);
+        Utils.dropTableIfExists(binaryTable, stmt);
 
-        stmt.executeUpdate("if object_id('" + dateTable + "','U') is not null" + " drop table " + dateTable);
+        Utils.dropTableIfExists(dateTable, stmt);
 
-        stmt.executeUpdate("if object_id('" + table5 + "','U') is not null" + " drop table " + table5);
+        Utils.dropTableIfExists(table5, stmt);
 
-        stmt.executeUpdate("if object_id('" + table6 + "','U') is not null" + " drop table " + table6);
+        Utils.dropTableIfExists(table6, stmt);
 
-        stmt.executeUpdate("if object_id('" + scaleDateTable + "','U') is not null" + " drop table " + scaleDateTable);
+        Utils.dropTableIfExists(scaleDateTable, stmt);
     }
 
     private static void createTables() throws SQLException {
