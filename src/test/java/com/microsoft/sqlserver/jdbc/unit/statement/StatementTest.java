@@ -1082,7 +1082,7 @@ public class StatementTest extends AbstractTest {
          * @throws Exception
          */
         @Test
-        public void testLargeMaxRows_JDBC41() throws Exception {
+        public void testLargeMaxRowsJDBC41() throws Exception {
             assumeTrue("JDBC41".equals(Utils.getConfiguredProperty("JDBC_Version")), "Aborting test case as JDBC version is not compatible. ");
 
             Connection con = DriverManager.getConnection(connectionString);
@@ -1121,7 +1121,7 @@ public class StatementTest extends AbstractTest {
          * @throws Exception
          */
         @Test
-        public void testLargeMaxRows_JDBC42() throws Exception {
+        public void testLargeMaxRowsJDBC42() throws Exception {
             assumeTrue("JDBC42".equals(Utils.getConfiguredProperty("JDBC_Version")), "Aborting test case as JDBC version is not compatible. ");
 
             Connection dbcon = DriverManager.getConnection(connectionString);
@@ -2615,7 +2615,7 @@ public class StatementTest extends AbstractTest {
          * @throws Exception
          */
         @Test
-        public void testUpdateCountAfterErrorInTrigger_LastUpdateCountFalse() throws Exception {
+        public void testUpdateCountAfterErrorInTriggerLastUpdateCountFalse() throws Exception {
 
             Connection con = DriverManager.getConnection(connectionString + ";lastUpdateCount = false");
             PreparedStatement pstmt = con.prepareStatement("INSERT INTO " + tableName + " VALUES (5)");
@@ -2666,7 +2666,7 @@ public class StatementTest extends AbstractTest {
          * @throws Exception
          */
         @Test
-        public void testUpdateCountAfterErrorInTrigger_LastUpdateCountTrue() throws Exception {
+        public void testUpdateCountAfterErrorInTriggerLastUpdateCountTrue() throws Exception {
 
             Connection con = DriverManager.getConnection(connectionString + ";lastUpdateCount = true");
             PreparedStatement pstmt = con.prepareStatement("INSERT INTO " + tableName + " VALUES (5)");

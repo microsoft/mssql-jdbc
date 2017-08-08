@@ -270,7 +270,7 @@ public class BatchExecuteWithErrorsTest extends AbstractTest {
      */
     @Test
     @DisplayName("Regression test for using 'large' methods")
-    public void Repro47239_large() throws Exception {
+    public void Repro47239large() throws Exception {
 
         assumeTrue("JDBC42".equals(Utils.getConfiguredProperty("JDBC_Version")), "Aborting test case as JDBC version is not compatible. ");
         // the DBConnection for detecting whether the server is SQL Azure or SQL Server.
