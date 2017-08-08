@@ -249,7 +249,7 @@ public class TVPTypesTest extends AbstractTest {
      * @throws SQLException
      */
     @Test
-    public void testTVPLongVarchar_StoredProcedure() throws SQLException {
+    public void testTVPLongVarcharStoredProcedure() throws SQLException {
         createTables("varchar(max)");
         createTVPS("varchar(max)");
         createPreocedure();
@@ -284,7 +284,7 @@ public class TVPTypesTest extends AbstractTest {
      * @throws SQLException
      */
     @Test
-    public void testTVPLongNVarchar_StoredProcedure() throws SQLException {
+    public void testTVPLongNVarcharStoredProcedure() throws SQLException {
         createTables("nvarchar(max)");
         createTVPS("nvarchar(max)");
         createPreocedure();
@@ -318,7 +318,7 @@ public class TVPTypesTest extends AbstractTest {
      * @throws SQLException
      */
     @Test
-    public void testTVPXML_StoredProcedure() throws SQLException {
+    public void testTVPXMLStoredProcedure() throws SQLException {
         createTables("xml");
         createTVPS("xml");
         createPreocedure();
@@ -351,7 +351,7 @@ public class TVPTypesTest extends AbstractTest {
      * @throws SQLException
      */
     @Test
-    public void testTVPText_StoredProcedure() throws SQLException {
+    public void testTVPTextStoredProcedure() throws SQLException {
         createTables("text");
         createTVPS("text");
         createPreocedure();
@@ -385,7 +385,7 @@ public class TVPTypesTest extends AbstractTest {
      * @throws SQLException
      */
     @Test
-    public void testTVPNText_StoredProcedure() throws SQLException {
+    public void testTVPNTextStoredProcedure() throws SQLException {
         createTables("ntext");
         createTVPS("ntext");
         createPreocedure();
@@ -419,7 +419,7 @@ public class TVPTypesTest extends AbstractTest {
      * @throws SQLException
      */
     @Test
-    public void testTVPImage_StoredProcedure() throws SQLException {
+    public void testTVPImageStoredProcedure() throws SQLException {
         createTables("image");
         createTVPS("image");
         createPreocedure();

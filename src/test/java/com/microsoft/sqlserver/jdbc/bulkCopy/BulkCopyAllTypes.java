@@ -39,16 +39,16 @@ public class BulkCopyAllTypes extends AbstractTest {
      * @throws SQLException
      */
     @Test
-    public void testTVP_ResultSet() throws SQLException {
-        testBulkCopy_ResultSet(false, null, null);
-        testBulkCopy_ResultSet(true, null, null);
-        testBulkCopy_ResultSet(false, ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY);
-        testBulkCopy_ResultSet(false, ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE);
-        testBulkCopy_ResultSet(false, ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_READ_ONLY);
-        testBulkCopy_ResultSet(false, ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_UPDATABLE);
+    public void testTVPResultSet() throws SQLException {
+        testBulkCopyResultSet(false, null, null);
+        testBulkCopyResultSet(true, null, null);
+        testBulkCopyResultSet(false, ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY);
+        testBulkCopyResultSet(false, ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE);
+        testBulkCopyResultSet(false, ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_READ_ONLY);
+        testBulkCopyResultSet(false, ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_UPDATABLE);
     }
 
-    private void testBulkCopy_ResultSet(boolean setSelectMethod,
+    private void testBulkCopyResultSet(boolean setSelectMethod,
             Integer resultSetType,
             Integer resultSetConcurrency) throws SQLException {
         setupVariation();

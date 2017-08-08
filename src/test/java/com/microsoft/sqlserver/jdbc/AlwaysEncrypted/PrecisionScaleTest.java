@@ -131,7 +131,7 @@ public class PrecisionScaleTest extends AESetup {
     }
 
     @Test
-    public void testDateScale2_Null() throws Exception {
+    public void testDateScale2Null() throws Exception {
         dropTables(stmt);
 
         String[] dateSetObjectNull = {"null", "null", "null", "null", "null", "null"};
@@ -143,7 +143,7 @@ public class PrecisionScaleTest extends AESetup {
     }
 
     @Test
-    public void testDateScale5_Null() throws Exception {
+    public void testDateScale5Null() throws Exception {
         dropTables(stmt);
 
         String[] dateSetObjectNull = {"null", "null", "null", "null", "null", "null"};
