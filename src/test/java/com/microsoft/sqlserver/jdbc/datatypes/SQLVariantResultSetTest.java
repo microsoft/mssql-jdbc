@@ -384,8 +384,9 @@ public class SQLVariantResultSetTest extends AbstractTest {
     public void readSQLVariantProperty() throws SQLException, SecurityException, IOException {
         String value = "hi";
         createAndPopulateTable("binary(8000)", "'" + value + "'");
-        rs = (SQLServerResultSet) stmt.executeQuery("SELECT SQL_VARIANT_PROPERTY(col1,'BaseType') AS 'Base Type',"
-                + " SQL_VARIANT_PROPERTY(col1,'Precision') AS 'Precision' from " + tableName);
+        rs = (SQLServerResultSet) stmt.executeQuery(
+                "SELECT SQL_VARIANT_PROPERTY(col1,'BaseType') AS 'Base Type', SQL_VARIANT_PROPERTY(col1,'Precision') AS 'Precision' from "
+                        + tableName);
         rs.next();
         assertTrue(rs.getString(1).equalsIgnoreCase("binary"), "unexpected baseType, expected: binary, retrieved:" + rs.getString(1));
     }
