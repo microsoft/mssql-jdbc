@@ -1575,7 +1575,7 @@ public class SQLServerStatement implements ISQLServerStatement {
                 return true;
             }
         }
-        while (rd.nextPacket());
+        while (rd.hasNextPacket());
 
         // None of the above. Last chance here... Going into the parser above, we know
         // moreResults was initially true. If we come out with moreResults false, then
