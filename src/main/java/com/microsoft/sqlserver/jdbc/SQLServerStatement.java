@@ -1538,39 +1538,44 @@ public class SQLServerStatement implements ISQLServerStatement {
         if (!moreResults)
             return false;
 
-        // Figure out the next result.
-        NextResult nextResult = new NextResult();
-        TDSParser.parse(resultsReader(), nextResult);
+        TDSReader rd;
+        do {
+            // Figure out the next result.
+            NextResult nextResult = new NextResult();
+            rd = resultsReader();
+            TDSParser.parse(rd, nextResult);
 
-        // Check for errors first.
-        if (null != nextResult.getDatabaseError()) {
-            SQLServerException.makeFromDatabaseError(connection, null, nextResult.getDatabaseError().getMessage(), nextResult.getDatabaseError(),
-                    false);
-        }
-
-        // Not an error. Is it a result set?
-        else if (nextResult.isResultSet()) {
-            if (Util.use42Wrapper()) {
-                resultSet = new SQLServerResultSet42(this);
-            }
-            else {
-                resultSet = new SQLServerResultSet(this);
+            // Check for errors first.
+            if (null != nextResult.getDatabaseError()) {
+                SQLServerException.makeFromDatabaseError(connection, null, nextResult.getDatabaseError().getMessage(), nextResult.getDatabaseError(),
+                        false);
             }
 
-            return true;
-        }
+            // Not an error. Is it a result set?
+            else if (nextResult.isResultSet()) {
+                if (Util.use42Wrapper()) {
+                    resultSet = new SQLServerResultSet42(this);
+                }
+                else {
+                    resultSet = new SQLServerResultSet(this);
+                }
 
-        // Nope. Not an error or a result set. Maybe a result from a T-SQL statement?
-        // That is, one of the following:
-        // - a positive count of the number of rows affected (from INSERT, UPDATE, or DELETE),
-        // - a zero indicating no rows affected, or the statement was DDL, or
-        // - a -1 indicating the statement succeeded, but there is no update count
-        // information available (translates to Statement.SUCCESS_NO_INFO in batch
-        // update count arrays).
-        else if (nextResult.isUpdateCount()) {
-            updateCount = nextResult.getUpdateCount();
-            return true;
+                return true;
+            }
+
+            // Nope. Not an error or a result set. Maybe a result from a T-SQL statement?
+            // That is, one of the following:
+            // - a positive count of the number of rows affected (from INSERT, UPDATE, or DELETE),
+            // - a zero indicating no rows affected, or the statement was DDL, or
+            // - a -1 indicating the statement succeeded, but there is no update count
+            // information available (translates to Statement.SUCCESS_NO_INFO in batch
+            // update count arrays).
+            else if (nextResult.isUpdateCount()) {
+                updateCount = nextResult.getUpdateCount();
+                return true;
+            }
         }
+        while (rd.nextPacket());
 
         // None of the above. Last chance here... Going into the parser above, we know
         // moreResults was initially true. If we come out with moreResults false, then

@@ -6445,7 +6445,7 @@ final class TDSReader {
      *
      * @return true if additional data is available to be read false if no more data is available
      */
-    private boolean nextPacket() throws SQLServerException {
+    boolean nextPacket() throws SQLServerException {
         assert null != currentPacket;
 
         // Shouldn't call this function unless we're at the end of the current packet...
