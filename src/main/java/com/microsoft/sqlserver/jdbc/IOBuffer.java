@@ -6486,6 +6486,15 @@ final class TDSReader {
         }
     }
 
+    boolean endOfCurrentPacket() {
+        if (payloadOffset == currentPacket.payloadLength) {
+            return true;
+        }
+        else {
+            return false;
+        }
+    }
+
     /**
      * Reads the next packet of the TDS channel.
      *
