@@ -125,6 +125,15 @@ public class SQLServerStatement implements ISQLServerStatement {
      */
     private volatile TDSCommand currentCommand = null;
     private TDSCommand lastStmtExecCmd = null;
+    
+    /**
+     * error codes for retry of Cached Handle
+     */
+    static final int STATEMENT_HANDLE_NOT_VALID = 586; // 586: The prepared statement handle %d is not valid in this context. Please
+                                                       // verify that current database, user default schema, and ANSI_NULLS and
+                                                       // QUOTED_IDENTIFIER set options are not changed since the handle is prepared.
+    static final int STATEMENT_HANDLE_NOT_FOUND = 8179; // 8179: Could not find prepared statement with handle %d.
+    static final int STATEMENT_HANDLE_ERROR_CODE_FOR_TESTING = 99586;// 99586: Error used for testing.
 
     final void discardLastExecutionResults() {
         if (null != lastStmtExecCmd && !bIsClosed) {
@@ -1546,7 +1555,7 @@ public class SQLServerStatement implements ISQLServerStatement {
             TDSParser.parse(rd, nextResult);
 
             // Check for errors first.
-            if (null != nextResult.getDatabaseError()) {
+            if (null != nextResult.getDatabaseError() && (STATEMENT_HANDLE_ERROR_CODE_FOR_TESTING != nextResult.getDatabaseError().getErrorNumber())) {
                 SQLServerException.makeFromDatabaseError(connection, null, nextResult.getDatabaseError().getMessage(), nextResult.getDatabaseError(),
                         false);
             }

@@ -545,12 +545,10 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     }
 
     /** Should the execution be retried because the re-used cached handle could not be re-used due to server side state changes? */
-    private boolean retryBasedOnFailedReuseOfCachedHandle(SQLException e, int attempt) {
-        // Only retry based on these error codes:
-        // 586: The prepared statement handle %d is not valid in this context.  Please verify that current database, user default schema, and ANSI_NULLS and QUOTED_IDENTIFIER set options are not changed since the handle is prepared.
-        // 8179: Could not find prepared statement with handle %d.
-        // 99586: Error used for testing.
-        return 1 == attempt && (586 == e.getErrorCode() || 8179 == e.getErrorCode() || 99586 == e.getErrorCode());
+    private boolean retryBasedOnFailedReuseOfCachedHandle(SQLException e,
+            int attempt) {
+        return 1 == attempt && (STATEMENT_HANDLE_NOT_VALID == e.getErrorCode() || STATEMENT_HANDLE_NOT_FOUND == e.getErrorCode()
+                || STATEMENT_HANDLE_ERROR_CODE_FOR_TESTING == e.getErrorCode());
     }
 
     /**
@@ -2617,7 +2615,6 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                     if (doPrepExec(tdsWriter, batchParam, hasNewTypeDefinitions, hasExistingTypeDefinitions) || numBatchesPrepared == numBatches) {
                         ensureExecuteResultsReader(batchCommand.startResponse(getIsResponseBufferingAdaptive()));
 
-                        boolean retry = false;
                         while (numBatchesExecuted < numBatchesPrepared) {
                             // NOTE:
                             // When making changes to anything below, consider whether similar changes need
@@ -2649,10 +2646,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
                                 // Retry if invalid handle exception.
                                 if (retryBasedOnFailedReuseOfCachedHandle(e, attempt)) {
-                                    //reset number of batches prepare
-                                    numBatchesPrepared = numBatchesExecuted;
-                                    retry = true;                                    
-                                    break;
+                                    continue;
                                 }
 
                                 // Otherwise, the connection is OK and the transaction is still intact,
@@ -2669,8 +2663,6 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
                             numBatchesExecuted++;
                         }
-                        if(retry)
-                            continue; 
 
                         // Only way to proceed with preparing the next set of batches is if
                         // we successfully executed the previously prepared set.
