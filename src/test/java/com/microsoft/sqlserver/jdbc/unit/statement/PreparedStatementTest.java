@@ -186,6 +186,12 @@ public class PreparedStatementTest extends AbstractTest {
                 }
             }
 
+            // test value of col, should be 1 + 100 = 101
+            try (ResultSet rs = con.createStatement().executeQuery("select * from #update1")) {
+                rs.next();
+                assertSame(101, rs.getInt(1));
+            }
+
             // Test batching with missing handle failures (fake).
             this.executeSQL(con,
                     "IF NOT EXISTS (SELECT * FROM sys.messages WHERE message_id = 99586) EXEC sp_addmessage 99586, 16, 'Prepared handle GAH!';");
@@ -201,6 +207,12 @@ public class PreparedStatementTest extends AbstractTest {
                 for (int i : updateCounts) {
                     assertSame(1, i);
                 }
+            }
+
+            // test value of col, should be 1 + 100 = 101
+            try (ResultSet rs = con.createStatement().executeQuery("select * from #update2")) {
+                rs.next();
+                assertSame(101, rs.getInt(1));
             }
         }
 
