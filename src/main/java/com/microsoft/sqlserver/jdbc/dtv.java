@@ -4179,7 +4179,6 @@ final class ServerDTVImpl extends DTVImpl {
                     jdbcType = JDBCType.CHAR;
                 collation = tdsReader.readCollation();
                 typeInfo.setSQLCollation(collation);
-                typeInfo.setSSLenType(SSLenType.USHORTLENTYPE);
                 maxLength = tdsReader.readUnsignedShort();
                 typeInfo.setMaxLength(maxLength);
                 if (maxLength > DataTypes.SHORT_VARTYPE_MAX_BYTES)
@@ -4205,7 +4204,6 @@ final class ServerDTVImpl extends DTVImpl {
                     jdbcType = JDBCType.NVARCHAR;
                 collation = tdsReader.readCollation();
                 typeInfo.setSQLCollation(collation);
-                typeInfo.setSSLenType(SSLenType.USHORTLENTYPE);
                 maxLength = tdsReader.readUnsignedShort();
                 if (maxLength > DataTypes.SHORT_VARTYPE_MAX_BYTES || 0 != maxLength % 2)
                     tdsReader.throwInvalidTDS();
