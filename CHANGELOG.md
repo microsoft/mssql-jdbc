@@ -3,6 +3,18 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](http://keepachangelog.com/) 
 
+## [6.3.1] Preview Release
+### Added
+- Added support for datetime/smallDatetime in TVP [#435](https://github.com/Microsoft/mssql-jdbc/pull/435)
+- Added more Junit tests for Always Encrypted [#432](https://github.com/Microsoft/mssql-jdbc/pull/432)
+
+### Fixed Issues 
+- Fixed getString issue for uniqueIdentifier [#423](https://github.com/Microsoft/mssql-jdbc/pull/423)
+
+### Changed
+- Skip long running tests based on Tag [#425](https://github.com/Microsoft/mssql-jdbc/pull/425)
+- Removed volatile keyword [#409](https://github.com/Microsoft/mssql-jdbc/pull/409)
+
 ## [6.3.0] Preview Release
 ### Added
 - Added support for sql_variant datatype [#387](https://github.com/Microsoft/mssql-jdbc/pull/387)
