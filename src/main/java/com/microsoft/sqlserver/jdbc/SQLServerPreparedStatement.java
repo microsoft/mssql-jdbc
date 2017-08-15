@@ -2615,6 +2615,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                     if (doPrepExec(tdsWriter, batchParam, hasNewTypeDefinitions, hasExistingTypeDefinitions) || numBatchesPrepared == numBatches) {
                         ensureExecuteResultsReader(batchCommand.startResponse(getIsResponseBufferingAdaptive()));
 
+                        boolean retry = false;
                         while (numBatchesExecuted < numBatchesPrepared) {
                             // NOTE:
                             // When making changes to anything below, consider whether similar changes need
@@ -2646,7 +2647,10 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
                                 // Retry if invalid handle exception.
                                 if (retryBasedOnFailedReuseOfCachedHandle(e, attempt)) {
-                                    continue;
+                                    // reset number of batches prepare
+                                    numBatchesPrepared = numBatchesExecuted;
+                                    retry = true;
+                                    break;
                                 }
 
                                 // Otherwise, the connection is OK and the transaction is still intact,
@@ -2662,6 +2666,9 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                             processBatch();
 
                             numBatchesExecuted++;
+                        }
+                        if (retry) {
+                            continue;
                         }
 
                         // Only way to proceed with preparing the next set of batches is if
