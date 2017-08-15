@@ -31,6 +31,7 @@ import com.microsoft.sqlserver.jdbc.SQLServerPreparedStatement;
 import com.microsoft.sqlserver.jdbc.SQLServerResultSet;
 import com.microsoft.sqlserver.testframework.AbstractTest;
 import com.microsoft.sqlserver.testframework.Utils;
+import com.microsoft.sqlserver.testframework.util.RandomData;
 
 /**
  * Tests for supporting sqlVariant

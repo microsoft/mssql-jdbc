@@ -296,7 +296,7 @@ public class bvtTest extends bvtTestSetup {
      * @throws SQLException
      */
     @Test
-    public void testStmtSS_ScrollDynamicOptimistic_CC() throws SQLException {
+    public void testStmtSSScrollDynamicOptimisticCC() throws SQLException {
 
         try {
             conn = new DBConnection(connectionString);
@@ -321,7 +321,7 @@ public class bvtTest extends bvtTestSetup {
      * @throws SQLException
      */
     @Test
-    public void testStmtSS_SEVER_CURSOR_FORWARD_ONLY() throws SQLException {
+    public void testStmtSserverCursorForwardOnly() throws SQLException {
 
         try {
             conn = new DBConnection(connectionString);

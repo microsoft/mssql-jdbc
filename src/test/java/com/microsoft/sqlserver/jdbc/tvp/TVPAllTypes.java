@@ -45,16 +45,16 @@ public class TVPAllTypes extends AbstractTest {
      * @throws SQLException
      */
     @Test
-    public void testTVP_ResultSet() throws SQLException {
-        testTVP_ResultSet(false, null, null);
-        testTVP_ResultSet(true, null, null);
-        testTVP_ResultSet(false, ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY);
-        testTVP_ResultSet(false, ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE);
-        testTVP_ResultSet(false, ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_READ_ONLY);
-        testTVP_ResultSet(false, ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_UPDATABLE);
+    public void testTVPResultSet() throws SQLException {
+        testTVPResultSet(false, null, null);
+        testTVPResultSet(true, null, null);
+        testTVPResultSet(false, ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY);
+        testTVPResultSet(false, ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE);
+        testTVPResultSet(false, ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_READ_ONLY);
+        testTVPResultSet(false, ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_UPDATABLE);
     }
 
-    private void testTVP_ResultSet(boolean setSelectMethod,
+    private void testTVPResultSet(boolean setSelectMethod,
             Integer resultSetType,
             Integer resultSetConcurrency) throws SQLException {
         setupVariation();
@@ -93,16 +93,16 @@ public class TVPAllTypes extends AbstractTest {
      * @throws SQLException
      */
     @Test
-    public void testTVP_StoredProcedure_ResultSet() throws SQLException {
-        testTVP_StoredProcedure_ResultSet(false, null, null);
-        testTVP_StoredProcedure_ResultSet(true, null, null);
-        testTVP_StoredProcedure_ResultSet(false, ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY);
-        testTVP_StoredProcedure_ResultSet(false, ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE);
-        testTVP_StoredProcedure_ResultSet(false, ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_READ_ONLY);
-        testTVP_StoredProcedure_ResultSet(false, ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_UPDATABLE);
+    public void testTVPStoredProcedureResultSet() throws SQLException {
+        testTVPStoredProcedureResultSet(false, null, null);
+        testTVPStoredProcedureResultSet(true, null, null);
+        testTVPStoredProcedureResultSet(false, ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY);
+        testTVPStoredProcedureResultSet(false, ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE);
+        testTVPStoredProcedureResultSet(false, ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_READ_ONLY);
+        testTVPStoredProcedureResultSet(false, ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_UPDATABLE);
     }
 
-    private void testTVP_StoredProcedure_ResultSet(boolean setSelectMethod,
+    private void testTVPStoredProcedureResultSet(boolean setSelectMethod,
             Integer resultSetType,
             Integer resultSetConcurrency) throws SQLException {
         setupVariation();
@@ -141,7 +141,7 @@ public class TVPAllTypes extends AbstractTest {
      * @throws SQLException
      */
     @Test
-    public void testTVP_DataTable() throws SQLException {
+    public void testTVPDataTable() throws SQLException {
         setupVariation();
 
         SQLServerDataTable dt = new SQLServerDataTable();
