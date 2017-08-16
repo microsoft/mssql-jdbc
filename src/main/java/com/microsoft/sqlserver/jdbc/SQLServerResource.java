@@ -390,5 +390,6 @@ public final class SQLServerResource extends ListResourceBundle {
                 {"R_invalidProbbytes", "SQL_VARIANT: invalid probBytes for {0} type."},
                 {"R_invalidStringValue", "SQL_VARIANT does not support string values more than 8000 length."},
                 {"R_invalidValueForTVPWithSQLVariant", "Inserting null value with column type sql_variant in TVP is not supported."},
+                {"R_invalidDataTypeSupportForSQLVariant", "Unexpected TDS type ' '{0}' ' in SQL_VARIANT."},
     };
 }

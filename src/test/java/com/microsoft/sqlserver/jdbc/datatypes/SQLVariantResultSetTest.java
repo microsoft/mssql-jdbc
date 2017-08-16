@@ -131,7 +131,7 @@ public class SQLVariantResultSetTest extends AbstractTest {
         createAndPopulateTable("time(3)", value);
         rs = (SQLServerResultSet) stmt.executeQuery("SELECT * FROM " + tableName);
         rs.next();
-        assertEquals("" + rs.getObject(1).toString(), "12:26:27.123"); // TODO
+        assertEquals("" + rs.getObject(1).toString(), "12:26:27"); 
     }
 
     /**
@@ -640,7 +640,7 @@ public class SQLVariantResultSetTest extends AbstractTest {
     @Test
     public void callableStatementOutputTimeTest() throws SQLException {
         String value = "12:26:27.123345";
-        String returnValue = "12:26:27.123";
+        String returnValue = "12:26:27";
         Utils.dropTableIfExists(tableName, stmt);
         stmt.executeUpdate("create table " + tableName + " (col1 sql_variant)");
         stmt.executeUpdate("INSERT into " + tableName + " values (CAST ('" + value + "' AS " + "time(3)" + "))");
@@ -652,7 +652,7 @@ public class SQLVariantResultSetTest extends AbstractTest {
         CallableStatement cs = con.prepareCall(" {call " + inputProc + " (?) }");
         cs.registerOutParameter(1, microsoft.sql.Types.SQL_VARIANT, 3);
         cs.execute();
-        assertEquals(cs.getString(1), String.valueOf(returnValue));
+        assertEquals(String.valueOf(returnValue), ""+cs.getObject(1));
         if (null != cs) {
             cs.close();
         }

@@ -4238,7 +4238,6 @@ final class ServerDTVImpl extends DTVImpl {
                     MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidProbbytes"));
                     throw new SQLServerException(form.format(new Object[] {baseType}), null, 0, null);
                 }
-                jdbcType = JDBCType.CHAR; // The reason we use char is to return nanoseconds
                 if (internalVariant.isBaseTypeTimeValue()) {
                     jdbcType = JDBCType.TIMESTAMP;
                 }
@@ -4290,10 +4289,12 @@ final class ServerDTVImpl extends DTVImpl {
                 convertedValue = tdsReader.readGUID(expectedValueLength, jdbcType, streamGetterArgs.streamType);
                 break;
                 
-            // Unknown SSType should have already been rejected by TypeInfo.setFromTDS()
-            default:
-                assert false : "Unexpected TDSType in Sql-Variant " + baseType;
-                break;
+            // Unsupported TdsType should throw error message
+            default: {
+                MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidDataTypeSupportForSQLVariant"));
+                throw new SQLServerException(form.format(new Object[] {baseType}), null, 0, null);
+            }
+
         }
         return convertedValue;
     }
