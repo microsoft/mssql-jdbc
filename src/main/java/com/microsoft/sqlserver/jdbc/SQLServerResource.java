@@ -375,6 +375,7 @@ public final class SQLServerResource extends ListResourceBundle {
 				{"R_TVPnotWorkWithSetObjectResultSet" , "setObject() with ResultSet is not supported for Table-Valued Parameter. Please use setStructured()."},
 				{"R_invalidQueryTimeout", "The queryTimeout {0} is not valid."},
 				{"R_invalidSocketTimeout", "The socketTimeout {0} is not valid."},
+				{"R_fipsPropertyDescription", "Determines if enable FIPS compilant SSL connection between the client and the server."},
 				{"R_invalidFipsConfig", "Could not enable FIPS."},
 				{"R_invalidFipsEncryptConfig", "Could not enable FIPS due to either encrypt is not true or using trusted certificate settings."},
 				{"R_invalidFipsProviderConfig", "Could not enable FIPS due to invalid FIPSProvider or TrustStoreType."},
