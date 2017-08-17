@@ -27,7 +27,7 @@ import com.microsoft.sqlserver.testframework.Utils;
 public class CallableStatementTest extends AbstractTest {
     private static String tableNameGUID = "uniqueidentifier_Table";
     private static String outputProcedureNameGUID = "uniqueidentifier_SP";
-    private static String procedureName = "CallableStatementTest_setNull_SP";
+    private static String setNullProcedureName = "CallableStatementTest_setNull_SP";
 
     private static Connection connection = null;
     private static Statement stmt = null;
@@ -44,7 +44,7 @@ public class CallableStatementTest extends AbstractTest {
 
         Utils.dropTableIfExists(tableNameGUID, stmt);
         Utils.dropProcedureIfExists(outputProcedureNameGUID, stmt);
-        Utils.dropProcedureIfExists(procedureName, stmt);
+        Utils.dropProcedureIfExists(setNullProcedureName, stmt);
 
         createGUIDTable();
         createGUIDStoredProcedure();
@@ -101,7 +101,7 @@ public class CallableStatementTest extends AbstractTest {
             ds.setSendStringParametersAsUnicode(true);
             connection = ds.getConnection();
 
-            String sql = "{? = call " + procedureName + " (?,?)}";
+            String sql = "{? = call " + setNullProcedureName + " (?,?)}";
 
             cs = (SQLServerCallableStatement) connection.prepareCall(sql);
             cs.registerOutParameter(1, Types.INTEGER);
@@ -142,7 +142,7 @@ public class CallableStatementTest extends AbstractTest {
     public static void cleanup() throws SQLException {
         Utils.dropTableIfExists(tableNameGUID, stmt);
         Utils.dropProcedureIfExists(outputProcedureNameGUID, stmt);
-        Utils.dropProcedureIfExists(procedureName, stmt);
+        Utils.dropProcedureIfExists(setNullProcedureName, stmt);
 
         if (null != stmt) {
             stmt.close();
@@ -163,6 +163,6 @@ public class CallableStatementTest extends AbstractTest {
     }
 
     private static void createSetNullPreocedure() throws SQLException {
-        stmt.execute("create procedure " + procedureName + " (@p1 nvarchar(255), @p2 nvarchar(255) output) as select @p2=@p1 return 0");
+        stmt.execute("create procedure " + setNullProcedureName + " (@p1 nvarchar(255), @p2 nvarchar(255) output) as select @p2=@p1 return 0");
     }
 }
