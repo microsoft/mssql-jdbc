@@ -366,7 +366,7 @@ public class StatementTest extends AbstractTest {
                     assertEquals(false, true, "Expected exception not thrown from ResultSet.next()");
                 }
                 catch (SQLException e) {
-                    assertTrue("The query was canceled.".equalsIgnoreCase(e.getMessage()), "Unexpected exception from ResultSet.next()");
+                    assertTrue("The query was cancelled.".equalsIgnoreCase(e.getMessage()), "Unexpected exception from ResultSet.next()");
                 }
 
                 elapsedMillis += System.currentTimeMillis();
@@ -479,7 +479,7 @@ public class StatementTest extends AbstractTest {
                     assertEquals(false, true, "Expected exception not thrown from ResultSet.next()");
                 }
                 catch (SQLException e) {
-                    assertTrue("The query was canceled.".contains(e.getMessage()), "Unexpected exception from ResultSet.next()");
+                    assertTrue("The query was cancelled.".contains(e.getMessage()), "Unexpected exception from ResultSet.next()");
                 }
 
                 elapsedMillis += System.currentTimeMillis();
@@ -599,7 +599,7 @@ public class StatementTest extends AbstractTest {
                     assertEquals(false, true, "Expected exception not thrown from ResultSet.next()");
                 }
                 catch (SQLException e) {
-                    assertTrue("The query was canceled.".contains(e.getMessage()), "Unexpected exception from ResultSet.next()");
+                    assertTrue("The query was cancelled.".contains(e.getMessage()), "Unexpected exception from ResultSet.next()");
                 }
                 elapsedMillis += System.currentTimeMillis();
 
