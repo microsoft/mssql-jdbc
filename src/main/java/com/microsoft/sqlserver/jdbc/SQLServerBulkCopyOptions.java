@@ -139,7 +139,7 @@ public class SQLServerBulkCopyOptions {
      * @param timeout
      *            Number of seconds before operation times out.
      * @throws SQLServerException
-     *             If the batchSize being set is invalid.
+     *             If the timeout being set is invalid.
      */
     public void setBulkCopyTimeout(int timeout) throws SQLServerException {
         if (timeout >= 0) {
