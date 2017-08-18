@@ -1020,10 +1020,11 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     /* L0 */ private ResultSet buildExecuteMetaData() throws SQLServerException {
         String fmtSQL = userSQL;
 
+        SQLServerStatement stmt = null;
         ResultSet emptyResultSet = null;
         try {
             fmtSQL = replaceMarkerWithNull(fmtSQL);
-            SQLServerStatement stmt = (SQLServerStatement) connection.createStatement();
+            stmt = (SQLServerStatement) connection.createStatement();
             emptyResultSet = stmt.executeQueryInternal("set fmtonly on " + fmtSQL + "\nset fmtonly off");
         }
         catch (SQLException sqle) {
@@ -1034,6 +1035,10 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
                 SQLServerException.makeFromDriverError(connection, this, form.format(msgArgs), null, true);
             }
+        }
+        finally {
+            if (null != stmt)
+                stmt.close();
         }
         return emptyResultSet;
     }

@@ -244,12 +244,12 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
         SQLServerResultSet rs = null;
         try {
             rs = ((SQLServerStatement) connection.createStatement()).executeQueryInternal(query);
-
         }
         finally {
-            if (null != orgCat) {
+            if (null != rs)
+                rs.close();
+            if (null != orgCat)
                 connection.setCatalog(orgCat);
-            }
         }
         return rs;
     }
