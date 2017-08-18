@@ -157,6 +157,13 @@ public class SQLServerStatement implements ISQLServerStatement {
      */
     protected SQLServerStatementColumnEncryptionSetting stmtColumnEncriptionSetting = SQLServerStatementColumnEncryptionSetting.UseConnectionSetting;
 
+    /** Should the execution be retried because the re-used cached handle could not be re-used due to server side state changes? */
+    protected boolean retryBasedOnFailedReuseOfCachedHandle(int errorCode,
+            int attempt) {
+        return 1 == attempt && (STATEMENT_HANDLE_NOT_VALID == errorCode || STATEMENT_HANDLE_NOT_FOUND == errorCode
+                || STATEMENT_HANDLE_ERROR_CODE_FOR_TESTING == errorCode);
+    }
+    
     /**
      * ExecuteProperties encapsulates a subset of statement property values as they were set at execution time.
      */
@@ -1555,7 +1562,7 @@ public class SQLServerStatement implements ISQLServerStatement {
             TDSParser.parse(rd, nextResult);
 
             // Check for errors first.
-            if (null != nextResult.getDatabaseError() && (STATEMENT_HANDLE_ERROR_CODE_FOR_TESTING != nextResult.getDatabaseError().getErrorNumber())) {
+            if (null != nextResult.getDatabaseError() && !retryBasedOnFailedReuseOfCachedHandle(nextResult.getDatabaseError().getErrorNumber(), 1)) {
                 SQLServerException.makeFromDatabaseError(connection, null, nextResult.getDatabaseError().getMessage(), nextResult.getDatabaseError(),
                         false);
             }

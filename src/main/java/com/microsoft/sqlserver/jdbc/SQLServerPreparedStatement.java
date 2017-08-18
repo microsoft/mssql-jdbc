@@ -528,7 +528,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     	        getNextResult();
         	}
         	catch(SQLException e) {
-        		if (retryBasedOnFailedReuseOfCachedHandle(e, attempt))
+        		if (retryBasedOnFailedReuseOfCachedHandle(e.getErrorCode(), attempt))
     				continue;
                 else
     				throw e;
@@ -542,13 +542,6 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         else if (EXECUTE_UPDATE == executeMethod && null != resultSet) {
             SQLServerException.makeFromDriverError(connection, this, SQLServerException.getErrString("R_resultsetGeneratedForUpdate"), null, false);
         }
-    }
-
-    /** Should the execution be retried because the re-used cached handle could not be re-used due to server side state changes? */
-    private boolean retryBasedOnFailedReuseOfCachedHandle(SQLException e,
-            int attempt) {
-        return 1 == attempt && (STATEMENT_HANDLE_NOT_VALID == e.getErrorCode() || STATEMENT_HANDLE_NOT_FOUND == e.getErrorCode()
-                || STATEMENT_HANDLE_ERROR_CODE_FOR_TESTING == e.getErrorCode());
     }
 
     /**
@@ -2646,7 +2639,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                                     throw e;
 
                                 // Retry if invalid handle exception.
-                                if (retryBasedOnFailedReuseOfCachedHandle(e, attempt)) {
+                                if (retryBasedOnFailedReuseOfCachedHandle(e.getErrorCode(), attempt)) {
                                     // reset number of batches prepare
                                     numBatchesPrepared = numBatchesExecuted;
                                     retry = true;
@@ -2677,7 +2670,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                     }
                 }
                 catch(SQLException e) {
-                    if (retryBasedOnFailedReuseOfCachedHandle(e, attempt)) {
+                    if (retryBasedOnFailedReuseOfCachedHandle(e.getErrorCode(), attempt)) {
                         // Reset number of batches prepared.
                         numBatchesPrepared = numBatchesExecuted;
                         continue;

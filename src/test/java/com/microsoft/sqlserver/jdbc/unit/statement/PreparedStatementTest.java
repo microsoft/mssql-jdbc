@@ -32,7 +32,6 @@ import com.microsoft.sqlserver.jdbc.SQLServerConnection;
 import com.microsoft.sqlserver.jdbc.SQLServerDataSource;
 import com.microsoft.sqlserver.jdbc.SQLServerPreparedStatement;
 import com.microsoft.sqlserver.testframework.AbstractTest;
-import com.microsoft.sqlserver.testframework.util.RandomUtil;
 
 @RunWith(JUnitPlatform.class)
 public class PreparedStatementTest extends AbstractTest { 
