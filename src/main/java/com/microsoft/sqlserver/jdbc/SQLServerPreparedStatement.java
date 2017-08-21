@@ -18,6 +18,7 @@ import java.sql.BatchUpdateException;
 import java.sql.NClob;
 import java.sql.ParameterMetaData;
 import java.sql.ResultSet;
+import java.sql.ResultSetMetaData;
 import java.sql.RowId;
 import java.sql.SQLException;
 import java.sql.SQLFeatureNotSupportedException;
@@ -985,11 +986,11 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         return needsPrepare;
     }
 
-    /* L0 */ public final java.sql.ResultSetMetaData getMetaData() throws SQLServerException {
+    /* L0 */ public final ResultSetMetaData getMetaData() throws SQLServerException {
         loggerExternal.entering(getClassNameLogging(), "getMetaData");
         checkClosed();
         boolean rsclosed = false;
-        java.sql.ResultSetMetaData rsmd = null;
+        ResultSetMetaData rsmd = null;
         try {
             // if the result is closed, cant get the metadata from it.
             if (resultSet != null)
@@ -999,9 +1000,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
             rsclosed = true;
         }
         if (resultSet == null || rsclosed) {
-            SQLServerResultSet emptyResultSet = (SQLServerResultSet) buildExecuteMetaData();
-            if (null != emptyResultSet)
-                rsmd = emptyResultSet.getMetaData();
+            rsmd = buildExecuteMetaData();
         }
         else if (resultSet != null) {
             rsmd = resultSet.getMetaData();
@@ -1017,15 +1016,17 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
      * @throws SQLServerException
      * @return the result set containing the meta data
      */
-    /* L0 */ private ResultSet buildExecuteMetaData() throws SQLServerException {
+    /* L0 */ private ResultSetMetaData buildExecuteMetaData() throws SQLServerException {
         String fmtSQL = userSQL;
 
-        SQLServerStatement stmt = null;
         ResultSet emptyResultSet = null;
+        ResultSetMetaData result = null;
+        SQLServerStatement stmt = null;
         try {
             fmtSQL = replaceMarkerWithNull(fmtSQL);
             stmt = (SQLServerStatement) connection.createStatement();
             emptyResultSet = stmt.executeQueryInternal("set fmtonly on " + fmtSQL + "\nset fmtonly off");
+            result = emptyResultSet.getMetaData();
         }
         catch (SQLException sqle) {
             if (false == sqle.getMessage().equals(SQLServerException.getErrString("R_noResultset"))) {
@@ -1037,10 +1038,10 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
             }
         }
         finally {
-            if (null != stmt)
+            if (stmt != null)
                 stmt.close();
         }
-        return emptyResultSet;
+        return result;
     }
 
     /* -------------- JDBC API Implementation ------------------ */
