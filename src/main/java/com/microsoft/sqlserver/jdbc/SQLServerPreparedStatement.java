@@ -99,6 +99,9 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
     /** The prepared statement handle returned by the server */
     private int prepStmtHandle = 0;
+    
+    /** Statement used for getMetadata(). Declared as a field to facilitate closing the statement. */
+    private SQLServerStatement internalStmt = null;
 
     private void setPreparedStatementHandle(int handle) {
         this.prepStmtHandle = handle;
@@ -272,6 +275,18 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
         // If we have a prepared statement handle, close it.
         closePreparedHandle();
+        
+        // Close the statement that was used to generate empty statement from getMetadata().
+        try {
+            if (null != internalStmt)
+                internalStmt.close();
+        } catch (SQLServerException e) {
+            if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
+                loggerExternal.finer("Ignored error closing internal statement: " + e.getErrorCode() + " " + e.getMessage());
+        }
+        finally {
+            internalStmt = null;
+        }
 
         // Clean up client-side state
         batchParamValues = null;
@@ -1024,8 +1039,8 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         ResultSet emptyResultSet = null;
         try {
             fmtSQL = replaceMarkerWithNull(fmtSQL);
-            SQLServerStatement stmt = (SQLServerStatement) connection.createStatement();
-            emptyResultSet = stmt.executeQueryInternal("set fmtonly on " + fmtSQL + "\nset fmtonly off");
+            internalStmt = (SQLServerStatement) connection.createStatement();
+            emptyResultSet = internalStmt.executeQueryInternal("set fmtonly on " + fmtSQL + "\nset fmtonly off");
         }
         catch (SQLException sqle) {
             if (false == sqle.getMessage().equals(SQLServerException.getErrString("R_noResultset"))) {

@@ -680,8 +680,6 @@ public final class SQLServerParameterMetaData implements ParameterMetaData {
             SQLServerException.makeFromDriverError(con, stmtParent, e.toString(), null, false);
         }
         finally {
-            if (null != s)
-                s.close();
             if (null != stmt)
                 stmt.close();
         }
