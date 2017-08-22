@@ -18,7 +18,6 @@ import java.sql.BatchUpdateException;
 import java.sql.NClob;
 import java.sql.ParameterMetaData;
 import java.sql.ResultSet;
-import java.sql.ResultSetMetaData;
 import java.sql.RowId;
 import java.sql.SQLException;
 import java.sql.SQLFeatureNotSupportedException;
