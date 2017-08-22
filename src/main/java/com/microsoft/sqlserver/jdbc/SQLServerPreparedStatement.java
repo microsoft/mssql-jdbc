@@ -986,11 +986,11 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         return needsPrepare;
     }
 
-    /* L0 */ public final ResultSetMetaData getMetaData() throws SQLServerException {
+    /* L0 */ public final java.sql.ResultSetMetaData getMetaData() throws SQLServerException {
         loggerExternal.entering(getClassNameLogging(), "getMetaData");
         checkClosed();
         boolean rsclosed = false;
-        ResultSetMetaData rsmd = null;
+        java.sql.ResultSetMetaData rsmd = null;
         try {
             // if the result is closed, cant get the metadata from it.
             if (resultSet != null)
@@ -1000,7 +1000,9 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
             rsclosed = true;
         }
         if (resultSet == null || rsclosed) {
-            rsmd = buildExecuteMetaData();
+            SQLServerResultSet emptyResultSet = (SQLServerResultSet) buildExecuteMetaData();
+            if (null != emptyResultSet)
+                rsmd = emptyResultSet.getMetaData();
         }
         else if (resultSet != null) {
             rsmd = resultSet.getMetaData();
@@ -1016,17 +1018,14 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
      * @throws SQLServerException
      * @return the result set containing the meta data
      */
-    /* L0 */ private ResultSetMetaData buildExecuteMetaData() throws SQLServerException {
+    /* L0 */ private ResultSet buildExecuteMetaData() throws SQLServerException {
         String fmtSQL = userSQL;
 
         ResultSet emptyResultSet = null;
-        ResultSetMetaData result = null;
-        SQLServerStatement stmt = null;
         try {
             fmtSQL = replaceMarkerWithNull(fmtSQL);
-            stmt = (SQLServerStatement) connection.createStatement();
+            SQLServerStatement stmt = (SQLServerStatement) connection.createStatement();
             emptyResultSet = stmt.executeQueryInternal("set fmtonly on " + fmtSQL + "\nset fmtonly off");
-            result = emptyResultSet.getMetaData();
         }
         catch (SQLException sqle) {
             if (false == sqle.getMessage().equals(SQLServerException.getErrString("R_noResultset"))) {
@@ -1037,11 +1036,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                 SQLServerException.makeFromDriverError(connection, this, form.format(msgArgs), null, true);
             }
         }
-        finally {
-            if (stmt != null)
-                stmt.close();
-        }
-        return result;
+        return emptyResultSet;
     }
 
     /* -------------- JDBC API Implementation ------------------ */
