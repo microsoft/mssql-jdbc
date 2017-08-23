@@ -2683,10 +2683,15 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                         numBatchesPrepared = numBatchesExecuted;
                         continue;
                     }
-                    else
+                    else if (null != batchCommand.batchException) {
+                        // if batch exception occurred, loop out to throw the initial batchException
+                        continue;
+                    }
+                    else {
                         throw e;
+                    }
                 }
-                break;	
+                break;
             }
         }
     }
