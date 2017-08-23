@@ -1399,11 +1399,12 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
      */
     /* L3 */ private int findColumn(String columnName) throws SQLServerException {
         if (paramNames == null) {
+            SQLServerStatement s = null;
             try {
                 // Note we are concatenating the information from the passed in sql, not any arguments provided by the user
                 // if the user can execute the sql, any fragments of it is potentially executed via the meta data call through injection
                 // is not a security issue.
-                SQLServerStatement s = (SQLServerStatement) connection.createStatement();
+                s = (SQLServerStatement) connection.createStatement();
                 ThreePartName threePartName = ThreePartName.parse(procedureName);
                 StringBuilder metaQuery = new StringBuilder("exec sp_sproc_columns ");
                 if (null != threePartName.getDatabasePart()) {
@@ -1439,6 +1440,10 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
             }
             catch (SQLException e) {
                 SQLServerException.makeFromDriverError(connection, this, e.toString(), null, false);
+            }
+            finally {
+                if (null != s)
+                    s.close();
             }
         }
 
