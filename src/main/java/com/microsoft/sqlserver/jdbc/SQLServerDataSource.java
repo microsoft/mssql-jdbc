@@ -585,14 +585,6 @@ public class SQLServerDataSource implements ISQLServerDataSource, DataSource, ja
         return getBooleanProperty(connectionProps, SQLServerDriverBooleanProperty.FIPS.toString(),
                 SQLServerDriverBooleanProperty.FIPS.getDefaultValue());
     }
-
-    public void setFIPSProvider(String fipsProvider) {
-        setStringProperty(connectionProps, SQLServerDriverStringProperty.FIPS_PROVIDER.toString(), fipsProvider);
-    }
-
-    public String getFIPSProvider() {
-        return getStringProperty(connectionProps, SQLServerDriverStringProperty.FIPS_PROVIDER.toString(), null);
-    }
     
     public void setSSLProtocol(String sslProtocol) {
         setStringProperty(connectionProps, SQLServerDriverStringProperty.SSL_PROTOCOL.toString(), sslProtocol);
