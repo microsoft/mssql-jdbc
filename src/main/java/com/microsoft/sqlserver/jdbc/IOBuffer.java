@@ -1845,12 +1845,8 @@ final class TDSChannel {
         isValidTrustStore = !StringUtils.isEmpty(trustStoreFileName);
         isTrustServerCertificate = con.trustServerCertificate();
 
-        if (isEncryptOn && !isTrustServerCertificate) {
-            if (logger.isLoggable(Level.FINER))
-                logger.finer(toString() + "Found parameters are encrypt is true & trustServerCertificate false");
-            
+        if (isEncryptOn && !isTrustServerCertificate) {          
             isValid = true;
-
             if (isValidTrustStore) {
                 // In case of valid trust store we need to check TrustStoreType.
                 if (!isValidTrustStoreType) {
