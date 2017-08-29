@@ -8,6 +8,7 @@
 
 package com.microsoft.sqlserver.jdbc;
 
+import java.util.HashMap;
 import java.util.UUID;
 
 /**
@@ -15,21 +16,32 @@ import java.util.UUID;
  */
 final class ActivityCorrelator {
 
-    private static ThreadLocal<ActivityId> ActivityIdTls = new ThreadLocal<ActivityId>() {
-        protected ActivityId initialValue() {
-            return new ActivityId();
+    private static HashMap<Long, ActivityId> ActivityIdTlsMap = new HashMap<Long, ActivityId>();
+    
+    static void checkAndInitActivityId() {
+        long uniqueThreadId = Thread.currentThread().getId();
+        
+        //Since the Id for each thread is unique, this assures that the below code is run only once per *thread*,
+        //the first time this constructor is called.
+        if (!ActivityIdTlsMap.containsKey(uniqueThreadId)) {
+            ActivityIdTlsMap.put(uniqueThreadId, new ActivityId());
         }
-    };
+    }
 
     // Get the current ActivityId in TLS
     static ActivityId getCurrent() {
+        checkAndInitActivityId();
+        
         // get the value in TLS, not reference
-        return ActivityIdTls.get();
+        long uniqueThreadId = Thread.currentThread().getId();
+        
+        return ActivityIdTlsMap.get(uniqueThreadId);
     }
 
     // Increment the Sequence number of the ActivityId in TLS
     // and return the ActivityId with new Sequence number
     static ActivityId getNext() {
+        checkAndInitActivityId();
         // We need to call get() method on ThreadLocal to get
         // the current value of ActivityId stored in TLS,
         // then increment the sequence number.
@@ -44,10 +56,11 @@ final class ActivityCorrelator {
     }
 
     static void setCurrentActivityIdSentFlag() {
+        checkAndInitActivityId();
+        
         ActivityId activityId = getCurrent();
         activityId.setSentFlag();
     }
-
 }
 
 class ActivityId {
