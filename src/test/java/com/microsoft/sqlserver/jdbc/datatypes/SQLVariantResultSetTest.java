@@ -9,6 +9,7 @@ package com.microsoft.sqlserver.jdbc.datatypes;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import java.io.IOException;
 import java.math.BigDecimal;
@@ -131,7 +132,7 @@ public class SQLVariantResultSetTest extends AbstractTest {
         createAndPopulateTable("time(3)", value);
         rs = (SQLServerResultSet) stmt.executeQuery("SELECT * FROM " + tableName);
         rs.next();
-        assertEquals("" + rs.getObject(1).toString(), "12:26:27.123"); // TODO
+        assertEquals("" + rs.getObject(1).toString(), "12:26:27");
     }
 
     /**
@@ -640,7 +641,7 @@ public class SQLVariantResultSetTest extends AbstractTest {
     @Test
     public void callableStatementOutputTimeTest() throws SQLException {
         String value = "12:26:27.123345";
-        String returnValue = "12:26:27.123";
+        String returnValue = "12:26:27";
         Utils.dropTableIfExists(tableName, stmt);
         stmt.executeUpdate("create table " + tableName + " (col1 sql_variant)");
         stmt.executeUpdate("INSERT into " + tableName + " values (CAST ('" + value + "' AS " + "time(3)" + "))");
@@ -652,7 +653,7 @@ public class SQLVariantResultSetTest extends AbstractTest {
         CallableStatement cs = con.prepareCall(" {call " + inputProc + " (?) }");
         cs.registerOutParameter(1, microsoft.sql.Types.SQL_VARIANT, 3);
         cs.execute();
-        assertEquals(cs.getString(1), String.valueOf(returnValue));
+        assertEquals(String.valueOf(returnValue), "" + cs.getObject(1));
         if (null != cs) {
             cs.close();
         }
@@ -816,6 +817,42 @@ public class SQLVariantResultSetTest extends AbstractTest {
         while (rs.next()) {
             assertEquals(rs.getObject(1), expected[index++]);
         }
+    }
+
+    /**
+     * Tests unsupported type
+     * 
+     * @throws SQLException
+     */
+    @Test
+    public void testUnsupportedDatatype() throws SQLException {
+        rs = (SQLServerResultSet) stmt.executeQuery("select cast(cast('2017-08-16 17:31:09.995 +07:00' as datetimeoffset) as sql_variant)");
+        rs.next();
+        try {
+            rs.getObject(1);
+            fail("Should have thrown unssuported tds type exception");
+        }
+        catch (Exception e) {
+            assertTrue(e.getMessage().equalsIgnoreCase("Unexpected TDS type  DATETIMEOFFSETN  in SQL_VARIANT."));
+        }
+        if (null != rs) {
+            rs.close();
+        }
+    }
+
+    /**
+     * Tests that the returning class of base type time in sql_variant is correct.
+     * 
+     * @throws SQLException
+     * 
+     */
+    @Test
+    public void testTimeClassAsSqlVariant() throws SQLException {
+        rs = (SQLServerResultSet) stmt.executeQuery("select cast(cast('17:31:09.995' as time(3)) as sql_variant)");
+        rs.next();
+        Object object = rs.getObject(1);
+        assertEquals(object.getClass(), java.sql.Time.class);
+        ;
     }
 
     private boolean parseByte(byte[] expectedData,
