@@ -3104,7 +3104,7 @@ final class TypeInfo {
              */
             public void apply(TypeInfo typeInfo,
                     TDSReader tdsReader) throws SQLServerException {
-                typeInfo.ssLenType = SSLenType.LONGLENTYPE; //Variant type should be LONGLENTYPE length.
+                typeInfo.ssLenType = SSLenType.LONGLENTYPE; //sql_variant type should be LONGLENTYPE length.
                 typeInfo.maxLength = tdsReader.readInt();
                 typeInfo.ssType = SSType.SQL_VARIANT;
                 }
@@ -4115,7 +4115,6 @@ final class ServerDTVImpl extends DTVImpl {
                 
             case MONEY4:
                 jdbcType = JDBCType.SMALLMONEY;
-                typeInfo.setMaxLength(4);
                 precision = Long.toString(Long.MAX_VALUE).length();
                 typeInfo.setPrecision(precision);
                 scale = 4;
@@ -4128,7 +4127,6 @@ final class ServerDTVImpl extends DTVImpl {
                 
             case MONEY8:
                 jdbcType = JDBCType.MONEY;
-                typeInfo.setMaxLength(8);
                 precision = Long.toString(Long.MAX_VALUE).length();
                 scale = 4;
                 typeInfo.setPrecision(precision);
@@ -4179,9 +4177,7 @@ final class ServerDTVImpl extends DTVImpl {
                     jdbcType = JDBCType.CHAR;
                 collation = tdsReader.readCollation();
                 typeInfo.setSQLCollation(collation);
-                typeInfo.setSSLenType(SSLenType.USHORTLENTYPE);
                 maxLength = tdsReader.readUnsignedShort();
-                typeInfo.setMaxLength(maxLength);
                 if (maxLength > DataTypes.SHORT_VARTYPE_MAX_BYTES)
                     tdsReader.throwInvalidTDS();
                 typeInfo.setDisplaySize(maxLength);
@@ -4205,7 +4201,6 @@ final class ServerDTVImpl extends DTVImpl {
                     jdbcType = JDBCType.NVARCHAR;
                 collation = tdsReader.readCollation();
                 typeInfo.setSQLCollation(collation);
-                typeInfo.setSSLenType(SSLenType.USHORTLENTYPE);
                 maxLength = tdsReader.readUnsignedShort();
                 if (maxLength > DataTypes.SHORT_VARTYPE_MAX_BYTES || 0 != maxLength % 2)
                     tdsReader.throwInvalidTDS();
@@ -4272,7 +4267,6 @@ final class ServerDTVImpl extends DTVImpl {
                     jdbcType = JDBCType.VARBINARY;
                 maxLength = tdsReader.readUnsignedShort();
                 internalVariant.setMaxLength(maxLength);
-                typeInfo.setMaxLength(maxLength);
                 if (maxLength > DataTypes.SHORT_VARTYPE_MAX_BYTES)
                     tdsReader.throwInvalidTDS();
                 typeInfo.setDisplaySize(2 * maxLength);
