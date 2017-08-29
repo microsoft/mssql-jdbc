@@ -617,7 +617,7 @@ public class BulkCopyWithSqlVariantTest extends AbstractTest {
 
         rs = (SQLServerResultSet) stmt.executeQuery("SELECT * FROM " + destTableName);
         rs.next();
-        assertEquals("" + rs.getObject(1).toString(), "12:26:27.15"); // TODO
+        assertEquals("" + rs.getObject(1).toString(), "12:26:27");
     }
 
     /**

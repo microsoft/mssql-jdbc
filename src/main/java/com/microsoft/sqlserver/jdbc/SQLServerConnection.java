@@ -1079,7 +1079,10 @@ public class SQLServerConnection implements ISQLServerConnection {
                                                                                                           // timeout, default is 15 per spec
                         String sPropValue = propsIn.getProperty(SQLServerDriverIntProperty.LOGIN_TIMEOUT.toString());
                         if (null != sPropValue && sPropValue.length() > 0) {
-                            loginTimeoutSeconds = Integer.parseInt(sPropValue);
+                            int sPropValueInt = Integer.parseInt(sPropValue);
+                            if (0 != sPropValueInt) { // Use the default timeout in case of a zero value
+                                loginTimeoutSeconds = sPropValueInt;
+                            }
                         }
                     }
 
