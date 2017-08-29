@@ -803,6 +803,20 @@ public class SQLVariantResultSetTest extends AbstractTest {
         }
 
     }
+    
+    /**
+     * Test retrieving values with varchar and integer as basetype
+     * @throws SQLException
+     */
+    @Test
+    public void readVarcharInteger() throws SQLException {
+        Object expected[] = {"abc", 42};
+        int index = 0;
+        rs = (SQLServerResultSet) stmt.executeQuery("SELECT cast('abc' as sql_variant) UNION ALL SELECT cast(42 as sql_variant)");
+        while (rs.next()) {
+            assertEquals(rs.getObject(1), expected[index++]);
+        }
+    }
 
     private boolean parseByte(byte[] expectedData,
             byte[] retrieved) {
