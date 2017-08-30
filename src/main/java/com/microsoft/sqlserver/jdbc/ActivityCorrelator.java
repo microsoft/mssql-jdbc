@@ -21,8 +21,7 @@ final class ActivityCorrelator {
     static void checkAndInitActivityId() {
         long uniqueThreadId = Thread.currentThread().getId();
         
-        //Since the Id for each thread is unique, this assures that the below code is run only once per *thread*,
-        //the first time this constructor is called.
+        //Since the Id for each thread is unique, this assures that the below code is run only once per *thread*.
         if (!ActivityIdTlsMap.containsKey(uniqueThreadId)) {
             ActivityIdTlsMap.put(uniqueThreadId, new ActivityId());
         }
