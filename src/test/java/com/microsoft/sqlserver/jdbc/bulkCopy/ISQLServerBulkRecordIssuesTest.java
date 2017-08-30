@@ -38,7 +38,7 @@ import com.microsoft.sqlserver.testframework.AbstractTest;
 import com.microsoft.sqlserver.testframework.Utils;
 
 @RunWith(JUnitPlatform.class)
-public class ImpISQLServerBulkRecord_IssuesTest extends AbstractTest {
+public class ISQLServerBulkRecordIssuesTest extends AbstractTest {
 
     static Statement stmt = null;
     static PreparedStatement pStmt = null;

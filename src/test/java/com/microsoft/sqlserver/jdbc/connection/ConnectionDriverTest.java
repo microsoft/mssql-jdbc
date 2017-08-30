@@ -29,6 +29,7 @@ import java.util.logging.Logger;
 import javax.sql.ConnectionEvent;
 import javax.sql.PooledConnection;
 
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
@@ -462,6 +463,7 @@ public class ConnectionDriverTest extends AbstractTest {
     }
 
     @Test
+    @Tag("slow")
     public void testIncorrectDatabaseWithFailoverPartner() throws SQLServerException {
         long timerStart = 0;
         long timerEnd = 0;
@@ -522,6 +524,7 @@ public class ConnectionDriverTest extends AbstractTest {
      * @throws InterruptedException
      */
     @Test
+    @Tag("slow")
     public void testThreadInterruptedStatus() throws InterruptedException {
         Runnable runnable = new Runnable() {
             public void run() {
