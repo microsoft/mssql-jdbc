@@ -18,7 +18,6 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ThreadFactory;
 
-import javax.xml.bind.DatatypeConverter;
 
 class CacheClear implements Runnable {
 
@@ -98,7 +97,7 @@ final class SQLServerSymmetricKeyCache {
             String keyLookupValue;
             keyLookupValuebuffer.append(":");
 
-            keyLookupValuebuffer.append(DatatypeConverter.printBase64Binary((new String(keyInfo.encryptedKey, UTF_8)).getBytes()));
+            keyLookupValuebuffer.append((new String(keyInfo.encryptedKey, UTF_8)).getBytes());
 
             keyLookupValuebuffer.append(":");
             keyLookupValuebuffer.append(keyInfo.keyStoreName);
