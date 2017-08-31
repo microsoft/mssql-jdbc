@@ -382,7 +382,7 @@ enum SSType
             this.to = to;
         }
 
-        private static final EnumMap<SSType.Category, EnumSet<JDBCType.Category>> conversionMap = new EnumMap<SSType.Category, EnumSet<JDBCType.Category>>(
+        private static final EnumMap<SSType.Category, EnumSet<JDBCType.Category>> conversionMap = new EnumMap<>(
                 SSType.Category.class);
 
         static {
@@ -776,7 +776,7 @@ enum JavaType
             this.to = to;
         }
 
-        private static final EnumMap<JavaType, EnumSet<JDBCType>> setterConversionAEMap = new EnumMap<JavaType, EnumSet<JDBCType>>(JavaType.class);
+        private static final EnumMap<JavaType, EnumSet<JDBCType>> setterConversionAEMap = new EnumMap<>(JavaType.class);
 
         static {
             for (JavaType javaType : JavaType.values())
@@ -1086,7 +1086,7 @@ enum JDBCType
             this.to = to;
         }
 
-        private static final EnumMap<JDBCType.Category, EnumSet<JDBCType.Category>> conversionMap = new EnumMap<JDBCType.Category, EnumSet<JDBCType.Category>>(
+        private static final EnumMap<JDBCType.Category, EnumSet<JDBCType.Category>> conversionMap = new EnumMap<>(
                 JDBCType.Category.class);
 
         static {
@@ -1305,7 +1305,7 @@ enum JDBCType
             this.to = to;
         }
 
-        private static final EnumMap<JDBCType.Category, EnumSet<SSType.Category>> conversionMap = new EnumMap<JDBCType.Category, EnumSet<SSType.Category>>(
+        private static final EnumMap<JDBCType.Category, EnumSet<SSType.Category>> conversionMap = new EnumMap<>(
                 JDBCType.Category.class);
 
         static {
@@ -1616,7 +1616,7 @@ enum JDBCType
             this.to = to;
         }
 
-        private static final EnumMap<JDBCType, EnumSet<SSType>> normalizationMapAE = new EnumMap<JDBCType, EnumSet<SSType>>(JDBCType.class);
+        private static final EnumMap<JDBCType, EnumSet<SSType>> normalizationMapAE = new EnumMap<>(JDBCType.class);
 
         static {
             for (JDBCType jdbcType : JDBCType.values())

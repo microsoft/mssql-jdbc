@@ -40,7 +40,7 @@ public final class SQLServerBlob implements java.sql.Blob, java.io.Serializable 
     // Initial size of the array is based on an assumption that a Blob object is
     // typically used either for input or output, and then only once. The array size
     // grows automatically if multiple streams are used.
-    ArrayList<Closeable> activeStreams = new ArrayList<Closeable>(1);
+    ArrayList<Closeable> activeStreams = new ArrayList<>(1);
 
     static private final Logger logger = Logger.getLogger("com.microsoft.sqlserver.jdbc.internals.SQLServerBlob");
 
