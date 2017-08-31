@@ -530,11 +530,11 @@ final class SQLCollation implements java.io.Serializable
     static {
         // Populate the windows locale and sort order indices
 
-        localeIndex = new HashMap<Integer, WindowsLocale>();
+        localeIndex = new HashMap<>();
         for (WindowsLocale locale : EnumSet.allOf(WindowsLocale.class))
             localeIndex.put(locale.langID, locale);
 
-        sortOrderIndex = new HashMap<Integer, SortOrder>();
+        sortOrderIndex = new HashMap<>();
         for (SortOrder sortOrder : EnumSet.allOf(SortOrder.class))
             sortOrderIndex.put(sortOrder.sortId, sortOrder);
     }

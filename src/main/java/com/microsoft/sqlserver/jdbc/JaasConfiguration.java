@@ -23,9 +23,9 @@ public class JaasConfiguration extends Configuration {
 
     private static AppConfigurationEntry[] generateDefaultConfiguration() {
         if (Util.isIBM()) {
-            Map<String, String> confDetailsWithoutPassword = new HashMap<String, String>();
+            Map<String, String> confDetailsWithoutPassword = new HashMap<>();
             confDetailsWithoutPassword.put("useDefaultCcache", "true");
-            Map<String, String> confDetailsWithPassword = new HashMap<String, String>();
+            Map<String, String> confDetailsWithPassword = new HashMap<>();
             // We generated a two configurations fallback that is suitable for password and password-less authentication
             // See https://www.ibm.com/support/knowledgecenter/SSYKE2_8.0.0/com.ibm.java.security.component.80.doc/security-component/jgssDocs/jaas_login_user.html
             final String ibmLoginModule = "com.ibm.security.auth.module.Krb5LoginModule";
@@ -34,7 +34,7 @@ public class JaasConfiguration extends Configuration {
                     new AppConfigurationEntry(ibmLoginModule, AppConfigurationEntry.LoginModuleControlFlag.SUFFICIENT, confDetailsWithPassword)};
         }
         else {
-            Map<String, String> confDetails = new HashMap<String, String>();
+            Map<String, String> confDetails = new HashMap<>();
             confDetails.put("useTicketCache", "true");
             return new AppConfigurationEntry[] {new AppConfigurationEntry("com.sun.security.auth.module.Krb5LoginModule",
                     AppConfigurationEntry.LoginModuleControlFlag.REQUIRED, confDetails)};

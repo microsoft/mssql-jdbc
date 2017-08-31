@@ -21,7 +21,7 @@ import javax.xml.bind.DatatypeConverter;
 class SQLServerAeadAes256CbcHmac256Factory extends SQLServerEncryptionAlgorithmFactory {
     // In future we can have more
     private byte algorithmVersion = 0x1;
-    private ConcurrentHashMap<String, SQLServerAeadAes256CbcHmac256Algorithm> encryptionAlgorithms = new ConcurrentHashMap<String, SQLServerAeadAes256CbcHmac256Algorithm>();
+    private ConcurrentHashMap<String, SQLServerAeadAes256CbcHmac256Algorithm> encryptionAlgorithms = new ConcurrentHashMap<>();
 
     @Override
     SQLServerEncryptionAlgorithm create(SQLServerSymmetricKey columnEncryptionKey,
