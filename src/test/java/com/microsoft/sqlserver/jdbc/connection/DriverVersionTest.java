@@ -43,7 +43,7 @@ public class DriverVersionTest extends AbstractTest {
     @Test
     public void testConnectionDriver() {
         assumeTrue(!System.getProperty("java.version").contains("9-ea"),
-                "Aborting test case as SQL Server version is not compatible with Always encrypted ");
+                "Aborting test case as test is not compatible with Java 9! ");
         // the original way to create version byte array
         String interfaceLibVersion = generateInterfaceLibVersion();
         byte originalVersionBytes[] = DatatypeConverter.parseHexBinary(interfaceLibVersion);
