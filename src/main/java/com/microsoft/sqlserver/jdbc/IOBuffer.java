@@ -1852,7 +1852,7 @@ final class TDSChannel {
                 if (!isValidTrustStoreType) {
                     isValid = false;               
                     if (logger.isLoggable(Level.FINER))
-                        logger.finer(toString() + "TrustStoreType is requiered alongside with TrustStore.");
+                        logger.finer(toString() + "TrustStoreType is required alongside with TrustStore.");
                 }
             }
         }
