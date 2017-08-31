@@ -375,7 +375,9 @@ final class Parameter {
         // If set to true, this connection property tells the driver to send textual parameters
         // to the server as Unicode rather than MBCS. This is accomplished here by re-tagging
         // the value with the appropriate corresponding Unicode type.
-        if (con.sendStringParametersAsUnicode() && (JavaType.STRING == javaType || JavaType.READER == javaType || JavaType.CLOB == javaType)) {
+        // JavaType.OBJECT == javaType when calling setNull()
+        if (con.sendStringParametersAsUnicode()
+                && (JavaType.STRING == javaType || JavaType.READER == javaType || JavaType.CLOB == javaType || JavaType.OBJECT == javaType)) {
             jdbcType = getSSPAUJDBCType(jdbcType);
         }
 
