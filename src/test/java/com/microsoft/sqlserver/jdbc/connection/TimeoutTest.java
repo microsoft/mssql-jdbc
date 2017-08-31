@@ -14,6 +14,7 @@ import static org.junit.jupiter.api.Assertions.fail;
 import java.sql.DriverManager;
 import java.sql.SQLException;
 
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
@@ -31,6 +32,7 @@ public class TimeoutTest extends AbstractTest {
     final int waitForDelaySeconds = 10;
 
     @Test
+    @Tag("slow")
     public void testDefaultLoginTimeout() {
         long timerStart = 0;
         long timerEnd = 0;
