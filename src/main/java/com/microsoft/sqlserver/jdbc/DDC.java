@@ -922,7 +922,8 @@ final class DDC {
         }
         // Convert the calendar value (in local time) to the desired Java object type.
         switch (jdbcType.category) {
-            case BINARY: {
+            case BINARY:
+            case SQL_VARIANT: {
                 switch (ssType) {
                     case DATE: {
                         // Per JDBC spec, the time part of java.sql.Date values is initialized to midnight

@@ -387,10 +387,11 @@ public final class SQLServerResource extends ListResourceBundle {
 				{"R_jaasConfigurationNamePropertyDescription", "Login configuration file for Kerberos authentication."},
 				{"R_AKVKeyNotFound", "Key not found: {0}"},
 				{"R_SQLVariantSupport", "SQL_VARIANT is not supported in versions of SQL Server before 2008."},
-                {"R_invalidProbbytes", "SQL_VARIANT: invalid probBytes for {0} type."},
-                {"R_invalidStringValue", "SQL_VARIANT does not support string values of length greater than 8000."},
-                {"R_invalidValueForTVPWithSQLVariant", "Use of TVPs containing null sql_variant columns is not supported."},
-            {"R_sslProtocolPropertyDescription", "SSL protocol label from TLS, TLSv1, TLSv1.1 & TLSv1.2. The default is TLS."},
-            {"R_invalidSSLProtocol", "SSL Protocol {0} label is not valid. Only TLS, TLSv1, TLSv1.1 & TLSv1.2 are supported."},
+				{"R_invalidProbbytes", "SQL_VARIANT: invalid probBytes for {0} type."},
+				{"R_invalidStringValue", "SQL_VARIANT does not support string values of length greater than 8000."},
+				{"R_invalidValueForTVPWithSQLVariant", "Use of TVPs containing null sql_variant columns is not supported."},
+				{"R_invalidDataTypeSupportForSQLVariant", "Unexpected TDS type ' '{0}' ' in SQL_VARIANT."},
+				{"R_sslProtocolPropertyDescription", "SSL protocol label from TLS, TLSv1, TLSv1.1 & TLSv1.2. The default is TLS."},
+				{"R_invalidSSLProtocol", "SSL Protocol {0} label is not valid. Only TLS, TLSv1, TLSv1.1 & TLSv1.2 are supported."},
     };
 }
