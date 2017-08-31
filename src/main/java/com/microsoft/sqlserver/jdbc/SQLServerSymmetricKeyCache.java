@@ -68,7 +68,7 @@ final class SQLServerSymmetricKeyCache {
             .getLogger("com.microsoft.sqlserver.jdbc.SQLServerSymmetricKeyCache");
 
     private SQLServerSymmetricKeyCache() {
-        cache = new ConcurrentHashMap<String, SQLServerSymmetricKey>();
+        cache = new ConcurrentHashMap<>();
     }
 
     static SQLServerSymmetricKeyCache getInstance() {
