@@ -52,7 +52,8 @@ public class FipsTest {
         }
         catch (SQLServerException e) {
             Assertions.assertTrue(
-                    e.getMessage().contains("Unable to verify FIPS mode settings."));
+                    e.getMessage().contains("Unable to verify FIPS mode settings."),
+                    "Should create exception for invalid TrustServerCertificate value");
         }
     }
 
