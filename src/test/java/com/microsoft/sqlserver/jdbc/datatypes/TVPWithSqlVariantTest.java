@@ -290,7 +290,7 @@ public class TVPWithSqlVariantTest extends AbstractTest {
             pstmt.execute();
         }
         catch (SQLServerException e) {
-            assertTrue(e.getMessage().contains("SQL_VARIANT does not support string values more than 8000 length."));
+            assertTrue(e.getMessage().contains("SQL_VARIANT does not support string values of length greater than 8000."));
         }
         catch (Exception e) {
             fail("Test should have failed! mistakenly inserted string value of more than 8000 in sql-variant");
@@ -340,7 +340,7 @@ public class TVPWithSqlVariantTest extends AbstractTest {
             tvp.addRow((Date) null);
         }
         catch (Exception e) {
-            assertTrue(e.getMessage().startsWith("Inserting null value with column"));
+            assertTrue(e.getMessage().startsWith("Use of TVPs containing null sql_variant columns is not supported."));
         }
 
         pstmt = (SQLServerPreparedStatement) connection.prepareStatement("INSERT INTO " + destTable + " select * from ? ;");

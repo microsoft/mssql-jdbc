@@ -563,6 +563,8 @@ public final class SQLServerParameterMetaData implements ParameterMetaData {
         assert null != st;
         stmtParent = st;
         con = st.connection;
+        SQLServerStatement s = null;
+        SQLServerStatement stmt = null;
         if (logger.isLoggable(java.util.logging.Level.FINE)) {
             logger.fine(toString() + " created by (" + st.toString() + ")");
         }
@@ -571,7 +573,7 @@ public final class SQLServerParameterMetaData implements ParameterMetaData {
             // If the CallableStatement/PreparedStatement is a stored procedure call
             // then we can extract metadata using sp_sproc_columns
             if (null != st.procedureName) {
-                SQLServerStatement s = (SQLServerStatement) con.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
+                s = (SQLServerStatement) con.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
                 String sProc = parseProcIdentifier(st.procedureName);
                 if (con.isKatmaiOrLater())
                     rsProcedureMeta = s.executeQueryInternal("exec sp_sproc_columns_100 " + sProc + ", @ODBCVer=3");
@@ -659,13 +661,11 @@ public final class SQLServerParameterMetaData implements ParameterMetaData {
 
                     String tablesAndJoins = sbTablesAndJoins.toString();
 
-                    Statement stmt = con.createStatement();
+                    stmt = (SQLServerStatement) con.createStatement();
                     String sCom = "sp_executesql N'SET FMTONLY ON SELECT " + columns + " FROM " + tablesAndJoins + " '";
 
                     ResultSet rs = stmt.executeQuery(sCom);
                     parseQueryMetaFor2008(rs);
-                    stmt.close();
-                    rs.close();
                 }
             }
         }
@@ -678,6 +678,10 @@ public final class SQLServerParameterMetaData implements ParameterMetaData {
         }
         catch(StringIndexOutOfBoundsException e){
             SQLServerException.makeFromDriverError(con, stmtParent, e.toString(), null, false);
+        }
+        finally {
+            if (null != stmt)
+                stmt.close();
         }
     }
 

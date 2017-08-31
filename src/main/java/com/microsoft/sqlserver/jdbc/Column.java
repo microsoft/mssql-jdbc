@@ -337,7 +337,7 @@ final class Column {
         // to the server as Unicode rather than MBCS. This is accomplished here by re-tagging
         // the value with the appropriate corresponding Unicode type.
         if ((null != cryptoMetadata) && (con.sendStringParametersAsUnicode())
-                && (JavaType.STRING == javaType || JavaType.READER == javaType || JavaType.CLOB == javaType)) {
+                && (JavaType.STRING == javaType || JavaType.READER == javaType || JavaType.CLOB == javaType || JavaType.OBJECT == javaType)) {
             jdbcType = getSSPAUJDBCType(jdbcType);
         }
 
