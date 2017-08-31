@@ -26,6 +26,15 @@ final class ActivityCorrelator {
             ActivityIdTlsMap.put(uniqueThreadId, new ActivityId());
         }
     }
+    
+    static void cleanupActivityId() {
+        //remove the ActivityId that belongs to this thread.
+        long uniqueThreadId = Thread.currentThread().getId();
+
+        if (ActivityIdTlsMap.containsKey(uniqueThreadId)) {
+            ActivityIdTlsMap.remove(uniqueThreadId);
+        }
+    }
 
     // Get the current ActivityId in TLS
     static ActivityId getCurrent() {
