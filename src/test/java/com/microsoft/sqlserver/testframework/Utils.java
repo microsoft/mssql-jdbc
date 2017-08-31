@@ -162,7 +162,7 @@ public class Utils {
      */
     public static ArrayList<SqlType> types() {
         if (null == types) {
-            types = new ArrayList<>();
+            types = new ArrayList<SqlType>();
 
             types.add(new SqlInt());
             types.add(new SqlSmallInt());

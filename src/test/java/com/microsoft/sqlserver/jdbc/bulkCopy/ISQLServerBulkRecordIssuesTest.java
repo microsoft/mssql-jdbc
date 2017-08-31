@@ -289,53 +289,53 @@ class BulkDat implements ISQLServerBulkRecord {
     BulkDat(String variation) {
         if (variation.equalsIgnoreCase("testVarchar")) {
             isStringData = true;
-            columnMetadata = new HashMap<>();
+            columnMetadata = new HashMap<Integer, ColumnMetadata>();
 
             columnMetadata.put(1, new ColumnMetadata("varchar(2)", java.sql.Types.VARCHAR, 0, 0));
 
-            stringData = new ArrayList<>();
+            stringData = new ArrayList<String>();
             stringData.add(new String("aaa"));
             rowCount = stringData.size();
         }
         else if (variation.equalsIgnoreCase("testSmalldatetime")) {
             isStringData = false;
-            columnMetadata = new HashMap<>();
+            columnMetadata = new HashMap<Integer, ColumnMetadata>();
 
             columnMetadata.put(1, new ColumnMetadata("smallDatetime", java.sql.Types.TIMESTAMP, 0, 0));
 
-            dateData = new ArrayList<>();
+            dateData = new ArrayList<Timestamp>();
             dateData.add(Timestamp.valueOf("1954-05-22 02:43:37.123"));
             rowCount = dateData.size();
         }
         else if (variation.equalsIgnoreCase("testSmalldatetimeOutofRange")) {
             isStringData = false;
-            columnMetadata = new HashMap<>();
+            columnMetadata = new HashMap<Integer, ColumnMetadata>();
 
             columnMetadata.put(1, new ColumnMetadata("smallDatetime", java.sql.Types.TIMESTAMP, 0, 0));
 
-            dateData = new ArrayList<>();
+            dateData = new ArrayList<Timestamp>();
             dateData.add(Timestamp.valueOf("1954-05-22 02:43:37.1234"));
             rowCount = dateData.size();
 
         }
         else if (variation.equalsIgnoreCase("testBinaryColumnAsByte")) {
             isStringData = false;
-            columnMetadata = new HashMap<>();
+            columnMetadata = new HashMap<Integer, ColumnMetadata>();
 
             columnMetadata.put(1, new ColumnMetadata("binary(5)", java.sql.Types.BINARY, 5, 0));
 
-            byteData = new ArrayList<>();
+            byteData = new ArrayList<byte[]>();
             byteData.add("helloo".getBytes());
             rowCount = byteData.size();
 
         }
         else if (variation.equalsIgnoreCase("testBinaryColumnAsString")) {
             isStringData = true;
-            columnMetadata = new HashMap<>();
+            columnMetadata = new HashMap<Integer, ColumnMetadata>();
 
             columnMetadata.put(1, new ColumnMetadata("binary(5)", java.sql.Types.BINARY, 5, 0));
 
-            stringData = new ArrayList<>();
+            stringData = new ArrayList<String>();
             stringData.add("616368697412");
             rowCount = stringData.size();
 
@@ -343,11 +343,11 @@ class BulkDat implements ISQLServerBulkRecord {
 
         else if (variation.equalsIgnoreCase("testSendValidValueforBinaryColumnAsString")) {
             isStringData = true;
-            columnMetadata = new HashMap<>();
+            columnMetadata = new HashMap<Integer, ColumnMetadata>();
 
             columnMetadata.put(1, new ColumnMetadata("binary(5)", java.sql.Types.BINARY, 5, 0));
 
-            stringData = new ArrayList<>();
+            stringData = new ArrayList<String>();
             stringData.add("010101");
             rowCount = stringData.size();
 

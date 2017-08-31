@@ -675,7 +675,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable {
      * Initializes the defaults for member variables that require it.
      */
     private void initializeDefaults() {
-        columnMappings = new LinkedList<>();
+        columnMappings = new LinkedList<SQLServerBulkCopy.ColumnMapping>();
         destinationTableName = null;
         sourceBulkRecord = null;
         sourceResultSet = null;
@@ -1471,7 +1471,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable {
 
     private String createInsertBulkCommand(TDSWriter tdsWriter) throws SQLServerException {
         StringBuilder bulkCmd = new StringBuilder();
-        List<String> bulkOptions = new ArrayList<>();
+        List<String> bulkOptions = new ArrayList<String>();
         String endColumn = " , ";
         bulkCmd.append("INSERT BULK " + destinationTableName + " (");
 
@@ -1747,7 +1747,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable {
                     .executeQueryInternal("SET FMTONLY ON SELECT * FROM " + destinationTableName + " SET FMTONLY OFF ");
 
             destColumnCount = rs.getMetaData().getColumnCount();
-            destColumnMetadata = new HashMap<>();
+            destColumnMetadata = new HashMap<Integer, BulkColumnMetaData>();
             destCekTable = rs.getCekTable();
 
             if (!connection.getServerSupportsColumnEncryption()) {
@@ -1793,7 +1793,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable {
      * source metadata from the same place for both ResultSet and File.
      */
     private void getSourceMetadata() throws SQLServerException {
-        srcColumnMetadata = new HashMap<>();
+        srcColumnMetadata = new HashMap<Integer, BulkColumnMetaData>();
         int currentColumn;
         if (null != sourceResultSet) {
             try {

@@ -2097,7 +2097,7 @@ public class StatementTest extends AbstractTest {
 
                 Random r = new Random();
                 // randomly generate columns whose values would be set to a non null value
-                ArrayList<Integer> nonNullColumns = new ArrayList<>();
+                ArrayList<Integer> nonNullColumns = new ArrayList<Integer>();
                 nonNullColumns.add(1);// this is always non-null
 
                 // Add approximately 10 non-null columns. The number should be low

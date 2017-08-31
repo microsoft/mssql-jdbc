@@ -353,7 +353,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         StringBuilder sb = new StringBuilder();
         int nCols = params.length;
         char cParamName[] = new char[10];
-        parameterNames = new ArrayList<>();
+        parameterNames = new ArrayList<String>();
 
         for (int i = 0; i < nCols; i++) {
             if (i > 0)
@@ -810,7 +810,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
             return;
         }
 
-        Map<Integer, CekTableEntry> cekList = new HashMap<>();
+        Map<Integer, CekTableEntry> cekList = new HashMap<Integer, CekTableEntry>();
         CekTableEntry cekEntry = null;
         try {
             while (rs.next()) {
@@ -2391,7 +2391,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
         // Create the list of batch parameter values first time through
         if (batchParamValues == null)
-            batchParamValues = new ArrayList<>();
+            batchParamValues = new ArrayList<Parameter[]>();
 
         final int numParams = inOutParam.length;
         Parameter paramValues[] = new Parameter[numParams];
@@ -2551,7 +2551,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
         int numBatchesPrepared = 0;
         int numBatchesExecuted = 0;
-        Vector<CryptoMetadata> cryptoMetaBatch = new Vector<>();
+        Vector<CryptoMetadata> cryptoMetaBatch = new Vector<CryptoMetadata>();
 
         if (isSelect(userSQL)) {
             SQLServerException.makeFromDriverError(connection, this, SQLServerException.getErrString("R_selectNotPermittedinBatch"), null, true);

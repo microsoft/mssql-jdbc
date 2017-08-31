@@ -88,7 +88,7 @@ class CekTableEntry {
         cekId = 0;
         cekVersion = 0;
         cekMdVersion = null;
-        columnEncryptionKeyValues = new ArrayList<>();
+        columnEncryptionKeyValues = new ArrayList<EncryptionKeyInfo>();
     }
 
     int getSize() {

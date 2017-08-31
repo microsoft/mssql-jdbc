@@ -62,7 +62,7 @@ class TVP {
     void initTVP(TVPType type,
             String tvpPartName) throws SQLServerException {
         tvpType = type;
-        columnMetadata = new LinkedHashMap<>();
+        columnMetadata = new LinkedHashMap<Integer, SQLServerMetaData>();
         parseTypeName(tvpPartName);
     }
 

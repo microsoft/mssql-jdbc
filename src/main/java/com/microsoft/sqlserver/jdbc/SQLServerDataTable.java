@@ -36,8 +36,8 @@ public final class SQLServerDataTable {
      */
     // Name used in CREATE TYPE
     public SQLServerDataTable() throws SQLServerException {
-        columnMetadata = new LinkedHashMap<>();
-        rows = new HashMap<>();
+        columnMetadata = new LinkedHashMap<Integer, SQLServerDataColumn>();
+        rows = new HashMap<Integer, Object[]>();
     }
 
     /**

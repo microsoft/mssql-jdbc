@@ -100,7 +100,7 @@ public class SQLServerConnection implements ISQLServerConnection {
     private Boolean enablePrepareOnFirstPreparedStatementCall = null; // Current limit for this particular connection.
 
     // Handle the actual queue of discarded prepared statements.
-    private ConcurrentLinkedQueue<PreparedStatementHandle> discardedPreparedStatementHandles = new ConcurrentLinkedQueue<>();
+    private ConcurrentLinkedQueue<PreparedStatementHandle> discardedPreparedStatementHandles = new ConcurrentLinkedQueue<PreparedStatementHandle>();
     private AtomicInteger discardedPreparedStatementHandleCount = new AtomicInteger(0);
 
     private boolean fedAuthRequiredByUser = false;
@@ -525,7 +525,7 @@ public class SQLServerConnection implements ISQLServerConnection {
     }
 
     static boolean isWindows;
-    static Map<String, SQLServerColumnEncryptionKeyStoreProvider> globalSystemColumnEncryptionKeyStoreProviders = new HashMap<>();
+    static Map<String, SQLServerColumnEncryptionKeyStoreProvider> globalSystemColumnEncryptionKeyStoreProviders = new HashMap<String, SQLServerColumnEncryptionKeyStoreProvider>();
     static {
         if (System.getProperty("os.name").toLowerCase(Locale.ENGLISH).startsWith("windows")) {
             isWindows = true;
@@ -538,7 +538,7 @@ public class SQLServerConnection implements ISQLServerConnection {
     }
     static Map<String, SQLServerColumnEncryptionKeyStoreProvider> globalCustomColumnEncryptionKeyStoreProviders = null;
     // This is a per-connection store provider. It can be JKS or AKV.
-    Map<String, SQLServerColumnEncryptionKeyStoreProvider> systemColumnEncryptionKeyStoreProvider = new HashMap<>();
+    Map<String, SQLServerColumnEncryptionKeyStoreProvider> systemColumnEncryptionKeyStoreProvider = new HashMap<String, SQLServerColumnEncryptionKeyStoreProvider>();
 
     /**
      * Registers key store providers in the globalCustomColumnEncryptionKeyStoreProviders.
@@ -561,7 +561,7 @@ public class SQLServerConnection implements ISQLServerConnection {
             throw new SQLServerException(null, SQLServerException.getErrString("R_CustomKeyStoreProviderSetOnce"), null, 0, false);
         }
 
-        globalCustomColumnEncryptionKeyStoreProviders = new HashMap<>();
+        globalCustomColumnEncryptionKeyStoreProviders = new HashMap<String, SQLServerColumnEncryptionKeyStoreProvider>();
 
         for (Map.Entry<String, SQLServerColumnEncryptionKeyStoreProvider> entry : clientKeyStoreProviders.entrySet()) {
             String providerName = entry.getKey();
@@ -625,7 +625,7 @@ public class SQLServerConnection implements ISQLServerConnection {
     }
 
     private String trustedServerNameAE = null;
-    private static Map<String, List<String>> columnEncryptionTrustedMasterKeyPaths = new HashMap<>();
+    private static Map<String, List<String>> columnEncryptionTrustedMasterKeyPaths = new HashMap<String, List<String>>();
 
     /**
      * Sets Trusted Master Key Paths in the columnEncryptionTrustedMasterKeyPaths.
@@ -691,7 +691,7 @@ public class SQLServerConnection implements ISQLServerConnection {
     public static synchronized Map<String, List<String>> getColumnEncryptionTrustedMasterKeyPaths() {
         loggerExternal.entering(SQLServerConnection.class.getName(), "getColumnEncryptionTrustedMasterKeyPaths", "Getting Trusted Master Key Paths");
 
-        Map<String, List<String>> masterKeyPathCopy = new HashMap<>();
+        Map<String, List<String>> masterKeyPathCopy = new HashMap<String, List<String>>();
 
         for (Map.Entry<String, List<String>> entry : columnEncryptionTrustedMasterKeyPaths.entrySet()) {
             masterKeyPathCopy.put(entry.getKey(), entry.getValue());
@@ -3230,7 +3230,7 @@ public class SQLServerConnection implements ISQLServerConnection {
     public java.util.Map<String, Class<?>> getTypeMap() throws SQLServerException {
         loggerExternal.entering(getClassNameLogging(), "getTypeMap");
         checkClosed();
-        java.util.Map<String, Class<?>> mp = new java.util.HashMap<>();
+        java.util.Map<String, Class<?>> mp = new java.util.HashMap<String, Class<?>>();
         loggerExternal.exiting(getClassNameLogging(), "getTypeMap", mp);
         return mp;
     }

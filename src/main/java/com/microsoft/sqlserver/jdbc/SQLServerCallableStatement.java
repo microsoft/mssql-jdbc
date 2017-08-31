@@ -1432,7 +1432,7 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
                 }
 
                 ResultSet rs = s.executeQueryInternal(metaQuery.toString());
-                paramNames = new ArrayList<>();
+                paramNames = new ArrayList<String>();
                 while (rs.next()) {
                     String sCol = rs.getString(4);
                     paramNames.add(sCol.trim());

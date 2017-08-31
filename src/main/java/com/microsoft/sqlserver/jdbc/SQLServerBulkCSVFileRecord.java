@@ -159,7 +159,7 @@ public class SQLServerBulkCSVFileRecord implements ISQLServerBulkRecord, java.la
         catch (Exception e) {
             throw new SQLServerException(null, e.getMessage(), null, 0, false);
         }
-        columnMetadata = new HashMap<>();
+        columnMetadata = new HashMap<Integer, SQLServerBulkCSVFileRecord.ColumnMetadata>();
 
         loggerExternal.exiting(loggerClassName, "SQLServerBulkCSVFileRecord");
     }
@@ -216,7 +216,7 @@ public class SQLServerBulkCSVFileRecord implements ISQLServerBulkRecord, java.la
         catch (Exception e) {
             throw new SQLServerException(null, e.getMessage(), null, 0, false);
         }
-        columnMetadata = new HashMap<>();
+        columnMetadata = new HashMap<Integer, SQLServerBulkCSVFileRecord.ColumnMetadata>();
 
         loggerExternal.exiting(loggerClassName, "SQLServerBulkCSVFileRecord");
     }

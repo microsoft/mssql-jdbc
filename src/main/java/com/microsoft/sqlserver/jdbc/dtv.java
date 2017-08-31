@@ -3334,7 +3334,7 @@ final class TypeInfo {
         }
     }
 
-    private static final Map<TDSType, Builder> builderMap = new EnumMap<>(TDSType.class);
+    private static final Map<TDSType, Builder> builderMap = new EnumMap<TDSType, Builder>(TDSType.class);
 
     static {
         for (Builder builder : Builder.values())
