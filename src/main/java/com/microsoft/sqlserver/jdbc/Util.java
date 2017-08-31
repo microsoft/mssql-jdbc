@@ -626,8 +626,8 @@ final class Util {
         int hexVal;
         StringBuilder sb = new StringBuilder(b.length * 2 + 2);
         sb.append("0x");
-        for (int i = 0; i < b.length; i++) {
-            hexVal = b[i] & 0xFF;
+        for (byte aB : b) {
+            hexVal = aB & 0xFF;
             sb.append(hexChars[(hexVal & 0xF0) >> 4]);
             sb.append(hexChars[(hexVal & 0x0F)]);
         }

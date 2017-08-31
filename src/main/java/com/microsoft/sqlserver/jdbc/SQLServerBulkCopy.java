@@ -1818,9 +1818,8 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable {
             }
             else {
                 srcColumnCount = columnOrdinals.size();
-                Iterator<Integer> columnsIterator = columnOrdinals.iterator();
-                while (columnsIterator.hasNext()) {
-                    currentColumn = columnsIterator.next();
+                for (Integer columnOrdinal : columnOrdinals) {
+                    currentColumn = columnOrdinal;
                     srcColumnMetadata.put(currentColumn,
                             new BulkColumnMetaData(sourceBulkRecord.getColumnName(currentColumn), true, sourceBulkRecord.getPrecision(currentColumn),
                                     sourceBulkRecord.getScale(currentColumn), sourceBulkRecord.getColumnType(currentColumn),
@@ -1944,9 +1943,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable {
                         }
                         else {
                             Set<Integer> columnOrdinals = sourceBulkRecord.getColumnOrdinals();
-                            Iterator<Integer> columnsIterator = columnOrdinals.iterator();
-                            while (columnsIterator.hasNext()) {
-                                int currentColumn = columnsIterator.next();
+                            for (Integer currentColumn : columnOrdinals) {
                                 if (sourceBulkRecord.getColumnName(currentColumn).equals(cm.sourceColumnName)) {
                                     foundColumn = true;
                                     cm.sourceColumnOrdinal = currentColumn;
@@ -3535,13 +3532,13 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable {
             if (null != sourceResultSet) {
                 // Loop for each destination column. The mappings is a many to one mapping
                 // where multiple source columns can be mapped to one destination column.
-                for (int i = 0; i < mappingColumnCount; ++i) {
-                    writeColumn(tdsWriter, columnMappings.get(i).sourceColumnOrdinal, columnMappings.get(i).destinationColumnOrdinal, null // cell
-                                                                                                                                           // value is
-                                                                                                                                           // retrieved
-                                                                                                                                           // inside
-                                                                                                                                           // writeRowData()
-                                                                                                                                           // method.
+                for (ColumnMapping columnMapping : columnMappings) {
+                    writeColumn(tdsWriter, columnMapping.sourceColumnOrdinal, columnMapping.destinationColumnOrdinal, null // cell
+                            // value is
+                            // retrieved
+                            // inside
+                            // writeRowData()
+                            // method.
                     );
                 }
             }
@@ -3558,11 +3555,11 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable {
                     throw new SQLServerException(SQLServerException.getErrString("R_unableRetrieveSourceData"), ex);
                 }
 
-                for (int i = 0; i < mappingColumnCount; ++i) {
+                for (ColumnMapping columnMapping : columnMappings) {
                     // If the SQLServerBulkCSVRecord does not have metadata for columns, it returns strings in the object array.
                     // COnvert the strings using destination table types.
-                    writeColumn(tdsWriter, columnMappings.get(i).sourceColumnOrdinal, columnMappings.get(i).destinationColumnOrdinal,
-                            rowObjects[columnMappings.get(i).sourceColumnOrdinal - 1]);
+                    writeColumn(tdsWriter, columnMapping.sourceColumnOrdinal, columnMapping.destinationColumnOrdinal,
+                            rowObjects[columnMapping.sourceColumnOrdinal - 1]);
                 }
             }
             row++;

@@ -2451,7 +2451,7 @@ final class SocketFinder {
         try {
             selector = Selector.open();
 
-            for (int i = 0; i < inetAddrs.length; i++) {
+            for (InetAddress inetAddr : inetAddrs) {
                 SocketChannel sChannel = SocketChannel.open();
                 socketChannels.add(sChannel);
 
@@ -2462,10 +2462,10 @@ final class SocketFinder {
                 int ops = SelectionKey.OP_CONNECT;
                 SelectionKey key = sChannel.register(selector, ops);
 
-                sChannel.connect(new InetSocketAddress(inetAddrs[i], portNumber));
+                sChannel.connect(new InetSocketAddress(inetAddr, portNumber));
 
                 if (logger.isLoggable(Level.FINER))
-                    logger.finer(this.toString() + " initiated connection to address: " + inetAddrs[i] + ", portNumber: " + portNumber);
+                    logger.finer(this.toString() + " initiated connection to address: " + inetAddr + ", portNumber: " + portNumber);
             }
 
             long timerNow = System.currentTimeMillis();
@@ -5015,13 +5015,11 @@ final class TDSWriter {
         writeShort((short) value.getTVPColumnCount());
 
         Map<Integer, SQLServerMetaData> columnMetadata = value.getColumnMetadata();
-        Iterator<Entry<Integer, SQLServerMetaData>> columnsIterator = columnMetadata.entrySet().iterator();
         /*
          * TypeColumnMetaData = UserType Flags TYPE_INFO ColName ;
          */
 
-        while (columnsIterator.hasNext()) {
-            Map.Entry<Integer, SQLServerMetaData> pair = columnsIterator.next();
+        for (Entry<Integer, SQLServerMetaData> pair : columnMetadata.entrySet()) {
             JDBCType jdbcType = JDBCType.of(pair.getValue().javaSqlType);
             boolean useServerDefault = pair.getValue().useServerDefault;
             // ULONG ; UserType of column
@@ -5096,13 +5094,12 @@ final class TDSWriter {
                     writeByte(TDSType.NVARCHAR.byteValue());
                     isShortValue = (2L * pair.getValue().precision) <= DataTypes.SHORT_VARTYPE_MAX_BYTES;
                     // Use PLP encoding on Yukon and later with long values
-                    if (!isShortValue)	// PLP
+                    if (!isShortValue)    // PLP
                     {
                         // Handle Yukon v*max type header here.
                         writeShort((short) 0xFFFF);
                         con.getDatabaseCollation().writeCollation(this);
-                    }
-                    else	// non PLP
+                    } else    // non PLP
                     {
                         writeShort((short) DataTypes.SHORT_VARTYPE_MAX_BYTES);
                         con.getDatabaseCollation().writeCollation(this);
@@ -5116,16 +5113,16 @@ final class TDSWriter {
                     writeByte(TDSType.BIGVARBINARY.byteValue());
                     isShortValue = pair.getValue().precision <= DataTypes.SHORT_VARTYPE_MAX_BYTES;
                     // Use PLP encoding on Yukon and later with long values
-                    if (!isShortValue)	// PLP
+                    if (!isShortValue)    // PLP
                         // Handle Yukon v*max type header here.
                         writeShort((short) 0xFFFF);
-                    else	// non PLP
+                    else    // non PLP
                         writeShort((short) DataTypes.SHORT_VARTYPE_MAX_BYTES);
                     break;
                 case SQL_VARIANT:
                     writeByte(TDSType.SQL_VARIANT.byteValue());
                     writeInt(TDS.SQL_VARIANT_LENGTH);// write length of sql variant 8009
-                    
+
                     break;
 
                 default:

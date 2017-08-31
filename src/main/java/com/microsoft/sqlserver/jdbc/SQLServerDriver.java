@@ -525,8 +525,8 @@ public final class SQLServerDriver implements java.sql.Driver {
             return urlProps;
         Properties suppliedPropertiesFixed = fixupProperties(suppliedProperties);
         // Merge URL properties and supplied properties.
-        for (int i = 0; i < DRIVER_PROPERTIES.length; i++) {
-            String sProp = DRIVER_PROPERTIES[i].getName();
+        for (SQLServerDriverPropertyInfo DRIVER_PROPERTY : DRIVER_PROPERTIES) {
+            String sProp = DRIVER_PROPERTY.getName();
             String sPropVal = suppliedPropertiesFixed.getProperty(sProp); // supplied properties have precedence
             if (null != sPropVal) {
                 // overwrite the property in urlprops if already exists. supp prop has more precedence
@@ -535,8 +535,8 @@ public final class SQLServerDriver implements java.sql.Driver {
         }
 
         // Merge URL properties with property-only properties
-        for (int i = 0; i < DRIVER_PROPERTIES_PROPERTY_ONLY.length; i++) {
-            String sProp = DRIVER_PROPERTIES_PROPERTY_ONLY[i].getName();
+        for (SQLServerDriverPropertyInfo aDRIVER_PROPERTIES_PROPERTY_ONLY : DRIVER_PROPERTIES_PROPERTY_ONLY) {
+            String sProp = aDRIVER_PROPERTIES_PROPERTY_ONLY.getName();
             Object oPropVal = suppliedPropertiesFixed.get(sProp); // supplied properties have precedence
             if (null != oPropVal) {
                 // overwrite the property in urlprops if already exists. supp prop has more precedence
@@ -560,14 +560,14 @@ public final class SQLServerDriver implements java.sql.Driver {
         if (null == name)
             return name;
 
-        for (int i = 0; i < driverPropertiesSynonyms.length; i++) {
-            if (driverPropertiesSynonyms[i][0].equalsIgnoreCase(name)) {
-                return driverPropertiesSynonyms[i][1];
+        for (String[] driverPropertiesSynonym : driverPropertiesSynonyms) {
+            if (driverPropertiesSynonym[0].equalsIgnoreCase(name)) {
+                return driverPropertiesSynonym[1];
             }
         }
-        for (int i = 0; i < DRIVER_PROPERTIES.length; i++) {
-            if (DRIVER_PROPERTIES[i].getName().equalsIgnoreCase(name)) {
-                return DRIVER_PROPERTIES[i].getName();
+        for (SQLServerDriverPropertyInfo DRIVER_PROPERTY : DRIVER_PROPERTIES) {
+            if (DRIVER_PROPERTY.getName().equalsIgnoreCase(name)) {
+                return DRIVER_PROPERTY.getName();
             }
         }
 
@@ -589,9 +589,9 @@ public final class SQLServerDriver implements java.sql.Driver {
         if (null == name)
             return name;
 
-        for (int i = 0; i < DRIVER_PROPERTIES_PROPERTY_ONLY.length; i++) {
-            if (DRIVER_PROPERTIES_PROPERTY_ONLY[i].getName().equalsIgnoreCase(name)) {
-                return DRIVER_PROPERTIES_PROPERTY_ONLY[i].getName();
+        for (SQLServerDriverPropertyInfo aDRIVER_PROPERTIES_PROPERTY_ONLY : DRIVER_PROPERTIES_PROPERTY_ONLY) {
+            if (aDRIVER_PROPERTIES_PROPERTY_ONLY.getName().equalsIgnoreCase(name)) {
+                return aDRIVER_PROPERTIES_PROPERTY_ONLY.getName();
             }
         }
 

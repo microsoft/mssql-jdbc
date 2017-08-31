@@ -42,18 +42,15 @@ public class KerbCallback implements CallbackHandler {
 
     @Override
     public void handle(Callback[] callbacks) throws IOException, UnsupportedCallbackException {
-        for (int i = 0; i < callbacks.length; i++) {
-            Callback callback = callbacks[i];
+        for (Callback callback : callbacks) {
             if (callback instanceof NameCallback) {
                 usernameRequested = getAnyOf(callback, con.activeConnectionProperties, "user", SQLServerDriverStringProperty.USER.name());
                 ((NameCallback) callback).setName(usernameRequested);
-            }
-            else if (callback instanceof PasswordCallback) {
+            } else if (callback instanceof PasswordCallback) {
                 String password = getAnyOf(callback, con.activeConnectionProperties, "password", SQLServerDriverStringProperty.PASSWORD.name());
-                ((PasswordCallback) callbacks[i]).setPassword(password.toCharArray());
+                ((PasswordCallback) callback).setPassword(password.toCharArray());
 
-            }
-            else {
+            } else {
                 throw new UnsupportedCallbackException(callback, "Unrecognized Callback type: " + callback.getClass());
             }
         }
