@@ -88,7 +88,7 @@ abstract class SQLServerClobBase implements Serializable {
     // Initial size of the array is based on an assumption that a Clob/NClob object is
     // typically used either for input or output, and then only once. The array size
     // grows automatically if multiple streams are used.
-    private ArrayList<Closeable> activeStreams = new ArrayList<Closeable>(1);
+    private ArrayList<Closeable> activeStreams = new ArrayList<>(1);
 
     transient SQLServerConnection con;
     private static Logger logger;

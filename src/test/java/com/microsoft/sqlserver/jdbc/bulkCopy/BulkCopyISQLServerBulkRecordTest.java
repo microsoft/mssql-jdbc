@@ -99,7 +99,7 @@ public class BulkCopyISQLServerBulkRecordTest extends AbstractTest {
         List<Object[]> data;
 
         BulkData() {
-            columnMetadata = new HashMap<Integer, ColumnMetadata>();
+            columnMetadata = new HashMap<>();
             totalColumn = dstTable.totalColumns();
 
             // add metadata
@@ -116,7 +116,7 @@ public class BulkCopyISQLServerBulkRecordTest extends AbstractTest {
 
             // add data
             rowCount = dstTable.getTotalRows();
-            data = new ArrayList<Object[]>(rowCount);
+            data = new ArrayList<>(rowCount);
             for (int i = 0; i < rowCount; i++) {
                 Object[] CurrentRow = new Object[totalColumn];
                 for (int j = 0; j < totalColumn; j++) {

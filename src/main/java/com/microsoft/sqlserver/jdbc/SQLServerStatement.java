@@ -429,7 +429,7 @@ public class SQLServerStatement implements ISQLServerStatement {
      * The array of objects in a batched call. Applicable to statements and prepared statements When the iterativeBatching property is turned on.
      */
     /** The buffer that accumulates batchable statements */
-    private final ArrayList<String> batchStatementBuffer = new ArrayList<String>();
+    private final ArrayList<String> batchStatementBuffer = new ArrayList<>();
 
     /** logging init at the construction */
     static final private java.util.logging.Logger stmtlogger = java.util.logging.Logger
@@ -1512,7 +1512,7 @@ public class SQLServerStatement implements ISQLServerStatement {
                         infoToken.msg.getErrorNumber());
 
                 if (sqlWarnings == null) {
-                    sqlWarnings = new Vector<SQLWarning>();
+                    sqlWarnings = new Vector<>();
                 }
                 else {
                     int n = sqlWarnings.size();
@@ -2384,7 +2384,7 @@ final class JDBCSyntaxTranslator {
         Matcher offsetMatcher = limitSyntaxWithOffset.matcher(sql);
 
         int startIndx = indx;
-        Stack<Integer> topPosition = new Stack<Integer>();
+        Stack<Integer> topPosition = new Stack<>();
         State nextState = State.START;
 
         while (indx < sql.length()) {

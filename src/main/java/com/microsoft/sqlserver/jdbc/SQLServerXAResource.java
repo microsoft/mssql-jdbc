@@ -802,7 +802,7 @@ public final class SQLServerXAResource implements javax.transaction.xa.XAResourc
     /* L0 */ public Xid[] recover(int flags) throws XAException {
         XAReturnValue r = DTC_XA_Interface(XA_RECOVER, null, flags | tightlyCoupled);
         int offset = 0;
-        ArrayList<XidImpl> al = new ArrayList<XidImpl>();
+        ArrayList<XidImpl> al = new ArrayList<>();
 
         // If no XID's found, return zero length XID array (don't return null).
         //

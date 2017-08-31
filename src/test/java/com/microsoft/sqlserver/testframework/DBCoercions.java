@@ -19,7 +19,7 @@ public class DBCoercions extends DBItems {
      * constructor
      */
     public DBCoercions() {
-        coercionsList = new ArrayList<DBCoercion>();
+        coercionsList = new ArrayList<>();
     }
 
     public DBCoercions(DBCoercion coercion) {
