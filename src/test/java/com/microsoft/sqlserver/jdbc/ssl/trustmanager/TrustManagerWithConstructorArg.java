@@ -19,7 +19,6 @@ public class TrustManagerWithConstructorArg implements X509TrustManager {
 
     public TrustManagerWithConstructorArg(String certToTrust) throws IOException, GeneralSecurityException {
         trustManager = new X509TrustManager() {
-
             @Override
             public X509Certificate[] getAcceptedIssuers() {
                 return null;
@@ -28,13 +27,11 @@ public class TrustManagerWithConstructorArg implements X509TrustManager {
             @Override
             public void checkServerTrusted(X509Certificate[] chain,
                     String authType) throws CertificateException {
-
             }
 
             @Override
             public void checkClientTrusted(X509Certificate[] chain,
                     String authType) throws CertificateException {
-
             }
         };
     }
@@ -42,13 +39,11 @@ public class TrustManagerWithConstructorArg implements X509TrustManager {
     @Override
     public void checkClientTrusted(X509Certificate[] chain,
             String authType) throws CertificateException {
-
     }
 
     @Override
     public void checkServerTrusted(X509Certificate[] chain,
             String authType) throws CertificateException {
-
     }
 
     @Override

@@ -9,13 +9,9 @@ import javax.net.ssl.X509TrustManager;
  * This class implements an X509TrustManager that always accepts the X509Certificate chain offered to it.
  */
 
-public final class PermissiveTrustManager extends Object implements X509TrustManager {
-    public PermissiveTrustManager() {
-    }
-
+public final class PermissiveTrustManager implements X509TrustManager {
     public void checkClientTrusted(X509Certificate[] chain,
             String authType) throws CertificateException {
-
     }
 
     public void checkServerTrusted(X509Certificate[] chain,
