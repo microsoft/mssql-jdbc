@@ -1626,15 +1626,15 @@ final class TDSChannel {
             // if so instantiate it, optionally specifying a constructor argument to customize it.
             else if (con.getTrustManagerClass() != null)
             {
-                Class<?> tmClazz = Class.forName(con.getTrustManagerClass());
-                if (!TrustManager.class.isAssignableFrom(tmClazz)) {
+                Class<?> tmClass = Class.forName(con.getTrustManagerClass());
+                if (!TrustManager.class.isAssignableFrom(tmClass)) {
                     throw new IllegalArgumentException("The class specified by the trustManagerClass property must implement javax.net.ssl.TrustManager");
                 }
                 String constructorArg = con.getTrustManagerConstructorArg();
                 if (constructorArg == null) {
-                    tm = new TrustManager[] {(TrustManager) tmClazz.getDeclaredConstructor().newInstance()};
+                    tm = new TrustManager[] {(TrustManager) tmClass.getDeclaredConstructor().newInstance()};
                 } else {
-                    tm = new TrustManager[] {(TrustManager) tmClazz.getDeclaredConstructor(String.class).newInstance(constructorArg)};
+                    tm = new TrustManager[] {(TrustManager) tmClass.getDeclaredConstructor(String.class).newInstance(constructorArg)};
                 }
             }
             // Otherwise, we'll validate the certificate using a real TrustManager obtained
