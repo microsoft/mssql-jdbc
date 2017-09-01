@@ -22,8 +22,9 @@ public class CustomTrustManagerTest extends AbstractTest {
     @Test
     public void testWithPermissiveX509TrustManager() throws Exception {
         String url = connectionString + ";trustManagerClass=" + PermissiveTrustManager.class.getName() + ";encrypt=true;";
-        SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(url);
-        assertTrue(con != null);
+        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(url)) {
+            assertTrue(con != null);
+        }
     }
 
     /**
@@ -35,8 +36,9 @@ public class CustomTrustManagerTest extends AbstractTest {
     public void testWithTrustManagerConstructorArg() throws Exception {
         String url = connectionString + ";trustManagerClass=" + TrustManagerWithConstructorArg.class.getName()
                 + ";trustManagerConstructorArg=dummyString;" + ";encrypt=true;";
-        SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(url);
-        assertTrue(con != null);
+        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(url)) {
+            assertTrue(con != null);
+        }
     }
 
     /**
