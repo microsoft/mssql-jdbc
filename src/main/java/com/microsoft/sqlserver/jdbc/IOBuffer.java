@@ -7122,13 +7122,21 @@ final class TimeoutTimer implements Runnable {
     private volatile Future<?> task;
 
     private static final ExecutorService executor = Executors.newCachedThreadPool(new ThreadFactory() {
-        private final ThreadGroup tg = new ThreadGroup(threadGroupName);
-        private final String threadNamePrefix = tg.getName() + "-";
+        private final AtomicReference<ThreadGroup> tgr = new AtomicReference<>();
         private final AtomicInteger threadNumber = new AtomicInteger(0);
 
         @Override
-        public Thread newThread(Runnable r) {
-            Thread t = new Thread(tg, r, threadNamePrefix + threadNumber.incrementAndGet());
+        public Thread newThread(Runnable r)
+        {
+            ThreadGroup tg = tgr.get();
+
+            if (tg == null || tg.isDestroyed())
+            {
+                tg = new ThreadGroup(threadGroupName);
+                tgr.set(tg);
+            }
+
+            Thread t = new Thread(tg, r, tg.getName() + "-" + threadNumber.incrementAndGet());
             t.setDaemon(true);
             return t;
         }
