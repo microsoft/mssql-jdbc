@@ -8,8 +8,9 @@ import java.security.GeneralSecurityException;
 import javax.net.ssl.X509TrustManager;
 
 /**
- * This class implements an X509TrustManager that always accepts the X509Certificate chain offered to it. certToTrust is a dummy string used to test
- * trustManagerConstructorArg.
+ * This class implements an X509TrustManager that always accepts the X509Certificate chain offered to it.
+ * 
+ * The constructor argument certToTrust is a dummy string used to test trustManagerConstructorArg.
  * 
  */
 
