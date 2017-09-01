@@ -1,4 +1,4 @@
-package com.microsoft.sqlserver.jdbc.CustomTrustManager;
+package com.microsoft.sqlserver.jdbc.ssl.trustmanager;
 
 import java.sql.DriverManager;
 

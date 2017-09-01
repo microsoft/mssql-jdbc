@@ -1,16 +1,14 @@
-package com.microsoft.sqlserver.jdbc.CustomTrustManager;
+package com.microsoft.sqlserver.jdbc.ssl.trustmanager;
 
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 
-import javax.net.ssl.X509TrustManager;
-
 /**
- * This class implements an X509TrustManager that always accepts the X509Certificate chain offered to it.
+ * This class does not implement X509TrustManager and the connection must fail when it is specified by the trustManagerClass property
+ * 
  */
-
-public final class PermissiveTrustManager extends Object implements X509TrustManager {
-    public PermissiveTrustManager() {
+public final class InvalidTrustManager {
+    public InvalidTrustManager() {
     }
 
     public void checkClientTrusted(X509Certificate[] chain,
