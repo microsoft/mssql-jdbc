@@ -35,4 +35,3 @@ build_script:
 test_script:
   - mvn test -B -Pbuild41
   - mvn test -B -Pbuild42
-  
