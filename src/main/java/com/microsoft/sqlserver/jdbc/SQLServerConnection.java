@@ -1788,7 +1788,7 @@ public class SQLServerConnection implements ISQLServerConnection {
             long timerStart) throws SQLServerException {
         // standardLogin would be false only for db mirroring scenarios. It would be true
         // for all other cases, including multiSubnetFailover
-        final boolean isDBMirroring = (null == mirror && null == foActual) ? false : true;
+        final boolean isDBMirroring = null != mirror || null != foActual;
         int sleepInterval = 100;  // milliseconds to sleep (back off) between attempts.
         long timeoutUnitInterval;
 
@@ -2592,7 +2592,7 @@ public class SQLServerConnection implements ISQLServerConnection {
                     // Or AccessToken is not null, mean token based authentication is used.
                     if (((null != authenticationString) && (!authenticationString.equalsIgnoreCase(SqlAuthentication.NotSpecified.toString())))
                             || (null != accessTokenInByte)) {
-                        fedAuthRequiredPreLoginResponse = (preloginResponse[optionOffset] == 1 ? true : false);
+                        fedAuthRequiredPreLoginResponse = (preloginResponse[optionOffset] == 1);
                     }
                     break;
 

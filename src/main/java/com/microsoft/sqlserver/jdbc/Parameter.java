@@ -397,7 +397,7 @@ final class Parameter {
     }
 
     boolean isValueGotten() {
-        return (null != getterDTV) ? (true) : (false);
+        return null != getterDTV;
 
     }
 

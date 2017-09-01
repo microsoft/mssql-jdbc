@@ -1213,7 +1213,7 @@ final class DTV {
                                                                                                        // the default length for decimal value
                             }
 
-                            tdsWriter.writeByte((byte) ((0 != outScale) ? outScale : 0));	// send scale
+                            tdsWriter.writeByte((byte) (outScale));	// send scale
                         }
                         else {
                             tdsWriter.writeByte((byte) 0x11); // maximum length

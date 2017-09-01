@@ -237,7 +237,7 @@ class CryptoMetadata
     }
 
     boolean IsAlgorithmInitialized() {
-        return (null != cipherAlgorithm) ? true : false;
+        return null != cipherAlgorithm;
     }	
 }
 
