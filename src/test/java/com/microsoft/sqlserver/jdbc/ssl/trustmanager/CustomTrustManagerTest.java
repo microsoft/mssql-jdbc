@@ -48,10 +48,9 @@ public class CustomTrustManagerTest extends AbstractTest {
      */
     @Test
     public void testWithInvalidTrustManager() throws Exception {
-        try {
-            String url = connectionString + ";trustManagerClass=" + InvalidTrustManager.class.getName() + ";encrypt=true;";
-            SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(url);
-            assertTrue(con == null);
+        String url = connectionString + ";trustManagerClass=" + InvalidTrustManager.class.getName() + ";encrypt=true;";
+        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(url)) {
+            fail();
         }
         catch (SQLServerException e) {
             assertTrue(e.getMessage().contains("The class specified by the trustManagerClass property must implement javax.net.ssl.TrustManager"));
