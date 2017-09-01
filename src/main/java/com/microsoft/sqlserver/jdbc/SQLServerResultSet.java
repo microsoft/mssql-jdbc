@@ -6280,8 +6280,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
 
                 // Consume the ROW token, leaving tdsReader at the start of
                 // this row's column values.
-                if (TDS.TDS_ROW != tdsReader.readUnsignedByte())
-                    assert false;
+                assert TDS.TDS_ROW == tdsReader.readUnsignedByte();
                 fetchBufferCurrentRowType = RowType.ROW;
                 return false;
             }
@@ -6291,8 +6290,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
 
                 // Consume the NBCROW token, leaving tdsReader at the start of
                 // nullbitmap.
-                if (TDS.TDS_NBCROW != tdsReader.readUnsignedByte())
-                    assert false;
+                assert TDS.TDS_NBCROW == tdsReader.readUnsignedByte();
 
                 fetchBufferCurrentRowType = RowType.NBCROW;
                 return false;

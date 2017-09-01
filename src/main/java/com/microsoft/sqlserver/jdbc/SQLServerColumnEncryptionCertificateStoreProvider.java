@@ -45,12 +45,7 @@ public final class SQLServerColumnEncryptionCertificateStoreProvider extends SQL
     static final String myCertificateStore = "My";
 
     static {
-        if (System.getProperty("os.name").toLowerCase(Locale.ENGLISH).startsWith("windows")) {
-            isWindows = true;
-        }
-        else {
-            isWindows = false;
-        }
+        isWindows = System.getProperty("os.name").toLowerCase(Locale.ENGLISH).startsWith("windows");
     }
     private Path keyStoreDirectoryPath = null;
 
