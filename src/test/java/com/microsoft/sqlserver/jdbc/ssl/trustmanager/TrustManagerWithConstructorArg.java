@@ -55,5 +55,4 @@ public class TrustManagerWithConstructorArg implements X509TrustManager {
     public X509Certificate[] getAcceptedIssuers() {
         return null;
     }
-
 }
