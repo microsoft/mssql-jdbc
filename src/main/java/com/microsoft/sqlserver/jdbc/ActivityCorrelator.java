@@ -8,15 +8,16 @@
 
 package com.microsoft.sqlserver.jdbc;
 
-import java.util.HashMap;
+import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * ActivityCorrelator provides the APIs to access the ActivityId in TLS
  */
 final class ActivityCorrelator {
 
-    private static HashMap<Long, ActivityId> ActivityIdTlsMap = new HashMap<Long, ActivityId>();
+    private static Map<Long, ActivityId> ActivityIdTlsMap = new ConcurrentHashMap<Long, ActivityId>();
     
     static void checkAndInitActivityId() {
         long uniqueThreadId = Thread.currentThread().getId();
