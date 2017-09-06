@@ -168,8 +168,8 @@ public class RegressionTest extends AbstractTest {
         sql = "update " + tableName + " SET c1= ? where PK =1";
         for (int i = 1; i <= rows; i++) {
             pstmt = (SQLServerPreparedStatement)con.prepareStatement(sql, ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY);
-            for (int t = 0; t < targets.length; t++) {
-                pstmt.setObject(1, 5 + i, targets[t]);
+            for (JDBCType target : targets) {
+                pstmt.setObject(1, 5 + i, target);
                 pstmt.executeUpdate();
             }
         }

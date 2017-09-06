@@ -103,14 +103,12 @@ public final class SQLServerException extends java.sql.SQLException {
             if (exLogger.isLoggable(Level.FINE)) {
                 StringBuilder sb = new StringBuilder(100);
                 StackTraceElement st[] = this.getStackTrace();
-                for (int i = 0; i < st.length; i++)
-                    sb.append(st[i].toString());
+                for (StackTraceElement aSt : st) sb.append(aSt.toString());
                 Throwable t = this.getCause();
                 if (t != null) {
                     sb.append("\n caused by " + t + "\n");
                     StackTraceElement tst[] = t.getStackTrace();
-                    for (int i = 0; i < tst.length; i++)
-                        sb.append(tst[i].toString());
+                    for (StackTraceElement aTst : tst) sb.append(aTst.toString());
                 }
                 exLogger.fine(sb.toString());
             }

@@ -62,7 +62,7 @@ class TVP {
     void initTVP(TVPType type,
             String tvpPartName) throws SQLServerException {
         tvpType = type;
-        columnMetadata = new LinkedHashMap<Integer, SQLServerMetaData>();
+        columnMetadata = new LinkedHashMap<>();
         parseTypeName(tvpPartName);
     }
 
@@ -157,9 +157,7 @@ class TVP {
         if (null == dataTableMetaData || dataTableMetaData.isEmpty()) {
             throw new SQLServerException(SQLServerException.getErrString("R_TVPEmptyMetadata"), null);
         }
-        Iterator<Entry<Integer, SQLServerDataColumn>> columnsIterator = dataTableMetaData.entrySet().iterator();
-        while (columnsIterator.hasNext()) {
-            Map.Entry<Integer, SQLServerDataColumn> pair = columnsIterator.next();
+        for (Entry<Integer, SQLServerDataColumn> pair : dataTableMetaData.entrySet()) {
             // duplicate column names for the dataTable will be checked in the SQLServerDataTable.
             columnMetadata.put(pair.getKey(),
                     new SQLServerMetaData(pair.getValue().columnName, pair.getValue().javaSqlType, pair.getValue().precision, pair.getValue().scale));
@@ -200,9 +198,7 @@ class TVP {
 
         int maxSortOrdinal = -1;
         int sortCount = 0;
-        Iterator<Entry<Integer, SQLServerMetaData>> columnsIterator = columnMetadata.entrySet().iterator();
-        while (columnsIterator.hasNext()) {
-            Map.Entry<Integer, SQLServerMetaData> columnPair = columnsIterator.next();
+        for (Entry<Integer, SQLServerMetaData> columnPair : columnMetadata.entrySet()) {
             SQLServerSortOrder columnSortOrder = columnPair.getValue().sortOrder;
             int columnSortOrdinal = columnPair.getValue().sortOrdinal;
 
@@ -210,13 +206,13 @@ class TVP {
                 // check if there's no way sort order could be monotonically increasing
                 if (columnCount <= columnSortOrdinal) {
                     MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_TVPSortOrdinalGreaterThanFieldCount"));
-                    throw new SQLServerException(form.format(new Object[] {columnSortOrdinal, columnPair.getKey()}), null, 0, null);
+                    throw new SQLServerException(form.format(new Object[]{columnSortOrdinal, columnPair.getKey()}), null, 0, null);
                 }
 
                 // Check to make sure we haven't seen this ordinal before
                 if (sortOrdinalSpecified[columnSortOrdinal]) {
                     MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_TVPDuplicateSortOrdinal"));
-                    throw new SQLServerException(form.format(new Object[] {columnSortOrdinal}), null, 0, null);
+                    throw new SQLServerException(form.format(new Object[]{columnSortOrdinal}), null, 0, null);
                 }
 
                 sortOrdinalSpecified[columnSortOrdinal] = true;

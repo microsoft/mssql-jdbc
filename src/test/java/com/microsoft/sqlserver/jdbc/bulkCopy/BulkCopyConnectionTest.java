@@ -161,7 +161,7 @@ public class BulkCopyConnectionTest extends BulkCopyTestSetUp {
      */
     List<BulkCopyTestWrapper> createTestDatatestBulkCopyConstructor() {
         String testCaseName = "BulkCopyConstructor ";
-        List<BulkCopyTestWrapper> testData = new ArrayList<BulkCopyTestWrapper>();
+        List<BulkCopyTestWrapper> testData = new ArrayList<>();
         BulkCopyTestWrapper bulkWrapper1 = new BulkCopyTestWrapper(connectionString);
         bulkWrapper1.testName = testCaseName;
         bulkWrapper1.setUsingConnection(true);
@@ -182,14 +182,14 @@ public class BulkCopyConnectionTest extends BulkCopyTestSetUp {
      */
     private List<BulkCopyTestWrapper> createTestDatatestBulkCopyOption() {
         String testCaseName = "BulkCopyOption ";
-        List<BulkCopyTestWrapper> testData = new ArrayList<BulkCopyTestWrapper>();
+        List<BulkCopyTestWrapper> testData = new ArrayList<>();
 
         Class<SQLServerBulkCopyOptions> bulkOptions = SQLServerBulkCopyOptions.class;
         Method[] methods = bulkOptions.getDeclaredMethods();
-        for (int i = 0; i < methods.length; i++) {
+        for (Method method : methods) {
 
             // set bulkCopy Option if return is void and input is boolean
-            if (0 != methods[i].getParameterTypes().length && boolean.class == methods[i].getParameterTypes()[0]) {
+            if (0 != method.getParameterTypes().length && boolean.class == method.getParameterTypes()[0]) {
                 try {
 
                     BulkCopyTestWrapper bulkWrapper = new BulkCopyTestWrapper(connectionString);
@@ -197,16 +197,15 @@ public class BulkCopyConnectionTest extends BulkCopyTestSetUp {
                     bulkWrapper.setUsingConnection((0 == ThreadLocalRandom.current().nextInt(2)) ? true : false);
 
                     SQLServerBulkCopyOptions option = new SQLServerBulkCopyOptions();
-                    if (!(methods[i].getName()).equalsIgnoreCase("setUseInternalTransaction")
-                            && !(methods[i].getName()).equalsIgnoreCase("setAllowEncryptedValueModifications")) {
-                        methods[i].invoke(option, true);
+                    if (!(method.getName()).equalsIgnoreCase("setUseInternalTransaction")
+                            && !(method.getName()).equalsIgnoreCase("setAllowEncryptedValueModifications")) {
+                        method.invoke(option, true);
                         bulkWrapper.useBulkCopyOptions(true);
                         bulkWrapper.setBulkOptions(option);
-                        bulkWrapper.testName += methods[i].getName() + ";";
+                        bulkWrapper.testName += method.getName() + ";";
                         testData.add(bulkWrapper);
                     }
-                }
-                catch (Exception ex) {
+                } catch (Exception ex) {
                     fail(ex.getMessage());
                 }
             }

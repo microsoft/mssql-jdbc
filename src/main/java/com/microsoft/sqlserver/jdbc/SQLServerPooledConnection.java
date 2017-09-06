@@ -38,7 +38,7 @@ public class SQLServerPooledConnection implements PooledConnection {
     SQLServerPooledConnection(SQLServerDataSource ds,
             String user,
             String password) throws SQLException {
-        listeners = new Vector<ConnectionEventListener>();
+        listeners = new Vector<>();
         // Piggyback SQLServerDataSource logger for now.
         pcLogger = SQLServerDataSource.dsLogger;
 

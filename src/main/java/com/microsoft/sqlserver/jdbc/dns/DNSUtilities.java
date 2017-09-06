@@ -36,13 +36,13 @@ public class DNSUtilities {
      *             if DNS is not available
      */
     public static Set<DNSRecordSRV> findSrvRecords(final String dnsSrvRecordToFind) throws NamingException {
-        Hashtable<Object, Object> env = new Hashtable<Object, Object>();
+        Hashtable<Object, Object> env = new Hashtable<>();
         env.put("java.naming.factory.initial", "com.sun.jndi.dns.DnsContextFactory");
         env.put("java.naming.provider.url", "dns:");
         DirContext ctx = new InitialDirContext(env);
         Attributes attrs = ctx.getAttributes(dnsSrvRecordToFind, new String[] {"SRV"});
         NamingEnumeration<? extends Attribute> allServers = attrs.getAll();
-        TreeSet<DNSRecordSRV> records = new TreeSet<DNSRecordSRV>();
+        TreeSet<DNSRecordSRV> records = new TreeSet<>();
         while (allServers.hasMoreElements()) {
             Attribute a = allServers.nextElement();
             NamingEnumeration<?> srvRecord = a.getAll();

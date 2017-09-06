@@ -85,7 +85,7 @@ public class DBTable extends AbstractSQLGenerator {
                 addColumns();
         }
         else {
-            this.columns = new ArrayList<DBColumn>();
+            this.columns = new ArrayList<>();
         }
         this.totalColumns = columns.size();
     }
@@ -108,7 +108,7 @@ public class DBTable extends AbstractSQLGenerator {
      */
     private void addColumns() {
         totalColumns = schema.getNumberOfSqlTypes();
-        columns = new ArrayList<DBColumn>(totalColumns);
+        columns = new ArrayList<>(totalColumns);
 
         for (int i = 0; i < totalColumns; i++) {
             SqlType sqlType = schema.getSqlType(i);
@@ -122,7 +122,7 @@ public class DBTable extends AbstractSQLGenerator {
      */
     private void addColumns(boolean unicode) {
         totalColumns = schema.getNumberOfSqlTypes();
-        columns = new ArrayList<DBColumn>(totalColumns);
+        columns = new ArrayList<>(totalColumns);
 
         for (int i = 0; i < totalColumns; i++) {
             SqlType sqlType = schema.getSqlType(i);

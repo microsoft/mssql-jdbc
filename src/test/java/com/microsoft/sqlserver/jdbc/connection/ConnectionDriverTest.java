@@ -29,6 +29,7 @@ import java.util.logging.Logger;
 import javax.sql.ConnectionEvent;
 import javax.sql.PooledConnection;
 
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
@@ -65,28 +66,28 @@ public class ConnectionDriverTest extends AbstractTest {
         url.append("jdbc:sqlserver://" + randomServer + ";packetSize=512;");
         // test defaults
         DriverPropertyInfo[] infoArray = d.getPropertyInfo(url.toString(), info);
-        for (int i = 0; i < infoArray.length; i++) {
-            logger.fine(infoArray[i].name);
-            logger.fine(infoArray[i].description);
-            logger.fine(new Boolean(infoArray[i].required).toString());
-            logger.fine(infoArray[i].value);
+        for (DriverPropertyInfo anInfoArray1 : infoArray) {
+            logger.fine(anInfoArray1.name);
+            logger.fine(anInfoArray1.description);
+            logger.fine(new Boolean(anInfoArray1.required).toString());
+            logger.fine(anInfoArray1.value);
         }
 
         url.append("encrypt=true; trustStore=someStore; trustStorePassword=somepassword;");
         url.append("hostNameInCertificate=someHost; trustServerCertificate=true");
         infoArray = d.getPropertyInfo(url.toString(), info);
-        for (int i = 0; i < infoArray.length; i++) {
-            if (infoArray[i].name.equals("encrypt")) {
-                assertTrue(infoArray[i].value.equals("true"), "Values are different");
+        for (DriverPropertyInfo anInfoArray : infoArray) {
+            if (anInfoArray.name.equals("encrypt")) {
+                assertTrue(anInfoArray.value.equals("true"), "Values are different");
             }
-            if (infoArray[i].name.equals("trustStore")) {
-                assertTrue(infoArray[i].value.equals("someStore"), "Values are different");
+            if (anInfoArray.name.equals("trustStore")) {
+                assertTrue(anInfoArray.value.equals("someStore"), "Values are different");
             }
-            if (infoArray[i].name.equals("trustStorePassword")) {
-                assertTrue(infoArray[i].value.equals("somepassword"), "Values are different");
+            if (anInfoArray.name.equals("trustStorePassword")) {
+                assertTrue(anInfoArray.value.equals("somepassword"), "Values are different");
             }
-            if (infoArray[i].name.equals("hostNameInCertificate")) {
-                assertTrue(infoArray[i].value.equals("someHost"), "Values are different");
+            if (anInfoArray.name.equals("hostNameInCertificate")) {
+                assertTrue(anInfoArray.value.equals("someHost"), "Values are different");
             }
         }
     }
@@ -462,6 +463,7 @@ public class ConnectionDriverTest extends AbstractTest {
     }
 
     @Test
+    @Tag("slow")
     public void testIncorrectDatabaseWithFailoverPartner() throws SQLServerException {
         long timerStart = 0;
         long timerEnd = 0;
@@ -522,6 +524,7 @@ public class ConnectionDriverTest extends AbstractTest {
      * @throws InterruptedException
      */
     @Test
+    @Tag("slow")
     public void testThreadInterruptedStatus() throws InterruptedException {
         Runnable runnable = new Runnable() {
             public void run() {

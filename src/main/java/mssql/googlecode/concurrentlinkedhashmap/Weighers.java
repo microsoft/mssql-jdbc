@@ -247,10 +247,9 @@ public final class Weighers {
         return ((Collection<?>) values).size();
       }
       int size = 0;
-      for (Iterator<?> i = values.iterator(); i.hasNext();) {
-        i.next();
-        size++;
-      }
+        for (Object value : values) {
+            size++;
+        }
       return size;
     }
   }

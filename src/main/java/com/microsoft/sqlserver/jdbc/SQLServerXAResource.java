@@ -445,6 +445,7 @@ public final class SQLServerXAResource implements javax.transaction.xa.XAResourc
                 case XA_START:
 
                     if (!serverInfoRetrieved) {
+                        Statement stmt = null;
                         try {
                             serverInfoRetrieved = true;
                             // data are converted to varchar as type variant returned by SERVERPROPERTY is not supported by driver
@@ -453,7 +454,7 @@ public final class SQLServerXAResource implements javax.transaction.xa.XAResourc
                                     + " convert(varchar(100), SERVERPROPERTY('ProductVersion')) as version,"
                                     + " SUBSTRING(@@VERSION, CHARINDEX('<', @@VERSION)+2, 2)";
 
-                            Statement stmt = controlConnection.createStatement();
+                            stmt = controlConnection.createStatement();
                             ResultSet rs = stmt.executeQuery(query);
                             rs.next();
 
@@ -475,13 +476,22 @@ public final class SQLServerXAResource implements javax.transaction.xa.XAResourc
                             ArchitectureOS = Integer.parseInt(rs.getString(4));
 
                             rs.close();
-                            stmt.close();
                         }
                         // Got caught in static analysis. Catch only the thrown exceptions, do not catch
                         // run time exceptions.
                         catch (Exception e) {
                             if (xaLogger.isLoggable(Level.WARNING))
                                 xaLogger.warning(toString() + " Cannot retrieve server information: :" + e.getMessage());
+                        }
+                        finally {
+                            if (null != stmt)
+                                try {
+                                    stmt.close();
+                                }
+                                catch (SQLException e) {
+                                    if (xaLogger.isLoggable(Level.FINER))
+                                        xaLogger.finer(toString());
+                                }
                         }
                     }
 
@@ -792,7 +802,7 @@ public final class SQLServerXAResource implements javax.transaction.xa.XAResourc
     /* L0 */ public Xid[] recover(int flags) throws XAException {
         XAReturnValue r = DTC_XA_Interface(XA_RECOVER, null, flags | tightlyCoupled);
         int offset = 0;
-        ArrayList<XidImpl> al = new ArrayList<XidImpl>();
+        ArrayList<XidImpl> al = new ArrayList<>();
 
         // If no XID's found, return zero length XID array (don't return null).
         //

@@ -98,6 +98,9 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
     /** The prepared statement handle returned by the server */
     private int prepStmtHandle = 0;
+    
+    /** Statement used for getMetadata(). Declared as a field to facilitate closing the statement. */
+    private SQLServerStatement internalStmt = null;
 
     private void setPreparedStatementHandle(int handle) {
         this.prepStmtHandle = handle;
@@ -271,6 +274,18 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
         // If we have a prepared statement handle, close it.
         closePreparedHandle();
+        
+        // Close the statement that was used to generate empty statement from getMetadata().
+        try {
+            if (null != internalStmt)
+                internalStmt.close();
+        } catch (SQLServerException e) {
+            if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
+                loggerExternal.finer("Ignored error closing internal statement: " + e.getErrorCode() + " " + e.getMessage());
+        }
+        finally {
+            internalStmt = null;
+        }
 
         // Clean up client-side state
         batchParamValues = null;
@@ -338,7 +353,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         StringBuilder sb = new StringBuilder();
         int nCols = params.length;
         char cParamName[] = new char[10];
-        parameterNames = new ArrayList<String>();
+        parameterNames = new ArrayList<>();
 
         for (int i = 0; i < nCols; i++) {
             if (i > 0)
@@ -795,7 +810,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
             return;
         }
 
-        Map<Integer, CekTableEntry> cekList = new HashMap<Integer, CekTableEntry>();
+        Map<Integer, CekTableEntry> cekList = new HashMap<>();
         CekTableEntry cekEntry = null;
         try {
             while (rs.next()) {
@@ -1023,8 +1038,8 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         ResultSet emptyResultSet = null;
         try {
             fmtSQL = replaceMarkerWithNull(fmtSQL);
-            SQLServerStatement stmt = (SQLServerStatement) connection.createStatement();
-            emptyResultSet = stmt.executeQueryInternal("set fmtonly on " + fmtSQL + "\nset fmtonly off");
+            internalStmt = (SQLServerStatement) connection.createStatement();
+            emptyResultSet = internalStmt.executeQueryInternal("set fmtonly on " + fmtSQL + "\nset fmtonly off");
         }
         catch (SQLException sqle) {
             if (false == sqle.getMessage().equals(SQLServerException.getErrString("R_noResultset"))) {
@@ -2376,7 +2391,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
         // Create the list of batch parameter values first time through
         if (batchParamValues == null)
-            batchParamValues = new ArrayList<Parameter[]>();
+            batchParamValues = new ArrayList<>();
 
         final int numParams = inOutParam.length;
         Parameter paramValues[] = new Parameter[numParams];
@@ -2417,10 +2432,9 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                 //
                 // OUT and INOUT parameter checking is done here, before executing the batch. If any
                 // OUT or INOUT are present, the entire batch fails.
-                for (int batch = 0; batch < batchParamValues.size(); ++batch) {
-                    Parameter paramValues[] = batchParamValues.get(batch);
-                    for (int param = 0; param < paramValues.length; ++param) {
-                        if (paramValues[param].isOutput()) {
+                for (Parameter[] paramValues : batchParamValues) {
+                    for (Parameter paramValue : paramValues) {
+                        if (paramValue.isOutput()) {
                             throw new BatchUpdateException(SQLServerException.getErrString("R_outParamsNotPermittedinBatch"), null, 0, null);
                         }
                     }
@@ -2475,10 +2489,9 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                 //
                 // OUT and INOUT parameter checking is done here, before executing the batch. If any
                 // OUT or INOUT are present, the entire batch fails.
-                for (int batch = 0; batch < batchParamValues.size(); ++batch) {
-                    Parameter paramValues[] = batchParamValues.get(batch);
-                    for (int param = 0; param < paramValues.length; ++param) {
-                        if (paramValues[param].isOutput()) {
+                for (Parameter[] paramValues : batchParamValues) {
+                    for (Parameter paramValue : paramValues) {
+                        if (paramValue.isOutput()) {
                             throw new BatchUpdateException(SQLServerException.getErrString("R_outParamsNotPermittedinBatch"), null, 0, null);
                         }
                     }
@@ -2538,7 +2551,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
         int numBatchesPrepared = 0;
         int numBatchesExecuted = 0;
-        Vector<CryptoMetadata> cryptoMetaBatch = new Vector<CryptoMetadata>();
+        Vector<CryptoMetadata> cryptoMetaBatch = new Vector<>();
 
         if (isSelect(userSQL)) {
             SQLServerException.makeFromDriverError(connection, this, SQLServerException.getErrString("R_selectNotPermittedinBatch"), null, true);
@@ -2573,8 +2586,8 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                 buildPreparedStrings(batchParam, true);
 
                 // Save the crypto metadata retrieved for the first batch. We will re-use these for the rest of the batches.
-                for (int i = 0; i < batchParam.length; i++) {
-                    cryptoMetaBatch.add(batchParam[i].cryptoMeta);
+                for (Parameter aBatchParam : batchParam) {
+                    cryptoMetaBatch.add(aBatchParam.cryptoMeta);
                 }
             }
 
@@ -2683,10 +2696,17 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                         numBatchesPrepared = numBatchesExecuted;
                         continue;
                     }
-                    else
+                    else if (null != batchCommand.batchException) {
+                        // if batch exception occurred, loop out to throw the initial batchException
+                        numBatchesExecuted =  numBatchesPrepared;
+                        attempt++;
+                        continue;
+                    }
+                    else {
                         throw e;
+                    }
                 }
-                break;	
+                break;
             }
         }
     }

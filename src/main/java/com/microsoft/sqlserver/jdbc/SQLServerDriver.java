@@ -117,6 +117,46 @@ enum ColumnEncryptionSetting {
     }
 }
 
+enum SSLProtocol {
+    TLS("TLS"),
+    TLS_V10("TLSv1"),
+    TLS_V11("TLSv1.1"),
+    TLS_V12("TLSv1.2"),;
+
+    private final String name;
+
+    private SSLProtocol(String name) {
+        this.name = name;
+    }
+
+    public String toString() {
+        return name;
+    }
+
+    static SSLProtocol valueOfString(String value) throws SQLServerException {
+        SSLProtocol protocol = null;
+
+        if (value.toLowerCase(Locale.ENGLISH).equalsIgnoreCase(SSLProtocol.TLS.toString())) {
+            protocol = SSLProtocol.TLS;
+        }
+        else if (value.toLowerCase(Locale.ENGLISH).equalsIgnoreCase(SSLProtocol.TLS_V10.toString())) {
+            protocol = SSLProtocol.TLS_V10;
+        }
+        else if (value.toLowerCase(Locale.ENGLISH).equalsIgnoreCase(SSLProtocol.TLS_V11.toString())) {
+            protocol = SSLProtocol.TLS_V11;
+        }
+        else if (value.toLowerCase(Locale.ENGLISH).equalsIgnoreCase(SSLProtocol.TLS_V12.toString())) {
+            protocol = SSLProtocol.TLS_V12;
+        }
+        else {
+            MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidSSLProtocol"));
+            Object[] msgArgs = {value};
+            throw new SQLServerException(null, form.format(msgArgs), null, 0, false);
+        }
+        return protocol;
+    }
+}
+
 enum KeyStoreAuthentication {
     JavaKeyStorePassword;
 
@@ -246,7 +286,7 @@ enum SQLServerDriverStringProperty
 	KEY_STORE_AUTHENTICATION   ("keyStoreAuthentication",  ""),
 	KEY_STORE_SECRET           ("keyStoreSecret",          ""),
 	KEY_STORE_LOCATION         ("keyStoreLocation",        ""),
-	FIPS_PROVIDER              ("fipsProvider",            ""),
+	SSL_PROTOCOL               ("sslProtocol",             SSLProtocol.TLS.toString()),
 	;
 
     private final String name;
@@ -377,13 +417,13 @@ public final class SQLServerDriver implements java.sql.Driver {
         new SQLServerDriverPropertyInfo(SQLServerDriverBooleanProperty.XOPEN_STATES.toString(),                   		      Boolean.toString(SQLServerDriverBooleanProperty.XOPEN_STATES.getDefaultValue()),      				  false,      TRUE_FALSE),
         new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.AUTHENTICATION_SCHEME.toString(),          		      SQLServerDriverStringProperty.AUTHENTICATION_SCHEME.getDefaultValue(),      			            	  false,      new String[] {AuthenticationScheme.javaKerberos.toString(),AuthenticationScheme.nativeAuthentication.toString()}),
         new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.AUTHENTICATION.toString(),          				      SQLServerDriverStringProperty.AUTHENTICATION.getDefaultValue(),      			                		  false,      new String[] {SqlAuthentication.NotSpecified.toString(),SqlAuthentication.SqlPassword.toString(),SqlAuthentication.ActiveDirectoryPassword.toString(),SqlAuthentication.ActiveDirectoryIntegrated.toString()}),
-        new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.FIPS_PROVIDER.toString(), 						      SQLServerDriverStringProperty.FIPS_PROVIDER.getDefaultValue(), 										  false, 	  null),
         new SQLServerDriverPropertyInfo(SQLServerDriverIntProperty.SOCKET_TIMEOUT.toString(),                   		      Integer.toString(SQLServerDriverIntProperty.SOCKET_TIMEOUT.getDefaultValue()),         				  false,      null),
         new SQLServerDriverPropertyInfo(SQLServerDriverBooleanProperty.FIPS.toString(),                                       Boolean.toString(SQLServerDriverBooleanProperty.FIPS.getDefaultValue()),                          	  false,      TRUE_FALSE),
         new SQLServerDriverPropertyInfo(SQLServerDriverBooleanProperty.ENABLE_PREPARE_ON_FIRST_PREPARED_STATEMENT.toString(), Boolean.toString(SQLServerDriverBooleanProperty.ENABLE_PREPARE_ON_FIRST_PREPARED_STATEMENT.getDefaultValue()), false,TRUE_FALSE),
         new SQLServerDriverPropertyInfo(SQLServerDriverIntProperty.SERVER_PREPARED_STATEMENT_DISCARD_THRESHOLD.toString(),    Integer.toString(SQLServerDriverIntProperty.SERVER_PREPARED_STATEMENT_DISCARD_THRESHOLD.getDefaultValue()), false,  null),
         new SQLServerDriverPropertyInfo(SQLServerDriverIntProperty.STATEMENT_POOLING_CACHE_SIZE.toString(),                   Integer.toString(SQLServerDriverIntProperty.STATEMENT_POOLING_CACHE_SIZE.getDefaultValue()),            false,      null),
         new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.JAAS_CONFIG_NAME.toString(),                            SQLServerDriverStringProperty.JAAS_CONFIG_NAME.getDefaultValue(),                                       false,      null),
+        new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.SSL_PROTOCOL.toString(),                                SQLServerDriverStringProperty.SSL_PROTOCOL.getDefaultValue(),                                           false,      new String[] {SSLProtocol.TLS.toString(), SSLProtocol.TLS_V10.toString(), SSLProtocol.TLS_V11.toString(), SSLProtocol.TLS_V12.toString()}),
     };
 
     // Properties that can only be set by using Properties.
@@ -485,8 +525,8 @@ public final class SQLServerDriver implements java.sql.Driver {
             return urlProps;
         Properties suppliedPropertiesFixed = fixupProperties(suppliedProperties);
         // Merge URL properties and supplied properties.
-        for (int i = 0; i < DRIVER_PROPERTIES.length; i++) {
-            String sProp = DRIVER_PROPERTIES[i].getName();
+        for (SQLServerDriverPropertyInfo DRIVER_PROPERTY : DRIVER_PROPERTIES) {
+            String sProp = DRIVER_PROPERTY.getName();
             String sPropVal = suppliedPropertiesFixed.getProperty(sProp); // supplied properties have precedence
             if (null != sPropVal) {
                 // overwrite the property in urlprops if already exists. supp prop has more precedence
@@ -495,8 +535,8 @@ public final class SQLServerDriver implements java.sql.Driver {
         }
 
         // Merge URL properties with property-only properties
-        for (int i = 0; i < DRIVER_PROPERTIES_PROPERTY_ONLY.length; i++) {
-            String sProp = DRIVER_PROPERTIES_PROPERTY_ONLY[i].getName();
+        for (SQLServerDriverPropertyInfo aDRIVER_PROPERTIES_PROPERTY_ONLY : DRIVER_PROPERTIES_PROPERTY_ONLY) {
+            String sProp = aDRIVER_PROPERTIES_PROPERTY_ONLY.getName();
             Object oPropVal = suppliedPropertiesFixed.get(sProp); // supplied properties have precedence
             if (null != oPropVal) {
                 // overwrite the property in urlprops if already exists. supp prop has more precedence
@@ -520,14 +560,14 @@ public final class SQLServerDriver implements java.sql.Driver {
         if (null == name)
             return name;
 
-        for (int i = 0; i < driverPropertiesSynonyms.length; i++) {
-            if (driverPropertiesSynonyms[i][0].equalsIgnoreCase(name)) {
-                return driverPropertiesSynonyms[i][1];
+        for (String[] driverPropertiesSynonym : driverPropertiesSynonyms) {
+            if (driverPropertiesSynonym[0].equalsIgnoreCase(name)) {
+                return driverPropertiesSynonym[1];
             }
         }
-        for (int i = 0; i < DRIVER_PROPERTIES.length; i++) {
-            if (DRIVER_PROPERTIES[i].getName().equalsIgnoreCase(name)) {
-                return DRIVER_PROPERTIES[i].getName();
+        for (SQLServerDriverPropertyInfo DRIVER_PROPERTY : DRIVER_PROPERTIES) {
+            if (DRIVER_PROPERTY.getName().equalsIgnoreCase(name)) {
+                return DRIVER_PROPERTY.getName();
             }
         }
 
@@ -549,9 +589,9 @@ public final class SQLServerDriver implements java.sql.Driver {
         if (null == name)
             return name;
 
-        for (int i = 0; i < DRIVER_PROPERTIES_PROPERTY_ONLY.length; i++) {
-            if (DRIVER_PROPERTIES_PROPERTY_ONLY[i].getName().equalsIgnoreCase(name)) {
-                return DRIVER_PROPERTIES_PROPERTY_ONLY[i].getName();
+        for (SQLServerDriverPropertyInfo aDRIVER_PROPERTIES_PROPERTY_ONLY : DRIVER_PROPERTIES_PROPERTY_ONLY) {
+            if (aDRIVER_PROPERTIES_PROPERTY_ONLY.getName().equalsIgnoreCase(name)) {
+                return aDRIVER_PROPERTIES_PROPERTY_ONLY.getName();
             }
         }
 

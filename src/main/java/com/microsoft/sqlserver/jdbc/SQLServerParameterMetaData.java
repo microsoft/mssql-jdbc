@@ -563,6 +563,8 @@ public final class SQLServerParameterMetaData implements ParameterMetaData {
         assert null != st;
         stmtParent = st;
         con = st.connection;
+        SQLServerStatement s = null;
+        SQLServerStatement stmt = null;
         if (logger.isLoggable(java.util.logging.Level.FINE)) {
             logger.fine(toString() + " created by (" + st.toString() + ")");
         }
@@ -571,7 +573,7 @@ public final class SQLServerParameterMetaData implements ParameterMetaData {
             // If the CallableStatement/PreparedStatement is a stored procedure call
             // then we can extract metadata using sp_sproc_columns
             if (null != st.procedureName) {
-                SQLServerStatement s = (SQLServerStatement) con.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
+                s = (SQLServerStatement) con.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
                 String sProc = parseProcIdentifier(st.procedureName);
                 if (con.isKatmaiOrLater())
                     rsProcedureMeta = s.executeQueryInternal("exec sp_sproc_columns_100 " + sProc + ", @ODBCVer=3");
@@ -601,7 +603,7 @@ public final class SQLServerParameterMetaData implements ParameterMetaData {
             // procedure "sp_describe_undeclared_parameters" to retrieve parameter meta data
             // if SQL server version is 2008, then use FMTONLY
             else {
-                queryMetaMap = new HashMap<Integer, QueryMeta>();
+                queryMetaMap = new HashMap<>();
 
                 if (con.getServerMajorVersion() >= SQL_SERVER_2012_VERSION) {
                     // new implementation for SQL verser 2012 and above
@@ -616,7 +618,7 @@ public final class SQLServerParameterMetaData implements ParameterMetaData {
                 else {
                     // old implementation for SQL server 2008
                     stringToParse = sProcString;
-                    ArrayList<MetaInfo> metaInfoList = new ArrayList<MetaInfo>();
+                    ArrayList<MetaInfo> metaInfoList = new ArrayList<>();
                     
                     while (stringToParse.length() > 0) {
                         MetaInfo metaInfo = parseStatement(stringToParse);
@@ -659,13 +661,11 @@ public final class SQLServerParameterMetaData implements ParameterMetaData {
 
                     String tablesAndJoins = sbTablesAndJoins.toString();
 
-                    Statement stmt = con.createStatement();
+                    stmt = (SQLServerStatement) con.createStatement();
                     String sCom = "sp_executesql N'SET FMTONLY ON SELECT " + columns + " FROM " + tablesAndJoins + " '";
 
                     ResultSet rs = stmt.executeQuery(sCom);
                     parseQueryMetaFor2008(rs);
-                    stmt.close();
-                    rs.close();
                 }
             }
         }
@@ -678,6 +678,10 @@ public final class SQLServerParameterMetaData implements ParameterMetaData {
         }
         catch(StringIndexOutOfBoundsException e){
             SQLServerException.makeFromDriverError(con, stmtParent, e.toString(), null, false);
+        }
+        finally {
+            if (null != stmt)
+                stmt.close();
         }
     }
 

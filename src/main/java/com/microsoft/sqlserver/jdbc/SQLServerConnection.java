@@ -100,7 +100,7 @@ public class SQLServerConnection implements ISQLServerConnection {
     private Boolean enablePrepareOnFirstPreparedStatementCall = null; // Current limit for this particular connection.
 
     // Handle the actual queue of discarded prepared statements.
-    private ConcurrentLinkedQueue<PreparedStatementHandle> discardedPreparedStatementHandles = new ConcurrentLinkedQueue<PreparedStatementHandle>();
+    private ConcurrentLinkedQueue<PreparedStatementHandle> discardedPreparedStatementHandles = new ConcurrentLinkedQueue<>();
     private AtomicInteger discardedPreparedStatementHandleCount = new AtomicInteger(0);
 
     private boolean fedAuthRequiredByUser = false;
@@ -525,7 +525,7 @@ public class SQLServerConnection implements ISQLServerConnection {
     }
 
     static boolean isWindows;
-    static Map<String, SQLServerColumnEncryptionKeyStoreProvider> globalSystemColumnEncryptionKeyStoreProviders = new HashMap<String, SQLServerColumnEncryptionKeyStoreProvider>();
+    static Map<String, SQLServerColumnEncryptionKeyStoreProvider> globalSystemColumnEncryptionKeyStoreProviders = new HashMap<>();
     static {
         if (System.getProperty("os.name").toLowerCase(Locale.ENGLISH).startsWith("windows")) {
             isWindows = true;
@@ -538,7 +538,7 @@ public class SQLServerConnection implements ISQLServerConnection {
     }
     static Map<String, SQLServerColumnEncryptionKeyStoreProvider> globalCustomColumnEncryptionKeyStoreProviders = null;
     // This is a per-connection store provider. It can be JKS or AKV.
-    Map<String, SQLServerColumnEncryptionKeyStoreProvider> systemColumnEncryptionKeyStoreProvider = new HashMap<String, SQLServerColumnEncryptionKeyStoreProvider>();
+    Map<String, SQLServerColumnEncryptionKeyStoreProvider> systemColumnEncryptionKeyStoreProvider = new HashMap<>();
 
     /**
      * Registers key store providers in the globalCustomColumnEncryptionKeyStoreProviders.
@@ -561,7 +561,7 @@ public class SQLServerConnection implements ISQLServerConnection {
             throw new SQLServerException(null, SQLServerException.getErrString("R_CustomKeyStoreProviderSetOnce"), null, 0, false);
         }
 
-        globalCustomColumnEncryptionKeyStoreProviders = new HashMap<String, SQLServerColumnEncryptionKeyStoreProvider>();
+        globalCustomColumnEncryptionKeyStoreProviders = new HashMap<>();
 
         for (Map.Entry<String, SQLServerColumnEncryptionKeyStoreProvider> entry : clientKeyStoreProviders.entrySet()) {
             String providerName = entry.getKey();
@@ -625,7 +625,7 @@ public class SQLServerConnection implements ISQLServerConnection {
     }
 
     private String trustedServerNameAE = null;
-    private static Map<String, List<String>> columnEncryptionTrustedMasterKeyPaths = new HashMap<String, List<String>>();
+    private static Map<String, List<String>> columnEncryptionTrustedMasterKeyPaths = new HashMap<>();
 
     /**
      * Sets Trusted Master Key Paths in the columnEncryptionTrustedMasterKeyPaths.
@@ -691,7 +691,7 @@ public class SQLServerConnection implements ISQLServerConnection {
     public static synchronized Map<String, List<String>> getColumnEncryptionTrustedMasterKeyPaths() {
         loggerExternal.entering(SQLServerConnection.class.getName(), "getColumnEncryptionTrustedMasterKeyPaths", "Getting Trusted Master Key Paths");
 
-        Map<String, List<String>> masterKeyPathCopy = new HashMap<String, List<String>>();
+        Map<String, List<String>> masterKeyPathCopy = new HashMap<>();
 
         for (Map.Entry<String, List<String>> entry : columnEncryptionTrustedMasterKeyPaths.entrySet()) {
             masterKeyPathCopy.put(entry.getKey(), entry.getValue());
@@ -1079,7 +1079,10 @@ public class SQLServerConnection implements ISQLServerConnection {
                                                                                                           // timeout, default is 15 per spec
                         String sPropValue = propsIn.getProperty(SQLServerDriverIntProperty.LOGIN_TIMEOUT.toString());
                         if (null != sPropValue && sPropValue.length() > 0) {
-                            loginTimeoutSeconds = Integer.parseInt(sPropValue);
+                            int sPropValueInt = Integer.parseInt(sPropValue);
+                            if (0 != sPropValueInt) { // Use the default timeout in case of a zero value
+                                loginTimeoutSeconds = sPropValueInt;
+                            }
                         }
                     }
 
@@ -1694,6 +1697,16 @@ public class SQLServerConnection implements ISQLServerConnection {
                 setEnablePrepareOnFirstPreparedStatementCall(booleanPropertyOn(sPropKey, sPropValue));
             }
 
+            sPropKey = SQLServerDriverStringProperty.SSL_PROTOCOL.toString();
+            sPropValue = activeConnectionProperties.getProperty(sPropKey);
+            if (null == sPropValue) {
+                sPropValue = SQLServerDriverStringProperty.SSL_PROTOCOL.getDefaultValue().toString();
+                activeConnectionProperties.setProperty(sPropKey, sPropValue);
+            }
+            else {
+                activeConnectionProperties.setProperty(sPropKey, SSLProtocol.valueOfString(sPropValue).toString());
+            }
+            
             FailoverInfo fo = null;
             String databaseNameProperty = SQLServerDriverStringProperty.DATABASE_NAME.toString();
             String serverNameProperty = SQLServerDriverStringProperty.SERVER_NAME.toString();
@@ -3217,7 +3230,7 @@ public class SQLServerConnection implements ISQLServerConnection {
     public java.util.Map<String, Class<?>> getTypeMap() throws SQLServerException {
         loggerExternal.entering(getClassNameLogging(), "getTypeMap");
         checkClosed();
-        java.util.Map<String, Class<?>> mp = new java.util.HashMap<String, Class<?>>();
+        java.util.Map<String, Class<?>> mp = new java.util.HashMap<>();
         loggerExternal.exiting(getClassNameLogging(), "getTypeMap", mp);
         return mp;
     }

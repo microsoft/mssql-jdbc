@@ -89,7 +89,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
         }
     }
 
-    EnumMap<CallableHandles, HandleAssociation> handleMap = new EnumMap<CallableHandles, HandleAssociation>(CallableHandles.class);
+    EnumMap<CallableHandles, HandleAssociation> handleMap = new EnumMap<>(CallableHandles.class);
 
     // Returns unique id for each instance.
     private static int nextInstanceID() {
@@ -244,7 +244,6 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
         SQLServerResultSet rs = null;
         try {
             rs = ((SQLServerStatement) connection.createStatement()).executeQueryInternal(query);
-
         }
         finally {
             if (null != orgCat) {
