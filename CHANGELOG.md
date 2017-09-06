@@ -17,10 +17,10 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/)
 - Fixed issue that initial batchException was not thrown [#458](https://github.com/Microsoft/mssql-jdbc/pull/458)
 
 ### Changed
-- changed sendStringParameterAsUnicode to impact set/update null [#445](https://github.com/Microsoft/mssql-jdbc/pull/445)
+- Changed sendStringParameterAsUnicode to impact set/update null [#445](https://github.com/Microsoft/mssql-jdbc/pull/445)
 - Removed connection property: fipsProvider [#460](https://github.com/Microsoft/mssql-jdbc/pull/460)
 - Replaced for and while loops with foeach loops [#421](https://github.com/Microsoft/mssql-jdbc/pull/421)
-- Replaced explicit types with The diamond operator <> [#468](https://github.com/Microsoft/mssql-jdbc/pull/468) & [#420](https://github.com/Microsoft/mssql-jdbc/pull/420)
+- Replaced explicit types with the diamond operator [#468](https://github.com/Microsoft/mssql-jdbc/pull/468) & [#420](https://github.com/Microsoft/mssql-jdbc/pull/420)
 
 ## [6.3.1] Preview Release
 ### Added
