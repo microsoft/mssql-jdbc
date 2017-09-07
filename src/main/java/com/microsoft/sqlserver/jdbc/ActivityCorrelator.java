@@ -19,15 +19,6 @@ final class ActivityCorrelator {
 
     private static Map<Long, ActivityId> ActivityIdTlsMap = new ConcurrentHashMap<Long, ActivityId>();
     
-    static void checkAndInitActivityId() {
-        long uniqueThreadId = Thread.currentThread().getId();
-        
-        //Since the Id for each thread is unique, this assures that the below code is run only once per *thread*.
-        if (!ActivityIdTlsMap.containsKey(uniqueThreadId)) {
-            ActivityIdTlsMap.put(uniqueThreadId, new ActivityId());
-        }
-    }
-    
     static void cleanupActivityId() {
         //remove the ActivityId that belongs to this thread.
         long uniqueThreadId = Thread.currentThread().getId();
@@ -39,10 +30,13 @@ final class ActivityCorrelator {
 
     // Get the current ActivityId in TLS
     static ActivityId getCurrent() {
-        checkAndInitActivityId();
-        
         // get the value in TLS, not reference
         long uniqueThreadId = Thread.currentThread().getId();
+        
+        //Since the Id for each thread is unique, this assures that the below if statement is run only once per thread.
+        if (!ActivityIdTlsMap.containsKey(uniqueThreadId)) {
+            ActivityIdTlsMap.put(uniqueThreadId, new ActivityId());
+        }
         
         return ActivityIdTlsMap.get(uniqueThreadId);
     }
@@ -50,11 +44,6 @@ final class ActivityCorrelator {
     // Increment the Sequence number of the ActivityId in TLS
     // and return the ActivityId with new Sequence number
     static ActivityId getNext() {
-        checkAndInitActivityId();
-        // We need to call get() method on ThreadLocal to get
-        // the current value of ActivityId stored in TLS,
-        // then increment the sequence number.
-
         // Get the current ActivityId in TLS
         ActivityId activityId = getCurrent();
 
@@ -65,8 +54,6 @@ final class ActivityCorrelator {
     }
 
     static void setCurrentActivityIdSentFlag() {
-        checkAndInitActivityId();
-        
         ActivityId activityId = getCurrent();
         activityId.setSentFlag();
     }
