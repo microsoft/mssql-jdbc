@@ -47,6 +47,14 @@ final class ActivityCorrelator {
         ActivityId activityId = getCurrent();
         activityId.setSentFlag();
     }
+    
+    /**
+     * Fix for #314: Classloader leak.
+     * @since 6.1.8 
+     */
+    static void reset() {
+        ActivityIdTls.remove();
+    }
 
 }
 

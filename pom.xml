@@ -129,6 +129,13 @@
 			<version>2.1.1</version>
 			<scope>test</scope>
 		</dependency>
+		
+		<dependency>
+		  <groupId>se.jiderhamn</groupId>
+		  <artifactId>classloader-leak-test-framework</artifactId>
+		  <version>1.1.1</version>
+		  <scope>test</scope>
+		</dependency>		
   	<!-- 
 	<dependency>
   		<groupId>org.junit.vintage</groupId>

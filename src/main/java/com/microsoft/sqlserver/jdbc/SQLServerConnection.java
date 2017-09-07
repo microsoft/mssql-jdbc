@@ -2993,6 +2993,7 @@ public class SQLServerConnection implements ISQLServerConnection {
         // Clean-up queue etc. related to batching of prepared statement discard actions (sp_unprepare).
         cleanupPreparedStatementDiscardActions();
 
+        ActivityCorrelator.reset();
         loggerExternal.exiting(getClassNameLogging(), "close");
     }
 
@@ -3012,6 +3013,9 @@ public class SQLServerConnection implements ISQLServerConnection {
                 connectionCommand("IF @@TRANCOUNT > 0 ROLLBACK TRAN" /* +close connection */, "close connection");
             }
             notifyPooledConnection(null);
+            
+            ActivityCorrelator.reset();
+            
             if (connectionlogger.isLoggable(Level.FINER)) {
                 connectionlogger.finer(toString() + " Connection closed and returned to connection pool");
             }
@@ -5793,5 +5797,19 @@ final class SQLServerConnectionSecurityManager {
         if (null != security) {
             security.checkLink(dllName);
         }
+    }
+    
+    /**
+     * Although {@link ActivityCorrelator} used in different part of programs releasing connection might be good point to release {@link ThreadLocal}
+     * resource. We are releasing {@link ThreadLocal} resource in {@link SQLServerConnection#close()} too.
+     * 
+     * Need to replace in JDK 1.9 <a href="http://download.java.net/java/jdk9/docs/api/java/lang/ref/Cleaner.html" target="_top">
+     * http://download.java.net/java/jdk9/docs/api/java/lang/ref/Cleaner.html </a>
+     * 
+     * @since 6.1.8
+     */
+    @Override
+    protected void finalize() throws Throwable {
+        ActivityCorrelator.reset();
     }
 }
