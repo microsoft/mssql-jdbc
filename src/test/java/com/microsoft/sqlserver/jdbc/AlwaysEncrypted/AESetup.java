@@ -719,7 +719,7 @@ public class AESetup extends AbstractTest {
         String cekSql = null;
         byte[] key = storeProvider.encryptColumnEncryptionKey(javaKeyAliases, "RSA_OAEP", valuesDefault);
         cekSql = "CREATE COLUMN ENCRYPTION KEY " + cekName + " WITH VALUES " + "(COLUMN_MASTER_KEY = " + cmkName
-                + ", ALGORITHM = 'RSA_OAEP', ENCRYPTED_VALUE = 0x" + DatatypeConverter.printHexBinary(key) + ")" + ";";
+                + ", ALGORITHM = 'RSA_OAEP', ENCRYPTED_VALUE = 0x" + Util.bytesToHexString(key, key.length) + ")" + ";";
         stmt.execute(cekSql);
     }
 
