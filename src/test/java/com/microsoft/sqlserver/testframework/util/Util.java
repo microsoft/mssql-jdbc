@@ -292,8 +292,10 @@ public class Util {
     
     /**
      * 
-     * @param b byte value
-     * @param length length of the array
+     * @param b
+     *            byte value
+     * @param length
+     *            length of the array
      * @return
      */
     final static char[] hexChars = {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F'};
@@ -307,5 +309,24 @@ public class Util {
             sb.append(hexChars[(hexVal & 0x0F)]);
         }
         return sb.toString();
+    }
+
+    /**
+     * Converts a string to an array of bytes
+     * 
+     * @param value
+     *            a hexized string representation of bytes
+     * @return
+     */
+    public static byte[] hexStringToByte(String value) {
+        int length = value.length();
+        if (length % 2 != 0) {
+            throw new IllegalArgumentException("Hex binary string value should be even-length: " + value);
+        }
+        byte[] output = new byte[length / 2];
+        for (int i = 0; i < length; i += 2) {
+            output[i / 2] = (byte) ((Character.digit(value.charAt(i), 16) << 4) + Character.digit(value.charAt(i + 1), 16));
+        }
+        return output;
     }
 }

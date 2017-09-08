@@ -12,13 +12,13 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import java.util.Arrays;
 import java.util.Random;
 
-import javax.xml.bind.DatatypeConverter;
 
 import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
 
 import com.microsoft.sqlserver.testframework.AbstractTest;
+import com.microsoft.sqlserver.testframework.util.Util;
 
 /**
  * This test validates PR #342. In this PR, DatatypeConverter#parseHexBinary is replaced with type casting. This tests validates if the behavior
@@ -43,7 +43,7 @@ public class DriverVersionTest extends AbstractTest {
     public void testConnectionDriver() {
         // the original way to create version byte array
         String interfaceLibVersion = generateInterfaceLibVersion();
-        byte originalVersionBytes[] = DatatypeConverter.parseHexBinary(interfaceLibVersion);
+        byte originalVersionBytes[] = Util.hexStringToByte(interfaceLibVersion);
 
         String originalBytes = Arrays.toString(originalVersionBytes);
 
