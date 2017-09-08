@@ -11,6 +11,7 @@ import java.util.Calendar;
 
 import com.microsoft.sqlserver.jdbc.SQLServerConnection;
 import com.microsoft.sqlserver.jdbc.SQLServerDatabaseMetaData;
+import com.microsoft.sqlserver.jdbc.SQLServerException;
 import com.microsoft.sqlserver.jdbc.SQLServerStatementColumnEncryptionSetting;
 
 /**
@@ -311,22 +312,50 @@ public class Util {
         return sb.toString();
     }
 
+  
+    /**
+     * conversion routine valid values 0-9 a-f A-F throws exception when failed to convert
+     * 
+     * @param value
+     *            charArray
+     * @return
+     * @throws SQLServerException
+     */
+    static byte CharToHex(char value) throws SQLServerException {
+        byte ret = 0;
+        if (value >= 'A' && value <= 'F') {
+            ret = (byte) (value - 'A' + 10);
+        }
+        else if (value >= 'a' && value <= 'f') {
+            ret = (byte) (value - 'a' + 10);
+        }
+        else if (value >= '0' && value <= '9') {
+            ret = (byte) (value - '0');
+        }
+        else {
+            throw new IllegalArgumentException("The string  is not in a valid hex format. ");
+        }
+        return ret;
+    }
+
     /**
      * Converts a string to an array of bytes
      * 
-     * @param value
+     * @param hexV
      *            a hexized string representation of bytes
      * @return
+     * @throws SQLServerException 
      */
-    public static byte[] hexStringToByte(String value) {
-        int length = value.length();
-        if (length % 2 != 0) {
-            throw new IllegalArgumentException("Hex binary string value should be even-length: " + value);
+    public static byte[] hexStringToByte(String hexV) throws SQLServerException {
+        int len = hexV.length();
+        char orig[] = hexV.toCharArray();
+        if ((len % 2) != 0) {
+            throw new IllegalArgumentException("The string is not in a valid hex format: " + hexV);
         }
-        byte[] output = new byte[length / 2];
-        for (int i = 0; i < length; i += 2) {
-            output[i / 2] = (byte) ((Character.digit(value.charAt(i), 16) << 4) + Character.digit(value.charAt(i + 1), 16));
+        byte[] bin = new byte[len / 2];
+        for (int i = 0; i < len / 2; i++) {
+            bin[i] = (byte) ((CharToHex(orig[2 * i]) << 4) + CharToHex(orig[2 * i + 1]));
         }
-        return output;
+        return bin;
     }
 }
