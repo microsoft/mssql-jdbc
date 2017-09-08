@@ -650,7 +650,7 @@ final class Util {
             sb.append(hexChars[(hexVal & 0x0F)]);
         }
         return sb.toString();
-    }    
+    }
 
     /**
      * Looks up local hostname of client machine.
