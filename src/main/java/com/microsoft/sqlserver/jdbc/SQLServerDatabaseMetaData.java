@@ -848,7 +848,91 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
         arguments[3] = table; // fktable_name
         arguments[4] = schema;
         arguments[5] = cat;
-        return getResultSetWithProvidedColumnNames(cat, CallableHandles.SP_FKEYS, arguments, pkfkColumnNames);
+//        return getResultSetWithProvidedColumnNames(cat, CallableHandles.SP_FKEYS, arguments, pkfkColumnNames);
+
+        
+        return getResultSetForForeignKeyInformation(cat, schema, table);
+    }
+
+    String fkeys_results_column_definition = "PKTABLE_QUALIFIER sysname, PKTABLE_OWNER sysname, PKTABLE_NAME sysname, PKCOLUMN_NAME sysname, FKTABLE_QUALIFIER sysname, FKTABLE_OWNER sysname, FKTABLE_NAME sysname, FKCOLUMN_NAME sysname, KEY_SEQ smallint, UPDATE_RULE smallint, DELETE_RULE smallint, FK_NAME sysname, PK_NAME sysname, DEFERRABILITY smallint";
+    String foreign_keys_combined_column_definition = "name sysname, delete_referential_action_desc nvarchar(60), update_referential_action_desc nvarchar(60),"
+            + fkeys_results_column_definition;
+    
+    private ResultSet getResultSetForForeignKeyInformation(String cat,
+            String schema,
+            String table) throws SQLServerException {
+        String fkeys_results = "#fkeys_results";
+        String foreign_keys_combined = "#foreign_keys_combined_results";
+        String sys_foreign_keys = "sys.foreign_keys";
+        SQLServerStatement stmt = null;
+
+        stmt = (SQLServerStatement) connection.createStatement();
+        
+        /**
+         * create a temp table that has the same definition as the result of sp_fkeys:
+         * 
+         * create table #fkeys_results ( 
+         * PKTABLE_QUALIFIER sysname, 
+         * PKTABLE_OWNER sysname, 
+         * PKTABLE_NAME sysname, 
+         * PKCOLUMN_NAME sysname,
+         * FKTABLE_QUALIFIER sysname, 
+         * FKTABLE_OWNER sysname, 
+         * FKTABLE_NAME sysname, 
+         * FKCOLUMN_NAME sysname, 
+         * KEY_SEQ smallint, 
+         * UPDATE_RULE smallint,
+         * DELETE_RULE smallint, 
+         * FK_NAME sysname, 
+         * PK_NAME sysname, 
+         * DEFERRABILITY smallint 
+         * );
+         * 
+         */
+        stmt.execute("create table " + fkeys_results + " (" + fkeys_results_column_definition + ")");
+
+        //insert the results of sp_fkeys to the temp table #fkeys_results
+        stmt.execute("insert into " + fkeys_results 
+                + " exec sp_fkeys @fktable_name=" + table + ", @fktable_owner=" + schema + ", @fktable_qualifier=" + cat);
+
+        /**
+         * create a temp table that has 3 columns from sys.foreign_keys and the rest of columns are the same as #fkeys_results:
+         * 
+         * create table #fkeys_results ( 
+         * name sysname, 
+         * delete_referential_action_desc nvarchar(60), 
+         * update_referential_action_desc nvarchar(60), 
+         * ......
+         * ......
+         * ......
+         * );
+         * 
+         */
+        stmt.execute("create table " + foreign_keys_combined + " (" + foreign_keys_combined_column_definition + ")");
+
+        
+        // right join the content of sys.foreign_keys and the content of #fkeys_results base on foreign key name and save the result to a new temp
+        // table #foreign_keys_combined_results
+        stmt.execute("insert into " + foreign_keys_combined 
+                + " select " + sys_foreign_keys + ".name, " + sys_foreign_keys + ".delete_referential_action_desc, " + sys_foreign_keys + ".update_referential_action_desc," 
+                + fkeys_results + ".PKTABLE_QUALIFIER," + fkeys_results + ".PKTABLE_OWNER," + fkeys_results + ".PKTABLE_NAME," + fkeys_results + ".PKCOLUMN_NAME,"
+                + fkeys_results + ".FKTABLE_QUALIFIER," + fkeys_results + ".FKTABLE_OWNER," + fkeys_results + ".FKTABLE_NAME," + fkeys_results + ".FKCOLUMN_NAME,"
+                + fkeys_results + ".KEY_SEQ," + fkeys_results + ".UPDATE_RULE," + fkeys_results + ".DELETE_RULE," + fkeys_results + ".FK_NAME," + fkeys_results + ".PK_NAME,"
+                + fkeys_results + ".DEFERRABILITY from " + sys_foreign_keys 
+                + " right join " + fkeys_results + " on " + sys_foreign_keys + ".name=" + fkeys_results + ".FK_NAME");
+
+        stmt.execute("update " + foreign_keys_combined + " set DELETE_RULE=3 where delete_referential_action_desc='NO_ACTION';" + "update "
+                + foreign_keys_combined + " set DELETE_RULE=0 where delete_referential_action_desc='Cascade';" + "update " + foreign_keys_combined
+                + " set DELETE_RULE=2 where delete_referential_action_desc='SET_NULL';" + "update " + foreign_keys_combined
+                + " set DELETE_RULE=4 where delete_referential_action_desc='SET_DEFAULT';" + "update " + foreign_keys_combined
+                + " set UPDATE_RULE=3 where update_referential_action_desc='NO_ACTION';" + "update " + foreign_keys_combined
+                + " set UPDATE_RULE=0 where update_referential_action_desc='Cascade';" + "update " + foreign_keys_combined
+                + " set UPDATE_RULE=2 where update_referential_action_desc='SET_NULL';" + "update " + foreign_keys_combined
+                + " set UPDATE_RULE=4 where update_referential_action_desc='SET_DEFAULT';");
+
+        return stmt.executeQuery(
+                "select PKTABLE_QUALIFIER,PKTABLE_OWNER,PKTABLE_NAME,PKCOLUMN_NAME,FKTABLE_QUALIFIER,FKTABLE_OWNER,FKTABLE_NAME,FKCOLUMN_NAME,KEY_SEQ,UPDATE_RULE,DELETE_RULE,FK_NAME,PK_NAME,DEFERRABILITY from "
+                        + foreign_keys_combined + " order by FKTABLE_QUALIFIER, FKTABLE_OWNER, FKTABLE_NAME, KEY_SEQ");
     }
 
     private final static String[] getIndexInfoColumnNames = {/* 1 */ TABLE_CAT, /* 2 */ TABLE_SCHEM, /* 3 */ TABLE_NAME, /* 4 */ NON_UNIQUE,
