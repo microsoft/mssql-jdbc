@@ -905,8 +905,9 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
         /**
          * insert the results of sp_fkeys to the temp table #fkeys_results
          */
-        stmt.execute("insert into " + fkeys_results 
-                + " exec sp_fkeys @fktable_name=" + table + ", @fktable_owner=" + schema + ", @fktable_qualifier=" + cat);
+        stmt.execute("insert into " + fkeys_results + " exec sp_fkeys @fktable_name=" + table
+                + (null == schema || schema.trim().length() != 0 ? ", @fktable_owner=" + schema : "")
+                + (null == cat || cat.trim().length() != 0 ? ", @fktable_qualifier=" + cat : ""));
 
         /**
          * create another temp table that has 3 columns from sys.foreign_keys and the rest of columns are the same as #fkeys_results:
