@@ -277,7 +277,7 @@ enum SQLServerDriverStringProperty
 	TRUST_STORE_TYPE           ("trustStoreType",          "JKS"),
 	TRUST_STORE                ("trustStore",              ""),
 	TRUST_STORE_PASSWORD       ("trustStorePassword",      ""),
-	TRUST_MANAGER_CLASS        ("trustManagerClass", ""),
+	TRUST_MANAGER_CLASS        ("trustManagerClass",       ""),
 	TRUST_MANAGER_CONSTRUCTOR_ARG("trustManagerConstructorArg", ""),
 	USER                       ("user",                    ""),
 	WORKSTATION_ID             ("workstationID",           Util.WSIDNotAvailable),

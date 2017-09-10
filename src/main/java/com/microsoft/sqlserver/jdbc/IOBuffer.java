@@ -1624,16 +1624,17 @@ final class TDSChannel {
             }
             // Otherwise, we'll check if a specific TrustManager implemenation has been requested and
             // if so instantiate it, optionally specifying a constructor argument to customize it.
-            else if (con.getTrustManagerClass() != null)
-            {
+            else if (con.getTrustManagerClass() != null) {
                 Class<?> tmClass = Class.forName(con.getTrustManagerClass());
                 if (!TrustManager.class.isAssignableFrom(tmClass)) {
-                    throw new IllegalArgumentException("The class specified by the trustManagerClass property must implement javax.net.ssl.TrustManager");
+                    throw new IllegalArgumentException(
+                            "The class specified by the trustManagerClass property must implement javax.net.ssl.TrustManager");
                 }
                 String constructorArg = con.getTrustManagerConstructorArg();
                 if (constructorArg == null) {
                     tm = new TrustManager[] {(TrustManager) tmClass.getDeclaredConstructor().newInstance()};
-                } else {
+                }
+                else {
                     tm = new TrustManager[] {(TrustManager) tmClass.getDeclaredConstructor(String.class).newInstance(constructorArg)};
                 }
             }
@@ -1818,7 +1819,7 @@ final class TDSChannel {
                 errMsg = e.getMessage();
             }
             if (errMsg == null) {
-               errMsg = "";
+                errMsg = "";
             }
             // The error message may have a connection id appended to it. Extract the message only for comparison.
             // This client connection id is appended in method checkAndAppendClientConnId().

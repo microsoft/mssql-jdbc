@@ -508,15 +508,17 @@ public class SQLServerConnection implements ISQLServerConnection {
     }
 
     private String trustManagerClass = null;
+
     final String getTrustManagerClass() {
-       assert TDS.ENCRYPT_INVALID != requestedEncryptionLevel;
-       return trustManagerClass;
+        assert TDS.ENCRYPT_INVALID != requestedEncryptionLevel;
+        return trustManagerClass;
     }
 
     private String trustManagerConstructorArg = null;
+
     final String getTrustManagerConstructorArg() {
-       assert TDS.ENCRYPT_INVALID != requestedEncryptionLevel;
-       return trustManagerConstructorArg;
+        assert TDS.ENCRYPT_INVALID != requestedEncryptionLevel;
+        return trustManagerConstructorArg;
     }
 
     static final String RESERVED_PROVIDER_NAME_PREFIX = "MSSQL_";
