@@ -21,7 +21,6 @@ import java.sql.Timestamp;
 import java.util.LinkedList;
 import java.util.Properties;
 
-import javax.xml.bind.DatatypeConverter;
 
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
