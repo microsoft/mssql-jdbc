@@ -628,7 +628,7 @@ public final class SQLServerDriver implements java.sql.Driver {
         // put the user properties into the connect properties
         int nTimeout = DriverManager.getLoginTimeout();
         if (nTimeout > 0) {
-            connectProperties.put(SQLServerDriverIntProperty.LOGIN_TIMEOUT.toString(), new Integer(nTimeout).toString());
+            connectProperties.put(SQLServerDriverIntProperty.LOGIN_TIMEOUT.toString(), Integer.valueOf(nTimeout).toString());
         }
 
         // Merge connectProperties (from URL) and supplied properties from user.

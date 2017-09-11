@@ -2208,7 +2208,7 @@ final class AppDTVImpl extends DTVImpl {
             if (null != bigDecimalValue) {
                 Integer inScale = dtv.getScale();
                 if (null != inScale && inScale != bigDecimalValue.scale())
-                    bigDecimalValue = bigDecimalValue.setScale(inScale, BigDecimal.ROUND_DOWN);
+                    bigDecimalValue = bigDecimalValue.setScale(inScale, RoundingMode.DOWN);
             }
 
             dtv.setValue(bigDecimalValue, JavaType.BIGDECIMAL);
