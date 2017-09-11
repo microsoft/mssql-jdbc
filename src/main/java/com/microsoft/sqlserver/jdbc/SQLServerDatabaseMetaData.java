@@ -742,10 +742,10 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
         }
         checkClosed();
 
-        String sp_fkeys_Query = " exec sp_fkeys @pktable_name=" + tab1
+        String sp_fkeys_Query = " exec sp_fkeys @pktable_name=[" + tab1 + "]"
                 + (null == schem1 ? ", @pktable_owner=null" : ", @pktable_owner='" + schem1 + "'")
                 + (null == cat1 ? ", @pktable_qualifier=null" : ", @pktable_qualifier='" + cat1 + "'")
-                + ", @fktable_name=" + tab2 
+                + ", @fktable_name=[" + tab2 + "]"
                 + (null == schem2 ? ", @fktable_owner=null" : ", @fktable_owner='" + schem2 + "'")
                 + (null == cat2 ? ", @fktable_qualifier=null" : ", @fktable_qualifier='" + cat2 + "'");
 
@@ -801,7 +801,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
         }
         checkClosed();
 
-        String sp_fkeys_Query = " exec sp_fkeys @pktable_name=" + table
+        String sp_fkeys_Query = " exec sp_fkeys @pktable_name=[" + table + "]"
                 + (null == schema ? ", @pktable_owner=null" : ", @pktable_owner='" + schema + "'")
                 + (null == cat ? ", @pktable_qualifier=null" : ", @pktable_qualifier='" + cat + "'");
 
@@ -826,7 +826,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
         }
         checkClosed();
 
-        String sp_fkeys_Query = " exec sp_fkeys @fktable_name=" + table
+        String sp_fkeys_Query = " exec sp_fkeys @fktable_name=[" + table + "]"
                 + (null == schema ? ", @fktable_owner=null" : ", @fktable_owner='" + schema + "'")
                 + (null == cat ? ", @fktable_qualifier=null" : ", @fktable_qualifier='" + cat + "'");
 
@@ -944,7 +944,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
              * the table with the same definition of the resultset return by sp_fkeys (same column definition and same order).
              */
             return stmt.executeQuery(
-                    "select PKTABLE_QUALIFIER,PKTABLE_OWNER,PKTABLE_NAME,PKCOLUMN_NAME,FKTABLE_QUALIFIER,FKTABLE_OWNER,FKTABLE_NAME,FKCOLUMN_NAME,KEY_SEQ,UPDATE_RULE,DELETE_RULE,FK_NAME,PK_NAME,DEFERRABILITY from "
+                    "select PKTABLE_QUALIFIER as 'PKTABLE_CAT',PKTABLE_OWNER as 'PKTABLE_SCHEM',PKTABLE_NAME,PKCOLUMN_NAME,FKTABLE_QUALIFIER as 'FKTABLE_CAT',FKTABLE_OWNER as 'FKTABLE_SCHEM',FKTABLE_NAME,FKCOLUMN_NAME,KEY_SEQ,UPDATE_RULE,DELETE_RULE,FK_NAME,PK_NAME,DEFERRABILITY from "
                             + foreign_keys_combined_tableName + " order by FKTABLE_QUALIFIER, FKTABLE_OWNER, FKTABLE_NAME, KEY_SEQ");
         }
         finally {
