@@ -8,6 +8,7 @@
 
 package com.microsoft.sqlserver.jdbc;
 
+import java.sql.BatchUpdateException;
 import java.sql.CallableStatement;
 import java.sql.Connection;
 import java.sql.DriverPropertyInfo;
@@ -879,12 +880,12 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
              * );
              * 
              */
-            stmt.execute("create table " + fkeys_results_tableName + " (" + fkeys_results_column_definition + ")");
+            stmt.addBatch("create table " + fkeys_results_tableName + " (" + fkeys_results_column_definition + ")");
         
             /**
              * insert the results of sp_fkeys to the temp table #fkeys_results
              */
-            stmt.execute("insert into " + fkeys_results_tableName + sp_fkeys_Query);
+            stmt.addBatch("insert into " + fkeys_results_tableName + sp_fkeys_Query);
         
             /**
              * create another temp table that has 3 columns from sys.foreign_keys and the rest of columns are the same as #fkeys_results:
@@ -899,14 +900,14 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
              * );
              * 
              */
-            stmt.execute("create table " + foreign_keys_combined_tableName + " (" + foreign_keys_combined_column_definition + ")");
+            stmt.addBatch("create table " + foreign_keys_combined_tableName + " (" + foreign_keys_combined_column_definition + ")");
         
             
             /**
              * right join the content of sys.foreign_keys and the content of #fkeys_results base on foreign key name and save the result to the new temp
              * table #foreign_keys_combined_results
              */
-            stmt.execute("insert into " + foreign_keys_combined_tableName 
+            stmt.addBatch("insert into " + foreign_keys_combined_tableName 
                     + " select " + sys_foreign_keys + ".name, " + sys_foreign_keys + ".delete_referential_action_desc, " + sys_foreign_keys + ".update_referential_action_desc," 
                     + fkeys_results_tableName + ".PKTABLE_QUALIFIER," + fkeys_results_tableName + ".PKTABLE_OWNER," + fkeys_results_tableName + ".PKTABLE_NAME," + fkeys_results_tableName + ".PKCOLUMN_NAME,"
                     + fkeys_results_tableName + ".FKTABLE_QUALIFIER," + fkeys_results_tableName + ".FKTABLE_OWNER," + fkeys_results_tableName + ".FKTABLE_NAME," + fkeys_results_tableName + ".FKCOLUMN_NAME,"
@@ -922,7 +923,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
              * Set Null: 2
              * Set Default: 4
              */
-            stmt.execute("update " + foreign_keys_combined_tableName + " set DELETE_RULE=3 where delete_referential_action_desc='NO_ACTION';" 
+            stmt.addBatch("update " + foreign_keys_combined_tableName + " set DELETE_RULE=3 where delete_referential_action_desc='NO_ACTION';" 
                     + "update " + foreign_keys_combined_tableName + " set DELETE_RULE=0 where delete_referential_action_desc='Cascade';" 
                     + "update " + foreign_keys_combined_tableName + " set DELETE_RULE=2 where delete_referential_action_desc='SET_NULL';" 
                     + "update " + foreign_keys_combined_tableName + " set DELETE_RULE=4 where delete_referential_action_desc='SET_DEFAULT';" 
@@ -930,10 +931,17 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
                     + "update " + foreign_keys_combined_tableName + " set UPDATE_RULE=0 where update_referential_action_desc='Cascade';" 
                     + "update " + foreign_keys_combined_tableName + " set UPDATE_RULE=2 where update_referential_action_desc='SET_NULL';" 
                     + "update " + foreign_keys_combined_tableName + " set UPDATE_RULE=4 where update_referential_action_desc='SET_DEFAULT';");
-        
+
+            try {
+                stmt.executeBatch();
+            }
+            catch (BatchUpdateException e) {
+                throw new SQLServerException(e.getMessage(), e.getSQLState(), e.getErrorCode(), null);
+            }
+
             /**
-             * now, the #foreign_keys_combined_results table has the correct values for DELETE_RULE and UPDATE_RULE. Then we can return the result of the
-             * table with the same definition of the resultset return by sp_fkeys (same column definition and same order).
+             * now, the #foreign_keys_combined_results table has the correct values for DELETE_RULE and UPDATE_RULE. Then we can return the result of
+             * the table with the same definition of the resultset return by sp_fkeys (same column definition and same order).
              */
             return stmt.executeQuery(
                     "select PKTABLE_QUALIFIER,PKTABLE_OWNER,PKTABLE_NAME,PKCOLUMN_NAME,FKTABLE_QUALIFIER,FKTABLE_OWNER,FKTABLE_NAME,FKCOLUMN_NAME,KEY_SEQ,UPDATE_RULE,DELETE_RULE,FK_NAME,PK_NAME,DEFERRABILITY from "
