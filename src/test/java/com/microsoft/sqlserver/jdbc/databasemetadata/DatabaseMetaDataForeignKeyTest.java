@@ -7,8 +7,8 @@
  */
 package com.microsoft.sqlserver.jdbc.databasemetadata;
 
-import static org.junit.Assert.fail;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import java.sql.DriverManager;
 import java.sql.SQLException;
@@ -43,6 +43,8 @@ public class DatabaseMetaDataForeignKeyTest extends AbstractTest {
     
     private static String schema = null;
     private static String catalog = null;
+    
+    private static final String EXPECTED_ERROR_MESSAGE = "The database name component of the object qualifier must be the name of the current database.";
 
     @BeforeAll
     private static void setupVariation() throws SQLException {
@@ -87,22 +89,34 @@ public class DatabaseMetaDataForeignKeyTest extends AbstractTest {
         Utils.dropTableIfExists(table5, stmt);
     }
 
+    /**
+     * test getImportedKeys() methods
+     * 
+     * @throws SQLServerException
+     */
     @Test
     public void testGetImportedKeys() throws SQLServerException {
         SQLServerDatabaseMetaData dmd = (SQLServerDatabaseMetaData) connection.getMetaData();
 
         SQLServerResultSet rs1 = (SQLServerResultSet) dmd.getImportedKeys(null, null, table1);
-        validateResults(rs1);
+        validateGetImportedKeysResults(rs1);
 
-//        SQLServerResultSet rs2 = (SQLServerResultSet) dmd.getImportedKeys("", "", table1);
-//        validateResults(rs2);
+        SQLServerResultSet rs2 = (SQLServerResultSet) dmd.getImportedKeys(catalog, schema, table1);
+        validateGetImportedKeysResults(rs2);
 
-        SQLServerResultSet rs3 = (SQLServerResultSet) dmd.getImportedKeys("test", "dbo", table1);
-        validateResults(rs3);
+        SQLServerResultSet rs3 = (SQLServerResultSet) dmd.getImportedKeys(catalog, "", table1);
+        validateGetImportedKeysResults(rs3);
 
+        try {
+            dmd.getImportedKeys("", schema, table1);
+            fail("Exception is not thrown.");
+        }
+        catch (SQLServerException e) {
+            assertEquals(EXPECTED_ERROR_MESSAGE, e.getMessage());
+        }
     }
-    
-    private void validateResults(SQLServerResultSet rs) throws SQLServerException {
+
+    private void validateGetImportedKeysResults(SQLServerResultSet rs) throws SQLServerException {
         int expectedRowCount = 4;
         int rowCount = 0;
         
@@ -130,5 +144,49 @@ public class DatabaseMetaDataForeignKeyTest extends AbstractTest {
             assertEquals(expectedRowCount, rowCount, "number of foreign key entries is incorrect.");
         }
     }
+    
+    /**
+     * test getExportedKeys() methods
+     * 
+     * @throws SQLServerException
+     */
+    @Test
+    public void testGetExportedKeys() throws SQLServerException {
+        String[] tableNames = {table2, table3, table4, table5};
+        int[][] values = {
+                // expected UPDATE_RULE, expected DELETE_RULE
+                {4, 3}, 
+                {2, 0}, 
+                {0, 2}, 
+                {3, 4}
+                };
 
+        SQLServerDatabaseMetaData dmd = (SQLServerDatabaseMetaData) connection.getMetaData();
+
+        for (int i = 0; i < tableNames.length; i++) {
+            String table = tableNames[i];
+            SQLServerResultSet rs1 = (SQLServerResultSet) dmd.getExportedKeys(null, null, table);
+            rs1.next();
+            assertEquals(values[i][0], rs1.getInt("UPDATE_RULE"));
+            assertEquals(values[i][1], rs1.getInt("DELETE_RULE"));
+
+            SQLServerResultSet rs2 = (SQLServerResultSet) dmd.getExportedKeys(catalog, schema, table);
+            rs2.next();
+            assertEquals(values[i][0], rs2.getInt("UPDATE_RULE"));
+            assertEquals(values[i][1], rs2.getInt("DELETE_RULE"));
+
+            SQLServerResultSet rs3 = (SQLServerResultSet) dmd.getExportedKeys(catalog, "", table);
+            rs3.next();
+            assertEquals(values[i][0], rs3.getInt("UPDATE_RULE"));
+            assertEquals(values[i][1], rs3.getInt("DELETE_RULE"));
+
+            try {
+                dmd.getExportedKeys("", schema, table);
+                fail("Exception is not thrown.");
+            }
+            catch (SQLServerException e) {
+                assertEquals(EXPECTED_ERROR_MESSAGE, e.getMessage());
+            }
+        }
+    }
 }

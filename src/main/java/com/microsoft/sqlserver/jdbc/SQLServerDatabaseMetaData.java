@@ -742,11 +742,11 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
         checkClosed();
 
         String sp_fkeys_Query = " exec sp_fkeys @pktable_name=" + tab1
-                + (null == schem1 || schem1.trim().length() != 0 ? ", @pktable_owner=" + schem1 : "")
-                + (null == cat1 || cat1.trim().length() != 0 ? ", @pktable_qualifier=" + cat1 : "" )
+                + (null == schem1 ? ", @pktable_owner=null" : ", @pktable_owner='" + schem1 + "'")
+                + (null == cat1 ? ", @pktable_qualifier=null" : ", @pktable_qualifier='" + cat1 + "'")
                 + ", @fktable_name=" + tab2 
-                + (null == schem2 || schem2.trim().length() != 0 ? ", @fktable_owner=" + schem2 : "")
-                + (null == cat2 || cat2.trim().length() != 0 ? ", @fktable_qualifier=" + cat2 : "");
+                + (null == schem2 ? ", @fktable_owner=null" : ", @fktable_owner='" + schem2 + "'")
+                + (null == cat2 ? ", @fktable_qualifier=null" : ", @fktable_qualifier='" + cat2 + "'");
 
         return getResultSetForForeignKeyInformation(sp_fkeys_Query, null);
     }
@@ -801,8 +801,8 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
         checkClosed();
 
         String sp_fkeys_Query = " exec sp_fkeys @pktable_name=" + table
-                + (null == schema || schema.trim().length() != 0 ? ", @pktable_owner=" + schema : "")
-                + (null == cat || cat.trim().length() != 0 ? ", @pktable_qualifier=" + cat : "");
+                + (null == schema ? ", @pktable_owner=null" : ", @pktable_owner='" + schema + "'")
+                + (null == cat ? ", @pktable_qualifier=null" : ", @pktable_qualifier='" + cat + "'");
 
         return getResultSetForForeignKeyInformation(sp_fkeys_Query, cat);
     }
@@ -826,8 +826,8 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
         checkClosed();
 
         String sp_fkeys_Query = " exec sp_fkeys @fktable_name=" + table
-                + (null == schema || schema.trim().length() != 0 ? ", @fktable_owner=" + schema : "")
-                + (null == cat || cat.trim().length() != 0 ? ", @fktable_qualifier=" + cat : "");
+                + (null == schema ? ", @fktable_owner=null" : ", @fktable_owner='" + schema + "'")
+                + (null == cat ? ", @fktable_qualifier=null" : ", @fktable_qualifier='" + cat + "'");
 
         return getResultSetForForeignKeyInformation(sp_fkeys_Query, cat);
     }
@@ -849,8 +849,11 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
         String fkeys_results_tableName = "[#fkeys_results" + uuid + "]";
         String foreign_keys_combined_tableName = "[#foreign_keys_combined_results" + uuid + "]";
         String sys_foreign_keys = "sys.foreign_keys";
-        
-        String orgCat = switchCatalogs(cat);
+
+        String orgCat = null;
+        if (null != cat && cat.trim().length() != 0) {
+            orgCat = switchCatalogs(cat);
+        }
         try {
             // cannot close this statement, otherwise the returned resultset would be closed too.
             SQLServerStatement stmt = (SQLServerStatement) connection.createStatement();
