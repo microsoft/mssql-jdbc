@@ -817,7 +817,12 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
         arguments[3] = null; // fktable_name
         arguments[4] = null;
         arguments[5] = null;
-        return getResultSetWithProvidedColumnNames(cat, CallableHandles.SP_FKEYS, arguments, pkfkColumnNames);
+
+        String sp_fkeys_Query = " exec sp_fkeys @pktable_name=" + table
+                + (null == schema || schema.trim().length() != 0 ? ", @pktable_owner=" + schema : "")
+                + (null == cat || cat.trim().length() != 0 ? ", @pktable_qualifier=" + cat : "");
+
+        return getResultSetForForeignKeyInformation(sp_fkeys_Query);
     }
 
     /* L0 */ public String getExtraNameCharacters() throws SQLServerException {
@@ -848,10 +853,12 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
         arguments[3] = table; // fktable_name
         arguments[4] = schema;
         arguments[5] = cat;
-//        return getResultSetWithProvidedColumnNames(cat, CallableHandles.SP_FKEYS, arguments, pkfkColumnNames);
 
-        
-        return getResultSetForForeignKeyInformation(cat, schema, table);
+        String sp_fkeys_Query = " exec sp_fkeys @fktable_name=" + table
+                + (null == schema || schema.trim().length() != 0 ? ", @fktable_owner=" + schema : "")
+                + (null == cat || cat.trim().length() != 0 ? ", @fktable_qualifier=" + cat : "");
+
+        return getResultSetForForeignKeyInformation(sp_fkeys_Query);
     }
 
     String fkeys_results_column_definition = "PKTABLE_QUALIFIER sysname, PKTABLE_OWNER sysname, PKTABLE_NAME sysname, PKCOLUMN_NAME sysname, FKTABLE_QUALIFIER sysname, FKTABLE_OWNER sysname, FKTABLE_NAME sysname, FKCOLUMN_NAME sysname, KEY_SEQ smallint, UPDATE_RULE smallint, DELETE_RULE smallint, FK_NAME sysname, PK_NAME sysname, DEFERRABILITY smallint";
@@ -862,17 +869,13 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
      * The original sp_fkeys stored procedure does not give the required values from JDBC specification. This method creates 2 temporary tables and
      * uses join and other operations on them to give the correct values.
      * 
-     * @param cat
-     * @param schema
-     * @param table
+     * @param sp_fkeys_Query
      * @return
      * @throws SQLServerException
      */
-    private ResultSet getResultSetForForeignKeyInformation(String cat,
-            String schema,
-            String table) throws SQLServerException {
-        String fkeys_results = "#fkeys_results";
-        String foreign_keys_combined = "#foreign_keys_combined_results";
+    private ResultSet getResultSetForForeignKeyInformation(String sp_fkeys_Query) throws SQLServerException {
+        String fkeys_results_tableName = "#fkeys_results";
+        String foreign_keys_combined_tableName = "#foreign_keys_combined_results";
         String sys_foreign_keys = "sys.foreign_keys";
         
         SQLServerStatement stmt = null; //cannot close this statement, otherwise the returned resultset would be closed too.
@@ -900,14 +903,12 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
          * );
          * 
          */
-        stmt.execute("create table " + fkeys_results + " (" + fkeys_results_column_definition + ")");
+        stmt.execute("create table " + fkeys_results_tableName + " (" + fkeys_results_column_definition + ")");
 
         /**
          * insert the results of sp_fkeys to the temp table #fkeys_results
          */
-        stmt.execute("insert into " + fkeys_results + " exec sp_fkeys @fktable_name=" + table
-                + (null == schema || schema.trim().length() != 0 ? ", @fktable_owner=" + schema : "")
-                + (null == cat || cat.trim().length() != 0 ? ", @fktable_qualifier=" + cat : ""));
+        stmt.execute("insert into " + fkeys_results_tableName + sp_fkeys_Query);
 
         /**
          * create another temp table that has 3 columns from sys.foreign_keys and the rest of columns are the same as #fkeys_results:
@@ -922,20 +923,20 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
          * );
          * 
          */
-        stmt.execute("create table " + foreign_keys_combined + " (" + foreign_keys_combined_column_definition + ")");
+        stmt.execute("create table " + foreign_keys_combined_tableName + " (" + foreign_keys_combined_column_definition + ")");
 
         
         /**
          * right join the content of sys.foreign_keys and the content of #fkeys_results base on foreign key name and save the result to the new temp
          * table #foreign_keys_combined_results
          */
-        stmt.execute("insert into " + foreign_keys_combined 
+        stmt.execute("insert into " + foreign_keys_combined_tableName 
                 + " select " + sys_foreign_keys + ".name, " + sys_foreign_keys + ".delete_referential_action_desc, " + sys_foreign_keys + ".update_referential_action_desc," 
-                + fkeys_results + ".PKTABLE_QUALIFIER," + fkeys_results + ".PKTABLE_OWNER," + fkeys_results + ".PKTABLE_NAME," + fkeys_results + ".PKCOLUMN_NAME,"
-                + fkeys_results + ".FKTABLE_QUALIFIER," + fkeys_results + ".FKTABLE_OWNER," + fkeys_results + ".FKTABLE_NAME," + fkeys_results + ".FKCOLUMN_NAME,"
-                + fkeys_results + ".KEY_SEQ," + fkeys_results + ".UPDATE_RULE," + fkeys_results + ".DELETE_RULE," + fkeys_results + ".FK_NAME," + fkeys_results + ".PK_NAME,"
-                + fkeys_results + ".DEFERRABILITY from " + sys_foreign_keys 
-                + " right join " + fkeys_results + " on " + sys_foreign_keys + ".name=" + fkeys_results + ".FK_NAME");
+                + fkeys_results_tableName + ".PKTABLE_QUALIFIER," + fkeys_results_tableName + ".PKTABLE_OWNER," + fkeys_results_tableName + ".PKTABLE_NAME," + fkeys_results_tableName + ".PKCOLUMN_NAME,"
+                + fkeys_results_tableName + ".FKTABLE_QUALIFIER," + fkeys_results_tableName + ".FKTABLE_OWNER," + fkeys_results_tableName + ".FKTABLE_NAME," + fkeys_results_tableName + ".FKCOLUMN_NAME,"
+                + fkeys_results_tableName + ".KEY_SEQ," + fkeys_results_tableName + ".UPDATE_RULE," + fkeys_results_tableName + ".DELETE_RULE," + fkeys_results_tableName + ".FK_NAME," + fkeys_results_tableName + ".PK_NAME,"
+                + fkeys_results_tableName + ".DEFERRABILITY from " + sys_foreign_keys 
+                + " right join " + fkeys_results_tableName + " on " + sys_foreign_keys + ".name=" + fkeys_results_tableName + ".FK_NAME");
 
         /**
          * the DELETE_RULE value and UPDATE_RULE value returned from sp_fkeys are not the same as required by JDBC spec. therefore, we need to update
@@ -945,14 +946,14 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
          * Set Null: 2
          * Set Default: 4
          */
-        stmt.execute("update " + foreign_keys_combined + " set DELETE_RULE=3 where delete_referential_action_desc='NO_ACTION';" 
-                + "update " + foreign_keys_combined + " set DELETE_RULE=0 where delete_referential_action_desc='Cascade';" 
-                + "update " + foreign_keys_combined + " set DELETE_RULE=2 where delete_referential_action_desc='SET_NULL';" 
-                + "update " + foreign_keys_combined + " set DELETE_RULE=4 where delete_referential_action_desc='SET_DEFAULT';" 
-                + "update " + foreign_keys_combined + " set UPDATE_RULE=3 where update_referential_action_desc='NO_ACTION';" 
-                + "update " + foreign_keys_combined + " set UPDATE_RULE=0 where update_referential_action_desc='Cascade';" 
-                + "update " + foreign_keys_combined + " set UPDATE_RULE=2 where update_referential_action_desc='SET_NULL';" 
-                + "update " + foreign_keys_combined + " set UPDATE_RULE=4 where update_referential_action_desc='SET_DEFAULT';");
+        stmt.execute("update " + foreign_keys_combined_tableName + " set DELETE_RULE=3 where delete_referential_action_desc='NO_ACTION';" 
+                + "update " + foreign_keys_combined_tableName + " set DELETE_RULE=0 where delete_referential_action_desc='Cascade';" 
+                + "update " + foreign_keys_combined_tableName + " set DELETE_RULE=2 where delete_referential_action_desc='SET_NULL';" 
+                + "update " + foreign_keys_combined_tableName + " set DELETE_RULE=4 where delete_referential_action_desc='SET_DEFAULT';" 
+                + "update " + foreign_keys_combined_tableName + " set UPDATE_RULE=3 where update_referential_action_desc='NO_ACTION';" 
+                + "update " + foreign_keys_combined_tableName + " set UPDATE_RULE=0 where update_referential_action_desc='Cascade';" 
+                + "update " + foreign_keys_combined_tableName + " set UPDATE_RULE=2 where update_referential_action_desc='SET_NULL';" 
+                + "update " + foreign_keys_combined_tableName + " set UPDATE_RULE=4 where update_referential_action_desc='SET_DEFAULT';");
 
         /**
          * now, the #foreign_keys_combined_results table has the correct values for DELETE_RULE and UPDATE_RULE. Then we can return the result of the
@@ -960,7 +961,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
          */
         return stmt.executeQuery(
                 "select PKTABLE_QUALIFIER,PKTABLE_OWNER,PKTABLE_NAME,PKCOLUMN_NAME,FKTABLE_QUALIFIER,FKTABLE_OWNER,FKTABLE_NAME,FKCOLUMN_NAME,KEY_SEQ,UPDATE_RULE,DELETE_RULE,FK_NAME,PK_NAME,DEFERRABILITY from "
-                        + foreign_keys_combined + " order by FKTABLE_QUALIFIER, FKTABLE_OWNER, FKTABLE_NAME, KEY_SEQ");
+                        + foreign_keys_combined_tableName + " order by FKTABLE_QUALIFIER, FKTABLE_OWNER, FKTABLE_NAME, KEY_SEQ");
     }
 
     private final static String[] getIndexInfoColumnNames = {/* 1 */ TABLE_CAT, /* 2 */ TABLE_SCHEM, /* 3 */ TABLE_NAME, /* 4 */ NON_UNIQUE,
