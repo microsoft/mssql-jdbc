@@ -164,24 +164,70 @@ public class DatabaseMetaDataForeignKeyTest extends AbstractTest {
         SQLServerDatabaseMetaData dmd = (SQLServerDatabaseMetaData) connection.getMetaData();
 
         for (int i = 0; i < tableNames.length; i++) {
-            String table = tableNames[i];
-            SQLServerResultSet rs1 = (SQLServerResultSet) dmd.getExportedKeys(null, null, table);
+            String pkTable = tableNames[i];
+            SQLServerResultSet rs1 = (SQLServerResultSet) dmd.getExportedKeys(null, null, pkTable);
             rs1.next();
             assertEquals(values[i][0], rs1.getInt("UPDATE_RULE"));
             assertEquals(values[i][1], rs1.getInt("DELETE_RULE"));
 
-            SQLServerResultSet rs2 = (SQLServerResultSet) dmd.getExportedKeys(catalog, schema, table);
+            SQLServerResultSet rs2 = (SQLServerResultSet) dmd.getExportedKeys(catalog, schema, pkTable);
             rs2.next();
             assertEquals(values[i][0], rs2.getInt("UPDATE_RULE"));
             assertEquals(values[i][1], rs2.getInt("DELETE_RULE"));
 
-            SQLServerResultSet rs3 = (SQLServerResultSet) dmd.getExportedKeys(catalog, "", table);
+            SQLServerResultSet rs3 = (SQLServerResultSet) dmd.getExportedKeys(catalog, "", pkTable);
             rs3.next();
             assertEquals(values[i][0], rs3.getInt("UPDATE_RULE"));
             assertEquals(values[i][1], rs3.getInt("DELETE_RULE"));
 
             try {
-                dmd.getExportedKeys("", schema, table);
+                dmd.getExportedKeys("", schema, pkTable);
+                fail("Exception is not thrown.");
+            }
+            catch (SQLServerException e) {
+                assertEquals(EXPECTED_ERROR_MESSAGE, e.getMessage());
+            }
+        }
+    }
+    
+    /**
+     * test getCrossReference() methods
+     * 
+     * @throws SQLServerException
+     */
+    @Test
+    public void testGetCrossReference() throws SQLServerException {
+        String fkTable = table1;
+        String[] tableNames = {table2, table3, table4, table5};
+        int[][] values = {
+                // expected UPDATE_RULE, expected DELETE_RULE
+                {4, 3}, 
+                {2, 0}, 
+                {0, 2}, 
+                {3, 4}
+                };
+
+        SQLServerDatabaseMetaData dmd = (SQLServerDatabaseMetaData) connection.getMetaData();
+
+        for (int i = 0; i < tableNames.length; i++) {
+            String pkTable = tableNames[i];
+            SQLServerResultSet rs1 = (SQLServerResultSet) dmd.getCrossReference(null, null, pkTable, null, null, fkTable);
+            rs1.next();
+            assertEquals(values[i][0], rs1.getInt("UPDATE_RULE"));
+            assertEquals(values[i][1], rs1.getInt("DELETE_RULE"));
+
+            SQLServerResultSet rs2 = (SQLServerResultSet) dmd.getCrossReference(catalog, schema, pkTable, catalog, schema, fkTable);
+            rs2.next();
+            assertEquals(values[i][0], rs2.getInt("UPDATE_RULE"));
+            assertEquals(values[i][1], rs2.getInt("DELETE_RULE"));
+
+            SQLServerResultSet rs3 = (SQLServerResultSet) dmd.getCrossReference(catalog, "", pkTable, catalog, "", fkTable);
+            rs3.next();
+            assertEquals(values[i][0], rs3.getInt("UPDATE_RULE"));
+            assertEquals(values[i][1], rs3.getInt("DELETE_RULE"));
+
+            try {
+                dmd.getCrossReference("", schema, pkTable, "", schema, fkTable);
                 fail("Exception is not thrown.");
             }
             catch (SQLServerException e) {
