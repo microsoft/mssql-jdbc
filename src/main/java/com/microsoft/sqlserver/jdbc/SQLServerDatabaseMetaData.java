@@ -17,6 +17,7 @@ import java.sql.SQLException;
 import java.text.MessageFormat;
 import java.util.EnumMap;
 import java.util.Properties;
+import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
 
@@ -729,10 +730,6 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
         return rs;
     }
 
-    private final static String[] pkfkColumnNames = {/* 1 */ PKTABLE_CAT, /* 2 */ PKTABLE_SCHEM, /* 3 */ PKTABLE_NAME, /* 4 */ PKCOLUMN_NAME,
-            /* 5 */ FKTABLE_CAT, /* 6 */ FKTABLE_SCHEM, /* 7 */ FKTABLE_NAME, /* 8 */ FKCOLUMN_NAME, /* 9 */ KEY_SEQ, /* 10 */ UPDATE_RULE,
-            /* 11 */ DELETE_RULE, /* 12 */ FK_NAME, /* 13 */ PK_NAME, /* 14 */ DEFERRABILITY};
-
     /* L0 */ public java.sql.ResultSet getCrossReference(String cat1,
             String schem1,
             String tab1,
@@ -743,19 +740,15 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
             loggerExternal.finer(toString() + " ActivityId: " + ActivityCorrelator.getNext().toString());
         }
         checkClosed();
-        /*
-         * sp_fkeys [ @pktable_name = ] 'pktable_name' [ , [ @pktable_owner = ] 'pktable_owner' ] [ , [ @pktable_qualifier = ] 'pktable_qualifier' ] {
-         * , [ @fktable_name = ] 'fktable_name' } [ , [ @fktable_owner = ] 'fktable_owner' ] [ , [ @fktable_qualifier = ] 'fktable_qualifier' ]
-         */
-        String[] arguments = new String[6];
-        arguments[0] = tab1; // pktable_name
-        arguments[1] = schem1;
-        arguments[2] = cat1;
-        arguments[3] = tab2;
-        arguments[4] = schem2;
-        arguments[5] = cat2;
 
-        return getResultSetWithProvidedColumnNames(null, CallableHandles.SP_FKEYS, arguments, pkfkColumnNames);
+        String sp_fkeys_Query = " exec sp_fkeys @pktable_name=" + tab1
+                + (null == schem1 || schem1.trim().length() != 0 ? ", @pktable_owner=" + schem1 : "")
+                + (null == cat1 || cat1.trim().length() != 0 ? ", @pktable_qualifier=" + cat1 : "" )
+                + ", @fktable_name=" + tab2 
+                + (null == schem2 || schem2.trim().length() != 0 ? ", @fktable_owner=" + schem2 : "")
+                + (null == cat2 || cat2.trim().length() != 0 ? ", @fktable_qualifier=" + cat2 : "");
+
+        return getResultSetForForeignKeyInformation(sp_fkeys_Query, null);
     }
 
     /* L0 */ public String getDatabaseProductName() throws SQLServerException {
@@ -806,17 +799,6 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
             loggerExternal.finer(toString() + " ActivityId: " + ActivityCorrelator.getNext().toString());
         }
         checkClosed();
-        /*
-         * sp_fkeys [ @pktable_name = ] 'pktable_name' [ , [ @pktable_owner = ] 'pktable_owner' ] [ , [ @pktable_qualifier = ] 'pktable_qualifier' ] {
-         * , [ @fktable_name = ] 'fktable_name' } [ , [ @fktable_owner = ] 'fktable_owner' ] [ , [ @fktable_qualifier = ] 'fktable_qualifier' ]
-         */
-        String[] arguments = new String[6];
-        arguments[0] = table; // pktable_name
-        arguments[1] = schema;
-        arguments[2] = cat;
-        arguments[3] = null; // fktable_name
-        arguments[4] = null;
-        arguments[5] = null;
 
         String sp_fkeys_Query = " exec sp_fkeys @pktable_name=" + table
                 + (null == schema || schema.trim().length() != 0 ? ", @pktable_owner=" + schema : "")
@@ -842,17 +824,6 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
             loggerExternal.finer(toString() + " ActivityId: " + ActivityCorrelator.getNext().toString());
         }
         checkClosed();
-        /*
-         * sp_fkeys [ @pktable_name = ] 'pktable_name' [ , [ @pktable_owner = ] 'pktable_owner' ] [ , [ @pktable_qualifier = ] 'pktable_qualifier' ] {
-         * , [ @fktable_name = ] 'fktable_name' } [ , [ @fktable_owner = ] 'fktable_owner' ] [ , [ @fktable_qualifier = ] 'fktable_qualifier' ]
-         */
-        String[] arguments = new String[6];
-        arguments[0] = null; // pktable_name
-        arguments[1] = null;
-        arguments[2] = null;
-        arguments[3] = table; // fktable_name
-        arguments[4] = schema;
-        arguments[5] = cat;
 
         String sp_fkeys_Query = " exec sp_fkeys @fktable_name=" + table
                 + (null == schema || schema.trim().length() != 0 ? ", @fktable_owner=" + schema : "")
@@ -861,8 +832,8 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
         return getResultSetForForeignKeyInformation(sp_fkeys_Query, cat);
     }
 
-    String fkeys_results_column_definition = "PKTABLE_QUALIFIER sysname, PKTABLE_OWNER sysname, PKTABLE_NAME sysname, PKCOLUMN_NAME sysname, FKTABLE_QUALIFIER sysname, FKTABLE_OWNER sysname, FKTABLE_NAME sysname, FKCOLUMN_NAME sysname, KEY_SEQ smallint, UPDATE_RULE smallint, DELETE_RULE smallint, FK_NAME sysname, PK_NAME sysname, DEFERRABILITY smallint";
-    String foreign_keys_combined_column_definition = "name sysname, delete_referential_action_desc nvarchar(60), update_referential_action_desc nvarchar(60),"
+    private String fkeys_results_column_definition = "PKTABLE_QUALIFIER sysname, PKTABLE_OWNER sysname, PKTABLE_NAME sysname, PKCOLUMN_NAME sysname, FKTABLE_QUALIFIER sysname, FKTABLE_OWNER sysname, FKTABLE_NAME sysname, FKCOLUMN_NAME sysname, KEY_SEQ smallint, UPDATE_RULE smallint, DELETE_RULE smallint, FK_NAME sysname, PK_NAME sysname, DEFERRABILITY smallint";
+    private String foreign_keys_combined_column_definition = "name sysname, delete_referential_action_desc nvarchar(60), update_referential_action_desc nvarchar(60),"
             + fkeys_results_column_definition;
 
     /**
@@ -874,8 +845,9 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
      * @throws SQLServerException
      */
     private ResultSet getResultSetForForeignKeyInformation(String sp_fkeys_Query, String cat) throws SQLServerException {
-        String fkeys_results_tableName = "#fkeys_results";
-        String foreign_keys_combined_tableName = "#foreign_keys_combined_results";
+        UUID uuid = UUID.randomUUID();
+        String fkeys_results_tableName = "[#fkeys_results" + uuid + "]";
+        String foreign_keys_combined_tableName = "[#foreign_keys_combined_results" + uuid + "]";
         String sys_foreign_keys = "sys.foreign_keys";
         
         String orgCat = switchCatalogs(cat);
