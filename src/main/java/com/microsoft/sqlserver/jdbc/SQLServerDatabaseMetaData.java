@@ -923,12 +923,12 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
                 ps.setString(6, fkeysRS.getString(6));
                 ps.setString(7, fkeysRS.getString(7));
                 ps.setString(8, fkeysRS.getString(8));
-                ps.setString(9, fkeysRS.getString(9));
-                ps.setString(10, fkeysRS.getString(10));
-                ps.setString(11, fkeysRS.getString(11));
+                ps.setInt(9, fkeysRS.getInt(9));
+                ps.setInt(10, fkeysRS.getInt(10));
+                ps.setInt(11, fkeysRS.getInt(11));
                 ps.setString(12, fkeysRS.getString(12));
                 ps.setString(13, fkeysRS.getString(13));
-                ps.setString(14, fkeysRS.getString(14));
+                ps.setInt(14, fkeysRS.getInt(14));
                 ps.execute();
             }
         }
