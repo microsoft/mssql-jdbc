@@ -31,6 +31,7 @@ import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
 
 import com.microsoft.sqlserver.jdbc.SQLServerDatabaseMetaData;
+import com.microsoft.sqlserver.jdbc.SQLServerDataSource;
 import com.microsoft.sqlserver.jdbc.SQLServerException;
 import com.microsoft.sqlserver.jdbc.StringUtils;
 import com.microsoft.sqlserver.testframework.AbstractTest;
@@ -122,6 +123,24 @@ public class DatabaseMetaDataTest extends AbstractTest {
         String url = databaseMetaData.getURL();
         url = url.toLowerCase();
         assertFalse(url.contains("password"), "Get URL should not have password attribute / property.");
+    }
+
+    /**
+     * Unknown tokens should be kept in getURL method.
+     *
+     * @throws SQLException
+     */
+    @Test
+    public void testGetURLWithUnknownTokens() throws SQLException {
+        SQLServerDataSource ds = new SQLServerDataSource();
+        ds.setURL(connectionString + ";foo=bar");
+
+        Connection con = ds.getConnection();
+        DatabaseMetaData databaseMetaData = con.getMetaData();
+
+        String url = databaseMetaData.getURL();
+        url = url.toLowerCase();
+        assertTrue(url.contains("foo=bar"), "Get URL should keep unknown tokens.");
     }
 
     /**
