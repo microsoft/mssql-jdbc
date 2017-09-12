@@ -8,6 +8,7 @@
 package com.microsoft.sqlserver.jdbc.databasemetadata;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
 import java.sql.DriverManager;
@@ -44,8 +45,10 @@ public class DatabaseMetaDataForeignKeyTest extends AbstractTest {
     private static String schema = null;
     private static String catalog = null;
     
-    private static final String EXPECTED_ERROR_MESSAGE = "The database name component of the object qualifier must be the name of the current database.";
+    private static final String EXPECTED_ERROR_MESSAGE = "An object or column name is missing or empty.";
+    private static final String EXPECTED_ERROR_MESSAGE2 = "The database name component of the object qualifier must be the name of the current database.";
 
+    
     @BeforeAll
     private static void setupVariation() throws SQLException {
         conn = (SQLServerConnection) DriverManager.getConnection(connectionString);
@@ -112,7 +115,7 @@ public class DatabaseMetaDataForeignKeyTest extends AbstractTest {
             fail("Exception is not thrown.");
         }
         catch (SQLServerException e) {
-            assertEquals(EXPECTED_ERROR_MESSAGE, e.getMessage());
+            assertTrue(e.getMessage().startsWith(EXPECTED_ERROR_MESSAGE));
         }
     }
 
@@ -185,7 +188,7 @@ public class DatabaseMetaDataForeignKeyTest extends AbstractTest {
                 fail("Exception is not thrown.");
             }
             catch (SQLServerException e) {
-                assertEquals(EXPECTED_ERROR_MESSAGE, e.getMessage());
+                assertTrue(e.getMessage().startsWith(EXPECTED_ERROR_MESSAGE));
             }
         }
     }
@@ -231,7 +234,7 @@ public class DatabaseMetaDataForeignKeyTest extends AbstractTest {
                 fail("Exception is not thrown.");
             }
             catch (SQLServerException e) {
-                assertEquals(EXPECTED_ERROR_MESSAGE, e.getMessage());
+                assertEquals(EXPECTED_ERROR_MESSAGE2, e.getMessage());
             }
         }
     }
