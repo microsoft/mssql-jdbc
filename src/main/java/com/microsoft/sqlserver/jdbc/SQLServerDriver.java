@@ -16,6 +16,7 @@ import java.text.MessageFormat;
 import java.util.Enumeration;
 import java.util.Locale;
 import java.util.Properties;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -480,18 +481,17 @@ public final class SQLServerDriver implements java.sql.Driver {
         loggingClassName = "com.microsoft.sqlserver.jdbc." + "SQLServerDriver:" + instanceID;
     }
 
-    // Helper function used to fixup the case sensitivity, synonyms and remove unknown tokens from the
-    // properties
+    // Helper function used to fixup the case sensitivity, synonyms
     static Properties fixupProperties(Properties props) throws SQLServerException {
         // assert props !=null
         Properties fixedup = new Properties();
         Enumeration<?> e = props.keys();
         while (e.hasMoreElements()) {
             String name = (String) e.nextElement();
-            String newname = getNormalizedPropertyName(name, drLogger);
+            String newname = getPropertyOnlyName(name, drLogger);
 
             if (null == newname) {
-                newname = getPropertyOnlyName(name, drLogger);
+                newname = getNormalizedPropertyName(name, drLogger);
             }
 
             if (null != newname) {
@@ -573,7 +573,7 @@ public final class SQLServerDriver implements java.sql.Driver {
 
         if (logger.isLoggable(Level.FINER))
             logger.finer("Unknown property" + name);
-        return null;
+        return name;
     }
 
     /**
@@ -670,10 +670,21 @@ public final class SQLServerDriver implements java.sql.Driver {
     }
 
     static final DriverPropertyInfo[] getPropertyInfoFromProperties(Properties props) {
-        DriverPropertyInfo[] properties = new DriverPropertyInfo[DRIVER_PROPERTIES.length];
-
+        // Find unknown tokens
+        final Set<String> unkownTokens = props.stringPropertyNames();
         for (int i = 0; i < DRIVER_PROPERTIES.length; i++)
+            unkownTokens.remove(DRIVER_PROPERTIES[i].getName());
+
+        DriverPropertyInfo[] properties = new DriverPropertyInfo[DRIVER_PROPERTIES.length + unkownTokens.size()];
+
+        int i;
+        for (i = 0; i < DRIVER_PROPERTIES.length; i++)
             properties[i] = DRIVER_PROPERTIES[i].build(props);
+
+        for (String token : unkownTokens) {
+            properties[i++] = new DriverPropertyInfo(token, props.getProperty(token));
+        }
+
         return properties;
     }
 
