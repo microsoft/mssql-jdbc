@@ -3835,7 +3835,7 @@ final class ServerDTVImpl extends DTVImpl {
                 DataTypes.throwConversionError(typeInfo.getSSType().toString(), streamGetterArgs.streamType.toString());
         }
         else {
-            if (!baseSSType.convertsTo(jdbcType)) {
+            if (!baseSSType.convertsTo(jdbcType) && !isNull) {
                 // if the baseSSType is Character or NCharacter and jdbcType is Longvarbinary,
                 // does not throw type conversion error, which allows getObject() on Long Character types.
                 if (encrypted) {
