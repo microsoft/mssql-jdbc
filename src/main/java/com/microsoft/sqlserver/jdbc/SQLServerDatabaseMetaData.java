@@ -864,10 +864,6 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
         return getResultSetForForeignKeyInformation(fkeysRS, cat);
     }
 
-    private String fkeys_results_column_definition = "PKTABLE_QUALIFIER sysname, PKTABLE_OWNER sysname, PKTABLE_NAME sysname, PKCOLUMN_NAME sysname, FKTABLE_QUALIFIER sysname, FKTABLE_OWNER sysname, FKTABLE_NAME sysname, FKCOLUMN_NAME sysname, KEY_SEQ smallint, UPDATE_RULE smallint, DELETE_RULE smallint, FK_NAME sysname, PK_NAME sysname, DEFERRABILITY smallint";
-    private String foreign_keys_combined_column_definition = "name sysname, delete_referential_action_desc nvarchar(60), update_referential_action_desc nvarchar(60),"
-            + fkeys_results_column_definition;
-
     /**
      * The original sp_fkeys stored procedure does not give the required values from JDBC specification. This method creates 2 temporary tables and
      * uses join and other operations on them to give the correct values.
@@ -881,6 +877,10 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
         String fkeys_results_tableName = "[#fkeys_results" + uuid + "]";
         String foreign_keys_combined_tableName = "[#foreign_keys_combined_results" + uuid + "]";
         String sys_foreign_keys = "sys.foreign_keys";
+
+        String fkeys_results_column_definition = "PKTABLE_QUALIFIER sysname, PKTABLE_OWNER sysname, PKTABLE_NAME sysname, PKCOLUMN_NAME sysname, FKTABLE_QUALIFIER sysname, FKTABLE_OWNER sysname, FKTABLE_NAME sysname, FKCOLUMN_NAME sysname, KEY_SEQ smallint, UPDATE_RULE smallint, DELETE_RULE smallint, FK_NAME sysname, PK_NAME sysname, DEFERRABILITY smallint";
+        String foreign_keys_combined_column_definition = "name sysname, delete_referential_action_desc nvarchar(60), update_referential_action_desc nvarchar(60),"
+                + fkeys_results_column_definition;
 
         // cannot close this statement, otherwise the returned resultset would be closed too.
         SQLServerStatement stmt = (SQLServerStatement) connection.createStatement();
