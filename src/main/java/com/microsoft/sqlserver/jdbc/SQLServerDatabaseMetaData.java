@@ -742,10 +742,10 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
         }
         checkClosed();
 
-        String sp_fkeys_Query = " exec sp_fkeys @pktable_name=[" + tab1 + "]"
+        String sp_fkeys_Query = " exec sp_fkeys @pktable_name='" + tab1 + "'"
                 + (null == schem1 ? ", @pktable_owner=null" : ", @pktable_owner='" + schem1 + "'")
                 + (null == cat1 ? ", @pktable_qualifier=null" : ", @pktable_qualifier='" + cat1 + "'")
-                + ", @fktable_name=[" + tab2 + "]"
+                + ", @fktable_name='" + tab2 + "'"
                 + (null == schem2 ? ", @fktable_owner=null" : ", @fktable_owner='" + schem2 + "'")
                 + (null == cat2 ? ", @fktable_qualifier=null" : ", @fktable_qualifier='" + cat2 + "'");
 
@@ -801,7 +801,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
         }
         checkClosed();
 
-        String sp_fkeys_Query = " exec sp_fkeys @pktable_name=[" + table + "]"
+        String sp_fkeys_Query = " exec sp_fkeys @pktable_name='" + table + "'"
                 + (null == schema ? ", @pktable_owner=null" : ", @pktable_owner='" + schema + "'")
                 + (null == cat ? ", @pktable_qualifier=null" : ", @pktable_qualifier='" + cat + "'");
 
@@ -826,7 +826,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
         }
         checkClosed();
 
-        String sp_fkeys_Query = " exec sp_fkeys @fktable_name=[" + table + "]"
+        String sp_fkeys_Query = " exec sp_fkeys @fktable_name='" + table + "'"
                 + (null == schema ? ", @fktable_owner=null" : ", @fktable_owner='" + schema + "'")
                 + (null == cat ? ", @fktable_qualifier=null" : ", @fktable_qualifier='" + cat + "'");
 
