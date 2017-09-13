@@ -507,6 +507,20 @@ public class SQLServerConnection implements ISQLServerConnection {
         return negotiatedEncryptionLevel;
     }
 
+    private String trustManagerClass = null;
+
+    final String getTrustManagerClass() {
+        assert TDS.ENCRYPT_INVALID != requestedEncryptionLevel;
+        return trustManagerClass;
+    }
+
+    private String trustManagerConstructorArg = null;
+
+    final String getTrustManagerConstructorArg() {
+        assert TDS.ENCRYPT_INVALID != requestedEncryptionLevel;
+        return trustManagerConstructorArg;
+    }
+
     static final String RESERVED_PROVIDER_NAME_PREFIX = "MSSQL_";
     String columnEncryptionSetting = null;
 
@@ -1354,6 +1368,9 @@ public class SQLServerConnection implements ISQLServerConnection {
             }
 
             trustServerCertificate = booleanPropertyOn(sPropKey, sPropValue);
+
+            trustManagerClass = activeConnectionProperties.getProperty(SQLServerDriverStringProperty.TRUST_MANAGER_CLASS.toString());
+            trustManagerConstructorArg = activeConnectionProperties.getProperty(SQLServerDriverStringProperty.TRUST_MANAGER_CONSTRUCTOR_ARG.toString());
 
             sPropKey = SQLServerDriverStringProperty.SELECT_METHOD.toString();
             sPropValue = activeConnectionProperties.getProperty(sPropKey);
