@@ -6476,23 +6476,13 @@ final class TDSReader {
         payloadOffset = 0;
         return true;
     }
-    
+
     boolean hasNextPacket() throws SQLServerException {
-        if (null == currentPacket.next) {
-            return false;
-        }
-        else {
-            return true;
-        }
+        return (null != currentPacket.next);
     }
 
     boolean endOfCurrentPacket() {
-        if (payloadOffset == currentPacket.payloadLength) {
-            return true;
-        }
-        else {
-            return false;
-        }
+        return (payloadOffset == currentPacket.payloadLength);
     }
 
     /**
