@@ -72,7 +72,6 @@ import javax.net.ssl.SSLSocket;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.TrustManagerFactory;
 import javax.net.ssl.X509TrustManager;
-import javax.xml.bind.DatatypeConverter;
 
 final class TDS {
     // TDS protocol versions
@@ -4956,7 +4955,7 @@ final class TDSWriter {
                 isShortValue = columnPair.getValue().precision <= DataTypes.SHORT_VARTYPE_MAX_BYTES;
                 isNull = (null == currentObject);
                 if (currentObject instanceof String)
-                    dataLength = isNull ? 0 : (toByteArray(currentObject.toString())).length;
+                    dataLength = isNull ? 0 : (ParameterUtils.HexToBin(currentObject.toString())).length;
                 else
                     dataLength = isNull ? 0 : ((byte[]) currentObject).length;
                 if (!isShortValue) {
@@ -4975,7 +4974,7 @@ final class TDSWriter {
                         if (dataLength > 0) {
                             writeInt(dataLength);
                             if (currentObject instanceof String)
-                                writeBytes(toByteArray(currentObject.toString()));
+                                writeBytes(ParameterUtils.HexToBin(currentObject.toString()));
                             else
                                 writeBytes((byte[]) currentObject);
                         }
@@ -4989,7 +4988,7 @@ final class TDSWriter {
                     else {
                         writeShort((short) dataLength);
                         if (currentObject instanceof String)
-                            writeBytes(toByteArray(currentObject.toString()));
+                            writeBytes(ParameterUtils.HexToBin(currentObject.toString()));
                         else
                             writeBytes((byte[]) currentObject);
                     }
@@ -5026,9 +5025,6 @@ final class TDSWriter {
         writeByte(probBytes);
     }
 
-    private static byte[] toByteArray(String s) {
-        return DatatypeConverter.parseHexBinary(s);
-    }
 
     void writeTVPColumnMetaData(TVP value) throws SQLServerException {
         boolean isShortValue;
