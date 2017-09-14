@@ -264,4 +264,34 @@ public class ResultSetTest extends AbstractTest {
         }
     }
     
+    /**
+     * Tests calling any getter on a null column should work regardless of their type.
+     * 
+     * @throws SQLException
+     */
+    @Test
+    public void testGetterOnNull() throws SQLException {
+        Connection con = null;
+        Statement stmt = null;
+        ResultSet rs = null;
+        try {
+            con = DriverManager.getConnection(connectionString);
+            stmt = con.createStatement();
+            rs = stmt.executeQuery("select null");
+            rs.next();
+            assertEquals(null, rs.getTime(1));
+        }
+        finally {
+            if (con != null) {
+                con.close();
+            }
+            if (stmt != null) {
+                stmt.close();
+            }
+            if (rs != null) {
+                rs.close();
+            }
+        }
+    }
+    
 }
