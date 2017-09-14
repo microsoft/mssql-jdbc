@@ -224,6 +224,7 @@ public final class SQLServerDataTable {
             case TIMESTAMP:
             case DATETIMEOFFSET:
             case DATETIME:
+            case LEGACY_DATETIME:
             case SMALLDATETIME:
                 // Sending temporal types as string. Error from database is thrown if parsing fails
                 // no need to send precision for temporal types, string literal will never exceed DataTypes.SHORT_VARTYPE_MAX_BYTES

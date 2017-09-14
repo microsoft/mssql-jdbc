@@ -671,6 +671,10 @@ final class Parameter {
                     }
                     break;
 
+                case LEGACY_DATETIME:
+                    param.typeDefinition = SSType.DATETIME.toString();
+                    break;
+
                 case SMALLDATETIME:
                     param.typeDefinition = SSType.DATETIME2.toString();
 

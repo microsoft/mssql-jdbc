@@ -3002,8 +3002,11 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable {
                     ? srcColumnMetadata.get(srcColOrdinal).cryptoMeta.baseTypeInfo.getSSType().getJDBCType() : JDBCType.of(srcJdbcType);
 
             if (JDBCType.TIMESTAMP == baseSrcJdbcType) {
-                if (SSType.DATETIME == destSSType) {
+                if (SSType.DATETIME2 == destSSType) {
                     baseSrcJdbcType = JDBCType.DATETIME;
+                }
+                if (SSType.DATETIME == destSSType) {
+                    baseSrcJdbcType = JDBCType.LEGACY_DATETIME;
                 }
                 else if (SSType.SMALLDATETIME == destSSType) {
                     baseSrcJdbcType = JDBCType.SMALLDATETIME;
@@ -3024,7 +3027,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable {
             }
             // if source is encrypted and temporal, call IOBuffer functions to encrypt
             if ((baseSrcJdbcType == JDBCType.DATE) || (baseSrcJdbcType == JDBCType.TIMESTAMP) || (baseSrcJdbcType == JDBCType.TIME)
-                    || (baseSrcJdbcType == JDBCType.DATETIMEOFFSET) || (baseSrcJdbcType == JDBCType.DATETIME)
+                    || (baseSrcJdbcType == JDBCType.DATETIMEOFFSET) || (baseSrcJdbcType == JDBCType.DATETIME) || (baseSrcJdbcType == JDBCType.LEGACY_DATETIME)
                     || (baseSrcJdbcType == JDBCType.SMALLDATETIME)) {
                 colValue = getEncryptedTemporalBytes(tdsWriter, baseSrcJdbcType, colValue, srcColOrdinal, destCryptoMeta.baseTypeInfo.getScale());
             }
@@ -3277,6 +3280,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable {
                 return tdsWriter.writeEncryptedScaledTemporal(calendar, subSecondNanos, scale, SSType.DATETIME2, (short) 0);
 
             case DATETIME:
+            case LEGACY_DATETIME:
             case SMALLDATETIME:
                 calendar = new GregorianCalendar(java.util.TimeZone.getDefault(), java.util.Locale.US);
                 calendar.setLenient(true);

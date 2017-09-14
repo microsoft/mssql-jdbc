@@ -811,12 +811,13 @@ final class DTV {
                     case VARBINARY:
                     case VARBINARYMAX:
                         switch (jdbcType) {
-                            case DATETIME:
+                            case LEGACY_DATETIME:
                             case SMALLDATETIME:
                                 tdsWriter.writeEncryptedRPCDateTime(name, timestampNormalizedCalendar(calendar, javaType, conn.baseYear()),
                                         subSecondNanos, isOutParam, jdbcType);
                                 break;
 
+                            case DATETIME:
                             case TIMESTAMP:
                                 assert null != cryptoMeta;
                                 tdsWriter.writeEncryptedRPCDateTime2(name, timestampNormalizedCalendar(calendar, javaType, conn.baseYear()),
@@ -876,10 +877,11 @@ final class DTV {
 
                     switch (jdbcType) {
                         case DATETIME:
+                        case LEGACY_DATETIME:
                         case SMALLDATETIME:
                         case TIMESTAMP:
                             if (null != cryptoMeta) {
-                                if ((JDBCType.DATETIME == jdbcType) || (JDBCType.SMALLDATETIME == jdbcType)) {
+                                if ((JDBCType.LEGACY_DATETIME == jdbcType) || (JDBCType.SMALLDATETIME == jdbcType)) {
                                     tdsWriter.writeEncryptedRPCDateTime(name, timestampNormalizedCalendar(calendar, javaType, conn.baseYear()),
                                             subSecondNanos, isOutParam, jdbcType);
                                 }
@@ -1504,6 +1506,7 @@ final class DTV {
                     break;
 
                 case DATETIME:
+                case LEGACY_DATETIME:
                 case SMALLDATETIME:
                 case TIMESTAMP:
                     op.execute(this, (java.sql.Timestamp) null);

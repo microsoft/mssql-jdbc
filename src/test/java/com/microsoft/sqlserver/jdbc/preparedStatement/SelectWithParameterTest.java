@@ -56,7 +56,7 @@ public class SelectWithParameterTest extends AbstractTest {
     @Test
     public void testTimestamp() throws SQLException {
         executeStmt("create table paramtest (col1 datetime, col2 datetime2(3))");
-        Timestamp expected = new Timestamp(1167613261000L);  // 1167613261000L is 2007-01-01 01:01:01.000
+        Timestamp expected = new Timestamp(1167613261999L);  // 1167613261999L is 2007-01-01 01:01:01.999
         // this ensure this test can run in all timezones.
         Calendar c = Calendar.getInstance();
         c.setTimeZone(TimeZone.getTimeZone("UTC"));
@@ -71,7 +71,7 @@ public class SelectWithParameterTest extends AbstractTest {
             psLegacy.setTimestamp(1, expected, c);
             try (ResultSet resultSet = psLegacy.executeQuery()) {
                 assertTrue(resultSet.next());
-                assertEquals(expected, resultSet.getTimestamp(1, c));
+                assertEquals(expected.getTime() + 1, resultSet.getTimestamp(1, c).getTime()); // rounded at the server
                 assertEquals(expected, resultSet.getTimestamp(2, c));
             }
         }
@@ -80,16 +80,16 @@ public class SelectWithParameterTest extends AbstractTest {
             psNew.setTimestamp(1, expected, c);
             try (ResultSet resultSet = psNew.executeQuery();) {
                 assertTrue(resultSet.next());
-                assertEquals(expected, resultSet.getTimestamp(1, c));
+                assertEquals(expected.getTime() + 1, resultSet.getTimestamp(1, c).getTime()); // rounded at the server
                 assertEquals(expected, resultSet.getTimestamp(2, c));
             }
         }
     }
 
     private void executeStmt(String sql) throws SQLException {
-        Statement statement = con.createStatement();
-        statement.execute(sql);
-        statement.close();
+        try (Statement statement = con.createStatement()) {
+            statement.execute(sql);
+        }
     }
 
     /**

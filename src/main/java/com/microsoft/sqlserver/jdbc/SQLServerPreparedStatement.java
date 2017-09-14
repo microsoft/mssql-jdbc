@@ -104,6 +104,9 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     
     /** Statement used for getMetadata(). Declared as a field to facilitate closing the statement. */
     private SQLServerStatement internalStmt = null;
+    
+    /** cached parameter meta data, introduced for timestamp type mapping resolution */
+    private SQLServerParameterMetaData cachedParameterMetaData = null;
 
     private void setPreparedStatementHandle(int handle) {
         this.prepStmtHandle = handle;
@@ -1689,9 +1692,17 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                     targetJDBCType = JDBCType.GUID;
                 }
             }
-
+            targetJDBCType = fixJdbcTypeIfTimestamp(index, targetJDBCType);
             setObject(param, obj, javaType, targetJDBCType, null, null, forceEncrypt, index, tvpName);
         }
+    }
+
+    protected JDBCType fixJdbcTypeIfTimestamp(int index,
+            JDBCType targetJDBCType) throws SQLServerException {
+        if (JDBCType.TIMESTAMP == targetJDBCType) {
+            targetJDBCType = pickTimestampTypeForParam(index);
+        }
+        return targetJDBCType;
     }
 
     public final void setObject(int index,
@@ -1729,7 +1740,9 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         // InputStream and Reader, this is the length of the data in the stream or reader.
         // For all other types, this value will be ignored.
 
-        setObject(setterGetParam(parameterIndex), x, JavaType.of(x), JDBCType.of(targetSqlType),
+        JDBCType targetJdbcType = JDBCType.of(targetSqlType);
+        targetJdbcType = fixJdbcTypeIfTimestamp(parameterIndex, targetJdbcType);
+        setObject(setterGetParam(parameterIndex), x, JavaType.of(x), targetJdbcType,
                 (java.sql.Types.NUMERIC == targetSqlType || java.sql.Types.DECIMAL == targetSqlType || java.sql.Types.TIMESTAMP == targetSqlType
                         || java.sql.Types.TIME == targetSqlType || microsoft.sql.Types.DATETIMEOFFSET == targetSqlType
                         || InputStream.class.isInstance(x) || Reader.class.isInstance(x)) ? scaleOrLength : null,
@@ -1884,7 +1897,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                     // Do nothing
                     break;
             }
-
+            jdbcType = fixJdbcTypeIfTimestamp(parameterIndex, jdbcType);
             // typeInfo is set as null
             param.setValue(jdbcType, obj, javaType, streamSetterArgs, null, precision, scale, connection, forceEncrypt, stmtColumnEncriptionSetting,
                     parameterIndex, userSQL, tvpName);
@@ -2071,8 +2084,17 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setTimestamp", new Object[] {n, x});
         checkClosed();
-        setValue(n, JDBCType.TIMESTAMP, x, JavaType.TIMESTAMP, false);
+        setValue(n, pickTimestampTypeForParam(n), x, JavaType.TIMESTAMP, false);
         loggerExternal.exiting(getClassNameLogging(), "setTimestamp");
+    }
+
+    protected JDBCType pickTimestampTypeForParam(int n) throws SQLServerException {
+        SQLServerParameterMetaData parameterMetaData = (SQLServerParameterMetaData) getParameterMetaData(false);
+        JDBCType result = JDBCType.TIMESTAMP;
+        if (n <= parameterMetaData.getParameterCount() && "datetime".equals(parameterMetaData.getParameterTypeName(n).toLowerCase())) {
+            result = JDBCType.LEGACY_DATETIME;
+        }
+        return result;
     }
 
     /**
@@ -2093,7 +2115,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setTimestamp", new Object[] {n, x, scale});
         checkClosed();
-        setValue(n, JDBCType.TIMESTAMP, x, JavaType.TIMESTAMP, null, scale, false);
+        setValue(n, pickTimestampTypeForParam(n), x, JavaType.TIMESTAMP, null, scale, false);
         loggerExternal.exiting(getClassNameLogging(), "setTimestamp");
     }
 
@@ -2120,7 +2142,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setTimestamp", new Object[] {n, x, scale, forceEncrypt});
         checkClosed();
-        setValue(n, JDBCType.TIMESTAMP, x, JavaType.TIMESTAMP, null, scale, forceEncrypt);
+        setValue(n, pickTimestampTypeForParam(n), x, JavaType.TIMESTAMP, null, scale, forceEncrypt);
         loggerExternal.exiting(getClassNameLogging(), "setTimestamp");
     }
 
@@ -2241,6 +2263,49 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
             loggerExternal.entering(getClassNameLogging(), "setDateTime", new Object[] {n, x, forceEncrypt});
         checkClosed();
         setValue(n, JDBCType.DATETIME, x, JavaType.TIMESTAMP, forceEncrypt);
+        loggerExternal.exiting(getClassNameLogging(), "setDateTime");
+    }
+
+    /**
+     * Sets the designated parameter to the given <code>java.sql.Timestamp</code> value
+     *
+     * @param n
+     *            the first parameter is 1, the second is 2, ...
+     * @param x
+     *            the parameter value
+     * @throws SQLServerException
+     *             when an error occurs
+     */
+    public final void setLegacyDateTime(int n,
+            java.sql.Timestamp x) throws SQLServerException {
+        if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
+            loggerExternal.entering(getClassNameLogging(), "setDateTime", new Object[] {n, x});
+        checkClosed();
+        setValue(n, JDBCType.LEGACY_DATETIME, x, JavaType.TIMESTAMP, false);
+        loggerExternal.exiting(getClassNameLogging(), "setDateTime");
+    }
+
+    /**
+     * Sets the designated parameter to the given <code>java.sql.Timestamp</code> value
+     *
+     * @param n
+     *            the first parameter is 1, the second is 2, ...
+     * @param x
+     *            the parameter value
+     * @param forceEncrypt
+     *            If the boolean forceEncrypt is set to true, the query parameter will only be set if the designation column is encrypted and Always
+     *            Encrypted is enabled on the connection or on the statement. If the boolean forceEncrypt is set to false, the driver will not force
+     *            encryption on parameters.
+     * @throws SQLServerException
+     *             when an error occurs
+     */
+    public final void setLegacyDateTime(int n,
+            java.sql.Timestamp x,
+            boolean forceEncrypt) throws SQLServerException {
+        if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
+            loggerExternal.entering(getClassNameLogging(), "setDateTime", new Object[] {n, x, forceEncrypt});
+        checkClosed();
+        setValue(n, JDBCType.LEGACY_DATETIME, x, JavaType.TIMESTAMP, forceEncrypt);
         loggerExternal.exiting(getClassNameLogging(), "setDateTime");
     }
 
@@ -2941,7 +3006,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setTimestamp", new Object[] {n, x, cal});
         checkClosed();
-        setValue(n, JDBCType.TIMESTAMP, x, JavaType.TIMESTAMP, cal, false);
+        setValue(n, pickTimestampTypeForParam(n), x, JavaType.TIMESTAMP, cal, false);
         loggerExternal.exiting(getClassNameLogging(), "setTimestamp");
     }
 
@@ -2969,7 +3034,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setTimestamp", new Object[] {n, x, cal, forceEncrypt});
         checkClosed();
-        setValue(n, JDBCType.TIMESTAMP, x, JavaType.TIMESTAMP, cal, forceEncrypt);
+        setValue(n, pickTimestampTypeForParam(n), x, JavaType.TIMESTAMP, cal, forceEncrypt);
         loggerExternal.exiting(getClassNameLogging(), "setTimestamp");
     }
 
@@ -3001,8 +3066,11 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
      */
     public final ParameterMetaData getParameterMetaData(boolean forceRefresh) throws SQLServerException {
 
-        SQLServerParameterMetaData pmd = this.connection.getCachedParameterMetadata(sqlTextCacheKey);
-
+        SQLServerParameterMetaData pmd = this.cachedParameterMetaData;
+        if (pmd == null) {
+            pmd = this.connection.getCachedParameterMetadata(sqlTextCacheKey);
+            this.cachedParameterMetaData = pmd;
+        }
         if (!forceRefresh && null != pmd) {
             return pmd;
         }
@@ -3010,6 +3078,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
             loggerExternal.entering(getClassNameLogging(), "getParameterMetaData");
             checkClosed();
             pmd = new SQLServerParameterMetaData(this, userSQL);
+            this.cachedParameterMetaData = pmd;
 
             connection.registerCachedParameterMetadata(sqlTextCacheKey, pmd);
 

@@ -30,6 +30,12 @@ public final class Types {
 
     /**
      * The constant in the Java programming language, sometimes referred to as a type code, that identifies the Microsoft SQL type DATETIME.
+     * This type is considered legacy and DATETIME2 is the preferred new type.
+     */
+    public static final int LEGACY_DATETIME = -152;
+
+    /**
+     * The constant in the Java programming language, sometimes referred to as a type code, that identifies the Microsoft SQL type DATETIME2.
      */
     public static final int DATETIME = -151;
 

@@ -1512,7 +1512,8 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setTimeStamp", new Object[] {sCol, x, c});
         checkClosed();
-        setValue(findColumn(sCol), JDBCType.TIMESTAMP, x, JavaType.TIMESTAMP, c, false);
+        int index = findColumn(sCol);
+        setValue(index, pickTimestampTypeForParam(index), x, JavaType.TIMESTAMP, c, false);
         loggerExternal.exiting(getClassNameLogging(), "setTimeStamp");
     }
 
@@ -1542,7 +1543,8 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setTimeStamp", new Object[] {sCol, x, c, forceEncrypt});
         checkClosed();
-        setValue(findColumn(sCol), JDBCType.TIMESTAMP, x, JavaType.TIMESTAMP, c, forceEncrypt);
+        int index = findColumn(sCol);
+        setValue(index, pickTimestampTypeForParam(index), x, JavaType.TIMESTAMP, c, forceEncrypt);
         loggerExternal.exiting(getClassNameLogging(), "setTimeStamp");
     }
 
@@ -2004,7 +2006,8 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setTimestamp", new Object[] {sCol, t});
         checkClosed();
-        setValue(findColumn(sCol), JDBCType.TIMESTAMP, t, JavaType.TIMESTAMP, false);
+        int index = findColumn(sCol);
+        setValue(index, pickTimestampTypeForParam(index), t, JavaType.TIMESTAMP, false);
         loggerExternal.exiting(getClassNameLogging(), "setTimestamp");
     }
 
@@ -2029,7 +2032,8 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setTimestamp", new Object[] {sCol, t});
         checkClosed();
-        setValue(findColumn(sCol), JDBCType.TIMESTAMP, t, JavaType.TIMESTAMP, null, scale, false);
+        int index = findColumn(sCol);
+        setValue(index, pickTimestampTypeForParam(index), t, JavaType.TIMESTAMP, null, scale, false);
         loggerExternal.exiting(getClassNameLogging(), "setTimestamp");
     }
 
@@ -2059,7 +2063,8 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setTimestamp", new Object[] {sCol, t, forceEncrypt});
         checkClosed();
-        setValue(findColumn(sCol), JDBCType.TIMESTAMP, t, JavaType.TIMESTAMP, null, scale, forceEncrypt);
+        int index = findColumn(sCol);
+        setValue(index, pickTimestampTypeForParam(index), t, JavaType.TIMESTAMP, null, scale, forceEncrypt);
         loggerExternal.exiting(getClassNameLogging(), "setTimestamp");
     }
 
@@ -2238,6 +2243,53 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
             loggerExternal.entering(getClassNameLogging(), "setDateTime", new Object[] {sCol, x, forceEncrypt});
         checkClosed();
         setValue(findColumn(sCol), JDBCType.DATETIME, x, JavaType.TIMESTAMP, forceEncrypt);
+        loggerExternal.exiting(getClassNameLogging(), "setDateTime");
+    }
+
+    /**
+     * Sets the designated parameter to the given <code>java.sql.Timestamp</code> value. The driver converts this to an SQL <code>DATETIME</code>
+     * value when it sends it to the database.
+     *
+     * @param sCol
+     *            the name of the parameter
+     * @param x
+     *            the parameter value
+     * @throws SQLServerException
+     *             if parameterName does not correspond to a named parameter; if a database access error occurs or this method is called on a closed
+     *             <code>CallableStatement</code>
+     */
+    public void setLegacyDateTime(String sCol,
+            java.sql.Timestamp x) throws SQLServerException {
+        if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
+            loggerExternal.entering(getClassNameLogging(), "setDateTime", new Object[] {sCol, x});
+        checkClosed();
+        setValue(findColumn(sCol), JDBCType.LEGACY_DATETIME, x, JavaType.TIMESTAMP, false);
+        loggerExternal.exiting(getClassNameLogging(), "setDateTime");
+    }
+
+    /**
+     * Sets the designated parameter to the given <code>java.sql.Timestamp</code> value. The driver converts this to an SQL <code>DATETIME</code>
+     * value when it sends it to the database.
+     *
+     * @param sCol
+     *            the name of the parameter
+     * @param x
+     *            the parameter value
+     * @param forceEncrypt
+     *            If the boolean forceEncrypt is set to true, the query parameter will only be set if the designation column is encrypted and Always
+     *            Encrypted is enabled on the connection or on the statement. If the boolean forceEncrypt is set to false, the driver will not force
+     *            encryption on parameters.
+     * @throws SQLServerException
+     *             if parameterName does not correspond to a named parameter; if a database access error occurs or this method is called on a closed
+     *             <code>CallableStatement</code>
+     */
+    public void setLegacyDateTime(String sCol,
+            java.sql.Timestamp x,
+            boolean forceEncrypt) throws SQLServerException {
+        if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
+            loggerExternal.entering(getClassNameLogging(), "setDateTime", new Object[] {sCol, x, forceEncrypt});
+        checkClosed();
+        setValue(findColumn(sCol), JDBCType.LEGACY_DATETIME, x, JavaType.TIMESTAMP, forceEncrypt);
         loggerExternal.exiting(getClassNameLogging(), "setDateTime");
     }
 

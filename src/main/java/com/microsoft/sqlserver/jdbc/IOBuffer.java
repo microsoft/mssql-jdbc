@@ -4233,7 +4233,7 @@ final class TDSWriter {
      * 
      * @param sName
      *            the optional parameter name
-     * @param shortValue
+     * @param byteValue
      *            the data value
      * @param bOut
      *            boolean true if the data value is being registered as an ouput parameter
@@ -4865,6 +4865,7 @@ final class TDSWriter {
             case TIMESTAMP:
             case DATETIMEOFFSET:
             case DATETIME:
+            case LEGACY_DATETIME:
             case SMALLDATETIME:
             case TIMESTAMP_WITH_TIMEZONE:
             case TIME_WITH_TIMEZONE:
@@ -5104,6 +5105,7 @@ final class TDSWriter {
                 case TIMESTAMP:
                 case DATETIMEOFFSET:
                 case DATETIME:
+                case LEGACY_DATETIME:
                 case SMALLDATETIME:
                 case TIMESTAMP_WITH_TIMEZONE:
                 case TIME_WITH_TIMEZONE:
@@ -5605,7 +5607,8 @@ final class TDSWriter {
             System.arraycopy(seconds.array(), 0, value, 2, 2);
             return SQLServerSecurityUtility.encryptWithKey(value, cryptoMeta, con);
         }
-        else if (JDBCType.DATETIME == jdbcType) {
+        else if (JDBCType.DATETIME == jdbcType || JDBCType.LEGACY_DATETIME == jdbcType) {
+            //todo: this appears to be wrong for JDBCType.DATETIME (that maps to DATETIME2)
             // Last-ditch verification that the value is in the valid range for the
             // DATETIMEN TDS data type (1/1/1753 to 12/31/9999). If it's not, then
             // throw an exception now so that statement execution is safely canceled.
