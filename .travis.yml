@@ -42,7 +42,3 @@ script:
 ##Test for JDBC Specification 41 & 42 and submit coverage report.
   - mvn test -B -Pbuild41 jacoco:report && bash <(curl -s https://codecov.io/bash) -cF JDBC41
   - mvn test -B -Pbuild42 jacoco:report && bash <(curl -s https://codecov.io/bash) -cF JDBC42
-
-#after_success:
-# instead of after success we are using && operator for conditional submitting coverage report.
-#  - bash <(curl -s https://codecov.io/bash)
