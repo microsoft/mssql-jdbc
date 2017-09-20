@@ -8,32 +8,42 @@
 
 package com.microsoft.sqlserver.jdbc;
 
+import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * ActivityCorrelator provides the APIs to access the ActivityId in TLS
  */
 final class ActivityCorrelator {
 
-    private static ThreadLocal<ActivityId> ActivityIdTls = new ThreadLocal<ActivityId>() {
-        protected ActivityId initialValue() {
-            return new ActivityId();
+    private static Map<Long, ActivityId> ActivityIdTlsMap = new ConcurrentHashMap<Long, ActivityId>();
+    
+    static void cleanupActivityId() {
+        //remove the ActivityId that belongs to this thread.
+        long uniqueThreadId = Thread.currentThread().getId();
+
+        if (ActivityIdTlsMap.containsKey(uniqueThreadId)) {
+            ActivityIdTlsMap.remove(uniqueThreadId);
         }
-    };
+    }
 
     // Get the current ActivityId in TLS
     static ActivityId getCurrent() {
         // get the value in TLS, not reference
-        return ActivityIdTls.get();
+        long uniqueThreadId = Thread.currentThread().getId();
+        
+        //Since the Id for each thread is unique, this assures that the below if statement is run only once per thread.
+        if (!ActivityIdTlsMap.containsKey(uniqueThreadId)) {
+            ActivityIdTlsMap.put(uniqueThreadId, new ActivityId());
+        }
+        
+        return ActivityIdTlsMap.get(uniqueThreadId);
     }
 
     // Increment the Sequence number of the ActivityId in TLS
     // and return the ActivityId with new Sequence number
     static ActivityId getNext() {
-        // We need to call get() method on ThreadLocal to get
-        // the current value of ActivityId stored in TLS,
-        // then increment the sequence number.
-
         // Get the current ActivityId in TLS
         ActivityId activityId = getCurrent();
 
@@ -47,7 +57,6 @@ final class ActivityCorrelator {
         ActivityId activityId = getCurrent();
         activityId.setSentFlag();
     }
-
 }
 
 class ActivityId {
