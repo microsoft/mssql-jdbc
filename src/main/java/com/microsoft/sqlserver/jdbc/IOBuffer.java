@@ -4995,7 +4995,7 @@ final class TDSWriter {
                 }
                 break;
             case SQL_VARIANT:
-                boolean isShiloh = (8 >= con.getServerMajorVersion() ? true : false);
+                boolean isShiloh = (8 >= con.getServerMajorVersion());
                 if (isShiloh) {
                     MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_SQLVariantSupport"));
                     throw new SQLServerException(null, form.format(new Object[] {}), null, 0, false);
