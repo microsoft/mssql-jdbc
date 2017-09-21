@@ -581,12 +581,7 @@ public final class SQLServerParameterMetaData implements ParameterMetaData {
                     rsProcedureMeta = s.executeQueryInternal("exec sp_sproc_columns " + sProc + ", @ODBCVer=3");
                 
                 // if rsProcedureMeta has next row, it means the stored procedure is found
-                if (rsProcedureMeta.next()) {
-                    procedureIsFound = true;
-                }
-                else {
-                    procedureIsFound = false;
-                }
+                procedureIsFound = rsProcedureMeta.next();
                 rsProcedureMeta.beforeFirst();
 
                 // Sixth is DATA_TYPE

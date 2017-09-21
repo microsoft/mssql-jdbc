@@ -25,8 +25,7 @@ final class StreamRetStatus extends StreamPacket {
     }
 
     void setFromTDS(TDSReader tdsReader) throws SQLServerException {
-        if (TDS.TDS_RET_STAT != tdsReader.readUnsignedByte())
-            assert false;
+        assert TDS.TDS_RET_STAT == tdsReader.readUnsignedByte();
         status = tdsReader.readInt();
     }
 }

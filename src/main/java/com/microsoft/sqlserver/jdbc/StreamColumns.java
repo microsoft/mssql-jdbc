@@ -163,8 +163,7 @@ final class StreamColumns extends StreamPacket {
      * @throws SQLServerException
      */
     void setFromTDS(TDSReader tdsReader) throws SQLServerException {
-        if (TDS.TDS_COLMETADATA != tdsReader.readUnsignedByte())
-            assert false;
+        assert TDS.TDS_COLMETADATA == tdsReader.readUnsignedByte();
 
         int nTotColumns = tdsReader.readUnsignedShort();
 

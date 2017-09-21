@@ -33,8 +33,7 @@ final class StreamRetValue extends StreamPacket {
     }
 
     void setFromTDS(TDSReader tdsReader) throws SQLServerException {
-        if (TDS.TDS_RETURN_VALUE != tdsReader.readUnsignedByte())
-            assert false;
+        assert TDS.TDS_RETURN_VALUE == tdsReader.readUnsignedByte();
         ordinalOrLength = tdsReader.readUnsignedShort();
         paramName = tdsReader.readUnicodeString(tdsReader.readUnsignedByte());
         status = tdsReader.readUnsignedByte();
