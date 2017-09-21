@@ -1338,7 +1338,6 @@ final class AsciiFilteredUnicodeInputStream extends InputStream {
         catch (IOException e) {
             // unfortunately inputstream mark does not throw an exception so we have to eat any exception from the reader here
             // likely to be a bug in the original InputStream spec.
-            return;
         }
     }
 
