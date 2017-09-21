@@ -1339,7 +1339,7 @@ final class TDSChannel {
      * A PermissiveX509TrustManager is used to "verify" the authenticity of the server when the trustServerCertificate connection property is set to
      * true.
      */
-    private final class PermissiveX509TrustManager extends Object implements X509TrustManager {
+    private final class PermissiveX509TrustManager implements X509TrustManager {
         private final TDSChannel tdsChannel;
         private final Logger logger;
         private final String logContext;
@@ -1372,7 +1372,7 @@ final class TDSChannel {
      *
      * This validates the subject name in the certificate with the host name
      */
-    private final class HostNameOverrideX509TrustManager extends Object implements X509TrustManager {
+    private final class HostNameOverrideX509TrustManager implements X509TrustManager {
         private final Logger logger;
         private final String logContext;
         private final X509TrustManager defaultTrustManager;
