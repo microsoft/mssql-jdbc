@@ -25,6 +25,7 @@ import java.text.MessageFormat;
 import java.util.Enumeration;
 import java.util.Locale;
 
+import javax.xml.bind.DatatypeConverter;
 
 /**
  * The implementation of the key store provider for the Windows Certificate Store. This class enables using keys stored in the Windows Certificate
@@ -134,7 +135,7 @@ public final class SQLServerColumnEncryptionCertificateStoreProvider extends SQL
         byte[] der = cert.getEncoded();
         md.update(der);
         byte[] digest = md.digest();
-        return Util.bytesToHexString(digest, digest.length);
+        return DatatypeConverter.printHexBinary(digest);
     }
 
     private CertificateDetails getCertificateByThumbprint(String storeLocation,
