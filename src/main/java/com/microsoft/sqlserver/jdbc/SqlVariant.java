@@ -62,7 +62,7 @@ enum sqlVariantProbBytes {
 
         if (!(0 <= intValue && intValue < valuesTypes.length) || null == (tdsType = valuesTypes[intValue])) {
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_unknownSSType"));
-            Object[] msgArgs = {new Integer(intValue)};
+            Object[] msgArgs = {Integer.valueOf(intValue)};
             throw new IllegalArgumentException(form.format(msgArgs));
         }
 
