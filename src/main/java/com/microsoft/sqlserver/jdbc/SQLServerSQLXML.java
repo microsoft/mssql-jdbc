@@ -23,8 +23,6 @@ import javax.xml.XMLConstants;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
-import javax.xml.parsers.SAXParser;
-import javax.xml.parsers.SAXParserFactory;
 import javax.xml.stream.XMLInputFactory;
 import javax.xml.stream.XMLOutputFactory;
 import javax.xml.stream.XMLStreamException;
@@ -50,6 +48,7 @@ import org.xml.sax.EntityResolver;
 import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
 import org.xml.sax.XMLReader;
+import org.xml.sax.helpers.XMLReaderFactory;
 
 /**
  * SQLServerSQLXML represents an XML object and implements a java.sql.SQLXML.
@@ -406,14 +405,12 @@ final class SQLServerSQLXML implements java.sql.SQLXML {
     private SAXSource getSAXSource() throws SQLException {
         try {
             InputSource src = new InputSource(contents);
-            SAXParserFactory factory=SAXParserFactory.newInstance();
-            SAXParser parser=factory.newSAXParser();
-            XMLReader reader = parser.getXMLReader();
+            XMLReader reader = XMLReaderFactory.createXMLReader();
             SAXSource saxSource = new SAXSource(reader, src);
             return saxSource;
 
         }
-        catch (SAXException | ParserConfigurationException e) {
+        catch (SAXException e) {
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_failedToParseXML"));
             Object[] msgArgs = {e.toString()};
             SQLServerException.makeFromDriverError(con, null, form.format(msgArgs), null, true);
