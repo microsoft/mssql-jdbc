@@ -22,7 +22,8 @@ final class StreamTabName extends StreamPacket {
     }
 
     void setFromTDS(TDSReader tdsReader) throws SQLServerException {
-        assert TDS.TDS_TABNAME == tdsReader.readUnsignedByte() : "Not a TABNAME token";
+        if (TDS.TDS_TABNAME != tdsReader.readUnsignedByte())
+            assert false : "Not a TABNAME token";
 
         this.tdsReader = tdsReader;
         int tokenLength = tdsReader.readUnsignedShort();

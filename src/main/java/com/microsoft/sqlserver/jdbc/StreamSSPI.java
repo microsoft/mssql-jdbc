@@ -21,7 +21,8 @@ final class StreamSSPI extends StreamPacket {
     }
 
     void setFromTDS(TDSReader tdsReader) throws SQLServerException {
-        assert TDS.TDS_SSPI == tdsReader.readUnsignedByte();
+        if (TDS.TDS_SSPI != tdsReader.readUnsignedByte())
+            assert false;
         int blobLength = tdsReader.readUnsignedShort();
         sspiBlob = new byte[blobLength];
         tdsReader.readBytes(sspiBlob, 0, blobLength);
