@@ -5,18 +5,18 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/)
 
 ## [6.3.3] Preview Release
 ### Added
-- Added connection properties for specifying custom TrustManager [#74] (https://github.com/Microsoft/mssql-jdbc/pull/74)
+- Added connection properties for specifying custom TrustManager [#74](https://github.com/Microsoft/mssql-jdbc/pull/74)
 
 ### Fixed Issues 
-- Fixed exception thrown by getters on null columns  [#488] (https://github.com/Microsoft/mssql-jdbc/pull/488)
-- Fixed issue with DatabaseMetaData#getImportedKeys() returns wrong value for DELETE_RULE [#490] (https://github.com/Microsoft/mssql-jdbc/pull/490)
-- Fixed issue with ActivityCorrelator causing a classloader leak [#465] (https://github.com/Microsoft/mssql-jdbc/pull/465)
+- Fixed exception thrown by getters on null columns  [#488](https://github.com/Microsoft/mssql-jdbc/pull/488)
+- Fixed issue with DatabaseMetaData#getImportedKeys() returns wrong value for DELETE_RULE [#490](https://github.com/Microsoft/mssql-jdbc/pull/490)
+- Fixed issue with ActivityCorrelator causing a classloader leak [#465](https://github.com/Microsoft/mssql-jdbc/pull/465)
 
 ### Changed
-- Removed explicit extends Object [#469] (https://github.com/Microsoft/mssql-jdbc/pull/469)
-- Removed unnecessary return statements [#471] (https://github.com/Microsoft/mssql-jdbc/pull/471)
-- Simplified overly complex boolean expressions [#472] (https://github.com/Microsoft/mssql-jdbc/pull/472)
-- Replaced explicit types with <> (the diamond operator) [#420] (https://github.com/Microsoft/mssql-jdbc/pull/420)
+- Removed explicit extends Object [#469](https://github.com/Microsoft/mssql-jdbc/pull/469)
+- Removed unnecessary return statements [#471](https://github.com/Microsoft/mssql-jdbc/pull/471)
+- Simplified overly complex boolean expressions [#472](https://github.com/Microsoft/mssql-jdbc/pull/472)
+- Replaced explicit types with <> (the diamond operator) [#420](https://github.com/Microsoft/mssql-jdbc/pull/420)
 
 ## [6.3.2] Preview Release
 ### Added
