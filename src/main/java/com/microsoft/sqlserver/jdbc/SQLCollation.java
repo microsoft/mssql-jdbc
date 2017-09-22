@@ -45,7 +45,7 @@ final class SQLCollation implements java.io.Serializable
     final boolean supportsAsciiConversion() { return encoding.supportsAsciiConversion(); }
     final boolean hasAsciiCompatibleSBCS() { return encoding.hasAsciiCompatibleSBCS(); }
 
-    static final int tdsLength() { return 5; } // Length of collation in TDS (in bytes)
+    static int tdsLength() { return 5; } // Length of collation in TDS (in bytes)
 
     /**
      * Returns the collation info

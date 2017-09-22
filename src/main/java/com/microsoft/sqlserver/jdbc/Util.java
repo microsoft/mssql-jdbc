@@ -44,7 +44,7 @@ final class Util {
         return SYSTEM_JRE.startsWith("IBM");
     }
 
-    static final Boolean isCharType(int jdbcType) {
+    static Boolean isCharType(int jdbcType) {
         switch (jdbcType) {
             case java.sql.Types.CHAR:
             case java.sql.Types.NCHAR:
@@ -58,7 +58,7 @@ final class Util {
         }
     }
 
-    static final Boolean isCharType(SSType ssType) {
+    static Boolean isCharType(SSType ssType) {
         switch (ssType) {
             case CHAR:
             case NCHAR:
@@ -72,7 +72,7 @@ final class Util {
         }
     }
 
-    static final Boolean isBinaryType(SSType ssType) {
+    static Boolean isBinaryType(SSType ssType) {
         switch (ssType) {
             case BINARY:
             case VARBINARY:
@@ -84,7 +84,7 @@ final class Util {
         }
     }
 
-    static final Boolean isBinaryType(int jdbcType) {
+    static Boolean isBinaryType(int jdbcType) {
         switch (jdbcType) {
             case java.sql.Types.BINARY:
             case java.sql.Types.VARBINARY:
@@ -680,7 +680,7 @@ final class Util {
         return WSIDNotAvailable;
     }
 
-    static final byte[] asGuidByteArray(UUID aId) {
+    static byte[] asGuidByteArray(UUID aId) {
         long msb = aId.getMostSignificantBits();
         long lsb = aId.getLeastSignificantBits();
         byte[] buffer = new byte[16];
@@ -714,7 +714,7 @@ final class Util {
         return buffer;
     }
 
-    static final UUID readGUIDtoUUID(byte[] inputGUID) throws SQLServerException {
+    static UUID readGUIDtoUUID(byte[] inputGUID) throws SQLServerException {
         if (inputGUID.length != 16) {
             throw new SQLServerException("guid length must be 16", null);
         }
@@ -754,7 +754,7 @@ final class Util {
         return new UUID(msb, lsb);
     }
 
-    static final String readGUID(byte[] inputGUID) throws SQLServerException {
+    static String readGUID(byte[] inputGUID) throws SQLServerException {
         String guidTemplate = "NNNNNNNN-NNNN-NNNN-NNNN-NNNNNNNNNNNN";
         byte guid[] = inputGUID;
 

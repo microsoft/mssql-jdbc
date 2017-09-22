@@ -22,11 +22,11 @@ final class DriverJDBCVersion {
     static final int major = 4;
     static final int minor = 2;
 
-    static final void checkSupportsJDBC42() {
+    static void checkSupportsJDBC42() {
     }
 
-    static final void throwBatchUpdateException(SQLServerException lastError,
-            long[] updateCounts) throws BatchUpdateException {
+    static void throwBatchUpdateException(SQLServerException lastError,
+                                          long[] updateCounts) throws BatchUpdateException {
         throw new BatchUpdateException(lastError.getMessage(), lastError.getSQLState(), lastError.getErrorCode(), updateCounts,
                 new Throwable(lastError.getMessage()));
     }

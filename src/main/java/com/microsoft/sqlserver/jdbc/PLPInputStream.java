@@ -40,7 +40,7 @@ class PLPInputStream extends BaseInputStream {
     /**
      * Non-destructive method for checking whether a PLP value at the current TDSReader location is null.
      */
-    final static boolean isNull(TDSReader tdsReader) throws SQLServerException {
+    static boolean isNull(TDSReader tdsReader) throws SQLServerException {
         TDSReaderMark mark = tdsReader.mark();
         //Temporary stream cannot get closes, since it closes the main stream. 
         try {
@@ -64,13 +64,13 @@ class PLPInputStream extends BaseInputStream {
      * @throws SQLServerException
      *             when an error occurs
      */
-    final static PLPInputStream makeTempStream(TDSReader tdsReader,
+    static PLPInputStream makeTempStream(TDSReader tdsReader,
             boolean discardValue,
             ServerDTVImpl dtv) throws SQLServerException {
         return makeStream(tdsReader, discardValue, discardValue, dtv);
     }
 
-    final static PLPInputStream makeStream(TDSReader tdsReader,
+    static PLPInputStream makeStream(TDSReader tdsReader,
             InputStreamGetterArgs getterArgs,
             ServerDTVImpl dtv) throws SQLServerException {
         PLPInputStream is = makeStream(tdsReader, getterArgs.isAdaptive, getterArgs.isStreaming, dtv);
@@ -423,7 +423,7 @@ final class PLPXMLInputStream extends PLPInputStream {
     private final static byte[] xmlBOM = {(byte) 0xFF, (byte) 0xFE};
     private final ByteArrayInputStream bomStream = new ByteArrayInputStream(xmlBOM);
 
-    final static PLPXMLInputStream makeXMLStream(TDSReader tdsReader,
+    static PLPXMLInputStream makeXMLStream(TDSReader tdsReader,
             InputStreamGetterArgs getterArgs,
             ServerDTVImpl dtv) throws SQLServerException {
         // Read total length of PLP stream.

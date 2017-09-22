@@ -138,7 +138,7 @@ final class TDS {
     // Sql_variant length
     static final int SQL_VARIANT_LENGTH = 8009;
 
-    static final String getTokenName(int tdsTokenType) {
+    static String getTokenName(int tdsTokenType) {
         switch (tdsTokenType) {
             case TDS_RET_STAT:
                 return "TDS_RET_STAT (0x79)";
@@ -348,7 +348,7 @@ final class TDS {
     static final byte ENCRYPT_REQ = 0x03;
     static final byte ENCRYPT_INVALID = (byte) 0xFF;
 
-    static final String getEncryptionLevel(int level) {
+    static String getEncryptionLevel(int level) {
         switch (level) {
             case ENCRYPT_OFF:
                 return "OFF";
