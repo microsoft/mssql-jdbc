@@ -14,7 +14,6 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/)
 
 ### Changed
 - Removed explicit extends Object [#469] (https://github.com/Microsoft/mssql-jdbc/pull/469)
-- Removed redundant if/else statements [#470] (https://github.com/Microsoft/mssql-jdbc/pull/470)
 - Removed unnecessary return statements [#471] (https://github.com/Microsoft/mssql-jdbc/pull/471)
 - Simplified overly complex boolean expressions [#472] (https://github.com/Microsoft/mssql-jdbc/pull/472)
 - Replaced explicit types with <> (the diamond operator) [#420] (https://github.com/Microsoft/mssql-jdbc/pull/420)
