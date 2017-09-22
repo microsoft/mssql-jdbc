@@ -1968,7 +1968,10 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
             case ResultSet.TYPE_SCROLL_INSENSITIVE:
                 // case SQLServerResultSet.TYPE_SS_SCROLL_STATIC: sensitive synonym
             case SQLServerResultSet.TYPE_SS_DIRECT_FORWARD_ONLY:
-                return ResultSet.CONCUR_READ_ONLY == concurrency;
+                if (ResultSet.CONCUR_READ_ONLY == concurrency)
+                    return true;
+                else
+                    return false;
         }
         // per spec if we do not know we do not support.
         return false;
@@ -1977,48 +1980,60 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
     /* L0 */ public boolean ownUpdatesAreVisible(int type) throws SQLServerException {
         checkClosed();
         checkResultType(type);
-        return type == SQLServerResultSet.TYPE_SS_SCROLL_DYNAMIC || SQLServerResultSet.TYPE_FORWARD_ONLY == type
+        if (type == SQLServerResultSet.TYPE_SS_SCROLL_DYNAMIC || SQLServerResultSet.TYPE_FORWARD_ONLY == type
                 || SQLServerResultSet.TYPE_SCROLL_SENSITIVE == type || SQLServerResultSet.TYPE_SS_SCROLL_KEYSET == type
-                || SQLServerResultSet.TYPE_SS_SERVER_CURSOR_FORWARD_ONLY == type;
+                || SQLServerResultSet.TYPE_SS_SERVER_CURSOR_FORWARD_ONLY == type)
+            return true;
+        return false;
     }
 
     /* L0 */ public boolean ownDeletesAreVisible(int type) throws SQLServerException {
         checkClosed();
         checkResultType(type);
-        return type == SQLServerResultSet.TYPE_SS_SCROLL_DYNAMIC || SQLServerResultSet.TYPE_FORWARD_ONLY == type
+        if (type == SQLServerResultSet.TYPE_SS_SCROLL_DYNAMIC || SQLServerResultSet.TYPE_FORWARD_ONLY == type
                 || SQLServerResultSet.TYPE_SCROLL_SENSITIVE == type || SQLServerResultSet.TYPE_SS_SCROLL_KEYSET == type
-                || SQLServerResultSet.TYPE_SS_SERVER_CURSOR_FORWARD_ONLY == type;
+                || SQLServerResultSet.TYPE_SS_SERVER_CURSOR_FORWARD_ONLY == type)
+            return true;
+        return false;
     }
 
     /* L0 */ public boolean ownInsertsAreVisible(int type) throws SQLServerException {
         checkClosed();
         checkResultType(type);
-        return type == SQLServerResultSet.TYPE_SS_SCROLL_DYNAMIC || SQLServerResultSet.TYPE_FORWARD_ONLY == type
+        if (type == SQLServerResultSet.TYPE_SS_SCROLL_DYNAMIC || SQLServerResultSet.TYPE_FORWARD_ONLY == type
                 || SQLServerResultSet.TYPE_SCROLL_SENSITIVE == type || SQLServerResultSet.TYPE_SS_SCROLL_KEYSET == type
-                || SQLServerResultSet.TYPE_SS_SERVER_CURSOR_FORWARD_ONLY == type;
+                || SQLServerResultSet.TYPE_SS_SERVER_CURSOR_FORWARD_ONLY == type)
+            return true;
+        return false;
     }
 
     /* L0 */ public boolean othersUpdatesAreVisible(int type) throws SQLServerException {
         checkClosed();
         checkResultType(type);
-        return type == SQLServerResultSet.TYPE_SS_SCROLL_DYNAMIC || SQLServerResultSet.TYPE_FORWARD_ONLY == type
+        if (type == SQLServerResultSet.TYPE_SS_SCROLL_DYNAMIC || SQLServerResultSet.TYPE_FORWARD_ONLY == type
                 || SQLServerResultSet.TYPE_SCROLL_SENSITIVE == type || SQLServerResultSet.TYPE_SS_SCROLL_KEYSET == type
-                || SQLServerResultSet.TYPE_SS_SERVER_CURSOR_FORWARD_ONLY == type;
+                || SQLServerResultSet.TYPE_SS_SERVER_CURSOR_FORWARD_ONLY == type)
+            return true;
+        return false;
     }
 
     /* L0 */ public boolean othersDeletesAreVisible(int type) throws SQLServerException {
         checkClosed();
         checkResultType(type);
-        return type == SQLServerResultSet.TYPE_SS_SCROLL_DYNAMIC || SQLServerResultSet.TYPE_FORWARD_ONLY == type
+        if (type == SQLServerResultSet.TYPE_SS_SCROLL_DYNAMIC || SQLServerResultSet.TYPE_FORWARD_ONLY == type
                 || SQLServerResultSet.TYPE_SCROLL_SENSITIVE == type || SQLServerResultSet.TYPE_SS_SCROLL_KEYSET == type
-                || SQLServerResultSet.TYPE_SS_SERVER_CURSOR_FORWARD_ONLY == type;
+                || SQLServerResultSet.TYPE_SS_SERVER_CURSOR_FORWARD_ONLY == type)
+            return true;
+        return false;
     }
 
     /* L0 */ public boolean othersInsertsAreVisible(int type) throws SQLServerException {
         checkClosed();
         checkResultType(type);
-        return type == SQLServerResultSet.TYPE_SS_SCROLL_DYNAMIC || SQLServerResultSet.TYPE_FORWARD_ONLY == type
-                || SQLServerResultSet.TYPE_SS_SERVER_CURSOR_FORWARD_ONLY == type;
+        if (type == SQLServerResultSet.TYPE_SS_SCROLL_DYNAMIC || SQLServerResultSet.TYPE_FORWARD_ONLY == type
+                || SQLServerResultSet.TYPE_SS_SERVER_CURSOR_FORWARD_ONLY == type)
+            return true;
+        return false;
     }
 
     /* L0 */ public boolean updatesAreDetected(int type) throws SQLServerException {
@@ -2030,7 +2045,10 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
     /* L0 */ public boolean deletesAreDetected(int type) throws SQLServerException {
         checkClosed();
         checkResultType(type);
-        return SQLServerResultSet.TYPE_SS_SCROLL_KEYSET == type;
+        if (SQLServerResultSet.TYPE_SS_SCROLL_KEYSET == type)
+            return true;
+        else
+            return false;
     }
 
     // Check the result types to make sure the user does not pass a bad value.

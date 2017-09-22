@@ -790,7 +790,10 @@ final class Util {
     static boolean IsActivityTraceOn() {
         LogManager lm = LogManager.getLogManager();
         String activityTrace = lm.getProperty(ActivityIdTraceProperty);
-        return "on".equalsIgnoreCase(activityTrace);
+        if ("on".equalsIgnoreCase(activityTrace))
+            return true;
+        else
+            return false;
     }
 
     /**
