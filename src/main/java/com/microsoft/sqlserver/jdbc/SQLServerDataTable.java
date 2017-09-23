@@ -118,7 +118,7 @@ public final class SQLServerDataTable {
                 Object val = null;
 
                 if ((null != values) && (currentColumn < values.length) && (null != values[currentColumn]))
-                    val = (null == values[currentColumn]) ? null : values[currentColumn];
+                    val = values[currentColumn];
                 currentColumn++;
                 Map.Entry<Integer, SQLServerDataColumn> pair = columnsIterator.next();
                 JDBCType jdbcType = JDBCType.of(pair.getValue().javaSqlType);

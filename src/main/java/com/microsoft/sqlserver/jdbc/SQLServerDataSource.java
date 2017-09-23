@@ -595,6 +595,24 @@ public class SQLServerDataSource implements ISQLServerDataSource, DataSource, ja
                 SQLServerDriverStringProperty.SSL_PROTOCOL.getDefaultValue());
     }
 
+    public void setTrustManagerClass(String trustManagerClass) {
+        setStringProperty(connectionProps, SQLServerDriverStringProperty.TRUST_MANAGER_CLASS.toString(), trustManagerClass);
+    }
+
+    public String getTrustManagerClass() {
+        return getStringProperty(connectionProps, SQLServerDriverStringProperty.TRUST_MANAGER_CLASS.toString(),
+                SQLServerDriverStringProperty.TRUST_MANAGER_CLASS.getDefaultValue());
+    }
+
+    public void setTrustManagerConstructorArg(String trustManagerClass) {
+        setStringProperty(connectionProps, SQLServerDriverStringProperty.TRUST_MANAGER_CONSTRUCTOR_ARG.toString(), trustManagerClass);
+    }
+
+    public String getTrustManagerConstructorArg() {
+        return getStringProperty(connectionProps, SQLServerDriverStringProperty.TRUST_MANAGER_CONSTRUCTOR_ARG.toString(),
+                SQLServerDriverStringProperty.TRUST_MANAGER_CONSTRUCTOR_ARG.getDefaultValue());
+    }
+
     // The URL property is exposed for backwards compatibility reasons. Also, several
     // Java Application servers expect a setURL function on the DataSource and set it
     // by default (JBoss and WebLogic).

@@ -50,6 +50,5 @@ final class StreamTabName extends StreamPacket {
         }
 
         tdsReader.reset(currentMark);
-        return;
     }
 }

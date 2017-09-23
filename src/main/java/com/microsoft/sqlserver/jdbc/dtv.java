@@ -1213,7 +1213,7 @@ final class DTV {
                                                                                                        // the default length for decimal value
                             }
 
-                            tdsWriter.writeByte((byte) ((0 != outScale) ? outScale : 0));	// send scale
+                            tdsWriter.writeByte((byte) (outScale));	// send scale
                         }
                         else {
                             tdsWriter.writeByte((byte) 0x11); // maximum length
@@ -3835,7 +3835,7 @@ final class ServerDTVImpl extends DTVImpl {
                 DataTypes.throwConversionError(typeInfo.getSSType().toString(), streamGetterArgs.streamType.toString());
         }
         else {
-            if (!baseSSType.convertsTo(jdbcType)) {
+            if (!baseSSType.convertsTo(jdbcType) && !isNull) {
                 // if the baseSSType is Character or NCharacter and jdbcType is Longvarbinary,
                 // does not throw type conversion error, which allows getObject() on Long Character types.
                 if (encrypted) {

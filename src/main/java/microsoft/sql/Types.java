@@ -13,7 +13,7 @@ package microsoft.sql;
  *
  * This class is never instantiated.
  */
-public final class Types extends Object {
+public final class Types {
     private Types() {
         // not reached
     }

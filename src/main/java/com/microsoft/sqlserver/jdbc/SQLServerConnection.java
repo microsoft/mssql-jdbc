@@ -507,6 +507,20 @@ public class SQLServerConnection implements ISQLServerConnection {
         return negotiatedEncryptionLevel;
     }
 
+    private String trustManagerClass = null;
+
+    final String getTrustManagerClass() {
+        assert TDS.ENCRYPT_INVALID != requestedEncryptionLevel;
+        return trustManagerClass;
+    }
+
+    private String trustManagerConstructorArg = null;
+
+    final String getTrustManagerConstructorArg() {
+        assert TDS.ENCRYPT_INVALID != requestedEncryptionLevel;
+        return trustManagerConstructorArg;
+    }
+
     static final String RESERVED_PROVIDER_NAME_PREFIX = "MSSQL_";
     String columnEncryptionSetting = null;
 
@@ -1355,6 +1369,9 @@ public class SQLServerConnection implements ISQLServerConnection {
 
             trustServerCertificate = booleanPropertyOn(sPropKey, sPropValue);
 
+            trustManagerClass = activeConnectionProperties.getProperty(SQLServerDriverStringProperty.TRUST_MANAGER_CLASS.toString());
+            trustManagerConstructorArg = activeConnectionProperties.getProperty(SQLServerDriverStringProperty.TRUST_MANAGER_CONSTRUCTOR_ARG.toString());
+
             sPropKey = SQLServerDriverStringProperty.SELECT_METHOD.toString();
             sPropValue = activeConnectionProperties.getProperty(sPropKey);
             if (sPropValue == null)
@@ -1801,7 +1818,7 @@ public class SQLServerConnection implements ISQLServerConnection {
             long timerStart) throws SQLServerException {
         // standardLogin would be false only for db mirroring scenarios. It would be true
         // for all other cases, including multiSubnetFailover
-        final boolean isDBMirroring = (null == mirror && null == foActual) ? false : true;
+        final boolean isDBMirroring = null != mirror || null != foActual;
         int sleepInterval = 100;  // milliseconds to sleep (back off) between attempts.
         long timeoutUnitInterval;
 
@@ -2605,7 +2622,7 @@ public class SQLServerConnection implements ISQLServerConnection {
                     // Or AccessToken is not null, mean token based authentication is used.
                     if (((null != authenticationString) && (!authenticationString.equalsIgnoreCase(SqlAuthentication.NotSpecified.toString())))
                             || (null != accessTokenInByte)) {
-                        fedAuthRequiredPreLoginResponse = (preloginResponse[optionOffset] == 1 ? true : false);
+                        fedAuthRequiredPreLoginResponse = (preloginResponse[optionOffset] == 1);
                     }
                     break;
 
@@ -2992,6 +3009,8 @@ public class SQLServerConnection implements ISQLServerConnection {
 
         // Clean-up queue etc. related to batching of prepared statement discard actions (sp_unprepare).
         cleanupPreparedStatementDiscardActions();
+        
+        ActivityCorrelator.cleanupActivityId();
 
         loggerExternal.exiting(getClassNameLogging(), "close");
     }
@@ -3012,6 +3031,7 @@ public class SQLServerConnection implements ISQLServerConnection {
                 connectionCommand("IF @@TRANCOUNT > 0 ROLLBACK TRAN" /* +close connection */, "close connection");
             }
             notifyPooledConnection(null);
+            ActivityCorrelator.cleanupActivityId();
             if (connectionlogger.isLoggable(Level.FINER)) {
                 connectionlogger.finer(toString() + " Connection closed and returned to connection pool");
             }
