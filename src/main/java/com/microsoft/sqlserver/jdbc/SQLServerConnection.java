@@ -33,6 +33,7 @@ import java.sql.SQLPermission;
 import java.sql.SQLWarning;
 import java.sql.SQLXML;
 import java.sql.Savepoint;
+import java.sql.ShardingKey;
 import java.sql.Statement;
 import java.sql.Struct;
 import java.text.MessageFormat;
@@ -5234,6 +5235,40 @@ public class SQLServerConnection implements ISQLServerConnection {
         }
         loggerExternal.exiting(getClassNameLogging(), "unwrap", t);
         return t;
+    }
+
+    public void beginRequest() throws SQLFeatureNotSupportedException {
+        DriverJDBCVersion.checkSupportsJDBC43();
+        throw new SQLFeatureNotSupportedException("beginRequest not implemented");
+    }
+
+    public void endRequest() throws SQLFeatureNotSupportedException {
+        DriverJDBCVersion.checkSupportsJDBC43();
+        throw new SQLFeatureNotSupportedException("endRequest not implemented");
+    }
+
+    public void setShardingKey(ShardingKey shardingKey) throws SQLFeatureNotSupportedException {
+        DriverJDBCVersion.checkSupportsJDBC43();
+        throw new SQLFeatureNotSupportedException("createShardingKeyBuilder not implemented");
+    }
+
+    public void setShardingKey(ShardingKey shardingKey,
+            ShardingKey superShardingKey) throws SQLFeatureNotSupportedException {
+        DriverJDBCVersion.checkSupportsJDBC43();
+        throw new SQLFeatureNotSupportedException("createShardingKeyBuilder not implemented");
+    }
+
+    public boolean setShardingKeyIfValid(ShardingKey shardingKey,
+            int timeout) throws SQLFeatureNotSupportedException {
+        DriverJDBCVersion.checkSupportsJDBC43();
+        throw new SQLFeatureNotSupportedException("createShardingKeyBuilder not implemented");
+    }
+
+    public boolean setShardingKeyIfValid(ShardingKey shardingKey,
+            ShardingKey superShardingKey,
+            int timeout) throws SQLFeatureNotSupportedException {
+        DriverJDBCVersion.checkSupportsJDBC43();
+        throw new SQLFeatureNotSupportedException("createShardingKeyBuilder not implemented");
     }
 
     /**

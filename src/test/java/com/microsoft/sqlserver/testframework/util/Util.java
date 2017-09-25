@@ -292,6 +292,17 @@ public class Util {
     }
 
     /**
+     * Utility function for checking if the system supports JDBC 4.3
+     * 
+     * @param con
+     * @return
+     */
+    public static boolean supportJDBC43(Connection con) throws SQLException {
+        SQLServerDatabaseMetaData meta = (SQLServerDatabaseMetaData) con.getMetaData();
+        return (meta.getJDBCMajorVersion() >= 4 && meta.getJDBCMinorVersion() >= 3);
+    }
+
+    /**
      * 
      * @param b
      *            byte value
