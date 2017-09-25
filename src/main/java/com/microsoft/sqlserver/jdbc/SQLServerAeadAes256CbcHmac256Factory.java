@@ -12,8 +12,8 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 
 import java.text.MessageFormat;
 import java.util.concurrent.ConcurrentHashMap;
+import mssql.apache.org.commoncodec.binary.Base64;
 
-import javax.xml.bind.DatatypeConverter;
 
 /**
  * Factory for SQLServerAeadAes256CbcHmac256Algorithm
@@ -38,7 +38,7 @@ class SQLServerAeadAes256CbcHmac256Factory extends SQLServerEncryptionAlgorithmF
         }
 
         StringBuilder factoryKeyBuilder = new StringBuilder();
-        factoryKeyBuilder.append(DatatypeConverter.printBase64Binary(new String(columnEncryptionKey.getRootKey(), UTF_8).getBytes()));
+        factoryKeyBuilder.append(Base64.encodeBase64(new String(columnEncryptionKey.getRootKey(), UTF_8).getBytes()));
 
         factoryKeyBuilder.append(":");
         factoryKeyBuilder.append(encryptionType);
