@@ -10,7 +10,10 @@ package com.microsoft.sqlserver.jdbc.unit.statement;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.fail;
 
+import java.sql.Connection;
+import java.sql.DriverManager;
 import java.sql.ResultSet;
+import java.sql.Statement;
 
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.DisplayName;
@@ -21,6 +24,8 @@ import org.junit.runner.RunWith;
 import com.microsoft.sqlserver.testframework.AbstractTest;
 import com.microsoft.sqlserver.testframework.DBConnection;
 import com.microsoft.sqlserver.testframework.DBStatement;
+import com.microsoft.sqlserver.testframework.Utils;
+
 
 /**
  * Testing merge queries
@@ -77,17 +82,21 @@ public class MergeTest extends AbstractTest {
     @AfterAll
     public static void afterAll() throws Exception {
 
-        DBConnection conn = new DBConnection(connectionString);
-        DBStatement stmt = conn.createStatement();
+        Connection conn =  DriverManager.getConnection(connectionString);
+        Statement stmt = conn.createStatement();
         try {
-            stmt.executeUpdate("IF OBJECT_ID (N'dbo.CricketTeams', N'U') IS NOT NULL DROP TABLE dbo.CricketTeams");
+            Utils.dropTableIfExists("dbo.CricketTeams", stmt);
         }
         catch (Exception ex) {
             fail(ex.toString());
         }
         finally {
-            stmt.close();
-            conn.close();
+            if (stmt != null) {
+                stmt.close();
+            }
+            if (conn != null) {
+                conn.close();
+            }
         }
 
     }

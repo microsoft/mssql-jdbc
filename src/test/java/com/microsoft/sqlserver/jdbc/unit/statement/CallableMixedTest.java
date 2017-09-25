@@ -22,6 +22,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
 import com.microsoft.sqlserver.testframework.AbstractTest;
+import com.microsoft.sqlserver.testframework.Utils;
 import com.microsoft.sqlserver.testframework.util.RandomUtil;
 
 /**
@@ -39,6 +40,7 @@ public class CallableMixedTest extends AbstractTest {
 
     /**
      * Tests Callable mix
+     * 
      * @throws SQLException
      */
     @Test
@@ -67,7 +69,7 @@ public class CallableMixedTest extends AbstractTest {
         callableStatement.registerOutParameter((int) 1, (int) 4);
         callableStatement.setObject((int) 2, Integer.valueOf("31"), (int) 4);
         callableStatement.registerOutParameter((int) 3, (int) 4);
-        callableStatement.registerOutParameter((int) 5, java.sql.Types.BINARY); 
+        callableStatement.registerOutParameter((int) 5, java.sql.Types.BINARY);
         callableStatement.registerOutParameter((int) 5, (int) 5);
         callableStatement.setObject((int) 4, Short.valueOf("-5372"), (int) 5);
 
@@ -97,13 +99,20 @@ public class CallableMixedTest extends AbstractTest {
         terminateVariation();
     }
 
-    
+    /**
+     * Cleanups
+     * @throws SQLException
+     */
     private void terminateVariation() throws SQLException {
         statement = connection.createStatement();
-        statement.executeUpdate("DROP TABLE " + tableName);
-        statement.executeUpdate(" DROP PROCEDURE " + procName);
-        statement.close();
-        connection.close();
+        Utils.dropTableIfExists(tableName, statement);
+        Utils.dropProcedureIfExists(procName, statement);
+        if (statement != null) {
+            statement.close();
+        }
+        if (connection != null) {
+            connection.close();
+        }
     }
 
 }
