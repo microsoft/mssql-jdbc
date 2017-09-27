@@ -13,12 +13,10 @@ import java.text.MessageFormat;
 import java.time.OffsetDateTime;
 import java.time.OffsetTime;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Set;
 import java.util.UUID;
 
 public final class SQLServerDataTable {
@@ -26,7 +24,6 @@ public final class SQLServerDataTable {
     int rowCount = 0;
     int columnCount = 0;
     Map<Integer, SQLServerDataColumn> columnMetadata = null;
-    Set<String> columnList = null;
     Map<Integer, Object[]> rows = null;
 
     private String tvpName = null;
@@ -40,7 +37,6 @@ public final class SQLServerDataTable {
     // Name used in CREATE TYPE
     public SQLServerDataTable() throws SQLServerException {
         columnMetadata = new LinkedHashMap<>();
-        columnList = new HashSet<>();
         rows = new HashMap<>();
     }
 
@@ -79,7 +75,7 @@ public final class SQLServerDataTable {
     public synchronized void addColumnMetadata(String columnName,
             int sqlType) throws SQLServerException {
         // column names must be unique
-        checkDuplicateColumnName(columnName);
+        Util.checkDuplicateColumnName(columnName, columnMetadata);
         columnMetadata.put(columnCount++, new SQLServerDataColumn(columnName, sqlType));
     }
 
@@ -93,27 +89,8 @@ public final class SQLServerDataTable {
      */
     public synchronized void addColumnMetadata(SQLServerDataColumn column) throws SQLServerException {
         // column names must be unique
-        checkDuplicateColumnName(column.columnName);
+        Util.checkDuplicateColumnName(column.columnName, columnMetadata);
         columnMetadata.put(columnCount++, column);
-    }
-
-    /**
-     * Checks if duplicate columns exists, in O(n) time.
-     * 
-     * @param columnName
-     *            the name of the column
-     * @throws SQLServerException
-     *             when a duplicate column exists
-     */
-    private void checkDuplicateColumnName(String columnName) throws SQLServerException {
-        if (null != columnList) {
-            //columnList.add will return false if the same column name already exists
-            if (!columnList.add(columnName)) {
-                MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_TVPDuplicateColumnName"));
-                Object[] msgArgs = {columnName};
-                throw new SQLServerException(null, form.format(msgArgs), null, 0, false);
-            }
-        }
     }
 
     /**
