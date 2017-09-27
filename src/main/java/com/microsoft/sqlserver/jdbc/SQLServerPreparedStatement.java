@@ -178,7 +178,9 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         // Parse or fetch SQL metadata from cache.
         ParsedSQLCacheItem parsedSQL = getCachedParsedSQL(sqlTextCacheKey);
         if(null != parsedSQL) {
-            isExecutedAtLeastOnce = true;
+            if(null != connection && connection.isStatementPoolingEnabled()) {
+                isExecutedAtLeastOnce = true;
+            }
         }
         else {
             parsedSQL = parseAndCacheSQL(sqlTextCacheKey, sql);
