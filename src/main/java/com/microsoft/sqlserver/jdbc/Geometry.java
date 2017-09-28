@@ -14,11 +14,13 @@ public class Geometry {
     private int numberOfPoints;
     private int numberOfFigures;
     private int numberOfShapes;
+    private int numberOfSegments;
     private double points[];
     private double zValues[];
     private double mValues[];
     private Figure figures[];
     private Shape shapes[];
+    private Segment segments[];
     
     //serialization properties
     private boolean hasZvalues;
@@ -82,7 +84,9 @@ public class Geometry {
         readShapes();
         
         if (version == 2) {
+            readNumberOfSegments();
             
+            readSegments();
         }
     }
     
@@ -155,6 +159,18 @@ public class Geometry {
             shapes[i] = new Shape(po, fo, ogt);
         }
     }
+    
+    private void readNumberOfSegments() {
+        numberOfSegments = buffer.getInt();
+    }
+    
+    private void readSegments() {
+        byte st;
+        for (int i = 0; i < numberOfSegments; i++) {
+            st = buffer.get();
+            segments[i] = new Segment(st);
+        }
+    }
 }
 
 class Figure {
@@ -196,5 +212,17 @@ class Shape {
     
     public byte getOpenGISType() {
         return openGISType;
+    }
+}
+
+class Segment {
+    private byte segmentType;
+    
+    Segment(byte segmentType) {
+        this.segmentType = segmentType;
+    }
+    
+    public byte getSegmentType() {
+        return segmentType;
     }
 }

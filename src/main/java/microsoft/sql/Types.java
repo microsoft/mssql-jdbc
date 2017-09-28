@@ -57,4 +57,6 @@ public final class Types {
      * The constant in the Java programming language, sometimes referred to as a type code, that identifies the Microsoft SQL type SQL_VARIANT.
      */
     public static final int SQL_VARIANT = -156;
+    
+    public static final int GEOMETRY = -157;
 }
