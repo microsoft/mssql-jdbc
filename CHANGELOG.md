@@ -5,7 +5,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/)
 
 ## [6.2.2] Stable Release
 ### Changed
-- Updated ADAL4J and AKV [#516](https://github.com/Microsoft/mssql-jdbc/pull/516)
+- Updated ADAL4J to version 1.2.0 and AKV to version 1.0.0 [#516](https://github.com/Microsoft/mssql-jdbc/pull/516)
 
 ## [6.2.1] Stable Release
 ### Fixed Issues 
