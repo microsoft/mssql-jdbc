@@ -3,6 +3,10 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](http://keepachangelog.com/) 
 
+## [6.2.2] Stable Release
+### Changed
+- Updated ADAL4J and AKV [#516](https://github.com/Microsoft/mssql-jdbc/pull/516)
+
 ## [6.2.1] Stable Release
 ### Fixed Issues 
 - Fixed queries without parameters using preparedStatement [#372](https://github.com/Microsoft/mssql-jdbc/pull/372)
