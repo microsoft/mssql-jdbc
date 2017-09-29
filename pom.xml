@@ -48,7 +48,7 @@
 		<dependency>
 			<groupId>com.microsoft.azure</groupId>
 			<artifactId>azure-keyvault</artifactId>
-			<version>0.9.7</version>
+			<version>1.0.0</version>
 			<optional>true</optional>
 		</dependency>
 		
