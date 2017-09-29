@@ -4828,7 +4828,7 @@ final class TDSWriter {
                 else {
                     if (isSqlVariant) {
                         writeTVPSqlVariantHeader(10, TDSType.FLOAT8.byteValue(), (byte) 0);
-                        writeDouble(Double.valueOf(currentColumnStringValue.toString()));
+                        writeDouble(Double.valueOf(currentColumnStringValue));
                         break;
                     }
                     writeByte((byte) 8); // len of data bytes
