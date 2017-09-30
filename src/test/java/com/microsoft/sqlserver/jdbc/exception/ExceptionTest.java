@@ -61,7 +61,7 @@ public class ExceptionTest extends AbstractTest {
      * 
      */
     @Test
-    @Disabled
+    @Disabled //TODO Fix the issue : Connection Resiliency
     public void testSocketTimeoutExceptionCause() throws Exception {
         SQLServerConnection conn = null;
         try {

@@ -228,7 +228,7 @@ public class PreparedStatementTest extends AbstractTest {
             } 
 
             // Execute statement again and verify same handle was used. 
-            //TODO Fix the issue
+            //TODO Fix the issue : Connection Resiliency
 //            try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement)con.prepareStatement(query)) {
 //                pstmt.execute(); // sp_execute
 //                pstmt.getMoreResults(); // Make sure handle is updated.
