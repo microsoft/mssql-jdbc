@@ -135,7 +135,7 @@ public class TimeoutTest extends AbstractTest {
         createWaitForDelayPreocedure(conn);
 
         // cancel connection resilience to test socketTimeout
-        connectionString += "connectRetryCount=0";
+        connectionString += ";connectRetryCount=0";
         conn = (SQLServerConnection) DriverManager.getConnection(connectionString + ";socketTimeout=" + (waitForDelaySeconds * 1000 / 2) + ";");
 
         try {

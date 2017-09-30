@@ -67,7 +67,7 @@ public class ExceptionTest extends AbstractTest {
             
             Utils.dropProcedureIfExists(waitForDelaySPName, conn.createStatement());
             createWaitForDelayPreocedure(conn);
-
+            
             conn = (SQLServerConnection) DriverManager.getConnection(connectionString + ";socketTimeout=" + (waitForDelaySeconds * 1000 / 2) + ";");
 
             try {

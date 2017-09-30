@@ -299,7 +299,7 @@ public class ConnectionDriverTest extends AbstractTest {
     public void testDeadConnection() throws SQLException {
         assumeTrue(!DBConnection.isSqlAzure(DriverManager.getConnection(connectionString)), "Skipping test case on Azure SQL.");
 
-        connectionString += "connectRetryCount=0";
+        connectionString += ";connectRetryCount=0";
         SQLServerConnection conn = (SQLServerConnection) DriverManager.getConnection(connectionString + ";responseBuffering=adaptive");
         Statement stmt = null;
 
