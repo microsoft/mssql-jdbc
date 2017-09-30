@@ -32,7 +32,7 @@ import java.util.logging.Level;
 
 /**
  * SQLServerConnectionPoolProxy is a wrapper around SQLServerConnection object. When returning a connection object from PooledConnection.getConnection
- * we returnt this proxy per SPEC.
+ * we return this proxy per SPEC.
  * <p>
  * This class's public functions need to be kept identical to the SQLServerConnection's.
  * <p>
@@ -40,8 +40,7 @@ import java.util.logging.Level;
  * details.
  */
 
-class SQLServerConnectionPoolProxy implements ISQLServerConnection, java.io.Serializable {
-    private static final long serialVersionUID = -6412542417798843534L;
+class SQLServerConnectionPoolProxy implements ISQLServerConnection {
     private SQLServerConnection wrappedConnection;
     private boolean bIsOpen;
     static private final AtomicInteger baseConnectionID = new AtomicInteger(0);       // connection id dispenser
@@ -114,7 +113,7 @@ class SQLServerConnectionPoolProxy implements ISQLServerConnection, java.io.Seri
     }
 
     /**
-     * Rollback a transcation.
+     * Rollback a transaction.
      *
      * @throws SQLServerException
      *             if no transaction exists or if the connection is in auto-commit mode.
@@ -125,8 +124,6 @@ class SQLServerConnectionPoolProxy implements ISQLServerConnection, java.io.Seri
     }
 
     public void abort(Executor executor) throws SQLException {
-        DriverJDBCVersion.checkSupportsJDBC41();
-
         if (!bIsOpen || (null == wrappedConnection))
             return;
 
@@ -557,117 +554,86 @@ class SQLServerConnectionPoolProxy implements ISQLServerConnection, java.io.Seri
     }
 
     public int getNetworkTimeout() throws SQLException {
-        DriverJDBCVersion.checkSupportsJDBC41();
-
-        // The driver currently does not implement the optional JDBC APIs
-        throw new SQLFeatureNotSupportedException(SQLServerException.getErrString("R_notSupported"));
+        checkClosed();
+        return wrappedConnection.getNetworkTimeout();
     }
 
     public void setNetworkTimeout(Executor executor,
             int timeout) throws SQLException {
-        DriverJDBCVersion.checkSupportsJDBC41();
-
-        // The driver currently does not implement the optional JDBC APIs
-        throw new SQLFeatureNotSupportedException(SQLServerException.getErrString("R_notSupported"));
+        checkClosed();
+        wrappedConnection.setNetworkTimeout(executor, timeout);
     }
 
     public String getSchema() throws SQLException {
-        DriverJDBCVersion.checkSupportsJDBC41();
-
         checkClosed();
         return wrappedConnection.getSchema();
     }
 
     public void setSchema(String schema) throws SQLException {
-        DriverJDBCVersion.checkSupportsJDBC41();
-
         checkClosed();
         wrappedConnection.setSchema(schema);
     }
 
     public java.sql.Array createArrayOf(String typeName,
             Object[] elements) throws SQLException {
-        DriverJDBCVersion.checkSupportsJDBC4();
-
         checkClosed();
         return wrappedConnection.createArrayOf(typeName, elements);
     }
 
     public Blob createBlob() throws SQLException {
-        DriverJDBCVersion.checkSupportsJDBC4();
-
         checkClosed();
         return wrappedConnection.createBlob();
     }
 
     public Clob createClob() throws SQLException {
-        DriverJDBCVersion.checkSupportsJDBC4();
-
         checkClosed();
         return wrappedConnection.createClob();
     }
 
     public NClob createNClob() throws SQLException {
-        DriverJDBCVersion.checkSupportsJDBC4();
-
         checkClosed();
         return wrappedConnection.createNClob();
     }
 
     public SQLXML createSQLXML() throws SQLException {
-        DriverJDBCVersion.checkSupportsJDBC4();
-
         checkClosed();
         return wrappedConnection.createSQLXML();
     }
 
     public Struct createStruct(String typeName,
             Object[] attributes) throws SQLException {
-        DriverJDBCVersion.checkSupportsJDBC4();
-
         checkClosed();
         return wrappedConnection.createStruct(typeName, attributes);
     }
 
     public Properties getClientInfo() throws SQLException {
-        DriverJDBCVersion.checkSupportsJDBC4();
-
         checkClosed();
         return wrappedConnection.getClientInfo();
     }
 
     public String getClientInfo(String name) throws SQLException {
-        DriverJDBCVersion.checkSupportsJDBC4();
-
         checkClosed();
         return wrappedConnection.getClientInfo(name);
     }
 
     public void setClientInfo(Properties properties) throws SQLClientInfoException {
-        DriverJDBCVersion.checkSupportsJDBC4();
-
         // No checkClosed() call since we can only throw SQLClientInfoException from here
         wrappedConnection.setClientInfo(properties);
     }
 
     public void setClientInfo(String name,
             String value) throws SQLClientInfoException {
-        DriverJDBCVersion.checkSupportsJDBC4();
-
         // No checkClosed() call since we can only throw SQLClientInfoException from here
         wrappedConnection.setClientInfo(name, value);
     }
 
     public boolean isValid(int timeout) throws SQLException {
-        DriverJDBCVersion.checkSupportsJDBC4();
-
         checkClosed();
         return wrappedConnection.isValid(timeout);
     }
 
     public boolean isWrapperFor(Class<?> iface) throws SQLException {
         wrappedConnection.getConnectionLogger().entering(toString(), "isWrapperFor", iface);
-        DriverJDBCVersion.checkSupportsJDBC4();
         boolean f = iface.isInstance(this);
         wrappedConnection.getConnectionLogger().exiting(toString(), "isWrapperFor", f);
         return f;
@@ -675,8 +641,6 @@ class SQLServerConnectionPoolProxy implements ISQLServerConnection, java.io.Seri
 
     public <T> T unwrap(Class<T> iface) throws SQLException {
         wrappedConnection.getConnectionLogger().entering(toString(), "unwrap", iface);
-        DriverJDBCVersion.checkSupportsJDBC4();
-
         T t;
         try {
             t = iface.cast(this);

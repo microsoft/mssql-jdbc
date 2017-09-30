@@ -11,8 +11,9 @@ import static org.junit.Assert.fail;
 
 import java.io.BufferedReader;
 import java.io.FileInputStream;
+import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.net.URI;
+import java.net.URL;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
@@ -29,12 +30,15 @@ import org.junit.runner.RunWith;
 import com.microsoft.sqlserver.jdbc.ISQLServerBulkRecord;
 import com.microsoft.sqlserver.jdbc.SQLServerBulkCSVFileRecord;
 import com.microsoft.sqlserver.jdbc.SQLServerBulkCopy;
+import com.microsoft.sqlserver.jdbc.SQLServerException;
 import com.microsoft.sqlserver.testframework.AbstractTest;
 import com.microsoft.sqlserver.testframework.DBConnection;
 import com.microsoft.sqlserver.testframework.DBResultSet;
 import com.microsoft.sqlserver.testframework.DBStatement;
 import com.microsoft.sqlserver.testframework.DBTable;
+import com.microsoft.sqlserver.testframework.Utils;
 import com.microsoft.sqlserver.testframework.sqlType.SqlType;
+import com.microsoft.sqlserver.testframework.util.ComparisonUtil;
 
 /**
  * Test bulkcopy with CSV file input
@@ -49,6 +53,7 @@ import com.microsoft.sqlserver.testframework.sqlType.SqlType;
 public class BulkCopyCSVTest extends AbstractTest {
 
     static String inputFile = "BulkCopyCSVTestInput.csv";
+    static String inputFileNoColumnName = "BulkCopyCSVTestInputNoColumnName.csv";
     static String encoding = "UTF-8";
     static String delimiter = ",";
 
@@ -63,7 +68,7 @@ public class BulkCopyCSVTest extends AbstractTest {
     static void setUpConnection() {
         con = new DBConnection(connectionString);
         stmt = con.createStatement();
-        filePath = getCurrentClassPath();
+        filePath = Utils.getCurrentClassPath();
     }
 
     /**
@@ -72,6 +77,53 @@ public class BulkCopyCSVTest extends AbstractTest {
     @Test
     @DisplayName("Test SQLServerBulkCSVFileRecord")
     void testCSV() {
+        SQLServerBulkCSVFileRecord fileRecord;
+        try {
+            fileRecord = new SQLServerBulkCSVFileRecord(filePath + inputFile, encoding, delimiter, true);
+            testBulkCopyCSV(fileRecord, true);
+        }
+        catch (SQLServerException e) {
+            fail(e.getMessage());
+        }
+    }
+
+    /**
+     * test simple csv file for bulkcopy first line not being column name
+     */
+    @Test
+    @DisplayName("Test SQLServerBulkCSVFileRecord First line not being column name")
+    void testCSVFirstLineNotColumnName() {
+        SQLServerBulkCSVFileRecord fileRecord;
+        try {
+            fileRecord = new SQLServerBulkCSVFileRecord(filePath + inputFileNoColumnName, encoding, delimiter, false);
+            testBulkCopyCSV(fileRecord, false);
+        }
+        catch (SQLServerException e) {
+            fail(e.getMessage());
+        }
+    }
+
+    /**
+     * test simple csv file for bulkcopy by passing a file from url
+     * 
+     * @throws SQLException
+     */
+    @Test
+    @DisplayName("Test SQLServerBulkCSVFileRecord with passing file from url")
+    void testCSVFromURL() throws SQLException {
+        try {
+            InputStream csvFileInputStream = new URL(
+                    "https://raw.githubusercontent.com/Microsoft/mssql-jdbc/master/src/test/resources/BulkCopyCSVTestInput.csv").openStream();
+            SQLServerBulkCSVFileRecord fileRecord = new SQLServerBulkCSVFileRecord(csvFileInputStream, encoding, delimiter, true);
+            testBulkCopyCSV(fileRecord, true);
+        }
+        catch (Exception e) {
+            fail(e.getMessage());
+        }
+    }
+
+    private void testBulkCopyCSV(SQLServerBulkCSVFileRecord fileRecord,
+            boolean firstLineIsColumnNames) {
         DBTable destTable = null;
         try {
             BufferedReader br = new BufferedReader(new InputStreamReader(new FileInputStream(filePath + inputFile), encoding));
@@ -81,7 +133,6 @@ public class BulkCopyCSVTest extends AbstractTest {
 
             int numberOfColumns = columnTypes.length;
             destTable = new DBTable(false);
-            SQLServerBulkCSVFileRecord fileRecord = new SQLServerBulkCSVFileRecord(filePath + inputFile, encoding, delimiter, true);
             SQLServerBulkCopy bulkCopy = new SQLServerBulkCopy((Connection) con.product());
             bulkCopy.setDestinationTableName(destTable.getEscapedTableName());
 
@@ -121,7 +172,11 @@ public class BulkCopyCSVTest extends AbstractTest {
             stmt.createTable(destTable);
             bulkCopy.writeToServer((ISQLServerBulkRecord) fileRecord);
             bulkCopy.close();
-            validateValuesFromCSV(destTable);
+            if (firstLineIsColumnNames)
+                validateValuesFromCSV(destTable, inputFile);
+            else
+                validateValuesFromCSV(destTable, inputFileNoColumnName);
+
         }
         catch (Exception e) {
             fail(e.getMessage());
@@ -131,25 +186,7 @@ public class BulkCopyCSVTest extends AbstractTest {
                 stmt.dropTable(destTable);
             }
         }
-    }
 
-    /**
-     * 
-     * @return location of resource file
-     */
-    static String getCurrentClassPath() {
-
-        try {
-            String className = new Object() {
-            }.getClass().getEnclosingClass().getName();
-            String location = Class.forName(className).getProtectionDomain().getCodeSource().getLocation().getPath()+ "/";
-            URI uri = new URI(location.toString());
-            return uri.getPath();
-        }
-        catch (Exception e) {
-            fail("Failed to get CSV file path. " + e.getMessage());
-        }
-        return null;
     }
 
     /**
@@ -157,11 +194,13 @@ public class BulkCopyCSVTest extends AbstractTest {
      * 
      * @param destinationTable
      */
-    static void validateValuesFromCSV(DBTable destinationTable) {
+    static void validateValuesFromCSV(DBTable destinationTable,
+            String inputFile) {
         BufferedReader br;
         try {
             br = new BufferedReader(new InputStreamReader(new FileInputStream(filePath + inputFile), encoding));
-            br.readLine();   // skip first line as it is header
+            if (inputFile.equalsIgnoreCase("BulkCopyCSVTestInput.csv"))
+                br.readLine();   // skip first line as it is header
 
             DBResultSet dstResultSet = stmt.executeQuery("SELECT * FROM " + destinationTable.getEscapedTableName() + ";");
             ResultSetMetaData destMeta = ((ResultSet) dstResultSet.product()).getMetaData();
@@ -179,7 +218,7 @@ public class BulkCopyCSVTest extends AbstractTest {
                     dstValue = (null != dstValue) ? dstValue.trim() : dstValue;
 
                     // get the value from csv as string and compare them
-                    BulkCopyTestUtil.comapreSourceDest(java.sql.Types.VARCHAR, srcValue, dstValue);
+                    ComparisonUtil.compareExpectedAndActual(java.sql.Types.VARCHAR, srcValue, dstValue);
                 }
             }
         }

@@ -134,18 +134,6 @@ final class AuthenticationJNI extends SSPIAuthentication {
         return dllInfo;
     }
 
-    static FedAuthDllInfo getAccessToken(String userName,
-            String password,
-            String stsURL,
-            String servicePrincipalName,
-            String clientConnectionId,
-            String clientId,
-            long expirationFileTime) throws DLLException {
-        FedAuthDllInfo dllInfo = ADALGetAccessToken(userName, password, stsURL, servicePrincipalName, clientConnectionId, clientId,
-                expirationFileTime, authLogger);
-        return dllInfo;
-    }
-
     // InitDNSName should be called to initialize the DNSName before calling this function
     byte[] GenerateClientContext(byte[] pin,
             boolean[] done) throws SQLServerException {
@@ -162,7 +150,9 @@ final class AuthenticationJNI extends SSPIAuthentication {
                 threadImpersonationToken, threadUseProcessToken, authLogger);
 
         if (failure != 0) {
-            authLogger.warning(toString() + " Authentication failed code : " + failure);
+            if (authLogger.isLoggable(Level.WARNING)) {
+                authLogger.warning(toString() + " Authentication failed code : " + failure);
+            }
             con.terminate(SQLServerException.DRIVER_ERROR_NONE, SQLServerException.getErrString("R_integratedAuthenticationFailed"), linkError);
         }
         // allocate space based on the size returned
@@ -242,15 +232,6 @@ final class AuthenticationJNI extends SSPIAuthentication {
             java.util.logging.Logger log);
     
     private native static FedAuthDllInfo ADALGetAccessTokenForWindowsIntegrated(String stsURL,
-            String servicePrincipalName,
-            String clientConnectionId,
-            String clientId,
-            long expirationFileTime,
-            java.util.logging.Logger log);
-
-    private native static FedAuthDllInfo ADALGetAccessToken(String userName,
-            String password,
-            String stsURL,
             String servicePrincipalName,
             String clientConnectionId,
             String clientId,

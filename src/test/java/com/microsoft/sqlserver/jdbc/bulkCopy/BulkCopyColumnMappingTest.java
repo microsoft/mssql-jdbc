@@ -26,6 +26,7 @@ import com.microsoft.sqlserver.testframework.DBResultSet;
 import com.microsoft.sqlserver.testframework.DBStatement;
 import com.microsoft.sqlserver.testframework.DBTable;
 import com.microsoft.sqlserver.testframework.sqlType.SqlType;
+import com.microsoft.sqlserver.testframework.util.ComparisonUtil;
 
 /**
  * Test BulkCopy Column Mapping
@@ -346,13 +347,13 @@ public class BulkCopyColumnMappingTest extends BulkCopyTestSetUp {
                 Object srcValue, dstValue;
                 srcValue = srcResultSet.getObject(i);
                 dstValue = dstResultSet.getObject(i);
-                BulkCopyTestUtil.comapreSourceDest(sourceMeta.getColumnType(i), srcValue, dstValue);
+                ComparisonUtil.compareExpectedAndActual(sourceMeta.getColumnType(i), srcValue, dstValue);
 
                 // compare value of first column of source with extra column in destination
                 if (1 == i) {
                     Object srcValueFirstCol = srcResultSet.getObject(i);
                     Object dstValLastCol = dstResultSet.getObject(totalColumns + 1);
-                    BulkCopyTestUtil.comapreSourceDest(sourceMeta.getColumnType(i), srcValueFirstCol, dstValLastCol);
+                    ComparisonUtil.compareExpectedAndActual(sourceMeta.getColumnType(i), srcValueFirstCol, dstValLastCol);
                 }
             }
 

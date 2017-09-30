@@ -14,23 +14,23 @@ package com.microsoft.sqlserver.jdbc;
  * to bypass encryption and gain access to plaintext data.
  */
 public enum SQLServerStatementColumnEncryptionSetting {
-    /*
+    /**
      * if "Column Encryption Setting=Enabled" in the connection string, use Enabled. Otherwise, maps to Disabled.
      */
     UseConnectionSetting,
 
-    /*
+    /**
      * Enables TCE for the command. Overrides the connection level setting for this command.
      */
     Enabled,
 
-    /*
+    /**
      * Parameters will not be encrypted, only the ResultSet will be decrypted. This is an optimization for queries that do not pass any encrypted
      * input parameters. Overrides the connection level setting for this command.
      */
     ResultSetOnly,
 
-    /*
+    /**
      * Disables TCE for the command.Overrides the connection level setting for this command.
      */
     Disabled,

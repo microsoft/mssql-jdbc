@@ -75,6 +75,20 @@ public class DBStatement extends AbstractParentWrapper {
     }
 
     /**
+     * execute 'Select * from ' the table
+     * 
+     * @param table
+     * @return DBResultSet
+     * @throws SQLException
+     */
+    public DBResultSet selectAll(DBTable table) throws SQLException {
+        String sql = "SELECT * FROM " + table.getEscapedTableName();
+        ResultSet rs = statement.executeQuery(sql);
+        dbresultSet = new DBResultSet(this, rs, table);
+        return dbresultSet;
+    }
+
+    /**
      * 
      * @param sql
      *            query to execute

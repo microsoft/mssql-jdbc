@@ -14,6 +14,7 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Types;
 import java.text.MessageFormat;
+import java.util.ArrayList;
 import java.util.Properties;
 import java.util.Vector;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -380,56 +381,52 @@ public final class SQLServerXAResource implements javax.transaction.xa.XAResourc
         SQLServerCallableStatement cs = null;
         try {
             synchronized (this) {
-                if (controlConnection == null) {
+                if (!xaInitDone) {
                     try {
                         synchronized (xaInitLock) {
-                            if (!xaInitDone) {
-                                SQLServerCallableStatement initCS = null;
+                            SQLServerCallableStatement initCS = null;
 
-                                initCS = (SQLServerCallableStatement) controlConnection.prepareCall("{call master..xp_sqljdbc_xa_init_ex(?, ?,?)}");
-                                initCS.registerOutParameter(1, Types.INTEGER); // Return status
-                                initCS.registerOutParameter(2, Types.CHAR);    // Return error message
-                                initCS.registerOutParameter(3, Types.CHAR);    // Return version number
+                            initCS = (SQLServerCallableStatement) controlConnection.prepareCall("{call master..xp_sqljdbc_xa_init_ex(?, ?,?)}");
+                            initCS.registerOutParameter(1, Types.INTEGER); // Return status
+                            initCS.registerOutParameter(2, Types.CHAR);    // Return error message
+                            initCS.registerOutParameter(3, Types.CHAR);    // Return version number
+                            try {
+                                initCS.execute();
+                            }
+                            catch (SQLServerException eX) {
                                 try {
-                                    initCS.execute();
-                                }
-                                catch (SQLServerException eX) {
-                                    try {
-                                        initCS.close();
-                                        // Mapping between control connection and xaresource is 1:1
-                                        controlConnection.close();
-                                    }
-                                    catch (SQLException e3) {
-                                        // we really want to ignore this failue
-                                        if (xaLogger.isLoggable(Level.FINER))
-                                            xaLogger.finer(toString() + " Ignoring exception when closing failed execution. exception:" + e3);
-                                    }
-                                    if (xaLogger.isLoggable(Level.FINER))
-                                        xaLogger.finer(toString() + " exception:" + eX);
-                                    throw eX;
-                                }
-
-                                // Check for error response from xp_sqljdbc_xa_init.
-                                int initStatus = initCS.getInt(1);
-                                String initErr = initCS.getString(2);
-                                String versionNumberXADLL = initCS.getString(3);
-                                if (xaLogger.isLoggable(Level.FINE))
-                                    xaLogger.fine(toString() + " Server XA DLL version:" + versionNumberXADLL);
-                                initCS.close();
-                                if (XA_OK != initStatus) {
-                                    assert null != initErr && initErr.length() > 1;
+                                    initCS.close();
+                                    // Mapping between control connection and xaresource is 1:1
                                     controlConnection.close();
-
-                                    MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_failedToInitializeXA"));
-                                    Object[] msgArgs = {String.valueOf(initStatus), initErr};
-                                    XAException xex = new XAException(form.format(msgArgs));
-                                    xex.errorCode = initStatus;
-                                    if (xaLogger.isLoggable(Level.FINER))
-                                        xaLogger.finer(toString() + " exception:" + xex);
-                                    throw xex;
                                 }
+                                catch (SQLException e3) {
+                                    // we really want to ignore this failue
+                                    if (xaLogger.isLoggable(Level.FINER))
+                                        xaLogger.finer(toString() + " Ignoring exception when closing failed execution. exception:" + e3);
+                                }
+                                if (xaLogger.isLoggable(Level.FINER))
+                                    xaLogger.finer(toString() + " exception:" + eX);
+                                throw eX;
+                            }
 
-                                xaInitDone = true;
+                            // Check for error response from xp_sqljdbc_xa_init.
+                            int initStatus = initCS.getInt(1);
+                            String initErr = initCS.getString(2);
+                            String versionNumberXADLL = initCS.getString(3);
+                            if (xaLogger.isLoggable(Level.FINE))
+                                xaLogger.fine(toString() + " Server XA DLL version:" + versionNumberXADLL);
+                            initCS.close();
+                            if (XA_OK != initStatus) {
+                                assert null != initErr && initErr.length() > 1;
+                                controlConnection.close();
+
+                                MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_failedToInitializeXA"));
+                                Object[] msgArgs = {String.valueOf(initStatus), initErr};
+                                XAException xex = new XAException(form.format(msgArgs));
+                                xex.errorCode = initStatus;
+                                if (xaLogger.isLoggable(Level.FINER))
+                                    xaLogger.finer(toString() + " exception:" + xex);
+                                throw xex;
                             }
                         }
                     }
@@ -440,6 +437,7 @@ public final class SQLServerXAResource implements javax.transaction.xa.XAResourc
                             xaLogger.finer(toString() + " exception:" + form.format(msgArgs));
                         SQLServerException.makeFromDriverError(null, null, form.format(msgArgs), null, true);
                     }
+                    xaInitDone = true;
                 }
             }
 
@@ -447,6 +445,7 @@ public final class SQLServerXAResource implements javax.transaction.xa.XAResourc
                 case XA_START:
 
                     if (!serverInfoRetrieved) {
+                        Statement stmt = null;
                         try {
                             serverInfoRetrieved = true;
                             // data are converted to varchar as type variant returned by SERVERPROPERTY is not supported by driver
@@ -455,7 +454,7 @@ public final class SQLServerXAResource implements javax.transaction.xa.XAResourc
                                     + " convert(varchar(100), SERVERPROPERTY('ProductVersion')) as version,"
                                     + " SUBSTRING(@@VERSION, CHARINDEX('<', @@VERSION)+2, 2)";
 
-                            Statement stmt = controlConnection.createStatement();
+                            stmt = controlConnection.createStatement();
                             ResultSet rs = stmt.executeQuery(query);
                             rs.next();
 
@@ -477,13 +476,22 @@ public final class SQLServerXAResource implements javax.transaction.xa.XAResourc
                             ArchitectureOS = Integer.parseInt(rs.getString(4));
 
                             rs.close();
-                            stmt.close();
                         }
                         // Got caught in static analysis. Catch only the thrown exceptions, do not catch
                         // run time exceptions.
                         catch (Exception e) {
                             if (xaLogger.isLoggable(Level.WARNING))
                                 xaLogger.warning(toString() + " Cannot retrieve server information: :" + e.getMessage());
+                        }
+                        finally {
+                            if (null != stmt)
+                                try {
+                                    stmt.close();
+                                }
+                                catch (SQLException e) {
+                                    if (xaLogger.isLoggable(Level.FINER))
+                                        xaLogger.finer(toString());
+                                }
                         }
                     }
 
@@ -794,7 +802,7 @@ public final class SQLServerXAResource implements javax.transaction.xa.XAResourc
     /* L0 */ public Xid[] recover(int flags) throws XAException {
         XAReturnValue r = DTC_XA_Interface(XA_RECOVER, null, flags | tightlyCoupled);
         int offset = 0;
-        Vector<XidImpl> v = new Vector<XidImpl>();
+        ArrayList<XidImpl> al = new ArrayList<>();
 
         // If no XID's found, return zero length XID array (don't return null).
         //
@@ -827,11 +835,11 @@ public final class SQLServerXAResource implements javax.transaction.xa.XAResourc
             System.arraycopy(r.bData, offset, bid, 0, bid_len);
             offset += bid_len;
             XidImpl xid = new XidImpl(formatId, gid, bid);
-            v.add(xid);
+            al.add(xid);
         }
-        XidImpl xids[] = new XidImpl[v.size()];
-        for (int i = 0; i < v.size(); i++) {
-            xids[i] = v.elementAt(i);
+        XidImpl xids[] = new XidImpl[al.size()];
+        for (int i = 0; i < al.size(); i++) {
+            xids[i] = al.get(i);
             if (xaLogger.isLoggable(Level.FINER))
                 xaLogger.finer(toString() + xids[i].toString());
         }

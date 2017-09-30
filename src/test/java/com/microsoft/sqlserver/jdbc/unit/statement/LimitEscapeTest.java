@@ -40,7 +40,7 @@ import com.microsoft.sqlserver.testframework.AbstractTest;
 @RunWith(JUnitPlatform.class)
 public class LimitEscapeTest extends AbstractTest {
     public static final Logger log = Logger.getLogger("LimitEscape");
-    private static Vector<String> offsetQuery = new Vector<String>();
+    private static Vector<String> offsetQuery = new Vector<>();
     private static Connection conn = null;
 
     static class Query {
