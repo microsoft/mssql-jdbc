@@ -46,12 +46,6 @@ public class CallableMixedTest extends AbstractTest {
     @DisplayName("Test CallableMix")
     public void datatypesTest() throws SQLException {
         try (Connection connection = DriverManager.getConnection(connectionString); Statement statement = connection.createStatement();) {
-            try {
-                statement.executeUpdate("DROP TABLE " + tableName);
-                statement.executeUpdate(" DROP PROCEDURE " + procName);
-            }
-            catch (Exception e) {
-            }
 
             statement.executeUpdate("create table " + tableName + " (c1_int int primary key, col2 int)");
             statement.executeUpdate("Insert into " + tableName + " values(0, 1)");
