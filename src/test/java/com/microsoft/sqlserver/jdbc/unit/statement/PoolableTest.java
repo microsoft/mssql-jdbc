@@ -8,6 +8,7 @@
 package com.microsoft.sqlserver.jdbc.unit.statement;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import java.sql.CallableStatement;
 import java.sql.Connection;
@@ -16,6 +17,7 @@ import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.sql.Statement;
 
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
@@ -25,6 +27,7 @@ import com.microsoft.sqlserver.jdbc.SQLServerCallableStatement;
 import com.microsoft.sqlserver.jdbc.SQLServerPreparedStatement;
 import com.microsoft.sqlserver.jdbc.SQLServerStatement;
 import com.microsoft.sqlserver.testframework.AbstractTest;
+import com.microsoft.sqlserver.testframework.Utils;
 
 /**
  * Test Poolable statements
@@ -74,5 +77,31 @@ public class PoolableTest extends AbstractTest {
             assertEquals(e.getMessage(), "This operation is not supported.", "Wrong exception message");
         }
     }  
+    
+    /**
+     * Clean up
+     * 
+     * @throws Exception
+     */
+    @AfterAll
+    public static void afterAll() throws Exception {
+
+        Connection conn = DriverManager.getConnection(connectionString);
+        Statement stmt = conn.createStatement();
+        try {
+            Utils.dropProcedureIfExists("ProcName", stmt);
+        }
+        catch (Exception ex) {
+            fail(ex.toString());
+        }
+        finally {
+            if (stmt != null) {
+                stmt.close();
+            }
+            if (conn != null) {
+                conn.close();
+            }
+        }
+    }
     
 }
