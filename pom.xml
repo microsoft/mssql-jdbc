@@ -4,7 +4,7 @@
 	
 	<groupId>com.microsoft.sqlserver</groupId>
 	<artifactId>mssql-jdbc</artifactId>
-	<version>6.3.3</version>
+	<version>6.3.4-SNAPSHOT</version>
 	
 	<packaging>jar</packaging>
 	
@@ -29,8 +29,6 @@
 	
 	<developers>
 		<developer>
-			<name>Andrea Lam</name>
-			<email>andrela@microsoft.com</email>
 			<organization>Microsoft</organization>
 			<organizationUrl>http://www.microsoft.com</organizationUrl>
 		</developer>
