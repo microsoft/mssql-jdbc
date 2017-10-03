@@ -33,8 +33,8 @@ install:
   - mvn install -DskipTests=true -Dmaven.javadoc.skip=true -B -V -Pbuild42
 
 before_script:
-  - docker pull microsoft/mssql-server-linux
-  - docker run -e 'ACCEPT_EULA=Y' -e 'SA_PASSWORD=<YourStrong!Passw0rd>' -p 1433:1433 -d microsoft/mssql-server-linux
+  - docker pull microsoft/mssql-server-linux:2017-latest
+  - docker run -e 'ACCEPT_EULA=Y' -e 'SA_PASSWORD=<YourStrong!Passw0rd>' -p 1433:1433 -d microsoft/mssql-server-linux:2017-latest
 
 script: 
   - docker ps -a
