@@ -36,7 +36,7 @@ import com.microsoft.sqlserver.testframework.Utils.DBCharacterStream;
  *
  */
 
-public class DBResultSet extends AbstractParentWrapper {
+public class DBResultSet extends AbstractParentWrapper implements AutoCloseable {
 
     // TODO: add cursors
     // TODO: add resultSet level holdability

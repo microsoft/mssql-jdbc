@@ -46,9 +46,9 @@ public class CallableStatementTest extends AbstractTest {
         Utils.dropProcedureIfExists(outputProcedureNameGUID, stmt);
         Utils.dropProcedureIfExists(setNullProcedureName, stmt);
 
-        createGUIDTable();
-        createGUIDStoredProcedure();
-        createSetNullPreocedure();
+        createGUIDTable(stmt);
+        createGUIDStoredProcedure(stmt);
+        createSetNullPreocedure(stmt);
     }
 
     /**
@@ -59,28 +59,20 @@ public class CallableStatementTest extends AbstractTest {
     @Test
     public void getStringGUIDTest() throws SQLException {
 
-        SQLServerCallableStatement callableStatement = null;
-        try {
-            String sql = "{call " + outputProcedureNameGUID + "(?)}";
-
-            callableStatement = (SQLServerCallableStatement) connection.prepareCall(sql);
+        String sql = "{call " + outputProcedureNameGUID + "(?)}";
+        
+        try (SQLServerCallableStatement callableStatement = (SQLServerCallableStatement) connection.prepareCall(sql)) {
 
             UUID originalValue = UUID.randomUUID();
 
             callableStatement.registerOutParameter(1, microsoft.sql.Types.GUID);
             callableStatement.setObject(1, originalValue.toString(), microsoft.sql.Types.GUID);
-
             callableStatement.execute();
 
             String retrievedValue = callableStatement.getString(1);
 
             assertEquals(originalValue.toString().toLowerCase(), retrievedValue.toLowerCase());
 
-        }
-        finally {
-            if (null != callableStatement) {
-                callableStatement.close();
-            }
         }
     }
 
@@ -93,17 +85,14 @@ public class CallableStatementTest extends AbstractTest {
     public void getSetNullWithTypeVarchar() throws SQLException {
         String polishchar = "\u0143";
 
-        SQLServerCallableStatement cs = null;
-        SQLServerCallableStatement cs2 = null;
-        try {
-            SQLServerDataSource ds = new SQLServerDataSource();
-            ds.setURL(connectionString);
-            ds.setSendStringParametersAsUnicode(true);
-            connection = ds.getConnection();
+        SQLServerDataSource ds = new SQLServerDataSource();
+        ds.setURL(connectionString);
+        ds.setSendStringParametersAsUnicode(true);
+        String sql = "{? = call " + setNullProcedureName + " (?,?)}";
+        try (Connection connection = ds.getConnection();
+        	 SQLServerCallableStatement cs = (SQLServerCallableStatement) connection.prepareCall(sql);
+        	 SQLServerCallableStatement cs2 = (SQLServerCallableStatement) connection.prepareCall(sql)){
 
-            String sql = "{? = call " + setNullProcedureName + " (?,?)}";
-
-            cs = (SQLServerCallableStatement) connection.prepareCall(sql);
             cs.registerOutParameter(1, Types.INTEGER);
             cs.setString(2, polishchar);
             cs.setString(3, null);
@@ -112,7 +101,6 @@ public class CallableStatementTest extends AbstractTest {
 
             String expected = cs.getString(3);
 
-            cs2 = (SQLServerCallableStatement) connection.prepareCall(sql);
             cs2.registerOutParameter(1, Types.INTEGER);
             cs2.setString(2, polishchar);
             cs2.setNull(3, Types.VARCHAR);
@@ -120,16 +108,8 @@ public class CallableStatementTest extends AbstractTest {
             cs2.execute();
 
             String actual = cs2.getString(3);
-
+            
             assertEquals(expected, actual);
-        }
-        finally {
-            if (null != cs) {
-                cs.close();
-            }
-            if (null != cs2) {
-                cs2.close();
-            }
         }
     }
 
@@ -152,17 +132,17 @@ public class CallableStatementTest extends AbstractTest {
         }
     }
 
-    private static void createGUIDStoredProcedure() throws SQLException {
+    private static void createGUIDStoredProcedure(Statement stmt) throws SQLException {
         String sql = "CREATE PROCEDURE " + outputProcedureNameGUID + "(@p1 uniqueidentifier OUTPUT) AS SELECT @p1 = c1 FROM " + tableNameGUID + ";";
         stmt.execute(sql);
     }
 
-    private static void createGUIDTable() throws SQLException {
+    private static void createGUIDTable(Statement stmt) throws SQLException {
         String sql = "CREATE TABLE " + tableNameGUID + " (c1 uniqueidentifier null)";
         stmt.execute(sql);
     }
 
-    private static void createSetNullPreocedure() throws SQLException {
+    private static void createSetNullPreocedure(Statement stmt) throws SQLException {
         stmt.execute("create procedure " + setNullProcedureName + " (@p1 nvarchar(255), @p2 nvarchar(255) output) as select @p2=@p1 return 0");
     }
 }
