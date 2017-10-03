@@ -96,8 +96,8 @@ public class AESetup extends AbstractTest {
         
         try(SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConenctionString);
         	SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
-	        dropCEK();
-	        dropCMK();
+	        dropCEK(stmt);
+	        dropCMK(stmt);
         }
         
         keyPath = Utils.getCurrentClassPath() + jksName;
@@ -126,8 +126,8 @@ public class AESetup extends AbstractTest {
     @AfterAll
     private static void dropAll() throws SQLServerException, SQLException {
         dropTables(stmt);
-        dropCEK();
-        dropCMK();
+        dropCEK(stmt);
+        dropCMK(stmt);
         Util.close(null, stmt, con);
     }
 
@@ -2062,7 +2062,7 @@ public class AESetup extends AbstractTest {
      * @throws SQLServerException
      * @throws SQLException
      */
-    private static void dropCEK() throws SQLServerException, SQLException {
+    private static void dropCEK(SQLServerStatement stmt) throws SQLServerException, SQLException {
         String cekSql = " if exists (SELECT name from sys.column_encryption_keys where name='" + cekName + "')" + " begin"
                 + " drop column encryption key " + cekName + " end";
         stmt.execute(cekSql);
@@ -2074,7 +2074,7 @@ public class AESetup extends AbstractTest {
      * @throws SQLServerException
      * @throws SQLException
      */
-    private static void dropCMK() throws SQLServerException, SQLException {
+    private static void dropCMK(SQLServerStatement stmt) throws SQLServerException, SQLException {
         String cekSql = " if exists (SELECT name from sys.column_master_keys where name='" + cmkName + "')" + " begin" + " drop column master key "
                 + cmkName + " end";
         stmt.execute(cekSql);
