@@ -56,6 +56,9 @@ class SQLServerADAL4JUtils {
 	static SqlFedAuthToken getSqlFedAuthTokenIntegrated(SqlFedAuthInfo fedAuthInfo, String authenticationString)
 			throws SQLServerException {
 		ExecutorService executorService = Executors.newFixedThreadPool(1);
+		
+		String userDomainName = null;
+		
 		try {
             System.out.println("fedAuthInfo.stsurl: " + fedAuthInfo.stsurl);
 
@@ -68,7 +71,7 @@ class SQLServerADAL4JUtils {
             System.out.println("Hostname: " + fullyQualifiedDomainName);
 
             // username@fully_qualified_domain
-            String userDomainName = username + "@" + fullyQualifiedDomainName.substring(fullyQualifiedDomainName.indexOf(".") + 1);
+            userDomainName = username + "@" + fullyQualifiedDomainName.substring(fullyQualifiedDomainName.indexOf(".") + 1);
             System.out.println("userDomainName: " + userDomainName);
 			
 			AuthenticationContext context = new AuthenticationContext(fedAuthInfo.stsurl, false, executorService);
@@ -84,7 +87,7 @@ class SQLServerADAL4JUtils {
 			throw new SQLServerException(e.getMessage(), e);
 		} catch (ExecutionException e) {
 			MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_ADALExecution"));
-			Object[] msgArgs = { "testodbc", authenticationString };
+			Object[] msgArgs = {userDomainName, authenticationString };
 
 			// the cause error message uses \\n\\r which does not give correct format
 			// change it to \r\n to provide correct format
