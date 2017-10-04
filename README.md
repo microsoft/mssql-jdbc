@@ -80,7 +80,7 @@ We're now on the Maven Central Repository. Add the following to your POM file to
 <dependency>
 	<groupId>com.microsoft.sqlserver</groupId>
 	<artifactId>mssql-jdbc</artifactId>
-	<version>6.2.1.jre8</version>
+	<version>6.2.2.jre8</version>
 </dependency>
 ```
 The driver can be downloaded from the [Microsoft Download Center](https://go.microsoft.com/fwlink/?linkid=852460).
@@ -130,7 +130,7 @@ Projects that require either of the two features need to explicitly declare the 
 	<version>1.0.0</version>
 </dependency>
 ```
-***Please note*** as of the v6.3.0-preview, the way to construct a `SQLServerColumnEncryptionAzureKeyVaultProvider` object has changed. Please refer to this [Wiki](https://github.com/Microsoft/mssql-jdbc/wiki/New-Constructor-Definition-for-SQLServerColumnEncryptionAzureKeyVaultProvider-after-6.3.0-Preview-Release) page for more information.
+***Please note*** as of the v6.2.2, the way to construct a `SQLServerColumnEncryptionAzureKeyVaultProvider` object has changed. Please refer to this [Wiki](https://github.com/Microsoft/mssql-jdbc/wiki/New-Constructor-Definition-for-SQLServerColumnEncryptionAzureKeyVaultProvider-after-6.2.2-Release) page for more information.
 
 ## Guidelines for Creating Pull Requests
 We love contributions from the community.  To help improve the quality of our code, we encourage you to use the mssql-jdbc_formatter.xml formatter provided on all pull requests.

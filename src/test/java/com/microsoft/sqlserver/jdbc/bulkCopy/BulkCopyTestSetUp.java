@@ -14,6 +14,7 @@ import org.junit.runner.RunWith;
 
 import com.microsoft.sqlserver.testframework.AbstractTest;
 import com.microsoft.sqlserver.testframework.DBConnection;
+import com.microsoft.sqlserver.testframework.DBPreparedStatement;
 import com.microsoft.sqlserver.testframework.DBStatement;
 import com.microsoft.sqlserver.testframework.DBTable;;
 
@@ -37,7 +38,8 @@ public class BulkCopyTestSetUp extends AbstractTest {
             stmt = con.createStatement();
             sourceTable = new DBTable(true);
             stmt.createTable(sourceTable);
-            stmt.populateTable(sourceTable);
+            DBPreparedStatement pstmt = new DBPreparedStatement(con);
+            pstmt.populateTable(sourceTable);
         }
         finally {
             con.close();
