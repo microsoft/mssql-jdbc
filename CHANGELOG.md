@@ -67,6 +67,10 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/)
 - Updated ADAL4J dependency to version 1.2.0 [#392](https://github.com/Microsoft/mssql-jdbc/pull/392)
 - Updated azure-keyvault dependency to version 1.0.0 [#397](https://github.com/Microsoft/mssql-jdbc/pull/397)
 
+## [6.2.2] Hotfix & Stable Release
+### Changed
+- Updated ADAL4J to version 1.2.0 and AKV to version 1.0.0 [#516](https://github.com/Microsoft/mssql-jdbc/pull/516)
+
 ## [6.2.1] Hotfix & Stable Release
 ### Fixed Issues 
 - Fixed queries without parameters using preparedStatement [#372](https://github.com/Microsoft/mssql-jdbc/pull/372)
