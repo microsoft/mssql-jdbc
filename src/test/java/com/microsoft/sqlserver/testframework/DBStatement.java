@@ -21,7 +21,7 @@ import com.microsoft.sqlserver.jdbc.SQLServerException;
  * @author Microsoft
  *
  */
-public class DBStatement extends AbstractParentWrapper {
+public class DBStatement extends AbstractParentWrapper implements AutoCloseable {
 
     // TODO: support PreparedStatement and CallableStatement
     // TODO: add stmt level holdability
