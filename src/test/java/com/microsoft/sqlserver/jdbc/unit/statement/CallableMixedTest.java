@@ -84,8 +84,8 @@ public class CallableMixedTest extends AbstractTest {
                 rs = callableStatement.executeQuery();
                 rs.close();
             }
+            terminateVariation(statement);
         }
-        terminateVariation();
     }
 
     /**
@@ -93,10 +93,8 @@ public class CallableMixedTest extends AbstractTest {
      * 
      * @throws SQLException
      */
-    private void terminateVariation() throws SQLException {
-        try (Connection connection = DriverManager.getConnection(connectionString); Statement statement = connection.createStatement()) {
-            Utils.dropTableIfExists(tableName, statement);
-            Utils.dropProcedureIfExists(procName, statement);
-        }
+    private void terminateVariation(Statement statement) throws SQLException {
+        Utils.dropTableIfExists(tableName, statement);
+        Utils.dropProcedureIfExists(procName, statement);
     }
 }
