@@ -26,7 +26,7 @@ public final class SQLServerDataTable {
     int rowCount = 0;
     int columnCount = 0;
     Map<Integer, SQLServerDataColumn> columnMetadata = null;
-    Set<String> columnList = null;
+    Set<String> columnNames = null;
     Map<Integer, Object[]> rows = null;
 
     private String tvpName = null;
@@ -40,7 +40,7 @@ public final class SQLServerDataTable {
     // Name used in CREATE TYPE
     public SQLServerDataTable() throws SQLServerException {
         columnMetadata = new LinkedHashMap<>();
-        columnList = new HashSet<>();
+        columnNames = new HashSet<>();
         rows = new HashMap<>();
     }
 
@@ -106,13 +106,11 @@ public final class SQLServerDataTable {
      *             when a duplicate column exists
      */
     private void checkDuplicateColumnName(String columnName) throws SQLServerException {
-        if (null != columnList) {
-            //columnList.add will return false if the same column name already exists
-            if (!columnList.add(columnName)) {
-                MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_TVPDuplicateColumnName"));
-                Object[] msgArgs = {columnName};
-                throw new SQLServerException(null, form.format(msgArgs), null, 0, false);
-            }
+        //columnList.add will return false if the same column name already exists
+        if (!columnNames.add(columnName)) {
+            MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_TVPDuplicateColumnName"));
+            Object[] msgArgs = {columnName};
+            throw new SQLServerException(null, form.format(msgArgs), null, 0, false);
         }
     }
 

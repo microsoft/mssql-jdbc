@@ -50,7 +50,7 @@ class TVP {
     Iterator<Entry<Integer, Object[]>> sourceDataTableRowIterator = null;
     ISQLServerDataRecord sourceRecord = null;
     TVPType tvpType = null;
-    Set<String> columnList = null;
+    Set<String> columnNames = null;
 
     // MultiPartIdentifierState
     enum MPIState {
@@ -97,7 +97,7 @@ class TVP {
             ISQLServerDataRecord tvpRecord) throws SQLServerException {
         initTVP(TVPType.ISQLServerDataRecord, tvpPartName);
         sourceRecord = tvpRecord;
-        columnList = new HashSet<>();
+        columnNames = new HashSet<>();
         // Populate TVP metdata from ISQLServerDataRecord.
         populateMetadataFromDataRecord();
 
@@ -189,15 +189,14 @@ class TVP {
             throw new SQLServerException(SQLServerException.getErrString("R_TVPEmptyMetadata"), null);
         }
         for (int i = 0; i < sourceRecord.getColumnCount(); i++) {
-            // Make a copy here as we do not want to change user's metadata.
-            if (null != columnList) {
-                //columnList.add will return false if the same column name already exists
-                if (!columnList.add(sourceRecord.getColumnMetaData(i + 1).columnName)) {
-                    MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_TVPDuplicateColumnName"));
-                    Object[] msgArgs = {sourceRecord.getColumnMetaData(i + 1).columnName};
-                    throw new SQLServerException(null, form.format(msgArgs), null, 0, false);
-                }
+            //columnList.add will return false if the same column name already exists
+            if (!columnNames.add(sourceRecord.getColumnMetaData(i + 1).columnName)) {
+                MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_TVPDuplicateColumnName"));
+                Object[] msgArgs = {sourceRecord.getColumnMetaData(i + 1).columnName};
+                throw new SQLServerException(null, form.format(msgArgs), null, 0, false);
             }
+            
+            // Make a copy here as we do not want to change user's metadata.
             SQLServerMetaData metaData = new SQLServerMetaData(sourceRecord.getColumnMetaData(i + 1));
             columnMetadata.put(i, metaData);
         }
