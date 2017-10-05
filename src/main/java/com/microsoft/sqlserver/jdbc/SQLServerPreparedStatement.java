@@ -1572,7 +1572,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setGeometry", new Object[] {n, x});
         checkClosed();
-        setValue(n, JDBCType.REAL, x, JavaType.FLOAT, false);
+        setValue(n, JDBCType.GEOMETRY, x, JavaType.STRING, false);
         loggerExternal.exiting(getClassNameLogging(), "setGeometry");
     }
 

@@ -1631,6 +1631,9 @@ final class DTV {
                     else if (JDBCType.SQL_VARIANT == jdbcType) {
                         op.execute(this, String.valueOf(value));
                     }
+                    else if (JDBCType.GEOMETRY == jdbcType) {
+                        op.execute(this, value.toString());
+                    }
                     else {
                         if (null != cryptoMeta) {
                             // if streaming types check for allowed data length in AE

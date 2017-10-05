@@ -148,7 +148,8 @@ enum SSType
     SQL_VARIANT    (Category.SQL_VARIANT,     "sql_variant",      JDBCType.SQL_VARIANT),  
     UDT            (Category.UDT,             "udt",              JDBCType.VARBINARY),
     XML            (Category.XML,             "xml",              JDBCType.LONGNVARCHAR),
-    TIMESTAMP      (Category.TIMESTAMP,       "timestamp",        JDBCType.BINARY);
+    TIMESTAMP      (Category.TIMESTAMP,       "timestamp",        JDBCType.BINARY),
+    GEOMETRY       (Category.UDT,        "geometry",         JDBCType.GEOMETRY);
 
     final Category category;
     private final String name;
@@ -352,7 +353,8 @@ enum SSType
             EnumSet.of(
                 JDBCType.Category.BINARY,
                 JDBCType.Category.LONG_BINARY,
-                JDBCType.Category.CHARACTER)),
+                JDBCType.Category.CHARACTER,
+                JDBCType.Category.GEOMETRY)),
 
         GUID (
             SSType.Category.GUID,
