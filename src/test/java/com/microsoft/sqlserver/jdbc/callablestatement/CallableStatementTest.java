@@ -173,7 +173,9 @@ public class CallableStatementTest extends AbstractTest {
             cs3.setString("@whatever", "junk");
             fail("SQLServerException should have been thrown");
         } catch (SQLServerException sse) {
-            // expected
+            if (!sse.getMessage().startsWith("Parameter @whatever was not defined")) {
+                fail("Unexpected content in exception message");
+            }
         }
 
     }

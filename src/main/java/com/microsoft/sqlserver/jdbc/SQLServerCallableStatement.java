@@ -1453,8 +1453,11 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
 
         // handle `@name` as well as `name`, since `@name` is what's returned 
         // by DatabaseMetaData#getProcedureColumns
+        String columnNameWithoutAtSign = null;
         if (columnName.startsWith("@")) {
-            columnName = columnName.substring(1, columnName.length());
+            columnNameWithoutAtSign = columnName.substring(1, columnName.length());
+        } else {
+            columnNameWithoutAtSign = columnName;
         }
         
         // In order to be as accurate as possible when locating parameter name
@@ -1471,7 +1474,7 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
         for (i = 0; i < l; i++) {
             String sParam = paramNames.get(i);
             sParam = sParam.substring(1, sParam.length());
-            if (sParam.equals(columnName)) {
+            if (sParam.equals(columnNameWithoutAtSign)) {
                 matchPos = i;
                 break;
             }
@@ -1483,7 +1486,7 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
             for (i = 0; i < l; i++) {
                 String sParam = paramNames.get(i);
                 sParam = sParam.substring(1, sParam.length());
-                if (sParam.equalsIgnoreCase(columnName)) {
+                if (sParam.equalsIgnoreCase(columnNameWithoutAtSign)) {
                     matchPos = i;
                     break;
                 }
