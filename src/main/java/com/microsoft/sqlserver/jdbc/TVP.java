@@ -189,12 +189,7 @@ class TVP {
             throw new SQLServerException(SQLServerException.getErrString("R_TVPEmptyMetadata"), null);
         }
         for (int i = 0; i < sourceRecord.getColumnCount(); i++) {
-            //columnList.add will return false if the same column name already exists
-            if (!columnNames.add(sourceRecord.getColumnMetaData(i + 1).columnName)) {
-                MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_TVPDuplicateColumnName"));
-                Object[] msgArgs = {sourceRecord.getColumnMetaData(i + 1).columnName};
-                throw new SQLServerException(null, form.format(msgArgs), null, 0, false);
-            }
+            Util.checkDuplicateColumnName(sourceRecord.getColumnMetaData(i + 1).columnName, columnNames);
             
             // Make a copy here as we do not want to change user's metadata.
             SQLServerMetaData metaData = new SQLServerMetaData(sourceRecord.getColumnMetaData(i + 1));
