@@ -26,7 +26,6 @@ import com.microsoft.sqlserver.testframework.DBConnection;
 import com.microsoft.sqlserver.testframework.DBStatement;
 import com.microsoft.sqlserver.testframework.Utils;
 
-
 /**
  * Testing merge queries
  */
@@ -49,56 +48,42 @@ public class MergeTest extends AbstractTest {
             + "VALUES (SOURCE.CricketTeamID, SOURCE.CricketTeamCountry, SOURCE.CricketTeamContinent) "
             + "WHEN NOT MATCHED BY SOURCE THEN                                                    DELETE;";
 
-
     /**
      * Merge test
+     * 
      * @throws Exception
      */
     @Test
     @DisplayName("Merge Test")
     public void runTest() throws Exception {
-        DBConnection conn = new DBConnection(connectionString);
-        if (conn.getServerVersion() >= 10) {
-            DBStatement stmt = conn.createStatement();
-            stmt = conn.createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE);
-            stmt.executeUpdate(setupTables);
-            stmt.executeUpdate(mergeCmd2);
-            int updateCount = stmt.getUpdateCount();
-            assertEquals(updateCount, 3, "Received the wrong update count!");
-            
-            if (null != stmt) {
-                stmt.close();
-            }
-            if (null != conn) {
-                conn.close();
+        try (DBConnection conn = new DBConnection(connectionString)) {
+            if (conn.getServerVersion() >= 10) {
+                try (DBStatement stmt = conn.createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE);) {
+                    stmt.executeUpdate(setupTables);
+                    stmt.executeUpdate(mergeCmd2);
+                    int updateCount = stmt.getUpdateCount();
+                    assertEquals(updateCount, 3, "Received the wrong update count!");
+
+                }
             }
         }
     }
-    
+
     /**
      * Clean up
+     * 
      * @throws Exception
      */
     @AfterAll
     public static void afterAll() throws Exception {
 
-        Connection conn =  DriverManager.getConnection(connectionString);
-        Statement stmt = conn.createStatement();
-        try {
-            Utils.dropTableIfExists("dbo.CricketTeams", stmt);
-        }
-        catch (Exception ex) {
-            fail(ex.toString());
-        }
-        finally {
-            if (stmt != null) {
-                stmt.close();
+        try (Connection con = DriverManager.getConnection(connectionString); Statement stmt = con.createStatement()) {
+            try {
+                Utils.dropTableIfExists("dbo.CricketTeams", stmt);
             }
-            if (conn != null) {
-                conn.close();
+            catch (Exception ex) {
+                fail(ex.toString());
             }
         }
-
     }
-
 }

@@ -38,46 +38,45 @@ public class PoolableTest extends AbstractTest {
 
     /**
      * Poolable Test
+     * 
      * @throws SQLException
      * @throws ClassNotFoundException
      */
     @Test
     @DisplayName("Poolable Test")
-    public  void poolableTest() throws SQLException, ClassNotFoundException {
-        Connection connection = DriverManager.getConnection(connectionString);
-        Statement statement = connection.createStatement();
-        try {         
-            // First get the default values
-            boolean isPoolable = ((SQLServerStatement) statement).isPoolable();
-            assertEquals(isPoolable, false, "SQLServerStatement should not be Poolable by default");
+    public void poolableTest() throws SQLException, ClassNotFoundException {
+        try (Connection conn = DriverManager.getConnection(connectionString); Statement statement = conn.createStatement()) {
+            try {
+                // First get the default values
+                boolean isPoolable = ((SQLServerStatement) statement).isPoolable();
+                assertEquals(isPoolable, false, "SQLServerStatement should not be Poolable by default");
 
-            PreparedStatement prepStmt = connection.prepareStatement("select 1");
-            isPoolable = ((SQLServerPreparedStatement) prepStmt).isPoolable();
-            assertEquals(isPoolable, true, "SQLServerPreparedStatement should be Poolable by default");
+                try (PreparedStatement prepStmt = connection.prepareStatement("select 1")) {
+                    isPoolable = ((SQLServerPreparedStatement) prepStmt).isPoolable();
+                    assertEquals(isPoolable, true, "SQLServerPreparedStatement should be Poolable by default");
+                }
 
+                try (CallableStatement callableStatement = connection.prepareCall("{  ? = CALL " + "ProcName" + " (?, ?, ?, ?) }");) {
+                    isPoolable = ((SQLServerCallableStatement) callableStatement).isPoolable();
 
-            CallableStatement callableStatement = connection.prepareCall("{  ? = CALL " + "ProcName" + " (?, ?, ?, ?) }");
-            isPoolable = ((SQLServerCallableStatement) callableStatement).isPoolable();
+                    assertEquals(isPoolable, true, "SQLServerCallableStatement should be Poolable by default");
 
-            assertEquals(isPoolable, true, "SQLServerCallableStatement should be Poolable by default");
+                    // Now do couple of sets and gets
 
-            // Now do couple of sets and gets
+                    ((SQLServerCallableStatement) callableStatement).setPoolable(false);
+                    assertEquals(((SQLServerCallableStatement) callableStatement).isPoolable(), false, "set did not work");
+                }
 
-            ((SQLServerCallableStatement) callableStatement).setPoolable(false);
-            assertEquals(((SQLServerCallableStatement) callableStatement).isPoolable(), false, "set did not work");
-            callableStatement.close();
-
-            ((SQLServerStatement) statement).setPoolable(true);
-            assertEquals(((SQLServerStatement) statement).isPoolable(), true, "set did not work");
-            statement.close();
-
+                ((SQLServerStatement) statement).setPoolable(true);
+                assertEquals(((SQLServerStatement) statement).isPoolable(), true, "set did not work");
+            }
+            catch (UnsupportedOperationException e) {
+                assertEquals(System.getProperty("java.specification.version"), "1.5", "PoolableTest should be supported in anything other than 1.5");
+                assertEquals(e.getMessage(), "This operation is not supported.", "Wrong exception message");
+            }
         }
-        catch (UnsupportedOperationException e) {
-            assertEquals(System.getProperty("java.specification.version"), "1.5", "PoolableTest should be supported in anything other than 1.5");
-            assertEquals(e.getMessage(), "This operation is not supported.", "Wrong exception message");
-        }
-    }  
-    
+    }
+
     /**
      * Clean up
      * 
@@ -85,23 +84,14 @@ public class PoolableTest extends AbstractTest {
      */
     @AfterAll
     public static void afterAll() throws Exception {
-
-        Connection conn = DriverManager.getConnection(connectionString);
-        Statement stmt = conn.createStatement();
-        try {
-            Utils.dropProcedureIfExists("ProcName", stmt);
-        }
-        catch (Exception ex) {
-            fail(ex.toString());
-        }
-        finally {
-            if (stmt != null) {
-                stmt.close();
+        try (Connection conn = DriverManager.getConnection(connectionString); Statement stmt = conn.createStatement()) {
+            try {
+                Utils.dropProcedureIfExists("ProcName", stmt);
             }
-            if (conn != null) {
-                conn.close();
+            catch (Exception ex) {
+                fail(ex.toString());
             }
         }
     }
-    
+
 }

@@ -1174,18 +1174,15 @@ public class StatementTest extends AbstractTest {
 
         @AfterEach
         public void terminate() throws Exception {
-            Connection con = DriverManager.getConnection(connectionString);
-            Statement stmt = con.createStatement();
-            try {
-                Utils.dropTableIfExists(table1Name, stmt);
-                Utils.dropTableIfExists(table2Name, stmt);
+            try (Connection con = DriverManager.getConnection(connectionString); Statement stmt = con.createStatement();) {
+                try {
+                    Utils.dropTableIfExists(table1Name, stmt);
+                    Utils.dropTableIfExists(table2Name, stmt);
+                }
+                catch (SQLException e) {
+                }
             }
-            catch (SQLException e) {
-            }
-            stmt.close();
-            con.close();
         }
-
     }
 
     @Nested
@@ -1311,15 +1308,14 @@ public class StatementTest extends AbstractTest {
 
         @AfterEach
         public void terminate() throws Exception {
-            Connection con = DriverManager.getConnection(connectionString);
-            Statement stmt = con.createStatement();
-            try {
-                Utils.dropProcedureIfExists(procName, stmt);
+            try (Connection con = DriverManager.getConnection(connectionString); Statement stmt = con.createStatement()) {
+                try {
+                    Utils.dropProcedureIfExists(procName, stmt);
+                }
+                catch (SQLException e) {
+                    fail(e.toString());
+                }
             }
-            catch (SQLException e) {
-            }
-            stmt.close();
-            con.close();
         }
 
     }
@@ -1664,16 +1660,15 @@ public class StatementTest extends AbstractTest {
 
         @AfterEach
         public void terminate() throws Exception {
-            Connection con = DriverManager.getConnection(connectionString);
-            Statement stmt = con.createStatement();
-            try {
-                Utils.dropTableIfExists(tableName, stmt);
-                Utils.dropProcedureIfExists(procName, stmt);
+            try (Connection con = DriverManager.getConnection(connectionString); Statement stmt = con.createStatement()) {
+                try {
+                    Utils.dropTableIfExists(tableName, stmt);
+                    Utils.dropProcedureIfExists(procName, stmt);
+                }
+                catch (SQLException e) {
+                    fail(e.toString());
+                }
             }
-            catch (SQLException e) {
-            }
-            stmt.close();
-            con.close();
         }
     }
 
@@ -1703,15 +1698,14 @@ public class StatementTest extends AbstractTest {
 
         @AfterEach
         public void terminate() throws Exception {
-            Connection con = DriverManager.getConnection(connectionString);
-            Statement stmt = con.createStatement();
-            try {
-                Utils.dropTableIfExists(tableName, stmt);
+            try (Connection con = DriverManager.getConnection(connectionString); Statement stmt = con.createStatement()) {
+                try {
+                    Utils.dropTableIfExists(tableName, stmt);
+                }
+                catch (SQLException e) {
+                    fail(e.toString());
+                }
             }
-            catch (SQLException e) {
-            }
-            stmt.close();
-            con.close();
         }
 
         /**
@@ -1840,10 +1834,11 @@ public class StatementTest extends AbstractTest {
          */
         @Test
         public void testSparseColumnSetForException() throws Exception {
-            if (new DBConnection(connectionString).getServerVersion() <= 9.0) {
-                log.fine("testSparseColumnSetForException skipped for Yukon");
+            try (DBConnection conn = new DBConnection(connectionString)) {
+                if (conn.getServerVersion() <= 9.0) {
+                    log.fine("testSparseColumnSetForException skipped for Yukon");
+                }
             }
-
             Connection con = null;
 
             con = createConnectionAndPopulateData();
@@ -2376,17 +2371,16 @@ public class StatementTest extends AbstractTest {
 
         @AfterEach
         public void terminate() throws Exception {
-            Connection con = DriverManager.getConnection(connectionString);
-            Statement stmt = con.createStatement();
-            try {
-                Utils.dropTableIfExists(tableName, stmt);
-                Utils.dropTableIfExists(table2Name, stmt);
-                Utils.dropProcedureIfExists(sprocName, stmt);
+            try (Connection con = DriverManager.getConnection(connectionString); Statement stmt = con.createStatement();) {
+                try {
+                    Utils.dropTableIfExists(tableName, stmt);
+                    Utils.dropTableIfExists(table2Name, stmt);
+                    Utils.dropProcedureIfExists(sprocName, stmt);
+                }
+                catch (SQLException e) {
+                    fail(e.toString());
+                }
             }
-            catch (SQLException e) {
-            }
-            stmt.close();
-            con.close();
         }
     }
 
@@ -2592,15 +2586,14 @@ public class StatementTest extends AbstractTest {
 
         @AfterEach
         public void terminate() throws Exception {
-            Connection con = DriverManager.getConnection(connectionString);
-            Statement stmt = con.createStatement();
-            try {
-                Utils.dropTableIfExists(tableName, stmt);
+            try (Connection con = DriverManager.getConnection(connectionString); Statement stmt = con.createStatement();) {
+                try {
+                    Utils.dropTableIfExists(tableName, stmt);
+                }
+                catch (SQLException e) {
+                    fail(e.toString());
+                }
             }
-            catch (SQLException e) {
-            }
-            stmt.close();
-            con.close();
         }
     }
 
@@ -2644,39 +2637,36 @@ public class StatementTest extends AbstractTest {
         @Test
         public void testNoCountWithExecute() throws Exception {
             // Ensure lastUpdateCount=true...
-            Connection con = DriverManager.getConnection(connectionString + ";lastUpdateCount = true");
-            Statement stmt = con.createStatement();
-            boolean isResultSet = stmt
-                    .execute("set nocount on\n" + "insert into " + tableName + "(col1) values(" + (NUM_ROWS + 1) + ")\n" + "select 1");
+            try (Connection con = DriverManager.getConnection(connectionString + ";lastUpdateCount = true");
+                    Statement stmt = con.createStatement();) {
 
-            assertEquals(true, isResultSet, "execute() said first result was an update count");
+                boolean isResultSet = stmt
+                        .execute("set nocount on\n" + "insert into " + tableName + "(col1) values(" + (NUM_ROWS + 1) + ")\n" + "select 1");
 
-            ResultSet rs = stmt.getResultSet();
-            while (rs.next())
-                ;
-            rs.close();
+                assertEquals(true, isResultSet, "execute() said first result was an update count");
 
-            boolean moreResults = stmt.getMoreResults();
-            assertEquals(false, moreResults, "next result is a ResultSet?");
+                ResultSet rs = stmt.getResultSet();
+                while (rs.next());
+                    rs.close();
 
-            int updateCount = stmt.getUpdateCount();
-            assertEquals(-1, updateCount, "only one result was expected...");
+                boolean moreResults = stmt.getMoreResults();
+                assertEquals(false, moreResults, "next result is a ResultSet?");
 
-            stmt.close();
-            con.close();
+                int updateCount = stmt.getUpdateCount();
+                assertEquals(-1, updateCount, "only one result was expected...");
+            }
         }
 
         @AfterEach
         public void terminate() throws Exception {
-            Connection con = DriverManager.getConnection(connectionString);
-            Statement stmt = con.createStatement();
-            try {
-                Utils.dropTableIfExists(tableName, stmt);
+            try (Connection con = DriverManager.getConnection(connectionString); Statement stmt = con.createStatement()) {
+                try {
+                    Utils.dropTableIfExists(tableName, stmt);
+                }
+                catch (SQLException e) {
+                    fail(e.toString());
+                }
             }
-            catch (SQLException e) {
-            }
-            stmt.close();
-            con.close();
         }
     }
 }
