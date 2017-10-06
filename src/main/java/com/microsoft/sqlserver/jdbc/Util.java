@@ -558,6 +558,7 @@ final class Util {
         return outID.toString();
     }
 
+    /*
     static void checkDuplicateColumnName(String columnName,
             Map<Integer, ?> columnMetadata) throws SQLServerException {
         if (columnMetadata.get(0) instanceof SQLServerMetaData) {
@@ -581,6 +582,7 @@ final class Util {
             }
         }
     }
+    */
 
     /**
      * Reads a UNICODE string from byte buffer at offset (up to byteLength).

@@ -12,10 +12,12 @@ import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.text.MessageFormat;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
 
 enum TVPType {
     ResultSet,
@@ -48,6 +50,7 @@ class TVP {
     Iterator<Entry<Integer, Object[]>> sourceDataTableRowIterator = null;
     ISQLServerDataRecord sourceRecord = null;
     TVPType tvpType = null;
+    Set<String> columnNames = null;
 
     // MultiPartIdentifierState
     enum MPIState {
@@ -94,6 +97,7 @@ class TVP {
             ISQLServerDataRecord tvpRecord) throws SQLServerException {
         initTVP(TVPType.ISQLServerDataRecord, tvpPartName);
         sourceRecord = tvpRecord;
+        columnNames = new HashSet<>();
         // Populate TVP metdata from ISQLServerDataRecord.
         populateMetadataFromDataRecord();
 
@@ -185,8 +189,14 @@ class TVP {
             throw new SQLServerException(SQLServerException.getErrString("R_TVPEmptyMetadata"), null);
         }
         for (int i = 0; i < sourceRecord.getColumnCount(); i++) {
+            //columnList.add will return false if the same column name already exists
+            if (!columnNames.add(sourceRecord.getColumnMetaData(i + 1).columnName)) {
+                MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_TVPDuplicateColumnName"));
+                Object[] msgArgs = {sourceRecord.getColumnMetaData(i + 1).columnName};
+                throw new SQLServerException(null, form.format(msgArgs), null, 0, false);
+            }
+            
             // Make a copy here as we do not want to change user's metadata.
-            Util.checkDuplicateColumnName(sourceRecord.getColumnMetaData(i + 1).columnName, columnMetadata);
             SQLServerMetaData metaData = new SQLServerMetaData(sourceRecord.getColumnMetaData(i + 1));
             columnMetadata.put(i, metaData);
         }
