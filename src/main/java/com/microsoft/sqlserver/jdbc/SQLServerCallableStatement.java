@@ -1451,6 +1451,12 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
         if (paramNames != null)
             l = paramNames.size();
 
+        // handle `@name` as well as `name`, since `@name` is what's returned 
+        // by DatabaseMetaData#getProcedureColumns
+        if (columnName.startsWith("@")) {
+            columnName = columnName.substring(1, columnName.length());
+        }
+        
         // In order to be as accurate as possible when locating parameter name
         // indexes, as well as be deterministic when running on various client
         // locales, we search for parameter names using the following scheme:
