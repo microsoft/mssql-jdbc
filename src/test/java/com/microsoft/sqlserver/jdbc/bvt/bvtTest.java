@@ -361,10 +361,11 @@ public class bvtTest extends bvtTestSetup {
 
         try (DBConnection conn = new DBConnection(connectionString);
              DBStatement stmt1 = conn.createStatement();
-             DBStatement stmt2 = conn.createStatement();
-             DBResultSet rs1 = stmt1.executeQuery(query);
-             DBResultSet rs2 = stmt2.executeQuery(query2)) {
+             DBStatement stmt2 = conn.createStatement()) {
 
+            DBResultSet rs1 = stmt1.executeQuery(query);
+            DBResultSet rs2 = stmt2.executeQuery(query2);
+            
             // Interleave resultset calls
             rs1.next();
             rs1.verifyCurrentRow(table1);
@@ -373,8 +374,10 @@ public class bvtTest extends bvtTestSetup {
             rs1.next();
             rs1.verifyCurrentRow(table1);
             rs1.verify(table1);
+            rs1.close();
             rs2.next();
             rs2.verify(table2);
+            rs2.close();
         }
     }
 
@@ -390,10 +393,10 @@ public class bvtTest extends bvtTestSetup {
         String query2 = "SELECT * FROM " + table2.getEscapedTableName();
         
         try (DBConnection conn = new DBConnection(connectionString);
-             DBStatement stmt = conn.createStatement();
-             DBResultSet rs1 = stmt.executeQuery(query);
-             DBResultSet rs2 = stmt.executeQuery(query2)) {
+             DBStatement stmt = conn.createStatement()) {
 
+            DBResultSet rs1 = stmt.executeQuery(query);
+            DBResultSet rs2 = stmt.executeQuery(query2);
             // Interleave resultset calls. rs is expected to be closed
             try {
                 rs1.next();
@@ -409,8 +412,10 @@ public class bvtTest extends bvtTestSetup {
             catch (SQLException e) {
                 assertEquals(e.toString(), "com.microsoft.sqlserver.jdbc.SQLServerException: The result set is closed.");
             }
+            rs1.close();
             rs2.next();
             rs2.verify(table2);
+            rs2.close();
         }
     }
 
