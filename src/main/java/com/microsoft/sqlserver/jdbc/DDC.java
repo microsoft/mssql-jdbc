@@ -48,10 +48,10 @@ final class DDC {
      *            the type of stream required.
      * @return the required object.
      */
-    static final Object convertIntegerToObject(int intValue,
-            int valueLength,
-            JDBCType jdbcType,
-            StreamType streamType) {
+    static Object convertIntegerToObject(int intValue,
+                                         int valueLength,
+                                         JDBCType jdbcType,
+                                         StreamType streamType) {
         switch (jdbcType) {
             case INTEGER:
                 return intValue;
@@ -93,10 +93,10 @@ final class DDC {
      *            the stream type.
      * @return the required object.
      */
-    static final Object convertLongToObject(long longVal,
-            JDBCType jdbcType,
-            SSType baseSSType,
-            StreamType streamType) {
+    static Object convertLongToObject(long longVal,
+                                      JDBCType jdbcType,
+                                      SSType baseSSType,
+                                      StreamType streamType) {
         switch (jdbcType) {
             case BIGINT:
                 return longVal;
@@ -188,8 +188,8 @@ final class DDC {
      *            the number of bytes to encode.
      * @return the byte array containing the big-endian encoded value.
      */
-    static final byte[] convertIntToBytes(int intValue,
-            int valueLength) {
+    static byte[] convertIntToBytes(int intValue,
+                                    int valueLength) {
         byte bytes[] = new byte[valueLength];
         for (int i = valueLength; i-- > 0;) {
             bytes[i] = (byte) (intValue & 0xFF);
@@ -209,9 +209,9 @@ final class DDC {
      *            the stream type.
      * @return the required object.
      */
-    static final Object convertFloatToObject(float floatVal,
-            JDBCType jdbcType,
-            StreamType streamType) {
+    static Object convertFloatToObject(float floatVal,
+                                       JDBCType jdbcType,
+                                       StreamType streamType) {
         switch (jdbcType) {
             case REAL:
                 return floatVal;
@@ -247,7 +247,7 @@ final class DDC {
      *            the long value to encode.
      * @return the byte array containing the big-endian encoded value.
      */
-    static final byte[] convertLongToBytes(long longValue) {
+    static byte[] convertLongToBytes(long longValue) {
         byte bytes[] = new byte[8];
         for (int i = 8; i-- > 0;) {
             bytes[i] = (byte) (longValue & 0xFF);
@@ -267,9 +267,9 @@ final class DDC {
      *            the stream type.
      * @return the required object.
      */
-    static final Object convertDoubleToObject(double doubleVal,
-            JDBCType jdbcType,
-            StreamType streamType) {
+    static Object convertDoubleToObject(double doubleVal,
+                                        JDBCType jdbcType,
+                                        StreamType streamType) {
         switch (jdbcType) {
             case FLOAT:
             case DOUBLE:
@@ -298,8 +298,8 @@ final class DDC {
         }
     }
 
-    static final byte[] convertBigDecimalToBytes(BigDecimal bigDecimalVal,
-            int scale) {
+    static byte[] convertBigDecimalToBytes(BigDecimal bigDecimalVal,
+                                           int scale) {
         byte[] valueBytes;
 
         if (bigDecimalVal == null) {
@@ -344,9 +344,9 @@ final class DDC {
      *            the stream type.
      * @return the required object.
      */
-    static final Object convertBigDecimalToObject(BigDecimal bigDecimalVal,
-            JDBCType jdbcType,
-            StreamType streamType) {
+    static Object convertBigDecimalToObject(BigDecimal bigDecimalVal,
+                                            JDBCType jdbcType,
+                                            StreamType streamType) {
         switch (jdbcType) {
             case DECIMAL:
             case NUMERIC:
@@ -388,10 +388,10 @@ final class DDC {
      *            the number of bytes to convert
      * @return the required object.
      */
-    static final Object convertMoneyToObject(BigDecimal bigDecimalVal,
-            JDBCType jdbcType,
-            StreamType streamType,
-            int numberOfBytes) {
+    static Object convertMoneyToObject(BigDecimal bigDecimalVal,
+                                       JDBCType jdbcType,
+                                       StreamType streamType,
+                                       int numberOfBytes) {
         switch (jdbcType) {
             case DECIMAL:
             case NUMERIC:
@@ -458,9 +458,9 @@ final class DDC {
      * @throws SQLServerException
      *             when an error occurs.
      */
-    static final Object convertBytesToObject(byte[] bytesValue,
-            JDBCType jdbcType,
-            TypeInfo baseTypeInfo) throws SQLServerException {
+    static Object convertBytesToObject(byte[] bytesValue,
+                                       JDBCType jdbcType,
+                                       TypeInfo baseTypeInfo) throws SQLServerException {
         switch (jdbcType) {
             case CHAR:
                 String str = Util.bytesToHexString(bytesValue, bytesValue.length);
@@ -505,10 +505,10 @@ final class DDC {
      *            the jdbc type required.
      * @return the required object.
      */
-    static final Object convertStringToObject(String stringVal,
-            Charset charset,
-            JDBCType jdbcType,
-            StreamType streamType) throws UnsupportedEncodingException, IllegalArgumentException {
+    static Object convertStringToObject(String stringVal,
+                                        Charset charset,
+                                        JDBCType jdbcType,
+                                        StreamType streamType) throws UnsupportedEncodingException, IllegalArgumentException {
         switch (jdbcType) {
             // Convert String to Numeric types.
             case DECIMAL:
@@ -576,10 +576,10 @@ final class DDC {
         }
     }
 
-    static final Object convertStreamToObject(BaseInputStream stream,
-            TypeInfo typeInfo,
-            JDBCType jdbcType,
-            InputStreamGetterArgs getterArgs) throws SQLServerException {
+    static Object convertStreamToObject(BaseInputStream stream,
+                                        TypeInfo typeInfo,
+                                        JDBCType jdbcType,
+                                        InputStreamGetterArgs getterArgs) throws SQLServerException {
         // Need to handle the simple case of a null value here, as it is not done
         // outside this function.
         if (null == stream)
@@ -765,12 +765,12 @@ final class DDC {
      *
      * @return a Java object of the desired type.
      */
-    static final Object convertTemporalToObject(JDBCType jdbcType,
-            SSType ssType,
-            Calendar timeZoneCalendar,
-            int daysSinceBaseDate,
-            long ticksSinceMidnight,
-            int fractionalSecondsScale) {
+    static Object convertTemporalToObject(JDBCType jdbcType,
+                                          SSType ssType,
+                                          Calendar timeZoneCalendar,
+                                          int daysSinceBaseDate,
+                                          long ticksSinceMidnight,
+                                          int fractionalSecondsScale) {
         // Determine the local time zone to associate with the value. Use the default VM
         // time zone if no time zone is otherwise specified.
         TimeZone localTimeZone = (null != timeZoneCalendar) ? timeZoneCalendar.getTimeZone() : TimeZone.getDefault();
@@ -1116,7 +1116,7 @@ final class DDC {
 
     // Returns true if input bigDecimalValue exceeds allowable
     // TDS wire format precision or scale for DECIMAL TDS token.
-    static final boolean exceedsMaxRPCDecimalPrecisionOrScale(BigDecimal bigDecimalValue) {
+    static boolean exceedsMaxRPCDecimalPrecisionOrScale(BigDecimal bigDecimalValue) {
         if (null == bigDecimalValue)
             return false;
 
@@ -1380,7 +1380,7 @@ final class InputStreamGetterArgs {
 
     static final InputStreamGetterArgs defaultArgs = new InputStreamGetterArgs(StreamType.NONE, false, false, "");
 
-    static final InputStreamGetterArgs getDefaultArgs() {
+    static InputStreamGetterArgs getDefaultArgs() {
         return defaultArgs;
     }
 

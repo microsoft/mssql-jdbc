@@ -18,10 +18,10 @@ import java.sql.SQLType;
  */
 class SQLServerPreparedStatement42Helper {
 
-    static final void setObject(SQLServerPreparedStatement ps,
-            int index,
-            Object obj,
-            SQLType jdbcType) throws SQLServerException {
+    static void setObject(SQLServerPreparedStatement ps,
+                          int index,
+                          Object obj,
+                          SQLType jdbcType) throws SQLServerException {
         DriverJDBCVersion.checkSupportsJDBC42();
 
         if (SQLServerStatement.loggerExternal.isLoggable(java.util.logging.Level.FINER))
@@ -33,11 +33,11 @@ class SQLServerPreparedStatement42Helper {
         SQLServerStatement.loggerExternal.exiting(ps.getClassNameLogging(), "setObject");
     }
 
-    static final void setObject(SQLServerPreparedStatement ps,
-            int parameterIndex,
-            Object x,
-            SQLType targetSqlType,
-            int scaleOrLength) throws SQLServerException {
+    static void setObject(SQLServerPreparedStatement ps,
+                          int parameterIndex,
+                          Object x,
+                          SQLType targetSqlType,
+                          int scaleOrLength) throws SQLServerException {
         DriverJDBCVersion.checkSupportsJDBC42();
 
         if (SQLServerStatement.loggerExternal.isLoggable(java.util.logging.Level.FINER))
@@ -50,12 +50,12 @@ class SQLServerPreparedStatement42Helper {
         SQLServerStatement.loggerExternal.exiting(ps.getClassNameLogging(), "setObject");
     }
 
-    static final void setObject(SQLServerPreparedStatement ps,
-            int parameterIndex,
-            Object x,
-            SQLType targetSqlType,
-            Integer precision,
-            Integer scale) throws SQLServerException {
+    static void setObject(SQLServerPreparedStatement ps,
+                          int parameterIndex,
+                          Object x,
+                          SQLType targetSqlType,
+                          Integer precision,
+                          Integer scale) throws SQLServerException {
         DriverJDBCVersion.checkSupportsJDBC42();
 
         if (SQLServerStatement.loggerExternal.isLoggable(java.util.logging.Level.FINER))
@@ -68,13 +68,13 @@ class SQLServerPreparedStatement42Helper {
         SQLServerStatement.loggerExternal.exiting(ps.getClassNameLogging(), "setObject");
     }
 
-    static final void setObject(SQLServerPreparedStatement ps,
-            int parameterIndex,
-            Object x,
-            SQLType targetSqlType,
-            Integer precision,
-            Integer scale,
-            boolean forceEncrypt) throws SQLServerException {
+    static void setObject(SQLServerPreparedStatement ps,
+                          int parameterIndex,
+                          Object x,
+                          SQLType targetSqlType,
+                          Integer precision,
+                          Integer scale,
+                          boolean forceEncrypt) throws SQLServerException {
         DriverJDBCVersion.checkSupportsJDBC42();
 
         if (SQLServerStatement.loggerExternal.isLoggable(java.util.logging.Level.FINER))

@@ -673,7 +673,7 @@ public final class SQLServerDriver implements java.sql.Driver {
         return properties;
     }
 
-    static final DriverPropertyInfo[] getPropertyInfoFromProperties(Properties props) {
+    static DriverPropertyInfo[] getPropertyInfoFromProperties(Properties props) {
         DriverPropertyInfo[] properties = new DriverPropertyInfo[DRIVER_PROPERTIES.length];
 
         for (int i = 0; i < DRIVER_PROPERTIES.length; i++)

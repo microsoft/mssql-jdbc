@@ -393,8 +393,8 @@ enum SSType
                 conversionMap.get(conversion.from).addAll(conversion.to);
         }
 
-        static final boolean converts(SSType fromSSType,
-                JDBCType toJDBCType) {
+        static boolean converts(SSType fromSSType,
+                                JDBCType toJDBCType) {
             return conversionMap.get(fromSSType.category).contains(toJDBCType.category);
         }
     }
@@ -1640,8 +1640,8 @@ enum JDBCType
 
 final class DataTypes {
     // ResultSet & CallableStatement getXXX conversions (SSType --> JDBCType)
-    static final void throwConversionError(String fromType,
-            String toType) throws SQLServerException {
+    static void throwConversionError(String fromType,
+                                     String toType) throws SQLServerException {
         MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_unsupportedConversionFromTo"));
         Object[] msgArgs = {fromType, toType};
         SQLServerException.makeFromDriverError(null, null, form.format(msgArgs), null, true);
@@ -1703,10 +1703,10 @@ final class DataTypes {
     static final int UNKNOWN_STREAM_LENGTH = -1;
 
     // Utility methods to check a reported length against the maximums allowed
-    static final long getCheckedLength(SQLServerConnection con,
-            JDBCType jdbcType,
-            long length,
-            boolean allowUnknown) throws SQLServerException {
+    static long getCheckedLength(SQLServerConnection con,
+                                 JDBCType jdbcType,
+                                 long length,
+                                 boolean allowUnknown) throws SQLServerException {
         long maxLength;
 
         switch (jdbcType) {

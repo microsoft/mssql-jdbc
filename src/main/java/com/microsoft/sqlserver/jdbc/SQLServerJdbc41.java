@@ -19,13 +19,13 @@ final class DriverJDBCVersion {
     static final int major = 4;
     static final int minor = 1;
 
-    static final void checkSupportsJDBC42() {
+    static void checkSupportsJDBC42() {
         throw new UnsupportedOperationException(SQLServerException.getErrString("R_notSupported"));
     }
 
     // Stub for the new overloaded method in BatchUpdateException in JDBC 4.2
-    static final void throwBatchUpdateException(SQLServerException lastError,
-            long[] updateCounts) {
+    static void throwBatchUpdateException(SQLServerException lastError,
+                                          long[] updateCounts) {
         throw new UnsupportedOperationException(SQLServerException.getErrString("R_notSupported"));
     }
 }
