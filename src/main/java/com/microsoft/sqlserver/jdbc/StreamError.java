@@ -47,7 +47,8 @@ final class StreamError extends StreamPacket {
     }
 
     void setFromTDS(TDSReader tdsReader) throws SQLServerException {
-        assert TDS.TDS_ERR == tdsReader.readUnsignedByte();
+        if (TDS.TDS_ERR != tdsReader.readUnsignedByte())
+            assert false;
         setContentsFromTDS(tdsReader);
     }
 

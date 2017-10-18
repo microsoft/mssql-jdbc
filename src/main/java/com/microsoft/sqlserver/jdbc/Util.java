@@ -19,6 +19,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Properties;
+import java.util.Set;
 import java.util.UUID;
 import java.util.logging.Level;
 import java.util.logging.LogManager;
@@ -557,28 +558,22 @@ final class Util {
         outID.append(']');
         return outID.toString();
     }
-
+    
+    /**
+     * Checks if duplicate columns exists, in O(n) time.
+     * 
+     * @param columnName
+     *            the name of the column
+     * @throws SQLServerException
+     *             when a duplicate column exists
+     */
     static void checkDuplicateColumnName(String columnName,
-            Map<Integer, ?> columnMetadata) throws SQLServerException {
-        if (columnMetadata.get(0) instanceof SQLServerMetaData) {
-            for (Entry<Integer, ?> entry : columnMetadata.entrySet()) {
-                SQLServerMetaData value = (SQLServerMetaData) entry.getValue();
-                if (value.columnName.equals(columnName)) {
-                    MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_TVPDuplicateColumnName"));
-                    Object[] msgArgs = {columnName};
-                    throw new SQLServerException(null, form.format(msgArgs), null, 0, false);
-                }
-            }
-        }
-        else if (columnMetadata.get(0) instanceof SQLServerDataColumn) {
-            for (Entry<Integer, ?> entry : columnMetadata.entrySet()) {
-                SQLServerDataColumn value = (SQLServerDataColumn) entry.getValue();
-                if (value.columnName.equals(columnName)) {
-                    MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_TVPDuplicateColumnName"));
-                    Object[] msgArgs = {columnName};
-                    throw new SQLServerException(null, form.format(msgArgs), null, 0, false);
-                }
-            }
+            Set<String> columnNames) throws SQLServerException {
+        //columnList.add will return false if the same column name already exists
+        if (!columnNames.add(columnName)) {
+            MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_TVPDuplicateColumnName"));
+            Object[] msgArgs = {columnName};
+            throw new SQLServerException(null, form.format(msgArgs), null, 0, false);
         }
     }
 
@@ -790,7 +785,10 @@ final class Util {
     static boolean IsActivityTraceOn() {
         LogManager lm = LogManager.getLogManager();
         String activityTrace = lm.getProperty(ActivityIdTraceProperty);
-        return "on".equalsIgnoreCase(activityTrace);
+        if ("on".equalsIgnoreCase(activityTrace))
+            return true;
+        else
+            return false;
     }
 
     /**

@@ -21,7 +21,8 @@ final class StreamColInfo extends StreamPacket {
     }
 
     void setFromTDS(TDSReader tdsReader) throws SQLServerException {
-        assert TDS.TDS_COLINFO == tdsReader.readUnsignedByte() : "Not a COLINFO token";
+        if (TDS.TDS_COLINFO != tdsReader.readUnsignedByte())
+            assert false : "Not a COLINFO token";
 
         this.tdsReader = tdsReader;
         int tokenLength = tdsReader.readUnsignedShort();

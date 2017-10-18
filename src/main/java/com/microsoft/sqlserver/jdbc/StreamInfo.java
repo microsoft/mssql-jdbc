@@ -16,7 +16,8 @@ final class StreamInfo extends StreamPacket {
     }
 
     void setFromTDS(TDSReader tdsReader) throws SQLServerException {
-        assert TDS.TDS_MSG == tdsReader.readUnsignedByte();
+        if (TDS.TDS_MSG != tdsReader.readUnsignedByte())
+            assert false;
         msg.setContentsFromTDS(tdsReader);
     }
 }

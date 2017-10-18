@@ -512,68 +512,46 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
     private void testChar(SQLServerStatement stmt,
             String[] values) throws SQLException {
         String sql = "select * from " + charTable;
-        SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) Util.getPreparedStmt(con, sql, stmtColEncSetting);
-        ResultSet rs = null;
-        if (stmt == null) {
-            rs = pstmt.executeQuery();
+        try(SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) Util.getPreparedStmt(con, sql, stmtColEncSetting)) {
+	        try(ResultSet rs = (stmt == null) ? pstmt.executeQuery() : stmt.executeQuery(sql)) {
+		        int numberOfColumns = rs.getMetaData().getColumnCount();
+		        while (rs.next()) {
+		            testGetString(rs, numberOfColumns, values);
+		            testGetObject(rs, numberOfColumns, values);
+		        }
+	        }
         }
-        else {
-            rs = stmt.executeQuery(sql);
-        }
-        int numberOfColumns = rs.getMetaData().getColumnCount();
-
-        while (rs.next()) {
-            testGetString(rs, numberOfColumns, values);
-            testGetObject(rs, numberOfColumns, values);
-        }
-
-        Util.close(rs, pstmt, null);
     }
 
     private void testBinary(SQLServerStatement stmt,
             LinkedList<byte[]> values) throws SQLException {
         String sql = "select * from " + binaryTable;
-        SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) Util.getPreparedStmt(con, sql, stmtColEncSetting);
-        ResultSet rs = null;
-        if (stmt == null) {
-            rs = pstmt.executeQuery();
+        try(SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) Util.getPreparedStmt(con, sql, stmtColEncSetting)) {
+	        try(ResultSet rs = (stmt == null) ? pstmt.executeQuery() : stmt.executeQuery(sql)) {
+		        int numberOfColumns = rs.getMetaData().getColumnCount();
+		        while (rs.next()) {
+		            testGetStringForBinary(rs, numberOfColumns, values);
+		            testGetBytes(rs, numberOfColumns, values);
+		            testGetObjectForBinary(rs, numberOfColumns, values);
+		        }
+	        }
         }
-        else {
-            rs = stmt.executeQuery(sql);
-        }
-        int numberOfColumns = rs.getMetaData().getColumnCount();
-
-        while (rs.next()) {
-            testGetStringForBinary(rs, numberOfColumns, values);
-            testGetBytes(rs, numberOfColumns, values);
-            testGetObjectForBinary(rs, numberOfColumns, values);
-        }
-
-        Util.close(rs, pstmt, null);
     }
 
     private void testDate(SQLServerStatement stmt,
             LinkedList<Object> values1) throws SQLException {
-
         String sql = "select * from " + dateTable;
-        SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) Util.getPreparedStmt(con, sql, stmtColEncSetting);
-        ResultSet rs = null;
-        if (stmt == null) {
-            rs = pstmt.executeQuery();
+        try(SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) Util.getPreparedStmt(con, sql, stmtColEncSetting)) {
+	        try(ResultSet rs = (stmt == null) ? pstmt.executeQuery() : stmt.executeQuery(sql)) {
+		        int numberOfColumns = rs.getMetaData().getColumnCount();
+		        while (rs.next()) {
+		            // testGetStringForDate(rs, numberOfColumns, values1); //TODO: Disabling, since getString throws verification error for zero temporal
+		            // types
+		            testGetObjectForTemporal(rs, numberOfColumns, values1);
+		            testGetDate(rs, numberOfColumns, values1);
+		        }
+	        }
         }
-        else {
-            rs = stmt.executeQuery(sql);
-        }
-        int numberOfColumns = rs.getMetaData().getColumnCount();
-
-        while (rs.next()) {
-            // testGetStringForDate(rs, numberOfColumns, values1); //TODO: Disabling, since getString throws verification error for zero temporal
-            // types
-            testGetObjectForTemporal(rs, numberOfColumns, values1);
-            testGetDate(rs, numberOfColumns, values1);
-        }
-
-        Util.close(rs, pstmt, null);
     }
 
     private void testGetObject(ResultSet rs,
@@ -948,29 +926,22 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
             String[] numericValues,
             boolean isNull) throws SQLException {
         String sql = "select * from " + numericTable;
-        SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) Util.getPreparedStmt(con, sql, stmtColEncSetting);
-        SQLServerResultSet rs = null;
-        if (stmt == null) {
-            rs = (SQLServerResultSet) pstmt.executeQuery();
+        try(SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) Util.getPreparedStmt(con, sql, stmtColEncSetting)) {
+        	try(SQLServerResultSet rs = (stmt == null) ? (SQLServerResultSet) pstmt.executeQuery() : (SQLServerResultSet) stmt.executeQuery(sql)) {
+		        int numberOfColumns = rs.getMetaData().getColumnCount();
+		        while (rs.next()) {
+		            testGetString(rs, numberOfColumns, numericValues);
+		            testGetObject(rs, numberOfColumns, numericValues);
+		            testGetBigDecimal(rs, numberOfColumns, numericValues);
+		            if (!isNull)
+		                testWithSpecifiedtype(rs, numberOfColumns, numericValues);
+		            else {
+		                String[] nullNumericValues = {"false", "0", "0", "0", "0", "0.0", "0.0", "0.0", null, null, null, null, null, null, null, null};
+		                testWithSpecifiedtype(rs, numberOfColumns, nullNumericValues);
+		            }
+		        }
+        	}
         }
-        else {
-            rs = (SQLServerResultSet) stmt.executeQuery(sql);
-        }
-        int numberOfColumns = rs.getMetaData().getColumnCount();
-
-        while (rs.next()) {
-            testGetString(rs, numberOfColumns, numericValues);
-            testGetObject(rs, numberOfColumns, numericValues);
-            testGetBigDecimal(rs, numberOfColumns, numericValues);
-            if (!isNull)
-                testWithSpecifiedtype(rs, numberOfColumns, numericValues);
-            else {
-                String[] nullNumericValues = {"false", "0", "0", "0", "0", "0.0", "0.0", "0.0", null, null, null, null, null, null, null, null};
-                testWithSpecifiedtype(rs, numberOfColumns, nullNumericValues);
-            }
-        }
-
-        Util.close(rs, pstmt, null);
     }
 
     private void testWithSpecifiedtype(SQLServerResultSet rs,
