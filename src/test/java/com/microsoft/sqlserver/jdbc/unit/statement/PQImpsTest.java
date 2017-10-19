@@ -30,6 +30,7 @@ import com.microsoft.sqlserver.jdbc.SQLServerException;
 import com.microsoft.sqlserver.jdbc.SQLServerParameterMetaData;
 import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
 import com.microsoft.sqlserver.testframework.AbstractTest;
+import com.microsoft.sqlserver.testframework.Utils;
 import com.microsoft.sqlserver.testframework.util.RandomUtil;
 
 /**
@@ -1380,16 +1381,17 @@ public class PQImpsTest extends AbstractTest {
      */
     @AfterAll
     public static void dropTables() throws SQLException {
-        stmt.execute("if object_id('" + nameTable + "','U') is not null" + " drop table " + nameTable);
-        stmt.execute("if object_id('" + phoneNumberTable + "','U') is not null" + " drop table " + phoneNumberTable);
-        stmt.execute("if object_id('" + mergeNameDesTable + "','U') is not null" + " drop table " + mergeNameDesTable);
-        stmt.execute("if object_id('" + numericTable + "','U') is not null" + " drop table " + numericTable);
-        stmt.execute("if object_id('" + charTable + "','U') is not null" + " drop table " + charTable);
-        stmt.execute("if object_id('" + charTable2 + "','U') is not null" + " drop table " + charTable2);
-        stmt.execute("if object_id('" + binaryTable + "','U') is not null" + " drop table " + binaryTable);
-        stmt.execute("if object_id('" + dateAndTimeTable + "','U') is not null" + " drop table " + dateAndTimeTable);
-        stmt.execute("if object_id('" + multipleTypesTable + "','U') is not null" + " drop table " + multipleTypesTable);
-        stmt.execute("if object_id('" + spaceTable + "','U') is not null" + " drop table " + spaceTable);
+        Utils.dropTableIfExists(nameTable, stmt);
+        Utils.dropTableIfExists(phoneNumberTable, stmt);
+        Utils.dropTableIfExists(mergeNameDesTable, stmt);
+        Utils.dropTableIfExists(numericTable, stmt);
+        Utils.dropTableIfExists(phoneNumberTable, stmt);
+        Utils.dropTableIfExists(charTable, stmt);
+        Utils.dropTableIfExists(charTable2, stmt);
+        Utils.dropTableIfExists(binaryTable, stmt);
+        Utils.dropTableIfExists(dateAndTimeTable, stmt);
+        Utils.dropTableIfExists(multipleTypesTable, stmt);
+        Utils.dropTableIfExists(spaceTable, stmt);
 
         if (null != rs) {
             rs.close();

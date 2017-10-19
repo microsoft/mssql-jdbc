@@ -75,7 +75,7 @@ class SQLServerBulkCopy42Helper {
                     return ts;
                 case java.sql.Types.TIME:
                     // Time is returned as Timestamp to preserve nano seconds.
-                    cal.set(connection.baseYear(), 00, 01);
+                    cal.set(connection.baseYear(), Calendar.JANUARY, 01);
                     ts = new java.sql.Timestamp(cal.getTimeInMillis());
                     ts.setNanos(taNano);
                     return new java.sql.Timestamp(ts.getTime());

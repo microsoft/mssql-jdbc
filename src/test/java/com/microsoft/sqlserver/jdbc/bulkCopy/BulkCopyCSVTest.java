@@ -77,9 +77,7 @@ public class BulkCopyCSVTest extends AbstractTest {
     @Test
     @DisplayName("Test SQLServerBulkCSVFileRecord")
     void testCSV() {
-        SQLServerBulkCSVFileRecord fileRecord;
-        try {
-            fileRecord = new SQLServerBulkCSVFileRecord(filePath + inputFile, encoding, delimiter, true);
+        try (SQLServerBulkCSVFileRecord fileRecord = new SQLServerBulkCSVFileRecord(filePath + inputFile, encoding, delimiter, true)) {
             testBulkCopyCSV(fileRecord, true);
         }
         catch (SQLServerException e) {
@@ -93,9 +91,7 @@ public class BulkCopyCSVTest extends AbstractTest {
     @Test
     @DisplayName("Test SQLServerBulkCSVFileRecord First line not being column name")
     void testCSVFirstLineNotColumnName() {
-        SQLServerBulkCSVFileRecord fileRecord;
-        try {
-            fileRecord = new SQLServerBulkCSVFileRecord(filePath + inputFileNoColumnName, encoding, delimiter, false);
+        try (SQLServerBulkCSVFileRecord fileRecord = new SQLServerBulkCSVFileRecord(filePath + inputFileNoColumnName, encoding, delimiter, false)) {
             testBulkCopyCSV(fileRecord, false);
         }
         catch (SQLServerException e) {
@@ -111,10 +107,9 @@ public class BulkCopyCSVTest extends AbstractTest {
     @Test
     @DisplayName("Test SQLServerBulkCSVFileRecord with passing file from url")
     void testCSVFromURL() throws SQLException {
-        try {
-            InputStream csvFileInputStream = new URL(
+        try (InputStream csvFileInputStream = new URL(
                     "https://raw.githubusercontent.com/Microsoft/mssql-jdbc/master/src/test/resources/BulkCopyCSVTestInput.csv").openStream();
-            SQLServerBulkCSVFileRecord fileRecord = new SQLServerBulkCSVFileRecord(csvFileInputStream, encoding, delimiter, true);
+            SQLServerBulkCSVFileRecord fileRecord = new SQLServerBulkCSVFileRecord(csvFileInputStream, encoding, delimiter, true)) {
             testBulkCopyCSV(fileRecord, true);
         }
         catch (Exception e) {
@@ -125,53 +120,52 @@ public class BulkCopyCSVTest extends AbstractTest {
     private void testBulkCopyCSV(SQLServerBulkCSVFileRecord fileRecord,
             boolean firstLineIsColumnNames) {
         DBTable destTable = null;
-        try {
-            BufferedReader br = new BufferedReader(new InputStreamReader(new FileInputStream(filePath + inputFile), encoding));
+        try (BufferedReader br = new BufferedReader(new InputStreamReader(new FileInputStream(filePath + inputFile), encoding))) {
             // read the first line from csv and parse it to get datatypes to create destination column
             String[] columnTypes = br.readLine().substring(1)/* Skip the Byte order mark */.split(delimiter, -1);
             br.close();
 
             int numberOfColumns = columnTypes.length;
             destTable = new DBTable(false);
-            SQLServerBulkCopy bulkCopy = new SQLServerBulkCopy((Connection) con.product());
-            bulkCopy.setDestinationTableName(destTable.getEscapedTableName());
-
-            // add a column in destTable for each datatype in csv
-            for (int i = 0; i < numberOfColumns; i++) {
-                SqlType sqlType = null;
-                int precision = -1;
-                int scale = -1;
-
-                String columnType = columnTypes[i].trim().toLowerCase();
-                int indexOpenParenthesis = columnType.lastIndexOf("(");
-                // skip the parenthesis in case of precision and scale type
-                if (-1 != indexOpenParenthesis) {
-                    String precision_scale = columnType.substring(indexOpenParenthesis + 1, columnType.length() - 1);
-                    columnType = columnType.substring(0, indexOpenParenthesis);
-                    sqlType = SqlTypeMapping.valueOf(columnType.toUpperCase()).sqlType;
-
-                    // add scale if exist
-                    int indexPrecisionScaleSeparator = precision_scale.indexOf("-");
-                    if (-1 != indexPrecisionScaleSeparator) {
-                        scale = Integer.parseInt(precision_scale.substring(indexPrecisionScaleSeparator + 1));
-                        sqlType.setScale(scale);
-                        precision_scale = precision_scale.substring(0, indexPrecisionScaleSeparator);
-                    }
-                    // add precision
-                    precision = Integer.parseInt(precision_scale);
-                    sqlType.setPrecision(precision);
-                }
-                else {
-                    sqlType = SqlTypeMapping.valueOf(columnType.toUpperCase()).sqlType;
-                }
-
-                destTable.addColumn(sqlType);
-                fileRecord.addColumnMetadata(i + 1, "", sqlType.getJdbctype().getVendorTypeNumber(), (-1 == precision) ? 0 : precision,
-                        (-1 == scale) ? 0 : scale);
+            try (SQLServerBulkCopy bulkCopy = new SQLServerBulkCopy((Connection) con.product())) {
+	            bulkCopy.setDestinationTableName(destTable.getEscapedTableName());
+	
+	            // add a column in destTable for each datatype in csv
+	            for (int i = 0; i < numberOfColumns; i++) {
+	                SqlType sqlType = null;
+	                int precision = -1;
+	                int scale = -1;
+	
+	                String columnType = columnTypes[i].trim().toLowerCase();
+	                int indexOpenParenthesis = columnType.lastIndexOf("(");
+	                // skip the parenthesis in case of precision and scale type
+	                if (-1 != indexOpenParenthesis) {
+	                    String precision_scale = columnType.substring(indexOpenParenthesis + 1, columnType.length() - 1);
+	                    columnType = columnType.substring(0, indexOpenParenthesis);
+	                    sqlType = SqlTypeMapping.valueOf(columnType.toUpperCase()).sqlType;
+	
+	                    // add scale if exist
+	                    int indexPrecisionScaleSeparator = precision_scale.indexOf("-");
+	                    if (-1 != indexPrecisionScaleSeparator) {
+	                        scale = Integer.parseInt(precision_scale.substring(indexPrecisionScaleSeparator + 1));
+	                        sqlType.setScale(scale);
+	                        precision_scale = precision_scale.substring(0, indexPrecisionScaleSeparator);
+	                    }
+	                    // add precision
+	                    precision = Integer.parseInt(precision_scale);
+	                    sqlType.setPrecision(precision);
+	                }
+	                else {
+	                    sqlType = SqlTypeMapping.valueOf(columnType.toUpperCase()).sqlType;
+	                }
+	
+	                destTable.addColumn(sqlType);
+	                fileRecord.addColumnMetadata(i + 1, "", sqlType.getJdbctype().getVendorTypeNumber(), (-1 == precision) ? 0 : precision,
+	                        (-1 == scale) ? 0 : scale);
+	            }
+	            stmt.createTable(destTable);
+	            bulkCopy.writeToServer((ISQLServerBulkRecord) fileRecord);
             }
-            stmt.createTable(destTable);
-            bulkCopy.writeToServer((ISQLServerBulkRecord) fileRecord);
-            bulkCopy.close();
             if (firstLineIsColumnNames)
                 validateValuesFromCSV(destTable, inputFile);
             else
@@ -186,7 +180,6 @@ public class BulkCopyCSVTest extends AbstractTest {
                 stmt.dropTable(destTable);
             }
         }
-
     }
 
     /**
@@ -196,30 +189,28 @@ public class BulkCopyCSVTest extends AbstractTest {
      */
     static void validateValuesFromCSV(DBTable destinationTable,
             String inputFile) {
-        BufferedReader br;
-        try {
-            br = new BufferedReader(new InputStreamReader(new FileInputStream(filePath + inputFile), encoding));
+        try (BufferedReader br = new BufferedReader(new InputStreamReader(new FileInputStream(filePath + inputFile), encoding))) {
             if (inputFile.equalsIgnoreCase("BulkCopyCSVTestInput.csv"))
                 br.readLine();   // skip first line as it is header
 
-            DBResultSet dstResultSet = stmt.executeQuery("SELECT * FROM " + destinationTable.getEscapedTableName() + ";");
-            ResultSetMetaData destMeta = ((ResultSet) dstResultSet.product()).getMetaData();
-            int totalColumns = destMeta.getColumnCount();
-            while (dstResultSet.next()) {
-                String[] srcValues = br.readLine().split(delimiter);
-                if ((0 == srcValues.length) && (srcValues.length != totalColumns)) {
-                    srcValues = new String[totalColumns];
-                    Arrays.fill(srcValues, null);
-                }
-                for (int i = 1; i <= totalColumns; i++) {
-                    String srcValue = srcValues[i - 1];
-                    String dstValue = dstResultSet.getString(i);
-                    srcValue = (null != srcValue) ? srcValue.trim() : srcValue;
-                    dstValue = (null != dstValue) ? dstValue.trim() : dstValue;
-
-                    // get the value from csv as string and compare them
-                    ComparisonUtil.compareExpectedAndActual(java.sql.Types.VARCHAR, srcValue, dstValue);
-                }
+            try (DBResultSet dstResultSet = stmt.executeQuery("SELECT * FROM " + destinationTable.getEscapedTableName() + ";")) {
+	            ResultSetMetaData destMeta = ((ResultSet) dstResultSet.product()).getMetaData();
+	            int totalColumns = destMeta.getColumnCount();
+	            while (dstResultSet.next()) {
+	                String[] srcValues = br.readLine().split(delimiter);
+	                if ((0 == srcValues.length) && (srcValues.length != totalColumns)) {
+	                    srcValues = new String[totalColumns];
+	                    Arrays.fill(srcValues, null);
+	                }
+	                for (int i = 1; i <= totalColumns; i++) {
+	                    String srcValue = srcValues[i - 1];
+	                    String dstValue = dstResultSet.getString(i);
+	                    srcValue = (null != srcValue) ? srcValue.trim() : srcValue;
+	                    dstValue = (null != dstValue) ? dstValue.trim() : dstValue;
+	                    // get the value from csv as string and compare them
+	                    ComparisonUtil.compareExpectedAndActual(java.sql.Types.VARCHAR, srcValue, dstValue);
+	                }
+	            }
             }
         }
         catch (Exception e) {
