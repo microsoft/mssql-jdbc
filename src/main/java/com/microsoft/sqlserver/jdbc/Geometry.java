@@ -37,11 +37,25 @@ public class Geometry {
     private boolean hasMvalues = false;
     //TODO: when is a geometry/geography not valid?
     //Also, from the driver's point of view, should this ever be false?
-    private boolean isValid = true;
+    private boolean isValid = false;
     private boolean isSinglePoint = false;
     private boolean isSingleLineSegment = false;
     //TODO: how do i use this?
     private boolean isLargerThanHemisphere = false;
+    
+    private final byte FA_INTERIOR_RING = 0;
+    private final byte FA_STROKE = 1;
+    private final byte FA_EXTERIOR_RING = 2;
+    
+    private final byte FA_POINT = 0;
+    private final byte FA_LINE = 1;
+    private final byte FA_ARC = 2;
+    private final byte FA_COMPOSITE_CURVE = 3;
+    
+    private final byte SEGMENT_LINE = 0;
+    private final byte SEGMENT_ARC = 1;
+    private final byte SEGMENT_FIRST_LINE = 2;
+    private final byte SEGMENT_FIRST_ARC = 3;
     
     private final byte hasZvaluesMask =              0b00000001;
     private final byte hasMvaluesMask =              0b00000010;
@@ -57,13 +71,15 @@ public class Geometry {
     private List<Figure> figureList = new ArrayList<Figure>();
     private List<Shape> shapeList = new ArrayList<Shape>();
     private List<Segment> segmentList = new ArrayList<Segment>();
+    
+    private List<Integer> version_one_shape_indexes = new ArrayList<Integer>();
 
     public Geometry(String WellKnownText, int srid) {
         this.wkt = WellKnownText;
         this.srid = srid;
         
         //TODO: do lazy conversion later
-        parseWKTForSerialization(currentWktPos, 0);
+        parseWKTForSerialization(currentWktPos, -1, false);
         serializeToWkb();
     }
 
@@ -145,7 +161,7 @@ public class Geometry {
             buf.put(shapes[i].getOpenGISType());
         }
         
-        if (version == 2) {
+        if (version == 2 && null != segments) {
             buf.putInt(numberOfSegments);
             for (int i = 0; i < numberOfSegments; i++) {
                 buf.put(segments[i].getSegmentType());
@@ -381,7 +397,7 @@ public class Geometry {
             case POLYGON:
             case MULTIPOINT:
             case MULTILINESTRING:
-                constructSimpleWKT(currentFigureIndex, figureIndexEnd);
+                constructShapeWKT(currentFigureIndex, figureIndexEnd);
                 break;
             case COMPOUNDCURVE:
                 constructCompoundcurveWKT(currentSegmentIndex, segmentIndexEnd, pointIndexEnd);
@@ -443,9 +459,8 @@ public class Geometry {
         }
     }
     
-    private void constructSimpleWKT(int figureStartIndex, int figureEndIndex) {
-        // Method for constructing Simple (i.e. not constructed of other Geometry/Geography objects)
-        // Geometry/Geography objects.
+    private void constructShapeWKT(int figureStartIndex, int figureEndIndex) {
+        // Method for constructing shapes (simple Geometry/Geography entities that are contained within a single bracket)
         for (int i = figureStartIndex; i < figureEndIndex; i++) {
             WKTsb.append("(");
             if (i != numberOfFigures - 1) { //not the last figure
@@ -867,13 +882,11 @@ public class Geometry {
         return segmentIncrement;
     }
 
-    private void parseWKTForSerialization(int startPos, int parentShapeIndex) {
+    private void parseWKTForSerialization(int startPos, int parentShapeIndex, boolean isGeoCollection) {
         //after every iteration of this while loop, the currentWktPosition will be set to the
         //end of the geometry/geography shape, except for the very first iteration of it.
         //This means that there has to be comma (that separates the previous shape with the next shape),
         //or we expect a ')' that will close the entire shape and exit the method.
-        
-        System.out.println("delete me");
         
         while (hasMoreToken()) {
             if (startPos != 0) {
@@ -882,51 +895,125 @@ public class Geometry {
                 } else if (wkt.charAt(currentWktPos) == ',') {
                     currentWktPos++;
                 } else {
-                    //TODO: throw exception here
-                    return;
+                    //TODO: throw exception here?
+                    //return;
                 }
             }
 
             String nextToken = getNextStringToken().toUpperCase(Locale.US);
+            String nextPotentialToken;
+            int thisShapeIndex;
+            InternalSpatialDatatype isd = InternalSpatialDatatype.valueOf(nextToken);
+            byte fa = 0;
             
             readOpenBracket();
             
-            if (nextToken.equals("CIRCULARSTRING") || nextToken.equals("COMPOUNDCURVE") ||
-                    nextToken.equals("CURVEPOLYGON")) {
+            if (version == 1 && (nextToken.equals("CIRCULARSTRING") || nextToken.equals("COMPOUNDCURVE") ||
+                    nextToken.equals("CURVEPOLYGON"))) {
                 version = 2;
-            } else {
-                version = 1;
             }
-            
+
             switch (nextToken) {
                 case "POINT":
                     if (startPos == 0 && nextToken.toUpperCase().equals("POINT")) {
                         isSinglePoint = true;
                     }
+                    
+                    if (isGeoCollection) {
+                        shapeList.add(new Shape(parentShapeIndex, figureList.size(), isd.getTypeCode()));
+                        figureList.add(new Figure(FA_LINE, pointList.size()));
+                    }
+                    
                     readPointWkt();
                     break;
                 case "LINESTRING":
                 case "CIRCULARSTRING":
-                    readLineWkt(parentShapeIndex);
+                    shapeList.add(new Shape(parentShapeIndex, figureList.size(), isd.getTypeCode()));
+                    fa = isd.getTypeCode() == InternalSpatialDatatype.LINESTRING.getTypeCode() ? FA_STROKE : FA_EXTERIOR_RING;
+                    figureList.add(new Figure(fa, pointList.size()));
+                    
+                    readLineWkt();
                     
                     if (startPos == 0 && nextToken.toUpperCase().equals("LINESTRING") && pointList.size() == 2) {
                         isSingleLineSegment = true;
                     }
                     break;
                 case "POLYGON":
-                case "CURVEPOLYGON":
-                    
-                    break;
                 case "MULTIPOINT":
                 case "MULTILINESTRING":
-                case "MULTIPOLYGON":
+                    thisShapeIndex = shapeList.size();
+                    shapeList.add(new Shape(parentShapeIndex, figureList.size(), isd.getTypeCode()));
+                    
+                    readShapeWkt(thisShapeIndex, nextToken);
 
                     break;
-                case "GEOMETRYCOLLECTION":
-                    //Geometrycollection i believe has to use return, in order to know the parent shape index.
-                    continue;
+                case "MULTIPOLYGON":
+                    thisShapeIndex = shapeList.size();
+                    shapeList.add(new Shape(parentShapeIndex, figureList.size(), isd.getTypeCode()));
+                    
+                    while (currentWktPos < wkt.length() && wkt.charAt(currentWktPos) != ')') {
+                        shapeList.add(new Shape(thisShapeIndex, figureList.size(), InternalSpatialDatatype.POLYGON.getTypeCode())); //exterior polygon
+                        readOpenBracket();
+                        readShapeWkt(thisShapeIndex, nextToken);
+                        readCloseBracket();
+                        
+                        if (wkt.charAt(currentWktPos) == ',') { // more polygons to follow
+                            readComma();
+                        } else if (wkt.charAt(currentWktPos) == ')') { // about to exit while loop
+                            continue;
+                        } else { // unexpected input
+                            throw new IllegalArgumentException();
+                        }
+                    }
+                    
+                    break;
                 case "COMPOUNDCURVE":
+                    shapeList.add(new Shape(parentShapeIndex, figureList.size(), isd.getTypeCode()));
+                    figureList.add(new Figure(FA_COMPOSITE_CURVE, pointList.size()));
+                    
+                    readCompoundCurveWkt(true);
+                    
+                    break;
+                case "CURVEPOLYGON":
+                    shapeList.add(new Shape(parentShapeIndex, figureList.size(), isd.getTypeCode()));
 
+                    while (currentWktPos < wkt.length() && wkt.charAt(currentWktPos) != ')') {
+                        nextPotentialToken = getNextStringToken().toUpperCase(Locale.US);
+                        if (nextPotentialToken.equals("CIRCULARSTRING")) {
+                            figureList.add(new Figure(FA_ARC, pointList.size()));
+                            readOpenBracket();
+                            readLineWkt();
+                            readCloseBracket();
+                        } else if (nextPotentialToken.equals("COMPOUNDCURVE")) {
+                            figureList.add(new Figure(FA_COMPOSITE_CURVE, pointList.size()));
+                            readOpenBracket();
+                            readCompoundCurveWkt(true);
+                            readCloseBracket();
+                        } else if (wkt.charAt(currentWktPos) == '(') { //LineString
+                            figureList.add(new Figure(FA_LINE, pointList.size()));
+                            readOpenBracket();
+                            readLineWkt();
+                            readCloseBracket();
+                        } else {
+                            throw new IllegalArgumentException();
+                        }
+                        
+                        if (wkt.charAt(currentWktPos) == ',') { // more polygons to follow
+                            readComma();
+                        } else if (wkt.charAt(currentWktPos) == ')') { // about to exit while loop
+                            continue;
+                        } else { // unexpected input
+                            throw new IllegalArgumentException();
+                        }
+                    }
+                    
+                    break;
+                case "GEOMETRYCOLLECTION":
+                    thisShapeIndex = shapeList.size();
+                    shapeList.add(new Shape(parentShapeIndex, figureList.size(), isd.getTypeCode()));
+                    
+                    parseWKTForSerialization(currentWktPos, thisShapeIndex, true);
+                    
                     break;
                 case "FULLGLOBE":
 
@@ -939,6 +1026,33 @@ public class Geometry {
         }
         
         populateStructures();
+    }
+
+    private void readCompoundCurveWkt(boolean isFirstIteration) {
+        while (currentWktPos < wkt.length() && wkt.charAt(currentWktPos) != ')') {
+            String nextPotentialToken = getNextStringToken().toUpperCase(Locale.US);
+            if (nextPotentialToken.equals("CIRCULARSTRING")) {
+                readOpenBracket();
+                readSegmentWkt(SEGMENT_FIRST_ARC, isFirstIteration);
+                readCloseBracket();
+            } else if (wkt.charAt(currentWktPos) == '(') {//LineString
+                readOpenBracket();
+                readSegmentWkt(SEGMENT_FIRST_LINE, isFirstIteration);
+                readCloseBracket();
+            } else {
+                throw new IllegalArgumentException();
+            }
+            
+            isFirstIteration = false;
+            
+            if (wkt.charAt(currentWktPos) == ',') { // more polygons to follow
+                readComma();
+            } else if (wkt.charAt(currentWktPos) == ')') { // about to exit while loop
+                continue;
+            } else { // unexpected input
+                throw new IllegalArgumentException();
+            }
+        }        
     }
 
     private void readPointWkt() {
@@ -960,7 +1074,10 @@ public class Geometry {
             }
             
             while (currentWktPos < wkt.length() && 
-                    !(wkt.charAt(currentWktPos) == ',' || wkt.charAt(currentWktPos) == ' ')) {
+                    (Character.isDigit(wkt.charAt(currentWktPos))
+                            || wkt.charAt(currentWktPos) == '.'       
+                            || wkt.charAt(currentWktPos) == 'E'
+                            || wkt.charAt(currentWktPos) == 'e')) {
                 currentWktPos++;
             }
             
@@ -975,6 +1092,7 @@ public class Geometry {
             if (wkt.charAt(currentWktPos) == ',') {
                 currentWktPos++;
                 skipWhiteSpaces();
+                numOfCoordinates++;
                 break;
             }
             skipWhiteSpaces();
@@ -986,21 +1104,122 @@ public class Geometry {
             hasZvalues = true;
             hasMvalues = true;
         } else if (numOfCoordinates == 3) {
-            hasMvalues = true;
+            hasZvalues = true;
         }
         
         pointList.add(new Point(coords[0], coords[1], coords[2], coords[3]));
     }
     
-    private void readLineWkt(int parentShapeOffset) {
-        shapeList.add(new Shape(parentShapeOffset - 1, figureList.size(), InternalSpatialDatatype.LINESTRING.getTypeCode()));
-        figureList.add(new Figure((byte) 1, pointList.size()));
+    private void readLineWkt() {
         while (currentWktPos < wkt.length() && wkt.charAt(currentWktPos) != ')') {
             readPointWkt();
         }
     }
+    
+    private void readShapeWkt(int parentShapeIndex, String nextToken) {
+        byte fa = FA_POINT;
+        while (currentWktPos < wkt.length() && wkt.charAt(currentWktPos) != ')') {
+            if (nextToken.equals("MULTIPOINT")) {
+                shapeList.add(new Shape(parentShapeIndex, figureList.size(), InternalSpatialDatatype.POINT.getTypeCode()));
+            } else if (nextToken.equals("MULTILINESTRING")) {
+                shapeList.add(new Shape(parentShapeIndex, figureList.size(), InternalSpatialDatatype.LINESTRING.getTypeCode()));
+            }
+            
+            if (version == 1) {
+                if (nextToken.equals("MULTIPOINT")) {
+                    fa = FA_STROKE;
+                } else if (nextToken.equals("MULTILINESTRING") || nextToken.equals("POLYGON")) {
+                    fa = FA_EXTERIOR_RING;
+                }
+                version_one_shape_indexes.add(figureList.size());
+            } else if (version == 2) {
+                if (nextToken.equals("MULTIPOINT") || nextToken.equals("MULTILINESTRING") || 
+                        nextToken.equals("POLYGON") || nextToken.equals("MULTIPOLYGON")) {
+                    fa = FA_LINE;
+                }
+            }
+            
+            figureList.add(new Figure(fa, pointList.size()));
+            readOpenBracket();
+            readLineWkt();
+            readCloseBracket();
+
+            skipWhiteSpaces();
+            
+            if (wkt.charAt(currentWktPos) == ',') { // more rings to follow
+                readComma();
+            } else if (wkt.charAt(currentWktPos) == ')') { // about to exit while loop
+                continue;
+            } else { // unexpected input
+                throw new IllegalArgumentException();
+            }
+        }
+    }
+    
+    private void readSegmentWkt(int segmentType, boolean isFirstIteration) {
+        segmentList.add(new Segment((byte) segmentType));
+        
+        int segmentLength = segmentType;
+        
+        // under 2 means 0 or 1 (possible values). 0 (line) has 1 point, and 1 (arc) has 2 points, so increment by one
+        if (segmentLength < 2) { 
+            segmentLength++;
+        }
+        
+        for (int i = 0; i < segmentLength; i++) {
+            //If a segment type of 2 (first line) or 3 (first arc) is not from the very first iteration of the while loop,
+            //then the first point has to be a duplicate point from the previous segment, so skip the first point.
+            if (i == 0 && !isFirstIteration && segmentType >= 2) {
+                skipFirstPointWkt();
+            } else {
+                readPointWkt();
+            }
+        }
+        
+        if (currentWktPos < wkt.length() && wkt.charAt(currentWktPos) != ')') {
+            if (segmentType == SEGMENT_FIRST_ARC || segmentType == SEGMENT_ARC) {
+                readSegmentWkt(SEGMENT_ARC, false);
+            } else if (segmentType == SEGMENT_FIRST_LINE | segmentType == SEGMENT_LINE) {
+                readSegmentWkt(SEGMENT_LINE, false);
+            }
+        }
+    }
+
+    private void skipFirstPointWkt() {
+        int numOfCoordinates = 0;
+        
+        while (numOfCoordinates < 4) {
+            if (wkt.charAt(currentWktPos) == '-') {
+                currentWktPos++;
+            }
+            
+            if (wkt.charAt(currentWktPos) == ')') {
+                break;
+            }
+            
+            while (currentWktPos < wkt.length() && 
+                    (Character.isDigit(wkt.charAt(currentWktPos))
+                            || wkt.charAt(currentWktPos) == '.'       
+                            || wkt.charAt(currentWktPos) == 'E'
+                            || wkt.charAt(currentWktPos) == 'e')) {
+                currentWktPos++;
+            }
+            
+            skipWhiteSpaces();
+            if (wkt.charAt(currentWktPos) == ',') {
+                currentWktPos++;
+                skipWhiteSpaces();
+                numOfCoordinates++;
+                break;
+            }
+            skipWhiteSpaces();
+            
+            numOfCoordinates++;
+        }
+    }
 
     private void readOpenBracket() {
+        skipWhiteSpaces();
         if (wkt.charAt(currentWktPos) == '(') {
             currentWktPos++;
             skipWhiteSpaces();
@@ -1013,6 +1232,17 @@ public class Geometry {
         skipWhiteSpaces();
         if (wkt.charAt(currentWktPos) == ')') {
             currentWktPos++;
+            skipWhiteSpaces();
+        } else {
+            throw new IllegalArgumentException();
+        }
+    }
+    
+    private void readComma() {
+        skipWhiteSpaces();
+        if (wkt.charAt(currentWktPos) == ',') {
+            currentWktPos++;
+            skipWhiteSpaces();
         } else {
             throw new IllegalArgumentException();
         }
@@ -1066,6 +1296,15 @@ public class Geometry {
             }
         }
         
+        // if version is 2, then we need to check for potential shapes (polygon & multi-shapes) that were
+        // given their figure attributes as if it was version 1, since we don't know what would be the
+        // version of the geometry/geography before we parse the entire WKT.
+        if (version == 2) {
+            for (int i = 0; i < version_one_shape_indexes.size(); i++) {
+                figureList.get(version_one_shape_indexes.get(i)).setFiguresAttribute((byte) 1);
+            }
+        }
+        
         if (figureList.size() > 0) {
             figures = new Figure[figureList.size()];
             
@@ -1112,6 +1351,10 @@ class Figure {
     
     public int getPointOffset() {
         return pointOffset;
+    }
+    
+    public void setFiguresAttribute(byte fa) {
+        figuresAttribute = fa;
     }
 }
 
