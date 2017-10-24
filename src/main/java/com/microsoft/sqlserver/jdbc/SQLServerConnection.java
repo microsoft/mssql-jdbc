@@ -1534,11 +1534,6 @@ public class SQLServerConnection implements ISQLServerConnection {
                 throw new SQLServerException(SQLServerException.getErrString("R_AccessTokenWithUserPassword"), null);
             }
 
-            if ((!System.getProperty("os.name").toLowerCase(Locale.ENGLISH).startsWith("windows"))
-                    && (authenticationString.equalsIgnoreCase(SqlAuthentication.ActiveDirectoryIntegrated.toString()))) {
-                throw new SQLServerException(SQLServerException.getErrString("R_AADIntegratedOnNonWindows"), null);
-            }
-            
             // Turn off TNIR for FedAuth if user does not set TNIR explicitly
             if (!userSetTNIR) {
                 if ((!authenticationString.equalsIgnoreCase(SqlAuthentication.NotSpecified.toString())) || (null != accessTokenInByte)) {
