@@ -53,56 +53,54 @@ class SQLServerADAL4JUtils {
 		}
 	}
 
-	static SqlFedAuthToken getSqlFedAuthTokenIntegrated(SqlFedAuthInfo fedAuthInfo, String authenticationString)
-			throws SQLServerException {
-		ExecutorService executorService = Executors.newFixedThreadPool(1);
-		
-		String userDomainName = null;
-		
-		try {
-            System.out.println("fedAuthInfo.stsurl: " + fedAuthInfo.stsurl);
+    static SqlFedAuthToken getSqlFedAuthTokenIntegrated(SqlFedAuthInfo fedAuthInfo,
+            String authenticationString) throws SQLServerException {
+        ExecutorService executorService = Executors.newFixedThreadPool(1);
 
+        String userDomainName = null;
+
+        try {
             // user name
             String username = System.getenv("USERNAME");
-            System.out.println("username: " + username);
 
             // fully qualified domain name for local host
             String fullyQualifiedDomainName = InetAddress.getLocalHost().getCanonicalHostName();
-            System.out.println("Hostname: " + fullyQualifiedDomainName);
 
             // username@fully_qualified_domain
             userDomainName = username + "@" + fullyQualifiedDomainName.substring(fullyQualifiedDomainName.indexOf(".") + 1);
-            System.out.println("userDomainName: " + userDomainName);
-			
-			AuthenticationContext context = new AuthenticationContext(fedAuthInfo.stsurl, false, executorService);
-			Future<AuthenticationResult> future = context.acquireTokenIntegrated(userDomainName, fedAuthInfo.spn,
-					ActiveDirectoryAuthentication.JDBC_FEDAUTH_CLIENT_ID, null);
 
-			AuthenticationResult authenticationResult = future.get();
-			SqlFedAuthToken fedAuthToken = new SqlFedAuthToken(authenticationResult.getAccessToken(),
-					authenticationResult.getExpiresOnDate());
+            // TODO: read userDomainName from Kerberos ticket
 
-			return fedAuthToken;
-		} catch (MalformedURLException | InterruptedException | UnknownHostException e) {
-			throw new SQLServerException(e.getMessage(), e);
-		} catch (ExecutionException e) {
-			MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_ADALExecution"));
-			Object[] msgArgs = {userDomainName, authenticationString };
+            AuthenticationContext context = new AuthenticationContext(fedAuthInfo.stsurl, false, executorService);
+            Future<AuthenticationResult> future = context.acquireTokenIntegrated(userDomainName, fedAuthInfo.spn,
+                    ActiveDirectoryAuthentication.JDBC_FEDAUTH_CLIENT_ID, null);
 
-			// the cause error message uses \\n\\r which does not give correct format
-			// change it to \r\n to provide correct format
-			String correctedErrorMessage = e.getCause().getMessage().replaceAll("\\\\r\\\\n", "\r\n");
-			AuthenticationException correctedAuthenticationException = new AuthenticationException(
-					correctedErrorMessage);
+            AuthenticationResult authenticationResult = future.get();
+            SqlFedAuthToken fedAuthToken = new SqlFedAuthToken(authenticationResult.getAccessToken(), authenticationResult.getExpiresOnDate());
 
-			// SQLServerException is caused by ExecutionException, which is caused by
-			// AuthenticationException
-			// to match the exception tree before error message correction
-			ExecutionException correctedExecutionException = new ExecutionException(correctedAuthenticationException);
+            return fedAuthToken;
+        }
+        catch (MalformedURLException | InterruptedException | UnknownHostException e) {
+            throw new SQLServerException(e.getMessage(), e);
+        }
+        catch (ExecutionException e) {
+            MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_ADALExecution"));
+            Object[] msgArgs = {userDomainName, authenticationString};
 
-			throw new SQLServerException(form.format(msgArgs), null, 0, correctedExecutionException);
-		} finally {
-			executorService.shutdown();
-		}
-	}
+            // the cause error message uses \\n\\r which does not give correct format
+            // change it to \r\n to provide correct format
+            String correctedErrorMessage = e.getCause().getMessage().replaceAll("\\\\r\\\\n", "\r\n");
+            AuthenticationException correctedAuthenticationException = new AuthenticationException(correctedErrorMessage);
+
+            // SQLServerException is caused by ExecutionException, which is caused by
+            // AuthenticationException
+            // to match the exception tree before error message correction
+            ExecutionException correctedExecutionException = new ExecutionException(correctedAuthenticationException);
+
+            throw new SQLServerException(form.format(msgArgs), null, 0, correctedExecutionException);
+        }
+        finally {
+            executorService.shutdown();
+        }
+    }
 }

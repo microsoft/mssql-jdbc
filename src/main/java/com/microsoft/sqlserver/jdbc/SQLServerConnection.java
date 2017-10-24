@@ -3840,18 +3840,10 @@ public class SQLServerConnection implements ISQLServerConnection {
         // fedAuthInfo should not be null.
         assert null != fedAuthInfo;
 
-        // No:of milliseconds to sleep for the inital back off.
-        int sleepInterval = 100;
-
-        // No:of attempts, for tracing purposes, if we underwent retries.
-        int numberOfAttempts = 0;
-
         String user = activeConnectionProperties.getProperty(SQLServerDriverStringProperty.USER.toString());
         String password = activeConnectionProperties.getProperty(SQLServerDriverStringProperty.PASSWORD.toString());
 
         while (true) {
-            numberOfAttempts++;
-
             if (authenticationString.trim().equalsIgnoreCase(SqlAuthentication.ActiveDirectoryPassword.toString())) {
                 fedAuthToken = SQLServerADAL4JUtils.getSqlFedAuthToken(fedAuthInfo, user, password, authenticationString);
 
@@ -3865,8 +3857,6 @@ public class SQLServerConnection implements ISQLServerConnection {
                 break;
             }
         }
-        
-        System.out.println("access token: " + fedAuthToken.accessToken);
 
         return fedAuthToken;
     }
