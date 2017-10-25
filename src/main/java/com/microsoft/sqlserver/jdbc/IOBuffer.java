@@ -6478,6 +6478,14 @@ final class TDSReader {
         return true;
     }
 
+    boolean hasNextPacket() throws SQLServerException {
+        return (null != currentPacket.next);
+    }
+
+    boolean endOfCurrentPacket() {
+        return (payloadOffset == currentPacket.payloadLength);
+    }
+
     /**
      * Reads the next packet of the TDS channel.
      *
