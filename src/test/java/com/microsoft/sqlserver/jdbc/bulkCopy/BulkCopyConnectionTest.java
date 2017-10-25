@@ -12,6 +12,7 @@ import static org.junit.jupiter.api.Assertions.fail;
 
 import java.lang.reflect.Method;
 import java.sql.Connection;
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;
@@ -88,9 +89,11 @@ public class BulkCopyConnectionTest extends BulkCopyTestSetUp {
     void testInvalidConnection1() {
         assertThrows(SQLServerException.class, new org.junit.jupiter.api.function.Executable() {
             @Override
-            public void execute() throws SQLServerException {
-                Connection con = null;
-                SQLServerBulkCopy bulkCopy = new SQLServerBulkCopy(con);
+            public void execute() throws SQLException {
+                try(Connection con = null;
+                	SQLServerBulkCopy bulkCopy = new SQLServerBulkCopy(con)) {
+        			//do nothing
+                }
             }
         });
     }
@@ -104,8 +107,10 @@ public class BulkCopyConnectionTest extends BulkCopyTestSetUp {
         assertThrows(SQLServerException.class, new org.junit.jupiter.api.function.Executable() {
             @Override
             public void execute() throws SQLServerException {
-                SQLServerConnection con = null;
-                SQLServerBulkCopy bulkCopy = new SQLServerBulkCopy(con);
+                try(SQLServerConnection con = null;
+                	SQLServerBulkCopy bulkCopy = new SQLServerBulkCopy(con)) {
+                	//do nothing
+                }
             }
         });
     }
@@ -120,7 +125,9 @@ public class BulkCopyConnectionTest extends BulkCopyTestSetUp {
             @Override
             public void execute() throws SQLServerException {
                 String connectionUrl = " ";
-                SQLServerBulkCopy bulkCopy = new SQLServerBulkCopy(connectionUrl);
+                try(SQLServerBulkCopy bulkCopy = new SQLServerBulkCopy(connectionUrl)) {
+                	//do nothing
+                }
             }
         });
     }
@@ -135,7 +142,9 @@ public class BulkCopyConnectionTest extends BulkCopyTestSetUp {
             @Override
             public void execute() throws SQLServerException {
                 String connectionUrl = null;
-                SQLServerBulkCopy bulkCopy = new SQLServerBulkCopy(connectionUrl);
+                try(SQLServerBulkCopy bulkCopy = new SQLServerBulkCopy(connectionUrl)) {
+                	//do nothing
+                }
             }
         });
     }

@@ -79,7 +79,7 @@ public final class SQLServerDataTable {
     public synchronized void addColumnMetadata(String columnName,
             int sqlType) throws SQLServerException {
         // column names must be unique
-        checkDuplicateColumnName(columnName);
+        Util.checkDuplicateColumnName(columnName, columnNames);
         columnMetadata.put(columnCount++, new SQLServerDataColumn(columnName, sqlType));
     }
 
@@ -93,26 +93,10 @@ public final class SQLServerDataTable {
      */
     public synchronized void addColumnMetadata(SQLServerDataColumn column) throws SQLServerException {
         // column names must be unique
-        checkDuplicateColumnName(column.columnName);
+        Util.checkDuplicateColumnName(column.columnName, columnNames);
         columnMetadata.put(columnCount++, column);
     }
 
-    /**
-     * Checks if duplicate columns exists, in O(n) time.
-     * 
-     * @param columnName
-     *            the name of the column
-     * @throws SQLServerException
-     *             when a duplicate column exists
-     */
-    private void checkDuplicateColumnName(String columnName) throws SQLServerException {
-        //columnList.add will return false if the same column name already exists
-        if (!columnNames.add(columnName)) {
-            MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_TVPDuplicateColumnName"));
-            Object[] msgArgs = {columnName};
-            throw new SQLServerException(null, form.format(msgArgs), null, 0, false);
-        }
-    }
 
     /**
      * Adds one row of data to the data table.

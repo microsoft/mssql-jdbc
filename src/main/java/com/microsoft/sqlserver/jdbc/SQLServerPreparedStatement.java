@@ -2494,8 +2494,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
                 updateCounts = new long[batchCommand.updateCounts.length];
 
-                for (int i = 0; i < batchCommand.updateCounts.length; ++i)
-                    updateCounts[i] = batchCommand.updateCounts[i];
+                System.arraycopy(batchCommand.updateCounts, 0, updateCounts, 0, batchCommand.updateCounts.length);
 
                 // Transform the SQLException into a BatchUpdateException with the update counts.
                 if (null != batchCommand.batchException) {
@@ -2562,8 +2561,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
             // Fill in the parameter values for this batch
             Parameter paramValues[] = batchParamValues.get(numBatchesPrepared);
             assert paramValues.length == batchParam.length;
-            for (int i = 0; i < paramValues.length; i++)
-                batchParam[i] = paramValues[i];
+            System.arraycopy(paramValues, 0, batchParam, 0, paramValues.length);
             
             boolean hasExistingTypeDefinitions = preparedTypeDefinitions != null;
             boolean hasNewTypeDefinitions = buildPreparedStrings(batchParam, false);

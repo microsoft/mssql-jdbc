@@ -27,9 +27,7 @@ import com.microsoft.sqlserver.testframework.util.ComparisonUtil;
 
 @RunWith(JUnitPlatform.class)
 public class BulkCopyAllTypes extends AbstractTest {
-    private static Connection conn = null;
-    static Statement stmt = null;
-
+	
     private static DBTable tableSrc = null;
     private static DBTable tableDest = null;
 
@@ -53,55 +51,43 @@ public class BulkCopyAllTypes extends AbstractTest {
             Integer resultSetConcurrency) throws SQLException {
         setupVariation();
 
-        Connection connnection = null;
-        if (setSelectMethod) {
-            connnection = DriverManager.getConnection(connectionString + ";selectMethod=cursor;");
-        }
-        else {
-            connnection = DriverManager.getConnection(connectionString);
-        }
+        try(Connection connnection = DriverManager.getConnection(connectionString + (setSelectMethod ? ";selectMethod=cursor;" : ""));
+        	Statement statement = (null != resultSetType || null != resultSetConcurrency) ? 
+        			connnection.createStatement(resultSetType, resultSetConcurrency) : connnection.createStatement()){
 
-        Statement stmtement = null;
-        if (null != resultSetType || null != resultSetConcurrency) {
-            stmtement = connnection.createStatement(resultSetType, resultSetConcurrency);
+	        ResultSet rs = statement.executeQuery("select * from " + tableSrc.getEscapedTableName());
+	
+	        SQLServerBulkCopy bcOperation = new SQLServerBulkCopy(connection);
+	        bcOperation.setDestinationTableName(tableDest.getEscapedTableName());
+	        bcOperation.writeToServer(rs);
+	        bcOperation.close();
+	
+	        ComparisonUtil.compareSrcTableAndDestTableIgnoreRowOrder(new DBConnection(connectionString), tableSrc, tableDest);
         }
-        else {
-            stmtement = connnection.createStatement();
-        }
-
-        ResultSet rs = stmtement.executeQuery("select * from " + tableSrc.getEscapedTableName());
-
-        SQLServerBulkCopy bcOperation = new SQLServerBulkCopy(connection);
-        bcOperation.setDestinationTableName(tableDest.getEscapedTableName());
-        bcOperation.writeToServer(rs);
-        bcOperation.close();
-
-        ComparisonUtil.compareSrcTableAndDestTableIgnoreRowOrder(new DBConnection(connectionString), tableSrc, tableDest);
 
         terminateVariation();
     }
 
     private void setupVariation() throws SQLException {
-        conn = DriverManager.getConnection(connectionString);
-        stmt = conn.createStatement();
+        try(DBConnection dbConnection = new DBConnection(connectionString);
+    	    DBStatement dbStmt = dbConnection.createStatement()) {
 
-        DBConnection dbConnection = new DBConnection(connectionString);
-        DBStatement dbStmt = dbConnection.createStatement();
-
-        tableSrc = new DBTable(true);
-        tableDest = tableSrc.cloneSchema();
-
-        dbStmt.createTable(tableSrc);
-        dbStmt.createTable(tableDest);
-
-        dbStmt.populateTable(tableSrc);
+	        tableSrc = new DBTable(true);
+	        tableDest = tableSrc.cloneSchema();
+	
+	        dbStmt.createTable(tableSrc);
+	        dbStmt.createTable(tableDest);
+	
+	        dbStmt.populateTable(tableSrc);
+        }
     }
 
     private void terminateVariation() throws SQLException {
-        conn = DriverManager.getConnection(connectionString);
-        stmt = conn.createStatement();
+        try(Connection conn = DriverManager.getConnection(connectionString);
+        	Statement stmt = conn.createStatement()) {
 
-        Utils.dropTableIfExists(tableSrc.getEscapedTableName(), stmt);
-        Utils.dropTableIfExists(tableDest.getEscapedTableName(), stmt);
+	        Utils.dropTableIfExists(tableSrc.getEscapedTableName(), stmt);
+	        Utils.dropTableIfExists(tableDest.getEscapedTableName(), stmt);
+        }
     }
 }
