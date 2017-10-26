@@ -1,13 +1,13 @@
 package com.microsoft.sqlserver.jdbc;
 
-import java.net.InetAddress;
+import java.io.IOException;
 import java.net.MalformedURLException;
-import java.net.UnknownHostException;
 import java.text.MessageFormat;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.logging.Level;
 
 import com.microsoft.aad.adal4j.AuthenticationContext;
 import com.microsoft.aad.adal4j.AuthenticationException;
@@ -15,64 +15,74 @@ import com.microsoft.aad.adal4j.AuthenticationResult;
 import com.microsoft.sqlserver.jdbc.SQLServerConnection.ActiveDirectoryAuthentication;
 import com.microsoft.sqlserver.jdbc.SQLServerConnection.SqlFedAuthInfo;
 
+import sun.security.krb5.Credentials;
+import sun.security.krb5.KrbException;
+
 class SQLServerADAL4JUtils {
 
-	static SqlFedAuthToken getSqlFedAuthToken(SqlFedAuthInfo fedAuthInfo, String user, String password,
-			String authenticationString) throws SQLServerException {
-		ExecutorService executorService = Executors.newFixedThreadPool(1);
-		try {
-			AuthenticationContext context = new AuthenticationContext(fedAuthInfo.stsurl, false, executorService);
-			Future<AuthenticationResult> future = context.acquireToken(fedAuthInfo.spn,
-					ActiveDirectoryAuthentication.JDBC_FEDAUTH_CLIENT_ID, user, password, null);
+    static final private java.util.logging.Logger adal4jLogger = java.util.logging.Logger
+            .getLogger("com.microsoft.sqlserver.jdbc.internals.SQLServerADAL4JUtils");
 
-			AuthenticationResult authenticationResult = future.get();
-			SqlFedAuthToken fedAuthToken = new SqlFedAuthToken(authenticationResult.getAccessToken(),
-					authenticationResult.getExpiresOnDate());
+    static SqlFedAuthToken getSqlFedAuthToken(SqlFedAuthInfo fedAuthInfo,
+            String user,
+            String password,
+            String authenticationString) throws SQLServerException {
+        ExecutorService executorService = Executors.newFixedThreadPool(1);
+        try {
+            AuthenticationContext context = new AuthenticationContext(fedAuthInfo.stsurl, false, executorService);
+            Future<AuthenticationResult> future = context.acquireToken(fedAuthInfo.spn, ActiveDirectoryAuthentication.JDBC_FEDAUTH_CLIENT_ID, user,
+                    password, null);
 
-			return fedAuthToken;
-		} catch (MalformedURLException | InterruptedException e) {
-			throw new SQLServerException(e.getMessage(), e);
-		} catch (ExecutionException e) {
-			MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_ADALExecution"));
-			Object[] msgArgs = { user, authenticationString };
+            AuthenticationResult authenticationResult = future.get();
+            SqlFedAuthToken fedAuthToken = new SqlFedAuthToken(authenticationResult.getAccessToken(), authenticationResult.getExpiresOnDate());
 
-			// the cause error message uses \\n\\r which does not give correct format
-			// change it to \r\n to provide correct format
-			String correctedErrorMessage = e.getCause().getMessage().replaceAll("\\\\r\\\\n", "\r\n");
-			AuthenticationException correctedAuthenticationException = new AuthenticationException(
-					correctedErrorMessage);
+            return fedAuthToken;
+        }
+        catch (MalformedURLException | InterruptedException e) {
+            throw new SQLServerException(e.getMessage(), e);
+        }
+        catch (ExecutionException e) {
+            MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_ADALExecution"));
+            Object[] msgArgs = {user, authenticationString};
 
-			// SQLServerException is caused by ExecutionException, which is caused by
-			// AuthenticationException
-			// to match the exception tree before error message correction
-			ExecutionException correctedExecutionException = new ExecutionException(correctedAuthenticationException);
+            // the cause error message uses \\n\\r which does not give correct format
+            // change it to \r\n to provide correct format
+            String correctedErrorMessage = e.getCause().getMessage().replaceAll("\\\\r\\\\n", "\r\n");
+            AuthenticationException correctedAuthenticationException = new AuthenticationException(correctedErrorMessage);
 
-			throw new SQLServerException(form.format(msgArgs), null, 0, correctedExecutionException);
-		} finally {
-			executorService.shutdown();
-		}
-	}
+            // SQLServerException is caused by ExecutionException, which is caused by
+            // AuthenticationException
+            // to match the exception tree before error message correction
+            ExecutionException correctedExecutionException = new ExecutionException(correctedAuthenticationException);
+
+            throw new SQLServerException(form.format(msgArgs), null, 0, correctedExecutionException);
+        }
+        finally {
+            executorService.shutdown();
+        }
+    }
 
     static SqlFedAuthToken getSqlFedAuthTokenIntegrated(SqlFedAuthInfo fedAuthInfo,
             String authenticationString) throws SQLServerException {
         ExecutorService executorService = Executors.newFixedThreadPool(1);
 
-        String userDomainName = null;
+        String tgtClientName = null;
 
         try {
-            // user name
-            String username = System.getenv("USERNAME");
+            Credentials cred = Credentials.acquireTGTFromCache(null, System.getenv("KRB5CCNAME"));
 
-            // fully qualified domain name for local host
-            String fullyQualifiedDomainName = InetAddress.getLocalHost().getCanonicalHostName();
+            if (null == cred) {
+                throw new SQLServerException(SQLServerException.getErrString("R_AADIntegratedTGTNotFound"), null);
+            }
 
-            // username@fully_qualified_domain
-            userDomainName = username + "@" + fullyQualifiedDomainName.substring(fullyQualifiedDomainName.indexOf(".") + 1);
+            tgtClientName = cred.getClient().toString();
 
-            // TODO: read userDomainName from Kerberos ticket
+            if (adal4jLogger.isLoggable(Level.FINE)) {
+                adal4jLogger.fine(adal4jLogger.toString() + " client name of Kerberos TGT is:" + tgtClientName);
+            }
 
             AuthenticationContext context = new AuthenticationContext(fedAuthInfo.stsurl, false, executorService);
-            Future<AuthenticationResult> future = context.acquireTokenIntegrated(userDomainName, fedAuthInfo.spn,
+            Future<AuthenticationResult> future = context.acquireTokenIntegrated(tgtClientName, fedAuthInfo.spn,
                     ActiveDirectoryAuthentication.JDBC_FEDAUTH_CLIENT_ID, null);
 
             AuthenticationResult authenticationResult = future.get();
@@ -80,12 +90,12 @@ class SQLServerADAL4JUtils {
 
             return fedAuthToken;
         }
-        catch (MalformedURLException | InterruptedException | UnknownHostException e) {
+        catch (InterruptedException | IOException | KrbException e) {
             throw new SQLServerException(e.getMessage(), e);
         }
         catch (ExecutionException e) {
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_ADALExecution"));
-            Object[] msgArgs = {userDomainName, authenticationString};
+            Object[] msgArgs = {tgtClientName, authenticationString};
 
             // the cause error message uses \\n\\r which does not give correct format
             // change it to \r\n to provide correct format
