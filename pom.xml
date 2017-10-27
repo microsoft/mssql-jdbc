@@ -4,7 +4,7 @@
 	
 	<groupId>com.microsoft.sqlserver</groupId>
 	<artifactId>mssql-jdbc</artifactId>
-	<version>6.3.5-SNAPSHOT</version>
+	<version>6.3.5-SNAPSHOT.${jreVersion}-preview</version>
 	
 	<packaging>jar</packaging>
 	
@@ -140,6 +140,11 @@
 	<profiles>
 		<profile>
 			<id>build41</id>
+			
+			<properties>
+			<jreVersion>jre7</jreVersion>
+			</properties>
+			
 			<build>
 				<plugins>
 					<plugin>
@@ -158,7 +163,6 @@
 						<artifactId>maven-jar-plugin</artifactId>
 						<version>3.0.2</version>
 						<configuration>
-							<finalName>${project.artifactId}-${project.version}.jre7-preview</finalName>
 							<archive>
 								<manifestFile>${project.build.outputDirectory}/META-INF/MANIFEST.MF</manifestFile>
 							</archive>
@@ -171,9 +175,15 @@
 
 		<profile>
 			<id>build42</id>
+
 			<activation>
 				<activeByDefault>true</activeByDefault>
 			</activation>
+			
+			<properties>
+			<jreVersion>jre8</jreVersion>
+			</properties>
+			
 			<build>
 				<plugins>
 					<plugin>
@@ -192,7 +202,6 @@
 						<artifactId>maven-jar-plugin</artifactId>
 						<version>3.0.2</version>
 						<configuration>
-							<finalName>${project.artifactId}-${project.version}.jre8-preview</finalName>
 							<archive>
 								<manifestFile>${project.build.outputDirectory}/META-INF/MANIFEST.MF</manifestFile>
 							</archive>
