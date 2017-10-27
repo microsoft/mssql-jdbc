@@ -1632,7 +1632,10 @@ final class DTV {
                         op.execute(this, String.valueOf(value));
                     }
                     else if (JDBCType.GEOMETRY == jdbcType) {
-                        op.execute(this, ((Geometry) value).getWkb());
+                        op.execute(this, ((Geometry) value).serialize());
+                    }
+                    else if (JDBCType.GEOGRAPHY == jdbcType) {
+                        op.execute(this, ((Geography) value).serialize());
                     }
                     else {
                         if (null != cryptoMeta) {

@@ -1575,6 +1575,15 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         setValue(n, JDBCType.GEOMETRY, x, JavaType.STRING, false);
         loggerExternal.exiting(getClassNameLogging(), "setGeometry");
     }
+    
+    public final void setGeography(int n,
+            Geography x) throws SQLServerException {
+        if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
+            loggerExternal.entering(getClassNameLogging(), "setGeography", new Object[] {n, x});
+        checkClosed();
+        setValue(n, JDBCType.GEOGRAPHY, x, JavaType.STRING, false);
+        loggerExternal.exiting(getClassNameLogging(), "setGeography");
+    }
 
     public final void setInt(int n,
             int value) throws SQLServerException {

@@ -889,6 +889,10 @@ final class Parameter {
                 case GEOMETRY:
                     param.typeDefinition = SSType.GEOMETRY.toString();
                     break;
+                    
+                case GEOGRAPHY:
+                    param.typeDefinition = SSType.GEOGRAPHY.toString();
+                    break;
                 default:
                     assert false : "Unexpected JDBC type " + dtv.getJdbcType();
                     break;

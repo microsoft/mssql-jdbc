@@ -615,7 +615,9 @@ final class DDC {
                             if (JDBCType.GUID == jdbcType) {
                                 return Util.readGUID(byteValue);
                             } else if (JDBCType.GEOMETRY == jdbcType) {
-                                return new Geometry(byteValue);
+                                return Geometry.STGeomFromWKB(byteValue);
+                            } else if (JDBCType.GEOGRAPHY == jdbcType) {
+                                return new Geography(byteValue);
                             }
                             else {
                                 String hexString = Util.bytesToHexString(byteValue, byteValue.length);

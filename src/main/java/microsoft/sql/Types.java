@@ -58,5 +58,13 @@ public final class Types {
      */
     public static final int SQL_VARIANT = -156;
     
+    /**
+     * The constant in the Java programming language, sometimes referred to as a type code, that identifies the Microsoft SQL type GEOMETRY.
+     */
     public static final int GEOMETRY = -157;
+    
+    /**
+     * The constant in the Java programming language, sometimes referred to as a type code, that identifies the Microsoft SQL type GEOGRAPHY.
+     */
+    public static final int GEOGRAPHY = -158;
 }
