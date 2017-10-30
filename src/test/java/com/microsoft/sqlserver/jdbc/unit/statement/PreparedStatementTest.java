@@ -33,7 +33,6 @@ import com.microsoft.sqlserver.jdbc.SQLServerConnection;
 import com.microsoft.sqlserver.jdbc.SQLServerDataSource;
 import com.microsoft.sqlserver.jdbc.SQLServerPreparedStatement;
 import com.microsoft.sqlserver.testframework.AbstractTest;
-import com.microsoft.sqlserver.testframework.util.RandomUtil;
 
 @RunWith(JUnitPlatform.class)
 public class PreparedStatementTest extends AbstractTest { 
@@ -178,17 +177,27 @@ public class PreparedStatementTest extends AbstractTest {
             con.setStatementPoolingCacheSize(10);
 
             // Test with missing handle failures (fake).
+            this.executeSQL(con,
+                    "IF NOT EXISTS (SELECT * FROM sys.messages WHERE message_id = 99586) EXEC sp_addmessage 99586, 16, 'Prepared handle GAH!';");
             this.executeSQL(con, "CREATE TABLE #update1 (col INT);INSERT #update1 VALUES (1);");
-            this.executeSQL(con, "CREATE PROC #updateProc1 AS UPDATE #update1 SET col += 1; IF EXISTS (SELECT * FROM #update1 WHERE col % 5 = 0) THROW 99586, 'Prepared handle GAH!', 1;");
+            this.executeSQL(con, "CREATE PROC #updateProc1 AS UPDATE #update1 SET col += 1; IF EXISTS (SELECT * FROM #update1 WHERE col % 5 = 0) RAISERROR (99586, 16, 1);");
             try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) con.prepareStatement("#updateProc1")) {
                 for (int i = 0; i < 100; ++i) {
                     assertSame(1, pstmt.executeUpdate());
                 }
             }
 
+            // test value of col, should be 1 + 100 = 101
+            try (ResultSet rs = con.createStatement().executeQuery("select * from #update1")) {
+                rs.next();
+                assertSame(101, rs.getInt(1));
+            }
+
             // Test batching with missing handle failures (fake).
+            this.executeSQL(con,
+                    "IF NOT EXISTS (SELECT * FROM sys.messages WHERE message_id = 99586) EXEC sp_addmessage 99586, 16, 'Prepared handle GAH!';");
             this.executeSQL(con, "CREATE TABLE #update2 (col INT);INSERT #update2 VALUES (1);");
-            this.executeSQL(con, "CREATE PROC #updateProc2 AS UPDATE #update2 SET col += 1; IF EXISTS (SELECT * FROM #update2 WHERE col % 5 = 0) THROW 99586, 'Prepared handle GAH!', 1;");
+            this.executeSQL(con, "CREATE PROC #updateProc2 AS UPDATE #update2 SET col += 1; IF EXISTS (SELECT * FROM #update2 WHERE col % 5 = 0) RAISERROR (99586, 16, 1);");
             try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) con.prepareStatement("#updateProc2")) {
                 for (int i = 0; i < 100; ++i)
                     pstmt.addBatch();
@@ -199,6 +208,12 @@ public class PreparedStatementTest extends AbstractTest {
                 for (int i : updateCounts) {
                     assertSame(1, i);
                 }
+            }
+
+            // test value of col, should be 1 + 100 = 101
+            try (ResultSet rs = con.createStatement().executeQuery("select * from #update2")) {
+                rs.next();
+                assertSame(101, rs.getInt(1));
             }
         }
 

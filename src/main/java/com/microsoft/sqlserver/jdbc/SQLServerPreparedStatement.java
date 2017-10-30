@@ -543,7 +543,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     	        getNextResult();
         	}
         	catch(SQLException e) {
-        		if (retryBasedOnFailedReuseOfCachedHandle(e, attempt))
+        		if (retryBasedOnFailedReuseOfCachedHandle(e.getErrorCode(), attempt))
     				continue;
                 else
     				throw e;
@@ -557,15 +557,6 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         else if (EXECUTE_UPDATE == executeMethod && null != resultSet) {
             SQLServerException.makeFromDriverError(connection, this, SQLServerException.getErrString("R_resultsetGeneratedForUpdate"), null, false);
         }
-    }
-
-    /** Should the execution be retried because the re-used cached handle could not be re-used due to server side state changes? */
-    private boolean retryBasedOnFailedReuseOfCachedHandle(SQLException e, int attempt) {
-        // Only retry based on these error codes:
-        // 586: The prepared statement handle %d is not valid in this context.  Please verify that current database, user default schema, and ANSI_NULLS and QUOTED_IDENTIFIER set options are not changed since the handle is prepared.
-        // 8179: Could not find prepared statement with handle %d.
-        // 99586: Error used for testing.
-        return 1 == attempt && (586 == e.getErrorCode() || 8179 == e.getErrorCode() || 99586 == e.getErrorCode());
     }
 
     /**
@@ -2659,10 +2650,10 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                                     throw e;
 
                                 // Retry if invalid handle exception.
-                                if (retryBasedOnFailedReuseOfCachedHandle(e, attempt)) {
-                                    //reset number of batches prepare
+                                if (retryBasedOnFailedReuseOfCachedHandle(e.getErrorCode(), attempt)) {
+                                    // reset number of batches prepare
                                     numBatchesPrepared = numBatchesExecuted;
-                                    retry = true;                                    
+                                    retry = true;
                                     break;
                                 }
 
@@ -2680,8 +2671,9 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
                             numBatchesExecuted++;
                         }
-                        if(retry)
-                            continue; 
+                        if (retry) {
+                            continue;
+                        }
 
                         // Only way to proceed with preparing the next set of batches is if
                         // we successfully executed the previously prepared set.
@@ -2689,7 +2681,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                     }
                 }
                 catch(SQLException e) {
-                    if (retryBasedOnFailedReuseOfCachedHandle(e, attempt)) {
+                    if (retryBasedOnFailedReuseOfCachedHandle(e.getErrorCode(), attempt)) {
                         // Reset number of batches prepared.
                         numBatchesPrepared = numBatchesExecuted;
                         continue;
