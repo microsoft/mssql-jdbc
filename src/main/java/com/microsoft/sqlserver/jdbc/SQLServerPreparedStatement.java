@@ -87,6 +87,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     /** Set to true if the statement is a stored procedure call that expects a return value. This variable is created to create access to the bReturnValueSyntax */
     static boolean expectReturnValue = false;
     
+    /** Check if statement contains TVP Type*/
     static boolean isTVPType = false;
     /**
      * The number of OUT parameters to skip in the response to get to the first app-declared OUT parameter.
@@ -564,6 +565,15 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
             SQLServerException.makeFromDriverError(connection, this, SQLServerException.getErrString("R_resultsetGeneratedForUpdate"), null, false);
         }
     }
+    
+    /** Should the execution be retried because the re-used cached handle could not be re-used due to server side state changes? */
+    private boolean retryBasedOnFailedReuseOfCachedHandle(SQLException e, int attempt) {
+        // Only retry based on these error codes:
+        // 586: The prepared statement handle %d is not valid in this context.  Please verify that current database, user default schema, and ANSI_NULLS and QUOTED_IDENTIFIER set options are not changed since the handle is prepared.
+        // 8179: Could not find prepared statement with handle %d.
+        // 99586: Error used for testing.
+        return 1 == attempt && (586 == e.getErrorCode() || 8179 == e.getErrorCode() || 99586 == e.getErrorCode());
+    }
 
     /**
      * Consume the OUT parameter for the statement object itself.
@@ -997,7 +1007,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                 buildServerCursorExecParams(tdsWriter);
         }
         else {
-            int paramCount = connection.countParams(userSQL);
+            int paramCount = SQLServerConnection.countParams(userSQL);
             if (needsPrepare && null != procedureName && paramCount != 0 && !isTVPType(params)) { 
                 // if it is a parameterized stored procedure call and is not TVP, use sp_execute directly. 
                 buildRPCExecParams(tdsWriter);

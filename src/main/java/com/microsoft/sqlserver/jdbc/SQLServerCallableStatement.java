@@ -303,7 +303,7 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
 
         OutParamHandler outParamHandler = new OutParamHandler();
 
-        if (bReturnValueSyntax && (nOutParamsAssigned == 0) && !isCursorable(executeMethod) && !isTVPType) //
+        if (bReturnValueSyntax && (nOutParamsAssigned == 0) && !isCursorable(executeMethod) && !isTVPType) 
             nOutParamsAssigned++;
         // Index the application OUT parameters
         // assert numParamsToSkip <= nOutParams - nOutParamsAssigned ;
@@ -348,7 +348,7 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
                 // Note that parameter ordinals are 0-indexed and that the return status is not
                 // considered to be an output parameter.
                 outParamIndex = outParamHandler.srv.getOrdinalOrLength();
-                if (bReturnValueSyntax && !isCursorable(executeMethod) && !isTVPType) { // 
+                if (bReturnValueSyntax && !isCursorable(executeMethod) && !isTVPType) {
                     outParamIndex++;
                 }
                 // Statements need to have their out param indices adjusted by the number
@@ -1481,7 +1481,7 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
         if (paramNames != null)
             l = paramNames.size();
 
-        // handle `@name` as well as `name`, since `@name` is what's returned
+        // handle `@name` as well as `name`, since `@name` is what's returned 
         // by DatabaseMetaData#getProcedureColumns
         String columnNameWithoutAtSign = null;
         if (columnName.startsWith("@")) {

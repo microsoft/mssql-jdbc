@@ -264,7 +264,7 @@ public class SQLServerConnection implements ISQLServerConnection {
         String parsedSql = translator.translate(sql);
         String procName = translator.getProcedureName(); // may return null        
         boolean returnValueSyntax = translator.hasReturnValueSyntax();
-        int paramCount = countParams(sql);      //parsedSql
+        int paramCount = countParams(sql);
 
         ParsedSQLCacheItem  cacheItem = new ParsedSQLCacheItem (parsedSql, paramCount, procName, returnValueSyntax);
         parsedSQLCache.putIfAbsent(key, cacheItem);

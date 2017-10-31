@@ -72,11 +72,13 @@ final class Parameter {
     boolean isOutput() {
         return null != registeredOutDTV;
     }
-    
+
+    /** Checks if a parameter is return type*/
     boolean isReturnValue() {
         return isReturnValue;
     }
 
+    /** Sets a parameter to be a return type */
     void setReturnValue(boolean isReturnValue) {
         this.isReturnValue = isReturnValue;
     }
@@ -224,7 +226,7 @@ final class Parameter {
             boolean isDiscard) throws SQLServerException {
         if (null == getterDTV)
             getterDTV = new DTV();
-
+        
         deriveTypeInfo(tdsReader);
         
         getterDTV.skipValue(typeInfo, tdsReader, isDiscard);
@@ -424,10 +426,11 @@ final class Parameter {
             InputStreamGetterArgs getterArgs,
             Calendar cal,
             TDSReader tdsReader) throws SQLServerException {
-        if (null == getterDTV)
+        if (null == getterDTV) {
             getterDTV = new DTV();
+        }
         if (null != tdsReader) {
-            deriveTypeInfo(tdsReader);           
+            deriveTypeInfo(tdsReader);
         }
         // If the parameter is not encrypted or column encryption is turned off (either at connection or
         // statement level), cryptoMeta would be null.

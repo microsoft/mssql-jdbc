@@ -52,7 +52,7 @@ public class SQLServerStatement implements ISQLServerStatement {
     final static char LEFT_CURLY_BRACKET = 123;
     final static char RIGHT_CURLY_BRACKET = 125;
 
-    protected boolean isResponseBufferingAdaptive = false;
+    boolean isResponseBufferingAdaptive = false;
 
     final boolean getIsResponseBufferingAdaptive() {
         return isResponseBufferingAdaptive;
@@ -128,15 +128,6 @@ public class SQLServerStatement implements ISQLServerStatement {
      */
     private volatile TDSCommand currentCommand = null;
     private TDSCommand lastStmtExecCmd = null;
-    
-    /**
-     * error codes for retry of Cached Handle
-     */
-    static final int STATEMENT_HANDLE_NOT_VALID = 586; // 586: The prepared statement handle %d is not valid in this context. Please
-                                                       // verify that current database, user default schema, and ANSI_NULLS and
-                                                       // QUOTED_IDENTIFIER set options are not changed since the handle is prepared.
-    static final int STATEMENT_HANDLE_NOT_FOUND = 8179; // 8179: Could not find prepared statement with handle %d.
-    static final int STATEMENT_HANDLE_ERROR_CODE_FOR_TESTING = 99586;// 99586: Error used for testing.
 
     final void discardLastExecutionResults() {
         if (null != lastStmtExecCmd && !bIsClosed) {
@@ -159,13 +150,6 @@ public class SQLServerStatement implements ISQLServerStatement {
      * connection setting, Disabled if false. This may also be used to set other behavior which overrides connection level setting.
      */
     protected SQLServerStatementColumnEncryptionSetting stmtColumnEncriptionSetting = SQLServerStatementColumnEncryptionSetting.UseConnectionSetting;
-
-    /** Should the execution be retried because the re-used cached handle could not be re-used due to server side state changes? */
-    protected boolean retryBasedOnFailedReuseOfCachedHandle(SQLException e,
-            int attempt) {
-        return 1 == attempt && (STATEMENT_HANDLE_NOT_VALID == e.getErrorCode() || STATEMENT_HANDLE_NOT_FOUND == e.getErrorCode()
-                || STATEMENT_HANDLE_ERROR_CODE_FOR_TESTING == e.getErrorCode());
-    }
     
     /**
      * ExecuteProperties encapsulates a subset of statement property values as they were set at execution time.
