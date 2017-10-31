@@ -83,7 +83,11 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
     /** Set to true if the statement is a stored procedure call that expects a return value */
     final boolean bReturnValueSyntax;
-
+    
+    /** Set to true if the statement is a stored procedure call that expects a return value. This variable is created to create access to the bReturnValueSyntax */
+    static boolean expectReturnValue = false;
+    
+    static boolean isTVPType = false;
     /**
      * The number of OUT parameters to skip in the response to get to the first app-declared OUT parameter.
      *
@@ -104,7 +108,8 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
     private void setPreparedStatementHandle(int handle) {
         this.prepStmtHandle = handle;
-    }
+    }   
+    
 
     /** The server handle for this prepared statement. If a value {@literal <} 1 is returned no handle has been created. 
      * 
@@ -191,6 +196,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         // Retrieve meta data from cache item.
         procedureName = parsedSQL.procedureName;
         bReturnValueSyntax = parsedSQL.bReturnValueSyntax;
+        expectReturnValue = bReturnValueSyntax;
         userSQL = parsedSQL.processedSQL;
         initParams(parsedSQL.parameterCount);
     }
@@ -525,30 +531,30 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         }
 
         // Retry execution if existing handle could not be re-used.
-        for(int attempt = 1; attempt <= 2; ++attempt) {
+        for (int attempt = 1; attempt <= 2; ++attempt) {
             try {
-    			// Re-use handle if available, requires parameter definitions which are not available until here.
-    			if (reuseCachedHandle(hasNewTypeDefinitions, 1 < attempt)) {
-    				hasNewTypeDefinitions = false;
-    			}
-    	
-    	        // Start the request and detach the response reader so that we can
-    	        // continue using it after we return.
-    	        TDSWriter tdsWriter = command.startRequest(TDS.PKT_RPC);
-    	
-    	        doPrepExec(tdsWriter, inOutParam, hasNewTypeDefinitions, hasExistingTypeDefinitions);
-    	
-    	        ensureExecuteResultsReader(command.startResponse(getIsResponseBufferingAdaptive()));
-    	        startResults();
-    	        getNextResult();
-        	}
-        	catch(SQLException e) {
-        		if (retryBasedOnFailedReuseOfCachedHandle(e.getErrorCode(), attempt))
-    				continue;
+                // Re-use handle if available, requires parameter definitions which are not available until here.
+                if (reuseCachedHandle(hasNewTypeDefinitions, 1 < attempt)) { 
+                    hasNewTypeDefinitions = false;
+                }
+
+                // Start the request and detach the response reader so that we can
+                // continue using it after we return.
+                TDSWriter tdsWriter = command.startRequest(TDS.PKT_RPC);
+
+                doPrepExec(tdsWriter, inOutParam, hasNewTypeDefinitions, hasExistingTypeDefinitions);
+
+                ensureExecuteResultsReader(command.startResponse(getIsResponseBufferingAdaptive()));
+                startResults();
+                getNextResult();
+            }
+            catch (SQLException e) {
+                if (retryBasedOnFailedReuseOfCachedHandle(e, attempt))
+                    continue;
                 else
-    				throw e;
-        	}
-        	break;	
+                    throw e;
+            }
+            break;
         }
 
         if (EXECUTE_QUERY == executeMethod && null == resultSet) {
@@ -607,16 +613,22 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
      * Send the statement parameters by RPC
      */
     void sendParamsByRPC(TDSWriter tdsWriter,
-            Parameter[] params) throws SQLServerException {
+            Parameter[] params, boolean bReturnValueSyntax) throws SQLServerException {
         char cParamName[];
-        for (int index = 0; index < params.length; index++) {
+        int index = 0;
+        if (bReturnValueSyntax  && !isCursorable(executeMethod) && !isTVPType) { 
+            returnParam = params[index];
+            params[index].setReturnValue(true);
+            index++;
+        }
+        for (; index < params.length ; index++) {
             if (JDBCType.TVP == params[index].getJdbcType()) {
                 cParamName = new char[10];
                 int paramNameLen = SQLServerConnection.makeParamName(index, cParamName, 0);
                 tdsWriter.writeByte((byte) paramNameLen);
                 tdsWriter.writeString(new String(cParamName, 0, paramNameLen));
             }
-            params[index].sendByRPC(tdsWriter, connection);
+            params[index].sendByRPC(tdsWriter, connection); 
         }
     }
 
@@ -762,6 +774,22 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         // <handle> IN
         assert hasPreparedStatementHandle();
         tdsWriter.writeRPCInt(null, getPreparedStatementHandle(), false);
+    }
+    
+    private void buildRPCExecParams(TDSWriter tdsWriter) throws SQLServerException {
+        if (getStatementLogger().isLoggable(java.util.logging.Level.FINE))
+            getStatementLogger().fine(toString() + ": calling sp_execute: PROC" + ", SQL:" + preparedSQL);
+
+        expectPrepStmtHandle = false;
+        executedSqlDirectly = true;
+        expectCursorOutParams = false;
+        outParamIndexAdjustment = 1; 
+        tdsWriter.writeShort((short)procedureName.length()); // procedure name length 
+        tdsWriter.writeString(procedureName);
+
+        tdsWriter.writeByte((byte) 0);  // RPC procedure option 1
+        tdsWriter.writeByte((byte) 0);  // RPC procedure option 2 */
+
     }
 
     private void getParameterEncryptionMetadata(Parameter[] params) throws SQLServerException {
@@ -958,37 +986,56 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
             Parameter[] params,
             boolean hasNewTypeDefinitions,
             boolean hasExistingTypeDefinitions) throws SQLServerException {
-        
+
         boolean needsPrepare = (hasNewTypeDefinitions && hasExistingTypeDefinitions) || !hasPreparedStatementHandle();
 
         // Cursors don't use statement pooling.
         if (isCursorable(executeMethod)) {
-            
-            if (needsPrepare) 
+            if (needsPrepare)
                 buildServerCursorPrepExecParams(tdsWriter);
             else
                 buildServerCursorExecParams(tdsWriter);
         }
         else {
+            int paramCount = connection.countParams(userSQL);
+            if (needsPrepare && null != procedureName && paramCount != 0 && !isTVPType(params)) { 
+                // if it is a parameterized stored procedure call and is not TVP, use sp_execute directly. 
+                buildRPCExecParams(tdsWriter);
+            }
             // Move overhead of needing to do prepare & unprepare to only use cases that need more than one execution.
             // First execution, use sp_executesql, optimizing for asumption we will not re-use statement.
-            if (needsPrepare 
-                && !connection.getEnablePrepareOnFirstPreparedStatementCall() 
-                && !isExecutedAtLeastOnce
-            ) {
+            else
+                if (needsPrepare && !connection.getEnablePrepareOnFirstPreparedStatementCall() && !isExecutedAtLeastOnce) {
                 buildExecSQLParams(tdsWriter);
                 isExecutedAtLeastOnce = true;
             }
             // Second execution, use prepared statements since we seem to be re-using it.
-            else if(needsPrepare)
+            else if (needsPrepare )
                 buildPrepExecParams(tdsWriter);
-            else
+            else 
                 buildExecParams(tdsWriter);
         }
-
-        sendParamsByRPC(tdsWriter, params);
+        
+        sendParamsByRPC(tdsWriter, params, bReturnValueSyntax);
 
         return needsPrepare;
+    }
+    
+    /**
+     * Checks if the parameter is a TVP type.
+     * 
+     * @param params
+     * @return
+     * @throws SQLServerException
+     */
+    private boolean isTVPType(Parameter[] params) throws SQLServerException {
+        for (int i = 0; i < params.length; i++) {
+            if (JDBCType.TVP == params[i].getJdbcType()) {
+                isTVPType = true;
+                return true;
+            }
+        }
+        return false;
     }
 
     /* L0 */ public final java.sql.ResultSetMetaData getMetaData() throws SQLServerException {
@@ -2587,7 +2634,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                     batchParam[i].cryptoMeta = cryptoMetaBatch.get(i);
                 }
             }
-
+            
             // Retry execution if existing handle could not be re-used.
             for(int attempt = 1; attempt <= 2; ++attempt) {               
                 try {
@@ -2650,13 +2697,13 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                                     throw e;
 
                                 // Retry if invalid handle exception.
-                                if (retryBasedOnFailedReuseOfCachedHandle(e.getErrorCode(), attempt)) {
+                                if (retryBasedOnFailedReuseOfCachedHandle(e, attempt)) {
                                     // reset number of batches prepare
                                     numBatchesPrepared = numBatchesExecuted;
                                     retry = true;
                                     break;
                                 }
-
+                                
                                 // Otherwise, the connection is OK and the transaction is still intact,
                                 // so just record the failure for the particular batch item.
                                 updateCount = Statement.EXECUTE_FAILED;
@@ -2681,7 +2728,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                     }
                 }
                 catch(SQLException e) {
-                    if (retryBasedOnFailedReuseOfCachedHandle(e.getErrorCode(), attempt)) {
+                    if (retryBasedOnFailedReuseOfCachedHandle(e, attempt)) {
                         // Reset number of batches prepared.
                         numBatchesPrepared = numBatchesExecuted;
                         continue;

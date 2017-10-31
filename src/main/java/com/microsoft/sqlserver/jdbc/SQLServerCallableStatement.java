@@ -58,11 +58,15 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
 
     /** Currently active Stream Note only one stream can be active at a time */
     private Closeable activeStream;
+    
+    /** Checks if return values is already accessed in stored procedure */
+    private boolean returnValueIsAccessed = false;
 
     // Internal function used in tracing
     String getClassNameInternal() {
         return "SQLServerCallableStatement";
     }
+    
 
     /**
      * Create a new callable statement.
@@ -156,14 +160,22 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
         processResults();
 
         // if this item has been indexed already leave!
-        if (inOutParam[i - 1] == lastParamAccessed || inOutParam[i - 1].isValueGotten())
+        if (inOutParam[i - 1] == lastParamAccessed || inOutParam[i - 1].isValueGotten()) {
+            // if it is a return value, increment the nOutParamsAssigned. Checking for isCursorable here is because the driver is executing
+            // the stored procedure for cursorable ones differently ( calling sp_cursorexecute r sp_cursorprepexec.
+            if (bReturnValueSyntax && inOutParam[i - 1].isValueGotten() && inOutParam[i - 1].isReturnValue() && !returnValueIsAccessed
+                    && !isCursorable(executeMethod) && !SQLServerPreparedStatement.isTVPType) {
+                nOutParamsAssigned++;
+                returnValueIsAccessed = true;
+            }
             return inOutParam[i - 1];
-
+        }
+        if (inOutParam[i - 1].isReturnValue() && bReturnValueSyntax && !isCursorable(executeMethod) && !isTVPType)//
+            return inOutParam[i - 1];
         // Skip OUT parameters (buffering them as we go) until we
         // reach the one we're looking for.
         while (outParamIndex != i - 1)
             skipOutParameters(1, false);
-
         return inOutParam[i - 1];
     }
 
@@ -213,6 +225,8 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
 
         // Next, if there are any unindexed parameters left then discard them too.
         assert nOutParamsAssigned <= nOutParams;
+        if (bReturnValueSyntax && (nOutParamsAssigned == 0) && !isCursorable(executeMethod))
+            nOutParamsAssigned++;
         if (nOutParamsAssigned < nOutParams)
             skipOutParameters(nOutParams - nOutParamsAssigned, true);
 
@@ -289,57 +303,67 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
 
         OutParamHandler outParamHandler = new OutParamHandler();
 
+        if (bReturnValueSyntax && (nOutParamsAssigned == 0) && !isCursorable(executeMethod) && !isTVPType) //
+            nOutParamsAssigned++;
         // Index the application OUT parameters
-        assert numParamsToSkip <= nOutParams - nOutParamsAssigned;
-        for (int paramsSkipped = 0; paramsSkipped < numParamsToSkip; ++paramsSkipped) {
-            // Discard the last-indexed parameter by skipping over it and
-            // discarding the value if it is no longer needed.
-            if (-1 != outParamIndex) {
-                inOutParam[outParamIndex].skipValue(resultsReader(), discardValues);
-                if (discardValues)
-                    inOutParam[outParamIndex].resetOutputValue();
+        // assert numParamsToSkip <= nOutParams - nOutParamsAssigned ;
+        if (numParamsToSkip <= nOutParams - nOutParamsAssigned) {
+            for (int paramsSkipped = 0; paramsSkipped < numParamsToSkip; ++paramsSkipped) {
+
+                // Discard the last-indexed parameter by skipping over it and
+                // discarding the value if it is no longer needed.
+                if (-1 != outParamIndex || (-1 != outParamIndex && discardValues)) {
+                    inOutParam[outParamIndex].skipValue(resultsReader(), discardValues);
+                    if (discardValues)
+                        inOutParam[outParamIndex].resetOutputValue();
+                }
+
+                // Look for the next parameter value in the response.
+                outParamHandler.reset();
+                TDSParser.parse(resultsReader(), outParamHandler);
+
+                // If we don't find it, then most likely the server encountered some error that
+                // was bad enough to halt statement execution before returning OUT params, but
+                // not necessarily bad enough to close the connection.
+                if (!outParamHandler.foundParam()) {
+                    // If we were just going to discard the OUT parameters we found anyway,
+                    // then it's no problem that we didn't find any of them. For exmaple,
+                    // when we are closing or reexecuting this CallableStatement (that is,
+                    // calling in through processResponse), we don't care that execution
+                    // failed to return the OUT parameters.
+                    if (discardValues)
+                        break;
+
+                    // If we were asked to retain the OUT parameters as we skip past them,
+                    // then report an error if we did not find any.
+                    MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_valueNotSetForParameter"));
+                    Object[] msgArgs = {outParamIndex + 1};
+                    SQLServerException.makeFromDriverError(connection, this, form.format(msgArgs), null, false);
+                }
+
+                // In Yukon and later, large Object output parameters are reordered to appear at
+                // the end of the stream. First group of small parameters is sent, followed by
+                // group of large output parameters. There is no reordering within the groups.
+
+                // Note that parameter ordinals are 0-indexed and that the return status is not
+                // considered to be an output parameter.
+                outParamIndex = outParamHandler.srv.getOrdinalOrLength();
+                if (bReturnValueSyntax && !isCursorable(executeMethod) && !isTVPType) { // 
+                    outParamIndex++;
+                }
+                // Statements need to have their out param indices adjusted by the number
+                // of sp_[cursor][prep]exec params.
+                else if (isCursorable(executeMethod) || isTVPType) {
+                    outParamIndex -= outParamIndexAdjustment;
+                }
+                if ((outParamIndex < 0 || outParamIndex >= inOutParam.length) || (!inOutParam[outParamIndex].isOutput())) {
+                    getStatementLogger()
+                            .info(toString() + " Unexpected outParamIndex: " + outParamIndex + "; adjustment: " + outParamIndexAdjustment);
+                    connection.throwInvalidTDS();
+                }
+
+                ++nOutParamsAssigned;
             }
-
-            // Look for the next parameter value in the response.
-            outParamHandler.reset();
-            TDSParser.parse(resultsReader(), outParamHandler);
-
-            // If we don't find it, then most likely the server encountered some error that
-            // was bad enough to halt statement execution before returning OUT params, but
-            // not necessarily bad enough to close the connection.
-            if (!outParamHandler.foundParam()) {
-                // If we were just going to discard the OUT parameters we found anyway,
-                // then it's no problem that we didn't find any of them. For exmaple,
-                // when we are closing or reexecuting this CallableStatement (that is,
-                // calling in through processResponse), we don't care that execution
-                // failed to return the OUT parameters.
-                if (discardValues)
-                    break;
-
-                // If we were asked to retain the OUT parameters as we skip past them,
-                // then report an error if we did not find any.
-                MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_valueNotSetForParameter"));
-                Object[] msgArgs = {outParamIndex + 1};
-                SQLServerException.makeFromDriverError(connection, this, form.format(msgArgs), null, false);
-            }
-
-            // In Yukon and later, large Object output parameters are reordered to appear at
-            // the end of the stream. First group of small parameters is sent, followed by
-            // group of large output parameters. There is no reordering within the groups.
-
-            // Note that parameter ordinals are 0-indexed and that the return status is not
-            // considered to be an output parameter.
-            outParamIndex = outParamHandler.srv.getOrdinalOrLength();
-
-            // Statements need to have their out param indices adjusted by the number
-            // of sp_[cursor][prep]exec params.
-            outParamIndex -= outParamIndexAdjustment;
-            if ((outParamIndex < 0 || outParamIndex >= inOutParam.length) || (!inOutParam[outParamIndex].isOutput())) {
-                getStatementLogger().info(toString() + " Unexpected outParamIndex: " + outParamIndex + "; adjustment: " + outParamIndexAdjustment);
-                connection.throwInvalidTDS();
-            }
-
-            ++nOutParamsAssigned;
         }
     }
 
@@ -424,7 +448,14 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
 
     private Object getValue(int parameterIndex,
             JDBCType jdbcType) throws SQLServerException {
-        return getterGetParam(parameterIndex).getValue(jdbcType, null, null, resultsReader());
+        Parameter param = getterGetParam(parameterIndex);
+        if (!param.isValueGotten() || !param.isReturnValue()) {
+            return param.getValue(jdbcType, null, null, resultsReader());
+        }
+        else {
+            // if we have already retrieved the value, we have the typeInfo and we do not need to get it again
+            return param.getValue(param.getJdbcType(), null, null, null); 
+        }
     }
 
     private Object getValue(int parameterIndex,
@@ -1386,8 +1417,7 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
         return getArray(findColumn(sCol));
     }
 
-    /* JDBC 3.0 */
-
+    /* JDBC 3.0 */   
     /**
      * Find a column's index given its name.
      * 
@@ -1451,7 +1481,7 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
         if (paramNames != null)
             l = paramNames.size();
 
-        // handle `@name` as well as `name`, since `@name` is what's returned 
+        // handle `@name` as well as `name`, since `@name` is what's returned
         // by DatabaseMetaData#getProcedureColumns
         String columnNameWithoutAtSign = null;
         if (columnName.startsWith("@")) {
@@ -1459,7 +1489,6 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
         } else {
             columnNameWithoutAtSign = columnName;
         }
-        
         // In order to be as accurate as possible when locating parameter name
         // indexes, as well as be deterministic when running on various client
         // locales, we search for parameter names using the following scheme:
@@ -1504,7 +1533,7 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
             return matchPos + 1;
         else
             return matchPos;
-    }
+    } 
 
     public void setTimestamp(String sCol,
             java.sql.Timestamp x,

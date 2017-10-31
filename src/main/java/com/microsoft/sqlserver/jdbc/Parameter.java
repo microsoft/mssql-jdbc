@@ -50,7 +50,8 @@ final class Parameter {
     private boolean shouldHonorAEForParameter = false;
     private boolean userProvidesPrecision = false;
     private boolean userProvidesScale = false;
-
+    private boolean isReturnValue = false;
+    
     // The parameter type definition
     private String typeDefinition = null;
     boolean renewDefinition = false;
@@ -70,6 +71,14 @@ final class Parameter {
     // Flag set to true if this is a registered OUTPUT parameter.
     boolean isOutput() {
         return null != registeredOutDTV;
+    }
+    
+    boolean isReturnValue() {
+        return isReturnValue;
+    }
+
+    void setReturnValue(boolean isReturnValue) {
+        this.isReturnValue = isReturnValue;
     }
 
     // Since a parameter can have only one type definition for both sending its value to the server (IN)
@@ -146,7 +155,15 @@ final class Parameter {
         this.outScale = outScale;
         userProvidesScale = true;
     }
-
+    
+    void setName (String name) {
+        this.name = name;
+    }
+    
+    String getName() {
+        return this.name;
+    }
+    
     // The parameter name
     private String name;
     private String schemaName;
@@ -209,7 +226,7 @@ final class Parameter {
             getterDTV = new DTV();
 
         deriveTypeInfo(tdsReader);
-
+        
         getterDTV.skipValue(typeInfo, tdsReader, isDiscard);
     }
 
@@ -254,7 +271,7 @@ final class Parameter {
         if (null == getterDTV)
             getterDTV = new DTV();
 
-        getterDTV.setValue(null, JDBCType.INTEGER, returnStatus, JavaType.INTEGER, null, null, null, con, getForceEncryption());
+        getterDTV.setValue(null, this.getJdbcType(), returnStatus, JavaType.INTEGER, null, null, null, con, getForceEncryption());
     }
 
     void setValue(JDBCType jdbcType,
@@ -409,8 +426,9 @@ final class Parameter {
             TDSReader tdsReader) throws SQLServerException {
         if (null == getterDTV)
             getterDTV = new DTV();
-
-        deriveTypeInfo(tdsReader);
+        if (null != tdsReader) {
+            deriveTypeInfo(tdsReader);           
+        }
         // If the parameter is not encrypted or column encryption is turned off (either at connection or
         // statement level), cryptoMeta would be null.
         return getterDTV.getValue(jdbcType, outScale, getterArgs, cal, typeInfo, cryptoMeta, tdsReader);

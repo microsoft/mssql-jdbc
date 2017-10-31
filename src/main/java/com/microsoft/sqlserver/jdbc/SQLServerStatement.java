@@ -52,7 +52,7 @@ public class SQLServerStatement implements ISQLServerStatement {
     final static char LEFT_CURLY_BRACKET = 123;
     final static char RIGHT_CURLY_BRACKET = 125;
 
-    private boolean isResponseBufferingAdaptive = false;
+    protected boolean isResponseBufferingAdaptive = false;
 
     final boolean getIsResponseBufferingAdaptive() {
         return isResponseBufferingAdaptive;
@@ -99,7 +99,10 @@ public class SQLServerStatement implements ISQLServerStatement {
     /**
      * The input and out parameters for statement execution.
      */
-    Parameter[] inOutParam; // Parameters for prepared stmts and stored procedures
+    Parameter[] inOutParam = null; // Parameters for prepared stmts and stored procedures
+
+    /** Return parameter for stored procedure calls*/
+    Parameter returnParam;
 
     /**
      * The statements connection.
@@ -158,10 +161,10 @@ public class SQLServerStatement implements ISQLServerStatement {
     protected SQLServerStatementColumnEncryptionSetting stmtColumnEncriptionSetting = SQLServerStatementColumnEncryptionSetting.UseConnectionSetting;
 
     /** Should the execution be retried because the re-used cached handle could not be re-used due to server side state changes? */
-    protected boolean retryBasedOnFailedReuseOfCachedHandle(int errorCode,
+    protected boolean retryBasedOnFailedReuseOfCachedHandle(SQLException e,
             int attempt) {
-        return 1 == attempt && (STATEMENT_HANDLE_NOT_VALID == errorCode || STATEMENT_HANDLE_NOT_FOUND == errorCode
-                || STATEMENT_HANDLE_ERROR_CODE_FOR_TESTING == errorCode);
+        return 1 == attempt && (STATEMENT_HANDLE_NOT_VALID == e.getErrorCode() || STATEMENT_HANDLE_NOT_FOUND == e.getErrorCode()
+                || STATEMENT_HANDLE_ERROR_CODE_FOR_TESTING == e.getErrorCode());
     }
     
     /**
@@ -1484,6 +1487,13 @@ public class SQLServerStatement implements ISQLServerStatement {
                 else {
                     procedureRetStatToken = new StreamRetStatus();
                     procedureRetStatToken.setFromTDS(tdsReader);
+                    // only read the return value from stored proc if we are expecting one.
+                    if (SQLServerPreparedStatement.expectReturnValue && !isCursorable(executeMethod) && !SQLServerPreparedStatement.isTVPType) { //
+                        if (inOutParam != null) {
+                            inOutParam[0].setFromReturnStatus(procedureRetStatToken.getStatus(), connection);
+                            return false;
+                        }
+                    }
                 }
 
                 return true;
@@ -1500,7 +1510,7 @@ public class SQLServerStatement implements ISQLServerStatement {
                     p.skipValue(tdsReader, true);
                     return true;
                 }
-
+                
                 return false;
             }
 
@@ -1554,44 +1564,39 @@ public class SQLServerStatement implements ISQLServerStatement {
         if (!moreResults)
             return false;
 
-        TDSReader rd;
-        do {
-            // Figure out the next result.
-            NextResult nextResult = new NextResult();
-            rd = resultsReader();
-            TDSParser.parse(rd, nextResult);
+     // Figure out the next result.
+        NextResult nextResult = new NextResult();
+        TDSParser.parse(resultsReader(), nextResult);
 
-            // Check for errors first.
-            if (null != nextResult.getDatabaseError() && !retryBasedOnFailedReuseOfCachedHandle(nextResult.getDatabaseError().getErrorNumber(), 1)) {
-                SQLServerException.makeFromDatabaseError(connection, null, nextResult.getDatabaseError().getMessage(), nextResult.getDatabaseError(),
-                        false);
-            }
-
-            // Not an error. Is it a result set?
-            else if (nextResult.isResultSet()) {
-                if (Util.use42Wrapper()) {
-                    resultSet = new SQLServerResultSet42(this);
-                }
-                else {
-                    resultSet = new SQLServerResultSet(this);
-                }
-
-                return true;
-            }
-
-            // Nope. Not an error or a result set. Maybe a result from a T-SQL statement?
-            // That is, one of the following:
-            // - a positive count of the number of rows affected (from INSERT, UPDATE, or DELETE),
-            // - a zero indicating no rows affected, or the statement was DDL, or
-            // - a -1 indicating the statement succeeded, but there is no update count
-            // information available (translates to Statement.SUCCESS_NO_INFO in batch
-            // update count arrays).
-            else if (nextResult.isUpdateCount()) {
-                updateCount = nextResult.getUpdateCount();
-                return true;
-            }
+        // Check for errors first.
+        if (null != nextResult.getDatabaseError()) {
+            SQLServerException.makeFromDatabaseError(connection, null, nextResult.getDatabaseError().getMessage(), nextResult.getDatabaseError(),
+                    false);
         }
-        while (rd.hasNextPacket() && rd.endOfCurrentPacket());
+
+        // Not an error. Is it a result set?
+        else if (nextResult.isResultSet()) {
+            if (Util.use42Wrapper()) {
+                resultSet = new SQLServerResultSet42(this);
+            }
+            else {
+                resultSet = new SQLServerResultSet(this);
+            }
+
+            return true;
+        }
+
+        // Nope. Not an error or a result set. Maybe a result from a T-SQL statement?
+        // That is, one of the following:
+        // - a positive count of the number of rows affected (from INSERT, UPDATE, or DELETE),
+        // - a zero indicating no rows affected, or the statement was DDL, or
+        // - a -1 indicating the statement succeeded, but there is no update count
+        // information available (translates to Statement.SUCCESS_NO_INFO in batch
+        // update count arrays).
+        else if (nextResult.isUpdateCount()) {
+            updateCount = nextResult.getUpdateCount();
+            return true;
+        }
 
         // None of the above. Last chance here... Going into the parser above, we know
         // moreResults was initially true. If we come out with moreResults false, then

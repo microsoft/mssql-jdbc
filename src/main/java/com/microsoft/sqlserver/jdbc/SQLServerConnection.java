@@ -264,7 +264,7 @@ public class SQLServerConnection implements ISQLServerConnection {
         String parsedSql = translator.translate(sql);
         String procName = translator.getProcedureName(); // may return null        
         boolean returnValueSyntax = translator.hasReturnValueSyntax();
-        int paramCount = countParams(parsedSql);
+        int paramCount = countParams(sql);      //parsedSql
 
         ParsedSQLCacheItem  cacheItem = new ParsedSQLCacheItem (parsedSql, paramCount, procName, returnValueSyntax);
         parsedSQLCache.putIfAbsent(key, cacheItem);
@@ -287,7 +287,7 @@ public class SQLServerConnection implements ISQLServerConnection {
       * @param sql
       *          SQL text to parse for number of parameters to intialize.
       */
-     private static int countParams(String sql) {
+     static int countParams(String sql) {
          int nParams = 0;
  
          // Figure out the expected number of parameters by counting the
@@ -295,7 +295,7 @@ public class SQLServerConnection implements ISQLServerConnection {
          int offset = -1;
          while ((offset = ParameterUtils.scanSQLForChar('?', sql, ++offset)) < sql.length())
              ++nParams;
- 
+         
          return nParams;
      }
 
