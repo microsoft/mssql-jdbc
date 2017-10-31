@@ -313,7 +313,7 @@ final class DTV {
         private final boolean isOutParam;
         private final TDSWriter tdsWriter;
         private final SQLServerConnection conn;
-
+        
         SendByRPCOp(String name,
                 TypeInfo typeInfo,
                 SQLCollation collation,
@@ -2408,8 +2408,11 @@ final class AppDTVImpl extends DTVImpl {
             CryptoMetadata cryptoMetadata,
             TDSReader tdsReader) throws SQLServerException {
         // Client side type conversion is not supported
-        if (this.jdbcType != jdbcType)
+        // Checking for sql_variant here since the check will be performed elsewhere. 
+        if (this.jdbcType != jdbcType && jdbcType != jdbcType.SQL_VARIANT)
+        {
             DataTypes.throwConversionError(this.jdbcType.toString(), jdbcType.toString());
+        }
 
         return value;
     }
