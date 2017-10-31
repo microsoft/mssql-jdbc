@@ -170,7 +170,7 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
             }
             return inOutParam[i - 1];
         }
-        if (inOutParam[i - 1].isReturnValue() && bReturnValueSyntax && !isCursorable(executeMethod) && !isTVPType)//
+        if (inOutParam[i - 1].isReturnValue() && bReturnValueSyntax && !isCursorable(executeMethod) && !isTVPType)
             return inOutParam[i - 1];
         // Skip OUT parameters (buffering them as we go) until we
         // reach the one we're looking for.

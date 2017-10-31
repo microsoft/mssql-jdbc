@@ -200,6 +200,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         expectReturnValue = bReturnValueSyntax;
         userSQL = parsedSQL.processedSQL;
         initParams(parsedSQL.parameterCount);
+        isTVPType = false;
     }
 
     /**
