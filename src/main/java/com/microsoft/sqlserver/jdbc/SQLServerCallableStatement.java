@@ -89,6 +89,7 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
             int nRSConcur,
             SQLServerStatementColumnEncryptionSetting stmtColEncSetting) throws SQLServerException {
         super(connection, sql, nRSType, nRSConcur, stmtColEncSetting);
+        returnValueIsAccessed = false;
     }
 
     public void registerOutParameter(int index,
