@@ -617,7 +617,7 @@ final class DDC {
                             } else if (JDBCType.GEOMETRY == jdbcType) {
                                 return Geometry.STGeomFromWKB(byteValue);
                             } else if (JDBCType.GEOGRAPHY == jdbcType) {
-                                return new Geography(byteValue);
+                                return Geography.STGeomFromWKB(byteValue);
                             }
                             else {
                                 String hexString = Util.bytesToHexString(byteValue, byteValue.length);
