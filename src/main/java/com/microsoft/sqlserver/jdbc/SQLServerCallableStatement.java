@@ -225,20 +225,21 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
         }
 
         // Next, if there are any unindexed parameters left then discard them too.
-        assert nOutParamsAssigned <= nOutParams;
-        if (bReturnValueSyntax && (nOutParamsAssigned == 0) && !isCursorable(executeMethod))
-            nOutParamsAssigned++;
-        if (nOutParamsAssigned < nOutParams)
-            skipOutParameters(nOutParams - nOutParamsAssigned, true);
+        if (nOutParamsAssigned <= nOutParams) {
+            if (bReturnValueSyntax && (nOutParamsAssigned == 0) && !isCursorable(executeMethod))
+                nOutParamsAssigned++;
+            if (nOutParamsAssigned < nOutParams)
+                skipOutParameters(nOutParams - nOutParamsAssigned, true);
 
-        // Finally, skip the last-indexed parameter. If there were no unindexed parameters
-        // in the previous step, then this is the last-indexed parameter left from the first
-        // step. If we skipped unindexed parameters in the previous step, then this is the
-        // last-indexed parameter left at the end of that step.
-        if (outParamIndex >= 0) {
-            inOutParam[outParamIndex].skipValue(resultsReader(), true);
-            inOutParam[outParamIndex].resetOutputValue();
-            outParamIndex = -1;
+            // Finally, skip the last-indexed parameter. If there were no unindexed parameters
+            // in the previous step, then this is the last-indexed parameter left from the first
+            // step. If we skipped unindexed parameters in the previous step, then this is the
+            // last-indexed parameter left at the end of that step.
+            if (outParamIndex >= 0) {
+                inOutParam[outParamIndex].skipValue(resultsReader(), true);
+                inOutParam[outParamIndex].resetOutputValue();
+                outParamIndex = -1;
+            }
         }
     }
 

@@ -246,26 +246,33 @@ public class CallableStatementTest extends AESetup {
 
     private static void dropTables() throws SQLException {
         Utils.dropTableIfExists(table1, stmt);
-
         Utils.dropTableIfExists(table2, stmt);
-
         Utils.dropTableIfExists(table3, stmt);
-
         Utils.dropTableIfExists(table4, stmt);
-
         Utils.dropTableIfExists(charTable, stmt);
-
         Utils.dropTableIfExists(numericTable, stmt);
-
         Utils.dropTableIfExists(binaryTable, stmt);
-
         Utils.dropTableIfExists(dateTable, stmt);
-
         Utils.dropTableIfExists(table5, stmt);
-
         Utils.dropTableIfExists(table6, stmt);
-
-        Utils.dropTableIfExists(scaleDateTable, stmt);
+        Utils.dropTableIfExists(scaleDateTable, stmt);   
+        Utils.dropProcedureIfExists(multiStatementsProcedure, stmt);
+        Utils.dropProcedureIfExists(outputProcedure, stmt);
+        Utils.dropProcedureIfExists(outputProcedure2, stmt);
+        Utils.dropProcedureIfExists(inputProcedure, stmt);
+        Utils.dropProcedureIfExists(inputProcedure2, stmt);
+        Utils.dropProcedureIfExists(outputProcedure3, stmt);
+        Utils.dropProcedureIfExists(outputProcedureChar, stmt);
+        Utils.dropProcedureIfExists(outputProcedureNumeric, stmt);
+        Utils.dropProcedureIfExists(outputProcedureBinary, stmt);
+        Utils.dropProcedureIfExists(outputProcedureDate, stmt);
+        Utils.dropProcedureIfExists(MixedProcedureDateScale, stmt);
+        Utils.dropProcedureIfExists(outputProcedureBatch, stmt);
+        Utils.dropProcedureIfExists(inoutProcedure, stmt);
+        Utils.dropProcedureIfExists(mixedProcedure, stmt);
+        Utils.dropProcedureIfExists(mixedProcedure2, stmt);
+        Utils.dropProcedureIfExists(mixedProcedure3, stmt);
+        Utils.dropProcedureIfExists(mixedProcedureNumericPrcisionScale, stmt);      
     }
 
     private static void createTables() throws SQLException {
