@@ -12,6 +12,7 @@ import static com.microsoft.sqlserver.jdbc.SQLServerConnection.getCachedParsedSQ
 import static com.microsoft.sqlserver.jdbc.SQLServerConnection.parseAndCacheSQL;
 
 import java.sql.BatchUpdateException;
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.SQLWarning;
@@ -1469,13 +1470,21 @@ public class SQLServerStatement implements ISQLServerStatement {
                 // so remember that we've seen it so that we don't ignore the RETVALUE tokens that
                 // may follow.
                 else {
-                    procedureRetStatToken = new StreamRetStatus();
+                    procedureRetStatToken = new StreamRetStatus(); 
                     procedureRetStatToken.setFromTDS(tdsReader);
-                    // only read the return value from stored proc if we are expecting one.
-                    if (SQLServerPreparedStatement.expectReturnValue && !isCursorable(executeMethod) && !SQLServerPreparedStatement.isTVPType) { //
+                    // only read the return value from stored proc if we are expecting one. Also check that it is not cursable and not TVP type, for these two 
+                    // driver is still following the old behaviour of executing sp_executesql for stored procedures.
+                    if (!isCursorable(executeMethod) && !SQLServerPreparedStatement.isTVPType) { 
                         if (inOutParam != null) {
-                            inOutParam[0].setFromReturnStatus(procedureRetStatToken.getStatus(), connection);
-                            return false;
+                            try {
+                                if (inOutParam[0].isReturnValue()) {
+                                    inOutParam[0].setFromReturnStatus(procedureRetStatToken.getStatus(), connection);
+                                    return false;
+                                }
+                            }
+                            catch (ArrayIndexOutOfBoundsException e) {
+                                // do nothing. It means the array was not initialized
+                            }
                         }
                     }
                 }

@@ -84,9 +84,6 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     /** Set to true if the statement is a stored procedure call that expects a return value */
     final boolean bReturnValueSyntax;
     
-    /** Set to true if the statement is a stored procedure call that expects a return value. This variable is created to create access to the bReturnValueSyntax */
-    static boolean expectReturnValue = false;
-    
     /** Check if statement contains TVP Type*/
     static boolean isTVPType = false;
     /**
@@ -110,7 +107,6 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     private void setPreparedStatementHandle(int handle) {
         this.prepStmtHandle = handle;
     }   
-    
 
     /** The server handle for this prepared statement. If a value {@literal <} 1 is returned no handle has been created. 
      * 
@@ -197,7 +193,6 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         // Retrieve meta data from cache item.
         procedureName = parsedSQL.procedureName;
         bReturnValueSyntax = parsedSQL.bReturnValueSyntax;
-        expectReturnValue = bReturnValueSyntax;
         userSQL = parsedSQL.processedSQL;
         initParams(parsedSQL.parameterCount);
         isTVPType = false;
@@ -309,6 +304,9 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         inOutParam = new Parameter[nParams];
         for (int i = 0; i < nParams; i++) {
             inOutParam[i] = new Parameter(Util.shouldHonorAEForParameters(stmtColumnEncriptionSetting, connection));
+        }
+        if (bReturnValueSyntax) {
+            inOutParam[0].setReturnValue(true);
         }
     }
 
