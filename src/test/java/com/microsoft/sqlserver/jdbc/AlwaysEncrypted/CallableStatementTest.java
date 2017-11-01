@@ -2283,20 +2283,20 @@ public class CallableStatementTest extends AESetup {
             callableStatement.registerOutParameter(18, microsoft.sql.Types.DATETIMEOFFSET, 2);
             callableStatement.execute();
 
-            assertEquals(callableStatement.getDate(1), callableStatement.getDate(2), "Test for output parameter fails.\n");
+            assertEquals(callableStatement.getDate(1), callableStatement.getDate(2), "Test for output parameter Date fails.\n");
 
-            assertEquals(callableStatement.getTimestamp(3), callableStatement.getTimestamp(4), "Test for output parameter fails.\n");
+            assertEquals(callableStatement.getTimestamp(3), callableStatement.getTimestamp(4), "Test for output parameter datetime2 fails.\n");
 
-            assertEquals(callableStatement.getDateTimeOffset(5), callableStatement.getDateTimeOffset(6), "Test for output parameter fails.\n");
+            assertEquals(callableStatement.getDateTimeOffset(5), callableStatement.getDateTimeOffset(6), "Test for output parameter Datetimeoffset fails.\n");
 
-            assertEquals(callableStatement.getTime(7), callableStatement.getTime(8), "Test for output parameter fails.\n");
+            assertEquals(callableStatement.getTime(7), callableStatement.getTime(8), "Test for output parameter Time fails.\n");
             assertEquals(callableStatement.getDateTime(9), // actual plain
                     callableStatement.getDateTime(10), // received expected enc
-                    "Test for output parameter fails.\n");
-            assertEquals(callableStatement.getSmallDateTime(11), callableStatement.getSmallDateTime(12), "Test for output parameter fails.\n");
-            assertEquals(callableStatement.getTimestamp(13), callableStatement.getTimestamp(14), "Test for output parameter fails.\n");
-            assertEquals(callableStatement.getTime(15).getTime(), callableStatement.getTime(16).getTime(), "Test for output parameter fails.\n");
-            assertEquals(callableStatement.getDateTimeOffset(17), callableStatement.getDateTimeOffset(18), "Test for output parameter fails.\n");
+                    "Test for output parameter Datetime fails.\n");
+            assertEquals(callableStatement.getSmallDateTime(11), callableStatement.getSmallDateTime(12), "Test for output parameter smallDatetime fails.\n");
+            assertEquals(callableStatement.getTimestamp(13), callableStatement.getTimestamp(14), "Test for output parameter datetime2 fails.\n");
+            assertEquals(callableStatement.getTime(15).getTime(), callableStatement.getTime(16).getTime(), "Test for output parameter time fails.\n");
+            assertEquals(callableStatement.getDateTimeOffset(17), callableStatement.getDateTimeOffset(18), "Test for output parameter Datetimeoffsetfails.\n");
 
         }
         catch (Exception e) {
