@@ -378,6 +378,23 @@ public class TVPWithSqlVariantTest extends AbstractTest {
             Cstatement.close();
         }
     }
+    
+    /**
+     * Test for allowing duplicate columns
+     * 
+     * @throws SQLServerException
+     */
+    @Test
+    public void testDuplicateColumn() throws SQLServerException {
+        tvp = new SQLServerDataTable();
+        tvp.addColumnMetadata("c1", microsoft.sql.Types.SQL_VARIANT);
+        tvp.addColumnMetadata("c2", microsoft.sql.Types.SQL_VARIANT);
+        try {
+            tvp.addColumnMetadata("c2", microsoft.sql.Types.SQL_VARIANT);
+        } catch (SQLServerException e) {
+            assertEquals(e.getMessage(), "A column name c2 already belongs to this SQLServerDataTable.");
+        }
+    }
 
     private static String[] createNumericValues() {
         Boolean C1_BIT;

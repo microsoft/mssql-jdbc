@@ -439,9 +439,7 @@ final class DDC {
             }
         }
         int offset = numBytes - unscaledBytes.length;
-        for (int i = offset; i < numBytes; ++i) {
-            ret[i] = unscaledBytes[i - offset];
-        }
+        System.arraycopy(unscaledBytes, offset - offset, ret, offset, numBytes - offset);
         return ret;
     }
 
