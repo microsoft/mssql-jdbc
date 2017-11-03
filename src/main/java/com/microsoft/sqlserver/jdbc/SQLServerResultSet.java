@@ -27,6 +27,7 @@ import java.sql.SQLWarning;
 import java.sql.SQLXML;
 import java.text.MessageFormat;
 import java.util.Calendar;
+import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
 
@@ -83,6 +84,10 @@ public class SQLServerResultSet implements ISQLServerResultSet {
     private boolean isClosed = false;
 
     private final int serverCursorId;
+    
+    protected int getServerCursorId() {
+        return serverCursorId;
+    }
 
     /** the intended fetch direction to optimize cursor performance */
     private int fetchDirection;
@@ -200,6 +205,10 @@ public class SQLServerResultSet implements ISQLServerResultSet {
 
     /** TDS reader from which row values are read */
     private TDSReader tdsReader;
+    
+    protected TDSReader getTDSReader() {
+        return tdsReader;
+    }
 
     private final FetchBuffer fetchBuffer;
 
@@ -386,15 +395,13 @@ public class SQLServerResultSet implements ISQLServerResultSet {
 
     public boolean isWrapperFor(Class<?> iface) throws SQLException {
         loggerExternal.entering(getClassNameLogging(), "isWrapperFor");
-        DriverJDBCVersion.checkSupportsJDBC4();
         boolean f = iface.isInstance(this);
-        loggerExternal.exiting(getClassNameLogging(), "isWrapperFor", Boolean.valueOf(f));
+        loggerExternal.exiting(getClassNameLogging(), "isWrapperFor", f);
         return f;
     }
 
     public <T> T unwrap(Class<T> iface) throws SQLException {
         loggerExternal.entering(getClassNameLogging(), "unwrap");
-        DriverJDBCVersion.checkSupportsJDBC4();
         T t;
         try {
             t = iface.cast(this);
@@ -429,8 +436,6 @@ public class SQLServerResultSet implements ISQLServerResultSet {
     }
 
     public boolean isClosed() throws SQLException {
-        DriverJDBCVersion.checkSupportsJDBC4();
-
         loggerExternal.entering(getClassNameLogging(), "isClosed");
         boolean result = isClosed || stmt.isClosed();
         loggerExternal.exiting(getClassNameLogging(), "isClosed", result);
@@ -448,7 +453,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
                 true);
     }
 
-    private boolean isForwardOnly() {
+    protected boolean isForwardOnly() {
         return TYPE_SS_DIRECT_FORWARD_ONLY == stmt.getSQLResultSetType() || TYPE_SS_SERVER_CURSOR_FORWARD_ONLY == stmt.getSQLResultSetType();
     }
 
@@ -535,7 +540,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
 
         if (index < 1 || index > nCols) {
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_indexOutOfRange"));
-            Object[] msgArgs = {new Integer(index)};
+            Object[] msgArgs = {index};
             SQLServerException.makeFromDriverError(stmt.connection, stmt, form.format(msgArgs), "07009", false);
         }
     }
@@ -1791,8 +1796,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
     /** Clear any updated column values for the current row in the result set. */
     final void clearColumnsValues() {
         int l = columns.length;
-        for (int i = 0; i < l; i++)
-            columns[i].cancelUpdates();
+        for (Column column : columns) column.cancelUpdates();
     }
 
     /* L0 */ public SQLWarning getWarnings() throws SQLServerException {
@@ -1814,7 +1818,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
                 (ResultSet.FETCH_FORWARD != direction && (SQLServerResultSet.TYPE_SS_DIRECT_FORWARD_ONLY == stmt.resultSetType
                         || SQLServerResultSet.TYPE_SS_SERVER_CURSOR_FORWARD_ONLY == stmt.resultSetType))) {
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidFetchDirection"));
-            Object[] msgArgs = {new Integer(direction)};
+            Object[] msgArgs = {direction};
             SQLServerException.makeFromDriverError(stmt.connection, stmt, form.format(msgArgs), null, false);
         }
 
@@ -1922,7 +1926,15 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         lastValueWasNull = (null == o);
         return o;
     }
-
+    
+    void setInternalVariantType(int columnIndex, SqlVariant type) throws SQLServerException{
+        getterGetColumn(columnIndex).setInternalVariant(type);
+    }
+    
+    SqlVariant getVariantInternalType(int columnIndex) throws SQLServerException {
+        return getterGetColumn(columnIndex).getInternalVariant();
+    }    
+    
     private Object getStream(int columnIndex,
             StreamType streamType) throws SQLServerException {
         Object value = getValue(columnIndex, streamType.getJDBCType(),
@@ -2004,7 +2016,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         checkClosed();
         Boolean value = (Boolean) getValue(columnIndex, JDBCType.BIT);
         loggerExternal.exiting(getClassNameLogging(), "getBoolean", value);
-        return null != value ? value.booleanValue() : false;
+        return null != value ? value : false;
     }
 
     public boolean getBoolean(String columnName) throws SQLServerException {
@@ -2012,7 +2024,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         checkClosed();
         Boolean value = (Boolean) getValue(findColumn(columnName), JDBCType.BIT);
         loggerExternal.exiting(getClassNameLogging(), "getBoolean", value);
-        return null != value ? value.booleanValue() : false;
+        return null != value ? value : false;
     }
 
     public byte getByte(int columnIndex) throws SQLServerException {
@@ -2088,7 +2100,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         checkClosed();
         Double value = (Double) getValue(columnIndex, JDBCType.DOUBLE);
         loggerExternal.exiting(getClassNameLogging(), "getDouble", value);
-        return null != value ? value.doubleValue() : 0;
+        return null != value ? value : 0;
     }
 
     public double getDouble(String columnName) throws SQLServerException {
@@ -2096,7 +2108,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         checkClosed();
         Double value = (Double) getValue(findColumn(columnName), JDBCType.DOUBLE);
         loggerExternal.exiting(getClassNameLogging(), "getDouble", value);
-        return null != value ? value.doubleValue() : 0;
+        return null != value ? value : 0;
     }
 
     public float getFloat(int columnIndex) throws SQLServerException {
@@ -2104,7 +2116,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         checkClosed();
         Float value = (Float) getValue(columnIndex, JDBCType.REAL);
         loggerExternal.exiting(getClassNameLogging(), "getFloat", value);
-        return null != value ? value.floatValue() : 0;
+        return null != value ? value : 0;
     }
 
     public float getFloat(String columnName) throws SQLServerException {
@@ -2112,7 +2124,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         checkClosed();
         Float value = (Float) getValue(findColumn(columnName), JDBCType.REAL);
         loggerExternal.exiting(getClassNameLogging(), "getFloat", value);
-        return null != value ? value.floatValue() : 0;
+        return null != value ? value : 0;
     }
 
     public int getInt(int columnIndex) throws SQLServerException {
@@ -2120,7 +2132,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         checkClosed();
         Integer value = (Integer) getValue(columnIndex, JDBCType.INTEGER);
         loggerExternal.exiting(getClassNameLogging(), "getInt", value);
-        return null != value ? value.intValue() : 0;
+        return null != value ? value : 0;
     }
 
     public int getInt(String columnName) throws SQLServerException {
@@ -2128,7 +2140,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         checkClosed();
         Integer value = (Integer) getValue(findColumn(columnName), JDBCType.INTEGER);
         loggerExternal.exiting(getClassNameLogging(), "getInt", value);
-        return null != value ? value.intValue() : 0;
+        return null != value ? value : 0;
     }
 
     public long getLong(int columnIndex) throws SQLServerException {
@@ -2136,7 +2148,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         checkClosed();
         Long value = (Long) getValue(columnIndex, JDBCType.BIGINT);
         loggerExternal.exiting(getClassNameLogging(), "getLong", value);
-        return null != value ? value.longValue() : 0;
+        return null != value ? value : 0;
     }
 
     public long getLong(String columnName) throws SQLServerException {
@@ -2144,7 +2156,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         checkClosed();
         Long value = (Long) getValue(findColumn(columnName), JDBCType.BIGINT);
         loggerExternal.exiting(getClassNameLogging(), "getLong", value);
-        return null != value ? value.longValue() : 0;
+        return null != value ? value : 0;
     }
 
     public java.sql.ResultSetMetaData getMetaData() throws SQLServerException {
@@ -2166,10 +2178,84 @@ public class SQLServerResultSet implements ISQLServerResultSet {
 
     public <T> T getObject(int columnIndex,
             Class<T> type) throws SQLException {
-        DriverJDBCVersion.checkSupportsJDBC41();
-
-        // The driver currently does not implement the optional JDBC APIs
-        throw new SQLFeatureNotSupportedException(SQLServerException.getErrString("R_notSupported"));
+        loggerExternal.entering(getClassNameLogging(), "getObject", columnIndex);
+        checkClosed();
+        Object returnValue;
+        if (type == String.class) {
+            returnValue = getString(columnIndex);
+        }
+        else if (type == Byte.class) {
+            byte byteValue = getByte(columnIndex);
+            returnValue = wasNull() ? null : byteValue;
+        }
+        else if (type == Short.class) {
+            short shortValue = getShort(columnIndex);
+            returnValue = wasNull() ? null : shortValue;
+        }
+        else if (type == Integer.class) {
+            int intValue = getInt(columnIndex);
+            returnValue = wasNull() ? null : intValue;
+        }
+        else if (type == Long.class) {
+            long longValue = getLong(columnIndex);
+            returnValue = wasNull() ? null : longValue;
+        }
+        else if (type == BigDecimal.class) {
+            returnValue = getBigDecimal(columnIndex);
+        }
+        else if (type == Boolean.class) {
+            boolean booleanValue = getBoolean(columnIndex);
+            returnValue = wasNull() ? null : booleanValue;
+        }
+        else if (type == java.sql.Date.class) {
+            returnValue = getDate(columnIndex);
+        }
+        else if (type == java.sql.Time.class) {
+            returnValue = getTime(columnIndex);
+        }
+        else if (type == java.sql.Timestamp.class) {
+            returnValue = getTimestamp(columnIndex);
+        }
+        else if (type == microsoft.sql.DateTimeOffset.class) {
+            returnValue = getDateTimeOffset(columnIndex);
+        }
+        else if (type == UUID.class) {
+            // read binary, avoid string allocation and parsing
+            byte[] guid = getBytes(columnIndex);
+            returnValue = guid != null ? Util.readGUIDtoUUID(guid) : null;
+        }
+        else if (type == SQLXML.class) {
+            returnValue = getSQLXML(columnIndex);
+        }
+        else if (type == Blob.class) {
+            returnValue = getBlob(columnIndex);
+        }
+        else if (type == Clob.class) {
+            returnValue = getClob(columnIndex);
+        }
+        else if (type == NClob.class) {
+            returnValue = getNClob(columnIndex);
+        }
+        else if (type == byte[].class) {
+            returnValue = getBytes(columnIndex);
+        }
+        else if (type == Float.class) {
+            float floatValue = getFloat(columnIndex);
+            returnValue = wasNull() ? null : floatValue;
+        }
+        else if (type == Double.class) {
+            double doubleValue = getDouble(columnIndex);
+            returnValue = wasNull() ? null : doubleValue;
+        }
+        else {
+            // if the type is not supported the specification says the should
+            // a SQLException instead of SQLFeatureNotSupportedException
+            MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_unsupportedConversionTo"));
+            Object[] msgArgs = {type};
+            throw new SQLServerException(form.format(msgArgs), SQLState.DATA_EXCEPTION_NOT_SPECIFIC, DriverError.NOT_SET, null);
+        }
+        loggerExternal.exiting(getClassNameLogging(), "getObject", columnIndex);
+        return type.cast(returnValue);
     }
 
     public Object getObject(String columnName) throws SQLServerException {
@@ -2182,10 +2268,11 @@ public class SQLServerResultSet implements ISQLServerResultSet {
 
     public <T> T getObject(String columnName,
             Class<T> type) throws SQLException {
-        DriverJDBCVersion.checkSupportsJDBC41();
-
-        // The driver currently does not implement the optional JDBC APIs
-        throw new SQLFeatureNotSupportedException(SQLServerException.getErrString("R_notSupported"));
+        loggerExternal.entering(getClassNameLogging(), "getObject", columnName);
+        checkClosed();
+        T value = getObject(findColumn(columnName), type);
+        loggerExternal.exiting(getClassNameLogging(), "getObject", value);
+        return value;
     }
 
     public short getShort(int columnIndex) throws SQLServerException {
@@ -2193,7 +2280,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         checkClosed();
         Short value = (Short) getValue(columnIndex, JDBCType.SMALLINT);
         loggerExternal.exiting(getClassNameLogging(), "getShort", value);
-        return null != value ? value.shortValue() : 0;
+        return null != value ? value : 0;
     }
 
     public short getShort(String columnName) throws SQLServerException {
@@ -2201,7 +2288,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         checkClosed();
         Short value = (Short) getValue(findColumn(columnName), JDBCType.SMALLINT);
         loggerExternal.exiting(getClassNameLogging(), "getShort", value);
-        return null != value ? value.shortValue() : 0;
+        return null != value ? value : 0;
     }
 
     public String getString(int columnIndex) throws SQLServerException {
@@ -2232,7 +2319,6 @@ public class SQLServerResultSet implements ISQLServerResultSet {
 
     public String getNString(int columnIndex) throws SQLException {
         loggerExternal.entering(getClassNameLogging(), "getNString", columnIndex);
-        DriverJDBCVersion.checkSupportsJDBC4();
         checkClosed();
         String value = (String) getValue(columnIndex, JDBCType.NCHAR);
         loggerExternal.exiting(getClassNameLogging(), "getNString", value);
@@ -2241,7 +2327,6 @@ public class SQLServerResultSet implements ISQLServerResultSet {
 
     public String getNString(String columnLabel) throws SQLException {
         loggerExternal.entering(getClassNameLogging(), "getNString", columnLabel);
-        DriverJDBCVersion.checkSupportsJDBC4();
         checkClosed();
         String value = (String) getValue(findColumn(columnLabel), JDBCType.NCHAR);
         loggerExternal.exiting(getClassNameLogging(), "getNString", value);
@@ -2606,7 +2691,6 @@ public class SQLServerResultSet implements ISQLServerResultSet {
     }
 
     public NClob getNClob(int columnIndex) throws SQLException {
-        DriverJDBCVersion.checkSupportsJDBC4();
         loggerExternal.entering(getClassNameLogging(), "getNClob", columnIndex);
         checkClosed();
         NClob value = (NClob) getValue(columnIndex, JDBCType.NCLOB);
@@ -2615,7 +2699,6 @@ public class SQLServerResultSet implements ISQLServerResultSet {
     }
 
     public NClob getNClob(String columnLabel) throws SQLException {
-        DriverJDBCVersion.checkSupportsJDBC4();
         loggerExternal.entering(getClassNameLogging(), "getNClob", columnLabel);
         checkClosed();
         NClob value = (NClob) getValue(findColumn(columnLabel), JDBCType.NCLOB);
@@ -2668,7 +2751,6 @@ public class SQLServerResultSet implements ISQLServerResultSet {
     }
 
     public Reader getNCharacterStream(int columnIndex) throws SQLException {
-        DriverJDBCVersion.checkSupportsJDBC4();
         loggerExternal.entering(getClassNameLogging(), "getNCharacterStream", columnIndex);
         checkClosed();
         Reader value = (Reader) getStream(columnIndex, StreamType.NCHARACTER);
@@ -2677,7 +2759,6 @@ public class SQLServerResultSet implements ISQLServerResultSet {
     }
 
     public Reader getNCharacterStream(String columnLabel) throws SQLException {
-        DriverJDBCVersion.checkSupportsJDBC4();
         loggerExternal.entering(getClassNameLogging(), "getNCharacterStream", columnLabel);
         checkClosed();
         Reader value = (Reader) getStream(findColumn(columnLabel), StreamType.NCHARACTER);
@@ -2770,21 +2851,17 @@ public class SQLServerResultSet implements ISQLServerResultSet {
     }
 
     public RowId getRowId(int columnIndex) throws SQLException {
-        DriverJDBCVersion.checkSupportsJDBC4();
-
         // Not implemented
         throw new SQLFeatureNotSupportedException(SQLServerException.getErrString("R_notSupported"));
     }
 
     public RowId getRowId(String columnLabel) throws SQLException {
-        DriverJDBCVersion.checkSupportsJDBC4();
 
         // Not implemented
         throw new SQLFeatureNotSupportedException(SQLServerException.getErrString("R_notSupported"));
     }
 
     public SQLXML getSQLXML(int columnIndex) throws SQLException {
-        DriverJDBCVersion.checkSupportsJDBC4();
         loggerExternal.entering(getClassNameLogging(), "getSQLXML", columnIndex);
         SQLXML xml = getSQLXMLInternal(columnIndex);
         loggerExternal.exiting(getClassNameLogging(), "getSQLXML", xml);
@@ -2792,7 +2869,6 @@ public class SQLServerResultSet implements ISQLServerResultSet {
     }
 
     public SQLXML getSQLXML(String columnLabel) throws SQLException {
-        DriverJDBCVersion.checkSupportsJDBC4();
         loggerExternal.entering(getClassNameLogging(), "getSQLXML", columnLabel);
         SQLXML xml = getSQLXMLInternal(findColumn(columnLabel));
         loggerExternal.exiting(getClassNameLogging(), "getSQLXML", xml);
@@ -2957,7 +3033,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "updateBoolean", new Object[] {index, x});
         checkClosed();
-        updateValue(index, JDBCType.BIT, Boolean.valueOf(x), JavaType.BOOLEAN, false);
+        updateValue(index, JDBCType.BIT, x, JavaType.BOOLEAN, false);
 
         loggerExternal.exiting(getClassNameLogging(), "updateBoolean");
     }
@@ -2984,7 +3060,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "updateBoolean", new Object[] {index, x, forceEncrypt});
         checkClosed();
-        updateValue(index, JDBCType.BIT, Boolean.valueOf(x), JavaType.BOOLEAN, forceEncrypt);
+        updateValue(index, JDBCType.BIT, x, JavaType.BOOLEAN, forceEncrypt);
 
         loggerExternal.exiting(getClassNameLogging(), "updateBoolean");
     }
@@ -2995,7 +3071,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
             loggerExternal.entering(getClassNameLogging(), "updateByte", new Object[] {index, x});
 
         checkClosed();
-        updateValue(index, JDBCType.TINYINT, Byte.valueOf(x), JavaType.BYTE, false);
+        updateValue(index, JDBCType.TINYINT, x, JavaType.BYTE, false);
 
         loggerExternal.exiting(getClassNameLogging(), "updateByte");
     }
@@ -3023,7 +3099,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
             loggerExternal.entering(getClassNameLogging(), "updateByte", new Object[] {index, x, forceEncrypt});
 
         checkClosed();
-        updateValue(index, JDBCType.TINYINT, Byte.valueOf(x), JavaType.BYTE, forceEncrypt);
+        updateValue(index, JDBCType.TINYINT, x, JavaType.BYTE, forceEncrypt);
 
         loggerExternal.exiting(getClassNameLogging(), "updateByte");
     }
@@ -3034,7 +3110,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
             loggerExternal.entering(getClassNameLogging(), "updateShort", new Object[] {index, x});
 
         checkClosed();
-        updateValue(index, JDBCType.SMALLINT, Short.valueOf(x), JavaType.SHORT, false);
+        updateValue(index, JDBCType.SMALLINT, x, JavaType.SHORT, false);
 
         loggerExternal.exiting(getClassNameLogging(), "updateShort");
     }
@@ -3062,7 +3138,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
             loggerExternal.entering(getClassNameLogging(), "updateShort", new Object[] {index, x, forceEncrypt});
 
         checkClosed();
-        updateValue(index, JDBCType.SMALLINT, Short.valueOf(x), JavaType.SHORT, forceEncrypt);
+        updateValue(index, JDBCType.SMALLINT, x, JavaType.SHORT, forceEncrypt);
 
         loggerExternal.exiting(getClassNameLogging(), "updateShort");
     }
@@ -3073,7 +3149,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
             loggerExternal.entering(getClassNameLogging(), "updateInt", new Object[] {index, x});
 
         checkClosed();
-        updateValue(index, JDBCType.INTEGER, Integer.valueOf(x), JavaType.INTEGER, false);
+        updateValue(index, JDBCType.INTEGER, x, JavaType.INTEGER, false);
 
         loggerExternal.exiting(getClassNameLogging(), "updateInt");
     }
@@ -3101,7 +3177,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
             loggerExternal.entering(getClassNameLogging(), "updateInt", new Object[] {index, x, forceEncrypt});
 
         checkClosed();
-        updateValue(index, JDBCType.INTEGER, Integer.valueOf(x), JavaType.INTEGER, forceEncrypt);
+        updateValue(index, JDBCType.INTEGER, x, JavaType.INTEGER, forceEncrypt);
 
         loggerExternal.exiting(getClassNameLogging(), "updateInt");
     }
@@ -3112,7 +3188,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
             loggerExternal.entering(getClassNameLogging(), "updateLong", new Object[] {index, x});
 
         checkClosed();
-        updateValue(index, JDBCType.BIGINT, Long.valueOf(x), JavaType.LONG, false);
+        updateValue(index, JDBCType.BIGINT, x, JavaType.LONG, false);
 
         loggerExternal.exiting(getClassNameLogging(), "updateLong");
     }
@@ -3140,7 +3216,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
             loggerExternal.entering(getClassNameLogging(), "updateLong", new Object[] {index, x, forceEncrypt});
 
         checkClosed();
-        updateValue(index, JDBCType.BIGINT, Long.valueOf(x), JavaType.LONG, forceEncrypt);
+        updateValue(index, JDBCType.BIGINT, x, JavaType.LONG, forceEncrypt);
 
         loggerExternal.exiting(getClassNameLogging(), "updateLong");
     }
@@ -3151,7 +3227,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
             loggerExternal.entering(getClassNameLogging(), "updateFloat", new Object[] {index, x});
 
         checkClosed();
-        updateValue(index, JDBCType.REAL, Float.valueOf(x), JavaType.FLOAT, false);
+        updateValue(index, JDBCType.REAL, x, JavaType.FLOAT, false);
 
         loggerExternal.exiting(getClassNameLogging(), "updateFloat");
     }
@@ -3179,7 +3255,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
             loggerExternal.entering(getClassNameLogging(), "updateFloat", new Object[] {index, x, forceEncrypt});
 
         checkClosed();
-        updateValue(index, JDBCType.REAL, Float.valueOf(x), JavaType.FLOAT, forceEncrypt);
+        updateValue(index, JDBCType.REAL, x, JavaType.FLOAT, forceEncrypt);
 
         loggerExternal.exiting(getClassNameLogging(), "updateFloat");
     }
@@ -3190,7 +3266,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
             loggerExternal.entering(getClassNameLogging(), "updateDouble", new Object[] {index, x});
 
         checkClosed();
-        updateValue(index, JDBCType.DOUBLE, Double.valueOf(x), JavaType.DOUBLE, false);
+        updateValue(index, JDBCType.DOUBLE, x, JavaType.DOUBLE, false);
 
         loggerExternal.exiting(getClassNameLogging(), "updateDouble");
     }
@@ -3218,7 +3294,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
             loggerExternal.entering(getClassNameLogging(), "updateDouble", new Object[] {index, x, forceEncrypt});
 
         checkClosed();
-        updateValue(index, JDBCType.DOUBLE, Double.valueOf(x), JavaType.DOUBLE, forceEncrypt);
+        updateValue(index, JDBCType.DOUBLE, x, JavaType.DOUBLE, forceEncrypt);
 
         loggerExternal.exiting(getClassNameLogging(), "updateDouble");
     }
@@ -3537,7 +3613,6 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "updateNString", new Object[] {columnIndex, nString});
 
-        DriverJDBCVersion.checkSupportsJDBC4();
         checkClosed();
         updateValue(columnIndex, JDBCType.NVARCHAR, nString, JavaType.STRING, false);
 
@@ -3567,7 +3642,6 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "updateNString", new Object[] {columnIndex, nString, forceEncrypt});
 
-        DriverJDBCVersion.checkSupportsJDBC4();
         checkClosed();
         updateValue(columnIndex, JDBCType.NVARCHAR, nString, JavaType.STRING, forceEncrypt);
 
@@ -3579,7 +3653,6 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "updateNString", new Object[] {columnLabel, nString});
 
-        DriverJDBCVersion.checkSupportsJDBC4();
         checkClosed();
         updateValue(findColumn(columnLabel), JDBCType.NVARCHAR, nString, JavaType.STRING, false);
 
@@ -3610,7 +3683,6 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "updateNString", new Object[] {columnLabel, nString, forceEncrypt});
 
-        DriverJDBCVersion.checkSupportsJDBC4();
         checkClosed();
         updateValue(findColumn(columnLabel), JDBCType.NVARCHAR, nString, JavaType.STRING, forceEncrypt);
 
@@ -4108,7 +4180,6 @@ public class SQLServerResultSet implements ISQLServerResultSet {
 
     public void updateAsciiStream(int columnIndex,
             InputStream x) throws SQLException {
-        DriverJDBCVersion.checkSupportsJDBC4();
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "updateAsciiStream", new Object[] {columnIndex, x});
 
@@ -4133,7 +4204,6 @@ public class SQLServerResultSet implements ISQLServerResultSet {
     public void updateAsciiStream(int columnIndex,
             InputStream x,
             long length) throws SQLException {
-        DriverJDBCVersion.checkSupportsJDBC4();
         loggerExternal.entering(getClassNameLogging(), "updateAsciiStream", new Object[] {columnIndex, x, length});
 
         checkClosed();
@@ -4144,7 +4214,6 @@ public class SQLServerResultSet implements ISQLServerResultSet {
 
     public void updateAsciiStream(String columnLabel,
             InputStream x) throws SQLException {
-        DriverJDBCVersion.checkSupportsJDBC4();
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "updateAsciiStream", new Object[] {columnLabel, x});
 
@@ -4169,7 +4238,6 @@ public class SQLServerResultSet implements ISQLServerResultSet {
     public void updateAsciiStream(String columnName,
             InputStream streamValue,
             long length) throws SQLException {
-        DriverJDBCVersion.checkSupportsJDBC4();
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "updateAsciiStream", new Object[] {columnName, streamValue, length});
 
@@ -4181,7 +4249,6 @@ public class SQLServerResultSet implements ISQLServerResultSet {
 
     public void updateBinaryStream(int columnIndex,
             InputStream x) throws SQLException {
-        DriverJDBCVersion.checkSupportsJDBC4();
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "updateBinaryStream", new Object[] {columnIndex, x});
 
@@ -4206,7 +4273,6 @@ public class SQLServerResultSet implements ISQLServerResultSet {
     public void updateBinaryStream(int columnIndex,
             InputStream x,
             long length) throws SQLException {
-        DriverJDBCVersion.checkSupportsJDBC4();
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "updateBinaryStream", new Object[] {columnIndex, x, length});
 
@@ -4218,7 +4284,6 @@ public class SQLServerResultSet implements ISQLServerResultSet {
 
     public void updateBinaryStream(String columnLabel,
             InputStream x) throws SQLException {
-        DriverJDBCVersion.checkSupportsJDBC4();
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "updateBinaryStream", new Object[] {columnLabel, x});
 
@@ -4243,7 +4308,6 @@ public class SQLServerResultSet implements ISQLServerResultSet {
     public void updateBinaryStream(String columnLabel,
             InputStream x,
             long length) throws SQLException {
-        DriverJDBCVersion.checkSupportsJDBC4();
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "updateBinaryStream", new Object[] {columnLabel, x, length});
 
@@ -4255,7 +4319,6 @@ public class SQLServerResultSet implements ISQLServerResultSet {
 
     public void updateCharacterStream(int columnIndex,
             Reader x) throws SQLException {
-        DriverJDBCVersion.checkSupportsJDBC4();
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "updateCharacterStream", new Object[] {columnIndex, x});
 
@@ -4280,7 +4343,6 @@ public class SQLServerResultSet implements ISQLServerResultSet {
     public void updateCharacterStream(int columnIndex,
             Reader x,
             long length) throws SQLException {
-        DriverJDBCVersion.checkSupportsJDBC4();
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "updateCharacterStream", new Object[] {columnIndex, x, length});
 
@@ -4292,7 +4354,6 @@ public class SQLServerResultSet implements ISQLServerResultSet {
 
     public void updateCharacterStream(String columnLabel,
             Reader reader) throws SQLException {
-        DriverJDBCVersion.checkSupportsJDBC4();
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "updateCharacterStream", new Object[] {columnLabel, reader});
 
@@ -4317,7 +4378,6 @@ public class SQLServerResultSet implements ISQLServerResultSet {
     public void updateCharacterStream(String columnLabel,
             Reader reader,
             long length) throws SQLException {
-        DriverJDBCVersion.checkSupportsJDBC4();
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "updateCharacterStream", new Object[] {columnLabel, reader, length});
 
@@ -4329,7 +4389,6 @@ public class SQLServerResultSet implements ISQLServerResultSet {
 
     public void updateNCharacterStream(int columnIndex,
             Reader x) throws SQLException {
-        DriverJDBCVersion.checkSupportsJDBC4();
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "updateNCharacterStream", new Object[] {columnIndex, x});
 
@@ -4342,7 +4401,6 @@ public class SQLServerResultSet implements ISQLServerResultSet {
     public void updateNCharacterStream(int columnIndex,
             Reader x,
             long length) throws SQLException {
-        DriverJDBCVersion.checkSupportsJDBC4();
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "updateNCharacterStream", new Object[] {columnIndex, x, length});
 
@@ -4354,7 +4412,6 @@ public class SQLServerResultSet implements ISQLServerResultSet {
 
     public void updateNCharacterStream(String columnLabel,
             Reader reader) throws SQLException {
-        DriverJDBCVersion.checkSupportsJDBC4();
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "updateNCharacterStream", new Object[] {columnLabel, reader});
 
@@ -4367,7 +4424,6 @@ public class SQLServerResultSet implements ISQLServerResultSet {
     public void updateNCharacterStream(String columnLabel,
             Reader reader,
             long length) throws SQLException {
-        DriverJDBCVersion.checkSupportsJDBC4();
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "updateNCharacterStream", new Object[] {columnLabel, reader, length});
 
@@ -4395,7 +4451,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
             loggerExternal.entering(getClassNameLogging(), "updateObject", new Object[] {index, x, scale});
 
         checkClosed();
-        updateObject(index, x, Integer.valueOf(scale), null, null, false);
+        updateObject(index, x, scale, null, null, false);
 
         loggerExternal.exiting(getClassNameLogging(), "updateObject");
     }
@@ -4425,7 +4481,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
             loggerExternal.entering(getClassNameLogging(), "updateObject", new Object[] {index, x, scale});
 
         checkClosed();
-        updateObject(index, x, Integer.valueOf(scale), null, precision, false);
+        updateObject(index, x, scale, null, precision, false);
 
         loggerExternal.exiting(getClassNameLogging(), "updateObject");
     }
@@ -4460,7 +4516,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
             loggerExternal.entering(getClassNameLogging(), "updateObject", new Object[] {index, x, scale, forceEncrypt});
 
         checkClosed();
-        updateObject(index, x, Integer.valueOf(scale), null, precision, forceEncrypt);
+        updateObject(index, x, scale, null, precision, forceEncrypt);
 
         loggerExternal.exiting(getClassNameLogging(), "updateObject");
     }
@@ -4538,7 +4594,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
             loggerExternal.entering(getClassNameLogging(), "updateBoolean", new Object[] {columnName, x});
 
         checkClosed();
-        updateValue(findColumn(columnName), JDBCType.BIT, Boolean.valueOf(x), JavaType.BOOLEAN, false);
+        updateValue(findColumn(columnName), JDBCType.BIT, x, JavaType.BOOLEAN, false);
 
         loggerExternal.exiting(getClassNameLogging(), "updateBoolean");
     }
@@ -4566,7 +4622,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
             loggerExternal.entering(getClassNameLogging(), "updateBoolean", new Object[] {columnName, x, forceEncrypt});
 
         checkClosed();
-        updateValue(findColumn(columnName), JDBCType.BIT, Boolean.valueOf(x), JavaType.BOOLEAN, forceEncrypt);
+        updateValue(findColumn(columnName), JDBCType.BIT, x, JavaType.BOOLEAN, forceEncrypt);
 
         loggerExternal.exiting(getClassNameLogging(), "updateBoolean");
     }
@@ -4617,7 +4673,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
             loggerExternal.entering(getClassNameLogging(), "updateShort", new Object[] {columnName, x});
 
         checkClosed();
-        updateValue(findColumn(columnName), JDBCType.SMALLINT, Short.valueOf(x), JavaType.SHORT, false);
+        updateValue(findColumn(columnName), JDBCType.SMALLINT, x, JavaType.SHORT, false);
 
         loggerExternal.exiting(getClassNameLogging(), "updateShort");
     }
@@ -4645,7 +4701,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
             loggerExternal.entering(getClassNameLogging(), "updateShort", new Object[] {columnName, x, forceEncrypt});
 
         checkClosed();
-        updateValue(findColumn(columnName), JDBCType.SMALLINT, Short.valueOf(x), JavaType.SHORT, forceEncrypt);
+        updateValue(findColumn(columnName), JDBCType.SMALLINT, x, JavaType.SHORT, forceEncrypt);
 
         loggerExternal.exiting(getClassNameLogging(), "updateShort");
     }
@@ -4656,7 +4712,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
             loggerExternal.entering(getClassNameLogging(), "updateInt", new Object[] {columnName, x});
 
         checkClosed();
-        updateValue(findColumn(columnName), JDBCType.INTEGER, Integer.valueOf(x), JavaType.INTEGER, false);
+        updateValue(findColumn(columnName), JDBCType.INTEGER, x, JavaType.INTEGER, false);
 
         loggerExternal.exiting(getClassNameLogging(), "updateInt");
     }
@@ -4684,7 +4740,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
             loggerExternal.entering(getClassNameLogging(), "updateInt", new Object[] {columnName, x, forceEncrypt});
 
         checkClosed();
-        updateValue(findColumn(columnName), JDBCType.INTEGER, Integer.valueOf(x), JavaType.INTEGER, forceEncrypt);
+        updateValue(findColumn(columnName), JDBCType.INTEGER, x, JavaType.INTEGER, forceEncrypt);
 
         loggerExternal.exiting(getClassNameLogging(), "updateInt");
     }
@@ -4695,7 +4751,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
             loggerExternal.entering(getClassNameLogging(), "updateLong", new Object[] {columnName, x});
 
         checkClosed();
-        updateValue(findColumn(columnName), JDBCType.BIGINT, Long.valueOf(x), JavaType.LONG, false);
+        updateValue(findColumn(columnName), JDBCType.BIGINT, x, JavaType.LONG, false);
 
         loggerExternal.exiting(getClassNameLogging(), "updateLong");
     }
@@ -4723,7 +4779,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
             loggerExternal.entering(getClassNameLogging(), "updateLong", new Object[] {columnName, x, forceEncrypt});
 
         checkClosed();
-        updateValue(findColumn(columnName), JDBCType.BIGINT, Long.valueOf(x), JavaType.LONG, forceEncrypt);
+        updateValue(findColumn(columnName), JDBCType.BIGINT, x, JavaType.LONG, forceEncrypt);
 
         loggerExternal.exiting(getClassNameLogging(), "updateLong");
     }
@@ -4734,7 +4790,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
             loggerExternal.entering(getClassNameLogging(), "updateFloat", new Object[] {columnName, x});
 
         checkClosed();
-        updateValue(findColumn(columnName), JDBCType.REAL, Float.valueOf(x), JavaType.FLOAT, false);
+        updateValue(findColumn(columnName), JDBCType.REAL, x, JavaType.FLOAT, false);
 
         loggerExternal.exiting(getClassNameLogging(), "updateFloat");
     }
@@ -4762,7 +4818,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
             loggerExternal.entering(getClassNameLogging(), "updateFloat", new Object[] {columnName, x, forceEncrypt});
 
         checkClosed();
-        updateValue(findColumn(columnName), JDBCType.REAL, Float.valueOf(x), JavaType.FLOAT, forceEncrypt);
+        updateValue(findColumn(columnName), JDBCType.REAL, x, JavaType.FLOAT, forceEncrypt);
 
         loggerExternal.exiting(getClassNameLogging(), "updateFloat");
     }
@@ -4773,7 +4829,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
             loggerExternal.entering(getClassNameLogging(), "updateDouble", new Object[] {columnName, x});
 
         checkClosed();
-        updateValue(findColumn(columnName), JDBCType.DOUBLE, Double.valueOf(x), JavaType.DOUBLE, false);
+        updateValue(findColumn(columnName), JDBCType.DOUBLE, x, JavaType.DOUBLE, false);
 
         loggerExternal.exiting(getClassNameLogging(), "updateDouble");
     }
@@ -4801,7 +4857,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
             loggerExternal.entering(getClassNameLogging(), "updateDouble", new Object[] {columnName, x, forceEncrypt});
 
         checkClosed();
-        updateValue(findColumn(columnName), JDBCType.DOUBLE, Double.valueOf(x), JavaType.DOUBLE, forceEncrypt);
+        updateValue(findColumn(columnName), JDBCType.DOUBLE, x, JavaType.DOUBLE, forceEncrypt);
 
         loggerExternal.exiting(getClassNameLogging(), "updateDouble");
     }
@@ -5446,7 +5502,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
             loggerExternal.entering(getClassNameLogging(), "updateObject", new Object[] {columnName, x, scale});
 
         checkClosed();
-        updateObject(findColumn(columnName), x, Integer.valueOf(scale), null, null, false);
+        updateObject(findColumn(columnName), x, scale, null, null, false);
 
         loggerExternal.exiting(getClassNameLogging(), "updateObject");
     }
@@ -5476,7 +5532,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
             loggerExternal.entering(getClassNameLogging(), "updateObject", new Object[] {columnName, x, precision, scale});
 
         checkClosed();
-        updateObject(findColumn(columnName), x, Integer.valueOf(scale), null, precision, false);
+        updateObject(findColumn(columnName), x, scale, null, precision, false);
 
         loggerExternal.exiting(getClassNameLogging(), "updateObject");
     }
@@ -5511,7 +5567,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
             loggerExternal.entering(getClassNameLogging(), "updateObject", new Object[] {columnName, x, precision, scale, forceEncrypt});
 
         checkClosed();
-        updateObject(findColumn(columnName), x, Integer.valueOf(scale), null, precision, forceEncrypt);
+        updateObject(findColumn(columnName), x, scale, null, precision, forceEncrypt);
 
         loggerExternal.exiting(getClassNameLogging(), "updateObject");
     }
@@ -5529,23 +5585,18 @@ public class SQLServerResultSet implements ISQLServerResultSet {
 
     public void updateRowId(int columnIndex,
             RowId x) throws SQLException {
-        DriverJDBCVersion.checkSupportsJDBC4();
-
         // Not implemented
         throw new SQLFeatureNotSupportedException(SQLServerException.getErrString("R_notSupported"));
     }
 
     public void updateRowId(String columnLabel,
             RowId x) throws SQLException {
-        DriverJDBCVersion.checkSupportsJDBC4();
-
         // Not implemented
         throw new SQLFeatureNotSupportedException(SQLServerException.getErrString("R_notSupported"));
     }
 
     public void updateSQLXML(int columnIndex,
             SQLXML xmlObject) throws SQLException {
-        DriverJDBCVersion.checkSupportsJDBC4();
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "updateSQLXML", new Object[] {columnIndex, xmlObject});
         updateSQLXMLInternal(columnIndex, xmlObject);
@@ -5556,7 +5607,6 @@ public class SQLServerResultSet implements ISQLServerResultSet {
             SQLXML x) throws SQLException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "updateSQLXML", new Object[] {columnLabel, x});
-        DriverJDBCVersion.checkSupportsJDBC4();
         updateSQLXMLInternal(findColumn(columnLabel), x);
         loggerExternal.exiting(getClassNameLogging(), "updateSQLXML");
     }
@@ -5564,7 +5614,6 @@ public class SQLServerResultSet implements ISQLServerResultSet {
     public int getHoldability() throws SQLException {
         loggerExternal.entering(getClassNameLogging(), "getHoldability");
 
-        DriverJDBCVersion.checkSupportsJDBC4();
         checkClosed();
 
         int holdability =
@@ -5634,14 +5683,14 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         // If no values were set for any columns and no columns are updatable,
         // then the table name cannot be determined, so error.
         Column tableColumn = null;
-        for (int i = 0; i < columns.length; i++) {
-            if (columns[i].hasUpdates()) {
-                tableColumn = columns[i];
+        for (Column column : columns) {
+            if (column.hasUpdates()) {
+                tableColumn = column;
                 break;
             }
 
-            if (null == tableColumn && columns[i].isUpdatable())
-                tableColumn = columns[i];
+            if (null == tableColumn && column.isUpdatable())
+                tableColumn = column;
         }
 
         if (null == tableColumn) {
@@ -5669,15 +5718,14 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         tdsWriter.writeShort(TDS.PROCID_SP_CURSOR);
         tdsWriter.writeByte((byte) 0);  // RPC procedure option 1
         tdsWriter.writeByte((byte) 0);  // RPC procedure option 2
-        tdsWriter.writeRPCInt(null, new Integer(serverCursorId), false);
-        tdsWriter.writeRPCInt(null, new Integer(TDS.SP_CURSOR_OP_INSERT), false);
-        tdsWriter.writeRPCInt(null, new Integer(fetchBufferGetRow()), false);
+        tdsWriter.writeRPCInt(null, serverCursorId, false);
+        tdsWriter.writeRPCInt(null, (int) TDS.SP_CURSOR_OP_INSERT, false);
+        tdsWriter.writeRPCInt(null, fetchBufferGetRow(), false);
 
         if (hasUpdatedColumns()) {
             tdsWriter.writeRPCStringUnicode(tableName);
 
-            for (int i = 0; i < columns.length; i++)
-                columns[i].sendByRPC(tdsWriter, stmt.connection);
+            for (Column column : columns) column.sendByRPC(tdsWriter, stmt.connection);
         }
         else {
             tdsWriter.writeRPCStringUnicode("");
@@ -5744,23 +5792,22 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         tdsWriter.writeShort(TDS.PROCID_SP_CURSOR);
         tdsWriter.writeByte((byte) 0);  // RPC procedure option 1
         tdsWriter.writeByte((byte) 0);  // RPC procedure option 2
-        tdsWriter.writeRPCInt(null, new Integer(serverCursorId), false);
-        tdsWriter.writeRPCInt(null, new Integer(TDS.SP_CURSOR_OP_UPDATE | TDS.SP_CURSOR_OP_SETPOSITION), false);
-        tdsWriter.writeRPCInt(null, new Integer(fetchBufferGetRow()), false);
+        tdsWriter.writeRPCInt(null, serverCursorId, false);
+        tdsWriter.writeRPCInt(null, TDS.SP_CURSOR_OP_UPDATE | TDS.SP_CURSOR_OP_SETPOSITION, false);
+        tdsWriter.writeRPCInt(null, fetchBufferGetRow(), false);
         tdsWriter.writeRPCStringUnicode("");
 
         assert hasUpdatedColumns();
 
-        for (int i = 0; i < columns.length; i++)
-            columns[i].sendByRPC(tdsWriter, stmt.connection);
+        for (Column column : columns) column.sendByRPC(tdsWriter, stmt.connection);
 
         TDSParser.parse(command.startResponse(), command.getLogContext());
     }
 
     /** Determines whether there are updated columns in this result set. */
     final boolean hasUpdatedColumns() {
-        for (int i = 0; i < columns.length; i++)
-            if (columns[i].hasUpdates())
+        for (Column column : columns)
+            if (column.hasUpdates())
                 return true;
 
         return false;
@@ -5817,9 +5864,9 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         tdsWriter.writeShort(TDS.PROCID_SP_CURSOR);
         tdsWriter.writeByte((byte) 0);  // RPC procedure option 1
         tdsWriter.writeByte((byte) 0);  // RPC procedure option 2
-        tdsWriter.writeRPCInt(null, new Integer(serverCursorId), false);
-        tdsWriter.writeRPCInt(null, new Integer(TDS.SP_CURSOR_OP_DELETE | TDS.SP_CURSOR_OP_SETPOSITION), false);
-        tdsWriter.writeRPCInt(null, new Integer(fetchBufferGetRow()), false);
+        tdsWriter.writeRPCInt(null, serverCursorId, false);
+        tdsWriter.writeRPCInt(null, TDS.SP_CURSOR_OP_DELETE | TDS.SP_CURSOR_OP_SETPOSITION, false);
+        tdsWriter.writeRPCInt(null, fetchBufferGetRow(), false);
         tdsWriter.writeRPCStringUnicode("");
 
         TDSParser.parse(command.startResponse(), command.getLogContext());
@@ -5976,7 +6023,6 @@ public class SQLServerResultSet implements ISQLServerResultSet {
 
     public void updateClob(int columnIndex,
             Reader reader) throws SQLException {
-        DriverJDBCVersion.checkSupportsJDBC4();
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "updateClob", new Object[] {columnIndex, reader});
 
@@ -5989,7 +6035,6 @@ public class SQLServerResultSet implements ISQLServerResultSet {
     public void updateClob(int columnIndex,
             Reader reader,
             long length) throws SQLException {
-        DriverJDBCVersion.checkSupportsJDBC4();
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "updateClob", new Object[] {columnIndex, reader, length});
 
@@ -6012,7 +6057,6 @@ public class SQLServerResultSet implements ISQLServerResultSet {
 
     public void updateClob(String columnLabel,
             Reader reader) throws SQLException {
-        DriverJDBCVersion.checkSupportsJDBC4();
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "updateClob", new Object[] {columnLabel, reader});
 
@@ -6025,7 +6069,6 @@ public class SQLServerResultSet implements ISQLServerResultSet {
     public void updateClob(String columnLabel,
             Reader reader,
             long length) throws SQLException {
-        DriverJDBCVersion.checkSupportsJDBC4();
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "updateClob", new Object[] {columnLabel, reader, length});
 
@@ -6037,7 +6080,6 @@ public class SQLServerResultSet implements ISQLServerResultSet {
 
     public void updateNClob(int columnIndex,
             NClob nClob) throws SQLException {
-        DriverJDBCVersion.checkSupportsJDBC4();
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "updateClob", new Object[] {columnIndex, nClob});
 
@@ -6049,7 +6091,6 @@ public class SQLServerResultSet implements ISQLServerResultSet {
 
     public void updateNClob(int columnIndex,
             Reader reader) throws SQLException {
-        DriverJDBCVersion.checkSupportsJDBC4();
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "updateNClob", new Object[] {columnIndex, reader});
 
@@ -6062,7 +6103,6 @@ public class SQLServerResultSet implements ISQLServerResultSet {
     public void updateNClob(int columnIndex,
             Reader reader,
             long length) throws SQLException {
-        DriverJDBCVersion.checkSupportsJDBC4();
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "updateNClob", new Object[] {columnIndex, reader, length});
 
@@ -6074,7 +6114,6 @@ public class SQLServerResultSet implements ISQLServerResultSet {
 
     public void updateNClob(String columnLabel,
             NClob nClob) throws SQLException {
-        DriverJDBCVersion.checkSupportsJDBC4();
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "updateNClob", new Object[] {columnLabel, nClob});
 
@@ -6086,7 +6125,6 @@ public class SQLServerResultSet implements ISQLServerResultSet {
 
     public void updateNClob(String columnLabel,
             Reader reader) throws SQLException {
-        DriverJDBCVersion.checkSupportsJDBC4();
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "updateNClob", new Object[] {columnLabel, reader});
 
@@ -6099,7 +6137,6 @@ public class SQLServerResultSet implements ISQLServerResultSet {
     public void updateNClob(String columnLabel,
             Reader reader,
             long length) throws SQLException {
-        DriverJDBCVersion.checkSupportsJDBC4();
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "updateNClob", new Object[] {columnLabel, reader, length});
 
@@ -6122,7 +6159,6 @@ public class SQLServerResultSet implements ISQLServerResultSet {
 
     public void updateBlob(int columnIndex,
             InputStream inputStream) throws SQLException {
-        DriverJDBCVersion.checkSupportsJDBC4();
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "updateBlob", new Object[] {columnIndex, inputStream});
 
@@ -6135,7 +6171,6 @@ public class SQLServerResultSet implements ISQLServerResultSet {
     public void updateBlob(int columnIndex,
             InputStream inputStream,
             long length) throws SQLException {
-        DriverJDBCVersion.checkSupportsJDBC4();
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "updateBlob", new Object[] {columnIndex, inputStream, length});
 
@@ -6158,7 +6193,6 @@ public class SQLServerResultSet implements ISQLServerResultSet {
 
     public void updateBlob(String columnLabel,
             InputStream inputStream) throws SQLException {
-        DriverJDBCVersion.checkSupportsJDBC4();
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "updateBlob", new Object[] {columnLabel, inputStream});
 
@@ -6171,7 +6205,6 @@ public class SQLServerResultSet implements ISQLServerResultSet {
     public void updateBlob(String columnLabel,
             InputStream inputStream,
             long length) throws SQLException {
-        DriverJDBCVersion.checkSupportsJDBC4();
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "updateBlob", new Object[] {columnLabel, inputStream, length});
 
@@ -6389,10 +6422,10 @@ public class SQLServerResultSet implements ISQLServerResultSet {
             tdsWriter.writeShort(TDS.PROCID_SP_CURSORFETCH);
             tdsWriter.writeByte(TDS.RPC_OPTION_NO_METADATA);
             tdsWriter.writeByte((byte) 0);  // RPC procedure option 2
-            tdsWriter.writeRPCInt(null, new Integer(serverCursorId), false);
-            tdsWriter.writeRPCInt(null, new Integer(fetchType), false);
-            tdsWriter.writeRPCInt(null, new Integer(startRow), false);
-            tdsWriter.writeRPCInt(null, new Integer(numRows), false);
+            tdsWriter.writeRPCInt(null, serverCursorId, false);
+            tdsWriter.writeRPCInt(null, fetchType, false);
+            tdsWriter.writeRPCInt(null, startRow, false);
+            tdsWriter.writeRPCInt(null, numRows, false);
 
             // To free up the thread on the server that is feeding us these results,
             // read the entire response off the wire UNLESS this is a forward only
@@ -6541,7 +6574,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
                     tdsWriter.writeShort(TDS.PROCID_SP_CURSORCLOSE);
                     tdsWriter.writeByte((byte) 0);  // RPC procedure option 1
                     tdsWriter.writeByte((byte) 0);  // RPC procedure option 2
-                    tdsWriter.writeRPCInt(null, new Integer(serverCursorId), false);
+                    tdsWriter.writeRPCInt(null, serverCursorId, false);
                     TDSParser.parse(startResponse(), getLogContext());
                     return true;
                 }

@@ -44,7 +44,7 @@ public class BulkCopyConnectionTest extends BulkCopyTestSetUp {
      */
     @TestFactory
     Stream<DynamicTest> generateBulkCopyConstructorTest() {
-        List<BulkCopyTestWrapper> testData = createTestData_testBulkCopyConstructor();
+        List<BulkCopyTestWrapper> testData = createTestDatatestBulkCopyConstructor();
         // had to avoid using lambdas as we need to test against java7
         return testData.stream().map(new Function<BulkCopyTestWrapper, DynamicTest>() {
             @Override
@@ -66,7 +66,7 @@ public class BulkCopyConnectionTest extends BulkCopyTestSetUp {
      */
     @TestFactory
     Stream<DynamicTest> generateBulkCopyOptionsTest() {
-        List<BulkCopyTestWrapper> testData = createTestData_testBulkCopyOption();
+        List<BulkCopyTestWrapper> testData = createTestDatatestBulkCopyOption();
         return testData.stream().map(new Function<BulkCopyTestWrapper, DynamicTest>() {
             @Override
             public DynamicTest apply(final BulkCopyTestWrapper datum) {
@@ -85,7 +85,7 @@ public class BulkCopyConnectionTest extends BulkCopyTestSetUp {
      */
     @Test
     @DisplayName("BulkCopy:test uninitialized Connection")
-    void testInvalidConnection_1() {
+    void testInvalidConnection1() {
         assertThrows(SQLServerException.class, new org.junit.jupiter.api.function.Executable() {
             @Override
             public void execute() throws SQLServerException {
@@ -100,7 +100,7 @@ public class BulkCopyConnectionTest extends BulkCopyTestSetUp {
      */
     @Test
     @DisplayName("BulkCopy:test uninitialized SQLServerConnection")
-    void testInvalidConnection_2() {
+    void testInvalidConnection2() {
         assertThrows(SQLServerException.class, new org.junit.jupiter.api.function.Executable() {
             @Override
             public void execute() throws SQLServerException {
@@ -115,7 +115,7 @@ public class BulkCopyConnectionTest extends BulkCopyTestSetUp {
      */
     @Test
     @DisplayName("BulkCopy:test empty connenction string")
-    void testInvalidConnection_3() {
+    void testInvalidConnection3() {
         assertThrows(SQLServerException.class, new org.junit.jupiter.api.function.Executable() {
             @Override
             public void execute() throws SQLServerException {
@@ -130,7 +130,7 @@ public class BulkCopyConnectionTest extends BulkCopyTestSetUp {
      */
     @Test
     @DisplayName("BulkCopy:test null connenction string")
-    void testInvalidConnection_4() {
+    void testInvalidConnection4() {
         assertThrows(SQLServerException.class, new org.junit.jupiter.api.function.Executable() {
             @Override
             public void execute() throws SQLServerException {
@@ -159,9 +159,9 @@ public class BulkCopyConnectionTest extends BulkCopyTestSetUp {
      * 
      * @return
      */
-    List<BulkCopyTestWrapper> createTestData_testBulkCopyConstructor() {
+    List<BulkCopyTestWrapper> createTestDatatestBulkCopyConstructor() {
         String testCaseName = "BulkCopyConstructor ";
-        List<BulkCopyTestWrapper> testData = new ArrayList<BulkCopyTestWrapper>();
+        List<BulkCopyTestWrapper> testData = new ArrayList<>();
         BulkCopyTestWrapper bulkWrapper1 = new BulkCopyTestWrapper(connectionString);
         bulkWrapper1.testName = testCaseName;
         bulkWrapper1.setUsingConnection(true);
@@ -180,16 +180,16 @@ public class BulkCopyConnectionTest extends BulkCopyTestSetUp {
      * 
      * @return
      */
-    private List<BulkCopyTestWrapper> createTestData_testBulkCopyOption() {
+    private List<BulkCopyTestWrapper> createTestDatatestBulkCopyOption() {
         String testCaseName = "BulkCopyOption ";
-        List<BulkCopyTestWrapper> testData = new ArrayList<BulkCopyTestWrapper>();
+        List<BulkCopyTestWrapper> testData = new ArrayList<>();
 
         Class<SQLServerBulkCopyOptions> bulkOptions = SQLServerBulkCopyOptions.class;
         Method[] methods = bulkOptions.getDeclaredMethods();
-        for (int i = 0; i < methods.length; i++) {
+        for (Method method : methods) {
 
             // set bulkCopy Option if return is void and input is boolean
-            if (0 != methods[i].getParameterTypes().length && boolean.class == methods[i].getParameterTypes()[0]) {
+            if (0 != method.getParameterTypes().length && boolean.class == method.getParameterTypes()[0]) {
                 try {
 
                     BulkCopyTestWrapper bulkWrapper = new BulkCopyTestWrapper(connectionString);
@@ -197,16 +197,15 @@ public class BulkCopyConnectionTest extends BulkCopyTestSetUp {
                     bulkWrapper.setUsingConnection((0 == ThreadLocalRandom.current().nextInt(2)) ? true : false);
 
                     SQLServerBulkCopyOptions option = new SQLServerBulkCopyOptions();
-                    if (!(methods[i].getName()).equalsIgnoreCase("setUseInternalTransaction")
-                            && !(methods[i].getName()).equalsIgnoreCase("setAllowEncryptedValueModifications")) {
-                        methods[i].invoke(option, true);
+                    if (!(method.getName()).equalsIgnoreCase("setUseInternalTransaction")
+                            && !(method.getName()).equalsIgnoreCase("setAllowEncryptedValueModifications")) {
+                        method.invoke(option, true);
                         bulkWrapper.useBulkCopyOptions(true);
                         bulkWrapper.setBulkOptions(option);
-                        bulkWrapper.testName += methods[i].getName() + ";";
+                        bulkWrapper.testName += method.getName() + ";";
                         testData.add(bulkWrapper);
                     }
-                }
-                catch (Exception ex) {
+                } catch (Exception ex) {
                     fail(ex.getMessage());
                 }
             }

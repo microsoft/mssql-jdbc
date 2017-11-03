@@ -48,6 +48,24 @@ final class SQLCollation implements java.io.Serializable
     static final int tdsLength() { return 5; } // Length of collation in TDS (in bytes)
 
     /**
+     * Returns the collation info
+     * 
+     * @return
+     */
+    int getCollationInfo() {
+        return this.info;
+    }
+    
+    /**
+     * return sort ID
+     * 
+     * @return
+     */
+    int getCollationSortID() {
+        return this.sortId;
+    }
+    
+    /**
      * Reads TDS collation from TDS buffer into SQLCollation class.
      * @param tdsReader
      */
@@ -516,11 +534,11 @@ final class SQLCollation implements java.io.Serializable
     static {
         // Populate the windows locale and sort order indices
 
-        localeIndex = new HashMap<Integer, WindowsLocale>();
+        localeIndex = new HashMap<>();
         for (WindowsLocale locale : EnumSet.allOf(WindowsLocale.class))
             localeIndex.put(locale.langID, locale);
 
-        sortOrderIndex = new HashMap<Integer, SortOrder>();
+        sortOrderIndex = new HashMap<>();
         for (SortOrder sortOrder : EnumSet.allOf(SortOrder.class))
             sortOrderIndex.put(sortOrder.sortId, sortOrder);
     }

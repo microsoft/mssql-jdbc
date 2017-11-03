@@ -20,7 +20,7 @@ enum SQLServerEncryptionType {
     Randomized      ((byte) 2),
     PlainText       ((byte) 0);
 
-    byte value;
+    final byte value;
 
     SQLServerEncryptionType(byte val) {
         this.value = val;

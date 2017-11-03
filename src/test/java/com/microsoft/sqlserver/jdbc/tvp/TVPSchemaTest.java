@@ -49,8 +49,8 @@ public class TVPSchemaTest extends AbstractTest {
      * @throws SQLException
      */
     @Test
-    @DisplayName("TVPSchema_PreparedStatement_StoredProcedure()")
-    public void testTVPSchema_PreparedStatement_StoredProcedure() throws SQLException {
+    @DisplayName("TVPSchemaPreparedStatementStoredProcedure()")
+    public void testTVPSchemaPreparedStatementStoredProcedure() throws SQLException {
 
         final String sql = "{call " + procedureName + "(?)}";
 
@@ -72,8 +72,8 @@ public class TVPSchemaTest extends AbstractTest {
      * @throws SQLException
      */
     @Test
-    @DisplayName("TVPSchema_CallableStatement_StoredProcedure()")
-    public void testTVPSchema_CallableStatement_StoredProcedure() throws SQLException {
+    @DisplayName("TVPSchemaCallableStatementStoredProcedure()")
+    public void testTVPSchemaCallableStatementStoredProcedure() throws SQLException {
 
         final String sql = "{call " + procedureName + "(?)}";
 
@@ -96,8 +96,8 @@ public class TVPSchemaTest extends AbstractTest {
      * @throws IOException
      */
     @Test
-    @DisplayName("TVPSchema_Prepared_InsertCommand")
-    public void testTVPSchema_Prepared_InsertCommand() throws SQLException, IOException {
+    @DisplayName("TVPSchemaPreparedInsertCommand")
+    public void testTVPSchemaPreparedInsertCommand() throws SQLException, IOException {
 
         SQLServerPreparedStatement P_C_stmt = (SQLServerPreparedStatement) connection
                 .prepareStatement("INSERT INTO " + charTable + " select * from ? ;");
@@ -119,8 +119,8 @@ public class TVPSchemaTest extends AbstractTest {
      * @throws IOException
      */
     @Test
-    @DisplayName("TVPSchema_Callable_InsertCommand()")
-    public void testTVPSchema_Callable_InsertCommand() throws SQLException, IOException {
+    @DisplayName("TVPSchemaCallableInsertCommand()")
+    public void testTVPSchemaCallableInsertCommand() throws SQLException, IOException {
 
         SQLServerCallableStatement P_C_stmt = (SQLServerCallableStatement) connection.prepareCall("INSERT INTO " + charTable + " select * from ? ;");
         P_C_stmt.setStructured(1, tvpNameWithSchema, tvp);

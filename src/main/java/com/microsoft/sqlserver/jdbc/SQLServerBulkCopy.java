@@ -29,6 +29,7 @@ import java.text.MessageFormat;
 import java.time.OffsetDateTime;
 import java.time.OffsetTime;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.GregorianCalendar;
 import java.util.HashMap;
@@ -41,7 +42,6 @@ import java.util.Set;
 import java.util.SimpleTimeZone;
 import java.util.TimeZone;
 import java.util.UUID;
-import java.util.Vector;
 import java.util.logging.Level;
 
 import javax.sql.RowSet;
@@ -289,6 +289,8 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable {
                 while (--secondsRemaining > 0);
             }
             catch (InterruptedException e) {
+                // re-interrupt the current thread, in order to restore the thread's interrupt status.
+                Thread.currentThread().interrupt();
                 return;
             }
 
@@ -307,6 +309,12 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable {
     }
 
     private BulkTimeoutTimer timeoutTimer = null;
+    
+    /**
+     * The maximum temporal precision we can send when using varchar(precision) in bulkcommand, to send a smalldatetime/datetime 
+     * value.
+     */
+    private static final int sourceBulkRecordTemporalMaxPrecision = 50;
 
     /**
      * Initializes a new instance of the SQLServerBulkCopy class using the specified open instance of SQLServerConnection.
@@ -350,7 +358,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable {
      */
     public SQLServerBulkCopy(String connectionUrl) throws SQLServerException {
         loggerExternal.entering(loggerClassName, "SQLServerBulkCopy", "connectionUrl not traced.");
-        if ((connectionUrl == null) || connectionUrl.trim().equals("")) {
+        if ((connectionUrl == null) || "".equals(connectionUrl.trim())) {
             throw new SQLServerException(null, SQLServerException.getErrString("R_nullConnection"), null, 0, false);
         }
 
@@ -667,7 +675,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable {
      * Initializes the defaults for member variables that require it.
      */
     private void initializeDefaults() {
-        columnMappings = new LinkedList<SQLServerBulkCopy.ColumnMapping>();
+        columnMappings = new LinkedList<>();
         destinationTableName = null;
         sourceBulkRecord = null;
         sourceResultSet = null;
@@ -736,10 +744,10 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable {
      */
     private void writeColumnMetaDataColumnData(TDSWriter tdsWriter,
             int idx) throws SQLServerException {
-        int srcColumnIndex = 0, destPrecision = 0;
-        int bulkJdbcType = 0, bulkPrecision = 0, bulkScale = 0;
-        SQLCollation collation = null;
-        SSType destSSType = null;
+        int srcColumnIndex, destPrecision;
+        int bulkJdbcType, bulkPrecision, bulkScale;
+        SQLCollation collation;
+        SSType destSSType;
         boolean isStreaming, srcNullable;
         // For varchar, precision is the size of the varchar type.
         /*
@@ -1128,7 +1136,10 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable {
                     tdsWriter.writeByte((byte) srcScale);
                 }
                 break;
-
+            case microsoft.sql.Types.SQL_VARIANT:  //0x62
+                tdsWriter.writeByte(TDSType.SQL_VARIANT.byteValue());
+                tdsWriter.writeInt(TDS.SQL_VARIANT_LENGTH); 
+                break;
             default:
                 MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_BulkTypeNotSupported"));
                 String unsupportedDataType = JDBCType.of(srcJdbcType).toString().toLowerCase(Locale.ENGLISH);
@@ -1207,7 +1218,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable {
                 connection.rollback();
             }
 
-            throw new SQLServerException(SQLServerException.getErrString("R_queryTimedOut"), SQLState.STATEMENT_CANCELED, DriverError.NOT_SET, null);
+            throw new SQLServerException(SQLServerException.getErrString("R_queryTimedOut"), SQLState.STATEMENT_CANCELED, DriverError.NOT_SET, e);
         }
     }
 
@@ -1238,11 +1249,12 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable {
             int destColIndx,
             TDSWriter tdsWriter) throws SQLServerException {
         boolean isStreaming;
+
         SSType destSSType = (null != destColumnMetadata.get(destColIndx).cryptoMeta)
                 ? destColumnMetadata.get(destColIndx).cryptoMeta.baseTypeInfo.getSSType() : destColumnMetadata.get(destColIndx).ssType;
 
-        int bulkJdbcType = 0, bulkPrecision = 0, bulkScale = 0;
-        int srcPrecision = 0;
+        int bulkJdbcType, bulkPrecision, bulkScale;
+        int srcPrecision;
 
         bulkJdbcType = srcColumnMetadata.get(srcColIndx).jdbcType;
         // For char/varchar precision is the size.
@@ -1376,14 +1388,14 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable {
                 switch (destSSType) {
                     case SMALLDATETIME:
                         if (null != sourceBulkRecord) {
-                            return "varchar(" + ((0 == bulkPrecision) ? destPrecision : bulkPrecision) + ")";
+                            return "varchar(" + ((0 == bulkPrecision) ? sourceBulkRecordTemporalMaxPrecision  : bulkPrecision) + ")";
                         }
                         else {
                             return "smalldatetime";
                         }
                     case DATETIME:
                         if (null != sourceBulkRecord) {
-                            return "varchar(" + ((0 == bulkPrecision) ? destPrecision : bulkPrecision) + ")";
+                            return "varchar(" + ((0 == bulkPrecision) ? sourceBulkRecordTemporalMaxPrecision  : bulkPrecision) + ")";
                         }
                         else {
                             return "datetime";
@@ -1446,7 +1458,8 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable {
                 else {
                     return "datetimeoffset(" + bulkScale + ")";
                 }
-
+            case microsoft.sql.Types.SQL_VARIANT:
+                return "sql_variant";
             default: {
                 MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_BulkTypeNotSupported"));
                 Object[] msgArgs = {JDBCType.of(bulkJdbcType).toString().toLowerCase(Locale.ENGLISH)};
@@ -1458,7 +1471,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable {
 
     private String createInsertBulkCommand(TDSWriter tdsWriter) throws SQLServerException {
         StringBuilder bulkCmd = new StringBuilder();
-        List<String> bulkOptions = new Vector<String>();
+        List<String> bulkOptions = new ArrayList<>();
         String endColumn = " , ";
         bulkCmd.append("INSERT BULK " + destinationTableName + " (");
 
@@ -1474,7 +1487,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable {
                     .toUpperCase(Locale.ENGLISH);
             if (null != columnCollation && columnCollation.trim().length() > 0) {
                 // we are adding collate in command only for char and varchar
-                if (null != destType && (destType.toLowerCase().trim().startsWith("char") || destType.toLowerCase().trim().startsWith("varchar")))
+                if (null != destType && (destType.toLowerCase(Locale.ENGLISH).trim().startsWith("char") || destType.toLowerCase(Locale.ENGLISH).trim().startsWith("varchar")))
                     addCollate = " COLLATE " + columnCollation;
             }
             bulkCmd.append("[" + colMapping.destinationColumnName + "] " + destType + addCollate + endColumn);
@@ -1527,25 +1540,48 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable {
             // Begin a manual transaction for this batch.
             connection.setAutoCommit(false);
         }
+        
+        boolean insertRowByRow = false;
 
-        // Create and send the initial command for bulk copy ("INSERT BULK ...").
-        TDSWriter tdsWriter = command.startRequest(TDS.PKT_QUERY);
-        String bulkCmd = createInsertBulkCommand(tdsWriter);
-        tdsWriter.writeString(bulkCmd);
-        TDSParser.parse(command.startResponse(), command.getLogContext());
+        if (null != sourceResultSet && sourceResultSet instanceof SQLServerResultSet) {
+            SQLServerStatement src_stmt = (SQLServerStatement) ((SQLServerResultSet) sourceResultSet).getStatement();
+            int resultSetServerCursorId = ((SQLServerResultSet) sourceResultSet).getServerCursorId();
 
-        // Send the bulk data. This is the BulkLoadBCP TDS stream.
-        tdsWriter = command.startRequest(TDS.PKT_BULK);
+            if (connection.equals(src_stmt.getConnection()) && 0 != resultSetServerCursorId) {
+                insertRowByRow = true;
+            }
+            
+            if (((SQLServerResultSet) sourceResultSet).isForwardOnly()) {
+                try {
+                    sourceResultSet.setFetchSize(1);
+                }
+                catch (SQLException e) {
+                   SQLServerException.makeFromDriverError(connection, sourceResultSet, e.getMessage(), e.getSQLState(), true);
+                }
+            }
+        }
 
+        TDSWriter tdsWriter = null;
         boolean moreDataAvailable = false;
-        try {
-            // Write the COLUMNMETADATA token in the stream.
-            writeColumnMetaData(tdsWriter);
 
-            // Write all ROW tokens in the stream.
-            moreDataAvailable = writeBatchData(tdsWriter);
+        try {
+            if (!insertRowByRow) {
+                tdsWriter = sendBulkCopyCommand(command);
+            }
+
+            try {
+                // Write all ROW tokens in the stream.
+                moreDataAvailable = writeBatchData(tdsWriter, command, insertRowByRow);
+            }
+            finally {
+                tdsWriter = command.getTDSWriter();
+            }
         }
         catch (SQLServerException ex) {
+            if (null == tdsWriter) {
+                tdsWriter = command.getTDSWriter();
+            }
+
             // Close the TDS packet before handling the exception
             writePacketDataDone(tdsWriter);
 
@@ -1559,18 +1595,25 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable {
             throw ex;
         }
         finally {
+            if (null == tdsWriter) {
+                tdsWriter = command.getTDSWriter();
+            }
+            
             // reset the cryptoMeta in IOBuffer
             tdsWriter.setCryptoMetaData(null);
         }
-        // Write the DONE token in the stream. We may have to append the DONE token with every packet that is sent.
-        // For the current packets the driver does not generate a DONE token, but the BulkLoadBCP stream needs a DONE token
-        // after every packet. For now add it manually here for one packet.
-        // Note: This may break if more than one packet is sent.
-        // This is an example from https://msdn.microsoft.com/en-us/library/dd340549.aspx
-        writePacketDataDone(tdsWriter);
+                
+        if (!insertRowByRow) {
+            // Write the DONE token in the stream. We may have to append the DONE token with every packet that is sent.
+            // For the current packets the driver does not generate a DONE token, but the BulkLoadBCP stream needs a DONE token
+            // after every packet. For now add it manually here for one packet.
+            // Note: This may break if more than one packet is sent.
+            // This is an example from https://msdn.microsoft.com/en-us/library/dd340549.aspx
+            writePacketDataDone(tdsWriter);
 
-        // Send to the server and read response.
-        TDSParser.parse(command.startResponse(), command.getLogContext());
+            // Send to the server and read response.
+            TDSParser.parse(command.startResponse(), command.getLogContext());
+        }
 
         if (copyOptions.isUseInternalTransaction()) {
             // Commit the transaction for this batch.
@@ -1578,6 +1621,22 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable {
         }
 
         return moreDataAvailable;
+    }
+
+    private TDSWriter sendBulkCopyCommand(TDSCommand command) throws SQLServerException {
+        // Create and send the initial command for bulk copy ("INSERT BULK ...").
+        TDSWriter tdsWriter = command.startRequest(TDS.PKT_QUERY);
+        String bulkCmd = createInsertBulkCommand(tdsWriter);
+        tdsWriter.writeString(bulkCmd);
+        TDSParser.parse(command.startResponse(), command.getLogContext());
+
+        // Send the bulk data. This is the BulkLoadBCP TDS stream.
+        tdsWriter = command.startRequest(TDS.PKT_BULK);
+
+        // Write the COLUMNMETADATA token in the stream.
+        writeColumnMetaData(tdsWriter);
+
+        return tdsWriter;
     }
 
     private void writePacketDataDone(TDSWriter tdsWriter) throws SQLServerException {
@@ -1639,14 +1698,20 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable {
     private void validateStringBinaryLengths(Object colValue,
             int srcCol,
             int destCol) throws SQLServerException {
-        int sourcePrecision = 0;
+        int sourcePrecision;
         int destPrecision = destColumnMetadata.get(destCol).precision;
         int srcJdbcType = srcColumnMetadata.get(srcCol).jdbcType;
         SSType destSSType = destColumnMetadata.get(destCol).ssType;
 
         if ((Util.isCharType(srcJdbcType) && Util.isCharType(destSSType)) || (Util.isBinaryType(srcJdbcType) && Util.isBinaryType(destSSType))) {
             if (colValue instanceof String) {
-                sourcePrecision = ((String) colValue).length();
+                if (Util.isBinaryType(destSSType)) {  
+                    // if the dest value is binary and the value is of type string. 
+                    //Repro in test case: ImpISQLServerBulkRecord_IssuesTest#testSendValidValueforBinaryColumnAsString
+                    sourcePrecision = (((String) colValue).getBytes().length) / 2;
+                }
+                else
+                    sourcePrecision = ((String) colValue).length();
             }
             else if (colValue instanceof byte[]) {
                 sourcePrecision = ((byte[]) colValue).length;
@@ -1682,7 +1747,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable {
                     .executeQueryInternal("SET FMTONLY ON SELECT * FROM " + destinationTableName + " SET FMTONLY OFF ");
 
             destColumnCount = rs.getMetaData().getColumnCount();
-            destColumnMetadata = new HashMap<Integer, BulkColumnMetaData>();
+            destColumnMetadata = new HashMap<>();
             destCekTable = rs.getCekTable();
 
             if (!connection.getServerSupportsColumnEncryption()) {
@@ -1728,7 +1793,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable {
      * source metadata from the same place for both ResultSet and File.
      */
     private void getSourceMetadata() throws SQLServerException {
-        srcColumnMetadata = new HashMap<Integer, BulkColumnMetaData>();
+        srcColumnMetadata = new HashMap<>();
         int currentColumn;
         if (null != sourceResultSet) {
             try {
@@ -1736,7 +1801,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable {
                 for (int i = 1; i <= srcColumnCount; ++i) {
                     srcColumnMetadata.put(i,
                             new BulkColumnMetaData(sourceResultSetMetaData.getColumnName(i),
-                                    ((ResultSetMetaData.columnNoNulls == sourceResultSetMetaData.isNullable(i)) ? false : true),
+                                    (ResultSetMetaData.columnNoNulls != sourceResultSetMetaData.isNullable(i)),
                                     sourceResultSetMetaData.getPrecision(i), sourceResultSetMetaData.getScale(i),
                                     sourceResultSetMetaData.getColumnType(i), null));
                 }
@@ -1748,14 +1813,13 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable {
         }
         else if (null != sourceBulkRecord) {
             Set<Integer> columnOrdinals = sourceBulkRecord.getColumnOrdinals();
-            srcColumnCount = columnOrdinals.size();
-            if (0 == srcColumnCount) {
+            if (null == columnOrdinals || 0 == columnOrdinals.size()) {
                 throw new SQLServerException(SQLServerException.getErrString("R_unableRetrieveColMeta"), null);
             }
             else {
-                Iterator<Integer> columnsIterator = columnOrdinals.iterator();
-                while (columnsIterator.hasNext()) {
-                    currentColumn = columnsIterator.next();
+                srcColumnCount = columnOrdinals.size();
+                for (Integer columnOrdinal : columnOrdinals) {
+                    currentColumn = columnOrdinal;
                     srcColumnMetadata.put(currentColumn,
                             new BulkColumnMetaData(sourceBulkRecord.getColumnName(currentColumn), true, sourceBulkRecord.getPrecision(currentColumn),
                                     sourceBulkRecord.getScale(currentColumn), sourceBulkRecord.getColumnType(currentColumn),
@@ -1879,9 +1943,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable {
                         }
                         else {
                             Set<Integer> columnOrdinals = sourceBulkRecord.getColumnOrdinals();
-                            Iterator<Integer> columnsIterator = columnOrdinals.iterator();
-                            while (columnsIterator.hasNext()) {
-                                int currentColumn = columnsIterator.next();
+                            for (Integer currentColumn : columnOrdinals) {
                                 if (sourceBulkRecord.getColumnName(currentColumn).equals(cm.sourceColumnName)) {
                                     foundColumn = true;
                                     cm.sourceColumnOrdinal = currentColumn;
@@ -1984,6 +2046,9 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable {
             case microsoft.sql.Types.DATETIMEOFFSET:
                 tdsWriter.writeByte((byte) 0x00);
                 return;
+            case microsoft.sql.Types.SQL_VARIANT:
+                tdsWriter.writeInt((byte) 0x00);
+                return;
             default:
                 MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_BulkTypeNotSupported"));
                 Object[] msgArgs = {JDBCType.of(srcJdbcType).toString().toLowerCase(Locale.ENGLISH)};
@@ -2033,417 +2098,720 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable {
             }
         }
 
-        // We are sending the data using JDBCType and not using SSType as SQL Server will automatically do the conversion.
-        switch (bulkJdbcType) {
-            case java.sql.Types.INTEGER:
-                if (null == colValue) {
-                    writeNullToTdsWriter(tdsWriter, bulkJdbcType, isStreaming);
-                }
-                else {
-                    if (bulkNullable) {
-                        tdsWriter.writeByte((byte) 0x04);
-                    }
-                    tdsWriter.writeInt((int) colValue);
-                }
-                break;
-
-            case java.sql.Types.SMALLINT:
-                if (null == colValue) {
-                    writeNullToTdsWriter(tdsWriter, bulkJdbcType, isStreaming);
-                }
-                else {
-                    if (bulkNullable) {
-                        tdsWriter.writeByte((byte) 0x02);
-                    }
-                    tdsWriter.writeShort(((Number) colValue).shortValue());
-                }
-                break;
-
-            case java.sql.Types.BIGINT:
-                if (null == colValue) {
-                    writeNullToTdsWriter(tdsWriter, bulkJdbcType, isStreaming);
-                }
-                else {
-                    if (bulkNullable) {
-                        tdsWriter.writeByte((byte) 0x08);
-                    }
-                    tdsWriter.writeLong((long) colValue);
-                }
-                break;
-
-            case java.sql.Types.BIT:
-                if (null == colValue) {
-                    writeNullToTdsWriter(tdsWriter, bulkJdbcType, isStreaming);
-                }
-                else {
-                    if (bulkNullable) {
-                        tdsWriter.writeByte((byte) 0x01);
-                    }
-                    tdsWriter.writeByte((byte) (((Boolean) colValue).booleanValue() ? 1 : 0));
-                }
-                break;
-
-            case java.sql.Types.TINYINT:
-                if (null == colValue) {
-                    writeNullToTdsWriter(tdsWriter, bulkJdbcType, isStreaming);
-                }
-                else {
-                    if (bulkNullable) {
-                        tdsWriter.writeByte((byte) 0x01);
-                    }
-                    // TINYINT JDBC type is returned as a short in getObject.
-                    // MYSQL returns TINYINT as an Integer. Convert it to a Number to get the short value.
-                    tdsWriter.writeByte((byte) ((((Number) colValue).shortValue()) & 0xFF));
-
-                }
-                break;
-
-            case java.sql.Types.DOUBLE:
-                if (null == colValue) {
-                    writeNullToTdsWriter(tdsWriter, bulkJdbcType, isStreaming);
-                }
-                else {
-                    if (bulkNullable) {
-                        tdsWriter.writeByte((byte) 0x08);
-                    }
-                    tdsWriter.writeDouble((double) colValue);
-                }
-                break;
-
-            case java.sql.Types.REAL:
-                if (null == colValue) {
-                    writeNullToTdsWriter(tdsWriter, bulkJdbcType, isStreaming);
-                }
-                else {
-                    if (bulkNullable) {
-                        tdsWriter.writeByte((byte) 0x04);
-                    }
-                    tdsWriter.writeReal((float) colValue);
-                }
-                break;
-
-            case microsoft.sql.Types.MONEY:
-            case microsoft.sql.Types.SMALLMONEY:
-            case java.sql.Types.DECIMAL:
-            case java.sql.Types.NUMERIC:
-                if (null == colValue) {
-                    writeNullToTdsWriter(tdsWriter, bulkJdbcType, isStreaming);
-                }
-                else {
-                    tdsWriter.writeBigDecimal((BigDecimal) colValue, bulkJdbcType, bulkPrecision);
-                }
-                break;
-
-            case microsoft.sql.Types.GUID:
-            case java.sql.Types.LONGVARCHAR:
-            case java.sql.Types.CHAR:         	// Fixed-length, non-Unicode string data.
-            case java.sql.Types.VARCHAR:        // Variable-length, non-Unicode string data.
-                if (isStreaming) // PLP
-                {
-                    // PLP_BODY rule in TDS
-                    // Use ResultSet.getString for non-streaming data and ResultSet.getCharacterStream() for streaming data,
-                    // so that if the source data source does not have streaming enabled, the smaller size data will still work.
+        try {
+            // We are sending the data using JDBCType and not using SSType as SQL Server will automatically do the conversion.
+            switch (bulkJdbcType) {
+                case java.sql.Types.INTEGER:
                     if (null == colValue) {
                         writeNullToTdsWriter(tdsWriter, bulkJdbcType, isStreaming);
                     }
                     else {
-                        // Send length as unknown.
-                        tdsWriter.writeLong(PLPInputStream.UNKNOWN_PLP_LEN);
-                        try {
-                            // Read and Send the data as chunks
-                            // VARBINARYMAX --- only when streaming.
-                            Reader reader = null;
-                            if (colValue instanceof Reader) {
-                                reader = (Reader) colValue;
-                            }
-                            else {
-                                reader = new StringReader(colValue.toString());
-                            }
+                        if (bulkNullable) {
+                            tdsWriter.writeByte((byte) 0x04);
+                        }
+                        tdsWriter.writeInt((int) colValue);
+                    }
+                    break;
 
-                            if ((SSType.BINARY == destSSType) || (SSType.VARBINARY == destSSType) || (SSType.VARBINARYMAX == destSSType)
-                                    || (SSType.IMAGE == destSSType)) {
-                                tdsWriter.writeNonUnicodeReader(reader, DataTypes.UNKNOWN_STREAM_LENGTH, true, null);
-                            }
-                            else {
-                                SQLCollation destCollation = destColumnMetadata.get(destColOrdinal).collation;
-                                if (null != destCollation) {
-                                    tdsWriter.writeNonUnicodeReader(reader, DataTypes.UNKNOWN_STREAM_LENGTH, false, destCollation.getCharset());
+                case java.sql.Types.SMALLINT:
+                    if (null == colValue) {
+                        writeNullToTdsWriter(tdsWriter, bulkJdbcType, isStreaming);
+                    }
+                    else {
+                        if (bulkNullable) {
+                            tdsWriter.writeByte((byte) 0x02);
+                        }
+                        tdsWriter.writeShort(((Number) colValue).shortValue());
+                    }
+                    break;
+
+                case java.sql.Types.BIGINT:
+                    if (null == colValue) {
+                        writeNullToTdsWriter(tdsWriter, bulkJdbcType, isStreaming);
+                    }
+                    else {
+                        if (bulkNullable) {
+                            tdsWriter.writeByte((byte) 0x08);
+                        }
+                        tdsWriter.writeLong((long) colValue);
+                    }
+                    break;
+
+                case java.sql.Types.BIT:
+                    if (null == colValue) {
+                        writeNullToTdsWriter(tdsWriter, bulkJdbcType, isStreaming);
+                    }
+                    else {
+                        if (bulkNullable) {
+                            tdsWriter.writeByte((byte) 0x01);
+                        }
+                        tdsWriter.writeByte((byte) ((Boolean) colValue ? 1 : 0));
+                    }
+                    break;
+
+                case java.sql.Types.TINYINT:
+                    if (null == colValue) {
+                        writeNullToTdsWriter(tdsWriter, bulkJdbcType, isStreaming);
+                    }
+                    else {
+                        if (bulkNullable) {
+                            tdsWriter.writeByte((byte) 0x01);
+                        }
+                        // TINYINT JDBC type is returned as a short in getObject.
+                        // MYSQL returns TINYINT as an Integer. Convert it to a Number to get the short value.
+                        tdsWriter.writeByte((byte) ((((Number) colValue).shortValue()) & 0xFF));
+
+                    }
+                    break;
+
+                case java.sql.Types.DOUBLE:
+                    if (null == colValue) {
+                        writeNullToTdsWriter(tdsWriter, bulkJdbcType, isStreaming);
+                    }
+                    else {
+                        if (bulkNullable) {
+                            tdsWriter.writeByte((byte) 0x08);
+                        }
+                        tdsWriter.writeDouble((double) colValue);
+                    }
+                    break;
+
+                case java.sql.Types.REAL:
+                    if (null == colValue) {
+                        writeNullToTdsWriter(tdsWriter, bulkJdbcType, isStreaming);
+                    }
+                    else {
+                        if (bulkNullable) {
+                            tdsWriter.writeByte((byte) 0x04);
+                        }
+                        tdsWriter.writeReal((float) colValue);
+                    }
+                    break;
+
+                case microsoft.sql.Types.MONEY:
+                case microsoft.sql.Types.SMALLMONEY:
+                case java.sql.Types.DECIMAL:
+                case java.sql.Types.NUMERIC:
+                    if (null == colValue) {
+                        writeNullToTdsWriter(tdsWriter, bulkJdbcType, isStreaming);
+                    }
+                    else {
+                        /*
+                         * if the precision that user provides is smaller than the precision of the actual value, the driver assumes the precision
+                         * that user provides is the correct precision, and throws exception
+                         */
+                        if (bulkPrecision < Util.getValueLengthBaseOnJavaType(colValue, JavaType.of(colValue), null, null,
+                                JDBCType.of(bulkJdbcType))) {
+                            MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_valueOutOfRange"));
+                            Object[] msgArgs = {SSType.DECIMAL};
+                            throw new SQLServerException(form.format(msgArgs), SQLState.DATA_EXCEPTION_LENGTH_MISMATCH, DriverError.NOT_SET, null);
+                        }
+                        tdsWriter.writeBigDecimal((BigDecimal) colValue, bulkJdbcType, bulkPrecision, bulkScale);
+                    }
+                    break;
+
+                case microsoft.sql.Types.GUID:
+                case java.sql.Types.LONGVARCHAR:
+                case java.sql.Types.CHAR:         	// Fixed-length, non-Unicode string data.
+                case java.sql.Types.VARCHAR:        // Variable-length, non-Unicode string data.
+                    if (isStreaming) // PLP
+                    {
+                        // PLP_BODY rule in TDS
+                        // Use ResultSet.getString for non-streaming data and ResultSet.getCharacterStream() for streaming data,
+                        // so that if the source data source does not have streaming enabled, the smaller size data will still work.
+                        if (null == colValue) {
+                            writeNullToTdsWriter(tdsWriter, bulkJdbcType, isStreaming);
+                        }
+                        else {
+                            // Send length as unknown.
+                            tdsWriter.writeLong(PLPInputStream.UNKNOWN_PLP_LEN);
+                            try {
+                                // Read and Send the data as chunks
+                                // VARBINARYMAX --- only when streaming.
+                                Reader reader;
+                                if (colValue instanceof Reader) {
+                                    reader = (Reader) colValue;
                                 }
                                 else {
-                                    tdsWriter.writeNonUnicodeReader(reader, DataTypes.UNKNOWN_STREAM_LENGTH, false, null);
+                                    reader = new StringReader(colValue.toString());
                                 }
-                            }
-                            reader.close();
-                        }
-                        catch (IOException e) {
-                            throw new SQLServerException(SQLServerException.getErrString("R_unableRetrieveSourceData"), e);
-                        }
-                    }
-                }
-                else // Non-PLP
-                {
-                    if (null == colValue) {
-                        writeNullToTdsWriter(tdsWriter, bulkJdbcType, isStreaming);
-                    }
-                    else {
-                        String colValueStr = colValue.toString();
-                        if ((SSType.BINARY == destSSType) || (SSType.VARBINARY == destSSType)) {
-                            byte[] bytes = null;
-                            try {
-                                bytes = ParameterUtils.HexToBin(colValueStr);
-                            }
-                            catch (SQLServerException e) {
-                                throw new SQLServerException(SQLServerException.getErrString("R_unableRetrieveSourceData"), e);
-                            }
-                            tdsWriter.writeShort((short) bytes.length);
-                            tdsWriter.writeBytes(bytes);
-                        }
-                        else {
-                            tdsWriter.writeShort((short) (colValueStr.length()));
-                            // converting string into destination collation using Charset
 
-                            SQLCollation destCollation = destColumnMetadata.get(destColOrdinal).collation;
-                            if (null != destCollation) {
-                                tdsWriter.writeBytes(colValueStr.getBytes(destColumnMetadata.get(destColOrdinal).collation.getCharset()));
-
-                            }
-                            else {
-                                tdsWriter.writeBytes(colValueStr.getBytes());
-                            }
-                        }
-                    }
-                }
-                break;
-
-            /*
-             * The length value associated with these data types is specified within a USHORT. see MS-TDS.pdf page 38. However, nchar(n) nvarchar(n)
-             * supports n = 1 .. 4000 (see MSDN SQL 2014, SQL 2016 Transact-SQL) NVARCHAR/NCHAR/LONGNVARCHAR is not compatible with BINARY/VARBINARY
-             * as specified in enum UpdaterConversion of DataTypes.java
-             */
-            case java.sql.Types.LONGNVARCHAR:
-            case java.sql.Types.NCHAR:
-            case java.sql.Types.NVARCHAR:
-                if (isStreaming) {
-                    // PLP_BODY rule in TDS
-                    // Use ResultSet.getString for non-streaming data and ResultSet.getNCharacterStream() for streaming data,
-                    // so that if the source data source does not have streaming enabled, the smaller size data will still work.
-                    if (null == colValue) {
-                        writeNullToTdsWriter(tdsWriter, bulkJdbcType, isStreaming);
-                    }
-                    else {
-                        // Send length as unknown.
-                        tdsWriter.writeLong(PLPInputStream.UNKNOWN_PLP_LEN);
-                        try {
-                            // Read and Send the data as chunks.
-                            Reader reader = null;
-                            if (colValue instanceof Reader) {
-                                reader = (Reader) colValue;
-                            }
-                            else {
-                                reader = new StringReader(colValue.toString());
-                            }
-
-                            // writeReader is unicode.
-                            tdsWriter.writeReader(reader, DataTypes.UNKNOWN_STREAM_LENGTH, true);
-                            reader.close();
-                        }
-                        catch (IOException e) {
-                            throw new SQLServerException(SQLServerException.getErrString("R_unableRetrieveSourceData"), e);
-                        }
-                    }
-                }
-                else {
-                    if (null == colValue) {
-                        writeNullToTdsWriter(tdsWriter, bulkJdbcType, isStreaming);
-                    }
-                    else {
-                        int stringLength = colValue.toString().length();
-                        byte[] typevarlen = new byte[2];
-                        typevarlen[0] = (byte) (2 * stringLength & 0xFF);
-                        typevarlen[1] = (byte) ((2 * stringLength >> 8) & 0xFF);
-                        tdsWriter.writeBytes(typevarlen);
-                        tdsWriter.writeString(colValue.toString());
-                    }
-                }
-                break;
-
-            case java.sql.Types.LONGVARBINARY:
-            case java.sql.Types.BINARY:
-            case java.sql.Types.VARBINARY:
-                if (isStreaming) // PLP
-                {
-                    // Check for null separately for streaming and non-streaming data types, there could be source data sources who
-                    // does not support streaming data.
-                    if (null == colValue) {
-                        writeNullToTdsWriter(tdsWriter, bulkJdbcType, isStreaming);
-                    }
-                    else {
-                        // Send length as unknown.
-                        tdsWriter.writeLong(PLPInputStream.UNKNOWN_PLP_LEN);
-                        try {
-                            // Read and Send the data as chunks
-                            InputStream iStream = null;
-                            if (colValue instanceof InputStream) {
-                                iStream = (InputStream) colValue;
-                            }
-                            else {
-                                if (colValue instanceof byte[]) {
-                                    iStream = new ByteArrayInputStream((byte[]) colValue);
+                                if ((SSType.BINARY == destSSType) || (SSType.VARBINARY == destSSType) || (SSType.VARBINARYMAX == destSSType)
+                                        || (SSType.IMAGE == destSSType)) {
+                                    tdsWriter.writeNonUnicodeReader(reader, DataTypes.UNKNOWN_STREAM_LENGTH, true, null);
                                 }
-                                else
-                                    iStream = new ByteArrayInputStream(ParameterUtils.HexToBin(colValue.toString()));
+                                else {
+                                    SQLCollation destCollation = destColumnMetadata.get(destColOrdinal).collation;
+                                    if (null != destCollation) {
+                                        tdsWriter.writeNonUnicodeReader(reader, DataTypes.UNKNOWN_STREAM_LENGTH, false, destCollation.getCharset());
+                                    }
+                                    else {
+                                        tdsWriter.writeNonUnicodeReader(reader, DataTypes.UNKNOWN_STREAM_LENGTH, false, null);
+                                    }
+                                }
+                                reader.close();
                             }
-                            // We do not need to check for null values here as it is already checked above.
-                            tdsWriter.writeStream(iStream, DataTypes.UNKNOWN_STREAM_LENGTH, true);
-                            iStream.close();
-                        }
-                        catch (IOException e) {
-                            throw new SQLServerException(SQLServerException.getErrString("R_unableRetrieveSourceData"), e);
-                        }
-                    }
-                }
-                else // Non-PLP
-                {
-                    if (null == colValue) {
-                        writeNullToTdsWriter(tdsWriter, bulkJdbcType, isStreaming);
-                    }
-                    else {
-                        byte[] srcBytes;
-                        if (colValue instanceof byte[]) {
-                            srcBytes = (byte[]) colValue;
-                        }
-                        else {
-                            try {
-                                srcBytes = ParameterUtils.HexToBin(colValue.toString());
-                            }
-                            catch (SQLServerException e) {
+                            catch (IOException e) {
                                 throw new SQLServerException(SQLServerException.getErrString("R_unableRetrieveSourceData"), e);
                             }
                         }
-                        tdsWriter.writeShort((short) srcBytes.length);
-                        tdsWriter.writeBytes(srcBytes);
                     }
-                }
-                break;
+                    else // Non-PLP
+                    {
+                        if (null == colValue) {
+                            writeNullToTdsWriter(tdsWriter, bulkJdbcType, isStreaming);
+                        }
+                        else {
+                            String colValueStr = colValue.toString();
+                            if ((SSType.BINARY == destSSType) || (SSType.VARBINARY == destSSType)) {
+                                byte[] bytes = null;
+                                try {
+                                    bytes = ParameterUtils.HexToBin(colValueStr);
+                                }
+                                catch (SQLServerException e) {
+                                    throw new SQLServerException(SQLServerException.getErrString("R_unableRetrieveSourceData"), e);
+                                }
+                                tdsWriter.writeShort((short) bytes.length);
+                                tdsWriter.writeBytes(bytes);
+                            }
+                            else {
+                                tdsWriter.writeShort((short) (colValueStr.length()));
+                                // converting string into destination collation using Charset
 
-            case microsoft.sql.Types.DATETIME:
-            case microsoft.sql.Types.SMALLDATETIME:
-            case java.sql.Types.TIMESTAMP:
-                if (null == colValue) {
-                    writeNullToTdsWriter(tdsWriter, bulkJdbcType, isStreaming);
-                }
-                else {
-                    switch (destSSType) {
-                        case SMALLDATETIME:
-                            if (bulkNullable)
-                                tdsWriter.writeByte((byte) 0x04);
-                            tdsWriter.writeSmalldatetime(colValue.toString());
-                            break;
-                        case DATETIME:
-                            if (bulkNullable)
-                                tdsWriter.writeByte((byte) 0x08);
-                            tdsWriter.writeDatetime(colValue.toString());
-                            break;
-                        default:	// DATETIME2
-                            if (bulkNullable) {
-                                if (2 >= bulkScale)
-                                    tdsWriter.writeByte((byte) 0x06);
-                                else if (4 >= bulkScale)
-                                    tdsWriter.writeByte((byte) 0x07);
-                                else
+                                SQLCollation destCollation = destColumnMetadata.get(destColOrdinal).collation;
+                                if (null != destCollation) {
+                                    tdsWriter.writeBytes(colValueStr.getBytes(destColumnMetadata.get(destColOrdinal).collation.getCharset()));
+
+                                }
+                                else {
+                                    tdsWriter.writeBytes(colValueStr.getBytes());
+                                }
+                            }
+                        }
+                    }
+                    break;
+
+                /*
+                 * The length value associated with these data types is specified within a USHORT. see MS-TDS.pdf page 38. However, nchar(n)
+                 * nvarchar(n) supports n = 1 .. 4000 (see MSDN SQL 2014, SQL 2016 Transact-SQL) NVARCHAR/NCHAR/LONGNVARCHAR is not compatible with
+                 * BINARY/VARBINARY as specified in enum UpdaterConversion of DataTypes.java
+                 */
+                case java.sql.Types.LONGNVARCHAR:
+                case java.sql.Types.NCHAR:
+                case java.sql.Types.NVARCHAR:
+                    if (isStreaming) {
+                        // PLP_BODY rule in TDS
+                        // Use ResultSet.getString for non-streaming data and ResultSet.getNCharacterStream() for streaming data,
+                        // so that if the source data source does not have streaming enabled, the smaller size data will still work.
+                        if (null == colValue) {
+                            writeNullToTdsWriter(tdsWriter, bulkJdbcType, isStreaming);
+                        }
+                        else {
+                            // Send length as unknown.
+                            tdsWriter.writeLong(PLPInputStream.UNKNOWN_PLP_LEN);
+                            try {
+                                // Read and Send the data as chunks.
+                                Reader reader;
+                                if (colValue instanceof Reader) {
+                                    reader = (Reader) colValue;
+                                }
+                                else {
+                                    reader = new StringReader(colValue.toString());
+                                }
+
+                                // writeReader is unicode.
+                                tdsWriter.writeReader(reader, DataTypes.UNKNOWN_STREAM_LENGTH, true);
+                                reader.close();
+                            }
+                            catch (IOException e) {
+                                throw new SQLServerException(SQLServerException.getErrString("R_unableRetrieveSourceData"), e);
+                            }
+                        }
+                    }
+                    else {
+                        if (null == colValue) {
+                            writeNullToTdsWriter(tdsWriter, bulkJdbcType, isStreaming);
+                        }
+                        else {
+                            int stringLength = colValue.toString().length();
+                            byte[] typevarlen = new byte[2];
+                            typevarlen[0] = (byte) (2 * stringLength & 0xFF);
+                            typevarlen[1] = (byte) ((2 * stringLength >> 8) & 0xFF);
+                            tdsWriter.writeBytes(typevarlen);
+                            tdsWriter.writeString(colValue.toString());
+                        }
+                    }
+                    break;
+
+                case java.sql.Types.LONGVARBINARY:
+                case java.sql.Types.BINARY:
+                case java.sql.Types.VARBINARY:
+                    if (isStreaming) // PLP
+                    {
+                        // Check for null separately for streaming and non-streaming data types, there could be source data sources who
+                        // does not support streaming data.
+                        if (null == colValue) {
+                            writeNullToTdsWriter(tdsWriter, bulkJdbcType, isStreaming);
+                        }
+                        else {
+                            // Send length as unknown.
+                            tdsWriter.writeLong(PLPInputStream.UNKNOWN_PLP_LEN);
+                            try {
+                                // Read and Send the data as chunks
+                                InputStream iStream;
+                                if (colValue instanceof InputStream) {
+                                    iStream = (InputStream) colValue;
+                                }
+                                else {
+                                    if (colValue instanceof byte[]) {
+                                        iStream = new ByteArrayInputStream((byte[]) colValue);
+                                    }
+                                    else
+                                        iStream = new ByteArrayInputStream(ParameterUtils.HexToBin(colValue.toString()));
+                                }
+                                // We do not need to check for null values here as it is already checked above.
+                                tdsWriter.writeStream(iStream, DataTypes.UNKNOWN_STREAM_LENGTH, true);
+                                iStream.close();
+                            }
+                            catch (IOException e) {
+                                throw new SQLServerException(SQLServerException.getErrString("R_unableRetrieveSourceData"), e);
+                            }
+                        }
+                    }
+                    else // Non-PLP
+                    {
+                        if (null == colValue) {
+                            writeNullToTdsWriter(tdsWriter, bulkJdbcType, isStreaming);
+                        }
+                        else {
+                            byte[] srcBytes;
+                            if (colValue instanceof byte[]) {
+                                srcBytes = (byte[]) colValue;
+                            }
+                            else {
+                                try {
+                                    srcBytes = ParameterUtils.HexToBin(colValue.toString());
+                                }
+                                catch (SQLServerException e) {
+                                    throw new SQLServerException(SQLServerException.getErrString("R_unableRetrieveSourceData"), e);
+                                }
+                            }
+                            tdsWriter.writeShort((short) srcBytes.length);
+                            tdsWriter.writeBytes(srcBytes);
+                        }
+                    }
+                    break;
+
+                case microsoft.sql.Types.DATETIME:
+                case microsoft.sql.Types.SMALLDATETIME:
+                case java.sql.Types.TIMESTAMP:
+                    if (null == colValue) {
+                        writeNullToTdsWriter(tdsWriter, bulkJdbcType, isStreaming);
+                    }
+                    else {
+                        switch (destSSType) {
+                            case SMALLDATETIME:
+                                if (bulkNullable)
+                                    tdsWriter.writeByte((byte) 0x04);
+                                tdsWriter.writeSmalldatetime(colValue.toString());
+                                break;
+                            case DATETIME:
+                                if (bulkNullable)
                                     tdsWriter.writeByte((byte) 0x08);
-                            }
-                            String timeStampValue = colValue.toString();
-                            tdsWriter.writeTime(java.sql.Timestamp.valueOf(timeStampValue), bulkScale);
-                            // Send only the date part
-                            tdsWriter.writeDate(timeStampValue.substring(0, timeStampValue.lastIndexOf(' ')));
+                                tdsWriter.writeDatetime(colValue.toString());
+                                break;
+                            default:	// DATETIME2
+                                if (bulkNullable) {
+                                    if (2 >= bulkScale)
+                                        tdsWriter.writeByte((byte) 0x06);
+                                    else if (4 >= bulkScale)
+                                        tdsWriter.writeByte((byte) 0x07);
+                                    else
+                                        tdsWriter.writeByte((byte) 0x08);
+                                }
+                                String timeStampValue = colValue.toString();
+                                tdsWriter.writeTime(java.sql.Timestamp.valueOf(timeStampValue), bulkScale);
+                                // Send only the date part
+                                tdsWriter.writeDate(timeStampValue.substring(0, timeStampValue.lastIndexOf(' ')));
+                        }
                     }
-                }
-                break;
+                    break;
 
-            case java.sql.Types.DATE:
-                if (null == colValue) {
-                    writeNullToTdsWriter(tdsWriter, bulkJdbcType, isStreaming);
-                }
-                else {
-                    tdsWriter.writeByte((byte) 0x03);
-                    tdsWriter.writeDate(colValue.toString());
-                }
-                break;
-
-            case java.sql.Types.TIME:
-                // java.sql.Types.TIME allows maximum of 3 fractional second precision
-                // SQL Server time(n) allows maximum of 7 fractional second precision, to avoid truncation
-                // values are read as java.sql.Types.TIMESTAMP if srcJdbcType is java.sql.Types.TIME
-                if (null == colValue) {
-                    writeNullToTdsWriter(tdsWriter, bulkJdbcType, isStreaming);
-                }
-                else {
-                    if (2 >= bulkScale)
+                case java.sql.Types.DATE:
+                    if (null == colValue) {
+                        writeNullToTdsWriter(tdsWriter, bulkJdbcType, isStreaming);
+                    }
+                    else {
                         tdsWriter.writeByte((byte) 0x03);
-                    else if (4 >= bulkScale)
-                        tdsWriter.writeByte((byte) 0x04);
-                    else
-                        tdsWriter.writeByte((byte) 0x05);
+                        tdsWriter.writeDate(colValue.toString());
+                    }
+                    break;
 
-                    tdsWriter.writeTime((java.sql.Timestamp) colValue, bulkScale);
+                case java.sql.Types.TIME:
+                    // java.sql.Types.TIME allows maximum of 3 fractional second precision
+                    // SQL Server time(n) allows maximum of 7 fractional second precision, to avoid truncation
+                    // values are read as java.sql.Types.TIMESTAMP if srcJdbcType is java.sql.Types.TIME
+                    if (null == colValue) {
+                        writeNullToTdsWriter(tdsWriter, bulkJdbcType, isStreaming);
+                    }
+                    else {
+                        if (2 >= bulkScale)
+                            tdsWriter.writeByte((byte) 0x03);
+                        else if (4 >= bulkScale)
+                            tdsWriter.writeByte((byte) 0x04);
+                        else
+                            tdsWriter.writeByte((byte) 0x05);
+
+                        tdsWriter.writeTime((java.sql.Timestamp) colValue, bulkScale);
+                    }
+                    break;
+
+                case 2013:	// java.sql.Types.TIME_WITH_TIMEZONE
+                    if (null == colValue) {
+                        writeNullToTdsWriter(tdsWriter, bulkJdbcType, isStreaming);
+                    }
+                    else {
+                        if (2 >= bulkScale)
+                            tdsWriter.writeByte((byte) 0x08);
+                        else if (4 >= bulkScale)
+                            tdsWriter.writeByte((byte) 0x09);
+                        else
+                            tdsWriter.writeByte((byte) 0x0A);
+
+                        tdsWriter.writeOffsetTimeWithTimezone((OffsetTime) colValue, bulkScale);
+                    }
+                    break;
+
+                case 2014:	// java.sql.Types.TIMESTAMP_WITH_TIMEZONE
+                    if (null == colValue) {
+                        writeNullToTdsWriter(tdsWriter, bulkJdbcType, isStreaming);
+                    }
+                    else {
+                        if (2 >= bulkScale)
+                            tdsWriter.writeByte((byte) 0x08);
+                        else if (4 >= bulkScale)
+                            tdsWriter.writeByte((byte) 0x09);
+                        else
+                            tdsWriter.writeByte((byte) 0x0A);
+
+                        tdsWriter.writeOffsetDateTimeWithTimezone((OffsetDateTime) colValue, bulkScale);
+                    }
+                    break;
+
+                case microsoft.sql.Types.DATETIMEOFFSET:
+                    // We can safely cast the result set to a SQLServerResultSet as the DatetimeOffset type is only available in the JDBC driver.
+                    if (null == colValue) {
+                        writeNullToTdsWriter(tdsWriter, bulkJdbcType, isStreaming);
+                    }
+                    else {
+                        if (2 >= bulkScale)
+                            tdsWriter.writeByte((byte) 0x08);
+                        else if (4 >= bulkScale)
+                            tdsWriter.writeByte((byte) 0x09);
+                        else
+                            tdsWriter.writeByte((byte) 0x0A);
+
+                        tdsWriter.writeDateTimeOffset(colValue, bulkScale, destSSType);
+                    }
+                    break;
+                case microsoft.sql.Types.SQL_VARIANT:
+                    boolean isShiloh = (8 >= connection.getServerMajorVersion());
+                    if (isShiloh) {
+                        MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_SQLVariantSupport"));
+                        throw new SQLServerException(null, form.format(new Object[] {}), null, 0, false);
+                    }
+                    writeSqlVariant(tdsWriter, colValue, sourceResultSet, srcColOrdinal, destColOrdinal, bulkJdbcType, bulkScale, isStreaming);
+                    break;
+                default:
+                    MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_BulkTypeNotSupported"));
+                    Object[] msgArgs = {JDBCType.of(bulkJdbcType).toString().toLowerCase(Locale.ENGLISH)};
+                    SQLServerException.makeFromDriverError(null, null, form.format(msgArgs), null, true);
+                    break;
+            } // End of switch
+        }
+        catch (ClassCastException ex) {
+            if (null == colValue) {
+                // this should not really happen, since ClassCastException should only happen when colValue is not null.
+                // just do one more checking here to make sure
+                throwInvalidArgument("colValue");
+            }
+            MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_errorConvertingValue"));
+            Object[] msgArgs = {colValue.getClass().getSimpleName(), JDBCType.of(bulkJdbcType)};
+            throw new SQLServerException(form.format(msgArgs), SQLState.DATA_EXCEPTION_NOT_SPECIFIC, DriverError.NOT_SET, ex);
+        }
+    }
+    
+    /**
+     * Writes sql_variant data based on the baseType for bulkcopy
+     * 
+     * @throws SQLServerException
+     */
+    private void writeSqlVariant(TDSWriter tdsWriter,
+            Object colValue,
+            ResultSet sourceResultSet,
+            int srcColOrdinal,
+            int destColOrdinal,
+            int bulkJdbcType,
+            int bulkScale,
+            boolean isStreaming) throws SQLServerException {
+        if (null == colValue) {
+            writeNullToTdsWriter(tdsWriter, bulkJdbcType, isStreaming);
+            return;
+        }
+        SqlVariant variantType = ((SQLServerResultSet) sourceResultSet).getVariantInternalType(srcColOrdinal);
+        int baseType = variantType.getBaseType();
+        // for sql variant we normally should return the colvalue for time as time string. but for
+        // bulkcopy we need it to be timestamp. so we have to retrieve it again once we are in bulkcopy
+        // and make sure that the base type is time.
+        if (TDSType.TIMEN == TDSType.valueOf(baseType)) {
+            variantType.setIsBaseTypeTimeValue(true);
+            ((SQLServerResultSet) sourceResultSet).setInternalVariantType(srcColOrdinal, variantType);
+            colValue = ((SQLServerResultSet) sourceResultSet).getObject(srcColOrdinal);
+        }
+        switch (TDSType.valueOf(baseType)) {
+            case INT8:
+                writeBulkCopySqlVariantHeader(10, TDSType.INT8.byteValue(), (byte) 0, tdsWriter);
+                tdsWriter.writeLong(Long.valueOf(colValue.toString()));
+                break;
+                
+            case INT4:
+                writeBulkCopySqlVariantHeader(6, TDSType.INT4.byteValue(), (byte) 0, tdsWriter);
+                tdsWriter.writeInt(Integer.valueOf(colValue.toString()));
+                break;
+                
+            case INT2:
+                writeBulkCopySqlVariantHeader(4, TDSType.INT2.byteValue(), (byte) 0, tdsWriter);
+                tdsWriter.writeShort(Short.valueOf(colValue.toString()));
+                break;
+                
+            case INT1:
+                writeBulkCopySqlVariantHeader(3, TDSType.INT1.byteValue(), (byte) 0, tdsWriter);
+                tdsWriter.writeByte(Byte.valueOf(colValue.toString()));
+                break;
+                
+            case FLOAT8:
+                writeBulkCopySqlVariantHeader(10, TDSType.FLOAT8.byteValue(), (byte) 0, tdsWriter);
+                tdsWriter.writeDouble(Double.valueOf(colValue.toString()));
+                break;
+                
+            case FLOAT4:
+                writeBulkCopySqlVariantHeader(6, TDSType.FLOAT4.byteValue(), (byte) 0, tdsWriter);
+                tdsWriter.writeReal(Float.valueOf(colValue.toString()));
+                break;
+                
+            case MONEY8:
+                // For decimalN we right TDSWriter.BIGDECIMAL_MAX_LENGTH as maximum length = 17
+                // 17 + 2 for basetype and probBytes + 2 for precision and length = 21 the length of data in header
+                writeBulkCopySqlVariantHeader(21, TDSType.DECIMALN.byteValue(), (byte) 2, tdsWriter);
+                tdsWriter.writeByte((byte) 38);
+                tdsWriter.writeByte((byte) 4);
+                tdsWriter.writeSqlVariantInternalBigDecimal((BigDecimal) colValue, bulkJdbcType);
+                break;
+                
+            case MONEY4:
+                writeBulkCopySqlVariantHeader(21, TDSType.DECIMALN.byteValue(), (byte) 2, tdsWriter);
+                tdsWriter.writeByte((byte) 38);
+                tdsWriter.writeByte((byte) 4);
+                tdsWriter.writeSqlVariantInternalBigDecimal((BigDecimal) colValue, bulkJdbcType);
+                break;
+                
+            case BIT1:
+                writeBulkCopySqlVariantHeader(3, TDSType.BIT1.byteValue(), (byte) 0, tdsWriter);
+                tdsWriter.writeByte((byte) (((Boolean) colValue).booleanValue() ? 1 : 0));
+                break;
+                
+            case DATEN:
+                writeBulkCopySqlVariantHeader(5, TDSType.DATEN.byteValue(), (byte) 0, tdsWriter);
+                tdsWriter.writeDate(colValue.toString());
+                break;
+                
+            case TIMEN:
+                bulkScale = variantType.getScale();
+                int timeHeaderLength = 0x08; // default
+                if (2 >= bulkScale) {
+                    timeHeaderLength = 0x06;
+                }
+                else if (4 >= bulkScale) {
+                    timeHeaderLength = 0x07;
+                }
+                else {
+                    timeHeaderLength = 0x08;
+                }
+                writeBulkCopySqlVariantHeader(timeHeaderLength, TDSType.TIMEN.byteValue(), (byte) 1, tdsWriter); // depending on scale, the header
+                                                                                                                 // length
+                // defers
+                tdsWriter.writeByte((byte) bulkScale);
+                tdsWriter.writeTime((java.sql.Timestamp) colValue, bulkScale);
+                break;
+                
+            case DATETIME8:
+                writeBulkCopySqlVariantHeader(10, TDSType.DATETIME8.byteValue(), (byte) 0, tdsWriter);
+                tdsWriter.writeDatetime(colValue.toString());
+                break;
+                
+            case DATETIME4:
+                // when the type is ambiguous, we write to bigger type
+                writeBulkCopySqlVariantHeader(10, TDSType.DATETIME8.byteValue(), (byte) 0, tdsWriter);
+                tdsWriter.writeDatetime(colValue.toString());
+                break;
+                
+            case DATETIME2N:
+                writeBulkCopySqlVariantHeader(10, TDSType.DATETIME2N.byteValue(), (byte) 1, tdsWriter); // 1 is probbytes for time
+                tdsWriter.writeByte((byte) 0x03);
+                String timeStampValue = colValue.toString();
+                tdsWriter.writeTime(java.sql.Timestamp.valueOf(timeStampValue), 0x03); // datetime2 in sql_variant has up to scale 3 support
+                // Send only the date part
+                tdsWriter.writeDate(timeStampValue.substring(0, timeStampValue.lastIndexOf(' ')));
+                break;
+                
+            case BIGCHAR:
+                int length = colValue.toString().length();
+                writeBulkCopySqlVariantHeader(9 + length, TDSType.BIGCHAR.byteValue(), (byte) 7, tdsWriter);
+                tdsWriter.writeCollationForSqlVariant(variantType);   // writes collation info and sortID
+                tdsWriter.writeShort((short) (length));
+                SQLCollation destCollation = destColumnMetadata.get(destColOrdinal).collation;
+                if (null != destCollation) {
+                    tdsWriter.writeBytes(colValue.toString().getBytes(destColumnMetadata.get(destColOrdinal).collation.getCharset()));
+                }
+                else {
+                    tdsWriter.writeBytes(colValue.toString().getBytes());
                 }
                 break;
+                
+            case BIGVARCHAR:
+                length = colValue.toString().length();
+                writeBulkCopySqlVariantHeader(9 + length, TDSType.BIGVARCHAR.byteValue(), (byte) 7, tdsWriter);
+                tdsWriter.writeCollationForSqlVariant(variantType);   // writes collation info and sortID
+                tdsWriter.writeShort((short) (length));
 
-            case 2013:	// java.sql.Types.TIME_WITH_TIMEZONE
+                destCollation = destColumnMetadata.get(destColOrdinal).collation;
+                if (null != destCollation) {
+                    tdsWriter.writeBytes(colValue.toString().getBytes(destColumnMetadata.get(destColOrdinal).collation.getCharset()));
+                }
+                else {
+                    tdsWriter.writeBytes(colValue.toString().getBytes());
+                }
+                break;
+                
+            case NCHAR:
+                length = colValue.toString().length() * 2;
+                writeBulkCopySqlVariantHeader(9 + length, TDSType.NCHAR.byteValue(), (byte) 7, tdsWriter);
+                tdsWriter.writeCollationForSqlVariant(variantType);   // writes collation info and sortID
+                int stringLength = colValue.toString().length();
+                byte[] typevarlen = new byte[2];
+                typevarlen[0] = (byte) (2 * stringLength & 0xFF);
+                typevarlen[1] = (byte) ((2 * stringLength >> 8) & 0xFF);
+                tdsWriter.writeBytes(typevarlen);
+                tdsWriter.writeString(colValue.toString());
+                break;
+                
+            case NVARCHAR:
+                length = colValue.toString().length() * 2;
+                writeBulkCopySqlVariantHeader(9 + length, TDSType.NVARCHAR.byteValue(), (byte) 7, tdsWriter);
+                tdsWriter.writeCollationForSqlVariant(variantType);   // writes collation info and sortID
+                stringLength = colValue.toString().length();
+                typevarlen = new byte[2];
+                typevarlen[0] = (byte) (2 * stringLength & 0xFF);
+                typevarlen[1] = (byte) ((2 * stringLength >> 8) & 0xFF);
+                tdsWriter.writeBytes(typevarlen);
+                tdsWriter.writeString(colValue.toString());
+                break;
+                
+            case GUID:
+                length = colValue.toString().length();
+                writeBulkCopySqlVariantHeader(9 + length, TDSType.BIGCHAR.byteValue(), (byte) 7, tdsWriter);
+                // since while reading collation from sourceMetaData in guid we don't read collation, cause we are reading binary
+                // but in writing it we are using char, we need to get the collation.
+                SQLCollation collation = (null != destColumnMetadata.get(srcColOrdinal).collation) ? destColumnMetadata.get(srcColOrdinal).collation
+                        : connection.getDatabaseCollation();
+                variantType.setCollation(collation);
+                tdsWriter.writeCollationForSqlVariant(variantType);   // writes collation info and sortID
+                tdsWriter.writeShort((short) (length));
+                // converting string into destination collation using Charset
+                destCollation = destColumnMetadata.get(destColOrdinal).collation;
+                if (null != destCollation) {
+                    tdsWriter.writeBytes(colValue.toString().getBytes(destColumnMetadata.get(destColOrdinal).collation.getCharset()));
+                }
+                else {
+                    tdsWriter.writeBytes(colValue.toString().getBytes());
+                }
+                break;
+                
+            case BIGBINARY:
+                byte[] b = (byte[]) colValue;
+                length = b.length;
+                writeBulkCopySqlVariantHeader(4 + length, TDSType.BIGVARBINARY.byteValue(), (byte) 2, tdsWriter);
+                tdsWriter.writeShort((short) (variantType.getMaxLength())); // length
                 if (null == colValue) {
                     writeNullToTdsWriter(tdsWriter, bulkJdbcType, isStreaming);
                 }
                 else {
-                    if (2 >= bulkScale)
-                        tdsWriter.writeByte((byte) 0x08);
-                    else if (4 >= bulkScale)
-                        tdsWriter.writeByte((byte) 0x09);
-                    else
-                        tdsWriter.writeByte((byte) 0x0A);
-
-                    tdsWriter.writeOffsetTimeWithTimezone((OffsetTime) colValue, bulkScale);
+                    byte[] srcBytes;
+                    if (colValue instanceof byte[]) {
+                        srcBytes = (byte[]) colValue;
+                    }
+                    else {
+                        try {
+                            srcBytes = ParameterUtils.HexToBin(colValue.toString());
+                        }
+                        catch (SQLServerException e) {
+                            throw new SQLServerException(SQLServerException.getErrString("R_unableRetrieveSourceData"), e);
+                        }
+                    }
+                    tdsWriter.writeBytes(srcBytes);
                 }
                 break;
-
-            case 2014:	// java.sql.Types.TIMESTAMP_WITH_TIMEZONE
+                
+            case BIGVARBINARY:
+                b = (byte[]) colValue;
+                length = b.length;
+                writeBulkCopySqlVariantHeader(4 + length, TDSType.BIGVARBINARY.byteValue(), (byte) 2, tdsWriter);
+                tdsWriter.writeShort((short) (variantType.getMaxLength())); // length
                 if (null == colValue) {
                     writeNullToTdsWriter(tdsWriter, bulkJdbcType, isStreaming);
                 }
                 else {
-                    if (2 >= bulkScale)
-                        tdsWriter.writeByte((byte) 0x08);
-                    else if (4 >= bulkScale)
-                        tdsWriter.writeByte((byte) 0x09);
-                    else
-                        tdsWriter.writeByte((byte) 0x0A);
-
-                    tdsWriter.writeOffsetDateTimeWithTimezone((OffsetDateTime) colValue, bulkScale);
+                    byte[] srcBytes;
+                    if (colValue instanceof byte[]) {
+                        srcBytes = (byte[]) colValue;
+                    }
+                    else {
+                        try {
+                            srcBytes = ParameterUtils.HexToBin(colValue.toString());
+                        }
+                        catch (SQLServerException e) {
+                            throw new SQLServerException(SQLServerException.getErrString("R_unableRetrieveSourceData"), e);
+                        }
+                    }
+                    tdsWriter.writeBytes(srcBytes);
                 }
                 break;
-
-            case microsoft.sql.Types.DATETIMEOFFSET:
-                // We can safely cast the result set to a SQLServerResultSet as the DatetimeOffset type is only available in the JDBC driver.
-                if (null == colValue) {
-                    writeNullToTdsWriter(tdsWriter, bulkJdbcType, isStreaming);
-                }
-                else {
-                    if (2 >= bulkScale)
-                        tdsWriter.writeByte((byte) 0x08);
-                    else if (4 >= bulkScale)
-                        tdsWriter.writeByte((byte) 0x09);
-                    else
-                        tdsWriter.writeByte((byte) 0x0A);
-
-                    tdsWriter.writeDateTimeOffset(colValue, bulkScale, destSSType);
-                }
-                break;
-
+                
             default:
                 MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_BulkTypeNotSupported"));
                 Object[] msgArgs = {JDBCType.of(bulkJdbcType).toString().toLowerCase(Locale.ENGLISH)};
                 SQLServerException.makeFromDriverError(null, null, form.format(msgArgs), null, true);
-        } // End of switch
+                break;
+        }
+    }
+    
+    /**
+     * Write header for sql_variant
+     * 
+     * @param length:
+     *            length of base type + Basetype + probBytes
+     * @param tdsType
+     * @param probBytes
+     * @param tdsWriter
+     * @throws SQLServerException
+     */
+    private void writeBulkCopySqlVariantHeader(int length,
+            byte tdsType,
+            byte probBytes,
+            TDSWriter tdsWriter) throws SQLServerException {
+        tdsWriter.writeInt(length);
+        tdsWriter.writeByte(tdsType);
+        tdsWriter.writeByte(probBytes);
     }
 
     private Object readColumnFromResultSet(int srcColOrdinal,
@@ -2534,29 +2902,29 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable {
                 case microsoft.sql.Types.DATETIME:
                 case microsoft.sql.Types.SMALLDATETIME:
                 case java.sql.Types.TIMESTAMP:
-                    return sourceResultSet.getTimestamp(srcColOrdinal);
-
-                case java.sql.Types.DATE:
-                    return sourceResultSet.getDate(srcColOrdinal);
-
                 case java.sql.Types.TIME:
                     // java.sql.Types.TIME allows maximum of 3 fractional second precision
                     // SQL Server time(n) allows maximum of 7 fractional second precision, to avoid truncation
                     // values are read as java.sql.Types.TIMESTAMP if srcJdbcType is java.sql.Types.TIME
                     return sourceResultSet.getTimestamp(srcColOrdinal);
 
+                case java.sql.Types.DATE:
+                    return sourceResultSet.getDate(srcColOrdinal);
+
                 case microsoft.sql.Types.DATETIMEOFFSET:
                     // We can safely cast the result set to a SQLServerResultSet as the DatetimeOffset type is only available in the JDBC driver.
                     return ((SQLServerResultSet) sourceResultSet).getDateTimeOffset(srcColOrdinal);
 
+                case microsoft.sql.Types.SQL_VARIANT:               
+                    return sourceResultSet.getObject(srcColOrdinal);
                 default:
                     MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_BulkTypeNotSupported"));
                     Object[] msgArgs = {JDBCType.of(srcJdbcType).toString().toLowerCase(Locale.ENGLISH)};
                     SQLServerException.makeFromDriverError(null, null, form.format(msgArgs), null, true);
                     // This return will never be executed, but it is needed as Eclipse complains otherwise.
                     return null;
-            } // End of switch
-        }// End of Try
+            } 
+        }
         catch (SQLException e) {
             throw new SQLServerException(SQLServerException.getErrString("R_unableRetrieveSourceData"), e);
         }
@@ -2569,9 +2937,9 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable {
             int srcColOrdinal,
             int destColOrdinal,
             Object colValue) throws SQLServerException {
-        int srcPrecision = 0, srcScale = 0, destPrecision = 0, srcJdbcType = 0;
+        int srcPrecision, srcScale, destPrecision, srcJdbcType;
         SSType destSSType = null;
-        boolean isStreaming = false, srcNullable;
+        boolean isStreaming, srcNullable;
         srcPrecision = srcColumnMetadata.get(srcColOrdinal).precision;
         srcScale = srcColumnMetadata.get(srcColOrdinal).scale;
         srcJdbcType = srcColumnMetadata.get(srcColOrdinal).jdbcType;
@@ -2603,6 +2971,10 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable {
                     || ((null != destCryptoMeta) && (null != colValue)))) {
                 validateDataTypeConversions(srcColOrdinal, destColOrdinal);
             }
+        }
+        //If we are using ISQLBulkRecord and the data we are passing is char type, we need to check the source and dest precision
+        else if (null != sourceBulkRecord && (null == destCryptoMeta)) {
+            validateStringBinaryLengths(colValue, srcColOrdinal, destColOrdinal);
         }
         else if ((null != sourceBulkRecord) && (null != destCryptoMeta)) {
             // From CSV to encrypted column. Convert to respective object.
@@ -2723,16 +3095,14 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable {
             switch (srcJdbcType) {
                 case java.sql.Types.TIMESTAMP:
                 case java.sql.Types.TIME:
-                    return null;
                 case java.sql.Types.DATE:
-                    return null;
                 case microsoft.sql.Types.DATETIMEOFFSET:
                     return null;
             }
         }
 
         // If we are here value is non-null.
-        Calendar cal = null;
+        Calendar cal;
 
         // Get the temporal values from the formatter
         DateTimeFormatter dateTimeFormatter = srcColumnMetadata.get(srcColOrdinal).dateTimeFormatter;
@@ -2777,7 +3147,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable {
 
                     startIndx = ++endIndx; // skip the :
                     endIndx = valueStr.indexOf('.', startIndx);
-                    int seconds = 0, offsethour, offsetMinute, totalOffset = 0, fractionalSeconds = 0;
+                    int seconds, offsethour, offsetMinute, totalOffset = 0, fractionalSeconds = 0;
                     boolean isNegativeOffset = false;
                     boolean hasTimeZone = false;
                     int fractionalSecondsLength = 0;
@@ -2807,7 +3177,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable {
                         }
                         else {
                             seconds = Integer.parseInt(valueStr.substring(startIndx));
-                            startIndx = ++endIndx; // skip the space
+                            ++endIndx; // skip the space
                         }
                     }
                     if (hasTimeZone) {
@@ -2867,8 +3237,8 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable {
             Object colValue,
             int srcColOrdinal,
             int scale) throws SQLServerException {
-        long utcMillis = 0;
-        GregorianCalendar calendar = null;
+        long utcMillis;
+        GregorianCalendar calendar;
 
         switch (srcTemporalJdbcType) {
             case DATE:
@@ -2886,7 +3256,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable {
                 calendar.clear();
                 utcMillis = ((java.sql.Timestamp) colValue).getTime();
                 calendar.setTimeInMillis(utcMillis);
-                int subSecondNanos = 0;
+                int subSecondNanos;
                 if (colValue instanceof java.sql.Timestamp) {
                     subSecondNanos = ((java.sql.Timestamp) colValue).getNanos();
                 }
@@ -2947,62 +3317,62 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable {
         try {
             switch (destJdbcType) {
                 case BIT:
-                    longValue = Long.valueOf((Boolean) value ? 1 : 0);
-                    return ByteBuffer.allocate(Long.SIZE / Byte.SIZE).order(ByteOrder.LITTLE_ENDIAN).putLong(longValue.longValue()).array();
+                    longValue = (long) ((Boolean) value ? 1 : 0);
+                    return ByteBuffer.allocate(Long.SIZE / Byte.SIZE).order(ByteOrder.LITTLE_ENDIAN).putLong(longValue).array();
 
                 case TINYINT:
                 case SMALLINT:
                     switch (srcJdbcType) {
                         case BIT:
-                            longValue = new Long((Boolean) value ? 1 : 0);
+                            longValue = (long) ((Boolean) value ? 1 : 0);
                             break;
                         default:
                             if (value instanceof Integer) {
                                 int intValue = (int) value;
                                 short shortValue = (short) intValue;
-                                longValue = new Long(shortValue);
+                                longValue = (long) shortValue;
                             }
                             else
-                                longValue = new Long((short) value);
+                                longValue = (long) (short) value;
 
                     }
-                    return ByteBuffer.allocate(Long.SIZE / Byte.SIZE).order(ByteOrder.LITTLE_ENDIAN).putLong(longValue.longValue()).array();
+                    return ByteBuffer.allocate(Long.SIZE / Byte.SIZE).order(ByteOrder.LITTLE_ENDIAN).putLong(longValue).array();
 
                 case INTEGER:
                     switch (srcJdbcType) {
                         case BIT:
-                            longValue = new Long((Boolean) value ? 1 : 0);
+                            longValue = (long) ((Boolean) value ? 1 : 0);
                             break;
                         case TINYINT:
                         case SMALLINT:
-                            longValue = new Long((short) value);
+                            longValue = (long) (short) value;
                             break;
                         default:
                             longValue = new Long((Integer) value);
                     }
-                    return ByteBuffer.allocate(Long.SIZE / Byte.SIZE).order(ByteOrder.LITTLE_ENDIAN).putLong(longValue.longValue()).array();
+                    return ByteBuffer.allocate(Long.SIZE / Byte.SIZE).order(ByteOrder.LITTLE_ENDIAN).putLong(longValue).array();
 
                 case BIGINT:
                     switch (srcJdbcType) {
                         case BIT:
-                            longValue = new Long((Boolean) value ? 1 : 0);
+                            longValue = (long) ((Boolean) value ? 1 : 0);
                             break;
                         case TINYINT:
                         case SMALLINT:
-                            longValue = new Long((short) value);
+                            longValue = (long) (short) value;
                             break;
                         case INTEGER:
                             longValue = new Long((Integer) value);
                             break;
                         default:
-                            longValue = new Long((long) value);
+                            longValue = (long) value;
                     }
-                    return ByteBuffer.allocate(Long.SIZE / Byte.SIZE).order(ByteOrder.LITTLE_ENDIAN).putLong(longValue.longValue()).array();
+                    return ByteBuffer.allocate(Long.SIZE / Byte.SIZE).order(ByteOrder.LITTLE_ENDIAN).putLong(longValue).array();
 
                 case BINARY:
                 case VARBINARY:
                 case LONGVARBINARY:
-                    byte[] byteArrayValue = null;
+                    byte[] byteArrayValue;
                     if (value instanceof String) {
                         byteArrayValue = ParameterUtils.HexToBin((String) value);
                     }
@@ -3132,7 +3502,9 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable {
      * Writes data for a batch of rows to the TDSWriter object. Writes the following part in the BulkLoadBCP stream
      * (https://msdn.microsoft.com/en-us/library/dd340549.aspx) <ROW> ... </ROW>
      */
-    private boolean writeBatchData(TDSWriter tdsWriter) throws SQLServerException {
+    private boolean writeBatchData(TDSWriter tdsWriter,
+            TDSCommand command,
+            boolean insertRowByRow) throws SQLServerException {
         int batchsize = copyOptions.getBatchSize();
         int row = 0;
         while (true) {
@@ -3144,6 +3516,13 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable {
             // No more data available, return false so we do not execute any more batches.
             if (!goToNextRow())
                 return false;
+            
+            if (insertRowByRow) {
+                // read response gotten from goToNextRow()
+                ((SQLServerResultSet) sourceResultSet).getTDSReader().readPacket();
+
+                tdsWriter = sendBulkCopyCommand(command);
+            }
 
             // Write row header for each row.
             tdsWriter.writeByte((byte) TDS.TDS_ROW);
@@ -3153,29 +3532,45 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable {
             if (null != sourceResultSet) {
                 // Loop for each destination column. The mappings is a many to one mapping
                 // where multiple source columns can be mapped to one destination column.
-                for (int i = 0; i < mappingColumnCount; ++i) {
-                    writeColumn(tdsWriter, columnMappings.get(i).sourceColumnOrdinal, columnMappings.get(i).destinationColumnOrdinal, null // cell
-                                                                                                                                           // value is
-                                                                                                                                           // retrieved
-                                                                                                                                           // inside
-                                                                                                                                           // writeRowData()
-                                                                                                                                           // method.
+                for (ColumnMapping columnMapping : columnMappings) {
+                    writeColumn(tdsWriter, columnMapping.sourceColumnOrdinal, columnMapping.destinationColumnOrdinal, null // cell
+                            // value is
+                            // retrieved
+                            // inside
+                            // writeRowData()
+                            // method.
                     );
                 }
             }
             // Copy from a file.
             else {
                 // Get all the column values of the current row.
-                Object[] rowObjects = sourceBulkRecord.getRowData();
+                Object[] rowObjects;
 
-                for (int i = 0; i < mappingColumnCount; ++i) {
+                try {
+                    rowObjects = sourceBulkRecord.getRowData();
+                }
+                catch (Exception ex) {
+                    // if no more data available to retrive
+                    throw new SQLServerException(SQLServerException.getErrString("R_unableRetrieveSourceData"), ex);
+                }
+
+                for (ColumnMapping columnMapping : columnMappings) {
                     // If the SQLServerBulkCSVRecord does not have metadata for columns, it returns strings in the object array.
                     // COnvert the strings using destination table types.
-                    writeColumn(tdsWriter, columnMappings.get(i).sourceColumnOrdinal, columnMappings.get(i).destinationColumnOrdinal,
-                            rowObjects[columnMappings.get(i).sourceColumnOrdinal - 1]);
+                    writeColumn(tdsWriter, columnMapping.sourceColumnOrdinal, columnMapping.destinationColumnOrdinal,
+                            rowObjects[columnMapping.sourceColumnOrdinal - 1]);
                 }
             }
             row++;
+
+            if (insertRowByRow) {
+                writePacketDataDone(tdsWriter);
+                tdsWriter.setCryptoMetaData(null);
+
+                // Send to the server and read response.
+                TDSParser.parse(command.startResponse(), command.getLogContext());
+            }
         }
     }
 }

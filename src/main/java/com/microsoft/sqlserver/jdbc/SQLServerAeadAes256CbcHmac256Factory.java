@@ -21,7 +21,7 @@ import javax.xml.bind.DatatypeConverter;
 class SQLServerAeadAes256CbcHmac256Factory extends SQLServerEncryptionAlgorithmFactory {
     // In future we can have more
     private byte algorithmVersion = 0x1;
-    private ConcurrentHashMap<String, SQLServerAeadAes256CbcHmac256Algorithm> encryptionAlgorithms = new ConcurrentHashMap<String, SQLServerAeadAes256CbcHmac256Algorithm>();
+    private ConcurrentHashMap<String, SQLServerAeadAes256CbcHmac256Algorithm> encryptionAlgorithms = new ConcurrentHashMap<>();
 
     @Override
     SQLServerEncryptionAlgorithm create(SQLServerSymmetricKey columnEncryptionKey,
@@ -36,9 +36,8 @@ class SQLServerAeadAes256CbcHmac256Factory extends SQLServerEncryptionAlgorithmF
             throw new SQLServerException(this, form.format(msgArgs), null, 0, false);
 
         }
-        String factoryKey = "";
 
-        StringBuffer factoryKeyBuilder = new StringBuffer();
+        StringBuilder factoryKeyBuilder = new StringBuilder();
         factoryKeyBuilder.append(DatatypeConverter.printBase64Binary(new String(columnEncryptionKey.getRootKey(), UTF_8).getBytes()));
 
         factoryKeyBuilder.append(":");
@@ -46,7 +45,7 @@ class SQLServerAeadAes256CbcHmac256Factory extends SQLServerEncryptionAlgorithmF
         factoryKeyBuilder.append(":");
         factoryKeyBuilder.append(algorithmVersion);
 
-        factoryKey = factoryKeyBuilder.toString();
+        String factoryKey = factoryKeyBuilder.toString();
 
         SQLServerAeadAes256CbcHmac256Algorithm aesAlgorithm;
 

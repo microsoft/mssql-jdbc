@@ -9,11 +9,13 @@
 package com.microsoft.sqlserver.jdbc;
 
 import java.sql.ParameterMetaData;
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.text.MessageFormat;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.StringTokenizer;
@@ -41,6 +43,8 @@ public final class SQLServerParameterMetaData implements ParameterMetaData {
     /* Used for callable statement meta data */
     private Statement stmtCall;
     private SQLServerResultSet rsProcedureMeta;
+    
+    protected boolean procedureIsFound = false;
 
     static final private java.util.logging.Logger logger = java.util.logging.Logger
             .getLogger("com.microsoft.sqlserver.jdbc.internals.SQLServerParameterMetaData");
@@ -48,6 +52,9 @@ public final class SQLServerParameterMetaData implements ParameterMetaData {
     static private final AtomicInteger baseID = new AtomicInteger(0);	// Unique id generator for each instance (used for logging).
     final private String traceID = " SQLServerParameterMetaData:" + nextInstanceID();
     boolean isTVP = false;
+    
+    private String stringToParse = null;
+    private int indexToBeginParse = -1;
 
     // Returns unique id for each instance.
     private static int nextInstanceID() {
@@ -70,10 +77,11 @@ public final class SQLServerParameterMetaData implements ParameterMetaData {
      *            the list of columns
      * @param columnStartToken
      *            the token that prfixes the column set
+     * @throws SQLServerException 
      */
     /* L2 */ private String parseColumns(String columnSet,
-            String columnStartToken) {
-        StringTokenizer st = new StringTokenizer(columnSet, " =?<>!", true);
+            String columnStartToken) throws SQLServerException {
+        StringTokenizer st = new StringTokenizer(columnSet, " =?<>!\r\n\t\f", true);
         final int START = 0;
         final int PARAMNAME = 1;
         final int PARAMVALUE = 2;
@@ -82,9 +90,12 @@ public final class SQLServerParameterMetaData implements ParameterMetaData {
         String sLastField = null;
         StringBuilder sb = new StringBuilder();
 
+        int sTokenIndex = 0;
         while (st.hasMoreTokens()) {
 
             String sToken = st.nextToken();
+            sTokenIndex = sTokenIndex + sToken.length();
+            
             if (sToken.equalsIgnoreCase(columnStartToken)) {
                 nState = PARAMNAME;
                 continue;
@@ -117,6 +128,7 @@ public final class SQLServerParameterMetaData implements ParameterMetaData {
             }
         }
 
+        indexToBeginParse = sTokenIndex;
         return sb.toString();
     }
 
@@ -127,16 +139,20 @@ public final class SQLServerParameterMetaData implements ParameterMetaData {
      *            the sql syntax
      * @param columnMarker
      *            the token that denotes the start of the column set
+     * @throws SQLServerException 
      */
     /* L2 */ private String parseInsertColumns(String sql,
-            String columnMarker) {
+            String columnMarker) throws SQLServerException {
         StringTokenizer st = new StringTokenizer(sql, " (),", true);
         int nState = 0;
         String sLastField = null;
         StringBuilder sb = new StringBuilder();
 
+        int sTokenIndex = 0;
         while (st.hasMoreTokens()) {
             String sToken = st.nextToken();
+            sTokenIndex = sTokenIndex + sToken.length();
+            
             if (sToken.equalsIgnoreCase(columnMarker)) {
                 nState = 1;
                 continue;
@@ -160,12 +176,18 @@ public final class SQLServerParameterMetaData implements ParameterMetaData {
             }
             if (nState == 1) {
                 if (sToken.trim().length() > 0) {
-                    if (sToken.charAt(0) != ',')
+                    if (sToken.charAt(0) != ',') {
                         sLastField = escapeParse(st, sToken);
+
+                        // in case the parameter has braces in its name, e.g. [c2_nvarchar(max)], the original sToken variable just
+                        // contains [c2_nvarchar, sLastField actually has the whole name [c2_nvarchar(max)]
+                        sTokenIndex = sTokenIndex + (sLastField.length() - sToken.length());
+                    }
                 }
             }
         }
 
+        indexToBeginParse = sTokenIndex;
         return sb.toString();
     }
 
@@ -230,7 +252,7 @@ public final class SQLServerParameterMetaData implements ParameterMetaData {
                             }
                             catch (NumberFormatException e) {
                                 MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_metaDataErrorForParameter"));
-                                Object[] msgArgs = {new Integer(paramOrdinal)};
+                                Object[] msgArgs = {paramOrdinal};
                                 SQLServerException.makeFromDriverError(con, stmtParent, form.format(msgArgs) + " " + e.toString(), null, false);
                             }
                         }
@@ -319,23 +341,29 @@ public final class SQLServerParameterMetaData implements ParameterMetaData {
      * @param st
      *            string tokenizer
      * @param firstToken
+     * @throws SQLServerException
      * @returns the full token
      */
     private String escapeParse(StringTokenizer st,
-            String firstToken) {
-        String nameFragment;
-        String fullName;
-        nameFragment = firstToken;
-        // skip spaces
-        while (nameFragment.equals(" ") && st.hasMoreTokens()) {
-            nameFragment = st.nextToken();
+            String firstToken) throws SQLServerException {
+
+        if (null == firstToken) {
+            MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_NullValue"));
+            Object[] msgArgs1 = {"firstToken"};
+            throw new SQLServerException(form.format(msgArgs1), null);
         }
-        fullName = nameFragment;
-        if (nameFragment.charAt(0) == '[' && nameFragment.charAt(nameFragment.length() - 1) != ']') {
+
+        // skip spaces
+        while ((0 == firstToken.trim().length()) && st.hasMoreTokens()) {
+            firstToken = st.nextToken();
+        }
+
+        String fullName = firstToken;
+        if (firstToken.charAt(0) == '[' && firstToken.charAt(firstToken.length() - 1) != ']') {
             while (st.hasMoreTokens()) {
-                nameFragment = st.nextToken();
-                fullName = fullName.concat(nameFragment);
-                if (nameFragment.charAt(nameFragment.length() - 1) == ']') {
+                firstToken = st.nextToken();
+                fullName = fullName.concat(firstToken);
+                if (firstToken.charAt(firstToken.length() - 1) == ']') {
                     break;
                 }
 
@@ -363,10 +391,11 @@ public final class SQLServerParameterMetaData implements ParameterMetaData {
      *            String
      * @param sTableMarker
      *            the location of the table in the syntax
+     * @throws SQLServerException 
      */
     private MetaInfo parseStatement(String sql,
-            String sTableMarker) {
-        StringTokenizer st = new StringTokenizer(sql, " ,", true);
+            String sTableMarker) throws SQLServerException {
+        StringTokenizer st = new StringTokenizer(sql, " ,\r\n\t\f(", true);
 
         /* Find the table */
 
@@ -374,6 +403,10 @@ public final class SQLServerParameterMetaData implements ParameterMetaData {
         String metaFields = "";
         while (st.hasMoreTokens()) {
             String sToken = st.nextToken().trim();
+
+            if(sToken.contains("*/")){
+                sToken = removeCommentsInTheBeginning(sToken, 0, 0, "/*", "*/");
+            }
 
             if (sToken.equalsIgnoreCase(sTableMarker)) {
                 if (st.hasMoreTokens()) {
@@ -384,12 +417,24 @@ public final class SQLServerParameterMetaData implements ParameterMetaData {
         }
 
         if (null != metaTable) {
-            if (sTableMarker.equalsIgnoreCase("UPDATE"))
+            if (sTableMarker.equalsIgnoreCase("UPDATE")) {
                 metaFields = parseColumns(sql, "SET"); // Get the set fields
-            else if (sTableMarker.equalsIgnoreCase("INTO")) // insert
+                stringToParse = "";
+            }
+            else if (sTableMarker.equalsIgnoreCase("INTO")) { // insert
                 metaFields = parseInsertColumns(sql, "("); // Get the value fields
-            else
+                stringToParse = sql.substring(indexToBeginParse); // the index of ')'
+
+                // skip VALUES() clause
+                if (stringToParse.trim().toLowerCase().startsWith("values")) {
+                    parseInsertColumns(stringToParse, "(");
+                    stringToParse = stringToParse.substring(indexToBeginParse); // the index of ')'
+                }
+            }
+            else {
                 metaFields = parseColumns(sql, "WHERE"); // Get the where fields
+                stringToParse = "";
+            }
 
             return new MetaInfo(metaTable, metaFields);
         }
@@ -405,9 +450,21 @@ public final class SQLServerParameterMetaData implements ParameterMetaData {
      * @throws SQLServerException
      */
     private MetaInfo parseStatement(String sql) throws SQLServerException {
-        StringTokenizer st = new StringTokenizer(sql, " ");
+        StringTokenizer st = new StringTokenizer(sql, " \r\n\t\f");
         if (st.hasMoreTokens()) {
             String sToken = st.nextToken().trim();
+
+            // filter out multiple line comments in the beginning of the query
+            if (sToken.contains("/*")) {
+                String sqlWithoutCommentsInBeginning = removeCommentsInTheBeginning(sql, 0, 0, "/*", "*/");
+                return parseStatement(sqlWithoutCommentsInBeginning);
+            }
+
+            // filter out single line comments in the beginning of the query
+            if (sToken.contains("--")) {
+                String sqlWithoutCommentsInBeginning = removeCommentsInTheBeginning(sql, 0, 0, "--", "\n");
+                return parseStatement(sqlWithoutCommentsInBeginning);
+            }
 
             if (sToken.equalsIgnoreCase("INSERT"))
                 return parseStatement(sql, "INTO"); // INTO marks the table name
@@ -424,82 +481,71 @@ public final class SQLServerParameterMetaData implements ParameterMetaData {
 
         return null;
     }
+    
+    private String removeCommentsInTheBeginning(String sql,
+            int startCommentMarkCount,
+            int endCommentMarkCount,
+            String startMark,
+            String endMark) {
+        int startCommentMarkIndex = sql.indexOf(startMark);
+        int endCommentMarkIndex = sql.indexOf(endMark);
 
-    String parseThreePartNames(String threeName) throws SQLServerException {
-        int noofitems = 0;
-        String procedureName = null;
-        String procedureOwner = null;
-        String procedureQualifier = null;
-        StringTokenizer st = new StringTokenizer(threeName, ".", true);
+        if (-1 == startCommentMarkIndex) {
+            startCommentMarkIndex = Integer.MAX_VALUE;
+        }
+        if (-1 == endCommentMarkIndex) {
+            endCommentMarkIndex = Integer.MAX_VALUE;
+        }
 
-        // parse left to right looking for three part name
-        // note the user can provide three part, two part or one part name
-        while (st.hasMoreTokens()) {
-            String sToken = st.nextToken();
-            String nextItem = escapeParse(st, sToken);
-            if (nextItem.equals(".") == false) {
-                switch (noofitems) {
-                    case 2:
-                        procedureQualifier = procedureOwner;
-                        procedureOwner = procedureName;
-                        procedureName = nextItem;
-                        noofitems++;
-                        break;
-                    case 1:
-                        procedureOwner = procedureName;
-                        procedureName = nextItem;
-                        noofitems++;
-                        break;
-                    case 0:
-                        procedureName = nextItem;
-                        noofitems++;
-                        break;
-                    default:
-                        noofitems++;
-                        break;
-                }
+        // Base case. startCommentMarkCount is guaranteed to be bigger than 0 because the method is called when /* occurs
+        if (startCommentMarkCount == endCommentMarkCount) {
+            if (startCommentMarkCount != 0 && endCommentMarkCount != 0) {
+                return sql;
             }
         }
-        StringBuilder sb = new StringBuilder(100);
 
-        if (noofitems > 3 && 1 < noofitems)
+        // filter out first start comment mark
+        if (startCommentMarkIndex < endCommentMarkIndex) {
+            String sqlWithoutCommentsInBeginning = sql.substring(startCommentMarkIndex + startMark.length());
+            return removeCommentsInTheBeginning(sqlWithoutCommentsInBeginning, ++startCommentMarkCount, endCommentMarkCount, startMark, endMark);
+        }
+        // filter out first end comment mark
+        else {
+            if (Integer.MAX_VALUE == endCommentMarkIndex) {
+                return sql;
+            }
+
+            String sqlWithoutCommentsInBeginning = sql.substring(endCommentMarkIndex + endMark.length());
+            return removeCommentsInTheBeginning(sqlWithoutCommentsInBeginning, startCommentMarkCount, ++endCommentMarkCount, startMark, endMark);
+        }
+    }
+
+    String parseProcIdentifier(String procIdentifier) throws SQLServerException {
+        ThreePartName threePartName = ThreePartName.parse(procIdentifier);
+        StringBuilder sb = new StringBuilder();
+        if (threePartName.getDatabasePart() != null) {
+            sb.append("@procedure_qualifier=");
+            sb.append(threePartName.getDatabasePart());
+            sb.append(", ");
+        }
+        if (threePartName.getOwnerPart() != null) {
+            sb.append("@procedure_owner=");
+            sb.append(threePartName.getOwnerPart());
+            sb.append(", ");
+        }
+        if (threePartName.getProcedurePart() != null) {
+            sb.append("@procedure_name=");
+            sb.append(threePartName.getProcedurePart());
+        } else {
             SQLServerException.makeFromDriverError(con, stmtParent, SQLServerException.getErrString("R_noMetadata"), null, false);
-
-        switch (noofitems) {
-            case 3:
-                sb.append("@procedure_qualifier =");
-                sb.append(procedureQualifier);
-                sb.append(", ");
-                sb.append("@procedure_owner =");
-                sb.append(procedureOwner);
-                sb.append(", ");
-                sb.append("@procedure_name =");
-                sb.append(procedureName);
-                sb.append(", ");
-                break;
-
-            case 2:
-                sb.append("@procedure_owner =");
-                sb.append(procedureOwner);
-                sb.append(", ");
-                sb.append("@procedure_name =");
-                sb.append(procedureName);
-                sb.append(", ");
-                break;
-            case 1:
-                sb.append("@procedure_name =");
-                sb.append(procedureName);
-                sb.append(", ");
-                break;
-            default:
-                break;
         }
         return sb.toString();
-
     }
 
     private void checkClosed() throws SQLServerException {
-        stmtParent.checkClosed();
+        // stmtParent does not seem to be re-used, should just verify connection is not closed.
+        // stmtParent.checkClosed();
+        con.checkClosed();
     }
 
     /**
@@ -517,6 +563,8 @@ public final class SQLServerParameterMetaData implements ParameterMetaData {
         assert null != st;
         stmtParent = st;
         con = st.connection;
+        SQLServerStatement s = null;
+        SQLServerStatement stmt = null;
         if (logger.isLoggable(java.util.logging.Level.FINE)) {
             logger.fine(toString() + " created by (" + st.toString() + ")");
         }
@@ -525,12 +573,22 @@ public final class SQLServerParameterMetaData implements ParameterMetaData {
             // If the CallableStatement/PreparedStatement is a stored procedure call
             // then we can extract metadata using sp_sproc_columns
             if (null != st.procedureName) {
-                SQLServerStatement s = (SQLServerStatement) con.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
-                String sProc = parseThreePartNames(st.procedureName);
+                s = (SQLServerStatement) con.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
+                String sProc = parseProcIdentifier(st.procedureName);
                 if (con.isKatmaiOrLater())
-                    rsProcedureMeta = s.executeQueryInternal("exec sp_sproc_columns_100 " + sProc + " @ODBCVer=3");
+                    rsProcedureMeta = s.executeQueryInternal("exec sp_sproc_columns_100 " + sProc + ", @ODBCVer=3");
                 else
-                    rsProcedureMeta = s.executeQueryInternal("exec sp_sproc_columns " + sProc + " @ODBCVer=3");
+                    rsProcedureMeta = s.executeQueryInternal("exec sp_sproc_columns " + sProc + ", @ODBCVer=3");
+                
+                // if rsProcedureMeta has next row, it means the stored procedure is found
+                if (rsProcedureMeta.next()) {
+                    procedureIsFound = true;
+                }
+                else {
+                    procedureIsFound = false;
+                }
+                rsProcedureMeta.beforeFirst();
+
                 // Sixth is DATA_TYPE
                 rsProcedureMeta.getColumn(6).setFilter(new DataTypeFilter());
                 if (con.isKatmaiOrLater()) {
@@ -545,7 +603,7 @@ public final class SQLServerParameterMetaData implements ParameterMetaData {
             // procedure "sp_describe_undeclared_parameters" to retrieve parameter meta data
             // if SQL server version is 2008, then use FMTONLY
             else {
-                queryMetaMap = new HashMap<Integer, QueryMeta>();
+                queryMetaMap = new HashMap<>();
 
                 if (con.getServerMajorVersion() >= SQL_SERVER_2012_VERSION) {
                     // new implementation for SQL verser 2012 and above
@@ -559,38 +617,80 @@ public final class SQLServerParameterMetaData implements ParameterMetaData {
                 }
                 else {
                     // old implementation for SQL server 2008
-                    MetaInfo metaInfo = parseStatement(sProcString);
-                    if (null == metaInfo) {
-                        MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_cantIdentifyTableMetadata"));
-                        Object[] msgArgs = {sProcString};
-                        SQLServerException.makeFromDriverError(con, stmtParent, form.format(msgArgs), null, false);
+                    stringToParse = sProcString;
+                    ArrayList<MetaInfo> metaInfoList = new ArrayList<>();
+                    
+                    while (stringToParse.length() > 0) {
+                        MetaInfo metaInfo = parseStatement(stringToParse);
+                        if (null == metaInfo) {
+                            MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_cantIdentifyTableMetadata"));
+                            Object[] msgArgs = {stringToParse};
+                            SQLServerException.makeFromDriverError(con, stmtParent, form.format(msgArgs), null, false);
+                        }
+
+                        metaInfoList.add(metaInfo);
+                    }
+                    if (metaInfoList.size() <= 0 || metaInfoList.get(0).fields.length() <= 0) {
+                        return;
+                    }
+                    
+                    StringBuilder sbColumns = new StringBuilder();
+
+                    for (MetaInfo mi : metaInfoList) {
+                        sbColumns = sbColumns.append(mi.fields + ",");
+                    }
+                    sbColumns.deleteCharAt(sbColumns.length() - 1);
+
+                    String columns = sbColumns.toString();
+
+                    StringBuilder sbTablesAndJoins = new StringBuilder();
+                    for (int i = 0; i < metaInfoList.size(); i++) {
+                        if (i == 0) {
+                            sbTablesAndJoins = sbTablesAndJoins.append(metaInfoList.get(i).table);
+                        }
+                        else {
+                            if (metaInfoList.get(i).table.equals(metaInfoList.get(i - 1).table)
+                                    && metaInfoList.get(i).fields.equals(metaInfoList.get(i - 1).fields)) {
+                                continue;
+                            }
+                            sbTablesAndJoins = sbTablesAndJoins
+                                    .append(" LEFT JOIN " + metaInfoList.get(i).table + " ON " + metaInfoList.get(i - 1).table + "."
+                                            + metaInfoList.get(i - 1).fields + "=" + metaInfoList.get(i).table + "." + metaInfoList.get(i).fields);
+                        }
                     }
 
-                    if (metaInfo.fields.length() <= 0)
-                        return;
+                    String tablesAndJoins = sbTablesAndJoins.toString();
 
-                    Statement stmt = con.createStatement();
-                    String sCom = "sp_executesql N'SET FMTONLY ON SELECT " + metaInfo.fields + " FROM " + metaInfo.table + " WHERE 1 = 2'";
+                    stmt = (SQLServerStatement) con.createStatement();
+                    String sCom = "sp_executesql N'SET FMTONLY ON SELECT " + columns + " FROM " + tablesAndJoins + " '";
+
                     ResultSet rs = stmt.executeQuery(sCom);
                     parseQueryMetaFor2008(rs);
-                    stmt.close();
-                    rs.close();
                 }
             }
+        }
+        // Do not need to wrapper SQLServerException again
+        catch (SQLServerException e) {
+            throw e;
         }
         catch (SQLException e) {
             SQLServerException.makeFromDriverError(con, stmtParent, e.toString(), null, false);
         }
+        catch(StringIndexOutOfBoundsException e){
+            SQLServerException.makeFromDriverError(con, stmtParent, e.toString(), null, false);
+        }
+        finally {
+            if (null != stmt)
+                stmt.close();
+        }
     }
 
     public boolean isWrapperFor(Class<?> iface) throws SQLException {
-        DriverJDBCVersion.checkSupportsJDBC4();
         boolean f = iface.isInstance(this);
         return f;
     }
 
     public <T> T unwrap(Class<T> iface) throws SQLException {
-        DriverJDBCVersion.checkSupportsJDBC4();
         T t;
         try {
             t = iface.cast(this);
@@ -613,12 +713,12 @@ public final class SQLServerParameterMetaData implements ParameterMetaData {
         }
         catch (SQLException e) {
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_metaDataErrorForParameter"));
-            Object[] msgArgs = {new Integer(param)};
+            Object[] msgArgs = {param};
             SQLServerException.makeFromDriverError(con, stmtParent, form.format(msgArgs) + " " + e.toString(), null, false);
         }
         if (!bFound) {
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidParameterNumber"));
-            Object[] msgArgs = {new Integer(param)};
+            Object[] msgArgs = {param};
             SQLServerException.makeFromDriverError(con, stmtParent, form.format(msgArgs), null, false);
         }
     }

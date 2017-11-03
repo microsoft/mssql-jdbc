@@ -35,7 +35,7 @@ class BulkCopyTestWrapper {
      */
     private boolean isUsingColumnMapping = false;
 
-    public LinkedList<ColumnMap> cm = new LinkedList<ColumnMap>();
+    public LinkedList<ColumnMap> cm = new LinkedList<>();
 
     private SQLServerBulkCopyOptions bulkOptions;
 
