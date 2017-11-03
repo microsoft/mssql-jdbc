@@ -1716,7 +1716,7 @@ public class SQLServerConnection implements ISQLServerConnection {
             sPropKey = SQLServerDriverStringProperty.SSL_PROTOCOL.toString();
             sPropValue = activeConnectionProperties.getProperty(sPropKey);
             if (null == sPropValue) {
-                sPropValue = SQLServerDriverStringProperty.SSL_PROTOCOL.getDefaultValue().toString();
+                sPropValue = SQLServerDriverStringProperty.SSL_PROTOCOL.getDefaultValue();
                 activeConnectionProperties.setProperty(sPropKey, sPropValue);
             }
             else {
@@ -6102,7 +6102,7 @@ public class SQLServerConnection implements ISQLServerConnection {
                 browserResult = new String(receiveBuffer, 3, receiveBuffer.length - 3);
                 if (connectionlogger.isLoggable(Level.FINER))
                     connectionlogger.fine(
-                            toString() + " Received SSRP UDP response from IP address: " + udpResponse.getAddress().getHostAddress().toString());
+                            toString() + " Received SSRP UDP response from IP address: " + udpResponse.getAddress().getHostAddress());
             }
             catch (IOException ioException) {
                 // Warn and retry
