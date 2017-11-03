@@ -14,6 +14,7 @@ import static org.junit.jupiter.api.Assertions.fail;
 import java.sql.DriverManager;
 import java.sql.SQLException;
 
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
@@ -125,12 +126,16 @@ public class TimeoutTest extends AbstractTest {
      * @throws Exception
      */
     @Test
+    @Disabled
     public void testSocketTimeout() throws Exception {
+        
         SQLServerConnection conn = (SQLServerConnection) DriverManager.getConnection(connectionString);
 
         dropWaitForDelayProcedure(conn);
         createWaitForDelayPreocedure(conn);
 
+        // cancel connection resilience to test socketTimeout
+        connectionString += ";connectRetryCount=0";
         conn = (SQLServerConnection) DriverManager.getConnection(connectionString + ";socketTimeout=" + (waitForDelaySeconds * 1000 / 2) + ";");
 
         try {

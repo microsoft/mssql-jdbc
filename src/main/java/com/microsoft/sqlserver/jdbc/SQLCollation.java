@@ -91,6 +91,10 @@ final class SQLCollation implements java.io.Serializable
       tdsWriter.writeByte((byte) (sortId & 0xFF));
     }
 
+    boolean isEqual(SQLCollation col) {     
+        return ((col != null && col.info == info && col.sortId == sortId) ? true : false);
+    }
+    
     /**
      * Enumeration of Windows locales recognized by SQL Server.
      *
@@ -596,6 +600,9 @@ enum Encoding
         return this;
     }
 
+    final String charsetName() {
+        return charsetName;
+    }
     final Charset charset() throws SQLServerException {
         try {
             checkSupported();
