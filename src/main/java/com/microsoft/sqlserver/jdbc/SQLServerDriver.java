@@ -12,6 +12,7 @@ import java.sql.DriverManager;
 import java.sql.DriverPropertyInfo;
 import java.sql.SQLException;
 import java.sql.SQLFeatureNotSupportedException;
+import java.sql.Statement;
 import java.text.MessageFormat;
 import java.util.Enumeration;
 import java.util.Locale;
@@ -264,6 +265,7 @@ enum SQLServerDriverStringProperty
 {
 	APPLICATION_INTENT         ("applicationIntent",       ApplicationIntent.READ_WRITE.toString()),
 	APPLICATION_NAME           ("applicationName",         SQLServerDriver.DEFAULT_APP_NAME),
+	CONNECTION_DATEFORMAT      ("connectionDateformat",    ""),
 	DATABASE_NAME              ("databaseName",            ""),
 	FAILOVER_PARTNER           ("failoverPartner",         ""),
 	HOSTNAME_IN_CERTIFICATE    ("hostNameInCertificate",   ""),
@@ -384,6 +386,7 @@ public final class SQLServerDriver implements java.sql.Driver {
         new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.APPLICATION_INTENT.toString(),    				      SQLServerDriverStringProperty.APPLICATION_INTENT.getDefaultValue(), 									  false,	  new String[]{ApplicationIntent.READ_ONLY.toString(), ApplicationIntent.READ_WRITE.toString()}),            	
         new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.APPLICATION_NAME.toString(),    					      SQLServerDriverStringProperty.APPLICATION_NAME.getDefaultValue(), 									  false,	  null),
         new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.COLUMN_ENCRYPTION.toString(),            			      SQLServerDriverStringProperty.COLUMN_ENCRYPTION.getDefaultValue(),       							      false,      new String[] {ColumnEncryptionSetting.Disabled.toString(), ColumnEncryptionSetting.Enabled.toString()}),
+        new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.CONNECTION_DATEFORMAT.toString(),                       SQLServerDriverStringProperty.CONNECTION_DATEFORMAT.getDefaultValue(),                                      false,      new String[] {ColumnEncryptionSetting.Disabled.toString(), ColumnEncryptionSetting.Enabled.toString()}),
         new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.DATABASE_NAME.toString(),       					      SQLServerDriverStringProperty.DATABASE_NAME.getDefaultValue(),       								      false,      null),                        
         new SQLServerDriverPropertyInfo(SQLServerDriverBooleanProperty.DISABLE_STATEMENT_POOLING.toString(), 			      Boolean.toString(SQLServerDriverBooleanProperty.DISABLE_STATEMENT_POOLING.getDefaultValue()),       	  false,      new String[] {"true"}),
         new SQLServerDriverPropertyInfo(SQLServerDriverBooleanProperty.ENCRYPT.toString(),                      		      Boolean.toString(SQLServerDriverBooleanProperty.ENCRYPT.getDefaultValue()),        					  false,      TRUE_FALSE),
@@ -605,7 +608,7 @@ public final class SQLServerDriver implements java.sql.Driver {
     }
 
     /* L0 */ public java.sql.Connection connect(String Url,
-            Properties suppliedProperties) throws SQLServerException {
+            Properties suppliedProperties) throws SQLServerException, SQLException {
         loggerExternal.entering(getClassNameLogging(), "connect", "Arguments not traced.");
         SQLServerConnection result = null;
 

@@ -213,10 +213,6 @@ public class SQLServerDataSource implements ISQLServerDataSource, DataSource, ja
         return getStringProperty(connectionProps, SQLServerDriverStringProperty.ACCESS_TOKEN.toString(), null);
     }
 
-    // If lastUpdateCount is set to true, the driver will return only the last update
-    // count from all the update counts returned by a batch. The default of false will
-    // return all update counts. If lastUpdateCount is not set, getLastUpdateCount
-    // returns the default value of false.
     /**
      * Enables/disables Always Encrypted functionality for the data source object. The default is Disabled.
      * 
@@ -235,6 +231,29 @@ public class SQLServerDataSource implements ISQLServerDataSource, DataSource, ja
     public String getColumnEncryptionSetting() {
         return getStringProperty(connectionProps, SQLServerDriverStringProperty.COLUMN_ENCRYPTION.toString(),
                 SQLServerDriverStringProperty.COLUMN_ENCRYPTION.getDefaultValue());
+    }
+
+    /**
+     * Sets the connectionDateformat setting for the data source object.
+     * <p>
+     * Corresponds to the {@code SET DATEFORMAT} statement in T-SQL.
+     * <P>
+     * Valid values: "mdy", "dmy", "ymd", "ydm", "myd", "dym"
+     * 
+     * @param connectionDateformatSetting
+     */
+    public void setConnectionDateformatSetting(String connectionDateformatSetting) {
+        setStringProperty(connectionProps, SQLServerDriverStringProperty.CONNECTION_DATEFORMAT.toString(), connectionDateformatSetting);
+    }
+
+    /**
+     * Retrieves the connectionDateformat setting for the data source object.
+     * 
+     * @return the connectionDateformat setting for the data source object.
+     */
+    public String getConnectionDateformatSetting() {
+        return getStringProperty(connectionProps, SQLServerDriverStringProperty.CONNECTION_DATEFORMAT.toString(),
+                SQLServerDriverStringProperty.CONNECTION_DATEFORMAT.getDefaultValue());
     }
 
     /**
@@ -289,10 +308,30 @@ public class SQLServerDataSource implements ISQLServerDataSource, DataSource, ja
                 SQLServerDriverStringProperty.KEY_STORE_LOCATION.getDefaultValue());
     }
 
+    /**
+     * Sets the lastUpdateCount setting for the data source object.
+     * <p>
+     * If lastUpdateCount is set to true, the driver will return only the last update
+     * count from all the update counts returned by a batch. The default of false will
+     * return all update counts.
+     * 
+     * @param keyStoreLocation
+     *            the location including the file name for the Java keystore.
+     */
     public void setLastUpdateCount(boolean lastUpdateCount) {
         setBooleanProperty(connectionProps, SQLServerDriverBooleanProperty.LAST_UPDATE_COUNT.toString(), lastUpdateCount);
     }
 
+    /**
+     * Retrieves the lastUpdateCount setting for the data source object.
+     * <p>
+     * If lastUpdateCount is not set, getLastUpdateCount
+     * returns the default value of false.
+     * <p>
+     * See {@link #setLastUpdateCount(boolean)} for details.
+     * 
+     * @return the lastUpdateCount setting for the data source object.
+     */
     public boolean getLastUpdateCount() {
         return getBooleanProperty(connectionProps, SQLServerDriverBooleanProperty.LAST_UPDATE_COUNT.toString(),
                 SQLServerDriverBooleanProperty.LAST_UPDATE_COUNT.getDefaultValue());

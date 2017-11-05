@@ -123,7 +123,7 @@ public class BulkCopyConnectionTest extends BulkCopyTestSetUp {
     void testInvalidConnection3() {
         assertThrows(SQLServerException.class, new org.junit.jupiter.api.function.Executable() {
             @Override
-            public void execute() throws SQLServerException {
+            public void execute() throws SQLException {
                 String connectionUrl = " ";
                 try(SQLServerBulkCopy bulkCopy = new SQLServerBulkCopy(connectionUrl)) {
                 	//do nothing
@@ -140,7 +140,7 @@ public class BulkCopyConnectionTest extends BulkCopyTestSetUp {
     void testInvalidConnection4() {
         assertThrows(SQLServerException.class, new org.junit.jupiter.api.function.Executable() {
             @Override
-            public void execute() throws SQLServerException {
+            public void execute() throws SQLException {
                 String connectionUrl = null;
                 try(SQLServerBulkCopy bulkCopy = new SQLServerBulkCopy(connectionUrl)) {
                 	//do nothing

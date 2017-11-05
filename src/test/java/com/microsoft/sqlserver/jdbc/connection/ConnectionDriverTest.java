@@ -549,4 +549,28 @@ public class ConnectionDriverTest extends AbstractTest {
 
         assertTrue(isInterrupted, "Thread's interrupt status is not set.");
     }
+
+    @Test
+    public void testConnectionDateformat() throws SQLException {
+        SQLServerConnection conn = (SQLServerConnection) DriverManager.getConnection(connectionString);
+        String defaultValueForConnection = getDbccUseroptionsValue(conn, "dateformat");
+        conn.close();
+        String overrideValue = defaultValueForConnection.equals("mdy") ? "ymd" : "mdy";
+        conn = (SQLServerConnection) DriverManager.getConnection(connectionString + ";connectionDateformat=" + overrideValue);
+        assertEquals(overrideValue, getDbccUseroptionsValue(conn, "dateformat"));
+        conn.close();
+    }
+    
+    private String getDbccUseroptionsValue(SQLServerConnection conn, String setOption) throws SQLException {
+        String rtn = null;
+        Statement st = conn.createStatement();
+        ResultSet rs = st.executeQuery("DBCC USEROPTIONS");
+        while (rs.next()) {
+            if (rs.getString("Set Option").equals(setOption)) {
+                rtn = rs.getString("Value");
+                break;
+            }
+        }
+        return rtn;
+    }
 }

@@ -999,7 +999,7 @@ public class SQLServerConnection implements ISQLServerConnection {
     /**
      * Check if the connection is closed Create a new connection if it's a fedauth connection and the access token is going to expire.
      * 
-     * @throws SQLServerException
+     * @throws SQLServerException 
      */
     /* L0 */ void checkClosed() throws SQLServerException {
         if (isSessionUnAvailable()) {
@@ -1073,7 +1073,33 @@ public class SQLServerConnection implements ISQLServerConnection {
 
         for (int retryAttempt = 0;;) {
             try {
-                return connectInternal(propsIn, pooledConnection);
+                Connection result = connectInternal(propsIn, pooledConnection);
+                
+                String connectionDateformatValue = propsIn.getProperty(SQLServerDriverStringProperty.CONNECTION_DATEFORMAT.toString(), "").trim();
+                if (connectionDateformatValue.length() > 0) {
+                    switch (connectionDateformatValue) {
+                        // valid values per https://support.microsoft.com/en-us/help/173907/inf-how-to-set-the-day-month-year-date-format-in-sql-server
+                        case "mdy":
+                        case "dmy":
+                        case "ymd":
+                        case "ydm":
+                        case "myd":
+                        case "dym":
+                            try {
+                                Statement st = result.createStatement();
+                                st.execute(String.format("SET DATEFORMAT '%s'", connectionDateformatValue));
+                                break;
+                            } catch (SQLException se) {
+                                throw new SQLServerException("connectionDateformat SET DATEFORMAT call failed", se);
+                            }
+                        default:
+                            throw new IllegalArgumentException(
+                                    String.format("Invalid value for %s: %s", 
+                                    SQLServerDriverStringProperty.CONNECTION_DATEFORMAT.toString(),
+                                    connectionDateformatValue));
+                    }
+                }
+                return result;
             }
             catch (SQLServerException e) {
                 // Catch only the TLS 1.2 specific intermittent error.

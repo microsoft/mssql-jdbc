@@ -160,6 +160,7 @@ public final class SQLServerResource extends ListResourceBundle {
 				{"R_portNumberPropertyDescription", "The TCP port where an instance of SQL Server is listening."},
 				{"R_serverSpnPropertyDescription", "SQL Server SPN."},
 				{"R_columnEncryptionSettingPropertyDescription", "The column encryption setting."},
+                {"R_connectionDateformatPropertyDescription", "The T-SQL DATEFORMAT setting for this connection."},
 				{"R_serverNameAsACEPropertyDescription", "Translates the serverName from Unicode to ASCII Compatible Encoding (ACE), as defined by the ToASCII operation of RFC 3490."},
 				{"R_sendStringParametersAsUnicodePropertyDescription", "Determines if the string parameters are sent to the server as Unicode or the database's character set."},
 				{"R_multiSubnetFailoverPropertyDescription", "Indicates that the application is connecting to the Availability Group Listener of an Availability Group or Failover Cluster Instance."},

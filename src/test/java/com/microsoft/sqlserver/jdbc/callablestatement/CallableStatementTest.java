@@ -196,7 +196,7 @@ public class CallableStatementTest extends AbstractTest {
 
     private static void createInputParamsProcedure(Statement stmt) throws SQLException {
         String sql = 
-                "CREATE PROCEDURE [dbo].[CallableStatementTest_inputParams_SP] " +
+                "CREATE PROCEDURE [dbo].[" + inputParamsProcedureName + "] " +
                 "    @p1 nvarchar(max) = N'parameter1', " +
                 "    @p2 nvarchar(max) = N'parameter2' " +
                 "AS " +

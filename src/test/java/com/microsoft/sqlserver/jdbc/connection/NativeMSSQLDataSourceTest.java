@@ -35,6 +35,14 @@ import com.microsoft.sqlserver.testframework.AbstractTest;
 public class NativeMSSQLDataSourceTest extends AbstractTest {
 
     @Test
+    public void testConnectionDateformatSetting() {
+        final String testValue = "dym";  // an unlikely, but valid, value
+        SQLServerDataSource ds = new SQLServerDataSource();
+        ds.setConnectionDateformatSetting(testValue);
+        assertEquals(testValue, ds.getConnectionDateformatSetting());
+    }
+    
+    @Test
     public void testNativeMSSQLDataSource() throws SQLException {
         SQLServerXADataSource ds = new SQLServerXADataSource();
         ds.setLastUpdateCount(true);

@@ -356,7 +356,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable {
      * @throws SQLServerException
      *             If a connection cannot be established.
      */
-    public SQLServerBulkCopy(String connectionUrl) throws SQLServerException {
+    public SQLServerBulkCopy(String connectionUrl) throws SQLServerException, SQLException {
         loggerExternal.entering(loggerClassName, "SQLServerBulkCopy", "connectionUrl not traced.");
         if ((connectionUrl == null) || "".equals(connectionUrl.trim())) {
             throw new SQLServerException(null, SQLServerException.getErrString("R_nullConnection"), null, 0, false);
