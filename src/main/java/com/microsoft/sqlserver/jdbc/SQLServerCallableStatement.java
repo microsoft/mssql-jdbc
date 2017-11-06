@@ -314,7 +314,7 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
 
                 // Discard the last-indexed parameter by skipping over it and
                 // discarding the value if it is no longer needed.
-                if (-1 != outParamIndex || (-1 != outParamIndex && discardValues)) {
+                if (-1 != outParamIndex ) { 
                     inOutParam[outParamIndex].skipValue(resultsReader(), discardValues);
                     if (discardValues)
                         inOutParam[outParamIndex].resetOutputValue();
