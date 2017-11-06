@@ -496,7 +496,6 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         resetForReexecute();
 
         definitionChanged = false;
-        String cacahedPreparedTypeDefinitions = preparedTypeDefinitions;
 
         // If this request might be a query (as opposed to an update) then make
         // sure we set the max number of rows and max field size for any ResultSet
@@ -534,11 +533,6 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
             // fix an issue when inserting unicode into non-encrypted nchar column using setString() and AE is on on Connection
             hasNewTypeDefinitions = buildPreparedStrings(inOutParam, true);
-        }
-
-        if (cacahedPreparedTypeDefinitions != null && cacahedPreparedTypeDefinitions.equals(preparedTypeDefinitions)) {
-            definitionChanged = true;
-            cacahedPreparedTypeDefinitions = preparedTypeDefinitions;
         }
 
         if (reuseCachedHandle(hasNewTypeDefinitions, false)) {
@@ -912,6 +906,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 	/** Manage re-using cached handles */
 	private boolean reuseCachedHandle(boolean hasNewTypeDefinitions, boolean discardCurrentCacheItem) {
         if (definitionChanged) {
+            prepStmtHandle = -1; // so that hasPreparedStatementHandle() also returns false
             return false;
         }
 
@@ -2564,7 +2559,6 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         Parameter[] batchParam = new Parameter[inOutParam.length];
 
         definitionChanged = false;
-        String cacahedPreparedTypeDefinitions = preparedTypeDefinitions;
 
         TDSWriter tdsWriter = null;
         while (numBatchesExecuted < numBatches) {
@@ -2588,11 +2582,6 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                 for (Parameter aBatchParam : batchParam) {
                     cryptoMetaBatch.add(aBatchParam.cryptoMeta);
                 }
-            }
-
-            if (cacahedPreparedTypeDefinitions != null && cacahedPreparedTypeDefinitions.equals(preparedTypeDefinitions)) {
-                definitionChanged = true;
-                cacahedPreparedTypeDefinitions = preparedTypeDefinitions;
             }
 
             // Update the crypto metadata for this batch.
