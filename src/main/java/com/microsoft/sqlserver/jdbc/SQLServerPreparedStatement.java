@@ -2618,7 +2618,6 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
             if (doPrepExec(tdsWriter, batchParam, hasNewTypeDefinitions, hasExistingTypeDefinitions) || numBatchesPrepared == numBatches) {
                 ensureExecuteResultsReader(batchCommand.startResponse(getIsResponseBufferingAdaptive()));
 
-                boolean retry = false;
                 while (numBatchesExecuted < numBatchesPrepared) {
                     // NOTE:
                     // When making changes to anything below, consider whether similar changes need
@@ -2653,6 +2652,11 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                         updateCount = Statement.EXECUTE_FAILED;
                         if (null == batchCommand.batchException)
                             batchCommand.batchException = e;
+
+                        // throw the initial batchException
+                        if (null != batchCommand.batchException) {
+                            throw e;
+                        }
                     }
 
                     // In batch execution, we have a special update count
@@ -2662,8 +2666,6 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
                     numBatchesExecuted++;
                 }
-                if (retry)
-                    continue;
 
                 // Only way to proceed with preparing the next set of batches is if
                 // we successfully executed the previously prepared set.

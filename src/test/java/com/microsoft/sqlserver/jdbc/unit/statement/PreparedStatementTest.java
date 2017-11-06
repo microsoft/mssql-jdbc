@@ -220,7 +220,7 @@ public class PreparedStatementTest extends AbstractTest {
                 try {
                     updateCounts = pstmt.executeBatch();
                 }
-                catch (BatchUpdateException e) {
+                catch (SQLServerException e) {
                     // Error "Prepared handle GAH" is expected to happen. But it should not terminate the execution with RAISERROR.
                     // Since the original "Could not find prepared statement with handle" error does not terminate the execution after it.
                     if (!e.getMessage().contains("Prepared handle GAH")) {
