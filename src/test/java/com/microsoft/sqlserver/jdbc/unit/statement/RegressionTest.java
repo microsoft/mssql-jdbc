@@ -8,12 +8,17 @@
 package com.microsoft.sqlserver.jdbc.unit.statement;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 import java.sql.DriverManager;
+import java.sql.JDBCType;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.sql.Connection;
+import java.sql.Statement;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.sql.Types;
 
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Test;
@@ -21,8 +26,10 @@ import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
 
 import com.microsoft.sqlserver.jdbc.SQLServerConnection;
+import com.microsoft.sqlserver.jdbc.SQLServerPreparedStatement;
 import com.microsoft.sqlserver.testframework.AbstractTest;
 import com.microsoft.sqlserver.testframework.DBConnection;
+import com.microsoft.sqlserver.testframework.Utils;
 
 @RunWith(JUnitPlatform.class)
 public class RegressionTest extends AbstractTest {
@@ -121,16 +128,119 @@ public class RegressionTest extends AbstractTest {
         if (null != con)
             con.close();
     }
+   
+    /**
+     * Tests update query
+     * 
+     * @throws SQLException
+     */
+    @Test
+    public void testUpdateQuery() throws SQLException {
+        assumeTrue("JDBC41".equals(Utils.getConfiguredProperty("JDBC_Version")), "Aborting test case as JDBC version is not compatible. ");
+
+        SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(connectionString);
+        String sql;
+        SQLServerPreparedStatement pstmt = null;
+        JDBCType[] targets = {JDBCType.INTEGER, JDBCType.SMALLINT};
+        int rows = 3;       
+        final String tableName = "[updateQuery]";
+
+        Statement stmt = con.createStatement();
+        Utils.dropTableIfExists(tableName, stmt);
+        stmt.executeUpdate("CREATE TABLE " + tableName + " (" + "c1 int null," + "PK int NOT NULL PRIMARY KEY" + ")");
+
+        /*
+         * populate table
+         */
+        sql = "insert into " + tableName + " values(" + "?,?" + ")";
+        pstmt =  (SQLServerPreparedStatement)con.prepareStatement(sql, ResultSet.TYPE_FORWARD_ONLY,
+                ResultSet.CONCUR_READ_ONLY, connection.getHoldability());
+        
+        for (int i = 1; i <= rows; i++) {
+            pstmt.setObject(1, i, JDBCType.INTEGER);
+            pstmt.setObject(2, i, JDBCType.INTEGER);
+            pstmt.executeUpdate();
+        }
+
+        /*
+         * Update table
+         */
+        sql = "update " + tableName + " SET c1= ? where PK =1";
+        for (int i = 1; i <= rows; i++) {
+            pstmt = (SQLServerPreparedStatement)con.prepareStatement(sql, ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY);
+            for (JDBCType target : targets) {
+                pstmt.setObject(1, 5 + i, target);
+                pstmt.executeUpdate();
+            }
+        }
+        
+        /*
+         * Verify
+         */
+        ResultSet rs =  stmt.executeQuery("select * from " + tableName);
+        rs.next();
+        assertEquals(rs.getInt(1), 8, "Value mismatch");
+       
+
+        if (null != stmt)
+            stmt.close();
+        if (null != con)
+            con.close();
+    }
+
+    private String xmlTableName = "try_SQLXML_Table";
+
+     /**
+     * Tests XML query
+     * 
+     * @throws SQLException
+     */
+    @Test
+    public void testXmlQuery() throws SQLException {
+        assumeTrue("JDBC41".equals(Utils.getConfiguredProperty("JDBC_Version")), "Aborting test case as JDBC version is not compatible. ");
+
+        Connection connection = DriverManager.getConnection(connectionString);
+
+        Statement stmt = connection.createStatement();
+
+        dropTables(stmt);
+        createTable(stmt);
+
+        String sql = "UPDATE " + xmlTableName + " SET [c2] = ?, [c3] = ?";
+        SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) connection.prepareStatement(sql);
+
+        pstmt.setObject(1, null);
+        pstmt.setObject(2, null, Types.SQLXML);
+        pstmt.executeUpdate();
+
+        pstmt = (SQLServerPreparedStatement) connection.prepareStatement(sql);
+        pstmt.setObject(1, null, Types.SQLXML);
+        pstmt.setObject(2, null);
+        pstmt.executeUpdate();
+
+        pstmt = (SQLServerPreparedStatement) connection.prepareStatement(sql);
+        pstmt.setObject(1, null);
+        pstmt.setObject(2, null, Types.SQLXML);
+        pstmt.executeUpdate(); 
+    }
+
+    private void dropTables(Statement stmt) throws SQLException {
+        stmt.executeUpdate("if object_id('" + xmlTableName + "','U') is not null" + " drop table " + xmlTableName);
+    }
+
+    private void createTable(Statement stmt) throws SQLException {
+
+        String sql = "CREATE TABLE " + xmlTableName + " ([c1] int, [c2] xml, [c3] xml)";
+
+        stmt.execute(sql);
+    }
 
     @AfterAll
     public static void terminate() throws SQLException {
         SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(connectionString);
         Statement stmt = con.createStatement();
-        stmt.executeUpdate("IF EXISTS (select * from sysobjects where id = object_id(N'" + tableName + "') and OBJECTPROPERTY(id, N'IsTable') = 1)"
-                + " DROP TABLE " + tableName);
-        stmt.executeUpdate("IF EXISTS (select * from sysobjects where id = object_id(N'" + procName + "') and OBJECTPROPERTY(id, N'IsProcedure') = 1)"
-                + " DROP PROCEDURE " + procName);
-
+        Utils.dropTableIfExists(tableName, stmt);
+        Utils.dropProcedureIfExists(procName, stmt);
     }
 
 }

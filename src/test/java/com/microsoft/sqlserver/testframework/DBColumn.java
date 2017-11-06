@@ -78,7 +78,7 @@ public class DBColumn {
      *            number of rows
      */
     void populateValues(int rows) {
-        columnValues = new ArrayList<Object>();
+        columnValues = new ArrayList<>();
         for (int i = 0; i < rows; i++)
             columnValues.add(sqlType.createdata());
     }

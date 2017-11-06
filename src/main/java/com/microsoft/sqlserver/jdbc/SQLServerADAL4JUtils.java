@@ -29,7 +29,7 @@ class SQLServerADAL4JUtils {
             return fedAuthToken;
         }
         catch (MalformedURLException | InterruptedException e) {
-            throw new SQLServerException(e.getMessage(), null);
+            throw new SQLServerException(e.getMessage(), e);
         }
         catch (ExecutionException e) {
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_ADALExecution"));

@@ -59,17 +59,15 @@ public class PoolingTest extends AbstractTest {
         XADataSource1.setDatabaseName("tempdb");
 
         PooledConnection pc = XADataSource1.getPooledConnection();
-        Connection conn = pc.getConnection();
-
-        // create table in tempdb database
-        conn.createStatement().execute("create table [" + tempTableName + "] (myid int)");
-        conn.createStatement().execute("insert into [" + tempTableName + "] values (1)");
-        conn.close();
-
-        conn = pc.getConnection();
+        try (Connection conn = pc.getConnection()) {
+	
+	        // create table in tempdb database
+	        conn.createStatement().execute("create table [" + tempTableName + "] (myid int)");
+	        conn.createStatement().execute("insert into [" + tempTableName + "] values (1)");
+        }
 
         boolean tempTableFileRemoved = false;
-        try {
+        try (Connection conn = pc.getConnection()) {
             conn.createStatement().executeQuery("select * from [" + tempTableName + "]");
         }
         catch (SQLServerException e) {
@@ -109,12 +107,12 @@ public class PoolingTest extends AbstractTest {
         ds.setURL(connectionString);
 
         PooledConnection pc = ds.getPooledConnection();
-        Connection con = pc.getConnection();
-
-        Statement statement = con.createStatement();
-        statement.execute(sql1);
-        statement.execute(sql2);
-        con.clearWarnings();
+        try (Connection con = pc.getConnection();
+        	 Statement statement = con.createStatement()) {
+	        statement.execute(sql1);
+	        statement.execute(sql2);
+	        con.clearWarnings();
+        }
         pc.close();
     }
 

@@ -8,12 +8,15 @@
 
 package com.microsoft.sqlserver.testframework;
 
+import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
 import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
 import java.io.CharArrayReader;
-import java.io.IOException;
-import java.io.InputStream;
+import java.net.URI;
+import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -128,8 +131,7 @@ public class Utils {
     public static SqlType find(Class javatype) {
         if (null != types) {
             types();
-            for (int i = 0; i < types.size(); i++) {
-                SqlType type = types.get(i);
+            for (SqlType type : types) {
                 if (type.getType() == javatype)
                     return type;
             }
@@ -146,8 +148,7 @@ public class Utils {
         if (null == types)
             types();
         if (null != types) {
-            for (int i = 0; i < types.size(); i++) {
-                SqlType type = types.get(i);
+            for (SqlType type : types) {
                 if (type.getName().equalsIgnoreCase(name))
                     return type;
             }
@@ -161,7 +162,7 @@ public class Utils {
      */
     public static ArrayList<SqlType> types() {
         if (null == types) {
-            types = new ArrayList<SqlType>();
+            types = new ArrayList<>();
 
             types.add(new SqlInt());
             types.add(new SqlSmallInt());
@@ -249,5 +250,69 @@ public class Utils {
             super(value);
         }
     }
+    
+    /**
+     * 
+     * @return location of resource file
+     */
+    public static String getCurrentClassPath() {
+        try {
+            String className = new Object() {
+            }.getClass().getEnclosingClass().getName();
+            String location = Class.forName(className).getProtectionDomain().getCodeSource().getLocation().getPath() + "/";
+            URI uri = new URI(location.toString());
+            return uri.getPath();
+        }
+        catch (Exception e) {
+            fail("Failed to get CSV file path. " + e.getMessage());
+        }
+        return null;
+    }
 
+    /**
+     * mimic "DROP TABLE IF EXISTS ..." for older versions of SQL Server
+     */
+    public static void dropTableIfExists(String tableName, java.sql.Statement stmt) throws SQLException {
+        dropObjectIfExists(tableName, "IsTable", stmt);
+    }
+
+    /**
+     * mimic "DROP PROCEDURE IF EXISTS ..." for older versions of SQL Server
+     */
+    public static void dropProcedureIfExists(String procName, java.sql.Statement stmt) throws SQLException {
+        dropObjectIfExists(procName, "IsProcedure", stmt);
+    }
+
+    /**
+     * actually perform the "DROP TABLE / PROCEDURE"
+     */
+    private static void dropObjectIfExists(String objectName, String objectProperty, java.sql.Statement stmt) throws SQLException {
+        StringBuilder sb = new StringBuilder();
+        if (!objectName.startsWith("[")) { sb.append("["); }
+        sb.append(objectName);
+        if (!objectName.endsWith("]")) { sb.append("]"); }
+        String bracketedObjectName = sb.toString();
+        String sql = String.format(
+                "IF EXISTS " +
+                        "( " +
+                            "SELECT * from sys.objects " +
+                            "WHERE object_id = OBJECT_ID(N'%s') AND OBJECTPROPERTY(object_id, N'%s') = 1 " +
+                        ") " +
+                    "DROP %s %s ",
+                bracketedObjectName,
+                objectProperty,
+                "IsProcedure".equals(objectProperty)  ? "PROCEDURE" : "TABLE",
+                bracketedObjectName);
+        stmt.executeUpdate(sql);
+    }
+
+    public static boolean parseByte(byte[] expectedData,
+            byte[] retrieved) {
+        assertTrue(Arrays.equals(expectedData, Arrays.copyOf(retrieved, expectedData.length)), " unexpected BINARY value, expected");
+        for (int i = expectedData.length; i < retrieved.length; i++) {
+            assertTrue(0 == retrieved[i], "unexpected data BINARY");
+        }
+        return true;
+    }
+    
 }
