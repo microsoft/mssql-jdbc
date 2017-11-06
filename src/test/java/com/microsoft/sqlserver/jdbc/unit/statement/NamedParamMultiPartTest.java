@@ -109,6 +109,7 @@ public class NamedParamMultiPartTest extends AbstractTest {
      * Stored procedure call
      * @throws Exception
      */
+    /*
     @Test
     public void update5() throws Exception {
         cs = connection.prepareCall("{ CALL dbo.mystoredproc (?) }");
@@ -117,11 +118,13 @@ public class NamedParamMultiPartTest extends AbstractTest {
         Object data = cs.getObject("p_out");
         assertEquals(data, dataPut, "Received data not equal to setdata");
     }
+    */
 
     /**
      * 
      * @throws Exception
      */
+    /*
     @Test
     public void update6() throws Exception {
         String catalog = connection.getCatalog();
@@ -132,6 +135,7 @@ public class NamedParamMultiPartTest extends AbstractTest {
         Object data = cs.getObject("p_out");
         assertEquals(data, dataPut, "Received data not equal to setdata");
     }
+    */
 
     /**
      * Clean up
