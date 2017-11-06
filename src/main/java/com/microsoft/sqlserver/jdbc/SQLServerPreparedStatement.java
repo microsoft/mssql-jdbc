@@ -2653,11 +2653,6 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                         }
                     }
                     catch (SQLServerException e) {
-                        // if batch exception occurred, throw the initial batchException
-                        if (null == batchCommand.batchException) {
-                            throw e;
-                        }
-
                         // If the failure was severe enough to close the connection or roll back a
                         // manual transaction, then propagate the error up as a SQLServerException
                         // now, rather than continue with the batch.
