@@ -905,7 +905,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
 	/** Manage re-using cached handles */
 	private boolean reuseCachedHandle(boolean hasNewTypeDefinitions, boolean discardCurrentCacheItem) {
-        if (definitionChanged) {
+        if (definitionChanged || connection.contextChanged) {
             prepStmtHandle = -1; // so that hasPreparedStatementHandle() also returns false
             return false;
         }

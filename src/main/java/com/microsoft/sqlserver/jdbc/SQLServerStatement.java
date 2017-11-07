@@ -800,6 +800,20 @@ public class SQLServerStatement implements ISQLServerStatement {
         }
     }
 
+    /*
+     * check if context has been changed by monitoring statment call on the connection, since context is connection based.
+     */
+    void checkIfContextChanged(String sql) {
+        if (connection.contextIsAlreadyChanged) {
+            return;
+        }
+        else if (sql.toUpperCase().contains("ANSI_NULLS") || sql.toUpperCase().contains("QUOTED_IDENTIFIER") || sql.toUpperCase().contains("USE")
+                || sql.toUpperCase().contains("DEFAULT_SCHEMA")) {
+            connection.contextIsAlreadyChanged = true;
+            connection.contextChanged = true;
+        }
+    }
+
     final void doExecuteStatement(StmtExecCmd execCmd) throws SQLServerException {
         resetForReexecute();
 
@@ -810,6 +824,8 @@ public class SQLServerStatement implements ISQLServerStatement {
         // through regular Statement objects. We need to ensure that any such JDBC
         // call syntax is rewritten here as SQL exec syntax.
         String sql = ensureSQLSyntax(execCmd.sql);
+
+        checkIfContextChanged(sql);
 
         // If this request might be a query (as opposed to an update) then make
         // sure we set the max number of rows and max field size for any ResultSet
@@ -914,7 +930,9 @@ public class SQLServerStatement implements ISQLServerStatement {
         tdsWriter.writeString(batchIter.next());
         while (batchIter.hasNext()) {
             tdsWriter.writeString(" ; ");
-            tdsWriter.writeString(batchIter.next());
+            String sql = batchIter.next();
+            tdsWriter.writeString(sql);
+            checkIfContextChanged(sql);
         }
 
         // Start the response

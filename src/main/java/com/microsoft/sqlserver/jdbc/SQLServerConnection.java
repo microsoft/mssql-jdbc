@@ -83,6 +83,9 @@ import mssql.googlecode.concurrentlinkedhashmap.EvictionListener;
 
 // Note all the public functions in this class also need to be defined in SQLServerConnectionPoolProxy.
 public class SQLServerConnection implements ISQLServerConnection {
+    boolean contextIsAlreadyChanged = false;
+    boolean contextChanged = false;
+
     long timerExpire;
     boolean attemptRefreshTokenLocked = false;
 
