@@ -518,14 +518,14 @@ public class TVPTypesTest extends AbstractTest {
      */
     @Test
     public void testTVPBooleanStoredProcedure() throws SQLException {
-        createTables("boolean");
-        createTVPS("boolean");
+        createTables("Bit");
+        createTVPS("Bit");
         createPreocedure();
 
-        value = "true";
+        value = "1";
 
         tvp = new SQLServerDataTable();
-        tvp.addColumnMetadata("c1", java.sql.Types.BOOLEAN);
+        tvp.addColumnMetadata("c1", java.sql.Types.BIT);
         tvp.addRow(value);
 
         final String sql = "{call " + procedureName + "(?)}";
