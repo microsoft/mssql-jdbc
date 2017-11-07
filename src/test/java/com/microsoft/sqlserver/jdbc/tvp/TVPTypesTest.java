@@ -511,6 +511,37 @@ public class TVPTypesTest extends AbstractTest {
         }
     }
     
+    /**
+     * Boolean with StoredProcedure
+     * 
+     * @throws SQLException
+     */
+    @Test
+    public void testTVPBooleanStoredProcedure() throws SQLException {
+        createTables("boolean");
+        createTVPS("boolean");
+        createPreocedure();
+
+        value = "true";
+
+        tvp = new SQLServerDataTable();
+        tvp.addColumnMetadata("c1", java.sql.Types.BOOLEAN);
+        tvp.addRow(value);
+
+        final String sql = "{call " + procedureName + "(?)}";
+
+        SQLServerCallableStatement P_C_statement = (SQLServerCallableStatement) connection.prepareCall(sql);
+        P_C_statement.setStructured(1, tvpName, tvp);
+        P_C_statement.execute();
+
+        rs = stmt.executeQuery("select * from " + table);
+        while (rs.next())
+            assertEquals(rs.getString(1), value);
+        if (null != P_C_statement) {
+            P_C_statement.close();
+        }
+    }
+    
     @BeforeEach
     private void testSetup() throws SQLException {
         conn = DriverManager.getConnection(connectionString);

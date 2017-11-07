@@ -162,7 +162,7 @@ public final class SQLServerDataTable {
 	                break;
 	
 	            case BIT:
-	                rowValues[pair.getKey()] = (val instanceof Boolean ? (Boolean)val : Boolean.parseBoolean(val.toString()));
+	                rowValues[pair.getKey()] = (val instanceof Boolean ? (Boolean)val : (val.toString().equals("1") ? Boolean.TRUE : (val.toString().equals("0") ? Boolean.FALSE : Boolean.parseBoolean(val.toString()))));
 	                break;
 	
 	            case INTEGER:
