@@ -5763,6 +5763,12 @@ public class SQLServerConnection implements ISQLServerConnection {
     	preparedStatementHandleCache.remove(handle.getKey());
     }
 
+    final void clearCachedPreparedStatementHandle() {
+        if (null != preparedStatementHandleCache) {
+            preparedStatementHandleCache.clear();
+        }
+    }
+
     // Handle closing handles when removed from cache.
     final class PreparedStatementCacheEvictionListener implements EvictionListener<Sha1HashKey, PreparedStatementHandle> {
         public void onEviction(Sha1HashKey key, PreparedStatementHandle handle) {
