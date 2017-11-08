@@ -96,12 +96,9 @@ public class ComparisonUtil {
                     break;
 
                 case java.sql.Types.INTEGER:
-                    assertTrue((((Integer) expectedValue).intValue() == ((Integer) actualValue).intValue()), "Unexpected int value");
-                    break;
-
                 case java.sql.Types.SMALLINT:
                 case java.sql.Types.TINYINT:
-                    assertTrue((((Short) expectedValue).shortValue() == ((Short) actualValue).shortValue()), "Unexpected smallint/tinyint value");
+                    assertTrue((((Number) expectedValue).intValue() == ((Number) actualValue).intValue()), "Unexpected int/smallint/tinyint value");
                     break;
 
                 case java.sql.Types.BIT:

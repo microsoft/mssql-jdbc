@@ -54,10 +54,9 @@ final class DDC {
             StreamType streamType) {
         switch (jdbcType) {
             case INTEGER:
-                return intValue;
-            case SMALLINT: // 2.21 small and tinyint returned as short
+            case SMALLINT:
             case TINYINT:
-                return (short) intValue;
+                return intValue;
             case BIT:
             case BOOLEAN:
                 return 0 != intValue;
@@ -101,10 +100,9 @@ final class DDC {
             case BIGINT:
                 return longVal;
             case INTEGER:
-                return (int) longVal;
-            case SMALLINT: // small and tinyint returned as short
+            case SMALLINT:
             case TINYINT:
-                return (short) longVal;
+                return (int) longVal;
             case BIT:
             case BOOLEAN:
                 return 0 != longVal;
@@ -154,10 +152,9 @@ final class DDC {
                     case BIGINT:
                         return longVal;
                     case INTEGER:
-                        return (int) longVal;
-                    case SMALLINT: // small and tinyint returned as short
+                    case SMALLINT:
                     case TINYINT:
-                        return (short) longVal;
+                        return (int) longVal;
                     case BIT:
                         return 0 != longVal;
                     case DECIMAL:
@@ -216,10 +213,9 @@ final class DDC {
             case REAL:
                 return floatVal;
             case INTEGER:
-                return (int) floatVal;
-            case SMALLINT: // small and tinyint returned as short
+            case SMALLINT:
             case TINYINT:
-                return (short) floatVal;
+                return (int) floatVal;
             case BIT:
             case BOOLEAN:
                 return 0 != Float.compare(0.0f, floatVal);
@@ -277,10 +273,9 @@ final class DDC {
             case REAL:
                 return (new Double(doubleVal)).floatValue();
             case INTEGER:
-                return (int) doubleVal;
-            case SMALLINT: // small and tinyint returned as short
+            case SMALLINT:
             case TINYINT:
-                return (short) doubleVal;
+                return (int) doubleVal;
             case BIT:
             case BOOLEAN:
                 return 0 != Double.compare(0.0d, doubleVal);
@@ -359,10 +354,9 @@ final class DDC {
             case REAL:
                 return bigDecimalVal.floatValue();
             case INTEGER:
-                return bigDecimalVal.intValue();
-            case SMALLINT: // small and tinyint returned as short
+            case SMALLINT:
             case TINYINT:
-                return bigDecimalVal.shortValue();
+                return bigDecimalVal.intValue();
             case BIT:
             case BOOLEAN:
                 return 0 != bigDecimalVal.compareTo(BigDecimal.valueOf(0));
@@ -404,10 +398,9 @@ final class DDC {
             case REAL:
                 return bigDecimalVal.floatValue();
             case INTEGER:
-                return bigDecimalVal.intValue();
-            case SMALLINT: // small and tinyint returned as short
+            case SMALLINT:
             case TINYINT:
-                return bigDecimalVal.shortValue();
+                return bigDecimalVal.intValue();
             case BIT:
             case BOOLEAN:
                 return 0 != bigDecimalVal.compareTo(BigDecimal.valueOf(0));
@@ -520,10 +513,9 @@ final class DDC {
             case REAL:
                 return Float.valueOf(stringVal.trim());
             case INTEGER:
-                return Integer.valueOf(stringVal.trim());
-            case SMALLINT: // small and tinyint returned as short
+            case SMALLINT:
             case TINYINT:
-                return Short.valueOf(stringVal.trim());
+                return Integer.valueOf(stringVal.trim());
             case BIT:
             case BOOLEAN:
                 String trimmedString = stringVal.trim();

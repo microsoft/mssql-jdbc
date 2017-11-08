@@ -82,7 +82,7 @@ public class BulkCopyWithSqlVariantTest extends AbstractTest {
 
         rs = (SQLServerResultSet) stmt.executeQuery("SELECT * FROM " + destTableName);
         while (rs.next()) {
-            assertEquals(rs.getShort(1), 5);
+            assertEquals(rs.getInt(1), 5);
         }
         bulkCopy.close();
     }
@@ -105,7 +105,7 @@ public class BulkCopyWithSqlVariantTest extends AbstractTest {
 
         rs = (SQLServerResultSet) stmt.executeQuery("SELECT * FROM " + destTableName);
         while (rs.next()) {
-            assertEquals(rs.getByte(1), 5);
+            assertEquals(rs.getInt(1), 5);
         }
         bulkCopy.close();
     }

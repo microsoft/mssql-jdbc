@@ -239,8 +239,8 @@ public class PQImpsTest extends AbstractTest {
         compareParameterMetaData(pmd, 7, "java.lang.Float", 7, "real", 7, 0);
         compareParameterMetaData(pmd, 8, "java.lang.Integer", 4, "int", 10, 0);
         compareParameterMetaData(pmd, 9, "java.lang.Long", -5, "bigint", 19, 0);
-        compareParameterMetaData(pmd, 10, "java.lang.Short", 5, "smallint", 5, 0);
-        compareParameterMetaData(pmd, 11, "java.lang.Short", -6, "tinyint", 3, 0);
+        compareParameterMetaData(pmd, 10, "java.lang.Integer", 5, "smallint", 5, 0);
+        compareParameterMetaData(pmd, 11, "java.lang.Integer", -6, "tinyint", 3, 0);
         compareParameterMetaData(pmd, 12, "java.math.BigDecimal", 3, "money", 19, 4);
         compareParameterMetaData(pmd, 13, "java.math.BigDecimal", 3, "smallmoney", 10, 4);
     }
@@ -752,7 +752,7 @@ public class PQImpsTest extends AbstractTest {
 
             compareParameterMetaData(pmd, 1, "java.lang.Long", -5, "BIGINT", 19, 0);
             compareParameterMetaData(pmd, 2, "java.lang.Integer", 4, "int", 10, 0);
-            compareParameterMetaData(pmd, 3, "java.lang.Short", 5, "smallint", 5, 0);
+            compareParameterMetaData(pmd, 3, "java.lang.Integer", 5, "smallint", 5, 0);
         }
     }
 
@@ -784,7 +784,7 @@ public class PQImpsTest extends AbstractTest {
             }
 
             compareParameterMetaData(pmd, 1, "java.lang.Integer", 4, "int", 10, 0);
-            compareParameterMetaData(pmd, 2, "java.lang.Short", 5, "smallint", 5, 0);
+            compareParameterMetaData(pmd, 2, "java.lang.Integer", 5, "smallint", 5, 0);
         }
     }
 
@@ -883,8 +883,8 @@ public class PQImpsTest extends AbstractTest {
             compareParameterMetaData(pmd, 8, "java.lang.Integer", 4, "int", 10, 0);
         }
         compareParameterMetaData(pmd, 9, "java.lang.Long", -5, "bigint", 19, 0);
-        compareParameterMetaData(pmd, 10, "java.lang.Short", 5, "smallint", 5, 0);
-        compareParameterMetaData(pmd, 11, "java.lang.Short", -6, "tinyint", 3, 0);
+        compareParameterMetaData(pmd, 10, "java.lang.Integer", 5, "smallint", 5, 0);
+        compareParameterMetaData(pmd, 11, "java.lang.Integer", -6, "tinyint", 3, 0);
         compareParameterMetaData(pmd, 12, "java.math.BigDecimal", 3, "money", 19, 4);
         compareParameterMetaData(pmd, 13, "java.math.BigDecimal", 3, "smallmoney", 10, 4);
 
@@ -967,8 +967,8 @@ public class PQImpsTest extends AbstractTest {
         compareParameterMetaData(pmd, 4, "java.lang.Float", 7, "real", 7, 0);
         compareParameterMetaData(pmd, 5, "java.lang.Float", 7, "real", 7, 0);
         compareParameterMetaData(pmd, 6, "java.lang.Long", -5, "bigint", 19, 0);
-        compareParameterMetaData(pmd, 7, "java.lang.Short", 5, "smallint", 5, 0);
-        compareParameterMetaData(pmd, 8, "java.lang.Short", -6, "tinyint", 3, 0);
+        compareParameterMetaData(pmd, 7, "java.lang.Integer", 5, "smallint", 5, 0);
+        compareParameterMetaData(pmd, 8, "java.lang.Integer", -6, "tinyint", 3, 0);
 
         compareParameterMetaData(pmd, 9, "java.lang.String", 1, "char", 50, 0);
         compareParameterMetaData(pmd, 10, "java.lang.String", -9, "nvarchar", 60, 0);
@@ -1013,7 +1013,7 @@ public class PQImpsTest extends AbstractTest {
         compareParameterMetaData(pmd, 1, "java.lang.String", 12, "varchar", 50, 0);
         compareParameterMetaData(pmd, 2, "java.lang.String", -15, "nchar", 60, 0);
         compareParameterMetaData(pmd, 3, "java.lang.Integer", 4, "int", 10, 0);
-        compareParameterMetaData(pmd, 4, "java.lang.Short", 5, "smallint", 5, 0);
+        compareParameterMetaData(pmd, 4, "java.lang.Integer", 5, "smallint", 5, 0);
 
     }
 
@@ -1043,7 +1043,7 @@ public class PQImpsTest extends AbstractTest {
         compareParameterMetaData(pmd, 1, "java.lang.String", 12, "varchar", 50, 0);
         compareParameterMetaData(pmd, 2, "java.lang.String", -15, "nchar", 60, 0);
         compareParameterMetaData(pmd, 3, "java.lang.Integer", 4, "int", 10, 0);
-        compareParameterMetaData(pmd, 4, "java.lang.Short", 5, "smallint", 5, 0);
+        compareParameterMetaData(pmd, 4, "java.lang.Integer", 5, "smallint", 5, 0);
 
     }
 
@@ -1072,7 +1072,7 @@ public class PQImpsTest extends AbstractTest {
         compareParameterMetaData(pmd, 1, "java.lang.String", 12, "varchar", 50, 0);
         compareParameterMetaData(pmd, 2, "java.lang.String", -15, "nchar", 60, 0);
         compareParameterMetaData(pmd, 3, "java.lang.Integer", 4, "int", 10, 0);
-        compareParameterMetaData(pmd, 4, "java.lang.Short", 5, "smallint", 5, 0);
+        compareParameterMetaData(pmd, 4, "java.lang.Integer", 5, "smallint", 5, 0);
 
     }
 
@@ -1100,7 +1100,7 @@ public class PQImpsTest extends AbstractTest {
         compareParameterMetaData(pmd, 1, "java.lang.String", 12, "varchar", 50, 0);
         compareParameterMetaData(pmd, 2, "java.lang.String", -15, "nchar", 60, 0);
         compareParameterMetaData(pmd, 3, "java.lang.Integer", 4, "int", 10, 0);
-        compareParameterMetaData(pmd, 4, "java.lang.Short", 5, "smallint", 5, 0);
+        compareParameterMetaData(pmd, 4, "java.lang.Integer", 5, "smallint", 5, 0);
 
     }
 
@@ -1132,8 +1132,8 @@ public class PQImpsTest extends AbstractTest {
                 fail(e.toString());
             }
 
-            compareParameterMetaData(pmd, 1, "java.lang.Short", 5, "smallint", 5, 0);
-            compareParameterMetaData(pmd, 2, "java.lang.Short", 5, "smallint", 5, 0);
+            compareParameterMetaData(pmd, 1, "java.lang.Integer", 5, "smallint", 5, 0);
+            compareParameterMetaData(pmd, 2, "java.lang.Integer", 5, "smallint", 5, 0);
             compareParameterMetaData(pmd, 3, "java.lang.Integer", 4, "int", 10, 0);
         }
     }

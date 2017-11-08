@@ -102,10 +102,6 @@ public class ResultSetTest extends AbstractTest {
                 try (ResultSet rs = stmt.executeQuery("select * from " + tableName + " order by order_column")) {
                     // test non-null values
                     assertTrue(rs.next());
-                    assertEquals(Byte.valueOf((byte) 1), rs.getObject(1, Byte.class));
-                    assertEquals(Byte.valueOf((byte) 1), rs.getObject("col1", Byte.class));
-                    assertEquals(Short.valueOf((short) 1), rs.getObject(1, Short.class));
-                    assertEquals(Short.valueOf((short) 1), rs.getObject("col1", Short.class));
                     assertEquals(Integer.valueOf(1), rs.getObject(1, Integer.class));
                     assertEquals(Integer.valueOf(1), rs.getObject("col1", Integer.class));
                     assertEquals(Long.valueOf(1), rs.getObject(1, Long.class));
@@ -182,10 +178,6 @@ public class ResultSetTest extends AbstractTest {
                     assertTrue(rs.next());
                     assertNull(rs.getObject("col1", Boolean.class));
                     assertNull(rs.getObject(1, Boolean.class));
-                    assertNull(rs.getObject("col1", Byte.class));
-                    assertNull(rs.getObject(1, Byte.class));
-                    assertNull(rs.getObject("col1", Short.class));
-                    assertNull(rs.getObject(1, Short.class));
                     assertNull(rs.getObject(1, Integer.class));
                     assertNull(rs.getObject("col1", Integer.class));
                     assertNull(rs.getObject(1, Long.class));
