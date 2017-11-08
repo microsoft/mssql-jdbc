@@ -867,22 +867,22 @@ public class CallableStatementTest extends AESetup {
             BigDecimal ecnryptedSmallMoney = callableStatement.getSmallMoney(7);
             assertEquals("" + ecnryptedSmallMoney, values[12], "Test for output parameter fails.\n");
 
-            short encryptedSmallint = callableStatement.getShort(4);
+            int encryptedSmallint = callableStatement.getInt(4);
             assertEquals("" + encryptedSmallint, values[2], "Test for output parameter fails.\n");
 
             BigDecimal SmallMoneyValue = callableStatement.getSmallMoney(8);
             assertEquals("" + SmallMoneyValue, values[12], "Test for output parameter fails.\n");
 
-            short encryptedTinyint = callableStatement.getShort(6);
+            int encryptedTinyint = callableStatement.getInt(6);
             assertEquals("" + encryptedTinyint, values[1], "Test for output parameter fails.\n");
 
-            short tinyintValue = callableStatement.getShort(5);
+            int tinyintValue = callableStatement.getInt(5);
             assertEquals("" + tinyintValue, values[1], "Test for output parameter fails.\n");
 
             BigDecimal encryptedMoneyValue = callableStatement.getMoney(9);
             assertEquals("" + encryptedMoneyValue, values[13], "Test for output parameter fails.\n");
 
-            short smallintValue = callableStatement.getShort(3);
+            int smallintValue = callableStatement.getInt(3);
             assertEquals("" + smallintValue, values[2], "Test for output parameter fails.\n");
 
             int intValue = callableStatement.getInt(1);
@@ -922,16 +922,16 @@ public class CallableStatementTest extends AESetup {
             int encryptedInt = callableStatement.getInt(2);
             assertEquals("" + encryptedInt, values[3], "Test for output parameter fails.\n");
 
-            short smallintValue = callableStatement.getShort(3);
+            int smallintValue = callableStatement.getInt(3);
             assertEquals("" + smallintValue, values[2], "Test for output parameter fails.\n");
 
-            short encryptedSmallint = callableStatement.getShort(4);
+            int encryptedSmallint = callableStatement.getInt(4);
             assertEquals("" + encryptedSmallint, values[2], "Test for output parameter fails.\n");
 
-            short tinyintValue = callableStatement.getShort(5);
+            int tinyintValue = callableStatement.getInt(5);
             assertEquals("" + tinyintValue, values[1], "Test for output parameter fails.\n");
 
-            short encryptedTinyint = callableStatement.getShort(6);
+            int encryptedTinyint = callableStatement.getInt(6);
             assertEquals("" + encryptedTinyint, values[1], "Test for output parameter fails.\n");
 
             BigDecimal encryptedSmallMoney = callableStatement.getSmallMoney(7);
@@ -982,16 +982,16 @@ public class CallableStatementTest extends AESetup {
             BigDecimal encryptedSmallMoney = callableStatement.getSmallMoney(7);
             assertEquals("" + encryptedSmallMoney, values[12], "Test for output parameter fails.\n");
 
-            short encryptedTinyint = callableStatement.getShort(6);
+            int encryptedTinyint = callableStatement.getInt(6);
             assertEquals("" + encryptedTinyint, values[1], "Test for output parameter fails.\n");
 
-            short tinyintValue = callableStatement.getShort(5);
+            int tinyintValue = callableStatement.getInt(5);
             assertEquals("" + tinyintValue, values[1], "Test for output parameter fails.\n");
 
-            short encryptedSmallint = callableStatement.getShort(4);
+            int encryptedSmallint = callableStatement.getInt(4);
             assertEquals("" + encryptedSmallint, values[2], "Test for output parameter fails.\n");
 
-            short smallintValue = callableStatement.getShort(3);
+            int smallintValue = callableStatement.getInt(3);
             assertEquals("" + smallintValue, values[2], "Test for output parameter fails.\n");
 
             int encryptedInt = callableStatement.getInt(2);
@@ -2358,7 +2358,7 @@ public class CallableStatementTest extends AESetup {
             double floatValue0 = callableStatement.getDouble(2);
             assertEquals("" + floatValue0, numericValues[5], "Test for output parameter fails.\n");
 
-            short shortValue3 = callableStatement.getShort(3);
+            int shortValue3 = callableStatement.getInt(3);
             assertEquals("" + shortValue3, numericValues[2], "Test for output parameter fails.\n");
 
             BigDecimal smallmoneyValue = callableStatement.getSmallMoney(4);

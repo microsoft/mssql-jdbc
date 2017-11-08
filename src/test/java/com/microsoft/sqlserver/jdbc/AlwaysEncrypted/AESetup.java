@@ -1454,12 +1454,12 @@ public class AESetup extends AbstractTest {
 	
 	        // tinyint
 	        for (int i = 4; i <= 6; i++) {
-	            pstmt.setInt(i, Integer.valueOf(values[1]));
+	            pstmt.setShort(i, Short.valueOf(values[1]));
 	        }
 	
 	        // smallint
 	        for (int i = 7; i <= 9; i++) {
-	            pstmt.setInt(i, Integer.valueOf(values[2]));
+	            pstmt.setShort(i, Short.valueOf(values[2]));
 	        }
 	
 	        // int
@@ -1561,12 +1561,12 @@ public class AESetup extends AbstractTest {
 	
 	        // tinyint
 	        for (int i = 4; i <= 6; i++) {
-	            pstmt.setObject(i, Integer.valueOf(values[1]));
+	            pstmt.setObject(i, Short.valueOf(values[1]));
 	        }
 	
 	        // smallint
 	        for (int i = 7; i <= 9; i++) {
-	            pstmt.setObject(i, Integer.valueOf(values[2]));
+	            pstmt.setObject(i, Short.valueOf(values[2]));
 	        }
 	
 	        // int
@@ -1668,12 +1668,12 @@ public class AESetup extends AbstractTest {
 	
 	        // tinyint
 	        for (int i = 4; i <= 6; i++) {
-	            pstmt.setObject(i, Integer.valueOf(values[1]), JDBCType.TINYINT);
+	            pstmt.setObject(i, Short.valueOf(values[1]), JDBCType.TINYINT);
 	        }
 	
 	        // smallint
 	        for (int i = 7; i <= 9; i++) {
-	            pstmt.setObject(i, Integer.valueOf(values[2]), JDBCType.SMALLINT);
+	            pstmt.setObject(i, Short.valueOf(values[2]), JDBCType.SMALLINT);
 	        }
 	
 	        // int
