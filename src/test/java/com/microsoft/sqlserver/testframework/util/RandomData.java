@@ -112,11 +112,11 @@ public class RandomData {
      * @param nullable
      * @return
      */
-    public static Short generateTinyint(boolean nullable) {
+    public static Integer generateTinyint(boolean nullable) {
         Integer value = pickInt(nullable, 255, 0);
 
         if (null != value) {
-            return value.shortValue();
+            return value;
         }
         else {
             return null;
@@ -129,11 +129,11 @@ public class RandomData {
      * @param nullable
      * @return
      */
-    public static Short generateSmallint(boolean nullable) {
+    public static Integer generateSmallint(boolean nullable) {
         Integer value = pickInt(nullable, 32767, -32768);
 
         if (null != value) {
-            return value.shortValue();
+            return value;
         }
         else {
             return null;

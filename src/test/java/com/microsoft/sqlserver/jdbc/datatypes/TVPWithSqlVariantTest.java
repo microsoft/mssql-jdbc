@@ -398,8 +398,8 @@ public class TVPWithSqlVariantTest extends AbstractTest {
 
     private static String[] createNumericValues() {
         Boolean C1_BIT;
-        Short C2_TINYINT;
-        Short C3_SMALLINT;
+        Integer C2_TINYINT;
+        Integer C3_SMALLINT;
         Integer C4_INT;
         Long C5_BIGINT;
         Double C6_FLOAT;
