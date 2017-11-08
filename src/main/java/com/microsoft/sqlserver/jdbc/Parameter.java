@@ -157,15 +157,7 @@ final class Parameter {
         this.outScale = outScale;
         userProvidesScale = true;
     }
-    
-    void setName (String name) {
-        this.name = name;
-    }
-    
-    String getName() {
-        return this.name;
-    }
-    
+
     // The parameter name
     private String name;
     private String schemaName;

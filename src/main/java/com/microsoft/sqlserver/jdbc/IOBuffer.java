@@ -39,7 +39,6 @@ import java.security.Provider;
 import java.security.Security;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
-import java.sql.BatchUpdateException;
 import java.sql.Timestamp;
 import java.text.MessageFormat;
 import java.time.OffsetDateTime;
@@ -7343,7 +7342,6 @@ abstract class TDSCommand {
      * @param tdsReader
      * @throws SQLServerException
      *             on any error executing the command, including cancel or timeout.
-     * @throws BatchUpdateException 
      */
 
     boolean execute(TDSWriter tdsWriter,
