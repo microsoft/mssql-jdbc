@@ -57,7 +57,7 @@ public class SQLServerResultSet42 extends SQLServerResultSet implements ISQLServ
 
         checkClosed();
         // getVendorTypeNumber() returns the same constant integer values as in java.sql.Types
-        updateObject(index, obj, Integer.valueOf(scale), JDBCType.of(targetSqlType.getVendorTypeNumber()), null, false);
+        updateObject(index, obj, scale, JDBCType.of(targetSqlType.getVendorTypeNumber()), null, false);
 
         loggerExternal.exiting(getClassNameLogging(), "updateObject");
     }
@@ -74,7 +74,7 @@ public class SQLServerResultSet42 extends SQLServerResultSet implements ISQLServ
 
         checkClosed();
         // getVendorTypeNumber() returns the same constant integer values as in java.sql.Types
-        updateObject(index, obj, Integer.valueOf(scale), JDBCType.of(targetSqlType.getVendorTypeNumber()), null, forceEncrypt);
+        updateObject(index, obj, scale, JDBCType.of(targetSqlType.getVendorTypeNumber()), null, forceEncrypt);
 
         loggerExternal.exiting(getClassNameLogging(), "updateObject");
     }
@@ -91,7 +91,7 @@ public class SQLServerResultSet42 extends SQLServerResultSet implements ISQLServ
         checkClosed();
 
         // getVendorTypeNumber() returns the same constant integer values as in java.sql.Types
-        updateObject(findColumn(columnName), obj, Integer.valueOf(scale), JDBCType.of(targetSqlType.getVendorTypeNumber()), null, false);
+        updateObject(findColumn(columnName), obj, scale, JDBCType.of(targetSqlType.getVendorTypeNumber()), null, false);
 
         loggerExternal.exiting(getClassNameLogging(), "updateObject");
     }
@@ -109,7 +109,7 @@ public class SQLServerResultSet42 extends SQLServerResultSet implements ISQLServ
         checkClosed();
 
         // getVendorTypeNumber() returns the same constant integer values as in java.sql.Types
-        updateObject(findColumn(columnName), obj, Integer.valueOf(scale), JDBCType.of(targetSqlType.getVendorTypeNumber()), null, forceEncrypt);
+        updateObject(findColumn(columnName), obj, scale, JDBCType.of(targetSqlType.getVendorTypeNumber()), null, forceEncrypt);
 
         loggerExternal.exiting(getClassNameLogging(), "updateObject");
     }

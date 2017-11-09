@@ -17,16 +17,16 @@ import java.math.BigDecimal;
  */
 enum SqlTypeValue {
 					// minValue												// maxValue													// nullValue
-	BIGINT			(new Long(Long.MIN_VALUE), 								new Long(Long.MAX_VALUE), 									new Long(0)),
-	INTEGER			(new Integer(Integer.MIN_VALUE), 						new Integer(Integer.MAX_VALUE), 							new Integer(0)),
-	SMALLINT		(new Short(Short.MIN_VALUE), 							new Short(Short.MAX_VALUE), 								new Short((short) 0)),
-	TINYINT			(new Short((short) 0), 									new Short((short) 255), 									new Short((short) 0)),
+	BIGINT			(Long.MIN_VALUE,        								Long.MAX_VALUE,         									0L),
+	INTEGER			(Integer.MIN_VALUE,             						Integer.MAX_VALUE,              							0),
+	SMALLINT		(Short.MIN_VALUE,           							Short.MAX_VALUE,            								(short) 0),
+	TINYINT			((short) 0,         									(short) 255,            									(short) 0),
 	BIT				(0, 													1, 															null),
 	DECIMAL			(new BigDecimal("-1.0E38").add(new BigDecimal("1")), 	new BigDecimal("1.0E38").subtract(new BigDecimal("1")), 	null),
 	MONEY			(new BigDecimal("-922337203685477.5808"), 				new BigDecimal("+922337203685477.5807"), 					null),
 	SMALLMONEY		(new BigDecimal("-214748.3648"), 						new BigDecimal("214748.3647"), 								null),
-	FLOAT			(new Double(-1.79E308), 								new Double(+1.79E308), 										new Double(0)),
-	REAL			(new Float(-3.4E38), 									new Float(+3.4E38), 										new Float(0)),
+	FLOAT			(-1.79E308,             								+1.79E308,          										0d),
+	REAL			((float) -3.4E38,   									(float) +3.4E38,    										0f),
 	CHAR			(null, 													null, 														null),// CHAR used by char, nchar, varchar, nvarchar
 	BINARY          (null,                                                  null,                                                       null),
 	DATETIME		("17530101T00:00:00.000", 							    "99991231T23:59:59.997", 									null),
@@ -34,7 +34,7 @@ enum SqlTypeValue {
 	TIME			("00:00:00.0000000", 									"23:59:59.9999999", 										null),
 	SMALLDATETIME	("19000101T00:00:00",									"20790606T23:59:59",										null),
 	DATETIME2		("00010101T00:00:00.0000000",							"99991231T23:59:59.9999999", 								null),
-	DATETIMEOFFSET	("0001-01-01 00:00:00",					                "9999-12-31 23:59:59",						null),
+	DATETIMEOFFSET	("0001-01-01 00:00:00",					                "9999-12-31 23:59:59",               						null),
 	;
    
     Object minValue;

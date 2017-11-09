@@ -40,13 +40,13 @@ public final class SQLServerBlob implements java.sql.Blob, java.io.Serializable 
     // Initial size of the array is based on an assumption that a Blob object is
     // typically used either for input or output, and then only once. The array size
     // grows automatically if multiple streams are used.
-    ArrayList<Closeable> activeStreams = new ArrayList<Closeable>(1);
+    ArrayList<Closeable> activeStreams = new ArrayList<>(1);
 
     static private final Logger logger = Logger.getLogger("com.microsoft.sqlserver.jdbc.internals.SQLServerBlob");
 
-    static private final AtomicInteger baseID = new AtomicInteger(0);	// Unique id generator for each instance (used for logging).
+    static private final AtomicInteger baseID = new AtomicInteger(0);   // Unique id generator for each instance (used for logging).
     final private String traceID;
-
+    
     final public String toString() {
         return traceID;
     }
@@ -63,6 +63,7 @@ public final class SQLServerBlob implements java.sql.Blob, java.io.Serializable 
      *            the database connection this blob is implemented on
      * @param data
      *            the BLOB's data
+     * @deprecated Use {@link SQLServerConnection#createBlob()} instead. 
      */
     @Deprecated
     public SQLServerBlob(SQLServerConnection connection,
@@ -94,7 +95,7 @@ public final class SQLServerBlob implements java.sql.Blob, java.io.Serializable 
 
     SQLServerBlob(BaseInputStream stream) throws SQLServerException {
         traceID = " SQLServerBlob:" + nextInstanceID();
-        value = stream.getBytes();
+        activeStreams.add(stream);
         if (logger.isLoggable(Level.FINE))
             logger.fine(toString() + " created by (null connection)");
     }
@@ -106,8 +107,6 @@ public final class SQLServerBlob implements java.sql.Blob, java.io.Serializable 
      * multiple times, the subsequent calls to free are treated as a no-op.
      */
     public void free() throws SQLException {
-        DriverJDBCVersion.checkSupportsJDBC4();
-
         if (!isClosed) {
             // Close active streams, ignoring any errors, since nothing can be done with them after that point anyway.
             if (null != activeStreams) {
@@ -142,13 +141,26 @@ public final class SQLServerBlob implements java.sql.Blob, java.io.Serializable 
     public InputStream getBinaryStream() throws SQLException {
         checkClosed();
 
-        return getBinaryStreamInternal(0, value.length);
+        if (null == value && !activeStreams.isEmpty()) {
+            InputStream stream = (InputStream) activeStreams.get(0);
+            try {
+                stream.reset();
+            }
+            catch (IOException e) {
+                throw new SQLServerException(e.getMessage(), null, 0, e);
+            }
+            return (InputStream) activeStreams.get(0);
+        }
+        else {
+            if (value == null) {
+                throw new SQLServerException("Unexpected Error: blob value is null while all streams are closed.", null);
+            }
+            return getBinaryStreamInternal(0, value.length);
+        }
     }
 
     public InputStream getBinaryStream(long pos,
             long length) throws SQLException {
-        DriverJDBCVersion.checkSupportsJDBC4();
-
         // Not implemented - partial materialization
         throw new SQLFeatureNotSupportedException(SQLServerException.getErrString("R_notSupported"));
     }
@@ -182,15 +194,16 @@ public final class SQLServerBlob implements java.sql.Blob, java.io.Serializable 
             int length) throws SQLException {
         checkClosed();
 
+        getBytesFromStream();
         if (pos < 1) {
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidPositionIndex"));
-            Object[] msgArgs = {new Long(pos)};
+            Object[] msgArgs = {pos};
             SQLServerException.makeFromDriverError(con, null, form.format(msgArgs), null, true);
         }
 
         if (length < 0) {
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidLength"));
-            Object[] msgArgs = {new Integer(length)};
+            Object[] msgArgs = {length};
             SQLServerException.makeFromDriverError(con, null, form.format(msgArgs), null, true);
         }
 
@@ -219,8 +232,25 @@ public final class SQLServerBlob implements java.sql.Blob, java.io.Serializable 
      */
     public long length() throws SQLException {
         checkClosed();
-
+        getBytesFromStream();
         return value.length;
+    }
+    
+    /**
+     * Converts stream to byte[]
+     * @throws SQLServerException
+     */
+    private void getBytesFromStream() throws SQLServerException {
+        if (null == value) {
+            BaseInputStream stream = (BaseInputStream) activeStreams.get(0);
+            try {
+                stream.reset();
+            }
+            catch (IOException e) {
+                throw new SQLServerException(e.getMessage(), null, 0, e);
+            }
+            value = stream.getBytes();
+        }
     }
 
     /**
@@ -237,10 +267,11 @@ public final class SQLServerBlob implements java.sql.Blob, java.io.Serializable 
     public long position(Blob pattern,
             long start) throws SQLException {
         checkClosed();
-
+        
+        getBytesFromStream();
         if (start < 1) {
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidPositionIndex"));
-            Object[] msgArgs = {new Long(start)};
+            Object[] msgArgs = {start};
             SQLServerException.makeFromDriverError(con, null, form.format(msgArgs), null, true);
         }
 
@@ -265,10 +296,10 @@ public final class SQLServerBlob implements java.sql.Blob, java.io.Serializable 
     public long position(byte[] bPattern,
             long start) throws SQLException {
         checkClosed();
-
+        getBytesFromStream();
         if (start < 1) {
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidPositionIndex"));
-            Object[] msgArgs = {new Long(start)};
+            Object[] msgArgs = {start};
             SQLServerException.makeFromDriverError(con, null, form.format(msgArgs), null, true);
         }
 
@@ -290,8 +321,9 @@ public final class SQLServerBlob implements java.sql.Blob, java.io.Serializable 
                 }
             }
 
-            if (match)
-                return pos + 1;
+            if (match) {
+                return pos + 1L;
+            }
         }
 
         return -1;
@@ -309,10 +341,11 @@ public final class SQLServerBlob implements java.sql.Blob, java.io.Serializable 
      */
     public void truncate(long len) throws SQLException {
         checkClosed();
-
+        getBytesFromStream();
+        
         if (len < 0) {
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidLength"));
-            Object[] msgArgs = {new Long(len)};
+            Object[] msgArgs = {len};
             SQLServerException.makeFromDriverError(con, null, form.format(msgArgs), null, true);
         }
 
@@ -357,7 +390,8 @@ public final class SQLServerBlob implements java.sql.Blob, java.io.Serializable 
     public int setBytes(long pos,
             byte[] bytes) throws SQLException {
         checkClosed();
-
+        
+        getBytesFromStream();
         if (null == bytes)
             SQLServerException.makeFromDriverError(con, null, SQLServerException.getErrString("R_cantSetNull"), null, true);
 
@@ -389,6 +423,7 @@ public final class SQLServerBlob implements java.sql.Blob, java.io.Serializable 
             int offset,
             int len) throws SQLException {
         checkClosed();
+        getBytesFromStream();
 
         if (null == bytes)
             SQLServerException.makeFromDriverError(con, null, SQLServerException.getErrString("R_cantSetNull"), null, true);
@@ -396,14 +431,14 @@ public final class SQLServerBlob implements java.sql.Blob, java.io.Serializable 
         // Offset must be within incoming bytes boundary.
         if (offset < 0 || offset > bytes.length) {
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidOffset"));
-            Object[] msgArgs = {new Integer(offset)};
+            Object[] msgArgs = {offset};
             SQLServerException.makeFromDriverError(con, null, form.format(msgArgs), null, true);
         }
 
         // len must be within incoming bytes boundary.
         if (len < 0 || len > bytes.length - offset) {
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidLength"));
-            Object[] msgArgs = {new Integer(len)};
+            Object[] msgArgs = {len};
             SQLServerException.makeFromDriverError(con, null, form.format(msgArgs), null, true);
         }
 
@@ -412,7 +447,7 @@ public final class SQLServerBlob implements java.sql.Blob, java.io.Serializable 
         // past the end of data to request "append" mode.
         if (pos <= 0 || pos > value.length + 1) {
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidPositionIndex"));
-            Object[] msgArgs = {new Long(pos)};
+            Object[] msgArgs = {pos};
             SQLServerException.makeFromDriverError(con, null, form.format(msgArgs), null, true);
         }
 

@@ -103,14 +103,12 @@ public final class SQLServerException extends java.sql.SQLException {
             if (exLogger.isLoggable(Level.FINE)) {
                 StringBuilder sb = new StringBuilder(100);
                 StackTraceElement st[] = this.getStackTrace();
-                for (int i = 0; i < st.length; i++)
-                    sb.append(st[i].toString());
+                for (StackTraceElement aSt : st) sb.append(aSt.toString());
                 Throwable t = this.getCause();
                 if (t != null) {
                     sb.append("\n caused by " + t + "\n");
                     StackTraceElement tst[] = t.getStackTrace();
-                    for (int i = 0; i < tst.length; i++)
-                        sb.append(tst[i].toString());
+                    for (StackTraceElement aTst : tst) sb.append(aTst.toString());
                 }
                 exLogger.fine(sb.toString());
             }
@@ -125,21 +123,22 @@ public final class SQLServerException extends java.sql.SQLException {
      * Make a new SQLException
      * 
      * @param errText
-     *            the excception message
-     * @param errState
-     *            the excpeption state
+     *            the exception message
+     * @param sqlState
+     *            the statement
      * @param driverError
+     *            the driver error object
      * @param cause
      *            The exception that caused this exception
      */
-    SQLServerException(String errText,
+    public SQLServerException(String errText,
             SQLState sqlState,
             DriverError driverError,
             Throwable cause) {
         this(errText, sqlState.getSQLStateCode(), driverError.getErrorCode(), cause);
     }
 
-    SQLServerException(String errText,
+    public SQLServerException(String errText,
             String errState,
             int errNum,
             Throwable cause) {
@@ -149,7 +148,7 @@ public final class SQLServerException extends java.sql.SQLException {
         ActivityCorrelator.setCurrentActivityIdSentFlag(); // set the activityid flag so that we don't send the current ActivityId later.
     }
 
-    SQLServerException(String errText,
+    public SQLServerException(String errText,
             Throwable cause) {
         super(errText);
         initCause(cause);
@@ -157,7 +156,7 @@ public final class SQLServerException extends java.sql.SQLException {
         ActivityCorrelator.setCurrentActivityIdSentFlag();
     }
 
-    /* L0 */ SQLServerException(Object obj,
+    /* L0 */ public SQLServerException(Object obj,
             String errText,
             String errState,
             int errNum,
@@ -171,6 +170,7 @@ public final class SQLServerException extends java.sql.SQLException {
      * Make a new SQLException
      * 
      * @param obj
+     *            the object
      * @param errText
      *            the exception message
      * @param errState
@@ -180,7 +180,7 @@ public final class SQLServerException extends java.sql.SQLException {
      * @param bStack
      *            true to generate the stack trace
      */
-    /* L0 */ SQLServerException(Object obj,
+    /* L0 */ public SQLServerException(Object obj,
             String errText,
             String errState,
             StreamError streamError,
