@@ -787,7 +787,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     
     private void buildRPCExecParams(TDSWriter tdsWriter) throws SQLServerException {
         if (getStatementLogger().isLoggable(java.util.logging.Level.FINE))
-            getStatementLogger().fine(toString() + ": calling sp_execute: PROC" + ", SQL:" + preparedSQL);
+            getStatementLogger().fine(toString() + ": calling PROC" + ", SQL:" + preparedSQL);
 
         expectPrepStmtHandle = false;
         executedSqlDirectly = true;
