@@ -158,20 +158,20 @@ public final class SQLServerDataTable {
 	        int nValueLen;
 	        switch (jdbcType) {
 	            case BIGINT:
-	                rowValues[pair.getKey()] = (val instanceof Number ? ((Number)val).longValue() : Long.parseLong(val.toString()));
+	                rowValues[pair.getKey()] = (val instanceof Number ? (Long)val : Long.parseLong(val.toString()));
 	                break;
 	
 	            case BIT:
-	                rowValues[pair.getKey()] = (val instanceof Boolean ? (Boolean)val : (val.toString().equals("1") ? Boolean.TRUE : (val.toString().equals("0") ? Boolean.FALSE : Boolean.parseBoolean(val.toString()))));
+	                rowValues[pair.getKey()] = (val instanceof Boolean ? (Boolean)val : (val.toString().equals("0") ? Boolean.FALSE : Boolean.TRUE ));
 	                break;
 	
 	            case INTEGER:
-	                rowValues[pair.getKey()] = (val instanceof Number ? ((Number)val).intValue() : Integer.parseInt(val.toString()));
+	                rowValues[pair.getKey()] = (val instanceof Number ? (Integer)val : Integer.parseInt(val.toString()));
 	                break;
 	
 	            case SMALLINT:
 	            case TINYINT:
-	                rowValues[pair.getKey()] = (val instanceof Number ? ((Number)val).shortValue() : Short.parseShort(val.toString()));
+	                rowValues[pair.getKey()] = (val instanceof Number ? (Short)val : Short.parseShort(val.toString()));
 	                break;
 	
 	            case DECIMAL:
@@ -205,12 +205,12 @@ public final class SQLServerDataTable {
 	                break;
 	
 	            case DOUBLE:
-	                rowValues[pair.getKey()] = (val instanceof Number ? ((Number)val).doubleValue() : Double.parseDouble(val.toString()));
+	                rowValues[pair.getKey()] = (val instanceof Number ? (Double)val : Double.parseDouble(val.toString()));
 	                break;
-	
+
 	            case FLOAT:
 	            case REAL:
-	                rowValues[pair.getKey()] = (val instanceof Number ? ((Number)val).floatValue() : Float.parseFloat(val.toString()));
+	                rowValues[pair.getKey()] = (val instanceof Number ? (Float)val : Float.parseFloat(val.toString()));
 	                break;
 	
 	            case TIMESTAMP_WITH_TIMEZONE:
