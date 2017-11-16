@@ -967,7 +967,14 @@ public class SQLServerResultSet implements ISQLServerResultSet {
                     moveFirst();
                 else
                     moveForward(1);
-            } while (rowDeleted()); // repeat this if the row has been deleted beforehand, for scrollable resultsets.
+                
+                // Only attempt rowDeleted() if result set is updatable.
+                try {
+                    verifyResultSetIsUpdatable();
+                } catch (SQLServerException e) {
+                    break;
+                }
+            } while (rowDeleted()); // repeat this if the row has been deleted beforehand, for scrollable & updatable resultsets.
             boolean value = hasCurrentRow();
             loggerExternal.exiting(getClassNameLogging(), "next", value);
             return value;
