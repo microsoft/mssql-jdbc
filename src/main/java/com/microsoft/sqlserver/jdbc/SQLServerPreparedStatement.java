@@ -86,6 +86,8 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     
     /** Check if statement contains TVP Type*/
     static boolean isTVPType = false;
+    
+    static boolean validRPC = false;
     /**
      * The number of OUT parameters to skip in the response to get to the first app-declared OUT parameter.
      *
@@ -625,7 +627,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
             Parameter[] params, boolean bReturnValueSyntax) throws SQLServerException {
         char cParamName[];
         int index = 0;
-        if (bReturnValueSyntax  && !isCursorable(executeMethod) && !isTVPType) { 
+        if (bReturnValueSyntax  && !isCursorable(executeMethod) && !isTVPType && SQLServerConnection.isRPCValid(userSQL)) { 
             returnParam = params[index];
             params[index].setReturnValue(true);
             index++;
@@ -792,7 +794,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         expectPrepStmtHandle = false;
         executedSqlDirectly = true;
         expectCursorOutParams = false;
-        outParamIndexAdjustment = 1; 
+        outParamIndexAdjustment = 0; 
         tdsWriter.writeShort((short)procedureName.length()); // procedure name length 
         tdsWriter.writeString(procedureName);
 
@@ -1006,8 +1008,9 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                 buildServerCursorExecParams(tdsWriter);
         }
         else {
-            int paramCount = SQLServerConnection.countParams(userSQL);
-            if (needsPrepare && null != procedureName && paramCount != 0 && !isTVPType(params)) { 
+           
+
+            if (needsPrepare && callRPCDirectly(params)) { 
                 // if it is a parameterized stored procedure call and is not TVP, use sp_execute directly. 
                 buildRPCExecParams(tdsWriter);
             }
@@ -1028,6 +1031,20 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         sendParamsByRPC(tdsWriter, params, bReturnValueSyntax);
 
         return needsPrepare;
+    }
+    
+    /**
+     * Checks if we should call RPC directly for stored procedures
+     * @param params
+     * @return
+     * @throws SQLServerException
+     */
+    boolean callRPCDirectly(Parameter[] params) throws SQLServerException {
+        int paramCount = SQLServerConnection.countParams(userSQL);
+        if (null != procedureName && paramCount != 0 && !isTVPType(params) && SQLServerConnection.isRPCValid(userSQL)) {
+            return true;
+        }
+        return false;
     }
     
     /**

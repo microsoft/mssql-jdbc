@@ -165,7 +165,7 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
             // if it is a return value, increment the nOutParamsAssigned. Checking for isCursorable here is because the driver is executing
             // the stored procedure for cursorable ones differently ( calling sp_cursorexecute r sp_cursorprepexec.
             if (bReturnValueSyntax && inOutParam[i - 1].isValueGotten() && inOutParam[i - 1].isReturnValue() && !returnValueIsAccessed
-                    && !isCursorable(executeMethod) && !SQLServerPreparedStatement.isTVPType) {
+                    && !isCursorable(executeMethod) && !SQLServerPreparedStatement.isTVPType && SQLServerConnection.isRPCValid(userSQL)) {
                 nOutParamsAssigned++;
                 returnValueIsAccessed = true;
             }
@@ -305,7 +305,7 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
 
         OutParamHandler outParamHandler = new OutParamHandler();
 
-        if (bReturnValueSyntax && (nOutParamsAssigned == 0) && !isCursorable(executeMethod) && !isTVPType) 
+        if (bReturnValueSyntax && (nOutParamsAssigned == 0) && !isCursorable(executeMethod) && !isTVPType && SQLServerConnection.isRPCValid(userSQL)) 
             nOutParamsAssigned++;
         // Index the application OUT parameters
         // assert numParamsToSkip <= nOutParams - nOutParamsAssigned ;
@@ -350,12 +350,13 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
                 // Note that parameter ordinals are 0-indexed and that the return status is not
                 // considered to be an output parameter.
                 outParamIndex = outParamHandler.srv.getOrdinalOrLength();
-                if (bReturnValueSyntax && !isCursorable(executeMethod) && !isTVPType) {
+
+                if (bReturnValueSyntax && !isCursorable(executeMethod) && !isTVPType && SQLServerConnection.isRPCValid(userSQL)) {
                     outParamIndex++;
                 }
                 // Statements need to have their out param indices adjusted by the number
                 // of sp_[cursor][prep]exec params.
-                else if (isCursorable(executeMethod) || isTVPType) {
+                else {
                     outParamIndex -= outParamIndexAdjustment;
                 }
                 if ((outParamIndex < 0 || outParamIndex >= inOutParam.length) || (!inOutParam[outParamIndex].isOutput())) {

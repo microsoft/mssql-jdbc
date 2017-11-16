@@ -270,6 +270,19 @@ public class SQLServerConnection implements ISQLServerConnection {
         parsedSQLCache.putIfAbsent(key, cacheItem);
         return cacheItem;
     }
+    
+    /**
+     * Checks if remote procedure call is a valid. Example: if exec procName 1,? we should not use RPC call directly, rather wrap it with sp_executesql call 
+     * @param sql
+     * @return
+     */
+    static boolean isRPCValid(String sql) {
+        if (sql.contains("?") && sql.contains("\'")) // means that query params are not all passed. Example: exec procName 1,?
+        {
+            return false;
+        }
+        return true;
+    }
  
     /** Size of the  prepared statement handle cache */
     private int statementPoolingCacheSize = 10;
