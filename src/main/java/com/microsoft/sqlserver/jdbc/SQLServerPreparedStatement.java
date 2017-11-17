@@ -51,6 +51,8 @@ import com.microsoft.sqlserver.jdbc.SQLServerConnection.Sha1HashKey;
 public class SQLServerPreparedStatement extends SQLServerStatement implements ISQLServerPreparedStatement {
     /** Flag to indicate that it is an internal query to retrieve encryption metadata. */
     boolean isInternalEncryptionQuery = false;
+    
+    boolean definitionChanged = false;
 
     /** delimiter for multiple statements in a single batch */
     private static final int BATCH_STATEMENT_DELIMITER_TDS_71 = 0x80;
@@ -98,6 +100,9 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
     /** The prepared statement handle returned by the server */
     private int prepStmtHandle = 0;
+    
+    /** Statement used for getMetadata(). Declared as a field to facilitate closing the statement. */
+    private SQLServerStatement internalStmt = null;
 
     private void setPreparedStatementHandle(int handle) {
         this.prepStmtHandle = handle;
@@ -271,6 +276,18 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
         // If we have a prepared statement handle, close it.
         closePreparedHandle();
+        
+        // Close the statement that was used to generate empty statement from getMetadata().
+        try {
+            if (null != internalStmt)
+                internalStmt.close();
+        } catch (SQLServerException e) {
+            if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
+                loggerExternal.finer("Ignored error closing internal statement: " + e.getErrorCode() + " " + e.getMessage());
+        }
+        finally {
+            internalStmt = null;
+        }
 
         // Clean up client-side state
         batchParamValues = null;
@@ -311,6 +328,13 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         String newTypeDefinitions = buildParamTypeDefinitions(params, renewDefinition);
         if (null != preparedTypeDefinitions && newTypeDefinitions.equals(preparedTypeDefinitions))
             return false;
+        
+        if(preparedTypeDefinitions == null) {
+            definitionChanged = false;
+        }
+        else {
+            definitionChanged = true;
+        }
 
         preparedTypeDefinitions = newTypeDefinitions;
 
@@ -338,7 +362,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         StringBuilder sb = new StringBuilder();
         int nCols = params.length;
         char cParamName[] = new char[10];
-        parameterNames = new ArrayList<String>();
+        parameterNames = new ArrayList<>();
 
         for (int i = 0; i < nCols; i++) {
             if (i > 0)
@@ -471,6 +495,8 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     final void doExecutePreparedStatement(PrepStmtExecCmd command) throws SQLServerException {
         resetForReexecute();
 
+        definitionChanged = false;
+
         // If this request might be a query (as opposed to an update) then make
         // sure we set the max number of rows and max field size for any ResultSet
         // that may be returned.
@@ -509,32 +535,19 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
             hasNewTypeDefinitions = buildPreparedStrings(inOutParam, true);
         }
 
-        // Retry execution if existing handle could not be re-used.
-        for(int attempt = 1; attempt <= 2; ++attempt) {
-            try {
-    			// Re-use handle if available, requires parameter definitions which are not available until here.
-    			if (reuseCachedHandle(hasNewTypeDefinitions, 1 < attempt)) {
-    				hasNewTypeDefinitions = false;
-    			}
-    	
-    	        // Start the request and detach the response reader so that we can
-    	        // continue using it after we return.
-    	        TDSWriter tdsWriter = command.startRequest(TDS.PKT_RPC);
-    	
-    	        doPrepExec(tdsWriter, inOutParam, hasNewTypeDefinitions, hasExistingTypeDefinitions);
-    	
-    	        ensureExecuteResultsReader(command.startResponse(getIsResponseBufferingAdaptive()));
-    	        startResults();
-    	        getNextResult();
-        	}
-        	catch(SQLException e) {
-        		if (retryBasedOnFailedReuseOfCachedHandle(e, attempt))
-    				continue;
-                else
-    				throw e;
-        	}
-        	break;	
+        if (reuseCachedHandle(hasNewTypeDefinitions, false)) {
+            hasNewTypeDefinitions = false;
         }
+
+        // Start the request and detach the response reader so that we can
+        // continue using it after we return.
+        TDSWriter tdsWriter = command.startRequest(TDS.PKT_RPC);
+
+        doPrepExec(tdsWriter, inOutParam, hasNewTypeDefinitions, hasExistingTypeDefinitions);
+
+        ensureExecuteResultsReader(command.startResponse(getIsResponseBufferingAdaptive()));
+        startResults();
+        getNextResult();
 
         if (EXECUTE_QUERY == executeMethod && null == resultSet) {
             SQLServerException.makeFromDriverError(connection, this, SQLServerException.getErrString("R_noResultset"), null, true);
@@ -542,15 +555,6 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         else if (EXECUTE_UPDATE == executeMethod && null != resultSet) {
             SQLServerException.makeFromDriverError(connection, this, SQLServerException.getErrString("R_resultsetGeneratedForUpdate"), null, false);
         }
-    }
-
-    /** Should the execution be retried because the re-used cached handle could not be re-used due to server side state changes? */
-    private boolean retryBasedOnFailedReuseOfCachedHandle(SQLException e, int attempt) {
-        // Only retry based on these error codes:
-        // 586: The prepared statement handle %d is not valid in this context.  Please verify that current database, user default schema, and ANSI_NULLS and QUOTED_IDENTIFIER set options are not changed since the handle is prepared.
-        // 8179: Could not find prepared statement with handle %d.
-        // 99586: Error used for testing.
-        return 1 == attempt && (586 == e.getErrorCode() || 8179 == e.getErrorCode() || 99586 == e.getErrorCode());
     }
 
     /**
@@ -795,7 +799,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
             return;
         }
 
-        Map<Integer, CekTableEntry> cekList = new HashMap<Integer, CekTableEntry>();
+        Map<Integer, CekTableEntry> cekList = new HashMap<>();
         CekTableEntry cekEntry = null;
         try {
             while (rs.next()) {
@@ -901,7 +905,18 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
 	/** Manage re-using cached handles */
 	private boolean reuseCachedHandle(boolean hasNewTypeDefinitions, boolean discardCurrentCacheItem) {
-		
+        if (definitionChanged || connection.contextChanged) {
+            prepStmtHandle = -1; // so that hasPreparedStatementHandle() also returns false
+
+            if (connection.contextChanged) {
+                connection.contextChanged = false;
+                connection.contextIsAlreadyChanged = false;
+                connection.clearCachedPreparedStatementHandle();
+            }
+
+            return false;
+        }
+
 		// No re-use of caching for cursorable statements (statements that WILL use sp_cursor*)
 		if (isCursorable(executeMethod))
 			return false;
@@ -1023,8 +1038,8 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         ResultSet emptyResultSet = null;
         try {
             fmtSQL = replaceMarkerWithNull(fmtSQL);
-            SQLServerStatement stmt = (SQLServerStatement) connection.createStatement();
-            emptyResultSet = stmt.executeQueryInternal("set fmtonly on " + fmtSQL + "\nset fmtonly off");
+            internalStmt = (SQLServerStatement) connection.createStatement();
+            emptyResultSet = internalStmt.executeQueryInternal("set fmtonly on " + fmtSQL + "\nset fmtonly off");
         }
         catch (SQLException sqle) {
             if (false == sqle.getMessage().equals(SQLServerException.getErrString("R_noResultset"))) {
@@ -2376,7 +2391,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
         // Create the list of batch parameter values first time through
         if (batchParamValues == null)
-            batchParamValues = new ArrayList<Parameter[]>();
+            batchParamValues = new ArrayList<>();
 
         final int numParams = inOutParam.length;
         Parameter paramValues[] = new Parameter[numParams];
@@ -2417,10 +2432,9 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                 //
                 // OUT and INOUT parameter checking is done here, before executing the batch. If any
                 // OUT or INOUT are present, the entire batch fails.
-                for (int batch = 0; batch < batchParamValues.size(); ++batch) {
-                    Parameter paramValues[] = batchParamValues.get(batch);
-                    for (int param = 0; param < paramValues.length; ++param) {
-                        if (paramValues[param].isOutput()) {
+                for (Parameter[] paramValues : batchParamValues) {
+                    for (Parameter paramValue : paramValues) {
+                        if (paramValue.isOutput()) {
                             throw new BatchUpdateException(SQLServerException.getErrString("R_outParamsNotPermittedinBatch"), null, 0, null);
                         }
                     }
@@ -2475,10 +2489,9 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                 //
                 // OUT and INOUT parameter checking is done here, before executing the batch. If any
                 // OUT or INOUT are present, the entire batch fails.
-                for (int batch = 0; batch < batchParamValues.size(); ++batch) {
-                    Parameter paramValues[] = batchParamValues.get(batch);
-                    for (int param = 0; param < paramValues.length; ++param) {
-                        if (paramValues[param].isOutput()) {
+                for (Parameter[] paramValues : batchParamValues) {
+                    for (Parameter paramValue : paramValues) {
+                        if (paramValue.isOutput()) {
                             throw new BatchUpdateException(SQLServerException.getErrString("R_outParamsNotPermittedinBatch"), null, 0, null);
                         }
                     }
@@ -2490,8 +2503,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
                 updateCounts = new long[batchCommand.updateCounts.length];
 
-                for (int i = 0; i < batchCommand.updateCounts.length; ++i)
-                    updateCounts[i] = batchCommand.updateCounts[i];
+                System.arraycopy(batchCommand.updateCounts, 0, updateCounts, 0, batchCommand.updateCounts.length);
 
                 // Transform the SQLException into a BatchUpdateException with the update counts.
                 if (null != batchCommand.batchException) {
@@ -2538,7 +2550,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
         int numBatchesPrepared = 0;
         int numBatchesExecuted = 0;
-        Vector<CryptoMetadata> cryptoMetaBatch = new Vector<CryptoMetadata>();
+        Vector<CryptoMetadata> cryptoMetaBatch = new Vector<>();
 
         if (isSelect(userSQL)) {
             SQLServerException.makeFromDriverError(connection, this, SQLServerException.getErrString("R_selectNotPermittedinBatch"), null, true);
@@ -2553,140 +2565,124 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         // Create the parameter array that we'll use for all the items in this batch.
         Parameter[] batchParam = new Parameter[inOutParam.length];
 
+        definitionChanged = false;
+
         TDSWriter tdsWriter = null;
-        while (numBatchesExecuted < numBatches) {
-            // Fill in the parameter values for this batch
-            Parameter paramValues[] = batchParamValues.get(numBatchesPrepared);
-            assert paramValues.length == batchParam.length;
-            for (int i = 0; i < paramValues.length; i++)
-                batchParam[i] = paramValues[i];
-            
-            boolean hasExistingTypeDefinitions = preparedTypeDefinitions != null;
-            boolean hasNewTypeDefinitions = buildPreparedStrings(batchParam, false);
+        try {
+            while (numBatchesExecuted < numBatches) {
+                // Fill in the parameter values for this batch
+                Parameter paramValues[] = batchParamValues.get(numBatchesPrepared);
+                assert paramValues.length == batchParam.length;
+                System.arraycopy(paramValues, 0, batchParam, 0, paramValues.length);
 
-            // Get the encryption metadata for the first batch only.
-            if ((0 == numBatchesExecuted) && (Util.shouldHonorAEForParameters(stmtColumnEncriptionSetting, connection)) && (0 < batchParam.length)
-                    && !isInternalEncryptionQuery && !encryptionMetadataIsRetrieved) {
-                getParameterEncryptionMetadata(batchParam);
+                boolean hasExistingTypeDefinitions = preparedTypeDefinitions != null;
+                boolean hasNewTypeDefinitions = buildPreparedStrings(batchParam, false);
 
-                // fix an issue when inserting unicode into non-encrypted nchar column using setString() and AE is on on Connection
-                buildPreparedStrings(batchParam, true);
+                // Get the encryption metadata for the first batch only.
+                if ((0 == numBatchesExecuted) && (Util.shouldHonorAEForParameters(stmtColumnEncriptionSetting, connection)) && (0 < batchParam.length)
+                        && !isInternalEncryptionQuery && !encryptionMetadataIsRetrieved) {
+                    getParameterEncryptionMetadata(batchParam);
 
-                // Save the crypto metadata retrieved for the first batch. We will re-use these for the rest of the batches.
-                for (int i = 0; i < batchParam.length; i++) {
-                    cryptoMetaBatch.add(batchParam[i].cryptoMeta);
+                    // fix an issue when inserting unicode into non-encrypted nchar column using setString() and AE is on on Connection
+                    buildPreparedStrings(batchParam, true);
+
+                    // Save the crypto metadata retrieved for the first batch. We will re-use these for the rest of the batches.
+                    for (Parameter aBatchParam : batchParam) {
+                        cryptoMetaBatch.add(aBatchParam.cryptoMeta);
+                    }
                 }
-            }
 
-            // Update the crypto metadata for this batch.
-            if (0 < numBatchesExecuted) {
-                // cryptoMetaBatch will be empty for non-AE connections/statements.
-                for (int i = 0; i < cryptoMetaBatch.size(); i++) {
-                    batchParam[i].cryptoMeta = cryptoMetaBatch.get(i);
+                // Update the crypto metadata for this batch.
+                if (0 < numBatchesExecuted) {
+                    // cryptoMetaBatch will be empty for non-AE connections/statements.
+                    for (int i = 0; i < cryptoMetaBatch.size(); i++) {
+                        batchParam[i].cryptoMeta = cryptoMetaBatch.get(i);
+                    }
                 }
-            }
 
-            // Retry execution if existing handle could not be re-used.
-            for(int attempt = 1; attempt <= 2; ++attempt) {               
-                try {
-                    
-                    // Re-use handle if available, requires parameter definitions which are not available until here.
-                    if (reuseCachedHandle(hasNewTypeDefinitions, 1 < attempt)) {
-                        hasNewTypeDefinitions = false;
-                    }
-                    
-                    if (numBatchesExecuted < numBatchesPrepared) {
-                        // assert null != tdsWriter;
-                        tdsWriter.writeByte((byte) nBatchStatementDelimiter);
-                    }
-                    else {
-                        resetForReexecute();
-                        tdsWriter = batchCommand.startRequest(TDS.PKT_RPC);
-                    }
+                if (reuseCachedHandle(hasNewTypeDefinitions, false)) {
+                    hasNewTypeDefinitions = false;
+                }
 
-                    // If we have to (re)prepare the statement then we must execute it so
-                    // that we get back a (new) prepared statement handle to use to
-                    // execute additional batches.
-                    //
-                    // We must always prepare the statement the first time through.
-                    // But we may also need to reprepare the statement if, for example,
-                    // the size of a batch's string parameter values changes such
-                    // that repreparation is necessary.
-                    ++numBatchesPrepared;
+                if (numBatchesExecuted < numBatchesPrepared) {
+                    // assert null != tdsWriter;
+                    tdsWriter.writeByte((byte) nBatchStatementDelimiter);
+                }
+                else {
+                    resetForReexecute();
+                    tdsWriter = batchCommand.startRequest(TDS.PKT_RPC);
+                }
 
-                    if (doPrepExec(tdsWriter, batchParam, hasNewTypeDefinitions, hasExistingTypeDefinitions) || numBatchesPrepared == numBatches) {
-                        ensureExecuteResultsReader(batchCommand.startResponse(getIsResponseBufferingAdaptive()));
+                // If we have to (re)prepare the statement then we must execute it so
+                // that we get back a (new) prepared statement handle to use to
+                // execute additional batches.
+                //
+                // We must always prepare the statement the first time through.
+                // But we may also need to reprepare the statement if, for example,
+                // the size of a batch's string parameter values changes such
+                // that repreparation is necessary.
+                ++numBatchesPrepared;
 
-                        boolean retry = false;
-                        while (numBatchesExecuted < numBatchesPrepared) {
-                            // NOTE:
-                            // When making changes to anything below, consider whether similar changes need
-                            // to be made to Statement batch execution.
+                if (doPrepExec(tdsWriter, batchParam, hasNewTypeDefinitions, hasExistingTypeDefinitions) || numBatchesPrepared == numBatches) {
+                    ensureExecuteResultsReader(batchCommand.startResponse(getIsResponseBufferingAdaptive()));
 
-                            startResults();
+                    while (numBatchesExecuted < numBatchesPrepared) {
+                        // NOTE:
+                        // When making changes to anything below, consider whether similar changes need
+                        // to be made to Statement batch execution.
 
-                            try {
-                                // Get the first result from the batch. If there is no result for this batch
-                                // then bail, leaving EXECUTE_FAILED in the current and remaining slots of
-                                // the update count array.
-                                if (!getNextResult())
-                                    return;
+                        startResults();
 
-                                // If the result is a ResultSet (rather than an update count) then throw an
-                                // exception for this result. The exception gets caught immediately below and
-                                // translated into (or added to) a BatchUpdateException.
-                                if (null != resultSet) {
-                                    SQLServerException.makeFromDriverError(connection, this, SQLServerException.getErrString("R_resultsetGeneratedForUpdate"),
-                                            null, false);
-                                }
+                        try {
+                            // Get the first result from the batch. If there is no result for this batch
+                            // then bail, leaving EXECUTE_FAILED in the current and remaining slots of
+                            // the update count array.
+                            if (!getNextResult())
+                                return;
+
+                            // If the result is a ResultSet (rather than an update count) then throw an
+                            // exception for this result. The exception gets caught immediately below and
+                            // translated into (or added to) a BatchUpdateException.
+                            if (null != resultSet) {
+                                SQLServerException.makeFromDriverError(connection, this,
+                                        SQLServerException.getErrString("R_resultsetGeneratedForUpdate"), null, false);
                             }
-                            catch (SQLServerException e) {
-                                // If the failure was severe enough to close the connection or roll back a
-                                // manual transaction, then propagate the error up as a SQLServerException
-                                // now, rather than continue with the batch.
-                                if (connection.isSessionUnAvailable() || connection.rolledBackTransaction())
-                                    throw e;
-
-                                // Retry if invalid handle exception.
-                                if (retryBasedOnFailedReuseOfCachedHandle(e, attempt)) {
-                                    //reset number of batches prepare
-                                    numBatchesPrepared = numBatchesExecuted;
-                                    retry = true;                                    
-                                    break;
-                                }
-
-                                // Otherwise, the connection is OK and the transaction is still intact,
-                                // so just record the failure for the particular batch item.
-                                updateCount = Statement.EXECUTE_FAILED;
-                                if (null == batchCommand.batchException)
-                                    batchCommand.batchException = e;
-                            }
-
-                            // In batch execution, we have a special update count
-                            // to indicate that no information was returned
-                            batchCommand.updateCounts[numBatchesExecuted] = (-1 == updateCount) ? Statement.SUCCESS_NO_INFO : updateCount;
-                            processBatch();
-
-                            numBatchesExecuted++;
                         }
-                        if(retry)
-                            continue; 
+                        catch (SQLServerException e) {
+                            // If the failure was severe enough to close the connection or roll back a
+                            // manual transaction, then propagate the error up as a SQLServerException
+                            // now, rather than continue with the batch.
+                            if (connection.isSessionUnAvailable() || connection.rolledBackTransaction())
+                                throw e;
 
-                        // Only way to proceed with preparing the next set of batches is if
-                        // we successfully executed the previously prepared set.
-                        assert numBatchesExecuted == numBatchesPrepared;
+                            // Otherwise, the connection is OK and the transaction is still intact,
+                            // so just record the failure for the particular batch item.
+                            updateCount = Statement.EXECUTE_FAILED;
+                            if (null == batchCommand.batchException)
+                                batchCommand.batchException = e;
+                        }
+
+                        // In batch execution, we have a special update count
+                        // to indicate that no information was returned
+                        batchCommand.updateCounts[numBatchesExecuted] = (-1 == updateCount) ? Statement.SUCCESS_NO_INFO : updateCount;
+                        processBatch();
+
+                        numBatchesExecuted++;
                     }
+
+                    // Only way to proceed with preparing the next set of batches is if
+                    // we successfully executed the previously prepared set.
+                    assert numBatchesExecuted == numBatchesPrepared;
                 }
-                catch(SQLException e) {
-                    if (retryBasedOnFailedReuseOfCachedHandle(e, attempt)) {
-                        // Reset number of batches prepared.
-                        numBatchesPrepared = numBatchesExecuted;
-                        continue;
-                    }
-                    else
-                        throw e;
-                }
-                break;	
+            }
+        }
+        catch (SQLServerException e) {
+            // throw the initial batchException
+            if (null != batchCommand.batchException) {
+                throw batchCommand.batchException;
+            }
+            else {
+                throw e;
             }
         }
     }

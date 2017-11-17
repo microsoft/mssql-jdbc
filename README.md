@@ -70,27 +70,27 @@ This driver is documented on [Microsoft's Documentation web site](https://msdn.m
 For samples, please see the src\sample directory.
 
 ### Download the DLLs
-For some features (e.g. Integrated Authentication and Distributed Transactions), you may need to use the `sqljdbc_xa` and `sqljdbc_auth` DLLs. They can be downloaded from the [Microsoft Download Center](https://www.microsoft.com/en-us/download/details.aspx?displaylang=en&id=11774)
+For some features (e.g. Integrated Authentication and Distributed Transactions), you may need to use the `sqljdbc_xa` and `sqljdbc_auth` DLLs. They can be downloaded from the [Microsoft Download Center](https://go.microsoft.com/fwlink/?linkid=852460)
 
 ### Download the driver
 Don't want to compile anything?
 
-We're now on the Maven Central Repository. Add the following to your POM file:
+We're now on the Maven Central Repository. Add the following to your POM file to get the most stable release:
 ```xml
 <dependency>
 	<groupId>com.microsoft.sqlserver</groupId>
 	<artifactId>mssql-jdbc</artifactId>
-	<version>6.3.0.jre8-preview</version>
+	<version>6.2.2.jre8</version>
 </dependency>
 ```
-The driver can be downloaded from the [Microsoft Download Center](https://www.microsoft.com/en-us/download/details.aspx?displaylang=en&id=11774).
+The driver can be downloaded from the [Microsoft Download Center](https://go.microsoft.com/fwlink/?linkid=852460).
 
 To get the latest preview version of the driver, add the following to your POM file: 
 ```xml
 <dependency>
 	<groupId>com.microsoft.sqlserver</groupId>
 	<artifactId>mssql-jdbc</artifactId>
-	<version>6.3.0.jre8-preview</version>
+	<version>6.3.4.jre8-preview</version>
 </dependency>
 ```
 
@@ -120,7 +120,7 @@ Projects that require either of the two features need to explicitly declare the 
 <dependency>
 	<groupId>com.microsoft.sqlserver</groupId>
 	<artifactId>mssql-jdbc</artifactId>
-	<version>6.3.0.jre8-preview</version>
+	<version>6.3.4.jre8-preview</version>
 	<scope>compile</scope>
 </dependency>
 
@@ -130,6 +130,7 @@ Projects that require either of the two features need to explicitly declare the 
 	<version>1.0.0</version>
 </dependency>
 ```
+***Please note*** as of the v6.2.2, the way to construct a `SQLServerColumnEncryptionAzureKeyVaultProvider` object has changed. Please refer to this [Wiki](https://github.com/Microsoft/mssql-jdbc/wiki/New-Constructor-Definition-for-SQLServerColumnEncryptionAzureKeyVaultProvider-after-6.2.2-Release) page for more information.
 
 ## Guidelines for Creating Pull Requests
 We love contributions from the community.  To help improve the quality of our code, we encourage you to use the mssql-jdbc_formatter.xml formatter provided on all pull requests.

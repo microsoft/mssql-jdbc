@@ -27,6 +27,7 @@ import org.junit.runner.RunWith;
 import com.microsoft.sqlserver.jdbc.SQLServerCallableStatement;
 import com.microsoft.sqlserver.jdbc.SQLServerDataTable;
 import com.microsoft.sqlserver.jdbc.SQLServerPreparedStatement;
+import com.microsoft.sqlserver.jdbc.SQLServerResultSet;
 import com.microsoft.sqlserver.testframework.AbstractTest;
 
 @RunWith(JUnitPlatform.class)
@@ -36,8 +37,8 @@ public class TVPTypesTest extends AbstractTest {
     static Statement stmt = null;
     static ResultSet rs = null;
     static SQLServerDataTable tvp = null;
-    private static String tvpName = "MaxTypesTVP";
-    private static String charTable = "MaxTypesTVPTable";
+    private static String tvpName = "TVP";
+    private static String table = "TVPTable";
     private static String procedureName = "procedureThatCallsTVP";
     private String value = null;
 
@@ -61,12 +62,12 @@ public class TVPTypesTest extends AbstractTest {
         tvp.addRow(value);
 
         SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) connection
-                .prepareStatement("INSERT INTO " + charTable + " select * from ? ;");
+                .prepareStatement("INSERT INTO " + table + " select * from ? ;");
         pstmt.setStructured(1, tvpName, tvp);
 
         pstmt.execute();
 
-        rs = conn.createStatement().executeQuery("select * from " + charTable);
+        rs = conn.createStatement().executeQuery("select * from " + table);
         while (rs.next()) {
             assertEquals(rs.getString(1), value);
         }
@@ -95,12 +96,12 @@ public class TVPTypesTest extends AbstractTest {
         tvp.addRow(value);
 
         SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) connection
-                .prepareStatement("INSERT INTO " + charTable + " select * from ? ;");
+                .prepareStatement("INSERT INTO " + table + " select * from ? ;");
         pstmt.setStructured(1, tvpName, tvp);
 
         pstmt.execute();
 
-        rs = conn.createStatement().executeQuery("select * from " + charTable);
+        rs = conn.createStatement().executeQuery("select * from " + table);
         while (rs.next()) {
             assertEquals(rs.getString(1), value);
         }
@@ -128,13 +129,13 @@ public class TVPTypesTest extends AbstractTest {
         tvp.addRow(value);
 
         SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) connection
-                .prepareStatement("INSERT INTO " + charTable + " select * from ? ;");
+                .prepareStatement("INSERT INTO " + table + " select * from ? ;");
         pstmt.setStructured(1, tvpName, tvp);
 
         pstmt.execute();
 
         Connection con = DriverManager.getConnection(connectionString);
-        ResultSet rs = con.createStatement().executeQuery("select * from " + charTable);
+        ResultSet rs = con.createStatement().executeQuery("select * from " + table);
         while (rs.next())
             assertEquals(rs.getString(1), value);
 
@@ -161,13 +162,13 @@ public class TVPTypesTest extends AbstractTest {
         tvp.addRow(value);
 
         SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) connection
-                .prepareStatement("INSERT INTO " + charTable + " select * from ? ;");
+                .prepareStatement("INSERT INTO " + table + " select * from ? ;");
         pstmt.setStructured(1, tvpName, tvp);
 
         pstmt.execute();
 
         Connection con = DriverManager.getConnection(connectionString);
-        ResultSet rs = con.createStatement().executeQuery("select * from " + charTable);
+        ResultSet rs = con.createStatement().executeQuery("select * from " + table);
         while (rs.next())
             assertEquals(rs.getString(1), value);
 
@@ -194,13 +195,13 @@ public class TVPTypesTest extends AbstractTest {
         tvp.addRow(value);
 
         SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) connection
-                .prepareStatement("INSERT INTO " + charTable + " select * from ? ;");
+                .prepareStatement("INSERT INTO " + table + " select * from ? ;");
         pstmt.setStructured(1, tvpName, tvp);
 
         pstmt.execute();
 
         Connection con = DriverManager.getConnection(connectionString);
-        ResultSet rs = con.createStatement().executeQuery("select * from " + charTable);
+        ResultSet rs = con.createStatement().executeQuery("select * from " + table);
         while (rs.next())
             assertEquals(rs.getString(1), value);
 
@@ -227,13 +228,13 @@ public class TVPTypesTest extends AbstractTest {
         tvp.addRow(value.getBytes());
 
         SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) connection
-                .prepareStatement("INSERT INTO " + charTable + " select * from ? ;");
+                .prepareStatement("INSERT INTO " + table + " select * from ? ;");
         pstmt.setStructured(1, tvpName, tvp);
 
         pstmt.execute();
 
         Connection con = DriverManager.getConnection(connectionString);
-        ResultSet rs = con.createStatement().executeQuery("select * from " + charTable);
+        ResultSet rs = con.createStatement().executeQuery("select * from " + table);
 
         while (rs.next())
             assertTrue(parseByte(rs.getBytes(1), value.getBytes()));
@@ -249,7 +250,7 @@ public class TVPTypesTest extends AbstractTest {
      * @throws SQLException
      */
     @Test
-    public void testTVPLongVarchar_StoredProcedure() throws SQLException {
+    public void testTVPLongVarcharStoredProcedure() throws SQLException {
         createTables("varchar(max)");
         createTVPS("varchar(max)");
         createPreocedure();
@@ -269,7 +270,7 @@ public class TVPTypesTest extends AbstractTest {
         P_C_statement.setStructured(1, tvpName, tvp);
         P_C_statement.execute();
 
-        rs = stmt.executeQuery("select * from " + charTable);
+        rs = stmt.executeQuery("select * from " + table);
         while (rs.next())
             assertEquals(rs.getString(1), value);
 
@@ -284,7 +285,7 @@ public class TVPTypesTest extends AbstractTest {
      * @throws SQLException
      */
     @Test
-    public void testTVPLongNVarchar_StoredProcedure() throws SQLException {
+    public void testTVPLongNVarcharStoredProcedure() throws SQLException {
         createTables("nvarchar(max)");
         createTVPS("nvarchar(max)");
         createPreocedure();
@@ -303,7 +304,7 @@ public class TVPTypesTest extends AbstractTest {
         P_C_statement.setStructured(1, tvpName, tvp);
         P_C_statement.execute();
 
-        rs = stmt.executeQuery("select * from " + charTable);
+        rs = stmt.executeQuery("select * from " + table);
         while (rs.next())
             assertEquals(rs.getString(1), value);
 
@@ -318,7 +319,7 @@ public class TVPTypesTest extends AbstractTest {
      * @throws SQLException
      */
     @Test
-    public void testTVPXML_StoredProcedure() throws SQLException {
+    public void testTVPXMLStoredProcedure() throws SQLException {
         createTables("xml");
         createTVPS("xml");
         createPreocedure();
@@ -337,7 +338,7 @@ public class TVPTypesTest extends AbstractTest {
         P_C_statement.setStructured(1, tvpName, tvp);
         P_C_statement.execute();
 
-        rs = stmt.executeQuery("select * from " + charTable);
+        rs = stmt.executeQuery("select * from " + table);
         while (rs.next())
             assertEquals(rs.getString(1), value);
         if (null != P_C_statement) {
@@ -351,7 +352,7 @@ public class TVPTypesTest extends AbstractTest {
      * @throws SQLException
      */
     @Test
-    public void testTVPText_StoredProcedure() throws SQLException {
+    public void testTVPTextStoredProcedure() throws SQLException {
         createTables("text");
         createTVPS("text");
         createPreocedure();
@@ -371,7 +372,7 @@ public class TVPTypesTest extends AbstractTest {
         P_C_statement.setStructured(1, tvpName, tvp);
         P_C_statement.execute();
 
-        rs = stmt.executeQuery("select * from " + charTable);
+        rs = stmt.executeQuery("select * from " + table);
         while (rs.next())
             assertEquals(rs.getString(1), value);
         if (null != P_C_statement) {
@@ -385,7 +386,7 @@ public class TVPTypesTest extends AbstractTest {
      * @throws SQLException
      */
     @Test
-    public void testTVPNText_StoredProcedure() throws SQLException {
+    public void testTVPNTextStoredProcedure() throws SQLException {
         createTables("ntext");
         createTVPS("ntext");
         createPreocedure();
@@ -405,7 +406,7 @@ public class TVPTypesTest extends AbstractTest {
         P_C_statement.setStructured(1, tvpName, tvp);
         P_C_statement.execute();
 
-        rs = stmt.executeQuery("select * from " + charTable);
+        rs = stmt.executeQuery("select * from " + table);
         while (rs.next())
             assertEquals(rs.getString(1), value);
         if (null != P_C_statement) {
@@ -419,7 +420,7 @@ public class TVPTypesTest extends AbstractTest {
      * @throws SQLException
      */
     @Test
-    public void testTVPImage_StoredProcedure() throws SQLException {
+    public void testTVPImageStoredProcedure() throws SQLException {
         createTables("image");
         createTVPS("image");
         createPreocedure();
@@ -439,14 +440,77 @@ public class TVPTypesTest extends AbstractTest {
         P_C_statement.setStructured(1, tvpName, tvp);
         P_C_statement.execute();
 
-        rs = stmt.executeQuery("select * from " + charTable);
+        rs = stmt.executeQuery("select * from " + table);
         while (rs.next())
             assertTrue(parseByte(rs.getBytes(1), value.getBytes()));
         if (null != P_C_statement) {
             P_C_statement.close();
         }
     }
+    
+    /**
+     * Test a datetime support
+     * 
+     * @throws SQLException
+     */
+    @Test
+    public void testDateTime() throws SQLException {
+        createTables("datetime");
+        createTVPS("datetime");
 
+        java.sql.Timestamp value = java.sql.Timestamp.valueOf("2007-09-23 10:10:10.123");
+
+        tvp = new SQLServerDataTable();
+        tvp.addColumnMetadata("c1", microsoft.sql.Types.DATETIME);
+        tvp.addRow(value);
+
+        SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) connection
+                .prepareStatement("INSERT INTO " + table + " select * from ? ;");
+        pstmt.setStructured(1, tvpName, tvp);
+
+        pstmt.execute();
+
+        rs = conn.createStatement().executeQuery("select * from " + table);
+        while (rs.next()) {
+            assertEquals(((SQLServerResultSet) rs).getDateTime(1), value);
+        }
+        if (null != pstmt) {
+            pstmt.close();
+        }
+    }
+    
+    /**
+     * Test a smalldatetime support
+     * 
+     * @throws SQLException
+     */
+    @Test
+    public void testSmallDateTime() throws SQLException {
+        createTables("smalldatetime");
+        createTVPS("smalldatetime");
+
+        java.sql.Timestamp value = java.sql.Timestamp.valueOf("2007-09-23 10:10:10.123");
+        java.sql.Timestamp returnValue = java.sql.Timestamp.valueOf("2007-09-23 10:10:00.0");
+
+        tvp = new SQLServerDataTable();
+        tvp.addColumnMetadata("c1", microsoft.sql.Types.SMALLDATETIME);
+        tvp.addRow(value);
+
+        SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) connection
+                .prepareStatement("INSERT INTO " + table + " select * from ? ;");
+        pstmt.setStructured(1, tvpName, tvp);
+
+        pstmt.execute();
+
+        rs = conn.createStatement().executeQuery("select * from " + table);
+        while (rs.next()) {
+            assertEquals(((SQLServerResultSet) rs).getSmallDateTime(1), returnValue);
+        }
+        if (null != pstmt) {
+            pstmt.close();
+        }
+    }
+    
     @BeforeEach
     private void testSetup() throws SQLException {
         conn = DriverManager.getConnection(connectionString);
@@ -473,7 +537,7 @@ public class TVPTypesTest extends AbstractTest {
     }
 
     private static void dropTables() throws SQLException {
-        stmt.executeUpdate("if object_id('" + charTable + "','U') is not null" + " drop table " + charTable);
+        stmt.executeUpdate("if object_id('" + table + "','U') is not null" + " drop table " + table);
     }
 
     private static void dropTVPS() throws SQLException {
@@ -481,14 +545,14 @@ public class TVPTypesTest extends AbstractTest {
     }
 
     private static void createPreocedure() throws SQLException {
-        String sql = "CREATE PROCEDURE " + procedureName + " @InputData " + tvpName + " READONLY " + " AS " + " BEGIN " + " INSERT INTO " + charTable
+        String sql = "CREATE PROCEDURE " + procedureName + " @InputData " + tvpName + " READONLY " + " AS " + " BEGIN " + " INSERT INTO " + table
                 + " SELECT * FROM @InputData" + " END";
 
         stmt.execute(sql);
     }
 
     private void createTables(String colType) throws SQLException {
-        String sql = "create table " + charTable + " (c1 " + colType + " null);";
+        String sql = "create table " + table + " (c1 " + colType + " null);";
         stmt.execute(sql);
     }
 

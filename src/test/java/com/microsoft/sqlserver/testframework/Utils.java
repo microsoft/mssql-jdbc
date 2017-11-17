@@ -131,8 +131,7 @@ public class Utils {
     public static SqlType find(Class javatype) {
         if (null != types) {
             types();
-            for (int i = 0; i < types.size(); i++) {
-                SqlType type = types.get(i);
+            for (SqlType type : types) {
                 if (type.getType() == javatype)
                     return type;
             }
@@ -149,8 +148,7 @@ public class Utils {
         if (null == types)
             types();
         if (null != types) {
-            for (int i = 0; i < types.size(); i++) {
-                SqlType type = types.get(i);
+            for (SqlType type : types) {
                 if (type.getName().equalsIgnoreCase(name))
                     return type;
             }
@@ -164,7 +162,7 @@ public class Utils {
      */
     public static ArrayList<SqlType> types() {
         if (null == types) {
-            types = new ArrayList<SqlType>();
+            types = new ArrayList<>();
 
             types.add(new SqlInt());
             types.add(new SqlSmallInt());

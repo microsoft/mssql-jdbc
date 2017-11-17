@@ -429,7 +429,7 @@ public class SQLServerStatement implements ISQLServerStatement {
      * The array of objects in a batched call. Applicable to statements and prepared statements When the iterativeBatching property is turned on.
      */
     /** The buffer that accumulates batchable statements */
-    private final ArrayList<String> batchStatementBuffer = new ArrayList<String>();
+    private final ArrayList<String> batchStatementBuffer = new ArrayList<>();
 
     /** logging init at the construction */
     static final private java.util.logging.Logger stmtlogger = java.util.logging.Logger
@@ -800,6 +800,21 @@ public class SQLServerStatement implements ISQLServerStatement {
         }
     }
 
+    /*
+     * check if context has been changed by monitoring statment call on the connection, since context is connection based.
+     */
+    void checkIfContextChanged(String sql) {
+        if (connection.contextIsAlreadyChanged) {
+            connection.contextChanged = true;
+            return;
+        }
+        else if (sql.toUpperCase().contains("ANSI_NULLS") || sql.toUpperCase().contains("QUOTED_IDENTIFIER") || sql.toUpperCase().contains("USE")
+                || sql.toUpperCase().contains("DEFAULT_SCHEMA")) {
+            connection.contextIsAlreadyChanged = true;
+            connection.contextChanged = true;
+        }
+    }
+
     final void doExecuteStatement(StmtExecCmd execCmd) throws SQLServerException {
         resetForReexecute();
 
@@ -810,6 +825,8 @@ public class SQLServerStatement implements ISQLServerStatement {
         // through regular Statement objects. We need to ensure that any such JDBC
         // call syntax is rewritten here as SQL exec syntax.
         String sql = ensureSQLSyntax(execCmd.sql);
+
+        checkIfContextChanged(sql);
 
         // If this request might be a query (as opposed to an update) then make
         // sure we set the max number of rows and max field size for any ResultSet
@@ -914,7 +931,9 @@ public class SQLServerStatement implements ISQLServerStatement {
         tdsWriter.writeString(batchIter.next());
         while (batchIter.hasNext()) {
             tdsWriter.writeString(" ; ");
-            tdsWriter.writeString(batchIter.next());
+            String sql = batchIter.next();
+            tdsWriter.writeString(sql);
+            checkIfContextChanged(sql);
         }
 
         // Start the response
@@ -1512,7 +1531,7 @@ public class SQLServerStatement implements ISQLServerStatement {
                         infoToken.msg.getErrorNumber());
 
                 if (sqlWarnings == null) {
-                    sqlWarnings = new Vector<SQLWarning>();
+                    sqlWarnings = new Vector<>();
                 }
                 else {
                     int n = sqlWarnings.size();
@@ -2384,7 +2403,7 @@ final class JDBCSyntaxTranslator {
         Matcher offsetMatcher = limitSyntaxWithOffset.matcher(sql);
 
         int startIndx = indx;
-        Stack<Integer> topPosition = new Stack<Integer>();
+        Stack<Integer> topPosition = new Stack<>();
         State nextState = State.START;
 
         while (indx < sql.length()) {

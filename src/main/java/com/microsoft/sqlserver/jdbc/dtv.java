@@ -1213,7 +1213,7 @@ final class DTV {
                                                                                                        // the default length for decimal value
                             }
 
-                            tdsWriter.writeByte((byte) ((0 != outScale) ? outScale : 0));	// send scale
+                            tdsWriter.writeByte((byte) (outScale));	// send scale
                         }
                         else {
                             tdsWriter.writeByte((byte) 0x11); // maximum length
@@ -1617,12 +1617,18 @@ final class DTV {
             switch (javaType) {
                 case STRING:
                     if (JDBCType.GUID == jdbcType) {
-                        if (value instanceof String)
-                            value = UUID.fromString((String) value);
-                        byte[] bArray = Util.asGuidByteArray((UUID) value);
-                        op.execute(this, bArray);
+                        if (null != cryptoMeta) {
+                            if (value instanceof String) {
+                                value = UUID.fromString((String) value);
+                            }
+                            byte[] bArray = Util.asGuidByteArray((UUID) value);
+                            op.execute(this, bArray);
+                        }
+                        else {
+                            op.execute(this, String.valueOf(value));
+                        }
                     }
-                    else if (jdbcType.SQL_VARIANT == jdbcType) {
+                    else if (JDBCType.SQL_VARIANT == jdbcType) {
                         op.execute(this, String.valueOf(value));
                     }
                     else {
@@ -3098,7 +3104,7 @@ final class TypeInfo {
              */
             public void apply(TypeInfo typeInfo,
                     TDSReader tdsReader) throws SQLServerException {
-                typeInfo.ssLenType = SSLenType.LONGLENTYPE; //Variant type should be LONGLENTYPE length.
+                typeInfo.ssLenType = SSLenType.LONGLENTYPE; //sql_variant type should be LONGLENTYPE length.
                 typeInfo.maxLength = tdsReader.readInt();
                 typeInfo.ssType = SSType.SQL_VARIANT;
                 }
@@ -3328,7 +3334,7 @@ final class TypeInfo {
         }
     }
 
-    private static final Map<TDSType, Builder> builderMap = new EnumMap<TDSType, Builder>(TDSType.class);
+    private static final Map<TDSType, Builder> builderMap = new EnumMap<>(TDSType.class);
 
     static {
         for (Builder builder : Builder.values())
@@ -3829,7 +3835,7 @@ final class ServerDTVImpl extends DTVImpl {
                 DataTypes.throwConversionError(typeInfo.getSSType().toString(), streamGetterArgs.streamType.toString());
         }
         else {
-            if (!baseSSType.convertsTo(jdbcType)) {
+            if (!baseSSType.convertsTo(jdbcType) && !isNull) {
                 // if the baseSSType is Character or NCharacter and jdbcType is Longvarbinary,
                 // does not throw type conversion error, which allows getObject() on Long Character types.
                 if (encrypted) {
@@ -4109,7 +4115,6 @@ final class ServerDTVImpl extends DTVImpl {
                 
             case MONEY4:
                 jdbcType = JDBCType.SMALLMONEY;
-                typeInfo.setMaxLength(4);
                 precision = Long.toString(Long.MAX_VALUE).length();
                 typeInfo.setPrecision(precision);
                 scale = 4;
@@ -4122,7 +4127,6 @@ final class ServerDTVImpl extends DTVImpl {
                 
             case MONEY8:
                 jdbcType = JDBCType.MONEY;
-                typeInfo.setMaxLength(8);
                 precision = Long.toString(Long.MAX_VALUE).length();
                 scale = 4;
                 typeInfo.setPrecision(precision);
@@ -4173,9 +4177,7 @@ final class ServerDTVImpl extends DTVImpl {
                     jdbcType = JDBCType.CHAR;
                 collation = tdsReader.readCollation();
                 typeInfo.setSQLCollation(collation);
-                typeInfo.setSSLenType(SSLenType.USHORTLENTYPE);
                 maxLength = tdsReader.readUnsignedShort();
-                typeInfo.setMaxLength(maxLength);
                 if (maxLength > DataTypes.SHORT_VARTYPE_MAX_BYTES)
                     tdsReader.throwInvalidTDS();
                 typeInfo.setDisplaySize(maxLength);
@@ -4199,7 +4201,6 @@ final class ServerDTVImpl extends DTVImpl {
                     jdbcType = JDBCType.NVARCHAR;
                 collation = tdsReader.readCollation();
                 typeInfo.setSQLCollation(collation);
-                typeInfo.setSSLenType(SSLenType.USHORTLENTYPE);
                 maxLength = tdsReader.readUnsignedShort();
                 if (maxLength > DataTypes.SHORT_VARTYPE_MAX_BYTES || 0 != maxLength % 2)
                     tdsReader.throwInvalidTDS();
@@ -4232,7 +4233,6 @@ final class ServerDTVImpl extends DTVImpl {
                     MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidProbbytes"));
                     throw new SQLServerException(form.format(new Object[] {baseType}), null, 0, null);
                 }
-                jdbcType = JDBCType.CHAR; // The reason we use char is to return nanoseconds
                 if (internalVariant.isBaseTypeTimeValue()) {
                     jdbcType = JDBCType.TIMESTAMP;
                 }
@@ -4266,7 +4266,6 @@ final class ServerDTVImpl extends DTVImpl {
                     jdbcType = JDBCType.VARBINARY;
                 maxLength = tdsReader.readUnsignedShort();
                 internalVariant.setMaxLength(maxLength);
-                typeInfo.setMaxLength(maxLength);
                 if (maxLength > DataTypes.SHORT_VARTYPE_MAX_BYTES)
                     tdsReader.throwInvalidTDS();
                 typeInfo.setDisplaySize(2 * maxLength);
@@ -4284,10 +4283,12 @@ final class ServerDTVImpl extends DTVImpl {
                 convertedValue = tdsReader.readGUID(expectedValueLength, jdbcType, streamGetterArgs.streamType);
                 break;
                 
-            // Unknown SSType should have already been rejected by TypeInfo.setFromTDS()
-            default:
-                assert false : "Unexpected TDSType in Sql-Variant " + baseType;
-                break;
+            // Unsupported TdsType should throw error message
+            default: {
+                MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidDataTypeSupportForSQLVariant"));
+                throw new SQLServerException(form.format(new Object[] {baseType}), null, 0, null);
+            }
+
         }
         return convertedValue;
     }

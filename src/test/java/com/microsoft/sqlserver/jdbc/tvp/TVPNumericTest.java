@@ -43,7 +43,7 @@ public class TVPNumericTest extends AbstractTest {
      * @throws SQLServerException
      */
     @Test
-    public void testNumericPresicionIssue_211() throws SQLServerException {
+    public void testNumericPresicionIssue211() throws SQLServerException {
         tvp = new SQLServerDataTable();
         tvp.addColumnMetadata("c1", java.sql.Types.NUMERIC);
 

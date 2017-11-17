@@ -22,8 +22,7 @@ public class DBItems {
     }
 
     public DBCoercion find(Class type) {
-        for (int i = 0; i < coercionsList.size(); i++) {
-            DBCoercion item = coercionsList.get(i);
+        for (DBCoercion item : coercionsList) {
             if (item.type() == type)
                 return item;
         }

@@ -439,9 +439,7 @@ final class DDC {
             }
         }
         int offset = numBytes - unscaledBytes.length;
-        for (int i = offset; i < numBytes; ++i) {
-            ret[i] = unscaledBytes[i - offset];
-        }
+        System.arraycopy(unscaledBytes, offset - offset, ret, offset, numBytes - offset);
         return ret;
     }
 
@@ -922,7 +920,8 @@ final class DDC {
         }
         // Convert the calendar value (in local time) to the desired Java object type.
         switch (jdbcType.category) {
-            case BINARY: {
+            case BINARY:
+            case SQL_VARIANT: {
                 switch (ssType) {
                     case DATE: {
                         // Per JDBC spec, the time part of java.sql.Date values is initialized to midnight
@@ -1337,7 +1336,6 @@ final class AsciiFilteredUnicodeInputStream extends InputStream {
         catch (IOException e) {
             // unfortunately inputstream mark does not throw an exception so we have to eat any exception from the reader here
             // likely to be a bug in the original InputStream spec.
-            return;
         }
     }
 

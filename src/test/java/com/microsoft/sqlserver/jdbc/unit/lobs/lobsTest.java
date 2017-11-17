@@ -101,10 +101,10 @@ public class lobsTest extends AbstractTest {
         List<Boolean> isResultSetTypes = new ArrayList<>(Arrays.asList(true, false));
         Collection<DynamicTest> dynamicTests = new ArrayList<>();
 
-        for (int i = 0; i < classes.size(); i++) {
-            for (int j = 0; j < isResultSetTypes.size(); j++) {
-                final Class lobClass = classes.get(i);
-                final boolean isResultSet = isResultSetTypes.get(j);
+        for (Class aClass : classes) {
+            for (Boolean isResultSetType : isResultSetTypes) {
+                final Class lobClass = aClass;
+                final boolean isResultSet = isResultSetType;
                 Executable exec = new Executable() {
                     @Override
                     public void execute() throws Throwable {
@@ -285,10 +285,10 @@ public class lobsTest extends AbstractTest {
      * @throws Exception
      */
     @Test
-    @DisplayName("testlLobs_InsertRetrive")
+    @DisplayName("testlLobsInsertRetrive")
     public void testNClob() throws Exception {
         String types[] = {"nvarchar(max)"};
-        testLobs_InsertRetrive(types, NClob.class);
+        testLobsInsertRetrive(types, NClob.class);
     }
 
     /**
@@ -297,10 +297,10 @@ public class lobsTest extends AbstractTest {
      * @throws Exception
      */
     @Test
-    @DisplayName("testlLobs_InsertRetrive")
+    @DisplayName("testlLobsInsertRetrive")
     public void testBlob() throws Exception {
         String types[] = {"varbinary(max)"};
-        testLobs_InsertRetrive(types, Blob.class);
+        testLobsInsertRetrive(types, Blob.class);
     }
 
     /**
@@ -309,13 +309,13 @@ public class lobsTest extends AbstractTest {
      * @throws Exception
      */
     @Test
-    @DisplayName("testlLobs_InsertRetrive")
+    @DisplayName("testlLobsInsertRetrive")
     public void testClob() throws Exception {
         String types[] = {"varchar(max)"};
-        testLobs_InsertRetrive(types, Clob.class);
+        testLobsInsertRetrive(types, Clob.class);
     }
 
-    private void testLobs_InsertRetrive(String types[],
+    private void testLobsInsertRetrive(String types[],
             Class lobClass) throws Exception {
         table = createTable(table, types, false);  // create empty table
         int size = 10000;
@@ -572,8 +572,8 @@ public class lobsTest extends AbstractTest {
         DBStatement stmt = new DBConnection(connectionString).createStatement();
         table = new DBTable(false);
 
-        for (int i = 0; i < types.length; i++) {
-            SqlType type = Utils.find(types[i]);
+        for (String type1 : types) {
+            SqlType type = Utils.find(type1);
             table.addColumn(type);
 
         }

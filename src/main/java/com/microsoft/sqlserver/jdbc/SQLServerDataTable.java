@@ -13,10 +13,12 @@ import java.text.MessageFormat;
 import java.time.OffsetDateTime;
 import java.time.OffsetTime;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
 import java.util.UUID;
 
 public final class SQLServerDataTable {
@@ -24,6 +26,7 @@ public final class SQLServerDataTable {
     int rowCount = 0;
     int columnCount = 0;
     Map<Integer, SQLServerDataColumn> columnMetadata = null;
+    Set<String> columnNames = null;
     Map<Integer, Object[]> rows = null;
 
     private String tvpName = null;
@@ -36,8 +39,9 @@ public final class SQLServerDataTable {
      */
     // Name used in CREATE TYPE
     public SQLServerDataTable() throws SQLServerException {
-        columnMetadata = new LinkedHashMap<Integer, SQLServerDataColumn>();
-        rows = new HashMap<Integer, Object[]>();
+        columnMetadata = new LinkedHashMap<>();
+        columnNames = new HashSet<>();
+        rows = new HashMap<>();
     }
 
     /**
@@ -75,7 +79,7 @@ public final class SQLServerDataTable {
     public synchronized void addColumnMetadata(String columnName,
             int sqlType) throws SQLServerException {
         // column names must be unique
-        Util.checkDuplicateColumnName(columnName, columnMetadata);
+        Util.checkDuplicateColumnName(columnName, columnNames);
         columnMetadata.put(columnCount++, new SQLServerDataColumn(columnName, sqlType));
     }
 
@@ -89,9 +93,10 @@ public final class SQLServerDataTable {
      */
     public synchronized void addColumnMetadata(SQLServerDataColumn column) throws SQLServerException {
         // column names must be unique
-        Util.checkDuplicateColumnName(column.columnName, columnMetadata);
+        Util.checkDuplicateColumnName(column.columnName, columnNames);
         columnMetadata.put(columnCount++, column);
     }
+
 
     /**
      * Adds one row of data to the data table.
@@ -118,7 +123,7 @@ public final class SQLServerDataTable {
                 Object val = null;
 
                 if ((null != values) && (currentColumn < values.length) && (null != values[currentColumn]))
-                    val = (null == values[currentColumn]) ? null : values[currentColumn];
+                    val = values[currentColumn];
                 currentColumn++;
                 Map.Entry<Integer, SQLServerDataColumn> pair = columnsIterator.next();
                 JDBCType jdbcType = JDBCType.of(pair.getValue().javaSqlType);
@@ -218,6 +223,8 @@ public final class SQLServerDataTable {
             case TIME:
             case TIMESTAMP:
             case DATETIMEOFFSET:
+            case DATETIME:
+            case SMALLDATETIME:
                 // Sending temporal types as string. Error from database is thrown if parsing fails
                 // no need to send precision for temporal types, string literal will never exceed DataTypes.SHORT_VARTYPE_MAX_BYTES
 

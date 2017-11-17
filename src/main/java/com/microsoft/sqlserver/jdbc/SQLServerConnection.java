@@ -83,6 +83,9 @@ import mssql.googlecode.concurrentlinkedhashmap.EvictionListener;
 
 // Note all the public functions in this class also need to be defined in SQLServerConnectionPoolProxy.
 public class SQLServerConnection implements ISQLServerConnection {
+    boolean contextIsAlreadyChanged = false;
+    boolean contextChanged = false;
+
     long timerExpire;
     boolean attemptRefreshTokenLocked = false;
 
@@ -100,7 +103,7 @@ public class SQLServerConnection implements ISQLServerConnection {
     private Boolean enablePrepareOnFirstPreparedStatementCall = null; // Current limit for this particular connection.
 
     // Handle the actual queue of discarded prepared statements.
-    private ConcurrentLinkedQueue<PreparedStatementHandle> discardedPreparedStatementHandles = new ConcurrentLinkedQueue<PreparedStatementHandle>();
+    private ConcurrentLinkedQueue<PreparedStatementHandle> discardedPreparedStatementHandles = new ConcurrentLinkedQueue<>();
     private AtomicInteger discardedPreparedStatementHandleCount = new AtomicInteger(0);
 
     private boolean fedAuthRequiredByUser = false;
@@ -507,6 +510,20 @@ public class SQLServerConnection implements ISQLServerConnection {
         return negotiatedEncryptionLevel;
     }
 
+    private String trustManagerClass = null;
+
+    final String getTrustManagerClass() {
+        assert TDS.ENCRYPT_INVALID != requestedEncryptionLevel;
+        return trustManagerClass;
+    }
+
+    private String trustManagerConstructorArg = null;
+
+    final String getTrustManagerConstructorArg() {
+        assert TDS.ENCRYPT_INVALID != requestedEncryptionLevel;
+        return trustManagerConstructorArg;
+    }
+
     static final String RESERVED_PROVIDER_NAME_PREFIX = "MSSQL_";
     String columnEncryptionSetting = null;
 
@@ -525,7 +542,7 @@ public class SQLServerConnection implements ISQLServerConnection {
     }
 
     static boolean isWindows;
-    static Map<String, SQLServerColumnEncryptionKeyStoreProvider> globalSystemColumnEncryptionKeyStoreProviders = new HashMap<String, SQLServerColumnEncryptionKeyStoreProvider>();
+    static Map<String, SQLServerColumnEncryptionKeyStoreProvider> globalSystemColumnEncryptionKeyStoreProviders = new HashMap<>();
     static {
         if (System.getProperty("os.name").toLowerCase(Locale.ENGLISH).startsWith("windows")) {
             isWindows = true;
@@ -538,7 +555,7 @@ public class SQLServerConnection implements ISQLServerConnection {
     }
     static Map<String, SQLServerColumnEncryptionKeyStoreProvider> globalCustomColumnEncryptionKeyStoreProviders = null;
     // This is a per-connection store provider. It can be JKS or AKV.
-    Map<String, SQLServerColumnEncryptionKeyStoreProvider> systemColumnEncryptionKeyStoreProvider = new HashMap<String, SQLServerColumnEncryptionKeyStoreProvider>();
+    Map<String, SQLServerColumnEncryptionKeyStoreProvider> systemColumnEncryptionKeyStoreProvider = new HashMap<>();
 
     /**
      * Registers key store providers in the globalCustomColumnEncryptionKeyStoreProviders.
@@ -561,7 +578,7 @@ public class SQLServerConnection implements ISQLServerConnection {
             throw new SQLServerException(null, SQLServerException.getErrString("R_CustomKeyStoreProviderSetOnce"), null, 0, false);
         }
 
-        globalCustomColumnEncryptionKeyStoreProviders = new HashMap<String, SQLServerColumnEncryptionKeyStoreProvider>();
+        globalCustomColumnEncryptionKeyStoreProviders = new HashMap<>();
 
         for (Map.Entry<String, SQLServerColumnEncryptionKeyStoreProvider> entry : clientKeyStoreProviders.entrySet()) {
             String providerName = entry.getKey();
@@ -625,7 +642,7 @@ public class SQLServerConnection implements ISQLServerConnection {
     }
 
     private String trustedServerNameAE = null;
-    private static Map<String, List<String>> columnEncryptionTrustedMasterKeyPaths = new HashMap<String, List<String>>();
+    private static Map<String, List<String>> columnEncryptionTrustedMasterKeyPaths = new HashMap<>();
 
     /**
      * Sets Trusted Master Key Paths in the columnEncryptionTrustedMasterKeyPaths.
@@ -691,7 +708,7 @@ public class SQLServerConnection implements ISQLServerConnection {
     public static synchronized Map<String, List<String>> getColumnEncryptionTrustedMasterKeyPaths() {
         loggerExternal.entering(SQLServerConnection.class.getName(), "getColumnEncryptionTrustedMasterKeyPaths", "Getting Trusted Master Key Paths");
 
-        Map<String, List<String>> masterKeyPathCopy = new HashMap<String, List<String>>();
+        Map<String, List<String>> masterKeyPathCopy = new HashMap<>();
 
         for (Map.Entry<String, List<String>> entry : columnEncryptionTrustedMasterKeyPaths.entrySet()) {
             masterKeyPathCopy.put(entry.getKey(), entry.getValue());
@@ -1079,7 +1096,10 @@ public class SQLServerConnection implements ISQLServerConnection {
                                                                                                           // timeout, default is 15 per spec
                         String sPropValue = propsIn.getProperty(SQLServerDriverIntProperty.LOGIN_TIMEOUT.toString());
                         if (null != sPropValue && sPropValue.length() > 0) {
-                            loginTimeoutSeconds = Integer.parseInt(sPropValue);
+                            int sPropValueInt = Integer.parseInt(sPropValue);
+                            if (0 != sPropValueInt) { // Use the default timeout in case of a zero value
+                                loginTimeoutSeconds = sPropValueInt;
+                            }
                         }
                     }
 
@@ -1351,6 +1371,9 @@ public class SQLServerConnection implements ISQLServerConnection {
             }
 
             trustServerCertificate = booleanPropertyOn(sPropKey, sPropValue);
+
+            trustManagerClass = activeConnectionProperties.getProperty(SQLServerDriverStringProperty.TRUST_MANAGER_CLASS.toString());
+            trustManagerConstructorArg = activeConnectionProperties.getProperty(SQLServerDriverStringProperty.TRUST_MANAGER_CONSTRUCTOR_ARG.toString());
 
             sPropKey = SQLServerDriverStringProperty.SELECT_METHOD.toString();
             sPropValue = activeConnectionProperties.getProperty(sPropKey);
@@ -1694,6 +1717,16 @@ public class SQLServerConnection implements ISQLServerConnection {
                 setEnablePrepareOnFirstPreparedStatementCall(booleanPropertyOn(sPropKey, sPropValue));
             }
 
+            sPropKey = SQLServerDriverStringProperty.SSL_PROTOCOL.toString();
+            sPropValue = activeConnectionProperties.getProperty(sPropKey);
+            if (null == sPropValue) {
+                sPropValue = SQLServerDriverStringProperty.SSL_PROTOCOL.getDefaultValue();
+                activeConnectionProperties.setProperty(sPropKey, sPropValue);
+            }
+            else {
+                activeConnectionProperties.setProperty(sPropKey, SSLProtocol.valueOfString(sPropValue).toString());
+            }
+            
             FailoverInfo fo = null;
             String databaseNameProperty = SQLServerDriverStringProperty.DATABASE_NAME.toString();
             String serverNameProperty = SQLServerDriverStringProperty.SERVER_NAME.toString();
@@ -1788,7 +1821,7 @@ public class SQLServerConnection implements ISQLServerConnection {
             long timerStart) throws SQLServerException {
         // standardLogin would be false only for db mirroring scenarios. It would be true
         // for all other cases, including multiSubnetFailover
-        final boolean isDBMirroring = (null == mirror && null == foActual) ? false : true;
+        final boolean isDBMirroring = null != mirror || null != foActual;
         int sleepInterval = 100;  // milliseconds to sleep (back off) between attempts.
         long timeoutUnitInterval;
 
@@ -1961,6 +1994,7 @@ public class SQLServerConnection implements ISQLServerConnection {
             catch (SQLServerException sqlex) {
                 if ((SQLServerException.LOGON_FAILED == sqlex.getErrorCode()) // actual logon failed, i.e. bad password
                         || (SQLServerException.PASSWORD_EXPIRED == sqlex.getErrorCode()) // actual logon failed, i.e. password isExpired
+                        || (SQLServerException.USER_ACCOUNT_LOCKED == sqlex.getErrorCode()) // actual logon failed, i.e. user account locked
                         || (SQLServerException.DRIVER_ERROR_INVALID_TDS == sqlex.getDriverErrorCode()) // invalid TDS received from server
                         || (SQLServerException.DRIVER_ERROR_SSL_FAILED == sqlex.getDriverErrorCode()) // failure negotiating SSL
                         || (SQLServerException.DRIVER_ERROR_INTERMITTENT_TLS_FAILED == sqlex.getDriverErrorCode()) // failure TLS1.2
@@ -2592,7 +2626,7 @@ public class SQLServerConnection implements ISQLServerConnection {
                     // Or AccessToken is not null, mean token based authentication is used.
                     if (((null != authenticationString) && (!authenticationString.equalsIgnoreCase(SqlAuthentication.NotSpecified.toString())))
                             || (null != accessTokenInByte)) {
-                        fedAuthRequiredPreLoginResponse = (preloginResponse[optionOffset] == 1 ? true : false);
+                        fedAuthRequiredPreLoginResponse = (preloginResponse[optionOffset] == 1);
                     }
                     break;
 
@@ -2979,6 +3013,8 @@ public class SQLServerConnection implements ISQLServerConnection {
 
         // Clean-up queue etc. related to batching of prepared statement discard actions (sp_unprepare).
         cleanupPreparedStatementDiscardActions();
+        
+        ActivityCorrelator.cleanupActivityId();
 
         loggerExternal.exiting(getClassNameLogging(), "close");
     }
@@ -2999,6 +3035,7 @@ public class SQLServerConnection implements ISQLServerConnection {
                 connectionCommand("IF @@TRANCOUNT > 0 ROLLBACK TRAN" /* +close connection */, "close connection");
             }
             notifyPooledConnection(null);
+            ActivityCorrelator.cleanupActivityId();
             if (connectionlogger.isLoggable(Level.FINER)) {
                 connectionlogger.finer(toString() + " Connection closed and returned to connection pool");
             }
@@ -3046,6 +3083,8 @@ public class SQLServerConnection implements ISQLServerConnection {
         checkClosed();
         if (catalog != null) {
             connectionCommand("use " + Util.escapeSQLId(catalog), "setCatalog");
+            contextIsAlreadyChanged = true;
+            contextChanged = true;
             sCatalog = catalog;
         }
         loggerExternal.exiting(getClassNameLogging(), "setCatalog");
@@ -3217,7 +3256,7 @@ public class SQLServerConnection implements ISQLServerConnection {
     public java.util.Map<String, Class<?>> getTypeMap() throws SQLServerException {
         loggerExternal.entering(getClassNameLogging(), "getTypeMap");
         checkClosed();
-        java.util.Map<String, Class<?>> mp = new java.util.HashMap<String, Class<?>>();
+        java.util.Map<String, Class<?>> mp = new java.util.HashMap<>();
         loggerExternal.exiting(getClassNameLogging(), "getTypeMap", mp);
         return mp;
     }
@@ -5397,7 +5436,7 @@ public class SQLServerConnection implements ISQLServerConnection {
                 browserResult = new String(receiveBuffer, 3, receiveBuffer.length - 3);
                 if (connectionlogger.isLoggable(Level.FINER))
                     connectionlogger.fine(
-                            toString() + " Received SSRP UDP response from IP address: " + udpResponse.getAddress().getHostAddress().toString());
+                            toString() + " Received SSRP UDP response from IP address: " + udpResponse.getAddress().getHostAddress());
             }
             catch (IOException ioException) {
                 // Warn and retry
@@ -5725,6 +5764,12 @@ public class SQLServerConnection implements ISQLServerConnection {
     		return;
     	
     	preparedStatementHandleCache.remove(handle.getKey());
+    }
+
+    final void clearCachedPreparedStatementHandle() {
+        if (null != preparedStatementHandleCache) {
+            preparedStatementHandleCache.clear();
+        }
     }
 
     // Handle closing handles when removed from cache.

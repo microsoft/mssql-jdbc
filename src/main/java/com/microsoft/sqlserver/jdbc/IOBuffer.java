@@ -64,6 +64,7 @@ import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -498,7 +499,7 @@ class GregorianChange {
 
         GregorianCalendar cal = new GregorianCalendar(Locale.US);
         cal.clear();
-        cal.set(1, 1, 577738, 0, 0, 0);// 577738 = 1+577737(no of days since epoch that brings us to oct 15th 1582)
+        cal.set(1, Calendar.FEBRUARY, 577738, 0, 0, 0);// 577738 = 1+577737(no of days since epoch that brings us to oct 15th 1582)
         if (cal.get(Calendar.DAY_OF_MONTH) == 15) {
             // If the date calculation is correct(the above bug is fixed),
             // post the default gregorian cut over date, the pure gregorian date
@@ -1340,7 +1341,7 @@ final class TDSChannel {
      * A PermissiveX509TrustManager is used to "verify" the authenticity of the server when the trustServerCertificate connection property is set to
      * true.
      */
-    private final class PermissiveX509TrustManager extends Object implements X509TrustManager {
+    private final class PermissiveX509TrustManager implements X509TrustManager {
         private final TDSChannel tdsChannel;
         private final Logger logger;
         private final String logContext;
@@ -1373,7 +1374,7 @@ final class TDSChannel {
      *
      * This validates the subject name in the certificate with the host name
      */
-    private final class HostNameOverrideX509TrustManager extends Object implements X509TrustManager {
+    private final class HostNameOverrideX509TrustManager implements X509TrustManager {
         private final Logger logger;
         private final String logContext;
         private final X509TrustManager defaultTrustManager;
@@ -1579,7 +1580,7 @@ final class TDSChannel {
 
         boolean isFips = false;
         String trustStoreType = null;
-        String fipsProvider = null;
+        String sslProtocol = null;
 
         // If anything in here fails, terminate the connection and throw an exception
         try {
@@ -1597,11 +1598,11 @@ final class TDSChannel {
                 trustStoreType = SQLServerDriverStringProperty.TRUST_STORE_TYPE.getDefaultValue();
             }
             
-            fipsProvider = con.activeConnectionProperties.getProperty(SQLServerDriverStringProperty.FIPS_PROVIDER.toString());
             isFips = Boolean.valueOf(con.activeConnectionProperties.getProperty(SQLServerDriverBooleanProperty.FIPS.toString())); 
+            sslProtocol = con.activeConnectionProperties.getProperty(SQLServerDriverStringProperty.SSL_PROTOCOL.toString());
             
             if (isFips) {
-                validateFips(fipsProvider, trustStoreType, trustStoreFileName);
+                validateFips(trustStoreType, trustStoreFileName);
             }
 
             assert TDS.ENCRYPT_OFF == con.getRequestedEncryptionLevel() || // Login only SSL
@@ -1622,7 +1623,22 @@ final class TDSChannel {
 
                 tm = new TrustManager[] {new PermissiveX509TrustManager(this)};
             }
-
+            // Otherwise, we'll check if a specific TrustManager implemenation has been requested and
+            // if so instantiate it, optionally specifying a constructor argument to customize it.
+            else if (con.getTrustManagerClass() != null) {
+                Class<?> tmClass = Class.forName(con.getTrustManagerClass());
+                if (!TrustManager.class.isAssignableFrom(tmClass)) {
+                    throw new IllegalArgumentException(
+                            "The class specified by the trustManagerClass property must implement javax.net.ssl.TrustManager");
+                }
+                String constructorArg = con.getTrustManagerConstructorArg();
+                if (constructorArg == null) {
+                    tm = new TrustManager[] {(TrustManager) tmClass.getDeclaredConstructor().newInstance()};
+                }
+                else {
+                    tm = new TrustManager[] {(TrustManager) tmClass.getDeclaredConstructor(String.class).newInstance(constructorArg)};
+                }
+            }
             // Otherwise, we'll validate the certificate using a real TrustManager obtained
             // from the a security provider that is capable of validating X.509 certificates.
             else {
@@ -1647,12 +1663,8 @@ final class TDSChannel {
                     if (logger.isLoggable(Level.FINEST))
                         logger.finest(toString() + " Finding key store interface");
 
-                    if (isFips) {
-                        ks = KeyStore.getInstance(trustStoreType, fipsProvider);
-                    }
-                    else {
-                        ks = KeyStore.getInstance(trustStoreType);
-                    }
+
+                    ks = KeyStore.getInstance(trustStoreType);
                     ksProvider = ks.getProvider();
 
                     // Next, load up the trust store file from the specified location.
@@ -1728,7 +1740,7 @@ final class TDSChannel {
             if (logger.isLoggable(Level.FINEST))
                 logger.finest(toString() + " Getting TLS or better SSL context");
 
-            sslContext = SSLContext.getInstance("TLS");
+            sslContext = SSLContext.getInstance(sslProtocol);
             sslContextProvider = sslContext.getProvider();
 
             if (logger.isLoggable(Level.FINEST))
@@ -1745,8 +1757,7 @@ final class TDSChannel {
                 logger.finest(toString() + " Creating SSL socket");
 
             sslSocket = (SSLSocket) sslContext.getSocketFactory().createSocket(proxySocket, host, port, false); // don't close proxy when SSL socket
-                                                                                                                // is closed
-
+                                                                                                                // is closed     
             // At long last, start the SSL handshake ...
             if (logger.isLoggable(Level.FINER))
                 logger.finer(toString() + " Starting SSL handshake");
@@ -1803,7 +1814,14 @@ final class TDSChannel {
 
             // It is important to get the localized message here, otherwise error messages won't match for different locales.
             String errMsg = e.getLocalizedMessage();
-
+            // If the message is null replace it with the non-localized message or a dummy string. This can happen if a custom
+            // TrustManager implementation is specified that does not provide localized messages.
+            if (errMsg == null) {
+                errMsg = e.getMessage();
+            }
+            if (errMsg == null) {
+                errMsg = "";
+            }
             // The error message may have a connection id appended to it. Extract the message only for comparison.
             // This client connection id is appended in method checkAndAppendClientConnId().
             if (errMsg.contains(SQLServerException.LOG_CLIENT_CONNECTION_ID_PREFIX)) {
@@ -1827,56 +1845,39 @@ final class TDSChannel {
      * Valid FIPS settings:
      * <LI>Encrypt should be true
      * <LI>trustServerCertificate should be false
-     * <LI>if certificate is not installed FIPSProvider & TrustStoreType should be present.
+     * <LI>if certificate is not installed TrustStoreType should be present.
      * 
-     * @param fipsProvider
-     *            FIPS Provider
      * @param trustStoreType
      * @param trustStoreFileName
      * @throws SQLServerException
      * @since 6.1.4
      */
-    private void validateFips(final String fipsProvider,
-            final String trustStoreType,
+    private void validateFips(final String trustStoreType,
             final String trustStoreFileName) throws SQLServerException {
         boolean isValid = false;
         boolean isEncryptOn;
         boolean isValidTrustStoreType;
         boolean isValidTrustStore;
         boolean isTrustServerCertificate;
-        boolean isValidFipsProvider;
 
         String strError = SQLServerException.getErrString("R_invalidFipsConfig");
 
         isEncryptOn = (TDS.ENCRYPT_ON == con.getRequestedEncryptionLevel());
 
-        // Here different FIPS provider supports different KeyStore type along with different JVM Implementation.
-        isValidFipsProvider = !StringUtils.isEmpty(fipsProvider);
         isValidTrustStoreType = !StringUtils.isEmpty(trustStoreType);
         isValidTrustStore = !StringUtils.isEmpty(trustStoreFileName);
         isTrustServerCertificate = con.trustServerCertificate();
 
-        if (isEncryptOn && !isTrustServerCertificate) {
-            if (logger.isLoggable(Level.FINER))
-                logger.finer(toString() + " Found parameters are encrypt is true & trustServerCertificate false");
-            
+        if (isEncryptOn && !isTrustServerCertificate) {          
             isValid = true;
-
             if (isValidTrustStore) {
-                // In case of valid trust store we need to check fipsProvider and TrustStoreType.
-                if (!isValidFipsProvider || !isValidTrustStoreType) {
-                    isValid = false;
-                    strError = SQLServerException.getErrString("R_invalidFipsProviderConfig");
-                    
+                // In case of valid trust store we need to check TrustStoreType.
+                if (!isValidTrustStoreType) {
+                    isValid = false;               
                     if (logger.isLoggable(Level.FINER))
-                        logger.finer(toString() + " FIPS provider & TrustStoreType should pass with TrustStore.");
+                        logger.finer(toString() + "TrustStoreType is required alongside with TrustStore.");
                 }
-                if (logger.isLoggable(Level.FINER))
-                    logger.finer(toString() + " Found FIPS parameters seems to be valid.");
             }
-        }
-        else {
-            strError = SQLServerException.getErrString("R_invalidFipsEncryptConfig");
         }
 
         if (!isValid) {
@@ -2229,7 +2230,7 @@ final class SocketFinder {
 
     // no of threads that finished their socket connection
     // attempts and notified socketFinder about their result
-    private volatile int noOfThreadsThatNotified = 0;
+    private int noOfThreadsThatNotified = 0;
 
     // If a valid connected socket is found, this value would be non-null,
     // else this would be null
@@ -2338,8 +2339,8 @@ final class SocketFinder {
                 findSocketUsingJavaNIO(inetAddrs, portNumber, timeoutInMilliSeconds);
             }
             else {
-                LinkedList<Inet4Address> inet4Addrs = new LinkedList<Inet4Address>();
-                LinkedList<Inet6Address> inet6Addrs = new LinkedList<Inet6Address>();
+                LinkedList<Inet4Address> inet4Addrs = new LinkedList<>();
+                LinkedList<Inet6Address> inet6Addrs = new LinkedList<>();
 
                 for (InetAddress inetAddr : inetAddrs) {
                     if (inetAddr instanceof Inet4Address) {
@@ -2467,13 +2468,13 @@ final class SocketFinder {
         assert inetAddrs.length != 0 : "Number of inetAddresses should not be zero in this function";
 
         Selector selector = null;
-        LinkedList<SocketChannel> socketChannels = new LinkedList<SocketChannel>();
+        LinkedList<SocketChannel> socketChannels = new LinkedList<>();
         SocketChannel selectedChannel = null;
 
         try {
             selector = Selector.open();
 
-            for (int i = 0; i < inetAddrs.length; i++) {
+            for (InetAddress inetAddr : inetAddrs) {
                 SocketChannel sChannel = SocketChannel.open();
                 socketChannels.add(sChannel);
 
@@ -2484,10 +2485,10 @@ final class SocketFinder {
                 int ops = SelectionKey.OP_CONNECT;
                 SelectionKey key = sChannel.register(selector, ops);
 
-                sChannel.connect(new InetSocketAddress(inetAddrs[i], portNumber));
+                sChannel.connect(new InetSocketAddress(inetAddr, portNumber));
 
                 if (logger.isLoggable(Level.FINER))
-                    logger.finer(this.toString() + " initiated connection to address: " + inetAddrs[i] + ", portNumber: " + portNumber);
+                    logger.finer(this.toString() + " initiated connection to address: " + inetAddr + ", portNumber: " + portNumber);
             }
 
             long timerNow = System.currentTimeMillis();
@@ -2646,8 +2647,8 @@ final class SocketFinder {
         
         assert inetAddrs.isEmpty() == false : "Number of inetAddresses should not be zero in this function";
 
-        LinkedList<Socket> sockets = new LinkedList<Socket>();
-        LinkedList<SocketConnector> socketConnectors = new LinkedList<SocketConnector>();
+        LinkedList<Socket> sockets = new LinkedList<>();
+        LinkedList<SocketConnector> socketConnectors = new LinkedList<>();
 
         try {
 
@@ -3074,7 +3075,7 @@ final class TDSWriter {
     private byte valueBytes[] = new byte[256];
 
     // Monotonically increasing packet number associated with the current message
-    private volatile int packetNum = 0;
+    private int packetNum = 0;
 
     // Bytes for sending decimal/numeric data
     private final static int BYTES4 = 4;
@@ -4828,7 +4829,7 @@ final class TDSWriter {
                 else {
                     if (isSqlVariant) {
                         writeTVPSqlVariantHeader(10, TDSType.FLOAT8.byteValue(), (byte) 0);
-                        writeDouble(Double.valueOf(currentColumnStringValue.toString()));
+                        writeDouble(Double.valueOf(currentColumnStringValue));
                         break;
                     }
                     writeByte((byte) 8); // len of data bytes
@@ -4863,6 +4864,8 @@ final class TDSWriter {
             case TIME:
             case TIMESTAMP:
             case DATETIMEOFFSET:
+            case DATETIME:
+            case SMALLDATETIME:
             case TIMESTAMP_WITH_TIMEZONE:
             case TIME_WITH_TIMEZONE:
             case CHAR:
@@ -4994,7 +4997,7 @@ final class TDSWriter {
                 }
                 break;
             case SQL_VARIANT:
-                boolean isShiloh = (8 >= con.getServerMajorVersion() ? true : false);
+                boolean isShiloh = (8 >= con.getServerMajorVersion());
                 if (isShiloh) {
                     MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_SQLVariantSupport"));
                     throw new SQLServerException(null, form.format(new Object[] {}), null, 0, false);
@@ -5035,13 +5038,11 @@ final class TDSWriter {
         writeShort((short) value.getTVPColumnCount());
 
         Map<Integer, SQLServerMetaData> columnMetadata = value.getColumnMetadata();
-        Iterator<Entry<Integer, SQLServerMetaData>> columnsIterator = columnMetadata.entrySet().iterator();
         /*
          * TypeColumnMetaData = UserType Flags TYPE_INFO ColName ;
          */
 
-        while (columnsIterator.hasNext()) {
-            Map.Entry<Integer, SQLServerMetaData> pair = columnsIterator.next();
+        for (Entry<Integer, SQLServerMetaData> pair : columnMetadata.entrySet()) {
             JDBCType jdbcType = JDBCType.of(pair.getValue().javaSqlType);
             boolean useServerDefault = pair.getValue().useServerDefault;
             // ULONG ; UserType of column
@@ -5102,6 +5103,8 @@ final class TDSWriter {
                 case TIME:
                 case TIMESTAMP:
                 case DATETIMEOFFSET:
+                case DATETIME:
+                case SMALLDATETIME:
                 case TIMESTAMP_WITH_TIMEZONE:
                 case TIME_WITH_TIMEZONE:
                 case CHAR:
@@ -5114,13 +5117,12 @@ final class TDSWriter {
                     writeByte(TDSType.NVARCHAR.byteValue());
                     isShortValue = (2L * pair.getValue().precision) <= DataTypes.SHORT_VARTYPE_MAX_BYTES;
                     // Use PLP encoding on Yukon and later with long values
-                    if (!isShortValue)	// PLP
+                    if (!isShortValue)    // PLP
                     {
                         // Handle Yukon v*max type header here.
                         writeShort((short) 0xFFFF);
                         con.getDatabaseCollation().writeCollation(this);
-                    }
-                    else	// non PLP
+                    } else    // non PLP
                     {
                         writeShort((short) DataTypes.SHORT_VARTYPE_MAX_BYTES);
                         con.getDatabaseCollation().writeCollation(this);
@@ -5134,16 +5136,16 @@ final class TDSWriter {
                     writeByte(TDSType.BIGVARBINARY.byteValue());
                     isShortValue = pair.getValue().precision <= DataTypes.SHORT_VARTYPE_MAX_BYTES;
                     // Use PLP encoding on Yukon and later with long values
-                    if (!isShortValue)	// PLP
+                    if (!isShortValue)    // PLP
                         // Handle Yukon v*max type header here.
                         writeShort((short) 0xFFFF);
-                    else	// non PLP
+                    else    // non PLP
                         writeShort((short) DataTypes.SHORT_VARTYPE_MAX_BYTES);
                     break;
                 case SQL_VARIANT:
                     writeByte(TDSType.SQL_VARIANT.byteValue());
                     writeInt(TDS.SQL_VARIANT_LENGTH);// write length of sql variant 8009
-                    
+
                     break;
 
                 default:
@@ -5164,7 +5166,7 @@ final class TDSWriter {
 
         Map<Integer, SQLServerMetaData> columnMetadata = value.getColumnMetadata();
         Iterator<Entry<Integer, SQLServerMetaData>> columnsIterator = columnMetadata.entrySet().iterator();
-        LinkedList<TdsOrderUnique> columnList = new LinkedList<TdsOrderUnique>();
+        LinkedList<TdsOrderUnique> columnList = new LinkedList<>();
 
         while (columnsIterator.hasNext()) {
             byte flags = 0;
@@ -7118,13 +7120,21 @@ final class TimeoutTimer implements Runnable {
     private volatile Future<?> task;
 
     private static final ExecutorService executor = Executors.newCachedThreadPool(new ThreadFactory() {
-        private final ThreadGroup tg = new ThreadGroup(threadGroupName);
-        private final String threadNamePrefix = tg.getName() + "-";
+        private final AtomicReference<ThreadGroup> tgr = new AtomicReference<>();
         private final AtomicInteger threadNumber = new AtomicInteger(0);
 
         @Override
-        public Thread newThread(Runnable r) {
-            Thread t = new Thread(tg, r, threadNamePrefix + threadNumber.incrementAndGet());
+        public Thread newThread(Runnable r)
+        {
+            ThreadGroup tg = tgr.get();
+
+            if (tg == null || tg.isDestroyed())
+            {
+                tg = new ThreadGroup(threadGroupName);
+                tgr.set(tg);
+            }
+
+            Thread t = new Thread(tg, r, tg.getName() + "-" + threadNumber.incrementAndGet());
             t.setDaemon(true);
             return t;
         }

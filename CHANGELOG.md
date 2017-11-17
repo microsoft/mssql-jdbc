@@ -3,6 +3,66 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](http://keepachangelog.com/) 
 
+## [6.3.4] Preview Release
+### Added
+- Added new ThreadGroup creation to prevent IllegalThreadStateException if the underlying ThreadGroup has been destroyed. [#474](https://github.com/Microsoft/mssql-jdbc/pull/474)
+- Added try-with-resources to JUnit tests [#520](https://github.com/Microsoft/mssql-jdbc/pull/520)
+
+### Fixed Issues 
+- Fixed the issue with passing parameters names that start with '@' to a CallableStatement [#495](https://github.com/Microsoft/mssql-jdbc/pull/495)
+- Fixed SQLServerDataTable creation being O(n^2) issue [#514](https://github.com/Microsoft/mssql-jdbc/pull/514)
+
+### Changed
+- Changed some manual array copying to System.arraycopy() [#500](https://github.com/Microsoft/mssql-jdbc/pull/500)
+- Removed redundant toString() on String objects [#501](https://github.com/Microsoft/mssql-jdbc/pull/501)
+- Replaced literals with constants [#502](https://github.com/Microsoft/mssql-jdbc/pull/502)
+
+## [6.3.3] Preview Release
+### Added
+- Added connection properties for specifying custom TrustManager [#74](https://github.com/Microsoft/mssql-jdbc/pull/74)
+
+### Fixed Issues 
+- Fixed exception thrown by getters on null columns  [#488](https://github.com/Microsoft/mssql-jdbc/pull/488)
+- Fixed issue with DatabaseMetaData#getImportedKeys() returns wrong value for DELETE_RULE [#490](https://github.com/Microsoft/mssql-jdbc/pull/490)
+- Fixed issue with ActivityCorrelator causing a classloader leak [#465](https://github.com/Microsoft/mssql-jdbc/pull/465)
+
+### Changed
+- Removed explicit extends Object [#469](https://github.com/Microsoft/mssql-jdbc/pull/469)
+- Removed unnecessary return statements [#471](https://github.com/Microsoft/mssql-jdbc/pull/471)
+- Simplified overly complex boolean expressions [#472](https://github.com/Microsoft/mssql-jdbc/pull/472)
+- Replaced explicit types with <> (the diamond operator) [#420](https://github.com/Microsoft/mssql-jdbc/pull/420)
+
+## [6.3.2] Preview Release
+### Added
+- Added new connection property: sslProtocol [#422](https://github.com/Microsoft/mssql-jdbc/pull/422)
+- Added "slow" tag to long running tests [#461](https://github.com/Microsoft/mssql-jdbc/pull/461)
+
+### Fixed Issues 
+- Fixed some error messages [#452](https://github.com/Microsoft/mssql-jdbc/pull/452) & [#459](https://github.com/Microsoft/mssql-jdbc/pull/459)
+- Fixed statement leaks [#455](https://github.com/Microsoft/mssql-jdbc/pull/455)
+- Fixed an issue regarding to loginTimeout with TLS [#456](https://github.com/Microsoft/mssql-jdbc/pull/456)
+- Fixed sql_variant issue with String type [#442](https://github.com/Microsoft/mssql-jdbc/pull/442)
+- Fixed issue with throwing error message for unsupported datatype [#450](https://github.com/Microsoft/mssql-jdbc/pull/450)
+- Fixed issue that initial batchException was not thrown [#458](https://github.com/Microsoft/mssql-jdbc/pull/458)
+
+### Changed
+- Changed sendStringParameterAsUnicode to impact set/update null [#445](https://github.com/Microsoft/mssql-jdbc/pull/445)
+- Removed connection property: fipsProvider [#460](https://github.com/Microsoft/mssql-jdbc/pull/460)
+- Replaced for and while loops with foeach loops [#421](https://github.com/Microsoft/mssql-jdbc/pull/421)
+- Replaced explicit types with the diamond operator [#468](https://github.com/Microsoft/mssql-jdbc/pull/468) & [#420](https://github.com/Microsoft/mssql-jdbc/pull/420)
+
+## [6.3.1] Preview Release
+### Added
+- Added support for datetime/smallDatetime in TVP [#435](https://github.com/Microsoft/mssql-jdbc/pull/435)
+- Added more Junit tests for Always Encrypted [#432](https://github.com/Microsoft/mssql-jdbc/pull/432)
+
+### Fixed Issues 
+- Fixed getString issue for uniqueIdentifier [#423](https://github.com/Microsoft/mssql-jdbc/pull/423)
+
+### Changed
+- Skip long running tests based on Tag [#425](https://github.com/Microsoft/mssql-jdbc/pull/425)
+- Removed volatile keyword [#409](https://github.com/Microsoft/mssql-jdbc/pull/409)
+
 ## [6.3.0] Preview Release
 ### Added
 - Added support for sql_variant datatype [#387](https://github.com/Microsoft/mssql-jdbc/pull/387)
@@ -20,6 +80,10 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/)
 ### Changed
 - Updated ADAL4J dependency to version 1.2.0 [#392](https://github.com/Microsoft/mssql-jdbc/pull/392)
 - Updated azure-keyvault dependency to version 1.0.0 [#397](https://github.com/Microsoft/mssql-jdbc/pull/397)
+
+## [6.2.2] Hotfix & Stable Release
+### Changed
+- Updated ADAL4J to version 1.2.0 and AKV to version 1.0.0 [#516](https://github.com/Microsoft/mssql-jdbc/pull/516)
 
 ## [6.2.1] Hotfix & Stable Release
 ### Fixed Issues 

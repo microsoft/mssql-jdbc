@@ -1796,8 +1796,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
     /** Clear any updated column values for the current row in the result set. */
     final void clearColumnsValues() {
         int l = columns.length;
-        for (int i = 0; i < l; i++)
-            columns[i].cancelUpdates();
+        for (Column column : columns) column.cancelUpdates();
     }
 
     /* L0 */ public SQLWarning getWarnings() throws SQLServerException {
@@ -5684,14 +5683,14 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         // If no values were set for any columns and no columns are updatable,
         // then the table name cannot be determined, so error.
         Column tableColumn = null;
-        for (int i = 0; i < columns.length; i++) {
-            if (columns[i].hasUpdates()) {
-                tableColumn = columns[i];
+        for (Column column : columns) {
+            if (column.hasUpdates()) {
+                tableColumn = column;
                 break;
             }
 
-            if (null == tableColumn && columns[i].isUpdatable())
-                tableColumn = columns[i];
+            if (null == tableColumn && column.isUpdatable())
+                tableColumn = column;
         }
 
         if (null == tableColumn) {
@@ -5726,8 +5725,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         if (hasUpdatedColumns()) {
             tdsWriter.writeRPCStringUnicode(tableName);
 
-            for (int i = 0; i < columns.length; i++)
-                columns[i].sendByRPC(tdsWriter, stmt.connection);
+            for (Column column : columns) column.sendByRPC(tdsWriter, stmt.connection);
         }
         else {
             tdsWriter.writeRPCStringUnicode("");
@@ -5801,16 +5799,15 @@ public class SQLServerResultSet implements ISQLServerResultSet {
 
         assert hasUpdatedColumns();
 
-        for (int i = 0; i < columns.length; i++)
-            columns[i].sendByRPC(tdsWriter, stmt.connection);
+        for (Column column : columns) column.sendByRPC(tdsWriter, stmt.connection);
 
         TDSParser.parse(command.startResponse(), command.getLogContext());
     }
 
     /** Determines whether there are updated columns in this result set. */
     final boolean hasUpdatedColumns() {
-        for (int i = 0; i < columns.length; i++)
-            if (columns[i].hasUpdates())
+        for (Column column : columns)
+            if (column.hasUpdates())
                 return true;
 
         return false;

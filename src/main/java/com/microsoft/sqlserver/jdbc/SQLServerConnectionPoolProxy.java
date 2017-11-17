@@ -168,6 +168,9 @@ class SQLServerConnectionPoolProxy implements ISQLServerConnection {
         if (bIsOpen && (null != wrappedConnection)) {
             if (wrappedConnection.getConnectionLogger().isLoggable(Level.FINER))
                 wrappedConnection.getConnectionLogger().finer(toString() + " Connection proxy closed ");
+
+            // clear cached prepared statement handle on this connection
+            wrappedConnection.clearCachedPreparedStatementHandle();
             wrappedConnection.poolCloseEventNotify();
             wrappedConnection = null;
         }

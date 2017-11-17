@@ -4,7 +4,7 @@
 	
 	<groupId>com.microsoft.sqlserver</groupId>
 	<artifactId>mssql-jdbc</artifactId>
-	<version>6.3.1-SNAPSHOT</version>
+	<version>6.3.5-SNAPSHOT.${jreVersion}-preview</version>
 	
 	<packaging>jar</packaging>
 	
@@ -29,8 +29,6 @@
 	
 	<developers>
 		<developer>
-			<name>Andrea Lam</name>
-			<email>andrela@microsoft.com</email>
 			<organization>Microsoft</organization>
 			<organizationUrl>http://www.microsoft.com</organizationUrl>
 		</developer>
@@ -42,6 +40,8 @@
 
 	<properties>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+		<junit.platform.version>1.0.0-M3</junit.platform.version>
+		<junit.jupiter.version>5.0.0-M3</junit.jupiter.version>
 	</properties>
 	
 	<dependencies>
@@ -70,49 +70,49 @@
 		<dependency>
 			<groupId>org.junit.platform</groupId>
 			<artifactId>junit-platform-console</artifactId>
-			<version>1.0.0-M3</version>
+			<version>${junit.platform.version}</version>
 			<scope>test</scope>
 		</dependency>
 		<dependency>
 			<groupId>org.junit.platform</groupId>
 			<artifactId>junit-platform-commons</artifactId>
-			<version>1.0.0-M3</version>
+			<version>${junit.platform.version}</version>
 			<scope>test</scope>
 		</dependency>
 		<dependency>
 			<groupId>org.junit.platform</groupId>
 			<artifactId>junit-platform-engine</artifactId>
-			<version>1.0.0-M3</version>
+			<version>${junit.platform.version}</version>
 			<scope>test</scope>
 		</dependency>
 		<dependency>
 			<groupId>org.junit.platform</groupId>
 			<artifactId>junit-platform-launcher</artifactId>
-			<version>1.0.0-M3</version>
+			<version>${junit.platform.version}</version>
 			<scope>test</scope>
 		</dependency>
 		<dependency>
 			<groupId>org.junit.platform</groupId>
 			<artifactId>junit-platform-runner</artifactId>
-			<version>1.0.0-M3</version>
+			<version>${junit.platform.version}</version>
 			<scope>test</scope>
 		</dependency>
 		<dependency>
 			<groupId>org.junit.platform</groupId>
 			<artifactId>junit-platform-surefire-provider</artifactId>
-			<version>1.0.0-M3</version>
+			<version>${junit.platform.version}</version>
 			<scope>test</scope>
 		</dependency>
 		<dependency>
 			<groupId>org.junit.jupiter</groupId>
 			<artifactId>junit-jupiter-api</artifactId>
-			<version>5.0.0-M3</version>
+			<version>${junit.jupiter.version}</version>
 			<scope>test</scope>
 		</dependency>
 		<dependency>
 			<groupId>org.junit.jupiter</groupId>
 			<artifactId>junit-jupiter-engine</artifactId>
-			<version>5.0.0-M3</version>
+			<version>${junit.jupiter.version}</version>
 			<scope>test</scope>
 		</dependency>
 		<dependency>
@@ -140,6 +140,11 @@
 	<profiles>
 		<profile>
 			<id>build41</id>
+			
+			<properties>
+			<jreVersion>jre7</jreVersion>
+			</properties>
+			
 			<build>
 				<plugins>
 					<plugin>
@@ -158,7 +163,6 @@
 						<artifactId>maven-jar-plugin</artifactId>
 						<version>3.0.2</version>
 						<configuration>
-							<finalName>${project.artifactId}-${project.version}.jre7-preview</finalName>
 							<archive>
 								<manifestFile>${project.build.outputDirectory}/META-INF/MANIFEST.MF</manifestFile>
 							</archive>
@@ -171,9 +175,15 @@
 
 		<profile>
 			<id>build42</id>
+
 			<activation>
 				<activeByDefault>true</activeByDefault>
 			</activation>
+			
+			<properties>
+			<jreVersion>jre8</jreVersion>
+			</properties>
+			
 			<build>
 				<plugins>
 					<plugin>
@@ -192,7 +202,6 @@
 						<artifactId>maven-jar-plugin</artifactId>
 						<version>3.0.2</version>
 						<configuration>
-							<finalName>${project.artifactId}-${project.version}.jre8-preview</finalName>
 							<archive>
 								<manifestFile>${project.build.outputDirectory}/META-INF/MANIFEST.MF</manifestFile>
 							</archive>
@@ -306,7 +315,28 @@
  						</goals>
  					</execution>
  				</executions>
- 			</plugin>			
+ 			</plugin>
+
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-surefire-plugin</artifactId>
+				<version>2.19</version>
+
+				<configuration>
+					<properties>
+						<excludeTags>${skipTestTag}</excludeTags>
+					</properties>
+				</configuration>
+				
+				<dependencies>
+					<dependency>
+						<groupId>org.junit.platform</groupId>
+						<artifactId>junit-platform-surefire-provider</artifactId>
+						<version>${junit.platform.version}</version>
+					</dependency>
+				</dependencies>
+			</plugin>
+	  
 		</plugins>
 	</build>
 	

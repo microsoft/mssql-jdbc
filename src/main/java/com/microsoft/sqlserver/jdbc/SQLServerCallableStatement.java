@@ -1399,11 +1399,12 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
      */
     /* L3 */ private int findColumn(String columnName) throws SQLServerException {
         if (paramNames == null) {
+            SQLServerStatement s = null;
             try {
                 // Note we are concatenating the information from the passed in sql, not any arguments provided by the user
                 // if the user can execute the sql, any fragments of it is potentially executed via the meta data call through injection
                 // is not a security issue.
-                SQLServerStatement s = (SQLServerStatement) connection.createStatement();
+                s = (SQLServerStatement) connection.createStatement();
                 ThreePartName threePartName = ThreePartName.parse(procedureName);
                 StringBuilder metaQuery = new StringBuilder("exec sp_sproc_columns ");
                 if (null != threePartName.getDatabasePart()) {
@@ -1431,7 +1432,7 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
                 }
 
                 ResultSet rs = s.executeQueryInternal(metaQuery.toString());
-                paramNames = new ArrayList<String>();
+                paramNames = new ArrayList<>();
                 while (rs.next()) {
                     String sCol = rs.getString(4);
                     paramNames.add(sCol.trim());
@@ -1440,12 +1441,25 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
             catch (SQLException e) {
                 SQLServerException.makeFromDriverError(connection, this, e.toString(), null, false);
             }
+            finally {
+                if (null != s)
+                    s.close();
+            }
         }
 
         int l = 0;
         if (paramNames != null)
             l = paramNames.size();
 
+        // handle `@name` as well as `name`, since `@name` is what's returned 
+        // by DatabaseMetaData#getProcedureColumns
+        String columnNameWithoutAtSign = null;
+        if (columnName.startsWith("@")) {
+            columnNameWithoutAtSign = columnName.substring(1, columnName.length());
+        } else {
+            columnNameWithoutAtSign = columnName;
+        }
+        
         // In order to be as accurate as possible when locating parameter name
         // indexes, as well as be deterministic when running on various client
         // locales, we search for parameter names using the following scheme:
@@ -1460,7 +1474,7 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
         for (i = 0; i < l; i++) {
             String sParam = paramNames.get(i);
             sParam = sParam.substring(1, sParam.length());
-            if (sParam.equals(columnName)) {
+            if (sParam.equals(columnNameWithoutAtSign)) {
                 matchPos = i;
                 break;
             }
@@ -1472,7 +1486,7 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
             for (i = 0; i < l; i++) {
                 String sParam = paramNames.get(i);
                 sParam = sParam.substring(1, sParam.length());
-                if (sParam.equalsIgnoreCase(columnName)) {
+                if (sParam.equalsIgnoreCase(columnNameWithoutAtSign)) {
                     matchPos = i;
                     break;
                 }

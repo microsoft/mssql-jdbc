@@ -38,39 +38,18 @@ import com.microsoft.sqlserver.testframework.sqlType.SqlType;
 @DisplayName("Test ISQLServerBulkRecord")
 public class BulkCopyISQLServerBulkRecordTest extends AbstractTest {
 
-    static DBConnection con = null;
-    static DBStatement stmt = null;
-    static DBTable dstTable = null;
-
-    /**
-     * Create connection and statement
-     */
-    @BeforeAll
-    static void setUpConnection() {
-        con = new DBConnection(connectionString);
-        stmt = con.createStatement();
-    }
-
     @Test
-    void testISQLServerBulkRecord() {
-        dstTable = new DBTable(true);
-        stmt.createTable(dstTable);
-        BulkData Bdata = new BulkData();
-
-        BulkCopyTestWrapper bulkWrapper = new BulkCopyTestWrapper(connectionString);
-        bulkWrapper.setUsingConnection((0 == ThreadLocalRandom.current().nextInt(2)) ? true : false);
-        BulkCopyTestUtil.performBulkCopy(bulkWrapper, Bdata, dstTable);
-    }
-
-    /**
-     * drop source table after testing bulk copy
-     * 
-     * @throws SQLException
-     */
-    @AfterAll
-    static void tearConnection() throws SQLException {
-        stmt.close();
-        con.close();
+    void testISQLServerBulkRecord() throws SQLException {
+        try (DBConnection con = new DBConnection(connectionString);
+        	 DBStatement stmt = con.createStatement()) {
+        	DBTable dstTable = new DBTable(true);
+	        stmt.createTable(dstTable);
+	        BulkData Bdata = new BulkData(dstTable);
+	
+	        BulkCopyTestWrapper bulkWrapper = new BulkCopyTestWrapper(connectionString);
+	        bulkWrapper.setUsingConnection((0 == ThreadLocalRandom.current().nextInt(2)) ? true : false);
+	        BulkCopyTestUtil.performBulkCopy(bulkWrapper, Bdata, dstTable);
+        }
     }
 
     class BulkData implements ISQLServerBulkRecord {
@@ -98,8 +77,8 @@ public class BulkCopyISQLServerBulkRecordTest extends AbstractTest {
         Map<Integer, ColumnMetadata> columnMetadata;
         List<Object[]> data;
 
-        BulkData() {
-            columnMetadata = new HashMap<Integer, ColumnMetadata>();
+        BulkData(DBTable dstTable) {
+            columnMetadata = new HashMap<>();
             totalColumn = dstTable.totalColumns();
 
             // add metadata
@@ -116,7 +95,7 @@ public class BulkCopyISQLServerBulkRecordTest extends AbstractTest {
 
             // add data
             rowCount = dstTable.getTotalRows();
-            data = new ArrayList<Object[]>(rowCount);
+            data = new ArrayList<>(rowCount);
             for (int i = 0; i < rowCount; i++) {
                 Object[] CurrentRow = new Object[totalColumn];
                 for (int j = 0; j < totalColumn; j++) {

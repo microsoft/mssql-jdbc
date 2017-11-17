@@ -88,7 +88,7 @@ class CekTableEntry {
         cekId = 0;
         cekVersion = 0;
         cekMdVersion = null;
-        columnEncryptionKeyValues = new ArrayList<EncryptionKeyInfo>();
+        columnEncryptionKeyValues = new ArrayList<>();
     }
 
     int getSize() {
@@ -237,7 +237,7 @@ class CryptoMetadata
     }
 
     boolean IsAlgorithmInitialized() {
-        return (null != cipherAlgorithm) ? true : false;
+        return null != cipherAlgorithm;
     }	
 }
 
