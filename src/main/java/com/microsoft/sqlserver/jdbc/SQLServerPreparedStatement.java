@@ -2524,7 +2524,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         long updateCounts[];
 
         PrepStmtBatchExecCmd(SQLServerPreparedStatement stmt) {
-            super(stmt.toString() + " executeBatch", queryTimeout);
+             super(stmt.toString() + " executeBatch", queryTimeout);
             this.stmt = stmt;
         }
 
@@ -2566,6 +2566,22 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         Parameter[] batchParam = new Parameter[inOutParam.length];
 
         definitionChanged = false;
+/* 
+        TDSWriter tdsWriter = null;
+        while (numBatchesExecuted < numBatches) {
+            // Fill in the parameter values for this batch
+            Parameter paramValues[] = batchParamValues.get(numBatchesPrepared);
+            assert paramValues.length == batchParam.length;
+            System.arraycopy(paramValues, 0, batchParam, 0, paramValues.length);
+            
+            boolean hasExistingTypeDefinitions = preparedTypeDefinitions != null;
+            boolean hasNewTypeDefinitions = buildPreparedStrings(batchParam, false);
+
+            // Get the encryption metadata for the first batch only.
+            if ((0 == numBatchesExecuted) && (Util.shouldHonorAEForParameters(stmtColumnEncriptionSetting, connection)) && (0 < batchParam.length)
+                    && !isInternalEncryptionQuery && !encryptionMetadataIsRetrieved) {
+                getParameterEncryptionMetadata(batchParam);
+*/
 
         TDSWriter tdsWriter = null;
         try {
