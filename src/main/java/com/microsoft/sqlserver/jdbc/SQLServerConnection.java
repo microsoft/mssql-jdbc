@@ -83,6 +83,9 @@ import mssql.googlecode.concurrentlinkedhashmap.EvictionListener;
 
 // Note all the public functions in this class also need to be defined in SQLServerConnectionPoolProxy.
 public class SQLServerConnection implements ISQLServerConnection {
+    boolean contextIsAlreadyChanged = false;
+    boolean contextChanged = false;
+
     long timerExpire;
     boolean attemptRefreshTokenLocked = false;
 
@@ -3080,6 +3083,8 @@ public class SQLServerConnection implements ISQLServerConnection {
         checkClosed();
         if (catalog != null) {
             connectionCommand("use " + Util.escapeSQLId(catalog), "setCatalog");
+            contextIsAlreadyChanged = true;
+            contextChanged = true;
             sCatalog = catalog;
         }
         loggerExternal.exiting(getClassNameLogging(), "setCatalog");
@@ -5759,6 +5764,12 @@ public class SQLServerConnection implements ISQLServerConnection {
     		return;
     	
     	preparedStatementHandleCache.remove(handle.getKey());
+    }
+
+    final void clearCachedPreparedStatementHandle() {
+        if (null != preparedStatementHandleCache) {
+            preparedStatementHandleCache.clear();
+        }
     }
 
     // Handle closing handles when removed from cache.
