@@ -805,6 +805,7 @@ public class SQLServerStatement implements ISQLServerStatement {
      */
     void checkIfContextChanged(String sql) {
         if (connection.contextIsAlreadyChanged) {
+            connection.contextChanged = true;
             return;
         }
         else if (sql.toUpperCase().contains("ANSI_NULLS") || sql.toUpperCase().contains("QUOTED_IDENTIFIER") || sql.toUpperCase().contains("USE")

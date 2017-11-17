@@ -907,6 +907,13 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 	private boolean reuseCachedHandle(boolean hasNewTypeDefinitions, boolean discardCurrentCacheItem) {
         if (definitionChanged || connection.contextChanged) {
             prepStmtHandle = -1; // so that hasPreparedStatementHandle() also returns false
+
+            if (connection.contextChanged) {
+                connection.contextChanged = false;
+                connection.contextIsAlreadyChanged = false;
+                connection.clearCachedPreparedStatementHandle();
+            }
+
             return false;
         }
 
