@@ -27,6 +27,8 @@ import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
 import org.opentest4j.TestAbortedException;
 
+import com.microsoft.sqlserver.jdbc.SQLServerDataTable;
+import com.microsoft.sqlserver.jdbc.SQLServerPreparedStatement;
 import com.microsoft.sqlserver.jdbc.SQLServerStatement;
 import com.microsoft.sqlserver.testframework.AbstractTest;
 import com.microsoft.sqlserver.testframework.DBConnection;
@@ -93,17 +95,78 @@ public class DateAndTimeTypeTest extends AbstractTest {
         pstmt.close();
     }
 
+    /**
+     * Test query with date TVP
+     */
+    @Test
+    public void testQueryDateTVP() throws SQLException {
+        SQLServerDataTable tvp = new SQLServerDataTable();
+        tvp.addColumnMetadata("c1", java.sql.Types.DATE);
+        tvp.addRow(DATE_TO_TEST);
+        String sPrepStmt = "select * from dateandtime where my_date IN (select * from ?)";
+        pstmt = connection.prepareStatement(sPrepStmt);
+        ((SQLServerPreparedStatement)pstmt).setStructured(1, "dateTVP", tvp);
+
+        rs = pstmt.executeQuery();
+        rs.next();
+        assertTrue(rs.getInt(1) == 42, "did not find correct timestamp");
+        rs.close();
+        pstmt.close();
+    }
+
+    /**
+     * Test query with date TVP
+     */
+    @Test
+    public void testQueryTimestampTVP() throws SQLException {
+        SQLServerDataTable tvp = new SQLServerDataTable();
+        tvp.addColumnMetadata("c1", java.sql.Types.TIMESTAMP);
+        tvp.addRow(TIMESTAMP_TO_TEST);
+        String sPrepStmt = "select * from dateandtime where my_timestamp IN (select * from ?)";
+        pstmt = connection.prepareStatement(sPrepStmt);
+        ((SQLServerPreparedStatement)pstmt).setStructured(1, "timestampTVP", tvp);
+
+        rs = pstmt.executeQuery();
+        rs.next();
+        assertTrue(rs.getInt(1) == 42, "did not find correct timestamp");
+        rs.close();
+        pstmt.close();
+    }
+
+    /**
+     * Test query with date TVP
+     */
+    @Test
+    public void testQueryTimeTVP() throws SQLException {
+        SQLServerDataTable tvp = new SQLServerDataTable();
+        tvp.addColumnMetadata("c1", java.sql.Types.TIME);
+        tvp.addRow(TIME_TO_TEST);
+        String sPrepStmt = "select * from dateandtime where my_time IN (select * from ?)";
+        pstmt = connection.prepareStatement(sPrepStmt);
+        ((SQLServerPreparedStatement)pstmt).setStructured(1, "timeTVP", tvp);
+
+        rs = pstmt.executeQuery();
+        rs.next();
+        assertTrue(rs.getInt(1) == 42, "did not find correct timestamp");
+        rs.close();
+        pstmt.close();
+    }
+    private void createTVPs(String tvpName, String tvpType) throws SQLException {
+      stmt.executeUpdate("IF EXISTS (SELECT * FROM sys.types WHERE is_table_type = 1 AND name = '" + tvpName + "') " + " drop type " + tvpName);
+      String TVPCreateCmd = "CREATE TYPE " + tvpName + " as table (c1 " + tvpType + " null)";
+      stmt.executeUpdate(TVPCreateCmd);
+    }
+
     @BeforeEach
     public void testSetup() throws TestAbortedException, Exception {
         assumeTrue(13 <= new DBConnection(connectionString).getServerVersion(),
                 "Aborting test case as SQL Server version is not compatible with Always encrypted ");
 
         connection = DriverManager.getConnection(connectionString);
-        SQLServerStatement stmt = (SQLServerStatement) connection.createStatement();
+        stmt = (SQLServerStatement) connection.createStatement();
         Utils.dropTableIfExists("dateandtime", stmt);
         String sql1 = "create table dateandtime (id integer not null, my_date date, my_time time, my_timestamp datetime2 constraint pk_esimple primary key (id))";
         stmt.execute(sql1);
-        stmt.close();
 
         // add one sample data
         String sPrepStmt = "insert into dateandtime (id, my_date, my_time, my_timestamp) values (?, ?, ?, ?)";
@@ -114,12 +177,14 @@ public class DateAndTimeTypeTest extends AbstractTest {
         pstmt.setTimestamp(4, TIMESTAMP_TO_TEST); 
         pstmt.execute();
         pstmt.close();
+        createTVPs("dateTVP", "date");
+        createTVPs("timeTVP", "time");
+        createTVPs("timestampTVP", "datetime2");
     }
 
     @AfterAll
     public static void terminateVariation() throws SQLException {
 
-        SQLServerStatement stmt = (SQLServerStatement) connection.createStatement();
         Utils.dropTableIfExists("dateandtime", stmt);
 
         if (null != connection) {
