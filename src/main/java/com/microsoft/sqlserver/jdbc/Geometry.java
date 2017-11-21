@@ -21,7 +21,13 @@ public class Geometry extends SQLServerSpatialDatatype {
         this.wkt = WellKnownText;
         this.srid = srid;
         
-        parseWKTForSerialization(this, currentWktPos, -1, false);
+        try {
+            parseWKTForSerialization(this, currentWktPos, -1, false);
+        }
+        catch (StringIndexOutOfBoundsException e) {
+            throw new IllegalArgumentException("Reached unexpected end of WKT. Please make sure WKT is valid.");
+        }
+        
         serializeToWkb(false);
         isNull = false;
     }
@@ -85,6 +91,7 @@ public class Geometry extends SQLServerSpatialDatatype {
 
     /**
      * Returns a Geometry instance from an Open Geospatial Consortium (OGC) Well-Known Text (WKT) representation.
+     * SRID is defaulted to 0.
      * 
      * @param wkt
      * @return
@@ -300,7 +307,6 @@ public class Geometry extends SQLServerSpatialDatatype {
             readMvalues();
         }
         
-        //TODO: do I need to do anything when it's isSinglePoint or isSingleLineSegment?
         if (!(isSinglePoint || isSingleLineSegment)) {
             readNumberOfFigures();
             

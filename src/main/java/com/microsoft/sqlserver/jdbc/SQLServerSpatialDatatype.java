@@ -197,7 +197,13 @@ abstract class SQLServerSpatialDatatype {
 
             String nextToken = getNextStringToken().toUpperCase(Locale.US);
             int thisShapeIndex;
-            InternalSpatialDatatype isd = InternalSpatialDatatype.valueOf(nextToken);
+            InternalSpatialDatatype isd = InternalSpatialDatatype.INVALID_TYPE;
+            try {
+                isd = InternalSpatialDatatype.valueOf(nextToken);
+            }
+            catch (Exception e) {
+                throw new IllegalArgumentException("Illegal character at wkt position " + currentWktPos);
+            }
             byte fa = 0;
             
             if (version == 1 && (nextToken.equals("CIRCULARSTRING") || nextToken.equals("COMPOUNDCURVE") ||
@@ -558,10 +564,7 @@ abstract class SQLServerSpatialDatatype {
                         byte segment = segments[segmentStartIndex].getSegmentType();
                         constructSegmentWKT(segmentStartIndex, segment, pointEndIndex);
                         
-                        if (segmentStartIndex >= segmentEndIndex - 1) {
-                            appendToWKTBuffers(")");
-                        // about to exit while loop, but not the last segment = we are closing Compoundcurve.
-                        } else if (!(currentPointIndex < pointEndIndex)) {
+                        if (!(currentPointIndex < pointEndIndex)) {
                             appendToWKTBuffers("))");
                         } else {
                             switch (segment) {
@@ -590,12 +593,10 @@ abstract class SQLServerSpatialDatatype {
                     return;
             }
             
-            if (i == figureEndIndex - 1) {
-                appendToWKTBuffers(")");
-            } else {
+            //Append a comma if this is not the last figure of the shape.
+            if (i != figureEndIndex - 1) {
                 appendToWKTBuffers(", ");
             }
-            
         }
     }
     
@@ -713,16 +714,28 @@ abstract class SQLServerSpatialDatatype {
                 throw new IllegalArgumentException("Illegal character at wkt position " + currentWktPos); 
             }
             
+            numOfCoordinates++;
+            
             skipWhiteSpaces();
+            
+            // After skipping white space after the 4th coordinate has been read, the next
+            // character has to be either a , or ), or the WKT is invalid.
+            if (numOfCoordinates == 4) {
+                if (wkt.charAt(currentWktPos) != ',' && wkt.charAt(currentWktPos) != ')') {
+                    throw new IllegalArgumentException("Illegal character at wkt position " + currentWktPos); 
+                }
+            }
+            
             if (wkt.charAt(currentWktPos) == ',') {
+                // need at least 2 coordinates
+                if (numOfCoordinates == 1) {
+                    throw new IllegalArgumentException("Illegal character at wkt position " + currentWktPos); 
+                }
                 currentWktPos++;
                 skipWhiteSpaces();
-                numOfCoordinates++;
                 break;
             }
             skipWhiteSpaces();
-            
-            numOfCoordinates++;
         }
         
         if (numOfCoordinates == 4) {
@@ -1058,7 +1071,6 @@ abstract class SQLServerSpatialDatatype {
             serializationProperties += isSingleLineSegmentMask;
         }
         
-        //TODO look into how the isLargerThanHemisphere is created
         if (version == 2) {
             if (isLargerThanHemisphere) {
                 serializationProperties += isLargerThanHemisphereMask;

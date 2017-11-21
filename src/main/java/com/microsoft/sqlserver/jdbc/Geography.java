@@ -21,7 +21,13 @@ public class Geography extends SQLServerSpatialDatatype {
         this.wkt = WellKnownText;
         this.srid = srid;
         
-        parseWKTForSerialization(this, currentWktPos, -1, false);
+        try {
+            parseWKTForSerialization(this, currentWktPos, -1, false);
+        }
+        catch (StringIndexOutOfBoundsException e) {
+            throw new IllegalArgumentException("Reached unexpected end of WKT. Please make sure WKT is valid.");
+        }
+        
         serializeToWkb(false);
         isNull = false;
     }
@@ -85,12 +91,13 @@ public class Geography extends SQLServerSpatialDatatype {
 
     /**
      * Returns a Geography instance from an Open Geospatial Consortium (OGC) Well-Known Text (WKT) representation.
+     * SRID is defaulted to 4326.
      * 
      * @param wkt
      * @return
      */
     public static Geography parse(String wkt) {
-        return new Geography(wkt, 0);
+        return new Geography(wkt, 4326);
     }
     
     /**
@@ -300,7 +307,6 @@ public class Geography extends SQLServerSpatialDatatype {
             readMvalues();
         }
         
-        //TODO: do I need to do anything when it's isSinglePoint or isSingleLineSegment?
         if (!(isSinglePoint || isSingleLineSegment)) {
             readNumberOfFigures();
             
