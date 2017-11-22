@@ -536,7 +536,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
             hasNewTypeDefinitions = buildPreparedStrings(inOutParam, true);
         }
 
-        String dbName = connection.getCatalog();
+        String dbName = connection.getSCatalog();
         if (reuseCachedHandle(hasNewTypeDefinitions, false, dbName)) {
             hasNewTypeDefinitions = false;
         }
@@ -584,7 +584,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
                 // Cache the reference to the newly created handle, NOT for cursorable handles.
                 if (null == cachedPreparedStatementHandle && !isCursorable(executeMethod)) {
-                    String dbName = connection.getCatalog();
+                    String dbName = connection.getSCatalog();
                     if (null != handleDBName) {
                         dbName = handleDBName;
                     }
@@ -2609,7 +2609,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                     }
                 }
                 
-                String dbName = connection.getCatalog();
+                String dbName = connection.getSCatalog();
                 if (reuseCachedHandle(hasNewTypeDefinitions, false, dbName)) {
                     hasNewTypeDefinitions = false;
                 }

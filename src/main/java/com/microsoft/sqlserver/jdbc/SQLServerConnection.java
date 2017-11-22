@@ -3099,6 +3099,10 @@ public class SQLServerConnection implements ISQLServerConnection {
         return sCatalog;
     }
 
+    String getSCatalog() throws SQLServerException {
+        return sCatalog;
+    }
+
     /* L0 */ public void setTransactionIsolation(int level) throws SQLServerException {
         if (loggerExternal.isLoggable(Level.FINER)) {
             loggerExternal.entering(getClassNameLogging(), "setTransactionIsolation", level);
