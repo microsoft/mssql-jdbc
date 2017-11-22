@@ -466,6 +466,18 @@ public class SQLServerConnection implements ISQLServerConnection {
     final int getQueryTimeoutSeconds() {
         return queryTimeoutSeconds;
     }
+    /**
+     * timeout value for canceling the query timeout
+     */
+    private int cancelTimeoutSeconds;
+    
+    /**
+     * Retrieves the cancelTimeout in seconds
+     * @return
+     */
+    final int getCancelTimeoutSeconds() {
+        return cancelTimeoutSeconds;
+    }
 
     private int socketTimeoutMilliseconds;
 
@@ -1698,6 +1710,28 @@ public class SQLServerConnection implements ISQLServerConnection {
                 }
             }
             
+            sPropKey = SQLServerDriverIntProperty.CANCEL_TIMEOUT.toString();
+            int defaultCancelTimeout = SQLServerDriverIntProperty.CANCEL_TIMEOUT.getDefaultValue();
+            // use cancelTimeout only if queryTimeout is set. 
+            if (activeConnectionProperties.getProperty(sPropKey) != null && activeConnectionProperties.getProperty(sPropKey).length() > 0  && queryTimeoutSeconds > defaultQueryTimeout) {
+                try {
+                    int n = new Integer(activeConnectionProperties.getProperty(sPropKey));
+                    if (n >= defaultCancelTimeout) {
+                        cancelTimeoutSeconds = n;
+                    }
+                    else {
+                        MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidCancelTimeout"));
+                        Object[] msgArgs = {activeConnectionProperties.getProperty(sPropKey)};
+                        SQLServerException.makeFromDriverError(this, this, form.format(msgArgs), null, false);
+                    }
+                }
+                catch (NumberFormatException e) {
+                    MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidCancelTimeout"));
+                    Object[] msgArgs = {activeConnectionProperties.getProperty(sPropKey)};
+                    SQLServerException.makeFromDriverError(this, this, form.format(msgArgs), null, false);
+                }
+            }
+           
             sPropKey = SQLServerDriverIntProperty.SERVER_PREPARED_STATEMENT_DISCARD_THRESHOLD.toString();
             if (activeConnectionProperties.getProperty(sPropKey) != null && activeConnectionProperties.getProperty(sPropKey).length() > 0) {
                 try {

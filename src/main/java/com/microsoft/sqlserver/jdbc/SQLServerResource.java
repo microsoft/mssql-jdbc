@@ -392,5 +392,7 @@ public final class SQLServerResource extends ListResourceBundle {
 				{"R_invalidDataTypeSupportForSQLVariant", "Unexpected TDS type ' '{0}' ' in SQL_VARIANT."},
 				{"R_sslProtocolPropertyDescription", "SSL protocol label from TLS, TLSv1, TLSv1.1 & TLSv1.2. The default is TLS."},
 				{"R_invalidSSLProtocol", "SSL Protocol {0} label is not valid. Only TLS, TLSv1, TLSv1.1 & TLSv1.2 are supported."},
+				{"R_cancelTimeoutPropertyDescription", "The number of seconds to wait to cancel sending a query timeout."},
+				{"R_invalidCancelTimeout", "The cancel timeout value {0} is not valid."},
     };
 }

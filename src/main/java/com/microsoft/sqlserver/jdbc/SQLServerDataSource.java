@@ -690,6 +690,26 @@ public class SQLServerDataSource implements ISQLServerDataSource, DataSource, ja
         return getIntProperty(connectionProps, SQLServerDriverIntProperty.QUERY_TIMEOUT.toString(),
                 SQLServerDriverIntProperty.QUERY_TIMEOUT.getDefaultValue());
     }
+    
+    /**
+     * Setting the cancel timeout
+     * 
+     * @param cancelTimeout
+     *            The number of seconds to wait before we wait for the query timeout to happen.
+     */
+    public void setCancelTimeout(int cancelTimeout) {
+        setIntProperty(connectionProps, SQLServerDriverIntProperty.CANCEL_TIMEOUT.toString(), cancelTimeout);
+    }
+
+    /**
+     * Getting the cancel timeout
+     * 
+     * @return the number of seconds to wait before we wait for the query timeout to happen.
+     */
+    public int getCancelTimeout() {
+        return getIntProperty(connectionProps, SQLServerDriverIntProperty.CANCEL_TIMEOUT.toString(),
+                SQLServerDriverIntProperty.CANCEL_TIMEOUT.getDefaultValue());
+    }
 
     /**
      * If this configuration is false the first execution of a prepared statement will call sp_executesql and not prepare 
