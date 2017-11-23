@@ -1,8 +1,8 @@
 /*
  * Microsoft JDBC Driver for SQL Server
- * 
+ *
  * Copyright(c) Microsoft Corporation All rights reserved.
- * 
+ *
  * This program is made available under the terms of the MIT License. See the LICENSE file in the project root for more information.
  */
 
@@ -135,7 +135,7 @@ final class TDS {
     static final int FLAG_TVP_DEFAULT_COLUMN = 0x200;
 
     static final int FEATURE_EXT_TERMINATOR = -1;
-    
+
     // Sql_variant length
     static final int SQL_VARIANT_LENGTH = 8009;
 
@@ -666,44 +666,6 @@ final class TDSChannel {
         if (logger.isLoggable(Level.FINER))
             logger.finer(toString() + " Disabling SSL...");
 
-        /*
-         * The mission: To close the SSLSocket and release everything that it is holding onto other than the TCP/IP socket and streams.
-         *
-         * The challenge: Simply closing the SSLSocket tries to do additional, unnecessary shutdown I/O over the TCP/IP streams that are bound to the
-         * socket proxy, resulting in a hang and confusing SQL Server.
-         *
-         * Solution: Rewire the ProxySocket's input and output streams (one more time) to closed streams. SSLSocket sees that the streams are already
-         * closed and does not attempt to do any further I/O on them before closing itself.
-         */
-
-        // Create a couple of cheap closed streams
-        InputStream is = new ByteArrayInputStream(new byte[0]);
-        try {
-            is.close();
-        }
-        catch (IOException e) {
-            // No reason to expect a brand new ByteArrayInputStream not to close,
-            // but just in case...
-            logger.fine("Ignored error closing InputStream: " + e.getMessage());
-        }
-
-        OutputStream os = new ByteArrayOutputStream();
-        try {
-            os.close();
-        }
-        catch (IOException e) {
-            // No reason to expect a brand new ByteArrayOutputStream not to close,
-            // but just in case...
-            logger.fine("Ignored error closing OutputStream: " + e.getMessage());
-        }
-
-        // Rewire the proxy socket to the closed streams
-        if (logger.isLoggable(Level.FINEST))
-            logger.finest(toString() + " Rewiring proxy streams for SSL socket close");
-        proxySocket.setStreams(is, os);
-
-        // Now close the SSL socket. It will see that the proxy socket's streams
-        // are closed and not try to do any further I/O over them.
         try {
             if (logger.isLoggable(Level.FINER))
                 logger.finer(toString() + " Closing SSL socket");
@@ -1561,7 +1523,7 @@ final class TDSChannel {
 
     /**
      * Enables SSL Handshake.
-     * 
+     *
      * @param host
      *            Server Host Name for SSL Handshake
      * @param port
@@ -1593,14 +1555,14 @@ final class TDSChannel {
                     .getProperty(SQLServerDriverStringProperty.HOSTNAME_IN_CERTIFICATE.toString());
 
             trustStoreType = con.activeConnectionProperties.getProperty(SQLServerDriverStringProperty.TRUST_STORE_TYPE.toString());
-            
+
             if(StringUtils.isEmpty(trustStoreType)) {
                 trustStoreType = SQLServerDriverStringProperty.TRUST_STORE_TYPE.getDefaultValue();
             }
-            
-            isFips = Boolean.valueOf(con.activeConnectionProperties.getProperty(SQLServerDriverBooleanProperty.FIPS.toString())); 
+
+            isFips = Boolean.valueOf(con.activeConnectionProperties.getProperty(SQLServerDriverBooleanProperty.FIPS.toString()));
             sslProtocol = con.activeConnectionProperties.getProperty(SQLServerDriverStringProperty.SSL_PROTOCOL.toString());
-            
+
             if (isFips) {
                 validateFips(trustStoreType, trustStoreFileName);
             }
@@ -1757,7 +1719,7 @@ final class TDSChannel {
                 logger.finest(toString() + " Creating SSL socket");
 
             sslSocket = (SSLSocket) sslContext.getSocketFactory().createSocket(proxySocket, host, port, false); // don't close proxy when SSL socket
-                                                                                                                // is closed     
+                                                                                                                // is closed
             // At long last, start the SSL handshake ...
             if (logger.isLoggable(Level.FINER))
                 logger.finer(toString() + " Starting SSL handshake");
@@ -1841,12 +1803,12 @@ final class TDSChannel {
 
     /**
      * Validate FIPS if fips set as true
-     * 
+     *
      * Valid FIPS settings:
      * <LI>Encrypt should be true
      * <LI>trustServerCertificate should be false
      * <LI>if certificate is not installed TrustStoreType should be present.
-     * 
+     *
      * @param trustStoreType
      * @param trustStoreFileName
      * @throws SQLServerException
@@ -1868,12 +1830,12 @@ final class TDSChannel {
         isValidTrustStore = !StringUtils.isEmpty(trustStoreFileName);
         isTrustServerCertificate = con.trustServerCertificate();
 
-        if (isEncryptOn && !isTrustServerCertificate) {          
+        if (isEncryptOn && !isTrustServerCertificate) {
             isValid = true;
             if (isValidTrustStore) {
                 // In case of valid trust store we need to check TrustStoreType.
                 if (!isValidTrustStoreType) {
-                    isValid = false;               
+                    isValid = false;
                     if (logger.isLoggable(Level.FINER))
                         logger.finer(toString() + "TrustStoreType is required alongside with TrustStore.");
                 }
@@ -2186,12 +2148,12 @@ final class TDSChannel {
 /**
  * SocketFinder is used to find a server socket to which a connection can be made. This class abstracts the logic of finding a socket from TDSChannel
  * class.
- * 
+ *
  * In the case when useParallel is set to true, this is achieved by trying to make parallel connections to multiple IP addresses. This class is
  * responsible for spawning multiple threads and keeping track of the search result and the connected socket or exception to be thrown.
- * 
+ *
  * In the case where multiSubnetFailover is false, we try our old logic of trying to connect to the first ip address
- * 
+ *
  * Typical usage of this class is SocketFinder sf = new SocketFinder(traceId, conn); Socket = sf.getSocket(hostName, port, timeout);
  */
 final class SocketFinder {
@@ -2252,7 +2214,7 @@ final class SocketFinder {
 
     /**
      * Constructs a new SocketFinder object with appropriate traceId
-     * 
+     *
      * @param callerTraceID
      *            traceID of the caller
      * @param sqlServerConnection
@@ -2266,7 +2228,7 @@ final class SocketFinder {
 
     /**
      * Used to find a socket to which a connection can be made
-     * 
+     *
      * @param hostName
      * @param portNumber
      * @param timeoutInMilliSeconds
@@ -2314,7 +2276,7 @@ final class SocketFinder {
                 loggingString.append(" Total no of InetAddresses: ");
                 loggingString.append(inetAddrs.length);
                 loggingString.append(". They are: ");
-                
+
                 for (InetAddress inetAddr : inetAddrs) {
                     loggingString.append(inetAddr.toString() + ";");
                 }
@@ -2421,7 +2383,7 @@ final class SocketFinder {
         catch (InterruptedException ex) {
             // re-interrupt the current thread, in order to restore the thread's interrupt status.
             Thread.currentThread().interrupt();
-            
+
             close(selectedSocket);
             SQLServerException.ConvertConnectExceptionToSQLServerException(hostName, portNumber, conn, ex);
         }
@@ -2449,7 +2411,7 @@ final class SocketFinder {
     /**
      * This function uses java NIO to connect to all the addresses in inetAddrs with in a specified timeout. If it succeeds in connecting, it closes
      * all the other open sockets and updates the result to success.
-     * 
+     *
      * @param inetAddrs
      *            the array of inetAddress to which connection should be made
      * @param portNumber
@@ -2644,7 +2606,7 @@ final class SocketFinder {
             int portNumber,
             int timeoutInMilliSeconds) throws IOException, InterruptedException {
         assert timeoutInMilliSeconds != 0 : "The timeout cannot be zero";
-        
+
         assert inetAddrs.isEmpty() == false : "Number of inetAddresses should not be zero in this function";
 
         LinkedList<Socket> sockets = new LinkedList<>();
@@ -2782,7 +2744,7 @@ final class SocketFinder {
      * Used by socketConnector threads to notify the socketFinder of their connection attempt result(a connected socket or exception). It updates the
      * result, socket and exception variables of socketFinder object. This method notifies the parent thread if a socket is found or if all the
      * spawned threads have notified. It also closes a socket if it is not selected for use by socketFinder.
-     * 
+     *
      * @param socket
      *            the SocketConnector's socket
      * @param exception
@@ -2885,7 +2847,7 @@ final class SocketFinder {
      * <p>
      * If there are multiple exceptions, that are not related to socketTimeout the first non-socketTimeout exception is picked. If all exceptions are
      * related to socketTimeout, the first exception is picked. Note: This method is not thread safe. The caller should ensure thread safety.
-     * 
+     *
      * @param ex
      *            the IOException
      * @param traceId
@@ -2913,7 +2875,7 @@ final class SocketFinder {
 
     /**
      * Used fof tracing
-     * 
+     *
      * @return traceID string
      */
     public String toString() {
@@ -2997,7 +2959,7 @@ final class SocketConnector implements Runnable {
 
     /**
      * Used for tracing
-     * 
+     *
      * @return traceID string
      */
     public String toString() {
@@ -3242,7 +3204,7 @@ final class TDSWriter {
 
     /**
      * writing sqlCollation information for sqlVariant type when sending character types.
-     * 
+     *
      * @param variantType
      * @throws SQLServerException
      */
@@ -3301,7 +3263,7 @@ final class TDSWriter {
 
     /**
      * Append a real value in the TDS stream.
-     * 
+     *
      * @param value
      *            the data value
      */
@@ -3311,7 +3273,7 @@ final class TDSWriter {
 
     /**
      * Append a double value in the TDS stream.
-     * 
+     *
      * @param value
      *            the data value
      */
@@ -3339,7 +3301,7 @@ final class TDSWriter {
 
     /**
      * Append a big decimal in the TDS stream.
-     * 
+     *
      * @param bigDecimalVal
      *            the big decimal data value
      * @param srcJdbcType
@@ -3377,10 +3339,10 @@ final class TDSWriter {
         System.arraycopy(valueBytes, 2, bytes, 0, valueBytes.length - 2);
         writeBytes(bytes);
     }
-    
+
     /**
      * Append a big decimal inside sql_variant in the TDS stream.
-     * 
+     *
      * @param bigDecimalVal
      *            the big decimal data value
      * @param srcJdbcType
@@ -3756,7 +3718,7 @@ final class TDSWriter {
         // what remains in the current staging buffer. However, the value must
         // be short enough to fit in an empty buffer.
         assert valueLength <= value.length;
-        
+
         int remaining = stagingBuffer.remaining();
         assert remaining < valueLength;
 
@@ -3940,7 +3902,7 @@ final class TDSWriter {
             Object[] msgArgs = {advertisedLength, actualLength};
             error(form.format(msgArgs), SQLState.DATA_EXCEPTION_LENGTH_MISMATCH, DriverError.NOT_SET);
         }
-    }   
+    }
 
     /*
      * Note: There is another method with same code logic for non unicode reader, writeNonUnicodeReader(), implemented for performance efficiency. Any
@@ -4175,7 +4137,7 @@ final class TDSWriter {
 
     /**
      * Write out elements common to all RPC values.
-     * 
+     *
      * @param sName
      *            the optional parameter name
      * @param bOut
@@ -4206,7 +4168,7 @@ final class TDSWriter {
 
     /**
      * Append a boolean value in RPC transmission format.
-     * 
+     *
      * @param sName
      *            the optional parameter name
      * @param booleanValue
@@ -4230,7 +4192,7 @@ final class TDSWriter {
 
     /**
      * Append a short value in RPC transmission format.
-     * 
+     *
      * @param sName
      *            the optional parameter name
      * @param shortValue
@@ -4254,7 +4216,7 @@ final class TDSWriter {
 
     /**
      * Append a short value in RPC transmission format.
-     * 
+     *
      * @param sName
      *            the optional parameter name
      * @param shortValue
@@ -4278,7 +4240,7 @@ final class TDSWriter {
 
     /**
      * Append an int value in RPC transmission format.
-     * 
+     *
      * @param sName
      *            the optional parameter name
      * @param intValue
@@ -4302,7 +4264,7 @@ final class TDSWriter {
 
     /**
      * Append a long value in RPC transmission format.
-     * 
+     *
      * @param sName
      *            the optional parameter name
      * @param longValue
@@ -4326,7 +4288,7 @@ final class TDSWriter {
 
     /**
      * Append a real value in RPC transmission format.
-     * 
+     *
      * @param sName
      *            the optional parameter name
      * @param floatValue
@@ -4365,7 +4327,7 @@ final class TDSWriter {
 
     /**
      * Append a double value in RPC transmission format.
-     * 
+     *
      * @param sName
      *            the optional parameter name
      * @param doubleValue
@@ -4400,7 +4362,7 @@ final class TDSWriter {
 
     /**
      * Append a big decimal in RPC transmission format.
-     * 
+     *
      * @param sName
      *            the optional parameter name
      * @param bdValue
@@ -4424,7 +4386,7 @@ final class TDSWriter {
 
     /**
      * Appends a standard v*max header for RPC parameter transmission.
-     * 
+     *
      * @param headerLength
      *            the total length of the PLP data block.
      * @param isNull
@@ -4470,7 +4432,7 @@ final class TDSWriter {
 
     /**
      * Writes a string value as Unicode for RPC
-     * 
+     *
      * @param sName
      *            the optional parameter name
      * @param sValue
@@ -5376,7 +5338,7 @@ final class TDSWriter {
 
     /**
      * Append a timestamp in RPC transmission format as a SQL Server DATETIME data type
-     * 
+     *
      * @param sName
      *            the optional parameter name
      * @param cal
@@ -6086,7 +6048,7 @@ final class TDSWriter {
 
     /**
      * Append the data in a stream in RPC transmission format.
-     * 
+     *
      * @param sName
      *            the optional parameter name
      * @param stream
@@ -6188,7 +6150,7 @@ final class TDSWriter {
 
     /**
      * Append the XML data in a stream in RPC transmission format.
-     * 
+     *
      * @param sName
      *            the optional parameter name
      * @param stream
@@ -6232,7 +6194,7 @@ final class TDSWriter {
 
     /**
      * Append the data in a character reader in RPC transmission format.
-     * 
+     *
      * @param sName
      *            the optional parameter name
      * @param re
@@ -6610,7 +6572,7 @@ final class TDSReader {
     }
 
     /**
-     * 
+     *
      * @return number of bytes available in the current packet
      */
     final int availableCurrentPacket() {
@@ -7234,7 +7196,7 @@ abstract class TDSCommand {
     // Volatile ensures visibility to execution thread and interrupt thread
     private volatile TDSWriter tdsWriter;
     private volatile TDSReader tdsReader;
-    
+
     protected TDSWriter getTDSWriter(){
         return tdsWriter;
     }
