@@ -4,8 +4,7 @@
 	
 	<groupId>com.microsoft.sqlserver</groupId>
 	<artifactId>mssql-jdbc</artifactId>
-	<version>6.3.5-SNAPSHOT.${jreVersion}-preview</version>
-	
+	<version>6.3.6-SNAPSHOT.${jreVersion}-preview</version>
 	<packaging>jar</packaging>
 	
 	<name>Microsoft JDBC Driver for SQL Server</name>

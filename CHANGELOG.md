@@ -3,6 +3,14 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](http://keepachangelog.com/) 
 
+## [6.3.5] Preview Release
+### Added
+- Added handle for Account Locked Exception 18486 during login in SQLServerConnection [#522](https://github.com/Microsoft/mssql-jdbc/pull/522)
+
+### Fixed Issues 
+- Fixed the issues with Prepared Statement Metadata Caching implementation [#543](https://github.com/Microsoft/mssql-jdbc/pull/543)
+- Fixed issues with static logger member in abstract class 'SQLServerClobBase' [#537](https://github.com/Microsoft/mssql-jdbc/pull/537)
+
 ## [6.3.4] Preview Release
 ### Added
 - Added new ThreadGroup creation to prevent IllegalThreadStateException if the underlying ThreadGroup has been destroyed. [#474](https://github.com/Microsoft/mssql-jdbc/pull/474)

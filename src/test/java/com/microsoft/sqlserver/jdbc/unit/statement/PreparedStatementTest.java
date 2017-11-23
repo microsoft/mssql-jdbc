@@ -8,12 +8,13 @@
 package com.microsoft.sqlserver.jdbc.unit.statement;
 
 import static java.util.concurrent.TimeUnit.SECONDS;
-import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertNotSame;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
+import java.sql.BatchUpdateException;
 import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -31,9 +32,9 @@ import org.junit.runner.RunWith;
 
 import com.microsoft.sqlserver.jdbc.SQLServerConnection;
 import com.microsoft.sqlserver.jdbc.SQLServerDataSource;
+import com.microsoft.sqlserver.jdbc.SQLServerException;
 import com.microsoft.sqlserver.jdbc.SQLServerPreparedStatement;
 import com.microsoft.sqlserver.testframework.AbstractTest;
-import com.microsoft.sqlserver.testframework.util.RandomUtil;
 
 @RunWith(JUnitPlatform.class)
 public class PreparedStatementTest extends AbstractTest { 
@@ -172,32 +173,69 @@ public class PreparedStatementTest extends AbstractTest {
             }
         }
 
-        try (SQLServerConnection con = (SQLServerConnection)DriverManager.getConnection(connectionString)) {
+        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(connectionString)) {
 
             // Test behvaior with statement pooling.
             con.setStatementPoolingCacheSize(10);
-
+            this.executeSQL(con,
+                    "IF NOT EXISTS (SELECT * FROM sys.messages WHERE message_id = 99586) EXEC sp_addmessage 99586, 16, 'Prepared handle GAH!';");
             // Test with missing handle failures (fake).
             this.executeSQL(con, "CREATE TABLE #update1 (col INT);INSERT #update1 VALUES (1);");
-            this.executeSQL(con, "CREATE PROC #updateProc1 AS UPDATE #update1 SET col += 1; IF EXISTS (SELECT * FROM #update1 WHERE col % 5 = 0) THROW 99586, 'Prepared handle GAH!', 1;");
+            this.executeSQL(con,
+                    "CREATE PROC #updateProc1 AS UPDATE #update1 SET col += 1; IF EXISTS (SELECT * FROM #update1 WHERE col % 5 = 0) RAISERROR(99586,16,1);");
             try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) con.prepareStatement("#updateProc1")) {
                 for (int i = 0; i < 100; ++i) {
-                    assertSame(1, pstmt.executeUpdate());
+                    try {
+                        assertSame(1, pstmt.executeUpdate());
+                    }
+                    catch (SQLServerException e) {
+                        // Error "Prepared handle GAH" is expected to happen. But it should not terminate the execution with RAISERROR.
+                        // Since the original "Could not find prepared statement with handle" error does not terminate the execution after it.
+                        if (!e.getMessage().contains("Prepared handle GAH")) {
+                            throw e;
+                        }
+                    }
                 }
             }
 
+            // test updated value, should be 1 + 100 = 101
+            // although executeUpdate() throws exception, update operation should be executed successfully.
+            try (ResultSet rs = con.createStatement().executeQuery("select * from #update1")) {
+                rs.next();
+                assertSame(101, rs.getInt(1));
+            }
+
             // Test batching with missing handle failures (fake).
+            this.executeSQL(con,
+                    "IF NOT EXISTS (SELECT * FROM sys.messages WHERE message_id = 99586) EXEC sp_addmessage 99586, 16, 'Prepared handle GAH!';");
             this.executeSQL(con, "CREATE TABLE #update2 (col INT);INSERT #update2 VALUES (1);");
-            this.executeSQL(con, "CREATE PROC #updateProc2 AS UPDATE #update2 SET col += 1; IF EXISTS (SELECT * FROM #update2 WHERE col % 5 = 0) THROW 99586, 'Prepared handle GAH!', 1;");
+            this.executeSQL(con,
+                    "CREATE PROC #updateProc2 AS UPDATE #update2 SET col += 1; IF EXISTS (SELECT * FROM #update2 WHERE col % 5 = 0) RAISERROR(99586,16,1);");
             try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) con.prepareStatement("#updateProc2")) {
-                for (int i = 0; i < 100; ++i)
+                for (int i = 0; i < 100; ++i) {
                     pstmt.addBatch();
+                }
 
-                int[] updateCounts = pstmt.executeBatch();
+                int[] updateCounts = null;
+                try {
+                    updateCounts = pstmt.executeBatch();
+                }
+                catch (BatchUpdateException e) {
+                    // Error "Prepared handle GAH" is expected to happen. But it should not terminate the execution with RAISERROR.
+                    // Since the original "Could not find prepared statement with handle" error does not terminate the execution after it.
+                    if (!e.getMessage().contains("Prepared handle GAH")) {
+                        throw e;
+                    }
+                }
 
-                // Verify update counts are correct
-                for (int i : updateCounts) {
-                    assertSame(1, i);
+                // since executeBatch() throws exception, it does not return anthing. So updateCounts is still null.
+                assertSame(null, updateCounts);
+
+                // test updated value, should be 1 + 100 = 101
+                // although executeBatch() throws exception, update operation should be executed successfully.
+                try (ResultSet rs = con.createStatement().executeQuery("select * from #update2")) {
+                    rs.next();
+                    assertSame(101, rs.getInt(1));
                 }
             }
         }

@@ -543,6 +543,10 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
             hasNewTypeDefinitions = buildPreparedStrings(inOutParam, true);
         }
 
+<<<<<<< HEAD
+        // Re-use handle if available, requires parameter definitions which are not available until here.
+=======
+>>>>>>> a940fbc2b28053cd1a79e9e2b50d8bd1fc9c63b1
         if (reuseCachedHandle(hasNewTypeDefinitions, false)) {
             hasNewTypeDefinitions = false;
         }
@@ -563,7 +567,11 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         else if (EXECUTE_UPDATE == executeMethod && null != resultSet) {
             SQLServerException.makeFromDriverError(connection, this, SQLServerException.getErrString("R_resultsetGeneratedForUpdate"), null, false);
         }
+<<<<<<< HEAD
     }    
+=======
+    }
+>>>>>>> a940fbc2b28053cd1a79e9e2b50d8bd1fc9c63b1
 
     /**
      * Consume the OUT parameter for the statement object itself.
@@ -2632,6 +2640,8 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         definitionChanged = false;
 /* 
         TDSWriter tdsWriter = null;
+<<<<<<< HEAD
+=======
         while (numBatchesExecuted < numBatches) {
             // Fill in the parameter values for this batch
             Parameter paramValues[] = batchParamValues.get(numBatchesPrepared);
@@ -2648,6 +2658,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 */
 
         TDSWriter tdsWriter = null;
+>>>>>>> a940fbc2b28053cd1a79e9e2b50d8bd1fc9c63b1
         try {
             while (numBatchesExecuted < numBatches) {
                 // Fill in the parameter values for this batch
