@@ -6478,7 +6478,6 @@ final class TDSReader {
         payloadOffset = 0;
         return true;
     }
-
  
     /**
      * Reads the next packet of the TDS channel.
