@@ -63,7 +63,7 @@ final class Parameter {
     private int valueLength = 0;
 
     private boolean forceEncryption = false;
-
+    
     Parameter(boolean honorAE) {
         shouldHonorAEForParameter = honorAE;
     }
@@ -73,7 +73,7 @@ final class Parameter {
         return null != registeredOutDTV;
     }
 
-    /** Checks if a parameter is return type*/
+    /** Checks if a parameter is return type */
     boolean isReturnValue() {
         return isReturnValue;
     }
@@ -83,6 +83,23 @@ final class Parameter {
         this.isReturnValue = isReturnValue;
     }
 
+    /**
+     * Sets the name of the parameter
+     * 
+     * @param name
+     */
+    void setName(String name) {
+        this.name = name;
+    }
+
+    /**
+     * Retrieve the name of the parameter
+     * 
+     * @return
+     */
+    String getName() {
+        return this.name;
+    }
     // Since a parameter can have only one type definition for both sending its value to the server (IN)
     // and getting its value from the server (OUT), we use the JDBC type of the IN parameter value if there
     // is one; otherwise we use the registered OUT param JDBC type.
