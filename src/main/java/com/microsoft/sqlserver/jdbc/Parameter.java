@@ -100,6 +100,15 @@ final class Parameter {
     String getName() {
         return this.name;
     }
+    
+    DTV getRegisteredOutDTV() {
+        return this.registeredOutDTV;
+    }
+
+    DTV getInputDTV() {
+        return this.inputDTV;
+    }
+    
     // Since a parameter can have only one type definition for both sending its value to the server (IN)
     // and getting its value from the server (OUT), we use the JDBC type of the IN parameter value if there
     // is one; otherwise we use the registered OUT param JDBC type.
