@@ -84,8 +84,8 @@ class SQLServerADAL4JUtils {
             }
 
             AuthenticationContext context = new AuthenticationContext(fedAuthInfo.stsurl, false, executorService);
-            Future<AuthenticationResult> future = context.acquireTokenIntegrated(tgtClientName, fedAuthInfo.spn,
-                    ActiveDirectoryAuthentication.JDBC_FEDAUTH_CLIENT_ID, null);
+            Future<AuthenticationResult> future = context.acquireToken(fedAuthInfo.spn, ActiveDirectoryAuthentication.JDBC_FEDAUTH_CLIENT_ID,
+                    tgtClientName, null, null);
 
             AuthenticationResult authenticationResult = future.get();
             SqlFedAuthToken fedAuthToken = new SqlFedAuthToken(authenticationResult.getAccessToken(), authenticationResult.getExpiresOnDate());
