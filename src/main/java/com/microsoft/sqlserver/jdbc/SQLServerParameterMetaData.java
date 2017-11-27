@@ -793,7 +793,7 @@ public final class SQLServerParameterMetaData implements ParameterMetaData {
         }
         catch (SQLException e) {
             SQLServerException.makeFromDriverError(con, stmtParent, e.toString(), null, false);
-            return 0;
+            return parameterModeUnknown;
         }
     }
 
@@ -913,7 +913,7 @@ public final class SQLServerParameterMetaData implements ParameterMetaData {
         }
         catch (SQLException e) {
             SQLServerException.makeFromDriverError(con, stmtParent, e.toString(), null, false);
-            return 0;
+            return parameterNoNulls;
         }
     }
 

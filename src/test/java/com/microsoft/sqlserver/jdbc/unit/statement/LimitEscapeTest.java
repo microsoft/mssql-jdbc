@@ -32,6 +32,7 @@ import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
 
 import com.microsoft.sqlserver.testframework.AbstractTest;
+import com.microsoft.sqlserver.testframework.Utils;
 
 /**
  * Testing with LimitEscape queries
@@ -782,13 +783,10 @@ public class LimitEscapeTest extends AbstractTest {
 
         Statement stmt = conn.createStatement();
         try {
-            stmt.executeUpdate("IF OBJECT_ID (N'UnitStatement_LimitEscape_t1', N'U') IS NOT NULL DROP TABLE UnitStatement_LimitEscape_t1");
-
-            stmt.executeUpdate("IF OBJECT_ID (N'UnitStatement_LimitEscape_t2', N'U') IS NOT NULL DROP TABLE UnitStatement_LimitEscape_t2");
-
-            stmt.executeUpdate("IF OBJECT_ID (N'UnitStatement_LimitEscape_t3', N'U') IS NOT NULL DROP TABLE UnitStatement_LimitEscape_t3");
-
-            stmt.executeUpdate("IF OBJECT_ID (N'UnitStatement_LimitEscape_t4', N'U') IS NOT NULL DROP TABLE UnitStatement_LimitEscape_t4");
+            Utils.dropTableIfExists("UnitStatement_LimitEscape_t1", stmt);
+            Utils.dropTableIfExists("UnitStatement_LimitEscape_t2", stmt);
+            Utils.dropTableIfExists("UnitStatement_LimitEscape_t3", stmt);
+            Utils.dropTableIfExists("UnitStatement_LimitEscape_t4", stmt);
         }
         catch (Exception ex) {
             fail(ex.toString());

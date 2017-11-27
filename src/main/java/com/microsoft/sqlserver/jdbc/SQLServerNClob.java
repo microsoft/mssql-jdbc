@@ -10,23 +10,22 @@ package com.microsoft.sqlserver.jdbc;
 
 import java.io.UnsupportedEncodingException;
 import java.sql.NClob;
-import java.util.logging.Logger;
 
 /**
  * SQLServerNClob represents a National Character Set LOB object and implements java.sql.NClob.
  */
 
 public final class SQLServerNClob extends SQLServerClobBase implements NClob {
-    // Loggers should be class static to avoid lock contention with multiple threads
-    private static final Logger logger = Logger.getLogger("com.microsoft.sqlserver.jdbc.internals.SQLServerNClob");
 
-    SQLServerNClob(SQLServerConnection connection) {
-        super(connection, "", connection.getDatabaseCollation(), logger, null);
+	private static final long serialVersionUID = 1L;
+
+	SQLServerNClob(SQLServerConnection connection) {
+        super(connection, "", connection.getDatabaseCollation(), null);
     }
 
     SQLServerNClob(BaseInputStream stream,
             TypeInfo typeInfo) throws SQLServerException, UnsupportedEncodingException {
-        super(null, stream, typeInfo.getSQLCollation(), logger , typeInfo);
+        super(null, stream, typeInfo.getSQLCollation(), typeInfo);
     }
 
     final JDBCType getJdbcType() {

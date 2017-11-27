@@ -1521,7 +1521,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable {
         if (it.hasNext()) {
             bulkCmd.append(" with (");
             while (it.hasNext()) {
-                bulkCmd.append(it.next().toString());
+                bulkCmd.append(it.next());
                 if (it.hasNext()) {
                     bulkCmd.append(", ");
                 }
