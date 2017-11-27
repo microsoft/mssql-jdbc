@@ -40,8 +40,9 @@ public class BatchExecutionWithNullTest extends AbstractTest {
     static ResultSet rs = null;
 
     /**
-     * Test with combination of setString and setNull which cause the "Violation of PRIMARY KEY constraint and internally 
-     * "Could not find prepared statement with handle X" error.
+     * Test with combination of setString and setNull which cause the "Violation of PRIMARY KEY constraint and internally "Could not find prepared
+     * statement with handle X" error.
+     * 
      * @throws SQLException
      */
     @Test

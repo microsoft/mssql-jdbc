@@ -4,8 +4,7 @@
 	
 	<groupId>com.microsoft.sqlserver</groupId>
 	<artifactId>mssql-jdbc</artifactId>
-	<version>6.3.3-SNAPSHOT</version>
-	
+	<version>6.3.6-SNAPSHOT.${jreVersion}-preview</version>
 	<packaging>jar</packaging>
 	
 	<name>Microsoft JDBC Driver for SQL Server</name>
@@ -29,8 +28,6 @@
 	
 	<developers>
 		<developer>
-			<name>Andrea Lam</name>
-			<email>andrela@microsoft.com</email>
 			<organization>Microsoft</organization>
 			<organizationUrl>http://www.microsoft.com</organizationUrl>
 		</developer>
@@ -141,41 +138,12 @@
 
 	<profiles>
 		<profile>
-			<id>build41</id>
-			<build>
-				<plugins>
-					<plugin>
-						<artifactId>maven-compiler-plugin</artifactId>
-						<version>3.6.0</version>
-						<configuration>
-							<excludes>
-								<exclude>**/com/microsoft/sqlserver/jdbc/SQLServerJdbc42.java</exclude>
-							</excludes>
-							<source>1.7</source>
-							<target>1.7</target> 
-						</configuration>
-					</plugin>
-					<plugin>
-						<groupId>org.apache.maven.plugins</groupId>
-						<artifactId>maven-jar-plugin</artifactId>
-						<version>3.0.2</version>
-						<configuration>
-							<finalName>${project.artifactId}-${project.version}.jre7-preview</finalName>
-							<archive>
-								<manifestFile>${project.build.outputDirectory}/META-INF/MANIFEST.MF</manifestFile>
-							</archive>
-						</configuration>
-					</plugin>   
-					
-				</plugins>
-			</build>
-		</profile>
-
-		<profile>
 			<id>build42</id>
-			<activation>
-				<activeByDefault>true</activeByDefault>
-			</activation>
+			
+			<properties>
+			<jreVersion>jre8</jreVersion>
+			</properties>
+			
 			<build>
 				<plugins>
 					<plugin>
@@ -183,7 +151,7 @@
 						<version>3.6.0</version>
 						<configuration>
 							<excludes>
-								<exclude>**/com/microsoft/sqlserver/jdbc/SQLServerJdbc41.java</exclude>
+								<exclude>**/com/microsoft/sqlserver/jdbc/SQLServerJdbc43.java</exclude>
 							</excludes>
 							<source>1.8</source>
 							<target>1.8</target>
@@ -194,7 +162,43 @@
 						<artifactId>maven-jar-plugin</artifactId>
 						<version>3.0.2</version>
 						<configuration>
-							<finalName>${project.artifactId}-${project.version}.jre8-preview</finalName>
+							<archive>
+								<manifestFile>${project.build.outputDirectory}/META-INF/MANIFEST.MF</manifestFile>
+							</archive>
+						</configuration>
+					</plugin>
+				</plugins>
+			</build>
+		</profile>
+		
+		<profile>
+			<id>build43</id>
+			<activation>
+				<activeByDefault>true</activeByDefault>
+			</activation>
+			
+			<properties>
+			<jreVersion>jre9</jreVersion>
+			</properties>
+			
+			<build>
+				<plugins>
+					<plugin>
+						<artifactId>maven-compiler-plugin</artifactId>
+						<version>3.6.0</version>
+						<configuration>
+							<excludes>
+								<exclude>**/com/microsoft/sqlserver/jdbc/SQLServerJdbc42.java</exclude>
+							</excludes>
+							<source>1.9</source>
+							<target>1.9</target>
+						</configuration>
+					</plugin>
+					<plugin>
+						<groupId>org.apache.maven.plugins</groupId>
+						<artifactId>maven-jar-plugin</artifactId>
+						<version>3.0.2</version>
+						<configuration>
 							<archive>
 								<manifestFile>${project.build.outputDirectory}/META-INF/MANIFEST.MF</manifestFile>
 							</archive>
@@ -294,7 +298,7 @@
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
  				<artifactId>maven-javadoc-plugin</artifactId>
- 				<version>2.10.4</version>
+ 				<version>3.0.0-M1</version>
  				
  				<configuration>
  					<failOnError>true</failOnError>

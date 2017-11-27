@@ -10,8 +10,10 @@ package com.microsoft.sqlserver.jdbc;
 
 import java.io.PrintWriter;
 import java.sql.Connection;
+import java.sql.ConnectionBuilder;
 import java.sql.SQLException;
 import java.sql.SQLFeatureNotSupportedException;
+import java.sql.ShardingKeyBuilder;
 import java.util.Enumeration;
 import java.util.Properties;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -864,7 +866,7 @@ public class SQLServerDataSource implements ISQLServerDataSource, DataSource, ja
             int propValue) {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "set" + propKey, propValue);
-        props.setProperty(propKey, Integer.valueOf(propValue).toString());
+        props.setProperty(propKey, new Integer(propValue).toString());
         loggerExternal.exiting(getClassNameLogging(), "set" + propKey);
     }
 
@@ -1103,6 +1105,16 @@ public class SQLServerDataSource implements ISQLServerDataSource, DataSource, ja
         }
         loggerExternal.exiting(getClassNameLogging(), "unwrap", t);
         return t;
+    }
+
+    public ShardingKeyBuilder createShardingKeyBuilder() throws SQLException {
+        DriverJDBCVersion.checkSupportsJDBC43();
+        throw new SQLFeatureNotSupportedException("createShardingKeyBuilder not implemented");
+    }
+
+    public ConnectionBuilder createConnectionBuilder() throws SQLException {
+        DriverJDBCVersion.checkSupportsJDBC43();
+        throw new SQLFeatureNotSupportedException("createConnectionBuilder not implemented");
     }
 
     // Returns unique id for each DataSource instance.

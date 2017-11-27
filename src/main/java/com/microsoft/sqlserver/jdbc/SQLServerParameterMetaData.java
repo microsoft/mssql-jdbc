@@ -581,7 +581,12 @@ public final class SQLServerParameterMetaData implements ParameterMetaData {
                     rsProcedureMeta = s.executeQueryInternal("exec sp_sproc_columns " + sProc + ", @ODBCVer=3");
                 
                 // if rsProcedureMeta has next row, it means the stored procedure is found
-                procedureIsFound = rsProcedureMeta.next();
+                if (rsProcedureMeta.next()) {
+                    procedureIsFound = true;
+                }
+                else {
+                    procedureIsFound = false;
+                }
                 rsProcedureMeta.beforeFirst();
 
                 // Sixth is DATA_TYPE
@@ -788,7 +793,7 @@ public final class SQLServerParameterMetaData implements ParameterMetaData {
         }
         catch (SQLException e) {
             SQLServerException.makeFromDriverError(con, stmtParent, e.toString(), null, false);
-            return 0;
+            return parameterModeUnknown;
         }
     }
 
@@ -908,7 +913,7 @@ public final class SQLServerParameterMetaData implements ParameterMetaData {
         }
         catch (SQLException e) {
             SQLServerException.makeFromDriverError(con, stmtParent, e.toString(), null, false);
-            return 0;
+            return parameterNoNulls;
         }
     }
 

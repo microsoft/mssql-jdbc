@@ -290,7 +290,18 @@ public class Util {
         SQLServerDatabaseMetaData meta = (SQLServerDatabaseMetaData) con.getMetaData();
         return (meta.getJDBCMajorVersion() >= 4 && meta.getJDBCMinorVersion() >= 2);
     }
-    
+
+    /**
+     * Utility function for checking if the system supports JDBC 4.3
+     * 
+     * @param con
+     * @return
+     */
+    public static boolean supportJDBC43(Connection con) throws SQLException {
+        SQLServerDatabaseMetaData meta = (SQLServerDatabaseMetaData) con.getMetaData();
+        return (meta.getJDBCMajorVersion() >= 4 && meta.getJDBCMinorVersion() >= 3);
+    }
+
     /**
      * 
      * @param b
@@ -312,7 +323,6 @@ public class Util {
         return sb.toString();
     }
 
-  
     /**
      * conversion routine valid values 0-9 a-f A-F throws exception when failed to convert
      * 
@@ -344,7 +354,7 @@ public class Util {
      * @param hexV
      *            a hexized string representation of bytes
      * @return
-     * @throws SQLServerException 
+     * @throws SQLServerException
      */
     public static byte[] hexStringToByte(String hexV) throws SQLServerException {
         int len = hexV.length();

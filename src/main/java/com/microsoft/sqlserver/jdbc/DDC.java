@@ -232,7 +232,7 @@ final class DDC {
                 return new BigDecimal(Float.toString(floatVal));
             case FLOAT:
             case DOUBLE:
-                return (Float.valueOf(floatVal)).doubleValue();
+                return (new Float(floatVal)).doubleValue();
             case BINARY:
                 return convertIntToBytes(Float.floatToRawIntBits(floatVal), 4);
             default:
@@ -275,7 +275,7 @@ final class DDC {
             case DOUBLE:
                 return doubleVal;
             case REAL:
-                return (Double.valueOf(doubleVal)).floatValue();
+                return (new Double(doubleVal)).floatValue();
             case INTEGER:
                 return (int) doubleVal;
             case SMALLINT: // small and tinyint returned as short
@@ -439,9 +439,7 @@ final class DDC {
             }
         }
         int offset = numBytes - unscaledBytes.length;
-        for (int i = offset; i < numBytes; ++i) {
-            ret[i] = unscaledBytes[i - offset];
-        }
+        System.arraycopy(unscaledBytes, offset - offset, ret, offset, numBytes - offset);
         return ret;
     }
 

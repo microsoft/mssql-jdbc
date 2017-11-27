@@ -12,13 +12,13 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.concurrent.TimeUnit.SECONDS;
 
 import java.text.MessageFormat;
-import java.util.Base64;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ThreadFactory;
 
+import java.util.Base64;;
 
 class CacheClear implements Runnable {
 
@@ -98,7 +98,7 @@ final class SQLServerSymmetricKeyCache {
             String keyLookupValue;
             keyLookupValuebuffer.append(":");
 
-            keyLookupValuebuffer.append(Base64.getEncoder().encodeToString((new String(keyInfo.encryptedKey, UTF_8)).getBytes()));
+            keyLookupValuebuffer.append(Base64.getEncoder().encode((new String(keyInfo.encryptedKey, UTF_8)).getBytes()));
 
             keyLookupValuebuffer.append(":");
             keyLookupValuebuffer.append(keyInfo.keyStoreName);

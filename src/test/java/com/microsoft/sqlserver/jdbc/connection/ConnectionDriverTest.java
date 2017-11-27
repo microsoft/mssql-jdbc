@@ -123,8 +123,7 @@ public class ConnectionDriverTest extends AbstractTest {
         ds.setEncrypt(true);
         ds.setTrustServerCertificate(true);
         ds.setPacketSize(8192);
-        Connection con = ds.getConnection();
-        con.close();
+        try(Connection con = ds.getConnection()) {}
     }
 
     @Test
@@ -172,25 +171,25 @@ public class ConnectionDriverTest extends AbstractTest {
 
         // Attach the Event listener and listen for connection events.
         MyEventListener myE = new MyEventListener();
-        pooledConnection.addConnectionEventListener(myE);	// ConnectionListener
-                                                         	// implements
-                                                         	// ConnectionEventListener
-        Connection con = pooledConnection.getConnection();
-        Statement stmt = con.createStatement(ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_UPDATABLE);
+        pooledConnection.addConnectionEventListener(myE);	// ConnectionListener implements ConnectionEventListener
+        
+        try(Connection con = pooledConnection.getConnection();
+        	Statement stmt = con.createStatement(ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_UPDATABLE)) {
 
-        boolean exceptionThrown = false;
-        try {
-            // raise a severe exception and make sure that the connection is not
-            // closed.
-            stmt.executeUpdate("RAISERROR ('foo', 20,1) WITH LOG");
+	        boolean exceptionThrown = false;
+	        try {
+	            // raise a severe exception and make sure that the connection is not
+	            // closed.
+	            stmt.executeUpdate("RAISERROR ('foo', 20,1) WITH LOG");
+	        }
+	        catch (Exception e) {
+	            exceptionThrown = true;
+	        }
+	        assertTrue(exceptionThrown, "Expected exception is not thrown.");
+	
+	        // Check to see if error occurred.
+	        assertTrue(myE.errorOccurred, "Error occurred is not called.");
         }
-        catch (Exception e) {
-            exceptionThrown = true;
-        }
-        assertTrue(exceptionThrown, "Expected exception is not thrown.");
-
-        // Check to see if error occurred.
-        assertTrue(myE.errorOccurred, "Error occurred is not called.");
         // make sure that connection is closed.
     }
 
@@ -204,23 +203,18 @@ public class ConnectionDriverTest extends AbstractTest {
 
         // Attach the Event listener and listen for connection events.
         MyEventListener myE = new MyEventListener();
-        pooledConnection.addConnectionEventListener(myE);	// ConnectionListener
-                                                         	// implements
-                                                         	// ConnectionEventListener
+        pooledConnection.addConnectionEventListener(myE);	// ConnectionListener implements ConnectionEventListener
 
-        Connection con = pooledConnection.getConnection();
-        Statement stmt = con.createStatement(ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_UPDATABLE);
-
-        // raise a non severe exception and make sure that the connection is not
-        // closed.
+    	Connection con = pooledConnection.getConnection();
+    	Statement stmt = con.createStatement(ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_UPDATABLE);
+        // raise a non severe exception and make sure that the connection is not closed.
         stmt.executeUpdate("RAISERROR ('foo', 3,1) WITH LOG");
-
         // not a serious error there should not be any errors.
         assertTrue(!myE.errorOccurred, "Error occurred is called.");
         // check to make sure that connection is not closed.
-        assertTrue(!con.isClosed(), "Connection is closed.");
-
-        con.close();
+	    assertTrue(!con.isClosed(), "Connection is closed.");
+	    stmt.close();
+	    con.close();
         // check to make sure that connection is closed.
         assertTrue(con.isClosed(), "Connection is not closed.");
     }
@@ -242,36 +236,34 @@ public class ConnectionDriverTest extends AbstractTest {
             exceptionThrown = true;
         }
         assertTrue(exceptionThrown, "Expected exception is not thrown.");
-
+        
         // check to make sure that connection is closed.
         assertTrue(con.isClosed(), "Connection is not closed.");
     }
 
     @Test
     public void testIsWrapperFor() throws SQLException, ClassNotFoundException {
-        Connection conn = DriverManager.getConnection(connectionString);
-        SQLServerConnection ssconn = (SQLServerConnection) conn;
-        boolean isWrapper;
-        isWrapper = ssconn.isWrapperFor(ssconn.getClass());
-        assertTrue(isWrapper, "SQLServerConnection supports unwrapping");
-        assertEquals(ssconn.TRANSACTION_SNAPSHOT, ssconn.TRANSACTION_SNAPSHOT, "Cant access the TRANSACTION_SNAPSHOT ");
-
-        isWrapper = ssconn.isWrapperFor(Class.forName("com.microsoft.sqlserver.jdbc.ISQLServerConnection"));
-        assertTrue(isWrapper, "ISQLServerConnection supports unwrapping");
-        ISQLServerConnection iSql = (ISQLServerConnection) ssconn.unwrap(Class.forName("com.microsoft.sqlserver.jdbc.ISQLServerConnection"));
-        assertEquals(iSql.TRANSACTION_SNAPSHOT, iSql.TRANSACTION_SNAPSHOT, "Cant access the TRANSACTION_SNAPSHOT ");
-
-        ssconn.unwrap(Class.forName("java.sql.Connection"));
-
-        conn.close();
+        try(Connection conn = DriverManager.getConnection(connectionString);
+        		SQLServerConnection ssconn = (SQLServerConnection) conn) {
+	        boolean isWrapper;
+	        isWrapper = ssconn.isWrapperFor(ssconn.getClass());
+	        assertTrue(isWrapper, "SQLServerConnection supports unwrapping");
+	        assertEquals(ssconn.TRANSACTION_SNAPSHOT, ssconn.TRANSACTION_SNAPSHOT, "Cant access the TRANSACTION_SNAPSHOT ");
+	
+	        isWrapper = ssconn.isWrapperFor(Class.forName("com.microsoft.sqlserver.jdbc.ISQLServerConnection"));
+	        assertTrue(isWrapper, "ISQLServerConnection supports unwrapping");
+	        ISQLServerConnection iSql = (ISQLServerConnection) ssconn.unwrap(Class.forName("com.microsoft.sqlserver.jdbc.ISQLServerConnection"));
+	        assertEquals(iSql.TRANSACTION_SNAPSHOT, iSql.TRANSACTION_SNAPSHOT, "Cant access the TRANSACTION_SNAPSHOT ");
+	
+	        ssconn.unwrap(Class.forName("java.sql.Connection"));
+        }
     }
 
     @Test
     public void testNewConnection() throws SQLException {
-        SQLServerConnection conn = (SQLServerConnection) DriverManager.getConnection(connectionString);
-        assertTrue(conn.isValid(0), "Newly created connection should be valid");
-
-        conn.close();
+        try(SQLServerConnection conn = (SQLServerConnection) DriverManager.getConnection(connectionString)) {
+        	assertTrue(conn.isValid(0), "Newly created connection should be valid");
+        }
     }
 
     @Test
@@ -283,46 +275,46 @@ public class ConnectionDriverTest extends AbstractTest {
 
     @Test
     public void testNegativeTimeout() throws Exception {
-        SQLServerConnection conn = (SQLServerConnection) DriverManager.getConnection(connectionString);
-        try {
-            conn.isValid(-42);
-            throw new Exception("No exception thrown with negative timeout");
+        try (SQLServerConnection conn = (SQLServerConnection) DriverManager.getConnection(connectionString)) {
+	        try {
+	            conn.isValid(-42);
+	            throw new Exception("No exception thrown with negative timeout");
+	        }
+	        catch (SQLException e) {
+	            assertEquals(e.getMessage(), "The query timeout value -42 is not valid.", "Wrong exception message");
+	        }
         }
-        catch (SQLException e) {
-            assertEquals(e.getMessage(), "The query timeout value -42 is not valid.", "Wrong exception message");
-        }
-
-        conn.close();
     }
 
     @Test
     public void testDeadConnection() throws SQLException {
         assumeTrue(!DBConnection.isSqlAzure(DriverManager.getConnection(connectionString)), "Skipping test case on Azure SQL.");
 
-        SQLServerConnection conn = (SQLServerConnection) DriverManager.getConnection(connectionString + ";responseBuffering=adaptive");
-        Statement stmt = null;
-
-        String tableName = RandomUtil.getIdentifier("Table");
-        tableName = DBTable.escapeIdentifier(tableName);
-
-        conn.setAutoCommit(false);
-        stmt = conn.createStatement();
-        stmt.executeUpdate("CREATE TABLE " + tableName + " (col1 int primary key)");
-        for (int i = 0; i < 80; i++) {
-            stmt.executeUpdate("INSERT INTO " + tableName + "(col1) values (" + i + ")");
+        try (SQLServerConnection conn = (SQLServerConnection) DriverManager.getConnection(connectionString + ";responseBuffering=adaptive")) {
+        	
+        	Statement stmt = null;
+	        String tableName = RandomUtil.getIdentifier("Table");
+	        tableName = DBTable.escapeIdentifier(tableName);
+	
+	        conn.setAutoCommit(false);
+	        stmt = conn.createStatement();
+	        stmt.executeUpdate("CREATE TABLE " + tableName + " (col1 int primary key)");
+	        for (int i = 0; i < 80; i++) {
+	            stmt.executeUpdate("INSERT INTO " + tableName + "(col1) values (" + i + ")");
+	        }
+	        conn.commit();
+	        try {
+	            stmt.execute("SELECT x1.col1 as foo, x2.col1 as bar, x1.col1 as eeep FROM " + tableName + " as x1, " + tableName
+	                    + " as x2; RAISERROR ('Oops', 21, 42) WITH LOG");
+	        }
+	        catch (SQLServerException e) {
+	            assertEquals(e.getMessage(), "Connection reset", "Unknown Exception");
+	        }
+	        finally {
+	            DriverManager.getConnection(connectionString).createStatement().execute("drop table " + tableName);
+	        }
+	        assertEquals(conn.isValid(5), false, "Dead connection should be invalid");
         }
-        conn.commit();
-        try {
-            stmt.execute("SELECT x1.col1 as foo, x2.col1 as bar, x1.col1 as eeep FROM " + tableName + " as x1, " + tableName
-                    + " as x2; RAISERROR ('Oops', 21, 42) WITH LOG");
-        }
-        catch (SQLServerException e) {
-            assertEquals(e.getMessage(), "Connection reset", "Unknown Exception");
-        }
-        finally {
-            DriverManager.getConnection(connectionString).createStatement().execute("drop table " + tableName);
-        }
-        assertEquals(conn.isValid(5), false, "Dead connection should be invalid");
     }
 
     @Test
