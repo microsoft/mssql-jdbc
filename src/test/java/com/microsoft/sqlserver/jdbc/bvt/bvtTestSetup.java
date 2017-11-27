@@ -24,18 +24,14 @@ import com.microsoft.sqlserver.testframework.DBTable;
  */
 @RunWith(JUnitPlatform.class)
 public class bvtTestSetup extends AbstractTest {
-    private static DBConnection conn = null;
-    private static DBStatement stmt = null;
 
     static DBTable table1;
     static DBTable table2;
 
     @BeforeAll
     public static void init() throws SQLException {
-        try {
-            conn = new DBConnection(connectionString);
-            stmt = conn.createStatement();
-
+        try (DBConnection conn = new DBConnection(connectionString);
+             DBStatement stmt = conn.createStatement()) {
             // create tables
             table1 = new DBTable(true);
             stmt.createTable(table1);
@@ -44,14 +40,5 @@ public class bvtTestSetup extends AbstractTest {
             stmt.createTable(table2);
             stmt.populateTable(table2);
         }
-        finally {
-            if (null != stmt) {
-                stmt.close();
-            }
-            if (null != conn && !conn.isClosed()) {
-                conn.close();
-            }
-        }
     }
-
 }

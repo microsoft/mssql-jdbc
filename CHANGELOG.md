@@ -3,6 +3,43 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](http://keepachangelog.com/) 
 
+## [6.3.5] Preview Release
+### Added
+- Added handle for Account Locked Exception 18486 during login in SQLServerConnection [#522](https://github.com/Microsoft/mssql-jdbc/pull/522)
+
+### Fixed Issues 
+- Fixed the issues with Prepared Statement Metadata Caching implementation [#543](https://github.com/Microsoft/mssql-jdbc/pull/543)
+- Fixed issues with static logger member in abstract class 'SQLServerClobBase' [#537](https://github.com/Microsoft/mssql-jdbc/pull/537)
+
+## [6.3.4] Preview Release
+### Added
+- Added new ThreadGroup creation to prevent IllegalThreadStateException if the underlying ThreadGroup has been destroyed. [#474](https://github.com/Microsoft/mssql-jdbc/pull/474)
+- Added try-with-resources to JUnit tests [#520](https://github.com/Microsoft/mssql-jdbc/pull/520)
+
+### Fixed Issues 
+- Fixed the issue with passing parameters names that start with '@' to a CallableStatement [#495](https://github.com/Microsoft/mssql-jdbc/pull/495)
+- Fixed SQLServerDataTable creation being O(n^2) issue [#514](https://github.com/Microsoft/mssql-jdbc/pull/514)
+
+### Changed
+- Changed some manual array copying to System.arraycopy() [#500](https://github.com/Microsoft/mssql-jdbc/pull/500)
+- Removed redundant toString() on String objects [#501](https://github.com/Microsoft/mssql-jdbc/pull/501)
+- Replaced literals with constants [#502](https://github.com/Microsoft/mssql-jdbc/pull/502)
+
+## [6.3.3] Preview Release
+### Added
+- Added connection properties for specifying custom TrustManager [#74](https://github.com/Microsoft/mssql-jdbc/pull/74)
+
+### Fixed Issues 
+- Fixed exception thrown by getters on null columns  [#488](https://github.com/Microsoft/mssql-jdbc/pull/488)
+- Fixed issue with DatabaseMetaData#getImportedKeys() returns wrong value for DELETE_RULE [#490](https://github.com/Microsoft/mssql-jdbc/pull/490)
+- Fixed issue with ActivityCorrelator causing a classloader leak [#465](https://github.com/Microsoft/mssql-jdbc/pull/465)
+
+### Changed
+- Removed explicit extends Object [#469](https://github.com/Microsoft/mssql-jdbc/pull/469)
+- Removed unnecessary return statements [#471](https://github.com/Microsoft/mssql-jdbc/pull/471)
+- Simplified overly complex boolean expressions [#472](https://github.com/Microsoft/mssql-jdbc/pull/472)
+- Replaced explicit types with <> (the diamond operator) [#420](https://github.com/Microsoft/mssql-jdbc/pull/420)
+
 ## [6.3.2] Preview Release
 ### Added
 - Added new connection property: sslProtocol [#422](https://github.com/Microsoft/mssql-jdbc/pull/422)
@@ -51,6 +88,10 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/)
 ### Changed
 - Updated ADAL4J dependency to version 1.2.0 [#392](https://github.com/Microsoft/mssql-jdbc/pull/392)
 - Updated azure-keyvault dependency to version 1.0.0 [#397](https://github.com/Microsoft/mssql-jdbc/pull/397)
+
+## [6.2.2] Hotfix & Stable Release
+### Changed
+- Updated ADAL4J to version 1.2.0 and AKV to version 1.0.0 [#516](https://github.com/Microsoft/mssql-jdbc/pull/516)
 
 ## [6.2.1] Hotfix & Stable Release
 ### Fixed Issues 

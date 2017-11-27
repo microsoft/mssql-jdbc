@@ -22,7 +22,8 @@ final class StreamLoginAck extends StreamPacket {
     }
 
     void setFromTDS(TDSReader tdsReader) throws SQLServerException {
-        assert TDS.TDS_LOGIN_ACK == tdsReader.readUnsignedByte();
+        if (TDS.TDS_LOGIN_ACK != tdsReader.readUnsignedByte())
+            assert false;
         tdsReader.readUnsignedShort(); // length of this token stream
         tdsReader.readUnsignedByte(); // SQL version accepted by the server
         tdsVersion = tdsReader.readIntBigEndian(); // TDS version accepted by the server

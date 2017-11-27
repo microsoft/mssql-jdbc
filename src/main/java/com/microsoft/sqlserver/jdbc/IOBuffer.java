@@ -64,6 +64,7 @@ import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -72,6 +73,7 @@ import javax.net.ssl.SSLSocket;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.TrustManagerFactory;
 import javax.net.ssl.X509TrustManager;
+import javax.xml.bind.DatatypeConverter;
 
 final class TDS {
     // TDS protocol versions
@@ -497,7 +499,7 @@ class GregorianChange {
 
         GregorianCalendar cal = new GregorianCalendar(Locale.US);
         cal.clear();
-        cal.set(1, 1, 577738, 0, 0, 0);// 577738 = 1+577737(no of days since epoch that brings us to oct 15th 1582)
+        cal.set(1, Calendar.FEBRUARY, 577738, 0, 0, 0);// 577738 = 1+577737(no of days since epoch that brings us to oct 15th 1582)
         if (cal.get(Calendar.DAY_OF_MONTH) == 15) {
             // If the date calculation is correct(the above bug is fixed),
             // post the default gregorian cut over date, the pure gregorian date
@@ -4827,7 +4829,7 @@ final class TDSWriter {
                 else {
                     if (isSqlVariant) {
                         writeTVPSqlVariantHeader(10, TDSType.FLOAT8.byteValue(), (byte) 0);
-                        writeDouble(Double.valueOf(currentColumnStringValue.toString()));
+                        writeDouble(Double.valueOf(currentColumnStringValue));
                         break;
                     }
                     writeByte((byte) 8); // len of data bytes
@@ -4955,7 +4957,7 @@ final class TDSWriter {
                 isShortValue = columnPair.getValue().precision <= DataTypes.SHORT_VARTYPE_MAX_BYTES;
                 isNull = (null == currentObject);
                 if (currentObject instanceof String)
-                    dataLength = isNull ? 0 : (ParameterUtils.HexToBin(currentObject.toString())).length;
+                    dataLength = isNull ? 0 : (toByteArray(currentObject.toString())).length;
                 else
                     dataLength = isNull ? 0 : ((byte[]) currentObject).length;
                 if (!isShortValue) {
@@ -4974,7 +4976,7 @@ final class TDSWriter {
                         if (dataLength > 0) {
                             writeInt(dataLength);
                             if (currentObject instanceof String)
-                                writeBytes(ParameterUtils.HexToBin(currentObject.toString()));
+                                writeBytes(toByteArray(currentObject.toString()));
                             else
                                 writeBytes((byte[]) currentObject);
                         }
@@ -4988,7 +4990,7 @@ final class TDSWriter {
                     else {
                         writeShort((short) dataLength);
                         if (currentObject instanceof String)
-                            writeBytes(ParameterUtils.HexToBin(currentObject.toString()));
+                            writeBytes(toByteArray(currentObject.toString()));
                         else
                             writeBytes((byte[]) currentObject);
                     }
@@ -5025,6 +5027,9 @@ final class TDSWriter {
         writeByte(probBytes);
     }
 
+    private static byte[] toByteArray(String s) {
+        return DatatypeConverter.parseHexBinary(s);
+    }
 
     void writeTVPColumnMetaData(TVP value) throws SQLServerException {
         boolean isShortValue;
@@ -7115,13 +7120,21 @@ final class TimeoutTimer implements Runnable {
     private volatile Future<?> task;
 
     private static final ExecutorService executor = Executors.newCachedThreadPool(new ThreadFactory() {
-        private final ThreadGroup tg = new ThreadGroup(threadGroupName);
-        private final String threadNamePrefix = tg.getName() + "-";
+        private final AtomicReference<ThreadGroup> tgr = new AtomicReference<>();
         private final AtomicInteger threadNumber = new AtomicInteger(0);
 
         @Override
-        public Thread newThread(Runnable r) {
-            Thread t = new Thread(tg, r, threadNamePrefix + threadNumber.incrementAndGet());
+        public Thread newThread(Runnable r)
+        {
+            ThreadGroup tg = tgr.get();
+
+            if (tg == null || tg.isDestroyed())
+            {
+                tg = new ThreadGroup(threadGroupName);
+                tgr.set(tg);
+            }
+
+            Thread t = new Thread(tg, r, tg.getName() + "-" + threadNumber.incrementAndGet());
             t.setDaemon(true);
             return t;
         }
