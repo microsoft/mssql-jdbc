@@ -1752,7 +1752,6 @@ public class SQLServerResultSet implements ISQLServerResultSet {
      * TYPE_SS_SCROLL_STATIC, TYPE_SS_SCROLL_KEYSET, TYPE_SS_SCROLL_DYNAMIC.
      *
      * @return true if the cursor is on a valid row in this result set
-     * @return false otherwise
      */
     public boolean previous() throws SQLServerException {
         loggerExternal.entering(getClassNameLogging(), "previous");

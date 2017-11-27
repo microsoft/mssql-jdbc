@@ -141,42 +141,7 @@
 
 	<profiles>
 		<profile>
-			<id>build41</id>
-			<build>
-				<plugins>
-					<plugin>
-						<artifactId>maven-compiler-plugin</artifactId>
-						<version>3.6.0</version>
-						<configuration>
-							<excludes>
-								<exclude>**/com/microsoft/sqlserver/jdbc/SQLServerJdbc42.java</exclude>
-								<exclude>**/com/microsoft/sqlserver/jdbc/SQLServerJdbc43.java</exclude>
-							</excludes>
-							<source>1.7</source>
-							<target>1.7</target> 
-						</configuration>
-					</plugin>
-					<plugin>
-						<groupId>org.apache.maven.plugins</groupId>
-						<artifactId>maven-jar-plugin</artifactId>
-						<version>3.0.2</version>
-						<configuration>
-							<finalName>${project.artifactId}-${project.version}.jre7-preview</finalName>
-							<archive>
-								<manifestFile>${project.build.outputDirectory}/META-INF/MANIFEST.MF</manifestFile>
-							</archive>
-						</configuration>
-					</plugin>   
-					
-				</plugins>
-			</build>
-		</profile>
-
-		<profile>
 			<id>build42</id>
-			<activation>
-				<activeByDefault>true</activeByDefault>
-			</activation>
 			<build>
 				<plugins>
 					<plugin>
@@ -184,7 +149,6 @@
 						<version>3.6.0</version>
 						<configuration>
 							<excludes>
-								<exclude>**/com/microsoft/sqlserver/jdbc/SQLServerJdbc41.java</exclude>
 								<exclude>**/com/microsoft/sqlserver/jdbc/SQLServerJdbc43.java</exclude>
 							</excludes>
 							<source>1.8</source>
@@ -218,7 +182,6 @@
 						<version>3.6.0</version>
 						<configuration>
 							<excludes>
-								<exclude>**/com/microsoft/sqlserver/jdbc/SQLServerJdbc41.java</exclude>
 								<exclude>**/com/microsoft/sqlserver/jdbc/SQLServerJdbc42.java</exclude>
 							</excludes>
 							<source>1.9</source>
