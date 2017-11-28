@@ -616,7 +616,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
             Parameter[] params, boolean bReturnValueSyntax) throws SQLServerException {
         char cParamName[];
         int index = 0;
-        if (bReturnValueSyntax  && !isCursorable(executeMethod) && !isTVPType && SQLServerConnection.isRPCValid(userSQL)) { 
+        if (bReturnValueSyntax  && !isCursorable(executeMethod) && !isTVPType && SQLServerConnection.isCallRemoteProcDirectValid(userSQL, params.length, bReturnValueSyntax)) { 
             returnParam = params[index];
             params[index].setReturnValue(true);
             index++;
@@ -1010,7 +1010,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         else {
            
 
-            if (needsPrepare && callRPCDirectly(params)) { 
+            if (needsPrepare && callRPCDirectly(params, bReturnValueSyntax)) { 
                 // if it is a parameterized stored procedure call and is not TVP, use sp_execute directly. 
                 buildRPCExecParams(tdsWriter);
             }
@@ -1039,12 +1039,11 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
      * @return
      * @throws SQLServerException
      */
-    boolean callRPCDirectly(Parameter[] params) throws SQLServerException {
+    boolean callRPCDirectly(Parameter[] params,
+            boolean isReturnSyntax) throws SQLServerException {
         int paramCount = SQLServerConnection.countParams(userSQL);
-        if (null != procedureName && paramCount != 0 && !isTVPType(params) && SQLServerConnection.isRPCValid(userSQL)) {
-            return true;
-        }
-        return false;
+        return (null != procedureName && paramCount != 0 && !isTVPType(params)
+                && SQLServerConnection.isCallRemoteProcDirectValid(userSQL, paramCount, isReturnSyntax));
     }
     
     /**
