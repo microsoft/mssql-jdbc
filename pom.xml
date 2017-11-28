@@ -39,7 +39,7 @@
 
 	<properties>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-		<junit.platform.version>1.0.0-M3</junit.platform.version>
+		<junit.platform.version>1.1.0-M1</junit.platform.version>
 		<junit.jupiter.version>5.0.0-M3</junit.jupiter.version>
 	</properties>
 	
@@ -54,7 +54,7 @@
 		<dependency>
 			<groupId>com.microsoft.azure</groupId>
 			<artifactId>adal4j</artifactId>
-			<version>1.2.0</version>
+			<version>1.3.0</version>
 			<optional>true</optional>
 		</dependency>
 		
@@ -117,7 +117,7 @@
 		<dependency>
 			<groupId>com.zaxxer</groupId>
 			<artifactId>HikariCP</artifactId>
-			<version>2.6.1</version>
+			<version>2.7.4</version>
 			<scope>test</scope>
 		</dependency>
 		<dependency>
@@ -190,8 +190,8 @@
 							<excludes>
 								<exclude>**/com/microsoft/sqlserver/jdbc/SQLServerJdbc42.java</exclude>
 							</excludes>
-							<source>1.9</source>
-							<target>1.9</target>
+							<source>9</source>
+							<target>9</target>
 						</configuration>
 					</plugin>
 					<plugin>
@@ -276,7 +276,7 @@
            	<plugin>
            		<groupId>org.apache.felix</groupId>
        			<artifactId>maven-bundle-plugin</artifactId>
-       			<version>3.2.0</version>
+       			<version>3.3.0</version>
                 <extensions>true</extensions>
                 <configuration>
                     <instructions>
