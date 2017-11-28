@@ -60,9 +60,9 @@ public class Geometry extends SQLServerSpatialDatatype {
      * Returns a Geometry instance from an Open Geospatial Consortium (OGC) Well-Known Text (WKT)
      *  representation augmented with any Z (elevation) and M (measure) values carried by the instance.
      *  
-     * @param wkt
-     * @param srid
-     * @return
+     * @param wkt WKT
+     * @param srid SRID
+     * @return Geometry instance
      */
     public static Geometry STGeomFromText(String wkt, int srid) {
         return new Geometry(wkt, srid);
@@ -72,8 +72,8 @@ public class Geometry extends SQLServerSpatialDatatype {
      * Returns a Geometry instance from an Open Geospatial Consortium (OGC) 
      * Well-Known Binary (WKB) representation.
      * 
-     * @param wkb
-     * @return
+     * @param wkb WKB
+     * @return Geometry instance
      */
     public static Geometry STGeomFromWKB(byte[] wkb) {
         return new Geometry(wkb);
@@ -82,8 +82,8 @@ public class Geometry extends SQLServerSpatialDatatype {
     /**
      * Returns a constructed Geometry from an internal SQL Server format for spatial data.
      * 
-     * @param wkb
-     * @return
+     * @param wkb WKB
+     * @return Geometry instance
      */
     public static Geometry deserialize(byte[] wkb) {
         return new Geometry(wkb);
@@ -93,8 +93,8 @@ public class Geometry extends SQLServerSpatialDatatype {
      * Returns a Geometry instance from an Open Geospatial Consortium (OGC) Well-Known Text (WKT) representation.
      * SRID is defaulted to 0.
      * 
-     * @param wkt
-     * @return
+     * @param wkt WKT
+     * @return Geometry instance
      */
     public static Geometry parse(String wkt) {
         return new Geometry(wkt, 0);
@@ -103,10 +103,10 @@ public class Geometry extends SQLServerSpatialDatatype {
     /**
      * Constructs a Geometry instance that represents a Point instance from its X and Y values and an SRID.
      * 
-     * @param x
-     * @param y
-     * @param srid
-     * @return
+     * @param x x coordinate
+     * @param y y coordinate
+     * @param srid SRID
+     * @return Geometry instance
      */
     public static Geometry point(double x, double y, int srid) {
         return new Geometry("POINT (" + x + " " + y + ")", srid);
@@ -136,7 +136,7 @@ public class Geometry extends SQLServerSpatialDatatype {
     /**
      *  Returns the Open Geospatial Consortium (OGC) Well-Known Binary (WKB) representation of a 
      *  Geometry instance. This value will not contain any Z or M values carried by the instance.
-     * @return
+     * @return WKB
      */
     public byte[] STAsBinary() {
         if (null == wkbNoZM) {
@@ -148,7 +148,7 @@ public class Geometry extends SQLServerSpatialDatatype {
     /**
      *  Returns the bytes that represent an internal SQL Server format of Geometry type.
      * 
-     * @return
+     * @return WKB
      */
     public byte[] serialize() {
         return wkb;
@@ -205,7 +205,7 @@ public class Geometry extends SQLServerSpatialDatatype {
     /**
      * Returns the Open Geospatial Consortium (OGC) type name represented by a geometry instance.
      * 
-     * @return
+     * @return type name
      */
     public String STGeometryType() {
         if (null != internalType) {

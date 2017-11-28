@@ -60,9 +60,9 @@ public class Geography extends SQLServerSpatialDatatype {
      * Returns a Geography instance from an Open Geospatial Consortium (OGC) Well-Known Text (WKT)
      *  representation augmented with any Z (elevation) and M (measure) values carried by the instance.
      *  
-     * @param wkt
-     * @param srid
-     * @return
+     * @param wkt WKT
+     * @param srid SRID
+     * @return Geography instance
      */
     public static Geography STGeomFromText(String wkt, int srid) {
         return new Geography(wkt, srid);
@@ -72,8 +72,8 @@ public class Geography extends SQLServerSpatialDatatype {
      * Returns a Geography instance from an Open Geospatial Consortium (OGC) 
      * Well-Known Binary (WKB) representation.
      * 
-     * @param wkb
-     * @return
+     * @param wkb WKB
+     * @return Geography instance
      */
     public static Geography STGeomFromWKB(byte[] wkb) {
         return new Geography(wkb);
@@ -82,8 +82,8 @@ public class Geography extends SQLServerSpatialDatatype {
     /**
      * Returns a constructed Geography from an internal SQL Server format for spatial data.
      * 
-     * @param wkb
-     * @return
+     * @param wkb WKB
+     * @return Geography instance
      */
     public static Geography deserialize(byte[] wkb) {
         return new Geography(wkb);
@@ -93,8 +93,8 @@ public class Geography extends SQLServerSpatialDatatype {
      * Returns a Geography instance from an Open Geospatial Consortium (OGC) Well-Known Text (WKT) representation.
      * SRID is defaulted to 4326.
      * 
-     * @param wkt
-     * @return
+     * @param wkt WKt
+     * @return Geography instance
      */
     public static Geography parse(String wkt) {
         return new Geography(wkt, 4326);
@@ -103,10 +103,10 @@ public class Geography extends SQLServerSpatialDatatype {
     /**
      * Constructs a Geography instance that represents a Point instance from its X and Y values and an SRID.
      * 
-     * @param x
-     * @param y
-     * @param srid
-     * @return
+     * @param x x coordinate
+     * @param y y coordinate
+     * @param srid SRID
+     * @return Geography instance
      */
     public static Geography point(double x, double y, int srid) {
         return new Geography("POINT (" + x + " " + y + ")", srid);
@@ -136,7 +136,7 @@ public class Geography extends SQLServerSpatialDatatype {
     /**
      *  Returns the Open Geospatial Consortium (OGC) Well-Known Binary (WKB) representation of a 
      *  Geography instance. This value will not contain any Z or M values carried by the instance.
-     * @return
+     * @return WKB
      */
     public byte[] STAsBinary() {
         if (null == wkbNoZM) {
@@ -148,7 +148,7 @@ public class Geography extends SQLServerSpatialDatatype {
     /**
      *  Returns the bytes that represent an internal SQL Server format of Geography type.
      * 
-     * @return
+     * @return WKB
      */
     public byte[] serialize() {
         return wkb;
@@ -205,7 +205,7 @@ public class Geography extends SQLServerSpatialDatatype {
     /**
      * Returns the Open Geospatial Consortium (OGC) type name represented by a Geography instance.
      * 
-     * @return
+     * @return type name
      */
     public String STGeographyType() {
         if (null != internalType) {

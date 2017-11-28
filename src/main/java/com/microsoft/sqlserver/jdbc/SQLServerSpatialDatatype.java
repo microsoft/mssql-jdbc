@@ -105,11 +105,11 @@ abstract class SQLServerSpatialDatatype {
      * Create the WKT representation of Geometry/Geography from the deserialized data.
      * 
      * @param sd the Geometry/Geography instance.
-     * @param isd
-     * @param pointIndexEnd
-     * @param figureIndexEnd
-     * @param segmentIndexEnd
-     * @param shapeIndexEnd
+     * @param isd internal spatial datatype object
+     * @param pointIndexEnd upper bound for reading points
+     * @param figureIndexEnd upper bound for reading figures
+     * @param segmentIndexEnd upper bound for reading segments
+     * @param shapeIndexEnd upper bound for reading shapes
      */
     protected void constructWKT(SQLServerSpatialDatatype sd, InternalSpatialDatatype isd, int pointIndexEnd, int figureIndexEnd, 
             int segmentIndexEnd, int shapeIndexEnd) {
@@ -359,8 +359,8 @@ abstract class SQLServerSpatialDatatype {
     /** 
      * Constructs a line in WKT form.
      * 
-     * @param pointStartIndex
-     * @param pointEndIndex
+     * @param pointStartIndex .
+     * @param pointEndIndex .
      */
     protected void constructLineWKT(int pointStartIndex, int pointEndIndex) {
         for (int i = pointStartIndex; i < pointEndIndex; i++) {
@@ -376,8 +376,8 @@ abstract class SQLServerSpatialDatatype {
     /**
      * Constructs a shape (simple Geometry/Geography entities that are contained within a single bracket) in WKT form.
      * 
-     * @param figureStartIndex
-     * @param figureEndIndex
+     * @param figureStartIndex .
+     * @param figureEndIndex .
      */
     protected void constructShapeWKT(int figureStartIndex, int figureEndIndex) {
         for (int i = figureStartIndex; i < figureEndIndex; i++) {
@@ -399,8 +399,8 @@ abstract class SQLServerSpatialDatatype {
     /**
      * Constructs a mutli-shape (MultiPoint / MultiLineString) in WKT form.
      * 
-     * @param figureStartIndex
-     * @param figureEndIndex
+     * @param shapeStartIndex .
+     * @param shapeEndIndex .
      */
     protected void constructMultiShapeWKT(int shapeStartIndex, int shapeEndIndex) {
         for (int i = shapeStartIndex + 1; i < shapeEndIndex; i++) {
@@ -418,9 +418,9 @@ abstract class SQLServerSpatialDatatype {
     /**
      * Constructs a CompoundCurve in WKT form.
      * 
-     * @param segmentStartIndex
-     * @param segmentEndIndex
-     * @param pointEndIndex
+     * @param segmentStartIndex .
+     * @param segmentEndIndex .
+     * @param pointEndIndex .
      */
     protected void constructCompoundcurveWKT(int segmentStartIndex, int segmentEndIndex, int pointEndIndex) {
         for (int i = segmentStartIndex; i < segmentEndIndex; i++) {
@@ -454,9 +454,8 @@ abstract class SQLServerSpatialDatatype {
     /**
      * Constructs a MultiPolygon in WKT form.
      * 
-     * @param segmentStartIndex
-     * @param segmentEndIndex
-     * @param pointEndIndex
+     * @param shapeStartIndex .
+     * @param shapeEndIndex .
      */
     protected void constructMultipolygonWKT(int shapeStartIndex, int shapeEndIndex) {
         int figureStartIndex;
@@ -519,9 +518,10 @@ abstract class SQLServerSpatialDatatype {
     /**
      * Constructs a CurvePolygon in WKT form.
      * 
-     * @param segmentStartIndex
-     * @param segmentEndIndex
-     * @param pointEndIndex
+     * @param figureStartIndex .
+     * @param figureEndIndex .
+     * @param segmentStartIndex .
+     * @param segmentEndIndex .
      */
     protected void constructCurvepolygonWKT(int figureStartIndex, int figureEndIndex, int segmentStartIndex, int segmentEndIndex) {        
         for (int i = figureStartIndex; i < figureEndIndex; i++) {
@@ -608,9 +608,9 @@ abstract class SQLServerSpatialDatatype {
      * the currentPointIndex depending on what segment comes next, since it may have been reused (and it's reflected
      * in the array of points)
      * 
-     * @param segmentStartIndex
-     * @param segmentEndIndex
-     * @param pointEndIndex
+     * @param currentSegment .
+     * @param segment .
+     * @param pointEndIndex .
      */
     protected void constructSegmentWKT(int currentSegment, byte segment, int pointEndIndex) {
         switch (segment) {
@@ -670,7 +670,7 @@ abstract class SQLServerSpatialDatatype {
     /**
      * The starting point for constructing a GeometryCollection type in WKT form.
      * 
-     * @param shapeEndIndex
+     * @param shapeEndIndex .
      */
     protected void constructGeometryCollectionWKT(int shapeEndIndex) {
         currentShapeIndex++;
@@ -760,8 +760,8 @@ abstract class SQLServerSpatialDatatype {
     /**
      * Reads a shape (simple Geometry/Geography entities that are contained within a single bracket) WKT.
      * 
-     * @param parentShapeIndex
-     * @param nextToken
+     * @param parentShapeIndex shape index of the parent shape that called this method
+     * @param nextToken next string token
      */
     protected void readShapeWkt(int parentShapeIndex, String nextToken) {
         byte fa = FA_POINT;
@@ -848,6 +848,9 @@ abstract class SQLServerSpatialDatatype {
 
     /**
      * Reads a MultiPolygon WKT
+     * 
+     * @param thisShapeIndex shape index of current shape
+     * @param nextToken next string token
      */
     protected void readMultiPolygonWkt(int thisShapeIndex, String nextToken) {
         while (currentWktPos < wkt.length() && wkt.charAt(currentWktPos) != ')') {
@@ -871,6 +874,9 @@ abstract class SQLServerSpatialDatatype {
     
     /**
      * Reads a Segment WKT
+     * 
+     * @param segmentType segment type
+     * @param isFirstIteration flag that indicates if this is the first iteration from the loop outside
      */
     protected void readSegmentWkt(int segmentType, boolean isFirstIteration) {
         segmentList.add(new Segment((byte) segmentType));
@@ -903,6 +909,8 @@ abstract class SQLServerSpatialDatatype {
 
     /**
      * Reads a CompoundCurve WKT
+     * 
+     * @param isFirstIteration flag that indicates if this is the first iteration from the loop outside
      */
     protected void readCompoundCurveWkt(boolean isFirstIteration) {
         while (currentWktPos < wkt.length() && wkt.charAt(currentWktPos) != ')') {
@@ -1264,7 +1272,8 @@ abstract class SQLServerSpatialDatatype {
     
     /**
      * Helper used for resurcive iteration for constructing GeometryCollection in WKT form.
-     * @param shapeEndIndex
+     * 
+     * @param shapeEndIndex .
      */
     private void constructGeometryCollectionWKThelper(int shapeEndIndex) {
         //phase 1: assume that there is no multi - stuff and no geometrycollection
@@ -1434,8 +1443,9 @@ abstract class SQLServerSpatialDatatype {
      * Calculates how many segments will be used by this shape.
      * Needed to determine when the shape that uses segments (e.g. CompoundCurve) needs to stop reading
      * in cases where the CompoundCurve is included as part of GeometryCollection.
-     * @param segmentStart
-     * @param pointDifference
+     * 
+     * @param segmentStart .
+     * @param pointDifference number of points that were assigned to this segment to be used.
      * @return the number of segments that will be used by this shape.
      */
     private int calculateSegmentIncrement(int segmentStart,
