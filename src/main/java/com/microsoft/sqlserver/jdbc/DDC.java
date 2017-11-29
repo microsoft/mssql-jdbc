@@ -56,7 +56,7 @@ final class DDC {
             case INTEGER:
             case SMALLINT:
             case TINYINT:
-                return intValue;
+                return (int)intValue;
             case BIT:
             case BOOLEAN:
                 return 0 != intValue;

@@ -2351,10 +2351,9 @@ abstract class IntColumnFilter extends ColumnFilter {
 
         switch (asJDBCType) {
             case INTEGER:
-                return oneValueToAnother((Integer) value);
-            case SMALLINT: // small and tinyint returned as short
+            case SMALLINT: // small and tinyint returned as int
             case TINYINT:
-                return (short) oneValueToAnother(((Short) value).intValue());
+                return oneValueToAnother((Integer) value);
             case BIGINT:
                 return (long) oneValueToAnother(((Long) value).intValue());
             case CHAR:
