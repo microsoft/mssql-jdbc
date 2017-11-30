@@ -39,7 +39,7 @@
 
 	<properties>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-		<junit.platform.version>1.1.0-M1</junit.platform.version>
+		<junit.platform.version>1.0.0-M3</junit.platform.version>
 		<junit.jupiter.version>5.0.0-M3</junit.jupiter.version>
 	</properties>
 	
