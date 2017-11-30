@@ -545,4 +545,54 @@ public class PreparedStatementTest extends AbstractTest {
             assertSame(0, con.getDiscardedServerPreparedStatementCount());
         }
     }
+
+    /**
+     * Validate the right behavior for EnablePrepareOnFirstPreparedStatementCall with 
+     * statement pooling turned off.
+     *
+     * @throws SQLException
+     */
+    @Test
+    public void testEnablePrepareOnFirstPreparedStatementCallWithStatementPoolingOff() throws SQLException {
+
+        try (SQLServerConnection con = (SQLServerConnection)DriverManager.getConnection(connectionString)) {
+
+            // Turn off use of prepared statement cache.
+            con.setStatementPoolingCacheSize(0);
+            // Disable EnablePrepareOnFirstPreparedStatementCall (default)
+            con.setEnablePrepareOnFirstPreparedStatementCall(false);
+
+            String query = "/*testEnablePrepareOnFirstPreparedStatementCallWithStatementPoolingOff*/SELECT * FROM sys.objects;";
+
+            // Verify first use is never prepared.
+            for(int i = 0; i < 10; ++i)
+            {
+                try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement)con.prepareStatement(query)) {
+                    pstmt.execute(); // sp_executesql
+                    pstmt.getMoreResults(); // Make sure handle is updated.
+
+                    // Validate no handle was created.
+                    assertTrue(0 >= pstmt.getPreparedStatementHandle());
+                }
+            }
+
+            // Verify second use is prepared.
+            for(int i = 0; i < 10; ++i)
+            {
+                try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement)con.prepareStatement(query)) {
+                    pstmt.execute(); // sp_executesql
+                    pstmt.getMoreResults(); // Make sure handle is updated.
+
+                    // Validate no handle was created.
+                    assertTrue(0 >= pstmt.getPreparedStatementHandle());
+
+                    pstmt.execute(); // sp_prepexec
+                    pstmt.getMoreResults(); // Make sure handle is updated.
+
+                    // Validate handle was created.
+                    assertTrue(0 < pstmt.getPreparedStatementHandle());
+                }
+            }
+        }
+    }
 }
