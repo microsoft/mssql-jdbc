@@ -694,11 +694,11 @@ public class SQLServerDataSource implements ISQLServerDataSource, DataSource, ja
     /**
      * Setting the cancel timeout
      * 
-     * @param cancelTimeout
+     * @param cancelQueryTimeout
      *            The number of seconds to wait before we wait for the query timeout to happen.
      */
-    public void setCancelTimeout(int cancelTimeout) {
-        setIntProperty(connectionProps, SQLServerDriverIntProperty.CANCEL_TIMEOUT.toString(), cancelTimeout);
+    public void setCancelQueryTimeout(int cancelQueryTimeout) {
+        setIntProperty(connectionProps, SQLServerDriverIntProperty.CANCEL_QUERY_TIMEOUT.toString(), cancelQueryTimeout);
     }
 
     /**
@@ -706,9 +706,9 @@ public class SQLServerDataSource implements ISQLServerDataSource, DataSource, ja
      * 
      * @return the number of seconds to wait before we wait for the query timeout to happen.
      */
-    public int getCancelTimeout() {
-        return getIntProperty(connectionProps, SQLServerDriverIntProperty.CANCEL_TIMEOUT.toString(),
-                SQLServerDriverIntProperty.CANCEL_TIMEOUT.getDefaultValue());
+    public int getCancelQueryTimeout() {
+        return getIntProperty(connectionProps, SQLServerDriverIntProperty.CANCEL_QUERY_TIMEOUT.toString(),
+                SQLServerDriverIntProperty.CANCEL_QUERY_TIMEOUT.getDefaultValue());
     }
 
     /**

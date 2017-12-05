@@ -6400,7 +6400,7 @@ final class TDSReader {
         this.con = con;
         this.command = command; // may be null
         //if cancelTimeout is set, we should wait for the total amount of queryTimeout+cancelTimeout to terminate the connection. 
-        this.tcpKeepAliveTimeoutTimer = (con.getCancelTimeoutSeconds() > 0 && con.getQueryTimeoutSeconds()> 0 ) ? (new TimeoutTimer(con.getCancelTimeoutSeconds() + con.getQueryTimeoutSeconds(), null, con)) : null;
+        this.tcpKeepAliveTimeoutTimer = (con.getCancelQueryTimeoutSeconds() > 0 && con.getQueryTimeoutSeconds()> 0 ) ? (new TimeoutTimer(con.getCancelQueryTimeoutSeconds() + con.getQueryTimeoutSeconds(), null, con)) : null;
         // if the logging level is not detailed than fine or more we will not have proper readerids.
         if (logger.isLoggable(Level.FINE))
             traceID = "TDSReader@" + nextReaderID() + " (" + con.toString() + ")";
