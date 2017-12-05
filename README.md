@@ -47,17 +47,17 @@ To build the jar files, you must use Java 8 with Maven.  You can choose to build
 
 * Maven:
 	1. If you have not already done so, add the environment variable `mssql_jdbc_test_connection_properties` in your system with the connection properties for your SQL Server or SQL DB instance.
-	2. Run one of the commands below to build a JDBC 4.1 compliant jar or JDBC 4.2 compliant jar in the \target directory. 
-    	* Run `mvn install -Pbuild41`. This creates JDBC 4.1 compliant jar in \target directory
-    	* Run `mvn install -Pbuild42`. This creates JDBC 4.2 compliant jar in \target directory
+	2. Run one of the commands below to build a JDBC 4.1 compliant jar or JDBC 4.2 compliant jar in the `\target` directory. 
+    	* Run `mvn install -Pbuild41`. This creates JDBC 4.1 compliant jar in `\target` directory
+    	* Run `mvn install -Pbuild42`. This creates JDBC 4.2 compliant jar in `\target` directory
 
 **NOTE**: Beginning release v6.1.7, we will no longer be maintaining the existing [Gradle build script](build.gradle) and it will be left in the repository for reference. Please refer to issue [#62](https://github.com/Microsoft/mssql-jdbc/issues/62) for this decision.
 
 * Gradle:
 	1. If you have not already done so, add the environment variable `mssql_jdbc_test_connection_properties` in your system with the connection properties for your SQL Server or SQL DB instance.
-	2. Run one of the commands below to build a JDBC 4.1 compliant jar or JDBC 4.2 compliant jar in the \build\libs directory. 
-    	* Run `gradle build -Pbuild=build41`. This creates JDBC 4.1 compliant jar in \build\libs directory
-    	* Run `gradle build -Pbuild=build42`. This creates JDBC 4.2 compliant jar in \build\libs directory
+	2. Run one of the commands below to build a JDBC 4.1 compliant jar or JDBC 4.2 compliant jar in the `\build\libs` directory. 
+    	* Run `gradle build -Pbuild=build41`. This creates JDBC 4.1 compliant jar in `\build\libs` directory
+    	* Run `gradle build -Pbuild=build42`. This creates JDBC 4.2 compliant jar in `\build\libs` directory
 
 ## Resources
 
@@ -67,10 +67,10 @@ API reference documentation is available in [Javadocs](https://aka.ms/jdbcjavado
 This driver is documented on [Microsoft's Documentation web site](https://msdn.microsoft.com/en-us/library/mt720657).
 
 ### Sample Code
-For samples, please see the src\sample directory.
+For samples, please see the `src\sample` directory.
 
 ### Download the DLLs
-For some features (e.g. Integrated Authentication and Distributed Transactions), you may need to use the `sqljdbc_xa` and `sqljdbc_auth` DLLs. They can be downloaded from the [Microsoft Download Center](https://go.microsoft.com/fwlink/?linkid=852460)
+For some features (e.g. Integrated Authentication and Distributed Transactions), you may need to use the `sqljdbc_xa` and `sqljdbc_auth` DLLs. They can be downloaded from the [Microsoft Download Center](https://www.microsoft.com/en-us/download/details.aspx?id=55539)
 
 ### Download the driver
 Don't want to compile anything?
@@ -83,7 +83,7 @@ We're now on the Maven Central Repository. Add the following to your POM file to
 	<version>6.2.2.jre8</version>
 </dependency>
 ```
-The driver can be downloaded from the [Microsoft Download Center](https://go.microsoft.com/fwlink/?linkid=852460).
+The driver can be downloaded from the [Microsoft Download Center](https://www.microsoft.com/en-us/download/details.aspx?id=55539).
 
 To get the latest preview version of the driver, add the following to your POM file: 
 ```xml
@@ -104,7 +104,7 @@ Compile Time:
  - `adal4j` : Azure ActiveDirectory Library for Java for Azure Active Directory Authentication feature (optional)
 
 Test Time:
- - `junit:jar`   : For Unit Test cases.
+ - `junit:jar` : For Unit Test cases.
 
 ### Dependency Tree
 One can see all dependencies including Transitive Dependency by executing following command.
@@ -159,7 +159,7 @@ We appreciate you taking the time to test the driver, provide feedback and repor
 - Report each issue as a new issue (but check first if it's already been reported)
 - Try to be detailed in your report. Useful information for good bug reports include:
   * What you are seeing and what the expected behaviour is
-  * Which jar file?
+  * Which `.jar` file?
   * Environment details: e.g. Java version, client operating system?
   * Table schema (for some issues the data types make a big difference!)
   * Any other relevant information you want to share
