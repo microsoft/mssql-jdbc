@@ -866,7 +866,7 @@ public class SQLServerDataSource implements ISQLServerDataSource, DataSource, ja
             int propValue) {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "set" + propKey, propValue);
-        props.setProperty(propKey, new Integer(propValue).toString());
+        props.setProperty(propKey, Integer.valueOf(propValue).toString());
         loggerExternal.exiting(getClassNameLogging(), "set" + propKey);
     }
 

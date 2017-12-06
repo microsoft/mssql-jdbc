@@ -8,6 +8,7 @@
 
 package com.microsoft.sqlserver.jdbc;
 
+import java.lang.reflect.InvocationTargetException;
 import java.util.Hashtable;
 
 import javax.naming.Context;
@@ -35,7 +36,7 @@ public final class SQLServerDataSourceObjectFactory implements ObjectFactory {
     public Object getObjectInstance(Object ref,
             Name name,
             Context c,
-            Hashtable<?, ?> h) throws SQLServerException {
+            Hashtable<?, ?> h) throws SQLServerException, InvocationTargetException, NoSuchMethodException, SecurityException {
         // Create a new instance of a DataSource class from the given reference.
         try {
             javax.naming.Reference r = (javax.naming.Reference) ref;
@@ -59,7 +60,7 @@ public final class SQLServerDataSourceObjectFactory implements ObjectFactory {
 
                 // Create class instance and initialize using reference.
                 Class<?> dataSourceClass = Class.forName(className);
-                Object dataSourceClassInstance = dataSourceClass.newInstance();
+                Object dataSourceClassInstance = dataSourceClass.getDeclaredConstructor().newInstance();
 
                 // If this class we created does not cast to SQLServerDataSource, then caller
                 // passed in the wrong reference to our factory.

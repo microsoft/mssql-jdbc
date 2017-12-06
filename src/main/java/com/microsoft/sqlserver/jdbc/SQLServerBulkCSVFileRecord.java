@@ -575,7 +575,7 @@ public class SQLServerBulkCSVFileRecord implements ISQLServerBulkRecord, java.la
                         case Types.BIGINT: {
                             BigDecimal bd = new BigDecimal(data[pair.getKey() - 1].trim());
                             try {
-                                dataRow[pair.getKey() - 1] = bd.setScale(0, BigDecimal.ROUND_DOWN).longValueExact();
+                                dataRow[pair.getKey() - 1] = bd.setScale(0, RoundingMode.DOWN).longValueExact();
                             } catch (ArithmeticException ex) {
                                 String value = "'" + data[pair.getKey() - 1] + "'";
                                 MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_errorConvertingValue"));
