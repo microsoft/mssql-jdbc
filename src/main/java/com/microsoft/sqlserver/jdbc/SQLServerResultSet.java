@@ -962,19 +962,11 @@ public class SQLServerResultSet implements ISQLServerResultSet {
 
         // For scrollable cursors, next() is just a special case of relative()
         if (!isForwardOnly()) {
-            do {
-                if (BEFORE_FIRST_ROW == currentRow)
-                    moveFirst();
-                else
-                    moveForward(1);
-                
-                // Only attempt rowDeleted() if result set is updatable.
-                try {
-                    verifyResultSetIsUpdatable();
-                } catch (SQLServerException e) {
-                    break;
-                }
-            } while (rowDeleted()); // repeat this if the row has been deleted beforehand, for scrollable & updatable resultsets.
+            if (BEFORE_FIRST_ROW == currentRow)
+                moveFirst();
+            else
+                moveForward(1);
+            
             boolean value = hasCurrentRow();
             loggerExternal.exiting(getClassNameLogging(), "next", value);
             return value;
