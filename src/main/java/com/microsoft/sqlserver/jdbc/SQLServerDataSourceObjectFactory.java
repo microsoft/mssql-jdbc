@@ -36,7 +36,7 @@ public final class SQLServerDataSourceObjectFactory implements ObjectFactory {
     public Object getObjectInstance(Object ref,
             Name name,
             Context c,
-            Hashtable<?, ?> h) throws SQLServerException, InvocationTargetException, NoSuchMethodException, SecurityException {
+            Hashtable<?, ?> h) throws SQLServerException {
         // Create a new instance of a DataSource class from the given reference.
         try {
             javax.naming.Reference r = (javax.naming.Reference) ref;
@@ -78,6 +78,18 @@ public final class SQLServerDataSourceObjectFactory implements ObjectFactory {
             SQLServerException.makeFromDriverError(null, null, SQLServerException.getErrString("R_invalidDataSourceReference"), null, true);
         }
         catch (IllegalAccessException e) {
+            SQLServerException.makeFromDriverError(null, null, SQLServerException.getErrString("R_invalidDataSourceReference"), null, true);
+        }
+        catch (IllegalArgumentException e) {
+            SQLServerException.makeFromDriverError(null, null, SQLServerException.getErrString("R_invalidDataSourceReference"), null, true);
+        }
+        catch (InvocationTargetException e) {
+            SQLServerException.makeFromDriverError(null, null, SQLServerException.getErrString("R_invalidDataSourceReference"), null, true);
+        }
+        catch (NoSuchMethodException e) {
+            SQLServerException.makeFromDriverError(null, null, SQLServerException.getErrString("R_invalidDataSourceReference"), null, true);
+        }
+        catch (SecurityException e) {
             SQLServerException.makeFromDriverError(null, null, SQLServerException.getErrString("R_invalidDataSourceReference"), null, true);
         }
         // no chance of getting here but to keep the compiler happy
