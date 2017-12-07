@@ -302,10 +302,10 @@
 				  	</executions>
          	</plugin>
 			
-<!-- 			<plugin>
+			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
  				<artifactId>maven-javadoc-plugin</artifactId>
- 				<version>3.0.0-M1</version>
+ 				<version>3.0.0</version>
  				
  				<configuration>
  					<failOnError>true</failOnError>
@@ -319,7 +319,7 @@
  						</goals>
  					</execution>
  				</executions>
- 			</plugin> -->
+ 			</plugin>
 
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
