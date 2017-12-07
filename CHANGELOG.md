@@ -3,6 +3,14 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](http://keepachangelog.com/) 
 
+## [6.3.6] Preview Release
+### Added
+- Added support for using database name as part of the key for handle cache [#561](https://github.com/Microsoft/mssql-jdbc/pull/561)
+- Updated ADAL4J version to 1.3.0 and also added it into README file [#564](https://github.com/Microsoft/mssql-jdbc/pull/564)
+
+### Fixed Issues 
+- Fixed issues with static loggers being set by every constructor invocation  [#563](https://github.com/Microsoft/mssql-jdbc/pull/563)
+
 ## [6.3.5] Preview Release
 ### Added
 - Added handle for Account Locked Exception 18486 during login in SQLServerConnection [#522](https://github.com/Microsoft/mssql-jdbc/pull/522)
