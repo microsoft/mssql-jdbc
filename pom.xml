@@ -4,8 +4,7 @@
 	
 	<groupId>com.microsoft.sqlserver</groupId>
 	<artifactId>mssql-jdbc</artifactId>
-	<version>6.3.3-SNAPSHOT</version>
-	
+	<version>6.3.6.${jreVersion}-preview</version>
 	<packaging>jar</packaging>
 	
 	<name>Microsoft JDBC Driver for SQL Server</name>
@@ -29,8 +28,6 @@
 	
 	<developers>
 		<developer>
-			<name>Andrea Lam</name>
-			<email>andrela@microsoft.com</email>
 			<organization>Microsoft</organization>
 			<organizationUrl>http://www.microsoft.com</organizationUrl>
 		</developer>
@@ -57,7 +54,7 @@
 		<dependency>
 			<groupId>com.microsoft.azure</groupId>
 			<artifactId>adal4j</artifactId>
-			<version>1.2.0</version>
+			<version>1.3.0</version>
 			<optional>true</optional>
 		</dependency>
 		
@@ -142,6 +139,11 @@
 	<profiles>
 		<profile>
 			<id>build41</id>
+			
+			<properties>
+			<jreVersion>jre7</jreVersion>
+			</properties>
+			
 			<build>
 				<plugins>
 					<plugin>
@@ -160,7 +162,6 @@
 						<artifactId>maven-jar-plugin</artifactId>
 						<version>3.0.2</version>
 						<configuration>
-							<finalName>${project.artifactId}-${project.version}.jre7-preview</finalName>
 							<archive>
 								<manifestFile>${project.build.outputDirectory}/META-INF/MANIFEST.MF</manifestFile>
 							</archive>
@@ -173,9 +174,15 @@
 
 		<profile>
 			<id>build42</id>
+
 			<activation>
 				<activeByDefault>true</activeByDefault>
 			</activation>
+			
+			<properties>
+			<jreVersion>jre8</jreVersion>
+			</properties>
+			
 			<build>
 				<plugins>
 					<plugin>
@@ -194,7 +201,6 @@
 						<artifactId>maven-jar-plugin</artifactId>
 						<version>3.0.2</version>
 						<configuration>
-							<finalName>${project.artifactId}-${project.version}.jre8-preview</finalName>
 							<archive>
 								<manifestFile>${project.build.outputDirectory}/META-INF/MANIFEST.MF</manifestFile>
 							</archive>

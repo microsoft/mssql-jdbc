@@ -1521,7 +1521,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable {
         if (it.hasNext()) {
             bulkCmd.append(" with (");
             while (it.hasNext()) {
-                bulkCmd.append(it.next().toString());
+                bulkCmd.append(it.next());
                 if (it.hasNext()) {
                     bulkCmd.append(", ");
                 }
@@ -1801,7 +1801,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable {
                 for (int i = 1; i <= srcColumnCount; ++i) {
                     srcColumnMetadata.put(i,
                             new BulkColumnMetaData(sourceResultSetMetaData.getColumnName(i),
-                                    ((ResultSetMetaData.columnNoNulls == sourceResultSetMetaData.isNullable(i)) ? false : true),
+                                    (ResultSetMetaData.columnNoNulls != sourceResultSetMetaData.isNullable(i)),
                                     sourceResultSetMetaData.getPrecision(i), sourceResultSetMetaData.getScale(i),
                                     sourceResultSetMetaData.getColumnType(i), null));
                 }
@@ -2515,7 +2515,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable {
                     }
                     break;
                 case microsoft.sql.Types.SQL_VARIANT:
-                    boolean isShiloh = (8 >= connection.getServerMajorVersion() ? true : false);
+                    boolean isShiloh = (8 >= connection.getServerMajorVersion());
                     if (isShiloh) {
                         MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_SQLVariantSupport"));
                         throw new SQLServerException(null, form.format(new Object[] {}), null, 0, false);

@@ -80,7 +80,7 @@ We're now on the Maven Central Repository. Add the following to your POM file to
 <dependency>
 	<groupId>com.microsoft.sqlserver</groupId>
 	<artifactId>mssql-jdbc</artifactId>
-	<version>6.2.1.jre8</version>
+	<version>6.2.2.jre8</version>
 </dependency>
 ```
 The driver can be downloaded from the [Microsoft Download Center](https://go.microsoft.com/fwlink/?linkid=852460).
@@ -90,7 +90,7 @@ To get the latest preview version of the driver, add the following to your POM f
 <dependency>
 	<groupId>com.microsoft.sqlserver</groupId>
 	<artifactId>mssql-jdbc</artifactId>
-	<version>6.3.2.jre8-preview</version>
+	<version>6.3.6.jre8-preview</version>
 </dependency>
 ```
 
@@ -115,12 +115,28 @@ mvn dependency:tree
 ### Azure Key Vault and Azure Active Directory Authentication Dependencies
 Projects that require either of the two features need to explicitly declare the dependency in their pom file.
 
+***For Example:*** If you are using *Azure Active Directory Authentication feature* then you need to redeclare *adal4j* dependency in your project's pom file. Please see the following snippet: 
+```xml
+<dependency>
+	<groupId>com.microsoft.sqlserver</groupId>
+	<artifactId>mssql-jdbc</artifactId>
+	<version>6.3.6.jre8-preview</version>
+	<scope>compile</scope>
+</dependency>
+
+<dependency>
+	<groupId>com.microsoft.azure</groupId>
+	<artifactId>adal4j</artifactId>
+	<version>1.3.0</version>
+</dependency>
+```
+
 ***For Example:*** If you are using *Azure Key Vault feature* then you need to redeclare *azure-keyvault* dependency in your project's pom file. Please see the following snippet: 
 ```xml
 <dependency>
 	<groupId>com.microsoft.sqlserver</groupId>
 	<artifactId>mssql-jdbc</artifactId>
-	<version>6.3.2.jre8-preview</version>
+	<version>6.3.6.jre8-preview</version>
 	<scope>compile</scope>
 </dependency>
 
@@ -130,7 +146,7 @@ Projects that require either of the two features need to explicitly declare the 
 	<version>1.0.0</version>
 </dependency>
 ```
-***Please note*** as of the v6.3.0-preview, the way to construct a `SQLServerColumnEncryptionAzureKeyVaultProvider` object has changed. Please refer to this [Wiki](https://github.com/Microsoft/mssql-jdbc/wiki/New-Constructor-Definition-for-SQLServerColumnEncryptionAzureKeyVaultProvider-after-6.3.0-Preview-Release) page for more information.
+***Please note*** as of the v6.2.2, the way to construct a `SQLServerColumnEncryptionAzureKeyVaultProvider` object has changed. Please refer to this [Wiki](https://github.com/Microsoft/mssql-jdbc/wiki/New-Constructor-Definition-for-SQLServerColumnEncryptionAzureKeyVaultProvider-after-6.2.2-Release) page for more information.
 
 ## Guidelines for Creating Pull Requests
 We love contributions from the community.  To help improve the quality of our code, we encourage you to use the mssql-jdbc_formatter.xml formatter provided on all pull requests.

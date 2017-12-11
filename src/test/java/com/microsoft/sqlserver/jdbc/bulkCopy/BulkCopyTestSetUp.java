@@ -7,6 +7,8 @@
  */
 package com.microsoft.sqlserver.jdbc.bulkCopy;
 
+import java.sql.SQLException;
+
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.platform.runner.JUnitPlatform;
@@ -14,6 +16,7 @@ import org.junit.runner.RunWith;
 
 import com.microsoft.sqlserver.testframework.AbstractTest;
 import com.microsoft.sqlserver.testframework.DBConnection;
+import com.microsoft.sqlserver.testframework.DBPreparedStatement;
 import com.microsoft.sqlserver.testframework.DBStatement;
 import com.microsoft.sqlserver.testframework.DBTable;;
 
@@ -27,38 +30,28 @@ public class BulkCopyTestSetUp extends AbstractTest {
 
     /**
      * Create source table needed for testing bulk copy
+     * @throws SQLException 
      */
     @BeforeAll
-    static void setUpSourceTable() {
-        DBConnection con = null;
-        DBStatement stmt = null;
-        try {
-            con = new DBConnection(connectionString);
-            stmt = con.createStatement();
+    static void setUpSourceTable() throws SQLException {
+        try (DBConnection con = new DBConnection(connectionString);
+        	 DBStatement stmt = con.createStatement();
+        	 DBPreparedStatement pstmt = new DBPreparedStatement(con);) {
             sourceTable = new DBTable(true);
             stmt.createTable(sourceTable);
-            stmt.populateTable(sourceTable);
-        }
-        finally {
-            con.close();
+            pstmt.populateTable(sourceTable);
         }
     }
 
     /**
      * drop source table after testing bulk copy
+     * @throws SQLException 
      */
     @AfterAll
-    static void dropSourceTable() {
-        DBConnection con = null;
-        DBStatement stmt = null;
-        try {
-            con = new DBConnection(connectionString);
-            stmt = con.createStatement();
+    static void dropSourceTable() throws SQLException {
+        try (DBConnection con = new DBConnection(connectionString);
+        	 DBStatement stmt = con.createStatement()) {
             stmt.dropTable(sourceTable);
         }
-        finally {
-            con.close();
-        }
     }
-
 }

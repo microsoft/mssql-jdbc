@@ -83,6 +83,9 @@ import mssql.googlecode.concurrentlinkedhashmap.EvictionListener;
 
 // Note all the public functions in this class also need to be defined in SQLServerConnectionPoolProxy.
 public class SQLServerConnection implements ISQLServerConnection {
+    boolean contextIsAlreadyChanged = false;
+    boolean contextChanged = false;
+
     long timerExpire;
     boolean attemptRefreshTokenLocked = false;
 
@@ -119,8 +122,10 @@ public class SQLServerConnection implements ISQLServerConnection {
     static class Sha1HashKey {
         private byte[] bytes;
 
-        Sha1HashKey(String sql, String parametersDefinition) {
-            this(String.format("%s%s", sql, parametersDefinition));
+        Sha1HashKey(String sql,
+                String parametersDefinition,
+                String dbName) {
+            this(String.format("%s%s%s", sql, parametersDefinition, dbName));
         }
 
         Sha1HashKey(String s) {
@@ -1712,7 +1717,7 @@ public class SQLServerConnection implements ISQLServerConnection {
             sPropKey = SQLServerDriverStringProperty.SSL_PROTOCOL.toString();
             sPropValue = activeConnectionProperties.getProperty(sPropKey);
             if (null == sPropValue) {
-                sPropValue = SQLServerDriverStringProperty.SSL_PROTOCOL.getDefaultValue().toString();
+                sPropValue = SQLServerDriverStringProperty.SSL_PROTOCOL.getDefaultValue();
                 activeConnectionProperties.setProperty(sPropKey, sPropValue);
             }
             else {
@@ -1813,7 +1818,7 @@ public class SQLServerConnection implements ISQLServerConnection {
             long timerStart) throws SQLServerException {
         // standardLogin would be false only for db mirroring scenarios. It would be true
         // for all other cases, including multiSubnetFailover
-        final boolean isDBMirroring = (null == mirror && null == foActual) ? false : true;
+        final boolean isDBMirroring = null != mirror || null != foActual;
         int sleepInterval = 100;  // milliseconds to sleep (back off) between attempts.
         long timeoutUnitInterval;
 
@@ -1986,6 +1991,7 @@ public class SQLServerConnection implements ISQLServerConnection {
             catch (SQLServerException sqlex) {
                 if ((SQLServerException.LOGON_FAILED == sqlex.getErrorCode()) // actual logon failed, i.e. bad password
                         || (SQLServerException.PASSWORD_EXPIRED == sqlex.getErrorCode()) // actual logon failed, i.e. password isExpired
+                        || (SQLServerException.USER_ACCOUNT_LOCKED == sqlex.getErrorCode()) // actual logon failed, i.e. user account locked
                         || (SQLServerException.DRIVER_ERROR_INVALID_TDS == sqlex.getDriverErrorCode()) // invalid TDS received from server
                         || (SQLServerException.DRIVER_ERROR_SSL_FAILED == sqlex.getDriverErrorCode()) // failure negotiating SSL
                         || (SQLServerException.DRIVER_ERROR_INTERMITTENT_TLS_FAILED == sqlex.getDriverErrorCode()) // failure TLS1.2
@@ -2617,7 +2623,7 @@ public class SQLServerConnection implements ISQLServerConnection {
                     // Or AccessToken is not null, mean token based authentication is used.
                     if (((null != authenticationString) && (!authenticationString.equalsIgnoreCase(SqlAuthentication.NotSpecified.toString())))
                             || (null != accessTokenInByte)) {
-                        fedAuthRequiredPreLoginResponse = (preloginResponse[optionOffset] == 1 ? true : false);
+                        fedAuthRequiredPreLoginResponse = (preloginResponse[optionOffset] == 1);
                     }
                     break;
 
@@ -3004,6 +3010,8 @@ public class SQLServerConnection implements ISQLServerConnection {
 
         // Clean-up queue etc. related to batching of prepared statement discard actions (sp_unprepare).
         cleanupPreparedStatementDiscardActions();
+        
+        ActivityCorrelator.cleanupActivityId();
 
         loggerExternal.exiting(getClassNameLogging(), "close");
     }
@@ -3024,6 +3032,7 @@ public class SQLServerConnection implements ISQLServerConnection {
                 connectionCommand("IF @@TRANCOUNT > 0 ROLLBACK TRAN" /* +close connection */, "close connection");
             }
             notifyPooledConnection(null);
+            ActivityCorrelator.cleanupActivityId();
             if (connectionlogger.isLoggable(Level.FINER)) {
                 connectionlogger.finer(toString() + " Connection closed and returned to connection pool");
             }
@@ -3071,6 +3080,8 @@ public class SQLServerConnection implements ISQLServerConnection {
         checkClosed();
         if (catalog != null) {
             connectionCommand("use " + Util.escapeSQLId(catalog), "setCatalog");
+            contextIsAlreadyChanged = true;
+            contextChanged = true;
             sCatalog = catalog;
         }
         loggerExternal.exiting(getClassNameLogging(), "setCatalog");
@@ -3080,6 +3091,10 @@ public class SQLServerConnection implements ISQLServerConnection {
         loggerExternal.entering(getClassNameLogging(), "getCatalog");
         checkClosed();
         loggerExternal.exiting(getClassNameLogging(), "getCatalog", sCatalog);
+        return sCatalog;
+    }
+
+    String getSCatalog() throws SQLServerException {
         return sCatalog;
     }
 
@@ -5355,7 +5370,7 @@ public class SQLServerConnection implements ISQLServerConnection {
                 browserResult = new String(receiveBuffer, 3, receiveBuffer.length - 3);
                 if (connectionlogger.isLoggable(Level.FINER))
                     connectionlogger.fine(
-                            toString() + " Received SSRP UDP response from IP address: " + udpResponse.getAddress().getHostAddress().toString());
+                            toString() + " Received SSRP UDP response from IP address: " + udpResponse.getAddress().getHostAddress());
             }
             catch (IOException ioException) {
                 // Warn and retry
@@ -5683,6 +5698,12 @@ public class SQLServerConnection implements ISQLServerConnection {
     		return;
     	
     	preparedStatementHandleCache.remove(handle.getKey());
+    }
+
+    final void clearCachedPreparedStatementHandle() {
+        if (null != preparedStatementHandleCache) {
+            preparedStatementHandleCache.clear();
+        }
     }
 
     // Handle closing handles when removed from cache.

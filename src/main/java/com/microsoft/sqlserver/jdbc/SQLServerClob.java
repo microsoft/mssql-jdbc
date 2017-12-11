@@ -34,7 +34,7 @@ import java.util.logging.Logger;
 
 public class SQLServerClob extends SQLServerClobBase implements Clob {
     private static final long serialVersionUID = 2872035282200133865L;
-
+    
     // Loggers should be class static to avoid lock contention with multiple threads
     private static final Logger logger = Logger.getLogger("com.microsoft.sqlserver.jdbc.internals.SQLServerClob");
 
@@ -62,7 +62,7 @@ public class SQLServerClob extends SQLServerClobBase implements Clob {
 
     SQLServerClob(BaseInputStream stream,
             TypeInfo typeInfo) throws SQLServerException, UnsupportedEncodingException {
-        super(null, stream, typeInfo.getSQLCollation(), logger , typeInfo);
+        super(null, stream, typeInfo.getSQLCollation(), logger, typeInfo);
     }
 
     final JDBCType getJdbcType() {
@@ -91,7 +91,9 @@ abstract class SQLServerClobBase implements Serializable {
     private ArrayList<Closeable> activeStreams = new ArrayList<>(1);
 
     transient SQLServerConnection con;
-    private static Logger logger;
+    
+    private final Logger logger;
+    
     final private String traceID = getClass().getName().substring(1 + getClass().getName().lastIndexOf('.')) + ":" + nextInstanceID();
 
     final public String toString() {
@@ -139,9 +141,8 @@ abstract class SQLServerClobBase implements Serializable {
             this.value = (String) data;
         }
         this.sqlCollation = collation;
+        this.logger = logger;
         this.typeInfo = typeInfo;
-        SQLServerClobBase.logger = logger;
-
         if (logger.isLoggable(Level.FINE)) {
             String loggingInfo = (null != connection) ? connection.toString() : "null connection";
             logger.fine(toString() + " created by (" + loggingInfo + ")");

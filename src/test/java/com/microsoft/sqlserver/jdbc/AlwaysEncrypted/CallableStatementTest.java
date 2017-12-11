@@ -42,9 +42,6 @@ import microsoft.sql.DateTimeOffset;
 @RunWith(JUnitPlatform.class)
 public class CallableStatementTest extends AESetup {
 
-    private static SQLServerPreparedStatement pstmt = null;
-    private static SQLServerCallableStatement callableStatement = null;
-
     private static String multiStatementsProcedure = "multiStatementsProcedure";
 
     private static String inputProcedure = "inputProcedure";
@@ -470,118 +467,120 @@ public class CallableStatementTest extends AESetup {
     private static void populateTable4() throws SQLException {
         String sql = "insert into " + table4 + " values( " + "?,?,?" + ")";
 
-        pstmt = (SQLServerPreparedStatement) Util.getPreparedStmt(con, sql, stmtColEncSetting);
+        try(SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) Util.getPreparedStmt(con, sql, stmtColEncSetting)) {
 
-        // bit
-        for (int i = 1; i <= 3; i++) {
-            pstmt.setInt(i, Integer.parseInt(numericValues[3]));
+	        // bit
+	        for (int i = 1; i <= 3; i++) {
+	            pstmt.setInt(i, Integer.parseInt(numericValues[3]));
+	        }
+	
+	        pstmt.execute();
         }
-
-        pstmt.execute();
     }
 
     private static void populateTable3() throws SQLException {
         String sql = "insert into " + table3 + " values( " + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?,"
                 + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?" + ")";
 
-        pstmt = (SQLServerPreparedStatement) Util.getPreparedStmt(con, sql, stmtColEncSetting);
+        try(SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) Util.getPreparedStmt(con, sql, stmtColEncSetting)) {
 
-        // bit
-        for (int i = 1; i <= 3; i++) {
-            if (numericValues[0].equalsIgnoreCase("true")) {
-                pstmt.setBoolean(i, true);
-            }
-            else {
-                pstmt.setBoolean(i, false);
-            }
+	        // bit
+	        for (int i = 1; i <= 3; i++) {
+	            if (numericValues[0].equalsIgnoreCase("true")) {
+	                pstmt.setBoolean(i, true);
+	            }
+	            else {
+	                pstmt.setBoolean(i, false);
+	            }
+	        }
+	
+	        // tinyint
+	        for (int i = 4; i <= 6; i++) {
+	            pstmt.setShort(i, Short.valueOf(numericValues[1]));
+	        }
+	
+	        // smallint
+	        for (int i = 7; i <= 9; i++) {
+	            pstmt.setShort(i, Short.parseShort(numericValues[2]));
+	        }
+	
+	        // int
+	        for (int i = 10; i <= 12; i++) {
+	            pstmt.setInt(i, Integer.parseInt(numericValues[3]));
+	        }
+	
+	        // bigint
+	        for (int i = 13; i <= 15; i++) {
+	            pstmt.setLong(i, Long.parseLong(numericValues[4]));
+	        }
+	
+	        // float default
+	        for (int i = 16; i <= 18; i++) {
+	            pstmt.setDouble(i, Double.parseDouble(numericValues[5]));
+	        }
+	
+	        // float(30)
+	        for (int i = 19; i <= 21; i++) {
+	            pstmt.setDouble(i, Double.parseDouble(numericValues[6]));
+	        }
+	
+	        // real
+	        for (int i = 22; i <= 24; i++) {
+	            pstmt.setFloat(i, Float.parseFloat(numericValues[7]));
+	        }
+	
+	        // decimal default
+	        for (int i = 25; i <= 27; i++) {
+	            if (numericValues[8].equalsIgnoreCase("0"))
+	                pstmt.setBigDecimal(i, new BigDecimal(numericValues[8]), 18, 0);
+	            else
+	                pstmt.setBigDecimal(i, new BigDecimal(numericValues[8]));
+	        }
+	
+	        // decimal(10,5)
+	        for (int i = 28; i <= 30; i++) {
+	            pstmt.setBigDecimal(i, new BigDecimal(numericValues[9]), 10, 5);
+	        }
+	
+	        // numeric
+	        for (int i = 31; i <= 33; i++) {
+	            if (numericValues[10].equalsIgnoreCase("0"))
+	                pstmt.setBigDecimal(i, new BigDecimal(numericValues[10]), 18, 0);
+	            else
+	                pstmt.setBigDecimal(i, new BigDecimal(numericValues[10]));
+	        }
+	
+	        // numeric(8,2)
+	        for (int i = 34; i <= 36; i++) {
+	            pstmt.setBigDecimal(i, new BigDecimal(numericValues[11]), 8, 2);
+	        }
+	
+	        // int2
+	        for (int i = 37; i <= 39; i++) {
+	            pstmt.setInt(i, Integer.parseInt(numericValues[3]));
+	        }
+	        // smallmoney
+	        for (int i = 40; i <= 42; i++) {
+	            pstmt.setSmallMoney(i, new BigDecimal(numericValues[12]));
+	        }
+	
+	        // money
+	        for (int i = 43; i <= 45; i++) {
+	            pstmt.setMoney(i, new BigDecimal(numericValues[13]));
+	        }
+	
+	        // decimal(28,4)
+	        for (int i = 46; i <= 48; i++) {
+	            pstmt.setBigDecimal(i, new BigDecimal(numericValues[14]), 28, 4);
+	        }
+	
+	        // numeric(28,4)
+	        for (int i = 49; i <= 51; i++) {
+	            pstmt.setBigDecimal(i, new BigDecimal(numericValues[15]), 28, 4);
+	        }
+	
+	        pstmt.execute();
         }
-
-        // tinyint
-        for (int i = 4; i <= 6; i++) {
-            pstmt.setShort(i, Short.valueOf(numericValues[1]));
-        }
-
-        // smallint
-        for (int i = 7; i <= 9; i++) {
-            pstmt.setShort(i, Short.parseShort(numericValues[2]));
-        }
-
-        // int
-        for (int i = 10; i <= 12; i++) {
-            pstmt.setInt(i, Integer.parseInt(numericValues[3]));
-        }
-
-        // bigint
-        for (int i = 13; i <= 15; i++) {
-            pstmt.setLong(i, Long.parseLong(numericValues[4]));
-        }
-
-        // float default
-        for (int i = 16; i <= 18; i++) {
-            pstmt.setDouble(i, Double.parseDouble(numericValues[5]));
-        }
-
-        // float(30)
-        for (int i = 19; i <= 21; i++) {
-            pstmt.setDouble(i, Double.parseDouble(numericValues[6]));
-        }
-
-        // real
-        for (int i = 22; i <= 24; i++) {
-            pstmt.setFloat(i, Float.parseFloat(numericValues[7]));
-        }
-
-        // decimal default
-        for (int i = 25; i <= 27; i++) {
-            if (numericValues[8].equalsIgnoreCase("0"))
-                pstmt.setBigDecimal(i, new BigDecimal(numericValues[8]), 18, 0);
-            else
-                pstmt.setBigDecimal(i, new BigDecimal(numericValues[8]));
-        }
-
-        // decimal(10,5)
-        for (int i = 28; i <= 30; i++) {
-            pstmt.setBigDecimal(i, new BigDecimal(numericValues[9]), 10, 5);
-        }
-
-        // numeric
-        for (int i = 31; i <= 33; i++) {
-            if (numericValues[10].equalsIgnoreCase("0"))
-                pstmt.setBigDecimal(i, new BigDecimal(numericValues[10]), 18, 0);
-            else
-                pstmt.setBigDecimal(i, new BigDecimal(numericValues[10]));
-        }
-
-        // numeric(8,2)
-        for (int i = 34; i <= 36; i++) {
-            pstmt.setBigDecimal(i, new BigDecimal(numericValues[11]), 8, 2);
-        }
-
-        // int2
-        for (int i = 37; i <= 39; i++) {
-            pstmt.setInt(i, Integer.parseInt(numericValues[3]));
-        }
-        // smallmoney
-        for (int i = 40; i <= 42; i++) {
-            pstmt.setSmallMoney(i, new BigDecimal(numericValues[12]));
-        }
-
-        // money
-        for (int i = 43; i <= 45; i++) {
-            pstmt.setMoney(i, new BigDecimal(numericValues[13]));
-        }
-
-        // decimal(28,4)
-        for (int i = 46; i <= 48; i++) {
-            pstmt.setBigDecimal(i, new BigDecimal(numericValues[14]), 28, 4);
-        }
-
-        // numeric(28,4)
-        for (int i = 49; i <= 51; i++) {
-            pstmt.setBigDecimal(i, new BigDecimal(numericValues[15]), 28, 4);
-        }
-
-        pstmt.execute();
     }
 
     private void createMultiInsertionSelection() throws SQLException {
@@ -600,43 +599,38 @@ public class CallableStatementTest extends AESetup {
 
         try {
             String sql = "{call " + multiStatementsProcedure + " (?,?,?,?,?,?)}";
-            callableStatement = (SQLServerCallableStatement) Util.getCallableStmt(con, sql, stmtColEncSetting);
-            ResultSet rs = null;
-
-            // char, varchar
-            for (int i = 1; i <= 3; i++) {
-                callableStatement.setString(i, charValues[0]);
-            }
-
-            for (int i = 4; i <= 6; i++) {
-                callableStatement.setString(i, charValues[1]);
-            }
-
-            boolean results = callableStatement.execute();
-
-            // skip update count which is given by insertion
-            while (false == results && (-1) != callableStatement.getUpdateCount()) {
-                results = callableStatement.getMoreResults();
-            }
-
-            while (results) {
-                rs = callableStatement.getResultSet();
-                int numberOfColumns = rs.getMetaData().getColumnCount();
-
-                while (rs.next()) {
-                    testGetString(rs, numberOfColumns);
-                }
-                rs.close();
-                results = callableStatement.getMoreResults();
+            try(SQLServerCallableStatement callableStatement = (SQLServerCallableStatement) Util.getCallableStmt(con, sql, stmtColEncSetting)) {
+	
+	            // char, varchar
+	            for (int i = 1; i <= 3; i++) {
+	                callableStatement.setString(i, charValues[0]);
+	            }
+	
+	            for (int i = 4; i <= 6; i++) {
+	                callableStatement.setString(i, charValues[1]);
+	            }
+	
+	            boolean results = callableStatement.execute();
+	
+	            // skip update count which is given by insertion
+	            while (false == results && (-1) != callableStatement.getUpdateCount()) {
+	                results = callableStatement.getMoreResults();
+	            }
+	
+	            while (results) {
+	                try(ResultSet rs = callableStatement.getResultSet()) {
+		                int numberOfColumns = rs.getMetaData().getColumnCount();
+		
+		                while (rs.next()) {
+		                    testGetString(rs, numberOfColumns);
+		                }
+	                }
+	                results = callableStatement.getMoreResults();
+	            }
             }
         }
         catch (SQLException e) {
             fail(e.toString());
-        }
-        finally {
-            if (null != callableStatement) {
-                callableStatement.close();
-            }
         }
     }
 
@@ -675,8 +669,7 @@ public class CallableStatementTest extends AESetup {
     private void testInputProcedure(String sql,
             String[] values) throws SQLException {
 
-        try {
-            callableStatement = (SQLServerCallableStatement) Util.getCallableStmt(con, sql, stmtColEncSetting);
+        try (SQLServerCallableStatement callableStatement = (SQLServerCallableStatement) Util.getCallableStmt(con, sql, stmtColEncSetting)) {
 
             callableStatement.setInt(1, Integer.parseInt(values[3]));
             if (RandomData.returnZero)
@@ -703,18 +696,13 @@ public class CallableStatementTest extends AESetup {
             callableStatement.setBigDecimal(14, new BigDecimal(values[14]), 28, 4);
             callableStatement.setBigDecimal(15, new BigDecimal(values[15]), 28, 4);
 
-            SQLServerResultSet rs = (SQLServerResultSet) callableStatement.executeQuery();
-            rs.next();
-
-            assertEquals(rs.getString(1), values[3], "" + "Test for input parameter fails.\n");
+            try (SQLServerResultSet rs = (SQLServerResultSet) callableStatement.executeQuery()) {
+            	rs.next();
+            	assertEquals(rs.getString(1), values[3], "" + "Test for input parameter fails.\n");
+            }
         }
         catch (Exception e) {
             fail(e.toString());
-        }
-        finally {
-            if (null != callableStatement) {
-                callableStatement.close();
-            }
         }
     }
 
@@ -735,8 +723,7 @@ public class CallableStatementTest extends AESetup {
 
     private void testInputProcedure2(String sql) throws SQLException {
 
-        try {
-            callableStatement = (SQLServerCallableStatement) Util.getCallableStmt(con, sql, stmtColEncSetting);
+        try (SQLServerCallableStatement callableStatement = (SQLServerCallableStatement) Util.getCallableStmt(con, sql, stmtColEncSetting)) {
 
             callableStatement.setString(1, charValues[1]);
             callableStatement.setUniqueIdentifier(2, charValues[6]);
@@ -747,25 +734,20 @@ public class CallableStatementTest extends AESetup {
             callableStatement.setString(7, charValues[7]);
             callableStatement.setNString(8, charValues[8]);
 
-            SQLServerResultSet rs = (SQLServerResultSet) callableStatement.executeQuery();
-            rs.next();
-
-            assertEquals(rs.getString(1).trim(), charValues[1], "Test for input parameter fails.\n");
-            assertEquals(rs.getUniqueIdentifier(2), charValues[6].toUpperCase(), "Test for input parameter fails.\n");
-            assertEquals(rs.getString(3).trim(), charValues[2], "Test for input parameter fails.\n");
-            assertEquals(rs.getString(4).trim(), charValues[3], "Test for input parameter fails.\n");
-            assertEquals(rs.getString(5).trim(), charValues[4], "Test for input parameter fails.\n");
-            assertEquals(rs.getString(6).trim(), charValues[5], "Test for input parameter fails.\n");
-            assertEquals(rs.getString(7).trim(), charValues[7], "Test for input parameter fails.\n");
-            assertEquals(rs.getString(8).trim(), charValues[8], "Test for input parameter fails.\n");
+            try (SQLServerResultSet rs = (SQLServerResultSet) callableStatement.executeQuery()) {
+	            rs.next();
+	            assertEquals(rs.getString(1).trim(), charValues[1], "Test for input parameter fails.\n");
+	            assertEquals(rs.getUniqueIdentifier(2), charValues[6].toUpperCase(), "Test for input parameter fails.\n");
+	            assertEquals(rs.getString(3).trim(), charValues[2], "Test for input parameter fails.\n");
+	            assertEquals(rs.getString(4).trim(), charValues[3], "Test for input parameter fails.\n");
+	            assertEquals(rs.getString(5).trim(), charValues[4], "Test for input parameter fails.\n");
+	            assertEquals(rs.getString(6).trim(), charValues[5], "Test for input parameter fails.\n");
+	            assertEquals(rs.getString(7).trim(), charValues[7], "Test for input parameter fails.\n");
+	            assertEquals(rs.getString(8).trim(), charValues[8], "Test for input parameter fails.\n");
+            }
         }
         catch (Exception e) {
             fail(e.toString());
-        }
-        finally {
-            if (null != callableStatement) {
-                callableStatement.close();
-            }
         }
     }
 
@@ -782,8 +764,7 @@ public class CallableStatementTest extends AESetup {
 
     private void testOutputProcedure3RandomOrder(String sql) throws SQLException {
 
-        try {
-            callableStatement = (SQLServerCallableStatement) Util.getCallableStmt(con, sql, stmtColEncSetting);
+        try (SQLServerCallableStatement callableStatement = (SQLServerCallableStatement) Util.getCallableStmt(con, sql, stmtColEncSetting)) {
 
             callableStatement.registerOutParameter(1, java.sql.Types.INTEGER);
             callableStatement.registerOutParameter(2, java.sql.Types.INTEGER);
@@ -808,17 +789,11 @@ public class CallableStatementTest extends AESetup {
         catch (Exception e) {
             fail(e.toString());
         }
-        finally {
-            if (null != callableStatement) {
-                callableStatement.close();
-            }
-        }
     }
 
     private void testOutputProcedure3Inorder(String sql) throws SQLException {
 
-        try {
-            callableStatement = (SQLServerCallableStatement) Util.getCallableStmt(con, sql, stmtColEncSetting);
+        try (SQLServerCallableStatement callableStatement = (SQLServerCallableStatement) Util.getCallableStmt(con, sql, stmtColEncSetting)) {
 
             callableStatement.registerOutParameter(1, java.sql.Types.INTEGER);
             callableStatement.registerOutParameter(2, java.sql.Types.INTEGER);
@@ -833,18 +808,12 @@ public class CallableStatementTest extends AESetup {
         }
         catch (Exception e) {
             fail(e.toString());
-        }
-        finally {
-            if (null != callableStatement) {
-                callableStatement.close();
-            }
         }
     }
 
     private void testOutputProcedure3ReverseOrder(String sql) throws SQLException {
 
-        try {
-            callableStatement = (SQLServerCallableStatement) Util.getCallableStmt(con, sql, stmtColEncSetting);
+        try (SQLServerCallableStatement callableStatement = (SQLServerCallableStatement) Util.getCallableStmt(con, sql, stmtColEncSetting)) {
 
             callableStatement.registerOutParameter(1, java.sql.Types.INTEGER);
             callableStatement.registerOutParameter(2, java.sql.Types.INTEGER);
@@ -859,11 +828,6 @@ public class CallableStatementTest extends AESetup {
         }
         catch (Exception e) {
             fail(e.toString());
-        }
-        finally {
-            if (null != callableStatement) {
-                callableStatement.close();
-            }
         }
     }
 
@@ -885,8 +849,7 @@ public class CallableStatementTest extends AESetup {
     private void testOutputProcedure2RandomOrder(String sql,
             String[] values) throws SQLException {
 
-        try {
-            callableStatement = (SQLServerCallableStatement) Util.getCallableStmt(con, sql, stmtColEncSetting);
+        try (SQLServerCallableStatement callableStatement = (SQLServerCallableStatement) Util.getCallableStmt(con, sql, stmtColEncSetting)) {
 
             callableStatement.registerOutParameter(1, java.sql.Types.INTEGER);
             callableStatement.registerOutParameter(2, java.sql.Types.INTEGER);
@@ -934,18 +897,12 @@ public class CallableStatementTest extends AESetup {
         catch (Exception e) {
             fail(e.toString());
         }
-        finally {
-            if (null != callableStatement) {
-                callableStatement.close();
-            }
-        }
     }
 
     private void testOutputProcedure2Inorder(String sql,
             String[] values) throws SQLException {
 
-        try {
-            callableStatement = (SQLServerCallableStatement) Util.getCallableStmt(con, sql, stmtColEncSetting);
+        try (SQLServerCallableStatement callableStatement = (SQLServerCallableStatement) Util.getCallableStmt(con, sql, stmtColEncSetting)) {
 
             callableStatement.registerOutParameter(1, java.sql.Types.INTEGER);
             callableStatement.registerOutParameter(2, java.sql.Types.INTEGER);
@@ -992,19 +949,13 @@ public class CallableStatementTest extends AESetup {
         }
         catch (Exception e) {
             fail(e.toString());
-        }
-        finally {
-            if (null != callableStatement) {
-                callableStatement.close();
-            }
         }
     }
 
     private void testOutputProcedure2ReverseOrder(String sql,
             String[] values) throws SQLException {
 
-        try {
-            callableStatement = (SQLServerCallableStatement) Util.getCallableStmt(con, sql, stmtColEncSetting);
+        try (SQLServerCallableStatement callableStatement = (SQLServerCallableStatement) Util.getCallableStmt(con, sql, stmtColEncSetting)) {
 
             callableStatement.registerOutParameter(1, java.sql.Types.INTEGER);
             callableStatement.registerOutParameter(2, java.sql.Types.INTEGER);
@@ -1052,11 +1003,6 @@ public class CallableStatementTest extends AESetup {
         }
         catch (Exception e) {
             fail(e.toString());
-        }
-        finally {
-            if (null != callableStatement) {
-                callableStatement.close();
-            }
         }
     }
 
@@ -1076,8 +1022,7 @@ public class CallableStatementTest extends AESetup {
     private void testOutputProcedureRandomOrder(String sql,
             String[] values) throws SQLException {
 
-        try {
-            callableStatement = (SQLServerCallableStatement) Util.getCallableStmt(con, sql, stmtColEncSetting);
+        try (SQLServerCallableStatement callableStatement = (SQLServerCallableStatement) Util.getCallableStmt(con, sql, stmtColEncSetting)) {
 
             callableStatement.registerOutParameter(1, java.sql.Types.INTEGER);
             callableStatement.registerOutParameter(2, java.sql.Types.DOUBLE);
@@ -1121,18 +1066,12 @@ public class CallableStatementTest extends AESetup {
         catch (Exception e) {
             fail(e.toString());
         }
-        finally {
-            if (null != callableStatement) {
-                callableStatement.close();
-            }
-        }
     }
 
     private void testOutputProcedureInorder(String sql,
             String[] values) throws SQLException {
 
-        try {
-            callableStatement = (SQLServerCallableStatement) Util.getCallableStmt(con, sql, stmtColEncSetting);
+        try (SQLServerCallableStatement callableStatement = (SQLServerCallableStatement) Util.getCallableStmt(con, sql, stmtColEncSetting)) {
 
             callableStatement.registerOutParameter(1, java.sql.Types.INTEGER);
             callableStatement.registerOutParameter(2, java.sql.Types.DOUBLE);
@@ -1168,19 +1107,13 @@ public class CallableStatementTest extends AESetup {
         }
         catch (Exception e) {
             fail(e.toString());
-        }
-        finally {
-            if (null != callableStatement) {
-                callableStatement.close();
-            }
         }
     }
 
     private void testOutputProcedureReverseOrder(String sql,
             String[] values) throws SQLException {
 
-        try {
-            callableStatement = (SQLServerCallableStatement) Util.getCallableStmt(con, sql, stmtColEncSetting);
+        try (SQLServerCallableStatement callableStatement = (SQLServerCallableStatement) Util.getCallableStmt(con, sql, stmtColEncSetting)) {
 
             callableStatement.registerOutParameter(1, java.sql.Types.INTEGER);
             callableStatement.registerOutParameter(2, java.sql.Types.DOUBLE);
@@ -1215,11 +1148,6 @@ public class CallableStatementTest extends AESetup {
         }
         catch (Exception e) {
             fail(e.toString());
-        }
-        finally {
-            if (null != callableStatement) {
-                callableStatement.close();
-            }
         }
     }
 
@@ -1236,8 +1164,7 @@ public class CallableStatementTest extends AESetup {
 
     private void testInOutProcedure(String sql) throws SQLException {
 
-        try {
-            callableStatement = (SQLServerCallableStatement) Util.getCallableStmt(con, sql, stmtColEncSetting);
+        try (SQLServerCallableStatement callableStatement = (SQLServerCallableStatement) Util.getCallableStmt(con, sql, stmtColEncSetting)) {
 
             callableStatement.setInt(1, Integer.parseInt(numericValues[3]));
             callableStatement.registerOutParameter(1, java.sql.Types.INTEGER);
@@ -1249,11 +1176,6 @@ public class CallableStatementTest extends AESetup {
         }
         catch (Exception e) {
             fail(e.toString());
-        }
-        finally {
-            if (null != callableStatement) {
-                callableStatement.close();
-            }
         }
     }
 
@@ -1271,8 +1193,7 @@ public class CallableStatementTest extends AESetup {
 
     private void testMixedProcedure(String sql) throws SQLException {
 
-        try {
-            callableStatement = (SQLServerCallableStatement) Util.getCallableStmt(con, sql, stmtColEncSetting);
+        try (SQLServerCallableStatement callableStatement = (SQLServerCallableStatement) Util.getCallableStmt(con, sql, stmtColEncSetting)) {
 
             callableStatement.registerOutParameter(1, java.sql.Types.INTEGER);
             callableStatement.setInt(2, Integer.parseInt(numericValues[3]));
@@ -1296,11 +1217,6 @@ public class CallableStatementTest extends AESetup {
         catch (Exception e) {
             fail(e.toString());
         }
-        finally {
-            if (null != callableStatement) {
-                callableStatement.close();
-            }
-        }
     }
 
     private void createMixedProcedure2() throws SQLException {
@@ -1317,8 +1233,7 @@ public class CallableStatementTest extends AESetup {
 
     private void testMixedProcedure2RandomOrder(String sql) throws SQLException {
 
-        try {
-            callableStatement = (SQLServerCallableStatement) Util.getCallableStmt(con, sql, stmtColEncSetting);
+        try (SQLServerCallableStatement callableStatement = (SQLServerCallableStatement) Util.getCallableStmt(con, sql, stmtColEncSetting)) {
 
             callableStatement.registerOutParameter(1, java.sql.Types.INTEGER);
             callableStatement.registerOutParameter(2, java.sql.Types.FLOAT);
@@ -1348,17 +1263,11 @@ public class CallableStatementTest extends AESetup {
         catch (Exception e) {
             fail(e.toString());
         }
-        finally {
-            if (null != callableStatement) {
-                callableStatement.close();
-            }
-        }
     }
 
     private void testMixedProcedure2Inorder(String sql) throws SQLException {
 
-        try {
-            callableStatement = (SQLServerCallableStatement) Util.getCallableStmt(con, sql, stmtColEncSetting);
+        try (SQLServerCallableStatement callableStatement = (SQLServerCallableStatement) Util.getCallableStmt(con, sql, stmtColEncSetting)) {
 
             callableStatement.registerOutParameter(1, java.sql.Types.INTEGER);
             callableStatement.registerOutParameter(2, java.sql.Types.FLOAT);
@@ -1375,11 +1284,6 @@ public class CallableStatementTest extends AESetup {
         catch (Exception e) {
             fail(e.toString());
         }
-        finally {
-            if (null != callableStatement) {
-                callableStatement.close();
-            }
-        }
     }
 
     private void createMixedProcedure3() throws SQLException {
@@ -1395,8 +1299,7 @@ public class CallableStatementTest extends AESetup {
 
     private void testMixedProcedure3RandomOrder(String sql) throws SQLException {
 
-        try {
-            callableStatement = (SQLServerCallableStatement) Util.getCallableStmt(con, sql, stmtColEncSetting);
+        try (SQLServerCallableStatement callableStatement = (SQLServerCallableStatement) Util.getCallableStmt(con, sql, stmtColEncSetting)) {
 
             callableStatement.registerOutParameter(1, java.sql.Types.BIGINT);
             callableStatement.registerOutParameter(2, java.sql.Types.FLOAT);
@@ -1426,17 +1329,11 @@ public class CallableStatementTest extends AESetup {
         catch (Exception e) {
             fail(e.toString());
         }
-        finally {
-            if (null != callableStatement) {
-                callableStatement.close();
-            }
-        }
     }
 
     private void testMixedProcedure3Inorder(String sql) throws SQLException {
 
-        try {
-            callableStatement = (SQLServerCallableStatement) Util.getCallableStmt(con, sql, stmtColEncSetting);
+        try (SQLServerCallableStatement callableStatement = (SQLServerCallableStatement) Util.getCallableStmt(con, sql, stmtColEncSetting)) {
 
             callableStatement.registerOutParameter(1, java.sql.Types.BIGINT);
             callableStatement.registerOutParameter(2, java.sql.Types.FLOAT);
@@ -1452,18 +1349,12 @@ public class CallableStatementTest extends AESetup {
         }
         catch (Exception e) {
             fail(e.toString());
-        }
-        finally {
-            if (null != callableStatement) {
-                callableStatement.close();
-            }
         }
     }
 
     private void testMixedProcedure3ReverseOrder(String sql) throws SQLException {
 
-        try {
-            callableStatement = (SQLServerCallableStatement) Util.getCallableStmt(con, sql, stmtColEncSetting);
+        try (SQLServerCallableStatement callableStatement = (SQLServerCallableStatement) Util.getCallableStmt(con, sql, stmtColEncSetting)) {
 
             callableStatement.registerOutParameter(1, java.sql.Types.BIGINT);
             callableStatement.registerOutParameter(2, java.sql.Types.FLOAT);
@@ -1479,11 +1370,6 @@ public class CallableStatementTest extends AESetup {
         }
         catch (Exception e) {
             fail(e.toString());
-        }
-        finally {
-            if (null != callableStatement) {
-                callableStatement.close();
-            }
         }
     }
 
@@ -1503,8 +1389,7 @@ public class CallableStatementTest extends AESetup {
 
     private void testMixedProcedureNumericPrcisionScaleInorder(String sql) throws SQLException {
 
-        try {
-            SQLServerCallableStatement callableStatement = (SQLServerCallableStatement) Util.getCallableStmt(con, sql, stmtColEncSetting);
+        try (SQLServerCallableStatement callableStatement = (SQLServerCallableStatement) Util.getCallableStmt(con, sql, stmtColEncSetting)) {
 
             callableStatement.registerOutParameter(1, java.sql.Types.DECIMAL, 18, 0);
             callableStatement.registerOutParameter(2, java.sql.Types.DECIMAL, 10, 5);
@@ -1530,17 +1415,11 @@ public class CallableStatementTest extends AESetup {
         catch (Exception e) {
             fail(e.toString());
         }
-        finally {
-            if (null != callableStatement) {
-                callableStatement.close();
-            }
-        }
     }
 
     private void testMixedProcedureNumericPrcisionScaleParameterName(String sql) throws SQLException {
 
-        try {
-            SQLServerCallableStatement callableStatement = (SQLServerCallableStatement) Util.getCallableStmt(con, sql, stmtColEncSetting);
+        try (SQLServerCallableStatement callableStatement = (SQLServerCallableStatement) Util.getCallableStmt(con, sql, stmtColEncSetting)) {
 
             callableStatement.registerOutParameter("p1", java.sql.Types.DECIMAL, 18, 0);
             callableStatement.registerOutParameter("p2", java.sql.Types.DECIMAL, 10, 5);
@@ -1566,11 +1445,6 @@ public class CallableStatementTest extends AESetup {
         catch (Exception e) {
             fail(e.toString());
         }
-        finally {
-            if (null != callableStatement) {
-                callableStatement.close();
-            }
-        }
     }
 
     private void createOutputProcedureChar() throws SQLException {
@@ -1589,7 +1463,7 @@ public class CallableStatementTest extends AESetup {
 
     private void testOutputProcedureCharInorder(String sql) throws SQLException {
 
-        try (SQLServerCallableStatement callableStatement = (SQLServerCallableStatement) Util.getCallableStmt(con, sql, stmtColEncSetting);) {
+        try (SQLServerCallableStatement callableStatement = (SQLServerCallableStatement) Util.getCallableStmt(con, sql, stmtColEncSetting)) {
             callableStatement.registerOutParameter(1, java.sql.Types.CHAR, 20, 0);
             callableStatement.registerOutParameter(2, java.sql.Types.VARCHAR, 50, 0);
             callableStatement.registerOutParameter(3, java.sql.Types.NCHAR, 30, 0);
@@ -1632,16 +1506,11 @@ public class CallableStatementTest extends AESetup {
         catch (Exception e) {
             fail(e.toString());
         }
-        finally {
-            if (null != callableStatement) {
-                callableStatement.close();
-            }
-        }
     }
 
     private void testOutputProcedureCharInorderObject(String sql) throws SQLException {
 
-        try (SQLServerCallableStatement callableStatement = (SQLServerCallableStatement) Util.getCallableStmt(con, sql, stmtColEncSetting);) {
+        try (SQLServerCallableStatement callableStatement = (SQLServerCallableStatement) Util.getCallableStmt(con, sql, stmtColEncSetting)) {
             callableStatement.registerOutParameter(1, java.sql.Types.CHAR, 20, 0);
             callableStatement.registerOutParameter(2, java.sql.Types.VARCHAR, 50, 0);
             callableStatement.registerOutParameter(3, java.sql.Types.NCHAR, 30, 0);
@@ -1686,11 +1555,6 @@ public class CallableStatementTest extends AESetup {
         }
         catch (Exception e) {
             fail(e.toString());
-        }
-        finally {
-            if (null != callableStatement) {
-                callableStatement.close();
-            }
         }
     }
 
@@ -1787,11 +1651,6 @@ public class CallableStatementTest extends AESetup {
         }
         catch (Exception e) {
             fail(e.toString());
-        }
-        finally {
-            if (null != callableStatement) {
-                callableStatement.close();
-            }
         }
     }
 
@@ -2009,11 +1868,6 @@ public class CallableStatementTest extends AESetup {
         catch (Exception e) {
             fail(e.toString());
         }
-        finally {
-            if (null != callableStatement) {
-                callableStatement.close();
-            }
-        }
     }
 
     private Object createValue(Class coercion,
@@ -2037,7 +1891,6 @@ public class CallableStatementTest extends AESetup {
                 return new BigDecimal(numericValues[index]);
         }
         catch (java.lang.NumberFormatException e) {
-            return null;
         }
         return null;
     }
@@ -2156,11 +2009,6 @@ public class CallableStatementTest extends AESetup {
         catch (Exception e) {
             fail(e.toString());
         }
-        finally {
-            if (null != callableStatement) {
-                callableStatement.close();
-            }
-        }
     }
 
     private void testOutputProcedureBinaryInorderObject(String sql) throws SQLException {
@@ -2199,11 +2047,6 @@ public class CallableStatementTest extends AESetup {
         catch (Exception e) {
             fail(e.toString());
         }
-        finally {
-            if (null != callableStatement) {
-                callableStatement.close();
-            }
-        }
     }
 
     private void testOutputProcedureBinaryInorderString(String sql) throws SQLException {
@@ -2217,37 +2060,30 @@ public class CallableStatementTest extends AESetup {
             callableStatement.execute();
 
             int index = 1;
-            try {
-                for (int i = 0; i < byteValues.size(); i++) {
-                    String stringValue1 = ("" + callableStatement.getString(index)).trim();
+            for (int i = 0; i < byteValues.size(); i++) {
+                String stringValue1 = ("" + callableStatement.getString(index)).trim();
 
-                    StringBuffer expected = new StringBuffer();
-                    String expectedStr = null;
+                StringBuffer expected = new StringBuffer();
+                String expectedStr = null;
 
-                    if (null != byteValues.get(i)) {
-                        for (byte b : byteValues.get(i)) {
-                            expected.append(String.format("%02X", b));
-                        }
-                        expectedStr = "" + expected.toString();
+                if (null != byteValues.get(i)) {
+                    for (byte b : byteValues.get(i)) {
+                        expected.append(String.format("%02X", b));
                     }
-                    else {
-                        expectedStr = "null";
-                    }
-                    try {
-                        assertEquals(stringValue1.startsWith(expectedStr), true,
-                                "\nDecryption failed with getString(): " + stringValue1 + ".\nExpected Value: " + expectedStr);
-                    }
-                    catch (Exception e) {
-                        fail(e.toString());
-                    }
-                    finally {
-                        index++;
-                    }
+                    expectedStr = "" + expected.toString();
                 }
-            }
-            finally {
-                if (null != callableStatement) {
-                    callableStatement.close();
+                else {
+                    expectedStr = "null";
+                }
+                try {
+                    assertEquals(stringValue1.startsWith(expectedStr), true,
+                            "\nDecryption failed with getString(): " + stringValue1 + ".\nExpected Value: " + expectedStr);
+                }
+                catch (Exception e) {
+                    fail(e.toString());
+                }
+                finally {
+                    index++;
                 }
             }
         }
@@ -2419,7 +2255,7 @@ public class CallableStatementTest extends AESetup {
 
     private void testOutputProcedureDateInorder(String sql) throws SQLException {
 
-        try (SQLServerCallableStatement callableStatement = (SQLServerCallableStatement) Util.getCallableStmt(con, sql, stmtColEncSetting);) {
+        try (SQLServerCallableStatement callableStatement = (SQLServerCallableStatement) Util.getCallableStmt(con, sql, stmtColEncSetting)) {
             callableStatement.registerOutParameter(1, java.sql.Types.DATE);
             callableStatement.registerOutParameter(2, java.sql.Types.DATE);
             callableStatement.registerOutParameter(3, java.sql.Types.TIMESTAMP);
@@ -2459,16 +2295,11 @@ public class CallableStatementTest extends AESetup {
         catch (Exception e) {
             fail(e.toString());
         }
-        finally {
-            if (null != callableStatement) {
-                callableStatement.close();
-            }
-        }
     }
 
     private void testOutputProcedureDateInorderObject(String sql) throws SQLException {
 
-        try (SQLServerCallableStatement callableStatement = (SQLServerCallableStatement) Util.getCallableStmt(con, sql, stmtColEncSetting);) {
+        try (SQLServerCallableStatement callableStatement = (SQLServerCallableStatement) Util.getCallableStmt(con, sql, stmtColEncSetting)) {
             callableStatement.registerOutParameter(1, java.sql.Types.DATE);
             callableStatement.registerOutParameter(2, java.sql.Types.DATE);
             callableStatement.registerOutParameter(3, java.sql.Types.TIMESTAMP);
@@ -2508,11 +2339,6 @@ public class CallableStatementTest extends AESetup {
         catch (Exception e) {
             fail(e.toString());
         }
-        finally {
-            if (null != callableStatement) {
-                callableStatement.close();
-            }
-        }
     }
 
     private void createOutputProcedureBatch() throws SQLException {
@@ -2531,8 +2357,7 @@ public class CallableStatementTest extends AESetup {
 
     private void testOutputProcedureBatchInorder(String sql) throws SQLException {
 
-        try {
-            callableStatement = (SQLServerCallableStatement) Util.getCallableStmt(con, sql, stmtColEncSetting);
+        try (SQLServerCallableStatement callableStatement = (SQLServerCallableStatement) Util.getCallableStmt(con, sql, stmtColEncSetting)) {
 
             callableStatement.registerOutParameter(1, java.sql.Types.INTEGER);
             callableStatement.registerOutParameter(2, java.sql.Types.DOUBLE);
@@ -2554,11 +2379,6 @@ public class CallableStatementTest extends AESetup {
         }
         catch (Exception e) {
             fail(e.toString());
-        }
-        finally {
-            if (null != callableStatement) {
-                callableStatement.close();
-            }
         }
     }
 
@@ -2614,11 +2434,6 @@ public class CallableStatementTest extends AESetup {
         catch (Exception e) {
             fail(e.toString());
         }
-        finally {
-            if (null != callableStatement) {
-                callableStatement.close();
-            }
-        }
     }
 
     private void testMixedProcedureDateScaleWithParameterName(String sql) throws SQLException {
@@ -2644,11 +2459,6 @@ public class CallableStatementTest extends AESetup {
         }
         catch (Exception e) {
             fail(e.toString());
-        }
-        finally {
-            if (null != callableStatement) {
-                callableStatement.close();
-            }
         }
     }
 }
