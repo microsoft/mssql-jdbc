@@ -1422,7 +1422,7 @@ public class SQLServerConnection implements ISQLServerConnection {
             sPropKey = SQLServerDriverIntProperty.STATEMENT_POOLING_CACHE_SIZE.toString();
             if (activeConnectionProperties.getProperty(sPropKey) != null && activeConnectionProperties.getProperty(sPropKey).length() > 0) {
                 try {
-                    int n = new Integer(activeConnectionProperties.getProperty(sPropKey));
+                    int n = Integer.parseInt(activeConnectionProperties.getProperty(sPropKey));
                     this.setStatementPoolingCacheSize(n);
                 }
                 catch (NumberFormatException e) {
@@ -1559,7 +1559,7 @@ public class SQLServerConnection implements ISQLServerConnection {
             try {
                 String strPort = activeConnectionProperties.getProperty(sPropKey);
                 if (null != strPort) {
-                    nPort = new Integer(strPort);
+                    nPort = Integer.parseInt(strPort);
 
                     if ((nPort < 0) || (nPort > 65535)) {
                         MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidPortNumber"));
@@ -1639,7 +1639,7 @@ public class SQLServerConnection implements ISQLServerConnection {
             nLockTimeout = defaultLockTimeOut; // Wait forever
             if (activeConnectionProperties.getProperty(sPropKey) != null && activeConnectionProperties.getProperty(sPropKey).length() > 0) {
                 try {
-                    int n = new Integer(activeConnectionProperties.getProperty(sPropKey));
+                    int n = Integer.parseInt(activeConnectionProperties.getProperty(sPropKey));
                     if (n >= defaultLockTimeOut)
                         nLockTimeout = n;
                     else {
@@ -1660,7 +1660,7 @@ public class SQLServerConnection implements ISQLServerConnection {
             queryTimeoutSeconds = defaultQueryTimeout; // Wait forever
             if (activeConnectionProperties.getProperty(sPropKey) != null && activeConnectionProperties.getProperty(sPropKey).length() > 0) {
                 try {
-                    int n = new Integer(activeConnectionProperties.getProperty(sPropKey));
+                    int n = Integer.parseInt(activeConnectionProperties.getProperty(sPropKey));
                     if (n >= defaultQueryTimeout) {
                         queryTimeoutSeconds = n;
                     }
@@ -1682,7 +1682,7 @@ public class SQLServerConnection implements ISQLServerConnection {
             socketTimeoutMilliseconds = defaultSocketTimeout; // Wait forever
             if (activeConnectionProperties.getProperty(sPropKey) != null && activeConnectionProperties.getProperty(sPropKey).length() > 0) {
                 try {
-                    int n = new Integer(activeConnectionProperties.getProperty(sPropKey));
+                    int n = Integer.parseInt(activeConnectionProperties.getProperty(sPropKey));
                     if (n >= defaultSocketTimeout) {
                         socketTimeoutMilliseconds = n;
                     }
@@ -1702,7 +1702,7 @@ public class SQLServerConnection implements ISQLServerConnection {
             sPropKey = SQLServerDriverIntProperty.SERVER_PREPARED_STATEMENT_DISCARD_THRESHOLD.toString();
             if (activeConnectionProperties.getProperty(sPropKey) != null && activeConnectionProperties.getProperty(sPropKey).length() > 0) {
                 try {
-                    int n = new Integer(activeConnectionProperties.getProperty(sPropKey));
+                    int n = Integer.parseInt(activeConnectionProperties.getProperty(sPropKey));
                     setServerPreparedStatementDiscardThreshold(n);
                 }
                 catch (NumberFormatException e) {
@@ -2163,7 +2163,7 @@ public class SQLServerConnection implements ISQLServerConnection {
                     connectionlogger.fine(toString() + " SQL Server port returned by SQL Browser: " + instancePort);
                 try {
                     if (null != instancePort) {
-                        primaryPortNumber = new Integer(instancePort);
+                        primaryPortNumber = Integer.parseInt(instancePort);
 
                         if ((primaryPortNumber < 0) || (primaryPortNumber > 65535)) {
                             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidPortNumber"));
