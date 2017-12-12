@@ -735,6 +735,7 @@ public class SQLServerConnection implements ISQLServerConnection {
     }
 
     Properties activeConnectionProperties; // the active set of connection properties
+    private boolean useDefaultPrincipal = SQLServerDriverBooleanProperty.USE_DEFAULT_PRINCIPAL.getDefaultValue();
     private boolean integratedSecurity = SQLServerDriverBooleanProperty.INTEGRATED_SECURITY.getDefaultValue();
     private AuthenticationScheme intAuthScheme = AuthenticationScheme.nativeAuthentication;
     private GSSCredential ImpersonatedUserCred ;
@@ -1461,6 +1462,14 @@ public class SQLServerConnection implements ISQLServerConnection {
                 sPropKey = SQLServerDriverObjectProperty.GSS_CREDENTIAL.toString();
                 if(activeConnectionProperties.containsKey(sPropKey))
                     ImpersonatedUserCred = (GSSCredential) activeConnectionProperties.get(sPropKey);
+
+                // There might be cases where we wish to use the default principal without JAAS
+                sPropKey = SQLServerDriverBooleanProperty.USE_DEFAULT_PRINCIPAL.toString();
+                sPropValue = activeConnectionProperties.getProperty(sPropKey);
+                if (sPropValue != null) {
+                    useDefaultPrincipal = booleanPropertyOn(sPropKey, sPropValue);
+                }
+
             }
             
             sPropKey = SQLServerDriverStringProperty.AUTHENTICATION.toString();
@@ -2214,7 +2223,7 @@ public class SQLServerConnection implements ISQLServerConnection {
      * achieves one connection attempt Create a prepared statement for internal use by the driver.
      * 
      * @param serverInfo
-     * @param timeOutSliceInMillis
+     * @param timeOutsliceInMillisForFullTimeout
      *            -timeout value in milli seconds for one try
      * @param timeOutFullInSeconds
      *            - whole timeout value specified by the user in seconds
@@ -3393,6 +3402,9 @@ public class SQLServerConnection implements ISQLServerConnection {
             if (null != ImpersonatedUserCred)
                 authentication = new KerbAuthentication(this, currentConnectPlaceHolder.getServerName(), currentConnectPlaceHolder.getPortNumber(),
                         ImpersonatedUserCred);
+            else if (useDefaultPrincipal)
+                authentication = new KerbAuthentication(this, currentConnectPlaceHolder.getServerName(), currentConnectPlaceHolder.getPortNumber(),
+                        true);
             else
                 authentication = new KerbAuthentication(this, currentConnectPlaceHolder.getServerName(), currentConnectPlaceHolder.getPortNumber());
         }
