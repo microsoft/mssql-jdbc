@@ -165,7 +165,10 @@ public final class SQLServerXAResource implements javax.transaction.xa.XAResourc
     public static final int SSTRANSTIGHTLYCPLD = 0x8000;
     private SQLServerCallableStatement[] xaStatements = {null, null, null, null, null, null, null, null, null, null};
     private final String traceID;
-
+    /**
+     * Variable that shows how many times we attempt the recovery, e.g in case of ms DTC restart
+     */
+    private int recoveryAttempt = 0;
     static {
         xaInitLock = new Object();
     }
@@ -634,6 +637,14 @@ public final class SQLServerXAResource implements javax.transaction.xa.XAResourc
                     }
                 }
             }
+            if (XA_RECOVER == nType && XA_OK != nStatus && recoveryAttempt < 1) {
+                // if recover failed, attempt to start again - adding the variable to check to attempt only once otherwise throw exception that recovery fails
+                // this is added since before this change, if we restart the ms dtc and attempt to do recovery, driver will throw exception
+                //"The function RECOVER: failed. The status is: -3"
+                recoveryAttempt ++;
+                DTC_XA_Interface(XA_START, xid, xaFlags);
+                return DTC_XA_Interface(XA_RECOVER, xid, xaFlags);
+            }
             // prepare and end can return XA_RDONLY
             // Think should we just check for nStatus to be greater than or equal to zero instead of this check
             if (((XA_RDONLY == nStatus) && (XA_END != nType && XA_PREPARE != nType)) || (XA_OK != nStatus && XA_RDONLY != nStatus)) {
@@ -658,7 +669,6 @@ public final class SQLServerXAResource implements javax.transaction.xa.XAResourc
                             xaLogger.finer(toString() + " Ignoring exception:" + e1);
                     }
                 }
-
                 throw e;
             }
             else {
