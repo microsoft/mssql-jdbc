@@ -5,7 +5,7 @@ Please tell us what the JDBC driver version or jar name is.
 Please tell us what the SQL Server version is.
 
 ## Client operating system
-Please tell us what oprating system the client program is running on.
+Please tell us what operating system the client program is running on.
 
 ## Java/JVM version
 Example: java version "1.8.0", IBM J9 VM
