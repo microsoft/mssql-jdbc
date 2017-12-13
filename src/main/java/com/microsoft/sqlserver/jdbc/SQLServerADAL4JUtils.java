@@ -7,6 +7,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.logging.Level;
 
 import javax.security.auth.kerberos.KerberosPrincipal;
 
@@ -67,8 +68,12 @@ class SQLServerADAL4JUtils {
         try {
             // principal name does not matter, what matters is the realm name
             // it gets the username in principal_name@realm_name format
-            KerberosPrincipal kp = new KerberosPrincipal("username");
-            String username = kp.getName();
+            KerberosPrincipal kerberosPrincipal = new KerberosPrincipal("username");
+            String username = kerberosPrincipal.getName();
+
+            if (adal4jLogger.isLoggable(Level.FINE)) {
+                adal4jLogger.fine(adal4jLogger.toString() + " realm name is:" + kerberosPrincipal.getRealm());
+            }
 
             AuthenticationContext context = new AuthenticationContext(fedAuthInfo.stsurl, false, executorService);
             Future<AuthenticationResult> future = context.acquireToken(fedAuthInfo.spn, ActiveDirectoryAuthentication.JDBC_FEDAUTH_CLIENT_ID,
