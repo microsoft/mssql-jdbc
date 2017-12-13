@@ -79,16 +79,6 @@ final class AuthenticationJNI extends SSPIAuthentication {
         port = serverport;
     }
 
-    static FedAuthDllInfo getAccessTokenForWindowsIntegrated(String stsURL,
-            String servicePrincipalName,
-            String clientConnectionId,
-            String clientId,
-            long expirationFileTime) throws DLLException {
-        FedAuthDllInfo dllInfo = ADALGetAccessTokenForWindowsIntegrated(stsURL, servicePrincipalName, clientConnectionId, clientId,
-                expirationFileTime, authLogger);
-        return dllInfo;
-    }
-
     // InitDNSName should be called to initialize the DNSName before calling this function
     byte[] GenerateClientContext(byte[] pin,
             boolean[] done) throws SQLServerException {
@@ -167,13 +157,6 @@ final class AuthenticationJNI extends SSPIAuthentication {
 
     private native static int GetDNSName(String address,
             String[] DNSName,
-            java.util.logging.Logger log);
-
-    private native static FedAuthDllInfo ADALGetAccessTokenForWindowsIntegrated(String stsURL,
-            String servicePrincipalName,
-            String clientConnectionId,
-            String clientId,
-            long expirationFileTime,
             java.util.logging.Logger log);
 
     native static byte[] DecryptColumnEncryptionKey(String masterKeyPath,
