@@ -16,11 +16,9 @@ import java.sql.Types;
 import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.Properties;
-import java.util.Vector;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-
 import javax.transaction.xa.XAException;
 import javax.transaction.xa.XAResource;
 import javax.transaction.xa.Xid;
@@ -166,7 +164,7 @@ public final class SQLServerXAResource implements javax.transaction.xa.XAResourc
     private SQLServerCallableStatement[] xaStatements = {null, null, null, null, null, null, null, null, null, null};
     private final String traceID;
     /**
-     * Variable that shows how many times we attempt the recovery, e.g in case of ms DTC restart
+     * Variable that shows how many times we attempt the recovery, e.g in case of MSDTC restart
      */
     private int recoveryAttempt = 0;
     static {
@@ -639,9 +637,9 @@ public final class SQLServerXAResource implements javax.transaction.xa.XAResourc
             }
             if (XA_RECOVER == nType && XA_OK != nStatus && recoveryAttempt < 1) {
                 // if recover failed, attempt to start again - adding the variable to check to attempt only once otherwise throw exception that recovery fails
-                // this is added since before this change, if we restart the ms dtc and attempt to do recovery, driver will throw exception
+                // this is added since before this change, if we restart the MSDTC and attempt to do recovery, driver will throw exception
                 //"The function RECOVER: failed. The status is: -3"
-                recoveryAttempt ++;
+                recoveryAttempt++;
                 DTC_XA_Interface(XA_START, xid, xaFlags);
                 return DTC_XA_Interface(XA_RECOVER, xid, xaFlags);
             }
