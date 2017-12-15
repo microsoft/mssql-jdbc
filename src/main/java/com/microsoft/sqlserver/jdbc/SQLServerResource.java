@@ -166,7 +166,7 @@ public final class SQLServerResource extends ListResourceBundle {
 				{"R_applicationNamePropertyDescription", "The application name for SQL Server profiling and logging tools."},
 				{"R_lastUpdateCountPropertyDescription", "Ensures that only the last update count is returned from an SQL statement passed to the server."},
 				{"R_disableStatementPoolingPropertyDescription", "Disables the statement pooling feature."},
-		        {"R_usePlatformGssCredentialsPropertyDescription", "Indicates whether the platform GSS credentials should be used to connect to SQL Server."},
+				{"R_usePlatformGssCredentialsPropertyDescription", "Indicates whether the platform GSS credentials should be used to connect to SQL Server."},
 				{"R_integratedSecurityPropertyDescription", "Indicates whether Windows authentication will be used to connect to SQL Server."},
 				{"R_authenticationSchemePropertyDescription", "The authentication scheme to be used for integrated authentication."},
 				{"R_lockTimeoutPropertyDescription", "The number of milliseconds to wait before the database reports a lock time-out."},
