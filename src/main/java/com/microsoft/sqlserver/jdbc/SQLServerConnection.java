@@ -123,8 +123,10 @@ public class SQLServerConnection implements ISQLServerConnection {
     static class Sha1HashKey {
         private byte[] bytes;
 
-        Sha1HashKey(String sql, String parametersDefinition) {
-            this(String.format("%s%s", sql, parametersDefinition));
+        Sha1HashKey(String sql,
+                String parametersDefinition,
+                String dbName) {
+            this(String.format("%s%s%s", sql, parametersDefinition, dbName));
         }
 
         Sha1HashKey(String s) {
@@ -3095,6 +3097,10 @@ public class SQLServerConnection implements ISQLServerConnection {
         loggerExternal.entering(getClassNameLogging(), "getCatalog");
         checkClosed();
         loggerExternal.exiting(getClassNameLogging(), "getCatalog", sCatalog);
+        return sCatalog;
+    }
+
+    String getSCatalog() throws SQLServerException {
         return sCatalog;
     }
 

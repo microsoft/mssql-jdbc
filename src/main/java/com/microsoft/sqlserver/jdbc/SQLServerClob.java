@@ -34,6 +34,9 @@ import java.util.logging.Logger;
 
 public class SQLServerClob extends SQLServerClobBase implements Clob {
     private static final long serialVersionUID = 2872035282200133865L;
+    
+    // Loggers should be class static to avoid lock contention with multiple threads
+    private static final Logger logger = Logger.getLogger("com.microsoft.sqlserver.jdbc.internals.SQLServerClob");
 
     /**
      * Create a new CLOB
@@ -47,19 +50,19 @@ public class SQLServerClob extends SQLServerClobBase implements Clob {
     @Deprecated
     public SQLServerClob(SQLServerConnection connection,
             String data) {
-        super(connection, data, (null == connection) ? null : connection.getDatabaseCollation(), null);
+        super(connection, data, (null == connection) ? null : connection.getDatabaseCollation(), logger, null);
 
         if (null == data)
             throw new NullPointerException(SQLServerException.getErrString("R_cantSetNull"));
     }
 
     SQLServerClob(SQLServerConnection connection) {
-        super(connection, "", connection.getDatabaseCollation(), null);
+        super(connection, "", connection.getDatabaseCollation(), logger, null);
     }
 
     SQLServerClob(BaseInputStream stream,
             TypeInfo typeInfo) throws SQLServerException, UnsupportedEncodingException {
-        super(null, stream, typeInfo.getSQLCollation(), typeInfo);
+        super(null, stream, typeInfo.getSQLCollation(), logger, typeInfo);
     }
 
     final JDBCType getJdbcType() {
@@ -89,7 +92,7 @@ abstract class SQLServerClobBase implements Serializable {
 
     transient SQLServerConnection con;
     
-    private final Logger logger = Logger.getLogger(getClass().getName());
+    private final Logger logger;
     
     final private String traceID = getClass().getName().substring(1 + getClass().getName().lastIndexOf('.')) + ":" + nextInstanceID();
 
@@ -128,6 +131,7 @@ abstract class SQLServerClobBase implements Serializable {
     SQLServerClobBase(SQLServerConnection connection,
             Object data,
             SQLCollation collation,
+            Logger logger,
             TypeInfo typeInfo) {
         this.con = connection;
         if (data instanceof BaseInputStream) {
@@ -137,8 +141,8 @@ abstract class SQLServerClobBase implements Serializable {
             this.value = (String) data;
         }
         this.sqlCollation = collation;
+        this.logger = logger;
         this.typeInfo = typeInfo;
-
         if (logger.isLoggable(Level.FINE)) {
             String loggingInfo = (null != connection) ? connection.toString() : "null connection";
             logger.fine(toString() + " created by (" + loggingInfo + ")");
