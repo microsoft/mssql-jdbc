@@ -90,7 +90,7 @@ To get the latest preview version of the driver, add the following to your POM f
 <dependency>
 	<groupId>com.microsoft.sqlserver</groupId>
 	<artifactId>mssql-jdbc</artifactId>
-	<version>6.3.5.jre8-preview</version>
+	<version>6.3.6.jre8-preview</version>
 </dependency>
 ```
 
@@ -115,12 +115,28 @@ mvn dependency:tree
 ### Azure Key Vault and Azure Active Directory Authentication Dependencies
 Projects that require either of the two features need to explicitly declare the dependency in their pom file.
 
+***For Example:*** If you are using *Azure Active Directory Authentication feature* then you need to redeclare *adal4j* dependency in your project's pom file. Please see the following snippet: 
+```xml
+<dependency>
+	<groupId>com.microsoft.sqlserver</groupId>
+	<artifactId>mssql-jdbc</artifactId>
+	<version>6.3.6.jre8-preview</version>
+	<scope>compile</scope>
+</dependency>
+
+<dependency>
+	<groupId>com.microsoft.azure</groupId>
+	<artifactId>adal4j</artifactId>
+	<version>1.3.0</version>
+</dependency>
+```
+
 ***For Example:*** If you are using *Azure Key Vault feature* then you need to redeclare *azure-keyvault* dependency in your project's pom file. Please see the following snippet: 
 ```xml
 <dependency>
 	<groupId>com.microsoft.sqlserver</groupId>
 	<artifactId>mssql-jdbc</artifactId>
-	<version>6.3.5.jre8-preview</version>
+	<version>6.3.6.jre8-preview</version>
 	<scope>compile</scope>
 </dependency>
 

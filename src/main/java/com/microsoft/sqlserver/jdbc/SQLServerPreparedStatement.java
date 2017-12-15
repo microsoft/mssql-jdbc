@@ -100,6 +100,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
     /** The prepared statement handle returned by the server */
     private int prepStmtHandle = 0;
+    String handleDBName = null;
     
     /** Statement used for getMetadata(). Declared as a field to facilitate closing the statement. */
     private SQLServerStatement internalStmt = null;
@@ -184,7 +185,9 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         // Parse or fetch SQL metadata from cache.
         ParsedSQLCacheItem parsedSQL = getCachedParsedSQL(sqlTextCacheKey);
         if(null != parsedSQL) {
-            isExecutedAtLeastOnce = true;
+            if(null != connection && connection.isStatementPoolingEnabled()) {
+                isExecutedAtLeastOnce = true;
+            }
         }
         else {
             parsedSQL = parseAndCacheSQL(sqlTextCacheKey, sql);
@@ -535,7 +538,8 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
             hasNewTypeDefinitions = buildPreparedStrings(inOutParam, true);
         }
 
-        if (reuseCachedHandle(hasNewTypeDefinitions, false)) {
+        String dbName = connection.getSCatalog();
+        if (reuseCachedHandle(hasNewTypeDefinitions, false, dbName)) {
             hasNewTypeDefinitions = false;
         }
 
@@ -581,8 +585,14 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                 setPreparedStatementHandle(param.getInt(tdsReader));
 
                 // Cache the reference to the newly created handle, NOT for cursorable handles.
-                if (null == cachedPreparedStatementHandle && !isCursorable(executeMethod)) {                
-                    cachedPreparedStatementHandle = connection.registerCachedPreparedStatementHandle(new Sha1HashKey(preparedSQL, preparedTypeDefinitions), prepStmtHandle, executedSqlDirectly);
+                if (null == cachedPreparedStatementHandle && !isCursorable(executeMethod)) {
+                    String dbName = connection.getSCatalog();
+                    if (null != handleDBName) {
+                        dbName = handleDBName;
+                    }
+
+                    cachedPreparedStatementHandle = connection.registerCachedPreparedStatementHandle(
+                            new Sha1HashKey(preparedSQL, preparedTypeDefinitions, dbName), prepStmtHandle, executedSqlDirectly);
                 }
                 
                 param.skipValue(tdsReader, true);
@@ -904,7 +914,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     }
 
 	/** Manage re-using cached handles */
-	private boolean reuseCachedHandle(boolean hasNewTypeDefinitions, boolean discardCurrentCacheItem) {
+	private boolean reuseCachedHandle(boolean hasNewTypeDefinitions, boolean discardCurrentCacheItem, String dbName) {
         if (definitionChanged || connection.contextChanged) {
             prepStmtHandle = -1; // so that hasPreparedStatementHandle() also returns false
 
@@ -945,7 +955,8 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 		
         // Check for new cache reference.
         if (null == cachedPreparedStatementHandle) {
-            PreparedStatementHandle cachedHandle = connection.getCachedPreparedStatementHandle(new Sha1HashKey(preparedSQL, preparedTypeDefinitions));
+            PreparedStatementHandle cachedHandle = connection
+                    .getCachedPreparedStatementHandle(new Sha1HashKey(preparedSQL, preparedTypeDefinitions, dbName));
 
             // If handle was found then re-use, only if AE is not on and is not a batch query with new type definitions (We shouldn't reuse handle
             // if it is batch query and has new type definition, or if it is on, make sure encryptionMetadataIsRetrieved is retrieved.
@@ -2615,8 +2626,9 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                         batchParam[i].cryptoMeta = cryptoMetaBatch.get(i);
                     }
                 }
-
-                if (reuseCachedHandle(hasNewTypeDefinitions, false)) {
+                
+                String dbName = connection.getSCatalog();
+                if (reuseCachedHandle(hasNewTypeDefinitions, false, dbName)) {
                     hasNewTypeDefinitions = false;
                 }
 

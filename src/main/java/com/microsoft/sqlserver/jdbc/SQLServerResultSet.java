@@ -965,6 +965,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
                 moveFirst();
             else
                 moveForward(1);
+            
             boolean value = hasCurrentRow();
             loggerExternal.exiting(getClassNameLogging(), "next", value);
             return value;

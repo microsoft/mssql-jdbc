@@ -117,16 +117,12 @@ public class BatchExecutionWithNullTest extends AbstractTest {
     }
 
     @AfterAll
-    public static void terminateVariation() throws TestAbortedException, Exception {
-
-        assumeTrue(13 <= new DBConnection(connectionString).getServerVersion(),
-                "Aborting test case as SQL Server version is not compatible with Always encrypted ");
+    public static void terminateVariation() throws SQLException {
+        connection = DriverManager.getConnection(connectionString);
+        
         SQLServerStatement stmt = (SQLServerStatement) connection.createStatement();
         Utils.dropTableIfExists("esimple", stmt);
 
-        if (null != connection) {
-            connection.close();
-        }
         if (null != pstmt) {
             pstmt.close();
         }
@@ -138,6 +134,9 @@ public class BatchExecutionWithNullTest extends AbstractTest {
         }
         if (null != rs) {
             rs.close();
+        }
+        if (null != connection) {
+            connection.close();
         }
     }
 }
