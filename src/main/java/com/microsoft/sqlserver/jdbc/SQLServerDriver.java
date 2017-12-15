@@ -350,7 +350,7 @@ enum SQLServerDriverBooleanProperty
     SEND_TIME_AS_DATETIME                     ("sendTimeAsDatetime",                        true),
     TRANSPARENT_NETWORK_IP_RESOLUTION         ("TransparentNetworkIPResolution",            true),
     TRUST_SERVER_CERTIFICATE                  ("trustServerCertificate",                    false),
-    USE_DEFAULT_PRINCIPAL                     ("useDefaultPrincipal",                       false),
+    USE_PLATFORM_GSS_CREDENTIALS              ("usePlatformGssCredentials",                 false),
     XOPEN_STATES                              ("xopenStates",                               false),
     FIPS                                      ("fips",                                      false),
     ENABLE_PREPARE_ON_FIRST_PREPARED_STATEMENT("enablePrepareOnFirstPreparedStatementCall", SQLServerConnection.DEFAULT_ENABLE_PREPARE_ON_FIRST_PREPARED_STATEMENT_CALL);
@@ -418,7 +418,7 @@ public final class SQLServerDriver implements java.sql.Driver {
         new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.TRUST_MANAGER_CONSTRUCTOR_ARG.toString(),               SQLServerDriverStringProperty.TRUST_MANAGER_CONSTRUCTOR_ARG.getDefaultValue(),                          false,      null),
         new SQLServerDriverPropertyInfo(SQLServerDriverBooleanProperty.SEND_TIME_AS_DATETIME.toString(),            	      Boolean.toString(SQLServerDriverBooleanProperty.SEND_TIME_AS_DATETIME.getDefaultValue()),       		  false,      TRUE_FALSE),
         new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.USER.toString(),                          		      SQLServerDriverStringProperty.USER.getDefaultValue(),           										  true,       null),
-        new SQLServerDriverPropertyInfo(SQLServerDriverBooleanProperty.USE_DEFAULT_PRINCIPAL.toString(),          		      Boolean.toString(SQLServerDriverBooleanProperty.USE_DEFAULT_PRINCIPAL.getDefaultValue()),      		  false,      TRUE_FALSE),
+        new SQLServerDriverPropertyInfo(SQLServerDriverBooleanProperty.USE_PLATFORM_GSS_CREDENTIALS.toString(),          	  Boolean.toString(SQLServerDriverBooleanProperty.USE_PLATFORM_GSS_CREDENTIALS.getDefaultValue()),        false,      TRUE_FALSE),
         new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.WORKSTATION_ID.toString(),                 		      SQLServerDriverStringProperty.WORKSTATION_ID.getDefaultValue(), 										  false, 	  null),
         new SQLServerDriverPropertyInfo(SQLServerDriverBooleanProperty.XOPEN_STATES.toString(),                   		      Boolean.toString(SQLServerDriverBooleanProperty.XOPEN_STATES.getDefaultValue()),      				  false,      TRUE_FALSE),
         new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.AUTHENTICATION_SCHEME.toString(),          		      SQLServerDriverStringProperty.AUTHENTICATION_SCHEME.getDefaultValue(),      			            	  false,      new String[] {AuthenticationScheme.javaKerberos.toString(),AuthenticationScheme.nativeAuthentication.toString()}),
