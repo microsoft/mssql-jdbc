@@ -11,6 +11,7 @@ package com.microsoft.sqlserver.jdbc;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.Reader;
+import java.nio.Buffer;
 import java.nio.ByteBuffer;
 import java.nio.CharBuffer;
 import java.nio.charset.Charset;
@@ -255,7 +256,7 @@ class ReaderInputStream extends InputStream {
 
             // The raw character buffer may now have characters available for encoding.
             // Flip the buffer back to be ready for get (charset encode) operations.
-            rawChars.flip();
+            ((Buffer)rawChars).flip();
         }
 
         // If the raw character buffer remains empty, despite our efforts to (re)populate it,
