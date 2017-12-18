@@ -10,10 +10,8 @@ package com.microsoft.sqlserver.jdbc;
 
 import java.io.PrintWriter;
 import java.sql.Connection;
-import java.sql.ConnectionBuilder;
 import java.sql.SQLException;
 import java.sql.SQLFeatureNotSupportedException;
-import java.sql.ShardingKeyBuilder;
 import java.util.Enumeration;
 import java.util.Properties;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -1005,7 +1003,13 @@ public class SQLServerDataSource implements ISQLServerDataSource, DataSource, ja
         // Create new connection and connect.
         if (dsLogger.isLoggable(Level.FINER))
             dsLogger.finer(toString() + " Begin create new connection.");
-        SQLServerConnection result = new SQLServerConnection(toString());
+        SQLServerConnection result = null;
+        if (Util.use43Wrapper()) {
+            result = new SQLServerConnection43(toString());
+        }
+        else {
+            result = new SQLServerConnection(toString());
+        }
         result.connect(mergedProps, pooledConnection);
         if (dsLogger.isLoggable(Level.FINER))
             dsLogger.finer(toString() + " End create new connection " + result.toString());
@@ -1107,15 +1111,6 @@ public class SQLServerDataSource implements ISQLServerDataSource, DataSource, ja
         return t;
     }
 
-    public ShardingKeyBuilder createShardingKeyBuilder() throws SQLException {
-        DriverJDBCVersion.checkSupportsJDBC43();
-        throw new SQLFeatureNotSupportedException("createShardingKeyBuilder not implemented");
-    }
-
-    public ConnectionBuilder createConnectionBuilder() throws SQLException {
-        DriverJDBCVersion.checkSupportsJDBC43();
-        throw new SQLFeatureNotSupportedException("createConnectionBuilder not implemented");
-    }
 
     // Returns unique id for each DataSource instance.
     private static int nextDataSourceID() {
