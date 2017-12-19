@@ -183,7 +183,7 @@ class ReaderInputStream extends InputStream {
             }
             else {
                 // Flip the buffer to be ready for put (reader read) operations.
-                rawChars.clear();
+                ((Buffer)rawChars).clear();
             }
 
             // Try to fill up the raw character buffer by reading available characters
