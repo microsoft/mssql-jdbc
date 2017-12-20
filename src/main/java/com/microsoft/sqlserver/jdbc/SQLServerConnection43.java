@@ -7,31 +7,30 @@ public class SQLServerConnection43 extends SQLServerConnection implements ISQLSe
 
     SQLServerConnection43(String parentInfo) throws SQLServerException {
         super(parentInfo);
-        // TODO Auto-generated constructor stub
     }
     
-    public void setShardingKey(ShardingKey shardingKey) throws SQLFeatureNotSupportedException {
+    public void setShardingKey(ShardingKey shardingKey) throws SQLServerException {
         DriverJDBCVersion.checkSupportsJDBC43();
-        throw new SQLFeatureNotSupportedException("createShardingKeyBuilder not implemented");
+        throw new SQLServerException("setShardingKey not implemented", new SQLFeatureNotSupportedException("setShardingKey not implemented"));
     }
 
     public void setShardingKey(ShardingKey shardingKey,
-            ShardingKey superShardingKey) throws SQLFeatureNotSupportedException {
+            ShardingKey superShardingKey) throws SQLServerException {
         DriverJDBCVersion.checkSupportsJDBC43();
-        throw new SQLFeatureNotSupportedException("createShardingKeyBuilder not implemented");
+        throw new SQLServerException("setShardingKey not implemented", new SQLFeatureNotSupportedException("setShardingKey not implemented")) ;
     }
 
     public boolean setShardingKeyIfValid(ShardingKey shardingKey,
-            int timeout) throws SQLFeatureNotSupportedException {
+            int timeout) throws SQLServerException {
         DriverJDBCVersion.checkSupportsJDBC43();
-        throw new SQLFeatureNotSupportedException("createShardingKeyBuilder not implemented");
+        throw new SQLServerException("setShardingKeyIfValid not implemented", new SQLFeatureNotSupportedException("setShardingKeyIfValid not implemented"));
     }
 
     public boolean setShardingKeyIfValid(ShardingKey shardingKey,
             ShardingKey superShardingKey,
-            int timeout) throws SQLFeatureNotSupportedException {
+            int timeout) throws SQLServerException {
         DriverJDBCVersion.checkSupportsJDBC43();
-        throw new SQLFeatureNotSupportedException("createShardingKeyBuilder not implemented");
+        throw new SQLServerException("setShardingKeyIfValid not implemented", new SQLFeatureNotSupportedException("setShardingKeyIfValid not implemented"));
     }
 
 }
