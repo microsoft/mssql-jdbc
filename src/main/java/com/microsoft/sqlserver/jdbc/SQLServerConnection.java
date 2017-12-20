@@ -3186,8 +3186,9 @@ public class SQLServerConnection implements ISQLServerConnection {
         checkClosed();
 
         PreparedStatement st;
-
-        if (Util.use42Wrapper()) {
+        
+        // Make sure SQLServerPreparedStatement42 is used for 4.2 and above. 
+        if (Util.use42Wrapper() || Util.use43Wrapper()) {
             st = new SQLServerPreparedStatement42(this, sql, resultSetType, resultSetConcurrency,
                     SQLServerStatementColumnEncryptionSetting.UseConnectionSetting);
         }
@@ -3211,7 +3212,8 @@ public class SQLServerConnection implements ISQLServerConnection {
 
         PreparedStatement st;
 
-        if (Util.use42Wrapper()) {
+        // Make sure SQLServerPreparedStatement42 is used for 4.2 and above. 
+        if (Util.use42Wrapper() || Util.use43Wrapper()) {
             st = new SQLServerPreparedStatement42(this, sql, resultSetType, resultSetConcurrency, stmtColEncSetting);
         }
         else {
@@ -3232,7 +3234,8 @@ public class SQLServerConnection implements ISQLServerConnection {
 
         CallableStatement st;
 
-        if (Util.use42Wrapper()) {
+        // Make sure SQLServerCallableStatement42 is used for 4.2 and above. 
+        if (Util.use42Wrapper() || Util.use43Wrapper()) {
             st = new SQLServerCallableStatement42(this, sql, resultSetType, resultSetConcurrency,
                     SQLServerStatementColumnEncryptionSetting.UseConnectionSetting);
         }
@@ -4655,7 +4658,8 @@ public class SQLServerConnection implements ISQLServerConnection {
 
         PreparedStatement st;
 
-        if (Util.use42Wrapper()) {
+        // Make sure SQLServerPreparedStatement42 is used for 4.2 and above.
+        if (Util.use42Wrapper() || Util.use43Wrapper()) {
             st = new SQLServerPreparedStatement42(this, sql, nType, nConcur, stmtColEncSetting);
         }
         else {
@@ -4690,7 +4694,8 @@ public class SQLServerConnection implements ISQLServerConnection {
 
         CallableStatement st;
 
-        if (Util.use42Wrapper()) {
+        // Make sure SQLServerCallableStatement42 is used for 4.2 and above
+        if (Util.use42Wrapper() || Util.use43Wrapper()) {
             st = new SQLServerCallableStatement42(this, sql, nType, nConcur, stmtColEncSetiing);
         }
         else {
