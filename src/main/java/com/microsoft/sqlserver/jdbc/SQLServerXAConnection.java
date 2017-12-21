@@ -44,7 +44,13 @@ public final class SQLServerXAConnection extends SQLServerPooledConnection imple
 
         if (xaLogger.isLoggable(Level.FINER))
             xaLogger.finer("Creating an internal control connection for" + toString());
-        physicalControlConnection = new SQLServerConnection(toString());
+        physicalControlConnection = null;
+        if (Util.use43Wrapper()) {
+            physicalControlConnection = new SQLServerConnection43(toString());
+        }
+        else {
+            physicalControlConnection = new SQLServerConnection(toString());
+        }
         physicalControlConnection.connect(controlConnectionProperties, null);
         if (xaLogger.isLoggable(Level.FINER))
             xaLogger.finer("Created an internal control connection" + physicalControlConnection.toString() + " for " + toString()

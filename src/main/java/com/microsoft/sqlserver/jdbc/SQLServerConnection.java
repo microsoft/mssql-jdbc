@@ -33,7 +33,6 @@ import java.sql.SQLPermission;
 import java.sql.SQLWarning;
 import java.sql.SQLXML;
 import java.sql.Savepoint;
-import java.sql.ShardingKey;
 import java.sql.Statement;
 import java.sql.Struct;
 import java.text.MessageFormat;
@@ -3187,8 +3186,9 @@ public class SQLServerConnection implements ISQLServerConnection {
         checkClosed();
 
         PreparedStatement st;
-
-        if (Util.use42Wrapper()) {
+        
+        // Make sure SQLServerPreparedStatement42 is used for 4.2 and above. 
+        if (Util.use42Wrapper() || Util.use43Wrapper()) {
             st = new SQLServerPreparedStatement42(this, sql, resultSetType, resultSetConcurrency,
                     SQLServerStatementColumnEncryptionSetting.UseConnectionSetting);
         }
@@ -3212,7 +3212,8 @@ public class SQLServerConnection implements ISQLServerConnection {
 
         PreparedStatement st;
 
-        if (Util.use42Wrapper()) {
+        // Make sure SQLServerPreparedStatement42 is used for 4.2 and above. 
+        if (Util.use42Wrapper() || Util.use43Wrapper()) {
             st = new SQLServerPreparedStatement42(this, sql, resultSetType, resultSetConcurrency, stmtColEncSetting);
         }
         else {
@@ -3233,7 +3234,8 @@ public class SQLServerConnection implements ISQLServerConnection {
 
         CallableStatement st;
 
-        if (Util.use42Wrapper()) {
+        // Make sure SQLServerCallableStatement42 is used for 4.2 and above. 
+        if (Util.use42Wrapper() || Util.use43Wrapper()) {
             st = new SQLServerCallableStatement42(this, sql, resultSetType, resultSetConcurrency,
                     SQLServerStatementColumnEncryptionSetting.UseConnectionSetting);
         }
@@ -4656,7 +4658,8 @@ public class SQLServerConnection implements ISQLServerConnection {
 
         PreparedStatement st;
 
-        if (Util.use42Wrapper()) {
+        // Make sure SQLServerPreparedStatement42 is used for 4.2 and above.
+        if (Util.use42Wrapper() || Util.use43Wrapper()) {
             st = new SQLServerPreparedStatement42(this, sql, nType, nConcur, stmtColEncSetting);
         }
         else {
@@ -4691,7 +4694,8 @@ public class SQLServerConnection implements ISQLServerConnection {
 
         CallableStatement st;
 
-        if (Util.use42Wrapper()) {
+        // Make sure SQLServerCallableStatement42 is used for 4.2 and above
+        if (Util.use42Wrapper() || Util.use43Wrapper()) {
             st = new SQLServerCallableStatement42(this, sql, nType, nConcur, stmtColEncSetiing);
         }
         else {
@@ -5257,30 +5261,6 @@ public class SQLServerConnection implements ISQLServerConnection {
     public void endRequest() throws SQLFeatureNotSupportedException {
         DriverJDBCVersion.checkSupportsJDBC43();
         throw new SQLFeatureNotSupportedException("endRequest not implemented");
-    }
-
-    public void setShardingKey(ShardingKey shardingKey) throws SQLFeatureNotSupportedException {
-        DriverJDBCVersion.checkSupportsJDBC43();
-        throw new SQLFeatureNotSupportedException("createShardingKeyBuilder not implemented");
-    }
-
-    public void setShardingKey(ShardingKey shardingKey,
-            ShardingKey superShardingKey) throws SQLFeatureNotSupportedException {
-        DriverJDBCVersion.checkSupportsJDBC43();
-        throw new SQLFeatureNotSupportedException("createShardingKeyBuilder not implemented");
-    }
-
-    public boolean setShardingKeyIfValid(ShardingKey shardingKey,
-            int timeout) throws SQLFeatureNotSupportedException {
-        DriverJDBCVersion.checkSupportsJDBC43();
-        throw new SQLFeatureNotSupportedException("createShardingKeyBuilder not implemented");
-    }
-
-    public boolean setShardingKeyIfValid(ShardingKey shardingKey,
-            ShardingKey superShardingKey,
-            int timeout) throws SQLFeatureNotSupportedException {
-        DriverJDBCVersion.checkSupportsJDBC43();
-        throw new SQLFeatureNotSupportedException("createShardingKeyBuilder not implemented");
     }
 
     /**

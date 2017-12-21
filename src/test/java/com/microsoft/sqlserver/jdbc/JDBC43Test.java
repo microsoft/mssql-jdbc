@@ -29,6 +29,7 @@ import com.microsoft.sqlserver.testframework.AbstractTest;
 import com.microsoft.sqlserver.testframework.util.Util;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.fail;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 /**
@@ -138,6 +139,56 @@ public class JDBC43Test extends AbstractTest {
         catch (SQLException e) {
             assert (e.getMessage().contains("not implemented"));
         }
+    }
+    
+    /**
+     * Tests that we are throwing the unsupported exception for setShardingKeyIfValid()
+     * @throws SQLException 
+     * @throws TestAbortedException 
+     * @since 1.9
+     */
+    @Test
+    public void setShardingKeyIfValidTest() throws TestAbortedException, SQLException {
+        assumeTrue(Util.supportJDBC43(connection));
+        SQLServerConnection connection43 = (SQLServerConnection43) DriverManager.getConnection(connectionString);
+        try {
+            connection43.setShardingKeyIfValid(shardingKey, 10);
+        }
+        catch (SQLException e) {
+            assert (e.getMessage().contains("not implemented"));
+        }
+        try {
+            connection43.setShardingKeyIfValid(shardingKey, superShardingKey, 10);
+        }
+        catch (SQLException e) {
+            assert (e.getMessage().contains("not implemented"));
+        }
+       
+    }
+    
+    /**
+     * Tests that we are throwing the unsupported exception for setShardingKey()
+     * @throws SQLException 
+     * @throws TestAbortedException 
+     * @since 1.9
+     */
+    @Test
+    public void setShardingKeyTest() throws TestAbortedException, SQLException {
+        assumeTrue(Util.supportJDBC43(connection));
+        SQLServerConnection connection43 = (SQLServerConnection43) DriverManager.getConnection(connectionString);
+        try {
+            connection43.setShardingKey(shardingKey);
+        }
+        catch (SQLException e) {
+            assert (e.getMessage().contains("not implemented"));
+        }
+        try {
+            connection43.setShardingKey(shardingKey, superShardingKey);
+        }
+        catch (SQLException e) {
+            assert (e.getMessage().contains("not implemented"));
+        }
+       
     }
 
     /**

@@ -98,7 +98,7 @@ final class SQLServerSymmetricKeyCache {
             String keyLookupValue;
             keyLookupValuebuffer.append(":");
 
-            keyLookupValuebuffer.append(Base64.getEncoder().encode((new String(keyInfo.encryptedKey, UTF_8)).getBytes()));
+            keyLookupValuebuffer.append(Base64.getEncoder().encodeToString((new String(keyInfo.encryptedKey, UTF_8)).getBytes()));
 
             keyLookupValuebuffer.append(":");
             keyLookupValuebuffer.append(keyInfo.keyStoreName);
