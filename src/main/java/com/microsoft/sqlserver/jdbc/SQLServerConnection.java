@@ -412,7 +412,7 @@ public class SQLServerConnection implements ISQLServerConnection {
                                                                                                                                                // is
                                                                                                                                                // false).
 
-    private static String hostName = null;
+    private String hostName = null;
     
     boolean sendStringParametersAsUnicode() {
         return sendStringParametersAsUnicode;
@@ -4342,7 +4342,7 @@ public class SQLServerConnection implements ISQLServerConnection {
         tdsWriter.writeShort((short) TDS_LOGIN_REQUEST_BASE_LEN);
 
         // Hostname
-        tdsWriter.writeShort((short) (hostName == null ? 0 : hostName.length()));
+        tdsWriter.writeShort((short) ((hostName != null && !hostName.isEmpty()) ? hostName.length() : 0));
         dataLen += hostnameBytes.length;
 
         // Only send user/password over if not fSSPI or fed auth ADAL... If both user/password and SSPI are in login
