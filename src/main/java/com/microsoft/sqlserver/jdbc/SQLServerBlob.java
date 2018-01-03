@@ -237,6 +237,15 @@ public final class SQLServerBlob implements java.sql.Blob, java.io.Serializable 
     }
     
     /**
+     * Public function for the result set to maintain blobs it has created
+     * @throws SQLException
+     */
+    public void fillByteArray() throws SQLException {
+    	if(!isClosed)
+    		getBytesFromStream();
+    }
+    
+    /**
      * Converts stream to byte[]
      * @throws SQLServerException
      */
