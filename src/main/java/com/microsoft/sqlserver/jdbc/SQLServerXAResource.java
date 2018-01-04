@@ -382,7 +382,7 @@ public final class SQLServerXAResource implements javax.transaction.xa.XAResourc
         SQLServerCallableStatement cs = null;
         try {
             synchronized (this) {
-                if (!xaInitDone) {
+                if (!xaInitDone) {  
                     try {
                         synchronized (xaInitLock) {
                             SQLServerCallableStatement initCS = null;
@@ -640,7 +640,7 @@ public final class SQLServerXAResource implements javax.transaction.xa.XAResourc
                 // this is added since before this change, if we restart the MSDTC and attempt to do recovery, driver will throw exception
                 //"The function RECOVER: failed. The status is: -3"
                 recoveryAttempt++;
-                DTC_XA_Interface(XA_START, xid, xaFlags);
+                DTC_XA_Interface(XA_START, xid, TMNOFLAGS);
                 return DTC_XA_Interface(XA_RECOVER, xid, xaFlags);
             }
             // prepare and end can return XA_RDONLY
