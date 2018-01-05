@@ -7554,10 +7554,10 @@ abstract class TDSCommand {
      */
     final void onRequestComplete() throws SQLServerException {
         synchronized (interruptLock) {
-        assert !requestComplete;
-
-        if (logger.isLoggable(Level.FINEST))
-            logger.finest(this + ": request complete");
+	        assert !requestComplete;
+	
+	        if (logger.isLoggable(Level.FINEST))
+	            logger.finest(this + ": request complete");
 
             requestComplete = true;
 
