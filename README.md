@@ -100,8 +100,8 @@ To get the latest preview version of the driver, add the following to your POM f
 This project has following dependencies: 
 
 Compile Time:
- - `azure-keyvault` : Azure Key Vault Provider for Always Encrypted feature (optional)
- - `adal4j` : Azure ActiveDirectory Library for Java for Azure Active Directory Authentication feature (optional)
+ - `azure-keyvault` : Azure Key Vault Provider for Always Encrypted Azure Key Vault feature (optional)
+ - `adal4j` : Azure ActiveDirectory Library for Java for Azure Active Directory Authentication feature and Azure Key Vault feature (optional)
 
 Test Time:
  - `junit:jar`   : For Unit Test cases.
@@ -131,13 +131,19 @@ Projects that require either of the two features need to explicitly declare the 
 </dependency>
 ```
 
-***For Example:*** If you are using *Azure Key Vault feature* then you need to redeclare *azure-keyvault* dependency in your project's pom file. Please see the following snippet: 
+***For Example:*** If you are using *Azure Key Vault feature* then you need to redeclare *azure-keyvault* dependency and *adal4j* dependency in your project's pom file. Please see the following snippet: 
 ```xml
 <dependency>
 	<groupId>com.microsoft.sqlserver</groupId>
 	<artifactId>mssql-jdbc</artifactId>
 	<version>6.3.6.jre8-preview</version>
 	<scope>compile</scope>
+</dependency>
+
+<dependency>
+	<groupId>com.microsoft.azure</groupId>
+	<artifactId>adal4j</artifactId>
+	<version>1.3.0</version>
 </dependency>
 
 <dependency>
