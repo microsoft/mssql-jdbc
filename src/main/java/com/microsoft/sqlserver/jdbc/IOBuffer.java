@@ -7553,12 +7553,12 @@ abstract class TDSCommand {
      * interrupted (0 or more packets sent with no EOM bit).
      */
     final void onRequestComplete() throws SQLServerException {
+        synchronized (interruptLock) {
         assert !requestComplete;
 
         if (logger.isLoggable(Level.FINEST))
             logger.finest(this + ": request complete");
 
-        synchronized (interruptLock) {
             requestComplete = true;
 
             // If this command was interrupted before its request was complete then
