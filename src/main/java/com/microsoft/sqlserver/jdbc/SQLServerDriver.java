@@ -474,7 +474,9 @@ public final class SQLServerDriver implements java.sql.Driver {
             java.sql.DriverManager.registerDriver(new SQLServerDriver());
         }
         catch (SQLException e) {
-            e.printStackTrace();
+            if (drLogger.isLoggable(Level.FINER) && Util.IsActivityTraceOn()) {
+                drLogger.finer("Error registering driver: " + e);
+            }
         }
     }
 
@@ -632,7 +634,7 @@ public final class SQLServerDriver implements java.sql.Driver {
         // put the user properties into the connect properties
         int nTimeout = DriverManager.getLoginTimeout();
         if (nTimeout > 0) {
-            connectProperties.put(SQLServerDriverIntProperty.LOGIN_TIMEOUT.toString(), new Integer(nTimeout).toString());
+            connectProperties.put(SQLServerDriverIntProperty.LOGIN_TIMEOUT.toString(), ((Integer)nTimeout).toString());
         }
 
         // Merge connectProperties (from URL) and supplied properties from user.
