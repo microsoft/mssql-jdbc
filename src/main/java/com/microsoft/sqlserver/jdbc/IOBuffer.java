@@ -3437,7 +3437,7 @@ final class TDSWriter {
     }
 
     void writeSmalldatetime(String value) throws SQLServerException {
-        GregorianCalendar calendar = initializeCalender(TimeZone.getDefault());
+        GregorianCalendar calendar = initializeCalender(con.getServerTimeZone());
         long utcMillis;    // Value to which the calendar is to be set (in milliseconds 1/1/1970 00:00:00 GMT)
         java.sql.Timestamp timestampValue = java.sql.Timestamp.valueOf(value);
         utcMillis = timestampValue.getTime();
@@ -3474,7 +3474,7 @@ final class TDSWriter {
     }
 
     void writeDatetime(String value) throws SQLServerException {
-        GregorianCalendar calendar = initializeCalender(TimeZone.getDefault());
+        GregorianCalendar calendar = initializeCalender(con.getServerTimeZone());
         long utcMillis;    // Value to which the calendar is to be set (in milliseconds 1/1/1970 00:00:00 GMT)
         int subSecondNanos;
         java.sql.Timestamp timestampValue = java.sql.Timestamp.valueOf(value);
@@ -3522,7 +3522,7 @@ final class TDSWriter {
     }
 
     void writeDate(String value) throws SQLServerException {
-        GregorianCalendar calendar = initializeCalender(TimeZone.getDefault());
+        GregorianCalendar calendar = initializeCalender(con.getServerTimeZone());
         long utcMillis;
         java.sql.Date dateValue = java.sql.Date.valueOf(value);
         utcMillis = dateValue.getTime();
@@ -3537,7 +3537,7 @@ final class TDSWriter {
 
     void writeTime(java.sql.Timestamp value,
             int scale) throws SQLServerException {
-        GregorianCalendar calendar = initializeCalender(TimeZone.getDefault());
+        GregorianCalendar calendar = initializeCalender(con.getServerTimeZone());
         long utcMillis;    // Value to which the calendar is to be set (in milliseconds 1/1/1970 00:00:00 GMT)
         int subSecondNanos;
         utcMillis = value.getTime();
@@ -3624,10 +3624,10 @@ final class TDSWriter {
         calendar.setTimeInMillis(utcMillis);
 
         // Local timezone value in minutes
-        int minuteAdjustment = ((TimeZone.getDefault().getRawOffset()) / (60 * 1000));
+        int minuteAdjustment = ((con.getServerTimeZone().getRawOffset()) / (60 * 1000));
         // check if date is in day light savings and add daylight saving minutes
-        if (TimeZone.getDefault().inDaylightTime(calendar.getTime()))
-            minuteAdjustment += (TimeZone.getDefault().getDSTSavings()) / (60 * 1000);
+        if (con.getServerTimeZone().inDaylightTime(calendar.getTime()))
+            minuteAdjustment += (con.getServerTimeZone().getDSTSavings()) / (60 * 1000);
         // If the local time is negative then positive minutesOffset must be subtracted from calender
         minuteAdjustment += (minuteAdjustment < 0) ? (minutesOffset * (-1)) : minutesOffset;
         calendar.add(Calendar.MINUTE, minuteAdjustment);
@@ -3681,10 +3681,10 @@ final class TDSWriter {
         calendar = initializeCalender(timeZone);
         calendar.setTimeInMillis(utcMillis);
 
-        int minuteAdjustment = (TimeZone.getDefault().getRawOffset()) / (60 * 1000);
+        int minuteAdjustment = (con.getServerTimeZone().getRawOffset()) / (60 * 1000);
         // check if date is in day light savings and add daylight saving minutes to Local timezone(in minutes)
-        if (TimeZone.getDefault().inDaylightTime(calendar.getTime()))
-            minuteAdjustment += ((TimeZone.getDefault().getDSTSavings()) / (60 * 1000));
+        if (con.getServerTimeZone().inDaylightTime(calendar.getTime()))
+            minuteAdjustment += ((con.getServerTimeZone().getDSTSavings()) / (60 * 1000));
         // If the local time is negative then positive minutesOffset must be subtracted from calender
         minuteAdjustment += (minuteAdjustment < 0) ? (minutesOffset * (-1)) : minutesOffset;
         calendar.add(Calendar.MINUTE, minuteAdjustment);
@@ -6868,7 +6868,7 @@ final class TDSReader {
         }
 
         // Convert the DATETIME/SMALLDATETIME value to the desired Java type.
-        return DDC.convertTemporalToObject(jdbcType, SSType.DATETIME, appTimeZoneCalendar, daysSinceSQLBaseDate, msecSinceMidnight, 0); // scale
+        return DDC.convertTemporalToObject(jdbcType, SSType.DATETIME, appTimeZoneCalendar, con.getServerTimeZone(), daysSinceSQLBaseDate, msecSinceMidnight, 0); // scale
                                                                                                                                         // (ignored
                                                                                                                                         // for
                                                                                                                                         // fixed-scale
@@ -6886,7 +6886,7 @@ final class TDSReader {
         int localDaysIntoCE = readDaysIntoCE();
 
         // Convert the DATE value to the desired Java type.
-        return DDC.convertTemporalToObject(jdbcType, SSType.DATE, appTimeZoneCalendar, localDaysIntoCE, 0,  // midnight local to app time zone
+        return DDC.convertTemporalToObject(jdbcType, SSType.DATE, appTimeZoneCalendar, con.getServerTimeZone(), localDaysIntoCE, 0,  // midnight local to app time zone
                 0); // scale (ignored for DATE)
     }
 
@@ -6901,7 +6901,7 @@ final class TDSReader {
         long localNanosSinceMidnight = readNanosSinceMidnight(typeInfo.getScale());
 
         // Convert the TIME value to the desired Java type.
-        return DDC.convertTemporalToObject(jdbcType, SSType.TIME, appTimeZoneCalendar, 0, localNanosSinceMidnight, typeInfo.getScale());
+        return DDC.convertTemporalToObject(jdbcType, SSType.TIME, appTimeZoneCalendar, con.getServerTimeZone(), 0, localNanosSinceMidnight, typeInfo.getScale());
     }
 
     final Object readDateTime2(int valueLength,
@@ -6916,7 +6916,7 @@ final class TDSReader {
         int localDaysIntoCE = readDaysIntoCE();
 
         // Convert the DATETIME2 value to the desired Java type.
-        return DDC.convertTemporalToObject(jdbcType, SSType.DATETIME2, appTimeZoneCalendar, localDaysIntoCE, localNanosSinceMidnight,
+        return DDC.convertTemporalToObject(jdbcType, SSType.DATETIME2, appTimeZoneCalendar, con.getServerTimeZone(), localDaysIntoCE, localNanosSinceMidnight,
                 typeInfo.getScale());
     }
 
@@ -6934,7 +6934,8 @@ final class TDSReader {
 
         // Convert the DATETIMEOFFSET value to the desired Java type.
         return DDC.convertTemporalToObject(jdbcType, SSType.DATETIMEOFFSET,
-                new GregorianCalendar(new SimpleTimeZone(localMinutesOffset * 60 * 1000, ""), Locale.US), utcDaysIntoCE, utcNanosSinceMidnight,
+                new GregorianCalendar(new SimpleTimeZone(localMinutesOffset * 60 * 1000, ""), Locale.US),
+                con.getServerTimeZone(), utcDaysIntoCE, utcNanosSinceMidnight,
                 typeInfo.getScale());
     }
 

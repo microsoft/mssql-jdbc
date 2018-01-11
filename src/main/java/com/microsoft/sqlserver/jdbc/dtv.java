@@ -519,14 +519,14 @@ final class DTV {
              * the DTV's calendar directly, as it may not be Gregorian...
              */
             if (null != value) {
-                TimeZone timeZone = TimeZone.getDefault(); // Time zone to associate with the value in the Gregorian calendar
+                TimeZone timeZone = conn.getServerTimeZone(); // Time zone to associate with the value in the Gregorian calendar
                 long utcMillis = 0;    // Value to which the calendar is to be set (in milliseconds 1/1/1970 00:00:00 GMT)
 
                 // Figure out the value components according to the type of the Java object passed in...
                 switch (javaType) {
                     case TIME: {
-                        // Set the time zone from the calendar supplied by the app or use the JVM default
-                        timeZone = (null != dtv.getCalendar()) ? dtv.getCalendar().getTimeZone() : TimeZone.getDefault();
+                        // Set the time zone from the calendar supplied by the app or use the server default
+                        timeZone = (null != dtv.getCalendar()) ? dtv.getCalendar().getTimeZone() : conn.getServerTimeZone();
 
                         utcMillis = ((java.sql.Time) value).getTime();
                         subSecondNanos = Nanos.PER_MILLISECOND * (int) (utcMillis % 1000);
@@ -545,16 +545,16 @@ final class DTV {
                     }
 
                     case DATE: {
-                        // Set the time zone from the calendar supplied by the app or use the JVM default
-                        timeZone = (null != dtv.getCalendar()) ? dtv.getCalendar().getTimeZone() : TimeZone.getDefault();
+                        // Set the time zone from the calendar supplied by the app or use the server default
+                        timeZone = (null != dtv.getCalendar()) ? dtv.getCalendar().getTimeZone() : conn.getServerTimeZone();
 
                         utcMillis = ((java.sql.Date) value).getTime();
                         break;
                     }
 
                     case TIMESTAMP: {
-                        // Set the time zone from the calendar supplied by the app or use the JVM default
-                        timeZone = (null != dtv.getCalendar()) ? dtv.getCalendar().getTimeZone() : TimeZone.getDefault();
+                        // Set the time zone from the calendar supplied by the app or use the server default
+                        timeZone = (null != dtv.getCalendar()) ? dtv.getCalendar().getTimeZone() : conn.getServerTimeZone();
 
                         java.sql.Timestamp timestampValue = (java.sql.Timestamp) value;
                         utcMillis = timestampValue.getTime();
@@ -565,8 +565,8 @@ final class DTV {
                     case UTILDATE: {
                         // java.util.Date is mapped to JDBC type TIMESTAMP
                         // java.util.Date and java.sql.Date are both millisecond precision
-                        // Set the time zone from the calendar supplied by the app or use the JVM default
-                        timeZone = (null != dtv.getCalendar()) ? dtv.getCalendar().getTimeZone() : TimeZone.getDefault();
+                        // Set the time zone from the calendar supplied by the app or use the server default
+                        timeZone = (null != dtv.getCalendar()) ? dtv.getCalendar().getTimeZone() : conn.getServerTimeZone();
 
                         utcMillis = ((java.util.Date) value).getTime();
 
@@ -589,8 +589,8 @@ final class DTV {
                     case CALENDAR: {
                         // java.util.Calendar is mapped to JDBC type TIMESTAMP
                         // java.util.Calendar is millisecond precision
-                        // Set the time zone from the calendar supplied by the app or use the JVM default
-                        timeZone = (null != dtv.getCalendar()) ? dtv.getCalendar().getTimeZone() : TimeZone.getDefault();
+                        // Set the time zone from the calendar supplied by the app or use the server default
+                        timeZone = (null != dtv.getCalendar()) ? dtv.getCalendar().getTimeZone() : conn.getServerTimeZone();
 
                         utcMillis = ((java.util.Calendar) value).getTimeInMillis();
 
@@ -3705,14 +3705,14 @@ final class ServerDTVImpl extends DTVImpl {
                 // cannot reuse method
                 int daysIntoCE = getDaysIntoCE(decryptedValue, baseSSType);
 
-                return DDC.convertTemporalToObject(jdbcType, baseSSType, cal, daysIntoCE, 0, 0);
+                return DDC.convertTemporalToObject(jdbcType, baseSSType, cal, con.getServerTimeZone(), daysIntoCE, 0, 0);
 
             }
 
             case TIME: {
                 long localNanosSinceMidnight = readNanosSinceMidnightAE(decryptedValue, baseTypeInfo.getScale(), baseSSType);
 
-                return DDC.convertTemporalToObject(jdbcType, SSType.TIME, cal, 0, localNanosSinceMidnight, baseTypeInfo.getScale());
+                return DDC.convertTemporalToObject(jdbcType, SSType.TIME, cal, con.getServerTimeZone(), 0, localNanosSinceMidnight, baseTypeInfo.getScale());
             }
 
             case DATETIME2: {
@@ -3732,7 +3732,7 @@ final class ServerDTVImpl extends DTVImpl {
                 int daysIntoCE = getDaysIntoCE(datePortion, baseSSType);
 
                 // Convert the DATETIME2 value to the desired Java type.
-                return DDC.convertTemporalToObject(jdbcType, SSType.DATETIME2, cal, daysIntoCE, localNanosSinceMidnight, baseTypeInfo.getScale());
+                return DDC.convertTemporalToObject(jdbcType, SSType.DATETIME2, cal, con.getServerTimeZone(), daysIntoCE, localNanosSinceMidnight, baseTypeInfo.getScale());
 
             }
 
@@ -3745,7 +3745,7 @@ final class ServerDTVImpl extends DTVImpl {
                 // SQL smalldatetime has less precision. It stores 2 bytes
                 // for the days since SQL Base Date and 2 bytes for minutes
                 // after midnight.
-                return DDC.convertTemporalToObject(jdbcType, SSType.DATETIME, cal, Util.readUnsignedShort(decryptedValue, 0),
+                return DDC.convertTemporalToObject(jdbcType, SSType.DATETIME, cal, con.getServerTimeZone(), Util.readUnsignedShort(decryptedValue, 0),
                         Util.readUnsignedShort(decryptedValue, 2) * 60L * 1000L, 0);
             }
 
@@ -3758,7 +3758,7 @@ final class ServerDTVImpl extends DTVImpl {
                 // SQL datetime is 4 bytes for days since SQL Base Date
                 // (January 1, 1900 00:00:00 GMT) and 4 bytes for
                 // the number of three hundredths (1/300) of a second since midnight.
-                return DDC.convertTemporalToObject(jdbcType, SSType.DATETIME, cal, Util.readInt(decryptedValue, 0),
+                return DDC.convertTemporalToObject(jdbcType, SSType.DATETIME, cal, con.getServerTimeZone(), Util.readInt(decryptedValue, 0),
                         (Util.readInt(decryptedValue, 4) * 10 + 1) / 3, 0);
             }
 
@@ -3778,7 +3778,8 @@ final class ServerDTVImpl extends DTVImpl {
                 int localMinutesOffset = ByteBuffer.wrap(offsetPortion).order(ByteOrder.LITTLE_ENDIAN).getShort();
 
                 return DDC.convertTemporalToObject(jdbcType, SSType.DATETIMEOFFSET,
-                        new GregorianCalendar(new SimpleTimeZone(localMinutesOffset * 60 * 1000, ""), Locale.US), daysIntoCE, localNanosSinceMidnight,
+                        new GregorianCalendar(new SimpleTimeZone(localMinutesOffset * 60 * 1000, ""), Locale.US),
+                        con.getServerTimeZone(), daysIntoCE, localNanosSinceMidnight,
                         baseTypeInfo.getScale());
 
             }

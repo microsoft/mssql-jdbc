@@ -612,6 +612,15 @@ public class SQLServerDataSource implements ISQLServerDataSource, DataSource, ja
         return getStringProperty(connectionProps, SQLServerDriverStringProperty.TRUST_MANAGER_CONSTRUCTOR_ARG.toString(),
                 SQLServerDriverStringProperty.TRUST_MANAGER_CONSTRUCTOR_ARG.getDefaultValue());
     }
+    
+    public void setServerTimeZone(String serverTimeZone) {
+        setStringProperty(connectionProps, SQLServerDriverStringProperty.SERVER_TIME_ZONE.toString(), serverTimeZone);
+    }
+
+    public String getServerTimeZone() {
+        return getStringProperty(connectionProps, SQLServerDriverStringProperty.SERVER_TIME_ZONE.toString(),
+                SQLServerDriverStringProperty.SERVER_TIME_ZONE.getDefaultValue());
+    }
 
     // The URL property is exposed for backwards compatibility reasons. Also, several
     // Java Application servers expect a setURL function on the DataSource and set it

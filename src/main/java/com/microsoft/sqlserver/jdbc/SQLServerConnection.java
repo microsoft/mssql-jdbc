@@ -43,6 +43,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Properties;
+import java.util.TimeZone;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.Executor;
@@ -541,6 +542,12 @@ public class SQLServerConnection implements ISQLServerConnection {
 
     boolean getServerSupportsColumnEncryption() {
         return serverSupportsColumnEncryption;
+    }
+
+    private TimeZone serverTimeZone = TimeZone.getDefault();
+
+    TimeZone getServerTimeZone() {
+        return serverTimeZone;
     }
 
     static boolean isWindows;
@@ -1729,6 +1736,12 @@ public class SQLServerConnection implements ISQLServerConnection {
                 activeConnectionProperties.setProperty(sPropKey, SSLProtocol.valueOfString(sPropValue).toString());
             }
             
+            sPropKey = SQLServerDriverStringProperty.SERVER_TIME_ZONE.toString();
+            sPropValue = activeConnectionProperties.getProperty(sPropKey);
+            if (null != sPropValue) {
+                serverTimeZone = sPropValue.isEmpty() ? TimeZone.getDefault() : TimeZone.getTimeZone(sPropValue);
+            }
+
             FailoverInfo fo = null;
             String databaseNameProperty = SQLServerDriverStringProperty.DATABASE_NAME.toString();
             String serverNameProperty = SQLServerDriverStringProperty.SERVER_NAME.toString();

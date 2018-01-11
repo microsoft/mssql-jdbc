@@ -3242,7 +3242,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable {
 
         switch (srcTemporalJdbcType) {
             case DATE:
-                calendar = new GregorianCalendar(java.util.TimeZone.getDefault(), java.util.Locale.US);
+                calendar = new GregorianCalendar(connection.getServerTimeZone(), java.util.Locale.US);
                 calendar.setLenient(true);
                 calendar.clear();
                 calendar.setTimeInMillis(((Date) colValue).getTime());
@@ -3251,7 +3251,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable {
                         SSType.DATE, (short) 0);
 
             case TIME:
-                calendar = new GregorianCalendar(java.util.TimeZone.getDefault(), java.util.Locale.US);
+                calendar = new GregorianCalendar(connection.getServerTimeZone(), java.util.Locale.US);
                 calendar.setLenient(true);
                 calendar.clear();
                 utcMillis = ((java.sql.Timestamp) colValue).getTime();
@@ -3268,7 +3268,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable {
                 return tdsWriter.writeEncryptedScaledTemporal(calendar, subSecondNanos, scale, SSType.TIME, (short) 0);
 
             case TIMESTAMP:
-                calendar = new GregorianCalendar(java.util.TimeZone.getDefault(), java.util.Locale.US);
+                calendar = new GregorianCalendar(connection.getServerTimeZone(), java.util.Locale.US);
                 calendar.setLenient(true);
                 calendar.clear();
                 utcMillis = ((java.sql.Timestamp) colValue).getTime();
@@ -3278,7 +3278,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable {
 
             case DATETIME:
             case SMALLDATETIME:
-                calendar = new GregorianCalendar(java.util.TimeZone.getDefault(), java.util.Locale.US);
+                calendar = new GregorianCalendar(connection.getServerTimeZone(), java.util.Locale.US);
                 calendar.setLenient(true);
                 calendar.clear();
                 utcMillis = ((java.sql.Timestamp) colValue).getTime();

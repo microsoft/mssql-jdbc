@@ -744,7 +744,10 @@ final class DDC {
      *
      * @param timeZoneCalendar
      *            (optional) a Calendar representing the time zone to associate with the resulting converted value. For DATETIMEOFFSET, this parameter
-     *            represents the time zone associated with the value. Null means to use the default VM time zone.
+     *            represents the time zone associated with the value. Null means to use the default server time zone.
+     *
+     * @param serverTimeZone
+     *            the default server time zone, used if timeZoneCalendar is null.
      *
      * @param daysSinceBaseDate
      *            The date part of the value, expressed as a number of days since the base date for the specified SQL Server data type. For DATETIME
@@ -766,12 +769,13 @@ final class DDC {
     static final Object convertTemporalToObject(JDBCType jdbcType,
             SSType ssType,
             Calendar timeZoneCalendar,
+            TimeZone serverTimeZone,
             int daysSinceBaseDate,
             long ticksSinceMidnight,
             int fractionalSecondsScale) {
         // Determine the local time zone to associate with the value. Use the default VM
         // time zone if no time zone is otherwise specified.
-        TimeZone localTimeZone = (null != timeZoneCalendar) ? timeZoneCalendar.getTimeZone() : TimeZone.getDefault();
+        TimeZone localTimeZone = (null != timeZoneCalendar) ? timeZoneCalendar.getTimeZone() : serverTimeZone;
 
         // Assumed time zone associated with the date and time parts of the value.
         //
@@ -909,7 +913,7 @@ final class DDC {
         }
         int localMillisOffset;
         if (null == timeZoneCalendar) {
-            TimeZone tz = TimeZone.getDefault();
+            TimeZone tz = serverTimeZone;
             GregorianCalendar _cal = new GregorianCalendar(componentTimeZone, Locale.US);
             _cal.setLenient(true);
             _cal.clear();
