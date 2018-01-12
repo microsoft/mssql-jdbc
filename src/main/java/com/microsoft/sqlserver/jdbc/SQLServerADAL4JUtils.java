@@ -9,14 +9,13 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.logging.Level;
 
+import javax.security.auth.kerberos.KerberosPrincipal;
+
 import com.microsoft.aad.adal4j.AuthenticationContext;
 import com.microsoft.aad.adal4j.AuthenticationException;
 import com.microsoft.aad.adal4j.AuthenticationResult;
 import com.microsoft.sqlserver.jdbc.SQLServerConnection.ActiveDirectoryAuthentication;
 import com.microsoft.sqlserver.jdbc.SQLServerConnection.SqlFedAuthInfo;
-
-import sun.security.krb5.Credentials;
-import sun.security.krb5.KrbException;
 
 class SQLServerADAL4JUtils {
 
@@ -66,38 +65,31 @@ class SQLServerADAL4JUtils {
             String authenticationString) throws SQLServerException {
         ExecutorService executorService = Executors.newFixedThreadPool(1);
 
-        String tgtClientName = null;
-
         try {
-            // Get Kerberos TGT ticket and retrieve client name.
-            // If KRB5CCNAME environment variable is not set, the method searches for default location
-            Credentials cred = Credentials.acquireTGTFromCache(null, System.getenv("KRB5CCNAME"));
-
-            if (null == cred) {
-                throw new SQLServerException(SQLServerException.getErrString("R_AADIntegratedTGTNotFound"), null);
-            }
-
-            tgtClientName = cred.getClient().toString();
+            // principal name does not matter, what matters is the realm name
+            // it gets the username in principal_name@realm_name format
+            KerberosPrincipal kerberosPrincipal = new KerberosPrincipal("username");
+            String username = kerberosPrincipal.getName();
 
             if (adal4jLogger.isLoggable(Level.FINE)) {
-                adal4jLogger.fine(adal4jLogger.toString() + " client name of Kerberos TGT is:" + tgtClientName);
+                adal4jLogger.fine(adal4jLogger.toString() + " realm name is:" + kerberosPrincipal.getRealm());
             }
 
             AuthenticationContext context = new AuthenticationContext(fedAuthInfo.stsurl, false, executorService);
             Future<AuthenticationResult> future = context.acquireToken(fedAuthInfo.spn, ActiveDirectoryAuthentication.JDBC_FEDAUTH_CLIENT_ID,
-                    tgtClientName, null, null);
+                    username, null, null);
 
             AuthenticationResult authenticationResult = future.get();
             SqlFedAuthToken fedAuthToken = new SqlFedAuthToken(authenticationResult.getAccessToken(), authenticationResult.getExpiresOnDate());
 
             return fedAuthToken;
         }
-        catch (InterruptedException | IOException | KrbException e) {
+        catch (InterruptedException | IOException e) {
             throw new SQLServerException(e.getMessage(), e);
         }
         catch (ExecutionException e) {
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_ADALExecution"));
-            Object[] msgArgs = {tgtClientName, authenticationString};
+            Object[] msgArgs = {"", authenticationString};
 
             if (null == e.getCause() || null == e.getCause().getMessage()) {
                 // the case when Future's outcome has no AuthenticationResult but exception
