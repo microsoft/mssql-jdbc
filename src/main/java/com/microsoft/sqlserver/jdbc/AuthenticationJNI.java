@@ -41,6 +41,10 @@ final class AuthenticationJNI extends SSPIAuthentication {
     static int GetMaxSSPIBlobSize() {
         return sspiBlobMaxlen;
     }
+    
+    static boolean isDllLoaded() {
+        return enabled;     
+    }
 
     static {
         UnsatisfiedLinkError temp = null;
@@ -77,6 +81,16 @@ final class AuthenticationJNI extends SSPIAuthentication {
         this.con = con;
         DNSName = GetDNSName(address);
         port = serverport;
+    }
+
+    static FedAuthDllInfo getAccessTokenForWindowsIntegrated(String stsURL,
+            String servicePrincipalName,
+            String clientConnectionId,
+            String clientId,
+            long expirationFileTime) throws DLLException {
+        FedAuthDllInfo dllInfo = ADALGetAccessTokenForWindowsIntegrated(stsURL, servicePrincipalName, clientConnectionId, clientId,
+                expirationFileTime, authLogger);
+        return dllInfo;
     }
 
     // InitDNSName should be called to initialize the DNSName before calling this function
@@ -157,6 +171,13 @@ final class AuthenticationJNI extends SSPIAuthentication {
 
     private native static int GetDNSName(String address,
             String[] DNSName,
+            java.util.logging.Logger log);
+
+    private native static FedAuthDllInfo ADALGetAccessTokenForWindowsIntegrated(String stsURL,
+            String servicePrincipalName,
+            String clientConnectionId,
+            String clientId,
+            long expirationFileTime,
             java.util.logging.Logger log);
 
     native static byte[] DecryptColumnEncryptionKey(String masterKeyPath,
