@@ -1870,13 +1870,11 @@ final class TDSChannel {
 
         if (isEncryptOn && !isTrustServerCertificate) {          
             isValid = true;
-            if (isValidTrustStore) {
-                // In case of valid trust store we need to check TrustStoreType.
-                if (!isValidTrustStoreType) {
-                    isValid = false;               
-                    if (logger.isLoggable(Level.FINER))
-                        logger.finer(toString() + "TrustStoreType is required alongside with TrustStore.");
-                }
+            if (isValidTrustStore && !isValidTrustStoreType) {
+            // In case of valid trust store we need to check TrustStoreType.
+                isValid = false;               
+                if (logger.isLoggable(Level.FINER))
+                    logger.finer(toString() + "TrustStoreType is required alongside with TrustStore.");
             }
         }
 
@@ -2894,11 +2892,8 @@ final class SocketFinder {
     public void updateSelectedException(IOException ex,
             String traceId) {
         boolean updatedException = false;
-        if (selectedException == null) {
-            selectedException = ex;
-            updatedException = true;
-        }
-        else if ((!(ex instanceof SocketTimeoutException)) && (selectedException instanceof SocketTimeoutException)) {
+        if (selectedException == null ||
+        	(!(ex instanceof SocketTimeoutException)) && (selectedException instanceof SocketTimeoutException)) {
             selectedException = ex;
             updatedException = true;
         }
