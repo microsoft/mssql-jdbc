@@ -670,7 +670,7 @@ final class TDSChannel {
          * The mission: To close the SSLSocket and release everything that it is holding onto other than the TCP/IP socket and streams.
          *
          * The challenge: Simply closing the SSLSocket tries to do additional, unnecessary shutdown I/O over the TCP/IP streams that are bound to the
-         * socket proxy, resulting in a hang and confusing SQL Server.
+         * socket proxy, resulting in a not responding and confusing SQL Server.
          *
          * Solution: Rewire the ProxySocket's input and output streams (one more time) to closed streams. SSLSocket sees that the streams are already
          * closed and does not attempt to do any further I/O on them before closing itself.
@@ -2547,7 +2547,7 @@ final class SocketFinder {
                                         + " occured while processing the channel: " + ch);
                             updateSelectedException(ex, this.toString());
                             // close the channel pro-actively so that we do not
-                            // hang on to network resources
+                            // rely to network resources
                             ch.close();
                         }
 
@@ -7630,8 +7630,8 @@ abstract class TDSCommand {
         // interrupting threads. Note that it is remotely possible that the call
         // to readPacket won't actually read anything if the attention ack was
         // already read by TDSCommand.detach(), in which case this method could
-        // be called from multiple threads, leading to a benign race to clear the
-        // readingResponse flag.
+        // be called from multiple threads, leading to a benign followup process
+        // to clear the readingResponse flag.
         if (readAttentionAck)
             tdsReader.readPacket();
 
