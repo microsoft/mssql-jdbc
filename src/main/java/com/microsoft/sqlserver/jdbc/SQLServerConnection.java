@@ -83,6 +83,9 @@ import mssql.googlecode.concurrentlinkedhashmap.EvictionListener;
 
 // Note all the public functions in this class also need to be defined in SQLServerConnectionPoolProxy.
 public class SQLServerConnection implements ISQLServerConnection {
+    boolean contextIsAlreadyChanged = false;
+    boolean contextChanged = false;
+
     long timerExpire;
     boolean attemptRefreshTokenLocked = false;
 
@@ -119,8 +122,10 @@ public class SQLServerConnection implements ISQLServerConnection {
     static class Sha1HashKey {
         private byte[] bytes;
 
-        Sha1HashKey(String sql, String parametersDefinition) {
-            this(String.format("%s%s", sql, parametersDefinition));
+        Sha1HashKey(String sql,
+                String parametersDefinition,
+                String dbName) {
+            this(String.format("%s%s%s", sql, parametersDefinition, dbName));
         }
 
         Sha1HashKey(String s) {
@@ -407,7 +412,7 @@ public class SQLServerConnection implements ISQLServerConnection {
                                                                                                                                                // is
                                                                                                                                                // false).
 
-    private static String hostName = null;
+    private String hostName = null;
     
     boolean sendStringParametersAsUnicode() {
         return sendStringParametersAsUnicode;
@@ -1418,7 +1423,7 @@ public class SQLServerConnection implements ISQLServerConnection {
             sPropKey = SQLServerDriverIntProperty.STATEMENT_POOLING_CACHE_SIZE.toString();
             if (activeConnectionProperties.getProperty(sPropKey) != null && activeConnectionProperties.getProperty(sPropKey).length() > 0) {
                 try {
-                    int n = new Integer(activeConnectionProperties.getProperty(sPropKey));
+                    int n = Integer.parseInt(activeConnectionProperties.getProperty(sPropKey));
                     this.setStatementPoolingCacheSize(n);
                 }
                 catch (NumberFormatException e) {
@@ -1555,7 +1560,7 @@ public class SQLServerConnection implements ISQLServerConnection {
             try {
                 String strPort = activeConnectionProperties.getProperty(sPropKey);
                 if (null != strPort) {
-                    nPort = new Integer(strPort);
+                    nPort = Integer.parseInt(strPort);
 
                     if ((nPort < 0) || (nPort > 65535)) {
                         MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidPortNumber"));
@@ -1635,7 +1640,7 @@ public class SQLServerConnection implements ISQLServerConnection {
             nLockTimeout = defaultLockTimeOut; // Wait forever
             if (activeConnectionProperties.getProperty(sPropKey) != null && activeConnectionProperties.getProperty(sPropKey).length() > 0) {
                 try {
-                    int n = new Integer(activeConnectionProperties.getProperty(sPropKey));
+                    int n = Integer.parseInt(activeConnectionProperties.getProperty(sPropKey));
                     if (n >= defaultLockTimeOut)
                         nLockTimeout = n;
                     else {
@@ -1656,7 +1661,7 @@ public class SQLServerConnection implements ISQLServerConnection {
             queryTimeoutSeconds = defaultQueryTimeout; // Wait forever
             if (activeConnectionProperties.getProperty(sPropKey) != null && activeConnectionProperties.getProperty(sPropKey).length() > 0) {
                 try {
-                    int n = new Integer(activeConnectionProperties.getProperty(sPropKey));
+                    int n = Integer.parseInt(activeConnectionProperties.getProperty(sPropKey));
                     if (n >= defaultQueryTimeout) {
                         queryTimeoutSeconds = n;
                     }
@@ -1678,7 +1683,7 @@ public class SQLServerConnection implements ISQLServerConnection {
             socketTimeoutMilliseconds = defaultSocketTimeout; // Wait forever
             if (activeConnectionProperties.getProperty(sPropKey) != null && activeConnectionProperties.getProperty(sPropKey).length() > 0) {
                 try {
-                    int n = new Integer(activeConnectionProperties.getProperty(sPropKey));
+                    int n = Integer.parseInt(activeConnectionProperties.getProperty(sPropKey));
                     if (n >= defaultSocketTimeout) {
                         socketTimeoutMilliseconds = n;
                     }
@@ -1698,7 +1703,7 @@ public class SQLServerConnection implements ISQLServerConnection {
             sPropKey = SQLServerDriverIntProperty.SERVER_PREPARED_STATEMENT_DISCARD_THRESHOLD.toString();
             if (activeConnectionProperties.getProperty(sPropKey) != null && activeConnectionProperties.getProperty(sPropKey).length() > 0) {
                 try {
-                    int n = new Integer(activeConnectionProperties.getProperty(sPropKey));
+                    int n = Integer.parseInt(activeConnectionProperties.getProperty(sPropKey));
                     setServerPreparedStatementDiscardThreshold(n);
                 }
                 catch (NumberFormatException e) {
@@ -1991,6 +1996,7 @@ public class SQLServerConnection implements ISQLServerConnection {
             catch (SQLServerException sqlex) {
                 if ((SQLServerException.LOGON_FAILED == sqlex.getErrorCode()) // actual logon failed, i.e. bad password
                         || (SQLServerException.PASSWORD_EXPIRED == sqlex.getErrorCode()) // actual logon failed, i.e. password isExpired
+                        || (SQLServerException.USER_ACCOUNT_LOCKED == sqlex.getErrorCode()) // actual logon failed, i.e. user account locked
                         || (SQLServerException.DRIVER_ERROR_INVALID_TDS == sqlex.getDriverErrorCode()) // invalid TDS received from server
                         || (SQLServerException.DRIVER_ERROR_SSL_FAILED == sqlex.getDriverErrorCode()) // failure negotiating SSL
                         || (SQLServerException.DRIVER_ERROR_INTERMITTENT_TLS_FAILED == sqlex.getDriverErrorCode()) // failure TLS1.2
@@ -2158,7 +2164,7 @@ public class SQLServerConnection implements ISQLServerConnection {
                     connectionlogger.fine(toString() + " SQL Server port returned by SQL Browser: " + instancePort);
                 try {
                     if (null != instancePort) {
-                        primaryPortNumber = new Integer(instancePort);
+                        primaryPortNumber = Integer.parseInt(instancePort);
 
                         if ((primaryPortNumber < 0) || (primaryPortNumber > 65535)) {
                             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidPortNumber"));
@@ -3079,6 +3085,8 @@ public class SQLServerConnection implements ISQLServerConnection {
         checkClosed();
         if (catalog != null) {
             connectionCommand("use " + Util.escapeSQLId(catalog), "setCatalog");
+            contextIsAlreadyChanged = true;
+            contextChanged = true;
             sCatalog = catalog;
         }
         loggerExternal.exiting(getClassNameLogging(), "setCatalog");
@@ -3088,6 +3096,10 @@ public class SQLServerConnection implements ISQLServerConnection {
         loggerExternal.entering(getClassNameLogging(), "getCatalog");
         checkClosed();
         loggerExternal.exiting(getClassNameLogging(), "getCatalog", sCatalog);
+        return sCatalog;
+    }
+
+    String getSCatalog() throws SQLServerException {
         return sCatalog;
     }
 
@@ -4402,7 +4414,7 @@ public class SQLServerConnection implements ISQLServerConnection {
         tdsWriter.writeShort((short) TDS_LOGIN_REQUEST_BASE_LEN);
 
         // Hostname
-        tdsWriter.writeShort((short) (hostName == null ? 0 : hostName.length()));
+        tdsWriter.writeShort((short) ((hostName != null && !hostName.isEmpty()) ? hostName.length() : 0));
         dataLen += hostnameBytes.length;
 
         // Only send user/password over if not fSSPI or fed auth ADAL... If both user/password and SSPI are in login
@@ -5758,6 +5770,12 @@ public class SQLServerConnection implements ISQLServerConnection {
     		return;
     	
     	preparedStatementHandleCache.remove(handle.getKey());
+    }
+
+    final void clearCachedPreparedStatementHandle() {
+        if (null != preparedStatementHandleCache) {
+            preparedStatementHandleCache.clear();
+        }
     }
 
     // Handle closing handles when removed from cache.

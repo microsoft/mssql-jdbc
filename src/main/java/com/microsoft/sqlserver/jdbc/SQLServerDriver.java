@@ -347,7 +347,7 @@ enum SQLServerDriverBooleanProperty
     MULTI_SUBNET_FAILOVER                     ("multiSubnetFailover",                       false),
     SERVER_NAME_AS_ACE                        ("serverNameAsACE",                           false),
     SEND_STRING_PARAMETERS_AS_UNICODE         ("sendStringParametersAsUnicode",             true),
-    SEND_TIME_AS_DATETIME                     ("sendTimeAsDatetime",                        true),
+    SEND_TIME_AS_DATETIME                     ("sendTimeAsDatetime",                        false),
     TRANSPARENT_NETWORK_IP_RESOLUTION         ("TransparentNetworkIPResolution",            true),
     TRUST_SERVER_CERTIFICATE                  ("trustServerCertificate",                    false),
     XOPEN_STATES                              ("xopenStates",                               false),
@@ -474,7 +474,9 @@ public final class SQLServerDriver implements java.sql.Driver {
             java.sql.DriverManager.registerDriver(new SQLServerDriver());
         }
         catch (SQLException e) {
-            e.printStackTrace();
+            if (drLogger.isLoggable(Level.FINER) && Util.IsActivityTraceOn()) {
+                drLogger.finer("Error registering driver: " + e);
+            }
         }
     }
 
@@ -632,7 +634,7 @@ public final class SQLServerDriver implements java.sql.Driver {
         // put the user properties into the connect properties
         int nTimeout = DriverManager.getLoginTimeout();
         if (nTimeout > 0) {
-            connectProperties.put(SQLServerDriverIntProperty.LOGIN_TIMEOUT.toString(), new Integer(nTimeout).toString());
+            connectProperties.put(SQLServerDriverIntProperty.LOGIN_TIMEOUT.toString(), ((Integer)nTimeout).toString());
         }
 
         // Merge connectProperties (from URL) and supplied properties from user.
