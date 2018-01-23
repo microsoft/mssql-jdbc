@@ -439,7 +439,7 @@ final class DDC {
             }
         }
         int offset = numBytes - unscaledBytes.length;
-        System.arraycopy(unscaledBytes, offset - offset, ret, offset, numBytes - offset);
+        System.arraycopy(unscaledBytes, 0, ret, offset, numBytes - offset);
         return ret;
     }
 
