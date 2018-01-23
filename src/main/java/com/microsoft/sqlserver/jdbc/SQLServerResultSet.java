@@ -939,7 +939,6 @@ public class SQLServerResultSet implements ISQLServerResultSet {
      * and so on.
      *
      * @return false when there are no more rows to read
-     * @return true otherwise
      */
     public boolean next() throws SQLServerException {
         loggerExternal.entering(getClassNameLogging(), "next");
@@ -1041,8 +1040,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
     }
 
     /**
-     * @return true if the cursor is before the first row in this result set
-     * @return false otherwise or if thie result set contains no rows.
+     * @return true if the cursor is before the first row in this result set, returns false otherwise or if the result set contains no rows.
      */
     public boolean isBeforeFirst() throws SQLServerException {
         loggerExternal.entering(getClassNameLogging(), "isBeforeFirst");
@@ -1144,7 +1142,6 @@ public class SQLServerResultSet implements ISQLServerResultSet {
      * TYPE_SS_SCROLL_STATIC, TYPE_SS_SCROLL_KEYSET, TYPE_SS_SCROLL_DYNAMIC.
      *
      * @return true if the cursor is on the first row in this result set
-     * @return false otherwise
      */
     public boolean isFirst() throws SQLServerException {
         loggerExternal.entering(getClassNameLogging(), "isFirst");
@@ -1182,7 +1179,6 @@ public class SQLServerResultSet implements ISQLServerResultSet {
      * TYPE_SS_SCROLL_STATIC, TYPE_SS_SCROLL_KEYSET, TYPE_SS_SCROLL_DYNAMIC.
      *
      * @return true if the cursor is on the last row in this result set
-     * @return false otherwise
      */
     public boolean isLast() throws SQLServerException {
         loggerExternal.entering(getClassNameLogging(), "isLast");
@@ -1302,8 +1298,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
      * This method should be called only on ResultSet objects that are scrollable: TYPE_SCROLL_SENSITIVE, TYPE_SCROLL_INSENSITIVE,
      * TYPE_SS_SCROLL_STATIC, TYPE_SS_SCROLL_KEYSET, TYPE_SS_SCROLL_DYNAMIC.
      *
-     * @return true if the cursor is on a valid row
-     * @return false if there are no rows in this ResultSet object
+     * @return true if the cursor is on a valid row, otherwise returns false if there are no rows in this ResultSet object
      */
     public boolean first() throws SQLServerException {
         loggerExternal.entering(getClassNameLogging(), "first");
@@ -1353,8 +1348,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
      * This method should be called only on ResultSet objects that are scrollable: TYPE_SCROLL_SENSITIVE, TYPE_SCROLL_INSENSITIVE,
      * TYPE_SS_SCROLL_STATIC, TYPE_SS_SCROLL_KEYSET, TYPE_SS_SCROLL_DYNAMIC.
      *
-     * @return true if the cursor is on a valid row
-     * @return false if there are no rows in this ResultSet object
+     * @return true if the cursor is on a valid row, otherwise returns false if there are no rows in this ResultSet object
      */
     public boolean last() throws SQLServerException {
         loggerExternal.entering(getClassNameLogging(), "last");
@@ -1442,8 +1436,8 @@ public class SQLServerResultSet implements ISQLServerResultSet {
      * This method should be called only on ResultSet objects that are scrollable: TYPE_SCROLL_SENSITIVE, TYPE_SCROLL_INSENSITIVE,
      * TYPE_SS_SCROLL_STATIC, TYPE_SS_SCROLL_KEYSET, TYPE_SS_SCROLL_DYNAMIC.
      *
-     * @return true if the cursor is on a valid row in this result set
-     * @return false if the cursor is before the first row or after the last row
+     * @return true if the cursor is on a valid row in this result set, otherwise returns false if the cursor is before the first row or after the
+     *         last row
      */
     public boolean absolute(int row) throws SQLServerException {
         loggerExternal.entering(getClassNameLogging(), "absolute");
@@ -1759,7 +1753,6 @@ public class SQLServerResultSet implements ISQLServerResultSet {
      * TYPE_SS_SCROLL_STATIC, TYPE_SS_SCROLL_KEYSET, TYPE_SS_SCROLL_DYNAMIC.
      *
      * @return true if the cursor is on a valid row in this result set
-     * @return false otherwise
      */
     public boolean previous() throws SQLServerException {
         loggerExternal.entering(getClassNameLogging(), "previous");
