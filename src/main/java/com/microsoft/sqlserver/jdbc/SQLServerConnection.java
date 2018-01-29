@@ -83,8 +83,6 @@ import mssql.googlecode.concurrentlinkedhashmap.EvictionListener;
 
 // Note all the public functions in this class also need to be defined in SQLServerConnectionPoolProxy.
 public class SQLServerConnection implements ISQLServerConnection {
-    boolean contextIsAlreadyChanged = false;
-    boolean contextChanged = false;
 
     long timerExpire;
     boolean attemptRefreshTokenLocked = false;
@@ -277,10 +275,10 @@ public class SQLServerConnection implements ISQLServerConnection {
     }
  
     /** Size of the  prepared statement handle cache */
-    private int statementPoolingCacheSize = 10;
+    private int statementPoolingCacheSize = 0;
 
     /** Default size for prepared statement caches */
-    static final int DEFAULT_STATEMENT_POOLING_CACHE_SIZE = 10; 
+    static final int DEFAULT_STATEMENT_POOLING_CACHE_SIZE = 0; 
     /** Cache of prepared statement handles */
     private ConcurrentLinkedHashMap<Sha1HashKey, PreparedStatementHandle> preparedStatementHandleCache;
     /** Cache of prepared statement parameter metadata */
@@ -3080,8 +3078,6 @@ public class SQLServerConnection implements ISQLServerConnection {
         checkClosed();
         if (catalog != null) {
             connectionCommand("use " + Util.escapeSQLId(catalog), "setCatalog");
-            contextIsAlreadyChanged = true;
-            contextChanged = true;
             sCatalog = catalog;
         }
         loggerExternal.exiting(getClassNameLogging(), "setCatalog");
@@ -5684,7 +5680,7 @@ public class SQLServerConnection implements ISQLServerConnection {
      */
     public int getStatementPoolingCacheSize() {
         return statementPoolingCacheSize;
-    }
+    }   
 
     /**
      * Returns the current number of pooled prepared statement handles.
@@ -5711,6 +5707,24 @@ public class SQLServerConnection implements ISQLServerConnection {
      * 
      */
     public void setStatementPoolingCacheSize(int value) {
+        // Caching turned on?
+        String sPropKey = SQLServerDriverBooleanProperty.DISABLE_STATEMENT_POOLING.toString();
+        String sPropValue = activeConnectionProperties.getProperty(sPropKey);
+        
+        // If DISABLE_STATEMENT_POOLING property is true, we can't allow cache size and will disable caching. 
+        if ( null != sPropValue && sPropValue.equalsIgnoreCase("true"))
+            return;
+        
+        if (0 < value) {
+            preparedStatementHandleCache = new Builder<Sha1HashKey, PreparedStatementHandle>()
+                                            .maximumWeightedCapacity(getStatementPoolingCacheSize())
+                                            .listener(new PreparedStatementCacheEvictionListener())
+                                            .build();
+
+            parameterMetadataCache  = new Builder<Sha1HashKey, SQLServerParameterMetaData>()
+                                            .maximumWeightedCapacity(getStatementPoolingCacheSize())
+                                            .build();
+        }
         if (value != this.statementPoolingCacheSize) {
             value = Math.max(0, value);
             statementPoolingCacheSize = value;
@@ -5771,12 +5785,6 @@ public class SQLServerConnection implements ISQLServerConnection {
     		return;
     	
     	preparedStatementHandleCache.remove(handle.getKey());
-    }
-
-    final void clearCachedPreparedStatementHandle() {
-        if (null != preparedStatementHandleCache) {
-            preparedStatementHandleCache.clear();
-        }
     }
 
     // Handle closing handles when removed from cache.
