@@ -547,7 +547,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                 getNextResult();
             }
             catch (SQLException e) {
-                if (retryBasedOnFailedReuseOfCachedHandle(e, attempt))
+                if (retryBasedOnFailedReuseOfCachedHandle(e, attempt) && connection.isStatementPoolingEnabled())
                     continue;
                 else
                     throw e;
@@ -2690,7 +2690,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                                     throw e;
 
                                 // Retry if invalid handle exception.
-                                if (retryBasedOnFailedReuseOfCachedHandle(e, attempt)) {
+                                if (retryBasedOnFailedReuseOfCachedHandle(e, attempt) && connection.isStatementPoolingEnabled()) {
                                     // reset number of batches prepare
                                     numBatchesPrepared = numBatchesExecuted;
                                     retry = true;
@@ -2701,7 +2701,8 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                                 // so just record the failure for the particular batch item.
                                 updateCount = Statement.EXECUTE_FAILED;
                                 if (null == batchCommand.batchException)
-                                    batchCommand.batchException = e;
+                                    batchCommand.batchException = e;                               
+                                
                             }
 
                             // In batch execution, we have a special update count
@@ -2720,7 +2721,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                     }
                 }
                 catch (SQLException e) {
-                    if (retryBasedOnFailedReuseOfCachedHandle(e, attempt)) {
+                    if (retryBasedOnFailedReuseOfCachedHandle(e, attempt) && connection.isStatementPoolingEnabled()) {
                         // Reset number of batches prepared.
                         numBatchesPrepared = numBatchesExecuted;
                         continue;

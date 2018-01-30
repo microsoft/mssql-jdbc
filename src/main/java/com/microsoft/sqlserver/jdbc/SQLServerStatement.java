@@ -914,6 +914,7 @@ public class SQLServerStatement implements ISQLServerStatement {
         tdsWriter.writeString(batchIter.next());
         while (batchIter.hasNext()) {
             tdsWriter.writeString(" ; ");
+            tdsWriter.writeString(batchIter.next());
         }
 
         // Start the response
