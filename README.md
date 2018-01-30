@@ -36,19 +36,19 @@ What's coming next?  We will look into adding a more comprehensive set of tests,
 
 ## Build
 ### Prerequisites
-* Java 8
+* Java 9
 * [Maven](http://maven.apache.org/download.cgi)
 * An instance of SQL Server or Azure SQL Database that you can connect to. 
 
 ### Build the JAR files
 Maven builds automatically trigger a set of verification tests to run.  For these tests to pass, you will first need to add an environment variable in your system called `mssql_jdbc_test_connection_properties` to provide the [correct connection properties](https://msdn.microsoft.com/en-us/library/ms378428(v=sql.110).aspx) for your SQL Server or Azure SQL Database instance.
 
-To build the jar files, you must use Java 8 with Maven.  You can choose to build a JDBC 4.1 compliant jar file (for use with JRE 7) and/or a JDBC 4.2 compliant jar file (for use with JRE 8).
+To build the jar files, you must use Java 9 with Maven.  You can choose to build a JDBC 4.3 compliant jar file (for use with JRE 9) and/or a JDBC 4.2 compliant jar file (for use with JRE 8).
 
 * Maven:
 	1. If you have not already done so, add the environment variable `mssql_jdbc_test_connection_properties` in your system with the connection properties for your SQL Server or SQL DB instance.
-	2. Run one of the commands below to build a JDBC 4.1 compliant jar or JDBC 4.2 compliant jar in the \target directory. 
-    	* Run `mvn install -Pbuild41`. This creates JDBC 4.1 compliant jar in \target directory
+	2. Run one of the commands below to build a JDBC 4.3 compliant jar or JDBC 4.2 compliant jar in the \target directory. 
+    	* Run `mvn install -Pbuild43`. This creates JDBC 4.3 compliant jar in \target directory
     	* Run `mvn install -Pbuild42`. This creates JDBC 4.2 compliant jar in \target directory
 
 **NOTE**: Beginning release v6.1.7, we will no longer be maintaining the existing [Gradle build script](build.gradle) and it will be left in the repository for reference. Please refer to issue [#62](https://github.com/Microsoft/mssql-jdbc/issues/62) for this decision.
@@ -100,8 +100,8 @@ To get the latest preview version of the driver, add the following to your POM f
 This project has following dependencies: 
 
 Compile Time:
- - `azure-keyvault` : Azure Key Vault Provider for Always Encrypted feature (optional)
- - `adal4j` : Azure ActiveDirectory Library for Java for Azure Active Directory Authentication feature (optional)
+ - `azure-keyvault` : Azure Key Vault Provider for Always Encrypted Azure Key Vault feature (optional)
+ - `adal4j` : Azure ActiveDirectory Library for Java for Azure Active Directory Authentication feature and Azure Key Vault feature (optional)
 
 Test Time:
  - `junit:jar`   : For Unit Test cases.
@@ -131,13 +131,19 @@ Projects that require either of the two features need to explicitly declare the 
 </dependency>
 ```
 
-***For Example:*** If you are using *Azure Key Vault feature* then you need to redeclare *azure-keyvault* dependency in your project's pom file. Please see the following snippet: 
+***For Example:*** If you are using *Azure Key Vault feature* then you need to redeclare *azure-keyvault* dependency and *adal4j* dependency in your project's pom file. Please see the following snippet: 
 ```xml
 <dependency>
 	<groupId>com.microsoft.sqlserver</groupId>
 	<artifactId>mssql-jdbc</artifactId>
 	<version>6.3.6.jre8-preview</version>
 	<scope>compile</scope>
+</dependency>
+
+<dependency>
+	<groupId>com.microsoft.azure</groupId>
+	<artifactId>adal4j</artifactId>
+	<version>1.3.0</version>
 </dependency>
 
 <dependency>

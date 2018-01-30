@@ -21,7 +21,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 public final class SQLServerResultSetMetaData implements java.sql.ResultSetMetaData {
     private SQLServerConnection con;
     private final SQLServerResultSet rs;
-    public int nBeforeExecuteCols;
     static final private java.util.logging.Logger logger = java.util.logging.Logger
             .getLogger("com.microsoft.sqlserver.jdbc.internals.SQLServerResultSetMetaData");
 

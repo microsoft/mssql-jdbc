@@ -133,11 +133,11 @@ public class CallableStatementTest extends AbstractTest {
         
         // the historical way: no leading '@', parameter names respected (not positional)
         CallableStatement cs1 = connection.prepareCall(call);
-        cs1.setString("p2", "bar");
-        cs1.setString("p1", "foo");
+        cs1.setString("p2", "world");
+        cs1.setString("p1", "hello");
         rs = cs1.executeQuery();
         rs.next();
-        assertEquals("foobar", rs.getString(1));
+        assertEquals("helloworld", rs.getString(1));
         
         // the "new" way: leading '@', parameter names still respected (not positional)
         CallableStatement cs2 = connection.prepareCall(call);
@@ -150,7 +150,7 @@ public class CallableStatementTest extends AbstractTest {
         // sanity check: unrecognized parameter name
         CallableStatement cs3 = connection.prepareCall(call);
         try {
-            cs3.setString("@whatever", "junk");
+            cs3.setString("@whatever", "test");
             fail("SQLServerException should have been thrown");
         } catch (SQLServerException sse) {
             if (!sse.getMessage().startsWith("Parameter @whatever was not defined")) {
