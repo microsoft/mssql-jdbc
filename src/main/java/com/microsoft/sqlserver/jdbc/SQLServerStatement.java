@@ -1569,7 +1569,8 @@ public class SQLServerStatement implements ISQLServerStatement {
 
         // Not an error. Is it a result set?
         else if (nextResult.isResultSet()) {
-            if (Util.use42Wrapper()) {
+            // Make sure SQLServerResultSet42 is used for 4.2 and above
+            if (Util.use42Wrapper() || Util.use43Wrapper()) {
                 resultSet = new SQLServerResultSet42(this);
             }
             else {

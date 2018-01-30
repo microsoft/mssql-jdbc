@@ -614,7 +614,12 @@ public final class SQLServerDriver implements java.sql.Driver {
         // Merge connectProperties (from URL) and supplied properties from user.
         Properties connectProperties = parseAndMergeProperties(Url, suppliedProperties);
         if (connectProperties != null) {
-            result = new SQLServerConnection(toString());
+            if (Util.use43Wrapper()) {
+                result = new SQLServerConnection43(toString());
+            }
+            else {
+                result = new SQLServerConnection(toString());
+            }
             result.connect(connectProperties, null);
         }
         loggerExternal.exiting(getClassNameLogging(), "connect", result);
@@ -634,7 +639,7 @@ public final class SQLServerDriver implements java.sql.Driver {
         // put the user properties into the connect properties
         int nTimeout = DriverManager.getLoginTimeout();
         if (nTimeout > 0) {
-            connectProperties.put(SQLServerDriverIntProperty.LOGIN_TIMEOUT.toString(), ((Integer)nTimeout).toString());
+            connectProperties.put(SQLServerDriverIntProperty.LOGIN_TIMEOUT.toString(), Integer.valueOf(nTimeout).toString());
         }
 
         // Merge connectProperties (from URL) and supplied properties from user.

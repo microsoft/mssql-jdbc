@@ -1539,11 +1539,6 @@ public class SQLServerConnection implements ISQLServerConnection {
                 throw new SQLServerException(SQLServerException.getErrString("R_AccessTokenWithUserPassword"), null);
             }
 
-            if ((!System.getProperty("os.name").toLowerCase(Locale.ENGLISH).startsWith("windows"))
-                    && (authenticationString.equalsIgnoreCase(SqlAuthentication.ActiveDirectoryIntegrated.toString()))) {
-                throw new SQLServerException(SQLServerException.getErrString("R_AADIntegratedOnNonWindows"), null);
-            }
-            
             // Turn off TNIR for FedAuth if user does not set TNIR explicitly
             if (!userSetTNIR) {
                 if ((!authenticationString.equalsIgnoreCase(SqlAuthentication.NotSpecified.toString())) || (null != accessTokenInByte)) {
@@ -3186,8 +3181,9 @@ public class SQLServerConnection implements ISQLServerConnection {
         checkClosed();
 
         PreparedStatement st;
-
-        if (Util.use42Wrapper()) {
+        
+        // Make sure SQLServerPreparedStatement42 is used for 4.2 and above. 
+        if (Util.use42Wrapper() || Util.use43Wrapper()) {
             st = new SQLServerPreparedStatement42(this, sql, resultSetType, resultSetConcurrency,
                     SQLServerStatementColumnEncryptionSetting.UseConnectionSetting);
         }
@@ -3211,7 +3207,8 @@ public class SQLServerConnection implements ISQLServerConnection {
 
         PreparedStatement st;
 
-        if (Util.use42Wrapper()) {
+        // Make sure SQLServerPreparedStatement42 is used for 4.2 and above. 
+        if (Util.use42Wrapper() || Util.use43Wrapper()) {
             st = new SQLServerPreparedStatement42(this, sql, resultSetType, resultSetConcurrency, stmtColEncSetting);
         }
         else {
@@ -3232,7 +3229,8 @@ public class SQLServerConnection implements ISQLServerConnection {
 
         CallableStatement st;
 
-        if (Util.use42Wrapper()) {
+        // Make sure SQLServerCallableStatement42 is used for 4.2 and above. 
+        if (Util.use42Wrapper() || Util.use43Wrapper()) {
             st = new SQLServerCallableStatement42(this, sql, resultSetType, resultSetConcurrency,
                     SQLServerStatementColumnEncryptionSetting.UseConnectionSetting);
         }
@@ -3855,18 +3853,13 @@ public class SQLServerConnection implements ISQLServerConnection {
         // fedAuthInfo should not be null.
         assert null != fedAuthInfo;
 
-        // No:of milliseconds to sleep for the inital back off.
-        int sleepInterval = 100;
-
-        // No:of attempts, for tracing purposes, if we underwent retries.
-        int numberOfAttempts = 0;
-
         String user = activeConnectionProperties.getProperty(SQLServerDriverStringProperty.USER.toString());
         String password = activeConnectionProperties.getProperty(SQLServerDriverStringProperty.PASSWORD.toString());
 
+        // No:of milliseconds to sleep for the inital back off.
+        int sleepInterval = 100;
+        
         while (true) {
-            numberOfAttempts++;
-
             if (authenticationString.trim().equalsIgnoreCase(SqlAuthentication.ActiveDirectoryPassword.toString())) {
                 fedAuthToken = SQLServerADAL4JUtils.getSqlFedAuthToken(fedAuthInfo, user, password, authenticationString);
 
@@ -3874,69 +3867,80 @@ public class SQLServerConnection implements ISQLServerConnection {
                 break;
             }
             else if (authenticationString.trim().equalsIgnoreCase(SqlAuthentication.ActiveDirectoryIntegrated.toString())) {
-                try {
-                    long expirationFileTime = 0;
-                    FedAuthDllInfo dllInfo = AuthenticationJNI.getAccessTokenForWindowsIntegrated(fedAuthInfo.stsurl, fedAuthInfo.spn,
-                            clientConnectionId.toString(), ActiveDirectoryAuthentication.JDBC_FEDAUTH_CLIENT_ID, expirationFileTime);
+                
+                // If operating system is windows and sqljdbc_auth is loaded then choose the DLL authentication.
+                if (System.getProperty("os.name").toLowerCase(Locale.ENGLISH).startsWith("windows") && AuthenticationJNI.isDllLoaded()) {
+                    try {
+                        long expirationFileTime = 0;
+                        FedAuthDllInfo dllInfo = AuthenticationJNI.getAccessTokenForWindowsIntegrated(fedAuthInfo.stsurl, fedAuthInfo.spn,
+                                clientConnectionId.toString(), ActiveDirectoryAuthentication.JDBC_FEDAUTH_CLIENT_ID, expirationFileTime);
 
-                    // AccessToken should not be null.
-                    assert null != dllInfo.accessTokenBytes;
+                        // AccessToken should not be null.
+                        assert null != dllInfo.accessTokenBytes;
 
-                    byte[] accessTokenFromDLL = dllInfo.accessTokenBytes;
+                        byte[] accessTokenFromDLL = dllInfo.accessTokenBytes;
 
-                    String accessToken = new String(accessTokenFromDLL, UTF_16LE);
+                        String accessToken = new String(accessTokenFromDLL, UTF_16LE);
 
-                    fedAuthToken = new SqlFedAuthToken(accessToken, dllInfo.expiresIn);
+                        fedAuthToken = new SqlFedAuthToken(accessToken, dllInfo.expiresIn);
 
-                    // Break out of the retry loop in successful case.
-                    break;
-                }
-                catch (DLLException adalException) {
-
-                    // the sqljdbc_auth.dll return -1 for errorCategory, if unable to load the adalsql.dll
-                    int errorCategory = adalException.GetCategory();
-                    if (-1 == errorCategory) {
-                        MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_UnableLoadADALSqlDll"));
-                        Object[] msgArgs = {Integer.toHexString(adalException.GetState())};
-                        throw new SQLServerException(form.format(msgArgs), null);
+                        // Break out of the retry loop in successful case.
+                        break;
                     }
+                    catch (DLLException adalException) {
 
-                    int millisecondsRemaining = TimerRemaining(timerExpire);
-                    if (ActiveDirectoryAuthentication.GET_ACCESS_TOKEN_TANSISENT_ERROR != errorCategory || timerHasExpired(timerExpire)
-                            || (sleepInterval >= millisecondsRemaining)) {
-
-                        String errorStatus = Integer.toHexString(adalException.GetStatus());
-
-                        if (connectionlogger.isLoggable(Level.FINER)) {
-                            connectionlogger.fine(toString() + " SQLServerConnection.getFedAuthToken.AdalException category:" + errorCategory
-                                    + " error: " + errorStatus);
+                        // the sqljdbc_auth.dll return -1 for errorCategory, if unable to load the adalsql.dll
+                        int errorCategory = adalException.GetCategory();
+                        if (-1 == errorCategory) {
+                            MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_UnableLoadADALSqlDll"));
+                            Object[] msgArgs = {Integer.toHexString(adalException.GetState())};
+                            throw new SQLServerException(form.format(msgArgs), null);
                         }
 
-                        MessageFormat form1 = new MessageFormat(SQLServerException.getErrString("R_ADALAuthenticationMiddleErrorMessage"));
-                        String errorCode = Integer.toHexString(adalException.GetStatus()).toUpperCase();
-                        Object[] msgArgs1 = {errorCode, adalException.GetState()};
-                        SQLServerException middleException = new SQLServerException(form1.format(msgArgs1), adalException);
+                        int millisecondsRemaining = TimerRemaining(timerExpire);
+                        if (ActiveDirectoryAuthentication.GET_ACCESS_TOKEN_TANSISENT_ERROR != errorCategory || timerHasExpired(timerExpire)
+                                || (sleepInterval >= millisecondsRemaining)) {
 
-                        MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_ADALExecution"));
-                        Object[] msgArgs = {user, authenticationString};
-                        throw new SQLServerException(form.format(msgArgs), null, 0, middleException);
-                    }
+                            String errorStatus = Integer.toHexString(adalException.GetStatus());
 
-                    if (connectionlogger.isLoggable(Level.FINER)) {
-                        connectionlogger.fine(toString() + " SQLServerConnection.getFedAuthToken sleeping: " + sleepInterval + " milliseconds.");
-                        connectionlogger
-                                .fine(toString() + " SQLServerConnection.getFedAuthToken remaining: " + millisecondsRemaining + " milliseconds.");
-                    }
+                            if (connectionlogger.isLoggable(Level.FINER)) {
+                                connectionlogger.fine(toString() + " SQLServerConnection.getFedAuthToken.AdalException category:" + errorCategory
+                                        + " error: " + errorStatus);
+                            }
 
-                    try {
-                        Thread.sleep(sleepInterval);
+                            MessageFormat form1 = new MessageFormat(SQLServerException.getErrString("R_ADALAuthenticationMiddleErrorMessage"));
+                            String errorCode = Integer.toHexString(adalException.GetStatus()).toUpperCase();
+                            Object[] msgArgs1 = {errorCode, adalException.GetState()};
+                            SQLServerException middleException = new SQLServerException(form1.format(msgArgs1), adalException);
+
+                            MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_ADALExecution"));
+                            Object[] msgArgs = {user, authenticationString};
+                            throw new SQLServerException(form.format(msgArgs), null, 0, middleException);
+                        }
+
+                        if (connectionlogger.isLoggable(Level.FINER)) {
+                            connectionlogger.fine(toString() + " SQLServerConnection.getFedAuthToken sleeping: " + sleepInterval + " milliseconds.");
+                            connectionlogger
+                                    .fine(toString() + " SQLServerConnection.getFedAuthToken remaining: " + millisecondsRemaining + " milliseconds.");
+                        }
+
+                        try {
+                            Thread.sleep(sleepInterval);
+                        }
+                        catch (InterruptedException e1) {
+                            // re-interrupt the current thread, in order to restore the thread's interrupt status.
+                            Thread.currentThread().interrupt();
+                        }
+                        sleepInterval = sleepInterval * 2;
                     }
-                    catch (InterruptedException e1) {
-                        // re-interrupt the current thread, in order to restore the thread's interrupt status.
-                        Thread.currentThread().interrupt();
-                    }
-                    sleepInterval = sleepInterval * 2;
                 }
+                // else choose ADAL4J for integrated authentication. This option is supported for both windows and unix, so we don't need to check the
+                // OS version here.
+                else {
+                    fedAuthToken = SQLServerADAL4JUtils.getSqlFedAuthTokenIntegrated(fedAuthInfo, authenticationString);
+                }
+                // Break out of the retry loop in successful case.
+                break;
             }
         }
 
@@ -4655,7 +4659,8 @@ public class SQLServerConnection implements ISQLServerConnection {
 
         PreparedStatement st;
 
-        if (Util.use42Wrapper()) {
+        // Make sure SQLServerPreparedStatement42 is used for 4.2 and above.
+        if (Util.use42Wrapper() || Util.use43Wrapper()) {
             st = new SQLServerPreparedStatement42(this, sql, nType, nConcur, stmtColEncSetting);
         }
         else {
@@ -4690,7 +4695,8 @@ public class SQLServerConnection implements ISQLServerConnection {
 
         CallableStatement st;
 
-        if (Util.use42Wrapper()) {
+        // Make sure SQLServerCallableStatement42 is used for 4.2 and above
+        if (Util.use42Wrapper() || Util.use43Wrapper()) {
             st = new SQLServerCallableStatement42(this, sql, nType, nConcur, stmtColEncSetiing);
         }
         else {
@@ -5246,6 +5252,16 @@ public class SQLServerConnection implements ISQLServerConnection {
         }
         loggerExternal.exiting(getClassNameLogging(), "unwrap", t);
         return t;
+    }
+
+    public void beginRequest() throws SQLFeatureNotSupportedException {
+        DriverJDBCVersion.checkSupportsJDBC43();
+        throw new SQLFeatureNotSupportedException("beginRequest not implemented");
+    }
+
+    public void endRequest() throws SQLFeatureNotSupportedException {
+        DriverJDBCVersion.checkSupportsJDBC43();
+        throw new SQLFeatureNotSupportedException("endRequest not implemented");
     }
 
     /**

@@ -8,6 +8,7 @@
 
 package com.microsoft.sqlserver.jdbc;
 
+import java.lang.reflect.InvocationTargetException;
 import java.util.Hashtable;
 
 import javax.naming.Context;
@@ -59,7 +60,7 @@ public final class SQLServerDataSourceObjectFactory implements ObjectFactory {
 
                 // Create class instance and initialize using reference.
                 Class<?> dataSourceClass = Class.forName(className);
-                Object dataSourceClassInstance = dataSourceClass.newInstance();
+                Object dataSourceClassInstance = dataSourceClass.getDeclaredConstructor().newInstance();
 
                 // If this class we created does not cast to SQLServerDataSource, then caller
                 // passed in the wrong reference to our factory.
@@ -77,6 +78,18 @@ public final class SQLServerDataSourceObjectFactory implements ObjectFactory {
             SQLServerException.makeFromDriverError(null, null, SQLServerException.getErrString("R_invalidDataSourceReference"), null, true);
         }
         catch (IllegalAccessException e) {
+            SQLServerException.makeFromDriverError(null, null, SQLServerException.getErrString("R_invalidDataSourceReference"), null, true);
+        }
+        catch (IllegalArgumentException e) {
+            SQLServerException.makeFromDriverError(null, null, SQLServerException.getErrString("R_invalidDataSourceReference"), null, true);
+        }
+        catch (InvocationTargetException e) {
+            SQLServerException.makeFromDriverError(null, null, SQLServerException.getErrString("R_invalidDataSourceReference"), null, true);
+        }
+        catch (NoSuchMethodException e) {
+            SQLServerException.makeFromDriverError(null, null, SQLServerException.getErrString("R_invalidDataSourceReference"), null, true);
+        }
+        catch (SecurityException e) {
             SQLServerException.makeFromDriverError(null, null, SQLServerException.getErrString("R_invalidDataSourceReference"), null, true);
         }
         // no chance of getting here but to keep the compiler happy
