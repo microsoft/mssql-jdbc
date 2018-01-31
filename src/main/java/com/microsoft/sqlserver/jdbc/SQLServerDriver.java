@@ -347,7 +347,7 @@ enum SQLServerDriverBooleanProperty
     MULTI_SUBNET_FAILOVER                     ("multiSubnetFailover",                       false),
     SERVER_NAME_AS_ACE                        ("serverNameAsACE",                           false),
     SEND_STRING_PARAMETERS_AS_UNICODE         ("sendStringParametersAsUnicode",             true),
-    SEND_TIME_AS_DATETIME                     ("sendTimeAsDatetime",                        false),
+    SEND_TIME_AS_DATETIME                     ("sendTimeAsDatetime",                        true),
     TRANSPARENT_NETWORK_IP_RESOLUTION         ("TransparentNetworkIPResolution",            true),
     TRUST_SERVER_CERTIFICATE                  ("trustServerCertificate",                    false),
     XOPEN_STATES                              ("xopenStates",                               false),
