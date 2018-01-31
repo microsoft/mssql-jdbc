@@ -175,6 +175,7 @@ public class PreparedStatementTest extends AbstractTest {
         try (SQLServerConnection con = (SQLServerConnection)DriverManager.getConnection(connectionString)) {
 
             // Test behvaior with statement pooling.
+            con.setDisableStatementPooling(false);
             con.setStatementPoolingCacheSize(10);
 
             // Test with missing handle failures (fake).
@@ -204,6 +205,7 @@ public class PreparedStatementTest extends AbstractTest {
 
         try (SQLServerConnection con = (SQLServerConnection)DriverManager.getConnection(connectionString)) {
             // Test behvaior with statement pooling.
+            con.setDisableStatementPooling(false);
             con.setStatementPoolingCacheSize(10);
 
             String lookupUniqueifier = UUID.randomUUID().toString();
@@ -269,7 +271,9 @@ public class PreparedStatementTest extends AbstractTest {
                 int cacheSize = 10;                
                 int discardedStatementCount = testNo == 0 ? 5 /*batched unprepares*/ : 0 /*regular unprepares*/;
 
-                con.setStatementPoolingCacheSize(cacheSize);
+                // enabling caching
+                con.setDisableStatementPooling(false);
+                con.setStatementPoolingCacheSize(cacheSize); 
                 con.setServerPreparedStatementDiscardThreshold(discardedStatementCount);
 
                 String lookupUniqueifier = UUID.randomUUID().toString();
@@ -431,7 +435,7 @@ public class PreparedStatementTest extends AbstractTest {
         String connectionStringDisableStatementPooling = connectionString + ";disableStatementPooling=true;";
         SQLServerConnection connectionDisableStatementPooling = (SQLServerConnection)DriverManager.getConnection(connectionStringDisableStatementPooling);
         connectionDisableStatementPooling.setStatementPoolingCacheSize(10); // to turn on caching and check if disableStatementPooling is true, even setting cachesize won't matter and will disable it.  
-        assertSame(0, connectionDisableStatementPooling.getStatementPoolingCacheSize());
+        assertSame(10, connectionDisableStatementPooling.getStatementPoolingCacheSize());
         assertTrue(!connectionDisableStatementPooling.isStatementPoolingEnabled());
         String connectionStringEnableStatementPooling = connectionString + ";disableStatementPooling=false;";
         SQLServerConnection connectionEnableStatementPooling = (SQLServerConnection)DriverManager.getConnection(connectionStringEnableStatementPooling);
