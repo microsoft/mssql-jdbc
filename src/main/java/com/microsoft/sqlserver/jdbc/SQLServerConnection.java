@@ -275,7 +275,7 @@ public class SQLServerConnection implements ISQLServerConnection {
     }
  
     /** Size of the  prepared statement handle cache */
-    private int statementPoolingCacheSize = 0;
+    private int statementPoolingCacheSize = DEFAULT_STATEMENT_POOLING_CACHE_SIZE;
 
     /** Default size for prepared statement caches */
     static final int DEFAULT_STATEMENT_POOLING_CACHE_SIZE = 0; 
@@ -5703,6 +5703,9 @@ public class SQLServerConnection implements ISQLServerConnection {
      */
     public void setDisableStatementPooling(boolean value) {
         this.disableStatementPooling = value;
+        if (!value && 0 < this.getStatementPoolingCacheSize()) {
+            prepareCache();
+        }
     }
     
     /**
@@ -5729,7 +5732,7 @@ public class SQLServerConnection implements ISQLServerConnection {
      * @return Returns the current setting per the description.
      */
     public boolean isStatementPoolingEnabled() {
-        return null != preparedStatementHandleCache && 0 < this.getStatementPoolingCacheSize();
+        return null != preparedStatementHandleCache && 0 < this.getStatementPoolingCacheSize() && !this.getDisableStatementPooling();
     }
 
     /**
