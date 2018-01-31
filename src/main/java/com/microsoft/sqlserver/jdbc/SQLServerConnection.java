@@ -929,15 +929,8 @@ public class SQLServerConnection implements ISQLServerConnection {
         }
         
         // Caching turned on?
-        if (!this.getDisableStatementPooling() && 0 < this.getStatementPoolingCacheSize() ) {
-            preparedStatementHandleCache = new Builder<Sha1HashKey, PreparedStatementHandle>()
-                                            .maximumWeightedCapacity(getStatementPoolingCacheSize())
-                                            .listener(new PreparedStatementCacheEvictionListener())
-                                            .build();
-
-            parameterMetadataCache  = new Builder<Sha1HashKey, SQLServerParameterMetaData>()
-                                            .maximumWeightedCapacity(getStatementPoolingCacheSize())
-                                            .build();
+        if (!this.getDisableStatementPooling() && 0 < this.getStatementPoolingCacheSize()) {
+            prepareCache();
         }
     }
 
@@ -5750,8 +5743,8 @@ public class SQLServerConnection implements ISQLServerConnection {
         value = Math.max(0, value);
         statementPoolingCacheSize = value;
 
-        if (!this.disableStatementPooling) {
-            prepareCache(value);
+        if (!this.disableStatementPooling && value > 0) {
+            prepareCache();
         }
         if (null != preparedStatementHandleCache)
             preparedStatementHandleCache.setCapacity(value);
@@ -5764,14 +5757,12 @@ public class SQLServerConnection implements ISQLServerConnection {
      * Internal method to prepare the cache handle
      * @param value
      */
-    private void prepareCache(int value) {
-        if (0 < value) {
-            preparedStatementHandleCache = new Builder<Sha1HashKey, PreparedStatementHandle>().maximumWeightedCapacity(getStatementPoolingCacheSize())
-                    .listener(new PreparedStatementCacheEvictionListener()).build();
+    private void prepareCache() {
+        preparedStatementHandleCache = new Builder<Sha1HashKey, PreparedStatementHandle>().maximumWeightedCapacity(getStatementPoolingCacheSize())
+                .listener(new PreparedStatementCacheEvictionListener()).build();
 
-            parameterMetadataCache = new Builder<Sha1HashKey, SQLServerParameterMetaData>().maximumWeightedCapacity(getStatementPoolingCacheSize())
-                    .build();
-        }
+        parameterMetadataCache = new Builder<Sha1HashKey, SQLServerParameterMetaData>().maximumWeightedCapacity(getStatementPoolingCacheSize())
+                .build();
     }
 
     /** Get a parameter metadata cache entry if statement pooling is enabled */
