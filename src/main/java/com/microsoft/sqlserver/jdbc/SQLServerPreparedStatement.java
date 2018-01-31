@@ -528,6 +528,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         }
 
         String dbName = connection.getSCatalog();
+        boolean needsPrepare = false;
         // Retry execution if existing handle could not be re-used.
         for (int attempt = 1; attempt <= 2; ++attempt) {
             try {
@@ -540,14 +541,14 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                 // continue using it after we return.
                 TDSWriter tdsWriter = command.startRequest(TDS.PKT_RPC);
 
-                doPrepExec(tdsWriter, inOutParam, hasNewTypeDefinitions, hasExistingTypeDefinitions);
+                needsPrepare = doPrepExec(tdsWriter, inOutParam, hasNewTypeDefinitions, hasExistingTypeDefinitions);
 
                 ensureExecuteResultsReader(command.startResponse(getIsResponseBufferingAdaptive()));
                 startResults();
                 getNextResult();
             }
             catch (SQLException e) {
-                if (retryBasedOnFailedReuseOfCachedHandle(e, attempt) && connection.isStatementPoolingEnabled())
+                if (retryBasedOnFailedReuseOfCachedHandle(e, attempt, needsPrepare) && connection.isStatementPoolingEnabled())
                     continue;
                 else
                     throw e;
@@ -565,13 +566,18 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     
     /** Should the execution be retried because the re-used cached handle could not be re-used due to server side state changes? */
     private boolean retryBasedOnFailedReuseOfCachedHandle(SQLException e,
-            int attempt) {
+            int attempt, boolean needsPrepare) {
         // Only retry based on these error codes:
         // 586: The prepared statement handle %d is not valid in this context. Please verify that current database, user default schema, and
         // ANSI_NULLS and QUOTED_IDENTIFIER set options are not changed since the handle is prepared.
         // 8179: Could not find prepared statement with handle %d.
         // 99586: Error used for testing.
-        return 1 == attempt && (586 == e.getErrorCode() || 8179 == e.getErrorCode() || 99586 == e.getErrorCode());
+        if (needsPrepare) {
+            return false;
+        }
+        else {
+            return 1 == attempt && (586 == e.getErrorCode() || 8179 == e.getErrorCode() || 99586 == e.getErrorCode());
+        }
     }
 
     /**
@@ -2628,6 +2634,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
             }
 
             String dbName = connection.getSCatalog();
+            boolean needsPrepare = false;
             // Retry execution if existing handle could not be re-used.
             for (int attempt = 1; attempt <= 2; ++attempt) {
                 try {
@@ -2655,8 +2662,8 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                     // the size of a batch's string parameter values changes such
                     // that repreparation is necessary.
                     ++numBatchesPrepared;
-
-                    if (doPrepExec(tdsWriter, batchParam, hasNewTypeDefinitions, hasExistingTypeDefinitions) || numBatchesPrepared == numBatches) {
+                    needsPrepare = doPrepExec(tdsWriter, batchParam, hasNewTypeDefinitions, hasExistingTypeDefinitions);
+                    if ( needsPrepare || numBatchesPrepared == numBatches) {
                         ensureExecuteResultsReader(batchCommand.startResponse(getIsResponseBufferingAdaptive()));
 
                         boolean retry = false;
@@ -2690,7 +2697,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                                     throw e;
 
                                 // Retry if invalid handle exception.
-                                if (retryBasedOnFailedReuseOfCachedHandle(e, attempt) && connection.isStatementPoolingEnabled()) {
+                                if (retryBasedOnFailedReuseOfCachedHandle(e, attempt, needsPrepare) && connection.isStatementPoolingEnabled()) {
                                     // reset number of batches prepare
                                     numBatchesPrepared = numBatchesExecuted;
                                     retry = true;
@@ -2721,7 +2728,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                     }
                 }
                 catch (SQLException e) {
-                    if (retryBasedOnFailedReuseOfCachedHandle(e, attempt) && connection.isStatementPoolingEnabled()) {
+                    if (retryBasedOnFailedReuseOfCachedHandle(e, attempt, needsPrepare) && connection.isStatementPoolingEnabled()) {
                         // Reset number of batches prepared.
                         numBatchesPrepared = numBatchesExecuted;
                         continue;
