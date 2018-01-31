@@ -274,11 +274,12 @@ public class SQLServerConnection implements ISQLServerConnection {
         return cacheItem;
     }
  
+    /** Default size for prepared statement caches */
+    static final int DEFAULT_STATEMENT_POOLING_CACHE_SIZE = 0; 
+    
     /** Size of the  prepared statement handle cache */
     private int statementPoolingCacheSize = DEFAULT_STATEMENT_POOLING_CACHE_SIZE;
 
-    /** Default size for prepared statement caches */
-    static final int DEFAULT_STATEMENT_POOLING_CACHE_SIZE = 0; 
     /** Cache of prepared statement handles */
     private ConcurrentLinkedHashMap<Sha1HashKey, PreparedStatementHandle> preparedStatementHandleCache;
     /** Cache of prepared statement parameter metadata */
