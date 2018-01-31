@@ -283,6 +283,10 @@ public class SQLServerConnection implements ISQLServerConnection {
     private ConcurrentLinkedHashMap<Sha1HashKey, PreparedStatementHandle> preparedStatementHandleCache;
     /** Cache of prepared statement parameter metadata */
     private ConcurrentLinkedHashMap<Sha1HashKey, SQLServerParameterMetaData> parameterMetadataCache;
+    /**
+     * Checks whether statement pooling is enabled or disabled. The default is set to true;
+     */
+    private boolean disableStatementPooling = true;
 
      /**
       * Find statement parameters.
@@ -923,9 +927,9 @@ public class SQLServerConnection implements ISQLServerConnection {
             connectionlogger.severe(message);
             throw new UnsupportedOperationException(message);
         }
-
+        
         // Caching turned on?
-        if (0 < this.getStatementPoolingCacheSize()) {
+        if (!this.getDisableStatementPooling() && 0 < this.getStatementPoolingCacheSize() ) {
             preparedStatementHandleCache = new Builder<Sha1HashKey, PreparedStatementHandle>()
                                             .maximumWeightedCapacity(getStatementPoolingCacheSize())
                                             .listener(new PreparedStatementCacheEvictionListener())
@@ -1436,9 +1440,11 @@ public class SQLServerConnection implements ISQLServerConnection {
             sPropValue = activeConnectionProperties.getProperty(sPropKey);
             if (null != sPropValue) {
                 // If disabled set cache size to 0 if disabled.
-                if(booleanPropertyOn(sPropKey, sPropValue))
-                    this.setStatementPoolingCacheSize(0);
-            }
+                if(booleanPropertyOn(sPropKey, sPropValue)) {
+                    this.setStatementPoolingCacheSize(0);                    
+                }
+                disableStatementPooling = booleanPropertyOn(sPropKey, sPropValue);
+            }          
 
             sPropKey = SQLServerDriverBooleanProperty.INTEGRATED_SECURITY.toString();
             sPropValue = activeConnectionProperties.getProperty(sPropKey);
@@ -5673,6 +5679,23 @@ public class SQLServerConnection implements ISQLServerConnection {
         }
     }
 
+    /**
+     * Returns true if statement pooling is disabled.
+     * 
+     * @return
+     */
+    public boolean getDisableStatementPooling() {
+        return this.disableStatementPooling;
+    }
+
+    /**
+     * Sets statement pooling to true or false;
+     * 
+     * @param value
+     */
+    public void setDisableStatementPooling(boolean value) {
+        this.disableStatementPooling = value;
+    }
     
     /**
      * Returns the size of the prepared statement cache for this connection. A value less than 1 means no cache.
@@ -5702,38 +5725,37 @@ public class SQLServerConnection implements ISQLServerConnection {
     }
 
     /**
-     * Specifies the size of the prepared statement cache for this conection. A value less than 1 means no cache.
-     * @param value The new cache size.
+     * Specifies the size of the prepared statement cache for this connection. A value less than 1 means no cache.
+     * 
+     * @param value
+     *            The new cache size.
      * 
      */
     public void setStatementPoolingCacheSize(int value) {
-        // Caching turned on?
-        String sPropKey = SQLServerDriverBooleanProperty.DISABLE_STATEMENT_POOLING.toString();
-        String sPropValue = activeConnectionProperties.getProperty(sPropKey);
-        
-        // If DISABLE_STATEMENT_POOLING property is true, we can't allow cache size and will disable caching. 
-        if ( null != sPropValue && sPropValue.equalsIgnoreCase("true"))
-            return;
-        
-        if (0 < value) {
-            preparedStatementHandleCache = new Builder<Sha1HashKey, PreparedStatementHandle>()
-                                            .maximumWeightedCapacity(getStatementPoolingCacheSize())
-                                            .listener(new PreparedStatementCacheEvictionListener())
-                                            .build();
+        value = Math.max(0, value);
+        statementPoolingCacheSize = value;
 
-            parameterMetadataCache  = new Builder<Sha1HashKey, SQLServerParameterMetaData>()
-                                            .maximumWeightedCapacity(getStatementPoolingCacheSize())
-                                            .build();
+        if (!this.disableStatementPooling) {
+            prepareCache(value);
         }
-        if (value != this.statementPoolingCacheSize) {
-            value = Math.max(0, value);
-            statementPoolingCacheSize = value;
+        if (null != preparedStatementHandleCache)
+            preparedStatementHandleCache.setCapacity(value);
 
-            if (null != preparedStatementHandleCache)
-                preparedStatementHandleCache.setCapacity(value);
+        if (null != parameterMetadataCache)
+            parameterMetadataCache.setCapacity(value);
+    }
 
-            if (null != parameterMetadataCache)
-                parameterMetadataCache.setCapacity(value);
+    /**
+     * Internal method to prepare the cache handle
+     * @param value
+     */
+    private void prepareCache(int value) {
+        if (0 < value) {
+            preparedStatementHandleCache = new Builder<Sha1HashKey, PreparedStatementHandle>().maximumWeightedCapacity(getStatementPoolingCacheSize())
+                    .listener(new PreparedStatementCacheEvictionListener()).build();
+
+            parameterMetadataCache = new Builder<Sha1HashKey, SQLServerParameterMetaData>().maximumWeightedCapacity(getStatementPoolingCacheSize())
+                    .build();
         }
     }
 
