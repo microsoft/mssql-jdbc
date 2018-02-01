@@ -479,7 +479,26 @@ public class PreparedStatementTest extends AbstractTest {
         connectionEnableStatementPooling.setStatementPoolingCacheSize(10); // to turn on caching. 
         assertTrue(0 < connectionEnableStatementPooling.getStatementPoolingCacheSize()); // for now, it won't affect if disable is false or true. Since statementPoolingCacheSize is set to 0 as default. 
         //If only disableStatementPooling is set to true, it makes sure that statementPoolingCacheSize is zero, thus disabling the prepared statement metadata caching. 
-
+        assertTrue(connectionEnableStatementPooling.isStatementPoolingEnabled());
+        
+        String connectionPropertyStringEnableStatementPooling = connectionString + ";disableStatementPooling=false;statementPoolingCacheSize=10";
+        SQLServerConnection connectionPropertyEnableStatementPooling = (SQLServerConnection)DriverManager.getConnection(connectionPropertyStringEnableStatementPooling);
+        assertTrue(0 < connectionPropertyEnableStatementPooling.getStatementPoolingCacheSize()); // for now, it won't affect if disable is false or true. Since statementPoolingCacheSize is set to 0 as default. 
+        //If only disableStatementPooling is set to true, it makes sure that statementPoolingCacheSize is zero, thus disabling the prepared statement metadata caching. 
+        assertTrue(connectionPropertyEnableStatementPooling.isStatementPoolingEnabled());
+        
+        String connectionPropertyStringDisableStatementPooling = connectionString + ";disableStatementPooling=true;statementPoolingCacheSize=10";
+        SQLServerConnection connectionPropertyDisableStatementPooling = (SQLServerConnection)DriverManager.getConnection(connectionPropertyStringDisableStatementPooling);
+        assertTrue(0 < connectionPropertyDisableStatementPooling.getStatementPoolingCacheSize()); // for now, it won't affect if disable is false or true. Since statementPoolingCacheSize is set to 0 as default. 
+        //If only disableStatementPooling is set to true, it makes sure that statementPoolingCacheSize is zero, thus disabling the prepared statement metadata caching. 
+        assertTrue(!connectionPropertyDisableStatementPooling.isStatementPoolingEnabled());
+        
+        String connectionPropertyStringDisableStatementPooling2 = connectionString + ";disableStatementPooling=false;statementPoolingCacheSize=0";
+        SQLServerConnection connectionPropertyDisableStatementPooling2 = (SQLServerConnection)DriverManager.getConnection(connectionPropertyStringDisableStatementPooling2);
+        assertTrue(0 == connectionPropertyDisableStatementPooling2.getStatementPoolingCacheSize()); // for now, it won't affect if disable is false or true. Since statementPoolingCacheSize is set to 0 as default. 
+        //If only disableStatementPooling is set to true, it makes sure that statementPoolingCacheSize is zero, thus disabling the prepared statement metadata caching. 
+        assertTrue(!connectionPropertyDisableStatementPooling2.isStatementPoolingEnabled());
+        
         // Test EnablePrepareOnFirstPreparedStatementCall
         String connectionStringNoExecuteSQL = connectionString + ";enablePrepareOnFirstPreparedStatementCall=true;";
         SQLServerConnection connectionNoExecuteSQL = (SQLServerConnection)DriverManager.getConnection(connectionStringNoExecuteSQL);

@@ -1433,12 +1433,8 @@ public class SQLServerConnection implements ISQLServerConnection {
             sPropKey = SQLServerDriverBooleanProperty.DISABLE_STATEMENT_POOLING.toString();
             sPropValue = activeConnectionProperties.getProperty(sPropKey);
             if (null != sPropValue) {
-                // If disabled set cache size to 0 if disabled.
-                if(booleanPropertyOn(sPropKey, sPropValue)) {
-                    this.setStatementPoolingCacheSize(0);                    
-                }
                 setDisableStatementPooling(booleanPropertyOn(sPropKey, sPropValue));
-            }  
+            } 
 
             sPropKey = SQLServerDriverBooleanProperty.INTEGRATED_SECURITY.toString();
             sPropValue = activeConnectionProperties.getProperty(sPropKey);
