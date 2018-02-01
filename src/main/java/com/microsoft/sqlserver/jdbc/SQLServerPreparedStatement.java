@@ -548,7 +548,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                 getNextResult();
             }
             catch (SQLException e) {
-                if (retryBasedOnFailedReuseOfCachedHandle(e, attempt, needsPrepare) && connection.isStatementPoolingEnabled())
+                if (retryBasedOnFailedReuseOfCachedHandle(e, attempt, needsPrepare))
                     continue;
                 else
                     throw e;
@@ -567,7 +567,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     /** Should the execution be retried because the re-used cached handle could not be re-used due to server side state changes? */
     private boolean retryBasedOnFailedReuseOfCachedHandle(SQLException e,
             int attempt, boolean needsPrepare) {
-        // Only retry based on these error codes:
+        // Only retry based on these error codes and if statementPooling is enabled:
         // 586: The prepared statement handle %d is not valid in this context. Please verify that current database, user default schema, and
         // ANSI_NULLS and QUOTED_IDENTIFIER set options are not changed since the handle is prepared.
         // 8179: Could not find prepared statement with handle %d.
@@ -576,7 +576,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
             return false;
         }
         else {
-            return 1 == attempt && (586 == e.getErrorCode() || 8179 == e.getErrorCode() || 99586 == e.getErrorCode());
+            return 1 == attempt && (586 == e.getErrorCode() || 8179 == e.getErrorCode() || 99586 == e.getErrorCode()) && connection.isStatementPoolingEnabled();
         }
     }
 
@@ -2697,7 +2697,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                                     throw e;
 
                                 // Retry if invalid handle exception.
-                                if (retryBasedOnFailedReuseOfCachedHandle(e, attempt, needsPrepare) && connection.isStatementPoolingEnabled()) {
+                                if (retryBasedOnFailedReuseOfCachedHandle(e, attempt, needsPrepare)) {
                                     // reset number of batches prepare
                                     numBatchesPrepared = numBatchesExecuted;
                                     retry = true;
