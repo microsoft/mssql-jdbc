@@ -867,22 +867,22 @@ public class CallableStatementTest extends AESetup {
             BigDecimal ecnryptedSmallMoney = callableStatement.getSmallMoney(7);
             assertEquals("" + ecnryptedSmallMoney, values[12], "Test for output parameter fails.\n");
 
-            short encryptedSmallint = callableStatement.getShort(4);
+            int encryptedSmallint = callableStatement.getInt(4);
             assertEquals("" + encryptedSmallint, values[2], "Test for output parameter fails.\n");
 
             BigDecimal SmallMoneyValue = callableStatement.getSmallMoney(8);
             assertEquals("" + SmallMoneyValue, values[12], "Test for output parameter fails.\n");
 
-            short encryptedTinyint = callableStatement.getShort(6);
+            int encryptedTinyint = callableStatement.getInt(6);
             assertEquals("" + encryptedTinyint, values[1], "Test for output parameter fails.\n");
 
-            short tinyintValue = callableStatement.getShort(5);
+            int tinyintValue = callableStatement.getInt(5);
             assertEquals("" + tinyintValue, values[1], "Test for output parameter fails.\n");
 
             BigDecimal encryptedMoneyValue = callableStatement.getMoney(9);
             assertEquals("" + encryptedMoneyValue, values[13], "Test for output parameter fails.\n");
 
-            short smallintValue = callableStatement.getShort(3);
+            int smallintValue = callableStatement.getInt(3);
             assertEquals("" + smallintValue, values[2], "Test for output parameter fails.\n");
 
             int intValue = callableStatement.getInt(1);
@@ -922,16 +922,16 @@ public class CallableStatementTest extends AESetup {
             int encryptedInt = callableStatement.getInt(2);
             assertEquals("" + encryptedInt, values[3], "Test for output parameter fails.\n");
 
-            short smallintValue = callableStatement.getShort(3);
+            int smallintValue = callableStatement.getInt(3);
             assertEquals("" + smallintValue, values[2], "Test for output parameter fails.\n");
 
-            short encryptedSmallint = callableStatement.getShort(4);
+            int encryptedSmallint = callableStatement.getInt(4);
             assertEquals("" + encryptedSmallint, values[2], "Test for output parameter fails.\n");
 
-            short tinyintValue = callableStatement.getShort(5);
+            int tinyintValue = callableStatement.getInt(5);
             assertEquals("" + tinyintValue, values[1], "Test for output parameter fails.\n");
 
-            short encryptedTinyint = callableStatement.getShort(6);
+            int encryptedTinyint = callableStatement.getInt(6);
             assertEquals("" + encryptedTinyint, values[1], "Test for output parameter fails.\n");
 
             BigDecimal encryptedSmallMoney = callableStatement.getSmallMoney(7);
@@ -982,16 +982,16 @@ public class CallableStatementTest extends AESetup {
             BigDecimal encryptedSmallMoney = callableStatement.getSmallMoney(7);
             assertEquals("" + encryptedSmallMoney, values[12], "Test for output parameter fails.\n");
 
-            short encryptedTinyint = callableStatement.getShort(6);
+            int encryptedTinyint = callableStatement.getInt(6);
             assertEquals("" + encryptedTinyint, values[1], "Test for output parameter fails.\n");
 
-            short tinyintValue = callableStatement.getShort(5);
+            int tinyintValue = callableStatement.getInt(5);
             assertEquals("" + tinyintValue, values[1], "Test for output parameter fails.\n");
 
-            short encryptedSmallint = callableStatement.getShort(4);
+            int encryptedSmallint = callableStatement.getInt(4);
             assertEquals("" + encryptedSmallint, values[2], "Test for output parameter fails.\n");
 
-            short smallintValue = callableStatement.getShort(3);
+            int smallintValue = callableStatement.getInt(3);
             assertEquals("" + smallintValue, values[2], "Test for output parameter fails.\n");
 
             int encryptedInt = callableStatement.getInt(2);
@@ -1040,7 +1040,7 @@ public class CallableStatementTest extends AESetup {
             long bigintValue = callableStatement.getLong(4);
             assertEquals("" + bigintValue, values[4], "Test for output parameter fails.\n");
 
-            short tinyintValue = callableStatement.getShort(5); // tinyint
+            int tinyintValue = callableStatement.getInt(5); // tinyint
             assertEquals("" + tinyintValue, values[1], "Test for output parameter fails.\n");
 
             double floatValue1 = callableStatement.getDouble(2);
@@ -1052,11 +1052,8 @@ public class CallableStatementTest extends AESetup {
             double floatValue2 = callableStatement.getDouble(2);
             assertEquals("" + floatValue2, "" + values[5], "Test for output parameter fails.\n");
 
-            short shortValue3 = callableStatement.getShort(3); // smallint
-            assertEquals("" + shortValue3, "" + values[2], "Test for output parameter fails.\n");
-
-            short shortValue32 = callableStatement.getShort(3);
-            assertEquals("" + shortValue32, "" + values[2], "Test for output parameter fails.\n");
+            int smallIntValue = callableStatement.getInt(3); // smallint
+            assertEquals("" + smallIntValue, "" + values[2], "Test for output parameter fails.\n");
 
             BigDecimal smallmoney1 = callableStatement.getSmallMoney(6);
             assertEquals("" + smallmoney1, "" + values[12], "Test for output parameter fails.\n");
@@ -1089,13 +1086,13 @@ public class CallableStatementTest extends AESetup {
             double floatValue0 = callableStatement.getDouble(2);
             assertEquals("" + floatValue0, values[5], "Test for output parameter fails.\n");
 
-            short shortValue3 = callableStatement.getShort(3);
-            assertEquals("" + shortValue3, values[2], "Test for output parameter fails.\n");
+            int smallIntValue = callableStatement.getInt(3);
+            assertEquals("" + smallIntValue, values[2], "Test for output parameter fails.\n");
 
             long bigintValue = callableStatement.getLong(4);
             assertEquals("" + bigintValue, values[4], "Test for output parameter fails.\n");
 
-            short tinyintValue = callableStatement.getShort(5);
+            int tinyintValue = callableStatement.getInt(5);
             assertEquals("" + tinyintValue, values[1], "Test for output parameter fails.\n");
 
             BigDecimal smallMoney1 = callableStatement.getSmallMoney(6);
@@ -1130,14 +1127,14 @@ public class CallableStatementTest extends AESetup {
             BigDecimal money1 = callableStatement.getMoney(7);
             assertEquals("" + money1, values[13], "Test for output parameter fails.\n");
 
-            short tinyintValue = callableStatement.getShort(5);
+            int tinyintValue = callableStatement.getInt(5);
             assertEquals("" + tinyintValue, values[1], "Test for output parameter fails.\n");
 
             long bigintValue = callableStatement.getLong(4);
             assertEquals("" + bigintValue, values[4], "Test for output parameter fails.\n");
 
-            short shortValue3 = callableStatement.getShort(3);
-            assertEquals("" + shortValue3, values[2], "Test for output parameter fails.\n");
+            int smallIntValue = callableStatement.getInt(3);
+            assertEquals("" + smallIntValue, values[2], "Test for output parameter fails.\n");
 
             double floatValue0 = callableStatement.getDouble(2);
             assertEquals("" + floatValue0, values[5], "Test for output parameter fails.\n");
@@ -1304,7 +1301,7 @@ public class CallableStatementTest extends AESetup {
             callableStatement.registerOutParameter(1, java.sql.Types.BIGINT);
             callableStatement.registerOutParameter(2, java.sql.Types.FLOAT);
             callableStatement.setInt(3, Integer.parseInt(numericValues[3]));
-            callableStatement.setShort(4, Short.parseShort(numericValues[2]));
+            callableStatement.setInt(4, Integer.parseInt(numericValues[2]));
             callableStatement.execute();
 
             double floatValue = callableStatement.getDouble(2);
@@ -1603,10 +1600,10 @@ public class CallableStatementTest extends AESetup {
             else
                 assertEquals("" + true, numericValues[0], "Test for output parameter fails.\n");
 
-            short tinyIntValue = callableStatement.getShort(2);
+            int tinyIntValue = callableStatement.getInt(2);
             assertEquals("" + tinyIntValue, numericValues[1], "Test for output parameter fails.\n");
 
-            short smallIntValue = callableStatement.getShort(3);
+            int smallIntValue = callableStatement.getInt(3);
             assertEquals("" + smallIntValue, numericValues[2], "Test for output parameter fails.\n");
 
             int intValue = callableStatement.getInt(4);
@@ -1676,7 +1673,7 @@ public class CallableStatementTest extends AESetup {
 
             callableStatement.execute();
 
-            Class[] boolean_coercions = {Object.class, Short.class, Integer.class, Long.class, Float.class, Double.class, BigDecimal.class,
+            Class[] boolean_coercions = {Object.class, Integer.class, Long.class, Float.class, Double.class, BigDecimal.class,
                     String.class};
             for (int i = 0; i < boolean_coercions.length; i++) {
                 Object value = getxxx(1, boolean_coercions[i], callableStatement);
@@ -1687,7 +1684,7 @@ public class CallableStatementTest extends AESetup {
                     boolVal = false;
                 assertEquals("" + boolVal, numericValues[0], "Test for output parameter fails.\n");
             }
-            Class[] tinyint_coercions = {Object.class, Short.class, Integer.class, Long.class, Float.class, Double.class, BigDecimal.class,
+            Class[] tinyint_coercions = {Object.class, Integer.class, Long.class, Float.class, Double.class, BigDecimal.class,
                     String.class};
             for (int i = 0; i < tinyint_coercions.length; i++) {
 
@@ -1700,7 +1697,7 @@ public class CallableStatementTest extends AESetup {
                     assertEquals(tinyIntValue, x, "Test for output parameter fails.\n");
             }
 
-            Class[] smallint_coercions = {Object.class, Short.class, Integer.class, Long.class, Float.class, Double.class, BigDecimal.class,
+            Class[] smallint_coercions = {Object.class, Integer.class, Long.class, Float.class, Double.class, BigDecimal.class,
                     String.class};
             for (int i = 0; i < smallint_coercions.length; i++) {
                 Object smallIntValue = getxxx(3, smallint_coercions[i], callableStatement);
@@ -1712,7 +1709,7 @@ public class CallableStatementTest extends AESetup {
                     assertEquals(smallIntValue, x, "Test for output parameter fails.\n");
             }
 
-            Class[] int_coercions = {Object.class, Short.class, Integer.class, Long.class, Float.class, Double.class, BigDecimal.class, String.class};
+            Class[] int_coercions = {Object.class, Integer.class, Long.class, Float.class, Double.class, BigDecimal.class, String.class};
             for (int i = 0; i < int_coercions.length; i++) {
                 Object IntValue = getxxx(4, int_coercions[i], callableStatement);
                 Object x = createValue(int_coercions[i], 3);
@@ -1724,7 +1721,7 @@ public class CallableStatementTest extends AESetup {
                 }
             }
 
-            Class[] bigint_coercions = {Object.class, Short.class, Integer.class, Long.class, Float.class, Double.class, BigDecimal.class,
+            Class[] bigint_coercions = {Object.class, Integer.class, Long.class, Float.class, Double.class, BigDecimal.class,
                     String.class};
             for (int i = 0; i < int_coercions.length; i++) {
                 Object bigIntValue = getxxx(5, bigint_coercions[i], callableStatement);
@@ -1737,7 +1734,7 @@ public class CallableStatementTest extends AESetup {
                 }
             }
 
-            Class[] float_coercions = {Object.class, Short.class, Integer.class, Long.class, Float.class, Double.class, BigDecimal.class,
+            Class[] float_coercions = {Object.class, Integer.class, Long.class, Float.class, Double.class, BigDecimal.class,
                     String.class};
             for (int i = 0; i < float_coercions.length; i++) {
                 Object floatDefaultValue = getxxx(6, float_coercions[i], callableStatement);
@@ -1761,7 +1758,7 @@ public class CallableStatementTest extends AESetup {
                 }
             }
 
-            Class[] real_coercions = {Object.class, Short.class, Integer.class, Long.class, Float.class, BigDecimal.class, String.class};
+            Class[] real_coercions = {Object.class, Integer.class, Long.class, Float.class, BigDecimal.class, String.class};
             for (int i = 0; i < real_coercions.length; i++) {
 
                 Object realValue = getxxx(8, real_coercions[i], callableStatement);
@@ -1775,7 +1772,7 @@ public class CallableStatementTest extends AESetup {
                 }
             }
 
-            Class[] decimalDefault_coercions = {Object.class, Short.class, Integer.class, Long.class, Float.class, Double.class, BigDecimal.class,
+            Class[] decimalDefault_coercions = {Object.class, Integer.class, Long.class, Float.class, Double.class, BigDecimal.class,
                     String.class};
             for (int i = 0; i < decimalDefault_coercions.length; i++) {
                 Object decimalDefaultValue = getxxx(9, decimalDefault_coercions[i], callableStatement);
@@ -1879,10 +1876,6 @@ public class CallableStatementTest extends AESetup {
                 return Integer.parseInt(numericValues[index]);
             if (coercion == String.class || coercion == Boolean.class || coercion == Object.class)
                 return (numericValues[index]);
-            if (coercion == Byte.class)
-                return Byte.parseByte(numericValues[index]);
-            if (coercion == Short.class)
-                return Short.parseShort(numericValues[index]);
             if (coercion == Long.class)
                 return Long.parseLong(numericValues[index]);
             if (coercion == Double.class)
@@ -1907,12 +1900,6 @@ public class CallableStatementTest extends AESetup {
         }
         else if (coercion == Boolean.class) {
             return new Boolean(callableStatement.getBoolean(ordinal));
-        }
-        else if (coercion == Byte.class) {
-            return new Byte(callableStatement.getByte(ordinal));
-        }
-        else if (coercion == Short.class) {
-            return new Short(callableStatement.getShort(ordinal));
         }
         else if (coercion == Integer.class) {
             return new Integer(callableStatement.getInt(ordinal));
@@ -2371,7 +2358,7 @@ public class CallableStatementTest extends AESetup {
             double floatValue0 = callableStatement.getDouble(2);
             assertEquals("" + floatValue0, numericValues[5], "Test for output parameter fails.\n");
 
-            short shortValue3 = callableStatement.getShort(3);
+            int shortValue3 = callableStatement.getInt(3);
             assertEquals("" + shortValue3, numericValues[2], "Test for output parameter fails.\n");
 
             BigDecimal smallmoneyValue = callableStatement.getSmallMoney(4);

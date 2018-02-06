@@ -961,18 +961,18 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
         index++;
 
         // tiny
-        value1 = "" + rs.getShort(4);
-        value2 = "" + rs.getShort(5);
-        value3 = "" + rs.getShort(6);
+        value1 = "" + rs.getInt(4);
+        value2 = "" + rs.getInt(5);
+        value3 = "" + rs.getInt(6);
 
         expectedValue = values[index];
         Compare(expectedValue, value1, value2, value3);
         index++;
 
         // smallint
-        value1 = "" + rs.getShort(7);
-        value2 = "" + rs.getShort(8);
-        value3 = "" + rs.getShort(8);
+        value1 = "" + rs.getInt(7);
+        value2 = "" + rs.getInt(8);
+        value3 = "" + rs.getInt(8);
 
         expectedValue = values[index];
         Compare(expectedValue, value1, value2, value3);

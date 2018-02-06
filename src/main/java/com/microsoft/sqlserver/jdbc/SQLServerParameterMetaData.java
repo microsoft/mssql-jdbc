@@ -739,7 +739,7 @@ public final class SQLServerParameterMetaData implements ParameterMetaData {
             }
             else {
                 verifyParameterPosition(param);
-                JDBCType jdbcType = JDBCType.of(rsProcedureMeta.getShort("DATA_TYPE"));
+                JDBCType jdbcType = JDBCType.of(rsProcedureMeta.getInt("DATA_TYPE"));
                 return jdbcType.className();
             }
         }
@@ -809,7 +809,7 @@ public final class SQLServerParameterMetaData implements ParameterMetaData {
             }
             else {
                 verifyParameterPosition(param);
-                parameterType = rsProcedureMeta.getShort("DATA_TYPE");
+                parameterType = rsProcedureMeta.getInt("DATA_TYPE");
             }
 
             switch (parameterType) {
@@ -936,7 +936,7 @@ public final class SQLServerParameterMetaData implements ParameterMetaData {
             }
             else {
                 verifyParameterPosition(param);
-                return JDBCType.of(rsProcedureMeta.getShort("DATA_TYPE")).isSigned();
+                return JDBCType.of(rsProcedureMeta.getInt("DATA_TYPE")).isSigned();
             }
         }
         catch (SQLException e) {

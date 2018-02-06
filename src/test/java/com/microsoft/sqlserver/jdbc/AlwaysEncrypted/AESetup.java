@@ -636,8 +636,8 @@ public class AESetup extends AbstractTest {
     protected static String[] createNumericValues(boolean nullable) {
 
         Boolean boolValue = RandomData.generateBoolean(nullable);
-        Short tinyIntValue = RandomData.generateTinyint(nullable);
-        Short smallIntValue = RandomData.generateSmallint(nullable);
+        Integer tinyIntValue = RandomData.generateTinyint(nullable);
+        Integer smallIntValue = RandomData.generateSmallint(nullable);
         Integer intValue = RandomData.generateInt(nullable);
         Long bigintValue = RandomData.generateLong(nullable);
         Double floatValue = RandomData.generateFloat(24, nullable);
@@ -1988,7 +1988,7 @@ public class AESetup extends AbstractTest {
 	
 	        // int
 	        for (int i = 10; i <= 12; i++) {
-	            pstmt.setShort(i, Short.valueOf(numericValues[3]));
+	            pstmt.setInt(i, Integer.valueOf(numericValues[3]));
 	        }
 	
 	        // bigint

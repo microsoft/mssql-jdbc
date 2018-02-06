@@ -216,7 +216,7 @@ public class SQLVariantResultSetTest extends AbstractTest {
      */
     @Test
     public void readSmallInt() throws SQLException {
-        short value = 5;
+        Integer value = 5;
         createAndPopulateTable("smallint", value);
         rs = (SQLServerResultSet) stmt.executeQuery("SELECT * FROM " + tableName);
         rs.next();
@@ -230,7 +230,7 @@ public class SQLVariantResultSetTest extends AbstractTest {
      */
     @Test
     public void readTinyInt() throws SQLException {
-        short value = 5;
+        Integer value = 5;
         createAndPopulateTable("tinyint", value);
         rs = (SQLServerResultSet) stmt.executeQuery("SELECT * FROM " + tableName);
         rs.next();
@@ -787,7 +787,7 @@ public class SQLVariantResultSetTest extends AbstractTest {
      */
     @Test
     public void readSeveralRows() throws SQLException {
-        short value1 = 5;
+        Integer value1 = 5;
         int value2 = 10;
         String value3 = "hi";
         Utils.dropTableIfExists(tableName, stmt);
