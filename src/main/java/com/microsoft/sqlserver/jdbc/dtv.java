@@ -812,12 +812,12 @@ final class DTV {
                     case VARBINARYMAX:
                         switch (jdbcType) {
                             case LEGACY_DATETIME:
+                            case DATETIME:
                             case SMALLDATETIME:
                                 tdsWriter.writeEncryptedRPCDateTime(name, timestampNormalizedCalendar(calendar, javaType, conn.baseYear()),
                                         subSecondNanos, isOutParam, jdbcType);
                                 break;
 
-                            case DATETIME:
                             case TIMESTAMP:
                                 assert null != cryptoMeta;
                                 tdsWriter.writeEncryptedRPCDateTime2(name, timestampNormalizedCalendar(calendar, javaType, conn.baseYear()),
