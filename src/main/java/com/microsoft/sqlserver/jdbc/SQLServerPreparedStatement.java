@@ -572,12 +572,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         // ANSI_NULLS and QUOTED_IDENTIFIER set options are not changed since the handle is prepared.
         // 8179: Could not find prepared statement with handle %d.
         // 99586: Error used for testing.
-        if (needsPrepare) {
-            return false;
-        }
-        else {
-            return 1 == attempt && (586 == e.getErrorCode() || 8179 == e.getErrorCode() || 99586 == e.getErrorCode()) && connection.isStatementPoolingEnabled();
-        }
+        return 1 == attempt && (586 == e.getErrorCode() || 8179 == e.getErrorCode() || 99586 == e.getErrorCode()) && connection.isStatementPoolingEnabled();
     }
 
     /**
