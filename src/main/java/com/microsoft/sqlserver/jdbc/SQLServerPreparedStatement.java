@@ -69,6 +69,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     /** True if this execute has been called for this statement at least once */
     private boolean isExecutedAtLeastOnce = false;
 
+    private boolean needsPrepare = false;
     /** Reference to cache item for statement handle pooling. Only used to decrement ref count on statement close. */
     private PreparedStatementHandle cachedPreparedStatementHandle; 
 
@@ -528,7 +529,6 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         }
 
         String dbName = connection.getSCatalog();
-        boolean needsPrepare = false;
         // Retry execution if existing handle could not be re-used.
         for (int attempt = 1; attempt <= 2; ++attempt) {
             try {
@@ -571,7 +571,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         // 586: The prepared statement handle %d is not valid in this context. Please verify that current database, user default schema, and
         // ANSI_NULLS and QUOTED_IDENTIFIER set options are not changed since the handle is prepared.
         // 8179: Could not find prepared statement with handle %d.
-        if(needsPrepare) {return false;}
+        if(needsPrepare) return false;
     	return 1 == attempt && (586 == e.getErrorCode() || 8179 == e.getErrorCode()) && connection.isStatementPoolingEnabled();
     }
 
@@ -981,7 +981,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
             boolean hasNewTypeDefinitions,
             boolean hasExistingTypeDefinitions) throws SQLServerException {
         
-        boolean needsPrepare = (hasNewTypeDefinitions && hasExistingTypeDefinitions) || !hasPreparedStatementHandle();
+        needsPrepare = (hasNewTypeDefinitions && hasExistingTypeDefinitions) || !hasPreparedStatementHandle();
 
         // Cursors don't use statement pooling.
         if (isCursorable(executeMethod)) {
@@ -2629,7 +2629,6 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
             }
 
             String dbName = connection.getSCatalog();
-            boolean needsPrepare = false;
             // Retry execution if existing handle could not be re-used.
             for (int attempt = 1; attempt <= 2; ++attempt) {
                 try {
