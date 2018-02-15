@@ -69,7 +69,6 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     /** True if this execute has been called for this statement at least once */
     private boolean isExecutedAtLeastOnce = false;
 
-    private boolean needsPrepare = false;
     /** Reference to cache item for statement handle pooling. Only used to decrement ref count on statement close. */
     private PreparedStatementHandle cachedPreparedStatementHandle; 
 
@@ -529,6 +528,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         }
 
         String dbName = connection.getSCatalog();
+        boolean needsPrepare = false;
         // Retry execution if existing handle could not be re-used.
         for (int attempt = 1; attempt <= 2; ++attempt) {
             try {
@@ -981,7 +981,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
             boolean hasNewTypeDefinitions,
             boolean hasExistingTypeDefinitions) throws SQLServerException {
         
-        needsPrepare = (hasNewTypeDefinitions && hasExistingTypeDefinitions) || !hasPreparedStatementHandle();
+        boolean needsPrepare = (hasNewTypeDefinitions && hasExistingTypeDefinitions) || !hasPreparedStatementHandle();
 
         // Cursors don't use statement pooling.
         if (isCursorable(executeMethod)) {
@@ -2629,6 +2629,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
             }
 
             String dbName = connection.getSCatalog();
+            boolean needsPrepare = false;
             // Retry execution if existing handle could not be re-used.
             for (int attempt = 1; attempt <= 2; ++attempt) {
                 try {
