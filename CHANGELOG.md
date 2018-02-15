@@ -14,9 +14,6 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/)
 - Fixes for SonarQube Reported issues [#599](https://github.com/Microsoft/mssql-jdbc/pull/599)
 - Fixes for Random Assertion Errors [#597](https://github.com/Microsoft/mssql-jdbc/pull/597)
 
-### Changed
-- Updated Appveyor to use JDK9 building driver and running tests [#619](https://github.com/Microsoft/mssql-jdbc/pull/619)
-
 
 ## [6.3.6] Preview Release
 ### Added
