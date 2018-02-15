@@ -80,7 +80,7 @@ We're now on the Maven Central Repository. Add the following to your POM file to
 <dependency>
 	<groupId>com.microsoft.sqlserver</groupId>
 	<artifactId>mssql-jdbc</artifactId>
-	<version>6.2.2.jre8</version>
+	<version>6.4.0.jre8</version>
 </dependency>
 ```
 The driver can be downloaded from the [Microsoft Download Center](https://go.microsoft.com/fwlink/?linkid=852460).
@@ -120,14 +120,14 @@ Projects that require either of the two features need to explicitly declare the 
 <dependency>
 	<groupId>com.microsoft.sqlserver</groupId>
 	<artifactId>mssql-jdbc</artifactId>
-	<version>6.3.6.jre8-preview</version>
+	<version>6.4.0.jre8</version>
 	<scope>compile</scope>
 </dependency>
 
 <dependency>
 	<groupId>com.microsoft.azure</groupId>
 	<artifactId>adal4j</artifactId>
-	<version>1.3.0</version>
+	<version>1.4.0</version>
 </dependency>
 ```
 
@@ -136,14 +136,14 @@ Projects that require either of the two features need to explicitly declare the 
 <dependency>
 	<groupId>com.microsoft.sqlserver</groupId>
 	<artifactId>mssql-jdbc</artifactId>
-	<version>6.3.6.jre8-preview</version>
+	<version>6.4.0.jre8</version>
 	<scope>compile</scope>
 </dependency>
 
 <dependency>
 	<groupId>com.microsoft.azure</groupId>
 	<artifactId>adal4j</artifactId>
-	<version>1.3.0</version>
+	<version>1.4.0</version>
 </dependency>
 
 <dependency>
@@ -155,12 +155,12 @@ Projects that require either of the two features need to explicitly declare the 
 ***Please note*** as of the v6.2.2, the way to construct a `SQLServerColumnEncryptionAzureKeyVaultProvider` object has changed. Please refer to this [Wiki](https://github.com/Microsoft/mssql-jdbc/wiki/New-Constructor-Definition-for-SQLServerColumnEncryptionAzureKeyVaultProvider-after-6.2.2-Release) page for more information.
 
 ## Guidelines for Creating Pull Requests
-We love contributions from the community.  To help improve the quality of our code, we encourage you to use the mssql-jdbc_formatter.xml formatter provided on all pull requests.
+We love contributions from the community. To help improve the quality of our code, we encourage you to use the mssql-jdbc_formatter.xml formatter provided on all pull requests.
 
 Thank you!
 
 ## Guidelines for Reporting Issues
-We appreciate you taking the time to test the driver, provide feedback and report any issues.  It would be extremely helpful if you:
+We appreciate you taking the time to test the driver, provide feedback and report any issues. It would be extremely helpful if you:
 
 - Report each issue as a new issue (but check first if it's already been reported)
 - Try to be detailed in your report. Useful information for good bug reports include:
