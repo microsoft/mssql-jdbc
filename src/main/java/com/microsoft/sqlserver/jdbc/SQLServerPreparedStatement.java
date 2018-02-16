@@ -528,7 +528,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         }
 
         String dbName = connection.getSCatalog();
-        boolean needsPrepare = false;
+        boolean needsPrepare = true;
         // Retry execution if existing handle could not be re-used.
         for (int attempt = 1; attempt <= 2; ++attempt) {
             try {
@@ -2629,7 +2629,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
             }
 
             String dbName = connection.getSCatalog();
-            boolean needsPrepare = false;
+            boolean needsPrepare = true;
             // Retry execution if existing handle could not be re-used.
             for (int attempt = 1; attempt <= 2; ++attempt) {
                 try {
