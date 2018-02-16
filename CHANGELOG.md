@@ -8,6 +8,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/)
 - Support added for AAD Integrated Authentication with ADAL4J on Windows/Linux/Mac OS [#603](https://github.com/Microsoft/mssql-jdbc/pull/603) 
 - Enable Recover after MSDTC is restarted [#581](https://github.com/Microsoft/mssql-jdbc/pull/581)
 - Added  Version Update configuration rules to project [#541](https://github.com/Microsoft/mssql-jdbc/pull/541)
+- JDK 9 Compatibility + JDBC 4.3 API support added to the driver [#601 (https://github.com/Microsoft/mssql-jdbc/pull/601)
 
 ### Fixed Issues
 - Re-introduced Retry Logic for Prepared Statement Caching implementation and remove detect change context function [#618](https://github.com/Microsoft/mssql-jdbc/pull/618) and [#620](https://github.com/Microsoft/mssql-jdbc/pull/620)
@@ -15,9 +16,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/)
 - Fixes for Random Assertion Errors [#597](https://github.com/Microsoft/mssql-jdbc/pull/597)
 
 ### Changed
-- JDK 9 Compatibility + JDBC 4.3 API support added, removed JDK 7 support from the driver [#601](https://github.com/Microsoft/mssql-jdbc/pull/601)
 - Updated Appveyor to use JDK9 building driver and running tests [#619](https://github.com/Microsoft/mssql-jdbc/pull/619)
-
+- JDK 7 compilation support removed from the driver [#601](https://github.com/Microsoft/mssql-jdbc/pull/601)
 
 ## [6.3.6] Preview Release
 ### Added
