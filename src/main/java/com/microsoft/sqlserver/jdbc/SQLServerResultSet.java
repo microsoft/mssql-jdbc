@@ -26,7 +26,9 @@ import java.sql.SQLFeatureNotSupportedException;
 import java.sql.SQLWarning;
 import java.sql.SQLXML;
 import java.text.MessageFormat;
+import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
@@ -126,6 +128,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
      * occurs
      */
     private Closeable activeStream;
+    private List<Object> streamObjects = new ArrayList<Object>();
 
     /**
      * A window of fetchSize quickly accessible rows for scrollable result sets
@@ -576,7 +579,10 @@ public class SQLServerResultSet implements ISQLServerResultSet {
 
         // Mark this ResultSet as closed, then clean up.
         isClosed = true;
-
+        
+        //fill all unclosed objects which rely on the stream
+        fillBlobs();
+        
         // Discard the current fetch buffer contents.
         discardFetchBuffer();
 
@@ -2657,6 +2663,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         checkClosed();
         Blob value = (Blob) getValue(i, JDBCType.BLOB);
         loggerExternal.exiting(getClassNameLogging(), "getBlob", value);
+        streamObjects.add(value);
         return value;
     }
 
@@ -2665,6 +2672,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         checkClosed();
         Blob value = (Blob) getValue(findColumn(colName), JDBCType.BLOB);
         loggerExternal.exiting(getClassNameLogging(), "getBlob", value);
+        streamObjects.add(value);
         return value;
     }
 
@@ -6505,6 +6513,23 @@ public class SQLServerResultSet implements ISQLServerResultSet {
 
             // Put the scroll window back before the first row.
             scrollWindow.reset();
+        }
+    }
+    
+    /*
+     * Iterates through the list of objects which rely on the stream that's about to be closed, filling them with their data
+     * Will skip over closed blobs, implemented in SQLServerBlob
+     */
+    private void fillBlobs() {
+        for(Object o : streamObjects) {
+        	if(o instanceof SQLServerBlob) {
+        		try {
+					((SQLServerBlob) o).fillByteArray();
+				} catch (SQLException e) {
+	                if (logger.isLoggable(java.util.logging.Level.FINER))
+	                    logger.finer(toString() + "Filling blobs before closing: " + e.getMessage());
+				}
+        	}
         }
     }
 

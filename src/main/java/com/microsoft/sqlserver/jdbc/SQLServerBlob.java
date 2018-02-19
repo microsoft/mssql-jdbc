@@ -232,8 +232,19 @@ public final class SQLServerBlob implements java.sql.Blob, java.io.Serializable 
      */
     public long length() throws SQLException {
         checkClosed();
+        if (value == null)
+        	return (long)((PLPInputStream)activeStreams.get(0)).payloadLength;
         getBytesFromStream();
         return value.length;
+    }
+    
+    /**
+     * Function for the result set to maintain blobs it has created
+     * @throws SQLException
+     */
+    void fillByteArray() throws SQLException {
+    	if(!isClosed)
+    		getBytesFromStream();
     }
     
     /**
