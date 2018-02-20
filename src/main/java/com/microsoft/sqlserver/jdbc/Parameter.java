@@ -364,7 +364,7 @@ final class Parameter {
             // skip it if is (character types or binary type) & is output parameter && value is already set,
             if ((!(jdbcType.isTextual() || jdbcType.isBinary())) || !(this.isOutput()) || (this.valueLength == 0)) {
                 this.valueLength = Util.getValueLengthBaseOnJavaType(value, javaType, precision, scale, jdbcType);
-                // Workaround for the issue when inserting empty string and null
+                // Workaround for the issue when inserting empty string and null into encrypted columns
                 if( this.valueLength == 0 ) {
                     this.valueLength ++;
                 }
