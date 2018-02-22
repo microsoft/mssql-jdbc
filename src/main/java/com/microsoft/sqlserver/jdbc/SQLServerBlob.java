@@ -232,7 +232,7 @@ public final class SQLServerBlob implements java.sql.Blob, java.io.Serializable 
      */
     public long length() throws SQLException {
         checkClosed();
-        if (value == null)
+        if (value == null && activeStreams.get(0) instanceof PLPInputStream)
         	return (long)((PLPInputStream)activeStreams.get(0)).payloadLength;
         getBytesFromStream();
         return value.length;
