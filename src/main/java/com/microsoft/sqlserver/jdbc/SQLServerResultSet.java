@@ -6534,18 +6534,6 @@ public class SQLServerResultSet implements ISQLServerResultSet {
 				activeBlob = null;
 			}
     	}
-    	
-        /*for (int i = 0; i < streamObjects.size(); i++)	{
-        	if(streamObjects.get(i) instanceof SQLServerBlob) {
-	    		try {
-					((SQLServerBlob) streamObjects.get(i)).fillByteArray();
-					streamObjects.remove(i);
-				} catch (SQLException e) {
-	                if (logger.isLoggable(java.util.logging.Level.FINER))
-	                    logger.finer(toString() + "Filling blobs before closing: " + e.getMessage());
-				}
-        	}
-        }*/
     }
 
     /**
