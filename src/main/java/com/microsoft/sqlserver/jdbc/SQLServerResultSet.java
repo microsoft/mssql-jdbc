@@ -6520,7 +6520,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
     }
     
     /*
-     * Iterates through the list of objects which rely on the stream that's about to be closed, filling them with their data
+     * Iterates through the list of objects which rely on the stream that's about to be closed, ing them with their data
      * Will skip over closed blobs, implemented in SQLServerBlob
      */
     private void fillBlobs() {
