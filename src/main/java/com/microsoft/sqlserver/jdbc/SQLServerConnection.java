@@ -3620,34 +3620,36 @@ public class SQLServerConnection implements ISQLServerConnection {
                 }
 
                 // Check if the hostNameInCertificate needs to be updated to handle the rerouted subdomain in Azure
-                String currentHostName = activeConnectionProperties.getProperty("hostNameInCertificate");
-                if (null != currentHostName && currentHostName.startsWith("*")
-                        && (null != routingServerName) /* skip the check for hostNameInCertificate if routingServerName is null */
-                        && routingServerName.indexOf('.') != -1) {
-                    char[] currentHostNameCharArray = currentHostName.toCharArray();
-                    char[] routingServerNameCharArray = routingServerName.toCharArray();
-                    boolean hostNameNeedsUpdate = true;
-
-                    /*
-                     * Check if routingServerName and hostNameInCertificate are from same domain by verifying each character in currentHostName from
-                     * last until it reaches the character before the wildcard symbol (i.e. currentHostNameCharArray[1])
-                     */
-                    for (int i = currentHostName.length() - 1, j = routingServerName.length() - 1; i > 0 && j > 0; i--, j--) {
-                        if (routingServerNameCharArray[j] != currentHostNameCharArray[i]) {
-                            hostNameNeedsUpdate = false;
-                            break;
-                        }
-                    }
-
-                    if (hostNameNeedsUpdate) {
-                        String newHostName = "*" + routingServerName.substring(routingServerName.indexOf('.'));
-                        activeConnectionProperties.setProperty("hostNameInCertificate", newHostName);
-
-                        if (connectionlogger.isLoggable(Level.FINER)) {
-                            connectionlogger.finer(toString() + "Using new host to validate the SSL certificate");
-                        }
-                    }
-                }
+                // Do not modify the hostNameInCertificate connection property, since we need this to match the server name
+                // of Azure SQL Server, which is in the form of <server_name>.database.windows.net
+//                String currentHostName = activeConnectionProperties.getProperty("hostNameInCertificate");
+//                if (null != currentHostName && currentHostName.startsWith("*")
+//                        && (null != routingServerName) /* skip the check for hostNameInCertificate if routingServerName is null */
+//                        && routingServerName.indexOf('.') != -1) {
+//                    char[] currentHostNameCharArray = currentHostName.toCharArray();
+//                    char[] routingServerNameCharArray = routingServerName.toCharArray();
+//                    boolean hostNameNeedsUpdate = true;
+//
+//                    /*
+//                     * Check if routingServerName and hostNameInCertificate are from same domain by verifying each character in currentHostName from
+//                     * last until it reaches the character before the wildcard symbol (i.e. currentHostNameCharArray[1])
+//                     */
+//                    for (int i = currentHostName.length() - 1, j = routingServerName.length() - 1; i > 0 && j > 0; i--, j--) {
+//                        if (routingServerNameCharArray[j] != currentHostNameCharArray[i]) {
+//                            hostNameNeedsUpdate = false;
+//                            break;
+//                        }
+//                    }
+//
+//                    if (hostNameNeedsUpdate) {
+//                        String newHostName = "*" + routingServerName.substring(routingServerName.indexOf('.'));
+//                        activeConnectionProperties.setProperty("hostNameInCertificate", newHostName);
+//
+//                        if (connectionlogger.isLoggable(Level.FINER)) {
+//                            connectionlogger.finer(toString() + "Using new host to validate the SSL certificate");
+//                        }
+//                    }
+//                }
 
                 isRoutedInCurrentAttempt = true;
                 routingInfo = new ServerPortPlaceHolder(routingServerName, routingPortNumber, null, integratedSecurity);
