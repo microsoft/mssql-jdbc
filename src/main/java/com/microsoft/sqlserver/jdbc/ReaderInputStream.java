@@ -11,6 +11,7 @@ package com.microsoft.sqlserver.jdbc;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.Reader;
+import java.nio.Buffer;
 import java.nio.ByteBuffer;
 import java.nio.CharBuffer;
 import java.nio.charset.Charset;
@@ -182,7 +183,7 @@ class ReaderInputStream extends InputStream {
             }
             else {
                 // Flip the buffer to be ready for put (reader read) operations.
-                rawChars.clear();
+                ((Buffer)rawChars).clear();
             }
 
             // Try to fill up the raw character buffer by reading available characters
@@ -194,7 +195,7 @@ class ReaderInputStream extends InputStream {
             // - the reader throws any kind of Exception (driver throws an IOException)
             // - the reader violates its interface contract (driver throws an IOException)
             while (rawChars.hasRemaining()) {
-                int lastPosition = rawChars.position();
+                int lastPosition = ((Buffer)rawChars).position();
                 int charsRead = 0;
 
                 // Try reading from the app-supplied Reader
@@ -218,7 +219,7 @@ class ReaderInputStream extends InputStream {
 
                 if (-1 == charsRead) {
                     // If the reader violates its interface contract then throw an exception.
-                    if (rawChars.position() != lastPosition)
+                    if (((Buffer)rawChars).position() != lastPosition)
                         throw new IOException(SQLServerException.getErrString("R_streamReadReturnedInvalidValue"));
 
                     // Check that the reader has returned exactly the amount of data we expect
@@ -228,7 +229,7 @@ class ReaderInputStream extends InputStream {
                     }
 
                     // If there are no characters left to encode then we're done.
-                    if (0 == rawChars.position()) {
+                    if (0 == ((Buffer)rawChars).position()) {
                         rawChars = null;
                         atEndOfStream = true;
                         return false;
@@ -241,7 +242,7 @@ class ReaderInputStream extends InputStream {
                 assert charsRead > 0;
 
                 // If the reader violates its interface contract then throw an exception.
-                if (charsRead != rawChars.position() - lastPosition)
+                if (charsRead != ((Buffer)rawChars).position() - lastPosition)
                     throw new IOException(SQLServerException.getErrString("R_streamReadReturnedInvalidValue"));
 
                 // Check that the reader isn't trying to return more data than we expect
@@ -255,7 +256,7 @@ class ReaderInputStream extends InputStream {
 
             // The raw character buffer may now have characters available for encoding.
             // Flip the buffer back to be ready for get (charset encode) operations.
-            rawChars.flip();
+            ((Buffer)rawChars).flip();
         }
 
         // If the raw character buffer remains empty, despite our efforts to (re)populate it,

@@ -16,11 +16,9 @@ import java.sql.Types;
 import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.Properties;
-import java.util.Vector;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-
 import javax.transaction.xa.XAException;
 import javax.transaction.xa.XAResource;
 import javax.transaction.xa.Xid;
@@ -165,7 +163,10 @@ public final class SQLServerXAResource implements javax.transaction.xa.XAResourc
     public static final int SSTRANSTIGHTLYCPLD = 0x8000;
     private SQLServerCallableStatement[] xaStatements = {null, null, null, null, null, null, null, null, null, null};
     private final String traceID;
-
+    /**
+     * Variable that shows how many times we attempt the recovery, e.g in case of MSDTC restart
+     */
+    private int recoveryAttempt = 0;
     static {
         xaInitLock = new Object();
     }
@@ -381,7 +382,7 @@ public final class SQLServerXAResource implements javax.transaction.xa.XAResourc
         SQLServerCallableStatement cs = null;
         try {
             synchronized (this) {
-                if (!xaInitDone) {
+                if (!xaInitDone) {  
                     try {
                         synchronized (xaInitLock) {
                             SQLServerCallableStatement initCS = null;
@@ -634,6 +635,14 @@ public final class SQLServerXAResource implements javax.transaction.xa.XAResourc
                     }
                 }
             }
+            if (XA_RECOVER == nType && XA_OK != nStatus && recoveryAttempt < 1) {
+                // if recover failed, attempt to start again - adding the variable to check to attempt only once otherwise throw exception that recovery fails
+                // this is added since before this change, if we restart the MSDTC and attempt to do recovery, driver will throw exception
+                //"The function RECOVER: failed. The status is: -3"
+                recoveryAttempt++;
+                DTC_XA_Interface(XA_START, xid, TMNOFLAGS);
+                return DTC_XA_Interface(XA_RECOVER, xid, xaFlags);
+            }
             // prepare and end can return XA_RDONLY
             // Think should we just check for nStatus to be greater than or equal to zero instead of this check
             if (((XA_RDONLY == nStatus) && (XA_END != nType && XA_PREPARE != nType)) || (XA_OK != nStatus && XA_RDONLY != nStatus)) {
@@ -658,7 +667,6 @@ public final class SQLServerXAResource implements javax.transaction.xa.XAResourc
                             xaLogger.finer(toString() + " Ignoring exception:" + e1);
                     }
                 }
-
                 throw e;
             }
             else {

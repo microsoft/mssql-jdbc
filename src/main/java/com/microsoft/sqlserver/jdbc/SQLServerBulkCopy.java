@@ -327,7 +327,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable {
     public SQLServerBulkCopy(Connection connection) throws SQLServerException {
         loggerExternal.entering(loggerClassName, "SQLServerBulkCopy", connection);
 
-        if (null == connection || !connection.getClass().equals(SQLServerConnection.class)) {
+        if (null == connection || !(connection instanceof SQLServerConnection)) {
             SQLServerException.makeFromDriverError(null, null, SQLServerException.getErrString("R_invalidDestConnection"), null, false);
         }
 
