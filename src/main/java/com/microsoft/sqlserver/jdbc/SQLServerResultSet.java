@@ -1040,6 +1040,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
     public boolean wasNull() throws SQLServerException {
         loggerExternal.entering(getClassNameLogging(), "wasNull");
         checkClosed();
+        fillBlobs();
         loggerExternal.exiting(getClassNameLogging(), "wasNull", lastValueWasNull);
         return lastValueWasNull;
     }
@@ -1413,7 +1414,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
             logger.finer(toString() + logCursorState());
 
         checkClosed();
-
+        
         // DYNAMIC (scrollable) cursors do not support getRow() since they do not have any
         // concept of absolute position.
         if (isDynamic() && !isForwardOnly())
