@@ -436,8 +436,6 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         // can be done with it other than closing it.
         if (null != rowErrorException)
             throw rowErrorException;
-        
-        fillBlobs();
     }
 
     public boolean isClosed() throws SQLException {
@@ -582,9 +580,6 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         // Mark this ResultSet as closed, then clean up.
         isClosed = true;
         
-        //fill all unclosed objects which rely on the stream
-        fillBlobs();
-        
         // Discard the current fetch buffer contents.
         discardFetchBuffer();
 
@@ -619,7 +614,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
     public int findColumn(String columnName) throws SQLServerException {
         loggerExternal.entering(getClassNameLogging(), "findColumn", columnName);
         checkClosed();
-
+        
         // In order to be as accurate as possible when locating column name
         // indexes, as well as be deterministic when running on various client
         // locales, we search for column names using the following scheme:
@@ -756,6 +751,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
     /* ----------------- JDBC API methods ------------------ */
 
     private void moverInit() throws SQLServerException {
+    	fillBlobs();
         cancelInsert();
         cancelUpdates();
     }
@@ -1901,6 +1897,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         if (logger.isLoggable(java.util.logging.Level.FINER))
             logger.finer(toString() + " Getting Column:" + index);
 
+        fillBlobs();
         return loadColumn(index);
     }
 
@@ -6524,7 +6521,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
      * Will skip over closed blobs, implemented in SQLServerBlob
      */
     private void fillBlobs() {
-    	if (activeBlob != null && activeBlob instanceof SQLServerBlob) 	{
+    	if (null != activeBlob && activeBlob instanceof SQLServerBlob) 	{
     		try {
 				((SQLServerBlob)activeBlob).fillByteArray();
 			} catch (SQLException e) {
@@ -6547,6 +6544,9 @@ public class SQLServerResultSet implements ISQLServerResultSet {
      * fetch buffer is considered to be discarded.
      */
     private void discardFetchBuffer() {
+    	//fills blobs before discarding anything
+    	fillBlobs();
+    	
         // Clear the TDSReader mark at the start of the fetch buffer
         fetchBuffer.clearStartMark();
 
