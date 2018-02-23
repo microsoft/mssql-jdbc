@@ -391,7 +391,8 @@ final class Util {
                         if (null != name) {
                             if (logger.isLoggable(Level.FINE)) {
                                 if (false == name.equals(SQLServerDriverStringProperty.USER.toString())) {
-                                    if (!name.toLowerCase(Locale.ENGLISH).contains("password")) {
+                                    if (!name.toLowerCase(Locale.ENGLISH).contains("password") &&
+                                        !name.toLowerCase(Locale.ENGLISH).contains("keystoresecret")) {
                                         logger.fine("Property:" + name + " Value:" + value);
                                     }
                                     else {
@@ -785,10 +786,7 @@ final class Util {
     static boolean IsActivityTraceOn() {
         LogManager lm = LogManager.getLogManager();
         String activityTrace = lm.getProperty(ActivityIdTraceProperty);
-        if ("on".equalsIgnoreCase(activityTrace))
-            return true;
-        else
-            return false;
+        return ("on".equalsIgnoreCase(activityTrace));
     }
 
     /**
@@ -1007,6 +1005,28 @@ final class Util {
     // otherwise return SQLServerPreparedStatement
     static boolean use42Wrapper() {
         return use42Wrapper;
+    }
+    
+    static final boolean use43Wrapper;
+
+    static {
+        boolean supportJDBC43 = true;
+        try {
+            DriverJDBCVersion.checkSupportsJDBC43();
+        }
+        catch (UnsupportedOperationException e) {
+            supportJDBC43 = false;
+        }
+
+        double jvmVersion = Double.parseDouble(Util.SYSTEM_SPEC_VERSION);
+
+        use43Wrapper = supportJDBC43 && (9 <= jvmVersion);
+    }
+    
+    // if driver is for JDBC 43 and jvm version is 9 or higher, then always return as SQLServerConnection43,
+    // otherwise return SQLServerConnection
+    static boolean use43Wrapper() {
+        return use43Wrapper;
     }
 }
 

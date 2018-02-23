@@ -18,6 +18,8 @@ local.properties
 .settings/
 .gradle/
 .loadpath
+outdated-dependencies.txt
+pom.xml.versionBackup
 
 # External tool builders
 .externalToolBuilders/
