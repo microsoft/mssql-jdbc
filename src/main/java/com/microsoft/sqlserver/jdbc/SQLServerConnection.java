@@ -3420,24 +3420,19 @@ public class SQLServerConnection implements ISQLServerConnection {
             }
         }
         finally {
-            if (integratedSecurity) {                
+            if (integratedSecurity) {
+                if (null != authentication)
+                    authentication.ReleaseClientContext();
+                authentication = null;
+                
                 if (null != ImpersonatedUserCred) {
                     try {
-                    	if (ImpersonatedUserCred.getRemainingLifetime() <= 0) {
-                            if (null != authentication)
-                                authentication.ReleaseClientContext();
-                            authentication = null;
-                    		ImpersonatedUserCred.dispose();
-                    	}
+                        ImpersonatedUserCred.dispose();
                     }
                     catch (GSSException e) {
                         if (connectionlogger.isLoggable(Level.FINER))
                             connectionlogger.finer(toString() + " Release of the credentials failed GSSException: " + e);
                     }
-                } else {
-                    if (null != authentication)
-                        authentication.ReleaseClientContext();
-                    authentication = null;
                 }
             }
         }
