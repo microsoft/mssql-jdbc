@@ -2,8 +2,13 @@
 
 language: java
 jdk:
-  - oraclejdk8
+  - oraclejdk9
 
+addons:
+ apt:
+   packages:
+     - oracle-java9-installer
+     
 services:
   - docker
 
@@ -29,7 +34,7 @@ install:
   - keytool -importkeystore -destkeystore clientcert.jks -deststorepass password -srckeystore identity.p12 -srcstoretype PKCS12 -srcstorepass password
   - keytool -list -v -keystore clientcert.jks -storepass "password" > JavaKeyStore.txt
   - cd ..
-  - mvn install -DskipTests=true -Dmaven.javadoc.skip=true -B -V -Pbuild41
+  - mvn install -DskipTests=true -Dmaven.javadoc.skip=true -B -V -Pbuild43
   - mvn install -DskipTests=true -Dmaven.javadoc.skip=true -B -V -Pbuild42
 
 before_script:
@@ -39,6 +44,6 @@ before_script:
 script: 
   - docker ps -a
   
-##Test for JDBC Specification 41 & 42 and submit coverage report.
-  - mvn test -B -Pbuild41 jacoco:report && bash <(curl -s https://codecov.io/bash) -cF JDBC41
+##Test for JDBC Specification 43 & 42 and submit coverage report.
+  - mvn test -B -Pbuild41 jacoco:report && bash <(curl -s https://codecov.io/bash) -cF JDBC43
   - mvn test -B -Pbuild42 jacoco:report && bash <(curl -s https://codecov.io/bash) -cF JDBC42

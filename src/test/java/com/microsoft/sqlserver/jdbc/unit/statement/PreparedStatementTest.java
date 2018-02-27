@@ -14,6 +14,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.fail;
 
+import java.sql.BatchUpdateException;
 import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -31,9 +32,9 @@ import org.junit.runner.RunWith;
 
 import com.microsoft.sqlserver.jdbc.SQLServerConnection;
 import com.microsoft.sqlserver.jdbc.SQLServerDataSource;
+import com.microsoft.sqlserver.jdbc.SQLServerException;
 import com.microsoft.sqlserver.jdbc.SQLServerPreparedStatement;
 import com.microsoft.sqlserver.testframework.AbstractTest;
-import com.microsoft.sqlserver.testframework.util.RandomUtil;
 
 @RunWith(JUnitPlatform.class)
 public class PreparedStatementTest extends AbstractTest { 
@@ -176,34 +177,72 @@ public class PreparedStatementTest extends AbstractTest {
 
             // Test behvaior with statement pooling.
             con.setStatementPoolingCacheSize(10);
-
+            this.executeSQL(con,
+                    "IF NOT EXISTS (SELECT * FROM sys.messages WHERE message_id = 99586) EXEC sp_addmessage 99586, 16, 'Prepared handle GAH!';");
             // Test with missing handle failures (fake).
             this.executeSQL(con, "CREATE TABLE #update1 (col INT);INSERT #update1 VALUES (1);");
-            this.executeSQL(con, "CREATE PROC #updateProc1 AS UPDATE #update1 SET col += 1; IF EXISTS (SELECT * FROM #update1 WHERE col % 5 = 0) THROW 99586, 'Prepared handle GAH!', 1;");
+            this.executeSQL(con,
+                    "CREATE PROC #updateProc1 AS UPDATE #update1 SET col += 1; IF EXISTS (SELECT * FROM #update1 WHERE col % 5 = 0) RAISERROR(99586,16,1);");
             try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) con.prepareStatement("#updateProc1")) {
                 for (int i = 0; i < 100; ++i) {
-                    assertSame(1, pstmt.executeUpdate());
+                    try {
+                        assertSame(1, pstmt.executeUpdate());
+                    }
+                    catch (SQLServerException e) {
+                        // Error "Prepared handle GAH" is expected to happen. But it should not terminate the execution with RAISERROR.
+                        // Since the original "Could not find prepared statement with handle" error does not terminate the execution after it.
+                        if (!e.getMessage().contains("Prepared handle GAH")) {
+                            throw e;
+                        }
+                    }
                 }
+            }
+
+            // test updated value, should be 1 + 100 = 101
+            // although executeUpdate() throws exception, update operation should be executed successfully.
+            try (ResultSet rs = con.createStatement().executeQuery("select * from #update1")) {
+                rs.next();
+                assertSame(101, rs.getInt(1));
             }
 
             // Test batching with missing handle failures (fake).
+            this.executeSQL(con,
+                    "IF NOT EXISTS (SELECT * FROM sys.messages WHERE message_id = 99586) EXEC sp_addmessage 99586, 16, 'Prepared handle GAH!';");
             this.executeSQL(con, "CREATE TABLE #update2 (col INT);INSERT #update2 VALUES (1);");
-            this.executeSQL(con, "CREATE PROC #updateProc2 AS UPDATE #update2 SET col += 1; IF EXISTS (SELECT * FROM #update2 WHERE col % 5 = 0) THROW 99586, 'Prepared handle GAH!', 1;");
+            this.executeSQL(con,
+                    "CREATE PROC #updateProc2 AS UPDATE #update2 SET col += 1; IF EXISTS (SELECT * FROM #update2 WHERE col % 5 = 0) RAISERROR(99586,16,1);");
             try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) con.prepareStatement("#updateProc2")) {
-                for (int i = 0; i < 100; ++i)
+                for (int i = 0; i < 100; ++i) {
                     pstmt.addBatch();
+                }
 
-                int[] updateCounts = pstmt.executeBatch();
+                int[] updateCounts = null;
+                try {
+                    updateCounts = pstmt.executeBatch();
+                }
+                catch (BatchUpdateException e) {
+                    // Error "Prepared handle GAH" is expected to happen. But it should not terminate the execution with RAISERROR.
+                    // Since the original "Could not find prepared statement with handle" error does not terminate the execution after it.
+                    if (!e.getMessage().contains("Prepared handle GAH")) {
+                        throw e;
+                    }
+                }
 
-                // Verify update counts are correct
-                for (int i : updateCounts) {
-                    assertSame(1, i);
+                // since executeBatch() throws exception, it does not return anthing. So updateCounts is still null.
+                assertSame(null, updateCounts);
+
+                // test updated value, should be 1 + 100 = 101
+                // although executeBatch() throws exception, update operation should be executed successfully.
+                try (ResultSet rs = con.createStatement().executeQuery("select * from #update2")) {
+                    rs.next();
+                    assertSame(101, rs.getInt(1));
                 }
             }
         }
-
+                
         try (SQLServerConnection con = (SQLServerConnection)DriverManager.getConnection(connectionString)) {
             // Test behvaior with statement pooling.
+            con.setDisableStatementPooling(false);
             con.setStatementPoolingCacheSize(10);
 
             String lookupUniqueifier = UUID.randomUUID().toString();
@@ -266,11 +305,12 @@ public class PreparedStatementTest extends AbstractTest {
 
         for (int testNo = 0; testNo < 2; ++testNo) {
             try (SQLServerConnection con = (SQLServerConnection)DriverManager.getConnection(connectionString)) {
-
                 int cacheSize = 10;                
                 int discardedStatementCount = testNo == 0 ? 5 /*batched unprepares*/ : 0 /*regular unprepares*/;
 
-                con.setStatementPoolingCacheSize(cacheSize);
+                // enabling caching
+                con.setDisableStatementPooling(false);
+                con.setStatementPoolingCacheSize(cacheSize); 
                 con.setServerPreparedStatementDiscardThreshold(discardedStatementCount);
 
                 String lookupUniqueifier = UUID.randomUUID().toString();
@@ -414,7 +454,7 @@ public class PreparedStatementTest extends AbstractTest {
         SQLServerDataSource dataSource = new SQLServerDataSource();
         dataSource.setURL(connectionString);
         // Verify defaults.
-        assertTrue(0 < dataSource.getStatementPoolingCacheSize());
+        assertTrue(0 == dataSource.getStatementPoolingCacheSize());
         // Verify change
         dataSource.setStatementPoolingCacheSize(0);
         assertSame(0, dataSource.getStatementPoolingCacheSize());
@@ -431,12 +471,34 @@ public class PreparedStatementTest extends AbstractTest {
         // Test disableStatementPooling
         String connectionStringDisableStatementPooling = connectionString + ";disableStatementPooling=true;";
         SQLServerConnection connectionDisableStatementPooling = (SQLServerConnection)DriverManager.getConnection(connectionStringDisableStatementPooling);
-        assertSame(0, connectionDisableStatementPooling.getStatementPoolingCacheSize());
+        connectionDisableStatementPooling.setStatementPoolingCacheSize(10); // to turn on caching and check if disableStatementPooling is true, even setting cachesize won't matter and will disable it.  
+        assertSame(10, connectionDisableStatementPooling.getStatementPoolingCacheSize());
         assertTrue(!connectionDisableStatementPooling.isStatementPoolingEnabled());
         String connectionStringEnableStatementPooling = connectionString + ";disableStatementPooling=false;";
         SQLServerConnection connectionEnableStatementPooling = (SQLServerConnection)DriverManager.getConnection(connectionStringEnableStatementPooling);
-        assertTrue(0 < connectionEnableStatementPooling.getStatementPoolingCacheSize());
-
+        connectionEnableStatementPooling.setStatementPoolingCacheSize(10); // to turn on caching. 
+        assertTrue(0 < connectionEnableStatementPooling.getStatementPoolingCacheSize()); // for now, it won't affect if disable is false or true. Since statementPoolingCacheSize is set to 0 as default. 
+        //If only disableStatementPooling is set to true, it makes sure that statementPoolingCacheSize is zero, thus disabling the prepared statement metadata caching. 
+        assertTrue(connectionEnableStatementPooling.isStatementPoolingEnabled());
+        
+        String connectionPropertyStringEnableStatementPooling = connectionString + ";disableStatementPooling=false;statementPoolingCacheSize=10";
+        SQLServerConnection connectionPropertyEnableStatementPooling = (SQLServerConnection)DriverManager.getConnection(connectionPropertyStringEnableStatementPooling);
+        assertTrue(0 < connectionPropertyEnableStatementPooling.getStatementPoolingCacheSize()); // for now, it won't affect if disable is false or true. Since statementPoolingCacheSize is set to 0 as default. 
+        //If only disableStatementPooling is set to true, it makes sure that statementPoolingCacheSize is zero, thus disabling the prepared statement metadata caching. 
+        assertTrue(connectionPropertyEnableStatementPooling.isStatementPoolingEnabled());
+        
+        String connectionPropertyStringDisableStatementPooling = connectionString + ";disableStatementPooling=true;statementPoolingCacheSize=10";
+        SQLServerConnection connectionPropertyDisableStatementPooling = (SQLServerConnection)DriverManager.getConnection(connectionPropertyStringDisableStatementPooling);
+        assertTrue(0 < connectionPropertyDisableStatementPooling.getStatementPoolingCacheSize()); // for now, it won't affect if disable is false or true. Since statementPoolingCacheSize is set to 0 as default. 
+        //If only disableStatementPooling is set to true, it makes sure that statementPoolingCacheSize is zero, thus disabling the prepared statement metadata caching. 
+        assertTrue(!connectionPropertyDisableStatementPooling.isStatementPoolingEnabled());
+        
+        String connectionPropertyStringDisableStatementPooling2 = connectionString + ";disableStatementPooling=false;statementPoolingCacheSize=0";
+        SQLServerConnection connectionPropertyDisableStatementPooling2 = (SQLServerConnection)DriverManager.getConnection(connectionPropertyStringDisableStatementPooling2);
+        assertTrue(0 == connectionPropertyDisableStatementPooling2.getStatementPoolingCacheSize()); // for now, it won't affect if disable is false or true. Since statementPoolingCacheSize is set to 0 as default. 
+        //If only disableStatementPooling is set to true, it makes sure that statementPoolingCacheSize is zero, thus disabling the prepared statement metadata caching. 
+        assertTrue(!connectionPropertyDisableStatementPooling2.isStatementPoolingEnabled());
+        
         // Test EnablePrepareOnFirstPreparedStatementCall
         String connectionStringNoExecuteSQL = connectionString + ";enablePrepareOnFirstPreparedStatementCall=true;";
         SQLServerConnection connectionNoExecuteSQL = (SQLServerConnection)DriverManager.getConnection(connectionStringNoExecuteSQL);

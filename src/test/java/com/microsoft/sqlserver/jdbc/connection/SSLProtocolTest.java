@@ -66,11 +66,11 @@ public class SSLProtocolTest extends AbstractTest {
         try {
             String url = connectionString + ";sslProtocol=" + sslProtocol;
             con = DriverManager.getConnection(url);
-            assertFalse(true, "Any protocol other than TLSv1, TLSv1.1 & TLSv1.2 should throw Exception");
+            assertFalse(true, "Any protocol other than TLSv1, TLSv1.1, and TLSv1.2 should throw Exception");
         }
         catch (SQLServerException e) {
             assertTrue(true, "Should throw exception");
-            String errMsg = "SSL Protocol " + sslProtocol + " label is not valid. Only TLS, TLSv1, TLSv1.1 & TLSv1.2 are supported.";
+            String errMsg = "SSL Protocol " + sslProtocol + " label is not valid. Only TLS, TLSv1, TLSv1.1, and TLSv1.2 are supported.";
             assertTrue(errMsg.equals(e.getMessage()), "Message should be from SQL Server resources : " + e.getMessage());
         }
     }

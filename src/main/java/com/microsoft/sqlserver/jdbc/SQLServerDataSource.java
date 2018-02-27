@@ -744,7 +744,7 @@ public class SQLServerDataSource implements ISQLServerDataSource, DataSource, ja
     }
 
     /**
-     * Specifies the size of the prepared statement cache for this conection. A value less than 1 means no cache.
+     * Specifies the size of the prepared statement cache for this connection. A value less than 1 means no cache.
      * 
      * @param statementPoolingCacheSize
      *            Changes the setting per the description.
@@ -754,13 +754,31 @@ public class SQLServerDataSource implements ISQLServerDataSource, DataSource, ja
     }
 
     /**
-     * Returns the size of the prepared statement cache for this conection. A value less than 1 means no cache.
+     * Returns the size of the prepared statement cache for this connection. A value less than 1 means no cache.
      * 
      * @return Returns the current setting per the description.
      */
     public int getStatementPoolingCacheSize() {
         int defaultSize = SQLServerDriverIntProperty.STATEMENT_POOLING_CACHE_SIZE.getDefaultValue();
         return getIntProperty(connectionProps, SQLServerDriverIntProperty.STATEMENT_POOLING_CACHE_SIZE.toString(), defaultSize);
+    }
+    
+    /**
+     * Sets the statement pooling to true or false
+     * @param disableStatementPooling
+     */
+    public void setDisableStatementPooling(boolean disableStatementPooling) {
+        setBooleanProperty(connectionProps, SQLServerDriverBooleanProperty.DISABLE_STATEMENT_POOLING.toString(), disableStatementPooling);       
+    }
+    
+    /**
+     * Returns true if statement pooling is disabled.
+     * @return
+     */
+    public boolean getDisableStatementPooling() {
+        boolean defaultValue = SQLServerDriverBooleanProperty.DISABLE_STATEMENT_POOLING.getDefaultValue();
+        return getBooleanProperty(connectionProps, SQLServerDriverBooleanProperty.DISABLE_STATEMENT_POOLING.toString(),
+                defaultValue);
     }
 
     /**
@@ -864,7 +882,7 @@ public class SQLServerDataSource implements ISQLServerDataSource, DataSource, ja
             int propValue) {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "set" + propKey, propValue);
-        props.setProperty(propKey, new Integer(propValue).toString());
+        props.setProperty(propKey, Integer.valueOf(propValue).toString());
         loggerExternal.exiting(getClassNameLogging(), "set" + propKey);
     }
 
@@ -1003,7 +1021,13 @@ public class SQLServerDataSource implements ISQLServerDataSource, DataSource, ja
         // Create new connection and connect.
         if (dsLogger.isLoggable(Level.FINER))
             dsLogger.finer(toString() + " Begin create new connection.");
-        SQLServerConnection result = new SQLServerConnection(toString());
+        SQLServerConnection result = null;
+        if (Util.use43Wrapper()) {
+            result = new SQLServerConnection43(toString());
+        }
+        else {
+            result = new SQLServerConnection(toString());
+        }
         result.connect(mergedProps, pooledConnection);
         if (dsLogger.isLoggable(Level.FINER))
             dsLogger.finer(toString() + " End create new connection " + result.toString());
@@ -1104,6 +1128,7 @@ public class SQLServerDataSource implements ISQLServerDataSource, DataSource, ja
         loggerExternal.exiting(getClassNameLogging(), "unwrap", t);
         return t;
     }
+
 
     // Returns unique id for each DataSource instance.
     private static int nextDataSourceID() {
