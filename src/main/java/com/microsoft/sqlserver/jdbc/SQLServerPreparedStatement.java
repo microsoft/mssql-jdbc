@@ -528,7 +528,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         }
 
         String dbName = connection.getSCatalog();
-        boolean needsPrepare = false;
+        boolean needsPrepare = true;
         // Retry execution if existing handle could not be re-used.
         for (int attempt = 1; attempt <= 2; ++attempt) {
             try {
@@ -571,13 +571,8 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         // 586: The prepared statement handle %d is not valid in this context. Please verify that current database, user default schema, and
         // ANSI_NULLS and QUOTED_IDENTIFIER set options are not changed since the handle is prepared.
         // 8179: Could not find prepared statement with handle %d.
-        // 99586: Error used for testing.
-        if (needsPrepare) {
-            return false;
-        }
-        else {
-            return 1 == attempt && (586 == e.getErrorCode() || 8179 == e.getErrorCode() || 99586 == e.getErrorCode()) && connection.isStatementPoolingEnabled();
-        }
+        if(needsPrepare) return false;
+    	return 1 == attempt && (586 == e.getErrorCode() || 8179 == e.getErrorCode()) && connection.isStatementPoolingEnabled();
     }
 
     /**
@@ -2634,7 +2629,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
             }
 
             String dbName = connection.getSCatalog();
-            boolean needsPrepare = false;
+            boolean needsPrepare = true;
             // Retry execution if existing handle could not be re-used.
             for (int attempt = 1; attempt <= 2; ++attempt) {
                 try {
