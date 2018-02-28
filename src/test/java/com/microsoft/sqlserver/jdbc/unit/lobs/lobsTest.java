@@ -222,6 +222,59 @@ public class lobsTest extends AbstractTest {
     }
 
     @Test
+    @DisplayName("testFreedBlobs")
+    private void testFreedBlobs(Class lobClass,
+            boolean isResultSet) throws SQLException {
+        String types[] = {"varbinary(max)"};
+        try {
+        	table = createTable(table, types, false);  // create empty table
+            int size = 10000;
+
+            byte[] data = new byte[size];
+            ThreadLocalRandom.current().nextBytes(data);
+
+            Blob blob = null;
+            InputStream stream = null;
+            for (int i = 0; i < 5; i++)
+            {
+                PreparedStatement ps = conn.prepareStatement("INSERT INTO " + table.getEscapedTableName() + "  VALUES(?)");
+                blob = conn.createBlob();
+                blob.setBytes(1, data);
+                ps.setBlob(1, blob);
+                ps.executeUpdate();
+            }
+
+            byte[] chunk = new byte[size];
+            ResultSet rs = stmt.executeQuery("select * from " + table.getEscapedTableName());
+            for (int i = 0; i < 5; i++)
+            {
+                rs.next();
+                
+                blob = rs.getBlob(1);
+                stream = blob.getBinaryStream();
+                while (stream.available() > 0)
+                	stream.read();
+                blob.free();
+                try {
+                	stream = blob.getBinaryStream();
+                } catch (SQLException e) {
+                    assertTrue(e.getMessage().contains("This Blob object has been freed."));
+                }
+            }
+            rs.close();
+            try {
+            	stream = blob.getBinaryStream();
+            } catch (SQLException e) {
+                assertTrue(e.getMessage().contains("This Blob object has been freed."));
+            }
+        }
+        catch (Exception e) {
+            this.dropTables(table);
+            e.printStackTrace();
+        }
+    }
+
+    @Test
     @DisplayName("testMultipleCloseCharacterStream")
     public void testMultipleCloseCharacterStream() throws Exception {
         testMultipleClose(DBCharacterStream.class);
@@ -464,9 +517,9 @@ public class lobsTest extends AbstractTest {
     	int size = 10000;
     	
     	byte[] data = new byte[size];
-    	Blob[] blobs = {null, null, null};
+    	Blob[] blobs = {null, null, null, null, null};
         InputStream stream = null;
-        for (int i = 0; i < 3; i++)
+        for (int i = 0; i < 5; i++)//create 5 blobs
         {
             PreparedStatement ps = conn.prepareStatement("INSERT INTO " + table.getEscapedTableName() + "  VALUES(?)");
             blobs[i] = conn.createBlob();
@@ -477,7 +530,7 @@ public class lobsTest extends AbstractTest {
         }
         byte[] chunk = new byte[size];
         ResultSet rs = stmt.executeQuery("select * from " + table.getEscapedTableName());
-        for (int i = 0; i < 3; i++)
+        for (int i = 0; i < 5; i++)
         {
         	rs.next();
         	blobs[i] = rs.getBlob(1);
@@ -489,7 +542,7 @@ public class lobsTest extends AbstractTest {
         	assertEquals(chunk.length, size);
         }
         rs.close();
-        for (int i = 0; i < 3; i++)
+        for (int i = 0; i < 5; i++)
         {
         	stream = blobs[i].getBinaryStream();
         	ByteArrayOutputStream buffer = new ByteArrayOutputStream();
