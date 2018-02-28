@@ -176,7 +176,6 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest  {
     
     @Test
     public void testCurvePolygonWkb() throws DecoderException {
-        if (isDenaliOrLater) {
             String geoWKT = "CURVEPOLYGON((0 0, 0 0, 0 0, 0 0), CIRCULARSTRING(1 3, 3 5, 4 7, 7 3, 1 3), COMPOUNDCURVE((0 -23.43778, 0 23.43778), CIRCULARSTRING(0 23.43778, -45 -23.43778, 0 -23.43778)), COMPOUNDCURVE((0 -23.43778, 7 7, 0 23.43778), CIRCULARSTRING(0 23.43778, 8 8, 8 8, -45 23.43778, -90 23.43778), (-90 23.43778, -90 -23.43778), CIRCULARSTRING(-90 -23.43778, -45 -23.43778, 0 -23.43778)))";
             
             byte[] geomWKB = Hex.decodeHex("0A00000002001700000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000F03F00000000000008400000000000000840000000000000144000000000000010400000000000001C400000000000001C400000000000000840000000000000F03F00000000000008400000000000000000C7D79E59127037C00000000000000000C7D79E591270374000000000008046C0C7D79E59127037C00000000000000000C7D79E59127037C00000000000000000C7D79E59127037C00000000000001C400000000000001C400000000000000000C7D79E5912703740000000000000204000000000000020400000000000002040000000000000204000000000008046C0C7D79E591270374000000000008056C0C7D79E591270374000000000008056C0C7D79E59127037C000000000008046C0C7D79E59127037C00000000000000000C7D79E59127037C004000000010000000002040000000309000000030D00000001000000FFFFFFFF000000000A080000000203020003010203".toCharArray());
@@ -187,7 +186,6 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest  {
             
             assertEquals(geomWKT.asTextZM(), geoWKT);
             assertEquals(geogWKT.asTextZM(), geoWKT);
-        }
     }
     
     @Test
@@ -357,17 +355,19 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest  {
     
     @Test
     public void testCurvePolygonWkt() throws SQLException {
-        beforeEachSetup();
-        
-        String geoWKT = "CURVEPOLYGON((0 0, 0 0, 0 0, 0 0), CIRCULARSTRING(1 3, 3 5, 4 7, 7 3, 1 3), COMPOUNDCURVE((0 -23.43778, 0 23.43778), CIRCULARSTRING(0 23.43778, -45 -23.43778, 0 -23.43778)), COMPOUNDCURVE((0 -23.43778, 7 7, 0 23.43778), CIRCULARSTRING(0 23.43778, 8 8, 8 8, -45 23.43778, -90 23.43778), (-90 23.43778, -90 -23.43778), CIRCULARSTRING(-90 -23.43778, -45 -23.43778, 0 -23.43778)))";
-        
-        testWkt(geoWKT);
-        
-        beforeEachSetup();
-        
-        geoWKT = "CURVEPOLYGON EMPTY";
-        
-        testWkt(geoWKT);
+        if (isDenaliOrLater) {
+            beforeEachSetup();
+            
+            String geoWKT = "CURVEPOLYGON((0 0, 0 0, 0 0, 0 0), CIRCULARSTRING(1 3, 3 5, 4 7, 7 3, 1 3), COMPOUNDCURVE((0 -23.43778, 0 23.43778), CIRCULARSTRING(0 23.43778, -45 -23.43778, 0 -23.43778)), COMPOUNDCURVE((0 -23.43778, 7 7, 0 23.43778), CIRCULARSTRING(0 23.43778, 8 8, 8 8, -45 23.43778, -90 23.43778), (-90 23.43778, -90 -23.43778), CIRCULARSTRING(-90 -23.43778, -45 -23.43778, 0 -23.43778)))";
+            
+            testWkt(geoWKT);
+            
+            beforeEachSetup();
+            
+            geoWKT = "CURVEPOLYGON EMPTY";
+            
+            testWkt(geoWKT);
+        }
     }
     
     @Test
@@ -505,49 +505,49 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest  {
     
     @Test
     public void testAllTypes() throws SQLException {
-        beforeEachSetup();
-        
-        String geoWKTPoint = "POINT(30 12.12312312 5 6)";
-        String geoWKTLineString = "LINESTRING(1 1, 2 4 3, 3 9 123 332)";
-        String geoWKTCircularString = "CIRCULARSTRING(1 1, 2 4, 3 9)";
-        String geoWKTCompoundCurve = "COMPOUNDCURVE((1 1, 1 3), (1 3, 3 3), (3 3, 3 1), (3 1, 1 1))";
-        String geoWKTCurvePolygon = "CURVEPOLYGON(CIRCULARSTRING(2 4, 4 2, 6 4, 4 6, 2 4))";
-        String geoWKTPolygon = "POLYGON((0 0, 0 3, 3 3, 3 0, 0 0), (1 1, 1 2, 2 1, 1 1))";
-        String geoWKTMultiPoint = "MULTIPOINT((2 3), (7 8 9.5))";
-        String geoWKTMultiLineString = "MULTILINESTRING((0 2, 1 1), (1 0, 1 1))";
-        String geoWKTMultiPolygon = "MULTIPOLYGON(((0 0, 0 3, 3 3, 3 0, 0 0), (1 1, 1 2, 2 1, 1 1)), ((9 9, 9 10, 10 9, 9 9)))";
-        String geoWKTGeometryCollection = "GEOMETRYCOLLECTION(POLYGON((0 0 2, 1 10 3, 1 0 4, 0 0 2)), POINT(3 3 1 2.5), LINESTRING(1 0, 0 1, -1 0), GEOMETRYCOLLECTION(GEOMETRYCOLLECTION(POINT(1 2 3 4))), GEOMETRYCOLLECTION(GEOMETRYCOLLECTION EMPTY), CURVEPOLYGON((0 0, 0 0, 0 0, 0 0), CIRCULARSTRING(1 3, 3 5, 4 7, 7 3, 1 3), COMPOUNDCURVE((0 -23.43778, 0 23.43778), CIRCULARSTRING(0 23.43778, -45 -23.43778, 0 -23.43778)), COMPOUNDCURVE((0 -23.43778, 7 7, 0 23.43778), CIRCULARSTRING(0 23.43778, 8 8, 8 8, -45 23.43778, -90 23.43778), (-90 23.43778, -90 -23.43778), CIRCULARSTRING(-90 -23.43778, -45 -23.43778, 0 -23.43778))))";
-        
-        List<String> geoWKTList = new ArrayList<String>();
-        
-        geoWKTList.add(geoWKTPoint);
-        geoWKTList.add(geoWKTLineString);
-        geoWKTList.add(geoWKTCircularString);
-        geoWKTList.add(geoWKTCompoundCurve);
-        geoWKTList.add(geoWKTCurvePolygon);
-        geoWKTList.add(geoWKTPolygon);
-        geoWKTList.add(geoWKTMultiPoint);
-        geoWKTList.add(geoWKTMultiLineString);
-        geoWKTList.add(geoWKTMultiPolygon);
-        geoWKTList.add(geoWKTGeometryCollection);
-        
-        Geometry geomWKT;
-        Geography geogWKT;
-        
-        //Geometry
-        pstmt = (SQLServerPreparedStatement) con.prepareStatement("insert into "+ geomTableName + " values (?)");    
-        
-        geomWKT = Geometry.STGeomFromText(geoWKTPoint, 0);
-        pstmt.setGeometry(1, geomWKT);
-        
-        pstmt.executeUpdate();
-        
-        geomWKT = Geometry.STGeomFromText(geoWKTLineString, 0);
-        pstmt.setGeometry(1, geomWKT);
-        
-        pstmt.executeUpdate();
-        
         if (isDenaliOrLater) {
+            beforeEachSetup();
+            
+            String geoWKTPoint = "POINT(30 12.12312312 5 6)";
+            String geoWKTLineString = "LINESTRING(1 1, 2 4 3, 3 9 123 332)";
+            String geoWKTCircularString = "CIRCULARSTRING(1 1, 2 4, 3 9)";
+            String geoWKTCompoundCurve = "COMPOUNDCURVE((1 1, 1 3), (1 3, 3 3), (3 3, 3 1), (3 1, 1 1))";
+            String geoWKTCurvePolygon = "CURVEPOLYGON(CIRCULARSTRING(2 4, 4 2, 6 4, 4 6, 2 4))";
+            String geoWKTPolygon = "POLYGON((0 0, 0 3, 3 3, 3 0, 0 0), (1 1, 1 2, 2 1, 1 1))";
+            String geoWKTMultiPoint = "MULTIPOINT((2 3), (7 8 9.5))";
+            String geoWKTMultiLineString = "MULTILINESTRING((0 2, 1 1), (1 0, 1 1))";
+            String geoWKTMultiPolygon = "MULTIPOLYGON(((0 0, 0 3, 3 3, 3 0, 0 0), (1 1, 1 2, 2 1, 1 1)), ((9 9, 9 10, 10 9, 9 9)))";
+            String geoWKTGeometryCollection = "GEOMETRYCOLLECTION(POLYGON((0 0 2, 1 10 3, 1 0 4, 0 0 2)), POINT(3 3 1 2.5), LINESTRING(1 0, 0 1, -1 0), GEOMETRYCOLLECTION(GEOMETRYCOLLECTION(POINT(1 2 3 4))), GEOMETRYCOLLECTION(GEOMETRYCOLLECTION EMPTY), CURVEPOLYGON((0 0, 0 0, 0 0, 0 0), CIRCULARSTRING(1 3, 3 5, 4 7, 7 3, 1 3), COMPOUNDCURVE((0 -23.43778, 0 23.43778), CIRCULARSTRING(0 23.43778, -45 -23.43778, 0 -23.43778)), COMPOUNDCURVE((0 -23.43778, 7 7, 0 23.43778), CIRCULARSTRING(0 23.43778, 8 8, 8 8, -45 23.43778, -90 23.43778), (-90 23.43778, -90 -23.43778), CIRCULARSTRING(-90 -23.43778, -45 -23.43778, 0 -23.43778))))";
+            
+            List<String> geoWKTList = new ArrayList<String>();
+            
+            geoWKTList.add(geoWKTPoint);
+            geoWKTList.add(geoWKTLineString);
+            geoWKTList.add(geoWKTCircularString);
+            geoWKTList.add(geoWKTCompoundCurve);
+            geoWKTList.add(geoWKTCurvePolygon);
+            geoWKTList.add(geoWKTPolygon);
+            geoWKTList.add(geoWKTMultiPoint);
+            geoWKTList.add(geoWKTMultiLineString);
+            geoWKTList.add(geoWKTMultiPolygon);
+            geoWKTList.add(geoWKTGeometryCollection);
+            
+            Geometry geomWKT;
+            Geography geogWKT;
+            
+            //Geometry
+            pstmt = (SQLServerPreparedStatement) con.prepareStatement("insert into "+ geomTableName + " values (?)");    
+            
+            geomWKT = Geometry.STGeomFromText(geoWKTPoint, 0);
+            pstmt.setGeometry(1, geomWKT);
+            
+            pstmt.executeUpdate();
+            
+            geomWKT = Geometry.STGeomFromText(geoWKTLineString, 0);
+            pstmt.setGeometry(1, geomWKT);
+            
+            pstmt.executeUpdate();
+            
             geomWKT = Geometry.STGeomFromText(geoWKTCircularString, 0);
             pstmt.setGeometry(1, geomWKT);
             
@@ -562,157 +562,157 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest  {
             pstmt.setGeometry(1, geomWKT);
             
             pstmt.executeUpdate();
-        }
-        
-        geomWKT = Geometry.STGeomFromText(geoWKTPolygon, 0);
-        pstmt.setGeometry(1, geomWKT);
-        
-        pstmt.executeUpdate();
-        
-        geomWKT = Geometry.STGeomFromText(geoWKTMultiPoint, 0);
-        pstmt.setGeometry(1, geomWKT);
-        
-        pstmt.executeUpdate();
-        
-        geomWKT = Geometry.STGeomFromText(geoWKTMultiLineString, 0);
-        pstmt.setGeometry(1, geomWKT);
-        
-        pstmt.executeUpdate();
-        
-        geomWKT = Geometry.STGeomFromText(geoWKTMultiPolygon, 0);
-        pstmt.setGeometry(1, geomWKT);
-        
-        pstmt.executeUpdate();
-        
-        geomWKT = Geometry.STGeomFromText(geoWKTGeometryCollection, 0);
-        pstmt.setGeometry(1, geomWKT);
-        
-        pstmt.executeUpdate();
-        
-        rs = (SQLServerResultSet) stmt.executeQuery("select c1 from " + geomTableName);
-        for (int i = 0; i < geoWKTList.size(); i++) {
-            rs.next();
-            assertEquals(rs.getGeometry(1).asTextZM(), geoWKTList.get(i));
-        }
-        
-        //Geography
-        pstmt = (SQLServerPreparedStatement) con.prepareStatement("insert into "+ geogTableName + " values (?)");    
-        
-        geogWKT = Geography.STGeomFromText(geoWKTPoint, 4326);
-        pstmt.setGeography(1, geogWKT);
-        
-        pstmt.executeUpdate();
-        
-        geogWKT = Geography.STGeomFromText(geoWKTLineString, 4326);
-        pstmt.setGeography(1, geogWKT);
-        
-        pstmt.executeUpdate();
-        
-        geogWKT = Geography.STGeomFromText(geoWKTCircularString, 4326);
-        pstmt.setGeography(1, geogWKT);
-        
-        pstmt.executeUpdate();
-        
-        geogWKT = Geography.STGeomFromText(geoWKTCompoundCurve, 4326);
-        pstmt.setGeography(1, geogWKT);
-        
-        pstmt.executeUpdate();
-        
-        geogWKT = Geography.STGeomFromText(geoWKTCurvePolygon, 4326);
-        pstmt.setGeography(1, geogWKT);
-        
-        pstmt.executeUpdate();
-        
-        geogWKT = Geography.STGeomFromText(geoWKTPolygon, 4326);
-        pstmt.setGeography(1, geogWKT);
-        
-        pstmt.executeUpdate();
-        
-        geogWKT = Geography.STGeomFromText(geoWKTMultiPoint, 4326);
-        pstmt.setGeography(1, geogWKT);
-        
-        pstmt.executeUpdate();
-        
-        geogWKT = Geography.STGeomFromText(geoWKTMultiLineString, 4326);
-        pstmt.setGeography(1, geogWKT);
-        
-        pstmt.executeUpdate();
-        
-        geogWKT = Geography.STGeomFromText(geoWKTMultiPolygon, 4326);
-        pstmt.setGeography(1, geogWKT);
-        
-        pstmt.executeUpdate();
-        
-        geogWKT = Geography.STGeomFromText(geoWKTGeometryCollection, 4326);
-        pstmt.setGeography(1, geogWKT);
-        
-        pstmt.executeUpdate();
-        
-        rs = (SQLServerResultSet) stmt.executeQuery("select c1 from " + geogTableName);
-        for (int i = 0; i < geoWKTList.size(); i++) {
-            rs.next();
-            assertEquals(rs.getGeography(1).asTextZM(), geoWKTList.get(i));
+            
+            geomWKT = Geometry.STGeomFromText(geoWKTPolygon, 0);
+            pstmt.setGeometry(1, geomWKT);
+            
+            pstmt.executeUpdate();
+            
+            geomWKT = Geometry.STGeomFromText(geoWKTMultiPoint, 0);
+            pstmt.setGeometry(1, geomWKT);
+            
+            pstmt.executeUpdate();
+            
+            geomWKT = Geometry.STGeomFromText(geoWKTMultiLineString, 0);
+            pstmt.setGeometry(1, geomWKT);
+            
+            pstmt.executeUpdate();
+            
+            geomWKT = Geometry.STGeomFromText(geoWKTMultiPolygon, 0);
+            pstmt.setGeometry(1, geomWKT);
+            
+            pstmt.executeUpdate();
+            
+            geomWKT = Geometry.STGeomFromText(geoWKTGeometryCollection, 0);
+            pstmt.setGeometry(1, geomWKT);
+            
+            pstmt.executeUpdate();
+            
+            rs = (SQLServerResultSet) stmt.executeQuery("select c1 from " + geomTableName);
+            for (int i = 0; i < geoWKTList.size(); i++) {
+                rs.next();
+                assertEquals(rs.getGeometry(1).asTextZM(), geoWKTList.get(i));
+            }
+            
+            //Geography
+            pstmt = (SQLServerPreparedStatement) con.prepareStatement("insert into "+ geogTableName + " values (?)");    
+            
+            geogWKT = Geography.STGeomFromText(geoWKTPoint, 4326);
+            pstmt.setGeography(1, geogWKT);
+            
+            pstmt.executeUpdate();
+            
+            geogWKT = Geography.STGeomFromText(geoWKTLineString, 4326);
+            pstmt.setGeography(1, geogWKT);
+            
+            pstmt.executeUpdate();
+            
+            geogWKT = Geography.STGeomFromText(geoWKTCircularString, 4326);
+            pstmt.setGeography(1, geogWKT);
+            
+            pstmt.executeUpdate();
+            
+            geogWKT = Geography.STGeomFromText(geoWKTCompoundCurve, 4326);
+            pstmt.setGeography(1, geogWKT);
+            
+            pstmt.executeUpdate();
+            
+            geogWKT = Geography.STGeomFromText(geoWKTCurvePolygon, 4326);
+            pstmt.setGeography(1, geogWKT);
+            
+            pstmt.executeUpdate();
+            
+            geogWKT = Geography.STGeomFromText(geoWKTPolygon, 4326);
+            pstmt.setGeography(1, geogWKT);
+            
+            pstmt.executeUpdate();
+            
+            geogWKT = Geography.STGeomFromText(geoWKTMultiPoint, 4326);
+            pstmt.setGeography(1, geogWKT);
+            
+            pstmt.executeUpdate();
+            
+            geogWKT = Geography.STGeomFromText(geoWKTMultiLineString, 4326);
+            pstmt.setGeography(1, geogWKT);
+            
+            pstmt.executeUpdate();
+            
+            geogWKT = Geography.STGeomFromText(geoWKTMultiPolygon, 4326);
+            pstmt.setGeography(1, geogWKT);
+            
+            pstmt.executeUpdate();
+            
+            geogWKT = Geography.STGeomFromText(geoWKTGeometryCollection, 4326);
+            pstmt.setGeography(1, geogWKT);
+            
+            pstmt.executeUpdate();
+            
+            rs = (SQLServerResultSet) stmt.executeQuery("select c1 from " + geogTableName);
+            for (int i = 0; i < geoWKTList.size(); i++) {
+                rs.next();
+                assertEquals(rs.getGeography(1).asTextZM(), geoWKTList.get(i));
+            }
         }
     }
     
     @Test
     public void testMixedAllTypes() throws SQLException {
-        beforeEachSetupSpatialDatatype();
-        
-        String geoWKTPoint = "POINT(30 12.12312312 5 6)";
-        String geoWKTLineString = "LINESTRING(1 1, 2 4 3, 3 9 123 332)";
-        String geoWKTCircularString = "CIRCULARSTRING(1 1, 2 4, 3 9)";
-        String geoWKTCompoundCurve = "COMPOUNDCURVE((1 1, 1 3), (1 3, 3 3), (3 3, 3 1), (3 1, 1 1))";
-        String geoWKTCurvePolygon = "CURVEPOLYGON(CIRCULARSTRING(2 4, 4 2, 6 4, 4 6, 2 4))";
-        String geoWKTPolygon = "POLYGON((0 0, 0 3, 3 3, 3 0, 0 0), (1 1, 1 2, 2 1, 1 1))";
-        String geoWKTMultiPoint = "MULTIPOINT((2 3), (7 8 9.5))";
-        String geoWKTMultiLineString = "MULTILINESTRING((0 2, 1 1), (1 0, 1 1))";
-        String geoWKTMultiPolygon = "MULTIPOLYGON(((0 0, 0 3, 3 3, 3 0, 0 0), (1 1, 1 2, 2 1, 1 1)), ((9 9, 9 10, 10 9, 9 9)))";
-        String geoWKTGeometryCollection = "GEOMETRYCOLLECTION(POLYGON((0 0 2, 1 10 3, 1 0 4, 0 0 2)), POINT(3 3 1 2.5), LINESTRING(1 0, 0 1, -1 0), GEOMETRYCOLLECTION(GEOMETRYCOLLECTION(POINT(1 2 3 4))), GEOMETRYCOLLECTION(GEOMETRYCOLLECTION EMPTY), CURVEPOLYGON((0 0, 0 0, 0 0, 0 0), CIRCULARSTRING(1 3, 3 5, 4 7, 7 3, 1 3), COMPOUNDCURVE((0 -23.43778, 0 23.43778), CIRCULARSTRING(0 23.43778, -45 -23.43778, 0 -23.43778)), COMPOUNDCURVE((0 -23.43778, 7 7, 0 23.43778), CIRCULARSTRING(0 23.43778, 8 8, 8 8, -45 23.43778, -90 23.43778), (-90 23.43778, -90 -23.43778), CIRCULARSTRING(-90 -23.43778, -45 -23.43778, 0 -23.43778))))";
-        
-        String s = "some string";
-        Double d = 31.34;
-        int i2 = 5;
-        
-        List<String> geoWKTList = new ArrayList<String>();
-        
-        geoWKTList.add(geoWKTPoint);
-        geoWKTList.add(geoWKTLineString);
-        geoWKTList.add(geoWKTCircularString);
-        geoWKTList.add(geoWKTCompoundCurve);
-        geoWKTList.add(geoWKTCurvePolygon);
-        geoWKTList.add(geoWKTPolygon);
-        geoWKTList.add(geoWKTMultiPoint);
-        geoWKTList.add(geoWKTMultiLineString);
-        geoWKTList.add(geoWKTMultiPolygon);
-        geoWKTList.add(geoWKTGeometryCollection);
-        
-        Geometry geomWKT;
-        Geography geogWKT;
-        
-        pstmt = (SQLServerPreparedStatement) con.prepareStatement("insert into "+ spatialDatatypeTableName + " values (?, ?, ?, ?, ?)");    
-        
-        geomWKT = Geometry.STGeomFromText(geoWKTPoint, 0);
-        geogWKT = Geography.STGeomFromText(geoWKTPoint, 4326);
-        pstmt.setGeometry(1, geomWKT);
-        pstmt.setGeography(2, geogWKT);
-        pstmt.setString(3, s);
-        pstmt.setDouble(4, d);
-        pstmt.setInt(5, i2);
-        
-        pstmt.executeUpdate();
-        
-        geomWKT = Geometry.STGeomFromText(geoWKTLineString, 0);
-        geogWKT = Geography.STGeomFromText(geoWKTLineString, 4326);
-        pstmt.setGeometry(1, geomWKT);
-        pstmt.setGeography(2, geogWKT);
-        pstmt.setString(3, s);
-        pstmt.setDouble(4, d);
-        pstmt.setInt(5, i2);
-        
-        pstmt.executeUpdate();
-        
         if (isDenaliOrLater) {
+            beforeEachSetupSpatialDatatype();
+            
+            String geoWKTPoint = "POINT(30 12.12312312 5 6)";
+            String geoWKTLineString = "LINESTRING(1 1, 2 4 3, 3 9 123 332)";
+            String geoWKTCircularString = "CIRCULARSTRING(1 1, 2 4, 3 9)";
+            String geoWKTCompoundCurve = "COMPOUNDCURVE((1 1, 1 3), (1 3, 3 3), (3 3, 3 1), (3 1, 1 1))";
+            String geoWKTCurvePolygon = "CURVEPOLYGON(CIRCULARSTRING(2 4, 4 2, 6 4, 4 6, 2 4))";
+            String geoWKTPolygon = "POLYGON((0 0, 0 3, 3 3, 3 0, 0 0), (1 1, 1 2, 2 1, 1 1))";
+            String geoWKTMultiPoint = "MULTIPOINT((2 3), (7 8 9.5))";
+            String geoWKTMultiLineString = "MULTILINESTRING((0 2, 1 1), (1 0, 1 1))";
+            String geoWKTMultiPolygon = "MULTIPOLYGON(((0 0, 0 3, 3 3, 3 0, 0 0), (1 1, 1 2, 2 1, 1 1)), ((9 9, 9 10, 10 9, 9 9)))";
+            String geoWKTGeometryCollection = "GEOMETRYCOLLECTION(POLYGON((0 0 2, 1 10 3, 1 0 4, 0 0 2)), POINT(3 3 1 2.5), LINESTRING(1 0, 0 1, -1 0), GEOMETRYCOLLECTION(GEOMETRYCOLLECTION(POINT(1 2 3 4))), GEOMETRYCOLLECTION(GEOMETRYCOLLECTION EMPTY), CURVEPOLYGON((0 0, 0 0, 0 0, 0 0), CIRCULARSTRING(1 3, 3 5, 4 7, 7 3, 1 3), COMPOUNDCURVE((0 -23.43778, 0 23.43778), CIRCULARSTRING(0 23.43778, -45 -23.43778, 0 -23.43778)), COMPOUNDCURVE((0 -23.43778, 7 7, 0 23.43778), CIRCULARSTRING(0 23.43778, 8 8, 8 8, -45 23.43778, -90 23.43778), (-90 23.43778, -90 -23.43778), CIRCULARSTRING(-90 -23.43778, -45 -23.43778, 0 -23.43778))))";
+            
+            String s = "some string";
+            Double d = 31.34;
+            int i2 = 5;
+            
+            List<String> geoWKTList = new ArrayList<String>();
+            
+            geoWKTList.add(geoWKTPoint);
+            geoWKTList.add(geoWKTLineString);
+            geoWKTList.add(geoWKTCircularString);
+            geoWKTList.add(geoWKTCompoundCurve);
+            geoWKTList.add(geoWKTCurvePolygon);
+            geoWKTList.add(geoWKTPolygon);
+            geoWKTList.add(geoWKTMultiPoint);
+            geoWKTList.add(geoWKTMultiLineString);
+            geoWKTList.add(geoWKTMultiPolygon);
+            geoWKTList.add(geoWKTGeometryCollection);
+            
+            Geometry geomWKT;
+            Geography geogWKT;
+            
+            pstmt = (SQLServerPreparedStatement) con.prepareStatement("insert into "+ spatialDatatypeTableName + " values (?, ?, ?, ?, ?)");    
+            
+            geomWKT = Geometry.STGeomFromText(geoWKTPoint, 0);
+            geogWKT = Geography.STGeomFromText(geoWKTPoint, 4326);
+            pstmt.setGeometry(1, geomWKT);
+            pstmt.setGeography(2, geogWKT);
+            pstmt.setString(3, s);
+            pstmt.setDouble(4, d);
+            pstmt.setInt(5, i2);
+            
+            pstmt.executeUpdate();
+            
+            geomWKT = Geometry.STGeomFromText(geoWKTLineString, 0);
+            geogWKT = Geography.STGeomFromText(geoWKTLineString, 4326);
+            pstmt.setGeometry(1, geomWKT);
+            pstmt.setGeography(2, geogWKT);
+            pstmt.setString(3, s);
+            pstmt.setDouble(4, d);
+            pstmt.setInt(5, i2);
+            
+            pstmt.executeUpdate();
+            
             geomWKT = Geometry.STGeomFromText(geoWKTCircularString, 0);
             geogWKT = Geography.STGeomFromText(geoWKTCircularString, 4326);
             pstmt.setGeometry(1, geomWKT);
@@ -742,66 +742,66 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest  {
             pstmt.setInt(5, i2);
             
             pstmt.executeUpdate();
-        }
 
-        geomWKT = Geometry.STGeomFromText(geoWKTPolygon, 0);
-        geogWKT = Geography.STGeomFromText(geoWKTPolygon, 4326);
-        pstmt.setGeometry(1, geomWKT);
-        pstmt.setGeography(2, geogWKT);
-        pstmt.setString(3, s);
-        pstmt.setDouble(4, d);
-        pstmt.setInt(5, i2);
-        
-        pstmt.executeUpdate();
-        
-        geomWKT = Geometry.STGeomFromText(geoWKTMultiPoint, 0);
-        geogWKT = Geography.STGeomFromText(geoWKTMultiPoint, 4326);
-        pstmt.setGeometry(1, geomWKT);
-        pstmt.setGeography(2, geogWKT);
-        pstmt.setString(3, s);
-        pstmt.setDouble(4, d);
-        pstmt.setInt(5, i2);
-        
-        pstmt.executeUpdate();
-        
-        geomWKT = Geometry.STGeomFromText(geoWKTMultiLineString, 0);
-        geogWKT = Geography.STGeomFromText(geoWKTMultiLineString, 4326);
-        pstmt.setGeometry(1, geomWKT);
-        pstmt.setGeography(2, geogWKT);
-        pstmt.setString(3, s);
-        pstmt.setDouble(4, d);
-        pstmt.setInt(5, i2);
-        
-        pstmt.executeUpdate();
-        
-        geomWKT = Geometry.STGeomFromText(geoWKTMultiPolygon, 0);
-        geogWKT = Geography.STGeomFromText(geoWKTMultiPolygon, 4326);
-        pstmt.setGeometry(1, geomWKT);
-        pstmt.setGeography(2, geogWKT);
-        pstmt.setString(3, s);
-        pstmt.setDouble(4, d);
-        pstmt.setInt(5, i2);
-        
-        pstmt.executeUpdate();
-        
-        geomWKT = Geometry.STGeomFromText(geoWKTGeometryCollection, 0);
-        geogWKT = Geography.STGeomFromText(geoWKTGeometryCollection, 4326);
-        pstmt.setGeometry(1, geomWKT);
-        pstmt.setGeography(2, geogWKT);
-        pstmt.setString(3, s);
-        pstmt.setDouble(4, d);
-        pstmt.setInt(5, i2);
-        
-        pstmt.executeUpdate();
-        
-        rs = (SQLServerResultSet) stmt.executeQuery("select * from " + spatialDatatypeTableName);
-        for (int i = 0; i < geoWKTList.size(); i++) {
-            rs.next();
-            assertEquals(rs.getGeometry(1).asTextZM(), geoWKTList.get(i));
-            assertEquals(rs.getGeography(2).asTextZM(), geoWKTList.get(i));
-            assertEquals(rs.getString(3), s);
-            assertEquals((Double) rs.getDouble(4), d);
-            assertEquals(rs.getInt(5), i2);
+            geomWKT = Geometry.STGeomFromText(geoWKTPolygon, 0);
+            geogWKT = Geography.STGeomFromText(geoWKTPolygon, 4326);
+            pstmt.setGeometry(1, geomWKT);
+            pstmt.setGeography(2, geogWKT);
+            pstmt.setString(3, s);
+            pstmt.setDouble(4, d);
+            pstmt.setInt(5, i2);
+            
+            pstmt.executeUpdate();
+            
+            geomWKT = Geometry.STGeomFromText(geoWKTMultiPoint, 0);
+            geogWKT = Geography.STGeomFromText(geoWKTMultiPoint, 4326);
+            pstmt.setGeometry(1, geomWKT);
+            pstmt.setGeography(2, geogWKT);
+            pstmt.setString(3, s);
+            pstmt.setDouble(4, d);
+            pstmt.setInt(5, i2);
+            
+            pstmt.executeUpdate();
+            
+            geomWKT = Geometry.STGeomFromText(geoWKTMultiLineString, 0);
+            geogWKT = Geography.STGeomFromText(geoWKTMultiLineString, 4326);
+            pstmt.setGeometry(1, geomWKT);
+            pstmt.setGeography(2, geogWKT);
+            pstmt.setString(3, s);
+            pstmt.setDouble(4, d);
+            pstmt.setInt(5, i2);
+            
+            pstmt.executeUpdate();
+            
+            geomWKT = Geometry.STGeomFromText(geoWKTMultiPolygon, 0);
+            geogWKT = Geography.STGeomFromText(geoWKTMultiPolygon, 4326);
+            pstmt.setGeometry(1, geomWKT);
+            pstmt.setGeography(2, geogWKT);
+            pstmt.setString(3, s);
+            pstmt.setDouble(4, d);
+            pstmt.setInt(5, i2);
+            
+            pstmt.executeUpdate();
+            
+            geomWKT = Geometry.STGeomFromText(geoWKTGeometryCollection, 0);
+            geogWKT = Geography.STGeomFromText(geoWKTGeometryCollection, 4326);
+            pstmt.setGeometry(1, geomWKT);
+            pstmt.setGeography(2, geogWKT);
+            pstmt.setString(3, s);
+            pstmt.setDouble(4, d);
+            pstmt.setInt(5, i2);
+            
+            pstmt.executeUpdate();
+            
+            rs = (SQLServerResultSet) stmt.executeQuery("select * from " + spatialDatatypeTableName);
+            for (int i = 0; i < geoWKTList.size(); i++) {
+                rs.next();
+                assertEquals(rs.getGeometry(1).asTextZM(), geoWKTList.get(i));
+                assertEquals(rs.getGeography(2).asTextZM(), geoWKTList.get(i));
+                assertEquals(rs.getString(3), s);
+                assertEquals((Double) rs.getDouble(4), d);
+                assertEquals(rs.getInt(5), i2);
+            }
         }
     }
 
