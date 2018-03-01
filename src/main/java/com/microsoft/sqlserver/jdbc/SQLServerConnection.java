@@ -1367,40 +1367,6 @@ public class SQLServerConnection implements ISQLServerConnection {
                 Object[] msgArgs = {sPropValue};
                 SQLServerException.makeFromDriverError(this, this, form.format(msgArgs), null, false);
             }
-                sPropKey = SQLServerDriverBooleanProperty.toString();
-                sPropValue = activeConnectionProperties.getProperty(sPropKey);
-                if (sPropValue == null) {
-                    sPropValue = Boolean.toString(SQLServerDriverBooleanProperty.TRUST_SERVER_CERTIFICATE.getDefaultValue());
-                    activeConnectionProperties.setProperty(sPropKey, sPropValue);
-                }
-
-                trustServerCertificate = booleanPropertyOn(sPropKey, sPropValue);
-
-                sPropKey = SQLServerDriverStringProperty.SELECT_METHOD.toString();
-                sPropValue = activeConnectionProperties.getProperty(sPropKey);
-                if (sPropValue == null)
-                    sPropValue = SQLServerDriverStringProperty.SELECT_METHOD.getDefaultValue();
-                if (sPropValue.equalsIgnoreCase("cursor") || sPropValue.equalsIgnoreCase("direct")) {
-                    activeConnectionProperties.setProperty(sPropKey, sPropValue.toLowerCase());
-                }
-                else {
-                    MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidselectMethod"));
-                    Object[] msgArgs = {sPropValue};
-                    SQLServerException.makeFromDriverError(this, this, form.format(msgArgs), null, false);
-                }
-
-                sPropKey = SQLServerDriverStringProperty.RESPONSE_BUFFERING.toString();
-                sPropValue = activeConnectionProperties.getProperty(sPropKey);
-                if (sPropValue == null)
-                    sPropValue = SQLServerDriverStringProperty.RESPONSE_BUFFERING.getDefaultValue();
-                if (sPropValue.equalsIgnoreCase("full") || sPropValue.equalsIgnoreCase("adaptive")) {
-                    activeConnectionProperties.setProperty(sPropKey, sPropValue.toLowerCase());
-                }
-                else {
-                    MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidresponseBuffering"));
-                    Object[] msgArgs = {sPropValue};
-                    SQLServerException.makeFromDriverError(this, this, form.format(msgArgs), null, false);
-                }
 
                 sPropKey = SQLServerDriverStringProperty.APPLICATION_INTENT.toString();
                 sPropValue = activeConnectionProperties.getProperty(sPropKey);
@@ -4852,6 +4818,7 @@ public class SQLServerConnection implements ISQLServerConnection {
                 (byte) SQLJdbcVersion.major};
         byte databaseNameBytes[] = toUCS16(databaseName);
         byte netAddress[] = new byte[6];
+        int len2 = 0;
         int dataLen = 0;
 
         final int TDS_LOGIN_REQUEST_BASE_LEN = 94;
