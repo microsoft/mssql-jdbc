@@ -7532,13 +7532,11 @@ abstract class TDSCommand {
             if (logger.isLoggable(Level.FINEST))
                 logger.finest(this + ": throwing interrupt exception, reason: " + interruptReason);
             
+            SQLServerException thrownException = new SQLServerException(interruptReason, SQLState.STATEMENT_CANCELED, DriverError.NOT_SET, null);
             if (interruptReason.contains("query has timed out")) {
-            	SQLServerException timeoutException = new SQLServerException(interruptReason, SQLState.STATEMENT_CANCELED, DriverError.NOT_SET, null);
-            	timeoutException.setDriverErrorCode(SQLServerException.ERROR_QUERY_TIMEOUT);
-            	throw timeoutException;
-            } else {
-            	throw new SQLServerException(interruptReason, SQLState.STATEMENT_CANCELED, DriverError.NOT_SET, null);
+            	thrownException.setDriverErrorCode(SQLServerException.ERROR_QUERY_TIMEOUT);
             }
+        	throw thrownException;
         }
     }
 
