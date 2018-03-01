@@ -391,5 +391,14 @@ public final class SQLServerResource extends ListResourceBundle {
 				{"R_invalidDataTypeSupportForSQLVariant", "Unexpected TDS type ' '{0}' ' in SQL_VARIANT."},
 				{"R_sslProtocolPropertyDescription", "SSL protocol label from TLS, TLSv1, TLSv1.1, and TLSv1.2. The default is TLS."},
 				{"R_invalidSSLProtocol", "SSL Protocol {0} label is not valid. Only TLS, TLSv1, TLSv1.1, and TLSv1.2 are supported."},
+				{"R_invalidConnectRetryCount", "Connection retry count {0} is not valid."},
+        {"R_connectRetryCountPropertyDescription", "The number of attempts the driver will make to reconnect after identifying a connection failure."},
+		    {"R_invalidConnectRetryInterval", "Connection retry interval {0} is not valid."},
+		    {"R_connectRetryIntervalPropertyDescription", "The driver's wait time between reconnection attempts after identifying a connection failure."},
+		    {"R_crClientAllRecoveryAttemptsFailed", "The connection is broken and recovery is not possible. The client driver attempted to recover the connection one or more times and all attempts failed. Increase the value of ConnectRetryCount to increase the number of recovery attempts."},
+		    {"R_crClientNoRecoveryAckFromLogin", "The server did not acknowledge a recovery attempt, connection recovery is not possible."},
+		    {"R_crClientTDSVersionNotRecoverable", "The server did not preserve the exact client TDS version requested during a recovery attempt, connection recovery is not possible."},
+		    {"R_crServerSessionStateNotRecoverable", "The connection is broken and recovery is not possible. The connection is marked by the server as unrecoverable. No attempt was made to restore the connection."},
+		    {"R_crClientSSLStateNotRecoverable", "The server did not preserve SSL encryption during a recovery attempt, connection recovery is not possible."},
     };
 }

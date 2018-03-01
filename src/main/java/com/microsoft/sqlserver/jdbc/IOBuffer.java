@@ -30,6 +30,8 @@ import java.net.SocketException;
 import java.net.SocketTimeoutException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
+import java.nio.channels.ByteChannel;
+import java.nio.channels.Channels;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.channels.SocketChannel;
@@ -95,6 +97,7 @@ final class TDS {
     static final int TDS_ROW = 0xD1;
     static final int TDS_NBCROW = 0xD2;
     static final int TDS_ENV_CHG = 0xE3;
+    static final int TDS_SESSION_STATE = 0xE4;
     static final int TDS_SSPI = 0xED;
     static final int TDS_DONE = 0xFD;
     static final int TDS_DONEPROC = 0xFE;
@@ -161,6 +164,8 @@ final class TDS {
                 return "TDS_LOGIN_ACK (0xAD)";
             case TDS_FEATURE_EXTENSION_ACK:
                 return "TDS_FEATURE_EXTENSION_ACK (0xAE)";
+            case TDS_SESSION_STATE:
+                return "TDS_SESSION_STATE (0xE4)";
             case TDS_ROW:
                 return "TDS_ROW (0xD1)";
             case TDS_NBCROW:
@@ -555,6 +560,10 @@ final class TDSChannel {
         return new TDSReader(this, con, command);
     }
 
+    // Connection will be established using NON-blocking IO whenever possible. SockectChannel APIs will be used for the same.       
+    // SocketChannel will be used to obtain tcpSocket from it.      
+    private SocketChannel socketChannel;
+    
     // Socket for raw TCP/IP communications with SQL Server
     private Socket tcpSocket;
 
@@ -614,6 +623,7 @@ final class TDSChannel {
     TDSChannel(SQLServerConnection con) {
         this.con = con;
         traceID = "TDSChannel (" + con.toString() + ")";
+        this.socketChannel = null;
         this.tcpSocket = null;
         this.sslSocket = null;
         this.channelSocket = null;
@@ -624,6 +634,34 @@ final class TDSChannel {
         this.tdsWriter = new TDSWriter(this, con);
     }
 
+    /*      
+     * SocketChannel inputstream and outputstream APIs synchronize to block write while read is in progress.        
+     * http://bugs.sun.com/bugdatabase/view_bug.do?bug_id=4774871       
+     * http://bugs.sun.com/bugdatabase/view_bug.do;jsessionid=1df73b21b0da0dffffffffc3063e58bbda1b9?bug_id=4509080 Reads and writes on streams are      
+     * blocking however they are not blocking when done directly through SocketChannel APIs. Below function takes care of wrapping inputstream and      
+     * outputstreams APIs with SocketChannel APIs so that synchronization is avoided and we can still use non-blocking property of socketchannel when       
+     * required.        
+     */     
+    private static ByteChannel wrapChannel(final ByteChannel channel) {     
+        return new ByteChannel() {      
+            public int write(ByteBuffer src) throws IOException {       
+                return channel.write(src);      
+            }       
+        
+            public int read(ByteBuffer dst) throws IOException {        
+                return channel.read(dst);       
+            }       
+        
+            public boolean isOpen() {       
+                return channel.isOpen();        
+            }       
+        
+            public void close() throws IOException {        
+                channel.close();        
+            }       
+        };      
+    }
+    
     /**
      * Opens the physical communications channel (TCP/IP socket and I/O streams) to the SQL Server.
      */
@@ -638,8 +676,10 @@ final class TDSChannel {
             logger.finer(this.toString() + ": Opening TCP socket...");
 
         SocketFinder socketFinder = new SocketFinder(traceID, con);
-        channelSocket = tcpSocket = socketFinder.findSocket(host, port, timeoutMillis, useParallel, useTnir, isTnirFirstAttempt,
+        SocketInfo socketInfo = socketFinder.findSocket(host, port, timeoutMillis, useParallel, useTnir, isTnirFirstAttempt,
                 timeoutMillisForFullTimeout);
+        socketChannel = socketInfo.socketChannel;
+        channelSocket = tcpSocket = socketInfo.socket;
 
         try {
 
@@ -651,14 +691,79 @@ final class TDSChannel {
             int socketTimeout = con.getSocketTimeoutMilliseconds();
             tcpSocket.setSoTimeout(socketTimeout);
 
-            inputStream = tcpInputStream = tcpSocket.getInputStream();
-            outputStream = tcpOutputStream = tcpSocket.getOutputStream();
+            // Since inputstreams and outputstreams obtained through socketchannel APIs are synchronized to hit deadlocks,
+            // we wrap those APIs to use SocketChannel write and read instead.
+            if (socketChannel != null) {
+                ByteChannel byteChannel = wrapChannel(socketChannel);
+                inputStream = Channels.newInputStream(byteChannel);
+                outputStream = Channels.newOutputStream(byteChannel);
+                tcpInputStream = tcpSocket.getInputStream();
+                tcpOutputStream = tcpSocket.getOutputStream();
+            }
+            else {
+                inputStream = tcpInputStream = tcpSocket.getInputStream();
+                outputStream = tcpOutputStream = tcpSocket.getOutputStream();
+            }
         }
         catch (IOException ex) {
             SQLServerException.ConvertConnectExceptionToSQLServerException(host, port, con, ex);
         }
     }
 
+    /**
+     * Deduct dead connection for connection resiliency
+     * @return
+     * @throws SQLServerException
+     */
+    final boolean checkConnected() throws SQLServerException {      
+        boolean isConnected = true;     
+        if (socketChannel != null)// this is to check that the connection was established using java NIO        
+        {       
+            // Use non-blocking socket channel read to read 1 byte. If 1 byte read is successful, there is parsing error.       
+            // detach() method called before checkConnection() should take care of reading all the response off the tdsReader for previous command      
+            // execution.       
+            // When noOfBytesRead is 0, connection is alive.        
+            try {       
+                socketChannel.configureBlocking(false);     
+                ByteBuffer bb = ByteBuffer.allocate(1);     
+                int noOfBytesRead = socketChannel.read(bb);     
+                if (noOfBytesRead > 0) {        
+                    // Parsing exception        
+                    if (logger.isLoggable(Level.SEVERE))        
+                        logger.severe(toString() + " got unexpected value in TDS response after previous response is read completely.");        
+                    con.throwInvalidTDS();      
+                }       
+                // When ManInTheMiddle is used to break connection(no kill SPID), noOfBytes=-1 when connection is broken. Non-blocking or blocking      
+                // read on the socket does not return       
+                // any exception when connection is dead and hence it is not possible to identify the dead state of the connection with an exception        
+                // when all the data is read.       
+                else if (noOfBytesRead == -1) {     
+                    isConnected = false;        
+                }       
+            }       
+            catch (IOException e) {     
+                // An existing connection was forcibly closed by the remote host        
+                isConnected = false;        
+            }       
+            finally {       
+                try {       
+                    socketChannel.configureBlocking(true);      
+                }       
+                catch (IOException e1) {        
+                    if (logger.isLoggable(Level.SEVERE))        
+                        logger.severe(toString() + " got " + e1.getMessage() + " exception.");      
+                    // If blocking mode on the connection can not be altered, further writes will fail with illegalBlockingMode exception. In such      
+                    // case, connection should be discarded.        
+                    // Reconnection will be attempted (new socketChannel, new socket, new input/output streams) hence nothing done here after catching      
+                    // the exception.       
+                    isConnected = false;        
+                }       
+            }       
+        }  
+        // TODO: exception if socketChannel was not created?
+        return isConnected;     
+    }
+    
     /**
      * Disables SSL on this TDS channel.
      */
@@ -722,8 +827,16 @@ final class TDSChannel {
 
         // Finally, with all of the SSL support out of the way, put the TDSChannel
         // back to using the TCP/IP socket and streams directly.
-        inputStream = tcpInputStream;
-        outputStream = tcpOutputStream;
+        if (socketChannel != null) {
+            // When socketChannel APIs are used, input and output streams should be wrapped to use SocketChannel read and write APIs.
+            final ByteChannel byteChannel = wrapChannel(socketChannel);
+            inputStream = Channels.newInputStream(byteChannel);
+            outputStream = Channels.newOutputStream(byteChannel);
+        }
+        else {
+            inputStream = tcpInputStream;
+            outputStream = tcpOutputStream;
+        }
         channelSocket = tcpSocket;
         sslSocket = null;
 
@@ -756,7 +869,7 @@ final class TDSChannel {
          *
          * Note that simply using TDSReader.ensurePayload isn't sufficient as it does not automatically start the new response message.
          */
-        private void ensureSSLPayload() throws IOException {
+        private /*final*/ void ensureSSLPayload() throws IOException {
             if (0 == tdsReader.available()) {
                 if (logger.isLoggable(Level.FINEST))
                     logger.finest(logContext + " No handshake response bytes available. Flushing SSL handshake output stream.");
@@ -2181,6 +2294,16 @@ final class TDSChannel {
     }
 }
 
+final class SocketInfo {        
+    Socket socket;      
+    SocketChannel socketChannel;        
+        
+    public void SocketInfo() {      
+        this.socket = null;     
+        this.socketChannel = null;      
+    }
+}
+
 /**
  * SocketFinder is used to find a server socket to which a connection can be made. This class abstracts the logic of finding a socket from TDSChannel
  * class.
@@ -2230,10 +2353,14 @@ final class SocketFinder {
     // attempts and notified socketFinder about their result
     private int noOfThreadsThatNotified = 0;
 
+    // If valid connected socket is found, selectedSocketInfo.socket will be non-null.
+    // If valid connected socketChannel is established for getting a socket, selectedSocketInfo.socketChannel will be non-null
+    private volatile SocketInfo selectedSocketInfo = null;
+    /*
     // If a valid connected socket is found, this value would be non-null,
     // else this would be null
     private volatile Socket selectedSocket = null;
-
+     */
     // This would be one of the exceptions returned by the
     // socketConnector threads
     private volatile IOException selectedException = null;
@@ -2260,6 +2387,7 @@ final class SocketFinder {
             SQLServerConnection sqlServerConnection) {
         traceID = "SocketFinder(" + callerTraceID + ")";
         conn = sqlServerConnection;
+        selectedSocketInfo = new SocketInfo();
     }
 
     /**
@@ -2271,7 +2399,7 @@ final class SocketFinder {
      * @return connected socket
      * @throws IOException
      */
-    Socket findSocket(String hostName,
+    SocketInfo findSocket(String hostName,
             int portNumber,
             int timeoutInMilliSeconds,
             boolean useParallel,
@@ -2305,6 +2433,7 @@ final class SocketFinder {
                 }
             }
 
+            
             // Code reaches here only if MSF = true or (TNIR = true and not TNIR first attempt)
 
             if (logger.isLoggable(Level.FINER)) {
@@ -2420,11 +2549,11 @@ final class SocketFinder {
             // re-interrupt the current thread, in order to restore the thread's interrupt status.
             Thread.currentThread().interrupt();
             
-            close(selectedSocket);
+            close(selectedSocketInfo.socket);
             SQLServerException.ConvertConnectExceptionToSQLServerException(hostName, portNumber, conn, ex);
         }
         catch (IOException ex) {
-            close(selectedSocket);
+            close(selectedSocketInfo.socket);
             // The code below has been moved from connectHelper.
             // If we do not move it, the functions open(caller of findSocket)
             // and findSocket will have to
@@ -2438,10 +2567,10 @@ final class SocketFinder {
 
         }
 
-        assert result.equals(Result.SUCCESS);
-        assert selectedSocket != null : "Bug in code. Selected Socket cannot be null here.";
 
-        return selectedSocket;
+        assert result.equals(Result.SUCCESS);
+        assert selectedSocketInfo.socket != null : "Bug in code. Selected Socket cannot be null here.";
+        return selectedSocketInfo;
     }
 
     /**
@@ -2590,16 +2719,27 @@ final class SocketFinder {
 
         // if a channel was selected, make the necessary updates
         if (selectedChannel != null) {
-            // the selectedChannel has the address that is connected successfully
-            // convert it to a java.net.Socket object with the address
-            SocketAddress iadd = selectedChannel.getRemoteAddress();
+            
+            // Note that this must be done after selector is closed. Otherwise,
+            // we would get an illegalBlockingMode exception at run time.
+            selectedChannel.configureBlocking(true);
+            selectedSocketInfo.socket = selectedChannel.socket();
+            selectedSocketInfo.socketChannel = selectedChannel;
+            
+            /*
+            //the selectedChannel has the address that is connected successfully
+            //convert it to a java.net.Socket object with the address
+            SocketAddress  iadd = selectedChannel.getRemoteAddress();
+
             selectedSocket = new Socket();
             selectedSocket.connect(iadd);
-
+            */
             result = Result.SUCCESS;
-
+            
+            /*
             // close the channel since it is not used anymore
             selectedChannel.close();
+            */
         }
     }
 
@@ -2608,7 +2748,7 @@ final class SocketFinder {
     // In the old code below, the logic around 0 timeout has been removed as
     // 0 timeout is not allowed. The code has been re-factored so that the logic
     // is common for hostName or InetAddress.
-    private Socket getDefaultSocket(String hostName,
+    private SocketInfo getDefaultSocket(String hostName,
             int portNumber,
             int timeoutInMilliSeconds) throws IOException {
         // Open the socket, with or without a timeout, throwing an UnknownHostException
@@ -2617,15 +2757,70 @@ final class SocketFinder {
         // Note that Socket(host, port) throws an UnknownHostException if the host name
         // cannot be resolved, but that InetSocketAddress(host, port) does not - it sets
         // the returned InetSocketAddress as unresolved.
-        InetSocketAddress addr = new InetSocketAddress(hostName, portNumber);
-        return getConnectedSocket(addr, timeoutInMilliSeconds);
+        // TODO: change it back to original code as our new driver will not be used in <jre1.7
+        InetAddress inetAddr = InetAddress.getByName(hostName);
+        if (Util.BEFORE_SUNJRE7 && (inetAddr instanceof Inet6Address)) {        
+            InetSocketAddress addr = new InetSocketAddress(hostName, portNumber);       
+            getConnectedSocket(addr, timeoutInMilliSeconds);        
+        }       
+        // if ibm OR if ipv4 (OR if JRE 1.7)        
+        else {      
+            long timerExpire = System.currentTimeMillis() + timeoutInMilliSeconds;      
+            SocketChannel selectedChannel = null;       
+        
+            try {       
+                Selector selector = Selector.open();        
+                SocketChannel sChannel = SocketChannel.open();      
+        
+                sChannel.configureBlocking(false);  // blocking mode is more useful for connection however it is not possible to set connection     
+                                                    // timeout if blocking mode is used. hence non-blocking mode is used along with selector        
+                sChannel.register(selector, SelectionKey.OP_CONNECT); // selectors expect socketChannel to be in non-blocking mode      
+                sChannel.connect(new InetSocketAddress(inetAddr, portNumber));      
+                long timeRemaining = timerExpire - System.currentTimeMillis();      
+        
+                if (selector.select(timeRemaining) == 1) // can not be any other value unless there is an exception     
+                {       
+                    close(selector);        
+                    boolean connected = sChannel.finishConnect();       
+                    if (connected) {        
+                        // Note that this must be done after selector is closed. Otherwise,     
+                        // we would get an illegalBlockingMode exception at run time.       
+                        sChannel.configureBlocking(true);       
+                        selectedChannel = sChannel;     
+                        selectedSocketInfo.socket = selectedChannel.socket();       
+                        selectedSocketInfo.socketChannel = selectedChannel;     
+                    }       
+                    // There is no else here. If connection is not successful then exception is thrown which is caught below.       
+                    assert connected == true : "finishConnect on channel:" + sChannel + " cannot be false";     
+                }       
+                else {      
+                    // timed out?       
+                    if (logger.isLoggable(Level.FINER)) {       
+                        logger.finer(this.toString()        
+                                + " There is no selected socketChannel. The wait calls timed out before any connect call returned or timed out.");      
+                    }       
+                    String message = SQLServerException.getErrString("R_connectionTimedOut");       
+                    selectedException = new IOException(message);       
+                    throw selectedException;        
+                }       
+            }       
+            catch (IOException ex) {        
+                // in case of an exception, close the selected channel.     
+                // All other channels will be closed in the finally block,      
+                // as they need to be closed irrespective of a success/failure      
+                close(selectedChannel);     
+                throw ex;       
+            }       
+        }       
+        return selectedSocketInfo;
     }
 
-    private Socket getConnectedSocket(InetAddress inetAddr,
+    private SocketInfo getConnectedSocket(InetAddress inetAddr,
             int portNumber,
             int timeoutInMilliSeconds) throws IOException {
         InetSocketAddress addr = new InetSocketAddress(inetAddr, portNumber);
-        return getConnectedSocket(addr, timeoutInMilliSeconds);
+         getConnectedSocket(addr, timeoutInMilliSeconds);
+         return selectedSocketInfo;
     }
 
     private Socket getConnectedSocket(InetSocketAddress addr,
@@ -2633,9 +2828,10 @@ final class SocketFinder {
         assert timeoutInMilliSeconds != 0 : "timeout cannot be zero";
         if (addr.isUnresolved())
             throw new java.net.UnknownHostException();
-        selectedSocket = new Socket();
-        selectedSocket.connect(addr, timeoutInMilliSeconds);
-        return selectedSocket;
+        assert selectedSocketInfo != null : "Socket info should not be null here";
+        selectedSocketInfo.socket = new Socket();
+        selectedSocketInfo.socket.connect(addr, timeoutInMilliSeconds);
+        return selectedSocketInfo.socket;
     }
 
     private void findSocketUsingThreading(LinkedList<Inet6Address> inetAddrs,
@@ -2717,7 +2913,7 @@ final class SocketFinder {
             // of thread explosion by ensuring that unnecessary threads die
             // quickly without waiting for "min(timeOut, 21)" seconds
             for (Socket s : sockets) {
-                if (s != selectedSocket) {
+                if (s != selectedSocketInfo.socket) {
                     close(s);
                 }
             }
@@ -2804,8 +3000,8 @@ final class SocketFinder {
                 if (result.equals(Result.UNKNOWN)) {
                     // if the connection was successful and no socket has been
                     // selected yet
-                    if (exception == null && selectedSocket == null) {
-                        selectedSocket = socket;
+                    if (exception == null && selectedSocketInfo.socket == null) {
+                        selectedSocketInfo.socket = socket;
                         result = Result.SUCCESS;
                         if (logger.isLoggable(Level.FINER)) {
                             logger.finer("The socket of the following thread has been chosen:" + threadId);
@@ -3029,6 +3225,10 @@ final class TDSWriter {
     private final TDSChannel tdsChannel;
     private final SQLServerConnection con;
 
+    protected SQLServerConnection getConnection() {     
+        return con;     
+    }
+    
     // Flag to indicate whether data written via writeXXX() calls
     // is loggable. Data is normally loggable. But sensitive
     // data, such as user credentials, should never be logged for
@@ -4063,7 +4263,7 @@ final class TDSWriter {
         return false;
     }
 
-    private void writePacket(int tdsMessageStatus) throws SQLServerException {
+    private /*final */void writePacket(int tdsMessageStatus) throws SQLServerException {
         final boolean atEOM = (TDS.STATUS_BIT_EOM == (TDS.STATUS_BIT_EOM & tdsMessageStatus));
         final boolean isCancelled = ((TDS.PKT_CANCEL_REQ == tdsMessageType)
                 || ((tdsMessageStatus & TDS.STATUS_BIT_ATTENTION) == TDS.STATUS_BIT_ATTENTION));
@@ -4178,7 +4378,7 @@ final class TDSWriter {
      * @param tdsType
      *            TDS type of the value that follows
      */
-    void writeRPCNameValType(String sName,
+    /*private */void writeRPCNameValType(String sName,
             boolean bOut,
             TDSType tdsType) throws SQLServerException {
         int nNameLen = 0;
@@ -6426,7 +6626,7 @@ final class TDSReader {
      *
      * @return true if additional data is available to be read false if no more data is available
      */
-    private boolean ensurePayload() throws SQLServerException {
+    private /*final */boolean ensurePayload() throws SQLServerException {
         if (payloadOffset == currentPacket.payloadLength)
             if (!nextPacket())
                 return false;
@@ -6439,7 +6639,7 @@ final class TDSReader {
      *
      * @return true if additional data is available to be read false if no more data is available
      */
-    private boolean nextPacket() throws SQLServerException {
+    private /*final */boolean nextPacket() throws SQLServerException {
         assert null != currentPacket;
 
         // Shouldn't call this function unless we're at the end of the current packet...
@@ -6730,6 +6930,30 @@ final class TDSReader {
             payloadOffset += bytesToCopy;
         }
     }
+
+    /**     
+     * This function reads valueLength no. of bytes from input buffer without storing them in any array     
+     *      
+     * @param valueLength       
+     * @throws SQLServerException       
+     */     
+    final void readSkipBytes(long valueLength) throws SQLServerException {      
+        for (long bytesSkipped = 0; bytesSkipped < valueLength;) {      
+            // Ensure that we have a packet to read from.       
+            if (!ensurePayload())       
+                throwInvalidTDS();      
+        
+            long bytesToSkip = valueLength - bytesSkipped;      
+            if (bytesToSkip > currentPacket.payloadLength - payloadOffset)      
+                bytesToSkip = currentPacket.payloadLength - payloadOffset;      
+        
+            if (logger.isLoggable(Level.FINEST))        
+                logger.finest(toString() + " Skipping " + bytesToSkip + " bytes from offset " + payloadOffset);     
+        
+            bytesSkipped += bytesToSkip;        
+            payloadOffset += bytesToSkip;       
+        }       
+    }       
 
     final byte[] readWrappedBytes(int valueLength) throws SQLServerException {
         assert valueLength <= valueBytes.length;
@@ -7221,6 +7445,27 @@ abstract class TDSCommand {
     // When the timer expires, the command is interrupted.
     private final TimeoutTimer timeoutTimer;
 
+    // Before connection resiliency, interrupts were disabled during login as they were used only during query execution however we want to enable     
+    // them during reconnection.        
+    void startQueryTimeoutTimer(boolean updateInterrupts) {     
+        if (null != timeoutTimer)   // start the timer only if it was/is not already started        
+        {       
+            if (logger.isLoggable(Level.FINEST))        
+                logger.finest(this.toString() + ": Starting timer...");     
+        
+            if (updateInterrupts) {     
+                synchronized (interruptLock) {      
+                    wasInterrupted = false;     
+                    interruptReason = null;     
+                    interruptsEnabled = true; // interrupts are disabled by default. During reconnection when quertimeout timer is started, it does     
+                                              // not cause any interrupt since interrupts are disabled. Enabled here so that reconnection is stopped        
+                                              // after query timeout.       
+                }       
+            }       
+            timeoutTimer.start();       
+        }       
+    }
+    
     // TDS channel accessors
     // These are set/reset at command execution time.
     // Volatile ensures visibility to execution thread and interrupt thread
@@ -7255,7 +7500,7 @@ abstract class TDSCommand {
     // Flag set to indicate that an interrupt has happened.
     private volatile boolean wasInterrupted = false;
 
-    private boolean wasInterrupted() {
+    private /*final */boolean wasInterrupted() {
         return wasInterrupted;
     }
 
@@ -7720,6 +7965,7 @@ abstract class TDSCommand {
 
         // If command execution is subject to timeout then start timing until
         // the server returns the first response packet.
+//        startQueryTimeoutTimer(false);
         if (null != timeoutTimer) {
             if (logger.isLoggable(Level.FINEST))
                 logger.finest(this.toString() + ": Starting timer...");
@@ -7759,6 +8005,9 @@ abstract class TDSCommand {
             }
         }
 
+        // A new response is received hence increment unprocessed respose count     
+        tdsWriter.getConnection().getSessionRecovery().incrementUnprocessedResponseCount();
+        
         return tdsReader;
     }
 }

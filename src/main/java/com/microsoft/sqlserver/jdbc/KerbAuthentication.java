@@ -51,6 +51,11 @@ final class KerbAuthentication extends SSPIAuthentication {
     private LoginContext lc = null;
     private GSSCredential peerCredentials = null;
     private GSSContext peerContext = null;
+    
+    private Subject threadImpersonationSubject = null;     
+    private Subject currentSubject = null;      
+    private boolean connectionResiliencyRequested = false;      
+    private boolean reconnecting = false;
 
     static {
         // Overrides the default JAAS configuration loader.
@@ -58,6 +63,15 @@ final class KerbAuthentication extends SSPIAuthentication {
         Configuration.setConfiguration(new JaasConfiguration(Configuration.getConfiguration()));
     }
 
+    /**     
+     * Visibility of this function is limited only to the driver package as it returns sensitive information.       
+     *      
+     * @return      
+     */
+    public Subject getSubject() {
+        return currentSubject;
+    }
+    
     private void intAuthInit() throws SQLServerException {
         try {
             // If we need to support NTLM as well, we can use null
@@ -210,7 +224,9 @@ final class KerbAuthentication extends SSPIAuthentication {
     // Package visible members below.
     KerbAuthentication(SQLServerConnection con,
             String address,
-            int port) throws SQLServerException {
+            int port,
+            boolean reconnecting,
+            Subject loginSubject) throws SQLServerException {
         this.con = con;
         // Get user provided SPN string; if not provided then build the generic one
         String userSuppliedServerSpn = con.activeConnectionProperties.getProperty(SQLServerDriverStringProperty.SERVER_SPN.toString());
@@ -229,6 +245,11 @@ final class KerbAuthentication extends SSPIAuthentication {
         else {
             spn = makeSpn(address, port);
         }
+        // KerbAuthentication object is created for every connection attempt. Hence it is not necessary to reset these values as the new one will be
+        // created for next connect.
+        threadImpersonationSubject = loginSubject;
+        this.reconnecting = reconnecting;
+      
         this.spn = enrichSpnWithRealm(spn, null == userSuppliedServerSpn);
         if (!this.spn.equals(spn) && authLogger.isLoggable(Level.FINER)){
             authLogger.finer(toString() + "SPN enriched: " + spn + " := " + this.spn);
@@ -383,37 +404,79 @@ final class KerbAuthentication extends SSPIAuthentication {
      * @param address
      * @param port
      * @param ImpersonatedUserCred
+     * @param reconnecting
+     * @param loginSubject
      * @throws SQLServerException
      */
     KerbAuthentication(SQLServerConnection con,
             String address,
             int port,
-            GSSCredential ImpersonatedUserCred) throws SQLServerException {
-        this(con, address, port);
+            GSSCredential ImpersonatedUserCred,
+            boolean reconnecting,
+            Subject loginSubject) throws SQLServerException {
+        this(con, address, port, reconnecting, loginSubject);
         peerCredentials = ImpersonatedUserCred;
     }
 
     byte[] GenerateClientContext(byte[] pin,
             boolean[] done) throws SQLServerException {
+        byte[] clientContext = null;
         if (null == peerContext) {
             intAuthInit();
         }
-        return intAuthHandShake(pin, done);
+        if (!reconnecting || (reconnecting && currentSubject.equals(threadImpersonationSubject))) // currentSubject is populated in previous intAuthInit()
+        {
+            authLogger.finer(toString() + "Original connection and reconnection happening under same credentials hence not impersonating");
+            clientContext = intAuthHandShake(pin, done);    // No impersonation required. Continue as is.
+        }
+        else {
+            // reconnecting and current subject is not same as the subject during initial login
+            if (authLogger.isLoggable(Level.FINER)) {
+                authLogger.finer(toString() + "Impersonating");
+            }
+            try {
+                clientContext = impersonate(pin, done);
+            }
+            catch (Exception e) {
+                authLogger.finer(toString() + "Impersonation Failed :-" + e);
+                con.terminate(SQLServerException.DRIVER_ERROR_NONE, SQLServerException.getErrString("R_integratedAuthenticationFailed"), e);
+            }
+        }
+        return clientContext;
+    }
+
+    private byte[] impersonate(final byte[] pin,
+            final boolean[] done) throws SQLServerException, PrivilegedActionException {
+        // Define PrivilegedAction as inAuthInit() and intAuthHandShake()
+        final PrivilegedExceptionAction<byte[]> action = new PrivilegedExceptionAction<byte[]>() {
+            public byte[] run() throws GSSException, SQLServerException {
+                if (authLogger.isLoggable(Level.FINER)) {
+                    authLogger.finer(toString() + "intAuthInit during reconnection");
+                }
+                intAuthInit();  // This is required to ensure peerContext and peerCredentials are initialised based on impersonation Subject.
+                if (authLogger.isLoggable(Level.FINER)) {
+                    authLogger.finer(toString() + "intAuthHandShake during reconnection");
+                }
+                return intAuthHandShake(pin, done);
+            }
+        };
+        // TO support java 5, 6 we have to do this
+        // The signature for Java 5 returns an object 6 returns GSSCredential, immediate casting throws warning in Java 6.
+        Object clientContext = Subject.doAs(threadImpersonationSubject, action);    // When execution is out of doAs, impersonation is over.
+        return (byte[]) clientContext;
     }
 
     int ReleaseClientContext() throws SQLServerException {
+        // Subject is retained throughout the life of the connection object. It is used to obtain peerCredentials and peerContext. Hence it is safe to
+        // dispose these.
+        // lc is not required during reconnection as Subject is already available.
         try {
             if (null != peerCredentials)
                 peerCredentials.dispose();
             if (null != peerContext)
                 peerContext.dispose();
-            if (null != lc)
-                lc.logout();
-        }
-        catch (LoginException e) {
-            // yes we are eating exceptions here but this should not fail in the normal circumstances and we do not want to eat previous
-            // login errors if caused before which is more useful to the user than the cleanup errors.
-            authLogger.fine(toString() + " Release of the credentials failed LoginException: " + e);
+            // If loginContext logs out, credentials are marked as NULL hence they can not be stored for impersonation during reconnection. Hence we
+            // don't log out the login context
         }
         catch (GSSException e) {
             // yes we are eating exceptions here but this should not fail in the normal circumstances and we do not want to eat previous

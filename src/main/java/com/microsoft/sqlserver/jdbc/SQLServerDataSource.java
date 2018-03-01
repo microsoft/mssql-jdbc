@@ -576,7 +576,7 @@ public class SQLServerDataSource implements ISQLServerDataSource, DataSource, ja
         return getBooleanProperty(connectionProps, SQLServerDriverBooleanProperty.XOPEN_STATES.toString(),
                 SQLServerDriverBooleanProperty.XOPEN_STATES.getDefaultValue());
     }
-    
+
     public void setFIPS(boolean fips) {
         setBooleanProperty(connectionProps, SQLServerDriverBooleanProperty.FIPS.toString(), fips);
     }
@@ -671,7 +671,27 @@ public class SQLServerDataSource implements ISQLServerDataSource, DataSource, ja
                 SQLServerDriverIntProperty.PACKET_SIZE.getDefaultValue());
     }
 
-    /**
+    // connectRetryCount is the count (in units) of no. of reconnection attempts by the driver as part of idle connection resiliency.
+    public void setConnectRetryCount(int connectRetryCount) {
+        setIntProperty(connectionProps, SQLServerDriverIntProperty.CONNECT_RETRY_COUNT.toString(), connectRetryCount);
+    }
+
+    public int getConnectRetryCount() {
+        return getIntProperty(connectionProps, SQLServerDriverIntProperty.CONNECT_RETRY_COUNT.toString(),
+                SQLServerDriverIntProperty.CONNECT_RETRY_COUNT.getDefaultValue());
+    }
+
+    // connectRetryInterval is the time in seconds used as an interval between 2 reconnection attempts as part of idle connection resiliency.
+    public void setConnectRetryInterval(int connectRetryInterval) {
+        setIntProperty(connectionProps, SQLServerDriverIntProperty.CONNECT_RETRY_INTERVAL.toString(), connectRetryInterval);
+    }
+
+    public int getConnectRetryInterval() {
+        return getIntProperty(connectionProps, SQLServerDriverIntProperty.CONNECT_RETRY_INTERVAL.toString(),
+                SQLServerDriverIntProperty.CONNECT_RETRY_INTERVAL.getDefaultValue());
+    }
+
+      /**
      * Setting the query timeout
      * 
      * @param queryTimeout

@@ -45,6 +45,12 @@ final class Util {
         return SYSTEM_JRE.startsWith("IBM");
     }
 
+    static final boolean BEFORE_SUNJRE7 = isBeforeSun7();
+    
+    static boolean isBeforeSun7() {
+        return (SYSTEM_JRE.startsWith("Sun") && (SYSTEM_SPEC_VERSION.startsWith("1.5") || SYSTEM_SPEC_VERSION.startsWith("1.6")));
+    }
+    
     static final Boolean isCharType(int jdbcType) {
         switch (jdbcType) {
             case java.sql.Types.CHAR:

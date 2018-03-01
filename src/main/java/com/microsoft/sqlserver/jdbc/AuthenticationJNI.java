@@ -35,7 +35,11 @@ final class AuthenticationJNI extends SSPIAuthentication {
     private final String DNSName;
     private final int port;
     private SQLServerConnection con;
-
+    private static byte systemTokenSize;        
+    private byte[] impersonate = {0};       
+    private byte[] threadImpersonationToken = null;     
+    private byte[] threadUseProcessToken = {0};
+    
     private static final UnsatisfiedLinkError linkError;
 
     static int GetMaxSSPIBlobSize() {
@@ -54,8 +58,11 @@ final class AuthenticationJNI extends SSPIAuthentication {
             System.loadLibrary(libName);
             int[] pkg = new int[1];
             pkg[0] = 0;
-            if (0 == SNISecInitPackage(pkg, authLogger)) {
+            byte[] tokenSizeArray = new byte[1];
+            tokenSizeArray[0] = 0;
+            if (0 == SNISecInitPackage(pkg, tokenSizeArray, authLogger)) {
                 sspiBlobMaxlen = pkg[0];
+                systemTokenSize = tokenSizeArray[0];
             }
             else
                 throw new UnsatisfiedLinkError();
@@ -74,13 +81,51 @@ final class AuthenticationJNI extends SSPIAuthentication {
 
     AuthenticationJNI(SQLServerConnection con,
             String address,
-            int serverport) throws SQLServerException {
+            int serverport,
+            boolean connectionResiliencyRequested,
+            boolean reconnecting,
+            byte[] loginThreadSecurityToken,
+            boolean loginThreadUseProcessToken) throws SQLServerException {
         if (!enabled)
             con.terminate(SQLServerException.DRIVER_ERROR_NONE, SQLServerException.getErrString("R_notConfiguredForIntegrated"), linkError);
 
         this.con = con;
+
+        if (connectionResiliencyRequested) {
+            if (reconnecting) {
+                if (authLogger.isLoggable(Level.FINER)) {
+                    authLogger.finer("Reconnecting with impersonation.");
+                }
+                threadImpersonationToken = loginThreadSecurityToken;
+                threadUseProcessToken[0] = (byte) (loginThreadUseProcessToken ? 1 : 0);
+                impersonate[0] = 1;
+            }
+            else {
+                // get thread token
+                byte[] token = new byte[systemTokenSize];
+                byte[] useProcessToken = new byte[1];
+                SNIGetThreadToken(token, useProcessToken, authLogger); // this gets current thread token from the native code.
+
+                assert token != null : "Thread security token can not be null.";
+
+                // store the token
+                threadImpersonationToken = new byte[systemTokenSize];
+                System.arraycopy(token, 0, threadImpersonationToken, 0, systemTokenSize);
+                threadUseProcessToken[0] = useProcessToken[0];
+            }
+        }
+
         DNSName = GetDNSName(address);
         port = serverport;
+    }
+
+    byte[] getThreadToken() {
+        assert threadImpersonationToken != null : "Current thread token can not be null.";
+        return threadImpersonationToken;
+    }
+
+    boolean getThreadUseProcessToken() {
+        return threadUseProcessToken[0] > 0 ? true : false;
     }
 
     static FedAuthDllInfo getAccessTokenForWindowsIntegrated(String stsURL,
@@ -105,7 +150,8 @@ final class AuthenticationJNI extends SSPIAuthentication {
         // assert DNSName cant be null
         assert DNSName != null;
 
-        int failure = SNISecGenClientContext(sniSec, sniSecLen, pin, pin.length, pOut, outsize, done, DNSName, port, null, null, authLogger);
+        int failure = SNISecGenClientContext(sniSec, sniSecLen, pin, pin.length, pOut, outsize, done, DNSName, port, null, null, impersonate,
+                threadImpersonationToken, threadUseProcessToken, authLogger);
 
         if (failure != 0) {
             if (authLogger.isLoggable(Level.WARNING)) {
@@ -128,6 +174,11 @@ final class AuthenticationJNI extends SSPIAuthentication {
         return success;
     }
 
+    static void CloseTokenHandle(byte[] loginThreadToken) {     
+        SNICloseThreadTokenHandle(loginThreadToken, authLogger);        
+        // This function is called when token is closed. We do not want to change behavior if handle is not closed.
+    }
+    
     // note we handle the failures of the GetDNSName in this function, this function will return an empty string if the underlying call fails.
     private static String GetDNSName(String address) {
         String DNS[] = new String[1];
@@ -152,6 +203,9 @@ final class AuthenticationJNI extends SSPIAuthentication {
             int port,
             String username,
             String password,
+            byte[] impersonate,        
+            byte[] threadImpersonationToken,        
+            byte[] threadUseProcessToken,
             java.util.logging.Logger log);
 
     /* L0 */ private native static int SNISecReleaseClientContext(byte[] psec,
@@ -159,6 +213,7 @@ final class AuthenticationJNI extends SSPIAuthentication {
             java.util.logging.Logger log);
 
     private native static int SNISecInitPackage(int[] pcbMaxToken,
+            byte[] tokenSizeArray,
             java.util.logging.Logger log);
 
     private native static int SNISecTerminatePackage(java.util.logging.Logger log);
@@ -173,6 +228,13 @@ final class AuthenticationJNI extends SSPIAuthentication {
             String[] DNSName,
             java.util.logging.Logger log);
 
+    private native static int SNIGetThreadToken(byte[] token,
+            byte[] useProcessToken,
+            java.util.logging.Logger log);
+    
+    private native static int SNICloseThreadTokenHandle(byte[] token,
+            java.util.logging.Logger log);
+    
     private native static FedAuthDllInfo ADALGetAccessTokenForWindowsIntegrated(String stsURL,
             String servicePrincipalName,
             String clientConnectionId,

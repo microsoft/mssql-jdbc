@@ -242,6 +242,12 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
                 StreamDone doneToken = new StreamDone();
                 doneToken.setFromTDS(tdsReader);
 
+                // The final done token in the response always marks the end of the result
+                if (doneToken.isFinal()) {
+                    // If this the final DONE token, response is completely processed hence decrement unprocessed response count
+                    tdsReader.getConnection().getSessionRecovery().decrementUnprocessedResponseCount();
+                }
+
                 // If this is a non-final batch-terminating DONE token,
                 // then stop parsing the response now and set up for
                 // the next batch.
