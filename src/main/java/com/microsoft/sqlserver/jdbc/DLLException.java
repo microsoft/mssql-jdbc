@@ -88,40 +88,40 @@ class DLLException extends Exception {
         String errMessage = getErrMessage(errCode);
         MessageFormat form = new MessageFormat(SQLServerException.getErrString(errMessage));
 
-        Object[] msgArgs = {null, null, null};
-
-        buildMsgParams(errMessage, msgArgs, param1, param2, param3);
+        String[] msgArgs = buildMsgParams(errMessage, param1, param2, param3);
 
         throw new SQLServerException(null, form.format(msgArgs), null, 0, false);
     }
 
-    private static void buildMsgParams(String errMessage,
-            Object[] msgArgs,
+    private static String[] buildMsgParams(String errMessage,
             String parameter1,
             String parameter2,
             String parameter3) {
 
-        if (errMessage.equalsIgnoreCase("R_AECertLocBad")) {
+        String[] msgArgs = new String[3];
+
+        if ("R_AECertLocBad".equalsIgnoreCase(errMessage)) {
             msgArgs[0] = parameter1;
             msgArgs[1] = parameter1 + "/" + parameter2 + "/" + parameter3;
         }
-        else if (errMessage.equalsIgnoreCase("R_AECertStoreBad")) {
+        else if ("R_AECertStoreBad".equalsIgnoreCase(errMessage)) {
             msgArgs[0] = parameter2;
             msgArgs[1] = parameter1 + "/" + parameter2 + "/" + parameter3;
         }
-        else if (errMessage.equalsIgnoreCase("R_AECertHashEmpty")) {
+        else if ("R_AECertHashEmpty".equalsIgnoreCase(errMessage)) {
             msgArgs[0] = parameter1 + "/" + parameter2 + "/" + parameter3;
-
         }
         else {
             msgArgs[0] = parameter1;
             msgArgs[1] = parameter2;
             msgArgs[2] = parameter3;
         }
+
+        return msgArgs;
     }
 
     private static String getErrMessage(int errCode) {
-        String message = null;
+        String message;
         switch (errCode) {
             case 1:
                 message = "R_AEKeypathEmpty";

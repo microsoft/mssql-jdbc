@@ -18,7 +18,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ThreadFactory;
 
-import javax.xml.bind.DatatypeConverter;
+import java.util.Base64;;
 
 class CacheClear implements Runnable {
 
@@ -68,7 +68,7 @@ final class SQLServerSymmetricKeyCache {
             .getLogger("com.microsoft.sqlserver.jdbc.SQLServerSymmetricKeyCache");
 
     private SQLServerSymmetricKeyCache() {
-        cache = new ConcurrentHashMap<String, SQLServerSymmetricKey>();
+        cache = new ConcurrentHashMap<>();
     }
 
     static SQLServerSymmetricKeyCache getInstance() {
@@ -94,11 +94,11 @@ final class SQLServerSymmetricKeyCache {
             String serverName = connection.getTrustedServerNameAE();
             assert null != serverName : "serverName should not be null in getKey.";
 
-            StringBuffer keyLookupValuebuffer = new StringBuffer(serverName);
-            String keyLookupValue = null;
+            StringBuilder keyLookupValuebuffer = new StringBuilder(serverName);
+            String keyLookupValue;
             keyLookupValuebuffer.append(":");
 
-            keyLookupValuebuffer.append(DatatypeConverter.printBase64Binary((new String(keyInfo.encryptedKey, UTF_8)).getBytes()));
+            keyLookupValuebuffer.append(Base64.getEncoder().encodeToString((new String(keyInfo.encryptedKey, UTF_8)).getBytes()));
 
             keyLookupValuebuffer.append(":");
             keyLookupValuebuffer.append(keyInfo.keyStoreName);
@@ -110,7 +110,7 @@ final class SQLServerSymmetricKeyCache {
             }
             Boolean[] hasEntry = new Boolean[1];
             List<String> trustedKeyPaths = SQLServerConnection.getColumnEncryptionTrustedMasterKeyPaths(serverName, hasEntry);
-            if (true == hasEntry[0]) {
+            if (hasEntry[0]) {
                 if ((null == trustedKeyPaths) || (0 == trustedKeyPaths.size()) || (!trustedKeyPaths.contains(keyInfo.keyPath))) {
                     MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_UntrustedKeyPath"));
                     Object[] msgArgs = {keyInfo.keyPath, serverName};

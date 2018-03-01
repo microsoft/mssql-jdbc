@@ -52,7 +52,7 @@ public class DBSchema {
      * @param autoGenerateSchema
      */
     DBSchema(boolean autoGenerateSchema) {
-        sqlTypes = new ArrayList<SqlType>();
+        sqlTypes = new ArrayList<>();
         if (autoGenerateSchema) {
             // Exact Numeric
             sqlTypes.add(new SqlBigInt());

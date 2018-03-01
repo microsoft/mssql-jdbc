@@ -10,7 +10,12 @@ package com.microsoft.sqlserver.testframework;
 
 import java.sql.Connection;
 import java.util.Properties;
+import java.util.logging.ConsoleHandler;
+import java.util.logging.FileHandler;
+import java.util.logging.Handler;
+import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.logging.SimpleFormatter;
 
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Assertions;
@@ -55,6 +60,8 @@ public abstract class AbstractTest {
      */
     @BeforeAll
     public static void setup() throws Exception {
+        // Invoke fine logging...
+        invokeLogging();
 
         applicationClientID = getConfiguredProperty("applicationClientID");
         applicationKey = getConfiguredProperty("applicationKey");
@@ -78,6 +85,7 @@ public abstract class AbstractTest {
         try {
             Assertions.assertNotNull(connectionString, "Connection String should not be null");
             connection = PrepUtil.getConnection(connectionString, info);
+
         }
         catch (Exception e) {
             throw e;
@@ -86,6 +94,7 @@ public abstract class AbstractTest {
 
     /**
      * Get the connection String
+     * 
      * @return
      */
     public static String getConnectionString() {
@@ -131,6 +140,46 @@ public abstract class AbstractTest {
     public static String getConfiguredProperty(String key,
             String defaultValue) {
         return Utils.getConfiguredProperty(key, defaultValue);
+    }
+
+    /**
+     * Invoke logging.
+     */
+    public static void invokeLogging() {
+        Handler handler = null;
+
+        String enableLogging = getConfiguredProperty("mssql_jdbc_logging", "false");
+
+        // If logging is not enable then return.
+        if (!"true".equalsIgnoreCase(enableLogging)) {
+            return;
+        }
+
+        String loggingHandler = getConfiguredProperty("mssql_jdbc_logging_handler", "not_configured");
+
+        try {
+            // handler = new FileHandler("Driver.log");
+            if ("console".equalsIgnoreCase(loggingHandler)) {
+                handler = new ConsoleHandler();
+            }
+            else if ("file".equalsIgnoreCase(loggingHandler)) {
+                handler = new FileHandler("Driver.log");
+                System.out.println("Look for Driver.log file in your classpath for detail logs");
+            }
+
+            if (handler != null) {
+                handler.setFormatter(new SimpleFormatter());
+                handler.setLevel(Level.FINEST);
+                Logger.getLogger("").addHandler(handler);
+            }
+            // By default, Loggers also send their output to their parent logger.  
+            // Typically the root Logger is configured with a set of Handlers that essentially act as default handlers for all loggers. 
+            Logger logger = Logger.getLogger("com.microsoft.sqlserver.jdbc");
+            logger.setLevel(Level.FINEST);
+        }
+        catch (Exception e) {
+            System.err.println("Some how could not invoke logging: " + e.getMessage());
+        }
     }
 
 }

@@ -28,7 +28,7 @@ class SQLServerPreparedStatement42Helper {
             SQLServerStatement.loggerExternal.entering(ps.getClassNameLogging(), "setObject", new Object[] {index, obj, jdbcType});
 
         // getVendorTypeNumber() returns the same constant integer values as in java.sql.Types
-        ps.setObject(index, obj, jdbcType.getVendorTypeNumber().intValue());
+        ps.setObject(index, obj, jdbcType.getVendorTypeNumber());
 
         SQLServerStatement.loggerExternal.exiting(ps.getClassNameLogging(), "setObject");
     }
@@ -45,7 +45,7 @@ class SQLServerPreparedStatement42Helper {
                     new Object[] {parameterIndex, x, targetSqlType, scaleOrLength});
 
         // getVendorTypeNumber() returns the same constant integer values as in java.sql.Types
-        ps.setObject(parameterIndex, x, targetSqlType.getVendorTypeNumber().intValue(), scaleOrLength);
+        ps.setObject(parameterIndex, x, targetSqlType.getVendorTypeNumber(), scaleOrLength);
 
         SQLServerStatement.loggerExternal.exiting(ps.getClassNameLogging(), "setObject");
     }
@@ -63,7 +63,7 @@ class SQLServerPreparedStatement42Helper {
                     new Object[] {parameterIndex, x, targetSqlType, precision, scale});
 
         // getVendorTypeNumber() returns the same constant integer values as in java.sql.Types
-        ps.setObject(parameterIndex, x, targetSqlType.getVendorTypeNumber().intValue(), precision, scale, false);
+        ps.setObject(parameterIndex, x, targetSqlType.getVendorTypeNumber(), precision, scale, false);
 
         SQLServerStatement.loggerExternal.exiting(ps.getClassNameLogging(), "setObject");
     }
@@ -82,7 +82,7 @@ class SQLServerPreparedStatement42Helper {
                     new Object[] {parameterIndex, x, targetSqlType, precision, scale, forceEncrypt});
 
         // getVendorTypeNumber() returns the same constant integer values as in java.sql.Types
-        ps.setObject(parameterIndex, x, targetSqlType.getVendorTypeNumber().intValue(), precision, scale, forceEncrypt);
+        ps.setObject(parameterIndex, x, targetSqlType.getVendorTypeNumber(), precision, scale, forceEncrypt);
 
         SQLServerStatement.loggerExternal.exiting(ps.getClassNameLogging(), "setObject");
     }

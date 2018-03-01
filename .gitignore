@@ -14,8 +14,12 @@ build/
 *~.nib
 local.properties
 .classpath
+.vscode/
 .settings/
+.gradle/
 .loadpath
+outdated-dependencies.txt
+pom.xml.versionBackup
 
 # External tool builders
 .externalToolBuilders/

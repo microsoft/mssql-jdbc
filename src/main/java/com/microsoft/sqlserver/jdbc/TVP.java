@@ -12,10 +12,12 @@ import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.text.MessageFormat;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
 
 enum TVPType {
     ResultSet,
@@ -47,8 +49,8 @@ class TVP {
     Map<Integer, SQLServerMetaData> columnMetadata = null;
     Iterator<Entry<Integer, Object[]>> sourceDataTableRowIterator = null;
     ISQLServerDataRecord sourceRecord = null;
-
     TVPType tvpType = null;
+    Set<String> columnNames = null;
 
     // MultiPartIdentifierState
     enum MPIState {
@@ -63,7 +65,7 @@ class TVP {
     void initTVP(TVPType type,
             String tvpPartName) throws SQLServerException {
         tvpType = type;
-        columnMetadata = new LinkedHashMap<Integer, SQLServerMetaData>();
+        columnMetadata = new LinkedHashMap<>();
         parseTypeName(tvpPartName);
     }
 
@@ -95,6 +97,7 @@ class TVP {
             ISQLServerDataRecord tvpRecord) throws SQLServerException {
         initTVP(TVPType.ISQLServerDataRecord, tvpPartName);
         sourceRecord = tvpRecord;
+        columnNames = new HashSet<>();
         // Populate TVP metdata from ISQLServerDataRecord.
         populateMetadataFromDataRecord();
 
@@ -112,7 +115,14 @@ class TVP {
             Object[] rowData = new Object[colCount];
             for (int i = 0; i < colCount; i++) {
                 try {
-                    rowData[i] = sourceResultSet.getObject(i + 1);
+                    // for Time types, getting Timestamp instead of Time, because this value will be converted to String later on. If the value is a
+                    // time object, the millisecond would be removed.
+                    if (java.sql.Types.TIME == sourceResultSet.getMetaData().getColumnType(i + 1)) {
+                        rowData[i] = sourceResultSet.getTimestamp(i + 1);
+                    }
+                    else {
+                        rowData[i] = sourceResultSet.getObject(i + 1);
+                    }
                 }
                 catch (SQLException e) {
                     throw new SQLServerException(SQLServerException.getErrString("R_unableRetrieveSourceData"), e);
@@ -151,9 +161,7 @@ class TVP {
         if (null == dataTableMetaData || dataTableMetaData.isEmpty()) {
             throw new SQLServerException(SQLServerException.getErrString("R_TVPEmptyMetadata"), null);
         }
-        Iterator<Entry<Integer, SQLServerDataColumn>> columnsIterator = dataTableMetaData.entrySet().iterator();
-        while (columnsIterator.hasNext()) {
-            Map.Entry<Integer, SQLServerDataColumn> pair = columnsIterator.next();
+        for (Entry<Integer, SQLServerDataColumn> pair : dataTableMetaData.entrySet()) {
             // duplicate column names for the dataTable will be checked in the SQLServerDataTable.
             columnMetadata.put(pair.getKey(),
                     new SQLServerMetaData(pair.getValue().columnName, pair.getValue().javaSqlType, pair.getValue().precision, pair.getValue().scale));
@@ -181,8 +189,9 @@ class TVP {
             throw new SQLServerException(SQLServerException.getErrString("R_TVPEmptyMetadata"), null);
         }
         for (int i = 0; i < sourceRecord.getColumnCount(); i++) {
+            Util.checkDuplicateColumnName(sourceRecord.getColumnMetaData(i + 1).columnName, columnNames);
+            
             // Make a copy here as we do not want to change user's metadata.
-            Util.checkDuplicateColumnName(sourceRecord.getColumnMetaData(i + 1).columnName, columnMetadata);
             SQLServerMetaData metaData = new SQLServerMetaData(sourceRecord.getColumnMetaData(i + 1));
             columnMetadata.put(i, metaData);
         }
@@ -194,9 +203,7 @@ class TVP {
 
         int maxSortOrdinal = -1;
         int sortCount = 0;
-        Iterator<Entry<Integer, SQLServerMetaData>> columnsIterator = columnMetadata.entrySet().iterator();
-        while (columnsIterator.hasNext()) {
-            Map.Entry<Integer, SQLServerMetaData> columnPair = columnsIterator.next();
+        for (Entry<Integer, SQLServerMetaData> columnPair : columnMetadata.entrySet()) {
             SQLServerSortOrder columnSortOrder = columnPair.getValue().sortOrder;
             int columnSortOrdinal = columnPair.getValue().sortOrdinal;
 
@@ -204,13 +211,13 @@ class TVP {
                 // check if there's no way sort order could be monotonically increasing
                 if (columnCount <= columnSortOrdinal) {
                     MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_TVPSortOrdinalGreaterThanFieldCount"));
-                    throw new SQLServerException(form.format(new Object[] {columnSortOrdinal, columnPair.getKey()}), null, 0, null);
+                    throw new SQLServerException(form.format(new Object[]{columnSortOrdinal, columnPair.getKey()}), null, 0, null);
                 }
 
                 // Check to make sure we haven't seen this ordinal before
                 if (sortOrdinalSpecified[columnSortOrdinal]) {
                     MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_TVPDuplicateSortOrdinal"));
-                    throw new SQLServerException(form.format(new Object[] {columnSortOrdinal}), null, 0, null);
+                    throw new SQLServerException(form.format(new Object[]{columnSortOrdinal}), null, 0, null);
                 }
 
                 sortOrdinalSpecified[columnSortOrdinal] = true;

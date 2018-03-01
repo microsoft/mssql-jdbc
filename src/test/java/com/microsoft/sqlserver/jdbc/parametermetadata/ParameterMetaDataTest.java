@@ -23,12 +23,13 @@ import org.junit.runner.RunWith;
 
 import com.microsoft.sqlserver.jdbc.SQLServerException;
 import com.microsoft.sqlserver.testframework.AbstractTest;
+import com.microsoft.sqlserver.testframework.Utils;
 import com.microsoft.sqlserver.testframework.util.RandomUtil;
 
 @RunWith(JUnitPlatform.class)
 public class ParameterMetaDataTest extends AbstractTest {
     private static final String tableName = "[" + RandomUtil.getIdentifier("StatementParam") + "]";
-    
+
     /**
      * Test ParameterMetaData#isWrapperFor and ParameterMetaData#unwrap.
      * 
@@ -36,23 +37,21 @@ public class ParameterMetaDataTest extends AbstractTest {
      */
     @Test
     public void testParameterMetaDataWrapper() throws SQLException {
-        try (Connection con = DriverManager.getConnection(connectionString);
-             Statement stmt = con.createStatement()) {
+        try (Connection con = DriverManager.getConnection(connectionString); Statement stmt = con.createStatement()) {
 
             stmt.executeUpdate("create table " + tableName + " (col1 int identity(1,1) primary key)");
             try {
                 String query = "SELECT * from " + tableName + " where col1 = ?";
-                
+
                 try (PreparedStatement pstmt = con.prepareStatement(query)) {
                     ParameterMetaData parameterMetaData = pstmt.getParameterMetaData();
                     assertTrue(parameterMetaData.isWrapperFor(ParameterMetaData.class));
                     assertSame(parameterMetaData, parameterMetaData.unwrap(ParameterMetaData.class));
                 }
-            } finally {
-                stmt.executeUpdate("IF EXISTS (select * from sysobjects where id = object_id(N'" + tableName + "') and OBJECTPROPERTY(id, N'IsTable') = 1)"
-                        + " DROP TABLE " + tableName);
             }
-
+            finally {
+                Utils.dropTableIfExists(tableName, stmt);
+            }
         }
     }
 
@@ -71,6 +70,29 @@ public class ParameterMetaDataTest extends AbstractTest {
         catch (SQLServerException e) {
             assertTrue(!e.getMessage().contains("com.microsoft.sqlserver.jdbc.SQLServerException"),
                     "SQLServerException should not be wrapped by another SQLServerException.");
+        }
+    }
+    
+    /**
+     * Test ParameterMetaData when parameter name contains braces
+     * 
+     * @throws SQLException
+     */
+    @Test
+    public void testNameWithBraces() throws SQLException {
+        try (Connection con = DriverManager.getConnection(connectionString); Statement stmt = con.createStatement()) {
+
+            stmt.executeUpdate("create table " + tableName + " ([c1_varchar(max)] varchar(max))");
+            try {
+                String query = "insert into " + tableName + " ([c1_varchar(max)]) values (?)";
+
+                try (PreparedStatement pstmt = con.prepareStatement(query)) {
+                    pstmt.getParameterMetaData();
+                }
+            }
+            finally {
+                Utils.dropTableIfExists(tableName, stmt);
+            }
         }
     }
 }

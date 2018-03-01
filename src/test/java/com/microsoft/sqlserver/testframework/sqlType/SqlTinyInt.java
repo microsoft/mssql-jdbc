@@ -20,6 +20,6 @@ public class SqlTinyInt extends SqlNumber {
 
     public Object createdata() {
         // TODO: include max value
-        return new Short((short) ThreadLocalRandom.current().nextInt((short) minvalue, ((short) maxvalue)));
+        return (short) ThreadLocalRandom.current().nextInt((short) minvalue, ((short) maxvalue));
     }
 }

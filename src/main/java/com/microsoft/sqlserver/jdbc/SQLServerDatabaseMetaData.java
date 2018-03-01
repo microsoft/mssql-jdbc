@@ -8,6 +8,7 @@
 
 package com.microsoft.sqlserver.jdbc;
 
+import java.sql.BatchUpdateException;
 import java.sql.CallableStatement;
 import java.sql.Connection;
 import java.sql.DriverPropertyInfo;
@@ -17,6 +18,7 @@ import java.sql.SQLException;
 import java.text.MessageFormat;
 import java.util.EnumMap;
 import java.util.Properties;
+import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
 
@@ -89,7 +91,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
         }
     }
 
-    EnumMap<CallableHandles, HandleAssociation> handleMap = new EnumMap<CallableHandles, HandleAssociation>(CallableHandles.class);
+    EnumMap<CallableHandles, HandleAssociation> handleMap = new EnumMap<>(CallableHandles.class);
 
     // Returns unique id for each instance.
     private static int nextInstanceID() {
@@ -120,13 +122,11 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
     }
 
     public boolean isWrapperFor(Class<?> iface) throws SQLException {
-        DriverJDBCVersion.checkSupportsJDBC4();
         boolean f = iface.isInstance(this);
         return f;
     }
 
     public <T> T unwrap(Class<T> iface) throws SQLException {
-        DriverJDBCVersion.checkSupportsJDBC4();
         T t;
         try {
             t = iface.cast(this);
@@ -144,90 +144,90 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
         }
     }
 
-    private final static String ASC_OR_DESC = "ASC_OR_DESC";
-    private final static String ATTR_NAME = "ATTR_NAME";
-    private final static String ATTR_TYPE_NAME = "ATTR_TYPE_NAME";
-    private final static String ATTR_SIZE = "ATTR_SIZE";
-    private final static String ATTR_DEF = "ATTR_DEF";
-    private final static String BASE_TYPE = "BASE_TYPE";
-    private final static String BUFFER_LENGTH = "BUFFER_LENGTH";
-    private final static String CARDINALITY = "CARDINALITY";
-    private final static String CHAR_OCTET_LENGTH = "CHAR_OCTET_LENGTH";
-    private final static String CLASS_NAME = "CLASS_NAME";
-    private final static String COLUMN_DEF = "COLUMN_DEF";
-    private final static String COLUMN_NAME = "COLUMN_NAME";
-    private final static String COLUMN_SIZE = "COLUMN_SIZE";
-    private final static String COLUMN_TYPE = "COLUMN_TYPE";
-    private final static String DATA_TYPE = "DATA_TYPE";
-    private final static String DECIMAL_DIGITS = "DECIMAL_DIGITS";
-    private final static String DEFERRABILITY = "DEFERRABILITY";
-    private final static String DELETE_RULE = "DELETE_RULE";
-    private final static String FILTER_CONDITION = "FILTER_CONDITION";
-    private final static String FK_NAME = "FK_NAME";
-    private final static String FKCOLUMN_NAME = "FKCOLUMN_NAME";
-    private final static String FKTABLE_CAT = "FKTABLE_CAT";
-    private final static String FKTABLE_NAME = "FKTABLE_NAME";
-    private final static String FKTABLE_SCHEM = "FKTABLE_SCHEM";
-    private final static String GRANTEE = "GRANTEE";
-    private final static String GRANTOR = "GRANTOR";
-    private final static String INDEX_NAME = "INDEX_NAME";
-    private final static String INDEX_QUALIFIER = "INDEX_QUALIFIER";
-    private final static String IS_GRANTABLE = "IS_GRANTABLE";
-    private final static String IS_NULLABLE = "IS_NULLABLE";
-    private final static String KEY_SEQ = "KEY_SEQ";
-    private final static String LENGTH = "LENGTH";
-    private final static String NON_UNIQUE = "NON_UNIQUE";
-    private final static String NULLABLE = "NULLABLE";
-    private final static String NUM_INPUT_PARAMS = "NUM_INPUT_PARAMS";
-    private final static String NUM_OUTPUT_PARAMS = "NUM_OUTPUT_PARAMS";
-    private final static String NUM_PREC_RADIX = "NUM_PREC_RADIX";
-    private final static String NUM_RESULT_SETS = "NUM_RESULT_SETS";
-    private final static String ORDINAL_POSITION = "ORDINAL_POSITION";
-    private final static String PAGES = "PAGES";
-    private final static String PK_NAME = "PK_NAME";
-    private final static String PKCOLUMN_NAME = "PKCOLUMN_NAME";
-    private final static String PKTABLE_CAT = "PKTABLE_CAT";
-    private final static String PKTABLE_NAME = "PKTABLE_NAME";
-    private final static String PKTABLE_SCHEM = "PKTABLE_SCHEM";
-    private final static String PRECISION = "PRECISION";
-    private final static String PRIVILEGE = "PRIVILEGE";
-    private final static String PROCEDURE_CAT = "PROCEDURE_CAT";
-    private final static String PROCEDURE_NAME = "PROCEDURE_NAME";
-    private final static String PROCEDURE_SCHEM = "PROCEDURE_SCHEM";
-    private final static String PROCEDURE_TYPE = "PROCEDURE_TYPE";
-    private final static String PSEUDO_COLUMN = "PSEUDO_COLUMN";
-    private final static String RADIX = "RADIX";
-    private final static String REMARKS = "REMARKS";
-    private final static String SCALE = "SCALE";
-    private final static String SCOPE = "SCOPE";
-    private final static String SCOPE_CATALOG = "SCOPE_CATALOG";
-    private final static String SCOPE_SCHEMA = "SCOPE_SCHEMA";
-    private final static String SCOPE_TABLE = "SCOPE_TABLE";
-    private final static String SOURCE_DATA_TYPE = "SOURCE_DATA_TYPE";
-    private final static String SQL_DATA_TYPE = "SQL_DATA_TYPE";
-    private final static String SQL_DATETIME_SUB = "SQL_DATETIME_SUB";
-    private final static String SS_DATA_TYPE = "SS_DATA_TYPE";
-    private final static String SUPERTABLE_NAME = "SUPERTABLE_NAME";
-    private final static String SUPERTYPE_CAT = "SUPERTYPE_CAT";
-    private final static String SUPERTYPE_NAME = "SUPERTYPE_NAME";
-    private final static String SUPERTYPE_SCHEM = "SUPERTYPE_SCHEM";
-    private final static String TABLE_CAT = "TABLE_CAT";
-    private final static String TABLE_NAME = "TABLE_NAME";
-    private final static String TABLE_SCHEM = "TABLE_SCHEM";
-    private final static String TABLE_TYPE = "TABLE_TYPE";
-    private final static String TYPE = "TYPE";
-    private final static String TYPE_CAT = "TYPE_CAT";
-    private final static String TYPE_NAME = "TYPE_NAME";
-    private final static String TYPE_SCHEM = "TYPE_SCHEM";
-    private final static String UPDATE_RULE = "UPDATE_RULE";
-    private final static String FUNCTION_CAT = "FUNCTION_CAT";
-    private final static String FUNCTION_NAME = "FUNCTION_NAME";
-    private final static String FUNCTION_SCHEM = "FUNCTION_SCHEM";
-    private final static String FUNCTION_TYPE = "FUNCTION_TYPE";
-    private final static String SS_IS_SPARSE = "SS_IS_SPARSE";
-    private final static String SS_IS_COLUMN_SET = "SS_IS_COLUMN_SET";
-    private final static String SS_IS_COMPUTED = "SS_IS_COMPUTED";
-    private final static String IS_AUTOINCREMENT = "IS_AUTOINCREMENT";
+    private static final String ASC_OR_DESC = "ASC_OR_DESC";
+    private static final String ATTR_NAME = "ATTR_NAME";
+    private static final String ATTR_TYPE_NAME = "ATTR_TYPE_NAME";
+    private static final String ATTR_SIZE = "ATTR_SIZE";
+    private static final String ATTR_DEF = "ATTR_DEF";
+    private static final String BASE_TYPE = "BASE_TYPE";
+    private static final String BUFFER_LENGTH = "BUFFER_LENGTH";
+    private static final String CARDINALITY = "CARDINALITY";
+    private static final String CHAR_OCTET_LENGTH = "CHAR_OCTET_LENGTH";
+    private static final String CLASS_NAME = "CLASS_NAME";
+    private static final String COLUMN_DEF = "COLUMN_DEF";
+    private static final String COLUMN_NAME = "COLUMN_NAME";
+    private static final String COLUMN_SIZE = "COLUMN_SIZE";
+    private static final String COLUMN_TYPE = "COLUMN_TYPE";
+    private static final String DATA_TYPE = "DATA_TYPE";
+    private static final String DECIMAL_DIGITS = "DECIMAL_DIGITS";
+    private static final String DEFERRABILITY = "DEFERRABILITY";
+    private static final String DELETE_RULE = "DELETE_RULE";
+    private static final String FILTER_CONDITION = "FILTER_CONDITION";
+    private static final String FK_NAME = "FK_NAME";
+    private static final String FKCOLUMN_NAME = "FKCOLUMN_NAME";
+    private static final String FKTABLE_CAT = "FKTABLE_CAT";
+    private static final String FKTABLE_NAME = "FKTABLE_NAME";
+    private static final String FKTABLE_SCHEM = "FKTABLE_SCHEM";
+    private static final String GRANTEE = "GRANTEE";
+    private static final String GRANTOR = "GRANTOR";
+    private static final String INDEX_NAME = "INDEX_NAME";
+    private static final String INDEX_QUALIFIER = "INDEX_QUALIFIER";
+    private static final String IS_GRANTABLE = "IS_GRANTABLE";
+    private static final String IS_NULLABLE = "IS_NULLABLE";
+    private static final String KEY_SEQ = "KEY_SEQ";
+    private static final String LENGTH = "LENGTH";
+    private static final String NON_UNIQUE = "NON_UNIQUE";
+    private static final String NULLABLE = "NULLABLE";
+    private static final String NUM_INPUT_PARAMS = "NUM_INPUT_PARAMS";
+    private static final String NUM_OUTPUT_PARAMS = "NUM_OUTPUT_PARAMS";
+    private static final String NUM_PREC_RADIX = "NUM_PREC_RADIX";
+    private static final String NUM_RESULT_SETS = "NUM_RESULT_SETS";
+    private static final String ORDINAL_POSITION = "ORDINAL_POSITION";
+    private static final String PAGES = "PAGES";
+    private static final String PK_NAME = "PK_NAME";
+    private static final String PKCOLUMN_NAME = "PKCOLUMN_NAME";
+    private static final String PKTABLE_CAT = "PKTABLE_CAT";
+    private static final String PKTABLE_NAME = "PKTABLE_NAME";
+    private static final String PKTABLE_SCHEM = "PKTABLE_SCHEM";
+    private static final String PRECISION = "PRECISION";
+    private static final String PRIVILEGE = "PRIVILEGE";
+    private static final String PROCEDURE_CAT = "PROCEDURE_CAT";
+    private static final String PROCEDURE_NAME = "PROCEDURE_NAME";
+    private static final String PROCEDURE_SCHEM = "PROCEDURE_SCHEM";
+    private static final String PROCEDURE_TYPE = "PROCEDURE_TYPE";
+    private static final String PSEUDO_COLUMN = "PSEUDO_COLUMN";
+    private static final String RADIX = "RADIX";
+    private static final String REMARKS = "REMARKS";
+    private static final String SCALE = "SCALE";
+    private static final String SCOPE = "SCOPE";
+    private static final String SCOPE_CATALOG = "SCOPE_CATALOG";
+    private static final String SCOPE_SCHEMA = "SCOPE_SCHEMA";
+    private static final String SCOPE_TABLE = "SCOPE_TABLE";
+    private static final String SOURCE_DATA_TYPE = "SOURCE_DATA_TYPE";
+    private static final String SQL_DATA_TYPE = "SQL_DATA_TYPE";
+    private static final String SQL_DATETIME_SUB = "SQL_DATETIME_SUB";
+    private static final String SS_DATA_TYPE = "SS_DATA_TYPE";
+    private static final String SUPERTABLE_NAME = "SUPERTABLE_NAME";
+    private static final String SUPERTYPE_CAT = "SUPERTYPE_CAT";
+    private static final String SUPERTYPE_NAME = "SUPERTYPE_NAME";
+    private static final String SUPERTYPE_SCHEM = "SUPERTYPE_SCHEM";
+    private static final String TABLE_CAT = "TABLE_CAT";
+    private static final String TABLE_NAME = "TABLE_NAME";
+    private static final String TABLE_SCHEM = "TABLE_SCHEM";
+    private static final String TABLE_TYPE = "TABLE_TYPE";
+    private static final String TYPE = "TYPE";
+    private static final String TYPE_CAT = "TYPE_CAT";
+    private static final String TYPE_NAME = "TYPE_NAME";
+    private static final String TYPE_SCHEM = "TYPE_SCHEM";
+    private static final String UPDATE_RULE = "UPDATE_RULE";
+    private static final String FUNCTION_CAT = "FUNCTION_CAT";
+    private static final String FUNCTION_NAME = "FUNCTION_NAME";
+    private static final String FUNCTION_SCHEM = "FUNCTION_SCHEM";
+    private static final String FUNCTION_TYPE = "FUNCTION_TYPE";
+    private static final String SS_IS_SPARSE = "SS_IS_SPARSE";
+    private static final String SS_IS_COLUMN_SET = "SS_IS_COLUMN_SET";
+    private static final String SS_IS_COMPUTED = "SS_IS_COMPUTED";
+    private static final String IS_AUTOINCREMENT = "IS_AUTOINCREMENT";
 
     /**
      * Make a simple query execute and return the result from it. This is to be used only for internal queries without any user input.
@@ -246,7 +246,6 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
         SQLServerResultSet rs = null;
         try {
             rs = ((SQLServerStatement) connection.createStatement()).executeQueryInternal(query);
-
         }
         finally {
             if (null != orgCat) {
@@ -268,7 +267,11 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
             hassoc = new HandleAssociation(catalog, CS);
             HandleAssociation previous = handleMap.put(request, hassoc);
             if (null != previous) {
+                ((SQLServerCallableStatement) previous.stmt).handleDBName = previous.databaseName;
+
                 previous.close();
+
+                ((SQLServerCallableStatement) previous.stmt).handleDBName = null;
             }
         }
         return hassoc.stmt;
@@ -358,7 +361,6 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
     }
 
     public boolean autoCommitFailureClosesAllResultSets() throws SQLException {
-        DriverJDBCVersion.checkSupportsJDBC4();
         checkClosed();
         return false;
     }
@@ -379,7 +381,6 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
     }
 
     public boolean generatedKeyAlwaysReturned() throws SQLException {
-        DriverJDBCVersion.checkSupportsJDBC41();
         checkClosed();
 
         // driver supports retrieving generated keys
@@ -395,6 +396,13 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
 
     public boolean supportsRefCursors() throws SQLException {
         DriverJDBCVersion.checkSupportsJDBC42();
+        checkClosed();
+
+        return false;
+    }
+
+    public boolean supportsSharding() throws SQLException {
+        DriverJDBCVersion.checkSupportsJDBC43();
         checkClosed();
 
         return false;
@@ -420,7 +428,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
         return "database";
     }
 
-    private final static String[] getColumnPrivilegesColumnNames = {/* 1 */ TABLE_CAT, /* 2 */ TABLE_SCHEM, /* 3 */ TABLE_NAME, /* 4 */ COLUMN_NAME,
+    private static final String[] getColumnPrivilegesColumnNames = {/* 1 */ TABLE_CAT, /* 2 */ TABLE_SCHEM, /* 3 */ TABLE_NAME, /* 4 */ COLUMN_NAME,
             /* 5 */ GRANTOR, /* 6 */ GRANTEE, /* 7 */ PRIVILEGE, /* 8 */ IS_GRANTABLE};
 
     /* L0 */ public java.sql.ResultSet getColumnPrivileges(String catalog,
@@ -446,7 +454,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
         return getResultSetWithProvidedColumnNames(catalog, CallableHandles.SP_COLUMN_PRIVILEGES, arguments, getColumnPrivilegesColumnNames);
     }
 
-    private final static String[] getTablesColumnNames = {/* 1 */ TABLE_CAT, /* 2 */ TABLE_SCHEM, /* 3 */ TABLE_NAME, /* 4 */ TABLE_TYPE,
+    private static final String[] getTablesColumnNames = {/* 1 */ TABLE_CAT, /* 2 */ TABLE_SCHEM, /* 3 */ TABLE_NAME, /* 4 */ TABLE_TYPE,
             /* 5 */ REMARKS};
 
     /* L0 */ public java.sql.ResultSet getTables(String catalog,
@@ -546,14 +554,14 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
         return outID.toString();
     }
 
-    private final static String[] getColumnsColumnNames = {/* 1 */ TABLE_CAT, /* 2 */ TABLE_SCHEM, /* 3 */ TABLE_NAME, /* 4 */ COLUMN_NAME,
+    private static final String[] getColumnsColumnNames = {/* 1 */ TABLE_CAT, /* 2 */ TABLE_SCHEM, /* 3 */ TABLE_NAME, /* 4 */ COLUMN_NAME,
             /* 5 */ DATA_TYPE, /* 6 */ TYPE_NAME, /* 7 */ COLUMN_SIZE, /* 8 */ BUFFER_LENGTH, /* 9 */ DECIMAL_DIGITS, /* 10 */ NUM_PREC_RADIX,
             /* 11 */ NULLABLE, /* 12 */ REMARKS, /* 13 */ COLUMN_DEF, /* 14 */ SQL_DATA_TYPE, /* 15 */ SQL_DATETIME_SUB, /* 16 */ CHAR_OCTET_LENGTH,
             /* 17 */ ORDINAL_POSITION, /* 18 */ IS_NULLABLE};
     // SQL10 columns not exahustive we only need to set until the one we want to change
     // in this case we want to change SS_IS_IDENTITY 22nd column to IS_AUTOINCREMENT
     // to be inline with JDBC spec
-    private final static String[] getColumnsColumnNamesKatmai = {/* 1 */ TABLE_CAT, /* 2 */ TABLE_SCHEM, /* 3 */ TABLE_NAME, /* 4 */ COLUMN_NAME,
+    private static final String[] getColumnsColumnNamesKatmai = {/* 1 */ TABLE_CAT, /* 2 */ TABLE_SCHEM, /* 3 */ TABLE_NAME, /* 4 */ COLUMN_NAME,
             /* 5 */ DATA_TYPE, /* 6 */ TYPE_NAME, /* 7 */ COLUMN_SIZE, /* 8 */ BUFFER_LENGTH, /* 9 */ DECIMAL_DIGITS, /* 10 */ NUM_PREC_RADIX,
             /* 11 */ NULLABLE, /* 12 */ REMARKS, /* 13 */ COLUMN_DEF, /* 14 */ SQL_DATA_TYPE, /* 15 */ SQL_DATETIME_SUB, /* 16 */ CHAR_OCTET_LENGTH,
             /* 17 */ ORDINAL_POSITION, /* 18 */ IS_NULLABLE, /* 20 */ SS_IS_SPARSE, /* 20 */ SS_IS_COLUMN_SET, /* 21 */ SS_IS_COMPUTED,
@@ -611,13 +619,12 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
         return rs;
     }
 
-    private final static String[] getFunctionsColumnNames = {/* 1 */ FUNCTION_CAT, /* 2 */ FUNCTION_SCHEM, /* 3 */ FUNCTION_NAME,
+    private static final String[] getFunctionsColumnNames = {/* 1 */ FUNCTION_CAT, /* 2 */ FUNCTION_SCHEM, /* 3 */ FUNCTION_NAME,
             /* 4 */ NUM_INPUT_PARAMS, /* 5 */ NUM_OUTPUT_PARAMS, /* 6 */ NUM_RESULT_SETS, /* 7 */ REMARKS, /* 8 */ FUNCTION_TYPE};
 
     public java.sql.ResultSet getFunctions(String catalog,
             String schemaPattern,
             String functionNamePattern) throws SQLException {
-        DriverJDBCVersion.checkSupportsJDBC4();
         checkClosed();
 
         /*
@@ -638,7 +645,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
         return getResultSetWithProvidedColumnNames(catalog, CallableHandles.SP_STORED_PROCEDURES, arguments, getFunctionsColumnNames);
     }
 
-    private final static String[] getFunctionsColumnsColumnNames = {/* 1 */ FUNCTION_CAT, /* 2 */ FUNCTION_SCHEM, /* 3 */ FUNCTION_NAME,
+    private static final String[] getFunctionsColumnsColumnNames = {/* 1 */ FUNCTION_CAT, /* 2 */ FUNCTION_SCHEM, /* 3 */ FUNCTION_NAME,
             /* 4 */ COLUMN_NAME, /* 5 */ COLUMN_TYPE, /* 6 */ DATA_TYPE, /* 7 */ TYPE_NAME, /* 8 */ PRECISION, /* 9 */ LENGTH, /* 10 */ SCALE,
             /* 11 */ RADIX, /* 12 */ NULLABLE, /* 13 */ REMARKS, /* 14 */ COLUMN_DEF, /* 15 */ SQL_DATA_TYPE, /* 16 */ SQL_DATETIME_SUB,
             /* 17 */ CHAR_OCTET_LENGTH, /* 18 */ ORDINAL_POSITION, /* 19 */ IS_NULLABLE};
@@ -647,7 +654,6 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
             String schemaPattern,
             String functionNamePattern,
             String columnNamePattern) throws SQLException {
-        DriverJDBCVersion.checkSupportsJDBC4();
         checkClosed();
         /*
          * sp_sproc_columns [[@procedure_name =] 'name'] [,[@procedure_owner =] 'owner'] [,[@procedure_qualifier =] 'qualifier'] [,[@column_name =]
@@ -688,7 +694,6 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
     }
 
     public java.sql.ResultSet getClientInfoProperties() throws SQLException {
-        DriverJDBCVersion.checkSupportsJDBC4();
         checkClosed();
         return getResultSetFromInternalQueries(null, "SELECT" +
         /* 1 */ " cast(NULL as char(1)) as NAME," +
@@ -697,7 +702,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
         /* 4 */ " cast(NULL as char(1)) as DESCRIPTION " + " where 0 = 1");
     }
 
-    private final static String[] getBestRowIdentifierColumnNames = {/* 1 */ SCOPE, /* 2 */ COLUMN_NAME, /* 3 */ DATA_TYPE, /* 4 */ TYPE_NAME,
+    private static final String[] getBestRowIdentifierColumnNames = {/* 1 */ SCOPE, /* 2 */ COLUMN_NAME, /* 3 */ DATA_TYPE, /* 4 */ TYPE_NAME,
             /* 5 */ COLUMN_SIZE, /* 6 */ BUFFER_LENGTH, /* 7 */ DECIMAL_DIGITS, /* 8 */ PSEUDO_COLUMN};
 
     /* L0 */ public java.sql.ResultSet getBestRowIdentifier(String catalog,
@@ -737,7 +742,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
         return rs;
     }
 
-    private final static String[] pkfkColumnNames = {/* 1 */ PKTABLE_CAT, /* 2 */ PKTABLE_SCHEM, /* 3 */ PKTABLE_NAME, /* 4 */ PKCOLUMN_NAME,
+    private static final String[] pkfkColumnNames = {/* 1 */ PKTABLE_CAT, /* 2 */ PKTABLE_SCHEM, /* 3 */ PKTABLE_NAME, /* 4 */ PKCOLUMN_NAME,
             /* 5 */ FKTABLE_CAT, /* 6 */ FKTABLE_SCHEM, /* 7 */ FKTABLE_NAME, /* 8 */ FKCOLUMN_NAME, /* 9 */ KEY_SEQ, /* 10 */ UPDATE_RULE,
             /* 11 */ DELETE_RULE, /* 12 */ FK_NAME, /* 13 */ PK_NAME, /* 14 */ DEFERRABILITY};
 
@@ -751,6 +756,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
             loggerExternal.finer(toString() + " ActivityId: " + ActivityCorrelator.getNext().toString());
         }
         checkClosed();
+
         /*
          * sp_fkeys [ @pktable_name = ] 'pktable_name' [ , [ @pktable_owner = ] 'pktable_owner' ] [ , [ @pktable_qualifier = ] 'pktable_qualifier' ] {
          * , [ @fktable_name = ] 'fktable_name' } [ , [ @fktable_owner = ] 'fktable_owner' ] [ , [ @fktable_qualifier = ] 'fktable_qualifier' ]
@@ -763,7 +769,9 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
         arguments[4] = schem2;
         arguments[5] = cat2;
 
-        return getResultSetWithProvidedColumnNames(null, CallableHandles.SP_FKEYS, arguments, pkfkColumnNames);
+        SQLServerResultSet fkeysRS = getResultSetWithProvidedColumnNames(null, CallableHandles.SP_FKEYS, arguments, pkfkColumnNames);
+
+        return getResultSetForForeignKeyInformation(fkeysRS, null);
     }
 
     /* L0 */ public String getDatabaseProductName() throws SQLServerException {
@@ -814,6 +822,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
             loggerExternal.finer(toString() + " ActivityId: " + ActivityCorrelator.getNext().toString());
         }
         checkClosed();
+
         /*
          * sp_fkeys [ @pktable_name = ] 'pktable_name' [ , [ @pktable_owner = ] 'pktable_owner' ] [ , [ @pktable_qualifier = ] 'pktable_qualifier' ] {
          * , [ @fktable_name = ] 'fktable_name' } [ , [ @fktable_owner = ] 'fktable_owner' ] [ , [ @fktable_qualifier = ] 'fktable_qualifier' ]
@@ -825,7 +834,10 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
         arguments[3] = null; // fktable_name
         arguments[4] = null;
         arguments[5] = null;
-        return getResultSetWithProvidedColumnNames(cat, CallableHandles.SP_FKEYS, arguments, pkfkColumnNames);
+        
+        SQLServerResultSet fkeysRS = getResultSetWithProvidedColumnNames(cat, CallableHandles.SP_FKEYS, arguments, pkfkColumnNames);
+
+        return getResultSetForForeignKeyInformation(fkeysRS, cat);
     }
 
     /* L0 */ public String getExtraNameCharacters() throws SQLServerException {
@@ -845,6 +857,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
             loggerExternal.finer(toString() + " ActivityId: " + ActivityCorrelator.getNext().toString());
         }
         checkClosed();
+
         /*
          * sp_fkeys [ @pktable_name = ] 'pktable_name' [ , [ @pktable_owner = ] 'pktable_owner' ] [ , [ @pktable_qualifier = ] 'pktable_qualifier' ] {
          * , [ @fktable_name = ] 'fktable_name' } [ , [ @fktable_owner = ] 'fktable_owner' ] [ , [ @fktable_qualifier = ] 'fktable_qualifier' ]
@@ -856,10 +869,150 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
         arguments[3] = table; // fktable_name
         arguments[4] = schema;
         arguments[5] = cat;
-        return getResultSetWithProvidedColumnNames(cat, CallableHandles.SP_FKEYS, arguments, pkfkColumnNames);
+
+        SQLServerResultSet fkeysRS = getResultSetWithProvidedColumnNames(cat, CallableHandles.SP_FKEYS, arguments, pkfkColumnNames);
+
+        return getResultSetForForeignKeyInformation(fkeysRS, cat);
     }
 
-    private final static String[] getIndexInfoColumnNames = {/* 1 */ TABLE_CAT, /* 2 */ TABLE_SCHEM, /* 3 */ TABLE_NAME, /* 4 */ NON_UNIQUE,
+    /**
+     * The original sp_fkeys stored procedure does not give the required values from JDBC specification. This method creates 2 temporary tables and
+     * uses join and other operations on them to give the correct values.
+     * 
+     * @param sp_fkeys_Query
+     * @return
+     * @throws SQLServerException
+     */
+    private ResultSet getResultSetForForeignKeyInformation(SQLServerResultSet fkeysRS, String cat) throws SQLServerException {
+        UUID uuid = UUID.randomUUID();
+        String fkeys_results_tableName = "[#fkeys_results" + uuid + "]";
+        String foreign_keys_combined_tableName = "[#foreign_keys_combined_results" + uuid + "]";
+        String sys_foreign_keys = "sys.foreign_keys";
+
+        String fkeys_results_column_definition = "PKTABLE_QUALIFIER sysname, PKTABLE_OWNER sysname, PKTABLE_NAME sysname, PKCOLUMN_NAME sysname, FKTABLE_QUALIFIER sysname, FKTABLE_OWNER sysname, FKTABLE_NAME sysname, FKCOLUMN_NAME sysname, KEY_SEQ smallint, UPDATE_RULE smallint, DELETE_RULE smallint, FK_NAME sysname, PK_NAME sysname, DEFERRABILITY smallint";
+        String foreign_keys_combined_column_definition = "name sysname, delete_referential_action_desc nvarchar(60), update_referential_action_desc nvarchar(60),"
+                + fkeys_results_column_definition;
+
+        // cannot close this statement, otherwise the returned resultset would be closed too.
+        SQLServerStatement stmt = (SQLServerStatement) connection.createStatement();
+    
+        /**
+         * create a temp table that has the same definition as the result of sp_fkeys:
+         * 
+         * create table #fkeys_results ( 
+         * PKTABLE_QUALIFIER sysname, 
+         * PKTABLE_OWNER sysname, 
+         * PKTABLE_NAME sysname, 
+         * PKCOLUMN_NAME sysname,
+         * FKTABLE_QUALIFIER sysname, 
+         * FKTABLE_OWNER sysname, 
+         * FKTABLE_NAME sysname, 
+         * FKCOLUMN_NAME sysname, 
+         * KEY_SEQ smallint, 
+         * UPDATE_RULE smallint,
+         * DELETE_RULE smallint, 
+         * FK_NAME sysname, 
+         * PK_NAME sysname, 
+         * DEFERRABILITY smallint 
+         * );
+         * 
+         */
+        stmt.execute("create table " + fkeys_results_tableName + " (" + fkeys_results_column_definition + ")");
+
+        /**
+         * insert the results of sp_fkeys to the temp table #fkeys_results
+         */
+        SQLServerPreparedStatement ps = (SQLServerPreparedStatement) connection
+                .prepareCall("insert into " + fkeys_results_tableName + "values(?,?,?,?,?,?,?,?,?,?,?,?,?,?)");
+        try {
+            while (fkeysRS.next()) {
+                ps.setString(1, fkeysRS.getString(1));
+                ps.setString(2, fkeysRS.getString(2));
+                ps.setString(3, fkeysRS.getString(3));
+                ps.setString(4, fkeysRS.getString(4));
+                ps.setString(5, fkeysRS.getString(5));
+                ps.setString(6, fkeysRS.getString(6));
+                ps.setString(7, fkeysRS.getString(7));
+                ps.setString(8, fkeysRS.getString(8));
+                ps.setInt(9, fkeysRS.getInt(9));
+                ps.setInt(10, fkeysRS.getInt(10));
+                ps.setInt(11, fkeysRS.getInt(11));
+                ps.setString(12, fkeysRS.getString(12));
+                ps.setString(13, fkeysRS.getString(13));
+                ps.setInt(14, fkeysRS.getInt(14));
+                ps.execute();
+            }
+        }
+        finally {
+            if (null != ps) {
+                ps.close();
+            }
+            if (null != fkeysRS) {
+                fkeysRS.close();
+            }
+        }
+
+        /**
+         * create another temp table that has 3 columns from sys.foreign_keys and the rest of columns are the same as #fkeys_results:
+         * 
+         * create table #foreign_keys_combined_results ( 
+         * name sysname, 
+         * delete_referential_action_desc nvarchar(60), 
+         * update_referential_action_desc nvarchar(60), 
+         * ......
+         * ......
+         * ......
+         * );
+         * 
+         */
+        stmt.addBatch("create table " + foreign_keys_combined_tableName + " (" + foreign_keys_combined_column_definition + ")");
+
+        /**
+         * right join the content of sys.foreign_keys and the content of #fkeys_results base on foreign key name and save the result to the new temp
+         * table #foreign_keys_combined_results
+         */
+        stmt.addBatch("insert into " + foreign_keys_combined_tableName 
+                + " select " + sys_foreign_keys + ".name, " + sys_foreign_keys + ".delete_referential_action_desc, " + sys_foreign_keys + ".update_referential_action_desc," 
+                + fkeys_results_tableName + ".PKTABLE_QUALIFIER," + fkeys_results_tableName + ".PKTABLE_OWNER," + fkeys_results_tableName + ".PKTABLE_NAME," + fkeys_results_tableName + ".PKCOLUMN_NAME,"
+                + fkeys_results_tableName + ".FKTABLE_QUALIFIER," + fkeys_results_tableName + ".FKTABLE_OWNER," + fkeys_results_tableName + ".FKTABLE_NAME," + fkeys_results_tableName + ".FKCOLUMN_NAME,"
+                + fkeys_results_tableName + ".KEY_SEQ," + fkeys_results_tableName + ".UPDATE_RULE," + fkeys_results_tableName + ".DELETE_RULE," + fkeys_results_tableName + ".FK_NAME," + fkeys_results_tableName + ".PK_NAME,"
+                + fkeys_results_tableName + ".DEFERRABILITY from " + sys_foreign_keys 
+                + " right join " + fkeys_results_tableName + " on " + sys_foreign_keys + ".name=" + fkeys_results_tableName + ".FK_NAME");
+    
+        /**
+         * the DELETE_RULE value and UPDATE_RULE value returned from sp_fkeys are not the same as required by JDBC spec. therefore, we need to update
+         * those values to JDBC required values base on delete_referential_action_desc and update_referential_action_desc returned from sys.foreign_keys
+         * No Action: 3
+         * Cascade: 0
+         * Set Null: 2
+         * Set Default: 4
+         */
+        stmt.addBatch("update " + foreign_keys_combined_tableName + " set DELETE_RULE=3 where delete_referential_action_desc='NO_ACTION';" 
+                + "update " + foreign_keys_combined_tableName + " set DELETE_RULE=0 where delete_referential_action_desc='Cascade';" 
+                + "update " + foreign_keys_combined_tableName + " set DELETE_RULE=2 where delete_referential_action_desc='SET_NULL';" 
+                + "update " + foreign_keys_combined_tableName + " set DELETE_RULE=4 where delete_referential_action_desc='SET_DEFAULT';" 
+                + "update " + foreign_keys_combined_tableName + " set UPDATE_RULE=3 where update_referential_action_desc='NO_ACTION';" 
+                + "update " + foreign_keys_combined_tableName + " set UPDATE_RULE=0 where update_referential_action_desc='Cascade';" 
+                + "update " + foreign_keys_combined_tableName + " set UPDATE_RULE=2 where update_referential_action_desc='SET_NULL';" 
+                + "update " + foreign_keys_combined_tableName + " set UPDATE_RULE=4 where update_referential_action_desc='SET_DEFAULT';");
+
+        try {
+            stmt.executeBatch();
+        }
+        catch (BatchUpdateException e) {
+            throw new SQLServerException(e.getMessage(), e.getSQLState(), e.getErrorCode(), null);
+        }
+
+        /**
+         * now, the #foreign_keys_combined_results table has the correct values for DELETE_RULE and UPDATE_RULE. Then we can return the result of
+         * the table with the same definition of the resultset return by sp_fkeys (same column definition and same order).
+         */
+        return stmt.executeQuery(
+                "select PKTABLE_QUALIFIER as 'PKTABLE_CAT',PKTABLE_OWNER as 'PKTABLE_SCHEM',PKTABLE_NAME,PKCOLUMN_NAME,FKTABLE_QUALIFIER as 'FKTABLE_CAT',FKTABLE_OWNER as 'FKTABLE_SCHEM',FKTABLE_NAME,FKCOLUMN_NAME,KEY_SEQ,UPDATE_RULE,DELETE_RULE,FK_NAME,PK_NAME,DEFERRABILITY from "
+                        + foreign_keys_combined_tableName + " order by FKTABLE_QUALIFIER, FKTABLE_OWNER, FKTABLE_NAME, KEY_SEQ");
+    }
+
+    private static final String[] getIndexInfoColumnNames = {/* 1 */ TABLE_CAT, /* 2 */ TABLE_SCHEM, /* 3 */ TABLE_NAME, /* 4 */ NON_UNIQUE,
             /* 5 */ INDEX_QUALIFIER, /* 6 */ INDEX_NAME, /* 7 */ TYPE, /* 8 */ ORDINAL_POSITION, /* 9 */ COLUMN_NAME, /* 10 */ ASC_OR_DESC,
             /* 11 */ CARDINALITY, /* 12 */ PAGES, /* 13 */ FILTER_CONDITION};
 
@@ -1013,7 +1166,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
         return "ABS,ACOS,ASIN,ATAN,ATAN2,CEILING,COS,COT,DEGREES,EXP, FLOOR,LOG,LOG10,MOD,PI,POWER,RADIANS,RAND,ROUND,SIGN,SIN,SQRT,TAN,TRUNCATE";
     }
 
-    private final static String[] getPrimaryKeysColumnNames = {/* 1 */ TABLE_CAT, /* 2 */ TABLE_SCHEM, /* 3 */ TABLE_NAME, /* 4 */ COLUMN_NAME,
+    private static final String[] getPrimaryKeysColumnNames = {/* 1 */ TABLE_CAT, /* 2 */ TABLE_SCHEM, /* 3 */ TABLE_NAME, /* 4 */ COLUMN_NAME,
             /* 5 */ KEY_SEQ, /* 6 */ PK_NAME};
 
     /* L0 */ public java.sql.ResultSet getPrimaryKeys(String cat,
@@ -1033,7 +1186,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
         return getResultSetWithProvidedColumnNames(cat, CallableHandles.SP_PKEYS, arguments, getPrimaryKeysColumnNames);
     }
 
-    private final static String[] getProcedureColumnsColumnNames = {/* 1 */ PROCEDURE_CAT, /* 2 */ PROCEDURE_SCHEM, /* 3 */ PROCEDURE_NAME,
+    private static final String[] getProcedureColumnsColumnNames = {/* 1 */ PROCEDURE_CAT, /* 2 */ PROCEDURE_SCHEM, /* 3 */ PROCEDURE_NAME,
             /* 4 */ COLUMN_NAME, /* 5 */ COLUMN_TYPE, /* 6 */ DATA_TYPE, /* 7 */ TYPE_NAME, /* 8 */ PRECISION, /* 9 */ LENGTH, /* 10 */ SCALE,
             /* 11 */ RADIX, /* 12 */ NULLABLE, /* 13 */ REMARKS, /* 14 */ COLUMN_DEF, /* 15 */ SQL_DATA_TYPE, /* 16 */ SQL_DATETIME_SUB,
             /* 17 */ CHAR_OCTET_LENGTH, /* 18 */ ORDINAL_POSITION, /* 19 */ IS_NULLABLE};
@@ -1078,7 +1231,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
         return rs;
     }
 
-    private final static String[] getProceduresColumnNames = {/* 1 */ PROCEDURE_CAT, /* 2 */ PROCEDURE_SCHEM, /* 3 */ PROCEDURE_NAME,
+    private static final String[] getProceduresColumnNames = {/* 1 */ PROCEDURE_CAT, /* 2 */ PROCEDURE_SCHEM, /* 3 */ PROCEDURE_NAME,
             /* 4 */ NUM_INPUT_PARAMS, /* 5 */ NUM_OUTPUT_PARAMS, /* 6 */ NUM_RESULT_SETS, /* 7 */ REMARKS, /* 8 */ PROCEDURE_TYPE};
 
     /* L0 */ public java.sql.ResultSet getProcedures(String catalog,
@@ -1109,8 +1262,6 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
             String schemaPattern,
             String tableNamePattern,
             String columnNamePattern) throws SQLException {
-        DriverJDBCVersion.checkSupportsJDBC41();
-
         if (loggerExternal.isLoggable(Level.FINER) && Util.IsActivityTraceOn()) {
             loggerExternal.finer(toString() + " ActivityId: " + ActivityCorrelator.getNext().toString());
         }
@@ -1217,7 +1368,6 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
         if (loggerExternal.isLoggable(Level.FINER) && Util.IsActivityTraceOn()) {
             loggerExternal.finer(toString() + " ActivityId: " + ActivityCorrelator.getNext().toString());
         }
-        DriverJDBCVersion.checkSupportsJDBC4();
         return getSchemasInternal(catalog, schemaPattern);
     }
 
@@ -1246,7 +1396,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
         return "DATABASE,IFNULL,USER"; // The functions no reinstated after the CTS certification.
     }
 
-    private final static String[] getTablePrivilegesColumnNames = {/* 1 */ TABLE_CAT, /* 2 */ TABLE_SCHEM, /* 3 */ TABLE_NAME, /* 4 */ GRANTOR,
+    private static final String[] getTablePrivilegesColumnNames = {/* 1 */ TABLE_CAT, /* 2 */ TABLE_SCHEM, /* 3 */ TABLE_NAME, /* 4 */ GRANTOR,
             /* 5 */ GRANTEE, /* 6 */ PRIVILEGE, /* 7 */ IS_GRANTABLE};
 
     /* L0 */ public java.sql.ResultSet getTablePrivileges(String catalog,
@@ -1396,7 +1546,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
         return result;
     }
 
-    private final static String[] getVersionColumnsColumnNames = {/* 1 */ SCOPE, /* 2 */ COLUMN_NAME, /* 3 */ DATA_TYPE, /* 4 */ TYPE_NAME,
+    private static final String[] getVersionColumnsColumnNames = {/* 1 */ SCOPE, /* 2 */ COLUMN_NAME, /* 3 */ DATA_TYPE, /* 4 */ TYPE_NAME,
             /* 5 */ COLUMN_SIZE, /* 6 */ BUFFER_LENGTH, /* 7 */ DECIMAL_DIGITS, /* 8 */ PSEUDO_COLUMN};
 
     /* L0 */ public java.sql.ResultSet getVersionColumns(String catalog,
@@ -1829,10 +1979,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
             case ResultSet.TYPE_SCROLL_INSENSITIVE:
                 // case SQLServerResultSet.TYPE_SS_SCROLL_STATIC: sensitive synonym
             case SQLServerResultSet.TYPE_SS_DIRECT_FORWARD_ONLY:
-                if (ResultSet.CONCUR_READ_ONLY == concurrency)
-                    return true;
-                else
-                    return false;
+                return (ResultSet.CONCUR_READ_ONLY == concurrency);
         }
         // per spec if we do not know we do not support.
         return false;
@@ -1841,60 +1988,48 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
     /* L0 */ public boolean ownUpdatesAreVisible(int type) throws SQLServerException {
         checkClosed();
         checkResultType(type);
-        if (type == SQLServerResultSet.TYPE_SS_SCROLL_DYNAMIC || SQLServerResultSet.TYPE_FORWARD_ONLY == type
+        return (type == SQLServerResultSet.TYPE_SS_SCROLL_DYNAMIC || SQLServerResultSet.TYPE_FORWARD_ONLY == type
                 || SQLServerResultSet.TYPE_SCROLL_SENSITIVE == type || SQLServerResultSet.TYPE_SS_SCROLL_KEYSET == type
-                || SQLServerResultSet.TYPE_SS_SERVER_CURSOR_FORWARD_ONLY == type)
-            return true;
-        return false;
+                || SQLServerResultSet.TYPE_SS_SERVER_CURSOR_FORWARD_ONLY == type);
     }
 
     /* L0 */ public boolean ownDeletesAreVisible(int type) throws SQLServerException {
         checkClosed();
         checkResultType(type);
-        if (type == SQLServerResultSet.TYPE_SS_SCROLL_DYNAMIC || SQLServerResultSet.TYPE_FORWARD_ONLY == type
+        return (type == SQLServerResultSet.TYPE_SS_SCROLL_DYNAMIC || SQLServerResultSet.TYPE_FORWARD_ONLY == type
                 || SQLServerResultSet.TYPE_SCROLL_SENSITIVE == type || SQLServerResultSet.TYPE_SS_SCROLL_KEYSET == type
-                || SQLServerResultSet.TYPE_SS_SERVER_CURSOR_FORWARD_ONLY == type)
-            return true;
-        return false;
+                || SQLServerResultSet.TYPE_SS_SERVER_CURSOR_FORWARD_ONLY == type);
     }
 
     /* L0 */ public boolean ownInsertsAreVisible(int type) throws SQLServerException {
         checkClosed();
         checkResultType(type);
-        if (type == SQLServerResultSet.TYPE_SS_SCROLL_DYNAMIC || SQLServerResultSet.TYPE_FORWARD_ONLY == type
+        return (type == SQLServerResultSet.TYPE_SS_SCROLL_DYNAMIC || SQLServerResultSet.TYPE_FORWARD_ONLY == type
                 || SQLServerResultSet.TYPE_SCROLL_SENSITIVE == type || SQLServerResultSet.TYPE_SS_SCROLL_KEYSET == type
-                || SQLServerResultSet.TYPE_SS_SERVER_CURSOR_FORWARD_ONLY == type)
-            return true;
-        return false;
+                || SQLServerResultSet.TYPE_SS_SERVER_CURSOR_FORWARD_ONLY == type);
     }
 
     /* L0 */ public boolean othersUpdatesAreVisible(int type) throws SQLServerException {
         checkClosed();
         checkResultType(type);
-        if (type == SQLServerResultSet.TYPE_SS_SCROLL_DYNAMIC || SQLServerResultSet.TYPE_FORWARD_ONLY == type
+        return (type == SQLServerResultSet.TYPE_SS_SCROLL_DYNAMIC || SQLServerResultSet.TYPE_FORWARD_ONLY == type
                 || SQLServerResultSet.TYPE_SCROLL_SENSITIVE == type || SQLServerResultSet.TYPE_SS_SCROLL_KEYSET == type
-                || SQLServerResultSet.TYPE_SS_SERVER_CURSOR_FORWARD_ONLY == type)
-            return true;
-        return false;
+                || SQLServerResultSet.TYPE_SS_SERVER_CURSOR_FORWARD_ONLY == type);
     }
 
     /* L0 */ public boolean othersDeletesAreVisible(int type) throws SQLServerException {
         checkClosed();
         checkResultType(type);
-        if (type == SQLServerResultSet.TYPE_SS_SCROLL_DYNAMIC || SQLServerResultSet.TYPE_FORWARD_ONLY == type
+        return (type == SQLServerResultSet.TYPE_SS_SCROLL_DYNAMIC || SQLServerResultSet.TYPE_FORWARD_ONLY == type
                 || SQLServerResultSet.TYPE_SCROLL_SENSITIVE == type || SQLServerResultSet.TYPE_SS_SCROLL_KEYSET == type
-                || SQLServerResultSet.TYPE_SS_SERVER_CURSOR_FORWARD_ONLY == type)
-            return true;
-        return false;
+                || SQLServerResultSet.TYPE_SS_SERVER_CURSOR_FORWARD_ONLY == type);
     }
 
     /* L0 */ public boolean othersInsertsAreVisible(int type) throws SQLServerException {
         checkClosed();
         checkResultType(type);
-        if (type == SQLServerResultSet.TYPE_SS_SCROLL_DYNAMIC || SQLServerResultSet.TYPE_FORWARD_ONLY == type
-                || SQLServerResultSet.TYPE_SS_SERVER_CURSOR_FORWARD_ONLY == type)
-            return true;
-        return false;
+        return (type == SQLServerResultSet.TYPE_SS_SCROLL_DYNAMIC || SQLServerResultSet.TYPE_FORWARD_ONLY == type
+                || SQLServerResultSet.TYPE_SS_SERVER_CURSOR_FORWARD_ONLY == type);
     }
 
     /* L0 */ public boolean updatesAreDetected(int type) throws SQLServerException {
@@ -1906,10 +2041,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
     /* L0 */ public boolean deletesAreDetected(int type) throws SQLServerException {
         checkClosed();
         checkResultType(type);
-        if (SQLServerResultSet.TYPE_SS_SCROLL_KEYSET == type)
-            return true;
-        else
-            return false;
+        return (SQLServerResultSet.TYPE_SS_SCROLL_KEYSET == type);
     }
 
     // Check the result types to make sure the user does not pass a bad value.
@@ -1927,7 +2059,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
         }
         // if the value is outside of the valid values throw error.
         MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidArgument"));
-        Object[] msgArgs = {new Integer(type)};
+        Object[] msgArgs = {type};
         throw new SQLServerException(null, form.format(msgArgs), null, 0, true);
     }
 
@@ -1943,7 +2075,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
         }
         // if the value is outside of the valid values throw error.
         MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidArgument"));
-        Object[] msgArgs = {new Integer(type)};
+        Object[] msgArgs = {type};
         throw new SQLServerException(null, form.format(msgArgs), null, 0, true);
     }
 
@@ -1998,7 +2130,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
         if (p > 0)
             s = s.substring(0, p);
         try {
-            return new Integer(s).intValue();
+            return new Integer(s);
         }
         catch (NumberFormatException e) {
             return 0;
@@ -2013,7 +2145,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
         if (p > 0 && q > 0)
             s = s.substring(p + 1, q);
         try {
-            return new Integer(s).intValue();
+            return new Integer(s);
         }
         catch (NumberFormatException e) {
             return 0;
@@ -2036,7 +2168,6 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
     }
 
     public RowIdLifetime getRowIdLifetime() throws SQLException {
-        DriverJDBCVersion.checkSupportsJDBC4();
         checkClosed();
         return RowIdLifetime.ROWID_UNSUPPORTED;
     }
@@ -2049,7 +2180,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
 
         // if the value is outside of the valid values throw error.
         MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidArgument"));
-        Object[] msgArgs = {new Integer(holdability)};
+        Object[] msgArgs = {holdability};
         throw new SQLServerException(null, form.format(msgArgs), null, 0, true);
     }
 
@@ -2141,7 +2272,6 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
     }
 
     public boolean supportsStoredFunctionsUsingCallSyntax() throws SQLException {
-        DriverJDBCVersion.checkSupportsJDBC4();
         checkClosed();
         return true;
     }
@@ -2155,14 +2285,14 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
 // Filter to convert DATA_TYPE column values from the ODBC types
 // returned by SQL Server to their equivalent JDBC types.
 final class DataTypeFilter extends IntColumnFilter {
-    private final static int ODBC_SQL_GUID = -11;
-    private final static int ODBC_SQL_WCHAR = -8;
-    private final static int ODBC_SQL_WVARCHAR = -9;
-    private final static int ODBC_SQL_WLONGVARCHAR = -10;
-    private final static int ODBC_SQL_FLOAT = 6;
-    private final static int ODBC_SQL_TIME = -154;
-    private final static int ODBC_SQL_XML = -152;
-    private final static int ODBC_SQL_UDT = -151;
+    private static final int ODBC_SQL_GUID = -11;
+    private static final int ODBC_SQL_WCHAR = -8;
+    private static final int ODBC_SQL_WVARCHAR = -9;
+    private static final int ODBC_SQL_WLONGVARCHAR = -10;
+    private static final int ODBC_SQL_FLOAT = 6;
+    private static final int ODBC_SQL_TIME = -154;
+    private static final int ODBC_SQL_XML = -152;
+    private static final int ODBC_SQL_UDT = -151;
 
     int oneValueToAnother(int odbcType) {
         switch (odbcType) {
@@ -2214,12 +2344,12 @@ abstract class IntColumnFilter extends ColumnFilter {
 
         switch (asJDBCType) {
             case INTEGER:
-                return new Integer(oneValueToAnother(((Integer) value).intValue()));
+                return oneValueToAnother((Integer) value);
             case SMALLINT: // small and tinyint returned as short
             case TINYINT:
-                return new Short((short) oneValueToAnother(((Short) value).intValue()));
+                return (short) oneValueToAnother(((Short) value).intValue());
             case BIGINT:
-                return new Long(oneValueToAnother(((Long) value).intValue()));
+                return (long) oneValueToAnother(((Long) value).intValue());
             case CHAR:
             case VARCHAR:
             case LONGVARCHAR:
