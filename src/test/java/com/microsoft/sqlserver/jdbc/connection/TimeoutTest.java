@@ -108,7 +108,7 @@ public class TimeoutTest extends AbstractTest {
             throw new Exception("Exception for queryTimeout is not thrown.");
         }
         catch (Exception e) {
-            if (!(e instanceof SQLServerException)) {
+            if (!(e instanceof java.sql.SQLTimeoutException)) {
                 throw e;
             }
             assertEquals(e.getMessage(), "The query has timed out.", "Invalid exception message");
