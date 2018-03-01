@@ -11,6 +11,7 @@ package com.microsoft.sqlserver.jdbc;
 import java.sql.CallableStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.SQLTimeoutException;
 import java.sql.Statement;
 import java.sql.Types;
 import java.text.MessageFormat;
@@ -408,7 +409,12 @@ public final class SQLServerXAResource implements javax.transaction.xa.XAResourc
                                 if (xaLogger.isLoggable(Level.FINER))
                                     xaLogger.finer(toString() + " exception:" + eX);
                                 throw eX;
-                            }
+                            } catch (SQLTimeoutException e4) {
+                                if (xaLogger.isLoggable(Level.FINER))
+                                    xaLogger.finer(toString() + " exception:" + e4);
+                                throw new SQLServerException(e4.getMessage(), SQLState.STATEMENT_CANCELED, DriverError.NOT_SET, null);
+                                    
+							}
 
                             // Check for error response from xp_sqljdbc_xa_init.
                             int initStatus = initCS.getInt(1);
@@ -726,7 +732,7 @@ public final class SQLServerXAResource implements javax.transaction.xa.XAResourc
                 }
             }
         }
-        catch (SQLServerException ex) {
+        catch (SQLServerException | SQLTimeoutException ex) {
             if (xaLogger.isLoggable(Level.FINER))
                 xaLogger.finer(toString() + " exception:" + ex);
             XAException e = new XAException(ex.toString());

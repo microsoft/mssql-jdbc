@@ -15,6 +15,7 @@ import java.sql.DriverPropertyInfo;
 import java.sql.ResultSet;
 import java.sql.RowIdLifetime;
 import java.sql.SQLException;
+import java.sql.SQLTimeoutException;
 import java.text.MessageFormat;
 import java.util.EnumMap;
 import java.util.Properties;
@@ -246,7 +247,9 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
         SQLServerResultSet rs = null;
         try {
             rs = ((SQLServerStatement) connection.createStatement()).executeQueryInternal(query);
-        }
+        } catch (SQLTimeoutException e) {
+            throw new SQLServerException(e.getMessage(), SQLState.STATEMENT_CANCELED, DriverError.NOT_SET, null);
+		}
         finally {
             if (null != orgCat) {
                 connection.setCatalog(orgCat);
@@ -304,7 +307,9 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
                 call.setString(i, arguments[i - 1]);
             }
             rs = (SQLServerResultSet) call.executeQueryInternal();
-        }
+        } catch (SQLTimeoutException e) {
+            throw new SQLServerException(e.getMessage(), SQLState.STATEMENT_CANCELED, DriverError.NOT_SET, null);
+		}
         finally {
             if (null != orgCat) {
                 connection.setCatalog(orgCat);
@@ -917,7 +922,11 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
          * );
          * 
          */
-        stmt.execute("create table " + fkeys_results_tableName + " (" + fkeys_results_column_definition + ")");
+        try {
+			stmt.execute("create table " + fkeys_results_tableName + " (" + fkeys_results_column_definition + ")");
+		} catch (SQLTimeoutException e1) {
+            throw new SQLServerException(e1.getMessage(), SQLState.STATEMENT_CANCELED, DriverError.NOT_SET, null);
+		}
 
         /**
          * insert the results of sp_fkeys to the temp table #fkeys_results
@@ -942,7 +951,9 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
                 ps.setInt(14, fkeysRS.getInt(14));
                 ps.execute();
             }
-        }
+        } catch (SQLTimeoutException e) {
+            throw new SQLServerException(e.getMessage(), SQLState.STATEMENT_CANCELED, DriverError.NOT_SET, null);
+		}
         finally {
             if (null != ps) {
                 ps.close();
@@ -998,18 +1009,17 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
 
         try {
             stmt.executeBatch();
+            /**
+             * now, the #foreign_keys_combined_results table has the correct values for DELETE_RULE and UPDATE_RULE. Then we can return the result of
+             * the table with the same definition of the resultset return by sp_fkeys (same column definition and same order).
+             */
+            return stmt.executeQuery(
+                    "select PKTABLE_QUALIFIER as 'PKTABLE_CAT',PKTABLE_OWNER as 'PKTABLE_SCHEM',PKTABLE_NAME,PKCOLUMN_NAME,FKTABLE_QUALIFIER as 'FKTABLE_CAT',FKTABLE_OWNER as 'FKTABLE_SCHEM',FKTABLE_NAME,FKCOLUMN_NAME,KEY_SEQ,UPDATE_RULE,DELETE_RULE,FK_NAME,PK_NAME,DEFERRABILITY from "
+                            + foreign_keys_combined_tableName + " order by FKTABLE_QUALIFIER, FKTABLE_OWNER, FKTABLE_NAME, KEY_SEQ");
         }
-        catch (BatchUpdateException e) {
+        catch (BatchUpdateException | SQLTimeoutException e) {
             throw new SQLServerException(e.getMessage(), e.getSQLState(), e.getErrorCode(), null);
         }
-
-        /**
-         * now, the #foreign_keys_combined_results table has the correct values for DELETE_RULE and UPDATE_RULE. Then we can return the result of
-         * the table with the same definition of the resultset return by sp_fkeys (same column definition and same order).
-         */
-        return stmt.executeQuery(
-                "select PKTABLE_QUALIFIER as 'PKTABLE_CAT',PKTABLE_OWNER as 'PKTABLE_SCHEM',PKTABLE_NAME,PKCOLUMN_NAME,FKTABLE_QUALIFIER as 'FKTABLE_CAT',FKTABLE_OWNER as 'FKTABLE_SCHEM',FKTABLE_NAME,FKCOLUMN_NAME,KEY_SEQ,UPDATE_RULE,DELETE_RULE,FK_NAME,PK_NAME,DEFERRABILITY from "
-                        + foreign_keys_combined_tableName + " order by FKTABLE_QUALIFIER, FKTABLE_OWNER, FKTABLE_NAME, KEY_SEQ");
     }
 
     private static final String[] getIndexInfoColumnNames = {/* 1 */ TABLE_CAT, /* 2 */ TABLE_SCHEM, /* 3 */ TABLE_NAME, /* 4 */ NON_UNIQUE,
@@ -1286,7 +1296,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
         /* 13 */ " cast(NULL as char(1)) as IS_NULLABLE" + " where 0 = 1");
     }
 
-    /* L0 */ public java.sql.ResultSet getSchemas() throws SQLServerException {
+    /* L0 */ public java.sql.ResultSet getSchemas() throws SQLServerException, SQLTimeoutException {
         if (loggerExternal.isLoggable(Level.FINER) && Util.IsActivityTraceOn()) {
             loggerExternal.finer(toString() + " ActivityId: " + ActivityCorrelator.getNext().toString());
         }
@@ -1296,7 +1306,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
     }
 
     private java.sql.ResultSet getSchemasInternal(String catalog,
-            String schemaPattern) throws SQLServerException {
+            String schemaPattern) throws SQLServerException, SQLTimeoutException {
 
         String s;
         // The schemas that return null for catalog name, these are prebuilt schemas shipped by SQLServer, if SQLServer adds anymore of these
@@ -1517,7 +1527,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
         return (url.toString());
     }
 
-    /* L0 */ public String getUserName() throws SQLServerException {
+    /* L0 */ public String getUserName() throws SQLServerException, SQLTimeoutException {
         if (loggerExternal.isLoggable(Level.FINER) && Util.IsActivityTraceOn()) {
             loggerExternal.finer(toString() + " ActivityId: " + ActivityCorrelator.getNext().toString());
         }

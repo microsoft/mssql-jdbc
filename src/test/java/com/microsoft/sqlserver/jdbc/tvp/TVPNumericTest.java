@@ -8,6 +8,7 @@
 package com.microsoft.sqlserver.jdbc.tvp;
 
 import java.sql.SQLException;
+import java.sql.SQLTimeoutException;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -41,9 +42,10 @@ public class TVPNumericTest extends AbstractTest {
      * Test a previous failure regarding to numeric precision. Issue #211
      * 
      * @throws SQLServerException
+     * @throws SQLTimeoutException 
      */
     @Test
-    public void testNumericPresicionIssue211() throws SQLServerException {
+    public void testNumericPresicionIssue211() throws SQLServerException, SQLTimeoutException {
         tvp = new SQLServerDataTable();
         tvp.addColumnMetadata("c1", java.sql.Types.NUMERIC);
 
