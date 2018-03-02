@@ -238,18 +238,17 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
      * @param query
      *            to execute
      * @return Resultset from the execution
+     * @throws SQLTimeoutException 
      */
     private SQLServerResultSet getResultSetFromInternalQueries(String catalog,
-            String query) throws SQLServerException {
+            String query) throws SQLServerException, SQLTimeoutException {
         checkClosed();
         String orgCat = null;
         orgCat = switchCatalogs(catalog);
         SQLServerResultSet rs = null;
         try {
             rs = ((SQLServerStatement) connection.createStatement()).executeQueryInternal(query);
-        } catch (SQLTimeoutException e) {
-            throw new SQLServerException(e.getMessage(), SQLState.STATEMENT_CANCELED, DriverError.NOT_SET, null);
-		}
+        }
         finally {
             if (null != orgCat) {
                 connection.setCatalog(orgCat);
@@ -290,10 +289,11 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
      * @param arguments
      *            for the stored procedure
      * @return Resultset from the execution
+     * @throws SQLTimeoutException 
      */
     private SQLServerResultSet getResultSetFromStoredProc(String catalog,
             CallableHandles procedure,
-            String[] arguments) throws SQLServerException {
+            String[] arguments) throws SQLServerException, SQLTimeoutException {
         checkClosed();
         assert null != arguments;
         String orgCat = null;
@@ -307,9 +307,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
                 call.setString(i, arguments[i - 1]);
             }
             rs = (SQLServerResultSet) call.executeQueryInternal();
-        } catch (SQLTimeoutException e) {
-            throw new SQLServerException(e.getMessage(), SQLState.STATEMENT_CANCELED, DriverError.NOT_SET, null);
-		}
+        }
         finally {
             if (null != orgCat) {
                 connection.setCatalog(orgCat);
@@ -321,7 +319,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
     private SQLServerResultSet getResultSetWithProvidedColumnNames(String catalog,
             CallableHandles procedure,
             String[] arguments,
-            String[] columnNames) throws SQLServerException {
+            String[] columnNames) throws SQLServerException, SQLTimeoutException {
         // Execute the query
         SQLServerResultSet rs = getResultSetFromStoredProc(catalog, procedure, arguments);
 
@@ -413,7 +411,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
         return false;
     }
 
-    /* L0 */ public java.sql.ResultSet getCatalogs() throws SQLServerException {
+    /* L0 */ public java.sql.ResultSet getCatalogs() throws SQLServerException, SQLTimeoutException {
         if (loggerExternal.isLoggable(Level.FINER) && Util.IsActivityTraceOn()) {
             loggerExternal.finer(toString() + " ActivityId: " + ActivityCorrelator.getNext().toString());
         }
@@ -439,7 +437,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
     /* L0 */ public java.sql.ResultSet getColumnPrivileges(String catalog,
             String schema,
             String table,
-            String col) throws SQLServerException {
+            String col) throws SQLServerException, SQLTimeoutException {
         if (loggerExternal.isLoggable(Level.FINER) && Util.IsActivityTraceOn()) {
             loggerExternal.finer(toString() + " ActivityId: " + ActivityCorrelator.getNext().toString());
         }
@@ -465,7 +463,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
     /* L0 */ public java.sql.ResultSet getTables(String catalog,
             String schema,
             String table,
-            String types[]) throws SQLServerException {
+            String types[]) throws SQLServerException, SQLTimeoutException {
         if (loggerExternal.isLoggable(Level.FINER) && Util.IsActivityTraceOn()) {
             loggerExternal.finer(toString() + " ActivityId: " + ActivityCorrelator.getNext().toString());
         }
@@ -575,7 +573,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
     /* L0 */ public java.sql.ResultSet getColumns(String catalog,
             String schema,
             String table,
-            String col) throws SQLServerException {
+            String col) throws SQLServerException, SQLTimeoutException {
         if (loggerExternal.isLoggable(Level.FINER) && Util.IsActivityTraceOn()) {
             loggerExternal.finer(toString() + " ActivityId: " + ActivityCorrelator.getNext().toString());
         }
@@ -714,7 +712,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
             String schema,
             String table,
             int scope,
-            boolean nullable) throws SQLServerException {
+            boolean nullable) throws SQLServerException, SQLTimeoutException {
         if (loggerExternal.isLoggable(Level.FINER) && Util.IsActivityTraceOn()) {
             loggerExternal.finer(toString() + " ActivityId: " + ActivityCorrelator.getNext().toString());
         }
@@ -756,7 +754,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
             String tab1,
             String cat2,
             String schem2,
-            String tab2) throws SQLServerException {
+            String tab2) throws SQLServerException, SQLTimeoutException {
         if (loggerExternal.isLoggable(Level.FINER) && Util.IsActivityTraceOn()) {
             loggerExternal.finer(toString() + " ActivityId: " + ActivityCorrelator.getNext().toString());
         }
@@ -822,7 +820,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
 
     /* L0 */ public java.sql.ResultSet getExportedKeys(String cat,
             String schema,
-            String table) throws SQLServerException {
+            String table) throws SQLServerException, SQLTimeoutException {
         if (loggerExternal.isLoggable(Level.FINER) && Util.IsActivityTraceOn()) {
             loggerExternal.finer(toString() + " ActivityId: " + ActivityCorrelator.getNext().toString());
         }
@@ -857,7 +855,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
 
     /* L0 */ public java.sql.ResultSet getImportedKeys(String cat,
             String schema,
-            String table) throws SQLServerException {
+            String table) throws SQLServerException, SQLTimeoutException {
         if (loggerExternal.isLoggable(Level.FINER) && Util.IsActivityTraceOn()) {
             loggerExternal.finer(toString() + " ActivityId: " + ActivityCorrelator.getNext().toString());
         }
@@ -887,8 +885,9 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
      * @param sp_fkeys_Query
      * @return
      * @throws SQLServerException
+     * @throws SQLTimeoutException 
      */
-    private ResultSet getResultSetForForeignKeyInformation(SQLServerResultSet fkeysRS, String cat) throws SQLServerException {
+    private ResultSet getResultSetForForeignKeyInformation(SQLServerResultSet fkeysRS, String cat) throws SQLServerException, SQLTimeoutException {
         UUID uuid = UUID.randomUUID();
         String fkeys_results_tableName = "[#fkeys_results" + uuid + "]";
         String foreign_keys_combined_tableName = "[#foreign_keys_combined_results" + uuid + "]";
@@ -922,11 +921,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
          * );
          * 
          */
-        try {
-			stmt.execute("create table " + fkeys_results_tableName + " (" + fkeys_results_column_definition + ")");
-		} catch (SQLTimeoutException e1) {
-            throw new SQLServerException(e1.getMessage(), SQLState.STATEMENT_CANCELED, DriverError.NOT_SET, null);
-		}
+        stmt.execute("create table " + fkeys_results_tableName + " (" + fkeys_results_column_definition + ")");
 
         /**
          * insert the results of sp_fkeys to the temp table #fkeys_results
@@ -951,9 +946,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
                 ps.setInt(14, fkeysRS.getInt(14));
                 ps.execute();
             }
-        } catch (SQLTimeoutException e) {
-            throw new SQLServerException(e.getMessage(), SQLState.STATEMENT_CANCELED, DriverError.NOT_SET, null);
-		}
+        }
         finally {
             if (null != ps) {
                 ps.close();
@@ -1009,17 +1002,18 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
 
         try {
             stmt.executeBatch();
-            /**
-             * now, the #foreign_keys_combined_results table has the correct values for DELETE_RULE and UPDATE_RULE. Then we can return the result of
-             * the table with the same definition of the resultset return by sp_fkeys (same column definition and same order).
-             */
-            return stmt.executeQuery(
-                    "select PKTABLE_QUALIFIER as 'PKTABLE_CAT',PKTABLE_OWNER as 'PKTABLE_SCHEM',PKTABLE_NAME,PKCOLUMN_NAME,FKTABLE_QUALIFIER as 'FKTABLE_CAT',FKTABLE_OWNER as 'FKTABLE_SCHEM',FKTABLE_NAME,FKCOLUMN_NAME,KEY_SEQ,UPDATE_RULE,DELETE_RULE,FK_NAME,PK_NAME,DEFERRABILITY from "
-                            + foreign_keys_combined_tableName + " order by FKTABLE_QUALIFIER, FKTABLE_OWNER, FKTABLE_NAME, KEY_SEQ");
         }
-        catch (BatchUpdateException | SQLTimeoutException e) {
+        catch (BatchUpdateException e) {
             throw new SQLServerException(e.getMessage(), e.getSQLState(), e.getErrorCode(), null);
         }
+
+        /**
+         * now, the #foreign_keys_combined_results table has the correct values for DELETE_RULE and UPDATE_RULE. Then we can return the result of
+         * the table with the same definition of the resultset return by sp_fkeys (same column definition and same order).
+         */
+        return stmt.executeQuery(
+                "select PKTABLE_QUALIFIER as 'PKTABLE_CAT',PKTABLE_OWNER as 'PKTABLE_SCHEM',PKTABLE_NAME,PKCOLUMN_NAME,FKTABLE_QUALIFIER as 'FKTABLE_CAT',FKTABLE_OWNER as 'FKTABLE_SCHEM',FKTABLE_NAME,FKCOLUMN_NAME,KEY_SEQ,UPDATE_RULE,DELETE_RULE,FK_NAME,PK_NAME,DEFERRABILITY from "
+                        + foreign_keys_combined_tableName + " order by FKTABLE_QUALIFIER, FKTABLE_OWNER, FKTABLE_NAME, KEY_SEQ");
     }
 
     private static final String[] getIndexInfoColumnNames = {/* 1 */ TABLE_CAT, /* 2 */ TABLE_SCHEM, /* 3 */ TABLE_NAME, /* 4 */ NON_UNIQUE,
@@ -1030,7 +1024,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
             String schema,
             String table,
             boolean unique,
-            boolean approximate) throws SQLServerException {
+            boolean approximate) throws SQLServerException, SQLTimeoutException {
         if (loggerExternal.isLoggable(Level.FINER) && Util.IsActivityTraceOn()) {
             loggerExternal.finer(toString() + " ActivityId: " + ActivityCorrelator.getNext().toString());
         }
@@ -1101,7 +1095,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
         return 1024;
     }
 
-    /* L0 */ public int getMaxConnections() throws SQLServerException {
+    /* L0 */ public int getMaxConnections() throws SQLServerException, SQLTimeoutException {
         checkClosed();
         try {
             String s = "sp_configure 'user connections'";
@@ -1181,7 +1175,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
 
     /* L0 */ public java.sql.ResultSet getPrimaryKeys(String cat,
             String schema,
-            String table) throws SQLServerException {
+            String table) throws SQLServerException, SQLTimeoutException {
         if (loggerExternal.isLoggable(Level.FINER) && Util.IsActivityTraceOn()) {
             loggerExternal.finer(toString() + " ActivityId: " + ActivityCorrelator.getNext().toString());
         }
@@ -1204,7 +1198,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
     /* L0 */ public java.sql.ResultSet getProcedureColumns(String catalog,
             String schema,
             String proc,
-            String col) throws SQLServerException {
+            String col) throws SQLServerException, SQLTimeoutException {
         if (loggerExternal.isLoggable(Level.FINER) && Util.IsActivityTraceOn()) {
             loggerExternal.finer(toString() + " ActivityId: " + ActivityCorrelator.getNext().toString());
         }
@@ -1246,7 +1240,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
 
     /* L0 */ public java.sql.ResultSet getProcedures(String catalog,
             String schema,
-            String proc) throws SQLServerException {
+            String proc) throws SQLServerException, SQLTimeoutException {
         if (loggerExternal.isLoggable(Level.FINER) && Util.IsActivityTraceOn()) {
             loggerExternal.finer(toString() + " ActivityId: " + ActivityCorrelator.getNext().toString());
         }
@@ -1411,7 +1405,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
 
     /* L0 */ public java.sql.ResultSet getTablePrivileges(String catalog,
             String schema,
-            String table) throws SQLServerException {
+            String table) throws SQLServerException, SQLTimeoutException {
         if (loggerExternal.isLoggable(Level.FINER) && Util.IsActivityTraceOn()) {
             loggerExternal.finer(toString() + " ActivityId: " + ActivityCorrelator.getNext().toString());
         }
@@ -1430,7 +1424,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
         return getResultSetWithProvidedColumnNames(catalog, CallableHandles.SP_TABLE_PRIVILEGES, arguments, getTablePrivilegesColumnNames);
     }
 
-    /* L0 */ public java.sql.ResultSet getTableTypes() throws SQLServerException {
+    /* L0 */ public java.sql.ResultSet getTableTypes() throws SQLServerException, SQLTimeoutException {
         if (loggerExternal.isLoggable(Level.FINER) && Util.IsActivityTraceOn()) {
             loggerExternal.finer(toString() + " ActivityId: " + ActivityCorrelator.getNext().toString());
         }
@@ -1445,7 +1439,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
         return "CURDATE,CURTIME,DAYNAME,DAYOFMONTH,DAYOFWEEK,DAYOFYEAR,HOUR,MINUTE,MONTH,MONTHNAME,NOW,QUARTER,SECOND,TIMESTAMPADD,TIMESTAMPDIFF,WEEK,YEAR";
     }
 
-    /* L0 */ public java.sql.ResultSet getTypeInfo() throws SQLServerException {
+    /* L0 */ public java.sql.ResultSet getTypeInfo() throws SQLServerException, SQLTimeoutException {
         if (loggerExternal.isLoggable(Level.FINER) && Util.IsActivityTraceOn()) {
             loggerExternal.finer(toString() + " ActivityId: " + ActivityCorrelator.getNext().toString());
         }
@@ -1561,7 +1555,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
 
     /* L0 */ public java.sql.ResultSet getVersionColumns(String catalog,
             String schema,
-            String table) throws SQLServerException {
+            String table) throws SQLServerException, SQLTimeoutException {
         if (loggerExternal.isLoggable(Level.FINER) && Util.IsActivityTraceOn()) {
             loggerExternal.finer(toString() + " ActivityId: " + ActivityCorrelator.getNext().toString());
         }
@@ -2103,7 +2097,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
     /* L0 */ public java.sql.ResultSet getUDTs(String catalog,
             String schemaPattern,
             String typeNamePattern,
-            int[] types) throws SQLServerException {
+            int[] types) throws SQLServerException, SQLTimeoutException {
         if (loggerExternal.isLoggable(Level.FINER) && Util.IsActivityTraceOn()) {
             loggerExternal.finer(toString() + " ActivityId: " + ActivityCorrelator.getNext().toString());
         }
@@ -2197,7 +2191,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
     /* L3 */ public ResultSet getAttributes(String catalog,
             String schemaPattern,
             String typeNamePattern,
-            String attributeNamePattern) throws SQLServerException {
+            String attributeNamePattern) throws SQLServerException, SQLTimeoutException {
         if (loggerExternal.isLoggable(Level.FINER) && Util.IsActivityTraceOn()) {
             loggerExternal.finer(toString() + " ActivityId: " + ActivityCorrelator.getNext().toString());
         }
@@ -2228,7 +2222,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
 
     /* L3 */ public ResultSet getSuperTables(String catalog,
             String schemaPattern,
-            String tableNamePattern) throws SQLServerException {
+            String tableNamePattern) throws SQLServerException, SQLTimeoutException {
         if (loggerExternal.isLoggable(Level.FINER) && Util.IsActivityTraceOn()) {
             loggerExternal.finer(toString() + " ActivityId: " + ActivityCorrelator.getNext().toString());
         }
@@ -2242,7 +2236,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
 
     /* L3 */ public ResultSet getSuperTypes(String catalog,
             String schemaPattern,
-            String typeNamePattern) throws SQLServerException {
+            String typeNamePattern) throws SQLServerException, SQLTimeoutException {
         if (loggerExternal.isLoggable(Level.FINER) && Util.IsActivityTraceOn()) {
             loggerExternal.finer(toString() + " ActivityId: " + ActivityCorrelator.getNext().toString());
         }

@@ -13,6 +13,7 @@ import static org.junit.jupiter.api.Assertions.fail;
 
 import java.sql.DriverManager;
 import java.sql.SQLException;
+import java.sql.SQLTimeoutException;
 
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
@@ -96,9 +97,10 @@ public class DatabaseMetaDataForeignKeyTest extends AbstractTest {
      * test getImportedKeys() methods
      * 
      * @throws SQLServerException
+     * @throws SQLTimeoutException 
      */
     @Test
-    public void testGetImportedKeys() throws SQLServerException {
+    public void testGetImportedKeys() throws SQLServerException, SQLTimeoutException {
         SQLServerDatabaseMetaData dmd = (SQLServerDatabaseMetaData) connection.getMetaData();
 
         SQLServerResultSet rs1 = (SQLServerResultSet) dmd.getImportedKeys(null, null, table1);
@@ -152,9 +154,10 @@ public class DatabaseMetaDataForeignKeyTest extends AbstractTest {
      * test getExportedKeys() methods
      * 
      * @throws SQLServerException
+     * @throws SQLTimeoutException 
      */
     @Test
-    public void testGetExportedKeys() throws SQLServerException {
+    public void testGetExportedKeys() throws SQLServerException, SQLTimeoutException {
         String[] tableNames = {table2, table3, table4, table5};
         int[][] values = {
                 // expected UPDATE_RULE, expected DELETE_RULE
@@ -197,9 +200,10 @@ public class DatabaseMetaDataForeignKeyTest extends AbstractTest {
      * test getCrossReference() methods
      * 
      * @throws SQLServerException
+     * @throws SQLTimeoutException 
      */
     @Test
-    public void testGetCrossReference() throws SQLServerException {
+    public void testGetCrossReference() throws SQLServerException, SQLTimeoutException {
         String fkTable = table1;
         String[] tableNames = {table2, table3, table4, table5};
         int[][] values = {
