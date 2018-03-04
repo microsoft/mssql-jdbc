@@ -11,22 +11,21 @@ package com.microsoft.sqlserver.jdbc;
 import java.sql.BatchUpdateException;
 
 /**
- * Shims for JDBC 4.2 JAR.
+ * Shims for JDBC 4.3 JAR.
  *
- * JDBC 4.2 public methods should always check the SQLServerJdbcVersion first to make sure that they are not operable in any earlier driver version.
+ * JDBC 4.3 public methods should always check the SQLServerJdbcVersion first to make sure that they are not operable in any earlier driver version.
  * That is, they should throw an exception, be a no-op, or whatever.
  */
 
 final class DriverJDBCVersion {
-    // The 4.2 driver is compliant to JDBC 4.2.
+    // The 4.3 driver is compliant to JDBC 4.3.
     static final int major = 4;
-    static final int minor = 2;
+    static final int minor = 3;
 
-    static final void checkSupportsJDBC42() {
+    static final void checkSupportsJDBC43() {
     }
     
-    static final void checkSupportsJDBC43() {
-        throw new UnsupportedOperationException(SQLServerException.getErrString("R_notSupported"));
+    static final void checkSupportsJDBC42() {
     }
 
     static final void throwBatchUpdateException(SQLServerException lastError,

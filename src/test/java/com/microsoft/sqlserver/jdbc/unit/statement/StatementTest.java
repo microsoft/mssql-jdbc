@@ -319,7 +319,7 @@ public class StatementTest extends AbstractTest {
 
             try {
                 // Start a transaction on a second connection that locks the last part of the table
-                // and leave it hanging for now...
+                // and leave it non-responsive for now...
                 conLock = DriverManager.getConnection(connectionString);
                 conLock.setAutoCommit(false);
                 stmtLock = conLock.createStatement();
@@ -434,7 +434,7 @@ public class StatementTest extends AbstractTest {
 
             try {
                 // Start a transaction on a second connection that locks the last part of the table
-                // and leave it hanging for now...
+                // and leave it non-responsive for now...
                 conLock = DriverManager.getConnection(connectionString);
                 conLock.setAutoCommit(false);
                 stmtLock = conLock.createStatement();
@@ -551,7 +551,7 @@ public class StatementTest extends AbstractTest {
 
             try {
                 // Start a transaction on a second connection that locks the last part of the table
-                // and leave it hanging for now...
+                // and leave it non-responsive for now...
                 conLock = DriverManager.getConnection(connectionString);
                 conLock.setAutoCommit(false);
                 stmtLock = conLock.createStatement();
@@ -726,11 +726,11 @@ public class StatementTest extends AbstractTest {
         /**
          * Test that tries to flush out cancellation synchronization issues by repeatedly executing and cancelling statements on multiple threads.
          *
-         * Typical expected failures would be liveness issues (which would manifest as a test hang), incorrect results, or TDS corruption problems.
+         * Typical expected failures would be liveness issues (which would manifest as a test being non-responsive), incorrect results, or TDS corruption problems.
          *
          * A set of thread pairs runs for 10 seconds. Each pair has one thread repeatedly executing a SELECT statement and one thread repeatedly
          * cancelling execution of that statement. Nothing is done to validate whether any particular call to cancel had any affect on the statement.
-         * Liveness issues typically would manifest as a hang in this test.
+         * Liveness issues typically would manifest as a no response in this test.
          *
          * In order to maximize the likelihood of this test finding bugs, it should run on a multi-proc machine with the -server flag specified to the
          * JVM. Also, the debugging println statements are commented out deliberately to minimize the impact to the test from the diagnostics, which

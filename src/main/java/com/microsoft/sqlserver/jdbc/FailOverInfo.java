@@ -71,7 +71,7 @@ final class FailoverInfo {
                 instancePort = con.getInstancePort(failoverPartner, instanceValue);
 
                 try {
-                    portNumber = new Integer(instancePort);
+                    portNumber = Integer.parseInt(instancePort);
                 }
                 catch (NumberFormatException e) {
                     // Should not get here as the server should give a proper port number anyway.
