@@ -19,17 +19,13 @@ import java.sql.SQLException;
 import java.sql.SQLFeatureNotSupportedException;
 import java.sql.Statement;
 import java.util.Properties;
-import java.util.UUID;
 import java.util.concurrent.Executor;
-import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
 import java.util.logging.Logger;
 
 import javax.sql.ConnectionEvent;
 import javax.sql.PooledConnection;
 
-import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
@@ -66,28 +62,28 @@ public class ConnectionDriverTest extends AbstractTest {
         url.append("jdbc:sqlserver://" + randomServer + ";packetSize=512;");
         // test defaults
         DriverPropertyInfo[] infoArray = d.getPropertyInfo(url.toString(), info);
-        for (DriverPropertyInfo anInfoArray1 : infoArray) {
-            logger.fine(anInfoArray1.name);
-            logger.fine(anInfoArray1.description);
-            logger.fine(new Boolean(anInfoArray1.required).toString());
-            logger.fine(anInfoArray1.value);
+        for (int i = 0; i < infoArray.length; i++) {
+            logger.fine(infoArray[i].name);
+            logger.fine(infoArray[i].description);
+            logger.fine(new Boolean(infoArray[i].required).toString());
+            logger.fine(infoArray[i].value);
         }
 
         url.append("encrypt=true; trustStore=someStore; trustStorePassword=somepassword;");
         url.append("hostNameInCertificate=someHost; trustServerCertificate=true");
         infoArray = d.getPropertyInfo(url.toString(), info);
-        for (DriverPropertyInfo anInfoArray : infoArray) {
-            if (anInfoArray.name.equals("encrypt")) {
-                assertTrue(anInfoArray.value.equals("true"), "Values are different");
+        for (int i = 0; i < infoArray.length; i++) {
+            if (infoArray[i].name.equals("encrypt")) {
+                assertTrue(infoArray[i].value.equals("true"), "Values are different");
             }
-            if (anInfoArray.name.equals("trustStore")) {
-                assertTrue(anInfoArray.value.equals("someStore"), "Values are different");
+            if (infoArray[i].name.equals("trustStore")) {
+                assertTrue(infoArray[i].value.equals("someStore"), "Values are different");
             }
-            if (anInfoArray.name.equals("trustStorePassword")) {
-                assertTrue(anInfoArray.value.equals("somepassword"), "Values are different");
+            if (infoArray[i].name.equals("trustStorePassword")) {
+                assertTrue(infoArray[i].value.equals("somepassword"), "Values are different");
             }
-            if (anInfoArray.name.equals("hostNameInCertificate")) {
-                assertTrue(anInfoArray.value.equals("someHost"), "Values are different");
+            if (infoArray[i].name.equals("hostNameInCertificate")) {
+                assertTrue(infoArray[i].value.equals("someHost"), "Values are different");
             }
         }
     }
@@ -123,7 +119,8 @@ public class ConnectionDriverTest extends AbstractTest {
         ds.setEncrypt(true);
         ds.setTrustServerCertificate(true);
         ds.setPacketSize(8192);
-        try(Connection con = ds.getConnection()) {}
+        Connection con = ds.getConnection();
+        con.close();
     }
 
     @Test
@@ -171,25 +168,25 @@ public class ConnectionDriverTest extends AbstractTest {
 
         // Attach the Event listener and listen for connection events.
         MyEventListener myE = new MyEventListener();
-        pooledConnection.addConnectionEventListener(myE);	// ConnectionListener implements ConnectionEventListener
-        
-        try(Connection con = pooledConnection.getConnection();
-        	Statement stmt = con.createStatement(ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_UPDATABLE)) {
+        pooledConnection.addConnectionEventListener(myE);	// ConnectionListener
+                                                         	// implements
+                                                         	// ConnectionEventListener
+        Connection con = pooledConnection.getConnection();
+        Statement stmt = con.createStatement(ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_UPDATABLE);
 
-	        boolean exceptionThrown = false;
-	        try {
-	            // raise a severe exception and make sure that the connection is not
-	            // closed.
-	            stmt.executeUpdate("RAISERROR ('foo', 20,1) WITH LOG");
-	        }
-	        catch (Exception e) {
-	            exceptionThrown = true;
-	        }
-	        assertTrue(exceptionThrown, "Expected exception is not thrown.");
-	
-	        // Check to see if error occurred.
-	        assertTrue(myE.errorOccurred, "Error occurred is not called.");
+        boolean exceptionThrown = false;
+        try {
+            // raise a severe exception and make sure that the connection is not
+            // closed.
+            stmt.executeUpdate("RAISERROR ('foo', 20,1) WITH LOG");
         }
+        catch (Exception e) {
+            exceptionThrown = true;
+        }
+        assertTrue(exceptionThrown, "Expected exception is not thrown.");
+
+        // Check to see if error occurred.
+        assertTrue(myE.errorOccurred, "Error occurred is not called.");
         // make sure that connection is closed.
     }
 
@@ -203,18 +200,23 @@ public class ConnectionDriverTest extends AbstractTest {
 
         // Attach the Event listener and listen for connection events.
         MyEventListener myE = new MyEventListener();
-        pooledConnection.addConnectionEventListener(myE);	// ConnectionListener implements ConnectionEventListener
+        pooledConnection.addConnectionEventListener(myE);	// ConnectionListener
+                                                         	// implements
+                                                         	// ConnectionEventListener
 
-    	Connection con = pooledConnection.getConnection();
-    	Statement stmt = con.createStatement(ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_UPDATABLE);
-        // raise a non severe exception and make sure that the connection is not closed.
+        Connection con = pooledConnection.getConnection();
+        Statement stmt = con.createStatement(ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_UPDATABLE);
+
+        // raise a non severe exception and make sure that the connection is not
+        // closed.
         stmt.executeUpdate("RAISERROR ('foo', 3,1) WITH LOG");
+
         // not a serious error there should not be any errors.
         assertTrue(!myE.errorOccurred, "Error occurred is called.");
         // check to make sure that connection is not closed.
-	    assertTrue(!con.isClosed(), "Connection is closed.");
-	    stmt.close();
-	    con.close();
+        assertTrue(!con.isClosed(), "Connection is closed.");
+
+        con.close();
         // check to make sure that connection is closed.
         assertTrue(con.isClosed(), "Connection is not closed.");
     }
@@ -236,34 +238,36 @@ public class ConnectionDriverTest extends AbstractTest {
             exceptionThrown = true;
         }
         assertTrue(exceptionThrown, "Expected exception is not thrown.");
-        
+
         // check to make sure that connection is closed.
         assertTrue(con.isClosed(), "Connection is not closed.");
     }
 
     @Test
     public void testIsWrapperFor() throws SQLException, ClassNotFoundException {
-        try(Connection conn = DriverManager.getConnection(connectionString);
-        		SQLServerConnection ssconn = (SQLServerConnection) conn) {
-	        boolean isWrapper;
-	        isWrapper = ssconn.isWrapperFor(ssconn.getClass());
-	        assertTrue(isWrapper, "SQLServerConnection supports unwrapping");
-	        assertEquals(ssconn.TRANSACTION_SNAPSHOT, ssconn.TRANSACTION_SNAPSHOT, "Cant access the TRANSACTION_SNAPSHOT ");
-	
-	        isWrapper = ssconn.isWrapperFor(Class.forName("com.microsoft.sqlserver.jdbc.ISQLServerConnection"));
-	        assertTrue(isWrapper, "ISQLServerConnection supports unwrapping");
-	        ISQLServerConnection iSql = (ISQLServerConnection) ssconn.unwrap(Class.forName("com.microsoft.sqlserver.jdbc.ISQLServerConnection"));
-	        assertEquals(iSql.TRANSACTION_SNAPSHOT, iSql.TRANSACTION_SNAPSHOT, "Cant access the TRANSACTION_SNAPSHOT ");
-	
-	        ssconn.unwrap(Class.forName("java.sql.Connection"));
-        }
+        Connection conn = DriverManager.getConnection(connectionString);
+        SQLServerConnection ssconn = (SQLServerConnection) conn;
+        boolean isWrapper;
+        isWrapper = ssconn.isWrapperFor(ssconn.getClass());
+        assertTrue(isWrapper, "SQLServerConnection supports unwrapping");
+        assertEquals(ssconn.TRANSACTION_SNAPSHOT, ssconn.TRANSACTION_SNAPSHOT, "Cant access the TRANSACTION_SNAPSHOT ");
+
+        isWrapper = ssconn.isWrapperFor(Class.forName("com.microsoft.sqlserver.jdbc.ISQLServerConnection"));
+        assertTrue(isWrapper, "ISQLServerConnection supports unwrapping");
+        ISQLServerConnection iSql = (ISQLServerConnection) ssconn.unwrap(Class.forName("com.microsoft.sqlserver.jdbc.ISQLServerConnection"));
+        assertEquals(iSql.TRANSACTION_SNAPSHOT, iSql.TRANSACTION_SNAPSHOT, "Cant access the TRANSACTION_SNAPSHOT ");
+
+        ssconn.unwrap(Class.forName("java.sql.Connection"));
+
+        conn.close();
     }
 
     @Test
     public void testNewConnection() throws SQLException {
-        try(SQLServerConnection conn = (SQLServerConnection) DriverManager.getConnection(connectionString)) {
-        	assertTrue(conn.isValid(0), "Newly created connection should be valid");
-        }
+        SQLServerConnection conn = (SQLServerConnection) DriverManager.getConnection(connectionString);
+        assertTrue(conn.isValid(0), "Newly created connection should be valid");
+
+        conn.close();
     }
 
     @Test
@@ -275,22 +279,23 @@ public class ConnectionDriverTest extends AbstractTest {
 
     @Test
     public void testNegativeTimeout() throws Exception {
-        try (SQLServerConnection conn = (SQLServerConnection) DriverManager.getConnection(connectionString)) {
-	        try {
-	            conn.isValid(-42);
-	            throw new Exception("No exception thrown with negative timeout");
-	        }
-	        catch (SQLException e) {
-	            assertEquals(e.getMessage(), "The query timeout value -42 is not valid.", "Wrong exception message");
-	        }
+        SQLServerConnection conn = (SQLServerConnection) DriverManager.getConnection(connectionString);
+        try {
+            conn.isValid(-42);
+            throw new Exception("No exception thrown with negative timeout");
         }
+        catch (SQLException e) {
+            assertEquals(e.getMessage(), "The query timeout value -42 is not valid.", "Wrong exception message");
+        }
+
+        conn.close();
     }
 
     @Test
     public void testDeadConnection() throws SQLException {
         assumeTrue(!DBConnection.isSqlAzure(DriverManager.getConnection(connectionString)), "Skipping test case on Azure SQL.");
 
-        connectionString += ";connectRetryCount=0";
+        connectionString += "connectRetryCount=0";
         SQLServerConnection conn = (SQLServerConnection) DriverManager.getConnection(connectionString + ";responseBuffering=adaptive");
         Statement stmt = null;
 
@@ -455,7 +460,6 @@ public class ConnectionDriverTest extends AbstractTest {
     }
 
     @Test
-    @Tag("slow")
     public void testIncorrectDatabaseWithFailoverPartner() throws SQLServerException {
         long timerStart = 0;
         long timerEnd = 0;
@@ -506,47 +510,5 @@ public class ConnectionDriverTest extends AbstractTest {
     public void testGetSchema() throws SQLException {
         SQLServerConnection conn = (SQLServerConnection) DriverManager.getConnection(connectionString);
         conn.getSchema();
-    }
-    
-    static Boolean isInterrupted = false;
-
-    /**
-     * Test thread's interrupt status is not cleared.
-     * 
-     * @throws InterruptedException
-     */
-    @Test
-    @Tag("slow")
-    public void testThreadInterruptedStatus() throws InterruptedException {
-        Runnable runnable = new Runnable() {
-            public void run() {
-                SQLServerDataSource ds = new SQLServerDataSource();
-
-                ds.setURL(connectionString);
-                ds.setServerName("invalidServerName" + UUID.randomUUID());
-                ds.setLoginTimeout(5);
-
-                try {
-                    ds.getConnection();
-                }
-                catch (SQLException e) {
-                    isInterrupted = Thread.currentThread().isInterrupted();
-                }
-            }
-        };
-
-        ExecutorService executor = Executors.newFixedThreadPool(1);
-        Future<?> future = executor.submit(runnable);
-
-        Thread.sleep(1000);
-
-        // interrupt the thread in the Runnable
-        future.cancel(true);
-
-        Thread.sleep(8000);
-
-        executor.shutdownNow();
-
-        assertTrue(isInterrupted, "Thread's interrupt status is not set.");
     }
 }

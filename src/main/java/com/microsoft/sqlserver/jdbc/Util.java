@@ -19,7 +19,6 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Properties;
-import java.util.Set;
 import java.util.UUID;
 import java.util.logging.Level;
 import java.util.logging.LogManager;
@@ -250,13 +249,12 @@ final class Util {
         String result = "";
         String name = "";
         String value = "";
-        StringBuilder builder;
 
         if (!tmpUrl.startsWith(sPrefix))
             return null;
 
         tmpUrl = tmpUrl.substring(sPrefix.length());
-        int i;
+        int i = 0;
 
         // Simple finite state machine.
         // always look at one char at a time
@@ -281,10 +279,7 @@ final class Util {
                         state = inName;
                     }
                     else {
-                        builder = new StringBuilder();
-                        builder.append(result);
-                        builder.append(ch);
-                        result = builder.toString();
+                        result = result + ch;
                         state = inServerName;
                     }
                     break;
@@ -310,10 +305,7 @@ final class Util {
                             state = inInstanceName;
                     }
                     else {
-                        builder = new StringBuilder();
-                        builder.append(result);
-                        builder.append(ch);
-                        result = builder.toString();
+                        result = result + ch;
                         // same state
                     }
                     break;
@@ -330,10 +322,7 @@ final class Util {
                         state = inName;
                     }
                     else {
-                        builder = new StringBuilder();
-                        builder.append(result);
-                        builder.append(ch);
-                        result = builder.toString();
+                        result = result + ch;
                         // same state
                     }
                     break;
@@ -354,10 +343,7 @@ final class Util {
                             state = inPort;
                     }
                     else {
-                        builder = new StringBuilder();
-                        builder.append(result);
-                        builder.append(ch);
-                        result = builder.toString();
+                        result = result + ch;
                         // same state
                     }
                     break;
@@ -381,10 +367,7 @@ final class Util {
                         // same state
                     }
                     else {
-                        builder = new StringBuilder();
-                        builder.append(name);
-                        builder.append(ch);
-                        name = builder.toString();
+                        name = name + ch;
                         // same state
                     }
                     break;
@@ -396,14 +379,9 @@ final class Util {
                         name = SQLServerDriver.getNormalizedPropertyName(name, logger);
                         if (null != name) {
                             if (logger.isLoggable(Level.FINE)) {
-                                if (false == name.equals(SQLServerDriverStringProperty.USER.toString())) {
-                                    if (!name.toLowerCase(Locale.ENGLISH).contains("password")) {
-                                        logger.fine("Property:" + name + " Value:" + value);
-                                    }
-                                    else {
-                                        logger.fine("Property:" + name);
-                                    }
-                                }
+                                if ((false == name.equals(SQLServerDriverStringProperty.USER.toString()))
+                                        && (false == name.equals(SQLServerDriverStringProperty.PASSWORD.toString())))
+                                    logger.fine("Property:" + name + " Value:" + value);
                             }
                             p.put(name, value);
                         }
@@ -421,10 +399,7 @@ final class Util {
                         }
                     }
                     else {
-                        builder = new StringBuilder();
-                        builder.append(value);
-                        builder.append(ch);
-                        value = builder.toString();
+                        value = value + ch;
                         // same state
                     }
                     break;
@@ -449,10 +424,7 @@ final class Util {
                         state = inEscapedValueEnd;
                     }
                     else {
-                        builder = new StringBuilder();
-                        builder.append(value);
-                        builder.append(ch);
-                        value = builder.toString();
+                        value = value + ch;
                         // same state
                     }
                     break;
@@ -564,22 +536,28 @@ final class Util {
         outID.append(']');
         return outID.toString();
     }
-    
-    /**
-     * Checks if duplicate columns exists, in O(n) time.
-     * 
-     * @param columnName
-     *            the name of the column
-     * @throws SQLServerException
-     *             when a duplicate column exists
-     */
+
     static void checkDuplicateColumnName(String columnName,
-            Set<String> columnNames) throws SQLServerException {
-        //columnList.add will return false if the same column name already exists
-        if (!columnNames.add(columnName)) {
-            MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_TVPDuplicateColumnName"));
-            Object[] msgArgs = {columnName};
-            throw new SQLServerException(null, form.format(msgArgs), null, 0, false);
+            Map<Integer, ?> columnMetadata) throws SQLServerException {
+        if (columnMetadata.get(0) instanceof SQLServerMetaData) {
+            for (Entry<Integer, ?> entry : columnMetadata.entrySet()) {
+                SQLServerMetaData value = (SQLServerMetaData) entry.getValue();
+                if (value.columnName.equals(columnName)) {
+                    MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_TVPDuplicateColumnName"));
+                    Object[] msgArgs = {columnName};
+                    throw new SQLServerException(null, form.format(msgArgs), null, 0, false);
+                }
+            }
+        }
+        else if (columnMetadata.get(0) instanceof SQLServerDataColumn) {
+            for (Entry<Integer, ?> entry : columnMetadata.entrySet()) {
+                SQLServerDataColumn value = (SQLServerDataColumn) entry.getValue();
+                if (value.columnName.equals(columnName)) {
+                    MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_TVPDuplicateColumnName"));
+                    Object[] msgArgs = {columnName};
+                    throw new SQLServerException(null, form.format(msgArgs), null, 0, false);
+                }
+            }
         }
     }
 
@@ -606,9 +584,9 @@ final class Util {
         catch (IndexOutOfBoundsException ex) {
             String txtMsg = SQLServerException.checkAndAppendClientConnId(SQLServerException.getErrString("R_stringReadError"), conn);
             MessageFormat form = new MessageFormat(txtMsg);
-            Object[] msgArgs = {offset};
+            Object[] msgArgs = {new Integer(offset)};
             // Re-throw SQLServerException if conversion fails.
-            throw new SQLServerException(form.format(msgArgs), null, 0, ex);
+            throw new SQLServerException(null, form.format(msgArgs), null, 0, true);
         }
 
     }
@@ -627,8 +605,8 @@ final class Util {
         int hexVal;
         StringBuilder sb = new StringBuilder(b.length * 2 + 2);
         sb.append("0x");
-        for (byte aB : b) {
-            hexVal = aB & 0xFF;
+        for (int i = 0; i < b.length; i++) {
+            hexVal = b[i] & 0xFF;
             sb.append(hexChars[(hexVal & 0xF0) >> 4]);
             sb.append(hexChars[(hexVal & 0x0F)]);
         }
@@ -715,46 +693,6 @@ final class Util {
         return buffer;
     }
 
-    static final UUID readGUIDtoUUID(byte[] inputGUID) throws SQLServerException {
-        if (inputGUID.length != 16) {
-            throw new SQLServerException("guid length must be 16", null);
-        }
-
-        // For the first three fields, UUID uses network byte order,
-        // Guid uses native byte order. So we need to reverse
-        // the first three fields before creating a UUID.
-
-        byte tmpByte;
-
-        // Reverse the first 4 bytes
-        tmpByte = inputGUID[0];
-        inputGUID[0] = inputGUID[3];
-        inputGUID[3] = tmpByte;
-        tmpByte = inputGUID[1];
-        inputGUID[1] = inputGUID[2];
-        inputGUID[2] = tmpByte;
-
-        // Reverse the 5th and the 6th
-        tmpByte = inputGUID[4];
-        inputGUID[4] = inputGUID[5];
-        inputGUID[5] = tmpByte;
-
-        // Reverse the 7th and the 8th
-        tmpByte = inputGUID[6];
-        inputGUID[6] = inputGUID[7];
-        inputGUID[7] = tmpByte;
-
-        long msb = 0L;
-        for (int i = 0; i < 8; i++) {
-            msb = msb << 8 | ((long) inputGUID[i]  & 0xFFL);
-        }
-        long lsb = 0L;
-        for (int i = 8; i < 16; i++) {
-            lsb = lsb << 8 | ((long) inputGUID[i]  & 0xFFL);
-        }
-        return new UUID(msb, lsb);
-    }
-
     static final String readGUID(byte[] inputGUID) throws SQLServerException {
         String guidTemplate = "NNNNNNNN-NNNN-NNNN-NNNN-NNNNNNNNNNNN";
         byte guid[] = inputGUID;
@@ -791,7 +729,7 @@ final class Util {
     static boolean IsActivityTraceOn() {
         LogManager lm = LogManager.getLogManager();
         String activityTrace = lm.getProperty(ActivityIdTraceProperty);
-        if ("on".equalsIgnoreCase(activityTrace))
+        if (null != activityTrace && activityTrace.equalsIgnoreCase("on"))
             return true;
         else
             return false;
@@ -809,6 +747,7 @@ final class Util {
             case Disabled:
                 return false;
             case Enabled:
+                return true;
             case ResultSetOnly:
                 return true;
             default:
@@ -828,10 +767,11 @@ final class Util {
         // Command leve setting trumps all
         switch (stmtColumnEncryptionSetting) {
             case Disabled:
-            case ResultSetOnly:
                 return false;
             case Enabled:
                 return true;
+            case ResultSetOnly:
+                return false;
             default:
                 // Check connection level setting!
                 assert SQLServerStatementColumnEncryptionSetting.UseConnectionSetting == stmtColumnEncryptionSetting : "Unexpected value for command level override";
@@ -910,7 +850,7 @@ final class Util {
                 return ((null == value) ? 0 : ((byte[]) value).length);
 
             case BIGDECIMAL:
-                int length;
+                int length = -1;
 
                 if (null == precision) {
                     if (null == value) {
@@ -919,14 +859,8 @@ final class Util {
                     else {
                         if (0 == ((BigDecimal) value).intValue()) {
                             String s = "" + value;
+                            s = s.replaceAll("\\.", "");
                             s = s.replaceAll("\\-", "");
-                            if (s.startsWith("0.")) {
-                                // remove the leading zero, eg., for 0.32, the precision should be 2 and not 3
-                                s = s.replaceAll("0\\.", "");
-                            }
-                            else {
-                                s = s.replaceAll("\\.", "");
-                            }
                             length = s.length();
                         }
                         // if the value is in scientific notation format
@@ -952,12 +886,13 @@ final class Util {
             case TIME:
             case DATETIMEOFFSET:
                 return ((null == scale) ? TDS.MAX_FRACTIONAL_SECONDS_SCALE : scale);
+            case READER:
+                return ((null == value) ? 0 : DataTypes.NTEXT_MAX_CHARS);
 
             case CLOB:
                 return ((null == value) ? 0 : (DataTypes.NTEXT_MAX_CHARS * 2));
 
             case NCLOB:
-            case READER:
                 return ((null == value) ? 0 : DataTypes.NTEXT_MAX_CHARS);
         }
         return 0;
@@ -993,9 +928,10 @@ final class Util {
         return false;
     }
 
-    static final boolean use42Wrapper;
+    // if driver is for JDBC 42 and jvm version is 8 or higher, then always return as SQLServerPreparedStatement42,
+    // otherwise return SQLServerPreparedStatement
+    static boolean use42Wrapper() {
 
-    static {
         boolean supportJDBC42 = true;
         try {
             DriverJDBCVersion.checkSupportsJDBC42();
@@ -1006,13 +942,7 @@ final class Util {
 
         double jvmVersion = Double.parseDouble(Util.SYSTEM_SPEC_VERSION);
 
-        use42Wrapper = supportJDBC42 && (1.8 <= jvmVersion);
-    }
-
-    // if driver is for JDBC 42 and jvm version is 8 or higher, then always return as SQLServerPreparedStatement42,
-    // otherwise return SQLServerPreparedStatement
-    static boolean use42Wrapper() {
-        return use42Wrapper;
+        return supportJDBC42 && (1.8 <= jvmVersion);
     }
 }
 

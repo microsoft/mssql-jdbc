@@ -43,34 +43,36 @@ public class NativeMSSQLDataSourceTest extends AbstractTest {
 
     @Test
     public void testSerialization() throws IOException {
-        try (ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
-        	 ObjectOutput objectOutput = new ObjectOutputStream(outputStream)) {
-	        SQLServerDataSource ds = new SQLServerDataSource();
-	        ds.setLogWriter(new PrintWriter(new ByteArrayOutputStream()));
-	
-	        objectOutput.writeObject(ds);
-	        objectOutput.flush();
-        }
+        ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+        ObjectOutput objectOutput = new ObjectOutputStream(outputStream);
+
+        SQLServerDataSource ds = new SQLServerDataSource();
+        ds.setLogWriter(new PrintWriter(new ByteArrayOutputStream()));
+
+        objectOutput.writeObject(ds);
+        objectOutput.flush();
     }
 
     @Test
-    public void testDSNormal() throws ClassNotFoundException, IOException, SQLException {
+    public void testDSNormal() throws SQLServerException, ClassNotFoundException, IOException {
         SQLServerDataSource ds = new SQLServerDataSource();
         ds.setURL(connectionString);
-        try (Connection conn = ds.getConnection()) {}
+        Connection conn = ds.getConnection();
         ds = testSerial(ds);
-        try (Connection conn = ds.getConnection()) {}
+        conn = ds.getConnection();
     }
 
     @Test
-    public void testDSTSPassword() throws ClassNotFoundException, IOException, SQLException {
+    public void testDSTSPassword() throws SQLServerException, ClassNotFoundException, IOException {
         SQLServerDataSource ds = new SQLServerDataSource();
         System.setProperty("java.net.preferIPv6Addresses", "true");
         ds.setURL(connectionString);
         ds.setTrustStorePassword("wrong_password");
-        try (Connection conn = ds.getConnection()) {}
+        Connection conn = ds.getConnection();
         ds = testSerial(ds);
-        try (Connection conn = ds.getConnection()) {}
+        try {
+            conn = ds.getConnection();
+        }
         catch (SQLServerException e) {
             assertEquals("The DataSource trustStore password needs to be set.", e.getMessage());
         }
@@ -104,16 +106,13 @@ public class NativeMSSQLDataSourceTest extends AbstractTest {
     }
 
     private SQLServerDataSource testSerial(SQLServerDataSource ds) throws IOException, ClassNotFoundException {
-        try (java.io.ByteArrayOutputStream outputStream = new java.io.ByteArrayOutputStream();
-        	 java.io.ObjectOutput objectOutput = new java.io.ObjectOutputStream(outputStream)) {
-	        objectOutput.writeObject(ds);
-	        objectOutput.flush();
-	        
-	        try (ObjectInputStream in = new ObjectInputStream(new ByteArrayInputStream(outputStream.toByteArray()))) {
-		        SQLServerDataSource dtn;
-		        dtn = (SQLServerDataSource) in.readObject();
-		        return dtn;
-	        }
-        }
+        java.io.ByteArrayOutputStream outputStream = new java.io.ByteArrayOutputStream();
+        java.io.ObjectOutput objectOutput = new java.io.ObjectOutputStream(outputStream);
+        objectOutput.writeObject(ds);
+        objectOutput.flush();
+        ObjectInputStream in = new ObjectInputStream(new ByteArrayInputStream(outputStream.toByteArray()));
+        SQLServerDataSource dtn;
+        dtn = (SQLServerDataSource) in.readObject();
+        return dtn;
     }
 }

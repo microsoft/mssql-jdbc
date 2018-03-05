@@ -38,7 +38,7 @@ public class SQLServerPooledConnection implements PooledConnection {
     SQLServerPooledConnection(SQLServerDataSource ds,
             String user,
             String password) throws SQLException {
-        listeners = new Vector<>();
+        listeners = new Vector<ConnectionEventListener>();
         // Piggyback SQLServerDataSource logger for now.
         pcLogger = SQLServerDataSource.dsLogger;
 
@@ -198,11 +198,15 @@ public class SQLServerPooledConnection implements PooledConnection {
     }
 
     public void addStatementEventListener(StatementEventListener listener) {
+        DriverJDBCVersion.checkSupportsJDBC4();
+
         // Not implemented
         throw new UnsupportedOperationException(SQLServerException.getErrString("R_notSupported"));
     }
 
     public void removeStatementEventListener(StatementEventListener listener) {
+        DriverJDBCVersion.checkSupportsJDBC4();
+
         // Not implemented
         throw new UnsupportedOperationException(SQLServerException.getErrString("R_notSupported"));
     }

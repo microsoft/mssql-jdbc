@@ -21,7 +21,7 @@ import com.microsoft.sqlserver.jdbc.SQLServerException;
 /*
  * Wrapper class for SQLServerConnection
  */
-public class DBConnection extends AbstractParentWrapper implements AutoCloseable {
+public class DBConnection extends AbstractParentWrapper {
     private double serverversion = 0;
 
     // TODO: add Isolation Level

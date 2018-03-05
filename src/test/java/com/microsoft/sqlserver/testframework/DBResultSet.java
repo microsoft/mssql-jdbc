@@ -36,7 +36,7 @@ import com.microsoft.sqlserver.testframework.Utils.DBCharacterStream;
  *
  */
 
-public class DBResultSet extends AbstractParentWrapper implements AutoCloseable {
+public class DBResultSet extends AbstractParentWrapper {
 
     // TODO: add cursors
     // TODO: add resultSet level holdability
@@ -63,14 +63,6 @@ public class DBResultSet extends AbstractParentWrapper implements AutoCloseable 
             ResultSet internal) {
         super(dbstatement, internal, "resultSet");
         resultSet = internal;
-    }
-
-    DBResultSet(DBStatement dbstatement,
-            ResultSet internal,
-            DBTable table) {
-        super(dbstatement, internal, "resultSet");
-        resultSet = internal;
-        currentTable = table;
     }
 
     DBResultSet(DBPreparedStatement dbpstmt,
@@ -233,18 +225,18 @@ public class DBResultSet extends AbstractParentWrapper implements AutoCloseable 
         switch (metaData.getColumnType(ordinal + 1)) {
             case java.sql.Types.BIGINT:
                 assertTrue((((Long) expectedData).longValue() == ((Long) retrieved).longValue()),
-                        "Unexpected bigint value, expected: " + (Long) expectedData + " .Retrieved: " + (Long) retrieved);
+                        "Unexpected bigint value, expected: " + ((Long) expectedData).longValue() + " .Retrieved: " + ((Long) retrieved).longValue());
                 break;
 
             case java.sql.Types.INTEGER:
                 assertTrue((((Integer) expectedData).intValue() == ((Integer) retrieved).intValue()), "Unexpected int value, expected : "
-                        + (Integer) expectedData + " ,received: " + (Integer) retrieved);
+                        + ((Integer) expectedData).intValue() + " ,received: " + ((Integer) retrieved).intValue());
                 break;
 
             case java.sql.Types.SMALLINT:
             case java.sql.Types.TINYINT:
                 assertTrue((((Short) expectedData).shortValue() == ((Short) retrieved).shortValue()), "Unexpected smallint/tinyint value, expected: "
-                        + " " + (Short) expectedData + " received: " + (Short) retrieved);
+                        + " " + ((Short) expectedData).shortValue() + " received: " + ((Short) retrieved).shortValue());
                 break;
 
             case java.sql.Types.BIT:
@@ -253,7 +245,7 @@ public class DBResultSet extends AbstractParentWrapper implements AutoCloseable 
                 else
                     expectedData = false;
                 assertTrue((((Boolean) expectedData).booleanValue() == ((Boolean) retrieved).booleanValue()), "Unexpected bit value, expected: "
-                        + (Boolean) expectedData + " ,received: " + (Boolean) retrieved);
+                        + ((Boolean) expectedData).booleanValue() + " ,received: " + ((Boolean) retrieved).booleanValue());
                 break;
 
             case java.sql.Types.DECIMAL:
@@ -264,12 +256,12 @@ public class DBResultSet extends AbstractParentWrapper implements AutoCloseable 
 
             case java.sql.Types.DOUBLE:
                 assertTrue((((Double) expectedData).doubleValue() == ((Double) retrieved).doubleValue()), "Unexpected float value, expected: "
-                        + (Double) expectedData + " received: " + (Double) retrieved);
+                        + ((Double) expectedData).doubleValue() + " received: " + ((Double) retrieved).doubleValue());
                 break;
 
             case java.sql.Types.REAL:
                 assertTrue((((Float) expectedData).floatValue() == ((Float) retrieved).floatValue()),
-                        "Unexpected real value, expected: " + (Float) expectedData + " received: " + (Float) retrieved);
+                        "Unexpected real value, expected: " + ((Float) expectedData).floatValue() + " received: " + ((Float) retrieved).floatValue());
                 break;
 
             case java.sql.Types.VARCHAR:
@@ -318,7 +310,7 @@ public class DBResultSet extends AbstractParentWrapper implements AutoCloseable 
                 break;
 
             case java.sql.Types.BINARY:
-                assertTrue(Utils.parseByte((byte[]) expectedData, (byte[]) retrieved),
+                assertTrue(parseByte((byte[]) expectedData, (byte[]) retrieved),
                         " unexpected BINARY value, expected: " + expectedData + " ,received: " + retrieved);
                 break;
 
@@ -330,6 +322,15 @@ public class DBResultSet extends AbstractParentWrapper implements AutoCloseable 
                 fail("Unhandled JDBCType " + JDBCType.valueOf(metaData.getColumnType(ordinal + 1)));
                 break;
         }
+    }
+
+    private boolean parseByte(byte[] expectedData,
+            byte[] retrieved) {
+        assertTrue(Arrays.equals(expectedData, Arrays.copyOf(retrieved, expectedData.length)), " unexpected BINARY value, expected");
+        for (int i = expectedData.length; i < retrieved.length; i++) {
+            assertTrue(0 == retrieved[i], "unexpected data BINARY");
+        }
+        return true;
     }
 
     /**
@@ -350,7 +351,7 @@ public class DBResultSet extends AbstractParentWrapper implements AutoCloseable 
         }
         else if (idx instanceof Integer) {
             isInteger = true;
-            intOrdinal = (Integer) idx;
+            intOrdinal = ((Integer) idx).intValue();
         }
         else {
             // Otherwise
@@ -418,7 +419,7 @@ public class DBResultSet extends AbstractParentWrapper implements AutoCloseable 
      */
     public void afterLast() throws SQLException {
         ((ResultSet) product()).afterLast();
-        _currentrow = currentTable.getTotalRows();
+        _currentrow = DBTable.getTotalRows();
     }
 
     /**

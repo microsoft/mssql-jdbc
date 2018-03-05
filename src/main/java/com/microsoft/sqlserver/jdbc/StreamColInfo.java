@@ -36,7 +36,9 @@ final class StreamColInfo extends StreamPacket {
         // Read and apply the column info for each column
         TDSReaderMark currentMark = tdsReader.mark();
         tdsReader.reset(colInfoMark);
-        for (Column col : columns) {
+        for (int i = 0; i < columns.length; i++) {
+            Column col = columns[i];
+
             // Ignore the column number, per TDS spec.
             // Column info is returned for each column, ascending by column index,
             // so iterating through the column info is sufficient.

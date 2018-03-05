@@ -22,7 +22,6 @@ public abstract class AbstractSQLGenerator {// implements ISQLGenerator {
     protected static final String PRIMARY_KEY = "PRIMARY KEY";
     protected static final String DEFAULT = "DEFAULT";
     protected static final String COMMA = ",";
-    protected static final String QUESTION_MARK = "?";
 
     // FIXME: Find good word for '. Better replaced by wrapIdentifier.
     protected static final String TICK = "'";

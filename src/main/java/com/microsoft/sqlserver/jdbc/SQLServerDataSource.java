@@ -111,6 +111,8 @@ public class SQLServerDataSource implements ISQLServerDataSource, DataSource, ja
     }
 
     public Logger getParentLogger() throws SQLFeatureNotSupportedException {
+        DriverJDBCVersion.checkSupportsJDBC41();
+
         return parentLogger;
     }
 
@@ -178,7 +180,7 @@ public class SQLServerDataSource implements ISQLServerDataSource, DataSource, ja
     /**
      * sets GSSCredential
      * 
-     * @param userCredential the credential
+     * @param userCredential
      */
     public void setGSSCredentials(GSSCredential userCredential){
         setObjectProperty(connectionProps,SQLServerDriverObjectProperty.GSS_CREDENTIAL.toString(), userCredential);
@@ -585,32 +587,13 @@ public class SQLServerDataSource implements ISQLServerDataSource, DataSource, ja
         return getBooleanProperty(connectionProps, SQLServerDriverBooleanProperty.FIPS.toString(),
                 SQLServerDriverBooleanProperty.FIPS.getDefaultValue());
     }
-    
-    public void setSSLProtocol(String sslProtocol) {
-        setStringProperty(connectionProps, SQLServerDriverStringProperty.SSL_PROTOCOL.toString(), sslProtocol);
+
+    public void setFIPSProvider(String fipsProvider) {
+        setStringProperty(connectionProps, SQLServerDriverStringProperty.FIPS_PROVIDER.toString(), fipsProvider);
     }
 
-    public String getSSLProtocol() {
-        return getStringProperty(connectionProps, SQLServerDriverStringProperty.SSL_PROTOCOL.toString(),
-                SQLServerDriverStringProperty.SSL_PROTOCOL.getDefaultValue());
-    }
-
-    public void setTrustManagerClass(String trustManagerClass) {
-        setStringProperty(connectionProps, SQLServerDriverStringProperty.TRUST_MANAGER_CLASS.toString(), trustManagerClass);
-    }
-
-    public String getTrustManagerClass() {
-        return getStringProperty(connectionProps, SQLServerDriverStringProperty.TRUST_MANAGER_CLASS.toString(),
-                SQLServerDriverStringProperty.TRUST_MANAGER_CLASS.getDefaultValue());
-    }
-
-    public void setTrustManagerConstructorArg(String trustManagerClass) {
-        setStringProperty(connectionProps, SQLServerDriverStringProperty.TRUST_MANAGER_CONSTRUCTOR_ARG.toString(), trustManagerClass);
-    }
-
-    public String getTrustManagerConstructorArg() {
-        return getStringProperty(connectionProps, SQLServerDriverStringProperty.TRUST_MANAGER_CONSTRUCTOR_ARG.toString(),
-                SQLServerDriverStringProperty.TRUST_MANAGER_CONSTRUCTOR_ARG.getDefaultValue());
+    public String getFIPSProvider() {
+        return getStringProperty(connectionProps, SQLServerDriverStringProperty.FIPS_PROVIDER.toString(), null);
     }
 
     // The URL property is exposed for backwards compatibility reasons. Also, several
@@ -691,140 +674,24 @@ public class SQLServerDataSource implements ISQLServerDataSource, DataSource, ja
                 SQLServerDriverIntProperty.CONNECT_RETRY_INTERVAL.getDefaultValue());
     }
 
-    /**
-     * Setting the query timeout
-     * 
-     * @param queryTimeout
-     *            The number of seconds to wait before a timeout has occurred on a query. The default value is 0, which means infinite timeout.
-     */
     public void setQueryTimeout(int queryTimeout) {
         setIntProperty(connectionProps, SQLServerDriverIntProperty.QUERY_TIMEOUT.toString(), queryTimeout);
     }
 
-    /**
-     * Getting the query timeout
-     * 
-     * @return The number of seconds to wait before a timeout has occurred on a query.
-     */
     public int getQueryTimeout() {
         return getIntProperty(connectionProps, SQLServerDriverIntProperty.QUERY_TIMEOUT.toString(),
                 SQLServerDriverIntProperty.QUERY_TIMEOUT.getDefaultValue());
     }
 
-    /**
-     * If this configuration is false the first execution of a prepared statement will call sp_executesql and not prepare 
-     * a statement, once the second execution happens it will call sp_prepexec and actually setup a prepared statement handle. Following
-     * executions will call sp_execute. This relieves the need for sp_unprepare on prepared statement close if the statement is only
-     * executed once.  
-     * 
-     * @param enablePrepareOnFirstPreparedStatementCall
-     *      Changes the setting per the description.
-     */
-    public void setEnablePrepareOnFirstPreparedStatementCall(boolean enablePrepareOnFirstPreparedStatementCall) {
-        setBooleanProperty(connectionProps, SQLServerDriverBooleanProperty.ENABLE_PREPARE_ON_FIRST_PREPARED_STATEMENT.toString(), enablePrepareOnFirstPreparedStatementCall);
-    }
-
-    /**
-     * If this configuration returns false the first execution of a prepared statement will call sp_executesql and not prepare a statement, once the
-     * second execution happens it will call sp_prepexec and actually setup a prepared statement handle. Following executions will call sp_execute.
-     * This relieves the need for sp_unprepare on prepared statement close if the statement is only executed once.
-     * 
-     * @return Returns the current setting per the description.
-     */
-    public boolean getEnablePrepareOnFirstPreparedStatementCall() {
-        boolean defaultValue = SQLServerDriverBooleanProperty.ENABLE_PREPARE_ON_FIRST_PREPARED_STATEMENT.getDefaultValue();
-        return getBooleanProperty(connectionProps, SQLServerDriverBooleanProperty.ENABLE_PREPARE_ON_FIRST_PREPARED_STATEMENT.toString(),
-                defaultValue);
-    }
-
-    /**
-     * This setting controls how many outstanding prepared statement discard actions (sp_unprepare) can be outstanding per connection before a call to
-     * clean-up the outstanding handles on the server is executed. If the setting is {@literal <=} 1 unprepare actions will be executed immedietely on
-     * prepared statement close. If it is set to {@literal >} 1 these calls will be batched together to avoid overhead of calling sp_unprepare too
-     * often.
-     * 
-     * @param serverPreparedStatementDiscardThreshold
-     *            Changes the setting per the description.
-     */
-    public void setServerPreparedStatementDiscardThreshold(int serverPreparedStatementDiscardThreshold) {
-        setIntProperty(connectionProps, SQLServerDriverIntProperty.SERVER_PREPARED_STATEMENT_DISCARD_THRESHOLD.toString(), serverPreparedStatementDiscardThreshold);
-    }
-
-    /**
-     * This setting controls how many outstanding prepared statement discard actions (sp_unprepare) can be outstanding per connection before a call to
-     * clean-up the outstanding handles on the server is executed. If the setting is {@literal <=} 1 unprepare actions will be executed immedietely on
-     * prepared statement close. If it is set to {@literal >} 1 these calls will be batched together to avoid overhead of calling sp_unprepare too
-     * often.
-     * 
-     * @return Returns the current setting per the description.
-     */
-    public int getServerPreparedStatementDiscardThreshold() {
-        int defaultSize = SQLServerDriverIntProperty.SERVER_PREPARED_STATEMENT_DISCARD_THRESHOLD.getDefaultValue();
-        return getIntProperty(connectionProps, SQLServerDriverIntProperty.SERVER_PREPARED_STATEMENT_DISCARD_THRESHOLD.toString(), defaultSize);
-    }
-
-    /**
-     * Specifies the size of the prepared statement cache for this conection. A value less than 1 means no cache.
-     * 
-     * @param statementPoolingCacheSize
-     *            Changes the setting per the description.
-     */
-    public void setStatementPoolingCacheSize(int statementPoolingCacheSize) {
-        setIntProperty(connectionProps, SQLServerDriverIntProperty.STATEMENT_POOLING_CACHE_SIZE.toString(), statementPoolingCacheSize);
-    }
-
-    /**
-     * Returns the size of the prepared statement cache for this conection. A value less than 1 means no cache.
-     * 
-     * @return Returns the current setting per the description.
-     */
-    public int getStatementPoolingCacheSize() {
-        int defaultSize = SQLServerDriverIntProperty.STATEMENT_POOLING_CACHE_SIZE.getDefaultValue();
-        return getIntProperty(connectionProps, SQLServerDriverIntProperty.STATEMENT_POOLING_CACHE_SIZE.toString(), defaultSize);
-    }
-
-    /**
-     * Setting the socket timeout
-     * 
-     * @param socketTimeout
-     *            The number of milliseconds to wait before a timeout is occurred on a socket read or accept. The default value is 0, which means
-     *            infinite timeout.
-     */
     public void setSocketTimeout(int socketTimeout) {
         setIntProperty(connectionProps, SQLServerDriverIntProperty.SOCKET_TIMEOUT.toString(), socketTimeout);
     }
 
-    /**
-     * Getting the socket timeout
-     * 
-     * @return The number of milliseconds to wait before a timeout is occurred on a socket read or accept.
-     */
     public int getSocketTimeout() {
         int defaultTimeOut = SQLServerDriverIntProperty.SOCKET_TIMEOUT.getDefaultValue();
         return getIntProperty(connectionProps, SQLServerDriverIntProperty.SOCKET_TIMEOUT.toString(), defaultTimeOut);
     }
 
-    /**
-     * Sets the login configuration file for Kerberos authentication. This
-     * overrides the default configuration <i> SQLJDBCDriver </i>
-     * 
-     * @param configurationName the configuration name
-     */
-    public void setJASSConfigurationName(String configurationName) {
-        setStringProperty(connectionProps, SQLServerDriverStringProperty.JAAS_CONFIG_NAME.toString(),
-                configurationName);
-    }
-
-    /**
-     * Retrieves the login configuration file for Kerberos authentication.
-     * 
-     * @return login configuration file name
-     */
-    public String getJASSConfigurationName() {
-        return getStringProperty(connectionProps, SQLServerDriverStringProperty.JAAS_CONFIG_NAME.toString(),
-                SQLServerDriverStringProperty.JAAS_CONFIG_NAME.getDefaultValue());
-    }
-    
     // responseBuffering controls the driver's buffering of responses from SQL Server.
     // Possible values are:
     //
@@ -883,7 +750,7 @@ public class SQLServerDataSource implements ISQLServerDataSource, DataSource, ja
             String propKey,
             int propValue) {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
-            loggerExternal.entering(getClassNameLogging(), "set" + propKey, propValue);
+            loggerExternal.entering(getClassNameLogging(), "set" + propKey, new Integer(propValue));
         props.setProperty(propKey, new Integer(propValue).toString());
         loggerExternal.exiting(getClassNameLogging(), "set" + propKey);
     }
@@ -909,7 +776,7 @@ public class SQLServerDataSource implements ISQLServerDataSource, DataSource, ja
             }
         }
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
-            loggerExternal.exiting(getClassNameLogging(), "get" + propKey, value);
+            loggerExternal.exiting(getClassNameLogging(), "get" + propKey, new Integer(value));
         return value;
     }
 
@@ -919,7 +786,7 @@ public class SQLServerDataSource implements ISQLServerDataSource, DataSource, ja
             String propKey,
             boolean propValue) {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
-            loggerExternal.entering(getClassNameLogging(), "set" + propKey, propValue);
+            loggerExternal.entering(getClassNameLogging(), "set" + propKey, Boolean.valueOf(propValue));
         props.setProperty(propKey, (propValue) ? "true" : "false");
         loggerExternal.exiting(getClassNameLogging(), "set" + propKey);
     }
@@ -943,7 +810,7 @@ public class SQLServerDataSource implements ISQLServerDataSource, DataSource, ja
             value = Boolean.valueOf(propValue);
         }
         loggerExternal.exiting(getClassNameLogging(), "get" + propKey, value);
-        return value;
+        return value.booleanValue();
     }
 
     private void setObjectProperty(Properties props,
@@ -981,8 +848,8 @@ public class SQLServerDataSource implements ISQLServerDataSource, DataSource, ja
     SQLServerConnection getConnectionInternal(String username,
             String password,
             SQLServerPooledConnection pooledConnection) throws SQLServerException {
-        Properties userSuppliedProps;
-        Properties mergedProps;
+        Properties userSuppliedProps = null;
+        Properties mergedProps = null;
         // Trust store password stripped and this object got created via Objectfactory referencing.
         if (trustStorePasswordStripped)
             SQLServerException.makeFromDriverError(null, null, SQLServerException.getErrString("R_referencingFailedTSP"), null, true);
@@ -1088,17 +955,17 @@ public class SQLServerDataSource implements ISQLServerDataSource, DataSource, ja
             String propertyValue = (String) addr.getContent();
 
             // Special case dataSourceURL and dataSourceDescription.
-            if ("dataSourceURL".equals(propertyName)) {
+            if (propertyName.equals("dataSourceURL")) {
                 dataSourceURL = propertyValue;
             }
-            else if ("dataSourceDescription".equals(propertyName)) {
+            else if (propertyName.equals("dataSourceDescription")) {
                 dataSourceDescription = propertyValue;
             }
-            else if ("trustStorePasswordStripped".equals(propertyName)) {
+            else if (propertyName.equals("trustStorePasswordStripped")) {
                 trustStorePasswordStripped = true;
             }
             // Just skip "class" StringRefAddr, it does not go into connectionProps
-            else if (!"class".equals(propertyName)) {
+            else if (false == propertyName.equals("class")) {
 
                 connectionProps.setProperty(propertyName, propertyValue);
             }
@@ -1107,13 +974,16 @@ public class SQLServerDataSource implements ISQLServerDataSource, DataSource, ja
 
     public boolean isWrapperFor(Class<?> iface) throws SQLException {
         loggerExternal.entering(getClassNameLogging(), "isWrapperFor", iface);
+        DriverJDBCVersion.checkSupportsJDBC4();
         boolean f = iface.isInstance(this);
-        loggerExternal.exiting(getClassNameLogging(), "isWrapperFor", f);
+        loggerExternal.exiting(getClassNameLogging(), "isWrapperFor", Boolean.valueOf(f));
         return f;
     }
 
     public <T> T unwrap(Class<T> iface) throws SQLException {
         loggerExternal.entering(getClassNameLogging(), "unwrap", iface);
+        DriverJDBCVersion.checkSupportsJDBC4();
+
         T t;
         try {
             t = iface.cast(this);

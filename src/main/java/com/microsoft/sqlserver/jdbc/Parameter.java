@@ -26,7 +26,6 @@ import java.time.OffsetTime;
 import java.util.Calendar;
 import java.util.Locale;
 
-
 /**
  * Parameter represents a JDBC parameter value that is supplied with a prepared or callable statement or an updatable result set. Parameter is JDBC
  * type specific and is capable of representing any Java native type as well as a number of Java object types including binary and character streams.
@@ -254,7 +253,7 @@ final class Parameter {
         if (null == getterDTV)
             getterDTV = new DTV();
 
-        getterDTV.setValue(null, JDBCType.INTEGER, returnStatus, JavaType.INTEGER, null, null, null, con, getForceEncryption());
+        getterDTV.setValue(null, JDBCType.INTEGER, new Integer(returnStatus), JavaType.INTEGER, null, null, null, con, getForceEncryption());
     }
 
     void setValue(JDBCType jdbcType,
@@ -324,7 +323,7 @@ final class Parameter {
         }
 
         if (JavaType.TVP == javaType) {
-            TVP tvpValue;
+            TVP tvpValue = null;
             if (null == value) {
                 tvpValue = new TVP(tvpName);
             }
@@ -332,6 +331,16 @@ final class Parameter {
                 tvpValue = new TVP(tvpName, (SQLServerDataTable) value);
             }
             else if (value instanceof ResultSet) {
+                // if ResultSet and PreparedStatemet/CallableStatement are created from same connection object
+                // with property SelectMethod=cursor, TVP is not supported
+                if (con.getSelectMethod().equalsIgnoreCase("cursor") && (value instanceof SQLServerResultSet)) {
+                    SQLServerStatement stmt = (SQLServerStatement) ((SQLServerResultSet) value).getStatement();
+
+                    if (con.equals(stmt.connection)) {
+                        throw new SQLServerException(SQLServerException.getErrString("R_invalidServerCursorForTVP"), null);
+                    }
+                }
+
                 tvpValue = new TVP(tvpName, (ResultSet) value);
             }
             else if (value instanceof ISQLServerDataRecord) {
@@ -375,9 +384,7 @@ final class Parameter {
         // If set to true, this connection property tells the driver to send textual parameters
         // to the server as Unicode rather than MBCS. This is accomplished here by re-tagging
         // the value with the appropriate corresponding Unicode type.
-        // JavaType.OBJECT == javaType when calling setNull()
-        if (con.sendStringParametersAsUnicode()
-                && (JavaType.STRING == javaType || JavaType.READER == javaType || JavaType.CLOB == javaType || JavaType.OBJECT == javaType)) {
+        if (con.sendStringParametersAsUnicode() && (JavaType.STRING == javaType || JavaType.READER == javaType || JavaType.CLOB == javaType)) {
             jdbcType = getSSPAUJDBCType(jdbcType);
         }
 
@@ -399,7 +406,7 @@ final class Parameter {
     }
 
     boolean isValueGotten() {
-        return null != getterDTV;
+        return (null != getterDTV) ? (true) : (false);
 
     }
 
@@ -418,7 +425,7 @@ final class Parameter {
 
     int getInt(TDSReader tdsReader) throws SQLServerException {
         Integer value = (Integer) getValue(JDBCType.INTEGER, null, null, tdsReader);
-        return null != value ? value : 0;
+        return null != value ? value.intValue() : 0;
     }
 
     /**
@@ -474,13 +481,8 @@ final class Parameter {
                          * specific type info, otherwise generic type info can be used as before.
                          */
                         param.typeDefinition = SSType.REAL.toString();
+                        break;
                     }
-                    else {
-                        // use FLOAT if column is not encrypted
-                        param.typeDefinition = SSType.FLOAT.toString();
-                    }
-                    break;
-                    
                 case FLOAT:
                 case DOUBLE:
                     param.typeDefinition = SSType.FLOAT.toString();
@@ -497,8 +499,8 @@ final class Parameter {
                     // - the specified input scale (if any)
                     // - the registered output scale
                     Integer inScale = dtv.getScale();
-                    if (null != inScale && scale < inScale)
-                        scale = inScale;
+                    if (null != inScale && scale < inScale.intValue())
+                        scale = inScale.intValue();
 
                     if (param.isOutput() && scale < param.getOutScale())
                         scale = param.getOutScale();
@@ -881,10 +883,7 @@ final class Parameter {
                 case GUID:
                     param.typeDefinition = SSType.GUID.toString();
                     break;
-                    
-                case SQL_VARIANT:
-                    param.typeDefinition = SSType.SQL_VARIANT.toString();
-                    break;
+
                 default:
                     assert false : "Unexpected JDBC type " + dtv.getJdbcType();
                     break;
@@ -1136,17 +1135,6 @@ final class Parameter {
 
         void execute(DTV dtv,
                 com.microsoft.sqlserver.jdbc.TVP tvpValue) throws SQLServerException {
-            setTypeDefinition(dtv);
-        }
-
-        /*
-         * (non-Javadoc)
-         * 
-         * @see com.microsoft.sqlserver.jdbc.DTVExecuteOp#execute(com.microsoft.sqlserver.jdbc.DTV, microsoft.sql.SqlVariant)
-         */
-        @Override
-        void execute(DTV dtv,
-                SqlVariant SqlVariantValue) throws SQLServerException {
             setTypeDefinition(dtv);
         }
 

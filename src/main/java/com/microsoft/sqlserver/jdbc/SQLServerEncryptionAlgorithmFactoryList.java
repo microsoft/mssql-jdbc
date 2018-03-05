@@ -21,7 +21,7 @@ final class SQLServerEncryptionAlgorithmFactoryList {
     private static final SQLServerEncryptionAlgorithmFactoryList instance = new SQLServerEncryptionAlgorithmFactoryList();
 
     private SQLServerEncryptionAlgorithmFactoryList() {
-        encryptionAlgoFactoryMap = new ConcurrentHashMap<>();
+        encryptionAlgoFactoryMap = new ConcurrentHashMap<String, SQLServerEncryptionAlgorithmFactory>();
         encryptionAlgoFactoryMap.putIfAbsent(SQLServerAeadAes256CbcHmac256Algorithm.algorithmName, new SQLServerAeadAes256CbcHmac256Factory());
     }
 

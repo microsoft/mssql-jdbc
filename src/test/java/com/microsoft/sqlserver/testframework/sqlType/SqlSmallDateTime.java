@@ -35,7 +35,6 @@ public class SqlSmallDateTime extends SqlDateTime {
                 ThreadLocalRandom.current().nextLong(((Timestamp) minvalue).getTime(), ((Timestamp) maxvalue).getTime()));
         // remove the random nanosecond value if any
         smallDateTime.setNanos(0);
-        return smallDateTime.toString().substring(0,19);// ignore the nano second portion
-//        return smallDateTime;
+        return smallDateTime;
     }
 }

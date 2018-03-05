@@ -21,7 +21,7 @@ import com.microsoft.sqlserver.jdbc.SQLServerException;
  * @author Microsoft
  *
  */
-public class DBStatement extends AbstractParentWrapper implements AutoCloseable{
+public class DBStatement extends AbstractParentWrapper {
 
     // TODO: support PreparedStatement and CallableStatement
     // TODO: add stmt level holdability
@@ -75,20 +75,6 @@ public class DBStatement extends AbstractParentWrapper implements AutoCloseable{
     }
 
     /**
-     * execute 'Select * from ' the table
-     * 
-     * @param table
-     * @return DBResultSet
-     * @throws SQLException
-     */
-    public DBResultSet selectAll(DBTable table) throws SQLException {
-        String sql = "SELECT * FROM " + table.getEscapedTableName();
-        ResultSet rs = statement.executeQuery(sql);
-        dbresultSet = new DBResultSet(this, rs, table);
-        return dbresultSet;
-    }
-
-    /**
      * 
      * @param sql
      *            query to execute
@@ -120,7 +106,7 @@ public class DBStatement extends AbstractParentWrapper implements AutoCloseable{
         if ((null != dbresultSet) && null != ((ResultSet) dbresultSet.product())) {
             ((ResultSet) dbresultSet.product()).close();
         }
-        //statement.close();
+        statement.close();
     }
 
     /**

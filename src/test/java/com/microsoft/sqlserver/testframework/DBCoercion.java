@@ -45,8 +45,9 @@ public class DBCoercion {
     public DBCoercion(Class type,
             int[] tempflags) {
         name = type.toString();
-        this.type = type;
-        for (int tempflag : tempflags) flags.set(tempflag);
+        type = type;
+        for (int i = 0; i < tempflags.length; i++)
+            flags.set(tempflags[i]);
     }
 
     /**

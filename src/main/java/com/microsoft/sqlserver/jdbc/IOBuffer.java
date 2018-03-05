@@ -19,7 +19,6 @@ import java.io.Reader;
 import java.io.UnsupportedEncodingException;
 import java.math.BigDecimal;
 import java.math.BigInteger;
-import java.math.RoundingMode;
 import java.net.Inet4Address;
 import java.net.Inet6Address;
 import java.net.InetAddress;
@@ -66,7 +65,6 @@ import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicReference;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -137,9 +135,6 @@ final class TDS {
     static final int FLAG_TVP_DEFAULT_COLUMN = 0x200;
 
     static final int FEATURE_EXT_TERMINATOR = -1;
-    
-    // Sql_variant length
-    static final int SQL_VARIANT_LENGTH = 8009;
 
     static final String getTokenName(int tdsTokenType) {
         switch (tdsTokenType) {
@@ -503,7 +498,7 @@ class GregorianChange {
 
         GregorianCalendar cal = new GregorianCalendar(Locale.US);
         cal.clear();
-        cal.set(1, Calendar.FEBRUARY, 577738, 0, 0, 0);// 577738 = 1+577737(no of days since epoch that brings us to oct 15th 1582)
+        cal.set(1, 1, 577738, 0, 0, 0);// 577738 = 1+577737(no of days since epoch that brings us to oct 15th 1582)
         if (cal.get(Calendar.DAY_OF_MONTH) == 15) {
             // If the date calculation is correct(the above bug is fixed),
             // post the default gregorian cut over date, the pure gregorian date
@@ -525,13 +520,11 @@ class GregorianChange {
     }
 }
 
-final class UTC {
+// UTC/GMT time zone singleton. The enum type delays initialization until first use.
+enum UTC {
+    INSTANCE;
 
-    // UTC/GMT time zone singleton.
     static final TimeZone timeZone = new SimpleTimeZone(0, "UTC");
-
-    private UTC() {
-    }
 }
 
 final class TDSChannel {
@@ -1453,7 +1446,7 @@ final class TDSChannel {
      * A PermissiveX509TrustManager is used to "verify" the authenticity of the server when the trustServerCertificate connection property is set to
      * true.
      */
-    private final class PermissiveX509TrustManager implements X509TrustManager {
+    private final class PermissiveX509TrustManager extends Object implements X509TrustManager {
         private final TDSChannel tdsChannel;
         private final Logger logger;
         private final String logContext;
@@ -1486,7 +1479,7 @@ final class TDSChannel {
      *
      * This validates the subject name in the certificate with the host name
      */
-    private final class HostNameOverrideX509TrustManager implements X509TrustManager {
+    private final class HostNameOverrideX509TrustManager extends Object implements X509TrustManager {
         private final Logger logger;
         private final String logContext;
         private final X509TrustManager defaultTrustManager;
@@ -1499,7 +1492,7 @@ final class TDSChannel {
             this.logContext = tdsChannel.toString() + " (HostNameOverrideX509TrustManager):";
             defaultTrustManager = tm;
             // canonical name is in lower case so convert this to lowercase too.
-            this.hostName = hostName.toLowerCase(Locale.ENGLISH);
+            this.hostName = hostName.toLowerCase();
             ;
         }
 
@@ -1581,7 +1574,7 @@ final class TDSChannel {
                 logger.finer(logContext + " The DN name in certificate:" + nameInCertDN);
             }
 
-            boolean isServerNameValidated;
+            boolean isServerNameValidated = false;
 
             // the name in cert is in RFC2253 format parse it to get the actual subject name
             String subjectCN = parseCommonName(nameInCertDN);
@@ -1622,11 +1615,13 @@ final class TDSChannel {
                                 if (value != null && value instanceof String) {
                                     String dnsNameInSANCert = (String) value;
 
-                                    // Use English locale to avoid Turkish i issues.
+                                    // convert to upper case and then to lower case in english locale
+                                    // to avoid Turkish i issues.
                                     // Note that, this conversion was not necessary for
                                     // cert.getSubjectX500Principal().getName("canonical");
                                     // as the above API already does this by default as per documentation.
-                                    dnsNameInSANCert = dnsNameInSANCert.toLowerCase(Locale.ENGLISH);
+                                    dnsNameInSANCert = dnsNameInSANCert.toUpperCase(Locale.US);
+                                    dnsNameInSANCert = dnsNameInSANCert.toLowerCase(Locale.US);
 
                                     isServerNameValidated = validateServerName(dnsNameInSANCert);
 
@@ -1692,7 +1687,7 @@ final class TDSChannel {
 
         boolean isFips = false;
         String trustStoreType = null;
-        String sslProtocol = null;
+        String fipsProvider = null;
 
         // If anything in here fails, terminate the connection and throw an exception
         try {
@@ -1710,11 +1705,11 @@ final class TDSChannel {
                 trustStoreType = SQLServerDriverStringProperty.TRUST_STORE_TYPE.getDefaultValue();
             }
             
+            fipsProvider = con.activeConnectionProperties.getProperty(SQLServerDriverStringProperty.FIPS_PROVIDER.toString());
             isFips = Boolean.valueOf(con.activeConnectionProperties.getProperty(SQLServerDriverBooleanProperty.FIPS.toString())); 
-            sslProtocol = con.activeConnectionProperties.getProperty(SQLServerDriverStringProperty.SSL_PROTOCOL.toString());
             
             if (isFips) {
-                validateFips(trustStoreType, trustStoreFileName);
+                validateFips(fipsProvider, trustStoreType, trustStoreFileName);
             }
 
             assert TDS.ENCRYPT_OFF == con.getRequestedEncryptionLevel() || // Login only SSL
@@ -1735,22 +1730,7 @@ final class TDSChannel {
 
                 tm = new TrustManager[] {new PermissiveX509TrustManager(this)};
             }
-            // Otherwise, we'll check if a specific TrustManager implemenation has been requested and
-            // if so instantiate it, optionally specifying a constructor argument to customize it.
-            else if (con.getTrustManagerClass() != null) {
-                Class<?> tmClass = Class.forName(con.getTrustManagerClass());
-                if (!TrustManager.class.isAssignableFrom(tmClass)) {
-                    throw new IllegalArgumentException(
-                            "The class specified by the trustManagerClass property must implement javax.net.ssl.TrustManager");
-                }
-                String constructorArg = con.getTrustManagerConstructorArg();
-                if (constructorArg == null) {
-                    tm = new TrustManager[] {(TrustManager) tmClass.getDeclaredConstructor().newInstance()};
-                }
-                else {
-                    tm = new TrustManager[] {(TrustManager) tmClass.getDeclaredConstructor(String.class).newInstance(constructorArg)};
-                }
-            }
+
             // Otherwise, we'll validate the certificate using a real TrustManager obtained
             // from the a security provider that is capable of validating X.509 certificates.
             else {
@@ -1775,8 +1755,12 @@ final class TDSChannel {
                     if (logger.isLoggable(Level.FINEST))
                         logger.finest(toString() + " Finding key store interface");
 
-
-                    ks = KeyStore.getInstance(trustStoreType);
+                    if (isFips) {
+                        ks = KeyStore.getInstance(trustStoreType, fipsProvider);
+                    }
+                    else {
+                        ks = KeyStore.getInstance(trustStoreType);
+                    }
                     ksProvider = ks.getProvider();
 
                     // Next, load up the trust store file from the specified location.
@@ -1852,7 +1836,7 @@ final class TDSChannel {
             if (logger.isLoggable(Level.FINEST))
                 logger.finest(toString() + " Getting TLS or better SSL context");
 
-            sslContext = SSLContext.getInstance(sslProtocol);
+            sslContext = SSLContext.getInstance("TLS");
             sslContextProvider = sslContext.getProvider();
 
             if (logger.isLoggable(Level.FINEST))
@@ -1869,7 +1853,8 @@ final class TDSChannel {
                 logger.finest(toString() + " Creating SSL socket");
 
             sslSocket = (SSLSocket) sslContext.getSocketFactory().createSocket(proxySocket, host, port, false); // don't close proxy when SSL socket
-                                                                                                                // is closed     
+                                                                                                                // is closed
+
             // At long last, start the SSL handshake ...
             if (logger.isLoggable(Level.FINER))
                 logger.finer(toString() + " Starting SSL handshake");
@@ -1926,14 +1911,7 @@ final class TDSChannel {
 
             // It is important to get the localized message here, otherwise error messages won't match for different locales.
             String errMsg = e.getLocalizedMessage();
-            // If the message is null replace it with the non-localized message or a dummy string. This can happen if a custom
-            // TrustManager implementation is specified that does not provide localized messages.
-            if (errMsg == null) {
-                errMsg = e.getMessage();
-            }
-            if (errMsg == null) {
-                errMsg = "";
-            }
+
             // The error message may have a connection id appended to it. Extract the message only for comparison.
             // This client connection id is appended in method checkAndAppendClientConnId().
             if (errMsg.contains(SQLServerException.LOG_CLIENT_CONNECTION_ID_PREFIX)) {
@@ -1957,39 +1935,56 @@ final class TDSChannel {
      * Valid FIPS settings:
      * <LI>Encrypt should be true
      * <LI>trustServerCertificate should be false
-     * <LI>if certificate is not installed TrustStoreType should be present.
+     * <LI>if certificate is not installed FIPSProvider & TrustStoreType should be present.
      * 
+     * @param fipsProvider
+     *            FIPS Provider
      * @param trustStoreType
      * @param trustStoreFileName
      * @throws SQLServerException
      * @since 6.1.4
      */
-    private void validateFips(final String trustStoreType,
+    private void validateFips(final String fipsProvider,
+            final String trustStoreType,
             final String trustStoreFileName) throws SQLServerException {
         boolean isValid = false;
         boolean isEncryptOn;
         boolean isValidTrustStoreType;
         boolean isValidTrustStore;
         boolean isTrustServerCertificate;
+        boolean isValidFipsProvider;
 
         String strError = SQLServerException.getErrString("R_invalidFipsConfig");
 
         isEncryptOn = (TDS.ENCRYPT_ON == con.getRequestedEncryptionLevel());
 
+        // Here different FIPS provider supports different KeyStore type along with different JVM Implementation.
+        isValidFipsProvider = !StringUtils.isEmpty(fipsProvider);
         isValidTrustStoreType = !StringUtils.isEmpty(trustStoreType);
         isValidTrustStore = !StringUtils.isEmpty(trustStoreFileName);
         isTrustServerCertificate = con.trustServerCertificate();
 
-        if (isEncryptOn && !isTrustServerCertificate) {          
+        if (isEncryptOn & !isTrustServerCertificate) {
+            if (logger.isLoggable(Level.FINER))
+                logger.finer(toString() + " Found parameters are encrypt is true & trustServerCertificate false");
+            
             isValid = true;
+
             if (isValidTrustStore) {
-                // In case of valid trust store we need to check TrustStoreType.
-                if (!isValidTrustStoreType) {
-                    isValid = false;               
+                // In case of valid trust store we need to check fipsProvider and TrustStoreType.
+                if (!isValidFipsProvider || !isValidTrustStoreType) {
+                    isValid = false;
+                    strError = SQLServerException.getErrString("R_invalidFipsProviderConfig");
+                    
                     if (logger.isLoggable(Level.FINER))
-                        logger.finer(toString() + "TrustStoreType is required alongside with TrustStore.");
+                        logger.finer(toString() + " FIPS provider & TrustStoreType should pass with TrustStore.");
                 }
+                if (logger.isLoggable(Level.FINER))
+                    logger.finer(toString() + " Found FIPS parameters seems to be valid.");
             }
+        }
+        else {
+            strError = SQLServerException.getErrString("R_invalidFipsEncryptConfig");
         }
 
         if (!isValid) {
@@ -2104,7 +2099,7 @@ final class TDSChannel {
                 con.terminate(SQLServerException.ERROR_SOCKET_TIMEOUT, e.getMessage(), e);
             }
             else {
-                con.terminate(SQLServerException.DRIVER_ERROR_IO_FAILED, e.getMessage(), e);
+                con.terminate(SQLServerException.DRIVER_ERROR_IO_FAILED, e.getMessage());
             }
 
             return 0; // Keep the compiler happy.
@@ -2121,7 +2116,7 @@ final class TDSChannel {
             if (logger.isLoggable(Level.FINER))
                 logger.finer(toString() + " write failed:" + e.getMessage());
 
-            con.terminate(SQLServerException.DRIVER_ERROR_IO_FAILED, e.getMessage(), e);
+            con.terminate(SQLServerException.DRIVER_ERROR_IO_FAILED, e.getMessage());
         }
     }
 
@@ -2133,7 +2128,7 @@ final class TDSChannel {
             if (logger.isLoggable(Level.FINER))
                 logger.finer(toString() + " flush failed:" + e.getMessage());
 
-            con.terminate(SQLServerException.DRIVER_ERROR_IO_FAILED, e.getMessage(), e);
+            con.terminate(SQLServerException.DRIVER_ERROR_IO_FAILED, e.getMessage());
         }
     }
 
@@ -2269,29 +2264,7 @@ final class TDSChannel {
             logMsg.append("\r\n");
         }
 
-        if (packetLogger.isLoggable(Level.FINEST)) {
-            packetLogger.finest(logMsg.toString());
-        }
-    }
-
-    /**
-     * Get the current socket SO_TIMEOUT value.
-     *
-     * @return the current socket timeout value
-     * @throws IOException thrown if the socket timeout cannot be read
-     */
-    final int getNetworkTimeout() throws IOException {
-        return tcpSocket.getSoTimeout();
-    }
-
-    /**
-     * Set the socket SO_TIMEOUT value.
-     *
-     * @param timeout the socket timeout in milliseconds
-     * @throws IOException thrown if the socket timeout cannot be set
-     */
-    final void setNetworkTimeout(int timeout) throws IOException {
-        tcpSocket.setSoTimeout(timeout);
+        packetLogger.finest(logMsg.toString());
     }
 }
 
@@ -2352,7 +2325,7 @@ final class SocketFinder {
 
     // no of threads that finished their socket connection
     // attempts and notified socketFinder about their result
-    private int noOfThreadsThatNotified = 0;
+    private volatile int noOfThreadsThatNotified = 0;
 
     // If valid connected socket is found, selectedSocketInfo.socket will be non-null.
     // If valid connected socketChannel is established for getting a socket, selectedSocketInfo.socketChannel will be non-null
@@ -2438,16 +2411,12 @@ final class SocketFinder {
             // Code reaches here only if MSF = true or (TNIR = true and not TNIR first attempt)
 
             if (logger.isLoggable(Level.FINER)) {
-                StringBuilder loggingString = new StringBuilder(this.toString());
-                loggingString.append(" Total no of InetAddresses: ");
-                loggingString.append(inetAddrs.length);
-                loggingString.append(". They are: ");
-                
+                String loggingString = this.toString() + " Total no of InetAddresses: " + inetAddrs.length + ". They are: ";
                 for (InetAddress inetAddr : inetAddrs) {
-                    loggingString.append(inetAddr.toString() + ";");
+                    loggingString = loggingString + inetAddr.toString() + ";";
                 }
 
-                logger.finer(loggingString.toString());
+                logger.finer(loggingString);
             }
 
             if (inetAddrs.length > ipAddressLimit) {
@@ -2467,8 +2436,8 @@ final class SocketFinder {
                 findSocketUsingJavaNIO(inetAddrs, portNumber, timeoutInMilliSeconds);
             }
             else {
-                LinkedList<Inet4Address> inet4Addrs = new LinkedList<>();
-                LinkedList<Inet6Address> inet6Addrs = new LinkedList<>();
+                LinkedList<Inet4Address> inet4Addrs = new LinkedList<Inet4Address>();
+                LinkedList<Inet6Address> inet6Addrs = new LinkedList<Inet6Address>();
 
                 for (InetAddress inetAddr : inetAddrs) {
                     if (inetAddr instanceof Inet4Address) {
@@ -2547,8 +2516,6 @@ final class SocketFinder {
 
         }
         catch (InterruptedException ex) {
-            // re-interrupt the current thread, in order to restore the thread's interrupt status.
-            Thread.currentThread().interrupt();
             close(selectedSocketInfo.socket);
             SQLServerException.ConvertConnectExceptionToSQLServerException(hostName, portNumber, conn, ex);
         }
@@ -2595,13 +2562,13 @@ final class SocketFinder {
         assert inetAddrs.length != 0 : "Number of inetAddresses should not be zero in this function";
 
         Selector selector = null;
-        LinkedList<SocketChannel> socketChannels = new LinkedList<>();
+        LinkedList<SocketChannel> socketChannels = new LinkedList<SocketChannel>();
         SocketChannel selectedChannel = null;
 
         try {
             selector = Selector.open();
 
-            for (InetAddress inetAddr : inetAddrs) {
+            for (int i = 0; i < inetAddrs.length; i++) {
                 SocketChannel sChannel = SocketChannel.open();
                 socketChannels.add(sChannel);
 
@@ -2612,10 +2579,10 @@ final class SocketFinder {
                 int ops = SelectionKey.OP_CONNECT;
                 SelectionKey key = sChannel.register(selector, ops);
 
-                sChannel.connect(new InetSocketAddress(inetAddr, portNumber));
+                sChannel.connect(new InetSocketAddress(inetAddrs[i], portNumber));
 
                 if (logger.isLoggable(Level.FINER))
-                    logger.finer(this.toString() + " initiated connection to address: " + inetAddr + ", portNumber: " + portNumber);
+                    logger.finer(this.toString() + " initiated connection to address: " + inetAddrs[i] + ", portNumber: " + portNumber);
             }
 
             long timerNow = System.currentTimeMillis();
@@ -2717,8 +2684,9 @@ final class SocketFinder {
             }
         }
 
-        // if a channel was selected, make the necessary updates
+     // if a channel was selected, make the necessary updates
         if (selectedChannel != null) {
+            
             // Note that this must be done after selector is closed. Otherwise,
             // we would get an illegalBlockingMode exception at run time.
             selectedChannel.configureBlocking(true);
@@ -2834,11 +2802,10 @@ final class SocketFinder {
             int portNumber,
             int timeoutInMilliSeconds) throws IOException, InterruptedException {
         assert timeoutInMilliSeconds != 0 : "The timeout cannot be zero";
-        
         assert inetAddrs.isEmpty() == false : "Number of inetAddresses should not be zero in this function";
 
-        LinkedList<Socket> sockets = new LinkedList<>();
-        LinkedList<SocketConnector> socketConnectors = new LinkedList<>();
+        LinkedList<Socket> sockets = new LinkedList<Socket>();
+        LinkedList<SocketConnector> socketConnectors = new LinkedList<SocketConnector>();
 
         try {
 
@@ -3269,7 +3236,7 @@ final class TDSWriter {
     private byte valueBytes[] = new byte[256];
 
     // Monotonically increasing packet number associated with the current message
-    private int packetNum = 0;
+    private volatile int packetNum = 0;
 
     // Bytes for sending decimal/numeric data
     private final static int BYTES4 = 4;
@@ -3434,17 +3401,6 @@ final class TDSWriter {
         }
     }
 
-    /**
-     * writing sqlCollation information for sqlVariant type when sending character types.
-     * 
-     * @param variantType
-     * @throws SQLServerException
-     */
-    void writeCollationForSqlVariant(SqlVariant variantType) throws SQLServerException {
-        writeInt(variantType.getCollation().getCollationInfo());
-        writeByte((byte) (variantType.getCollation().getCollationSortID() & 0xFF));
-    }
-
     void writeChar(char value) throws SQLServerException {
         if (stagingBuffer.remaining() >= 2) {
             stagingBuffer.putChar(value);
@@ -3500,7 +3456,19 @@ final class TDSWriter {
      *            the data value
      */
     void writeReal(Float value) throws SQLServerException {
-        writeInt(Float.floatToRawIntBits(value));
+        if (false) // stagingBuffer.remaining() >= 4)
+        {
+            stagingBuffer.putFloat(value);
+            if (tdsChannel.isLoggingPackets()) {
+                if (dataIsLoggable)
+                    logBuffer.putFloat(value);
+                else
+                    logBuffer.position(logBuffer.position() + 4);
+            }
+        }
+        else {
+            writeInt(Float.floatToRawIntBits(value.floatValue()));
+        }
     }
 
     /**
@@ -3540,99 +3508,72 @@ final class TDSWriter {
      *            the source JDBCType
      * @param precision
      *            the precision of the data value
-     * @param scale
-     *            the scale of the column
-     * @throws SQLServerException
      */
     void writeBigDecimal(BigDecimal bigDecimalVal,
             int srcJdbcType,
-            int precision,
-            int scale) throws SQLServerException {
+            int precision) throws SQLServerException {
         /*
          * Length including sign byte One 1-byte unsigned integer that represents the sign of the decimal value (0 => Negative, 1 => positive) One 4-,
-         * 8-, 12-, or 16-byte signed integer that represents the decimal value multiplied by 10^scale.
-         */
-
-        /*
-         * setScale of all BigDecimal value based on metadata as scale is not sent seperately for individual value. Use the rounding used in Server.
-         * Say, for BigDecimal("0.1"), if scale in metdadata is 0, then ArithmeticException would be thrown if RoundingMode is not set
-         */
-        bigDecimalVal = bigDecimalVal.setScale(scale, RoundingMode.HALF_UP);
-
-        // data length + 1 byte for sign
-        int bLength = BYTES16 + 1;
-        writeByte((byte) (bLength));
-
-        // Byte array to hold all the data and padding bytes.
-        byte[] bytes = new byte[bLength];
-
-        byte[] valueBytes = DDC.convertBigDecimalToBytes(bigDecimalVal, scale);
-        // removing the precision and scale information from the valueBytes array
-        System.arraycopy(valueBytes, 2, bytes, 0, valueBytes.length - 2);
-        writeBytes(bytes);
-    }
-    
-    /**
-     * Append a big decimal inside sql_variant in the TDS stream.
-     * 
-     * @param bigDecimalVal
-     *            the big decimal data value
-     * @param srcJdbcType
-     *            the source JDBCType
-     */
-    void writeSqlVariantInternalBigDecimal(BigDecimal bigDecimalVal,
-            int srcJdbcType) throws SQLServerException {
-        /*
-         * Length including sign byte One 1-byte unsigned integer that represents the sign of the decimal value (0 => Negative, 1 => positive) One
-         * 16-byte signed integer that represents the decimal value multiplied by 10^scale. In sql_variant, we send the bigdecimal with precision 38,
-         * therefore we use 16 bytes for the maximum size of this integer.
+         * 8-, 12-, or 16-byte signed integer that represents the decimal value multiplied by 10^scale. The maximum size of this integer is determined
+         * based on p as follows: 4 bytes if 1 <= p <= 9. 8 bytes if 10 <= p <= 19. 12 bytes if 20 <= p <= 28. 16 bytes if 29 <= p <= 38.
          */
 
         boolean isNegative = (bigDecimalVal.signum() < 0);
         BigInteger bi = bigDecimalVal.unscaledValue();
         if (isNegative)
-        {
             bi = bi.negate();
+        if (9 >= precision) {
+            writeByte((byte) (BYTES4 + 1));
+            writeByte((byte) (isNegative ? 0 : 1));
+            writeInt(bi.intValue());
         }
-        int bLength;
-        bLength = BYTES16;
-
-        writeByte((byte) (isNegative ? 0 : 1));
-
-        // Get the bytes of the BigInteger value. It is in reverse order, with
-        // most significant byte in 0-th element. We need to reverse it first before sending over TDS.
-        byte[] unscaledBytes = bi.toByteArray();
-
-        if (unscaledBytes.length > bLength) {
-            // If precession of input is greater than maximum allowed (p><= 38) throw Exception
-            MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_valueOutOfRange"));
-            Object[] msgArgs = {JDBCType.of(srcJdbcType)};
-            throw new SQLServerException(form.format(msgArgs), SQLState.DATA_EXCEPTION_LENGTH_MISMATCH, DriverError.NOT_SET, null);
+        else if (19 >= precision) {
+            writeByte((byte) (BYTES8 + 1));
+            writeByte((byte) (isNegative ? 0 : 1));
+            writeLong(bi.longValue());
         }
+        else {
+            int bLength;
+            if (28 >= precision)
+                bLength = BYTES12;
+            else
+                bLength = BYTES16;
+            writeByte((byte) (bLength + 1));
+            writeByte((byte) (isNegative ? 0 : 1));
 
-        // Byte array to hold all the reversed and padding bytes.
-        byte[] bytes = new byte[bLength];
+            // Get the bytes of the BigInteger value. It is in reverse order, with
+            // most significant byte in 0-th element. We need to reverse it first before sending over TDS.
+            byte[] unscaledBytes = bi.toByteArray();
 
-        // We need to fill up the rest of the array with zeros, as unscaledBytes may have less bytes
-        // than the required size for TDS.
-        int remaining = bLength - unscaledBytes.length;
+            if (unscaledBytes.length > bLength) {
+                // If precession of input is greater than maximum allowed (p><= 38) throw Exception
+                MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_valueOutOfRange"));
+                Object[] msgArgs = {JDBCType.of(srcJdbcType)};
+                throw new SQLServerException(form.format(msgArgs), SQLState.DATA_EXCEPTION_LENGTH_MISMATCH, DriverError.NOT_SET, null);
+            }
 
-        // Reverse the bytes.
-        int i, j;
-        for (i = 0, j = unscaledBytes.length - 1; i < unscaledBytes.length;)
-            bytes[i++] = unscaledBytes[j--];
+            // Byte array to hold all the reversed and padding bytes.
+            byte[] bytes = new byte[bLength];
 
-        // Fill the rest of the array with zeros.
-        for (; i < remaining; i++)
-        {
-            bytes[i] = (byte) 0x00;
+            // We need to fill up the rest of the array with zeros, as unscaledBytes may have less bytes
+            // than the required size for TDS.
+            int remaining = bLength - unscaledBytes.length;
+
+            // Reverse the bytes.
+            int i, j;
+            for (i = 0, j = unscaledBytes.length - 1; i < unscaledBytes.length;)
+                bytes[i++] = unscaledBytes[j--];
+
+            // Fill the rest of the array with zeros.
+            for (; i < remaining; i++)
+                bytes[i] = (byte) 0x00;
+            writeBytes(bytes);
         }
-        writeBytes(bytes);
     }
 
     void writeSmalldatetime(String value) throws SQLServerException {
         GregorianCalendar calendar = initializeCalender(TimeZone.getDefault());
-        long utcMillis;    // Value to which the calendar is to be set (in milliseconds 1/1/1970 00:00:00 GMT)
+        long utcMillis = 0;    // Value to which the calendar is to be set (in milliseconds 1/1/1970 00:00:00 GMT)
         java.sql.Timestamp timestampValue = java.sql.Timestamp.valueOf(value);
         utcMillis = timestampValue.getTime();
 
@@ -3669,8 +3610,8 @@ final class TDSWriter {
 
     void writeDatetime(String value) throws SQLServerException {
         GregorianCalendar calendar = initializeCalender(TimeZone.getDefault());
-        long utcMillis;    // Value to which the calendar is to be set (in milliseconds 1/1/1970 00:00:00 GMT)
-        int subSecondNanos;
+        long utcMillis = 0;    // Value to which the calendar is to be set (in milliseconds 1/1/1970 00:00:00 GMT)
+        int subSecondNanos = 0;
         java.sql.Timestamp timestampValue = java.sql.Timestamp.valueOf(value);
         utcMillis = timestampValue.getTime();
         subSecondNanos = timestampValue.getNanos();
@@ -3717,7 +3658,7 @@ final class TDSWriter {
 
     void writeDate(String value) throws SQLServerException {
         GregorianCalendar calendar = initializeCalender(TimeZone.getDefault());
-        long utcMillis;
+        long utcMillis = 0;
         java.sql.Date dateValue = java.sql.Date.valueOf(value);
         utcMillis = dateValue.getTime();
 
@@ -3732,8 +3673,8 @@ final class TDSWriter {
     void writeTime(java.sql.Timestamp value,
             int scale) throws SQLServerException {
         GregorianCalendar calendar = initializeCalender(TimeZone.getDefault());
-        long utcMillis;    // Value to which the calendar is to be set (in milliseconds 1/1/1970 00:00:00 GMT)
-        int subSecondNanos;
+        long utcMillis = 0;    // Value to which the calendar is to be set (in milliseconds 1/1/1970 00:00:00 GMT)
+        int subSecondNanos = 0;
         utcMillis = value.getTime();
         subSecondNanos = value.getNanos();
 
@@ -3746,11 +3687,11 @@ final class TDSWriter {
     void writeDateTimeOffset(Object value,
             int scale,
             SSType destSSType) throws SQLServerException {
-        GregorianCalendar calendar;
-        TimeZone timeZone; // Time zone to associate with the value in the Gregorian calendar
-        long utcMillis;    // Value to which the calendar is to be set (in milliseconds 1/1/1970 00:00:00 GMT)
-        int subSecondNanos;
-        int minutesOffset;
+        GregorianCalendar calendar = null;
+        TimeZone timeZone = TimeZone.getDefault(); // Time zone to associate with the value in the Gregorian calendar
+        long utcMillis = 0;    // Value to which the calendar is to be set (in milliseconds 1/1/1970 00:00:00 GMT)
+        int subSecondNanos = 0;
+        int minutesOffset = 0;
 
         microsoft.sql.DateTimeOffset dtoValue = (microsoft.sql.DateTimeOffset) value;
         utcMillis = dtoValue.getTimestamp().getTime();
@@ -3776,10 +3717,10 @@ final class TDSWriter {
 
     void writeOffsetDateTimeWithTimezone(OffsetDateTime offsetDateTimeValue,
             int scale) throws SQLServerException {
-        GregorianCalendar calendar;
+        GregorianCalendar calendar = null;
         TimeZone timeZone;
-        long utcMillis;
-        int subSecondNanos;
+        long utcMillis = 0;
+        int subSecondNanos = 0;
         int minutesOffset = 0;
 
         try {
@@ -3792,7 +3733,7 @@ final class TDSWriter {
             throw new SQLServerException(SQLServerException.getErrString("R_zoneOffsetError"), null, // SQLState is null as this error is generated in
                                                                                                      // the driver
                     0, // Use 0 instead of DriverError.NOT_SET to use the correct constructor
-                    e);
+                    null);
         }
         subSecondNanos = offsetDateTimeValue.getNano();
 
@@ -3832,10 +3773,10 @@ final class TDSWriter {
 
     void writeOffsetTimeWithTimezone(OffsetTime offsetTimeValue,
             int scale) throws SQLServerException {
-        GregorianCalendar calendar;
+        GregorianCalendar calendar = null;
         TimeZone timeZone;
-        long utcMillis;
-        int subSecondNanos;
+        long utcMillis = 0;
+        int subSecondNanos = 0;
         int minutesOffset = 0;
 
         try {
@@ -3848,7 +3789,7 @@ final class TDSWriter {
             throw new SQLServerException(SQLServerException.getErrString("R_zoneOffsetError"), null, // SQLState is null as this error is generated in
                                                                                                      // the driver
                     0, // Use 0 instead of DriverError.NOT_SET to use the correct constructor
-                    e);
+                    null);
         }
         subSecondNanos = offsetTimeValue.getNano();
 
@@ -3950,14 +3891,11 @@ final class TDSWriter {
         // what remains in the current staging buffer. However, the value must
         // be short enough to fit in an empty buffer.
         assert valueLength <= value.length;
-        
-        int remaining = stagingBuffer.remaining();
-        assert remaining < valueLength;
-
+        assert stagingBuffer.remaining() < valueLength;
         assert valueLength <= stagingBuffer.capacity();
 
         // Fill any remaining space in the staging buffer
-        remaining = stagingBuffer.remaining();
+        int remaining = stagingBuffer.remaining();
         if (remaining > 0) {
             stagingBuffer.put(value, 0, remaining);
             if (tdsChannel.isLoggingPackets()) {
@@ -4046,7 +3984,7 @@ final class TDSWriter {
         // the actual stream length did not match then cancel the request.
         if (DataTypes.UNKNOWN_STREAM_LENGTH != advertisedLength && actualLength != advertisedLength) {
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_mismatchedStreamLength"));
-            Object[] msgArgs = {advertisedLength, actualLength};
+            Object[] msgArgs = {Long.valueOf(advertisedLength), Long.valueOf(actualLength)};
             error(form.format(msgArgs), SQLState.DATA_EXCEPTION_LENGTH_MISMATCH, DriverError.NOT_SET);
         }
     }
@@ -4131,10 +4069,10 @@ final class TDSWriter {
         // the actual stream length did not match then cancel the request.
         if (DataTypes.UNKNOWN_STREAM_LENGTH != advertisedLength && actualLength != advertisedLength) {
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_mismatchedStreamLength"));
-            Object[] msgArgs = {advertisedLength, actualLength};
+            Object[] msgArgs = {Long.valueOf(advertisedLength), Long.valueOf(actualLength)};
             error(form.format(msgArgs), SQLState.DATA_EXCEPTION_LENGTH_MISMATCH, DriverError.NOT_SET);
         }
-    }   
+    }
 
     /*
      * Note: There is another method with same code logic for non unicode reader, writeNonUnicodeReader(), implemented for performance efficiency. Any
@@ -4196,13 +4134,13 @@ final class TDSWriter {
         // the actual stream length did not match then cancel the request.
         if (DataTypes.UNKNOWN_STREAM_LENGTH != advertisedLength && actualLength != advertisedLength) {
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_mismatchedStreamLength"));
-            Object[] msgArgs = {advertisedLength, actualLength};
+            Object[] msgArgs = {Long.valueOf(advertisedLength), Long.valueOf(actualLength)};
             error(form.format(msgArgs), SQLState.DATA_EXCEPTION_LENGTH_MISMATCH, DriverError.NOT_SET);
         }
     }
 
     GregorianCalendar initializeCalender(TimeZone timeZone) {
-        GregorianCalendar calendar;
+        GregorianCalendar calendar = null;
 
         // Create the calendar that will hold the value. For DateTimeOffset values, the calendar's
         // time zone is UTC. For other values, the calendar's time zone is a local time zone.
@@ -4418,7 +4356,7 @@ final class TDSWriter {
         }
         else {
             writeByte((byte) 1); // length of datatype
-            writeByte((byte) (booleanValue ? 1 : 0));
+            writeByte((byte) (booleanValue.booleanValue() ? 1 : 0));
         }
     }
 
@@ -4442,7 +4380,7 @@ final class TDSWriter {
         }
         else {
             writeByte((byte) 1); // length of datatype
-            writeByte(byteValue);
+            writeByte(byteValue.byteValue());
         }
     }
 
@@ -4466,7 +4404,7 @@ final class TDSWriter {
         }
         else {
             writeByte((byte) 2); // length of datatype
-            writeShort(shortValue);
+            writeShort(shortValue.shortValue());
         }
     }
 
@@ -4490,7 +4428,7 @@ final class TDSWriter {
         }
         else {
             writeByte((byte) 4); // length of datatype
-            writeInt(intValue);
+            writeInt(intValue.intValue());
         }
     }
 
@@ -4514,7 +4452,7 @@ final class TDSWriter {
         }
         else {
             writeByte((byte) 8); // length of datatype
-            writeLong(longValue);
+            writeLong(longValue.longValue());
         }
     }
 
@@ -4541,19 +4479,7 @@ final class TDSWriter {
         else {
             writeByte((byte) 4); // max length
             writeByte((byte) 4); // actual length
-            writeInt(Float.floatToRawIntBits(floatValue));
-        }
-    }
-
-    void writeRPCSqlVariant(String sName,
-            SqlVariant sqlVariantValue,
-            boolean bOut) throws SQLServerException {
-        writeRPCNameValType(sName, bOut, TDSType.SQL_VARIANT);
-
-        // Data and length
-        if (null == sqlVariantValue) {
-            writeInt(0); // max length
-            writeInt(0); // actual length
+            writeInt(Float.floatToRawIntBits(floatValue.floatValue()));
         }
     }
 
@@ -4581,7 +4507,7 @@ final class TDSWriter {
         }
         else {
             writeByte((byte) l); // len of data bytes
-            long bits = Double.doubleToLongBits(doubleValue);
+            long bits = Double.doubleToLongBits(doubleValue.doubleValue());
             long mask = 0xFF;
             int nShift = 0;
             for (int i = 0; i < 8; i++) {
@@ -4803,58 +4729,14 @@ final class TDSWriter {
     }
 
     void writeTVPRows(TVP value) throws SQLServerException {
-        boolean tdsWritterCached = false;
-        ByteBuffer cachedTVPHeaders = null;
-        TDSCommand cachedCommand = null;
-
-        boolean cachedRequestComplete = false;
-        boolean cachedInterruptsEnabled = false;
-        boolean cachedProcessedResponse = false;
+        boolean isShortValue, isNull;
+        int dataLength;
 
         if (!value.isNull()) {
-
-            // If the preparedStatement and the ResultSet are created by the same connection, and TVP is set with ResultSet and Server Cursor
-            // is used, the tdsWriter of the calling preparedStatement is overwritten by the SQLServerResultSet#next() method when fetching new rows.
-            // Therefore, we need to send TVP data row by row before fetching new row.
-            if (TVPType.ResultSet == value.tvpType) {
-                if ((null != value.sourceResultSet) && (value.sourceResultSet instanceof SQLServerResultSet)) {
-                    SQLServerResultSet sourceResultSet = (SQLServerResultSet) value.sourceResultSet;
-                    SQLServerStatement src_stmt = (SQLServerStatement) sourceResultSet.getStatement();
-                    int resultSetServerCursorId = sourceResultSet.getServerCursorId();
-
-                    if (con.equals(src_stmt.getConnection()) && 0 != resultSetServerCursorId) {
-                        cachedTVPHeaders = ByteBuffer.allocate(stagingBuffer.capacity()).order(stagingBuffer.order());
-                        cachedTVPHeaders.put(stagingBuffer.array(), 0, stagingBuffer.position());
-
-                        cachedCommand = this.command;
-
-                        cachedRequestComplete = command.getRequestComplete();
-                        cachedInterruptsEnabled = command.getInterruptsEnabled();
-                        cachedProcessedResponse = command.getProcessedResponse();
-
-                        tdsWritterCached = true;
-
-                        if (sourceResultSet.isForwardOnly()) {
-                            sourceResultSet.setFetchSize(1);
-                        }
-                    }
-                }
-            }
-
             Map<Integer, SQLServerMetaData> columnMetadata = value.getColumnMetadata();
             Iterator<Entry<Integer, SQLServerMetaData>> columnsIterator;
 
             while (value.next()) {
-
-                // restore command and TDS header, which have been overwritten by value.next()
-                if (tdsWritterCached) {
-                    command = cachedCommand;
-
-                    stagingBuffer.clear();
-                    logBuffer.clear();
-                    writeBytes(cachedTVPHeaders.array(), 0, cachedTVPHeaders.position());
-                }
-
                 Object[] rowData = value.getRowData();
 
                 // ROW
@@ -4883,342 +4765,190 @@ final class TDSWriter {
                             }
                         }
                     }
-                    writeInternalTVPRowValues(jdbcType, currentColumnStringValue, currentObject, columnPair, false);
-                    currentColumn++;
-                }
+                    switch (jdbcType) {
+                        case BIGINT:
+                            if (null == currentColumnStringValue)
+                                writeByte((byte) 0);
+                            else {
+                                writeByte((byte) 8);
+                                writeLong(Long.valueOf(currentColumnStringValue).longValue());
+                            }
+                            break;
 
-                // send this row, read its response (throw exception in case of errors) and reset command status
-                if (tdsWritterCached) {
-                    // TVP_END_TOKEN
-                    writeByte((byte) 0x00);
+                        case BIT:
+                            if (null == currentColumnStringValue)
+                                writeByte((byte) 0);
+                            else {
+                                writeByte((byte) 1);
+                                writeByte((byte) (Boolean.valueOf(currentColumnStringValue).booleanValue() ? 1 : 0));
+                            }
+                            break;
 
-                    writePacket(TDS.STATUS_BIT_EOM);
+                        case INTEGER:
+                            if (null == currentColumnStringValue)
+                                writeByte((byte) 0);
+                            else {
+                                writeByte((byte) 4);
+                                writeInt(Integer.valueOf(currentColumnStringValue).intValue());
+                            }
+                            break;
 
-                    TDSReader tdsReader = tdsChannel.getReader(command);
-                    int tokenType = tdsReader.peekTokenType();
+                        case SMALLINT:
+                        case TINYINT:
+                            if (null == currentColumnStringValue)
+                                writeByte((byte) 0);
+                            else {
+                                writeByte((byte) 2); // length of datatype
+                                writeShort(Short.valueOf(currentColumnStringValue).shortValue());
+                            }
+                            break;
 
-                    if (TDS.TDS_ERR == tokenType) {
-                        StreamError databaseError = new StreamError();
-                        databaseError.setFromTDS(tdsReader);
+                        case DECIMAL:
+                        case NUMERIC:
+                            if (null == currentColumnStringValue)
+                                writeByte((byte) 0);
+                            else {
+                                writeByte((byte) TDSWriter.BIGDECIMAL_MAX_LENGTH); // maximum length
+                                BigDecimal bdValue = new BigDecimal(currentColumnStringValue);
 
-                        SQLServerException.makeFromDatabaseError(con, null, databaseError.getMessage(), databaseError, false);
+                                // setScale of all BigDecimal value based on metadata sent
+                                bdValue = bdValue.setScale(columnPair.getValue().scale);
+                                byte[] valueBytes = DDC.convertBigDecimalToBytes(bdValue, bdValue.scale());
+
+                                // 1-byte for sign and 16-byte for integer
+                                byte[] byteValue = new byte[17];
+
+                                // removing the precision and scale information from the valueBytes array
+                                System.arraycopy(valueBytes, 2, byteValue, 0, valueBytes.length - 2);
+                                writeBytes(byteValue);
+                            }
+                            break;
+
+                        case DOUBLE:
+                            if (null == currentColumnStringValue)
+                                writeByte((byte) 0); // len of data bytes
+                            else {
+                                writeByte((byte) 8); // len of data bytes
+                                long bits = Double.doubleToLongBits(Double.valueOf(currentColumnStringValue).doubleValue());
+                                long mask = 0xFF;
+                                int nShift = 0;
+                                for (int i = 0; i < 8; i++) {
+                                    writeByte((byte) ((bits & mask) >> nShift));
+                                    nShift += 8;
+                                    mask = mask << 8;
+                                }
+                            }
+                            break;
+
+                        case FLOAT:
+                        case REAL:
+                            if (null == currentColumnStringValue)
+                                writeByte((byte) 0); // actual length (0 == null)
+                            else {
+                                writeByte((byte) 4); // actual length
+                                writeInt(Float.floatToRawIntBits(Float.valueOf(currentColumnStringValue).floatValue()));
+                            }
+                            break;
+
+                        case DATE:
+                        case TIME:
+                        case TIMESTAMP:
+                        case DATETIMEOFFSET:
+                        case TIMESTAMP_WITH_TIMEZONE:
+                        case TIME_WITH_TIMEZONE:
+                        case CHAR:
+                        case VARCHAR:
+                        case NCHAR:
+                        case NVARCHAR:
+                            isShortValue = (2 * columnPair.getValue().precision) <= DataTypes.SHORT_VARTYPE_MAX_BYTES;
+                            isNull = (null == currentColumnStringValue);
+                            dataLength = isNull ? 0 : currentColumnStringValue.length() * 2;
+                            if (!isShortValue) {
+                                // check null
+                                if (isNull)
+                                    // Null header for v*max types is 0xFFFFFFFFFFFFFFFF.
+                                    writeLong(0xFFFFFFFFFFFFFFFFL);
+                                else if (DataTypes.UNKNOWN_STREAM_LENGTH == dataLength)
+                                    // Append v*max length.
+                                    // UNKNOWN_PLP_LEN is 0xFFFFFFFFFFFFFFFE
+                                    writeLong(0xFFFFFFFFFFFFFFFEL);
+                                else
+                                    // For v*max types with known length, length is <totallength8><chunklength4>
+                                    writeLong(dataLength);
+                                if (!isNull) {
+                                    if (dataLength > 0) {
+                                        writeInt(dataLength);
+                                        writeString(currentColumnStringValue);
+                                    }
+                                    // Send the terminator PLP chunk.
+                                    writeInt(0);
+                                }
+                            }
+                            else {
+                                if (isNull)
+                                    writeShort((short) -1); // actual len
+                                else {
+                                    writeShort((short) dataLength);
+                                    writeString(currentColumnStringValue);
+                                }
+                            }
+                            break;
+
+                        case BINARY:
+                        case VARBINARY:
+                            // Handle conversions as done in other types.
+                            isShortValue = columnPair.getValue().precision <= DataTypes.SHORT_VARTYPE_MAX_BYTES;
+                            isNull = (null == currentObject);
+                            if (currentObject instanceof String)
+                                dataLength = isNull ? 0 : (toByteArray(currentObject.toString())).length;
+                            else
+                                dataLength = isNull ? 0 : ((byte[]) currentObject).length;
+                            if (!isShortValue) {
+                                // check null
+                                if (isNull)
+                                    // Null header for v*max types is 0xFFFFFFFFFFFFFFFF.
+                                    writeLong(0xFFFFFFFFFFFFFFFFL);
+                                else if (DataTypes.UNKNOWN_STREAM_LENGTH == dataLength)
+                                    // Append v*max length.
+                                    // UNKNOWN_PLP_LEN is 0xFFFFFFFFFFFFFFFE
+                                    writeLong(0xFFFFFFFFFFFFFFFEL);
+                                else
+                                    // For v*max types with known length, length is <totallength8><chunklength4>
+                                    writeLong(dataLength);
+                                if (!isNull) {
+                                    if (dataLength > 0) {
+                                        writeInt(dataLength);
+                                        if (currentObject instanceof String)
+                                            writeBytes(toByteArray(currentObject.toString()));
+                                        else
+                                            writeBytes((byte[]) currentObject);
+                                    }
+                                    // Send the terminator PLP chunk.
+                                    writeInt(0);
+                                }
+                            }
+                            else {
+                                if (isNull)
+                                    writeShort((short) -1); // actual len
+                                else {
+                                    writeShort((short) dataLength);
+                                    if (currentObject instanceof String)
+                                        writeBytes(toByteArray(currentObject.toString()));
+                                    else
+                                        writeBytes((byte[]) currentObject);
+                                }
+                            }
+                            break;
+
+                        default:
+                            assert false : "Unexpected JDBC type " + jdbcType.toString();
                     }
-
-                    command.setInterruptsEnabled(true);
-                    command.setRequestComplete(false);
+                    currentColumn++;
                 }
             }
         }
-
-        // reset command status which have been overwritten
-        if (tdsWritterCached) {
-            command.setRequestComplete(cachedRequestComplete);
-            command.setInterruptsEnabled(cachedInterruptsEnabled);
-            command.setProcessedResponse(cachedProcessedResponse);
-        }
-        else {
-            // TVP_END_TOKEN
-            writeByte((byte) 0x00);
-        }
-    }
-
-    private void writeInternalTVPRowValues(JDBCType jdbcType,
-            String currentColumnStringValue,
-            Object currentObject,
-            Map.Entry<Integer, SQLServerMetaData> columnPair,
-            boolean isSqlVariant) throws SQLServerException {
-        boolean isShortValue, isNull;
-        int dataLength;
-        switch (jdbcType) {
-            case BIGINT:
-                if (null == currentColumnStringValue)
-                    writeByte((byte) 0);
-                else {
-                    if (isSqlVariant) {
-                        writeTVPSqlVariantHeader(10, TDSType.INT8.byteValue(), (byte) 0);
-                    }
-                    else {
-                        writeByte((byte) 8);
-                    }
-                    writeLong(Long.valueOf(currentColumnStringValue).longValue());
-                }
-                break;
-
-            case BIT:
-                if (null == currentColumnStringValue)
-                    writeByte((byte) 0);
-                else {
-                    if (isSqlVariant)
-                        writeTVPSqlVariantHeader(3, TDSType.BIT1.byteValue(), (byte) 0);
-                    else
-                        writeByte((byte) 1);
-                    writeByte((byte) (Boolean.valueOf(currentColumnStringValue).booleanValue() ? 1 : 0));
-                }
-                break;
-
-            case INTEGER:
-                if (null == currentColumnStringValue)
-                    writeByte((byte) 0);
-                else {
-                    if (!isSqlVariant)
-                        writeByte((byte) 4);
-                    else
-                        writeTVPSqlVariantHeader(6, TDSType.INT4.byteValue(), (byte) 0);
-                    writeInt(Integer.valueOf(currentColumnStringValue).intValue());
-                }
-                break;
-
-            case SMALLINT:
-            case TINYINT:
-                if (null == currentColumnStringValue)
-                    writeByte((byte) 0);
-                else {
-                    if (isSqlVariant) {
-                        writeTVPSqlVariantHeader(6, TDSType.INT4.byteValue(), (byte) 0);
-                        writeInt(Integer.valueOf(currentColumnStringValue));
-                    }
-                    else {
-                        writeByte((byte) 2); // length of datatype
-                        writeShort(Short.valueOf(currentColumnStringValue).shortValue());
-                    }
-                }
-                break;
-
-            case DECIMAL:
-            case NUMERIC:
-                if (null == currentColumnStringValue)
-                    writeByte((byte) 0);
-                else {
-                    if (isSqlVariant) {
-                        writeTVPSqlVariantHeader(21, TDSType.DECIMALN.byteValue(), (byte) 2);
-                        writeByte((byte) 38); // scale (byte)variantType.getScale()
-                        writeByte((byte) 4); // scale (byte)variantType.getScale()
-                    }
-                    else {
-                        writeByte((byte) TDSWriter.BIGDECIMAL_MAX_LENGTH); // maximum length
-                    }
-                    BigDecimal bdValue = new BigDecimal(currentColumnStringValue);
-
-                    /*
-                     * setScale of all BigDecimal value based on metadata as scale is not sent seperately for individual value. Use the rounding used
-                     * in Server. Say, for BigDecimal("0.1"), if scale in metdadata is 0, then ArithmeticException would be thrown if RoundingMode is
-                     * not set
-                     */
-                    bdValue = bdValue.setScale(columnPair.getValue().scale, RoundingMode.HALF_UP);
-
-                    byte[] valueBytes = DDC.convertBigDecimalToBytes(bdValue, bdValue.scale());
-
-                    // 1-byte for sign and 16-byte for integer
-                    byte[] byteValue = new byte[17];
-
-                    // removing the precision and scale information from the valueBytes array
-                    System.arraycopy(valueBytes, 2, byteValue, 0, valueBytes.length - 2);
-                    writeBytes(byteValue);
-                }
-                break;
-
-            case DOUBLE:
-                if (null == currentColumnStringValue)
-                    writeByte((byte) 0); // len of data bytes
-                else {
-                    if (isSqlVariant) {
-                        writeTVPSqlVariantHeader(10, TDSType.FLOAT8.byteValue(), (byte) 0);
-                        writeDouble(Double.valueOf(currentColumnStringValue));
-                        break;
-                    }
-                    writeByte((byte) 8); // len of data bytes
-                    long bits = Double.doubleToLongBits(Double.valueOf(currentColumnStringValue).doubleValue());
-                    long mask = 0xFF;
-                    int nShift = 0;
-                    for (int i = 0; i < 8; i++) {
-                        writeByte((byte) ((bits & mask) >> nShift));
-                        nShift += 8;
-                        mask = mask << 8;
-                    }
-                }
-                break;
-
-            case FLOAT:
-            case REAL:
-                if (null == currentColumnStringValue)
-                    writeByte((byte) 0);
-                else {
-                    if (isSqlVariant) {
-                        writeTVPSqlVariantHeader(6, TDSType.FLOAT4.byteValue(), (byte) 0);
-                        writeInt(Float.floatToRawIntBits(Float.valueOf(currentColumnStringValue).floatValue()));
-                    }
-                    else {
-                        writeByte((byte) 4);
-                        writeInt(Float.floatToRawIntBits(Float.valueOf(currentColumnStringValue).floatValue()));
-                    }
-                }
-                break;
-
-            case DATE:
-            case TIME:
-            case TIMESTAMP:
-            case DATETIMEOFFSET:
-            case DATETIME:
-            case SMALLDATETIME:
-            case TIMESTAMP_WITH_TIMEZONE:
-            case TIME_WITH_TIMEZONE:
-            case CHAR:
-            case VARCHAR:
-            case NCHAR:
-            case NVARCHAR:
-            case LONGVARCHAR:
-            case LONGNVARCHAR:
-            case SQLXML:
-                isShortValue = (2L * columnPair.getValue().precision) <= DataTypes.SHORT_VARTYPE_MAX_BYTES;
-                isNull = (null == currentColumnStringValue);
-                dataLength = isNull ? 0 : currentColumnStringValue.length() * 2;
-                if (!isShortValue) {
-                    // check null
-                    if (isNull) {
-                        // Null header for v*max types is 0xFFFFFFFFFFFFFFFF.
-                        writeLong(0xFFFFFFFFFFFFFFFFL);
-                    }
-                    else if (isSqlVariant) {
-                        // for now we send as bigger type, but is sendStringParameterAsUnicoe is set to false we can't send nvarchar
-                        // since we are writing as nvarchar we need to write as tdstype.bigvarchar value because if we
-                        // want to supprot varchar(8000) it becomes as nvarchar, 8000*2 therefore we should send as longvarchar,
-                        // but we cannot send more than 8000 cause sql_variant datatype in sql server does not support it.
-                        // then throw exception if user is sending more than that
-                        if (dataLength > 2 * DataTypes.SHORT_VARTYPE_MAX_BYTES) {
-                            MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidStringValue"));
-                            throw new SQLServerException(null, form.format(new Object[] {}), null, 0, false);
-                        }
-                        int length = currentColumnStringValue.length();
-                        writeTVPSqlVariantHeader(9 + length, TDSType.BIGVARCHAR.byteValue(), (byte) 0x07);
-                        SQLCollation col = con.getDatabaseCollation();
-                        // write collation for sql variant
-                        writeInt(col.getCollationInfo());
-                        writeByte((byte) col.getCollationSortID());
-                        writeShort((short) (length));
-                        writeBytes(currentColumnStringValue.getBytes());
-                        break;
-                    }
-
-                    else if (DataTypes.UNKNOWN_STREAM_LENGTH == dataLength)
-                        // Append v*max length.
-                        // UNKNOWN_PLP_LEN is 0xFFFFFFFFFFFFFFFE
-                        writeLong(0xFFFFFFFFFFFFFFFEL);
-                    else
-                        // For v*max types with known length, length is <totallength8><chunklength4>
-                        writeLong(dataLength);
-                    if (!isNull) {
-                        if (dataLength > 0) {
-                            writeInt(dataLength);
-                            writeString(currentColumnStringValue);
-                        }
-                        // Send the terminator PLP chunk.
-                        writeInt(0);
-                    }
-                }
-                else {
-                    if (isNull)
-                        writeShort((short) -1); // actual len
-                    else {
-                        if (isSqlVariant) {
-                            // for now we send as bigger type, but is sendStringParameterAsUnicoe is set to false we can't send nvarchar
-                            // check for this
-                            int length = currentColumnStringValue.length() * 2;
-                            writeTVPSqlVariantHeader(9 + length, TDSType.NVARCHAR.byteValue(), (byte) 7);
-                            SQLCollation col = con.getDatabaseCollation();
-                            // write collation for sql variant
-                            writeInt(col.getCollationInfo());
-                            writeByte((byte) col.getCollationSortID());
-                            int stringLength = currentColumnStringValue.length();
-                            byte[] typevarlen = new byte[2];
-                            typevarlen[0] = (byte) (2 * stringLength & 0xFF);
-                            typevarlen[1] = (byte) ((2 * stringLength >> 8) & 0xFF);
-                            writeBytes(typevarlen);
-                            writeString(currentColumnStringValue);
-                            break;
-                        }
-                        else {
-                            writeShort((short) dataLength);
-                            writeString(currentColumnStringValue);
-                        }
-                    }
-                }
-                break;
-
-            case BINARY:
-            case VARBINARY:
-            case LONGVARBINARY:
-                // Handle conversions as done in other types.
-                isShortValue = columnPair.getValue().precision <= DataTypes.SHORT_VARTYPE_MAX_BYTES;
-                isNull = (null == currentObject);
-                if (currentObject instanceof String)
-                    dataLength = isNull ? 0 : (toByteArray(currentObject.toString())).length;
-                else
-                    dataLength = isNull ? 0 : ((byte[]) currentObject).length;
-                if (!isShortValue) {
-                    // check null
-                    if (isNull)
-                        // Null header for v*max types is 0xFFFFFFFFFFFFFFFF.
-                        writeLong(0xFFFFFFFFFFFFFFFFL);
-                    else if (DataTypes.UNKNOWN_STREAM_LENGTH == dataLength)
-                        // Append v*max length.
-                        // UNKNOWN_PLP_LEN is 0xFFFFFFFFFFFFFFFE
-                        writeLong(0xFFFFFFFFFFFFFFFEL);
-                    else
-                        // For v*max types with known length, length is <totallength8><chunklength4>
-                        writeLong(dataLength);
-                    if (!isNull) {
-                        if (dataLength > 0) {
-                            writeInt(dataLength);
-                            if (currentObject instanceof String)
-                                writeBytes(toByteArray(currentObject.toString()));
-                            else
-                                writeBytes((byte[]) currentObject);
-                        }
-                        // Send the terminator PLP chunk.
-                        writeInt(0);
-                    }
-                }
-                else {
-                    if (isNull)
-                        writeShort((short) -1); // actual len
-                    else {
-                        writeShort((short) dataLength);
-                        if (currentObject instanceof String)
-                            writeBytes(toByteArray(currentObject.toString()));
-                        else
-                            writeBytes((byte[]) currentObject);
-                    }
-                }
-                break;
-            case SQL_VARIANT:
-                boolean isShiloh = (8 >= con.getServerMajorVersion());
-                if (isShiloh) {
-                    MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_SQLVariantSupport"));
-                    throw new SQLServerException(null, form.format(new Object[] {}), null, 0, false);
-                }
-                JDBCType internalJDBCType;
-                JavaType javaType = JavaType.of(currentObject);
-                internalJDBCType = javaType.getJDBCType(SSType.UNKNOWN, jdbcType);
-                writeInternalTVPRowValues(internalJDBCType, currentColumnStringValue, currentObject, columnPair, true);
-                break;
-            default:
-                assert false : "Unexpected JDBC type " + jdbcType.toString();
-        }
-    }
-
-    /**
-     * writes Header for sql_variant for TVP
-     * @param length
-     * @param tdsType
-     * @param probBytes
-     * @throws SQLServerException
-     */
-    private void writeTVPSqlVariantHeader(int length,
-            byte tdsType,
-            byte probBytes) throws SQLServerException {
-        writeInt(length);
-        writeByte(tdsType);
-        writeByte(probBytes);
+        // TVP_END_TOKEN
+        writeByte((byte) 0x00);
     }
 
     private static byte[] toByteArray(String s) {
@@ -5232,11 +4962,13 @@ final class TDSWriter {
         writeShort((short) value.getTVPColumnCount());
 
         Map<Integer, SQLServerMetaData> columnMetadata = value.getColumnMetadata();
+        Iterator<Entry<Integer, SQLServerMetaData>> columnsIterator = columnMetadata.entrySet().iterator();
         /*
          * TypeColumnMetaData = UserType Flags TYPE_INFO ColName ;
          */
 
-        for (Entry<Integer, SQLServerMetaData> pair : columnMetadata.entrySet()) {
+        while (columnsIterator.hasNext()) {
+            Map.Entry<Integer, SQLServerMetaData> pair = columnsIterator.next();
             JDBCType jdbcType = JDBCType.of(pair.getValue().javaSqlType);
             boolean useServerDefault = pair.getValue().useServerDefault;
             // ULONG ; UserType of column
@@ -5297,26 +5029,22 @@ final class TDSWriter {
                 case TIME:
                 case TIMESTAMP:
                 case DATETIMEOFFSET:
-                case DATETIME:
-                case SMALLDATETIME:
                 case TIMESTAMP_WITH_TIMEZONE:
                 case TIME_WITH_TIMEZONE:
                 case CHAR:
                 case VARCHAR:
                 case NCHAR:
                 case NVARCHAR:
-                case LONGVARCHAR:
-                case LONGNVARCHAR:
-                case SQLXML:
                     writeByte(TDSType.NVARCHAR.byteValue());
-                    isShortValue = (2L * pair.getValue().precision) <= DataTypes.SHORT_VARTYPE_MAX_BYTES;
+                    isShortValue = (2 * pair.getValue().precision) <= DataTypes.SHORT_VARTYPE_MAX_BYTES;
                     // Use PLP encoding on Yukon and later with long values
-                    if (!isShortValue)    // PLP
+                    if (!isShortValue)	// PLP
                     {
                         // Handle Yukon v*max type header here.
                         writeShort((short) 0xFFFF);
                         con.getDatabaseCollation().writeCollation(this);
-                    } else    // non PLP
+                    }
+                    else	// non PLP
                     {
                         writeShort((short) DataTypes.SHORT_VARTYPE_MAX_BYTES);
                         con.getDatabaseCollation().writeCollation(this);
@@ -5326,20 +5054,14 @@ final class TDSWriter {
 
                 case BINARY:
                 case VARBINARY:
-                case LONGVARBINARY:
                     writeByte(TDSType.BIGVARBINARY.byteValue());
                     isShortValue = pair.getValue().precision <= DataTypes.SHORT_VARTYPE_MAX_BYTES;
                     // Use PLP encoding on Yukon and later with long values
-                    if (!isShortValue)    // PLP
+                    if (!isShortValue)	// PLP
                         // Handle Yukon v*max type header here.
                         writeShort((short) 0xFFFF);
-                    else    // non PLP
+                    else	// non PLP
                         writeShort((short) DataTypes.SHORT_VARTYPE_MAX_BYTES);
-                    break;
-                case SQL_VARIANT:
-                    writeByte(TDSType.SQL_VARIANT.byteValue());
-                    writeInt(TDS.SQL_VARIANT_LENGTH);// write length of sql variant 8009
-
                     break;
 
                 default:
@@ -5360,7 +5082,7 @@ final class TDSWriter {
 
         Map<Integer, SQLServerMetaData> columnMetadata = value.getColumnMetadata();
         Iterator<Entry<Integer, SQLServerMetaData>> columnsIterator = columnMetadata.entrySet().iterator();
-        LinkedList<TdsOrderUnique> columnList = new LinkedList<>();
+        LinkedList<TdsOrderUnique> columnList = new LinkedList<TdsOrderUnique>();
 
         while (columnsIterator.hasNext()) {
             byte flags = 0;
@@ -5586,7 +5308,7 @@ final class TDSWriter {
             int subSecondNanos,
             boolean bOut) throws SQLServerException {
         assert (subSecondNanos >= 0) && (subSecondNanos < Nanos.PER_SECOND) : "Invalid subNanoSeconds value: " + subSecondNanos;
-        assert (cal != null) || (subSecondNanos == 0) : "Invalid subNanoSeconds value when calendar is null: " + subSecondNanos;
+        assert (cal != null) || (cal == null && subSecondNanos == 0) : "Invalid subNanoSeconds value when calendar is null: " + subSecondNanos;
 
         writeRPCNameValType(sName, bOut, TDSType.DATETIMEN);
         writeByte((byte) 8); // max length of datatype
@@ -5726,7 +5448,7 @@ final class TDSWriter {
             boolean bOut,
             JDBCType jdbcType) throws SQLServerException {
         assert (subSecondNanos >= 0) && (subSecondNanos < Nanos.PER_SECOND) : "Invalid subNanoSeconds value: " + subSecondNanos;
-        assert (cal != null) || (subSecondNanos == 0) : "Invalid subNanoSeconds value when calendar is null: " + subSecondNanos;
+        assert (cal != null) || (cal == null && subSecondNanos == 0) : "Invalid subNanoSeconds value when calendar is null: " + subSecondNanos;
 
         writeRPCNameValType(sName, bOut, TDSType.BIGVARBINARY);
 
@@ -5907,7 +5629,6 @@ final class TDSWriter {
 
         writeShort((short) minutesOffset);
     }
-
 
     /**
      * Returns subSecondNanos rounded to the maximum precision supported. The maximum fractional scale is MAX_FRACTIONAL_SECONDS_SCALE(7). Eg1: if you
@@ -6346,7 +6067,7 @@ final class TDSWriter {
 
                 if (streamLength >= maxStreamLength) {
                     MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidLength"));
-                    Object[] msgArgs = {streamLength};
+                    Object[] msgArgs = {Long.valueOf(streamLength)};
                     SQLServerException.makeFromDriverError(null, null, form.format(msgArgs), "", true);
                 }
 
@@ -6710,10 +6431,7 @@ final class TDSReader {
 
         // Make header size is properly bounded and compute length of the packet payload.
         if (packetLength < TDS.PACKET_HEADER_SIZE || packetLength > con.getTDSPacketSize()) {
-            if (logger.isLoggable(Level.WARNING)) {
-                logger.warning(
-                        toString() + " TDS header contained invalid packet length:" + packetLength + "; packet size:" + con.getTDSPacketSize());
-            }
+            logger.warning(toString() + " TDS header contained invalid packet length:" + packetLength + "; packet size:" + con.getTDSPacketSize());
             throwInvalidTDS();
         }
 
@@ -6832,6 +6550,9 @@ final class TDSReader {
             return value;
         }
 
+        // as per TDS protocol, TDS_DONE packet should always be followed by status flag
+        // throw exception if status packet is not available
+        throwInvalidTDS();
         return 0;
     }
 
@@ -6968,9 +6689,7 @@ final class TDSReader {
             JDBCType jdbcType,
             StreamType streamType) throws SQLServerException {
         if (valueLength > valueBytes.length) {
-            if (logger.isLoggable(Level.WARNING)) {
-                logger.warning(toString() + " Invalid value length:" + valueLength);
-            }
+            logger.warning(toString() + " Invalid value length:" + valueLength);
             throwInvalidTDS();
         }
 
@@ -7336,28 +7055,19 @@ final class TimeoutTimer implements Runnable {
     private final int timeoutSeconds;
     private final TDSCommand command;
     private volatile Future<?> task;
-
+    
     private static final ExecutorService executor = Executors.newCachedThreadPool(new ThreadFactory() {
-        private final AtomicReference<ThreadGroup> tgr = new AtomicReference<>();
+        private final ThreadGroup tg = new ThreadGroup(threadGroupName);
+        private final String threadNamePrefix = tg.getName() + "-";
         private final AtomicInteger threadNumber = new AtomicInteger(0);
-
         @Override
-        public Thread newThread(Runnable r)
-        {
-            ThreadGroup tg = tgr.get();
-
-            if (tg == null || tg.isDestroyed())
-            {
-                tg = new ThreadGroup(threadGroupName);
-                tgr.set(tg);
-            }
-
-            Thread t = new Thread(tg, r, tg.getName() + "-" + threadNumber.incrementAndGet());
+        public Thread newThread(Runnable r) {
+            Thread t = new Thread(tg, r, threadNamePrefix + threadNumber.incrementAndGet());
             t.setDaemon(true);
             return t;
         }
     });
-
+    
     private volatile boolean canceled = false;
 
     TimeoutTimer(int timeoutSeconds,
@@ -7378,7 +7088,7 @@ final class TimeoutTimer implements Runnable {
         canceled = true;
     }
 
-    public void run() {
+    public void run() { 
         int secondsRemaining = timeoutSeconds;
         try {
             // Poll every second while time is left on the timer.
@@ -7392,8 +7102,6 @@ final class TimeoutTimer implements Runnable {
             while (--secondsRemaining > 0);
         }
         catch (InterruptedException e) {
-            // re-interrupt the current thread, in order to restore the thread's interrupt status.
-            Thread.currentThread().interrupt();
             return;
         }
 
@@ -7473,10 +7181,6 @@ abstract class TDSCommand {
     // Volatile ensures visibility to execution thread and interrupt thread
     private volatile TDSWriter tdsWriter;
     private volatile TDSReader tdsReader;
-    
-    protected TDSWriter getTDSWriter(){
-        return tdsWriter;
-    }
 
     // Lock to ensure atomicity when manipulating more than one of the following
     // shared interrupt state variables below.
@@ -7488,16 +7192,6 @@ abstract class TDSCommand {
     // If the command is interrupted after interrupts have been disabled, then the
     // interrupt is ignored.
     private volatile boolean interruptsEnabled = false;
-
-    protected boolean getInterruptsEnabled() {
-        return interruptsEnabled;
-    }
-
-    protected void setInterruptsEnabled(boolean interruptsEnabled) {
-        synchronized (interruptLock) {
-            this.interruptsEnabled = interruptsEnabled;
-        }
-    }
 
     // Flag set to indicate that an interrupt has happened.
     private volatile boolean wasInterrupted = false;
@@ -7515,16 +7209,6 @@ abstract class TDSCommand {
     // After the request is complete, the interrupting thread must send the attention signal.
     private volatile boolean requestComplete;
 
-    protected boolean getRequestComplete() {
-        return requestComplete;
-    }
-
-    protected void setRequestComplete(boolean requestComplete) {
-        synchronized (interruptLock) {
-            this.requestComplete = requestComplete;
-        }
-    }
-
     // Flag set when an attention signal has been sent to the server, indicating that a
     // TDS packet containing the attention ack message is to be expected in the response.
     // This flag is cleared after the attention ack message has been received and processed.
@@ -7538,16 +7222,6 @@ abstract class TDSCommand {
     // there may be unprocessed information left in the response, such as transaction
     // ENVCHANGE notifications.
     private volatile boolean processedResponse;
-
-    protected boolean getProcessedResponse() {
-        return processedResponse;
-    }
-
-    protected void setProcessedResponse(boolean processedResponse) {
-        synchronized (interruptLock) {
-            this.processedResponse = processedResponse;
-        }
-    }
 
     // Flag set when this command's response is ready to be read from the server and cleared
     // after its response has been received, but not necessarily processed, up to and including
@@ -7696,9 +7370,7 @@ abstract class TDSCommand {
             // then assume that no attention ack is forthcoming from the server and
             // terminate the connection to prevent any other command from executing.
             if (attentionPending) {
-                if (logger.isLoggable(Level.SEVERE)) {
-                    logger.severe(this.toString() + ": expected attn ack missing or not processed; terminating connection...");
-                }
+                logger.severe(this + ": expected attn ack missing or not processed; terminating connection...");
 
                 try {
                     tdsReader.throwInvalidTDS();
@@ -8028,8 +7700,6 @@ abstract class UninterruptableTDSCommand extends TDSCommand {
     final void interrupt(String reason) throws SQLServerException {
         // Interrupting an uninterruptable command is a no-op. That is,
         // it can happen, but it should have no effect.
-        if (logger.isLoggable(Level.FINEST)) {
-            logger.finest(toString() + " Ignoring interrupt of uninterruptable TDS command; Reason:" + reason);
-        }
+        logger.finest(toString() + " Ignoring interrupt of uninterruptable TDS command; Reason:" + reason);
     }
 }

@@ -171,6 +171,7 @@ class SQLServerSecurityUtility {
         assert null != cipherAlgorithm : "Cipher algorithm cannot be null in DecryptSymmetricKey";
         md.cipherAlgorithm = cipherAlgorithm;
         md.encryptionKeyInfo = encryptionkeyInfoChosen;
+        return;
     }
 
     /*

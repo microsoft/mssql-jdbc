@@ -21,12 +21,12 @@ public final class SQLServerNClob extends SQLServerClobBase implements NClob {
     private static final Logger logger = Logger.getLogger("com.microsoft.sqlserver.jdbc.internals.SQLServerNClob");
 
     SQLServerNClob(SQLServerConnection connection) {
-        super(connection, "", connection.getDatabaseCollation(), logger, null);
+        super(connection, "", connection.getDatabaseCollation(), logger);
     }
 
     SQLServerNClob(BaseInputStream stream,
             TypeInfo typeInfo) throws SQLServerException, UnsupportedEncodingException {
-        super(null, stream, typeInfo.getSQLCollation(), logger , typeInfo);
+        super(null, new String(stream.getBytes(), typeInfo.getCharset()), typeInfo.getSQLCollation(), logger);
     }
 
     final JDBCType getJdbcType() {

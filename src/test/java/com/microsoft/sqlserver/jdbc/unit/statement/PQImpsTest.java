@@ -8,8 +8,8 @@
 package com.microsoft.sqlserver.jdbc.unit.statement;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.sql.DriverManager;
 import java.sql.ParameterMetaData;
@@ -27,10 +27,8 @@ import org.junit.runner.RunWith;
 
 import com.microsoft.sqlserver.jdbc.SQLServerConnection;
 import com.microsoft.sqlserver.jdbc.SQLServerException;
-import com.microsoft.sqlserver.jdbc.SQLServerParameterMetaData;
 import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
 import com.microsoft.sqlserver.testframework.AbstractTest;
-import com.microsoft.sqlserver.testframework.Utils;
 import com.microsoft.sqlserver.testframework.util.RandomUtil;
 
 /**
@@ -53,15 +51,12 @@ public class PQImpsTest extends AbstractTest {
     private static String mergeNameDesTable = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("mergeNameDesTable_DB"));
     private static String numericTable = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("numericTable_DB"));
     private static String charTable = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("charTable_DB"));
-    private static String charTable2 = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("charTable2_DB"));
     private static String binaryTable = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("binaryTable_DB"));
     private static String dateAndTimeTable = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("dateAndTimeTable_DB"));
     private static String multipleTypesTable = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("multipleTypesTable_DB"));
-    private static String spaceTable = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("spaceTable_DB"));
 
     /**
      * Setup
-     * 
      * @throws SQLException
      */
     @BeforeAll
@@ -72,17 +67,14 @@ public class PQImpsTest extends AbstractTest {
         createMultipleTypesTable();
         createNumericTable();
         createCharTable();
-        createChar2Table();
         createBinaryTable();
         createDateAndTimeTable();
         createTablesForCompexQueries();
-        createSpaceTable();
         populateTablesForCompexQueries();
     }
 
     /**
      * Numeric types test
-     * 
      * @throws SQLException
      */
     @Test
@@ -110,7 +102,6 @@ public class PQImpsTest extends AbstractTest {
 
     /**
      * Char types test
-     * 
      * @throws SQLException
      */
     @Test
@@ -138,7 +129,6 @@ public class PQImpsTest extends AbstractTest {
 
     /**
      * Binary types test
-     * 
      * @throws SQLException
      */
     @Test
@@ -167,7 +157,6 @@ public class PQImpsTest extends AbstractTest {
 
     /**
      * Temporal types test
-     * 
      * @throws SQLException
      */
     @Test
@@ -196,7 +185,6 @@ public class PQImpsTest extends AbstractTest {
 
     /**
      * Multiple Types table
-     * 
      * @throws Exception
      */
     @Test
@@ -425,15 +413,6 @@ public class PQImpsTest extends AbstractTest {
 
         stmt.execute("Create table " + charTable + " (" + "c1 char(50) not null," + "c2 varchar(20) not null," + "c3 nchar(30) not null,"
                 + "c4 nvarchar(60) not null," + "c5 text not null," + "c6 ntext not null" + ")");
-    }
-
-    private static void createSpaceTable() throws SQLException {
-        stmt.execute("Create table " + spaceTable + " (" + "[c1*/someString withspace] char(50) not null," + "c2 varchar(20) not null,"
-                + "c3 nchar(30) not null," + "c4 nvarchar(60) not null," + "c5 text not null," + "c6 ntext not null" + ")");
-    }
-
-    private static void createChar2Table() throws SQLException {
-        stmt.execute("Create table " + charTable2 + " (" + "table2c1 char(50) not null)");
     }
 
     private static void populateCharTable() throws SQLException {
@@ -728,7 +707,6 @@ public class PQImpsTest extends AbstractTest {
 
     /**
      * Test subquery
-     * 
      * @throws SQLException
      */
     @Test
@@ -758,7 +736,6 @@ public class PQImpsTest extends AbstractTest {
 
     /**
      * Test join
-     * 
      * @throws SQLException
      */
     @Test
@@ -789,8 +766,7 @@ public class PQImpsTest extends AbstractTest {
     }
 
     /**
-     * Test merge
-     * 
+     * Test merge 
      * @throws SQLException
      */
     @Test
@@ -989,7 +965,6 @@ public class PQImpsTest extends AbstractTest {
 
     /**
      * Test Orderby
-     * 
      * @throws SQLException
      */
     @Test
@@ -1019,7 +994,6 @@ public class PQImpsTest extends AbstractTest {
 
     /**
      * Test Groupby
-     * 
      * @throws SQLException
      */
     @Test
@@ -1049,7 +1023,6 @@ public class PQImpsTest extends AbstractTest {
 
     /**
      * Test Lower
-     * 
      * @throws SQLException
      */
     @Test
@@ -1078,7 +1051,6 @@ public class PQImpsTest extends AbstractTest {
 
     /**
      * Test Power
-     * 
      * @throws SQLException
      */
     @Test
@@ -1106,7 +1078,6 @@ public class PQImpsTest extends AbstractTest {
 
     /**
      * All in one queries
-     * 
      * @throws SQLException
      */
     @Test
@@ -1139,259 +1110,19 @@ public class PQImpsTest extends AbstractTest {
     }
 
     /**
-     * test query with simple multiple line comments
-     * 
-     * @throws SQLException
-     */
-    @Test
-    public void testQueryWithMultipleLineComments1() throws SQLException {
-        pstmt = connection.prepareStatement("/*te\nst*//*test*/select top 100 c1 from " + charTable + " where c1 = ?");
-        pstmt.setString(1, "abc");
-
-        try {
-            pstmt.getParameterMetaData();
-            pstmt.executeQuery();
-        }
-        catch (Exception e) {
-            fail(e.toString());
-        }
-    }
-
-    /**
-     * test query with complex multiple line comments
-     * 
-     * @throws SQLException
-     */
-    @Test
-    public void testQueryWithMultipleLineComments2() throws SQLException {
-        pstmt = connection
-                .prepareStatement("/*/*te\nst*/ te/*test*/st /*te\nst*/*//*te/*test*/st*/select top 100 c1 from " + charTable + " where c1 = ?");
-        pstmt.setString(1, "abc");
-
-        try {
-            pstmt.getParameterMetaData();
-            pstmt.executeQuery();
-        }
-        catch (Exception e) {
-            fail(e.toString());
-        }
-    }
-
-    /**
-     * test insertion query with multiple line comments
-     * 
-     * @throws SQLException
-     */
-    @Test
-    public void testQueryWithMultipleLineCommentsInsert() throws SQLException {
-        pstmt = connection.prepareStatement("/*te\nst*//*test*/insert /*test*/into " + charTable + " (c1) VALUES(?)");
-
-        try {
-            pstmt.getParameterMetaData();
-        }
-        catch (Exception e) {
-            fail(e.toString());
-        }
-    }
-
-    /**
-     * test update query with multiple line comments
-     * 
-     * @throws SQLException
-     */
-    @Test
-    public void testQueryWithMultipleLineCommentsUpdate() throws SQLException {
-        pstmt = connection.prepareStatement("/*te\nst*//*test*/update /*test*/" + charTable + " set c1=123 where c1=?");
-
-        try {
-            pstmt.getParameterMetaData();
-        }
-        catch (Exception e) {
-            fail(e.toString());
-        }
-    }
-
-    /**
-     * test deletion query with multiple line comments
-     * 
-     * @throws SQLException
-     */
-    @Test
-    public void testQueryWithMultipleLineCommentsDeletion() throws SQLException {
-        pstmt = connection.prepareStatement("/*te\nst*//*test*/delete /*test*/from " + charTable + " where c1=?");
-
-        try {
-            pstmt.getParameterMetaData();
-        }
-        catch (Exception e) {
-            fail(e.toString());
-        }
-    }
-
-    /**
-     * test query with single line comments
-     * 
-     * @throws SQLException
-     */
-    @Test
-    public void testQueryWithSingleLineComments1() throws SQLException {
-        pstmt = connection.prepareStatement("-- #test \n select top 100 c1 from " + charTable + " where c1 = ?");
-        pstmt.setString(1, "abc");
-
-        try {
-            pstmt.getParameterMetaData();
-            pstmt.executeQuery();
-        }
-        catch (Exception e) {
-            fail(e.toString());
-        }
-    }
-
-    /**
-     * test query with single line comments
-     * 
-     * @throws SQLException
-     */
-    @Test
-    public void testQueryWithSingleLineComments2() throws SQLException {
-        pstmt = connection.prepareStatement("--#test\nselect top 100 c1 from " + charTable + " where c1 = ?");
-        pstmt.setString(1, "abc");
-
-        try {
-            pstmt.getParameterMetaData();
-            pstmt.executeQuery();
-        }
-        catch (Exception e) {
-            fail(e.toString());
-        }
-    }
-
-    /**
-     * test query with single line comment
-     * 
-     * @throws SQLException
-     */
-    @Test
-    public void testQueryWithSingleLineComments3() throws SQLException {
-        pstmt = connection.prepareStatement("select top 100 c1\nfrom " + charTable + " where c1 = ?");
-        pstmt.setString(1, "abc");
-
-        try {
-            pstmt.getParameterMetaData();
-            pstmt.executeQuery();
-        }
-        catch (Exception e) {
-            fail(e.toString());
-        }
-    }
-
-    /**
-     * test insertion query with single line comments
-     * 
-     * @throws SQLException
-     */
-    @Test
-    public void testQueryWithSingleLineCommentsInsert() throws SQLException {
-        pstmt = connection.prepareStatement("--#test\ninsert /*test*/into " + charTable + " (c1) VALUES(?)");
-
-        try {
-            pstmt.getParameterMetaData();
-        }
-        catch (Exception e) {
-            fail(e.toString());
-        }
-    }
-
-    /**
-     * test update query with single line comments
-     * 
-     * @throws SQLException
-     */
-    @Test
-    public void testQueryWithSingleLineCommentsUpdate() throws SQLException {
-        pstmt = connection.prepareStatement("--#test\nupdate /*test*/" + charTable + " set c1=123 where c1=?");
-
-        try {
-            pstmt.getParameterMetaData();
-        }
-        catch (Exception e) {
-            fail(e.toString());
-        }
-    }
-
-    /**
-     * test deletion query with single line comments
-     * 
-     * @throws SQLException
-     */
-    @Test
-    public void testQueryWithSingleLineCommentsDeletion() throws SQLException {
-        pstmt = connection.prepareStatement("--#test\ndelete /*test*/from " + charTable + " where c1=?");
-
-        try {
-            pstmt.getParameterMetaData();
-        }
-        catch (Exception e) {
-            fail(e.toString());
-        }
-    }
-
-    /**
-     * test column name with end comment mark and space
-     * 
-     * @throws SQLServerException
-     */
-    @Test
-    public void testQueryWithSpaceAndEndCommentMarkInColumnName() throws SQLServerException {
-        pstmt = connection.prepareStatement("SELECT [c1*/someString withspace] from " + spaceTable);
-
-        try {
-            pstmt.getParameterMetaData();
-        }
-        catch (Exception e) {
-            fail(e.toString());
-        }
-    }
-
-    /**
-     * test getting parameter count with a complex query with multiple table
-     * 
-     * @throws SQLServerException
-     */
-    @Test
-    public void testComplexQueryWithMultipleTables() throws SQLServerException {
-        pstmt = connection.prepareStatement(
-                "insert into " + charTable + " (c1) select ? where not exists (select * from " + charTable2 + " where table2c1 = ?)");
-
-        try {
-            SQLServerParameterMetaData pMD = (SQLServerParameterMetaData) pstmt.getParameterMetaData();
-            int parameterCount = pMD.getParameterCount();
-
-            assertTrue(2 == parameterCount, "Parameter Count should be 2.");
-        }
-        catch (Exception e) {
-            fail(e.toString());
-        }
-    }
-
-    /**
      * Cleanup
-     * 
      * @throws SQLException
      */
     @AfterAll
     public static void dropTables() throws SQLException {
-        Utils.dropTableIfExists(nameTable, stmt);
-        Utils.dropTableIfExists(phoneNumberTable, stmt);
-        Utils.dropTableIfExists(mergeNameDesTable, stmt);
-        Utils.dropTableIfExists(numericTable, stmt);
-        Utils.dropTableIfExists(phoneNumberTable, stmt);
-        Utils.dropTableIfExists(charTable, stmt);
-        Utils.dropTableIfExists(charTable2, stmt);
-        Utils.dropTableIfExists(binaryTable, stmt);
-        Utils.dropTableIfExists(dateAndTimeTable, stmt);
-        Utils.dropTableIfExists(multipleTypesTable, stmt);
-        Utils.dropTableIfExists(spaceTable, stmt);
+        stmt.execute("if object_id('" + nameTable + "','U') is not null" + " drop table " + nameTable);
+        stmt.execute("if object_id('" + phoneNumberTable + "','U') is not null" + " drop table " + phoneNumberTable);
+        stmt.execute("if object_id('" + mergeNameDesTable + "','U') is not null" + " drop table " + mergeNameDesTable);
+        stmt.execute("if object_id('" + numericTable + "','U') is not null" + " drop table " + numericTable);
+        stmt.execute("if object_id('" + charTable + "','U') is not null" + " drop table " + charTable);
+        stmt.execute("if object_id('" + binaryTable + "','U') is not null" + " drop table " + binaryTable);
+        stmt.execute("if object_id('" + dateAndTimeTable + "','U') is not null" + " drop table " + dateAndTimeTable);
+        stmt.execute("if object_id('" + multipleTypesTable + "','U') is not null" + " drop table " + multipleTypesTable);
 
         if (null != rs) {
             rs.close();

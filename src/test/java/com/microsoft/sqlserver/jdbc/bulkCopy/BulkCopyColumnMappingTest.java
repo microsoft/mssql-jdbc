@@ -26,7 +26,6 @@ import com.microsoft.sqlserver.testframework.DBResultSet;
 import com.microsoft.sqlserver.testframework.DBStatement;
 import com.microsoft.sqlserver.testframework.DBTable;
 import com.microsoft.sqlserver.testframework.sqlType.SqlType;
-import com.microsoft.sqlserver.testframework.util.ComparisonUtil;
 
 /**
  * Test BulkCopy Column Mapping
@@ -332,32 +331,31 @@ public class BulkCopyColumnMappingTest extends BulkCopyTestSetUp {
     private void validateValuesRepetativeCM(DBConnection con,
             DBTable sourceTable,
             DBTable destinationTable) throws SQLException {
-        try(DBStatement srcStmt = con.createStatement();
-	        DBStatement dstStmt = con.createStatement();
-	        DBResultSet srcResultSet = srcStmt.executeQuery("SELECT * FROM " + sourceTable.getEscapedTableName() + ";");
-	        DBResultSet dstResultSet = dstStmt.executeQuery("SELECT * FROM " + destinationTable.getEscapedTableName() + ";")) {
-	        ResultSetMetaData sourceMeta = ((ResultSet) srcResultSet.product()).getMetaData();
-	        int totalColumns = sourceMeta.getColumnCount();
-	
-	        // verify data from sourceType and resultSet
-	        while (srcResultSet.next() && dstResultSet.next()) {
-	            for (int i = 1; i <= totalColumns; i++) {
-	                // TODO: check row and column count in both the tables
-	
-	                Object srcValue, dstValue;
-	                srcValue = srcResultSet.getObject(i);
-	                dstValue = dstResultSet.getObject(i);
-	                ComparisonUtil.compareExpectedAndActual(sourceMeta.getColumnType(i), srcValue, dstValue);
-	
-	                // compare value of first column of source with extra column in destination
-	                if (1 == i) {
-	                    Object srcValueFirstCol = srcResultSet.getObject(i);
-	                    Object dstValLastCol = dstResultSet.getObject(totalColumns + 1);
-	                    ComparisonUtil.compareExpectedAndActual(sourceMeta.getColumnType(i), srcValueFirstCol, dstValLastCol);
-	                }
-	            }
-	        }
-        }
+        DBStatement srcStmt = con.createStatement();
+        DBStatement dstStmt = con.createStatement();
+        DBResultSet srcResultSet = srcStmt.executeQuery("SELECT * FROM " + sourceTable.getEscapedTableName() + ";");
+        DBResultSet dstResultSet = dstStmt.executeQuery("SELECT * FROM " + destinationTable.getEscapedTableName() + ";");
+        ResultSetMetaData sourceMeta = ((ResultSet) srcResultSet.product()).getMetaData();
+        int totalColumns = sourceMeta.getColumnCount();
+
+        // verify data from sourceType and resultSet
+        while (srcResultSet.next() && dstResultSet.next())
+            for (int i = 1; i <= totalColumns; i++) {
+                // TODO: check row and column count in both the tables
+
+                Object srcValue, dstValue;
+                srcValue = srcResultSet.getObject(i);
+                dstValue = dstResultSet.getObject(i);
+                BulkCopyTestUtil.comapreSourceDest(sourceMeta.getColumnType(i), srcValue, dstValue);
+
+                // compare value of first column of source with extra column in destination
+                if (1 == i) {
+                    Object srcValueFirstCol = srcResultSet.getObject(i);
+                    Object dstValLastCol = dstResultSet.getObject(totalColumns + 1);
+                    BulkCopyTestUtil.comapreSourceDest(sourceMeta.getColumnType(i), srcValueFirstCol, dstValLastCol);
+                }
+            }
+
     }
 
     private void dropTable(String tableName) {

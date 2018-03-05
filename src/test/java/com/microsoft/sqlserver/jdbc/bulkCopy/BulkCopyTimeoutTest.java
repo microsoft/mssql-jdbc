@@ -38,7 +38,13 @@ public class BulkCopyTimeoutTest extends BulkCopyTestSetUp {
     @Test
     @DisplayName("BulkCopy:test zero timeout")
     void testZeroTimeOut() throws SQLServerException {
-        testBulkCopyWithTimeout(0);
+        BulkCopyTestWrapper bulkWrapper = new BulkCopyTestWrapper(connectionString);
+        bulkWrapper.setUsingConnection((0 == ThreadLocalRandom.current().nextInt(2)) ? true : false);
+        SQLServerBulkCopyOptions option = new SQLServerBulkCopyOptions();
+        option.setBulkCopyTimeout(0);
+        bulkWrapper.useBulkCopyOptions(true);
+        bulkWrapper.setBulkOptions(option);
+        BulkCopyTestUtil.performBulkCopy(bulkWrapper, sourceTable, false);
     }
 
     /**
@@ -52,18 +58,14 @@ public class BulkCopyTimeoutTest extends BulkCopyTestSetUp {
         assertThrows(SQLServerException.class, new org.junit.jupiter.api.function.Executable() {
             @Override
             public void execute() throws SQLServerException {
-                testBulkCopyWithTimeout(-1);
+                BulkCopyTestWrapper bulkWrapper = new BulkCopyTestWrapper(connectionString);
+                bulkWrapper.setUsingConnection((0 == ThreadLocalRandom.current().nextInt(2)) ? true : false);
+                SQLServerBulkCopyOptions option = new SQLServerBulkCopyOptions();
+                option.setBulkCopyTimeout(-1);
+                bulkWrapper.useBulkCopyOptions(true);
+                bulkWrapper.setBulkOptions(option);
+                BulkCopyTestUtil.performBulkCopy(bulkWrapper, sourceTable, false);
             }
         });
-    }
-    
-    private void testBulkCopyWithTimeout(int timeout) throws SQLServerException {
-    	BulkCopyTestWrapper bulkWrapper = new BulkCopyTestWrapper(connectionString);
-        bulkWrapper.setUsingConnection((0 == ThreadLocalRandom.current().nextInt(2)) ? true : false);
-        SQLServerBulkCopyOptions option = new SQLServerBulkCopyOptions();
-        option.setBulkCopyTimeout(timeout);
-        bulkWrapper.useBulkCopyOptions(true);
-        bulkWrapper.setBulkOptions(option);
-        BulkCopyTestUtil.performBulkCopy(bulkWrapper, sourceTable, false);
     }
 }

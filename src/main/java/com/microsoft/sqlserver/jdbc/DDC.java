@@ -54,15 +54,15 @@ final class DDC {
             StreamType streamType) {
         switch (jdbcType) {
             case INTEGER:
-                return intValue;
+                return new Integer(intValue);
             case SMALLINT: // 2.21 small and tinyint returned as short
             case TINYINT:
-                return (short) intValue;
+                return new Short((short) intValue);
             case BIT:
             case BOOLEAN:
-                return 0 != intValue;
+                return new Boolean(0 != intValue);
             case BIGINT:
-                return (long) intValue;
+                return new Long(intValue);
             case DECIMAL:
             case NUMERIC:
             case MONEY:
@@ -70,9 +70,9 @@ final class DDC {
                 return new BigDecimal(Integer.toString(intValue));
             case FLOAT:
             case DOUBLE:
-                return (double) intValue;
+                return new Double(intValue);
             case REAL:
-                return (float) intValue;
+                return new Float(intValue);
             case BINARY:
                 return convertIntToBytes(intValue, valueLength);
             default:
@@ -99,15 +99,15 @@ final class DDC {
             StreamType streamType) {
         switch (jdbcType) {
             case BIGINT:
-                return longVal;
+                return new Long(longVal);
             case INTEGER:
-                return (int) longVal;
+                return new Integer((int) longVal);
             case SMALLINT: // small and tinyint returned as short
             case TINYINT:
-                return (short) longVal;
+                return new Short((short) longVal);
             case BIT:
             case BOOLEAN:
-                return 0 != longVal;
+                return new Boolean(0 != longVal);
             case DECIMAL:
             case NUMERIC:
             case MONEY:
@@ -115,12 +115,12 @@ final class DDC {
                 return new BigDecimal(Long.toString(longVal));
             case FLOAT:
             case DOUBLE:
-                return (double) longVal;
+                return new Double(longVal);
             case REAL:
-                return (float) longVal;
+                return new Float(longVal);
             case BINARY:
                 byte[] convertedBytes = convertLongToBytes(longVal);
-                int bytesToReturnLength;
+                int bytesToReturnLength = 0;
                 byte[] bytesToReturn;
 
                 switch (baseSSType) {
@@ -152,23 +152,23 @@ final class DDC {
             case VARBINARY:
                 switch (baseSSType) {
                     case BIGINT:
-                        return longVal;
+                        return new Long(longVal);
                     case INTEGER:
-                        return (int) longVal;
+                        return new Integer((int) longVal);
                     case SMALLINT: // small and tinyint returned as short
                     case TINYINT:
-                        return (short) longVal;
+                        return new Short((short) longVal);
                     case BIT:
-                        return 0 != longVal;
+                        return new Boolean(0 != longVal);
                     case DECIMAL:
                     case NUMERIC:
                     case MONEY:
                     case SMALLMONEY:
                         return new BigDecimal(Long.toString(longVal));
                     case FLOAT:
-                        return (double) longVal;
+                        return new Double(longVal);
                     case REAL:
-                        return (float) longVal;
+                        return new Float(longVal);
                     case BINARY:
                         return convertLongToBytes(longVal);
                     default:
@@ -214,17 +214,17 @@ final class DDC {
             StreamType streamType) {
         switch (jdbcType) {
             case REAL:
-                return floatVal;
+                return new Float(floatVal);
             case INTEGER:
-                return (int) floatVal;
+                return new Integer((int) floatVal);
             case SMALLINT: // small and tinyint returned as short
             case TINYINT:
-                return (short) floatVal;
+                return new Short((short) floatVal);
             case BIT:
             case BOOLEAN:
-                return 0 != Float.compare(0.0f, floatVal);
+                return new Boolean(0 != Float.compare(0.0f, floatVal));
             case BIGINT:
-                return (long) floatVal;
+                return new Long((long) floatVal);
             case DECIMAL:
             case NUMERIC:
             case MONEY:
@@ -232,7 +232,7 @@ final class DDC {
                 return new BigDecimal(Float.toString(floatVal));
             case FLOAT:
             case DOUBLE:
-                return (new Float(floatVal)).doubleValue();
+                return new Double((new Float(floatVal)).doubleValue());
             case BINARY:
                 return convertIntToBytes(Float.floatToRawIntBits(floatVal), 4);
             default:
@@ -273,19 +273,19 @@ final class DDC {
         switch (jdbcType) {
             case FLOAT:
             case DOUBLE:
-                return doubleVal;
+                return new Double(doubleVal);
             case REAL:
-                return (new Double(doubleVal)).floatValue();
+                return new Float((new Double(doubleVal)).floatValue());
             case INTEGER:
-                return (int) doubleVal;
+                return new Integer((int) doubleVal);
             case SMALLINT: // small and tinyint returned as short
             case TINYINT:
-                return (short) doubleVal;
+                return new Short((short) doubleVal);
             case BIT:
             case BOOLEAN:
-                return 0 != Double.compare(0.0d, doubleVal);
+                return new Boolean(0 != Double.compare(0.0d, doubleVal));
             case BIGINT:
-                return (long) doubleVal;
+                return new Long((long) doubleVal);
             case DECIMAL:
             case NUMERIC:
             case MONEY:
@@ -355,19 +355,19 @@ final class DDC {
                 return bigDecimalVal;
             case FLOAT:
             case DOUBLE:
-                return bigDecimalVal.doubleValue();
+                return new Double(bigDecimalVal.doubleValue());
             case REAL:
-                return bigDecimalVal.floatValue();
+                return new Float(bigDecimalVal.floatValue());
             case INTEGER:
-                return bigDecimalVal.intValue();
+                return new Integer(bigDecimalVal.intValue());
             case SMALLINT: // small and tinyint returned as short
             case TINYINT:
-                return bigDecimalVal.shortValue();
+                return new Short(bigDecimalVal.shortValue());
             case BIT:
             case BOOLEAN:
-                return 0 != bigDecimalVal.compareTo(BigDecimal.valueOf(0));
+                return new Boolean(0 != bigDecimalVal.compareTo(BigDecimal.valueOf(0)));
             case BIGINT:
-                return bigDecimalVal.longValue();
+                return new Long(bigDecimalVal.longValue());
             case BINARY:
                 return convertBigDecimalToBytes(bigDecimalVal, bigDecimalVal.scale());
             default:
@@ -400,19 +400,19 @@ final class DDC {
                 return bigDecimalVal;
             case FLOAT:
             case DOUBLE:
-                return bigDecimalVal.doubleValue();
+                return new Double(bigDecimalVal.doubleValue());
             case REAL:
-                return bigDecimalVal.floatValue();
+                return new Float(bigDecimalVal.floatValue());
             case INTEGER:
-                return bigDecimalVal.intValue();
+                return new Integer(bigDecimalVal.intValue());
             case SMALLINT: // small and tinyint returned as short
             case TINYINT:
-                return bigDecimalVal.shortValue();
+                return new Short(bigDecimalVal.shortValue());
             case BIT:
             case BOOLEAN:
-                return 0 != bigDecimalVal.compareTo(BigDecimal.valueOf(0));
+                return new Boolean(0 != bigDecimalVal.compareTo(BigDecimal.valueOf(0)));
             case BIGINT:
-                return bigDecimalVal.longValue();
+                return new Long(bigDecimalVal.longValue());
             case BINARY:
                 return convertToBytes(bigDecimalVal, bigDecimalVal.scale(), numberOfBytes);
             default:
@@ -439,7 +439,9 @@ final class DDC {
             }
         }
         int offset = numBytes - unscaledBytes.length;
-        System.arraycopy(unscaledBytes, offset - offset, ret, offset, numBytes - offset);
+        for (int i = offset; i < numBytes; ++i) {
+            ret[i] = unscaledBytes[i - offset];
+        }
         return ret;
     }
 
@@ -465,7 +467,7 @@ final class DDC {
 
                 if ((SSType.BINARY == baseTypeInfo.getSSType()) && (str.length() < (baseTypeInfo.getPrecision() * 2))) {
 
-                    StringBuilder strbuf = new StringBuilder(str);
+                    StringBuffer strbuf = new StringBuffer(str);
 
                     while (strbuf.length() < (baseTypeInfo.getPrecision() * 2)) {
                         strbuf.append('0');
@@ -779,7 +781,7 @@ final class DDC {
         // For other data types, the date and time parts are assumed to be relative to the local time zone.
         TimeZone componentTimeZone = (SSType.DATETIMEOFFSET == ssType) ? UTC.timeZone : localTimeZone;
 
-        int subSecondNanos;
+        int subSecondNanos = 0;
 
         // The date and time parts assume a Gregorian calendar with Gregorian leap year behavior
         // over the entire supported range of values. Create and initialize such a calendar to
@@ -907,7 +909,7 @@ final class DDC {
             default:
                 throw new AssertionError("Unexpected SSType: " + ssType);
         }
-        int localMillisOffset;
+        int localMillisOffset = 0;
         if (null == timeZoneCalendar) {
             TimeZone tz = TimeZone.getDefault();
             GregorianCalendar _cal = new GregorianCalendar(componentTimeZone, Locale.US);
@@ -920,8 +922,7 @@ final class DDC {
         }
         // Convert the calendar value (in local time) to the desired Java object type.
         switch (jdbcType.category) {
-            case BINARY:
-            case SQL_VARIANT: {
+            case BINARY: {
                 switch (ssType) {
                     case DATE: {
                         // Per JDBC spec, the time part of java.sql.Date values is initialized to midnight
@@ -1336,6 +1337,7 @@ final class AsciiFilteredUnicodeInputStream extends InputStream {
         catch (IOException e) {
             // unfortunately inputstream mark does not throw an exception so we have to eat any exception from the reader here
             // likely to be a bug in the original InputStream spec.
+            return;
         }
     }
 

@@ -8,8 +8,7 @@
 
 package com.microsoft.sqlserver.jdbc;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.Vector;
 
 /**
  * Represents a single encrypted value for a CEK. It contains the encrypted CEK,the store type, name,the key path and encryption algorithm.
@@ -46,19 +45,19 @@ class EncryptionKeyInfo {
 
 /**
  * Represents a unique CEK as an entry in the CekTable. A unique (plaintext is unique) CEK can have multiple encrypted CEKs when using multiple CMKs.
- * These encrypted CEKs are represented by a member ArrayList.
+ * These encrypted CEKs are represented by a member vector.
  */
 class CekTableEntry {
     static final private java.util.logging.Logger aeLogger = java.util.logging.Logger.getLogger("com.microsoft.sqlserver.jdbc.AE");
 
-    List<EncryptionKeyInfo> columnEncryptionKeyValues;
+    Vector<EncryptionKeyInfo> columnEncryptionKeyValues;
     int ordinal;
     int databaseId;
     int cekId;
     int cekVersion;
     byte[] cekMdVersion;
 
-    List<EncryptionKeyInfo> getColumnEncryptionKeyValues() {
+    Vector<EncryptionKeyInfo> getColumnEncryptionKeyValues() {
         return columnEncryptionKeyValues;
     }
 
@@ -88,7 +87,7 @@ class CekTableEntry {
         cekId = 0;
         cekVersion = 0;
         cekMdVersion = null;
-        columnEncryptionKeyValues = new ArrayList<>();
+        columnEncryptionKeyValues = new Vector<EncryptionKeyInfo>();
     }
 
     int getSize() {
@@ -237,7 +236,7 @@ class CryptoMetadata
     }
 
     boolean IsAlgorithmInitialized() {
-        return null != cipherAlgorithm;
+        return (null != cipherAlgorithm) ? true : false;
     }	
 }
 
@@ -255,9 +254,17 @@ enum DescribeParameterEncryptionResultSet1 {
     KeyPath,
     KeyEncryptionAlgorithm;
 
+    private int value;
+
+    // Column indexing starts from 1;
+    static {
+        for (int i = 0; i < values().length; ++i) {
+            values()[i].value = i + 1;
+        }
+    }
+
     int value() {
-        // Column indexing starts from 1;
-        return ordinal() + 1;
+        return value;
     }
 }
 
@@ -272,9 +279,17 @@ enum DescribeParameterEncryptionResultSet2 {
     ColumnEncryptionKeyOrdinal,
     NormalizationRuleVersion;
 
+    private int value;
+
+    // Column indexing starts from 1;
+    static {
+        for (int i = 0; i < values().length; ++i) {
+            values()[i].value = i + 1;
+        }
+    }
+
     int value() {
-        // Column indexing starts from 1;
-        return ordinal() + 1;
+        return value;
     }
 
 }

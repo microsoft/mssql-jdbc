@@ -12,6 +12,8 @@ import static org.junit.jupiter.api.Assertions.fail;
 
 import java.sql.CallableStatement;
 import java.sql.Connection;
+import java.sql.DatabaseMetaData;
+import java.sql.Driver;
 import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.sql.Statement;
@@ -19,13 +21,12 @@ import java.sql.Types;
 
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
 
 import com.microsoft.sqlserver.testframework.AbstractTest;
-import com.microsoft.sqlserver.testframework.Utils;
 
 /**
  * Multipart parameters
@@ -33,137 +34,120 @@ import com.microsoft.sqlserver.testframework.Utils;
  */
 @RunWith(JUnitPlatform.class)
 public class NamedParamMultiPartTest extends AbstractTest {
-    private static final String dataPut = "eminem";
+    private static final String dataPut = "eminem ";
     private static Connection connection = null;
-    String procedureName = "mystoredproc";
+    private static CallableStatement cs = null;
 
     /**
      * setup
-     * 
      * @throws SQLException
      */
     @BeforeAll
     public static void beforeAll() throws SQLException {
         connection = DriverManager.getConnection(connectionString);
-        try (Statement statement = connection.createStatement()) {
-            Utils.dropProcedureIfExists("mystoredproc", statement);
-            statement.executeUpdate("CREATE PROCEDURE [mystoredproc] (@p_out varchar(255) OUTPUT) AS set @p_out =  '" + dataPut + "'");
-        }
-    }
-
+        Statement statement = connection.createStatement();
+        statement.executeUpdate(
+                "if exists (select * from dbo.sysobjects where id = object_id(N'[dbo].[mystoredproc]') and OBJECTPROPERTY(id, N'IsProcedure') = 1) DROP PROCEDURE [mystoredproc]");
+        statement.executeUpdate("CREATE PROCEDURE [mystoredproc] (@p_out varchar(255) OUTPUT) AS set @p_out =  '" + dataPut + "'");
+        statement.close();
+    }    
     /**
      * Stored procedure call
-     * 
      * @throws Exception
      */
     @Test
     public void update1() throws Exception {
-        try (CallableStatement cs = connection.prepareCall("{ CALL " + procedureName + " (?) }")) {
-            cs.registerOutParameter("p_out", Types.VARCHAR);
-            cs.executeUpdate();
-            String data = cs.getString("p_out");
-            assertEquals(data, dataPut, "Received data not equal to setdata");
-        }
+        cs = connection.prepareCall("{ CALL [mystoredproc] (?) }");
+        cs.registerOutParameter("p_out", Types.VARCHAR);
+        cs.executeUpdate();
+        String data = cs.getString("p_out");
+        assertEquals(data, dataPut, "Received data not equal to setdata");
     }
 
     /**
      * Stored procedure call
-     * 
      * @throws Exception
      */
     @Test
     public void update2() throws Exception {
-        try (CallableStatement cs = connection.prepareCall("{ CALL " + procedureName + " (?) }")) {
-            cs.registerOutParameter("p_out", Types.VARCHAR);
-            cs.executeUpdate();
-            Object data = cs.getObject("p_out");
-            assertEquals(data, dataPut, "Received data not equal to setdata");
-        }
+        cs = connection.prepareCall("{ CALL [dbo].[mystoredproc] (?) }");
+        cs.registerOutParameter("p_out", Types.VARCHAR);
+        cs.executeUpdate();
+        Object data = cs.getObject("p_out");
+        assertEquals(data, dataPut, "Received data not equal to setdata");
     }
 
     /**
      * Stored procedure call
-     * 
      * @throws Exception
      */
     @Test
     public void update3() throws Exception {
         String catalog = connection.getCatalog();
         String storedproc = "[" + catalog + "]" + ".[dbo].[mystoredproc]";
-        try (CallableStatement cs = connection.prepareCall("{ CALL " + storedproc + " (?) }")) {
-            cs.registerOutParameter("p_out", Types.VARCHAR);
-            cs.executeUpdate();
-            Object data = cs.getObject("p_out");
-            assertEquals(data, dataPut, "Received data not equal to setdata");
-        }
+        cs = connection.prepareCall("{ CALL " + storedproc + " (?) }");
+        cs.registerOutParameter("p_out", Types.VARCHAR);
+        cs.executeUpdate();
+        Object data = cs.getObject("p_out");
+        assertEquals(data, dataPut, "Received data not equal to setdata");
     }
 
     /**
      * Stored procedure call
-     * 
      * @throws Exception
      */
     @Test
     public void update4() throws Exception {
-        try (CallableStatement cs = connection.prepareCall("{ CALL " + procedureName + " (?) }")) {
-            cs.registerOutParameter("p_out", Types.VARCHAR);
-            cs.executeUpdate();
-            Object data = cs.getObject("p_out");
-            assertEquals(data, dataPut, "Received data not equal to setdata");
-        }
+        cs = connection.prepareCall("{ CALL mystoredproc (?) }");
+        cs.registerOutParameter("p_out", Types.VARCHAR);
+        cs.executeUpdate();
+        Object data = cs.getObject("p_out");
+        assertEquals(data, dataPut, "Received data not equal to setdata");
     }
 
     /**
      * Stored procedure call
-     * 
      * @throws Exception
      */
-    
     @Test
-    @Disabled
     public void update5() throws Exception {
-        try (CallableStatement cs = connection.prepareCall("{ CALL " + procedureName + " (?) }")) {
-            cs.registerOutParameter("p_out", Types.VARCHAR);
-            cs.executeUpdate();
-            Object data = cs.getObject("p_out");
-            assertEquals(data, dataPut, "Received data not equal to setdata");
-        }
+        cs = connection.prepareCall("{ CALL dbo.mystoredproc (?) }");
+        cs.registerOutParameter("p_out", Types.VARCHAR);
+        cs.executeUpdate();
+        Object data = cs.getObject("p_out");
+        assertEquals(data, dataPut, "Received data not equal to setdata");
     }
-    
 
     /**
      * 
      * @throws Exception
      */
-    
     @Test
-    @Disabled
     public void update6() throws Exception {
         String catalog = connection.getCatalog();
-        String storedproc = catalog + ".dbo." + procedureName;
-        try (CallableStatement cs = connection.prepareCall("{ CALL " + storedproc + " (?) }")) {
-            cs.registerOutParameter("p_out", Types.VARCHAR);
-            cs.executeUpdate();
-            Object data = cs.getObject("p_out");
-            assertEquals(data, dataPut, "Received data not equal to setdata");
-        }
+        String storedproc = catalog + ".dbo.mystoredproc";
+        cs = connection.prepareCall("{ CALL " + storedproc + " (?) }");
+        cs.registerOutParameter("p_out", Types.VARCHAR);
+        cs.executeUpdate();
+        Object data = cs.getObject("p_out");
+        assertEquals(data, dataPut, "Received data not equal to setdata");
     }
-    
 
     /**
      * Clean up
-     * 
-     * @throws SQLException
      */
     @AfterAll
-    public static void afterAll() throws SQLException {
-        try (Statement stmt = connection.createStatement()) {
-            Utils.dropProcedureIfExists("mystoredproc", stmt);
-        }
-        finally {
-            if (connection != null) {
+    public static void afterAll() {
+        try {
+            if (null != connection) {
                 connection.close();
             }
+            if (null != cs) {
+                cs.close();
+            }
+        }
+        catch (SQLException e) {
+            fail(e.toString());
         }
     }
 

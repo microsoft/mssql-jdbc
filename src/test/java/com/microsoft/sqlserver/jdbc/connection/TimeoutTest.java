@@ -9,13 +9,11 @@ package com.microsoft.sqlserver.jdbc.connection;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.junit.jupiter.api.Assertions.fail;
 
 import java.sql.DriverManager;
 import java.sql.SQLException;
 
 import org.junit.jupiter.api.Disabled;
-import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
@@ -23,7 +21,6 @@ import org.junit.runner.RunWith;
 import com.microsoft.sqlserver.jdbc.SQLServerConnection;
 import com.microsoft.sqlserver.jdbc.SQLServerException;
 import com.microsoft.sqlserver.testframework.AbstractTest;
-import com.microsoft.sqlserver.testframework.Utils;
 import com.microsoft.sqlserver.testframework.util.RandomUtil;
 
 @RunWith(JUnitPlatform.class)
@@ -33,7 +30,6 @@ public class TimeoutTest extends AbstractTest {
     final int waitForDelaySeconds = 10;
 
     @Test
-    @Tag("slow")
     public void testDefaultLoginTimeout() {
         long timerStart = 0;
         long timerEnd = 0;
@@ -91,10 +87,6 @@ public class TimeoutTest extends AbstractTest {
         assertTrue(timeDiff > 14000);
     }
 
-    /**
-     * When query timeout occurs, the connection is still usable. 
-     * @throws Exception
-     */
     @Test
     public void testQueryTimeout() throws Exception {
         SQLServerConnection conn = (SQLServerConnection) DriverManager.getConnection(connectionString);
@@ -114,17 +106,8 @@ public class TimeoutTest extends AbstractTest {
             }
             assertEquals(e.getMessage(), "The query has timed out.", "Invalid exception message");
         }
-        try{
-            conn.createStatement().execute("SELECT @@version");
-        }catch (Exception e) {
-           fail("Unexpected error message occured! "+ e.toString() );
-        }
     }
 
-    /**
-     * When socketTimeout occurs, the connection will be marked as closed.
-     * @throws Exception
-     */
     @Test
     @Disabled
     public void testSocketTimeout() throws Exception {
@@ -135,7 +118,7 @@ public class TimeoutTest extends AbstractTest {
         createWaitForDelayPreocedure(conn);
 
         // cancel connection resilience to test socketTimeout
-        connectionString += ";connectRetryCount=0";
+        connectionString += "connectRetryCount=0";
         conn = (SQLServerConnection) DriverManager.getConnection(connectionString + ";socketTimeout=" + (waitForDelaySeconds * 1000 / 2) + ";");
 
         try {
@@ -148,15 +131,12 @@ public class TimeoutTest extends AbstractTest {
             }
             assertEquals(e.getMessage(), "Read timed out", "Invalid exception message");
         }
-        try{
-            conn.createStatement().execute("SELECT @@version");
-        }catch (SQLServerException e) {
-            assertEquals(e.getMessage(), "The connection is closed.", "Invalid exception message");
-        }
     }
 
     private void dropWaitForDelayProcedure(SQLServerConnection conn) throws SQLException {
-        Utils.dropProcedureIfExists(waitForDelaySPName, conn.createStatement());
+        String sql = " IF EXISTS (select * from sysobjects where id = object_id(N'" + waitForDelaySPName
+                + "') and OBJECTPROPERTY(id, N'IsProcedure') = 1)" + " DROP PROCEDURE " + waitForDelaySPName;
+        conn.createStatement().execute(sql);
     }
 
     private void createWaitForDelayPreocedure(SQLServerConnection conn) throws SQLException {

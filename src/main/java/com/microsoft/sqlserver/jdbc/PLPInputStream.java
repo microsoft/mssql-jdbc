@@ -434,7 +434,8 @@ final class PLPXMLInputStream extends PLPInputStream {
             return null;
 
         PLPXMLInputStream is = new PLPXMLInputStream(tdsReader, payloadLength, getterArgs, dtv);
-        is.setLoggingInfo(getterArgs.logContext);
+        if (null != is)
+            is.setLoggingInfo(getterArgs.logContext);
 
         return is;
     }
@@ -464,12 +465,12 @@ final class PLPXMLInputStream extends PLPInputStream {
 
         // Read/Skip BOM bytes first. When all BOM bytes have been consumed ...
         if (null == b) {
-            for (int bomBytesSkipped; bytesRead < maxBytes
-                    && 0 != (bomBytesSkipped = (int) bomStream.skip(((long) maxBytes) - ((long) bytesRead))); bytesRead += bomBytesSkipped)
+            for (int bomBytesSkipped = 0; bytesRead < maxBytes
+                    && 0 != (bomBytesSkipped = (int) bomStream.skip(maxBytes - bytesRead)); bytesRead += bomBytesSkipped)
                 ;
         }
         else {
-            for (int bomBytesRead; bytesRead < maxBytes
+            for (int bomBytesRead = 0; bytesRead < maxBytes
                     && -1 != (bomBytesRead = bomStream.read(b, offset + bytesRead, maxBytes - bytesRead)); bytesRead += bomBytesRead)
                 ;
         }

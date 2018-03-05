@@ -57,8 +57,8 @@ final class FailoverInfo {
         else {
             // 3.3006 get the instance name
             int px = failoverPartner.indexOf('\\');
-            String instancePort;
-            String instanceValue;
+            String instancePort = null;
+            String instanceValue = null;
 
             // found the instance name with the severname
             if (px >= 0) {
@@ -71,7 +71,7 @@ final class FailoverInfo {
                 instancePort = con.getInstancePort(failoverPartner, instanceValue);
 
                 try {
-                    portNumber = new Integer(instancePort);
+                    portNumber = (new Integer(instancePort)).intValue();
                 }
                 catch (NumberFormatException e) {
                     // Should not get here as the server should give a proper port number anyway.
