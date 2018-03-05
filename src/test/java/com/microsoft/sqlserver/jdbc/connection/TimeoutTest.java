@@ -20,7 +20,6 @@ import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
 
 import com.microsoft.sqlserver.jdbc.SQLServerConnection;
-import com.microsoft.sqlserver.jdbc.SQLServerException;
 import com.microsoft.sqlserver.testframework.AbstractTest;
 import com.microsoft.sqlserver.testframework.Utils;
 import com.microsoft.sqlserver.testframework.util.RandomUtil;
@@ -52,7 +51,7 @@ public class TimeoutTest extends AbstractTest {
     }
 
     @Test
-    public void testFailoverInstanceResolution() throws SQLServerException {
+    public void testFailoverInstanceResolution() throws SQLException {
         long timerStart = 0;
         long timerEnd = 0;
         try {
@@ -72,7 +71,7 @@ public class TimeoutTest extends AbstractTest {
     }
 
     @Test
-    public void testFOInstanceResolution2() throws SQLServerException {
+    public void testFOInstanceResolution2() throws SQLException {
         long timerStart = 0;
         long timerEnd = 0;
         try {
@@ -138,14 +137,14 @@ public class TimeoutTest extends AbstractTest {
             throw new Exception("Exception for socketTimeout is not thrown.");
         }
         catch (Exception e) {
-            if (!(e instanceof SQLServerException)) {
+            if (!(e instanceof SQLException)) {
                 throw e;
             }
             assertEquals(e.getMessage(), "Read timed out", "Invalid exception message");
         }
         try{
             conn.createStatement().execute("SELECT @@version");
-        }catch (SQLServerException e) {
+        }catch (SQLException e) {
             assertEquals(e.getMessage(), "The connection is closed.", "Invalid exception message");
         }
     }

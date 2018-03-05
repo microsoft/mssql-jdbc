@@ -33,7 +33,6 @@ import org.junit.runner.RunWith;
 import com.microsoft.sqlserver.jdbc.ISQLServerBulkRecord;
 import com.microsoft.sqlserver.jdbc.SQLServerBulkCopy;
 import com.microsoft.sqlserver.jdbc.SQLServerConnection;
-import com.microsoft.sqlserver.jdbc.SQLServerException;
 import com.microsoft.sqlserver.testframework.AbstractTest;
 import com.microsoft.sqlserver.testframework.Utils;
 
@@ -67,7 +66,7 @@ public class ISQLServerBulkRecordIssuesTest extends AbstractTest {
             fail("BulkCopy executed for testVarchar when it it was expected to fail");
         }
         catch (Exception e) {
-            if (e instanceof SQLServerException) {
+            if (e instanceof SQLException) {
                 assertTrue(e.getMessage().contains("The given value of type"), "Invalid Error message: " + e.toString());
             }
             else {
@@ -120,7 +119,7 @@ public class ISQLServerBulkRecordIssuesTest extends AbstractTest {
             fail("BulkCopy executed for testSmalldatetimeOutofRange when it it was expected to fail");
         }
         catch (Exception e) {
-            if (e instanceof SQLServerException) {
+            if (e instanceof SQLException) {
                 assertTrue(e.getMessage().contains("Conversion failed when converting character string to smalldatetime data type"),
                         "Invalid Error message: " + e.toString());
             }
@@ -148,7 +147,7 @@ public class ISQLServerBulkRecordIssuesTest extends AbstractTest {
             fail("BulkCopy executed for testBinaryColumnAsByte when it it was expected to fail");
         }
         catch (Exception e) {
-            if (e instanceof SQLServerException) {
+            if (e instanceof SQLException) {
                 assertTrue(e.getMessage().contains("The given value of type"), "Invalid Error message: " + e.toString());
             }
             else {
@@ -175,7 +174,7 @@ public class ISQLServerBulkRecordIssuesTest extends AbstractTest {
             fail("BulkCopy executed for testBinaryColumnAsString when it it was expected to fail");
         }
         catch (Exception e) {
-            if (e instanceof SQLServerException) {
+            if (e instanceof SQLException) {
                 assertTrue(e.getMessage().contains("The given value of type"), "Invalid Error message: " + e.toString());
             }
             else {
@@ -413,7 +412,7 @@ class BulkData implements ISQLServerBulkRecord {
      * @see com.microsoft.sqlserver.jdbc.ISQLServerBulkRecord#getRowData()
      */
     @Override
-    public Object[] getRowData() throws SQLServerException {
+    public Object[] getRowData() throws SQLException {
         Object[] dataRow = new Object[columnMetadata.size()];
         if (isStringData)
             dataRow[0] = stringData.get(counter);
@@ -433,7 +432,7 @@ class BulkData implements ISQLServerBulkRecord {
      * @see com.microsoft.sqlserver.jdbc.ISQLServerBulkRecord#next()
      */
     @Override
-    public boolean next() throws SQLServerException {
+    public boolean next() throws SQLException {
         if (counter < rowCount) {
             return true;
         }

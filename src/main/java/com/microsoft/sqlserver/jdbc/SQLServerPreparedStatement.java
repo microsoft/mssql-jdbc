@@ -391,8 +391,9 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
      *
      * @throws SQLServerException
      *             when an error occurs
-     * @return ResultSet
      * @throws SQLTimeoutException 
+     * 			   when the query times out
+     * @return ResultSet
      */
     public java.sql.ResultSet executeQuery() throws SQLServerException, SQLTimeoutException {
         loggerExternal.entering(getClassNameLogging(), "executeQuery");
@@ -455,8 +456,9 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
      * 
      * @throws SQLServerException
      *             when an error occurs
-     * @return true if the statement returned a result set
      * @throws SQLTimeoutException 
+     * 			   when the query times out
+     * @return true if the statement returned a result set
      */
     public boolean execute() throws SQLServerException, SQLTimeoutException {
         loggerExternal.entering(getClassNameLogging(), "execute");

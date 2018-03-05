@@ -115,8 +115,10 @@ public final class SQLServerException extends java.sql.SQLException {
                 exLogger.fine(sb.toString());
             }
         }
-        if (errText.contains("query has timed out")) 
+        if (errText.contains("query has timed out"))
+        {
         	this.setDriverErrorCode(SQLServerException.ERROR_QUERY_TIMEOUT);
+        }
     }
 
     static String getErrString(String errCode) {

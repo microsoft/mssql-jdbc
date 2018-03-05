@@ -8,6 +8,7 @@
 
 package com.microsoft.sqlserver.jdbc;
 
+import java.sql.SQLException;
 import java.util.Set;
 
 /**
@@ -74,17 +75,17 @@ public interface ISQLServerBulkRecord {
      * information, see 'Understanding the JDBC Driver Data Types' for the appropriate mappings.
      * 
      * @return The data for the row.
-     * @throws SQLServerException
+     * @throws SQLException
      *             If there are any errors in obtaining the data.
      */
-    public Object[] getRowData() throws SQLServerException;
+    public Object[] getRowData() throws SQLException;
 
     /**
      * Advances to the next data row.
      * 
      * @return True if rows are available; false if there are no more rows
-     * @throws SQLServerException
+     * @throws SQLException
      *             If there are any errors in advancing to the next row.
      */
-    public boolean next() throws SQLServerException;
+    public boolean next() throws SQLException;
 }

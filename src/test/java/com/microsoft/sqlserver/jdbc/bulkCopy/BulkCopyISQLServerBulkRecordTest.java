@@ -24,7 +24,6 @@ import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
 
 import com.microsoft.sqlserver.jdbc.ISQLServerBulkRecord;
-import com.microsoft.sqlserver.jdbc.SQLServerException;
 import com.microsoft.sqlserver.testframework.AbstractTest;
 import com.microsoft.sqlserver.testframework.DBConnection;
 import com.microsoft.sqlserver.testframework.DBStatement;
@@ -178,7 +177,7 @@ public class BulkCopyISQLServerBulkRecordTest extends AbstractTest {
          * @see com.microsoft.sqlserver.jdbc.ISQLServerBulkRecord#getRowData()
          */
         @Override
-        public Object[] getRowData() throws SQLServerException {
+        public Object[] getRowData() throws SQLException {
             return data.get(counter++);
         }
 
@@ -188,7 +187,7 @@ public class BulkCopyISQLServerBulkRecordTest extends AbstractTest {
          * @see com.microsoft.sqlserver.jdbc.ISQLServerBulkRecord#next()
          */
         @Override
-        public boolean next() throws SQLServerException {
+        public boolean next() throws SQLException {
             if (counter < rowCount)
                 return true;
             return false;

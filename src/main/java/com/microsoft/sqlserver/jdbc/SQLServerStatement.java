@@ -205,7 +205,7 @@ public class SQLServerStatement implements ISQLServerStatement {
             executeCommand(newStmtCmd);
         } catch (SQLServerException e) {
         	if (e.getDriverErrorCode() == SQLServerException.ERROR_QUERY_TIMEOUT)
-        		throw new SQLTimeoutException(e.getMessage());
+        		throw new SQLTimeoutException(e.getMessage(), e.getSQLState(), e.getErrorCode(), e.getCause());
         	else
         		throw e;
         }

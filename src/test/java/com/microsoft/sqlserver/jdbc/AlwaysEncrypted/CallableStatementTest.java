@@ -26,7 +26,6 @@ import java.sql.Timestamp;
 import java.util.LinkedList;
 
 import com.microsoft.sqlserver.jdbc.SQLServerCallableStatement;
-import com.microsoft.sqlserver.jdbc.SQLServerException;
 import com.microsoft.sqlserver.jdbc.SQLServerPreparedStatement;
 import com.microsoft.sqlserver.jdbc.SQLServerResultSet;
 import com.microsoft.sqlserver.testframework.Utils;
@@ -83,7 +82,7 @@ public class CallableStatementTest extends AESetup {
     /**
      * Initialize the tables for this class. This method will execute AFTER the parent class (AESetup) finishes initializing.
      * 
-     * @throws SQLServerException
+     * @throws SQLException
      * @throws SQLException
      */
     @BeforeAll
@@ -113,7 +112,7 @@ public class CallableStatementTest extends AESetup {
     }
 
     @AfterAll
-    private static void dropAll() throws SQLServerException, SQLException {
+    private static void dropAll() throws SQLException, SQLException {
         dropTables();
     }
 

@@ -23,7 +23,6 @@ import org.junit.runner.RunWith;
 
 import com.microsoft.sqlserver.jdbc.SQLServerConnection;
 import com.microsoft.sqlserver.jdbc.SQLServerDatabaseMetaData;
-import com.microsoft.sqlserver.jdbc.SQLServerException;
 import com.microsoft.sqlserver.jdbc.SQLServerResultSet;
 import com.microsoft.sqlserver.jdbc.SQLServerStatement;
 import com.microsoft.sqlserver.testframework.AbstractTest;
@@ -96,11 +95,11 @@ public class DatabaseMetaDataForeignKeyTest extends AbstractTest {
     /**
      * test getImportedKeys() methods
      * 
-     * @throws SQLServerException
+     * @throws SQLException
      * @throws SQLTimeoutException 
      */
     @Test
-    public void testGetImportedKeys() throws SQLServerException, SQLTimeoutException {
+    public void testGetImportedKeys() throws SQLException {
         SQLServerDatabaseMetaData dmd = (SQLServerDatabaseMetaData) connection.getMetaData();
 
         SQLServerResultSet rs1 = (SQLServerResultSet) dmd.getImportedKeys(null, null, table1);
@@ -116,12 +115,12 @@ public class DatabaseMetaDataForeignKeyTest extends AbstractTest {
             dmd.getImportedKeys("", schema, table1);
             fail("Exception is not thrown.");
         }
-        catch (SQLServerException e) {
+        catch (SQLException e) {
             assertTrue(e.getMessage().startsWith(EXPECTED_ERROR_MESSAGE));
         }
     }
 
-    private void validateGetImportedKeysResults(SQLServerResultSet rs) throws SQLServerException {
+    private void validateGetImportedKeysResults(SQLServerResultSet rs) throws SQLException {
         int expectedRowCount = 4;
         int rowCount = 0;
         
@@ -153,11 +152,11 @@ public class DatabaseMetaDataForeignKeyTest extends AbstractTest {
     /**
      * test getExportedKeys() methods
      * 
-     * @throws SQLServerException
+     * @throws SQLException
      * @throws SQLTimeoutException 
      */
     @Test
-    public void testGetExportedKeys() throws SQLServerException, SQLTimeoutException {
+    public void testGetExportedKeys() throws SQLException {
         String[] tableNames = {table2, table3, table4, table5};
         int[][] values = {
                 // expected UPDATE_RULE, expected DELETE_RULE
@@ -190,7 +189,7 @@ public class DatabaseMetaDataForeignKeyTest extends AbstractTest {
                 dmd.getExportedKeys("", schema, pkTable);
                 fail("Exception is not thrown.");
             }
-            catch (SQLServerException e) {
+            catch (SQLException e) {
                 assertTrue(e.getMessage().startsWith(EXPECTED_ERROR_MESSAGE));
             }
         }
@@ -199,11 +198,11 @@ public class DatabaseMetaDataForeignKeyTest extends AbstractTest {
     /**
      * test getCrossReference() methods
      * 
-     * @throws SQLServerException
+     * @throws SQLException
      * @throws SQLTimeoutException 
      */
     @Test
-    public void testGetCrossReference() throws SQLServerException, SQLTimeoutException {
+    public void testGetCrossReference() throws SQLException {
         String fkTable = table1;
         String[] tableNames = {table2, table3, table4, table5};
         int[][] values = {
@@ -237,7 +236,7 @@ public class DatabaseMetaDataForeignKeyTest extends AbstractTest {
                 dmd.getCrossReference("", schema, pkTable, "", schema, fkTable);
                 fail("Exception is not thrown.");
             }
-            catch (SQLServerException e) {
+            catch (SQLException e) {
                 assertEquals(EXPECTED_ERROR_MESSAGE2, e.getMessage());
             }
         }
