@@ -33,6 +33,7 @@ import org.junit.runner.RunWith;
 import com.microsoft.sqlserver.jdbc.ISQLServerBulkRecord;
 import com.microsoft.sqlserver.jdbc.SQLServerBulkCopy;
 import com.microsoft.sqlserver.jdbc.SQLServerConnection;
+import com.microsoft.sqlserver.jdbc.SQLServerException;
 import com.microsoft.sqlserver.testframework.AbstractTest;
 import com.microsoft.sqlserver.testframework.Utils;
 
@@ -412,7 +413,7 @@ class BulkData implements ISQLServerBulkRecord {
      * @see com.microsoft.sqlserver.jdbc.ISQLServerBulkRecord#getRowData()
      */
     @Override
-    public Object[] getRowData() throws SQLException {
+    public Object[] getRowData() throws SQLServerException {
         Object[] dataRow = new Object[columnMetadata.size()];
         if (isStringData)
             dataRow[0] = stringData.get(counter);
@@ -432,7 +433,7 @@ class BulkData implements ISQLServerBulkRecord {
      * @see com.microsoft.sqlserver.jdbc.ISQLServerBulkRecord#next()
      */
     @Override
-    public boolean next() throws SQLException {
+    public boolean next() throws SQLServerException {
         if (counter < rowCount) {
             return true;
         }

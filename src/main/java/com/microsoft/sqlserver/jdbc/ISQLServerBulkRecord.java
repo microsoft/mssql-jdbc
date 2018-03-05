@@ -8,7 +8,6 @@
 
 package com.microsoft.sqlserver.jdbc;
 
-import java.sql.SQLException;
 import java.util.Set;
 
 /**
@@ -78,7 +77,7 @@ public interface ISQLServerBulkRecord {
      * @throws SQLException
      *             If there are any errors in obtaining the data.
      */
-    public Object[] getRowData() throws SQLException;
+    public Object[] getRowData() throws SQLServerException;
 
     /**
      * Advances to the next data row.
@@ -87,5 +86,5 @@ public interface ISQLServerBulkRecord {
      * @throws SQLException
      *             If there are any errors in advancing to the next row.
      */
-    public boolean next() throws SQLException;
+    public boolean next() throws SQLServerException;
 }
