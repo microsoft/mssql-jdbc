@@ -21,6 +21,6 @@ public class SqlInt extends SqlNumber {
 
     public Object createdata() {
         // TODO: include max value
-        return new Integer(ThreadLocalRandom.current().nextInt(Integer.MIN_VALUE, Integer.MAX_VALUE));
+        return ThreadLocalRandom.current().nextInt(Integer.MIN_VALUE, Integer.MAX_VALUE);
     }
 }

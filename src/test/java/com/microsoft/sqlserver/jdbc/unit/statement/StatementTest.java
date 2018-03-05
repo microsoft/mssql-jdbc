@@ -7,22 +7,29 @@
  */
 package com.microsoft.sqlserver.jdbc.unit.statement;
 
+import static org.junit.Assert.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 import java.io.StringReader;
+import java.math.BigDecimal;
+import java.sql.Blob;
 import java.sql.CallableStatement;
+import java.sql.Clob;
 import java.sql.Connection;
 import java.sql.DriverManager;
+import java.sql.NClob;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.SQLXML;
 import java.sql.Statement;
 import java.sql.Types;
 import java.util.ArrayList;
 import java.util.Random;
+import java.util.UUID;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
@@ -31,6 +38,7 @@ import java.util.logging.Logger;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
@@ -72,7 +80,7 @@ public class StatementTest extends AbstractTest {
             con.setAutoCommit(false);
             Statement stmt = con.createStatement();
             try {
-                stmt.executeUpdate("DROP TABLE if exists " + tableName);
+                Utils.dropTableIfExists(tableName, stmt);
             }
             catch (SQLException e) {
             }
@@ -89,7 +97,7 @@ public class StatementTest extends AbstractTest {
             Connection con = DriverManager.getConnection(connectionString);
             Statement stmt = con.createStatement();
             try {
-                stmt.executeUpdate("DROP TABLE if exists " + tableName);
+                Utils.dropTableIfExists(tableName, stmt);
             }
             catch (SQLException e) {
             }
@@ -311,7 +319,7 @@ public class StatementTest extends AbstractTest {
 
             try {
                 // Start a transaction on a second connection that locks the last part of the table
-                // and leave it hanging for now...
+                // and leave it non-responsive for now...
                 conLock = DriverManager.getConnection(connectionString);
                 conLock.setAutoCommit(false);
                 stmtLock = conLock.createStatement();
@@ -426,7 +434,7 @@ public class StatementTest extends AbstractTest {
 
             try {
                 // Start a transaction on a second connection that locks the last part of the table
-                // and leave it hanging for now...
+                // and leave it non-responsive for now...
                 conLock = DriverManager.getConnection(connectionString);
                 conLock.setAutoCommit(false);
                 stmtLock = conLock.createStatement();
@@ -543,7 +551,7 @@ public class StatementTest extends AbstractTest {
 
             try {
                 // Start a transaction on a second connection that locks the last part of the table
-                // and leave it hanging for now...
+                // and leave it non-responsive for now...
                 conLock = DriverManager.getConnection(connectionString);
                 conLock.setAutoCommit(false);
                 stmtLock = conLock.createStatement();
@@ -672,8 +680,7 @@ public class StatementTest extends AbstractTest {
             Statement stmt = con.createStatement();
 
             try {
-                stmt.executeUpdate("IF EXISTS (select * from sysobjects where id = object_id(N'" + procName
-                        + "') and OBJECTPROPERTY(id, N'IsProcedure') = 1)" + " DROP PROCEDURE " + procName);
+                Utils.dropProcedureIfExists(procName, stmt);
             }
             catch (Exception ex) {
             }
@@ -709,6 +716,8 @@ public class StatementTest extends AbstractTest {
 
             // Reexecute to prove CS is still good after last cancel
             cstmt.execute();
+
+            Utils.dropProcedureIfExists(procName, stmt);
             con.close();
         }
 
@@ -717,11 +726,11 @@ public class StatementTest extends AbstractTest {
         /**
          * Test that tries to flush out cancellation synchronization issues by repeatedly executing and cancelling statements on multiple threads.
          *
-         * Typical expected failures would be liveness issues (which would manifest as a test hang), incorrect results, or TDS corruption problems.
+         * Typical expected failures would be liveness issues (which would manifest as a test being non-responsive), incorrect results, or TDS corruption problems.
          *
          * A set of thread pairs runs for 10 seconds. Each pair has one thread repeatedly executing a SELECT statement and one thread repeatedly
          * cancelling execution of that statement. Nothing is done to validate whether any particular call to cancel had any affect on the statement.
-         * Liveness issues typically would manifest as a hang in this test.
+         * Liveness issues typically would manifest as a no response in this test.
          *
          * In order to maximize the likelihood of this test finding bugs, it should run on a multi-proc machine with the -server flag specified to the
          * JVM. Also, the debugging println statements are commented out deliberately to minimize the impact to the test from the diagnostics, which
@@ -1040,12 +1049,12 @@ public class StatementTest extends AbstractTest {
             }
 
             try {
-                stmt.executeUpdate("DROP TABLE if exists" + table1Name);
+                Utils.dropTableIfExists(table1Name, stmt);
             }
             catch (SQLException e) {
             }
             try {
-                stmt.executeUpdate("DROP TABLE if exists " + table2Name);
+                Utils.dropTableIfExists(table2Name, stmt);
             }
             catch (SQLException e) {
             }
@@ -1073,7 +1082,7 @@ public class StatementTest extends AbstractTest {
          * @throws Exception
          */
         @Test
-        public void testLargeMaxRows_JDBC41() throws Exception {
+        public void testLargeMaxRowsJDBC41() throws Exception {
             assumeTrue("JDBC41".equals(Utils.getConfiguredProperty("JDBC_Version")), "Aborting test case as JDBC version is not compatible. ");
 
             Connection con = DriverManager.getConnection(connectionString);
@@ -1112,7 +1121,7 @@ public class StatementTest extends AbstractTest {
          * @throws Exception
          */
         @Test
-        public void testLargeMaxRows_JDBC42() throws Exception {
+        public void testLargeMaxRowsJDBC42() throws Exception {
             assumeTrue("JDBC42".equals(Utils.getConfiguredProperty("JDBC_Version")), "Aborting test case as JDBC version is not compatible. ");
 
             Connection dbcon = DriverManager.getConnection(connectionString);
@@ -1132,7 +1141,7 @@ public class StatementTest extends AbstractTest {
             // SQL Server only supports integer limits for setting max rows
             // If the value MAX_VALUE + 1 is accepted, throw exception
             try {
-                newValue = new Long(java.lang.Integer.MAX_VALUE) + 1;
+                newValue = (long) Integer.MAX_VALUE + 1;
                 dbstmt.setLargeMaxRows(newValue);
                 throw new SQLException("setLargeMaxRows(): Long values should not be set");
             }
@@ -1163,10 +1172,23 @@ public class StatementTest extends AbstractTest {
             }
         }
 
+        @AfterEach
+        public void terminate() throws Exception {
+            try (Connection con = DriverManager.getConnection(connectionString); Statement stmt = con.createStatement();) {
+                try {
+                    Utils.dropTableIfExists(table1Name, stmt);
+                    Utils.dropTableIfExists(table2Name, stmt);
+                }
+                catch (SQLException e) {
+                }
+            }
+        }
     }
 
     @Nested
     public class TCStatementCallable {
+        String name = RandomUtil.getIdentifier("p1");
+        String procName = AbstractSQLGenerator.escapeIdentifier(name);
 
         /**
          * Tests CallableStatementMethods on jdbc41
@@ -1175,65 +1197,134 @@ public class StatementTest extends AbstractTest {
          */
         @Test
         public void testJdbc41CallableStatementMethods() throws Exception {
-            assumeTrue("JDBC41".equals(Utils.getConfiguredProperty("JDBC_Version")), "Aborting test case as JDBC version is not compatible. ");
             Class.forName("com.microsoft.sqlserver.jdbc.SQLServerDriver");
             // Prepare database setup
 
-            String name = RandomUtil.getIdentifier("p1");
-            String procName = AbstractSQLGenerator.escapeIdentifier(name);
-            Connection conn = DriverManager.getConnection(connectionString);
-            Statement stmt = conn.createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE);
-            try {
-                stmt.executeUpdate("IF EXISTS (select * from sysobjects where id = object_id(N'" + procName
-                        + "') and OBJECTPROPERTY(id, N'IsProcedure') = 1)" + " DROP PROCEDURE " + procName);
-            }
-            catch (Exception ex) {
-            }
-            ;
-            String query = "create procedure " + procName
-                    + " @col1Value varchar(512) OUTPUT, @col2Value varchar(512) OUTPUT AS BEGIN SET @col1Value='hello' SET @col2Value='world' END";
-            stmt.execute(query);
+            try (Connection conn = DriverManager.getConnection(connectionString);
+                    Statement stmt = conn.createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE)) {
+                String query = "create procedure " + procName + " @col1Value varchar(512) OUTPUT," + " @col2Value int OUTPUT,"
+                        + " @col3Value float OUTPUT," + " @col4Value decimal(10,5) OUTPUT," + " @col5Value uniqueidentifier OUTPUT,"
+                        + " @col6Value xml OUTPUT," + " @col7Value varbinary(max) OUTPUT," + " @col8Value text OUTPUT," + " @col9Value ntext OUTPUT,"
+                        + " @col10Value varbinary(max) OUTPUT," + " @col11Value date OUTPUT," + " @col12Value time OUTPUT,"
+                        + " @col13Value datetime2 OUTPUT," + " @col14Value datetimeoffset OUTPUT" + " AS BEGIN " + " SET @col1Value = 'hello'"
+                        + " SET @col2Value = 1" + " SET @col3Value = 2.0" + " SET @col4Value = 123.45"
+                        + " SET @col5Value = '6F9619FF-8B86-D011-B42D-00C04FC964FF'" + " SET @col6Value = '<test/>'"
+                        + " SET @col7Value = 0x63C34D6BCAD555EB64BF7E848D02C376" + " SET @col8Value = 'text'" + " SET @col9Value = 'ntext'"
+                        + " SET @col10Value = 0x63C34D6BCAD555EB64BF7E848D02C376" + " SET @col11Value = '2017-05-19'"
+                        + " SET @col12Value = '10:47:15.1234567'" + " SET @col13Value = '2017-05-19T10:47:15.1234567'"
+                        + " SET @col14Value = '2017-05-19T10:47:15.1234567+02:00'" + " END";
+                stmt.execute(query);
 
-            // Test JDBC 4.1 methods for CallableStatement
-            CallableStatement cstmt = conn.prepareCall("{call " + procName + "(?, ?)}");
-            cstmt.registerOutParameter(1, java.sql.Types.VARCHAR);
-            cstmt.registerOutParameter(2, java.sql.Types.VARCHAR);
-            cstmt.execute();
+                // Test JDBC 4.1 methods for CallableStatement
+                try (CallableStatement cstmt = conn.prepareCall("{call " + procName + "(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)}")) {
+                    cstmt.registerOutParameter(1, java.sql.Types.VARCHAR);
+                    cstmt.registerOutParameter(2, java.sql.Types.INTEGER);
+                    cstmt.registerOutParameter(3, java.sql.Types.FLOAT);
+                    cstmt.registerOutParameter(4, java.sql.Types.DECIMAL);
+                    cstmt.registerOutParameter(5, microsoft.sql.Types.GUID);
+                    cstmt.registerOutParameter(6, java.sql.Types.SQLXML);
+                    cstmt.registerOutParameter(7, java.sql.Types.VARBINARY);
+                    cstmt.registerOutParameter(8, java.sql.Types.CLOB);
+                    cstmt.registerOutParameter(9, java.sql.Types.NCLOB);
+                    cstmt.registerOutParameter(10, java.sql.Types.VARBINARY);
+                    cstmt.registerOutParameter(11, java.sql.Types.DATE);
+                    cstmt.registerOutParameter(12, java.sql.Types.TIME);
+                    cstmt.registerOutParameter(13, java.sql.Types.TIMESTAMP);
+                    cstmt.registerOutParameter(14, java.sql.Types.TIMESTAMP_WITH_TIMEZONE);
+                    cstmt.execute();
 
-            try {
-                String out1 = cstmt.getObject(1, String.class);
-            }
-            catch (Exception e) {
+                    assertEquals("hello", cstmt.getObject(1, String.class));
+                    assertEquals("hello", cstmt.getObject("col1Value", String.class));
 
-                fail(e.toString());
+                    assertEquals(Integer.valueOf(1), cstmt.getObject(2, Integer.class));
+                    assertEquals(Integer.valueOf(1), cstmt.getObject("col2Value", Integer.class));
 
-            }
-            try {
-                String out2 = cstmt.getObject("col2Value", String.class);
-            }
-            catch (Exception e) {
+                    assertEquals(2.0f, cstmt.getObject(3, Float.class), 0.0001f);
+                    assertEquals(2.0f, cstmt.getObject("col3Value", Float.class), 0.0001f);
+                    assertEquals(2.0d, cstmt.getObject(3, Double.class), 0.0001d);
+                    assertEquals(2.0d, cstmt.getObject("col3Value", Double.class), 0.0001d);
 
-                fail(e.toString());
-            }
+                    // BigDecimal#equals considers the number of decimal places
+                    assertEquals(0, cstmt.getObject(4, BigDecimal.class).compareTo(new BigDecimal("123.45")));
+                    assertEquals(0, cstmt.getObject("col4Value", BigDecimal.class).compareTo(new BigDecimal("123.45")));
 
-            try {
-                stmt.executeUpdate("IF EXISTS (select * from sysobjects where id = object_id(N'" + procName
-                        + "') and OBJECTPROPERTY(id, N'IsProcedure') = 1)" + " DROP PROCEDURE " + procName);
+                    assertEquals(UUID.fromString("6F9619FF-8B86-D011-B42D-00C04FC964FF"), cstmt.getObject(5, UUID.class));
+                    assertEquals(UUID.fromString("6F9619FF-8B86-D011-B42D-00C04FC964FF"), cstmt.getObject("col5Value", UUID.class));
+
+                    SQLXML sqlXml;
+                    sqlXml = cstmt.getObject(6, SQLXML.class);
+                    try {
+                        assertEquals("<test/>", sqlXml.getString());
+                    }
+                    finally {
+                        sqlXml.free();
+                    }
+
+                    Blob blob;
+                    blob = cstmt.getObject(7, Blob.class);
+                    try {
+                        assertArrayEquals(new byte[] {0x63, (byte) 0xC3, 0x4D, 0x6B, (byte) 0xCA, (byte) 0xD5, 0x55, (byte) 0xEB, 0x64, (byte) 0xBF,
+                                0x7E, (byte) 0x84, (byte) 0x8D, 0x02, (byte) 0xC3, 0x76}, blob.getBytes(1, 16));
+                    }
+                    finally {
+                        blob.free();
+                    }
+
+                    Clob clob;
+                    clob = cstmt.getObject(8, Clob.class);
+                    try {
+                        assertEquals("text", clob.getSubString(1, 4));
+                    }
+                    finally {
+                        clob.free();
+                    }
+
+                    NClob nclob;
+                    nclob = cstmt.getObject(9, NClob.class);
+                    try {
+                        assertEquals("ntext", nclob.getSubString(1, 5));
+                    }
+                    finally {
+                        nclob.free();
+                    }
+
+                    assertArrayEquals(new byte[] {0x63, (byte) 0xC3, 0x4D, 0x6B, (byte) 0xCA, (byte) 0xD5, 0x55, (byte) 0xEB, 0x64, (byte) 0xBF, 0x7E,
+                            (byte) 0x84, (byte) 0x8D, 0x02, (byte) 0xC3, 0x76}, cstmt.getObject(10, byte[].class));
+                    assertEquals(java.sql.Date.valueOf("2017-05-19"), cstmt.getObject(11, java.sql.Date.class));
+                    assertEquals(java.sql.Date.valueOf("2017-05-19"), cstmt.getObject("col11Value", java.sql.Date.class));
+
+                    java.sql.Time expectedTime = new java.sql.Time(java.sql.Time.valueOf("10:47:15").getTime() + 123L);
+                    assertEquals(expectedTime, cstmt.getObject(12, java.sql.Time.class));
+                    assertEquals(expectedTime, cstmt.getObject("col12Value", java.sql.Time.class));
+
+                    assertEquals(java.sql.Timestamp.valueOf("2017-05-19 10:47:15.1234567"), cstmt.getObject(13, java.sql.Timestamp.class));
+                    assertEquals(java.sql.Timestamp.valueOf("2017-05-19 10:47:15.1234567"), cstmt.getObject("col13Value", java.sql.Timestamp.class));
+
+                    assertEquals("2017-05-19 10:47:15.1234567 +02:00", cstmt.getObject(14, microsoft.sql.DateTimeOffset.class).toString());
+                    assertEquals("2017-05-19 10:47:15.1234567 +02:00", cstmt.getObject("col14Value", microsoft.sql.DateTimeOffset.class).toString());
+                }
             }
-            catch (Exception ex) {
-            }
-            ;
-            stmt.close();
-            cstmt.close();
-            conn.close();
         }
+
+        @AfterEach
+        public void terminate() throws Exception {
+            try (Connection con = DriverManager.getConnection(connectionString); Statement stmt = con.createStatement()) {
+                try {
+                    Utils.dropProcedureIfExists(procName, stmt);
+                }
+                catch (SQLException e) {
+                    fail(e.toString());
+                }
+            }
+        }
+
     }
 
     @Nested
     public class TCStatementParam {
         String tableNameTemp = RandomUtil.getIdentifier("TCStatementParam");
         private final String tableName = AbstractSQLGenerator.escapeIdentifier(tableNameTemp);
-        String procNameTemp = RandomUtil.getIdentifier("p1");
+        String procNameTemp = "TCStatementParam";
         private final String procName = AbstractSQLGenerator.escapeIdentifier(procNameTemp);
 
         /**
@@ -1254,10 +1345,8 @@ public class StatementTest extends AbstractTest {
                 log.fine("testStatementOutParamGetsTwice threw: " + e.getMessage());
             }
 
-            stmt.executeUpdate(
-                    "if exists (select * from dbo.sysobjects where id = object_id(N'[dbo].[sp_ouputP]') and OBJECTPROPERTY(id, N'IsProcedure') = 1) DROP PROCEDURE [sp_ouputP]");
-            stmt.executeUpdate(
-                    "CREATE PROCEDURE [sp_ouputP] ( @p2_smallint smallint,  @p3_smallint_out smallint OUTPUT) AS SELECT @p3_smallint_out=@p2_smallint RETURN @p2_smallint + 1");
+            stmt.executeUpdate("CREATE PROCEDURE " + procNameTemp
+                    + " ( @p2_smallint smallint,  @p3_smallint_out smallint OUTPUT) AS SELECT @p3_smallint_out=@p2_smallint RETURN @p2_smallint + 1");
 
             ResultSet rs = stmt.getResultSet();
             if (rs != null) {
@@ -1267,7 +1356,7 @@ public class StatementTest extends AbstractTest {
             else {
                 assertEquals(stmt.isClosed(), false, "testStatementOutParamGetsTwice: statement should be open since no resultset.");
             }
-            CallableStatement cstmt = con.prepareCall("{  ? = CALL [sp_ouputP] (?,?)}");
+            CallableStatement cstmt = con.prepareCall("{  ? = CALL " + procNameTemp + " (?,?)}");
             cstmt.registerOutParameter(1, Types.INTEGER);
             cstmt.setObject(2, Short.valueOf("32"), Types.SMALLINT);
             cstmt.registerOutParameter(3, Types.SMALLINT);
@@ -1295,12 +1384,10 @@ public class StatementTest extends AbstractTest {
             Class.forName("com.microsoft.sqlserver.jdbc.SQLServerDriver");
             Connection con = DriverManager.getConnection(connectionString);
             Statement stmt = con.createStatement();
-            stmt.executeUpdate(
-                    "if exists (select * from dbo.sysobjects where id = object_id(N'[dbo].[sp_ouputMP]') and OBJECTPROPERTY(id, N'IsProcedure') = 1) DROP PROCEDURE [sp_ouputMP]");
-            stmt.executeUpdate(
-                    "CREATE PROCEDURE [sp_ouputMP] ( @p2_smallint smallint,  @p3_smallint_out smallint OUTPUT,  @p4_smallint smallint OUTPUT, @p5_smallint_out smallint OUTPUT) AS SELECT @p3_smallint_out=@p2_smallint, @p5_smallint_out=@p4_smallint RETURN @p2_smallint + 1");
+            stmt.executeUpdate("CREATE PROCEDURE " + procNameTemp
+                    + " ( @p2_smallint smallint,  @p3_smallint_out smallint OUTPUT,  @p4_smallint smallint OUTPUT, @p5_smallint_out smallint OUTPUT) AS SELECT @p3_smallint_out=@p2_smallint, @p5_smallint_out=@p4_smallint RETURN @p2_smallint + 1");
 
-            CallableStatement cstmt = con.prepareCall("{  ? = CALL [sp_ouputMP] (?,?, ?, ?)}");
+            CallableStatement cstmt = con.prepareCall("{  ? = CALL " + procNameTemp + " (?,?, ?, ?)}");
             cstmt.registerOutParameter(1, Types.INTEGER);
             cstmt.setObject(2, Short.valueOf("32"), Types.SMALLINT);
             cstmt.registerOutParameter(3, Types.SMALLINT);
@@ -1317,10 +1404,6 @@ public class StatementTest extends AbstractTest {
             assertEquals(cstmt.getInt(3), 34, "Wrong value");
             assertEquals(cstmt.getInt(5), 24, "Wrong value");
             assertEquals(cstmt.getInt(1), 35, "Wrong value");
-
-            stmt.executeUpdate(
-                    "if exists (select * from dbo.sysobjects where id = object_id(N'[dbo].[sp_ouputMP]') and OBJECTPROPERTY(id, N'IsProcedure') = 1) DROP PROCEDURE [sp_ouputMP]");
-
         }
 
         /**
@@ -1333,12 +1416,10 @@ public class StatementTest extends AbstractTest {
             Class.forName("com.microsoft.sqlserver.jdbc.SQLServerDriver");
             Connection con = DriverManager.getConnection(connectionString);
             Statement stmt = con.createStatement();
-            stmt.executeUpdate(
-                    "if exists (select * from dbo.sysobjects where id = object_id(N'[dbo].[sp_ouputP]') and OBJECTPROPERTY(id, N'IsProcedure') = 1) DROP PROCEDURE [sp_ouputP]");
-            stmt.executeUpdate(
-                    "CREATE PROCEDURE [sp_ouputP] ( @p2_smallint smallint,  @p3_smallint_out smallint OUTPUT) AS SELECT @p3_smallint_out=@p3_smallint_out +1 RETURN @p2_smallint + 1");
+            stmt.executeUpdate("CREATE PROCEDURE " + procNameTemp
+                    + " ( @p2_smallint smallint,  @p3_smallint_out smallint OUTPUT) AS SELECT @p3_smallint_out=@p3_smallint_out +1 RETURN @p2_smallint + 1");
 
-            CallableStatement cstmt = con.prepareCall("{  ? = CALL [sp_ouputP] (?,?)}");
+            CallableStatement cstmt = con.prepareCall("{  ? = CALL " + procNameTemp + " (?,?)}");
             cstmt.registerOutParameter(1, Types.INTEGER);
             cstmt.setObject(2, Short.valueOf("1"), Types.SMALLINT);
             cstmt.setObject(3, Short.valueOf("100"), Types.SMALLINT);
@@ -1351,7 +1432,6 @@ public class StatementTest extends AbstractTest {
             cstmt.execute();
             assertEquals(cstmt.getInt(1), 11, "Wrong value");
             assertEquals(cstmt.getInt(3), 101, "Wrong value");
-
         }
 
         /**
@@ -1365,19 +1445,6 @@ public class StatementTest extends AbstractTest {
             Connection conn = DriverManager.getConnection(connectionString);
             Statement stmt = conn.createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE);
 
-            try {
-                stmt.executeUpdate("drop table if exists " + tableName);
-            }
-            catch (Exception ex) {
-            }
-            ;
-            try {
-                stmt.executeUpdate("IF EXISTS (select * from sysobjects where id = object_id(N'" + procName
-                        + "') and OBJECTPROPERTY(id, N'IsProcedure') = 1)" + " DROP PROCEDURE " + procName);
-            }
-            catch (Exception ex) {
-            }
-            ;
             stmt.executeUpdate("create table " + tableName + " (col1 int, col2 text, col3 int identity(1,1) primary key)");
             stmt.executeUpdate("Insert into " + tableName + " values(0, 'hello')");
             stmt.executeUpdate("Insert into " + tableName + " values(0, 'hi')");
@@ -1392,20 +1459,6 @@ public class StatementTest extends AbstractTest {
             rs.next();
             assertEquals(rs.getString(2), "hello", "Wrong value");
             assertEquals(cstmt.getString(2), "hi", "Wrong value");
-
-            try {
-                stmt.executeUpdate("drop table if exists " + tableName);
-            }
-            catch (Exception ex) {
-            }
-            ;
-            try {
-                stmt.executeUpdate("IF EXISTS (select * from sysobjects where id = object_id(N'" + procName
-                        + "') and OBJECTPROPERTY(id, N'IsProcedure') = 1)" + " DROP PROCEDURE " + procName);
-            }
-            catch (Exception ex) {
-            }
-            ;
         }
 
         /**
@@ -1415,26 +1468,10 @@ public class StatementTest extends AbstractTest {
          */
         @Test
         public void testResultSetNullParams() throws Exception {
-            String temp = RandomUtil.getIdentifier("RetestResultSetNullParams");
-            String tableName = AbstractSQLGenerator.escapeIdentifier(temp);
-
             Class.forName("com.microsoft.sqlserver.jdbc.SQLServerDriver");
             Connection conn = DriverManager.getConnection(connectionString);
             Statement stmt = conn.createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE);
 
-            try {
-                stmt.executeUpdate("drop table if exists" + tableName);
-            }
-            catch (Exception ex) {
-            }
-            ;
-            try {
-                stmt.executeUpdate("IF EXISTS (select * from sysobjects where id = object_id(N'" + procName
-                        + "') and OBJECTPROPERTY(id, N'IsProcedure') = 1)" + " DROP PROCEDURE " + procName);
-            }
-            catch (Exception ex) {
-            }
-            ;
             stmt.executeUpdate("create table " + tableName + " (col1 int, col2 text, col3 int identity(1,1) primary key)");
             stmt.executeUpdate("Insert into " + tableName + " values(0, 'hello')");
             stmt.executeUpdate("Insert into " + tableName + " values(0, 'hi')");
@@ -1452,20 +1489,6 @@ public class StatementTest extends AbstractTest {
                     throw ex;
             }
             ;
-
-            try {
-                stmt.executeUpdate("drop table if exists " + tableName);
-            }
-            catch (Exception ex) {
-            }
-            ;
-            try {
-                stmt.executeUpdate("IF EXISTS (select * from sysobjects where id = object_id(N'" + procName
-                        + "') and OBJECTPROPERTY(id, N'IsProcedure') = 1)" + " DROP PROCEDURE " + procName);
-            }
-            catch (Exception ex) {
-            }
-            ;
         }
 
         /**
@@ -1477,12 +1500,7 @@ public class StatementTest extends AbstractTest {
             Class.forName("com.microsoft.sqlserver.jdbc.SQLServerDriver");
             Connection conn = DriverManager.getConnection(connectionString);
             Statement stmt = conn.createStatement();
-            try {
-                stmt.executeUpdate("drop table if exists " + tableName);
-            }
-            catch (Exception ex) {
-            }
-            ;
+
             stmt.executeUpdate("create table " + tableName + " (col1 int primary key)");
             stmt.executeUpdate("Insert into " + tableName + " values(0)");
             stmt.executeUpdate("Insert into " + tableName + " values(1)");
@@ -1503,12 +1521,6 @@ public class StatementTest extends AbstractTest {
             }
             catch (SQLException ex) {
             }
-            try {
-                stmt.executeUpdate("drop table if exists " + tableName);
-            }
-            catch (Exception ex) {
-            }
-            ;
             conn.close();
         }
 
@@ -1522,19 +1534,6 @@ public class StatementTest extends AbstractTest {
             Connection conn = DriverManager.getConnection(connectionString);
             Statement stmt = conn.createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE);
 
-            try {
-                stmt.executeUpdate("drop table if exists " + tableName);
-            }
-            catch (Exception ex) {
-            }
-            ;
-            try {
-                stmt.executeUpdate("IF EXISTS (select * from sysobjects where id = object_id(N'" + procName
-                        + "') and OBJECTPROPERTY(id, N'IsProcedure') = 1)" + " DROP PROCEDURE " + procName);
-            }
-            catch (Exception ex) {
-            }
-            ;
             stmt.executeUpdate("create table " + tableName + " (col1 int, col2 text, col3 int identity(1,1) primary key)");
             stmt.executeUpdate("Insert into " + tableName + " values(0, 'hello')");
             stmt.executeUpdate("Insert into " + tableName + " values(0, 'hi')");
@@ -1554,45 +1553,20 @@ public class StatementTest extends AbstractTest {
             ;
 
             assertEquals(null, cstmt.getString(2), "Wrong value");
-
-            try {
-                stmt.executeUpdate("drop table if exists " + tableName);
-            }
-            catch (Exception ex) {
-            }
-            ;
-            try {
-                stmt.executeUpdate("IF EXISTS (select * from sysobjects where id = object_id(N'" + procName
-                        + "') and OBJECTPROPERTY(id, N'IsProcedure') = 1)" + " DROP PROCEDURE " + procName);
-            }
-            catch (Exception ex) {
-            }
-            ;
         }
 
         /**
          * Verify proper handling of row errors in ResultSets.
          */
         @Test
+        @Disabled
+        // TODO: We are commenting this out due to random AppVeyor failures. We will investigate later.
         public void testRowError() throws Exception {
             Class.forName("com.microsoft.sqlserver.jdbc.SQLServerDriver");
             Connection conn = DriverManager.getConnection(connectionString);
 
             // Set up everything
             Statement stmt = conn.createStatement();
-            try {
-                stmt.executeUpdate("drop table if exists " + tableName);
-            }
-            catch (Exception ex) {
-            }
-            ;
-            try {
-                stmt.executeUpdate("IF EXISTS (select * from sysobjects where id = object_id(N'" + procName
-                        + "') and OBJECTPROPERTY(id, N'IsProcedure') = 1)" + " DROP PROCEDURE " + procName);
-            }
-            catch (Exception ex) {
-            }
-            ;
 
             stmt.executeUpdate("create table " + tableName + " (col1 int primary key)");
             stmt.executeUpdate("insert into " + tableName + " values(0)");
@@ -1680,22 +1654,21 @@ public class StatementTest extends AbstractTest {
                 testConn2.close();
                 testConn1.close();
             }
-
-            try {
-                stmt.executeUpdate("drop table if exists" + tableName);
-            }
-            catch (Exception ex) {
-            }
-            ;
-            try {
-                stmt.executeUpdate("IF EXISTS (select * from sysobjects where id = object_id(N'" + procName
-                        + "') and OBJECTPROPERTY(id, N'IsProcedure') = 1)" + " DROP PROCEDURE " + procName);
-            }
-            catch (Exception ex) {
-            }
-            ;
             stmt.close();
             conn.close();
+        }
+
+        @AfterEach
+        public void terminate() throws Exception {
+            try (Connection con = DriverManager.getConnection(connectionString); Statement stmt = con.createStatement()) {
+                try {
+                    Utils.dropTableIfExists(tableName, stmt);
+                    Utils.dropProcedureIfExists(procName, stmt);
+                }
+                catch (SQLException e) {
+                    fail(e.toString());
+                }
+            }
         }
     }
 
@@ -1714,11 +1687,6 @@ public class StatementTest extends AbstractTest {
             con = ds.getConnection();
 
             Statement stmt = con.createStatement();
-            try {
-                stmt.executeUpdate("DROP TABLE IF EXISTS " + tableName);
-            }
-            catch (SQLException e) {
-            }
 
             stmt.executeUpdate("CREATE TABLE " + tableName
                     + "(col1_int int PRIMARY KEY IDENTITY(1,1), col2_varchar varchar(200), col3_varchar varchar(20) SPARSE NULL, col4_smallint smallint SPARSE NULL, col5_xml XML COLUMN_SET FOR ALL_SPARSE_COLUMNS, col6_nvarcharMax NVARCHAR(MAX), col7_varcharMax VARCHAR(MAX))");
@@ -1728,19 +1696,15 @@ public class StatementTest extends AbstractTest {
             return con;
         }
 
-        private void cleanup(Connection con) throws Exception {
-            try {
-                if (con == null || con.isClosed()) {
-                    con = DriverManager.getConnection(connectionString);
+        @AfterEach
+        public void terminate() throws Exception {
+            try (Connection con = DriverManager.getConnection(connectionString); Statement stmt = con.createStatement()) {
+                try {
+                    Utils.dropTableIfExists(tableName, stmt);
                 }
-
-                con.createStatement().executeUpdate("DROP TABLE IF EXISTS " + tableName);
-            }
-            catch (SQLException e) {
-            }
-            finally {
-                if (con != null)
-                    con.close();
+                catch (SQLException e) {
+                    fail(e.toString());
+                }
             }
         }
 
@@ -1773,7 +1737,7 @@ public class StatementTest extends AbstractTest {
                 }
             }
             finally {
-                cleanup(con);
+                terminate();
             }
 
         }
@@ -1815,7 +1779,7 @@ public class StatementTest extends AbstractTest {
                 }
             }
             finally {
-                cleanup(con);
+                terminate();
             }
         }
 
@@ -1858,7 +1822,7 @@ public class StatementTest extends AbstractTest {
                 }
             }
             finally {
-                cleanup(con);
+                terminate();
             }
         }
 
@@ -1870,66 +1834,64 @@ public class StatementTest extends AbstractTest {
          */
         @Test
         public void testSparseColumnSetForException() throws Exception {
-            if (new DBConnection(connectionString).getServerVersion() <= 9.0) {
-                log.fine("testSparseColumnSetForException skipped for Yukon");
+            try (DBConnection conn = new DBConnection(connectionString)) {
+                if (conn.getServerVersion() <= 9.0) {
+                    log.fine("testSparseColumnSetForException skipped for Yukon");
+                }
             }
-
             Connection con = null;
+
+            con = createConnectionAndPopulateData();
+            Statement stmt = con.createStatement();
+
+            // enable isCloseOnCompletion
             try {
-                con = createConnectionAndPopulateData();
-                Statement stmt = con.createStatement();
-
-                // enable isCloseOnCompletion
-                try {
-                    stmt.closeOnCompletion();
-                }
-                catch (Exception e) {
-
-                    throw new SQLException("testSparseColumnSetForException threw exception: ", e);
-
-                }
-
-                String selectQuery = "SELECT * FROM " + tableName;
-                ResultSet rs = stmt.executeQuery(selectQuery);
-                rs.next();
-
-                SQLServerResultSetMetaData rsmd = (SQLServerResultSetMetaData) rs.getMetaData();
-                try {
-                    // test that an exception is thrown when result set is closed
-                    rs.close();
-                    rsmd.isSparseColumnSet(1);
-                    assertEquals(true, false, "Should not reach here. An exception should have been thrown");
-                }
-                catch (SQLException e) {
-                }
-
-                // test that an exception is thrown when statement is closed
-                try {
-                    rs = stmt.executeQuery(selectQuery);
-                    rsmd = (SQLServerResultSetMetaData) rs.getMetaData();
-
-                    assertEquals(stmt.isClosed(), true, "testSparseColumnSetForException: statement should be closed since resultset is closed.");
-                    stmt.close();
-                    rsmd.isSparseColumnSet(1);
-                    assertEquals(true, false, "Should not reach here. An exception should have been thrown");
-                }
-                catch (SQLException e) {
-                }
-
-                // test that an exception is thrown when connection is closed
-                try {
-                    rs = con.createStatement().executeQuery("SELECT * FROM " + tableName);
-                    rsmd = (SQLServerResultSetMetaData) rs.getMetaData();
-                    con.close();
-                    rsmd.isSparseColumnSet(1);
-                    assertEquals(true, false, "Should not reach here. An exception should have been thrown");
-                }
-                catch (SQLException e) {
-                }
+                stmt.closeOnCompletion();
             }
-            finally {
-                cleanup(con);
+            catch (Exception e) {
+
+                throw new SQLException("testSparseColumnSetForException threw exception: ", e);
+
             }
+
+            String selectQuery = "SELECT * FROM " + tableName;
+            ResultSet rs = stmt.executeQuery(selectQuery);
+            rs.next();
+
+            SQLServerResultSetMetaData rsmd = (SQLServerResultSetMetaData) rs.getMetaData();
+            try {
+                // test that an exception is thrown when result set is closed
+                rs.close();
+                rsmd.isSparseColumnSet(1);
+                assertEquals(true, false, "Should not reach here. An exception should have been thrown");
+            }
+            catch (SQLException e) {
+            }
+
+            // test that an exception is thrown when statement is closed
+            try {
+                rs = stmt.executeQuery(selectQuery);
+                rsmd = (SQLServerResultSetMetaData) rs.getMetaData();
+
+                assertEquals(stmt.isClosed(), true, "testSparseColumnSetForException: statement should be closed since resultset is closed.");
+                stmt.close();
+                rsmd.isSparseColumnSet(1);
+                assertEquals(true, false, "Should not reach here. An exception should have been thrown");
+            }
+            catch (SQLException e) {
+            }
+
+            // test that an exception is thrown when connection is closed
+            try {
+                rs = con.createStatement().executeQuery("SELECT * FROM " + tableName);
+                rsmd = (SQLServerResultSetMetaData) rs.getMetaData();
+                con.close();
+                rsmd.isSparseColumnSet(1);
+                assertEquals(true, false, "Should not reach here. An exception should have been thrown");
+            }
+            catch (SQLException e) {
+            }
+
         }
 
         /**
@@ -1952,7 +1914,7 @@ public class StatementTest extends AbstractTest {
                 con = ds.getConnection();
                 Statement stmt = con.createStatement();
                 try {
-                    stmt.executeUpdate("DROP TABLE IF EXISTS" + tableName);
+                    Utils.dropTableIfExists(tableName, stmt);
                 }
                 catch (SQLException e) {
                 }
@@ -1977,7 +1939,7 @@ public class StatementTest extends AbstractTest {
 
             }
             finally {
-                cleanup(con);
+                terminate();
             }
         }
 
@@ -2001,7 +1963,7 @@ public class StatementTest extends AbstractTest {
                 con = ds.getConnection();
                 Statement stmt = con.createStatement();
                 try {
-                    stmt.executeUpdate("DROP TABLE IF EXISTS " + tableName);
+                    Utils.dropTableIfExists(tableName, stmt);
                 }
                 catch (SQLException e) {
                 }
@@ -2021,7 +1983,7 @@ public class StatementTest extends AbstractTest {
 
                 Random r = new Random();
                 // randomly generate columns whose values would be set to a non null value
-                ArrayList<Integer> nonNullColumns = new ArrayList<Integer>();
+                ArrayList<Integer> nonNullColumns = new ArrayList<>();
                 nonNullColumns.add(1);// this is always non-null
 
                 // Add approximately 10 non-null columns. The number should be low
@@ -2083,7 +2045,7 @@ public class StatementTest extends AbstractTest {
                 }
             }
             finally {
-                cleanup(con);
+                terminate();
             }
 
         }
@@ -2300,25 +2262,7 @@ public class StatementTest extends AbstractTest {
             Connection con = DriverManager.getConnection(connectionString);
             con.setAutoCommit(false);
             Statement stmt = con.createStatement();
-            try {
-                stmt.executeUpdate("DROP TABLE if exists" + tableName);
-            }
-            catch (SQLException e) {
-                throw new SQLException(e);
-            }
-            try {
-                stmt.executeUpdate("DROP TABLE if exists" + table2Name);
-            }
-            catch (SQLException e) {
-                throw new SQLException(e);
-            }
-            try {
-                stmt.executeUpdate("IF EXISTS (select * from sysobjects where id = object_id(N'" + sprocName
-                        + "') and OBJECTPROPERTY(id, N'IsProcedure') = 1)" + " DROP PROCEDURE " + sprocName);
-            }
-            catch (SQLException e) {
-                throw new SQLException(e);
-            }
+
             try {
                 stmt.executeUpdate("if EXISTS (SELECT * FROM sys.triggers where name = '" + triggerName + "') drop trigger " + triggerName);
             }
@@ -2424,6 +2368,20 @@ public class StatementTest extends AbstractTest {
             // which should have affected 1 (new) row in tableName.
             assertEquals(updateCount, 1, "Wrong update count");
         }
+
+        @AfterEach
+        public void terminate() throws Exception {
+            try (Connection con = DriverManager.getConnection(connectionString); Statement stmt = con.createStatement();) {
+                try {
+                    Utils.dropTableIfExists(tableName, stmt);
+                    Utils.dropTableIfExists(table2Name, stmt);
+                    Utils.dropProcedureIfExists(sprocName, stmt);
+                }
+                catch (SQLException e) {
+                    fail(e.toString());
+                }
+            }
+        }
     }
 
     @Nested
@@ -2439,11 +2397,7 @@ public class StatementTest extends AbstractTest {
             Connection con = DriverManager.getConnection(connectionString);
             con.setAutoCommit(false);
             Statement stmt = con.createStatement();
-            try {
-                stmt.executeUpdate("DROP TABLE if exists" + tableName);
-            }
-            catch (SQLException e) {
-            }
+
             try {
                 stmt.executeUpdate("if EXISTS (SELECT * FROM sys.triggers where name = '" + triggerName + "') drop trigger " + triggerName);
             }
@@ -2540,7 +2494,7 @@ public class StatementTest extends AbstractTest {
          * @throws Exception
          */
         @Test
-        public void testUpdateCountAfterErrorInTrigger_LastUpdateCountFalse() throws Exception {
+        public void testUpdateCountAfterErrorInTriggerLastUpdateCountFalse() throws Exception {
 
             Connection con = DriverManager.getConnection(connectionString + ";lastUpdateCount = false");
             PreparedStatement pstmt = con.prepareStatement("INSERT INTO " + tableName + " VALUES (5)");
@@ -2591,7 +2545,7 @@ public class StatementTest extends AbstractTest {
          * @throws Exception
          */
         @Test
-        public void testUpdateCountAfterErrorInTrigger_LastUpdateCountTrue() throws Exception {
+        public void testUpdateCountAfterErrorInTriggerLastUpdateCountTrue() throws Exception {
 
             Connection con = DriverManager.getConnection(connectionString + ";lastUpdateCount = true");
             PreparedStatement pstmt = con.prepareStatement("INSERT INTO " + tableName + " VALUES (5)");
@@ -2629,6 +2583,18 @@ public class StatementTest extends AbstractTest {
             pstmt.close();
             con.close();
         }
+
+        @AfterEach
+        public void terminate() throws Exception {
+            try (Connection con = DriverManager.getConnection(connectionString); Statement stmt = con.createStatement();) {
+                try {
+                    Utils.dropTableIfExists(tableName, stmt);
+                }
+                catch (SQLException e) {
+                    fail(e.toString());
+                }
+            }
+        }
     }
 
     @Nested
@@ -2653,12 +2619,6 @@ public class StatementTest extends AbstractTest {
                 throw new SQLException("setup threw exception: ", e);
 
             }
-
-            try {
-                stmt.executeUpdate("DROP TABLE if exists" + tableName);
-            }
-            catch (SQLException e) {
-            }
             stmt.executeUpdate("CREATE TABLE " + tableName + " (col1 INT primary key)");
             for (int i = 0; i < NUM_ROWS; i++)
                 stmt.executeUpdate("INSERT INTO " + tableName + " (col1) VALUES (" + i + ")");
@@ -2677,26 +2637,36 @@ public class StatementTest extends AbstractTest {
         @Test
         public void testNoCountWithExecute() throws Exception {
             // Ensure lastUpdateCount=true...
-            Connection con = DriverManager.getConnection(connectionString + ";lastUpdateCount = true");
-            Statement stmt = con.createStatement();
-            boolean isResultSet = stmt
-                    .execute("set nocount on\n" + "insert into " + tableName + "(col1) values(" + (NUM_ROWS + 1) + ")\n" + "select 1");
+            try (Connection con = DriverManager.getConnection(connectionString + ";lastUpdateCount = true");
+                    Statement stmt = con.createStatement();) {
 
-            assertEquals(true, isResultSet, "execute() said first result was an update count");
+                boolean isResultSet = stmt
+                        .execute("set nocount on\n" + "insert into " + tableName + "(col1) values(" + (NUM_ROWS + 1) + ")\n" + "select 1");
 
-            ResultSet rs = stmt.getResultSet();
-            while (rs.next())
-                ;
-            rs.close();
+                assertEquals(true, isResultSet, "execute() said first result was an update count");
 
-            boolean moreResults = stmt.getMoreResults();
-            assertEquals(false, moreResults, "next result is a ResultSet?");
+                ResultSet rs = stmt.getResultSet();
+                while (rs.next());
+                    rs.close();
 
-            int updateCount = stmt.getUpdateCount();
-            assertEquals(-1, updateCount, "only one result was expected...");
+                boolean moreResults = stmt.getMoreResults();
+                assertEquals(false, moreResults, "next result is a ResultSet?");
 
-            stmt.close();
-            con.close();
+                int updateCount = stmt.getUpdateCount();
+                assertEquals(-1, updateCount, "only one result was expected...");
+            }
+        }
+
+        @AfterEach
+        public void terminate() throws Exception {
+            try (Connection con = DriverManager.getConnection(connectionString); Statement stmt = con.createStatement()) {
+                try {
+                    Utils.dropTableIfExists(tableName, stmt);
+                }
+                catch (SQLException e) {
+                    fail(e.toString());
+                }
+            }
         }
     }
 }

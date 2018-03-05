@@ -1,30 +1,49 @@
-sudo: required
+﻿sudo: required
 
 language: java
 jdk:
-  - oraclejdk8
+  - oraclejdk9
 
+addons:
+ apt:
+   packages:
+     - oracle-java9-installer
+     
 services:
   - docker
 
 env:
+ global:	
   - mssql_jdbc_test_connection_properties='jdbc:sqlserver://localhost:1433;databaseName=master;username=sa;password=<YourStrong!Passw0rd>;'
-
+  - mssql_jdbc_logging='true'
+  # Enabling logging with console / file handler for JUnit Test Framework. 
+  #- mssql_jdbc_logging_handler='console'|'file'
+  
+#Cache the .m2 folder
+cache:
+ directories:
+  - $HOME/.m2
+  
+before_install:
+  - mkdir AE_Certificates
+  
 install: 
-  - mvn install -DskipTests=true -Dmaven.javadoc.skip=true -B -V -Pbuild41
+  - cd AE_Certificates
+  - openssl req -newkey rsa:2048 -x509 -keyout cakey.pem -out cacert.pem -days 3650 -subj "/C=US/ST=WA/L=Redmond/O=Microsoft Corporation/OU=SQL Server/CN=JDBC Driver" -nodes
+  - openssl pkcs12 -export -in cacert.pem -inkey cakey.pem -out identity.p12 -password pass:password
+  - keytool -importkeystore -destkeystore clientcert.jks -deststorepass password -srckeystore identity.p12 -srcstoretype PKCS12 -srcstorepass password
+  - keytool -list -v -keystore clientcert.jks -storepass "password" > JavaKeyStore.txt
+  - cd ..
+  - mvn install -DskipTests=true -Dmaven.javadoc.skip=true -B -V -Pbuild43
   - mvn install -DskipTests=true -Dmaven.javadoc.skip=true -B -V -Pbuild42
 
 before_script:
-  - docker pull microsoft/mssql-server-linux
-  - docker run -e 'ACCEPT_EULA=Y' -e 'SA_PASSWORD=<YourStrong!Passw0rd>' -p 1433:1433 -d microsoft/mssql-server-linux
+  - docker pull microsoft/mssql-server-linux:2017-latest
+  - docker run -e 'ACCEPT_EULA=Y' -e 'SA_PASSWORD=<YourStrong!Passw0rd>' -p 1433:1433 -d microsoft/mssql-server-linux:2017-latest
 
 script: 
   - docker ps -a
   
-##Test for JDBC Specification 41 & 42 and submit coverage report.
-  - mvn test -B -Pbuild41 jacoco:report && bash <(curl -s https://codecov.io/bash) -cF JDBC41
+##Test for JDBC Specification 43 & 42 and submit coverage report.
+  - mvn test -B -Pbuild41 jacoco:report && bash <(curl -s https://codecov.io/bash) -cF JDBC43
   - mvn test -B -Pbuild42 jacoco:report && bash <(curl -s https://codecov.io/bash) -cF JDBC42
-
-#after_success:
-# instead of after success we are using && operator for conditional submitting coverage report.
-#  - bash <(curl -s https://codecov.io/bash)

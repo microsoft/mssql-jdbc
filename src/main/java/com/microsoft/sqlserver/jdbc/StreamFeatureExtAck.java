@@ -15,7 +15,7 @@ import java.text.MessageFormat;
  */
 
 final class StreamFeatureExtAck extends StreamPacket {
-    FeatureAckOptFedAuth fedAuth = null;
+    FedAuthOptions fedAuth = null;
     FeatureAckOptSessionRecovery sessionRecovery = null;
     boolean serverSupportsColumnEncryption = false;
     boolean feature_ext_terminator = false;
@@ -31,7 +31,7 @@ final class StreamFeatureExtAck extends StreamPacket {
 
         boolean moreFeatureExtension = true;
         while (moreFeatureExtension) {
-            int token = tdsReader.readUnsignedByte();
+            byte token = (byte) tdsReader.readUnsignedByte();
             switch (token) {
                 case FeatureExt.SESSION_RECOVERY: // session recovery
                     sessionRecovery = new FeatureAckOptSessionRecovery();
@@ -47,9 +47,9 @@ final class StreamFeatureExtAck extends StreamPacket {
                         tdsReader.readBytes(data, 0, dataLen);
                     }
 
-                    if (!fedAuth.federatedAuthenticationRequested) {
+                    if (!fedAuth.isRequested) {
                         MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_UnrequestedFeatureAckReceived"));
-                        Object[] msgArgs = {fedAuth.featureId};
+                        Object[] msgArgs = {token}; // featureId can be replaced with token
                         throw new SQLServerException(form.format(msgArgs), null);
                     }
 
@@ -71,7 +71,7 @@ final class StreamFeatureExtAck extends StreamPacket {
                             Object[] msgArgs = {fedAuth.fedAuthFeatureExtensionData.libraryType};
                             throw new SQLServerException(form.format(msgArgs), null);
                     }
-                    fedAuth.federatedAuthenticationAcknowledged = true;
+                    fedAuth.isAcknowledged = true;
 
                     break;
                 }
@@ -127,7 +127,7 @@ final class StreamFeatureExtAck extends StreamPacket {
     }
 }
 
-class FeatureAckOptSessionRecovery extends FeatureAckOpt {
+class FeatureAckOptSessionRecovery extends FeatureAckOption {
     byte[][] sessionStateInitial = null;
 
     FeatureAckOptSessionRecovery() {
@@ -137,27 +137,22 @@ class FeatureAckOptSessionRecovery extends FeatureAckOpt {
     }
 }
 
-class FeatureAckOpt {
+class FeatureAckOption {
     int featureId;
     long featureAckDataLen; // this value is 4 bytes however it should be unsigned hence using 8 byte long.
 
-    FeatureAckOpt() {
+    FeatureAckOption() {
         featureId = 0;
         featureAckDataLen = 0;
     }
 }
 
-class FeatureAckOptFedAuth extends FeatureAckOpt {
-    boolean fedAuthRequiredByUser = false;
-    boolean fedAuthRequiredPreLoginResponse = false;
-    boolean federatedAuthenticationAcknowledged = false;
-    boolean federatedAuthenticationRequested = false;
-    boolean federatedAuthenticationInfoRequested = false; // Keep this distinct from _federatedAuthenticationRequested, since some fedauth
+class FedAuthOptions {
+    boolean requiredByUser = false;
+    boolean requiredPreLoginResponse = false;
+    boolean isAcknowledged = false;
+    boolean isRequested = false;
+    // Keep this distinct from isRequested, since some fedauth library types may not need more info
+    boolean infoRequested = false; 
     FederatedAuthenticationFeatureExtensionData fedAuthFeatureExtensionData = null;
-
-    FeatureAckOptFedAuth() {
-        super();
-        featureId = FeatureExt.FEDAUTH;
-    }
-
 }
