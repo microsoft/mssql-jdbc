@@ -5,7 +5,7 @@
 	
 	<groupId>com.microsoft.sqlserver</groupId>
 	<artifactId>mssql-jdbc</artifactId>
-	<version>6.4.0.${jreVersion}</version>
+	<version>6.5.0-SNAPSHOT.${jreVersion}-preview</version>
 	<packaging>jar</packaging>
 	
 	<name>Microsoft JDBC Driver for SQL Server</name>
@@ -40,8 +40,8 @@
 
 	<properties>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-		<junit.platform.version>1.0.0-M3</junit.platform.version>
-		<junit.jupiter.version>5.0.0-M3</junit.jupiter.version>
+		<junit.platform.version>1.1.0</junit.platform.version>
+		<junit.jupiter.version>5.1.0</junit.jupiter.version>
 	</properties>
 	
 	<dependencies>
@@ -118,13 +118,13 @@
 		<dependency>
 			<groupId>com.zaxxer</groupId>
 			<artifactId>HikariCP</artifactId>
-			<version>2.7.4</version>
+			<version>2.7.8</version>
 			<scope>test</scope>
 		</dependency>
 		<dependency>
 			<groupId>org.apache.commons</groupId>
 			<artifactId>commons-dbcp2 </artifactId>
-			<version>2.1.1</version>
+			<version>2.2.0</version>
 			<scope>test</scope>
 		</dependency>
   	<!-- 
