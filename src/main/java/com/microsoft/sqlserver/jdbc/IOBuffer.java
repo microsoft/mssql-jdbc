@@ -7531,7 +7531,7 @@ abstract class TDSCommand {
 
             if (logger.isLoggable(Level.FINEST))
                 logger.finest(this + ": throwing interrupt exception, reason: " + interruptReason);
-            
+
             throw new SQLServerException(interruptReason, SQLState.STATEMENT_CANCELED, DriverError.NOT_SET, null);
         }
     }
