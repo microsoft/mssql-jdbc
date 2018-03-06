@@ -413,8 +413,7 @@ public final class SQLServerXAResource implements javax.transaction.xa.XAResourc
                                 if (xaLogger.isLoggable(Level.FINER))
                                     xaLogger.finer(toString() + " exception:" + e4);
                                 throw new SQLServerException(e4.getMessage(), SQLState.STATEMENT_CANCELED, DriverError.NOT_SET, null);
-                                    
-							}
+			    }
 
                             // Check for error response from xp_sqljdbc_xa_init.
                             int initStatus = initCS.getInt(1);
