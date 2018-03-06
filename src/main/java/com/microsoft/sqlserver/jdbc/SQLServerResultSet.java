@@ -26,9 +26,7 @@ import java.sql.SQLFeatureNotSupportedException;
 import java.sql.SQLWarning;
 import java.sql.SQLXML;
 import java.text.MessageFormat;
-import java.util.ArrayList;
 import java.util.Calendar;
-import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
@@ -614,7 +612,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
     public int findColumn(String columnName) throws SQLServerException {
         loggerExternal.entering(getClassNameLogging(), "findColumn", columnName);
         checkClosed();
-        
+
         // In order to be as accurate as possible when locating column name
         // indexes, as well as be deterministic when running on various client
         // locales, we search for column names using the following scheme:
@@ -1414,7 +1412,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
             logger.finer(toString() + logCursorState());
 
         checkClosed();
-        
+
         // DYNAMIC (scrollable) cursors do not support getRow() since they do not have any
         // concept of absolute position.
         if (isDynamic() && !isForwardOnly())
@@ -6522,17 +6520,18 @@ public class SQLServerResultSet implements ISQLServerResultSet {
      * Will skip over closed blobs, implemented in SQLServerBlob
      */
     private void fillBlobs() {
-    	if (null != activeBlob && activeBlob instanceof SQLServerBlob) 	{
+    	if (null != activeBlob && activeBlob instanceof SQLServerBlob) {
     		try {
-				((SQLServerBlob)activeBlob).fillByteArray();
-			} catch (SQLException e) {
-                if (logger.isLoggable(java.util.logging.Level.FINER))
-                    logger.finer(toString() + "Filling blobs before closing: " + e.getMessage());
-			} finally {
-				activeBlob = null;
-			}
+    			((SQLServerBlob)activeBlob).fillByteArray();
+    		} catch (SQLException e) {
+    			if (logger.isLoggable(java.util.logging.Level.FINER)) {
+    				logger.finer(toString() + "Filling blobs before closing: " + e.getMessage());
+    			}
+    		} finally {
+    			activeBlob = null;
+    		}
     	}
-    }
+	}
 
     /**
      * Discards the contents of the current fetch buffer.
@@ -6547,7 +6546,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
     private void discardFetchBuffer() {
     	//fills blobs before discarding anything
     	fillBlobs();
-    	
+
         // Clear the TDSReader mark at the start of the fetch buffer
         fetchBuffer.clearStartMark();
 
