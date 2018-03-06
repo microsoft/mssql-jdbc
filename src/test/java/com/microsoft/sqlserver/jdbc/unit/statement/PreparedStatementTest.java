@@ -272,7 +272,7 @@ public class PreparedStatementTest extends AbstractTest {
                 pstmt.getMoreResults(); // Make sure handle is updated.
 
                 assertNotSame(0, pstmt.getPreparedStatementHandle());
-                assertSame(handle, pstmt.getPreparedStatementHandle());
+                assertNotSame(handle, pstmt.getPreparedStatementHandle());
             } 
 
             // Execute new statement with different SQL text and verify it does NOT get same handle (should now fall back to using sp_executesql). 
