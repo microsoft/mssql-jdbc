@@ -577,7 +577,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
 
         // Mark this ResultSet as closed, then clean up.
         isClosed = true;
-        
+
         // Discard the current fetch buffer contents.
         discardFetchBuffer();
 
