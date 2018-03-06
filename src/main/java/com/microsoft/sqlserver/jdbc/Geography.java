@@ -294,9 +294,7 @@ public class Geography extends SQLServerSpatialDatatype {
         serializationProperties = buffer.get();
         
         interpretSerializationPropBytes();
-        
         readNumberOfPoints();
-        
         readPoints();
         
         if (hasZvalues) {
@@ -309,11 +307,8 @@ public class Geography extends SQLServerSpatialDatatype {
         
         if (!(isSinglePoint || isSingleLineSegment)) {
             readNumberOfFigures();
-            
             readFigures();
-            
             readNumberOfShapes();
-            
             readShapes();
         }
         
@@ -322,7 +317,6 @@ public class Geography extends SQLServerSpatialDatatype {
         if (buffer.hasRemaining()) {
             if (version == 2 && internalType.getTypeCode() != 8 && internalType.getTypeCode() != 11) {
                 readNumberOfSegments();
-                
                 readSegments();
             }
         }

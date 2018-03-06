@@ -810,7 +810,6 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest  {
         beforeEachSetup();
         
         String geoWKT = "POINT(3 40.7777777777777777777 5 6)";
-
         String geoWKTSS = "POINT(3 40.77777777777778 5 6)";
         
         testWkt(geoWKT, geoWKTSS);
@@ -885,7 +884,6 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest  {
         beforeEachSetup();
         
         String geoWKT = "GEOMETRYCOLLECTION(POINT(300 20 1), GEOMETRYCOLLECTION EMPTY, GEOMETRYCOLLECTION(GEOMETRYCOLLECTION(GEOMETRYCOLLECTION EMPTY)), POLYGON((0 0 2, 1 10 3, 1 0 4, 0 0 2)))";
-        
         String geoWKTSS = "GEOMETRYCOLLECTION(POINT(300 20), GEOMETRYCOLLECTION EMPTY, GEOMETRYCOLLECTION(GEOMETRYCOLLECTION(GEOMETRYCOLLECTION EMPTY)), POLYGON((0 0, 1 10, 1 0, 0 0)))";
         
         Geometry geomWKT = Geometry.STGeomFromText(geoWKT, 0);
