@@ -533,7 +533,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         for (int attempt = 1; attempt <= 2; ++attempt) {
             try {
                 // Re-use handle if available, requires parameter definitions which are not available until here.
-                if (reuseCachedHandle(hasNewTypeDefinitions, 1 < attempt, dbName, this)) {
+                if (reuseCachedHandle(hasNewTypeDefinitions, 1 < attempt, dbName)) {
                     hasNewTypeDefinitions = false;
                 }
 
@@ -606,7 +606,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                     }
 
                     cachedPreparedStatementHandle = connection.registerCachedPreparedStatementHandle(
-                            new Sha1HashKey(preparedSQL, preparedTypeDefinitions, dbName, this.hashCode()), prepStmtHandle, executedSqlDirectly);
+                            new Sha1HashKey(preparedSQL, preparedTypeDefinitions, dbName), prepStmtHandle, executedSqlDirectly);
                 }
                 
                 param.skipValue(tdsReader, true);
@@ -928,7 +928,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     }
 
 	/** Manage re-using cached handles */
-	private boolean reuseCachedHandle(boolean hasNewTypeDefinitions, boolean discardCurrentCacheItem, String dbName, SQLServerPreparedStatement pstmt) {
+	private boolean reuseCachedHandle(boolean hasNewTypeDefinitions, boolean discardCurrentCacheItem, String dbName) {
 		// No re-use of caching for cursorable statements (statements that WILL use sp_cursor*)
 		if (isCursorable(executeMethod))
 			return false;
@@ -948,18 +948,14 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 		
 		// New type definitions and existing cached handle reference then deregister cached handle.
 		if(hasNewTypeDefinitions) {
-			if (null != cachedPreparedStatementHandle && hasPreparedStatementHandle() && prepStmtHandle == cachedPreparedStatementHandle.getHandle()) {
-				cachedPreparedStatementHandle.removeReference();
-	            cachedPreparedStatementHandle.setIsExplicitlyDiscarded();
-			}
+			resetPrepStmtHandle();
 			cachedPreparedStatementHandle = null; 			
 		}
 		
         // Check for new cache reference.
         if (null == cachedPreparedStatementHandle) {
-            PreparedStatementHandle cachedHandle = connection
-
-            		.getCachedPreparedStatementHandle(new Sha1HashKey(preparedSQL, preparedTypeDefinitions, dbName, pstmt.hashCode()));
+            PreparedStatementHandle cachedHandle = connection.getCachedPreparedStatementHandle(
+            		new Sha1HashKey(preparedSQL, preparedTypeDefinitions, dbName));
             // If handle was found then re-use, only if AE is not on and is not a batch query with new type definitions (We shouldn't reuse handle
             // if it is batch query and has new type definition, or if it is on, make sure encryptionMetadataIsRetrieved is retrieved.
             if (null != cachedHandle) {
@@ -2635,7 +2631,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                 try {
 
                     // Re-use handle if available, requires parameter definitions which are not available until here.
-                    if (reuseCachedHandle(hasNewTypeDefinitions, 1 < attempt, dbName, this)) {
+                    if (reuseCachedHandle(hasNewTypeDefinitions, 1 < attempt, dbName)) {
                         hasNewTypeDefinitions = false;
                     }
 

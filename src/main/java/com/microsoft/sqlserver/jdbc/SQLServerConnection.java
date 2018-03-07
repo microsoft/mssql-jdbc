@@ -122,8 +122,8 @@ public class SQLServerConnection implements ISQLServerConnection {
 
         Sha1HashKey(String sql,
                 String parametersDefinition,
-                String dbName, int hashcode) {
-            this(String.format("%s%s%s%s", sql, parametersDefinition, dbName, hashcode));
+                String dbName) {
+            this(String.format("%s%s%s", sql, parametersDefinition, dbName));
         }
 
         Sha1HashKey(String s) {
