@@ -176,16 +176,16 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest  {
     
     @Test
     public void testCurvePolygonWkb() throws DecoderException {
-            String geoWKT = "CURVEPOLYGON((0 0, 0 0, 0 0, 0 0), CIRCULARSTRING(1 3, 3 5, 4 7, 7 3, 1 3), COMPOUNDCURVE((0 -23.43778, 0 23.43778), CIRCULARSTRING(0 23.43778, -45 -23.43778, 0 -23.43778)), COMPOUNDCURVE((0 -23.43778, 7 7, 0 23.43778), CIRCULARSTRING(0 23.43778, 8 8, 8 8, -45 23.43778, -90 23.43778), (-90 23.43778, -90 -23.43778), CIRCULARSTRING(-90 -23.43778, -45 -23.43778, 0 -23.43778)))";
-            
-            byte[] geomWKB = Hex.decodeHex("0A00000002001700000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000F03F00000000000008400000000000000840000000000000144000000000000010400000000000001C400000000000001C400000000000000840000000000000F03F00000000000008400000000000000000C7D79E59127037C00000000000000000C7D79E591270374000000000008046C0C7D79E59127037C00000000000000000C7D79E59127037C00000000000000000C7D79E59127037C00000000000001C400000000000001C400000000000000000C7D79E5912703740000000000000204000000000000020400000000000002040000000000000204000000000008046C0C7D79E591270374000000000008056C0C7D79E591270374000000000008056C0C7D79E59127037C000000000008046C0C7D79E59127037C00000000000000000C7D79E59127037C004000000010000000002040000000309000000030D00000001000000FFFFFFFF000000000A080000000203020003010203".toCharArray());
-            byte[] geogWKB = Hex.decodeHex("E6100000020017000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000840000000000000F03F000000000000144000000000000008400000000000001C40000000000000104000000000000008400000000000001C400000000000000840000000000000F03FC7D79E59127037C00000000000000000C7D79E59127037400000000000000000C7D79E59127037C000000000008046C0C7D79E59127037C00000000000000000C7D79E59127037C000000000000000000000000000001C400000000000001C40C7D79E591270374000000000000000000000000000002040000000000000204000000000000020400000000000002040C7D79E591270374000000000008046C0C7D79E591270374000000000008056C0C7D79E59127037C000000000008056C0C7D79E59127037C000000000008046C0C7D79E59127037C0000000000000000004000000010000000002040000000309000000030D00000001000000FFFFFFFF000000000A080000000203020003010203".toCharArray());
+        String geoWKT = "CURVEPOLYGON((0 0, 0 0, 0 0, 0 0), CIRCULARSTRING(1 3, 3 5, 4 7, 7 3, 1 3), COMPOUNDCURVE((0 -23.43778, 0 23.43778), CIRCULARSTRING(0 23.43778, -45 -23.43778, 0 -23.43778)), COMPOUNDCURVE((0 -23.43778, 7 7, 0 23.43778), CIRCULARSTRING(0 23.43778, 8 8, 8 8, -45 23.43778, -90 23.43778), (-90 23.43778, -90 -23.43778), CIRCULARSTRING(-90 -23.43778, -45 -23.43778, 0 -23.43778)))";
+        
+        byte[] geomWKB = Hex.decodeHex("0A00000002001700000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000F03F00000000000008400000000000000840000000000000144000000000000010400000000000001C400000000000001C400000000000000840000000000000F03F00000000000008400000000000000000C7D79E59127037C00000000000000000C7D79E591270374000000000008046C0C7D79E59127037C00000000000000000C7D79E59127037C00000000000000000C7D79E59127037C00000000000001C400000000000001C400000000000000000C7D79E5912703740000000000000204000000000000020400000000000002040000000000000204000000000008046C0C7D79E591270374000000000008056C0C7D79E591270374000000000008056C0C7D79E59127037C000000000008046C0C7D79E59127037C00000000000000000C7D79E59127037C004000000010000000002040000000309000000030D00000001000000FFFFFFFF000000000A080000000203020003010203".toCharArray());
+        byte[] geogWKB = Hex.decodeHex("E6100000020017000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000840000000000000F03F000000000000144000000000000008400000000000001C40000000000000104000000000000008400000000000001C400000000000000840000000000000F03FC7D79E59127037C00000000000000000C7D79E59127037400000000000000000C7D79E59127037C000000000008046C0C7D79E59127037C00000000000000000C7D79E59127037C000000000000000000000000000001C400000000000001C40C7D79E591270374000000000000000000000000000002040000000000000204000000000000020400000000000002040C7D79E591270374000000000008046C0C7D79E591270374000000000008056C0C7D79E59127037C000000000008056C0C7D79E59127037C000000000008046C0C7D79E59127037C0000000000000000004000000010000000002040000000309000000030D00000001000000FFFFFFFF000000000A080000000203020003010203".toCharArray());
 
-            Geometry geomWKT = Geometry.deserialize(geomWKB);
-            Geography geogWKT = Geography.deserialize(geogWKB);
-            
-            assertEquals(geomWKT.asTextZM(), geoWKT);
-            assertEquals(geogWKT.asTextZM(), geoWKT);
+        Geometry geomWKT = Geometry.deserialize(geomWKB);
+        Geography geogWKT = Geography.deserialize(geogWKB);
+        
+        assertEquals(geomWKT.asTextZM(), geoWKT);
+        assertEquals(geogWKT.asTextZM(), geoWKT);
     }
     
     @Test
@@ -365,7 +365,7 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest  {
             beforeEachSetup();
             
             geoWKT = "CURVEPOLYGON EMPTY";
-            
+
             testWkt(geoWKT);
         }
     }
@@ -376,7 +376,6 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest  {
             beforeEachSetup();
             
             String geoWKT = "FULLGLOBE";
-
             Geography geogWKT = Geography.STGeomFromText(geoWKT, 4326);
 
             try {
@@ -387,9 +386,7 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest  {
             }
             
             pstmt = (SQLServerPreparedStatement) con.prepareStatement("insert into "+ geogTableName + " values (?)");  
-            
             pstmt.setGeography(1, geogWKT);
-            
             pstmt.execute();
             
             rs = (SQLServerResultSet) stmt.executeQuery("select c1 from " + geogTableName);
@@ -404,7 +401,6 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest  {
         
         String geoWKT = "  GeOMETRyCOLlECTION(POINT(       3e2  2E1 1  ), GEOMETRYCOLLECTION  EmPTy  , GeometryCollection(GEometryCOLLEction(GEometryCOLLEction Empty)), "
                 + "POLYGON(  (0 0 2,   1 10 3, 1 0 4,   0 0 2))  )";
-        
         String geoWKTSS = "GEOMETRYCOLLECTION(POINT(300 20 1), GEOMETRYCOLLECTION EMPTY, GEOMETRYCOLLECTION(GEOMETRYCOLLECTION(GEOMETRYCOLLECTION EMPTY)), POLYGON((0 0 2, 1 10 3, 1 0 4, 0 0 2)))";
         
         testWkt(geoWKT, geoWKTSS);
@@ -540,52 +536,42 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest  {
             
             geomWKT = Geometry.STGeomFromText(geoWKTPoint, 0);
             pstmt.setGeometry(1, geomWKT);
-            
             pstmt.executeUpdate();
             
             geomWKT = Geometry.STGeomFromText(geoWKTLineString, 0);
             pstmt.setGeometry(1, geomWKT);
-            
             pstmt.executeUpdate();
             
             geomWKT = Geometry.STGeomFromText(geoWKTCircularString, 0);
             pstmt.setGeometry(1, geomWKT);
-            
             pstmt.executeUpdate();
             
             geomWKT = Geometry.STGeomFromText(geoWKTCompoundCurve, 0);
             pstmt.setGeometry(1, geomWKT);
-            
             pstmt.executeUpdate();
             
             geomWKT = Geometry.STGeomFromText(geoWKTCurvePolygon, 0);
             pstmt.setGeometry(1, geomWKT);
-            
             pstmt.executeUpdate();
             
             geomWKT = Geometry.STGeomFromText(geoWKTPolygon, 0);
             pstmt.setGeometry(1, geomWKT);
-            
             pstmt.executeUpdate();
             
             geomWKT = Geometry.STGeomFromText(geoWKTMultiPoint, 0);
             pstmt.setGeometry(1, geomWKT);
-            
             pstmt.executeUpdate();
             
             geomWKT = Geometry.STGeomFromText(geoWKTMultiLineString, 0);
             pstmt.setGeometry(1, geomWKT);
-            
             pstmt.executeUpdate();
             
             geomWKT = Geometry.STGeomFromText(geoWKTMultiPolygon, 0);
             pstmt.setGeometry(1, geomWKT);
-            
             pstmt.executeUpdate();
             
             geomWKT = Geometry.STGeomFromText(geoWKTGeometryCollection, 0);
             pstmt.setGeometry(1, geomWKT);
-            
             pstmt.executeUpdate();
             
             rs = (SQLServerResultSet) stmt.executeQuery("select c1 from " + geomTableName);
@@ -825,9 +811,7 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest  {
         Geography geogWKT = Geography.parse(geoWKT);
         
         pstmt = (SQLServerPreparedStatement) con.prepareStatement("insert into "+ geomTableName + " values (?)");    
-        
         pstmt.setGeometry(1, geomWKT);
-        
         pstmt.execute();
         
         rs = (SQLServerResultSet) stmt.executeQuery("select c1 from " + geomTableName);
@@ -836,9 +820,7 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest  {
         assertEquals(rs.getGeometry(1).getSrid(), 0);
         
         pstmt = (SQLServerPreparedStatement) con.prepareStatement("insert into "+ geogTableName + " values (?)");  
-        
         pstmt.setGeography(1, geogWKT);
-        
         pstmt.execute();
         
         rs = (SQLServerResultSet) stmt.executeQuery("select c1 from " + geogTableName);
@@ -857,9 +839,7 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest  {
         Geography geogWKT = Geography.point(1, 2, 4326);
         
         pstmt = (SQLServerPreparedStatement) con.prepareStatement("insert into "+ geomTableName + " values (?)");    
-        
         pstmt.setGeometry(1, geomWKT);
-        
         pstmt.execute();
         
         rs = (SQLServerResultSet) stmt.executeQuery("select c1 from " + geomTableName);
@@ -868,9 +848,7 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest  {
         assertEquals(rs.getGeometry(1).getSrid(), 0);
         
         pstmt = (SQLServerPreparedStatement) con.prepareStatement("insert into "+ geogTableName + " values (?)");  
-        
         pstmt.setGeography(1, geogWKT);
-        
         pstmt.execute();
         
         rs = (SQLServerResultSet) stmt.executeQuery("select c1 from " + geogTableName);
@@ -890,9 +868,7 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest  {
         Geography geogWKT = Geography.STGeomFromText(geoWKT, 4326);
         
         pstmt = (SQLServerPreparedStatement) con.prepareStatement("insert into "+ geomTableName + " values (?)");    
-        
         pstmt.setGeometry(1, geomWKT);
-        
         pstmt.execute();
         
         rs = (SQLServerResultSet) stmt.executeQuery("select c1 from " + geomTableName);
@@ -900,9 +876,7 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest  {
         assertEquals(rs.getGeometry(1).STAsText(), geoWKTSS);
         
         pstmt = (SQLServerPreparedStatement) con.prepareStatement("insert into "+ geogTableName + " values (?)");  
-        
         pstmt.setGeography(1, geogWKT);
-        
         pstmt.execute();
         
         rs = (SQLServerResultSet) stmt.executeQuery("select c1 from " + geogTableName);
@@ -959,9 +933,7 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest  {
         Geography geogWKT = Geography.STGeomFromText(geoWKT, 4326);
         
         pstmt = (SQLServerPreparedStatement) con.prepareStatement("insert into "+ geomTableName + " values (?)");    
-        
         pstmt.setGeometry(1, geomWKT);
-        
         pstmt.execute();
         
         rs = (SQLServerResultSet) stmt.executeQuery("select c1 from " + geomTableName);
@@ -969,9 +941,7 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest  {
         assertEquals(rs.getGeometry(1).asTextZM(), geoWKTSS);
         
         pstmt = (SQLServerPreparedStatement) con.prepareStatement("insert into "+ geogTableName + " values (?)");  
-        
         pstmt.setGeography(1, geogWKT);
-        
         pstmt.execute();
         
         rs = (SQLServerResultSet) stmt.executeQuery("select c1 from " + geogTableName);
