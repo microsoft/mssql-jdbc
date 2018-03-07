@@ -1398,23 +1398,12 @@ public class SQLServerConnection implements ISQLServerConnection {
                     }
                 }
 
-            // Must be set after STATEMENT_POOLING_CACHE_SIZE
-            sPropKey = SQLServerDriverBooleanProperty.DISABLE_STATEMENT_POOLING.toString();
-            sPropValue = activeConnectionProperties.getProperty(sPropKey);
-            if (null != sPropValue) {
-                setDisableStatementPooling(booleanPropertyOn(sPropKey, sPropValue));
-            } 
-
-                sendTimeAsDatetime = booleanPropertyOn(sPropKey, sPropValue);
-
+                // Must be set after STATEMENT_POOLING_CACHE_SIZE
                 sPropKey = SQLServerDriverBooleanProperty.DISABLE_STATEMENT_POOLING.toString();
                 sPropValue = activeConnectionProperties.getProperty(sPropKey);
-                if (sPropValue != null) // if the user does not set it, it is ok but if set the value can only be true
-                    if (false == booleanPropertyOn(sPropKey, sPropValue)) {
-                        MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invaliddisableStatementPooling"));
-                        Object[] msgArgs = {new String(sPropValue)};
-                        SQLServerException.makeFromDriverError(this, this, form.format(msgArgs), null, false);
-                    }
+                if (null != sPropValue) {
+                    setDisableStatementPooling(booleanPropertyOn(sPropKey, sPropValue));
+                } 
 
                 sPropKey = SQLServerDriverBooleanProperty.INTEGRATED_SECURITY.toString();
                 sPropValue = activeConnectionProperties.getProperty(sPropKey);

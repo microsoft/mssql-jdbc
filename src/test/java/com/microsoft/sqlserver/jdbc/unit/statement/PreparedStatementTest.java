@@ -27,6 +27,7 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Disabled;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
 
@@ -133,6 +134,7 @@ public class PreparedStatementTest extends AbstractTest {
      */
     @Test
     @Tag("slow")
+    @Disabled
     public void testStatementPooling() throws SQLException {
         // Test % handle re-use
         try (SQLServerConnection con = (SQLServerConnection)DriverManager.getConnection(connectionString)) {

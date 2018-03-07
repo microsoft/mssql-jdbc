@@ -15,6 +15,7 @@ import java.sql.DriverManager;
 import java.sql.SQLException;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Disabled;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
 
@@ -60,6 +61,7 @@ public class ExceptionTest extends AbstractTest {
      * 
      */
     @Test
+    @Disabled
     public void testSocketTimeoutExceptionCause() throws Exception {
         SQLServerConnection conn = null;
         try {
