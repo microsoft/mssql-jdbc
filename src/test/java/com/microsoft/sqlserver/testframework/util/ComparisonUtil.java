@@ -92,16 +92,16 @@ public class ComparisonUtil {
         else
             switch (dataType) {
                 case java.sql.Types.BIGINT:
-                    assertTrue((((Long) expectedValue).longValue() == ((Long) actualValue).longValue()), "Unexpected bigint value");
+                    assertTrue((((Long) expectedValue).longValue() == ((Long) actualValue).longValue()), "Unexpected bigint value. Expected:" + ((Long) expectedValue).longValue() + " Actual:" + ((Long) actualValue).longValue());
                     break;
 
                 case java.sql.Types.INTEGER:
-                    assertTrue((((Integer) expectedValue).intValue() == ((Integer) actualValue).intValue()), "Unexpected int value");
+                    assertTrue((((Integer) expectedValue).intValue() == ((Integer) actualValue).intValue()), "Unexpected int value. Expected:" + ((Integer) expectedValue).intValue() + " Actual:" + ((Integer) actualValue).intValue());
                     break;
 
                 case java.sql.Types.SMALLINT:
                 case java.sql.Types.TINYINT:
-                    assertTrue((((Short) expectedValue).shortValue() == ((Short) actualValue).shortValue()), "Unexpected smallint/tinyint value");
+                    assertTrue((((Short) expectedValue).shortValue() == ((Short) actualValue).shortValue()), "Unexpected smallint/tinyint value. Expected:" + ((Short) expectedValue).shortValue() + " Actual:" + ((Short) actualValue).shortValue());
                     break;
 
                 case java.sql.Types.BIT:
@@ -115,11 +115,11 @@ public class ComparisonUtil {
                     break;
 
                 case java.sql.Types.DOUBLE:
-                    assertTrue((((Double) expectedValue).doubleValue() == ((Double) actualValue).doubleValue()), "Unexpected float value");
+                    assertTrue((((Double) expectedValue).doubleValue() == ((Double) actualValue).doubleValue()), "Unexpected double value. Expected:" + ((Double) expectedValue).doubleValue() + " Actual:" + ((Double) actualValue).doubleValue());
                     break;
 
                 case java.sql.Types.REAL:
-                    assertTrue((((Float) expectedValue).floatValue() == ((Float) actualValue).floatValue()), "Unexpected real value");
+                    assertTrue((((Float) expectedValue).floatValue() == ((Float) actualValue).floatValue()), "Unexpected real/float value. Expected:" + ((Float) expectedValue).floatValue() + " Actual:" + ((Float) actualValue).floatValue());
                     break;
 
                 case java.sql.Types.VARCHAR:
