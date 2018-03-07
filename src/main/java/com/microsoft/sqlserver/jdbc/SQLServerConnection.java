@@ -1303,15 +1303,6 @@ public class SQLServerConnection implements ISQLServerConnection {
                 }
                 registerKeyStoreProviderOnConnection(keyStoreAuthentication, keyStoreSecret, keyStoreLocation);
 
-            sPropKey = SQLServerDriverBooleanProperty.TRANSPARENT_NETWORK_IP_RESOLUTION.toString();
-            sPropValue = activeConnectionProperties.getProperty(sPropKey);
-            if (sPropValue == null) {
-                userSetTNIR = false;
-                sPropValue = Boolean.toString(SQLServerDriverBooleanProperty.TRANSPARENT_NETWORK_IP_RESOLUTION.getDefaultValue());
-                activeConnectionProperties.setProperty(sPropKey, sPropValue);
-            }
-            transparentNetworkIPResolution = booleanPropertyOn(sPropKey, sPropValue);
-
 
                 sPropKey = SQLServerDriverBooleanProperty.MULTI_SUBNET_FAILOVER.toString();
                 sPropValue = activeConnectionProperties.getProperty(sPropKey);
@@ -1338,6 +1329,15 @@ public class SQLServerConnection implements ISQLServerConnection {
 
                 // Set requestedEncryptionLevel according to the value of the encrypt connection property
                 requestedEncryptionLevel = booleanPropertyOn(sPropKey, sPropValue) ? TDS.ENCRYPT_ON : TDS.ENCRYPT_OFF;
+                
+                sPropKey = SQLServerDriverBooleanProperty.TRUST_SERVER_CERTIFICATE.toString();
+                sPropValue = activeConnectionProperties.getProperty(sPropKey);
+                if (sPropValue == null) {
+                    sPropValue = Boolean.toString(SQLServerDriverBooleanProperty.TRUST_SERVER_CERTIFICATE.getDefaultValue());
+                    activeConnectionProperties.setProperty(sPropKey, sPropValue);
+                }
+
+                trustServerCertificate = booleanPropertyOn(sPropKey, sPropValue);
 
             trustManagerClass = activeConnectionProperties.getProperty(SQLServerDriverStringProperty.TRUST_MANAGER_CLASS.toString());
             trustManagerConstructorArg = activeConnectionProperties.getProperty(SQLServerDriverStringProperty.TRUST_MANAGER_CONSTRUCTOR_ARG.toString());

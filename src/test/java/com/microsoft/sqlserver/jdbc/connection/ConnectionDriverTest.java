@@ -31,6 +31,7 @@ import javax.sql.PooledConnection;
 
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Disabled;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
 
@@ -287,6 +288,7 @@ public class ConnectionDriverTest extends AbstractTest {
     }
 
     @Test
+    @Disabled
     public void testDeadConnection() throws SQLException {
         assumeTrue(!DBConnection.isSqlAzure(DriverManager.getConnection(connectionString)), "Skipping test case on Azure SQL.");
 
