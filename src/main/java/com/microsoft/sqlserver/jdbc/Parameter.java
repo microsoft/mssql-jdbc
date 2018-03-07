@@ -580,7 +580,9 @@ final class Parameter {
                          * specific type info, otherwise generic type info can be used as before.
                          */
                         if (0 == valueLength) {
-                            param.typeDefinition = "varbinary";
+                            // Workaround for the issue when inserting empty string and null into encrypted columns
+                            param.typeDefinition = "varbinary(1)";
+                            valueLength++;
                         }
                         else {
                             param.typeDefinition = "varbinary(" + valueLength + ")";
@@ -721,7 +723,9 @@ final class Parameter {
                          * specific type info, otherwise generic type info can be used as before.
                          */
                         if (0 == valueLength) {
-                            param.typeDefinition = "varchar";
+                            // Workaround for the issue when inserting empty string and null into encrypted columns
+                            param.typeDefinition = "varchar(1)";
+                            valueLength++;
                         }
                         else {
                             param.typeDefinition = "varchar(" + valueLength + ")";
@@ -745,7 +749,9 @@ final class Parameter {
                         if ((null != jdbcTypeSetByUser) && ((jdbcTypeSetByUser == JDBCType.VARCHAR) || (jdbcTypeSetByUser == JDBCType.CHAR)
                                 || (jdbcTypeSetByUser == JDBCType.LONGVARCHAR))) {
                             if (0 == valueLength) {
-                                param.typeDefinition = "varchar";
+                                // Workaround for the issue when inserting empty string and null into encrypted columns
+                                param.typeDefinition = "varchar(1)";
+                                valueLength++;
                             }
                             else if (DataTypes.SHORT_VARTYPE_MAX_BYTES < valueLength) {
                                 param.typeDefinition = VARCHAR_MAX;
@@ -761,7 +767,9 @@ final class Parameter {
                         else if ((null != jdbcTypeSetByUser)
                                 && (jdbcTypeSetByUser == JDBCType.NVARCHAR || jdbcTypeSetByUser == JDBCType.LONGNVARCHAR)) {
                             if (0 == valueLength) {
-                                param.typeDefinition = "nvarchar";
+                                // Workaround for the issue when inserting empty string and null into encrypted columns
+                                param.typeDefinition = "nvarchar(1)";
+                                valueLength++;
                             }
                             else if (DataTypes.SHORT_VARTYPE_MAX_CHARS < valueLength) {
                                 param.typeDefinition = NVARCHAR_MAX;
@@ -776,7 +784,9 @@ final class Parameter {
                         }
                         else { // used if setNull() is called with java.sql.Types.NCHAR
                             if (0 == valueLength) {
-                                param.typeDefinition = "nvarchar";
+                                // Workaround for the issue when inserting empty string and null into encrypted columns
+                                param.typeDefinition = "nvarchar(1)";
+                                valueLength++;
                             }
                             else {
                                 param.typeDefinition = "nvarchar(" + valueLength + ")";
@@ -813,7 +823,9 @@ final class Parameter {
                         if ((null != jdbcTypeSetByUser) && ((jdbcTypeSetByUser == JDBCType.VARCHAR) || (jdbcTypeSetByUser == JDBCType.CHAR)
                                 || (JDBCType.LONGVARCHAR == jdbcTypeSetByUser))) {
                             if (0 == valueLength) {
-                                param.typeDefinition = "varchar";
+                                // Workaround for the issue when inserting empty string and null into encrypted columns
+                                param.typeDefinition = "varchar(1)";
+                                valueLength++;
                             }
                             else {
                                 param.typeDefinition = "varchar(" + valueLength + ")";
@@ -830,7 +842,9 @@ final class Parameter {
                         else if ((null != jdbcTypeSetByUser) && ((jdbcTypeSetByUser == JDBCType.NVARCHAR) || (jdbcTypeSetByUser == JDBCType.NCHAR)
                                 || (JDBCType.LONGNVARCHAR == jdbcTypeSetByUser))) {
                             if (0 == valueLength) {
-                                param.typeDefinition = "nvarchar";
+                                // Workaround for the issue when inserting empty string and null into encrypted columns
+                                param.typeDefinition = "nvarchar(1)";
+                                valueLength++;
                             }
                             else {
                                 param.typeDefinition = "nvarchar(" + valueLength + ")";
@@ -846,7 +860,9 @@ final class Parameter {
                         }
                         else { // used if setNull() is called with java.sql.Types.NCHAR
                             if (0 == valueLength) {
-                                param.typeDefinition = "nvarchar";
+                                // Workaround for the issue when inserting empty string and null into encrypted columns
+                                param.typeDefinition = "nvarchar(1)";
+                                valueLength++;
                             }
                             else {
                                 param.typeDefinition = "nvarchar(" + valueLength + ")";
