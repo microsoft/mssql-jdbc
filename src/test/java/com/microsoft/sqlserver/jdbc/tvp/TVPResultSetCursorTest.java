@@ -26,7 +26,6 @@ import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
 
 import com.microsoft.sqlserver.jdbc.SQLServerCallableStatement;
-import com.microsoft.sqlserver.jdbc.SQLServerException;
 import com.microsoft.sqlserver.jdbc.SQLServerPreparedStatement;
 import com.microsoft.sqlserver.testframework.AbstractTest;
 import com.microsoft.sqlserver.testframework.Utils;
@@ -204,7 +203,7 @@ public class TVPResultSetCursorTest extends AbstractTest {
         try {
             pstmt.execute();
         }
-        catch (SQLServerException e) {
+        catch (SQLException e) {
             if (!e.getMessage().contains("Cannot find data type")) {
                 throw e;
             }
@@ -251,7 +250,7 @@ public class TVPResultSetCursorTest extends AbstractTest {
         try {
             pstmt.execute();
         }
-        catch (SQLServerException e) {
+        catch (SQLException e) {
             if (!e.getMessage().contains("Could not find stored procedure")) {
                 throw e;
             }

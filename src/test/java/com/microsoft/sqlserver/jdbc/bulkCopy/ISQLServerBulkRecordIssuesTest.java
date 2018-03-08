@@ -67,7 +67,7 @@ public class ISQLServerBulkRecordIssuesTest extends AbstractTest {
             fail("BulkCopy executed for testVarchar when it it was expected to fail");
         }
         catch (Exception e) {
-            if (e instanceof SQLServerException) {
+            if (e instanceof SQLException) {
                 assertTrue(e.getMessage().contains("The given value of type"), "Invalid Error message: " + e.toString());
             }
             else {
@@ -120,7 +120,7 @@ public class ISQLServerBulkRecordIssuesTest extends AbstractTest {
             fail("BulkCopy executed for testSmalldatetimeOutofRange when it it was expected to fail");
         }
         catch (Exception e) {
-            if (e instanceof SQLServerException) {
+            if (e instanceof SQLException) {
                 assertTrue(e.getMessage().contains("Conversion failed when converting character string to smalldatetime data type"),
                         "Invalid Error message: " + e.toString());
             }
@@ -148,7 +148,7 @@ public class ISQLServerBulkRecordIssuesTest extends AbstractTest {
             fail("BulkCopy executed for testBinaryColumnAsByte when it it was expected to fail");
         }
         catch (Exception e) {
-            if (e instanceof SQLServerException) {
+            if (e instanceof SQLException) {
                 assertTrue(e.getMessage().contains("The given value of type"), "Invalid Error message: " + e.toString());
             }
             else {
@@ -175,7 +175,7 @@ public class ISQLServerBulkRecordIssuesTest extends AbstractTest {
             fail("BulkCopy executed for testBinaryColumnAsString when it it was expected to fail");
         }
         catch (Exception e) {
-            if (e instanceof SQLServerException) {
+            if (e instanceof SQLException) {
                 assertTrue(e.getMessage().contains("The given value of type"), "Invalid Error message: " + e.toString());
             }
             else {
