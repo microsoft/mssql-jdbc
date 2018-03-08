@@ -2286,7 +2286,11 @@ final class SocketFinder {
             // inetAddrs is only used if useParallel is true or TNIR is true. Skip resolving address if that's not the case.
             if (useParallel || useTnir) {
                 // Ignore TNIR if host resolves to more than 64 IPs. Make sure we are using original timeout for this.
-                inetAddrs = InetAddress.getAllByName(hostName);
+                try {
+                    inetAddrs = InetAddress.getAllByName(hostName);
+                }catch(java.net.UnknownHostException ex){
+                    logger.finer("Failed to look up host");
+                }
 
                 if ((useTnir) && (inetAddrs.length > ipAddressLimit)) {
                     useTnir = false;
@@ -2631,8 +2635,8 @@ final class SocketFinder {
     private Socket getConnectedSocket(InetSocketAddress addr,
             int timeoutInMilliSeconds) throws IOException {
         assert timeoutInMilliSeconds != 0 : "timeout cannot be zero";
-        if (addr.isUnresolved())
-            throw new java.net.UnknownHostException();
+        // if (addr.isUnresolved())
+        //     throw new java.net.UnknownHostException();
         selectedSocket = new Socket();
         selectedSocket.connect(addr, timeoutInMilliSeconds);
         return selectedSocket;
