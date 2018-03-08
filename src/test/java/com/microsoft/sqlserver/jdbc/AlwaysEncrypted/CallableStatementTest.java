@@ -83,7 +83,6 @@ public class CallableStatementTest extends AESetup {
      * Initialize the tables for this class. This method will execute AFTER the parent class (AESetup) finishes initializing.
      * 
      * @throws SQLException
-     * @throws SQLException
      */
     @BeforeAll
     public static void initCallableStatementTest() throws SQLException {

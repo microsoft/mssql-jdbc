@@ -119,7 +119,6 @@ public class AESetup extends AbstractTest {
      * AfterAll annotation requires it to be static.
      * 
      * @throws SQLException
-     * @throws SQLException
      */
     @AfterAll
     private static void dropAll() throws SQLException {
@@ -2058,7 +2057,6 @@ public class AESetup extends AbstractTest {
      * Dropping column encryption key
      * 
      * @throws SQLException
-     * @throws SQLException
      */
     private static void dropCEK(SQLServerStatement stmt) throws SQLException {
         String cekSql = " if exists (SELECT name from sys.column_encryption_keys where name='" + cekName + "')" + " begin"
@@ -2069,7 +2067,6 @@ public class AESetup extends AbstractTest {
     /**
      * Dropping column master key
      * 
-     * @throws SQLException
      * @throws SQLException
      */
     private static void dropCMK(SQLServerStatement stmt) throws SQLException {

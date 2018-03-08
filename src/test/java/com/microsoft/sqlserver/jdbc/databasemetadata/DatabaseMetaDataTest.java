@@ -62,8 +62,6 @@ public class DatabaseMetaDataTest extends AbstractTest {
      * capability = attributes.getValue("Require-Capability");  
      * 
      * @throws SQLException
-     *             Our Wrapped Exception
-     * @throws SQLException
      *             SQL Exception
      * @throws IOException
      *             IOExcption
@@ -113,7 +111,6 @@ public class DatabaseMetaDataTest extends AbstractTest {
      * Your password should not be in getURL method.
      * 
      * @throws SQLException
-     * @throws SQLException
      */
     @Test
     public void testGetURL() throws SQLException {
@@ -126,7 +123,6 @@ public class DatabaseMetaDataTest extends AbstractTest {
     /**
      * Test getUsername.
      * 
-     * @throws SQLException
      * @throws SQLException
      */
     @Test
@@ -163,7 +159,6 @@ public class DatabaseMetaDataTest extends AbstractTest {
     /**
      * Testing of {@link SQLServerDatabaseMetaData#getSchemas()}
      * @throws SQLException
-     * @throws SQLException
      */
     @Test
     public void testDBSchema() throws SQLException {
@@ -179,7 +174,6 @@ public class DatabaseMetaDataTest extends AbstractTest {
     /**
      * Get All Tables.
      * 
-     * @throws SQLException
      * @throws SQLException
      */
     @Test
@@ -205,7 +199,6 @@ public class DatabaseMetaDataTest extends AbstractTest {
      *  <li> Create table with appropriate column size, data types,auto increment, NULLABLE etc.  
      *  <li> Then get databasemetatadata.getColumns to see if there is any mismatch.
      * </ul>
-     * @throws SQLException
      * @throws SQLException
      */
     @Test
@@ -241,7 +234,6 @@ public class DatabaseMetaDataTest extends AbstractTest {
      * <li> IS_GRANTABLE can have only 2 values YES / NO
      * </ul>
      * @throws SQLException
-     * @throws SQLException
      */
     @Test
     public void testGetColumnPrivileges() throws SQLException {
@@ -273,7 +265,6 @@ public class DatabaseMetaDataTest extends AbstractTest {
      * 
      * Testing {@link SQLServerDatabaseMetaData#getFunctions(String, String, String)} with sending wrong category.
      * @throws SQLException
-     * @throws SQLException
      */
     @Test
     public void testGetFunctionsWithWrongParams() throws SQLException {
@@ -288,7 +279,6 @@ public class DatabaseMetaDataTest extends AbstractTest {
     
     /**
      * Test {@link SQLServerDatabaseMetaData#getFunctions(String, String, String)}
-     * @throws SQLException
      * @throws SQLException
      */
     @Test
@@ -310,7 +300,6 @@ public class DatabaseMetaDataTest extends AbstractTest {
     
     /**
      * Te
-     * @throws SQLException
      * @throws SQLException
      */
     @Test
