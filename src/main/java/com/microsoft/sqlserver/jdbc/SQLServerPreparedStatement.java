@@ -327,7 +327,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     private boolean buildPreparedStrings(Parameter[] params,
             boolean renewDefinition) throws SQLServerException {
         String newTypeDefinitions = buildParamTypeDefinitions(params, renewDefinition);
-        if (null != preparedTypeDefinitions && newTypeDefinitions.equals(preparedTypeDefinitions))
+        if (null != preparedTypeDefinitions && newTypeDefinitions.equalsIgnoreCase(preparedTypeDefinitions))
             return false;   
 
         preparedTypeDefinitions = newTypeDefinitions;
