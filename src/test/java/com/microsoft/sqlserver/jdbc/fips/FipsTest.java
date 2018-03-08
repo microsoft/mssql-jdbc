@@ -8,6 +8,7 @@
 package com.microsoft.sqlserver.jdbc.fips;
 
 import java.sql.Connection;
+import java.sql.SQLException;
 import java.util.Properties;
 
 import org.junit.jupiter.api.Assertions;
@@ -17,7 +18,6 @@ import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
 
 import com.microsoft.sqlserver.jdbc.SQLServerDataSource;
-import com.microsoft.sqlserver.jdbc.SQLServerException;
 import com.microsoft.sqlserver.jdbc.StringUtils;
 import com.microsoft.sqlserver.testframework.PrepUtil;
 import com.microsoft.sqlserver.testframework.Utils;
@@ -50,7 +50,7 @@ public class FipsTest {
             Connection con = PrepUtil.getConnection(connectionString, props);
             Assertions.fail("It should fail as we are not passing appropriate params");
         }
-        catch (SQLServerException e) {
+        catch (SQLException e) {
             Assertions.assertTrue(
                     e.getMessage().contains("Unable to verify FIPS mode settings."),
                     "Should create exception for invalid TrustServerCertificate value");
@@ -70,7 +70,7 @@ public class FipsTest {
             Connection con = PrepUtil.getConnection(connectionString, props);
             Assertions.fail("It should fail as we are not passing appropriate params");
         }
-        catch (SQLServerException e) {
+        catch (SQLException e) {
             Assertions.assertTrue(
                     e.getMessage().contains("Unable to verify FIPS mode settings."),
                     "Should create exception for invalid encrypt value");
@@ -125,7 +125,7 @@ public class FipsTest {
 
             Assertions.fail("It should fail as we are not passing appropriate params");
         }
-        catch (SQLServerException e) {
+        catch (SQLException e) {
             Assertions.assertTrue(
                     e.getMessage().contains("Unable to verify FIPS mode settings."),
                     "Should create exception for invalid encrypt value");
@@ -146,7 +146,7 @@ public class FipsTest {
             Connection con = ds.getConnection();
             Assertions.fail("It should fail as we are not passing appropriate params");
         }
-        catch (SQLServerException e) {
+        catch (SQLException e) {
             Assertions.assertTrue(
                     e.getMessage().contains("Unable to verify FIPS mode settings."),
                     "Should create exception for invalid TrustServerCertificate value");

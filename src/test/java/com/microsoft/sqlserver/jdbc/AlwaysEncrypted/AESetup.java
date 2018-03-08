@@ -31,7 +31,6 @@ import org.opentest4j.TestAbortedException;
 import com.microsoft.sqlserver.jdbc.SQLServerColumnEncryptionJavaKeyStoreProvider;
 import com.microsoft.sqlserver.jdbc.SQLServerColumnEncryptionKeyStoreProvider;
 import com.microsoft.sqlserver.jdbc.SQLServerConnection;
-import com.microsoft.sqlserver.jdbc.SQLServerException;
 import com.microsoft.sqlserver.jdbc.SQLServerPreparedStatement;
 import com.microsoft.sqlserver.jdbc.SQLServerStatement;
 import com.microsoft.sqlserver.jdbc.SQLServerStatementColumnEncryptionSetting;
@@ -119,11 +118,10 @@ public class AESetup extends AbstractTest {
      * Dropping all CMKs and CEKs and any open resources. Technically, dropAll depends on the state of the class so it shouldn't be static, but the
      * AfterAll annotation requires it to be static.
      * 
-     * @throws SQLServerException
      * @throws SQLException
      */
     @AfterAll
-    private static void dropAll() throws SQLServerException, SQLException {
+    private static void dropAll() throws SQLException {
         dropTables(stmt);
         dropCEK(stmt);
         dropCMK(stmt);
@@ -2058,10 +2056,9 @@ public class AESetup extends AbstractTest {
     /**
      * Dropping column encryption key
      * 
-     * @throws SQLServerException
      * @throws SQLException
      */
-    private static void dropCEK(SQLServerStatement stmt) throws SQLServerException, SQLException {
+    private static void dropCEK(SQLServerStatement stmt) throws SQLException {
         String cekSql = " if exists (SELECT name from sys.column_encryption_keys where name='" + cekName + "')" + " begin"
                 + " drop column encryption key " + cekName + " end";
         stmt.execute(cekSql);
@@ -2070,10 +2067,9 @@ public class AESetup extends AbstractTest {
     /**
      * Dropping column master key
      * 
-     * @throws SQLServerException
      * @throws SQLException
      */
-    private static void dropCMK(SQLServerStatement stmt) throws SQLServerException, SQLException {
+    private static void dropCMK(SQLServerStatement stmt) throws SQLException {
         String cekSql = " if exists (SELECT name from sys.column_master_keys where name='" + cmkName + "')" + " begin" + " drop column master key "
                 + cmkName + " end";
         stmt.execute(cekSql);
