@@ -16,7 +16,6 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 
 import com.microsoft.sqlserver.jdbc.SQLServerConnection;
-import com.microsoft.sqlserver.jdbc.SQLServerException;
 
 /*
  * Wrapper class for SQLServerConnection
@@ -97,9 +96,9 @@ public class DBConnection extends AbstractParentWrapper implements AutoCloseable
      * 
      * @param rsType
      * @return
-     * @throws SQLServerException
+     * @throws SQLException
      */
-    public DBStatement createStatement(DBResultSetTypes rsType) throws SQLServerException {
+    public DBStatement createStatement(DBResultSetTypes rsType) throws SQLException {
         DBStatement dbstatement = new DBStatement(this);
         return dbstatement.createStatement(rsType.resultsetCursor, rsType.resultSetConcurrency);
     }
