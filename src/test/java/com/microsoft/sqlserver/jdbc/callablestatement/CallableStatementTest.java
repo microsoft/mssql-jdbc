@@ -20,7 +20,6 @@ import org.junit.runner.RunWith;
 
 import com.microsoft.sqlserver.jdbc.SQLServerCallableStatement;
 import com.microsoft.sqlserver.jdbc.SQLServerDataSource;
-import com.microsoft.sqlserver.jdbc.SQLServerException;
 import com.microsoft.sqlserver.testframework.AbstractTest;
 import com.microsoft.sqlserver.testframework.Utils;
 
@@ -151,8 +150,8 @@ public class CallableStatementTest extends AbstractTest {
         CallableStatement cs3 = connection.prepareCall(call);
         try {
             cs3.setString("@whatever", "test");
-            fail("SQLServerException should have been thrown");
-        } catch (SQLServerException sse) {
+            fail("SQLException should have been thrown");
+        } catch (SQLException sse) {
             if (!sse.getMessage().startsWith("Parameter @whatever was not defined")) {
                 fail("Unexpected content in exception message");
             }

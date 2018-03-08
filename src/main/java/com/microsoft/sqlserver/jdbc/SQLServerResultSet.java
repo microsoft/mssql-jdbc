@@ -2125,6 +2125,38 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         loggerExternal.exiting(getClassNameLogging(), "getFloat", value);
         return null != value ? value : 0;
     }
+    
+    public Geometry getGeometry(int columnIndex) throws SQLServerException {
+        loggerExternal.entering(getClassNameLogging(), "getFloat", columnIndex);
+        checkClosed();
+        Geometry value = (Geometry) getValue(columnIndex, JDBCType.GEOMETRY);
+        loggerExternal.exiting(getClassNameLogging(), "getFloat", value);
+        return value;
+    }
+
+    public Geometry getGeometry(String columnName) throws SQLServerException {
+        loggerExternal.entering(getClassNameLogging(), "getFloat", columnName);
+        checkClosed();
+        Geometry value = (Geometry) getValue(findColumn(columnName), JDBCType.GEOMETRY);
+        loggerExternal.exiting(getClassNameLogging(), "getFloat", value);
+        return value;
+    }
+    
+    public Geography getGeography(int columnIndex) throws SQLServerException {
+        loggerExternal.entering(getClassNameLogging(), "getFloat", columnIndex);
+        checkClosed();
+        Geography value = (Geography) getValue(columnIndex, JDBCType.GEOGRAPHY);
+        loggerExternal.exiting(getClassNameLogging(), "getFloat", value);
+        return value;
+    }
+
+    public Geography getGeography(String columnName) throws SQLServerException {
+        loggerExternal.entering(getClassNameLogging(), "getFloat", columnName);
+        checkClosed();
+        Geography value = (Geography) getValue(findColumn(columnName), JDBCType.GEOGRAPHY);
+        loggerExternal.exiting(getClassNameLogging(), "getFloat", value);
+        return value;
+    }
 
     public int getInt(int columnIndex) throws SQLServerException {
         loggerExternal.entering(getClassNameLogging(), "getInt", columnIndex);
