@@ -1,6 +1,7 @@
 package com.microsoft.sqlserver.jdbc.ssl.trustmanager;
 
 import java.sql.DriverManager;
+import java.sql.SQLException;
 
 import static org.junit.Assert.*;
 import org.junit.jupiter.api.Test;
@@ -8,7 +9,6 @@ import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
 
 import com.microsoft.sqlserver.jdbc.SQLServerConnection;
-import com.microsoft.sqlserver.jdbc.SQLServerException;
 import com.microsoft.sqlserver.testframework.AbstractTest;
 
 @RunWith(JUnitPlatform.class)
@@ -52,7 +52,7 @@ public class CustomTrustManagerTest extends AbstractTest {
         try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(url)) {
             fail();
         }
-        catch (SQLServerException e) {
+        catch (SQLException e) {
             assertTrue(e.getMessage().contains("The class specified by the trustManagerClass property must implement javax.net.ssl.TrustManager"));
         }
     }

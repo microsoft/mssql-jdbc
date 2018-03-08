@@ -9,6 +9,7 @@ package com.microsoft.sqlserver.jdbc.bulkCopy;
 
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
+import java.sql.SQLException;
 import java.util.concurrent.ThreadLocalRandom;
 
 import org.junit.jupiter.api.DisplayName;
@@ -17,7 +18,6 @@ import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
 
 import com.microsoft.sqlserver.jdbc.SQLServerBulkCopyOptions;
-import com.microsoft.sqlserver.jdbc.SQLServerException;
 
 /**
  * Test the timeout in SQLServerBulkCopyOptions. Source table is created with large row count so skip data validation.
@@ -33,31 +33,31 @@ public class BulkCopyTimeoutTest extends BulkCopyTestSetUp {
     /**
      * BulkCopy:test zero timeout
      * 
-     * @throws SQLServerException
+     * @throws SQLException
      */
     @Test
     @DisplayName("BulkCopy:test zero timeout")
-    void testZeroTimeOut() throws SQLServerException {
+    void testZeroTimeOut() throws SQLException {
         testBulkCopyWithTimeout(0);
     }
 
     /**
-     * To verify SQLServerException: The timeout argument cannot be negative.
+     * To verify SQLException: The timeout argument cannot be negative.
      * 
-     * @throws SQLServerException
+     * @throws SQLException
      */
     @Test
     @DisplayName("BulkCopy:test negative timeout")
-    void testNegativeTimeOut() throws SQLServerException {
-        assertThrows(SQLServerException.class, new org.junit.jupiter.api.function.Executable() {
+    void testNegativeTimeOut() throws SQLException {
+        assertThrows(SQLException.class, new org.junit.jupiter.api.function.Executable() {
             @Override
-            public void execute() throws SQLServerException {
+            public void execute() throws SQLException {
                 testBulkCopyWithTimeout(-1);
             }
         });
     }
     
-    private void testBulkCopyWithTimeout(int timeout) throws SQLServerException {
+    private void testBulkCopyWithTimeout(int timeout) throws SQLException {
     	BulkCopyTestWrapper bulkWrapper = new BulkCopyTestWrapper(connectionString);
         bulkWrapper.setUsingConnection((0 == ThreadLocalRandom.current().nextInt(2)) ? true : false);
         SQLServerBulkCopyOptions option = new SQLServerBulkCopyOptions();

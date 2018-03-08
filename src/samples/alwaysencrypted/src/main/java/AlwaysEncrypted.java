@@ -14,7 +14,6 @@ import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.sql.Statement;
 
-import javax.xml.bind.DatatypeConverter;
 
 import com.microsoft.sqlserver.jdbc.SQLServerColumnEncryptionJavaKeyStoreProvider;
 import com.microsoft.sqlserver.jdbc.SQLServerColumnEncryptionKeyStoreProvider;
@@ -116,7 +115,7 @@ public class AlwaysEncrypted {
                  */
                 String createCEKSQL = "CREATE COLUMN ENCRYPTION KEY " + columnEncryptionKey + " WITH VALUES ( " + " COLUMN_MASTER_KEY = "
                         + columnMasterKeyName + " , ALGORITHM =  '" + algorithm + "' , ENCRYPTED_VALUE =  0x"
-                        + DatatypeConverter.printHexBinary(encryptedCEK) + " ) ";
+                        + bytesToHexString(encryptedCEK, encryptedCEK.length) + " ) ";
 
                 try (Statement cekStatement = sourceConnection.createStatement()) {
                     cekStatement.executeUpdate(createCEKSQL);
@@ -128,6 +127,27 @@ public class AlwaysEncrypted {
             // Handle any errors that may have occurred.
             e.printStackTrace();
         }
+    }
+    
+    /**
+     * 
+     * @param b
+     *            byte value
+     * @param length
+     *            length of the array
+     * @return
+     */
+    final static char[] hexChars = {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F'};
+
+    private static String bytesToHexString(byte[] b,
+            int length) {
+        StringBuilder sb = new StringBuilder(length * 2);
+        for (int i = 0; i < length; i++) {
+            int hexVal = b[i] & 0xFF;
+            sb.append(hexChars[(hexVal & 0xF0) >> 4]);
+            sb.append(hexChars[(hexVal & 0x0F)]);
+        }
+        return sb.toString();
     }
 
     // To avoid storing the sourceConnection String in your code,

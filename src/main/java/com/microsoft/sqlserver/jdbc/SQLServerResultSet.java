@@ -126,6 +126,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
      * occurs
      */
     private Closeable activeStream;
+    private Blob activeBlob;
 
     /**
      * A window of fetchSize quickly accessible rows for scrollable result sets
@@ -669,6 +670,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         // before moving to another one.
         if (null != activeStream) {
             try {
+            	fillBlobs();
                 activeStream.close();
             }
             catch (IOException e) {
@@ -747,6 +749,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
     /* ----------------- JDBC API methods ------------------ */
 
     private void moverInit() throws SQLServerException {
+    	fillBlobs();
         cancelInsert();
         cancelUpdates();
     }
@@ -939,7 +942,6 @@ public class SQLServerResultSet implements ISQLServerResultSet {
      * and so on.
      *
      * @return false when there are no more rows to read
-     * @return true otherwise
      */
     public boolean next() throws SQLServerException {
         loggerExternal.entering(getClassNameLogging(), "next");
@@ -1036,13 +1038,13 @@ public class SQLServerResultSet implements ISQLServerResultSet {
     public boolean wasNull() throws SQLServerException {
         loggerExternal.entering(getClassNameLogging(), "wasNull");
         checkClosed();
+        fillBlobs();
         loggerExternal.exiting(getClassNameLogging(), "wasNull", lastValueWasNull);
         return lastValueWasNull;
     }
 
     /**
-     * @return true if the cursor is before the first row in this result set
-     * @return false otherwise or if thie result set contains no rows.
+     * @return true if the cursor is before the first row in this result set, returns false otherwise or if the result set contains no rows.
      */
     public boolean isBeforeFirst() throws SQLServerException {
         loggerExternal.entering(getClassNameLogging(), "isBeforeFirst");
@@ -1144,7 +1146,6 @@ public class SQLServerResultSet implements ISQLServerResultSet {
      * TYPE_SS_SCROLL_STATIC, TYPE_SS_SCROLL_KEYSET, TYPE_SS_SCROLL_DYNAMIC.
      *
      * @return true if the cursor is on the first row in this result set
-     * @return false otherwise
      */
     public boolean isFirst() throws SQLServerException {
         loggerExternal.entering(getClassNameLogging(), "isFirst");
@@ -1182,7 +1183,6 @@ public class SQLServerResultSet implements ISQLServerResultSet {
      * TYPE_SS_SCROLL_STATIC, TYPE_SS_SCROLL_KEYSET, TYPE_SS_SCROLL_DYNAMIC.
      *
      * @return true if the cursor is on the last row in this result set
-     * @return false otherwise
      */
     public boolean isLast() throws SQLServerException {
         loggerExternal.entering(getClassNameLogging(), "isLast");
@@ -1302,8 +1302,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
      * This method should be called only on ResultSet objects that are scrollable: TYPE_SCROLL_SENSITIVE, TYPE_SCROLL_INSENSITIVE,
      * TYPE_SS_SCROLL_STATIC, TYPE_SS_SCROLL_KEYSET, TYPE_SS_SCROLL_DYNAMIC.
      *
-     * @return true if the cursor is on a valid row
-     * @return false if there are no rows in this ResultSet object
+     * @return true if the cursor is on a valid row, otherwise returns false if there are no rows in this ResultSet object
      */
     public boolean first() throws SQLServerException {
         loggerExternal.entering(getClassNameLogging(), "first");
@@ -1353,8 +1352,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
      * This method should be called only on ResultSet objects that are scrollable: TYPE_SCROLL_SENSITIVE, TYPE_SCROLL_INSENSITIVE,
      * TYPE_SS_SCROLL_STATIC, TYPE_SS_SCROLL_KEYSET, TYPE_SS_SCROLL_DYNAMIC.
      *
-     * @return true if the cursor is on a valid row
-     * @return false if there are no rows in this ResultSet object
+     * @return true if the cursor is on a valid row, otherwise returns false if there are no rows in this ResultSet object
      */
     public boolean last() throws SQLServerException {
         loggerExternal.entering(getClassNameLogging(), "last");
@@ -1442,8 +1440,8 @@ public class SQLServerResultSet implements ISQLServerResultSet {
      * This method should be called only on ResultSet objects that are scrollable: TYPE_SCROLL_SENSITIVE, TYPE_SCROLL_INSENSITIVE,
      * TYPE_SS_SCROLL_STATIC, TYPE_SS_SCROLL_KEYSET, TYPE_SS_SCROLL_DYNAMIC.
      *
-     * @return true if the cursor is on a valid row in this result set
-     * @return false if the cursor is before the first row or after the last row
+     * @return true if the cursor is on a valid row in this result set, otherwise returns false if the cursor is before the first row or after the
+     *         last row
      */
     public boolean absolute(int row) throws SQLServerException {
         loggerExternal.entering(getClassNameLogging(), "absolute");
@@ -1759,7 +1757,6 @@ public class SQLServerResultSet implements ISQLServerResultSet {
      * TYPE_SS_SCROLL_STATIC, TYPE_SS_SCROLL_KEYSET, TYPE_SS_SCROLL_DYNAMIC.
      *
      * @return true if the cursor is on a valid row in this result set
-     * @return false otherwise
      */
     public boolean previous() throws SQLServerException {
         loggerExternal.entering(getClassNameLogging(), "previous");
@@ -1899,6 +1896,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         if (logger.isLoggable(java.util.logging.Level.FINER))
             logger.finer(toString() + " Getting Column:" + index);
 
+        fillBlobs();
         return loadColumn(index);
     }
 
@@ -2664,6 +2662,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         checkClosed();
         Blob value = (Blob) getValue(i, JDBCType.BLOB);
         loggerExternal.exiting(getClassNameLogging(), "getBlob", value);
+        activeBlob = value;
         return value;
     }
 
@@ -2672,6 +2671,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         checkClosed();
         Blob value = (Blob) getValue(findColumn(colName), JDBCType.BLOB);
         loggerExternal.exiting(getClassNameLogging(), "getBlob", value);
+        activeBlob = value;
         return value;
     }
 
@@ -6514,6 +6514,24 @@ public class SQLServerResultSet implements ISQLServerResultSet {
             scrollWindow.reset();
         }
     }
+    
+    /*
+     * Iterates through the list of objects which rely on the stream that's about to be closed, filling them with their data
+     * Will skip over closed blobs, implemented in SQLServerBlob
+     */
+    private void fillBlobs() {
+    	if (null != activeBlob && activeBlob instanceof SQLServerBlob) {
+    		try {
+    			((SQLServerBlob)activeBlob).fillByteArray();
+    		} catch (SQLException e) {
+    			if (logger.isLoggable(java.util.logging.Level.FINER)) {
+    				logger.finer(toString() + "Filling blobs before closing: " + e.getMessage());
+    			}
+    		} finally {
+    			activeBlob = null;
+    		}
+    	}
+	}
 
     /**
      * Discards the contents of the current fetch buffer.
@@ -6526,6 +6544,9 @@ public class SQLServerResultSet implements ISQLServerResultSet {
      * fetch buffer is considered to be discarded.
      */
     private void discardFetchBuffer() {
+    	//fills blobs before discarding anything
+    	fillBlobs();
+
         // Clear the TDSReader mark at the start of the fetch buffer
         fetchBuffer.clearStartMark();
 
