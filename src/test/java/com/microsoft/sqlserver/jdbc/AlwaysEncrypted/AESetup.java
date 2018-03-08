@@ -122,7 +122,7 @@ public class AESetup extends AbstractTest {
      * @throws SQLException
      */
     @AfterAll
-    private static void dropAll() throws SQLException, SQLException {
+    private static void dropAll() throws SQLException {
         dropTables(stmt);
         dropCEK(stmt);
         dropCMK(stmt);
@@ -2060,7 +2060,7 @@ public class AESetup extends AbstractTest {
      * @throws SQLException
      * @throws SQLException
      */
-    private static void dropCEK(SQLServerStatement stmt) throws SQLException, SQLException {
+    private static void dropCEK(SQLServerStatement stmt) throws SQLException {
         String cekSql = " if exists (SELECT name from sys.column_encryption_keys where name='" + cekName + "')" + " begin"
                 + " drop column encryption key " + cekName + " end";
         stmt.execute(cekSql);
@@ -2072,7 +2072,7 @@ public class AESetup extends AbstractTest {
      * @throws SQLException
      * @throws SQLException
      */
-    private static void dropCMK(SQLServerStatement stmt) throws SQLException, SQLException {
+    private static void dropCMK(SQLServerStatement stmt) throws SQLException {
         String cekSql = " if exists (SELECT name from sys.column_master_keys where name='" + cmkName + "')" + " begin" + " drop column master key "
                 + cmkName + " end";
         stmt.execute(cekSql);

@@ -112,7 +112,7 @@ public class CallableStatementTest extends AESetup {
     }
 
     @AfterAll
-    private static void dropAll() throws SQLException, SQLException {
+    private static void dropAll() throws SQLException {
         dropTables();
     }
 
