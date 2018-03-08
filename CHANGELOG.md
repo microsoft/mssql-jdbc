@@ -5,7 +5,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/)
 
 ## [6.5.0] Preview Release
 ### Added
-- Support for spacial datatypes [#642](https://github.com/Microsoft/mssql-jdbc/pull/642)
+- Support for spatial datatypes [#642](https://github.com/Microsoft/mssql-jdbc/pull/642)
 
 ### Fixed Issues
 - Fixed blobs becoming unavailable when the Result Set cursor moves or the Result Set closes [#595](https://github.com/Microsoft/mssql-jdbc/pull/595)

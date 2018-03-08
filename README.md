@@ -120,7 +120,7 @@ Projects that require either of the two features need to explicitly declare the 
 <dependency>
 	<groupId>com.microsoft.sqlserver</groupId>
 	<artifactId>mssql-jdbc</artifactId>
-	<version>6.5.0.jre9</version>
+	<version>6.5.0.jre9-preview</version>
 	<scope>compile</scope>
 </dependency>
 
@@ -136,7 +136,7 @@ Projects that require either of the two features need to explicitly declare the 
 <dependency>
 	<groupId>com.microsoft.sqlserver</groupId>
 	<artifactId>mssql-jdbc</artifactId>
-	<version>6.5.0.jre9</version>
+	<version>6.5.0.jre9-preview</version>
 	<scope>compile</scope>
 </dependency>
 
