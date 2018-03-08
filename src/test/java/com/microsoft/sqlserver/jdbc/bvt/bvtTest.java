@@ -23,7 +23,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
 
-import com.microsoft.sqlserver.jdbc.SQLServerException;
 import com.microsoft.sqlserver.testframework.DBConnection;
 import com.microsoft.sqlserver.testframework.DBPreparedStatement;
 import com.microsoft.sqlserver.testframework.DBResultSet;
@@ -402,7 +401,7 @@ public class bvtTest extends bvtTestSetup {
             try {
                 rs1.next();
             }
-            catch (SQLServerException e) {
+            catch (SQLException e) {
                 assertEquals(e.toString(), "com.microsoft.sqlserver.jdbc.SQLServerException: The result set is closed.");
             }
             rs2.next();
@@ -410,7 +409,7 @@ public class bvtTest extends bvtTestSetup {
             try {
                 rs1.next();
             }
-            catch (SQLServerException e) {
+            catch (SQLException e) {
                 assertEquals(e.toString(), "com.microsoft.sqlserver.jdbc.SQLServerException: The result set is closed.");
             }
             rs1.close();
@@ -436,7 +435,7 @@ public class bvtTest extends bvtTestSetup {
             try {
                 rs.next();
             }
-            catch (SQLServerException e) {
+            catch (SQLException e) {
                 assertEquals(e.toString(), "com.microsoft.sqlserver.jdbc.SQLServerException: The result set is closed.");
             }
             assertTrue(true, "Previous one should have thrown exception!");
