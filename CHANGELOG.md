@@ -9,7 +9,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/)
 
 ### Fixed Issues
 - Fixed blobs becoming unavailable when the Result Set cursor moves or the Result Set closes [#595](https://github.com/Microsoft/mssql-jdbc/pull/595)
-- Fixed an issue when attmepting to insert an empty or null value on an encrypted column [#632](https://github.com/Microsoft/mssql-jdbc/pull/632)
+- Fixed an issue when attempting to insert an empty or null value into an encrypted column [#632](https://github.com/Microsoft/mssql-jdbc/pull/632)
 - Fixed a misleading error message thrown by the driver when a user doesn't have execute permissions [#635](https://github.com/Microsoft/mssql-jdbc/pull/635)
 - Fixed statements throwing SQLServerException instead of java.sql.SQLTimeoutException when the query times out [#641](https://github.com/Microsoft/mssql-jdbc/pull/641)
 
