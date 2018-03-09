@@ -1429,7 +1429,7 @@ public class SQLServerStatement implements ISQLServerStatement {
                     // even if there is no update count.
                     if (doneToken.isFinal()) {
                      // If this the final DONE token, response is completely processed hence decrement unprocessed response count        
-                        tdsReader.getConnection().decrementUnprocessedResponseCount();
+                        tdsReader.getConnection().getSessionRecovery().decrementUnprocessedResponseCount();
                         moreResults = false;
                         return false;
                     }
@@ -1552,7 +1552,8 @@ public class SQLServerStatement implements ISQLServerStatement {
 
         // Not an error. Is it a result set?
         else if (nextResult.isResultSet()) {
-            if (Util.use42Wrapper()) {
+            // Make sure SQLServerResultSet42 is used for 4.2 and above
+            if (Util.use42Wrapper() || Util.use43Wrapper()) {
                 resultSet = new SQLServerResultSet42(this);
             }
             else {

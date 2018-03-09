@@ -45,6 +45,10 @@ final class AuthenticationJNI extends SSPIAuthentication {
     static int GetMaxSSPIBlobSize() {
         return sspiBlobMaxlen;
     }
+    
+    static boolean isDllLoaded() {
+        return enabled;     
+    }
 
     static {
         UnsatisfiedLinkError temp = null;

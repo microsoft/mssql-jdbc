@@ -245,14 +245,15 @@ final class KerbAuthentication extends SSPIAuthentication {
         else {
             spn = makeSpn(address, port);
         }
-        this.spn = enrichSpnWithRealm(spn, null == userSuppliedServerSpn);
-        if (!this.spn.equals(spn) && authLogger.isLoggable(Level.FINER)){
-            authLogger.finer(toString() + "SPN enriched: " + spn + " := " + this.spn);
-        }
         // KerbAuthentication object is created for every connection attempt. Hence it is not necessary to reset these values as the new one will be
         // created for next connect.
         threadImpersonationSubject = loginSubject;
         this.reconnecting = reconnecting;
+      
+        this.spn = enrichSpnWithRealm(spn, null == userSuppliedServerSpn);
+        if (!this.spn.equals(spn) && authLogger.isLoggable(Level.FINER)){
+            authLogger.finer(toString() + "SPN enriched: " + spn + " := " + this.spn);
+        }
 	}
 
     private static final Pattern SPN_PATTERN = Pattern.compile("MSSQLSvc/(.*):([^:@]+)(@.+)?", Pattern.CASE_INSENSITIVE);
@@ -332,7 +333,7 @@ final class KerbAuthentication extends SSPIAuthentication {
             validator = oracleRealmValidator;
             // As explained here: https://github.com/Microsoft/mssql-jdbc/pull/40#issuecomment-281509304
             // The default Oracle Resolution mechanism is not bulletproof
-            // If it resolves a crappy name, drop it.
+            // If it resolves a non-existing name, drop it.
             if (!validator.isRealmValid("this.might.not.exist." + hostnameToTest)) {
                 // Our realm validator is well working, return it
                 authLogger.fine("Kerberos Realm Validator: Using Built-in Oracle Realm Validation method.");

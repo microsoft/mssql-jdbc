@@ -11,6 +11,7 @@ import java.util.Calendar;
 
 import com.microsoft.sqlserver.jdbc.SQLServerConnection;
 import com.microsoft.sqlserver.jdbc.SQLServerDatabaseMetaData;
+import com.microsoft.sqlserver.jdbc.SQLServerException;
 import com.microsoft.sqlserver.jdbc.SQLServerStatementColumnEncryptionSetting;
 
 /**
@@ -288,5 +289,83 @@ public class Util {
     public static boolean supportJDBC42(Connection con) throws SQLException {
         SQLServerDatabaseMetaData meta = (SQLServerDatabaseMetaData) con.getMetaData();
         return (meta.getJDBCMajorVersion() >= 4 && meta.getJDBCMinorVersion() >= 2);
+    }
+
+    /**
+     * Utility function for checking if the system supports JDBC 4.3
+     * 
+     * @param con
+     * @return
+     */
+    public static boolean supportJDBC43(Connection con) throws SQLException {
+        SQLServerDatabaseMetaData meta = (SQLServerDatabaseMetaData) con.getMetaData();
+        return (meta.getJDBCMajorVersion() >= 4 && meta.getJDBCMinorVersion() >= 3);
+    }
+
+    /**
+     * 
+     * @param b
+     *            byte value
+     * @param length
+     *            length of the array
+     * @return
+     */
+    final static char[] hexChars = {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F'};
+
+    public static String bytesToHexString(byte[] b,
+            int length) {
+        StringBuilder sb = new StringBuilder(length * 2);
+        for (int i = 0; i < length; i++) {
+            int hexVal = b[i] & 0xFF;
+            sb.append(hexChars[(hexVal & 0xF0) >> 4]);
+            sb.append(hexChars[(hexVal & 0x0F)]);
+        }
+        return sb.toString();
+    }
+
+    /**
+     * conversion routine valid values 0-9 a-f A-F throws exception when failed to convert
+     * 
+     * @param value
+     *            charArray
+     * @return
+     * @throws SQLServerException
+     */
+    static byte CharToHex(char value) throws SQLServerException {
+        byte ret = 0;
+        if (value >= 'A' && value <= 'F') {
+            ret = (byte) (value - 'A' + 10);
+        }
+        else if (value >= 'a' && value <= 'f') {
+            ret = (byte) (value - 'a' + 10);
+        }
+        else if (value >= '0' && value <= '9') {
+            ret = (byte) (value - '0');
+        }
+        else {
+            throw new IllegalArgumentException("The string  is not in a valid hex format. ");
+        }
+        return ret;
+    }
+
+    /**
+     * Converts a string to an array of bytes
+     * 
+     * @param hexV
+     *            a hexized string representation of bytes
+     * @return
+     * @throws SQLServerException
+     */
+    public static byte[] hexStringToByte(String hexV) throws SQLServerException {
+        int len = hexV.length();
+        char orig[] = hexV.toCharArray();
+        if ((len % 2) != 0) {
+            throw new IllegalArgumentException("The string is not in a valid hex format: " + hexV);
+        }
+        byte[] bin = new byte[len / 2];
+        for (int i = 0; i < len / 2; i++) {
+            bin[i] = (byte) ((CharToHex(orig[2 * i]) << 4) + CharToHex(orig[2 * i + 1]));
+        }
+        return bin;
     }
 }

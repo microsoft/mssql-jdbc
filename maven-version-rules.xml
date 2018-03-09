@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ruleset xmlns="http://mojo.codehaus.org/versions-maven-plugin/rule/2.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" comparisonMethod="maven" xsi:schemaLocation="http://mojo.codehaus.org/versions-maven-plugin/rule/2.0.0 http://mojo.codehaus.org/versions-maven-plugin/xsd/rule-2.0.0.xsd">
+	<ignoreVersions>
+    <!-- Ignore Alpha's, Beta's, release candidates and milestones -->
+		<ignoreVersion type="regex">(?i).*Alpha(?:-?\d+)?</ignoreVersion>
+		<ignoreVersion type="regex">(?i).*Beta(?:-?\d+)?</ignoreVersion>
+		<ignoreVersion type="regex">(?i).*-B(?:-?\d+)?</ignoreVersion>
+		<ignoreVersion type="regex">(?i).*RC(?:-?\d+)?</ignoreVersion>
+		<ignoreVersion type="regex">(?i).*EA(?:-?\d+)?</ignoreVersion>	
+		<ignoreVersion type="regex">(?i).*SNAPSHOT(?:-?\d+)?</ignoreVersion>	
+		<!-- Sometimes Milestone releases are fair enough for testing libs like JUnit-->
+		<ignoreVersion type="regex">(?i).*M(?:-?\d+)?</ignoreVersion>
+	</ignoreVersions>
+	
+	<rules>
+	<!-- One can add different rules in order to exclude specific version from automatic updates.  -->
+	<!-- Testing... Update groupId, artifact id and appropriate version in order to exclude from versioning plugin 
+    		<rule groupId="com.microsoft.azure" artifactId="adal4j">
+      		<ignoreVersions>
+        		<ignoreVersion>1.3.0</ignoreVersion>
+      		</ignoreVersions>
+    		</rule>
+	-->		
+	</rules>
+  
+</ruleset>

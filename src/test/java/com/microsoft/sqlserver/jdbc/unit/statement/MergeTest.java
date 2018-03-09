@@ -38,7 +38,7 @@ public class MergeTest extends AbstractTest {
             + "   SELECT * FROM CricketTeams  IF OBJECT_ID (N'dbo.CricketTeams_UpdatedList', N'U') IS NOT NULL        DROP TABLE dbo.CricketTeams_UpdatedList;"
             + "   CREATE TABLE dbo.CricketTeams_UpdatedList   (       CricketTeamID tinyint NOT NULL PRIMARY KEY,     CricketTeamCountry nvarchar(30),        CricketTeamContinent nvarchar(50))"
             + "INSERT INTO dbo.CricketTeams_UpdatedList VALUES  (1, 'Australia', 'Australia'),     (2, 'India', 'Asia'),       (3, 'Pakistan', 'Asia'),     (4, 'Srilanka', 'Asia'),   (5, 'Bangaladesh', 'Asia'),"
-            + " (6, 'Hong Kong', 'Asia'),      (8, 'England', 'Europe'),       (9, 'South Africa', 'Africa'),      (10, 'West Indies', 'North America'),       (11, 'Zimbabwe', 'Africa');";
+            + " (6, 'Thailand', 'Asia'),      (8, 'England', 'Europe'),       (9, 'South Africa', 'Africa'),      (10, 'West Indies', 'North America'),       (11, 'Zimbabwe', 'Africa');";
 
     private static final String mergeCmd2 = "MERGE dbo.CricketTeams AS TARGET " + "USING dbo.CricketTeams_UpdatedList AS SOURCE "
             + "ON (TARGET.CricketTeamID = SOURCE.CricketTeamID) " + "WHEN MATCHED AND TARGET.CricketTeamContinent <> SOURCE.CricketTeamContinent OR "

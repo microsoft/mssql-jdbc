@@ -75,7 +75,8 @@ import javax.net.ssl.SSLSocket;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.TrustManagerFactory;
 import javax.net.ssl.X509TrustManager;
-import javax.xml.bind.DatatypeConverter;
+import java.nio.Buffer;
+
 final class TDS {
     // TDS protocol versions
     static final int VER_DENALI = 0x74000004; // TDS 7.4
@@ -774,7 +775,7 @@ final class TDSChannel {
          * The mission: To close the SSLSocket and release everything that it is holding onto other than the TCP/IP socket and streams.
          *
          * The challenge: Simply closing the SSLSocket tries to do additional, unnecessary shutdown I/O over the TCP/IP streams that are bound to the
-         * socket proxy, resulting in a hang and confusing SQL Server.
+         * socket proxy, resulting in a not responding and confusing SQL Server.
          *
          * Solution: Rewire the ProxySocket's input and output streams (one more time) to closed streams. SSLSocket sees that the streams are already
          * closed and does not attempt to do any further I/O on them before closing itself.
@@ -1982,13 +1983,11 @@ final class TDSChannel {
 
         if (isEncryptOn && !isTrustServerCertificate) {          
             isValid = true;
-            if (isValidTrustStore) {
-                // In case of valid trust store we need to check TrustStoreType.
-                if (!isValidTrustStoreType) {
-                    isValid = false;               
-                    if (logger.isLoggable(Level.FINER))
-                        logger.finer(toString() + "TrustStoreType is required alongside with TrustStore.");
-                }
+            if (isValidTrustStore && !isValidTrustStoreType) {
+            // In case of valid trust store we need to check TrustStoreType.
+                isValid = false;               
+                if (logger.isLoggable(Level.FINER))
+                    logger.finer(toString() + "TrustStoreType is required alongside with TrustStore.");
             }
         }
 
@@ -2549,6 +2548,7 @@ final class SocketFinder {
         catch (InterruptedException ex) {
             // re-interrupt the current thread, in order to restore the thread's interrupt status.
             Thread.currentThread().interrupt();
+            
             close(selectedSocketInfo.socket);
             SQLServerException.ConvertConnectExceptionToSQLServerException(hostName, portNumber, conn, ex);
         }
@@ -2567,9 +2567,9 @@ final class SocketFinder {
 
         }
 
-        assert result.equals(Result.SUCCESS) == true;
-        assert selectedSocketInfo.socket != null : "Bug in code. Selected Socket cannot be null here.";
 
+        assert result.equals(Result.SUCCESS);
+        assert selectedSocketInfo.socket != null : "Bug in code. Selected Socket cannot be null here.";
         return selectedSocketInfo;
     }
 
@@ -2674,7 +2674,7 @@ final class SocketFinder {
                                         + " occured while processing the channel: " + ch);
                             updateSelectedException(ex, this.toString());
                             // close the channel pro-actively so that we do not
-                            // hang on to network resources
+                            // rely to network resources
                             ch.close();
                         }
 
@@ -2719,21 +2719,25 @@ final class SocketFinder {
 
         // if a channel was selected, make the necessary updates
         if (selectedChannel != null) {
+            
             // Note that this must be done after selector is closed. Otherwise,
             // we would get an illegalBlockingMode exception at run time.
             selectedChannel.configureBlocking(true);
             selectedSocketInfo.socket = selectedChannel.socket();
             selectedSocketInfo.socketChannel = selectedChannel;
+            
             /*
             //the selectedChannel has the address that is connected successfully
             //convert it to a java.net.Socket object with the address
             SocketAddress  iadd = selectedChannel.getRemoteAddress();
+
             selectedSocket = new Socket();
             selectedSocket.connect(iadd);
-             */
+            */
             result = Result.SUCCESS;
+            
             /*
-            //close the channel since it is not used anymore
+            // close the channel since it is not used anymore
             selectedChannel.close();
             */
         }
@@ -3084,11 +3088,8 @@ final class SocketFinder {
     public void updateSelectedException(IOException ex,
             String traceId) {
         boolean updatedException = false;
-        if (selectedException == null) {
-            selectedException = ex;
-            updatedException = true;
-        }
-        else if ((!(ex instanceof SocketTimeoutException)) && (selectedException instanceof SocketTimeoutException)) {
+        if (selectedException == null ||
+        	(!(ex instanceof SocketTimeoutException)) && (selectedException instanceof SocketTimeoutException)) {
             selectedException = ex;
             updatedException = true;
         }
@@ -3306,7 +3307,7 @@ final class TDSWriter {
     void preparePacket() throws SQLServerException {
         if (tdsChannel.isLoggingPackets()) {
             Arrays.fill(logBuffer.array(), (byte) 0xFE);
-            logBuffer.clear();
+            ((Buffer)logBuffer).clear();
         }
 
         // Write a placeholder packet header. This will be replaced
@@ -3382,8 +3383,8 @@ final class TDSWriter {
             currentPacketSize = negotiatedPacketSize;
         }
 
-        socketBuffer.position(socketBuffer.limit());
-        stagingBuffer.clear();
+        ((Buffer) socketBuffer).position(((Buffer) socketBuffer).limit());
+        ((Buffer)stagingBuffer).clear();
 
         preparePacket();
         writeMessageHeader();
@@ -3425,7 +3426,7 @@ final class TDSWriter {
                 if (dataIsLoggable)
                     logBuffer.put(value);
                 else
-                    logBuffer.position(logBuffer.position() + 1);
+                    ((Buffer)logBuffer).position(((Buffer)logBuffer).position() + 1);
             }
         }
         else {
@@ -3452,7 +3453,7 @@ final class TDSWriter {
                 if (dataIsLoggable)
                     logBuffer.putChar(value);
                 else
-                    logBuffer.position(logBuffer.position() + 2);
+                    ((Buffer)logBuffer).position( ((Buffer)logBuffer).position() + 2);
             }
         }
         else {
@@ -3468,7 +3469,7 @@ final class TDSWriter {
                 if (dataIsLoggable)
                     logBuffer.putShort(value);
                 else
-                    logBuffer.position(logBuffer.position() + 2);
+                    ((Buffer)logBuffer).position( ((Buffer)logBuffer).position() + 2);
             }
         }
         else {
@@ -3484,7 +3485,7 @@ final class TDSWriter {
                 if (dataIsLoggable)
                     logBuffer.putInt(value);
                 else
-                    logBuffer.position(logBuffer.position() + 4);
+                    ((Buffer)logBuffer).position( ((Buffer)logBuffer).position() + 4);
             }
         }
         else {
@@ -3516,7 +3517,7 @@ final class TDSWriter {
                 if (dataIsLoggable)
                     logBuffer.putDouble(value);
                 else
-                    logBuffer.position(logBuffer.position() + 8);
+                    ((Buffer)logBuffer).position( ((Buffer)logBuffer).position() + 8);
             }
         }
         else {
@@ -3894,7 +3895,7 @@ final class TDSWriter {
                 if (dataIsLoggable)
                     logBuffer.putLong(value);
                 else
-                    logBuffer.position(logBuffer.position() + 8);
+                    ((Buffer)logBuffer).position( ((Buffer)logBuffer).position() + 8);
             }
         }
         else {
@@ -3937,7 +3938,7 @@ final class TDSWriter {
                 if (dataIsLoggable)
                     logBuffer.put(value, offset + bytesWritten, bytesToWrite);
                 else
-                    logBuffer.position(logBuffer.position() + bytesToWrite);
+                    ((Buffer)logBuffer).position( ((Buffer)logBuffer).position() + bytesToWrite);
             }
 
             bytesWritten += bytesToWrite;
@@ -3964,7 +3965,7 @@ final class TDSWriter {
                 if (dataIsLoggable)
                     logBuffer.put(value, 0, remaining);
                 else
-                    logBuffer.position(logBuffer.position() + remaining);
+                    ((Buffer)logBuffer).position( ((Buffer)logBuffer).position() + remaining);
             }
         }
 
@@ -3977,7 +3978,7 @@ final class TDSWriter {
             if (dataIsLoggable)
                 logBuffer.put(value, remaining, valueLength - remaining);
             else
-                logBuffer.position(logBuffer.position() + remaining);
+                ((Buffer)logBuffer).position( ((Buffer)logBuffer).position() + remaining);
         }
     }
 
@@ -4298,8 +4299,8 @@ final class TDSWriter {
             command.onRequestComplete();
     }
 
-    private /*final */void writePacketHeader(int tdsMessageStatus) {
-        int tdsMessageLength = stagingBuffer.position();
+    private void writePacketHeader(int tdsMessageStatus) {
+        int tdsMessageLength =  ((Buffer)stagingBuffer).position();
         ++packetNum;
 
         // Write the TDS packet header back at the start of the staging buffer
@@ -4327,13 +4328,13 @@ final class TDSWriter {
 
     void flush(boolean atEOM) throws SQLServerException {
         // First, flush any data left in the socket buffer.
-        tdsChannel.write(socketBuffer.array(), socketBuffer.position(), socketBuffer.remaining());
-        socketBuffer.position(socketBuffer.limit());
+        tdsChannel.write(socketBuffer.array(), ((Buffer)socketBuffer).position(), socketBuffer.remaining());
+        ((Buffer)socketBuffer).position(((Buffer)socketBuffer).limit());
 
         // If there is data in the staging buffer that needs to be written
         // to the socket, the socket buffer is now empty, so swap buffers
         // and start writing data from the staging buffer.
-        if (stagingBuffer.position() >= TDS_PACKET_HEADER_SIZE) {
+        if (((Buffer)stagingBuffer).position() >= TDS_PACKET_HEADER_SIZE) {
             // Swap the packet buffers ...
             ByteBuffer swapBuffer = stagingBuffer;
             stagingBuffer = socketBuffer;
@@ -4345,14 +4346,14 @@ final class TDSWriter {
             // We need to use flip() rather than rewind() here so that
             // the socket buffer's limit is properly set for the last
             // packet, which may be shorter than the other packets.
-            socketBuffer.flip();
-            stagingBuffer.clear();
+            ((Buffer)socketBuffer).flip();
+            ((Buffer)stagingBuffer).clear();
 
             // If we are logging TDS packets then log the packet we're about
             // to send over the wire now.
             if (tdsChannel.isLoggingPackets()) {
-                tdsChannel.logPacket(logBuffer.array(), 0, socketBuffer.limit(),
-                        this.toString() + " sending packet (" + socketBuffer.limit() + " bytes)");
+                tdsChannel.logPacket(logBuffer.array(), 0, ((Buffer) socketBuffer).limit(),
+                        this.toString() + " sending packet (" + ((Buffer) socketBuffer).limit() + " bytes)");
             }
 
             // Prepare for the next packet
@@ -4360,8 +4361,8 @@ final class TDSWriter {
                 preparePacket();
 
             // Finally, start sending data from the new socket buffer.
-            tdsChannel.write(socketBuffer.array(), socketBuffer.position(), socketBuffer.remaining());
-            socketBuffer.position(socketBuffer.limit());
+            tdsChannel.write(socketBuffer.array(), ((Buffer)socketBuffer).position(), socketBuffer.remaining());
+            ((Buffer)socketBuffer).position( ((Buffer)socketBuffer).limit());
         }
     }
 
@@ -4824,7 +4825,7 @@ final class TDSWriter {
 
                     if (con.equals(src_stmt.getConnection()) && 0 != resultSetServerCursorId) {
                         cachedTVPHeaders = ByteBuffer.allocate(stagingBuffer.capacity()).order(stagingBuffer.order());
-                        cachedTVPHeaders.put(stagingBuffer.array(), 0, stagingBuffer.position());
+                        cachedTVPHeaders.put(stagingBuffer.array(), 0,  ((Buffer)stagingBuffer).position());
 
                         cachedCommand = this.command;
 
@@ -4850,9 +4851,9 @@ final class TDSWriter {
                 if (tdsWritterCached) {
                     command = cachedCommand;
 
-                    stagingBuffer.clear();
-                    logBuffer.clear();
-                    writeBytes(cachedTVPHeaders.array(), 0, cachedTVPHeaders.position());
+                    ((Buffer)stagingBuffer).clear();
+                    ((Buffer)logBuffer).clear();
+                    writeBytes(cachedTVPHeaders.array(), 0, ((Buffer)cachedTVPHeaders).position());
                 }
 
                 Object[] rowData = value.getRowData();
@@ -5151,7 +5152,7 @@ final class TDSWriter {
                 isShortValue = columnPair.getValue().precision <= DataTypes.SHORT_VARTYPE_MAX_BYTES;
                 isNull = (null == currentObject);
                 if (currentObject instanceof String)
-                    dataLength = isNull ? 0 : (toByteArray(currentObject.toString())).length;
+                    dataLength = isNull ? 0 : (ParameterUtils.HexToBin(currentObject.toString())).length;
                 else
                     dataLength = isNull ? 0 : ((byte[]) currentObject).length;
                 if (!isShortValue) {
@@ -5170,7 +5171,7 @@ final class TDSWriter {
                         if (dataLength > 0) {
                             writeInt(dataLength);
                             if (currentObject instanceof String)
-                                writeBytes(toByteArray(currentObject.toString()));
+                                writeBytes(ParameterUtils.HexToBin(currentObject.toString()));
                             else
                                 writeBytes((byte[]) currentObject);
                         }
@@ -5184,7 +5185,7 @@ final class TDSWriter {
                     else {
                         writeShort((short) dataLength);
                         if (currentObject instanceof String)
-                            writeBytes(toByteArray(currentObject.toString()));
+                            writeBytes(ParameterUtils.HexToBin(currentObject.toString()));
                         else
                             writeBytes((byte[]) currentObject);
                     }
@@ -5221,9 +5222,6 @@ final class TDSWriter {
         writeByte(probBytes);
     }
 
-    private static byte[] toByteArray(String s) {
-        return DatatypeConverter.parseHexBinary(s);
-    }
 
     void writeTVPColumnMetaData(TVP value) throws SQLServerException {
         boolean isShortValue;
@@ -7792,12 +7790,12 @@ abstract class TDSCommand {
      * interrupted (0 or more packets sent with no EOM bit).
      */
     final void onRequestComplete() throws SQLServerException {
-        assert !requestComplete;
-
-        if (logger.isLoggable(Level.FINEST))
-            logger.finest(this + ": request complete");
-
         synchronized (interruptLock) {
+	        assert !requestComplete;
+	
+	        if (logger.isLoggable(Level.FINEST))
+	            logger.finest(this + ": request complete");
+
             requestComplete = true;
 
             // If this command was interrupted before its request was complete then
@@ -7869,8 +7867,8 @@ abstract class TDSCommand {
         // interrupting threads. Note that it is remotely possible that the call
         // to readPacket won't actually read anything if the attention ack was
         // already read by TDSCommand.detach(), in which case this method could
-        // be called from multiple threads, leading to a benign race to clear the
-        // readingResponse flag.
+        // be called from multiple threads, leading to a benign followup process
+        // to clear the readingResponse flag.
         if (readAttentionAck)
             tdsReader.readPacket();
 
@@ -8008,7 +8006,7 @@ abstract class TDSCommand {
         }
 
         // A new response is received hence increment unprocessed respose count     
-        tdsWriter.getConnection().incrementUnprocessedResponseCount();
+        tdsWriter.getConnection().getSessionRecovery().incrementUnprocessedResponseCount();
         
         return tdsReader;
     }

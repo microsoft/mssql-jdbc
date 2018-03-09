@@ -321,8 +321,8 @@ enum SQLServerDriverIntProperty {
     SOCKET_TIMEOUT                             ("socketTimeout",                           0),
     SERVER_PREPARED_STATEMENT_DISCARD_THRESHOLD("serverPreparedStatementDiscardThreshold", SQLServerConnection.DEFAULT_SERVER_PREPARED_STATEMENT_DISCARD_THRESHOLD),
     STATEMENT_POOLING_CACHE_SIZE               ("statementPoolingCacheSize",               SQLServerConnection.DEFAULT_STATEMENT_POOLING_CACHE_SIZE),
-	CONNECT_RETRY_COUNT("connectRetryCount", 1),
-    CONNECT_RETRY_INTERVAL("connectRetryInterval", 10);
+  	CONNECT_RETRY_COUNT                        ("connectRetryCount",                       1),
+    CONNECT_RETRY_INTERVAL                     ("connectRetryInterval",                    10);
     ;  
     
     private final String name;
@@ -345,7 +345,7 @@ enum SQLServerDriverIntProperty {
 
 enum SQLServerDriverBooleanProperty 
 {
-    DISABLE_STATEMENT_POOLING                 ("disableStatementPooling",                   false),
+    DISABLE_STATEMENT_POOLING                 ("disableStatementPooling",                   true),
     ENCRYPT                                   ("encrypt",                                   false), 
     INTEGRATED_SECURITY                       ("integratedSecurity",                        false),
     LAST_UPDATE_COUNT                         ("lastUpdateCount",                           true),
@@ -485,7 +485,9 @@ public final class SQLServerDriver implements java.sql.Driver {
             java.sql.DriverManager.registerDriver(new SQLServerDriver());
         }
         catch (SQLException e) {
-            e.printStackTrace();
+            if (drLogger.isLoggable(Level.FINER) && Util.IsActivityTraceOn()) {
+                drLogger.finer("Error registering driver: " + e);
+            }
         }
     }
 
@@ -631,7 +633,12 @@ public final class SQLServerDriver implements java.sql.Driver {
         // Merge connectProperties (from URL) and supplied properties from user.
         Properties connectProperties = parseAndMergeProperties(Url, suppliedProperties);
         if (connectProperties != null) {
-            result = new SQLServerConnection(toString());
+            if (Util.use43Wrapper()) {
+                result = new SQLServerConnection43(toString());
+            }
+            else {
+                result = new SQLServerConnection(toString());
+            }
             result.connect(connectProperties, null);
         }
         loggerExternal.exiting(getClassNameLogging(), "connect", result);
@@ -651,7 +658,7 @@ public final class SQLServerDriver implements java.sql.Driver {
         // put the user properties into the connect properties
         int nTimeout = DriverManager.getLoginTimeout();
         if (nTimeout > 0) {
-            connectProperties.put(SQLServerDriverIntProperty.LOGIN_TIMEOUT.toString(), new Integer(nTimeout).toString());
+            connectProperties.put(SQLServerDriverIntProperty.LOGIN_TIMEOUT.toString(), Integer.valueOf(nTimeout).toString());
         }
 
         // Merge connectProperties (from URL) and supplied properties from user.

@@ -19,7 +19,6 @@ import java.sql.Types;
 
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
@@ -118,9 +117,7 @@ public class NamedParamMultiPartTest extends AbstractTest {
      * 
      * @throws Exception
      */
-    
     @Test
-    @Disabled
     public void update5() throws Exception {
         try (CallableStatement cs = connection.prepareCall("{ CALL " + procedureName + " (?) }")) {
             cs.registerOutParameter("p_out", Types.VARCHAR);
@@ -129,15 +126,12 @@ public class NamedParamMultiPartTest extends AbstractTest {
             assertEquals(data, dataPut, "Received data not equal to setdata");
         }
     }
-    
 
     /**
      * 
      * @throws Exception
      */
-    
     @Test
-    @Disabled
     public void update6() throws Exception {
         String catalog = connection.getCatalog();
         String storedproc = catalog + ".dbo." + procedureName;
@@ -148,7 +142,6 @@ public class NamedParamMultiPartTest extends AbstractTest {
             assertEquals(data, dataPut, "Received data not equal to setdata");
         }
     }
-    
 
     /**
      * Clean up

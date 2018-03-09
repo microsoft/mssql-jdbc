@@ -84,7 +84,6 @@ public abstract class AbstractTest {
 
         try {
             Assertions.assertNotNull(connectionString, "Connection String should not be null");
-            System.out.println(connectionString);
             connection = PrepUtil.getConnection(connectionString, info);
 
         }
@@ -179,7 +178,7 @@ public abstract class AbstractTest {
             logger.setLevel(Level.FINEST);
         }
         catch (Exception e) {
-            System.err.println("Somehow could not invoke logging: " + e.getMessage());
+            System.err.println("Some how could not invoke logging: " + e.getMessage());
         }
     }
 
