@@ -30,7 +30,6 @@ import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
 
 import com.microsoft.sqlserver.jdbc.ISQLServerConnection;
-import com.microsoft.sqlserver.jdbc.SQLServerException;
 import com.microsoft.sqlserver.jdbc.SQLServerXADataSource;
 import com.microsoft.sqlserver.testframework.AbstractTest;
 import com.microsoft.sqlserver.testframework.DBConnection;
@@ -70,7 +69,7 @@ public class PoolingTest extends AbstractTest {
         try (Connection conn = pc.getConnection()) {
             conn.createStatement().executeQuery("select * from [" + tempTableName + "]");
         }
-        catch (SQLServerException e) {
+        catch (SQLException e) {
             // make sure the temporary table is not found.
             if (e.getMessage().startsWith("Invalid object name")) {
                 tempTableFileRemoved = true;

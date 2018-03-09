@@ -3,6 +3,19 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](http://keepachangelog.com/) 
 
+## [6.5.0] Preview Release
+### Added
+- Support for spatial datatypes [#642](https://github.com/Microsoft/mssql-jdbc/pull/642)
+
+### Fixed Issues
+- Fixed blobs becoming unavailable when the Result Set cursor moves or the Result Set closes [#595](https://github.com/Microsoft/mssql-jdbc/pull/595)
+- Fixed an issue when attempting to insert an empty or null value into an encrypted column [#632](https://github.com/Microsoft/mssql-jdbc/pull/632)
+- Fixed a misleading error message thrown by the driver when a user doesn't have execute permissions [#635](https://github.com/Microsoft/mssql-jdbc/pull/635)
+- Fixed statements throwing SQLServerException instead of java.sql.SQLTimeoutException when the query times out [#641](https://github.com/Microsoft/mssql-jdbc/pull/641)
+
+### Changed
+- Unit tests now use SQLException in most cases instead of SQLServerException.
+
 ## [6.4.0] Stable Release
 ### Added
 - Support added for AAD Integrated Authentication with ADAL4J on Windows/Linux/Mac OS [#603](https://github.com/Microsoft/mssql-jdbc/pull/603) 

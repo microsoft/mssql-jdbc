@@ -24,7 +24,6 @@ import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
 
 import com.microsoft.sqlserver.jdbc.SQLServerCallableStatement;
-import com.microsoft.sqlserver.jdbc.SQLServerException;
 import com.microsoft.sqlserver.jdbc.SQLServerPreparedStatement;
 import com.microsoft.sqlserver.jdbc.SQLServerStatement;
 import com.microsoft.sqlserver.testframework.AbstractTest;
@@ -82,7 +81,7 @@ public class TVPIssuesTest extends AbstractTest {
             throw new Exception("Expected Exception for invalied stored procedure name is not thrown.");
         }
         catch (Exception e) {
-            if (e instanceof SQLServerException) {
+            if (e instanceof SQLException) {
                 assertTrue(e.getMessage().contains("Could not find stored procedure"), "Invalid Error Message.");
             }
             else {

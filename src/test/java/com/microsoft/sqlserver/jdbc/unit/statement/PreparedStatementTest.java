@@ -32,7 +32,6 @@ import org.junit.runner.RunWith;
 
 import com.microsoft.sqlserver.jdbc.SQLServerConnection;
 import com.microsoft.sqlserver.jdbc.SQLServerDataSource;
-import com.microsoft.sqlserver.jdbc.SQLServerException;
 import com.microsoft.sqlserver.jdbc.SQLServerPreparedStatement;
 import com.microsoft.sqlserver.testframework.AbstractTest;
 
@@ -188,7 +187,7 @@ public class PreparedStatementTest extends AbstractTest {
                     try {
                         assertSame(1, pstmt.executeUpdate());
                     }
-                    catch (SQLServerException e) {
+                    catch (SQLException e) {
                         // Error "Prepared handle GAH" is expected to happen. But it should not terminate the execution with RAISERROR.
                         // Since the original "Could not find prepared statement with handle" error does not terminate the execution after it.
                         if (!e.getMessage().contains("Prepared handle GAH")) {
