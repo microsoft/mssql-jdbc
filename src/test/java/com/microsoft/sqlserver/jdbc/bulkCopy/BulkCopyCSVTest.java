@@ -30,7 +30,6 @@ import org.junit.runner.RunWith;
 import com.microsoft.sqlserver.jdbc.ISQLServerBulkRecord;
 import com.microsoft.sqlserver.jdbc.SQLServerBulkCSVFileRecord;
 import com.microsoft.sqlserver.jdbc.SQLServerBulkCopy;
-import com.microsoft.sqlserver.jdbc.SQLServerException;
 import com.microsoft.sqlserver.testframework.AbstractTest;
 import com.microsoft.sqlserver.testframework.DBConnection;
 import com.microsoft.sqlserver.testframework.DBResultSet;
@@ -80,7 +79,7 @@ public class BulkCopyCSVTest extends AbstractTest {
         try (SQLServerBulkCSVFileRecord fileRecord = new SQLServerBulkCSVFileRecord(filePath + inputFile, encoding, delimiter, true)) {
             testBulkCopyCSV(fileRecord, true);
         }
-        catch (SQLServerException e) {
+        catch (SQLException e) {
             fail(e.getMessage());
         }
     }
@@ -94,7 +93,7 @@ public class BulkCopyCSVTest extends AbstractTest {
         try (SQLServerBulkCSVFileRecord fileRecord = new SQLServerBulkCSVFileRecord(filePath + inputFileNoColumnName, encoding, delimiter, false)) {
             testBulkCopyCSV(fileRecord, false);
         }
-        catch (SQLServerException e) {
+        catch (SQLException e) {
             fail(e.getMessage());
         }
     }

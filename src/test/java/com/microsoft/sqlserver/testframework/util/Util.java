@@ -11,7 +11,6 @@ import java.util.Calendar;
 
 import com.microsoft.sqlserver.jdbc.SQLServerConnection;
 import com.microsoft.sqlserver.jdbc.SQLServerDatabaseMetaData;
-import com.microsoft.sqlserver.jdbc.SQLServerException;
 import com.microsoft.sqlserver.jdbc.SQLServerStatementColumnEncryptionSetting;
 
 /**
@@ -329,9 +328,9 @@ public class Util {
      * @param value
      *            charArray
      * @return
-     * @throws SQLServerException
+     * @throws SQLException
      */
-    static byte CharToHex(char value) throws SQLServerException {
+    static byte CharToHex(char value) throws SQLException {
         byte ret = 0;
         if (value >= 'A' && value <= 'F') {
             ret = (byte) (value - 'A' + 10);
@@ -354,9 +353,9 @@ public class Util {
      * @param hexV
      *            a hexized string representation of bytes
      * @return
-     * @throws SQLServerException
+     * @throws SQLException
      */
-    public static byte[] hexStringToByte(String hexV) throws SQLServerException {
+    public static byte[] hexStringToByte(String hexV) throws SQLException {
         int len = hexV.length();
         char orig[] = hexV.toCharArray();
         if ((len % 2) != 0) {
