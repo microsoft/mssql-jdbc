@@ -196,7 +196,7 @@ public class BatchExecuteWithErrorsTest extends AbstractTest {
         }
         conn.rollback();
 
-        // Defect 128801: Rollback (with conversion error) should throw SQLServerException
+        // Defect 128801: Rollback (with conversion error) should throw SQLException
         stmt.addBatch(dateConversionError);
         stmt.addBatch(insertStmt);
         stmt.addBatch(insertStmt);
@@ -401,7 +401,7 @@ public class BatchExecuteWithErrorsTest extends AbstractTest {
         }
         conn.rollback();
 
-        // Defect 128801: Rollback (with conversion error) should throw SQLServerException
+        // Defect 128801: Rollback (with conversion error) should throw SQLException
         stmt.addBatch(dateConversionError);
         stmt.addBatch(insertStmt);
         stmt.addBatch(insertStmt);

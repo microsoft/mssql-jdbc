@@ -612,6 +612,10 @@ final class DDC {
                             byte[] byteValue = stream.getBytes();
                             if (JDBCType.GUID == jdbcType) {
                                 return Util.readGUID(byteValue);
+                            } else if (JDBCType.GEOMETRY == jdbcType) {
+                                return Geometry.STGeomFromWKB(byteValue);
+                            } else if (JDBCType.GEOGRAPHY == jdbcType) {
+                                return Geography.STGeomFromWKB(byteValue);
                             }
                             else {
                                 String hexString = Util.bytesToHexString(byteValue, byteValue.length);

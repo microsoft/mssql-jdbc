@@ -26,7 +26,6 @@ import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
 
 import com.microsoft.sqlserver.jdbc.SQLServerConnection;
-import com.microsoft.sqlserver.jdbc.SQLServerException;
 import com.microsoft.sqlserver.jdbc.SQLServerParameterMetaData;
 import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
 import com.microsoft.sqlserver.testframework.AbstractTest;
@@ -209,7 +208,7 @@ public class PQImpsTest extends AbstractTest {
                 testMixedWithHardcodedValues();
             }
         }
-        catch (SQLServerException e) {
+        catch (SQLException e) {
             fail(e.toString());
         }
 
@@ -1339,10 +1338,10 @@ public class PQImpsTest extends AbstractTest {
     /**
      * test column name with end comment mark and space
      * 
-     * @throws SQLServerException
+     * @throws SQLException
      */
     @Test
-    public void testQueryWithSpaceAndEndCommentMarkInColumnName() throws SQLServerException {
+    public void testQueryWithSpaceAndEndCommentMarkInColumnName() throws SQLException {
         pstmt = connection.prepareStatement("SELECT [c1*/someString withspace] from " + spaceTable);
 
         try {
@@ -1356,10 +1355,10 @@ public class PQImpsTest extends AbstractTest {
     /**
      * test getting parameter count with a complex query with multiple table
      * 
-     * @throws SQLServerException
+     * @throws SQLException
      */
     @Test
-    public void testComplexQueryWithMultipleTables() throws SQLServerException {
+    public void testComplexQueryWithMultipleTables() throws SQLException {
         pstmt = connection.prepareStatement(
                 "insert into " + charTable + " (c1) select ? where not exists (select * from " + charTable2 + " where table2c1 = ?)");
 
