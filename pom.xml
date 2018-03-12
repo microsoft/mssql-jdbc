@@ -11,8 +11,6 @@
 	<name>Microsoft JDBC Driver for SQL Server</name>
 	<description>
 		Microsoft JDBC Driver for SQL Server.
-		The Azure Key Vault feature in Microsoft JDBC Driver for SQL Server depends on 
-		Azure SDK for JAVA and Azure Active Directory Library For Java.
 	</description>
 	<url>https://github.com/Microsoft/mssql-jdbc</url>
 	
