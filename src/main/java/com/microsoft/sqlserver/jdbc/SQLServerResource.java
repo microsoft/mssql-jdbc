@@ -339,7 +339,6 @@ public final class SQLServerResource extends ListResourceBundle {
 				{"R_TVPEmptyMetadata", "There are not enough fields in the Structured type. Structured types must have at least one field."},
 				{"R_TVPInvalidValue", "The value provided for Table-Valued Parameter {0} is not valid. Only SQLServerDataTable, ResultSet and ISQLServerDataRecord objects are supported."},
 				{"R_TVPInvalidColumnValue", "Input data is not in correct format."},
-				{"R_AADIntegratedOnNonWindows","ActiveDirectoryIntegrated is only supported on Windows operating systems."},
 				{"R_TVPSortOrdinalGreaterThanFieldCount", "The sort ordinal {0} on field {1} exceeds the total number of fields."},
 				{"R_TVPMissingSortOrderOrOrdinal", "The sort order and ordinal must either both be specified, or neither should be specified (SortOrder.Unspecified and -1). The values given were: order = {0}, ordinal = {1}."},
 				{"R_TVPDuplicateSortOrdinal", "The sort ordinal {0} was specified twice."},
@@ -390,7 +389,7 @@ public final class SQLServerResource extends ListResourceBundle {
 				{"R_invalidStringValue", "SQL_VARIANT does not support string values of length greater than 8000."},
 				{"R_invalidValueForTVPWithSQLVariant", "Use of TVPs containing null sql_variant columns is not supported."},
 				{"R_invalidDataTypeSupportForSQLVariant", "Unexpected TDS type ' '{0}' ' in SQL_VARIANT."},
-				{"R_sslProtocolPropertyDescription", "SSL protocol label from TLS, TLSv1, TLSv1.1 & TLSv1.2. The default is TLS."},
-				{"R_invalidSSLProtocol", "SSL Protocol {0} label is not valid. Only TLS, TLSv1, TLSv1.1 & TLSv1.2 are supported."},
+				{"R_sslProtocolPropertyDescription", "SSL protocol label from TLS, TLSv1, TLSv1.1, and TLSv1.2. The default is TLS."},
+				{"R_invalidSSLProtocol", "SSL Protocol {0} label is not valid. Only TLS, TLSv1, TLSv1.1, and TLSv1.2 are supported."},
     };
 }
