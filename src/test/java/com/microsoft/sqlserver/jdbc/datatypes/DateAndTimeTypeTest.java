@@ -37,9 +37,9 @@ import com.microsoft.sqlserver.testframework.Utils;
 @RunWith(JUnitPlatform.class)
 public class DateAndTimeTypeTest extends AbstractTest {
 
-    private static final Date DATE_TO_TEST = new java.sql.Date(2017, 20, 11);
-    private static final Time TIME_TO_TEST = new java.sql.Time(12, 34, 56);
-    private static final Timestamp TIMESTAMP_TO_TEST = new java.sql.Timestamp(2017, 20, 11, 12, 34, 56, 0);
+    private static final Date DATE_TO_TEST = new java.sql.Date(61494793200000L);
+    private static final Time TIME_TO_TEST = new java.sql.Time(74096000L);
+    private static final Timestamp TIMESTAMP_TO_TEST = new java.sql.Timestamp(61494838496000L);
 
     static Statement stmt = null;
     static Connection connection = null;
@@ -159,8 +159,10 @@ public class DateAndTimeTypeTest extends AbstractTest {
 
     @BeforeEach
     public void testSetup() throws TestAbortedException, Exception {
-        assumeTrue(9 <= new DBConnection(connectionString).getServerVersion(),
-                "Aborting test case as SQL Server version does not support TIME");
+        try (DBConnection dbc = new DBConnection(connectionString)) {
+            assumeTrue(9 <= dbc.getServerVersion(),
+                    "Aborting test case as SQL Server version does not support TIME");
+        }
         // To get TIME & setTime working on Servers >= 2008, we must add 'sendTimeAsDatetime=false'
         // by default to the connection. See issue https://github.com/Microsoft/mssql-jdbc/issues/559
         connection = DriverManager.getConnection(connectionString + ";sendTimeAsDatetime=false");
