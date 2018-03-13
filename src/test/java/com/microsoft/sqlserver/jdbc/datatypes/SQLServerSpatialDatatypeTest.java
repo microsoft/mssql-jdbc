@@ -823,7 +823,7 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest  {
     public void testCheckGeomMetaData() throws SQLException {
         beforeEachSetup();
                 
-        pstmt = (SQLServerPreparedStatement) connection.prepareStatement("INSERT INTO " + geomTableName +" VALUES (?)");
+        pstmt = (SQLServerPreparedStatement) connection.prepareStatement("INSERT INTO " + geomTableName +" (c1) VALUES (?)");
         ParameterMetaData paramMetaData = pstmt.getParameterMetaData();
         Geometry g = Geometry.STGeomFromText("POINT (1 2 3 4)", 0);
         pstmt.setGeometry(1, g);
@@ -842,7 +842,7 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest  {
     public void testCheckGeogMetaData() throws SQLException {
         beforeEachSetup();
         
-        pstmt = (SQLServerPreparedStatement) connection.prepareStatement("INSERT INTO " + geogTableName +" VALUES (?)");
+        pstmt = (SQLServerPreparedStatement) connection.prepareStatement("INSERT INTO " + geogTableName +" (c1) VALUES (?)");
         ParameterMetaData paramMetaData = pstmt.getParameterMetaData();
         Geography g = Geography.STGeomFromText("POINT (1 2 3 4)", 4326);
         pstmt.setGeography(1, g);
