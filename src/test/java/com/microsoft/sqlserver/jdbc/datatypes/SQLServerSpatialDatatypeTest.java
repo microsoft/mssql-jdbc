@@ -11,6 +11,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.io.IOException;
 import java.sql.DriverManager;
+import java.sql.ParameterMetaData;
+import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
@@ -816,6 +818,43 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest  {
         
         assertEquals(geomWKB, geomWKB2);
         assertEquals(geogWKB, geogWKB2);
+    }
+
+    public void testCheckGeomMetaData() throws SQLException {
+        beforeEachSetup();
+                
+        pstmt = (SQLServerPreparedStatement) connection.prepareStatement("INSERT INTO " + geomTableName +" VALUES (?)");
+        ParameterMetaData paramMetaData = pstmt.getParameterMetaData();
+        Geometry g = Geometry.STGeomFromText("POINT (1 2 3 4)", 0);
+        pstmt.setGeometry(1, g);
+        pstmt.execute();
+        
+        int sqlType = paramMetaData.getParameterType(1);
+        String sqlTypeName = paramMetaData.getParameterTypeName(1);
+        assertEquals(sqlType, -157);
+        assertEquals(sqlTypeName, "geometry");
+        SQLServerResultSet rs = (SQLServerResultSet) stmt.executeQuery("select * from " + geomTableName);
+        ResultSetMetaData rsmd = rs.getMetaData();
+        assertEquals(rsmd.getColumnType(1), -157);
+    }
+    
+    @Test
+    public void testCheckGeogMetaData() throws SQLException {
+        beforeEachSetup();
+        
+        pstmt = (SQLServerPreparedStatement) connection.prepareStatement("INSERT INTO " + geogTableName +" VALUES (?)");
+        ParameterMetaData paramMetaData = pstmt.getParameterMetaData();
+        Geography g = Geography.STGeomFromText("POINT (1 2 3 4)", 4326);
+        pstmt.setGeography(1, g);
+        pstmt.execute();
+        
+        int sqlType = paramMetaData.getParameterType(1);
+        String sqlTypeName = paramMetaData.getParameterTypeName(1);
+        assertEquals(sqlType, -158);
+        assertEquals(sqlTypeName, "geography");
+        SQLServerResultSet rs = (SQLServerResultSet) stmt.executeQuery("select * from " + geogTableName);
+        ResultSetMetaData rsmd = rs.getMetaData();
+        assertEquals(rsmd.getColumnType(1), -158);
     }
     
     private void beforeEachSetup() throws SQLException {

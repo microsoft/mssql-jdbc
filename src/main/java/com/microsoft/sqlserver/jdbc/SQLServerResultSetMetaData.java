@@ -125,6 +125,14 @@ public final class SQLServerResultSetMetaData implements java.sql.ResultSetMetaD
         if ( SSType.SQL_VARIANT == typeInfo.getSSType()){
             jdbcType = JDBCType.SQL_VARIANT;
         }
+        if (SSType.UDT == typeInfo.getSSType()) {
+            if (typeInfo.getSSTypeName().equalsIgnoreCase("geometry")) {
+                jdbcType = JDBCType.GEOMETRY;
+            }
+            if (typeInfo.getSSTypeName().equalsIgnoreCase("geography")) {
+                jdbcType = JDBCType.GEOGRAPHY;
+            }
+        }
         int r = jdbcType.asJavaSqlType();
         if (con.isKatmaiOrLater()) {
             SSType sqlType = typeInfo.getSSType();
