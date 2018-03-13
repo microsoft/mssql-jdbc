@@ -27,7 +27,6 @@ import org.junit.runner.RunWith;
 import com.microsoft.sqlserver.jdbc.ISQLServerDataSource;
 import com.microsoft.sqlserver.jdbc.SQLServerConnectionPoolDataSource;
 import com.microsoft.sqlserver.jdbc.SQLServerDataSource;
-import com.microsoft.sqlserver.jdbc.SQLServerException;
 import com.microsoft.sqlserver.jdbc.SQLServerXADataSource;
 import com.microsoft.sqlserver.testframework.AbstractTest;
 
@@ -71,7 +70,7 @@ public class NativeMSSQLDataSourceTest extends AbstractTest {
         try (Connection conn = ds.getConnection()) {}
         ds = testSerial(ds);
         try (Connection conn = ds.getConnection()) {}
-        catch (SQLServerException e) {
+        catch (SQLException e) {
             assertEquals("The DataSource trustStore password needs to be set.", e.getMessage());
         }
     }

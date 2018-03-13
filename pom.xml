@@ -5,14 +5,12 @@
 	
 	<groupId>com.microsoft.sqlserver</groupId>
 	<artifactId>mssql-jdbc</artifactId>
-	<version>6.5.0-SNAPSHOT.${jreVersion}-preview</version>
+	<version>6.5.1-SNAPSHOT.${jreVersion}-preview</version>
 	<packaging>jar</packaging>
 	
 	<name>Microsoft JDBC Driver for SQL Server</name>
 	<description>
 		Microsoft JDBC Driver for SQL Server.
-		The Azure Key Vault feature in Microsoft JDBC Driver for SQL Server depends on 
-		Azure SDK for JAVA and Azure Active Directory Library For Java.
 	</description>
 	<url>https://github.com/Microsoft/mssql-jdbc</url>
 	
