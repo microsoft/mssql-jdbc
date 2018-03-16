@@ -41,7 +41,7 @@ What's coming next?  We will look into adding a more comprehensive set of tests,
 * An instance of SQL Server or Azure SQL Database that you can connect to. 
 
 ### Build the JAR files
-Maven builds automatically trigger a set of verification tests to run.  For these tests to pass, you will first need to add an environment variable in your system called `mssql_jdbc_test_connection_properties` to provide the [correct connection properties](https://msdn.microsoft.com/en-us/library/ms378428(v=sql.110).aspx) for your SQL Server or Azure SQL Database instance.
+Maven builds automatically trigger a set of verification tests to run.  For these tests to pass, you will first need to add an environment variable in your system called `mssql_jdbc_test_connection_properties` to provide the [correct connection properties](https://docs.microsoft.com/en-us/sql/connect/jdbc/building-the-connection-url) for your SQL Server or Azure SQL Database instance.
 
 To build the jar files, you must use Java 9 with Maven.  You can choose to build a JDBC 4.3 compliant jar file (for use with JRE 9) and/or a JDBC 4.2 compliant jar file (for use with JRE 8).
 
@@ -64,13 +64,13 @@ To build the jar files, you must use Java 9 with Maven.  You can choose to build
 ### Documentation
 API reference documentation is available in [Javadocs](https://aka.ms/jdbcjavadocs).
 
-This driver is documented on [Microsoft's Documentation web site](https://msdn.microsoft.com/en-us/library/mt720657).
+This driver is documented on [Microsoft's Documentation web site](https://docs.microsoft.com/en-us/sql/connect/jdbc/getting-started-with-the-jdbc-driver).
 
 ### Sample Code
 For samples, please see the src\sample directory.
 
 ### Download the DLLs
-For some features (e.g. Integrated Authentication and Distributed Transactions), you may need to use the `sqljdbc_xa` and `sqljdbc_auth` DLLs. They can be downloaded from the [Microsoft Download Center](https://go.microsoft.com/fwlink/?linkid=852460)
+For some features (e.g. Integrated Authentication and Distributed Transactions), you may need to use the `sqljdbc_xa` and `sqljdbc_auth` DLLs. They can be downloaded from the [Microsoft Download Center](https://go.microsoft.com/fwlink/?linkid=868287)
 
 ### Download the driver
 Don't want to compile anything?
@@ -83,7 +83,7 @@ We're now on the Maven Central Repository. Add the following to your POM file to
 	<version>6.4.0.jre9</version>
 </dependency>
 ```
-The driver can be downloaded from the [Microsoft Download Center](https://go.microsoft.com/fwlink/?linkid=852460).
+The driver can be downloaded from the [Microsoft Download Center](https://go.microsoft.com/fwlink/?linkid=868287).
 
 To get the latest preview version of the driver, add the following to your POM file: 
 ```xml
@@ -175,6 +175,16 @@ Thank you!
 
 ### Reporting security issues and security bugs
 Security issues and bugs should be reported privately, via email, to the Microsoft Security Response Center (MSRC) [secure@microsoft.com](mailto:secure@microsoft.com). You should receive a response within 24 hours. If for some reason you do not, please follow up via email to ensure we received your original message. Further information, including the MSRC PGP key, can be found in the [Security TechCenter](https://technet.microsoft.com/en-us/security/ff852094.aspx).
+
+## Release roadmap and standards
+Our goal is to release regular updates which improve the driver and bring new features to users. Stable, production quality releases happen twice a year, targeting the first and third quarters of the calendar year. They are tested against a comprehensive matrix of supported operating systems, Java versions, and SQL Server versions. Stable releases are accompanied by additional localized packages, which are available on the Microsoft website.
+
+Preview releases happen approximately monthly between stable releases. This gives users an opportunity to try out new features and provide feedback on them before they go into stable releases. Preview releases also include frequent bug fixes for customers to verify without having to wait for a stable release. Preview releases are only available in English. While they are tested, preview releases do not necessarily go through the same rigorous, full test matrix as stable releases.
+
+You can see what is going into a future release by monitoring [Milestones](https://github.com/Microsoft/mssql-jdbc/milestones) in the repository.
+
+### Versioning convention
+Starting with 6.0, stable versions have an even minor version. For example, 6.0, 6.2, 6.4. Preview versions have an odd minor version. For example, 6.1, 6.3, 6.5.
 
 ## Contributors 
 Special thanks to everyone who has contributed to the project.
