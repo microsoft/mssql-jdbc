@@ -12,6 +12,7 @@ import java.io.Closeable;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.Reader;
+import java.io.UnsupportedEncodingException;
 import java.math.BigDecimal;
 import java.sql.Array;
 import java.sql.Blob;
@@ -170,6 +171,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
      * possibly never (as is the case with DYNAMIC cursors).
      */
     static final int UNKNOWN_ROW_COUNT = -3;
+    static final int ERROR_TOKEN_INDICATOR = -61;
     private int rowCount;
 
     /** The current row's column values */
@@ -1025,7 +1027,29 @@ public class SQLServerResultSet implements ISQLServerResultSet {
                 return true;
             }
         }
-
+        
+        //We have zero rows, if an error occurred, we need to throw an exception
+        if (rowCount == BEFORE_FIRST_ROW) {
+        	int packetSize = tdsReader.available();
+        	if (packetSize > 0)	{
+        		//There's a response available, but we have no rows. Take a look through the packet.
+        		byte[] b = new byte[packetSize];
+            	tdsReader.readBytes(b, 0, packetSize);
+            	for (int i = 0; i < packetSize; i++) {
+            		//Parse the packet, look for a TDS 'AA' token indicating an error.
+            		if (b[i] == ERROR_TOKEN_INDICATOR) {
+            			try {
+    						//Start from the byte after token for the error message
+    						String errMsg = readErrorPacket(new String(b, "UTF-16"), i+1);
+    						throw new SQLServerException(errMsg, SQLState.DATA_EXCEPTION_NOT_SPECIFIC, DriverError.NOT_SET, null);
+    					} catch (UnsupportedEncodingException e) {
+    						throw new SQLServerException(e.getMessage(), SQLState.DATA_EXCEPTION_NOT_SPECIFIC, DriverError.NOT_SET, e);
+    					}
+            		}
+            	}
+        	}
+        }
+        
         // Otherwise, we have reached the end of the result set
         if (UNKNOWN_ROW_COUNT == rowCount)
             rowCount = currentRow;
@@ -1033,6 +1057,22 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         currentRow = AFTER_LAST_ROW;
         loggerExternal.exiting(getClassNameLogging(), "next", false);
         return false;
+    }
+    
+    /*
+     * A function that obtains the error message from a TDS packet.
+     * This function should only be called after a TDS Error Token has been identified.
+     * 
+     * @return a string representing the error message
+     */
+    private String readErrorPacket(String s, int begin) {
+    	for (int i = begin; i < s.length(); i++) {
+    		String c = Character.toString(s.charAt(i));
+    		if (!c.matches("[A-Za-z0-9 _.,:;!@#$%^&*()/\"\'\t\n]")) {   //there is no token separator for the err message fields, 
+    			return s.substring(begin, i);							//but they're always separated by invalid UTF-16 characters
+			}
+    	}
+		return "";
     }
 
     public boolean wasNull() throws SQLServerException {
