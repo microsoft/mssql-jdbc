@@ -173,13 +173,8 @@ public class SQLServerResultSet implements ISQLServerResultSet {
     static final int UNKNOWN_ROW_COUNT = -3;
     private int rowCount;
     
-    /*
-     * The number of bytes to skip when parsing an error packet. These bytes contain relevant information but we don't need it.
-     * 
-     * The hex representation of the TDS ERR token "170".
-     */
+    //The number of bytes to skip from a TDS token to reach the message. Used when parsing a TDS packet.
     static final int ERROR_EXCESS_INFO = 10;
-    static final String ERROR_TOKEN_INDICATOR = "aa";
     
     /** The current row's column values */
     private final Column[] columns;
@@ -1063,11 +1058,9 @@ public class SQLServerResultSet implements ISQLServerResultSet {
     		byte[] byteBuffer = new byte[packetSize];
         	tdsReader.readBytes(byteBuffer, 0, packetSize);
         	for (int i = 0; i < byteBuffer.length; i++) {
-        		String hexByte = "";
-        		hexByte += Character.forDigit((byteBuffer[i] >> 4) & 0xF, 16);
-        		hexByte += Character.forDigit((byteBuffer[i] & 0xF), 16);
+        		int token = byteBuffer[i] & 0xFF;
         		// Parse the packet, look for a TDS 'AA' token indicating an error.
-        		if (hexByte.compareTo(ERROR_TOKEN_INDICATOR) == 0) {
+        		if (token == TDS.TDS_ERR) {
         			try {
         				int truncatedSize = packetSize - i - ERROR_EXCESS_INFO;
         				// The fields are of varying byte sizes, this causes problems with String[byte[], "UTF-16")
