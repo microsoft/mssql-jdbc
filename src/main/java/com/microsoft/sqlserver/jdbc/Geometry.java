@@ -10,7 +10,6 @@ package com.microsoft.sqlserver.jdbc;
 
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
-import java.util.Locale;
 
 public class Geometry extends SQLServerSpatialDatatype {
     
