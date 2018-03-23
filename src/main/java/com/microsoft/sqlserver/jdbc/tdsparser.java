@@ -227,7 +227,7 @@ class TDSTokenHandler {
     }
 
     boolean onColMetaData(TDSReader tdsReader) throws SQLServerException {
-        TDSParser.throwUnexpectedTokenException(tdsReader, logContext);
+        TDSParser.ignoreLengthPrefixedToken(tdsReader);
         return false;
     }
 
