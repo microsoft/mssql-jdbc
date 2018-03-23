@@ -1071,11 +1071,11 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         				// Remove as many values from the front as possible to avoid any possible inconsistencies
         				// Also make sure not to parse anything after the message, 2 bytes for every UTF-16 character
         				byte[] errB = Arrays.copyOfRange(byteBuffer, messageOffset, messageOffset + (messageLength*2));
-						String errMsg = new String(errB, "UTF-16");
-						throw new SQLServerException(errMsg, SQLState.DATA_EXCEPTION_NOT_SPECIFIC, DriverError.NOT_SET, null);
+					String errMsg = new String(errB, "UTF-16");
+					throw new SQLServerException(errMsg, SQLState.DATA_EXCEPTION_NOT_SPECIFIC, DriverError.NOT_SET, null);
     				} catch (UnsupportedEncodingException e) {
-						throw new SQLServerException(e.getMessage(), SQLState.DATA_EXCEPTION_NOT_SPECIFIC, DriverError.NOT_SET, e);
-					}
+					throw new SQLServerException(e.getMessage(), SQLState.DATA_EXCEPTION_NOT_SPECIFIC, DriverError.NOT_SET, e);
+				}
         		}
         	}
     	}
