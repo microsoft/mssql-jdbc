@@ -107,30 +107,29 @@ public class ExceptionTest extends AbstractTest {
     	String dropTable_sql = "DROP TABLE IF EXISTS TEST659;";
     	String dropProc_sql = "DROP PROCEDURE IF EXISTS proc_insert_masse_TEST";
     	String createTable_sql = "CREATE TABLE TEST659 (ID INT IDENTITY NOT NULL," +
-    												"FIELD1 VARCHAR (255) NOT NULL," +
-    												"FIELD2 VARCHAR (255) NOT NULL);";
-    	
+							"FIELD1 VARCHAR (255) NOT NULL," +
+							"FIELD2 VARCHAR (255) NOT NULL);";
     	String createProc_sql = "CREATE PROCEDURE proc_insert_masse_TEST @json NVARCHAR(MAX) "
-    							+ "AS "
-    							+ "BEGIN TRANSACTION "
-    							+ "BEGIN TRY "
-    							+ "SET NOCOUNT ON; "
-    							+ "MERGE INTO TEST659 AS target "
-    							+ "USING "
-    								+ "(SELECT * FROM OPENJSON(@json) "
-    								+ "WITH (FIELD1 VARCHAR(255) 'strict $.FIELD1')) "
-								+ "AS src "
-    							+ "ON (1 = 0) "
-    							+ "WHEN NOT MATCHED THEN "
-    								+ "INSERT (FIELD1) VALUES (src.FIELD1) "
-								+ "OUTPUT inserted.ID; "
-    							+ "COMMIT TRANSACTION; "
-    							+ "END TRY "
-    							+ "BEGIN CATCH "
-    							+ "DECLARE @errorMessage NVARCHAR(4000) = ERROR_MESSAGE(); "
-    							+ "ROLLBACK TRANSACTION; "
-    							+ "RAISERROR('Error occured during the insert: %s', 16, 1, @errorMessage); "
-    							+ "END CATCH;";
+				+ "AS "
+				+ "BEGIN TRANSACTION "
+				+ "BEGIN TRY "
+				+ "SET NOCOUNT ON; "
+				+ "MERGE INTO TEST659 AS target "
+				+ "USING "
+					+ "(SELECT * FROM OPENJSON(@json) "
+					+ "WITH (FIELD1 VARCHAR(255) 'strict $.FIELD1')) "
+				+ "AS src "
+				+ "ON (1 = 0) "
+				+ "WHEN NOT MATCHED THEN "
+					+ "INSERT (FIELD1) VALUES (src.FIELD1) "
+					+ "OUTPUT inserted.ID; "
+				+ "COMMIT TRANSACTION; "
+				+ "END TRY "
+				+ "BEGIN CATCH "
+				+ "DECLARE @errorMessage NVARCHAR(4000) = ERROR_MESSAGE(); "
+				+ "ROLLBACK TRANSACTION; "
+				+ "RAISERROR('Error occured during the insert: %s', 16, 1, @errorMessage); "
+				+ "END CATCH;";
     	String proc_sql = "EXECUTE [dbo].proc_insert_masse_TEST N'[{\"FIELD1\" : \"TEST\"}]';";
 
 		Connection conn = ds.getConnection();
