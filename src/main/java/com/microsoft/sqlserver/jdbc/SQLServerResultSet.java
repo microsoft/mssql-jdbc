@@ -27,6 +27,7 @@ import java.sql.SQLFeatureNotSupportedException;
 import java.sql.SQLWarning;
 import java.sql.SQLXML;
 import java.text.MessageFormat;
+import java.util.Arrays;
 import java.util.Calendar;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -1030,9 +1031,9 @@ public class SQLServerResultSet implements ISQLServerResultSet {
             }
         }
         
-        // We have zero rows, if an error occurred, we need to throw an exception
-        if (rowCount == BEFORE_FIRST_ROW) {
-        	lookForErrors();
+        // We have no rows, if an error occurred, there should be 1 column and we need to throw an exception
+        if (rowCount == BEFORE_FIRST_ROW && columns.length == 1) {
+    		lookForErrors();
         }
         
         // Otherwise, we have reached the end of the result set
@@ -1052,7 +1053,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
      * @return
      */
     private void lookForErrors() throws SQLServerException {
-    	int packetSize = tdsReader.available();
+    	int packetSize = tdsReader.availableCurrentPacket();
     	if (packetSize > 0)	{
     		// There's a response available, but we have no rows. Take a look through the packet.
     		byte[] byteBuffer = new byte[packetSize];
@@ -1062,20 +1063,17 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         		// Parse the packet, look for a TDS 'AA' token indicating an error.
         		if (token == TDS.TDS_ERR) {
         			try {
-        				int truncatedSize = packetSize - i - ERROR_EXCESS_INFO;
-        				// The fields are of varying byte sizes, this causes problems with String[byte[], "UTF-16")
-        				// Remove as many hex values from the front as possible to avoid any possible inconsistencies
-        				byte[] errB = new byte[truncatedSize];
-        				for (int j = packetSize - errB.length; j < packetSize; j++) {
-        					errB[j - (packetSize - truncatedSize)] = byteBuffer[j];
-        				}
+        				int messageOffset = i + ERROR_EXCESS_INFO;
         				// Get the message length, represented as 1 byte in front of our message
         				// This byte is unsigned so we convert with '& 0xFF'
-        				int messageLength = byteBuffer[packetSize - errB.length - 1] & 0xFF;
-						// Convert only the message to UTF-16
-						String errMsg = new String(errB, "UTF-16").substring(0,messageLength);
+        				int messageLength = byteBuffer[messageOffset - 1] & 0xFF;
+        				// The fields are of varying byte sizes, this causes problems with String[byte[], "UTF-16")
+        				// Remove as many values from the front as possible to avoid any possible inconsistencies
+        				// Also make sure not to parse anything after the message, 2 bytes for every UTF-16 character
+        				byte[] errB = Arrays.copyOfRange(byteBuffer, messageOffset, messageOffset + (messageLength*2));
+						String errMsg = new String(errB, "UTF-16");
 						throw new SQLServerException(errMsg, SQLState.DATA_EXCEPTION_NOT_SPECIFIC, DriverError.NOT_SET, null);
-					} catch (UnsupportedEncodingException e) {
+    				} catch (UnsupportedEncodingException e) {
 						throw new SQLServerException(e.getMessage(), SQLState.DATA_EXCEPTION_NOT_SPECIFIC, DriverError.NOT_SET, e);
 					}
         		}
