@@ -104,8 +104,17 @@ public class ExceptionTest extends AbstractTest {
         SQLServerDataSource ds = new SQLServerDataSource();
         ds.setURL(connectionString);
 
-    	String dropTable_sql = "DROP TABLE IF EXISTS TEST659;";
-    	String dropProc_sql = "DROP PROCEDURE IF EXISTS proc_insert_masse_TEST";
+    	String dropTable_sql = "IF (EXISTS (SELECT * FROM INFORMATION_SCHEMA.TABLES " +
+    										"WHERE TABLE_NAME = 'TEST659')) " +
+    								"BEGIN " +
+    									"DROP TABLE TEST659 " +
+    								"END";
+    	String dropProc_sql = "IF EXISTS (SELECT * FROM sysobjects " + 
+    									"WHERE id = object_id(N'[dbo].proc_insert_masse_TEST') " + 
+    									"AND OBJECTPROPERTY(id, N'IsProcedure') = 1 ) " + 
+    						  "BEGIN " + 
+    						  		"DROP PROCEDURE [dbo].proc_insert_masse_TEST " + 
+    						  "END";
     	String createTable_sql = "CREATE TABLE TEST659 (ID INT IDENTITY NOT NULL," +
 							"FIELD1 VARCHAR (255) NOT NULL," +
 							"FIELD2 VARCHAR (255) NOT NULL);";
@@ -144,7 +153,7 @@ public class ExceptionTest extends AbstractTest {
     		rs.next();
     		fail("No exceptions caught.");    		
     	} catch (SQLException e) {
-    		assertTrue(e.getMessage().contains("Error occured during the insert:"), "Unexpected Error Message:" + e.getMessage());
+    		assertTrue(e.getMessage().contains("Error occured during the insert:"), "Unexpected Error Message: " + e.getMessage());
     	}
     }
 }
