@@ -105,16 +105,16 @@ public class ExceptionTest extends AbstractTest {
         ds.setURL(connectionString);
 
     	String dropTable_sql = "IF (EXISTS (SELECT * FROM INFORMATION_SCHEMA.TABLES " +
-    										"WHERE TABLE_NAME = 'TEST659')) " +
-    								"BEGIN " +
-    									"DROP TABLE TEST659 " +
-    								"END";
+					"WHERE TABLE_NAME = 'TEST659')) " +
+				"BEGIN " +
+					"DROP TABLE TEST659 " +
+				"END";
     	String dropProc_sql = "IF EXISTS (SELECT * FROM sysobjects " + 
-    									"WHERE id = object_id(N'[dbo].proc_insert_masse_TEST') " + 
-    									"AND OBJECTPROPERTY(id, N'IsProcedure') = 1 ) " + 
-    						  "BEGIN " + 
-    						  		"DROP PROCEDURE [dbo].proc_insert_masse_TEST " + 
-    						  "END";
+					"WHERE id = object_id(N'[dbo].proc_insert_masse_TEST') " + 
+					"AND OBJECTPROPERTY(id, N'IsProcedure') = 1 ) " + 
+			  	"BEGIN " + 
+					"DROP PROCEDURE [dbo].proc_insert_masse_TEST " + 
+				"END";
     	String createTable_sql = "CREATE TABLE TEST659 (ID INT IDENTITY NOT NULL," +
 							"FIELD1 VARCHAR (255) NOT NULL," +
 							"FIELD2 VARCHAR (255) NOT NULL);";
