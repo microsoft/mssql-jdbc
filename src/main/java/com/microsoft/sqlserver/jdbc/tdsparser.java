@@ -227,9 +227,9 @@ class TDSTokenHandler {
     }
 
     boolean onColMetaData(TDSReader tdsReader) throws SQLServerException {
-        //SHOWPLAN might be ON
+        //SHOWPLAN might be ON, instead of throwing an exception, ignore the column meta data
         TDSParser.ignoreLengthPrefixedToken(tdsReader);
-        return true;
+        return false;
     }
 
     boolean onRow(TDSReader tdsReader) throws SQLServerException {
