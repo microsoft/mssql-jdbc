@@ -13,6 +13,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import java.io.UnsupportedEncodingException;
 import java.net.SocketTimeoutException;
 import java.sql.Connection;
+import java.sql.DatabaseMetaData;
 import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -104,17 +105,8 @@ public class ExceptionTest extends AbstractTest {
         SQLServerDataSource ds = new SQLServerDataSource();
         ds.setURL(connectionString);
 
-    	String dropTable_sql = "IF (EXISTS (SELECT * FROM INFORMATION_SCHEMA.TABLES " +
-					"WHERE TABLE_NAME = 'TEST659')) " +
-				"BEGIN " +
-					"DROP TABLE TEST659 " +
-				"END";
-    	String dropProc_sql = "IF EXISTS (SELECT * FROM sysobjects " + 
-					"WHERE id = object_id(N'[dbo].proc_insert_masse_TEST') " + 
-					"AND OBJECTPROPERTY(id, N'IsProcedure') = 1 ) " + 
-			  	"BEGIN " + 
-					"DROP PROCEDURE [dbo].proc_insert_masse_TEST " + 
-				"END";
+    	String dropTable_sql = "DROP TABLE IF EXISTS TEST659;";
+    	String dropProc_sql = "DROP PROCEDURE IF EXISTS proc_insert_masse_TEST;";
     	String createTable_sql = "CREATE TABLE TEST659 (ID INT IDENTITY NOT NULL," +
 							"FIELD1 VARCHAR (255) NOT NULL," +
 							"FIELD2 VARCHAR (255) NOT NULL);";
@@ -142,18 +134,21 @@ public class ExceptionTest extends AbstractTest {
     	String proc_sql = "EXECUTE [dbo].proc_insert_masse_TEST N'[{\"FIELD1\" : \"TEST\"}]';";
 
 		Connection conn = ds.getConnection();
-		Statement stmt = conn.createStatement();
-		stmt.execute(dropTable_sql);
-		stmt.execute(createTable_sql);
-		stmt.execute(dropProc_sql);
-		stmt.execute(createProc_sql);
-		stmt.execute(proc_sql);
-		ResultSet rs = stmt.getResultSet();
-    	try {
-    		rs.next();
-    		fail("No exceptions caught.");    		
-    	} catch (SQLException e) {
-    		assertTrue(e.getMessage().contains("Error occured during the insert:"), "Unexpected Error Message: " + e.getMessage());
-    	}
+		if (conn.getMetaData().getDatabaseMajorVersion() >= 13)
+		{
+			Statement stmt = conn.createStatement();
+			stmt.execute(dropTable_sql);
+			stmt.execute(createTable_sql);
+			stmt.execute(dropProc_sql);
+			stmt.execute(createProc_sql);
+			stmt.execute(proc_sql);
+			ResultSet rs = stmt.getResultSet();
+	    	try {
+	    		rs.next();
+	    		fail("No exceptions caught.");    		
+	    	} catch (SQLException e) {
+	    		assertTrue(e.getMessage().contains("Error occured during the insert:"), "Unexpected Error Message: " + e.getMessage());
+	    	}
+		}
     }
 }
