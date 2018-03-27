@@ -100,7 +100,7 @@ public class ExceptionTest extends AbstractTest {
         conn.createStatement().execute(sql);
     }
     
-    @Test
+    /*@Test
     public void testResultSetErrorSearch() throws Exception {
         SQLServerDataSource ds = new SQLServerDataSource();
         ds.setURL(connectionString);
@@ -150,5 +150,5 @@ public class ExceptionTest extends AbstractTest {
 	    		assertTrue(e.getMessage().contains("Error occured during the insert:"), "Unexpected Error Message: " + e.getMessage());
 	    	}
 		}
-    }
+    }*/
 }
