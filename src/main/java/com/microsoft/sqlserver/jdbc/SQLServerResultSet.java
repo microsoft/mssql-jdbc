@@ -6338,14 +6338,19 @@ public class SQLServerResultSet implements ISQLServerResultSet {
             boolean onDone(TDSReader tdsReader) throws SQLServerException {
                 ensureStartMark();
 
-                // Consume the done token if the message is final (0x01) or there is no error (0x02)
+                int token = tdsReader.peekTokenType();
+        		StreamDone doneToken = new StreamDone();
+        		doneToken.setFromTDS(tdsReader);
+        		
                 int packetType = tdsReader.peekTokenType();
-                if (TDS.TDS_DONEINPROC == packetType) {
-                	short status = tdsReader.peekStatusFlag();
-                	if ((status & 0x001) != 0 || (status & 0x002) != 0) {
-                		StreamDone doneToken = new StreamDone();
-                		doneToken.setFromTDS(tdsReader);
-                		return true;
+                if (-1 != packetType && TDS.TDS_DONEINPROC == token) {
+                	switch (packetType)
+                	{
+	                	case TDS.TDS_ENV_CHG:
+	                	case TDS.TDS_ERR:
+	                		return true;
+                		default:
+                			break;
                 	}
                 }
 
