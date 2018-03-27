@@ -1030,12 +1030,6 @@ public class SQLServerResultSet implements ISQLServerResultSet {
                 return true;
             }
         }
-        
-        // We have no rows, if an error occurred, there should be 1 column and we need to throw an exception
-        if (rowCount == BEFORE_FIRST_ROW && columns.length == 1) {
-    		lookForErrors();
-        }
-        
         // Otherwise, we have reached the end of the result set
         if (UNKNOWN_ROW_COUNT == rowCount)
             rowCount = currentRow;
@@ -1045,42 +1039,6 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         return false;
     }
     
-    /*
-     * A function that looks for an error message in the current TDS packet, and throws an SQLServerException if found.
-     * 
-     * @throw SQLServerException
-     * 				if the packet contains an error message
-     * @return
-     */
-    private void lookForErrors() throws SQLServerException {
-    	int packetSize = tdsReader.availableCurrentPacket();
-    	if (packetSize > 0)	{
-    		// There's a response available, but we have no rows. Take a look through the packet.
-    		byte[] byteBuffer = new byte[packetSize];
-        	tdsReader.readBytes(byteBuffer, 0, packetSize);
-        	for (int i = 0; i < byteBuffer.length; i++) {
-        		int token = byteBuffer[i] & 0xFF;
-        		// Parse the packet, look for a TDS 'AA' token indicating an error.
-        		if (token == TDS.TDS_ERR) {
-        			try {
-        				int messageOffset = i + ERROR_EXCESS_INFO;
-        				// Get the message length, represented as 1 byte in front of our message
-        				// This byte is unsigned so we convert with '& 0xFF'
-        				int messageLength = byteBuffer[messageOffset - 1] & 0xFF;
-        				// The fields are of varying byte sizes, this causes problems with String[byte[], "UTF-16")
-        				// Remove as many values from the front as possible to avoid any possible inconsistencies
-        				// Also make sure not to parse anything after the message, 2 bytes for every UTF-16 character
-        				byte[] errB = Arrays.copyOfRange(byteBuffer, messageOffset, messageOffset + (messageLength*2));
-					String errMsg = new String(errB, "UTF-16");
-					throw new SQLServerException(errMsg, SQLState.DATA_EXCEPTION_NOT_SPECIFIC, DriverError.NOT_SET, null);
-    				} catch (UnsupportedEncodingException e) {
-					throw new SQLServerException(e.getMessage(), SQLState.DATA_EXCEPTION_NOT_SPECIFIC, DriverError.NOT_SET, e);
-				}
-        		}
-        	}
-    	}
-    }
-
     public boolean wasNull() throws SQLServerException {
         loggerExternal.entering(getClassNameLogging(), "wasNull");
         checkClosed();
@@ -6380,9 +6338,16 @@ public class SQLServerResultSet implements ISQLServerResultSet {
             boolean onDone(TDSReader tdsReader) throws SQLServerException {
                 ensureStartMark();
 
-                // Consume the done token
-                StreamDone doneToken = new StreamDone();
-                doneToken.setFromTDS(tdsReader);
+                // Consume the done token if the message is final (0x01) or there is no error (0x02)
+                int packetType = tdsReader.peekTokenType();
+                if (TDS.TDS_DONEINPROC == packetType) {
+                	short status = tdsReader.peekStatusFlag();
+                	if ((status & 0x001) != 0 || (status & 0x002) != 0) {
+                		StreamDone doneToken = new StreamDone();
+                		doneToken.setFromTDS(tdsReader);
+                		return true;
+                	}
+                }
 
                 // Done with all the rows in this fetch buffer and done with parsing
                 // unless it's a server cursor, in which case there is a RETSTAT and
