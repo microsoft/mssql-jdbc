@@ -12,7 +12,6 @@ import java.io.Closeable;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.Reader;
-import java.io.UnsupportedEncodingException;
 import java.math.BigDecimal;
 import java.sql.Array;
 import java.sql.Blob;
@@ -173,9 +172,6 @@ public class SQLServerResultSet implements ISQLServerResultSet {
      */
     static final int UNKNOWN_ROW_COUNT = -3;
     private int rowCount;
-    
-    //The number of bytes to skip from a TDS token to reach the message. Used when parsing a TDS packet.
-    static final int ERROR_EXCESS_INFO = 10;
     
     /** The current row's column values */
     private final Column[] columns;
@@ -1030,6 +1026,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
                 return true;
             }
         }
+        
         // Otherwise, we have reached the end of the result set
         if (UNKNOWN_ROW_COUNT == rowCount)
             rowCount = currentRow;
@@ -1038,7 +1035,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         loggerExternal.exiting(getClassNameLogging(), "next", false);
         return false;
     }
-    
+
     public boolean wasNull() throws SQLServerException {
         loggerExternal.entering(getClassNameLogging(), "wasNull");
         checkClosed();

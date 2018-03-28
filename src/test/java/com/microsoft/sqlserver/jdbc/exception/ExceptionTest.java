@@ -13,7 +13,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import java.io.UnsupportedEncodingException;
 import java.net.SocketTimeoutException;
 import java.sql.Connection;
-import java.sql.DatabaseMetaData;
 import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -100,7 +99,7 @@ public class ExceptionTest extends AbstractTest {
         conn.createStatement().execute(sql);
     }
     
-    /*@Test
+    @Test
     public void testResultSetErrorSearch() throws Exception {
         SQLServerDataSource ds = new SQLServerDataSource();
         ds.setURL(connectionString);
@@ -150,5 +149,5 @@ public class ExceptionTest extends AbstractTest {
 	    		assertTrue(e.getMessage().contains("Error occured during the insert:"), "Unexpected Error Message: " + e.getMessage());
 	    	}
 		}
-    }*/
+    }
 }
