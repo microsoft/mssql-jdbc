@@ -172,7 +172,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
      */
     static final int UNKNOWN_ROW_COUNT = -3;
     private int rowCount;
-    
+
     /** The current row's column values */
     private final Column[] columns;
 
@@ -1026,7 +1026,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
                 return true;
             }
         }
-        
+
         // Otherwise, we have reached the end of the result set
         if (UNKNOWN_ROW_COUNT == rowCount)
             rowCount = currentRow;
@@ -6336,18 +6336,17 @@ public class SQLServerResultSet implements ISQLServerResultSet {
                 ensureStartMark();
 
                 int token = tdsReader.peekTokenType();
-        		StreamDone doneToken = new StreamDone();
-        		doneToken.setFromTDS(tdsReader);
+		StreamDone doneToken = new StreamDone();
+		doneToken.setFromTDS(tdsReader);
         		
                 int packetType = tdsReader.peekTokenType();
                 if (-1 != packetType && TDS.TDS_DONEINPROC == token) {
-                	switch (packetType)
-                	{
-	                	case TDS.TDS_ENV_CHG:
-	                	case TDS.TDS_ERR:
-	                		return true;
-                		default:
-                			break;
+                	switch (packetType) {
+				case TDS.TDS_ENV_CHG:
+				case TDS.TDS_ERR:
+					return true;
+				default:
+					break;
                 	}
                 }
 
