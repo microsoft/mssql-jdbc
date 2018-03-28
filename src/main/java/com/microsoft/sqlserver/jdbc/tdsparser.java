@@ -234,7 +234,6 @@ class TDSTokenHandler {
         if (logger.isLoggable(Level.SEVERE))
             logger.severe(tdsReader.toString() + ": " + logContext + ": Encountered "
                     + TDS.getTokenName(tdsReader.peekTokenType()) + ". SHOWPLAN is ON, ignoring.");
-        TDSParser.ignoreLengthPrefixedToken(tdsReader);
         return false;
     }
 
