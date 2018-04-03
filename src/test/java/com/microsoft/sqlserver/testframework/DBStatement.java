@@ -13,7 +13,6 @@ import java.sql.SQLException;
 import java.sql.Statement;
 
 import com.microsoft.sqlserver.jdbc.SQLServerConnection;
-import com.microsoft.sqlserver.jdbc.SQLServerException;
 
 /**
  * wrapper method for Statement object
@@ -45,7 +44,7 @@ public class DBStatement extends AbstractParentWrapper implements AutoCloseable{
         return this;
     }
 
-    DBStatement createStatement() throws SQLServerException {
+    DBStatement createStatement() throws SQLException {
         // TODO: add cursor and holdability
         statement = ((SQLServerConnection) parent().product()).createStatement();
         setInternal(statement);
@@ -53,7 +52,7 @@ public class DBStatement extends AbstractParentWrapper implements AutoCloseable{
     }
 
     DBStatement createStatement(int type,
-            int concurrency) throws SQLServerException {
+            int concurrency) throws SQLException {
         // TODO: add cursor and holdability
         statement = ((SQLServerConnection) parent().product()).createStatement(type, concurrency);
         setInternal(statement);

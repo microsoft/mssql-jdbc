@@ -20,7 +20,6 @@ import org.junit.runner.RunWith;
 
 import com.microsoft.sqlserver.jdbc.SQLServerBulkCSVFileRecord;
 import com.microsoft.sqlserver.jdbc.SQLServerConnection;
-import com.microsoft.sqlserver.jdbc.SQLServerException;
 import com.microsoft.sqlserver.testframework.AbstractTest;
 import com.microsoft.sqlserver.testframework.Utils;
 
@@ -29,7 +28,7 @@ public class ExceptionTest extends AbstractTest {
     static String inputFile = "BulkCopyCSVTestInput.csv";
 
     /**
-     * Test the SQLServerException has the proper cause when encoding is not supported.
+     * Test the SQLException has the proper cause when encoding is not supported.
      * 
      * @throws Exception
      */
@@ -41,7 +40,7 @@ public class ExceptionTest extends AbstractTest {
             SQLServerBulkCSVFileRecord scvFileRecord = new SQLServerBulkCSVFileRecord(filePath + inputFile, "invalid_encoding", true);
         }
         catch (Exception e) {
-            if (!(e instanceof SQLServerException)) {
+            if (!(e instanceof SQLException)) {
                 throw e;
             }
 
@@ -54,7 +53,7 @@ public class ExceptionTest extends AbstractTest {
     final int waitForDelaySeconds = 10;
 
     /**
-     * Test the SQLServerException has the proper cause when socket timeout occurs.
+     * Test the SQLException has the proper cause when socket timeout occurs.
      * 
      * @throws Exception
      * 
@@ -75,7 +74,7 @@ public class ExceptionTest extends AbstractTest {
                 throw new Exception("Exception for socketTimeout is not thrown.");
             }
             catch (Exception e) {
-                if (!(e instanceof SQLServerException)) {
+                if (!(e instanceof SQLException)) {
                     throw e;
                 }
 
