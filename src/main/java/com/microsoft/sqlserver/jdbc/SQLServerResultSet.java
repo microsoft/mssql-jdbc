@@ -6335,17 +6335,17 @@ public class SQLServerResultSet implements ISQLServerResultSet {
                 ensureStartMark();
 
                 int token = tdsReader.peekTokenType();
-		StreamDone doneToken = new StreamDone();
-		doneToken.setFromTDS(tdsReader);
+                StreamDone doneToken = new StreamDone();
+                doneToken.setFromTDS(tdsReader);
         		
                 int packetType = tdsReader.peekTokenType();
                 if (-1 != packetType && TDS.TDS_DONEINPROC == token) {
                 	switch (packetType) {
-				case TDS.TDS_ENV_CHG:
-				case TDS.TDS_ERR:
-					return true;
-				default:
-					break;
+	                	case TDS.TDS_ENV_CHG:
+	                	case TDS.TDS_ERR:
+							return true;
+						default:
+							break;
                 	}
                 }
 
