@@ -39,7 +39,6 @@ import com.microsoft.sqlserver.jdbc.SQLServerConnection;
 import com.microsoft.sqlserver.jdbc.SQLServerConnectionPoolDataSource;
 import com.microsoft.sqlserver.jdbc.SQLServerDataSource;
 import com.microsoft.sqlserver.jdbc.SQLServerDriver;
-import com.microsoft.sqlserver.jdbc.SQLServerException;
 import com.microsoft.sqlserver.testframework.AbstractTest;
 import com.microsoft.sqlserver.testframework.DBConnection;
 import com.microsoft.sqlserver.testframework.DBTable;
@@ -56,10 +55,10 @@ public class ConnectionDriverTest extends AbstractTest {
     /**
      * test SSL properties
      * 
-     * @throws SQLServerException
+     * @throws SQLException
      */
     @Test
-    public void testConnectionDriver() throws SQLServerException {
+    public void testConnectionDriver() throws SQLException {
         SQLServerDriver d = new SQLServerDriver();
         Properties info = new Properties();
         StringBuffer url = new StringBuffer();
@@ -307,7 +306,7 @@ public class ConnectionDriverTest extends AbstractTest {
 	            stmt.execute("SELECT x1.col1 as foo, x2.col1 as bar, x1.col1 as eeep FROM " + tableName + " as x1, " + tableName
 	                    + " as x2; RAISERROR ('Oops', 21, 42) WITH LOG");
 	        }
-	        catch (SQLServerException e) {
+	        catch (SQLException e) {
 	            assertEquals(e.getMessage(), "Connection reset", "Unknown Exception");
 	        }
 	        finally {
@@ -327,7 +326,7 @@ public class ConnectionDriverTest extends AbstractTest {
             conn.getClientConnectionId();
             throw new Exception("No exception thrown calling getClientConnectionId on a closed connection");
         }
-        catch (SQLServerException e) {
+        catch (SQLException e) {
             assertEquals(e.getMessage(), "The connection is closed.", "Wrong exception message");
         }
 
@@ -339,7 +338,7 @@ public class ConnectionDriverTest extends AbstractTest {
             conn.close();
 
         }
-        catch (SQLServerException e) {
+        catch (SQLException e) {
             assertTrue(e.getMessage().indexOf("ClientConnectionId") != -1,
                     "Unexpected: ClientConnectionId is not in exception message due to wrong DB");
         }
@@ -351,14 +350,14 @@ public class ConnectionDriverTest extends AbstractTest {
             conn.close();
 
         }
-        catch (SQLServerException e) {
+        catch (SQLException e) {
             assertEquals(false, e.getMessage().indexOf("ClientConnectionId") != -1,
                     "Unexpected: ClientConnectionId is in exception message due to wrong host");
         }
     }
 
     @Test
-    public void testIncorrectDatabase() throws SQLServerException {
+    public void testIncorrectDatabase() throws SQLException {
         long timerStart = 0;
         long timerEnd = 0;
         Connection con = null;
@@ -382,7 +381,7 @@ public class ConnectionDriverTest extends AbstractTest {
     }
 
     @Test
-    public void testIncorrectUserName() throws SQLServerException {
+    public void testIncorrectUserName() throws SQLException {
         long timerStart = 0;
         long timerEnd = 0;
         Connection con = null;
@@ -406,7 +405,7 @@ public class ConnectionDriverTest extends AbstractTest {
     }
 
     @Test
-    public void testIncorrectPassword() throws SQLServerException {
+    public void testIncorrectPassword() throws SQLException {
         long timerStart = 0;
         long timerEnd = 0;
         Connection con = null;
@@ -430,7 +429,7 @@ public class ConnectionDriverTest extends AbstractTest {
     }
 
     @Test
-    public void testInvalidCombination() throws SQLServerException {
+    public void testInvalidCombination() throws SQLException {
         long timerStart = 0;
         long timerEnd = 0;
         Connection con = null;
@@ -456,7 +455,7 @@ public class ConnectionDriverTest extends AbstractTest {
 
     @Test
     @Tag("slow")
-    public void testIncorrectDatabaseWithFailoverPartner() throws SQLServerException {
+    public void testIncorrectDatabaseWithFailoverPartner() throws SQLException {
         long timerStart = 0;
         long timerEnd = 0;
         Connection con = null;
@@ -484,7 +483,7 @@ public class ConnectionDriverTest extends AbstractTest {
         try {
             conn.abort(null);
         }
-        catch (SQLServerException e) {
+        catch (SQLException e) {
             assertTrue(e.getMessage().contains("The argument executor is not valid"));
         }
     }

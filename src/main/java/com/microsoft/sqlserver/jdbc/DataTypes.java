@@ -148,7 +148,9 @@ enum SSType
     SQL_VARIANT    (Category.SQL_VARIANT,     "sql_variant",      JDBCType.SQL_VARIANT),  
     UDT            (Category.UDT,             "udt",              JDBCType.VARBINARY),
     XML            (Category.XML,             "xml",              JDBCType.LONGNVARCHAR),
-    TIMESTAMP      (Category.TIMESTAMP,       "timestamp",        JDBCType.BINARY);
+    TIMESTAMP      (Category.TIMESTAMP,       "timestamp",        JDBCType.BINARY),
+    GEOMETRY       (Category.UDT,             "geometry",         JDBCType.GEOMETRY),
+    GEOGRAPHY      (Category.UDT,             "geography",        JDBCType.GEOGRAPHY);
 
     final Category category;
     private final String name;
@@ -352,7 +354,9 @@ enum SSType
             EnumSet.of(
                 JDBCType.Category.BINARY,
                 JDBCType.Category.LONG_BINARY,
-                JDBCType.Category.CHARACTER)),
+                JDBCType.Category.CHARACTER,
+                JDBCType.Category.GEOMETRY,
+                JDBCType.Category.GEOGRAPHY)),
 
         GUID (
             SSType.Category.GUID,
@@ -856,7 +860,9 @@ enum JDBCType
     DATETIME      (Category.TIMESTAMP,       microsoft.sql.Types.DATETIME,			"java.sql.Timestamp"),
     SMALLDATETIME (Category.TIMESTAMP,       microsoft.sql.Types.SMALLDATETIME,     "java.sql.Timestamp"),
     GUID		  (Category.CHARACTER,		 microsoft.sql.Types.GUID,				"java.lang.String"),
-    SQL_VARIANT   (Category.SQL_VARIANT,     microsoft.sql.Types.SQL_VARIANT,       "java.lang.Object");
+    SQL_VARIANT   (Category.SQL_VARIANT,     microsoft.sql.Types.SQL_VARIANT,       "java.lang.Object"),
+    GEOMETRY      (Category.GEOMETRY,        microsoft.sql.Types.GEOMETRY,          "java.lang.Object"),
+    GEOGRAPHY     (Category.GEOGRAPHY,       microsoft.sql.Types.GEOGRAPHY,         "java.lang.Object");
 
 
     final Category category;
@@ -906,6 +912,8 @@ enum JDBCType
         TVP,
         GUID,
         SQL_VARIANT,
+        GEOMETRY,
+        GEOGRAPHY
     }
 
     // This SetterConversion enum is based on the Category enum

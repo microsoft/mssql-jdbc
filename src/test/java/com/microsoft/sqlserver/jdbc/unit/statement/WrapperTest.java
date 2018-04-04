@@ -13,6 +13,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import java.sql.CallableStatement;
 import java.sql.Connection;
 import java.sql.DriverManager;
+import java.sql.SQLException;
 import java.sql.Statement;
 
 import org.junit.jupiter.api.Test;
@@ -21,7 +22,6 @@ import org.junit.runner.RunWith;
 
 import com.microsoft.sqlserver.jdbc.ISQLServerPreparedStatement;
 import com.microsoft.sqlserver.jdbc.SQLServerCallableStatement;
-import com.microsoft.sqlserver.jdbc.SQLServerException;
 import com.microsoft.sqlserver.jdbc.SQLServerStatement;
 import com.microsoft.sqlserver.testframework.AbstractTest;
 import com.microsoft.sqlserver.testframework.DBConnection;
@@ -124,7 +124,7 @@ public class WrapperTest extends AbstractTest {
             stmt.unwrap(Class.forName(str));
             assertTrue(false, "An exception should have been thrown. This code should not be reached");
         }
-        catch (SQLServerException ex) {
+        catch (SQLException ex) {
             Throwable t = ex.getCause();
             Class exceptionClass = Class.forName("java.lang.ClassCastException");
             assertEquals(t.getClass(), exceptionClass, "The cause in the exception class does not match");

@@ -3,6 +3,51 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](http://keepachangelog.com/) 
 
+## [6.5.0] Preview Release
+### Added
+- Support for spatial datatypes [#642](https://github.com/Microsoft/mssql-jdbc/pull/642)
+
+### Fixed Issues
+- Fixed blobs becoming unavailable when the Result Set cursor moves or the Result Set closes [#595](https://github.com/Microsoft/mssql-jdbc/pull/595)
+- Fixed an issue when attempting to insert an empty or null value into an encrypted column [#632](https://github.com/Microsoft/mssql-jdbc/pull/632)
+- Fixed a misleading error message thrown by the driver when a user doesn't have execute permissions [#635](https://github.com/Microsoft/mssql-jdbc/pull/635)
+- Fixed statements throwing SQLServerException instead of java.sql.SQLTimeoutException when the query times out [#641](https://github.com/Microsoft/mssql-jdbc/pull/641)
+
+### Changed
+- Unit tests now use SQLException in most cases instead of SQLServerException.
+
+## [6.4.0] Stable Release
+### Added
+- Support added for AAD Integrated Authentication with ADAL4J on Windows/Linux/Mac OS [#603](https://github.com/Microsoft/mssql-jdbc/pull/603) 
+- Enable Recover after MSDTC is restarted [#581](https://github.com/Microsoft/mssql-jdbc/pull/581)
+- Added  Version Update configuration rules to project [#541](https://github.com/Microsoft/mssql-jdbc/pull/541)
+- JDK 9 Compatibility + JDBC 4.3 API support added to the driver [#601 (https://github.com/Microsoft/mssql-jdbc/pull/601)
+
+### Fixed Issues
+- Re-introduced Retry Logic for Prepared Statement Caching implementation and remove detect change context function [#618](https://github.com/Microsoft/mssql-jdbc/pull/618) and [#620](https://github.com/Microsoft/mssql-jdbc/pull/620)
+- Fixes for SonarQube Reported issues [#599](https://github.com/Microsoft/mssql-jdbc/pull/599)
+- Fixes for Random Assertion Errors [#597](https://github.com/Microsoft/mssql-jdbc/pull/597)
+
+### Changed
+- Updated Appveyor to use JDK9 building driver and running tests [#619](https://github.com/Microsoft/mssql-jdbc/pull/619)
+- JDK 7 compilation support removed from the driver [#601](https://github.com/Microsoft/mssql-jdbc/pull/601)
+
+## [6.3.6] Preview Release
+### Added
+- Added support for using database name as part of the key for handle cache [#561](https://github.com/Microsoft/mssql-jdbc/pull/561)
+- Updated ADAL4J version to 1.3.0 and also added it into README file [#564](https://github.com/Microsoft/mssql-jdbc/pull/564)
+
+### Fixed Issues 
+- Fixed issues with static loggers being set by every constructor invocation  [#563](https://github.com/Microsoft/mssql-jdbc/pull/563)
+
+## [6.3.5] Preview Release
+### Added
+- Added handle for Account Locked Exception 18486 during login in SQLServerConnection [#522](https://github.com/Microsoft/mssql-jdbc/pull/522)
+
+### Fixed Issues 
+- Fixed the issues with Prepared Statement Metadata Caching implementation [#543](https://github.com/Microsoft/mssql-jdbc/pull/543)
+- Fixed issues with static logger member in abstract class 'SQLServerClobBase' [#537](https://github.com/Microsoft/mssql-jdbc/pull/537)
+
 ## [6.3.4] Preview Release
 ### Added
 - Added new ThreadGroup creation to prevent IllegalThreadStateException if the underlying ThreadGroup has been destroyed. [#474](https://github.com/Microsoft/mssql-jdbc/pull/474)

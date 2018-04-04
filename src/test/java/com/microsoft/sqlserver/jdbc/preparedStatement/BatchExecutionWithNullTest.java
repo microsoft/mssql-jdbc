@@ -40,8 +40,9 @@ public class BatchExecutionWithNullTest extends AbstractTest {
     static ResultSet rs = null;
 
     /**
-     * Test with combination of setString and setNull which cause the "Violation of PRIMARY KEY constraint and internally 
-     * "Could not find prepared statement with handle X" error.
+     * Test with combination of setString and setNull which cause the "Violation of PRIMARY KEY constraint and internally "Could not find prepared
+     * statement with handle X" error.
+     * 
      * @throws SQLException
      */
     @Test
@@ -117,13 +118,11 @@ public class BatchExecutionWithNullTest extends AbstractTest {
 
     @AfterAll
     public static void terminateVariation() throws SQLException {
-
+        connection = DriverManager.getConnection(connectionString);
+        
         SQLServerStatement stmt = (SQLServerStatement) connection.createStatement();
         Utils.dropTableIfExists("esimple", stmt);
 
-        if (null != connection) {
-            connection.close();
-        }
         if (null != pstmt) {
             pstmt.close();
         }
@@ -135,6 +134,9 @@ public class BatchExecutionWithNullTest extends AbstractTest {
         }
         if (null != rs) {
             rs.close();
+        }
+        if (null != connection) {
+            connection.close();
         }
     }
 }

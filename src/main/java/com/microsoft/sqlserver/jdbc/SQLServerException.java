@@ -59,6 +59,7 @@ public final class SQLServerException extends java.sql.SQLException {
     // SQL error values (from sqlerrorcodes.h)
     static final int LOGON_FAILED = 18456;
     static final int PASSWORD_EXPIRED = 18488;
+    static final int USER_ACCOUNT_LOCKED = 18486;
     static java.util.logging.Logger exLogger = java.util.logging.Logger.getLogger("com.microsoft.sqlserver.jdbc.internals.SQLServerException");
 
     // Facility for driver-specific error codes
@@ -70,6 +71,7 @@ public final class SQLServerException extends java.sql.SQLException {
     static final int DRIVER_ERROR_UNSUPPORTED_CONFIG = 6;
     static final int DRIVER_ERROR_INTERMITTENT_TLS_FAILED = 7;
     static final int ERROR_SOCKET_TIMEOUT = 8;
+    static final int ERROR_QUERY_TIMEOUT = 9;
     private int driverErrorCode = DRIVER_ERROR_NONE;
 
     final int getDriverErrorCode() {
@@ -112,6 +114,10 @@ public final class SQLServerException extends java.sql.SQLException {
                 }
                 exLogger.fine(sb.toString());
             }
+        }
+        if (errText.equals(SQLServerException.getErrString("R_queryTimedOut")))
+        {
+        	this.setDriverErrorCode(SQLServerException.ERROR_QUERY_TIMEOUT);
         }
     }
 
