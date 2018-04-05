@@ -942,7 +942,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 		
 		// If current cache items needs to be discarded or New type definitions found with existing cached handle reference then deregister cached handle.
 		if (discardCurrentCacheItem || hasNewTypeDefinitions) {
-			if (discardCurrentCacheItem || (null != cachedPreparedStatementHandle && hasPreparedStatementHandle() && prepStmtHandle == cachedPreparedStatementHandle.getHandle())) {
+			if (null != cachedPreparedStatementHandle && (discardCurrentCacheItem || (hasPreparedStatementHandle() && prepStmtHandle == cachedPreparedStatementHandle.getHandle()))) {
 				cachedPreparedStatementHandle.removeReference();
 			}
             
