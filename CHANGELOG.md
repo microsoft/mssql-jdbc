@@ -8,11 +8,13 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/)
 - Test case showing broken java.sql.Time support [#558](https://github.com/Microsoft/mssql-jdbc/pull/558)
 
 ### Fixed Issues
-- Removed unused imports which force users to import the ADAL4J library [#652](https://github.com/Microsoft/mssql-jdbc/pull/652)
 - Fixed an issue where column type was not being returned correctly for spatial data types [#657](https://github.com/Microsoft/mssql-jdbc/pull/657)
 - Fixed unnecessarily creating 2 connections when multiSubnetFailover is true [#662](https://github.com/Microsoft/mssql-jdbc/pull/662)
 - Fixed an issue where TDS Packets weren't being completely parsed after reading rows [#664](https://github.com/Microsoft/mssql-jdbc/pull/664)
 - Fixed an issue where setMaxRows() would throw an exception if showplan_text is on [#666](https://github.com/Microsoft/mssql-jdbc/pull/666)
+
+### Changed
+- Removed unused imports which force users to import the ADAL4J library [#652](https://github.com/Microsoft/mssql-jdbc/pull/652)
 
 ## [6.5.0] Preview Release
 ### Added
