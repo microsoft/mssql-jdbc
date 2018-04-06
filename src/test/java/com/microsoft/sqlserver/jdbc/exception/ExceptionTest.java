@@ -133,7 +133,7 @@ public class ExceptionTest extends AbstractTest {
     	String proc_sql = "EXECUTE [dbo].proc_insert_masse_TEST N'[{\"FIELD1\" : \"TEST\"}]';";
 
 		Connection conn = ds.getConnection();
-		if (conn.getMetaData().getDatabaseMajorVersion() >= 13)
+		if (conn.getMetaData().getDatabaseMajorVersion() >= 14)
 		{
 			Statement stmt = conn.createStatement();
 			stmt.execute(dropTable_sql);
