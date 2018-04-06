@@ -5,7 +5,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/)
 
 ## [6.5.1] Preview Release
 ### Added
-- Test case showing broken java.sql.Time support
+- Test case showing broken java.sql.Time support [#558](https://github.com/Microsoft/mssql-jdbc/pull/558)
 
 ### Fixed Issues
 - Removed unused imports which force users to import the ADAL4J library [#652](https://github.com/Microsoft/mssql-jdbc/pull/652)
