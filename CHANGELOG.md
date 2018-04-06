@@ -11,7 +11,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/)
 - Fixed an issue where ResultSetMetadata returned incorrect columnType for Geometry and Geography data types [#657](https://github.com/Microsoft/mssql-jdbc/pull/657)
 - Fixed server side CPU Affinity problems caused by uneven connection distribution across NUMA Nodes when multiSubnetFailover is true [#662](https://github.com/Microsoft/mssql-jdbc/pull/662)
 - Fixed an issue where Driver wasn't parsing TDS Packets completely to capture exceptions raised inside executed stored procedures [#664](https://github.com/Microsoft/mssql-jdbc/pull/664)
-- Fixed an issue where setMaxRows() would throw an exception if showplan_text is on [#666](https://github.com/Microsoft/mssql-jdbc/pull/666)
+- Fixed an issue where driver throws exception when using setMaxRows() followed by query execution when SHOWPLAN_TEXT is ON [#666](https://github.com/Microsoft/mssql-jdbc/pull/666)
 
 ### Changed
 - Removed unused imports which forced users to import the ADAL4J library [#652](https://github.com/Microsoft/mssql-jdbc/pull/652)
