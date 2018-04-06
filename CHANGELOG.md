@@ -5,7 +5,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/)
 
 ## [6.5.1] Preview Release
 ### Added
-- Test case showing broken java.sql.Time support [#558](https://github.com/Microsoft/mssql-jdbc/pull/558)
+- Test cases for Date, Time, and Datetime2 data types. [#558](https://github.com/Microsoft/mssql-jdbc/pull/558)
 
 ### Fixed Issues
 - Fixed an issue where column type was not being returned correctly for spatial data types [#657](https://github.com/Microsoft/mssql-jdbc/pull/657)
