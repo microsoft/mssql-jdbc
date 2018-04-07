@@ -121,14 +121,21 @@ public final class SQLServerResultSetMetaData implements java.sql.ResultSetMetaD
         }
         
         JDBCType jdbcType = typeInfo.getSSType().getJDBCType();
+        SSType sqlType = typeInfo.getSSType();
         // in bulkcopy for instance, we need to return the real jdbc type which is sql variant and not the default Char one. 
-        if ( SSType.SQL_VARIANT == typeInfo.getSSType()){
+        if ( SSType.SQL_VARIANT == sqlType){
             jdbcType = JDBCType.SQL_VARIANT;
+        }
+        if (SSType.UDT == sqlType) {
+            if (typeInfo.getSSTypeName().equalsIgnoreCase(SSType.GEOMETRY.name())) {
+                jdbcType = JDBCType.GEOMETRY;
+            }
+            if (typeInfo.getSSTypeName().equalsIgnoreCase(SSType.GEOGRAPHY.name())) {
+                jdbcType = JDBCType.GEOGRAPHY;
+            }
         }
         int r = jdbcType.asJavaSqlType();
         if (con.isKatmaiOrLater()) {
-            SSType sqlType = typeInfo.getSSType();
-
             switch (sqlType) {
                 case VARCHARMAX:
                     r = SSType.VARCHAR.getJDBCType().asJavaSqlType();
