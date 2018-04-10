@@ -160,6 +160,9 @@ class TDSTokenHandler {
 
     private StreamError databaseError;
 
+    /** TDS protocol diagnostics logger */
+    private static Logger logger = Logger.getLogger("com.microsoft.sqlserver.jdbc.internals.TDS.TOKEN");
+
     final StreamError getDatabaseError() {
         return databaseError;
     }
@@ -227,7 +230,10 @@ class TDSTokenHandler {
     }
 
     boolean onColMetaData(TDSReader tdsReader) throws SQLServerException {
-        TDSParser.throwUnexpectedTokenException(tdsReader, logContext);
+        //SHOWPLAN might be ON, instead of throwing an exception, ignore the column meta data
+        if (logger.isLoggable(Level.SEVERE))
+            logger.severe(tdsReader.toString() + ": " + logContext + ": Encountered "
+                    + TDS.getTokenName(tdsReader.peekTokenType()) + ". SHOWPLAN is ON, ignoring.");
         return false;
     }
 
