@@ -5677,7 +5677,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
             final String tableName;
 
             InsertRowRPC(String tableName) {
-                super("InsertRowRPC", 0);
+                super("InsertRowRPC", 0, 0);
                 this.tableName = tableName;
             }
 
@@ -5775,7 +5775,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         }
         final class UpdateRowRPC extends TDSCommand {
             UpdateRowRPC() {
-                super("UpdateRowRPC", 0);
+                super("UpdateRowRPC", 0, 0);
             }
 
             final boolean doExecute() throws SQLServerException {
@@ -5853,7 +5853,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         }
         final class DeleteRowRPC extends TDSCommand {
             DeleteRowRPC() {
-                super("DeleteRowRPC", 0);
+                super("DeleteRowRPC", 0, 0);
             }
 
             final boolean doExecute() throws SQLServerException {
@@ -6453,7 +6453,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
                 int fetchType,
                 int startRow,
                 int numRows) {
-            super("doServerFetch", stmt.queryTimeout);
+            super("doServerFetch", stmt.queryTimeout, stmt.cancelQueryTimeoutSeconds);
             this.serverCursorId = serverCursorId;
             this.fetchType = fetchType;
             this.startRow = startRow;

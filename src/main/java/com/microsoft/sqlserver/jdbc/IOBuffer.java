@@ -6390,8 +6390,10 @@ final class TDSReader {
         this.tdsChannel = tdsChannel;
         this.con = con;
         this.command = command; // may be null
-        //if cancelTimeout is set, we should wait for the total amount of queryTimeout+cancelTimeout to terminate the connection. 
-        this.tcpKeepAliveTimeoutTimer = (con.getCancelQueryTimeoutSeconds() > 0 && con.getQueryTimeoutSeconds()> 0 ) ? (new TimeoutTimer(con.getCancelQueryTimeoutSeconds() + con.getQueryTimeoutSeconds(), null, con)) : null;
+        if(null != command)
+        	//if cancelTimeout is set, we should wait for the total amount of queryTimeout+cancelTimeout to terminate the connection.
+        	this.tcpKeepAliveTimeoutTimer = (command.getCancelTimeoutTimerSeconds() > 0 && command.getTimeoutTimerSeconds() > 0 ) ? (new TimeoutTimer(command.getCancelTimeoutTimerSeconds() + command.getTimeoutTimerSeconds(), null, con)) : null;
+        
         // if the logging level is not detailed than fine or more we will not have proper readerids.
         if (logger.isLoggable(Level.FINE))
             traceID = "TDSReader@" + nextReaderID() + " (" + con.toString() + ")";
@@ -7335,7 +7337,17 @@ abstract class TDSCommand {
     // any attention ack. The command's response is read either on demand as it is processed,
     // or by detaching.
     private volatile boolean readingResponse;
+	private int timeoutTimerSeconds;
+	private int cancelTimeoutSeconds;
 
+    protected int getTimeoutTimerSeconds() {
+    	return this.timeoutTimerSeconds;
+    }
+
+    protected int getCancelTimeoutTimerSeconds() {
+    	return this.cancelTimeoutSeconds;
+    }
+    
     final boolean readingResponse() {
         return readingResponse;
     }
@@ -7349,8 +7361,10 @@ abstract class TDSCommand {
      *            (optional) the time before which the command must complete before it is interrupted. A value of 0 means no timeout.
      */
     TDSCommand(String logContext,
-            int timeoutSeconds) {
+            int timeoutSeconds, int cancelTimeoutSeconds) {
         this.logContext = logContext;
+        this.timeoutTimerSeconds = timeoutSeconds;
+        this.cancelTimeoutSeconds = cancelTimeoutSeconds;
         this.timeoutTimer = (timeoutSeconds > 0) ? (new TimeoutTimer(timeoutSeconds, this, null)) : null;
     }
 
@@ -7799,7 +7813,7 @@ abstract class TDSCommand {
  */
 abstract class UninterruptableTDSCommand extends TDSCommand {
     UninterruptableTDSCommand(String logContext) {
-        super(logContext, 0);
+        super(logContext, 0, 0);
     }
 
     final void interrupt(String reason) throws SQLServerException {
