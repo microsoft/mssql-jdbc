@@ -1703,8 +1703,8 @@ public class SQLServerConnection implements ISQLServerConnection {
             
             sPropKey = SQLServerDriverIntProperty.CANCEL_QUERY_TIMEOUT.toString();
             int defaultCancelTimeout = SQLServerDriverIntProperty.CANCEL_QUERY_TIMEOUT.getDefaultValue();
-
-            if (activeConnectionProperties.getProperty(sPropKey) != null && activeConnectionProperties.getProperty(sPropKey).length() > 0) {
+            // use cancelTimeout only if queryTimeout is set.  
+            if (activeConnectionProperties.getProperty(sPropKey) != null && activeConnectionProperties.getProperty(sPropKey).length() > 0  && queryTimeoutSeconds > defaultQueryTimeout) {
                 try {
                     int n = Integer.parseInt(activeConnectionProperties.getProperty(sPropKey));
                     if (n >= defaultCancelTimeout) {
