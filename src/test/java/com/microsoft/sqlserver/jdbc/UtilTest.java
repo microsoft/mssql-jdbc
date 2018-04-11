@@ -9,6 +9,7 @@ package com.microsoft.sqlserver.jdbc;
 
 import static org.junit.Assert.assertEquals;
 
+import java.sql.SQLException;
 import java.util.UUID;
 
 import org.junit.jupiter.api.Test;
@@ -23,7 +24,7 @@ import org.junit.runner.RunWith;
 public class UtilTest {
 
     @Test
-    public void readGUIDtoUUID() throws SQLServerException {
+    public void readGUIDtoUUID() throws SQLException {
         UUID expected = UUID.fromString("6F9619FF-8B86-D011-B42D-00C04FC964FF");
         byte[] guid = new byte[] {-1, 25, -106, 111, -122, -117, 17, -48, -76, 45, 0, -64, 79, -55, 100, -1};
         assertEquals(expected, Util.readGUIDtoUUID(guid));

@@ -2337,8 +2337,8 @@ final class SocketFinder {
                 findSocketUsingJavaNIO(inetAddrs, portNumber, timeoutInMilliSeconds);
             }
             else {
-                LinkedList<Inet4Address> inet4Addrs = new LinkedList<>();
-                LinkedList<Inet6Address> inet6Addrs = new LinkedList<>();
+                LinkedList<InetAddress> inet4Addrs = new LinkedList<>();
+                LinkedList<InetAddress> inet6Addrs = new LinkedList<>();
 
                 for (InetAddress inetAddr : inetAddrs) {
                     if (inetAddr instanceof Inet4Address) {
@@ -2360,11 +2360,10 @@ final class SocketFinder {
 
                 if (!inet4Addrs.isEmpty()) {
                     if (logger.isLoggable(Level.FINER)) {
-                        logger.finer(this.toString() + "Using Java NIO with timeout:" + timeoutForEachIPAddressType);
+                        logger.finer(this.toString() + "Using Java Threading with timeout:" + timeoutForEachIPAddressType);
                     }
 
-                    // inet4Addrs.toArray(new InetAddress[0]) is java style of converting a linked list to an array of reqd size
-                    findSocketUsingJavaNIO(inet4Addrs.toArray(new InetAddress[0]), portNumber, timeoutForEachIPAddressType);
+                    findSocketUsingThreading(inet4Addrs, portNumber, timeoutForEachIPAddressType);
                 }
 
                 if (!result.equals(Result.SUCCESS)) {
@@ -2590,16 +2589,12 @@ final class SocketFinder {
 
         // if a channel was selected, make the necessary updates
         if (selectedChannel != null) {
-            // the selectedChannel has the address that is connected successfully
-            // convert it to a java.net.Socket object with the address
-            SocketAddress iadd = selectedChannel.getRemoteAddress();
-            selectedSocket = new Socket();
-            selectedSocket.connect(iadd);
+            // Note that this must be done after selector is closed. Otherwise,
+            // we would get an illegalBlockingMode exception at run time.
+            selectedChannel.configureBlocking(true);
+            selectedSocket = selectedChannel.socket();
 
             result = Result.SUCCESS;
-
-            // close the channel since it is not used anymore
-            selectedChannel.close();
         }
     }
 
@@ -2638,7 +2633,7 @@ final class SocketFinder {
         return selectedSocket;
     }
 
-    private void findSocketUsingThreading(LinkedList<Inet6Address> inetAddrs,
+    private void findSocketUsingThreading(LinkedList<InetAddress> inetAddrs,
             int portNumber,
             int timeoutInMilliSeconds) throws IOException, InterruptedException {
         assert timeoutInMilliSeconds != 0 : "The timeout cannot be zero";
@@ -2721,6 +2716,10 @@ final class SocketFinder {
                     close(s);
                 }
             }
+        }
+        
+        if (selectedSocket != null) {          
+            result = Result.SUCCESS;
         }
     }
 

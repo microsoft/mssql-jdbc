@@ -21,6 +21,7 @@ import java.sql.ResultSet;
 import java.sql.RowId;
 import java.sql.SQLException;
 import java.sql.SQLFeatureNotSupportedException;
+import java.sql.SQLTimeoutException;
 import java.sql.SQLXML;
 import java.sql.Statement;
 import java.text.MessageFormat;
@@ -390,9 +391,11 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
      *
      * @throws SQLServerException
      *             when an error occurs
+     * @throws SQLTimeoutException 
+     * 			   when the query times out
      * @return ResultSet
      */
-    public java.sql.ResultSet executeQuery() throws SQLServerException {
+    public java.sql.ResultSet executeQuery() throws SQLServerException, SQLTimeoutException {
         loggerExternal.entering(getClassNameLogging(), "executeQuery");
         if (loggerExternal.isLoggable(Level.FINER) && Util.IsActivityTraceOn()) {
             loggerExternal.finer(toString() + " ActivityId: " + ActivityCorrelator.getNext().toString());
@@ -408,14 +411,15 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
      *
      * @throws SQLServerException
      * @return ResultSet
+     * @throws SQLTimeoutException 
      */
-    final java.sql.ResultSet executeQueryInternal() throws SQLServerException {
+    final java.sql.ResultSet executeQueryInternal() throws SQLServerException, SQLTimeoutException {
         checkClosed();
         executeStatement(new PrepStmtExecCmd(this, EXECUTE_QUERY_INTERNAL));
         return resultSet;
     }
 
-    public int executeUpdate() throws SQLServerException {
+    public int executeUpdate() throws SQLServerException, SQLTimeoutException {
         loggerExternal.entering(getClassNameLogging(), "executeUpdate");
         if (loggerExternal.isLoggable(Level.FINER) && Util.IsActivityTraceOn()) {
             loggerExternal.finer(toString() + " ActivityId: " + ActivityCorrelator.getNext().toString());
@@ -434,7 +438,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         return (int) updateCount;
     }
 
-    public long executeLargeUpdate() throws SQLServerException {
+    public long executeLargeUpdate() throws SQLServerException, SQLTimeoutException {
         DriverJDBCVersion.checkSupportsJDBC42();
 
         loggerExternal.entering(getClassNameLogging(), "executeLargeUpdate");
@@ -452,9 +456,11 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
      * 
      * @throws SQLServerException
      *             when an error occurs
+     * @throws SQLTimeoutException 
+     * 			   when the query times out
      * @return true if the statement returned a result set
      */
-    public boolean execute() throws SQLServerException {
+    public boolean execute() throws SQLServerException, SQLTimeoutException {
         loggerExternal.entering(getClassNameLogging(), "execute");
         if (loggerExternal.isLoggable(Level.FINER) && Util.IsActivityTraceOn()) {
             loggerExternal.finer(toString() + " ActivityId: " + ActivityCorrelator.getNext().toString());
@@ -1579,6 +1585,24 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         setValue(n, JDBCType.REAL, x, JavaType.FLOAT, forceEncrypt);
         loggerExternal.exiting(getClassNameLogging(), "setFloat");
     }
+    
+    public final void setGeometry(int n,
+            Geometry x) throws SQLServerException {
+        if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
+            loggerExternal.entering(getClassNameLogging(), "setGeometry", new Object[] {n, x});
+        checkClosed();
+        setValue(n, JDBCType.GEOMETRY, x, JavaType.STRING, false);
+        loggerExternal.exiting(getClassNameLogging(), "setGeometry");
+    }
+    
+    public final void setGeography(int n,
+            Geography x) throws SQLServerException {
+        if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
+            loggerExternal.entering(getClassNameLogging(), "setGeography", new Object[] {n, x});
+        checkClosed();
+        setValue(n, JDBCType.GEOGRAPHY, x, JavaType.STRING, false);
+        loggerExternal.exiting(getClassNameLogging(), "setGeography");
+    }
 
     public final void setInt(int n,
             int value) throws SQLServerException {
@@ -2421,7 +2445,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         loggerExternal.exiting(getClassNameLogging(), "clearBatch");
     }
 
-    public int[] executeBatch() throws SQLServerException, BatchUpdateException {
+    public int[] executeBatch() throws SQLServerException, BatchUpdateException, SQLTimeoutException {
         loggerExternal.entering(getClassNameLogging(), "executeBatch");
         if (loggerExternal.isLoggable(Level.FINER) && Util.IsActivityTraceOn()) {
             loggerExternal.finer(toString() + " ActivityId: " + ActivityCorrelator.getNext().toString());
@@ -2476,7 +2500,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         return updateCounts;
     }
 
-    public long[] executeLargeBatch() throws SQLServerException, BatchUpdateException {
+    public long[] executeLargeBatch() throws SQLServerException, BatchUpdateException, SQLTimeoutException {
         DriverJDBCVersion.checkSupportsJDBC42();
 
         loggerExternal.entering(getClassNameLogging(), "executeLargeBatch");

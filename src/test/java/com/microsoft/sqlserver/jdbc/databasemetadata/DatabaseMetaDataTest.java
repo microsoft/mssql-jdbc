@@ -31,7 +31,6 @@ import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
 
 import com.microsoft.sqlserver.jdbc.SQLServerDatabaseMetaData;
-import com.microsoft.sqlserver.jdbc.SQLServerException;
 import com.microsoft.sqlserver.jdbc.StringUtils;
 import com.microsoft.sqlserver.testframework.AbstractTest;
 import com.microsoft.sqlserver.testframework.Utils;
@@ -62,15 +61,13 @@ public class DatabaseMetaDataTest extends AbstractTest {
      * //TODO: OSGI: Test for capability 1.7 for JDK 1.7 and 1.8 for 1.8 //Require-Capability: osgi.ee;filter:="(&(osgi.ee=JavaSE)(version=1.8))" //String
      * capability = attributes.getValue("Require-Capability");  
      * 
-     * @throws SQLServerException
-     *             Our Wrapped Exception
      * @throws SQLException
      *             SQL Exception
      * @throws IOException
      *             IOExcption
      */
     @Test
-    public void testDriverVersion() throws SQLServerException, SQLException, IOException {
+    public void testDriverVersion() throws SQLException, IOException {
         String manifestFile = Utils.getCurrentClassPath() + "META-INF/MANIFEST.MF";
         manifestFile = manifestFile.replace("test-classes", "classes");
 
@@ -113,11 +110,10 @@ public class DatabaseMetaDataTest extends AbstractTest {
     /**
      * Your password should not be in getURL method.
      * 
-     * @throws SQLServerException
      * @throws SQLException
      */
     @Test
-    public void testGetURL() throws SQLServerException, SQLException {
+    public void testGetURL() throws SQLException {
         DatabaseMetaData databaseMetaData = connection.getMetaData();
         String url = databaseMetaData.getURL();
         url = url.toLowerCase();
@@ -127,11 +123,10 @@ public class DatabaseMetaDataTest extends AbstractTest {
     /**
      * Test getUsername.
      * 
-     * @throws SQLServerException
      * @throws SQLException
      */
     @Test
-    public void testDBUserLogin() throws SQLServerException, SQLException {
+    public void testDBUserLogin() throws SQLException {
         DatabaseMetaData databaseMetaData = connection.getMetaData();
 
         String connectionString = getConfiguredProperty("mssql_jdbc_test_connection_properties");
@@ -163,11 +158,10 @@ public class DatabaseMetaDataTest extends AbstractTest {
 
     /**
      * Testing of {@link SQLServerDatabaseMetaData#getSchemas()}
-     * @throws SQLServerException
      * @throws SQLException
      */
     @Test
-    public void testDBSchema() throws SQLServerException, SQLException {
+    public void testDBSchema() throws SQLException {
         DatabaseMetaData databaseMetaData = connection.getMetaData();
 
         ResultSet rs = databaseMetaData.getSchemas();
@@ -180,11 +174,10 @@ public class DatabaseMetaDataTest extends AbstractTest {
     /**
      * Get All Tables.
      * 
-     * @throws SQLServerException
      * @throws SQLException
      */
     @Test
-    public void testDBTables() throws SQLServerException, SQLException {
+    public void testDBTables() throws SQLException {
         DatabaseMetaData databaseMetaData = connection.getMetaData();
         
         ResultSet rsCatalog = databaseMetaData.getCatalogs();
@@ -206,11 +199,10 @@ public class DatabaseMetaDataTest extends AbstractTest {
      *  <li> Create table with appropriate column size, data types,auto increment, NULLABLE etc.  
      *  <li> Then get databasemetatadata.getColumns to see if there is any mismatch.
      * </ul>
-     * @throws SQLServerException
      * @throws SQLException
      */
     @Test
-    public void testGetDBColumn() throws SQLServerException, SQLException {
+    public void testGetDBColumn() throws SQLException {
         DatabaseMetaData databaseMetaData = connection.getMetaData();
         String[] types = {"TABLE"};
         ResultSet rs = databaseMetaData.getTables(null, null, "%", types);
@@ -241,11 +233,10 @@ public class DatabaseMetaDataTest extends AbstractTest {
      * <li> We can check if PRIVILEGE is in between CRUD / REFERENCES / SELECT / INSERT etc.
      * <li> IS_GRANTABLE can have only 2 values YES / NO
      * </ul>
-     * @throws SQLServerException
      * @throws SQLException
      */
     @Test
-    public void testGetColumnPrivileges() throws SQLServerException, SQLException {
+    public void testGetColumnPrivileges() throws SQLException {
         DatabaseMetaData databaseMetaData = connection.getMetaData();
         String[] types = {"TABLE"};
         ResultSet rsTables = databaseMetaData.getTables(null, null, "%", types);
@@ -273,11 +264,10 @@ public class DatabaseMetaDataTest extends AbstractTest {
      * TODO: Check JDBC Specs: Can we have any tables/functions without category? 
      * 
      * Testing {@link SQLServerDatabaseMetaData#getFunctions(String, String, String)} with sending wrong category.
-     * @throws SQLServerException
      * @throws SQLException
      */
     @Test
-    public void testGetFunctionsWithWrongParams() throws SQLServerException, SQLException {
+    public void testGetFunctionsWithWrongParams() throws SQLException {
         try {
         DatabaseMetaData databaseMetaData = connection.getMetaData();
         databaseMetaData.getFunctions("", null, "xp_%");
@@ -289,11 +279,10 @@ public class DatabaseMetaDataTest extends AbstractTest {
     
     /**
      * Test {@link SQLServerDatabaseMetaData#getFunctions(String, String, String)}
-     * @throws SQLServerException
      * @throws SQLException
      */
     @Test
-    public void testGetFunctions() throws SQLServerException, SQLException {
+    public void testGetFunctions() throws SQLException {
         DatabaseMetaData databaseMetaData = connection.getMetaData();
         ResultSet rs = databaseMetaData.getFunctions(null, null, "xp_%");
         
@@ -311,11 +300,10 @@ public class DatabaseMetaDataTest extends AbstractTest {
     
     /**
      * Te
-     * @throws SQLServerException
      * @throws SQLException
      */
     @Test
-    public void testGetFunctionColumns()  throws SQLServerException, SQLException{
+    public void testGetFunctionColumns()  throws SQLException{
         DatabaseMetaData databaseMetaData = connection.getMetaData();
         ResultSet rsFunctions = databaseMetaData.getFunctions(null, null, "%");
         
