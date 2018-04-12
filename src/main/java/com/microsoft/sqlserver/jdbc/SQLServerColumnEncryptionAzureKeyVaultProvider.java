@@ -18,13 +18,20 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.text.MessageFormat;
 import java.util.Locale;
+import java.util.concurrent.ExecutorService;
 
+import com.microsoft.azure.AzureResponseBuilder;
 import com.microsoft.azure.keyvault.KeyVaultClient;
 import com.microsoft.azure.keyvault.models.KeyBundle;
 import com.microsoft.azure.keyvault.models.KeyOperationResult;
 import com.microsoft.azure.keyvault.models.KeyVerifyResult;
 import com.microsoft.azure.keyvault.webkey.JsonWebKeyEncryptionAlgorithm;
 import com.microsoft.azure.keyvault.webkey.JsonWebKeySignatureAlgorithm;
+import com.microsoft.azure.serializer.AzureJacksonAdapter;
+import com.microsoft.rest.RestClient;
+
+import okhttp3.OkHttpClient;
+import retrofit2.Retrofit;
 
 /**
  * Provides implementation similar to certificate store provider. A CEK encrypted with certificate store provider should be decryptable by this
@@ -41,7 +48,7 @@ public class SQLServerColumnEncryptionAzureKeyVaultProvider extends SQLServerCol
      * Column Encryption Key Store Provider string
      */
     String name = "AZURE_KEY_VAULT";
-
+    private static String baseUrl = "https://{vaultBaseUrl}";
     private final String azureKeyVaultDomainName = "vault.azure.net";
 
     private final String rsaEncryptionAlgorithmWithOAEPForAKV = "RSA-OAEP";
@@ -53,7 +60,7 @@ public class SQLServerColumnEncryptionAzureKeyVaultProvider extends SQLServerCol
 
     private KeyVaultClient keyVaultClient;
 
-    private KeyVaultCredential credential;
+    private KeyVaultCredential credentials;
 
     public void setName(String name) {
         this.name = name;
@@ -62,7 +69,35 @@ public class SQLServerColumnEncryptionAzureKeyVaultProvider extends SQLServerCol
     public String getName() {
         return this.name;
     }
-
+    
+    /**
+     * Constructor that takes a callback function to authenticate to AAD. This is used by KeyVaultClient at runtime to authenticate to Azure Key
+     * Vault.
+     * 
+     * @param authenticationCallback
+     *            - Callback function used for authenticating to AAD.
+     * @param executorService
+     *            - The ExecutorService used to create the keyVaultClient
+     * @throws SQLServerException
+     *             when an error occurs
+     */
+    public SQLServerColumnEncryptionAzureKeyVaultProvider(SQLServerKeyVaultAuthenticationCallback authenticationCallback,
+            ExecutorService executorService) throws SQLServerException {
+        if (null == authenticationCallback) {
+            MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_NullValue"));
+            Object[] msgArgs1 = {"SQLServerKeyVaultAuthenticationCallback"};
+            throw new SQLServerException(form.format(msgArgs1), null);
+        }
+        credentials = new KeyVaultCredential(authenticationCallback);        
+        RestClient restClient = new RestClient.Builder(new OkHttpClient.Builder(), new Retrofit.Builder())
+                .withBaseUrl(baseUrl)
+                .withCredentials(credentials)
+                .withSerializerAdapter(new AzureJacksonAdapter())
+                .withResponseBuilderFactory(new AzureResponseBuilder.Factory())
+                .build();
+        keyVaultClient = new KeyVaultClient(restClient);
+    }
+    
     /**
      * Constructor that authenticates to AAD. This is used by KeyVaultClient at runtime to authenticate to Azure Key
      * Vault.
@@ -76,8 +111,8 @@ public class SQLServerColumnEncryptionAzureKeyVaultProvider extends SQLServerCol
      */
     public SQLServerColumnEncryptionAzureKeyVaultProvider(String clientId,
             String clientKey) throws SQLServerException {
-        credential = new KeyVaultCredential(clientId, clientKey);
-        keyVaultClient = new KeyVaultClient(credential);
+        credentials = new KeyVaultCredential(clientId, clientKey);
+        keyVaultClient = new KeyVaultClient(credentials);
     }
 
     /**

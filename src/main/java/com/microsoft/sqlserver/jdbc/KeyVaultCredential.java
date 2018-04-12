@@ -8,6 +8,7 @@
 
 package com.microsoft.sqlserver.jdbc;
 
+import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
@@ -24,20 +25,30 @@ import com.microsoft.azure.keyvault.authentication.KeyVaultCredentials;
  */
 class KeyVaultCredential extends KeyVaultCredentials {
 
+	SQLServerKeyVaultAuthenticationCallback authenticationCallback = null;
     String clientId = null;
     String clientKey = null;
+    String accessToken = null;
 
     KeyVaultCredential(String clientId,
             String clientKey) {
         this.clientId = clientId;
         this.clientKey = clientKey;
     }
-
+    
+    KeyVaultCredential(SQLServerKeyVaultAuthenticationCallback authenticationCallback) {
+        this.authenticationCallback = authenticationCallback;
+    }
+    
     public String doAuthenticate(String authorization,
             String resource,
             String scope) {
-        AuthenticationResult token = getAccessTokenFromClientCredentials(authorization, resource, clientId, clientKey);
-        return token.getAccessToken();
+    	if(authenticationCallback==null) {
+    		AuthenticationResult token = getAccessTokenFromClientCredentials(authorization, resource, clientId, clientKey);
+    		return token.getAccessToken();
+    	}else {
+    		return authenticationCallback.getAccessToken(authorization, resource, scope);
+    	}
     }
 
     private static AuthenticationResult getAccessTokenFromClientCredentials(String authorization,
@@ -65,5 +76,28 @@ class KeyVaultCredential extends KeyVaultCredentials {
             throw new RuntimeException("authentication result was null");
         }
         return result;
+    }
+    
+    /**
+     * Authenticates the service request
+     * 
+     * @param request
+     *            the ServiceRequestContext
+     * @param challenge
+     *            used to get the accessToken
+     * @return BasicHeader
+     */
+    public String doAuthenticate(Map<String, String> challenge) {
+        assert null != challenge;
+
+        String authorization = challenge.get("authorization");
+        String resource = challenge.get("resource");
+
+        accessToken = authenticationCallback.getAccessToken(authorization, resource, "");
+        return accessToken; //new BasicHeader("Authorization", accessTokenType + " " + accessToken);
+    }
+
+    void setAccessToken(String accessToken) {
+        this.accessToken = accessToken;
     }
 }
