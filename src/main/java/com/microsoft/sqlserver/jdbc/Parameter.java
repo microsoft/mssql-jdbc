@@ -901,6 +901,14 @@ final class Parameter {
                 case SQL_VARIANT:
                     param.typeDefinition = SSType.SQL_VARIANT.toString();
                     break;
+                
+                case GEOMETRY:
+                    param.typeDefinition = SSType.GEOMETRY.toString();
+                    break;
+                    
+                case GEOGRAPHY:
+                    param.typeDefinition = SSType.GEOGRAPHY.toString();
+                    break;
                 default:
                     assert false : "Unexpected JDBC type " + dtv.getJdbcType();
                     break;
