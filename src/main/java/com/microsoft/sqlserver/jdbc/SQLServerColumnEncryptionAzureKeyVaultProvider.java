@@ -48,7 +48,9 @@ public class SQLServerColumnEncryptionAzureKeyVaultProvider extends SQLServerCol
      * Column Encryption Key Store Provider string
      */
     String name = "AZURE_KEY_VAULT";
-    private static String baseUrl = "https://{vaultBaseUrl}";
+    
+    private final String baseUrl = "https://{vaultBaseUrl}";
+    
     private final String azureKeyVaultDomainName = "vault.azure.net";
 
     private final String rsaEncryptionAlgorithmWithOAEPForAKV = "RSA-OAEP";
