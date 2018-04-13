@@ -317,6 +317,16 @@ abstract class SQLServerClobBase implements Serializable {
     }
     
     /**
+     * Function for the result set to maintain clobs it has created
+     * @throws SQLException
+     */
+    void fillFromStream() throws SQLException {
+        if(!isClosed) {
+            getStringFromStream();
+        }
+    }
+    
+    /**
      * Converts the stream to String
      * @throws SQLServerException
      */
