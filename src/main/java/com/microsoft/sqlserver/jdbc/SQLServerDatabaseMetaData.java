@@ -868,7 +868,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
                              "t.PK_NAME, " + 
                              "t.DEFERRABILITY " + 
                      "FROM " + tempTableName + " t " + 
-                     "LEFT JOIN sys.foreign_keys s ON t.FK_NAME = s.name;";
+                     "LEFT JOIN sys.foreign_keys s ON t.FK_NAME = s.name collate database_default;";
         SQLServerCallableStatement cstmt = (SQLServerCallableStatement) connection.prepareCall(sql);
         for (int i = 0; i < 6; i++) {
             cstmt.setString(i+1, procParams[i]);
