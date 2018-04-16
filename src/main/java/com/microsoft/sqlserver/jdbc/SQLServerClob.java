@@ -9,8 +9,10 @@
 package com.microsoft.sqlserver.jdbc;
 
 import static java.nio.charset.StandardCharsets.US_ASCII;
+import static java.nio.charset.StandardCharsets.UTF_16LE;
 
 import java.io.BufferedInputStream;
+import java.io.BufferedReader;
 import java.io.Closeable;
 import java.io.IOException;
 import java.io.InputStream;
@@ -210,16 +212,15 @@ abstract class SQLServerClobBase implements Serializable {
             try {
                 inputStream.reset();
                 getterStream = new BufferedInputStream(
-                        new ReaderInputStream(new InputStreamReader(inputStream), US_ASCII, inputStream.available()));
+                        new ReaderInputStream(new InputStreamReader(inputStream), US_ASCII, this.length()*2));
             }
             catch (IOException e) {
                 throw new SQLServerException(e.getMessage(), null, 0, e);
             }
         }
         else {
-            getStringFromStream();
             getterStream = new BufferedInputStream(new ReaderInputStream(new StringReader(value), US_ASCII, value.length()));
-
+            activeStreams.add(getterStream);
         }
         return getterStream;
     }
@@ -234,9 +235,21 @@ abstract class SQLServerClobBase implements Serializable {
     public Reader getCharacterStream() throws SQLException {
         checkClosed();
 
-        getStringFromStream();
-        Reader getterStream = new StringReader(value);
-        activeStreams.add(getterStream);
+        Reader getterStream = null;
+        if (null == value && !activeStreams.isEmpty()) {
+            InputStream inputStream = (InputStream) activeStreams.get(0);
+            try {
+                inputStream.reset();
+                getterStream = new InputStreamReader(inputStream, UTF_16LE);
+            }
+            catch (IOException e) {
+                throw new SQLServerException(e.getMessage(), null, 0, e);
+            }
+        }
+        else {
+            getterStream = new StringReader(value);
+            activeStreams.add(getterStream);
+        }
         return getterStream;
     }
 
@@ -312,6 +325,9 @@ abstract class SQLServerClobBase implements Serializable {
     public long length() throws SQLException {
         checkClosed();
 
+        if (value == null && activeStreams.get(0) instanceof PLPInputStream) {
+            return (long)((PLPInputStream)activeStreams.get(0)).payloadLength/2;
+        }
         getStringFromStream();
         return value.length();
     }
