@@ -602,21 +602,23 @@ public final class SQLServerParameterMetaData implements ParameterMetaData {
             // if SQL server version is 2012 and above use stored
             // procedure "sp_describe_undeclared_parameters" to retrieve parameter meta data
             // if SQL server version is 2008, then use FMTONLY
+            
+            // Actually, set FMTONLY is the only way to retrieve parameter metadata for encrypted columns.
+            // For now, use set FMTONLY as it's not being removed in the near future.
             else {
-                queryMetaMap = new HashMap<>();
-
-                if (con.getServerMajorVersion() >= SQL_SERVER_2012_VERSION) {
-                    // new implementation for SQL verser 2012 and above
-                    String preparedSQL = con.replaceParameterMarkers(((SQLServerPreparedStatement) stmtParent).userSQL,
-                            ((SQLServerPreparedStatement) stmtParent).inOutParam, ((SQLServerPreparedStatement) stmtParent).bReturnValueSyntax);
-
-                    SQLServerCallableStatement cstmt = (SQLServerCallableStatement) con.prepareCall("exec sp_describe_undeclared_parameters ?");
-                    cstmt.setNString(1, preparedSQL);
-                    parseQueryMeta(cstmt.executeQueryInternal());
-                    cstmt.close();
-                }
-                else {
-                    // old implementation for SQL server 2008
+//                queryMetaMap = new HashMap<>();
+//
+//                if (con.getServerMajorVersion() >= SQL_SERVER_2012_VERSION) {
+//                    // new implementation for SQL verser 2012 and above
+//                    String preparedSQL = con.replaceParameterMarkers(((SQLServerPreparedStatement) stmtParent).userSQL,
+//                            ((SQLServerPreparedStatement) stmtParent).inOutParam, ((SQLServerPreparedStatement) stmtParent).bReturnValueSyntax);
+//
+//                    SQLServerCallableStatement cstmt = (SQLServerCallableStatement) con.prepareCall("exec sp_describe_undeclared_parameters ?");
+//                    cstmt.setNString(1, preparedSQL);
+//                    parseQueryMeta(cstmt.executeQueryInternal());
+//                    cstmt.close();
+//                }
+//                else {
                     stringToParse = sProcString;
                     ArrayList<MetaInfo> metaInfoList = new ArrayList<>();
                     
@@ -667,7 +669,7 @@ public final class SQLServerParameterMetaData implements ParameterMetaData {
                     ResultSet rs = stmt.executeQuery(sCom);
                     parseQueryMetaFor2008(rs);
                 }
-            }
+//            }
         }
         // Do not need to wrapper SQLServerException again
         catch (SQLServerException e) {
