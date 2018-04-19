@@ -8,8 +8,8 @@
 
 package com.microsoft.sqlserver.jdbc;
 
-import static java.nio.charset.StandardCharsets.US_ASCII;
 import static java.nio.charset.StandardCharsets.UTF_16LE;
+import static java.nio.charset.StandardCharsets.US_ASCII;
 
 import java.io.BufferedInputStream;
 import java.io.BufferedReader;
@@ -205,23 +205,9 @@ abstract class SQLServerClobBase implements Serializable {
         if (null != sqlCollation && !sqlCollation.supportsAsciiConversion())
             DataTypes.throwConversionError(getDisplayClassName(), "AsciiStream");
 
-        // Need to use a BufferedInputStream since the stream returned by this method is assumed to support mark/reset
-        InputStream getterStream;
-        if (null == value && !activeStreams.isEmpty()) {
-            InputStream inputStream = (InputStream) activeStreams.get(0);
-            try {
-                inputStream.reset();
-                getterStream = new BufferedInputStream(
-                        new ReaderInputStream(new InputStreamReader(inputStream), US_ASCII, this.length()*2));
-            }
-            catch (IOException e) {
-                throw new SQLServerException(e.getMessage(), null, 0, e);
-            }
-        }
-        else {
-            getterStream = new BufferedInputStream(new ReaderInputStream(new StringReader(value), US_ASCII, value.length()));
-            activeStreams.add(getterStream);
-        }
+        getStringFromStream();
+        InputStream getterStream = new BufferedInputStream(new ReaderInputStream(new StringReader(value), US_ASCII, value.length()));
+        activeStreams.add(getterStream);
         return getterStream;
     }
 
@@ -238,18 +224,13 @@ abstract class SQLServerClobBase implements Serializable {
         Reader getterStream = null;
         if (null == value && !activeStreams.isEmpty()) {
             InputStream inputStream = (InputStream) activeStreams.get(0);
-            try {
-                inputStream.reset();
-                getterStream = new InputStreamReader(inputStream, UTF_16LE);
-            }
-            catch (IOException e) {
-                throw new SQLServerException(e.getMessage(), null, 0, e);
-            }
+            getterStream = new BufferedReader(new InputStreamReader(inputStream, UTF_16LE));
         }
         else {
+            getStringFromStream();
             getterStream = new StringReader(value);
             activeStreams.add(getterStream);
-        }
+       }
         return getterStream;
     }
 
