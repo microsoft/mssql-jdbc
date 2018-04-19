@@ -1844,28 +1844,15 @@ public class StatementTest extends AbstractTest {
             con = createConnectionAndPopulateData();
             Statement stmt = con.createStatement();
 
-            // enable isCloseOnCompletion
-            try {
-                stmt.closeOnCompletion();
-            }
-            catch (Exception e) {
-
-                throw new SQLException("testSparseColumnSetForException threw exception: ", e);
-
-            }
-
             String selectQuery = "SELECT * FROM " + tableName;
             ResultSet rs = stmt.executeQuery(selectQuery);
             rs.next();
-
             SQLServerResultSetMetaData rsmd = (SQLServerResultSetMetaData) rs.getMetaData();
             rs.close();
             rsmd.isSparseColumnSet(1);
 
             rs = stmt.executeQuery(selectQuery);
             rsmd = (SQLServerResultSetMetaData) rs.getMetaData();
-
-            assertEquals(stmt.isClosed(), true, "testSparseColumnSetForException: statement should be closed since resultset is closed.");
             stmt.close();
             rsmd.isSparseColumnSet(1);
 
