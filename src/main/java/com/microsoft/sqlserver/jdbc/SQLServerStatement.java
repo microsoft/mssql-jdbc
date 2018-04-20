@@ -963,6 +963,28 @@ public class SQLServerStatement implements ISQLServerStatement {
             return false;
         return temp.substring(0, 6).equalsIgnoreCase("select");
     }
+    
+    /**
+     * Determine if the SQL is a INSERT.
+     * 
+     * @param sql
+     *            The statment SQL.
+     * @return True is the statement is a select.
+     */
+    /* L0 */ final boolean isInsert(String sql) throws SQLServerException {
+        checkClosed();
+        // Used to check just the first letter which would cause
+        // "Set" commands to return true...
+        String temp = sql.trim();
+        if (temp.substring(0, 2).equalsIgnoreCase("/*")) {
+            int index = temp.indexOf("*/");
+            return isInsert(temp.substring(index));
+        }
+        char c = temp.charAt(0);
+        if (c != 'i' && c != 'I')
+            return false;
+        return temp.substring(0, 6).equalsIgnoreCase("insert");
+    }
 
     /**
      * Replace a JDBC parameter marker with the parameter's string value

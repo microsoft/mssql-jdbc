@@ -142,6 +142,8 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
      */
     private boolean encryptionMetadataIsRetrieved = false;
 
+    private String localUserSQL;
+    
     // Internal function used in tracing
     String getClassNameInternal() {
         return "SQLServerPreparedStatement";
@@ -2452,8 +2454,72 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         }
         checkClosed();
         discardLastExecutionResults();
-
+        
         int updateCounts[];
+        
+        localUserSQL = userSQL;
+        
+        try {
+            if (isInsert(localUserSQL) && connection.isAzureDW()) {
+                if (batchParamValues == null) {
+                    updateCounts = new int[0];
+                    loggerExternal.exiting(getClassNameLogging(), "executeBatch", updateCounts);
+                    return updateCounts; 
+                }
+
+                String tableName = parseUserSQLForTableNameDW(false, false);
+                ArrayList<String> columnList = parseUserSQLForColumnListDW();
+                ArrayList<String> valueList = parseUserSQLForValueListDW();
+                
+                String destinationTableName = tableName;
+                // Get destination metadata
+                try (SQLServerResultSet rs = ((SQLServerStatement) connection.createStatement())
+                        .executeQueryInternal("SET FMTONLY ON SELECT * FROM " + destinationTableName + " SET FMTONLY OFF ");) {
+                    
+                    SQLServerBulkBatchInsertRecord batchRecord = new SQLServerBulkBatchInsertRecord(batchParamValues, columnList, valueList, null);
+
+                    for (int i = 1; i <= rs.getColumnCount(); i++) {
+                        Column c = rs.getColumn(i);
+                        CryptoMetadata cryptoMetadata = c.getCryptoMetadata();
+                        int jdbctype;
+                        TypeInfo ti = c.getTypeInfo();
+                        if (null != cryptoMetadata) {
+                            jdbctype =  cryptoMetadata.getBaseTypeInfo().getSSType().getJDBCType().getIntValue();
+                        } else {
+                            jdbctype = ti.getSSType().getJDBCType().getIntValue();
+                        }
+                        batchRecord.addColumnMetadata(i, c.getColumnName(), jdbctype, ti.getPrecision(), ti.getScale());
+                    }
+                    
+                    SQLServerBulkCopy bcOperation = new SQLServerBulkCopy(connection);
+                    bcOperation.setDestinationTableName(tableName);
+                    bcOperation.writeToServer((ISQLServerBulkRecord) batchRecord);
+                    bcOperation.close();
+                    updateCounts = new int[batchParamValues.size()];
+                    for (int i = 0; i < batchParamValues.size(); ++i)
+                    {
+                        updateCounts[i] = 1;
+                    }
+                    
+                    batchParamValues = null;
+                    loggerExternal.exiting(getClassNameLogging(), "executeBatch", updateCounts);
+                    return updateCounts;
+                }
+            }
+        }
+        catch (SQLException e) {
+            // Unable to retrieve metadata for destination
+            // create an error message for failing bulk copy + insert batch
+            throw new SQLServerException(SQLServerException.getErrString("R_unableRetrieveColMeta"), e);
+        }
+        catch (Exception e) {
+            // If we fail with non-SQLException, fall back to the original batch insert logic.
+            if (getStatementLogger().isLoggable(java.util.logging.Level.FINE)) {
+                getStatementLogger().fine("Parsing user's Batch Insert SQL Query failed: " + e.toString());
+                getStatementLogger().fine("Falling back to the original implementation for Batch Insert.");
+            }
+        }
+
 
         if (batchParamValues == null)
             updateCounts = new int[0];
@@ -2553,6 +2619,301 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
             }
         loggerExternal.exiting(getClassNameLogging(), "executeLargeBatch", updateCounts);
         return updateCounts;
+    }
+    
+    
+    private String parseUserSQLForTableNameDW(boolean hasInsertBeenFound, boolean hasIntoBeenFound) {
+        // As far as finding the table name goes, There are two cases:
+        // Insert into <tableName> and Insert <tableName>
+        // And there could be in-line comments (with /* and */) in between.
+        // This method assumes the localUserSQL string starts with "insert".
+        localUserSQL = localUserSQL.trim();
+        if (localUserSQL.substring(0, 2).equalsIgnoreCase("/*")) {
+            int temp = localUserSQL.indexOf("*/");
+            localUserSQL = localUserSQL.substring(temp);
+            return parseUserSQLForTableNameDW(hasInsertBeenFound, hasIntoBeenFound);
+        }
+        
+        if (localUserSQL.substring(0, 6).equalsIgnoreCase("insert") && !hasInsertBeenFound) {
+            localUserSQL = localUserSQL.substring(6);
+            return parseUserSQLForTableNameDW(true, hasIntoBeenFound);
+        }
+        
+        if (localUserSQL.substring(0, 4).equalsIgnoreCase("into") && !hasIntoBeenFound) {
+            // is it really "into"?
+            // if the "into" is followed by a blank space or /*, then yes.
+            if (localUserSQL.charAt(4) == ' ' || localUserSQL.charAt(4) == '\t' ||
+                    (localUserSQL.charAt(4) == '/' && localUserSQL.charAt(5) == '*')) {
+                localUserSQL = localUserSQL.substring(4);
+                return parseUserSQLForTableNameDW(hasInsertBeenFound, true);
+            }
+            
+            // otherwise, we found the token that either contains the databasename.tablename or tablename.
+            // Recursively handle this, but into has been found. (or rather, it's absent in the query - the "into" keyword is optional)
+            return parseUserSQLForTableNameDW(hasInsertBeenFound, true);
+        }
+        
+        // At this point, the next token has to be the table name.
+        // It could be encapsulated in [], "", or have a database name preceding the table name.
+        // If it's encapsulated in [] or "", we need be more careful with parsing as anything could go into []/"".
+        // For ] or ", they can be escaped by ]] or "", watch out for this too.
+        if (localUserSQL.substring(0, 1).equalsIgnoreCase("[")) {
+            int tempint = localUserSQL.indexOf("]", 1);
+            
+            // keep checking if it's escaped
+            while (localUserSQL.charAt(tempint + 1) == ']') {
+                localUserSQL = localUserSQL.substring(0, tempint) + localUserSQL.substring(tempint + 1);
+                tempint = localUserSQL.indexOf("]", tempint + 1);
+            }
+            
+            // we've found a ] that is actually trying to close the square bracket.
+            // If it's followed by a dot, then it's a database.
+            // Otherwise, it's the table.
+            if (localUserSQL.charAt(tempint + 1) == '.') {
+                String tempstr = localUserSQL.substring(1, tempint);
+                localUserSQL = localUserSQL.substring(tempint + 2);
+                return tempstr + "." + parseUserSQLForTableNameDW(hasInsertBeenFound, hasIntoBeenFound);
+            } else {
+                // return tablename
+                String tempstr = localUserSQL.substring(1, tempint);
+                localUserSQL = localUserSQL.substring(tempint + 1);
+                return tempstr;
+            }
+        }
+        
+        // do the same for ""
+        if (localUserSQL.substring(0, 1).equalsIgnoreCase("\"")) {
+            int tempint = localUserSQL.indexOf("\"", 1);
+            
+            // keep checking if it's escaped
+            while (localUserSQL.charAt(tempint + 1) == '\"') {
+                localUserSQL = localUserSQL.substring(0, tempint) + localUserSQL.substring(tempint + 1);
+                tempint = localUserSQL.indexOf("\"", tempint + 1);
+            }
+            
+            // we've found a " that is actually trying to close the quote.
+            // If it's followed by a dot, then it's a database.
+            // Otherwise, it's the table.
+            if (localUserSQL.charAt(tempint + 1) == '.') {
+                String tempstr = localUserSQL.substring(1, tempint);
+                localUserSQL = localUserSQL.substring(tempint + 2);
+                return tempstr + "." + parseUserSQLForTableNameDW(hasInsertBeenFound, hasIntoBeenFound);
+            } else {
+                // return tablename
+                String tempstr = localUserSQL.substring(1, tempint);
+                localUserSQL = localUserSQL.substring(tempint + 1);
+                return tempstr;
+            }
+        }
+        
+        // At this point, the next chunk of string is the table name (could have database name), without starting with [ or ".
+        StringBuilder sb = new StringBuilder();
+        while (localUserSQL.length() > 0) {
+            if (localUserSQL.charAt(0) == '.' || localUserSQL.charAt(0) == ' ' || localUserSQL.charAt(0) == '\t'
+                    || localUserSQL.charAt(0) == '(') {
+                if (localUserSQL.charAt(0) == '.') {
+                    localUserSQL = localUserSQL.substring(1);
+                    return sb.toString() + "." + parseUserSQLForTableNameDW(hasInsertBeenFound, hasIntoBeenFound);
+                } else {
+                    return sb.toString();
+                }
+            } else {
+                sb.append(localUserSQL.charAt(0));
+                localUserSQL = localUserSQL.substring(1);
+            }
+        }
+        
+        // It shouldn't come here. If we did, something is wrong.
+        throw new IllegalArgumentException("localUserSQL");
+    }
+    
+    private ArrayList<String> parseUserSQLForColumnListDW() {
+        localUserSQL = localUserSQL.trim();
+        
+        // ignore all comments
+        if (localUserSQL.substring(0, 2).equalsIgnoreCase("/*")) {
+            int temp = localUserSQL.indexOf("*/");
+            localUserSQL = localUserSQL.substring(temp);
+            return parseUserSQLForColumnListDW();
+        }
+        
+        //check if optional column list was provided
+        // Columns can have the form of c1, [c1] or "c1". It can escape ] or " by ]] or "".
+        if (localUserSQL.substring(0, 1).equalsIgnoreCase("(")) {
+            localUserSQL = localUserSQL.substring(1);
+            return parseUserSQLForColumnListDWHelper(new ArrayList<String>());
+        }
+        return null;
+    }
+
+    private ArrayList<String> parseUserSQLForColumnListDWHelper(ArrayList<String> listOfColumns) {
+        localUserSQL = localUserSQL.trim();
+        
+        // ignore all comments
+        if (localUserSQL.substring(0, 2).equalsIgnoreCase("/*")) {
+            int temp = localUserSQL.indexOf("*/");
+            localUserSQL = localUserSQL.substring(temp);
+            return parseUserSQLForColumnListDWHelper(listOfColumns);
+        }
+        
+        if (localUserSQL.charAt(0) == ')') {
+            localUserSQL = localUserSQL.substring(1);
+            return listOfColumns;
+        }
+        
+        if (localUserSQL.charAt(0) == ',') {
+            localUserSQL = localUserSQL.substring(1);
+            return parseUserSQLForColumnListDWHelper(listOfColumns);
+        }
+        
+        if (localUserSQL.charAt(0) == '[') {
+            int tempint = localUserSQL.indexOf("]", 1);
+            
+            // keep checking if it's escaped
+            while (localUserSQL.charAt(tempint + 1) == ']') {
+                localUserSQL = localUserSQL.substring(0, tempint) + localUserSQL.substring(tempint + 1);
+                tempint = localUserSQL.indexOf("]", tempint + 1);
+            }
+            
+            // we've found a ] that is actually trying to close the square bracket.
+            String tempstr = localUserSQL.substring(1, tempint);
+            localUserSQL = localUserSQL.substring(tempint + 1);
+            listOfColumns.add(tempstr);
+            return parseUserSQLForColumnListDWHelper(listOfColumns);
+        }
+        
+        if (localUserSQL.charAt(0) == '\"') {
+            int tempint = localUserSQL.indexOf("\"", 1);
+            
+            // keep checking if it's escaped
+            while (localUserSQL.charAt(tempint + 1) == '\"') {
+                localUserSQL = localUserSQL.substring(0, tempint) + localUserSQL.substring(tempint + 1);
+                tempint = localUserSQL.indexOf("\"", tempint + 1);
+            }
+            
+            // we've found a " that is actually trying to close the quote.
+            String tempstr = localUserSQL.substring(1, tempint);
+            localUserSQL = localUserSQL.substring(tempint + 1);
+            listOfColumns.add(tempstr);
+            return parseUserSQLForColumnListDWHelper(listOfColumns);
+        }
+
+        // At this point, the next chunk of string is the column name, without starting with [ or ".
+        StringBuilder sb = new StringBuilder();
+        while (localUserSQL.length() > 0) {
+            if (localUserSQL.charAt(0) == ',' || localUserSQL.charAt(0) == ')') {
+                if (localUserSQL.charAt(0) == ',') {
+                    localUserSQL = localUserSQL.substring(1);
+                    listOfColumns.add(sb.toString());
+                    return parseUserSQLForColumnListDWHelper(listOfColumns);
+                } else {
+                    localUserSQL = localUserSQL.substring(1);
+                    listOfColumns.add(sb.toString());
+                    return listOfColumns;
+                }
+            } else {
+                sb.append(localUserSQL.charAt(0));
+                localUserSQL = localUserSQL.substring(1);
+            }
+        }
+        
+        // It shouldn't come here. If we did, something is wrong.
+        throw new IllegalArgumentException("localUserSQL");
+    }
+    
+
+    private ArrayList<String> parseUserSQLForValueListDW() {
+        localUserSQL = localUserSQL.trim();
+        
+        // ignore all comments
+        if (localUserSQL.substring(0, 2).equalsIgnoreCase("/*")) {
+            int temp = localUserSQL.indexOf("*/");
+            localUserSQL = localUserSQL.substring(temp);
+            return parseUserSQLForColumnListDW();
+        }
+        
+        // look for keyword "VALUES"
+        if (localUserSQL.substring(0, 6).equalsIgnoreCase("VALUES")) {
+            localUserSQL = localUserSQL.substring(6);
+            
+            localUserSQL = localUserSQL.trim();
+            
+            // ignore all comments
+            if (localUserSQL.substring(0, 2).equalsIgnoreCase("/*")) {
+                int temp = localUserSQL.indexOf("*/");
+                localUserSQL = localUserSQL.substring(temp);
+                return parseUserSQLForColumnListDW();
+            }
+            
+            if (localUserSQL.substring(0, 1).equalsIgnoreCase("(")) {
+                localUserSQL = localUserSQL.substring(1);
+                return parseUserSQLForValueListDWHelper(new ArrayList<String>());
+            }
+        }
+        
+        // shouldn't come here, as the list of values is mandatory.
+        throw new IllegalArgumentException("localUserSQL");
+    }
+
+    private ArrayList<String> parseUserSQLForValueListDWHelper(ArrayList<String> listOfValues) {
+        localUserSQL = localUserSQL.trim();
+        
+        // ignore all comments
+        if (localUserSQL.substring(0, 2).equalsIgnoreCase("/*")) {
+            int temp = localUserSQL.indexOf("*/");
+            localUserSQL = localUserSQL.substring(temp);
+            return parseUserSQLForColumnListDWHelper(listOfValues);
+        }
+        
+        
+        if (localUserSQL.charAt(0) == ')') {
+            localUserSQL = localUserSQL.substring(1);
+            return listOfValues;
+        }
+        
+        if (localUserSQL.charAt(0) == ',') {
+            localUserSQL = localUserSQL.substring(1);
+            return parseUserSQLForColumnListDWHelper(listOfValues);
+        }
+        
+        if (localUserSQL.charAt(0) == '\'') {
+            int tempint = localUserSQL.indexOf("\'", 1);
+            
+            // keep checking if it's escaped
+            while (localUserSQL.charAt(tempint + 1) == '\'') {
+                localUserSQL = localUserSQL.substring(0, tempint) + localUserSQL.substring(tempint + 1);
+                tempint = localUserSQL.indexOf("\'", tempint + 1);
+            }
+            
+            // we've found a ' that is actually trying to close the quote.
+            // Include 's around the string as well, so we can distinguish '?' and ? later on.
+            String tempstr = localUserSQL.substring(0, tempint + 1);
+            localUserSQL = localUserSQL.substring(tempint + 1);
+            listOfValues.add(tempstr);
+            return parseUserSQLForColumnListDWHelper(listOfValues);
+        }
+        
+        // At this point, the next chunk of string is the value, without starting with ' (most likely a ?).
+        StringBuilder sb = new StringBuilder();
+        while (localUserSQL.length() > 0) {
+            if (localUserSQL.charAt(0) == ',' || localUserSQL.charAt(0) == ')') {
+                if (localUserSQL.charAt(0) == ',') {
+                    localUserSQL = localUserSQL.substring(1);
+                    listOfValues.add(sb.toString());
+                    return parseUserSQLForColumnListDWHelper(listOfValues);
+                } else {
+                    localUserSQL = localUserSQL.substring(1);
+                    listOfValues.add(sb.toString());
+                    return listOfValues;
+                }
+            } else {
+                sb.append(localUserSQL.charAt(0));
+                localUserSQL = localUserSQL.substring(1);
+            }
+        }
+        
+        // It shouldn't come here. If we did, something is wrong.
+        throw new IllegalArgumentException("localUserSQL");
     }
 
     private final class PrepStmtBatchExecCmd extends TDSCommand {
