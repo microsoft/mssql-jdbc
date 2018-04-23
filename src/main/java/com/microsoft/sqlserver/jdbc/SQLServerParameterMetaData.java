@@ -606,8 +606,8 @@ public final class SQLServerParameterMetaData implements ParameterMetaData {
             // Actually, set FMTONLY is the only way to retrieve parameter metadata for encrypted columns.
             // For now, use set FMTONLY as it's not being removed in the near future.
             else {
-//                queryMetaMap = new HashMap<>();
-//
+                queryMetaMap = new HashMap<>();
+
 //                if (con.getServerMajorVersion() >= SQL_SERVER_2012_VERSION) {
 //                    // new implementation for SQL verser 2012 and above
 //                    String preparedSQL = con.replaceParameterMarkers(((SQLServerPreparedStatement) stmtParent).userSQL,
