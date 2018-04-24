@@ -1089,13 +1089,7 @@ final class DTV {
 
         void execute(DTV dtv,
                 BigDecimal bigDecimalValue) throws SQLServerException {
-            if (DDC.exceedsMaxRPCDecimalPrecisionOrScale(bigDecimalValue)) {
-                String strValue = bigDecimalValue.toString();
-                tdsWriter.writeRPCStringUnicode(name, strValue, isOutParam, collation);
-            }
-            else {
-                tdsWriter.writeRPCBigDecimal(name, bigDecimalValue, outScale, isOutParam);
-            }
+            tdsWriter.writeRPCBigDecimal(name, bigDecimalValue, outScale, isOutParam);
         }
 
         void execute(DTV dtv,
@@ -2212,15 +2206,22 @@ final class AppDTVImpl extends DTVImpl {
                 BigDecimal bigDecimalValue) throws SQLServerException {
             // Rescale the value if necessary
             if (null != bigDecimalValue) {
-                if (null == dtv.getScale())
-                	dtv.setScale((bigDecimalValue.precision()>SQLServerConnection.maxDecimalPrecision ? 
-                			SQLServerConnection.maxDecimalPrecision - (bigDecimalValue.precision() - bigDecimalValue.scale()) :
-                				bigDecimalValue.scale()));
+                if (null == dtv.getScale()) {
+                	if(bigDecimalValue.precision() - bigDecimalValue.scale() > SQLServerConnection.maxDecimalPrecision) {
+                		//Value out of Bounds
+                		dtv.setScale(SQLServerConnection.maxDecimalPrecision);
+                	}else {
+                		if(bigDecimalValue.precision() > bigDecimalValue.scale()) {
+                			dtv.setScale(SQLServerConnection.maxDecimalPrecision - (bigDecimalValue.precision() - bigDecimalValue.scale()));
+                		}else {
+                        	dtv.setScale(SQLServerConnection.maxDecimalPrecision < bigDecimalValue.scale() ? SQLServerConnection.maxDecimalPrecision : bigDecimalValue.scale());
+                		}
+                	}
+                }
                 Integer inScale = dtv.getScale();
                 if (inScale != bigDecimalValue.scale())
                     bigDecimalValue = bigDecimalValue.setScale(inScale, RoundingMode.DOWN);
             }
-
             dtv.setValue(bigDecimalValue, JavaType.BIGDECIMAL);
         }
 
