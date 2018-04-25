@@ -2212,8 +2212,8 @@ final class AppDTVImpl extends DTVImpl {
                 BigDecimal bigDecimalValue) throws SQLServerException {
             // Rescale the value if necessary
             if (null != bigDecimalValue) {
-            	int dtvScale, biScale = bigDecimalValue.scale();
-                if (null == dtv.getScale()) {
+            	Integer dtvScale, biScale = bigDecimalValue.scale();
+                if (null == dtv.getScale() && JDBCType.DECIMAL==dtv.getJdbcType()) {
                 	dtvScale = bigDecimalValue.precision() > SQLServerConnection.maxDecimalPrecision ? 
                 			SQLServerConnection.maxDecimalPrecision - (bigDecimalValue.precision() - biScale) : biScale;
                 	if(dtvScale > SQLServerConnection.maxDecimalPrecision) {
@@ -2223,7 +2223,7 @@ final class AppDTVImpl extends DTVImpl {
                 		dtv.setScale(dtvScale);
                 	}
                 }else dtvScale = dtv.getScale();
-                if (dtvScale != biScale)
+                if (dtvScale!=null && dtvScale != biScale)
                     bigDecimalValue = bigDecimalValue.setScale(dtvScale, RoundingMode.DOWN);
             }
             dtv.setValue(bigDecimalValue, JavaType.BIGDECIMAL);
