@@ -2469,7 +2469,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
                 String tableName = parseUserSQLForTableNameDW(false, false);
                 ArrayList<String> columnList = parseUserSQLForColumnListDW();
-                ArrayList<String> valueList = parseUserSQLForValueListDW();
+                ArrayList<String> valueList = parseUserSQLForValueListDW(false);
                 
                 String destinationTableName = tableName;
                 // Get destination metadata
@@ -2629,7 +2629,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         // This method assumes the localUserSQL string starts with "insert".
         localUserSQL = localUserSQL.trim();
         if (localUserSQL.substring(0, 2).equalsIgnoreCase("/*")) {
-            int temp = localUserSQL.indexOf("*/");
+            int temp = localUserSQL.indexOf("*/") + 2;
             localUserSQL = localUserSQL.substring(temp);
             return parseUserSQLForTableNameDW(hasInsertBeenFound, hasIntoBeenFound);
         }
@@ -2732,7 +2732,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         
         // ignore all comments
         if (localUserSQL.substring(0, 2).equalsIgnoreCase("/*")) {
-            int temp = localUserSQL.indexOf("*/");
+            int temp = localUserSQL.indexOf("*/") + 2;
             localUserSQL = localUserSQL.substring(temp);
             return parseUserSQLForColumnListDW();
         }
@@ -2751,7 +2751,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         
         // ignore all comments
         if (localUserSQL.substring(0, 2).equalsIgnoreCase("/*")) {
-            int temp = localUserSQL.indexOf("*/");
+            int temp = localUserSQL.indexOf("*/") + 2;
             localUserSQL = localUserSQL.substring(temp);
             return parseUserSQLForColumnListDWHelper(listOfColumns);
         }
@@ -2811,6 +2811,10 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                     listOfColumns.add(sb.toString());
                     return listOfColumns;
                 }
+            } else if (localUserSQL.substring(0, 2).equalsIgnoreCase("/*")) {
+                int temp = localUserSQL.indexOf("*/") + 2;
+                localUserSQL = localUserSQL.substring(temp);
+                localUserSQL = localUserSQL.trim();
             } else {
                 sb.append(localUserSQL.charAt(0));
                 localUserSQL = localUserSQL.substring(1);
@@ -2822,27 +2826,41 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     }
     
 
-    private ArrayList<String> parseUserSQLForValueListDW() {
+    private ArrayList<String> parseUserSQLForValueListDW(boolean hasValuesBeenFound) {
         localUserSQL = localUserSQL.trim();
         
         // ignore all comments
         if (localUserSQL.substring(0, 2).equalsIgnoreCase("/*")) {
-            int temp = localUserSQL.indexOf("*/");
+            int temp = localUserSQL.indexOf("*/") + 2;
             localUserSQL = localUserSQL.substring(temp);
-            return parseUserSQLForColumnListDW();
+            return parseUserSQLForValueListDW(hasValuesBeenFound);
         }
         
-        // look for keyword "VALUES"
-        if (localUserSQL.substring(0, 6).equalsIgnoreCase("VALUES")) {
-            localUserSQL = localUserSQL.substring(6);
-            
-            localUserSQL = localUserSQL.trim();
-            
+        if (!hasValuesBeenFound) {
+            // look for keyword "VALUES"
+            if (localUserSQL.substring(0, 6).equalsIgnoreCase("VALUES")) {
+                localUserSQL = localUserSQL.substring(6);
+                
+                localUserSQL = localUserSQL.trim();
+                
+                // ignore all comments
+                if (localUserSQL.substring(0, 2).equalsIgnoreCase("/*")) {
+                    int temp = localUserSQL.indexOf("*/") + 2;
+                    localUserSQL = localUserSQL.substring(temp);
+                    return parseUserSQLForValueListDW(true);
+                }
+                
+                if (localUserSQL.substring(0, 1).equalsIgnoreCase("(")) {
+                    localUserSQL = localUserSQL.substring(1);
+                    return parseUserSQLForValueListDWHelper(new ArrayList<String>());
+                }
+            }
+        } else {
             // ignore all comments
             if (localUserSQL.substring(0, 2).equalsIgnoreCase("/*")) {
-                int temp = localUserSQL.indexOf("*/");
+                int temp = localUserSQL.indexOf("*/") + 2;
                 localUserSQL = localUserSQL.substring(temp);
-                return parseUserSQLForColumnListDW();
+                return parseUserSQLForValueListDW(hasValuesBeenFound);
             }
             
             if (localUserSQL.substring(0, 1).equalsIgnoreCase("(")) {
@@ -2860,9 +2878,9 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         
         // ignore all comments
         if (localUserSQL.substring(0, 2).equalsIgnoreCase("/*")) {
-            int temp = localUserSQL.indexOf("*/");
+            int temp = localUserSQL.indexOf("*/") + 2;
             localUserSQL = localUserSQL.substring(temp);
-            return parseUserSQLForColumnListDWHelper(listOfValues);
+            return parseUserSQLForValueListDWHelper(listOfValues);
         }
         
         
@@ -2873,7 +2891,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         
         if (localUserSQL.charAt(0) == ',') {
             localUserSQL = localUserSQL.substring(1);
-            return parseUserSQLForColumnListDWHelper(listOfValues);
+            return parseUserSQLForValueListDWHelper(listOfValues);
         }
         
         if (localUserSQL.charAt(0) == '\'') {
@@ -2890,7 +2908,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
             String tempstr = localUserSQL.substring(0, tempint + 1);
             localUserSQL = localUserSQL.substring(tempint + 1);
             listOfValues.add(tempstr);
-            return parseUserSQLForColumnListDWHelper(listOfValues);
+            return parseUserSQLForValueListDWHelper(listOfValues);
         }
         
         // At this point, the next chunk of string is the value, without starting with ' (most likely a ?).
@@ -2900,12 +2918,16 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                 if (localUserSQL.charAt(0) == ',') {
                     localUserSQL = localUserSQL.substring(1);
                     listOfValues.add(sb.toString());
-                    return parseUserSQLForColumnListDWHelper(listOfValues);
+                    return parseUserSQLForValueListDWHelper(listOfValues);
                 } else {
                     localUserSQL = localUserSQL.substring(1);
                     listOfValues.add(sb.toString());
                     return listOfValues;
                 }
+            } else if (localUserSQL.substring(0, 2).equalsIgnoreCase("/*")) {
+                int temp = localUserSQL.indexOf("*/") + 2;
+                localUserSQL = localUserSQL.substring(temp);
+                localUserSQL = localUserSQL.trim();
             } else {
                 sb.append(localUserSQL.charAt(0));
                 localUserSQL = localUserSQL.substring(1);

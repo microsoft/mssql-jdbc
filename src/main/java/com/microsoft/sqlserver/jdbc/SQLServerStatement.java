@@ -977,7 +977,7 @@ public class SQLServerStatement implements ISQLServerStatement {
         // "Set" commands to return true...
         String temp = sql.trim();
         if (temp.substring(0, 2).equalsIgnoreCase("/*")) {
-            int index = temp.indexOf("*/");
+            int index = temp.indexOf("*/") + 2;
             return isInsert(temp.substring(index));
         }
         char c = temp.charAt(0);
