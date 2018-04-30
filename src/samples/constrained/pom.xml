@@ -21,7 +21,7 @@
         <dependency>
             <groupId>com.microsoft.sqlserver</groupId>
             <artifactId>mssql-jdbc</artifactId>
-            <version>6.1.5.jre8-preview</version>
+            <version>6.4.0.jre9</version>
         </dependency>
     </dependencies>
 
@@ -37,7 +37,7 @@
                         <artifactId>exec-maven-plugin</artifactId>
                         <version>1.6.0</version>
                         <configuration>
-                            <mainClass>ConstrainedSample</mainClass>
+                            <mainClass>constrained.src.main.java.ConstrainedSample</mainClass>
                         </configuration>
                     </plugin>
                 </plugins>

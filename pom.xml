@@ -38,8 +38,8 @@
 
 	<properties>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-		<junit.platform.version>1.1.0</junit.platform.version>
-		<junit.jupiter.version>5.1.0</junit.jupiter.version>
+		<junit.platform.version>1.1.1</junit.platform.version>
+		<junit.jupiter.version>5.1.1</junit.jupiter.version>
 	</properties>
 	
 	<dependencies>
@@ -57,7 +57,7 @@
 			<optional>true</optional>
 		</dependency>
 		
-		<!-- dependency for running tests -->
+		<!-- dependencies for running tests -->
 		<dependency>
 			<groupId>junit</groupId>
 			<artifactId>junit</artifactId>
@@ -116,7 +116,7 @@
 		<dependency>
 			<groupId>com.zaxxer</groupId>
 			<artifactId>HikariCP</artifactId>
-			<version>2.7.8</version>
+			<version>3.0.0</version>
 			<scope>test</scope>
 		</dependency>
 		<dependency>
@@ -125,14 +125,6 @@
 			<version>2.2.0</version>
 			<scope>test</scope>
 		</dependency>
-  	<!-- 
-	<dependency>
-  		<groupId>org.junit.vintage</groupId>
-		<artifactId>junit-vintage-engine</artifactId>	
-  		<version>4.12.0-M3</version>
-  		<scope>test</scope>
-  	</dependency>	
-  	 -->
 	</dependencies>
 
 	<profiles>
