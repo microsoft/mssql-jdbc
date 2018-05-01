@@ -6390,10 +6390,11 @@ final class TDSReader {
         this.tdsChannel = tdsChannel;
         this.con = con;
         this.command = command; // may be null
-        if(null != command)
-        	//if cancelTimeout is set, we should wait for the total amount of queryTimeout+cancelTimeout to terminate the connection.
-        	this.tcpKeepAliveTimeoutTimer = (command.getCancelTimeoutTimerSeconds() > 0 && command.getTimeoutTimerSeconds() > 0 ) ? (new TimeoutTimer(command.getCancelTimeoutTimerSeconds() + command.getTimeoutTimerSeconds(), null, con)) : null;
-        
+        if(null != command) {
+        	//if cancelQueryTimeout is set, we should wait for the total amount of queryTimeout + cancelQueryTimeout to terminate the connection.
+        	this.tcpKeepAliveTimeoutTimer = (command.getCancelQueryTimeoutSeconds() > 0 && command.getQueryTimeoutSeconds() > 0 ) ? 
+        			(new TimeoutTimer(command.getCancelQueryTimeoutSeconds() + command.getQueryTimeoutSeconds(), null, con)) : null;
+        }
         // if the logging level is not detailed than fine or more we will not have proper readerids.
         if (logger.isLoggable(Level.FINE))
             traceID = "TDSReader@" + nextReaderID() + " (" + con.toString() + ")";
@@ -6494,7 +6495,7 @@ final class TDSReader {
         TDSPacket newPacket = new TDSPacket(con.getTDSPacketSize());
         if (null != tcpKeepAliveTimeoutTimer) {
             if (logger.isLoggable(Level.FINEST)) {
-                logger.finest(this.toString() + ":starting timer...");
+                logger.finest(this.toString() + ": starting timer...");
             }
             tcpKeepAliveTimeoutTimer.start();
         }
@@ -7195,8 +7196,7 @@ final class TimeoutTimer implements Runnable {
         try {
             // if connection is silently dropped, the query timeout hangs too and does not throw the query timeout exception.
             // The application hangs until the connection timeout is thrown. In this case, manually terminate the connection.
-            if (null == command) {
-                assert null != con;
+            if (null == command && null != con) {
                 con.terminate(SQLServerException.DRIVER_ERROR_IO_FAILED, SQLServerException.getErrString("R_connectionIsClosed"));
             }
             else {
@@ -7337,15 +7337,15 @@ abstract class TDSCommand {
     // any attention ack. The command's response is read either on demand as it is processed,
     // or by detaching.
     private volatile boolean readingResponse;
-	private int timeoutTimerSeconds;
-	private int cancelTimeoutSeconds;
+	private int queryTimeoutSeconds;
+	private int cancelQueryTimeoutSeconds;
 
-    protected int getTimeoutTimerSeconds() {
-    	return this.timeoutTimerSeconds;
+    protected int getQueryTimeoutSeconds() {
+    	return this.queryTimeoutSeconds;
     }
 
-    protected int getCancelTimeoutTimerSeconds() {
-    	return this.cancelTimeoutSeconds;
+    protected int getCancelQueryTimeoutSeconds() {
+    	return this.cancelQueryTimeoutSeconds;
     }
     
     final boolean readingResponse() {
@@ -7361,11 +7361,11 @@ abstract class TDSCommand {
      *            (optional) the time before which the command must complete before it is interrupted. A value of 0 means no timeout.
      */
     TDSCommand(String logContext,
-            int timeoutSeconds, int cancelTimeoutSeconds) {
+            int queryTimeoutSeconds, int cancelQueryTimeoutSeconds) {
         this.logContext = logContext;
-        this.timeoutTimerSeconds = timeoutSeconds;
-        this.cancelTimeoutSeconds = cancelTimeoutSeconds;
-        this.timeoutTimer = (timeoutSeconds > 0) ? (new TimeoutTimer(timeoutSeconds, this, null)) : null;
+        this.queryTimeoutSeconds = queryTimeoutSeconds;
+        this.cancelQueryTimeoutSeconds = cancelQueryTimeoutSeconds;
+        this.timeoutTimer = (queryTimeoutSeconds > 0) ? (new TimeoutTimer(queryTimeoutSeconds, this, null)) : null;
     }
 
     /**
