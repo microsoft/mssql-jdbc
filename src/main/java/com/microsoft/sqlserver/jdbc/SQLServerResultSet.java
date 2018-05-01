@@ -126,7 +126,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
      * occurs
      */
     private Closeable activeStream;
-    private Object activeLOB;
+    private SQLServerLob activeLOB;
 
     /**
      * A window of fetchSize quickly accessible rows for scrollable result sets
@@ -2694,7 +2694,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         checkClosed();
         Blob value = (Blob) getValue(i, JDBCType.BLOB);
         loggerExternal.exiting(getClassNameLogging(), "getBlob", value);
-        activeLOB = value;
+        activeLOB = (SQLServerLob) value;
         return value;
     }
 
@@ -2703,7 +2703,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         checkClosed();
         Blob value = (Blob) getValue(findColumn(colName), JDBCType.BLOB);
         loggerExternal.exiting(getClassNameLogging(), "getBlob", value);
-        activeLOB = value;
+        activeLOB = (SQLServerLob) value;
         return value;
     }
 
@@ -2712,7 +2712,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         checkClosed();
         Clob value = (Clob) getValue(columnIndex, JDBCType.CLOB);
         loggerExternal.exiting(getClassNameLogging(), "getClob", value);
-        activeLOB = value;
+        activeLOB = (SQLServerLob) value;
         return value;
     }
 
@@ -2721,7 +2721,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         checkClosed();
         Clob value = (Clob) getValue(findColumn(colName), JDBCType.CLOB);
         loggerExternal.exiting(getClassNameLogging(), "getClob", value);
-        activeLOB = value;
+        activeLOB = (SQLServerLob) value;
         return value;
     }
 
@@ -2730,7 +2730,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         checkClosed();
         NClob value = (NClob) getValue(columnIndex, JDBCType.NCLOB);
         loggerExternal.exiting(getClassNameLogging(), "getNClob", value);
-        activeLOB = value;
+        activeLOB = (SQLServerLob) value;
         return value;
     }
 
@@ -2739,7 +2739,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         checkClosed();
         NClob value = (NClob) getValue(findColumn(columnLabel), JDBCType.NCLOB);
         loggerExternal.exiting(getClassNameLogging(), "getNClob", value);
-        activeLOB = value;
+        activeLOB = (SQLServerLob) value;
         return value;
     }
 
@@ -6563,43 +6563,21 @@ public class SQLServerResultSet implements ISQLServerResultSet {
     }
     
     /*
-     * Iterates through the list of objects which rely on the stream that's about to be closed, filling them with their data
-     * Will skip over closed blobs, implemented in SQLServerBlob
+     * Checks for any LOBs which need to be available after the RS is closed, and loads their contents from stream into memory.
+     * Closed LOBs will not be populated.
      */
     private void fillLOBs() {
-    	if (null != activeLOB && activeLOB instanceof SQLServerBlob) {
+    	if (null != activeLOB) {
     		try {
-    			((SQLServerBlob)activeLOB).fillFromStream();
+    			activeLOB.fillFromStream();
     		} catch (SQLException e) {
     			if (logger.isLoggable(java.util.logging.Level.FINER)) {
-    				logger.finer(toString() + "Filling blobs before closing: " + e.getMessage());
+    				logger.finer(toString() + "Filling Lobs before closing: " + e.getMessage());
     			}
     		} finally {
     			activeLOB = null;
     		}
     	}
-        if (null != activeLOB && activeLOB instanceof SQLServerClob) {
-            try {
-                ((SQLServerClob)activeLOB).fillFromStream();
-            } catch (SQLException e) {
-                if (logger.isLoggable(java.util.logging.Level.FINER)) {
-                    logger.finer(toString() + "Filling blobs before closing: " + e.getMessage());
-                }
-            } finally {
-                activeLOB = null;
-            }
-        }
-        if (null != activeLOB && activeLOB instanceof SQLServerNClob) {
-            try {
-                ((SQLServerNClob)activeLOB).fillFromStream();
-            } catch (SQLException e) {
-                if (logger.isLoggable(java.util.logging.Level.FINER)) {
-                    logger.finer(toString() + "Filling blobs before closing: " + e.getMessage());
-                }
-            } finally {
-                activeLOB = null;
-            }
-        }
 	}
 
     /**

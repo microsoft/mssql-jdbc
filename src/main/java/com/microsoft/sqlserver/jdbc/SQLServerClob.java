@@ -72,7 +72,7 @@ public class SQLServerClob extends SQLServerClobBase implements Clob {
     }
 }
 
-abstract class SQLServerClobBase implements Serializable {
+abstract class SQLServerClobBase extends SQLServerLob implements Serializable {
     private static final long serialVersionUID = 8691072211054430124L;
 
     // The value of the CLOB that this Clob object represents.
