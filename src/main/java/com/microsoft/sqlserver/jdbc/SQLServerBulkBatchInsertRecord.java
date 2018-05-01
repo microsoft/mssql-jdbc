@@ -75,14 +75,14 @@ public class SQLServerBulkBatchInsertRecord implements ISQLServerBulkRecord, jav
      * Class name for logging.
      */
     private static final String loggerClassName = "com.microsoft.sqlserver.jdbc.SQLServerBulkBatchInsertRecord";
-
+    
     /*
      * Logger
      */
     private static final java.util.logging.Logger loggerExternal = java.util.logging.Logger.getLogger(loggerClassName);
 
     private ArrayList<Parameter[]> batchParam;
-    private int batchParamIndex = 0;
+    private int batchParamIndex = -1;
     private ArrayList<String> columnList;
     private ArrayList<String> valueList;
 
@@ -352,7 +352,7 @@ public class SQLServerBulkBatchInsertRecord implements ISQLServerBulkRecord, jav
             int valueIndex = 0;
             for (int i = 0; i < data.length; i++) {
                 if (valueList.get(i).equalsIgnoreCase("?")) {
-                    data[i] = batchParam.get(i)[valueIndex].getSetterValue();
+                    data[i] = batchParam.get(batchParamIndex)[valueIndex].getSetterValue();
                     valueIndex++;
                 } else {
                     // remove 's at the beginning and end of the value, if it exists.
@@ -387,8 +387,6 @@ public class SQLServerBulkBatchInsertRecord implements ISQLServerBulkRecord, jav
                 }
             }
         }
-
-        batchParamIndex++;
 
         // Cannot go directly from String[] to Object[] and expect it to act as an array.
         Object[] dataRow = new Object[data.length];
@@ -565,6 +563,7 @@ public class SQLServerBulkBatchInsertRecord implements ISQLServerBulkRecord, jav
     
     @Override
     public boolean next() throws SQLServerException {
+        batchParamIndex++;
         return batchParamIndex < batchParam.size();
     }
 
