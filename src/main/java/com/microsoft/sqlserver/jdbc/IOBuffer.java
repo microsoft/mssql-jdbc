@@ -7194,8 +7194,8 @@ final class TimeoutTimer implements Runnable {
         // If the timer wasn't canceled before it ran out of
         // time then interrupt the registered command.
         try {
-            // if connection is silently dropped, the query timeout hangs too and does not throw the query timeout exception.
-            // The application hangs until the connection timeout is thrown. In this case, manually terminate the connection.
+            // If TCP Connection to server is silently dropped, exceeding the query timeout on the same connection does not throw SQLTimeoutException
+        	// The application hangs instead until SocketTimeoutException is thrown. In this case, we must manually terminate the connection.
             if (null == command && null != con) {
                 con.terminate(SQLServerException.DRIVER_ERROR_IO_FAILED, SQLServerException.getErrString("R_connectionIsClosed"));
             }
