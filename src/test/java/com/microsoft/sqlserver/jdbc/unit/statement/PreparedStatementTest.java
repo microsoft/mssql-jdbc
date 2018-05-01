@@ -310,7 +310,7 @@ public class PreparedStatementTest extends AbstractTest {
     IllegalArgumentException, IllegalAccessException {
         // Test % handle re-use
         try (SQLServerConnection con = (SQLServerConnection)DriverManager.getConnection(connectionString)) {
-            Field f1 = con.getClass().getSuperclass().getDeclaredField("isAzureDW");
+            Field f1 = SQLServerConnection.class.getDeclaredField("isAzureDW");
             f1.setAccessible(true);
             f1.set(con, true);
             String query = String.format("/*statementpoolingtest_re-use_%s*/SELECT TOP(1) * FROM sys.tables;", UUID.randomUUID().toString());

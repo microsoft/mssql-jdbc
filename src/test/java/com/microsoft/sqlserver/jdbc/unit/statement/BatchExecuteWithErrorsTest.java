@@ -29,6 +29,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
 
+import com.microsoft.sqlserver.jdbc.SQLServerConnection;
 import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
 import com.microsoft.sqlserver.testframework.AbstractTest;
 import com.microsoft.sqlserver.testframework.DBConnection;
@@ -287,7 +288,7 @@ public class BatchExecuteWithErrorsTest extends AbstractTest {
         String error;
         String severe;
         con = DriverManager.getConnection(connectionString);
-        Field f1 = con.getClass().getSuperclass().getDeclaredField("isAzureDW");
+        Field f1 = SQLServerConnection.class.getDeclaredField("isAzureDW");
         f1.setAccessible(true);
         f1.set(con, true);
         if (DBConnection.isSqlAzure(con)) {
@@ -697,7 +698,7 @@ public class BatchExecuteWithErrorsTest extends AbstractTest {
         assumeTrue("JDBC42".equals(Utils.getConfiguredProperty("JDBC_Version")), "Aborting test case as JDBC version is not compatible. ");
         // the DBConnection for detecting whether the server is SQL Azure or SQL Server.
         con = DriverManager.getConnection(connectionString);
-        Field f1 = con.getClass().getSuperclass().getDeclaredField("isAzureDW");
+        Field f1 = SQLServerConnection.class.getDeclaredField("isAzureDW");
         f1.setAccessible(true);
         f1.set(con, true);
         final String warning;

@@ -24,6 +24,8 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
+
+import com.microsoft.sqlserver.jdbc.SQLServerConnection;
 import com.microsoft.sqlserver.testframework.AbstractTest;
 import com.microsoft.sqlserver.testframework.Utils;
 
@@ -351,7 +353,7 @@ public class RegressionTest extends AbstractTest {
         String[] values = {"a", "b", largeString, "d", "e"};
         // insert five rows into the table; use a batch for each row
         try {
-            Field f1 = con.getClass().getSuperclass().getDeclaredField("isAzureDW");
+            Field f1 = SQLServerConnection.class.getDeclaredField("isAzureDW");
             f1.setAccessible(true);
             f1.set(con, true);
             pstmt = con.prepareStatement("insert into " + testTable + " values (?,?)");
