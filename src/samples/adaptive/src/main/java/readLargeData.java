@@ -5,6 +5,7 @@
  * 
  * This program is made available under the terms of the MIT License. See the LICENSE file in the project root for more information.
  */
+package adaptive.src.main.java;
 
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
