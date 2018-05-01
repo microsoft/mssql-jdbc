@@ -27,6 +27,7 @@ import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
 import org.opentest4j.TestAbortedException;
 
+import com.microsoft.sqlserver.jdbc.SQLServerConnection;
 import com.microsoft.sqlserver.jdbc.SQLServerStatement;
 import com.microsoft.sqlserver.testframework.AbstractTest;
 import com.microsoft.sqlserver.testframework.DBConnection;
@@ -123,7 +124,7 @@ public class BatchExecutionTest extends AbstractTest {
         int retValue[] = {0, 0, 0};
         try {
             String sPrepStmt = "update ctstable2 set PRICE=PRICE*20 where TYPE_ID=?";
-            Field f1 = connection.getClass().getSuperclass().getDeclaredField("isAzureDW");
+            Field f1 = SQLServerConnection.class.getDeclaredField("isAzureDW");
             f1.setAccessible(true);
             f1.set(connection, true);
             pstmt = connection.prepareStatement(sPrepStmt);
@@ -237,7 +238,7 @@ public class BatchExecutionTest extends AbstractTest {
             String sPrepStmt = "update ctstable2 set PRICE=PRICE*20 where TYPE_ID=?";
 
             pstmt = connection.prepareStatement(sPrepStmt);
-            Field f1 = connection.getClass().getSuperclass().getDeclaredField("isAzureDW");
+            Field f1 = SQLServerConnection.class.getDeclaredField("isAzureDW");
             f1.setAccessible(true);
             f1.set(connection, true);
             pstmt.setInt(1, 1);
