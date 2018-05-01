@@ -1827,8 +1827,8 @@ public class StatementTest extends AbstractTest {
         }
 
         /**
-         * Tests the following for isSparseColumnSet api a) An exception is thrown when result set is closed b) An exception is thrown when statement
-         * is closed c) An exception is thrown when connection is closed
+         * Tests the following for isSparseColumnSet api a) Metadata is available when result set is closed b) Metadata is available when statement
+         * is closed c) Metadata is available when connection is closed
          * 
          * @throws Exception
          */
@@ -1844,53 +1844,22 @@ public class StatementTest extends AbstractTest {
             con = createConnectionAndPopulateData();
             Statement stmt = con.createStatement();
 
-            // enable isCloseOnCompletion
-            try {
-                stmt.closeOnCompletion();
-            }
-            catch (Exception e) {
-
-                throw new SQLException("testSparseColumnSetForException threw exception: ", e);
-
-            }
-
             String selectQuery = "SELECT * FROM " + tableName;
             ResultSet rs = stmt.executeQuery(selectQuery);
             rs.next();
-
             SQLServerResultSetMetaData rsmd = (SQLServerResultSetMetaData) rs.getMetaData();
-            try {
-                // test that an exception is thrown when result set is closed
-                rs.close();
-                rsmd.isSparseColumnSet(1);
-                assertEquals(true, false, "Should not reach here. An exception should have been thrown");
-            }
-            catch (SQLException e) {
-            }
+            rs.close();
+            rsmd.isSparseColumnSet(1);
 
-            // test that an exception is thrown when statement is closed
-            try {
-                rs = stmt.executeQuery(selectQuery);
-                rsmd = (SQLServerResultSetMetaData) rs.getMetaData();
+            rs = stmt.executeQuery(selectQuery);
+            rsmd = (SQLServerResultSetMetaData) rs.getMetaData();
+            stmt.close();
+            rsmd.isSparseColumnSet(1);
 
-                assertEquals(stmt.isClosed(), true, "testSparseColumnSetForException: statement should be closed since resultset is closed.");
-                stmt.close();
-                rsmd.isSparseColumnSet(1);
-                assertEquals(true, false, "Should not reach here. An exception should have been thrown");
-            }
-            catch (SQLException e) {
-            }
-
-            // test that an exception is thrown when connection is closed
-            try {
-                rs = con.createStatement().executeQuery("SELECT * FROM " + tableName);
-                rsmd = (SQLServerResultSetMetaData) rs.getMetaData();
-                con.close();
-                rsmd.isSparseColumnSet(1);
-                assertEquals(true, false, "Should not reach here. An exception should have been thrown");
-            }
-            catch (SQLException e) {
-            }
+            rs = con.createStatement().executeQuery("SELECT * FROM " + tableName);
+            rsmd = (SQLServerResultSetMetaData) rs.getMetaData();
+            con.close();
+            rsmd.isSparseColumnSet(1);
 
         }
 
