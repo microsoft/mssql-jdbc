@@ -3423,11 +3423,12 @@ public class SQLServerConnection implements ISQLServerConnection {
             if (integratedSecurity) {                
                 if (null != ImpersonatedUserCred) {
                     try {
-                    	if (ImpersonatedUserCred.getRemainingLifetime() <= 0) {
-                            if (null != authentication)
+                        if (ImpersonatedUserCred.getRemainingLifetime() <= 0) {
+                            if (null != authentication) {
                                 authentication.ReleaseClientContext();
+                            }
                             authentication = null;
-                    		ImpersonatedUserCred.dispose();
+                            ImpersonatedUserCred.dispose();
                     	}
                     }
                     catch (GSSException e) {
@@ -3435,8 +3436,9 @@ public class SQLServerConnection implements ISQLServerConnection {
                             connectionlogger.finer(toString() + " Release of the credentials failed GSSException: " + e);
                     }
                 } else {
-                    if (null != authentication)
+                    if (null != authentication) {
                         authentication.ReleaseClientContext();
+                    }
                     authentication = null;
                 }
             }
