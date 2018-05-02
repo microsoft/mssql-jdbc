@@ -476,7 +476,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
         PrepStmtExecCmd(SQLServerPreparedStatement stmt,
                 int executeMethod) {
-            super(stmt.toString() + " executeXXX", queryTimeout);
+            super(stmt.toString() + " executeXXX", queryTimeout, cancelQueryTimeoutSeconds);
             this.stmt = stmt;
             stmt.executeMethod = executeMethod;
         }
@@ -2561,7 +2561,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         long updateCounts[];
 
         PrepStmtBatchExecCmd(SQLServerPreparedStatement stmt) {
-             super(stmt.toString() + " executeBatch", queryTimeout);
+             super(stmt.toString() + " executeBatch", queryTimeout, cancelQueryTimeoutSeconds);
             this.stmt = stmt;
         }
 

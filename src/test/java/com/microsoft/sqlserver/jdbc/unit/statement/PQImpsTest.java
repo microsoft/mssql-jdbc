@@ -227,7 +227,7 @@ public class PQImpsTest extends AbstractTest {
 
         ParameterMetaData pmd = pstmt.getParameterMetaData();
 
-        assertEquals(pmd.getParameterCount(), 13, "Not all parameters are recognized by driver.");
+        assertEquals(pmd.getParameterCount(), 15, "Not all parameters are recognized by driver.");
 
         compareParameterMetaData(pmd, 1, "java.math.BigDecimal", 3, "decimal", 18, 0);
         compareParameterMetaData(pmd, 2, "java.math.BigDecimal", 3, "decimal", 10, 5);
@@ -242,6 +242,8 @@ public class PQImpsTest extends AbstractTest {
         compareParameterMetaData(pmd, 11, "java.lang.Short", -6, "tinyint", 3, 0);
         compareParameterMetaData(pmd, 12, "java.math.BigDecimal", 3, "money", 19, 4);
         compareParameterMetaData(pmd, 13, "java.math.BigDecimal", 3, "smallmoney", 10, 4);
+        compareParameterMetaData(pmd, 14, "java.math.BigDecimal", 3, "decimal", 10, 9);
+        compareParameterMetaData(pmd, 15, "java.math.BigDecimal", 3, "decimal", 38, 37);
     }
 
     private static void checkCharMetaData(int expectedParameterCount) throws SQLException {
@@ -337,7 +339,7 @@ public class PQImpsTest extends AbstractTest {
 
     private static void populateNumericTable() throws SQLException {
         stmt.execute("insert into " + numericTable + " values (" + "1.123," + "1.123," + "1.2345," + "1.2345," + "1.543," + "1.543," + "5.1234,"
-                + "104935," + "34323," + "123," + "5," + "1.45," + "1.3" + ")");
+                + "104935," + "34323," + "123," + "5," + "1.45," + "1.3," + "0.123456789," + "0.1234567890123456789012345678901234567" + ")");
     }
 
     private static void testBeforeExcute() throws SQLException {
@@ -346,7 +348,7 @@ public class PQImpsTest extends AbstractTest {
         }
 
         String sql = "select * from " + numericTable + " where " + "c1 = ? and " + "c2 = ? and " + "c3 = ? and " + "c4 = ? and " + "c5 = ? and "
-                + "c6 = ? and " + "c7 = ? and " + "c8 = ? and " + "c9 = ? and " + "c10 = ? and " + "c11 = ? and " + "c12 = ? and " + "c13 = ? ";
+                + "c6 = ? and " + "c7 = ? and " + "c8 = ? and " + "c9 = ? and " + "c10 = ? and " + "c11 = ? and " + "c12 = ? and " + "c13 = ? and " + "c14 = ? and " + "c15 = ? ";
 
         pstmt = connection.prepareStatement(sql);
 
@@ -359,11 +361,11 @@ public class PQImpsTest extends AbstractTest {
 
     private static void selectNumeric() throws SQLException {
         String sql = "select * from " + numericTable + " where " + "c1 = ? and " + "c2 = ? and " + "c3 = ? and " + "c4 = ? and " + "c5 = ? and "
-                + "c6 = ? and " + "c7 = ? and " + "c8 = ? and " + "c9 = ? and " + "c10 = ? and " + "c11 = ? and " + "c12 = ? and " + "c13 = ? ";
+                + "c6 = ? and " + "c7 = ? and " + "c8 = ? and " + "c9 = ? and " + "c10 = ? and " + "c11 = ? and " + "c12 = ? and " + "c13 = ?  and " + "c14 = ? and " + "c15 = ? ";
 
         pstmt = connection.prepareStatement(sql);
 
-        for (int i = 1; i <= 13; i++) {
+        for (int i = 1; i <= 15; i++) {
             pstmt.setString(i, "1");
         }
 
@@ -372,12 +374,11 @@ public class PQImpsTest extends AbstractTest {
 
     private static void insertNumeric() throws SQLException {
 
-        String sql = "insert into " + numericTable + " values( " + "?," + "?," + "?," + "?," + "?," + "?," + "?," + "?," + "?," + "?," + "?," + "?,"
-                + "?" + ")";
+        String sql = "insert into " + numericTable + " values( " + "?," + "?," + "?," + "?," + "?," + "?," + "?," + "?," + "?," + "?," + "?," + "?," + "?,"  + "?,"  + "?" + ")";
 
         pstmt = connection.prepareStatement(sql);
 
-        for (int i = 1; i <= 13; i++) {
+        for (int i = 1; i <= 15; i++) {
             pstmt.setString(i, "1");
         }
 
@@ -387,11 +388,11 @@ public class PQImpsTest extends AbstractTest {
     private static void updateNumeric() throws SQLException {
 
         String sql = "update " + numericTable + " set " + "c1 = ?," + "c2 = ?," + "c3 = ?," + "c4 = ?," + "c5 = ?," + "c6 = ?," + "c7 = ?,"
-                + "c8 = ?," + "c9 = ?," + "c10 = ?," + "c11 = ?," + "c12 = ?," + "c13 = ?" + ";";
+                + "c8 = ?," + "c9 = ?," + "c10 = ?," + "c11 = ?," + "c12 = ?," + "c13 = ?," + "c14 = ?," + "c15 = ?" + ";";
 
         pstmt = connection.prepareStatement(sql);
 
-        for (int i = 1; i <= 13; i++) {
+        for (int i = 1; i <= 15; i++) {
             pstmt.setString(i, "1");
         }
 
@@ -401,11 +402,11 @@ public class PQImpsTest extends AbstractTest {
     private static void deleteNumeric() throws SQLException {
 
         String sql = "delete from " + numericTable + " where " + "c1 = ? and " + "c2 = ? and " + "c3 = ? and " + "c4 = ? and " + "c5 = ? and "
-                + "c6 = ? and " + "c7 = ? and " + "c8 = ? and " + "c9 = ? and " + "c10 = ? and " + "c11 = ? and " + "c12 = ? and " + "c13 = ?" + ";";
+                + "c6 = ? and " + "c7 = ? and " + "c8 = ? and " + "c9 = ? and " + "c10 = ? and " + "c11 = ? and " + "c12 = ? and " + "c13 = ? and " + "c14 = ? and " + "c15 = ?" + ";";
 
         pstmt = connection.prepareStatement(sql);
 
-        for (int i = 1; i <= 13; i++) {
+        for (int i = 1; i <= 15; i++) {
             pstmt.setString(i, "1");
         }
 
@@ -416,8 +417,8 @@ public class PQImpsTest extends AbstractTest {
 
         stmt.execute("Create table " + numericTable + " (" + "c1 decimal not null," + "c2 decimal(10,5) not null," + "c3 numeric not null,"
                 + "c4 numeric(8,4) not null," + "c5 float not null," + "c6 float(10) not null," + "c7 real not null," + "c8 int not null,"
-                + "c9 bigint not null," + "c10 smallint not null," + "c11 tinyint not null," + "c12 money not null," + "c13 smallmoney not null"
-                + ")");
+                + "c9 bigint not null," + "c10 smallint not null," + "c11 tinyint not null," + "c12 money not null," + "c13 smallmoney not null,"
+                + "c14 decimal(10,9) not null," + "c15 decimal(38,37) not null" + ")");
     }
 
     private static void createCharTable() throws SQLException {

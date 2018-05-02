@@ -20,6 +20,7 @@ import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
 
 import com.microsoft.sqlserver.jdbc.SQLServerConnection;
+import com.microsoft.sqlserver.jdbc.SQLServerStatement;
 import com.microsoft.sqlserver.testframework.AbstractTest;
 import com.microsoft.sqlserver.testframework.Utils;
 import com.microsoft.sqlserver.testframework.util.RandomUtil;
@@ -101,7 +102,7 @@ public class TimeoutTest extends AbstractTest {
         createWaitForDelayPreocedure(conn);
 
         conn = (SQLServerConnection) DriverManager.getConnection(connectionString + ";queryTimeout=" + (waitForDelaySeconds / 2) + ";");
-
+        
         try {
             conn.createStatement().execute("exec " + waitForDelaySPName);
             throw new Exception("Exception for queryTimeout is not thrown.");
@@ -118,7 +119,71 @@ public class TimeoutTest extends AbstractTest {
            fail("Unexpected error message occured! "+ e.toString() );
         }
     }
+    
+    /**
+     * Tests sanity of connection property.
+     * @throws Exception
+     */
+    @Test
+    public void testCancelQueryTimeout() throws Exception {
+        SQLServerConnection conn = (SQLServerConnection) DriverManager.getConnection(connectionString);
 
+        dropWaitForDelayProcedure(conn);
+        createWaitForDelayPreocedure(conn);
+
+        conn = (SQLServerConnection) DriverManager.getConnection(connectionString + ";queryTimeout=" + (waitForDelaySeconds / 2) + ";cancelQueryTimeout=" + waitForDelaySeconds + ";");
+        
+        try {
+            SQLServerStatement statement = (SQLServerStatement) conn.createStatement();
+            statement.execute("exec " + waitForDelaySPName);
+            throw new Exception("Exception for queryTimeout is not thrown.");
+        }
+        catch (Exception e) {
+            if (!(e instanceof java.sql.SQLTimeoutException)) {
+                throw e;
+            }
+            assertEquals(e.getMessage(), "The query has timed out.", "Invalid exception message");
+        }
+        try{
+            conn.createStatement().execute("SELECT @@version");
+        }catch (Exception e) {
+           fail("Unexpected error message occured! "+ e.toString() );
+        }
+    }
+
+    /**
+     * Tests sanity of connection property.
+     * @throws Exception
+     */
+    @Test
+    public void testCancelQueryTimeoutOnStatement() throws Exception {
+        SQLServerConnection conn = (SQLServerConnection) DriverManager.getConnection(connectionString);
+
+        dropWaitForDelayProcedure(conn);
+        createWaitForDelayPreocedure(conn);
+
+        conn = (SQLServerConnection) DriverManager.getConnection(connectionString + ";");
+        
+        try {
+            SQLServerStatement statement = (SQLServerStatement) conn.createStatement();
+            statement.setQueryTimeout(waitForDelaySeconds/2);
+            statement.setCancelQueryTimeout(waitForDelaySeconds);
+            statement.execute("exec " + waitForDelaySPName);
+            throw new Exception("Exception for queryTimeout is not thrown.");
+        }
+        catch (Exception e) {
+            if (!(e instanceof java.sql.SQLTimeoutException)) {
+                throw e;
+            }
+            assertEquals(e.getMessage(), "The query has timed out.", "Invalid exception message");
+        }
+        try{
+            conn.createStatement().execute("SELECT @@version");
+        }catch (Exception e) {
+           fail("Unexpected error message occured! "+ e.toString() );
+        }
+    }
+    
     /**
      * When socketTimeout occurs, the connection will be marked as closed.
      * @throws Exception
