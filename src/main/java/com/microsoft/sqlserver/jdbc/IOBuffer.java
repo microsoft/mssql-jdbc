@@ -6391,11 +6391,11 @@ final class TDSReader {
         this.con = con;
         this.command = command; // may be null
         if(null != command) {
-        	//if cancelQueryTimeout is set, we should wait for the total amount of queryTimeout + cancelQueryTimeout to terminate the connection.
-        	this.tcpKeepAliveTimeoutTimer = (command.getCancelQueryTimeoutSeconds() > 0 && command.getQueryTimeoutSeconds() > 0 ) ? 
-        			(new TimeoutTimer(command.getCancelQueryTimeoutSeconds() + command.getQueryTimeoutSeconds(), null, con)) : null;
+            //if cancelQueryTimeout is set, we should wait for the total amount of queryTimeout + cancelQueryTimeout to terminate the connection.
+            this.tcpKeepAliveTimeoutTimer = (command.getCancelQueryTimeoutSeconds() > 0 && command.getQueryTimeoutSeconds() > 0 ) ? 
+        	    (new TimeoutTimer(command.getCancelQueryTimeoutSeconds() + command.getQueryTimeoutSeconds(), null, con)) : null;
         }
-        // if the logging level is not detailed than fine or more we will not have proper readerids.
+        // if the logging level is not detailed than fine or more we will not have proper reader IDs.
         if (logger.isLoggable(Level.FINE))
             traceID = "TDSReader@" + nextReaderID() + " (" + con.toString() + ")";
         else
@@ -7195,7 +7195,7 @@ final class TimeoutTimer implements Runnable {
         // time then interrupt the registered command.
         try {
             // If TCP Connection to server is silently dropped, exceeding the query timeout on the same connection does not throw SQLTimeoutException
-        	// The application hangs instead until SocketTimeoutException is thrown. In this case, we must manually terminate the connection.
+            // The application stops responding instead until SocketTimeoutException is thrown. In this case, we must manually terminate the connection.
             if (null == command && null != con) {
                 con.terminate(SQLServerException.DRIVER_ERROR_IO_FAILED, SQLServerException.getErrString("R_connectionIsClosed"));
             }
