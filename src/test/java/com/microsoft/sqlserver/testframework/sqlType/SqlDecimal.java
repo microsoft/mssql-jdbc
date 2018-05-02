@@ -23,7 +23,7 @@ public class SqlDecimal extends SqlType {
     // called for decimal and numeric type
     SqlDecimal(String name,
             JDBCType jdbctype) {
-        this(name, jdbctype, 38, 0, SqlTypeValue.DECIMAL.minValue, SqlTypeValue.DECIMAL.maxValue, VariableLengthType.Scale);
+        this(name, jdbctype, SqlTypeValue.MAX_DECIMAL_PRECISION, 0, SqlTypeValue.DECIMAL.minValue, SqlTypeValue.DECIMAL.maxValue, VariableLengthType.Scale);
     }
 
     // called from money/smallmoney
