@@ -7156,7 +7156,6 @@ final class TimeoutTimer implements Runnable {
             TDSCommand command,
             SQLServerConnection con) {
         assert timeoutSeconds > 0;
-        assert null != command;
 
         this.timeoutSeconds = timeoutSeconds;
         this.command = command;
