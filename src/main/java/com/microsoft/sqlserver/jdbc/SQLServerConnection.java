@@ -1709,8 +1709,9 @@ public class SQLServerConnection implements ISQLServerConnection {
                     int n = Integer.parseInt(activeConnectionProperties.getProperty(sPropKey));
                     if (n >= cancelQueryTimeout) {
                     	// use cancelQueryTimeout only if queryTimeout is set.
-                    	if(queryTimeoutSeconds > defaultQueryTimeout)
+                    	if(queryTimeoutSeconds > defaultQueryTimeout) {
                         	cancelQueryTimeoutSeconds = n;
+                    	}
                     }
                     else {
                         MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidCancelQueryTimeout"));
