@@ -989,6 +989,9 @@ public class SQLServerStatement implements ISQLServerStatement {
         // Used to check just the first letter which would cause
         // "Set" commands to return true...
         String temp = sql.trim();
+        if (null == sql || sql.length() < 3) {
+            return false;
+        }
         if (temp.substring(0, 2).equalsIgnoreCase("/*")) {
             int index = temp.indexOf("*/") + 2;
             return isInsert(temp.substring(index));
