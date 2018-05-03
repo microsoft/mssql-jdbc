@@ -1,7 +1,7 @@
 /****************************************************************
  * Gradle Scipt for Building Microsoft JDBC Driver for SQL Server
  ****************************************************************
- * Instruction for Building Driver:
+ * Instruction for Building JDBC Driver:
  * For building jre9 version of the driver,
  * use command 'gradle build' or 'gradle build -PbuildProfile=build43'
  * Whereas, for building jre8 version of the driver,
@@ -13,20 +13,17 @@ apply plugin: 'java'
 version = '6.5.2'
 def jreVersion = ""
 def testOutputDir = file("build/classes/java/test")
-
 def archivesBaseName = 'mssql-jdbc'
+def excludedFile = 'com/microsoft/sqlserver/jdbc/SQLServerJdbc42.java'
 
 allprojects {
     tasks.withType(JavaCompile) {
         options.encoding = 'UTF-8'
     }
-        
     tasks.withType(Test) {
        systemProperty "file.encoding", "UTF-8"
     }
 }
-
-def excludedFile = 'com/microsoft/sqlserver/jdbc/SQLServerJdbc42.java'
 
 if (!hasProperty('buildProfile') || (hasProperty('buildProfile') && buildProfile == "build43")){
 	
@@ -35,7 +32,6 @@ if (!hasProperty('buildProfile') || (hasProperty('buildProfile') && buildProfile
 	
 	sourceCompatibility = 9
 	targetCompatibility = 9
-
 }
 
 if((hasProperty('buildProfile') && buildProfile == "build42")) {
@@ -45,11 +41,9 @@ if((hasProperty('buildProfile') && buildProfile == "build42")) {
 	
 	sourceCompatibility = 1.8
 	targetCompatibility = 1.8
-	
 }
 
 jar.archiveName = "${archivesBaseName}-${version}-SNAPSHOT.${jreVersion}-preview.jar"
-	
 jar {
 	manifest {
         attributes 'Title': "Microsoft JDBC Driver ${version} for SQL Server",
@@ -86,7 +80,6 @@ repositories {
 dependencies {
 	compile 'com.microsoft.azure:azure-keyvault:1.0.0',
 	'com.microsoft.azure:adal4j:1.5.0'
-		
 	testCompile 'junit:junit:4.12',
 	'org.junit.platform:junit-platform-console:1.2.0',
 	'org.junit.platform:junit-platform-commons:1.2.0',
