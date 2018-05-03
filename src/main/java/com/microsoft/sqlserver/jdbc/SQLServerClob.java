@@ -8,9 +8,11 @@
 
 package com.microsoft.sqlserver.jdbc;
 
+import static java.nio.charset.StandardCharsets.UTF_16LE;
 import static java.nio.charset.StandardCharsets.US_ASCII;
 
 import java.io.BufferedInputStream;
+import java.io.BufferedReader;
 import java.io.Closeable;
 import java.io.IOException;
 import java.io.InputStream;
@@ -70,7 +72,7 @@ public class SQLServerClob extends SQLServerClobBase implements Clob {
     }
 }
 
-abstract class SQLServerClobBase implements Serializable {
+abstract class SQLServerClobBase extends SQLServerLob implements Serializable {
     private static final long serialVersionUID = 8691072211054430124L;
 
     // The value of the CLOB that this Clob object represents.
@@ -203,24 +205,9 @@ abstract class SQLServerClobBase implements Serializable {
         if (null != sqlCollation && !sqlCollation.supportsAsciiConversion())
             DataTypes.throwConversionError(getDisplayClassName(), "AsciiStream");
 
-        // Need to use a BufferedInputStream since the stream returned by this method is assumed to support mark/reset
-        InputStream getterStream;
-        if (null == value && !activeStreams.isEmpty()) {
-            InputStream inputStream = (InputStream) activeStreams.get(0);
-            try {
-                inputStream.reset();
-                getterStream = new BufferedInputStream(
-                        new ReaderInputStream(new InputStreamReader(inputStream), US_ASCII, inputStream.available()));
-            }
-            catch (IOException e) {
-                throw new SQLServerException(e.getMessage(), null, 0, e);
-            }
-        }
-        else {
-            getStringFromStream();
-            getterStream = new BufferedInputStream(new ReaderInputStream(new StringReader(value), US_ASCII, value.length()));
-
-        }
+        getStringFromStream();
+        InputStream getterStream = new BufferedInputStream(new ReaderInputStream(new StringReader(value), US_ASCII, value.length()));
+        activeStreams.add(getterStream);
         return getterStream;
     }
 
@@ -234,9 +221,15 @@ abstract class SQLServerClobBase implements Serializable {
     public Reader getCharacterStream() throws SQLException {
         checkClosed();
 
-        getStringFromStream();
-        Reader getterStream = new StringReader(value);
-        activeStreams.add(getterStream);
+        Reader getterStream = null;
+        if (null == value && !activeStreams.isEmpty()) {
+            InputStream inputStream = (InputStream) activeStreams.get(0);
+            getterStream = new BufferedReader(new InputStreamReader(inputStream, UTF_16LE));
+        }
+        else {
+            getterStream = new StringReader(value);
+            activeStreams.add(getterStream);
+        }
         return getterStream;
     }
 
@@ -312,8 +305,20 @@ abstract class SQLServerClobBase implements Serializable {
     public long length() throws SQLException {
         checkClosed();
 
-        getStringFromStream();
+        if (value == null && activeStreams.get(0) instanceof PLPInputStream) {
+            return (long)((PLPInputStream)activeStreams.get(0)).payloadLength/2;
+        }
         return value.length();
+    }
+    
+    /**
+     * Function for the result set to maintain clobs it has created
+     * @throws SQLException
+     */
+    void fillFromStream() throws SQLException {
+        if(!isClosed) {
+            getStringFromStream();
+        }
     }
     
     /**
