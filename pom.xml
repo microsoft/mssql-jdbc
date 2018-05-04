@@ -139,7 +139,7 @@
 				<plugins>
 					<plugin>
 						<artifactId>maven-compiler-plugin</artifactId>
-						<version>3.6.0</version>
+						<version>3.7.0</version>
 						<configuration>
 							<excludes>
 								<exclude>**/com/microsoft/sqlserver/jdbc/SQLServerJdbc43.java</exclude>
@@ -169,20 +169,20 @@
 			</activation>
 			
 			<properties>
-			<jreVersion>jre9</jreVersion>
+			<jreVersion>jre10</jreVersion>
 			</properties>
 			
 			<build>
 				<plugins>
 					<plugin>
 						<artifactId>maven-compiler-plugin</artifactId>
-						<version>3.6.0</version>
+						<version>3.7.0</version>
 						<configuration>
 							<excludes>
 								<exclude>**/com/microsoft/sqlserver/jdbc/SQLServerJdbc42.java</exclude>
 							</excludes>
-							<source>9</source>
-							<target>9</target>
+							<source>10</source>
+							<target>10</target>
 						</configuration>
 					</plugin>
 					<plugin>
@@ -247,7 +247,7 @@
 			<plugin>
 				<groupId>org.jacoco</groupId>
 				<artifactId>jacoco-maven-plugin</artifactId>
-				<version>0.7.8</version>
+				<version>0.8.1</version>
 				<executions>
 					<execution>
 						<goals>
