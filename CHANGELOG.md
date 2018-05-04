@@ -8,9 +8,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/)
 - Added new connection property "cancelQueryTimeout" to cancel QueryTimeout on Connection and Statement [#674](https://github.com/Microsoft/mssql-jdbc/pull/674)
 
 ### Fixed Issues
+- Improved performance degradation while maintaining JDBC compliance with results from sp_fkeys [#677](https://github.com/Microsoft/mssql-jdbc/pull/677)
 - Fixed an issue where ResultSetMetaData instances created by a ResultSet that has been closed were not persisting [#685](https://github.com/Microsoft/mssql-jdbc/pull/685)
 - Fixed an issue with PreparedStatement.setBigDecimal when no scale is passed [#684](https://github.com/Microsoft/mssql-jdbc/pull/684)
-- Fixed an issue with SQLServerDatabaseMetaData having performance degradation in 6.4.0 [#677](https://github.com/Microsoft/mssql-jdbc/pull/677)
 - Fixed an issue with Clobs/NClobs not persisting after ResultSet/Connection closes [#682](https://github.com/Microsoft/mssql-jdbc/pull/682)
 
 ### Changed
