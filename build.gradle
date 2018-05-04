@@ -43,7 +43,7 @@ if((hasProperty('buildProfile') && buildProfile == "build42")) {
 	targetCompatibility = 1.8
 }
 
-jar.archiveName = "${archivesBaseName}-${version}-SNAPSHOT.${jreVersion}-preview.jar"
+jar.archiveName = "${archivesBaseName}-${version}.${jreVersion}-preview.jar"
 jar {
 	manifest {
         attributes 'Title': "Microsoft JDBC Driver ${version} for SQL Server",
