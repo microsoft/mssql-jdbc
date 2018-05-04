@@ -40,7 +40,9 @@ enum SqlTypeValue {
     Object minValue;
     Object maxValue;
     Object nullValue;
-
+    
+    static final int MAX_DECIMAL_PRECISION = 38;
+    
     SqlTypeValue(Object minValue, Object maxValue, Object nullValue) {
         this.minValue = minValue;
         this.maxValue = maxValue;

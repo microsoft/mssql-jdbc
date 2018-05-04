@@ -1206,17 +1206,19 @@ public class StatementTest extends AbstractTest {
                         + " @col3Value float OUTPUT," + " @col4Value decimal(10,5) OUTPUT," + " @col5Value uniqueidentifier OUTPUT,"
                         + " @col6Value xml OUTPUT," + " @col7Value varbinary(max) OUTPUT," + " @col8Value text OUTPUT," + " @col9Value ntext OUTPUT,"
                         + " @col10Value varbinary(max) OUTPUT," + " @col11Value date OUTPUT," + " @col12Value time OUTPUT,"
-                        + " @col13Value datetime2 OUTPUT," + " @col14Value datetimeoffset OUTPUT" + " AS BEGIN " + " SET @col1Value = 'hello'"
+                        + " @col13Value datetime2 OUTPUT," + " @col14Value datetimeoffset OUTPUT," + " @col15Value decimal(10,10) OUTPUT," + " @col16Value decimal(38,38) OUTPUT" 
+                        + " AS BEGIN " + " SET @col1Value = 'hello'"
                         + " SET @col2Value = 1" + " SET @col3Value = 2.0" + " SET @col4Value = 123.45"
                         + " SET @col5Value = '6F9619FF-8B86-D011-B42D-00C04FC964FF'" + " SET @col6Value = '<test/>'"
                         + " SET @col7Value = 0x63C34D6BCAD555EB64BF7E848D02C376" + " SET @col8Value = 'text'" + " SET @col9Value = 'ntext'"
                         + " SET @col10Value = 0x63C34D6BCAD555EB64BF7E848D02C376" + " SET @col11Value = '2017-05-19'"
                         + " SET @col12Value = '10:47:15.1234567'" + " SET @col13Value = '2017-05-19T10:47:15.1234567'"
-                        + " SET @col14Value = '2017-05-19T10:47:15.1234567+02:00'" + " END";
+                        + " SET @col14Value = '2017-05-19T10:47:15.1234567+02:00'" + " SET @col15Value = 0.123456789"
+                        + " SET @col16Value = 0.1234567890123456789012345678901234567" + " END";
                 stmt.execute(query);
 
                 // Test JDBC 4.1 methods for CallableStatement
-                try (CallableStatement cstmt = conn.prepareCall("{call " + procName + "(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)}")) {
+                try (CallableStatement cstmt = conn.prepareCall("{call " + procName + "(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)}")) {
                     cstmt.registerOutParameter(1, java.sql.Types.VARCHAR);
                     cstmt.registerOutParameter(2, java.sql.Types.INTEGER);
                     cstmt.registerOutParameter(3, java.sql.Types.FLOAT);
@@ -1231,6 +1233,8 @@ public class StatementTest extends AbstractTest {
                     cstmt.registerOutParameter(12, java.sql.Types.TIME);
                     cstmt.registerOutParameter(13, java.sql.Types.TIMESTAMP);
                     cstmt.registerOutParameter(14, java.sql.Types.TIMESTAMP_WITH_TIMEZONE);
+                    cstmt.registerOutParameter(15, java.sql.Types.DECIMAL);
+                    cstmt.registerOutParameter(16, java.sql.Types.DECIMAL);
                     cstmt.execute();
 
                     assertEquals("hello", cstmt.getObject(1, String.class));
@@ -1302,6 +1306,13 @@ public class StatementTest extends AbstractTest {
 
                     assertEquals("2017-05-19 10:47:15.1234567 +02:00", cstmt.getObject(14, microsoft.sql.DateTimeOffset.class).toString());
                     assertEquals("2017-05-19 10:47:15.1234567 +02:00", cstmt.getObject("col14Value", microsoft.sql.DateTimeOffset.class).toString());
+                    
+                    // BigDecimal#equals considers the number of decimal places (OutParams always return 4 decimal digits rounded up)
+                    assertEquals(0, cstmt.getObject(15, BigDecimal.class).compareTo(new BigDecimal("0.1235")));
+                    assertEquals(0, cstmt.getObject("col15Value", BigDecimal.class).compareTo(new BigDecimal("0.1235")));
+                    
+                    assertEquals(0, cstmt.getObject(16, BigDecimal.class).compareTo(new BigDecimal("0.1235")));
+                    assertEquals(0, cstmt.getObject("col16Value", BigDecimal.class).compareTo(new BigDecimal("0.1235")));
                 }
             }
         }
@@ -1827,8 +1838,8 @@ public class StatementTest extends AbstractTest {
         }
 
         /**
-         * Tests the following for isSparseColumnSet api a) An exception is thrown when result set is closed b) An exception is thrown when statement
-         * is closed c) An exception is thrown when connection is closed
+         * Tests the following for isSparseColumnSet api a) Metadata is available when result set is closed b) Metadata is available when statement
+         * is closed c) Metadata is available when connection is closed
          * 
          * @throws Exception
          */
@@ -1844,53 +1855,22 @@ public class StatementTest extends AbstractTest {
             con = createConnectionAndPopulateData();
             Statement stmt = con.createStatement();
 
-            // enable isCloseOnCompletion
-            try {
-                stmt.closeOnCompletion();
-            }
-            catch (Exception e) {
-
-                throw new SQLException("testSparseColumnSetForException threw exception: ", e);
-
-            }
-
             String selectQuery = "SELECT * FROM " + tableName;
             ResultSet rs = stmt.executeQuery(selectQuery);
             rs.next();
-
             SQLServerResultSetMetaData rsmd = (SQLServerResultSetMetaData) rs.getMetaData();
-            try {
-                // test that an exception is thrown when result set is closed
-                rs.close();
-                rsmd.isSparseColumnSet(1);
-                assertEquals(true, false, "Should not reach here. An exception should have been thrown");
-            }
-            catch (SQLException e) {
-            }
+            rs.close();
+            rsmd.isSparseColumnSet(1);
 
-            // test that an exception is thrown when statement is closed
-            try {
-                rs = stmt.executeQuery(selectQuery);
-                rsmd = (SQLServerResultSetMetaData) rs.getMetaData();
+            rs = stmt.executeQuery(selectQuery);
+            rsmd = (SQLServerResultSetMetaData) rs.getMetaData();
+            stmt.close();
+            rsmd.isSparseColumnSet(1);
 
-                assertEquals(stmt.isClosed(), true, "testSparseColumnSetForException: statement should be closed since resultset is closed.");
-                stmt.close();
-                rsmd.isSparseColumnSet(1);
-                assertEquals(true, false, "Should not reach here. An exception should have been thrown");
-            }
-            catch (SQLException e) {
-            }
-
-            // test that an exception is thrown when connection is closed
-            try {
-                rs = con.createStatement().executeQuery("SELECT * FROM " + tableName);
-                rsmd = (SQLServerResultSetMetaData) rs.getMetaData();
-                con.close();
-                rsmd.isSparseColumnSet(1);
-                assertEquals(true, false, "Should not reach here. An exception should have been thrown");
-            }
-            catch (SQLException e) {
-            }
+            rs = con.createStatement().executeQuery("SELECT * FROM " + tableName);
+            rsmd = (SQLServerResultSetMetaData) rs.getMetaData();
+            con.close();
+            rsmd.isSparseColumnSet(1);
 
         }
 
