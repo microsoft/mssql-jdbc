@@ -5888,13 +5888,7 @@ public class SQLServerConnection implements ISQLServerConnection {
                 // Base data type: int
                 final int ENGINE_EDITION_FOR_SQL_AZURE_DW = 6;
                 rs.next();
-                int engineEdition = rs.getInt(1);
-                if (engineEdition == ENGINE_EDITION_FOR_SQL_AZURE_DW)
-                {
-                    isAzureDW = true;
-                } else {
-                    isAzureDW = false;
-                }
+                isAzureDW = (rs.getInt(1) == ENGINE_EDITION_FOR_SQL_AZURE_DW) ? true : false;
             }
             return isAzureDW;
         } else {
