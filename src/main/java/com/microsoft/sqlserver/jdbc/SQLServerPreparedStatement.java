@@ -2472,8 +2472,10 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                 ArrayList<String> valueList = parseUserSQLForValueListDW(false);
                 
                 String destinationTableName = tableName;
+                SQLServerStatement stmt = (SQLServerStatement) connection.createStatement(ResultSet.TYPE_FORWARD_ONLY, 
+                        ResultSet.CONCUR_READ_ONLY, connection.getHoldability(), stmtColumnEncriptionSetting);
                 // Get destination metadata
-                try (SQLServerResultSet rs = ((SQLServerStatement) connection.createStatement())
+                try (SQLServerResultSet rs = stmt
                         .executeQueryInternal("SET FMTONLY ON SELECT * FROM " + destinationTableName + " SET FMTONLY OFF ");) {
                     
                     SQLServerBulkBatchInsertRecord batchRecord = new SQLServerBulkBatchInsertRecord(batchParamValues, columnList, valueList, null);
@@ -2493,6 +2495,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                     
                     SQLServerBulkCopy bcOperation = new SQLServerBulkCopy(connection);
                     bcOperation.setDestinationTableName(tableName);
+                    bcOperation.setStmtColumnEncriptionSetting(this.getStmtColumnEncriptionSetting());
                     bcOperation.writeToServer((ISQLServerBulkRecord) batchRecord);
                     bcOperation.close();
                     updateCounts = new int[batchParamValues.size()];
@@ -2504,6 +2507,10 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                     batchParamValues = null;
                     loggerExternal.exiting(getClassNameLogging(), "executeBatch", updateCounts);
                     return updateCounts;
+                }
+                finally {
+                    if (null != stmt)
+                        stmt.close();
                 }
             }
         }

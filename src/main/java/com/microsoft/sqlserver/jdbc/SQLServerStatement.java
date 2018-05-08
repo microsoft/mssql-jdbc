@@ -154,6 +154,9 @@ public class SQLServerStatement implements ISQLServerStatement {
      */
     protected SQLServerStatementColumnEncryptionSetting stmtColumnEncriptionSetting = SQLServerStatementColumnEncryptionSetting.UseConnectionSetting;
 
+    protected SQLServerStatementColumnEncryptionSetting getStmtColumnEncriptionSetting() {
+        return stmtColumnEncriptionSetting;
+    }
     /**
      * ExecuteProperties encapsulates a subset of statement property values as they were set at execution time.
      */

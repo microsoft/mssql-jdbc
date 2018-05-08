@@ -153,6 +153,9 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable {
     /* The CekTable for the destination table. */
     private CekTable destCekTable = null;
 
+    /* Statement level encryption setting needed for querying against encrypted columns. */
+    private SQLServerStatementColumnEncryptionSetting stmtColumnEncriptionSetting = SQLServerStatementColumnEncryptionSetting.UseConnectionSetting;
+    
     /*
      * Metadata for the destination table columns
      */
@@ -1740,11 +1743,13 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable {
 
         SQLServerResultSet rs = null;
         SQLServerResultSet rsMoreMetaData = null;
-
+        SQLServerStatement stmt = null;
+        
         try {
+             stmt = (SQLServerStatement) connection.createStatement(ResultSet.TYPE_FORWARD_ONLY, 
+                    ResultSet.CONCUR_READ_ONLY, connection.getHoldability(), stmtColumnEncriptionSetting);
             // Get destination metadata
-            rs = ((SQLServerStatement) connection.createStatement())
-                    .executeQueryInternal("SET FMTONLY ON SELECT * FROM " + destinationTableName + " SET FMTONLY OFF ");
+            rs = stmt.executeQueryInternal("SET FMTONLY ON SELECT * FROM " + destinationTableName + " SET FMTONLY OFF ");
 
             destColumnCount = rs.getMetaData().getColumnCount();
             destColumnMetadata = new HashMap<>();
@@ -1783,6 +1788,8 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable {
         finally {
             if (null != rs)
                 rs.close();
+            if (null != stmt)
+                stmt.close();
             if (null != rsMoreMetaData)
                 rsMoreMetaData.close();
         }
@@ -3572,5 +3579,9 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable {
                 TDSParser.parse(command.startResponse(), command.getLogContext());
             }
         }
+    }
+
+    protected void setStmtColumnEncriptionSetting(SQLServerStatementColumnEncryptionSetting stmtColumnEncriptionSetting) {
+        this.stmtColumnEncriptionSetting = stmtColumnEncriptionSetting;
     }
 }
