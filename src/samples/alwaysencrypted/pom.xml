@@ -19,7 +19,7 @@
 		<dependency>
 			<groupId>com.microsoft.sqlserver</groupId>
 			<artifactId>mssql-jdbc</artifactId>
-			<version>6.1.0.jre8</version>
+			<version>6.4.0.jre9</version>
 		</dependency>
 	</dependencies>
 	
@@ -35,7 +35,7 @@
 						<artifactId>exec-maven-plugin</artifactId>
 						<version>1.2.1</version>
 						<configuration>
-							<mainClass>AlwaysEncrypted</mainClass>
+							<mainClass>alwaysencrypted.src.main.java.AlwaysEncrypted</mainClass>
 						</configuration>
 					</plugin>
 				</plugins>
@@ -49,8 +49,8 @@
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-compiler-plugin</artifactId>
 				<configuration>
-					<source>1.8</source>
-					<target>1.8</target>
+					<source>9</source>
+					<target>9</target>
 				</configuration>
 			</plugin>
 

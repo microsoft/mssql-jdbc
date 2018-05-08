@@ -1,36 +1,49 @@
+/****************************************************************
+ * Gradle Scipt for Building Microsoft JDBC Driver for SQL Server
+ ****************************************************************
+ * Instruction for Building JDBC Driver:
+ * For building jre9 version of the driver,
+ * use command 'gradle build' or 'gradle build -PbuildProfile=build43'
+ * Whereas, for building jre8 version of the driver,
+ * use command 'gradle build -PbuildProfile=build42'
+ ****************************************************************/
+
 apply plugin: 'java'
 
-archivesBaseName = 'mssql-jdbc'
-version = '6.1.6'
+version = '6.5.3-SNAPSHOT'
+def jreVersion = ""
+def testOutputDir = file("build/classes/java/test")
+def archivesBaseName = 'mssql-jdbc'
+def excludedFile = 'com/microsoft/sqlserver/jdbc/SQLServerJdbc42.java'
 
 allprojects {
     tasks.withType(JavaCompile) {
         options.encoding = 'UTF-8'
     }
-        
     tasks.withType(Test) {
        systemProperty "file.encoding", "UTF-8"
     }
 }
 
-def excludedFile = ''
-
-if(build == "build41") {
-	jar.archiveName = "${archivesBaseName}-${version}.jre7.jar"
+if (!hasProperty('buildProfile') || (hasProperty('buildProfile') && buildProfile == "build43")){
+	
+	jreVersion = "jre9"
 	excludedFile = 'com/microsoft/sqlserver/jdbc/SQLServerJdbc42.java'
 	
-	sourceCompatibility = 1.7
-	targetCompatibility = 1.7
+	sourceCompatibility = 9
+	targetCompatibility = 9
 }
 
-if(build == "build42") {
-	jar.archiveName = "${archivesBaseName}-${version}.jre8.jar"
-	excludedFile = 'com/microsoft/sqlserver/jdbc/SQLServerJdbc41.java'
+if((hasProperty('buildProfile') && buildProfile == "build42")) {
+	
+	jreVersion = "jre8"
+	excludedFile = 'com/microsoft/sqlserver/jdbc/SQLServerJdbc43.java'
 	
 	sourceCompatibility = 1.8
 	targetCompatibility = 1.8
 }
 
+jar.archiveName = "${archivesBaseName}-${version}.${jreVersion}-preview.jar"
 jar {
 	manifest {
         attributes 'Title': "Microsoft JDBC Driver ${version} for SQL Server",
@@ -45,7 +58,6 @@ sourceSets {
             srcDirs 'src/main/java'
 			exclude excludedFile
         }
-		
 		resources {
 			srcDirs "$projectDir"
 			include 'META-INF/services/java.sql.Driver'
@@ -55,7 +67,7 @@ sourceSets {
 		resources {
 			srcDirs 'src/test/resources'
 			include '**/*.csv'
-			output.resourcesDir = output.classesDir
+			output.resourcesDir = testOutputDir
 		}
 	}
 }
@@ -67,17 +79,16 @@ repositories {
 
 dependencies {
 	compile 'com.microsoft.azure:azure-keyvault:1.0.0',
-	'com.microsoft.azure:adal4j:1.1.3'
-		
+	'com.microsoft.azure:adal4j:1.5.0'
 	testCompile 'junit:junit:4.12',
-	'org.junit.platform:junit-platform-console:1.0.0-M3',
-	'org.junit.platform:junit-platform-commons:1.0.0-M3',
-	'org.junit.platform:junit-platform-engine:1.0.0-M3',
-	'org.junit.platform:junit-platform-launcher:1.0.0-M3',
-	'org.junit.platform:junit-platform-runner:1.0.0-M3',
-	'org.junit.platform:junit-platform-surefire-provider:1.0.0-M3',
-	'org.junit.jupiter:junit-jupiter-api:5.0.0-M3',
-	'org.junit.jupiter:junit-jupiter-engine:5.0.0-M3',
-	'com.zaxxer:HikariCP:2.6.0',
-	'org.apache.commons:commons-dbcp2:2.1.1'
+	'org.junit.platform:junit-platform-console:1.2.0',
+	'org.junit.platform:junit-platform-commons:1.2.0',
+	'org.junit.platform:junit-platform-engine:1.2.0',
+	'org.junit.platform:junit-platform-launcher:1.2.0',
+	'org.junit.platform:junit-platform-runner:1.2.0',
+	'org.junit.platform:junit-platform-surefire-provider:1.2.0',
+	'org.junit.jupiter:junit-jupiter-api:5.2.0',
+	'org.junit.jupiter:junit-jupiter-engine:5.2.0',
+	'com.zaxxer:HikariCP:3.1.0',
+	'org.apache.commons:commons-dbcp2:2.0'
 }

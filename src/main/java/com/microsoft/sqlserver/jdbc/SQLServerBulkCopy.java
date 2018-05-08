@@ -689,7 +689,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable {
     private void sendBulkLoadBCP() throws SQLServerException {
         final class InsertBulk extends TDSCommand {
             InsertBulk() {
-                super("InsertBulk", 0);
+                super("InsertBulk", 0, 0);
                 int timeoutSeconds = copyOptions.getBulkCopyTimeout();
                 timeoutTimer = (timeoutSeconds > 0) ? (new BulkTimeoutTimer(timeoutSeconds, this)) : null;
             }
