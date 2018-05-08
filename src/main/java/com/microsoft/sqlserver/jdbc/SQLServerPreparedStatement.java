@@ -22,6 +22,7 @@ import java.sql.RowId;
 import java.sql.SQLException;
 import java.sql.SQLFeatureNotSupportedException;
 import java.sql.SQLTimeoutException;
+import java.sql.SQLType;
 import java.sql.SQLXML;
 import java.sql.Statement;
 import java.text.MessageFormat;
@@ -439,7 +440,6 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     }
 
     public long executeLargeUpdate() throws SQLServerException, SQLTimeoutException {
-        DriverJDBCVersion.checkSupportsJDBC42();
 
         loggerExternal.entering(getClassNameLogging(), "executeLargeUpdate");
         if (loggerExternal.isLoggable(Level.FINER) && Util.IsActivityTraceOn()) {
@@ -1930,6 +1930,36 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         }
     }
 
+    public final void setObject(int index,
+            Object obj,
+            SQLType jdbcType) throws SQLServerException {
+        setObject(index, obj, jdbcType.getVendorTypeNumber());
+    }
+
+    public final void setObject(int parameterIndex,
+            Object x,
+            SQLType targetSqlType,
+            int scaleOrLength) throws SQLServerException {
+        setObject(parameterIndex, x, targetSqlType.getVendorTypeNumber(), scaleOrLength);
+    }
+
+    public final void setObject(int parameterIndex,
+            Object x,
+            SQLType targetSqlType,
+            Integer precision,
+            Integer scale) throws SQLServerException {
+        setObject(parameterIndex, x, targetSqlType.getVendorTypeNumber(), precision, scale);
+    }
+
+    public final void setObject(int parameterIndex,
+            Object x,
+            SQLType targetSqlType,
+            Integer precision,
+            Integer scale,
+            boolean forceEncrypt) throws SQLServerException {
+        setObject(parameterIndex, x, targetSqlType.getVendorTypeNumber(), precision, scale, forceEncrypt);
+    }
+    
     public final void setShort(int index,
             short x) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
@@ -2501,8 +2531,6 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     }
 
     public long[] executeLargeBatch() throws SQLServerException, BatchUpdateException, SQLTimeoutException {
-        DriverJDBCVersion.checkSupportsJDBC42();
-
         loggerExternal.entering(getClassNameLogging(), "executeLargeBatch");
         if (loggerExternal.isLoggable(Level.FINER) && Util.IsActivityTraceOn()) {
             loggerExternal.finer(toString() + " ActivityId: " + ActivityCorrelator.getNext().toString());
@@ -3125,4 +3153,5 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         Object[] msgArgs = {"addBatch()"};
         throw new SQLServerException(this, form.format(msgArgs), null, 0, false);
     }
+    
 }

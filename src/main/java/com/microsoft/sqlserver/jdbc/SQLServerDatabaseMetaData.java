@@ -389,14 +389,14 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
     }
 
     public long getMaxLogicalLobSize() throws SQLException {
-        DriverJDBCVersion.checkSupportsJDBC42();
+
         checkClosed();
 
         return MAXLOBSIZE;
     }
 
     public boolean supportsRefCursors() throws SQLException {
-        DriverJDBCVersion.checkSupportsJDBC42();
+
         checkClosed();
 
         return false;

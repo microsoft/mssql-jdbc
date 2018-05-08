@@ -132,14 +132,14 @@
 			<id>build42</id>
 			
 			<properties>
-			<jreVersion>jre8</jreVersion>
+				<jreVersion>jre8</jreVersion>
 			</properties>
 			
 			<build>
 				<plugins>
 					<plugin>
 						<artifactId>maven-compiler-plugin</artifactId>
-						<version>3.7.0</version>
+						<version>3.6.0</version>
 						<configuration>
 							<excludes>
 								<exclude>**/com/microsoft/sqlserver/jdbc/SQLServerJdbc43.java</exclude>
@@ -176,7 +176,7 @@
 				<plugins>
 					<plugin>
 						<artifactId>maven-compiler-plugin</artifactId>
-						<version>3.7.0</version>
+						<version>3.6.0</version>
 						<configuration>
 							<excludes>
 								<exclude>**/com/microsoft/sqlserver/jdbc/SQLServerJdbc42.java</exclude>

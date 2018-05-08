@@ -23,6 +23,7 @@ import java.sql.ResultSetMetaData;
 import java.sql.RowId;
 import java.sql.SQLException;
 import java.sql.SQLFeatureNotSupportedException;
+import java.sql.SQLType;
 import java.sql.SQLWarning;
 import java.sql.SQLXML;
 import java.text.MessageFormat;
@@ -6662,4 +6663,98 @@ public class SQLServerResultSet implements ISQLServerResultSet {
                 logger.finer(toString() + " Closed cursor:" + serverCursorId);
         }
     }
+
+    public void updateObject(int index,
+            Object obj,
+            SQLType targetSqlType) throws SQLServerException {
+
+        if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
+            loggerExternal.entering(getClassNameLogging(), "updateObject", new Object[] {index, obj, targetSqlType});
+
+        checkClosed();
+        // getVendorTypeNumber() returns the same constant integer values as in java.sql.Types
+        updateObject(index, obj, null, JDBCType.of(targetSqlType.getVendorTypeNumber()), null, false);
+
+        loggerExternal.exiting(getClassNameLogging(), "updateObject");
+    }
+
+    public void updateObject(int index,
+            Object obj,
+            SQLType targetSqlType,
+            int scale) throws SQLServerException {
+
+        if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
+            loggerExternal.entering(getClassNameLogging(), "updateObject", new Object[] {index, obj, targetSqlType, scale});
+
+        checkClosed();
+        // getVendorTypeNumber() returns the same constant integer values as in java.sql.Types
+        updateObject(index, obj, scale, JDBCType.of(targetSqlType.getVendorTypeNumber()), null, false);
+
+        loggerExternal.exiting(getClassNameLogging(), "updateObject");
+    }
+
+    public void updateObject(int index,
+            Object obj,
+            SQLType targetSqlType,
+            int scale,
+            boolean forceEncrypt) throws SQLServerException {
+
+        if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
+            loggerExternal.entering(getClassNameLogging(), "updateObject", new Object[] {index, obj, targetSqlType, scale, forceEncrypt});
+
+        checkClosed();
+        // getVendorTypeNumber() returns the same constant integer values as in java.sql.Types
+        updateObject(index, obj, scale, JDBCType.of(targetSqlType.getVendorTypeNumber()), null, forceEncrypt);
+
+        loggerExternal.exiting(getClassNameLogging(), "updateObject");
+    }
+
+    public void updateObject(String columnName,
+            Object obj,
+            SQLType targetSqlType,
+            int scale) throws SQLServerException {
+
+        if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
+            loggerExternal.entering(getClassNameLogging(), "updateObject", new Object[] {columnName, obj, targetSqlType, scale});
+
+        checkClosed();
+
+        // getVendorTypeNumber() returns the same constant integer values as in java.sql.Types
+        updateObject(findColumn(columnName), obj, scale, JDBCType.of(targetSqlType.getVendorTypeNumber()), null, false);
+
+        loggerExternal.exiting(getClassNameLogging(), "updateObject");
+    }
+
+    public void updateObject(String columnName,
+            Object obj,
+            SQLType targetSqlType,
+            int scale,
+            boolean forceEncrypt) throws SQLServerException {
+
+        if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
+            loggerExternal.entering(getClassNameLogging(), "updateObject", new Object[] {columnName, obj, targetSqlType, scale, forceEncrypt});
+
+        checkClosed();
+
+        // getVendorTypeNumber() returns the same constant integer values as in java.sql.Types
+        updateObject(findColumn(columnName), obj, scale, JDBCType.of(targetSqlType.getVendorTypeNumber()), null, forceEncrypt);
+
+        loggerExternal.exiting(getClassNameLogging(), "updateObject");
+    }
+
+    public void updateObject(String columnName,
+            Object obj,
+            SQLType targetSqlType) throws SQLServerException {
+
+        if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
+            loggerExternal.entering(getClassNameLogging(), "updateObject", new Object[] {columnName, obj, targetSqlType});
+
+        checkClosed();
+
+        // getVendorTypeNumber() returns the same constant integer values as in java.sql.Types
+        updateObject(findColumn(columnName), obj, null, JDBCType.of(targetSqlType.getVendorTypeNumber()), null, false);
+
+        loggerExternal.exiting(getClassNameLogging(), "updateObject");
+    }
+
 }

@@ -395,7 +395,6 @@ public class SQLServerBulkCSVFileRecord implements ISQLServerBulkRecord, java.la
      *            format to parse data sent as java.sql.Types.TIMESTAMP_WITH_TIMEZONE
      */
     public void setTimestampWithTimezoneFormat(String dateTimeFormat) {
-        DriverJDBCVersion.checkSupportsJDBC42();
         loggerExternal.entering(loggerClassName, "setTimestampWithTimezoneFormat", dateTimeFormat);
 
         this.dateTimeFormatter = DateTimeFormatter.ofPattern(dateTimeFormat);
@@ -424,7 +423,7 @@ public class SQLServerBulkCSVFileRecord implements ISQLServerBulkRecord, java.la
      *            format to parse data sent as java.sql.Types.TIME_WITH_TIMEZONE
      */
     public void setTimeWithTimezoneFormat(String timeFormat) {
-        DriverJDBCVersion.checkSupportsJDBC42();
+
         loggerExternal.entering(loggerClassName, "setTimeWithTimezoneFormat", timeFormat);
 
         this.timeFormatter = DateTimeFormatter.ofPattern(timeFormat);
@@ -634,7 +633,6 @@ public class SQLServerBulkCSVFileRecord implements ISQLServerBulkRecord, java.la
 
                         case 2013:    // java.sql.Types.TIME_WITH_TIMEZONE
                         {
-                            DriverJDBCVersion.checkSupportsJDBC42();
                             OffsetTime offsetTimeValue;
 
                             // The per-column DateTimeFormatter gets priority.
@@ -651,7 +649,6 @@ public class SQLServerBulkCSVFileRecord implements ISQLServerBulkRecord, java.la
 
                         case 2014: // java.sql.Types.TIMESTAMP_WITH_TIMEZONE
                         {
-                            DriverJDBCVersion.checkSupportsJDBC42();
                             OffsetDateTime offsetDateTimeValue;
 
                             // The per-column DateTimeFormatter gets priority.

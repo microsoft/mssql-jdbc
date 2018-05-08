@@ -218,7 +218,6 @@ public final class SQLServerDataTable {
 
             case TIMESTAMP_WITH_TIMEZONE:
             case TIME_WITH_TIMEZONE:
-                DriverJDBCVersion.checkSupportsJDBC42();
             case DATE:
             case TIME:
             case TIMESTAMP:
