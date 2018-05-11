@@ -51,13 +51,11 @@ To build the jar files, you must use Java 9 with Maven.  You can choose to build
     	* Run `mvn install -Pbuild43`. This creates JDBC 4.3 compliant jar in \target directory
     	* Run `mvn install -Pbuild42`. This creates JDBC 4.2 compliant jar in \target directory
 
-**NOTE**: Beginning release v6.1.7, we will no longer be maintaining the existing [Gradle build script](build.gradle) and it will be left in the repository for reference. Please refer to issue [#62](https://github.com/Microsoft/mssql-jdbc/issues/62) for this decision.
-
 * Gradle:
 	1. If you have not already done so, add the environment variable `mssql_jdbc_test_connection_properties` in your system with the connection properties for your SQL Server or SQL DB instance.
-	2. Run one of the commands below to build a JDBC 4.1 compliant jar or JDBC 4.2 compliant jar in the \build\libs directory. 
-    	* Run `gradle build -Pbuild=build41`. This creates JDBC 4.1 compliant jar in \build\libs directory
-    	* Run `gradle build -Pbuild=build42`. This creates JDBC 4.2 compliant jar in \build\libs directory
+	2. Run one of the commands below to build a JDBC 4.3 compliant jar or JDBC 4.2 compliant jar in the \build\libs directory. 
+    	* Run `gradle build -PbuildProfile=build43`. This creates JDBC 4.3 compliant jar in \build\libs directory
+    	* Run `gradle build -PbuildProfile=build42`. This creates JDBC 4.2 compliant jar in \build\libs directory
 
 ## Resources
 
@@ -90,7 +88,7 @@ To get the latest preview version of the driver, add the following to your POM f
 <dependency>
 	<groupId>com.microsoft.sqlserver</groupId>
 	<artifactId>mssql-jdbc</artifactId>
-	<version>6.5.1.jre9-preview</version>
+	<version>6.5.2.jre9-preview</version>
 </dependency>
 ```
 
@@ -120,14 +118,14 @@ Projects that require either of the two features need to explicitly declare the 
 <dependency>
 	<groupId>com.microsoft.sqlserver</groupId>
 	<artifactId>mssql-jdbc</artifactId>
-	<version>6.5.1.jre9-preview</version>
+	<version>6.5.2.jre9-preview</version>
 	<scope>compile</scope>
 </dependency>
 
 <dependency>
 	<groupId>com.microsoft.azure</groupId>
 	<artifactId>adal4j</artifactId>
-	<version>1.4.0</version>
+	<version>1.5.0</version>
 </dependency>
 ```
 
@@ -136,14 +134,14 @@ Projects that require either of the two features need to explicitly declare the 
 <dependency>
 	<groupId>com.microsoft.sqlserver</groupId>
 	<artifactId>mssql-jdbc</artifactId>
-	<version>6.5.1.jre9-preview</version>
+	<version>6.5.2.jre9-preview</version>
 	<scope>compile</scope>
 </dependency>
 
 <dependency>
 	<groupId>com.microsoft.azure</groupId>
 	<artifactId>adal4j</artifactId>
-	<version>1.4.0</version>
+	<version>1.5.0</version>
 </dependency>
 
 <dependency>

@@ -63,6 +63,8 @@ public class ResultSetTest extends AbstractTest {
                     + "col12 time, "
                     + "col13 datetime2, "
                     + "col14 datetimeoffset, "
+                    + "col15 decimal(10,9), "
+                    + "col16 decimal(38,38), "
                     + "order_column int identity(1,1) primary key)");
             try {
     
@@ -80,10 +82,14 @@ public class ResultSetTest extends AbstractTest {
                         + "'2017-05-19'," // col11
                         + "'10:47:15.1234567'," // col12
                         + "'2017-05-19T10:47:15.1234567'," // col13
-                        + "'2017-05-19T10:47:15.1234567+02:00'" // col14
+                        + "'2017-05-19T10:47:15.1234567+02:00'," // col14
+                        + "0.123456789, " // col15
+                        + "0.1234567890123456789012345678901234567" // col16
                         + ")");
     
                 stmt.executeUpdate("Insert into " + tableName + " values("
+                        + "null, "
+                        + "null, "
                         + "null, "
                         + "null, "
                         + "null, "
@@ -176,7 +182,13 @@ public class ResultSetTest extends AbstractTest {
 
                     assertEquals("2017-05-19 10:47:15.1234567 +02:00", rs.getObject(14, microsoft.sql.DateTimeOffset.class).toString());
                     assertEquals("2017-05-19 10:47:15.1234567 +02:00", rs.getObject("col14", microsoft.sql.DateTimeOffset.class).toString());
-
+                    
+                    // BigDecimal#equals considers the number of decimal places (ResultSet returns all digits after decimal unlike CallableStatement outparams)
+                    assertEquals(0, rs.getObject(15, BigDecimal.class).compareTo(new BigDecimal("0.123456789")));
+                    assertEquals(0, rs.getObject("col15", BigDecimal.class).compareTo(new BigDecimal("0.123456789")));
+                    
+                    assertEquals(0, rs.getObject(16, BigDecimal.class).compareTo(new BigDecimal("0.12345678901234567890123456789012345670")));
+                    assertEquals(0, rs.getObject("col16", BigDecimal.class).compareTo(new BigDecimal("0.12345678901234567890123456789012345670")));
 
                     // test null values, mostly to verify primitive wrappers do not return default values
                     assertTrue(rs.next());
@@ -232,6 +244,12 @@ public class ResultSetTest extends AbstractTest {
                     assertNull(rs.getObject(14, microsoft.sql.DateTimeOffset.class));
                     assertNull(rs.getObject("col14", microsoft.sql.DateTimeOffset.class));
 
+                    assertNull(rs.getObject(15, BigDecimal.class));
+                    assertNull(rs.getObject("col15", BigDecimal.class));
+                    
+                    assertNull(rs.getObject(16, BigDecimal.class));
+                    assertNull(rs.getObject("col16", BigDecimal.class));
+                    
                     assertFalse(rs.next());
                 }
             } finally {
