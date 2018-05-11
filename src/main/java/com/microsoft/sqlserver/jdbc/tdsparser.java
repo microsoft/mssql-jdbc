@@ -102,7 +102,6 @@ final class TDSParser {
                 case TDS.TDS_FEDAUTHINFO:
                     parsing = tdsTokenHandler.onFedAuthInfo(tdsReader);
                     break;
-
                 case -1:
                     tdsReader.getCommand().onTokenEOF();
                     tdsTokenHandler.onEOF(tdsReader);
@@ -167,7 +166,7 @@ class TDSTokenHandler {
         return databaseError;
     }
 
-    TDSTokenHandler(String logContext) {
+	TDSTokenHandler(String logContext) {
         this.logContext = logContext;
     }
 

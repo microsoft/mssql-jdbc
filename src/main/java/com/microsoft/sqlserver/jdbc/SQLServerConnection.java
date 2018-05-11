@@ -558,6 +558,12 @@ public class SQLServerConnection implements ISQLServerConnection {
         return serverSupportsColumnEncryption;
     }
 
+    private boolean serverSupportsDataClassification = false;
+    
+    boolean getServerSupportsDataClassification() {
+        return serverSupportsDataClassification;
+    }
+    
     static boolean isWindows;
     static Map<String, SQLServerColumnEncryptionKeyStoreProvider> globalSystemColumnEncryptionKeyStoreProviders = new HashMap<>();
     static {
@@ -3316,7 +3322,6 @@ public class SQLServerConnection implements ISQLServerConnection {
                                                                                                                   * if false just calculates the
                                                                                                                   * length
                                                                                                                   */
-
         assert (fedAuthFeatureExtensionData.libraryType == TDS.TDS_FEDAUTH_LIBRARY_ADAL
                 || fedAuthFeatureExtensionData.libraryType == TDS.TDS_FEDAUTH_LIBRARY_SECURITYTOKEN);
 
@@ -3400,7 +3405,20 @@ public class SQLServerConnection implements ISQLServerConnection {
         }
         return totalLen;
     }
+    
+    int writeDataClassificationFeatureRequest (boolean write /* if false just calculates the length */,
+    		TDSWriter tdsWriter) throws SQLServerException {
+        int len = 6; // 1byte = featureID, 4bytes = featureData length, 1 bytes = Version
 
+        if (write) {
+            // Write Feature ID, length of the version# field and Sensitivity Classification Version#
+        	tdsWriter.writeByte((byte) TDS.TDS_FEATUREEXT_DATACLASSIFICATION);
+        	tdsWriter.writeInt(1);
+        	tdsWriter.writeByte((byte) TDS.MAX_SUPPORTED_DATA_CLASSIFICATION_VERSION);
+        }
+        return len; // size of data written
+    }
+    
     private final class LogonCommand extends UninterruptableTDSCommand {
         LogonCommand() {
             super("logon");
@@ -4103,11 +4121,40 @@ public class SQLServerConnection implements ISQLServerConnection {
                     throw new SQLServerException(SQLServerException.getErrString("R_InvalidAEVersionNumber"), null);
                 }
 
-                assert supportedTceVersion == TDS.MAX_SUPPORTED_TCE_VERSION; // Client support TCE version 1
                 serverSupportsColumnEncryption = true;
                 break;
             }
+            case TDS.TDS_FEATUREEXT_DATACLASSIFICATION: {
+            	if (connectionlogger.isLoggable(Level.FINER)) {
+                    connectionlogger.fine(toString() + " Received feature extension acknowledgement for Data Classification.");
+                }
 
+                if (1 > data.length) {
+                	if (connectionlogger.isLoggable(Level.SEVERE)) {
+                        connectionlogger.severe(toString() + " Unknown token for Data Classification.");
+                    }
+                    throw new SQLServerException(SQLServerException.getErrString("R_UnknownDataClsTokenNumber"), null);
+                }
+                
+                byte supportedDataClassificationVersion = data[0];
+                if ((0 == supportedDataClassificationVersion) || (supportedDataClassificationVersion > TDS.MAX_SUPPORTED_DATA_CLASSIFICATION_VERSION)) {
+                	if (connectionlogger.isLoggable(Level.SEVERE)) {
+                        connectionlogger.severe(toString() + " Invalid version number for Data Classification");
+                    }
+                    throw new SQLServerException(SQLServerException.getErrString("R_InvalidDataClsTokenNumber"), null);
+                }
+
+                if (data.length != 2) {
+                	if (connectionlogger.isLoggable(Level.SEVERE)) {
+                        connectionlogger.severe(toString() + " Unknown token for Data Classification");
+                    }
+                    throw new SQLServerException(SQLServerException.getErrString("R_UnknownDataClsTokenNumber"), null);
+                }
+                
+                byte enabled = data[1];
+                serverSupportsDataClassification = (enabled == 0) ? false : true;
+                break;
+            }
             default: {
                 // Unknown feature ack
                 if (connectionlogger.isLoggable(Level.SEVERE)) {
@@ -4393,9 +4440,12 @@ public class SQLServerConnection implements ISQLServerConnection {
         if (federatedAuthenticationInfoRequested || federatedAuthenticationRequested) {
             len2 = len2 + writeFedAuthFeatureRequest(false, tdsWriter, fedAuthFeatureExtensionData);
         }
-
-        len2 = len2 + 1; // add 1 to length becaue of FeatureEx terminator
-
+        //Data Classification is always enabled (by default)
+        
+        len2 += writeDataClassificationFeatureRequest(false, tdsWriter);
+        
+        len2 = len2 + 1; // add 1 to length because of FeatureEx terminator
+        
         // Length of entire Login 7 packet
         tdsWriter.writeInt(len2);
         tdsWriter.writeInt(tdsVersion);
@@ -4574,7 +4624,9 @@ public class SQLServerConnection implements ISQLServerConnection {
         if (federatedAuthenticationInfoRequested || federatedAuthenticationRequested) {
             writeFedAuthFeatureRequest(true, tdsWriter, fedAuthFeatureExtensionData);
         }
-
+        
+        writeDataClassificationFeatureRequest(true, tdsWriter);
+        
         tdsWriter.writeByte((byte) TDS.FEATURE_EXT_TERMINATOR);
         tdsWriter.setDataLoggable(true);
 

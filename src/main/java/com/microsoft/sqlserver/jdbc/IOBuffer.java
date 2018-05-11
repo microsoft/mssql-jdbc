@@ -73,6 +73,7 @@ import javax.net.ssl.SSLSocket;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.TrustManagerFactory;
 import javax.net.ssl.X509TrustManager;
+
 import java.nio.Buffer;
 
 final class TDS {
@@ -100,6 +101,8 @@ final class TDS {
     static final int TDS_DONEPROC = 0xFE;
     static final int TDS_DONEINPROC = 0xFF;
     static final int TDS_FEDAUTHINFO = 0xEE;
+    static final int TDS_SQLRESCOLSRCS = 0xa2;
+    static final int TDS_SQLDATACLASSIFICATION = 0xa3;
 
     // FedAuth
     static final int TDS_FEATURE_EXT_FEDAUTH = 0x02;
@@ -112,9 +115,17 @@ final class TDS {
     static final byte FEDAUTH_INFO_ID_SPN = 0x02; // FedAuthInfoData is the SPN to use for acquiring fed auth token
 
     // AE constants
+    // 0x03 is for x_eFeatureExtensionId_Rcs
     static final int TDS_FEATURE_EXT_AE = 0x04;
     static final int MAX_SUPPORTED_TCE_VERSION = 0x01; // max version
     static final int CUSTOM_CIPHER_ALGORITHM_ID = 0; // max version
+    // 0x06 is for x_eFeatureExtensionId_LoginToken 
+    // 0x07 is for x_eFeatureExtensionId_ClientSideTelemetry 
+    // Data Classification constants
+    static final int TDS_FEATUREEXT_DATACLASSIFICATION = 0x09;
+    static final int DATA_CLASSIFICATION_NOT_ENABLED = 0x00;
+    static final int MAX_SUPPORTED_DATA_CLASSIFICATION_VERSION = 0x01;
+    
     static final int AES_256_CBC = 1;
     static final int AEAD_AES_256_CBC_HMAC_SHA256 = 2;
     static final int AE_METADATA = 0x08;
@@ -177,6 +188,8 @@ final class TDS {
                 return "TDS_DONEINPROC (0xFF)";
             case TDS_FEDAUTHINFO:
                 return "TDS_FEDAUTHINFO (0xEE)";
+            case TDS_FEATUREEXT_DATACLASSIFICATION:
+                return "TDS_FEATUREEXT_DATACLASSIFICATION (0x09)";
             default:
                 return "unknown token (0x" + Integer.toHexString(tdsTokenType).toUpperCase() + ")";
         }
@@ -6367,7 +6380,7 @@ final class TDSReader {
     final SQLServerConnection getConnection() {
         return con;
     }
-
+    
     private TDSPacket currentPacket = new TDSPacket(0);
     private TDSPacket lastPacket = currentPacket;
     private int payloadOffset = 0;
@@ -6376,9 +6389,13 @@ final class TDSReader {
     private boolean isStreaming = true;
     private boolean useColumnEncryption = false;
     private boolean serverSupportsColumnEncryption = false;
+    private boolean serverSupportsDataClassification = false;
 
     private final byte valueBytes[] = new byte[256];
-    private static final AtomicInteger lastReaderID = new AtomicInteger(0);
+    
+	protected SensitivityClassification sensitivityClassification;
+    
+	private static final AtomicInteger lastReaderID = new AtomicInteger(0);
 
     private static int nextReaderID() {
         return lastReaderID.incrementAndGet();
@@ -6404,6 +6421,7 @@ final class TDSReader {
             useColumnEncryption = true;
         }
         serverSupportsColumnEncryption = con.getServerSupportsColumnEncryption();
+        serverSupportsDataClassification = con.getServerSupportsDataClassification();
     }
 
     final boolean isColumnEncryptionSettingEnabled() {
@@ -6414,6 +6432,10 @@ final class TDSReader {
         return serverSupportsColumnEncryption;
     }
 
+    final boolean getServerSupportsDataClassification() {
+        return serverSupportsDataClassification;
+    }
+    
     final void throwInvalidTDS() throws SQLServerException {
         if (logger.isLoggable(Level.SEVERE))
             logger.severe(toString() + " got unexpected value in TDS response at offset:" + payloadOffset);
@@ -7114,6 +7136,13 @@ final class TDSReader {
         if (isColumnEncryptionSettingEnabled() && !featureExtAckReceived)
             throw new SQLServerException(this, SQLServerException.getErrString("R_AE_NotSupportedByServer"), null, 0, false);
     }
+    
+    boolean TrySetSensitivityClassification(SensitivityClassification sensitivityClassification) {
+        this.sensitivityClassification = sensitivityClassification;
+        return true;
+    }
+    
+    
 }
 
 /**
