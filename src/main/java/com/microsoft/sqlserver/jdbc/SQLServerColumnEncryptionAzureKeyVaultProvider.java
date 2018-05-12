@@ -37,7 +37,7 @@ import retrofit2.Retrofit;
  * Provides implementation similar to certificate store provider. A CEK encrypted with certificate store provider should be decryptable by this
  * provider and vice versa.
  * 
- * Envolope Format for the encrypted column encryption key version + keyPathLength + ciphertextLength + keyPath + ciphertext + signature version: A
+ * Envelope Format for the encrypted column encryption key version + keyPathLength + ciphertextLength + keyPath + ciphertext + signature version: A
  * single byte indicating the format version. keyPathLength: Length of the keyPath. ciphertextLength: ciphertext length keyPath: keyPath used to
  * encrypt the column encryption key. This is only used for troubleshooting purposes and is not verified during decryption. ciphertext: Encrypted
  * column encryption key signature: Signature of the entire byte array. Signature is validated before decrypting the column encryption key.
@@ -48,9 +48,9 @@ public class SQLServerColumnEncryptionAzureKeyVaultProvider extends SQLServerCol
      * Column Encryption Key Store Provider string
      */
     String name = "AZURE_KEY_VAULT";
-    
+
     private final String baseUrl = "https://{vaultBaseUrl}";
-    
+
     private final String azureKeyVaultDomainName = "vault.azure.net";
 
     private final String rsaEncryptionAlgorithmWithOAEPForAKV = "RSA-OAEP";
@@ -71,18 +71,21 @@ public class SQLServerColumnEncryptionAzureKeyVaultProvider extends SQLServerCol
     public String getName() {
         return this.name;
     }
-    
+
     /**
      * Constructor that takes a callback function to authenticate to AAD. This is used by KeyVaultClient at runtime to authenticate to Azure Key
      * Vault.
      * 
+     * This constructor is present to maintain backwards compatibility with 6.0 version of the driver. Deprecated for removal in next Stable release.
+     * 
      * @param authenticationCallback
      *            - Callback function used for authenticating to AAD.
      * @param executorService
-     *            - The ExecutorService used to create the keyVaultClient
+     *            - The ExecutorService, previously used to create the keyVaultClient, but not in use anymore. - This param can be passed as 'null'
      * @throws SQLServerException
      *             when an error occurs
      */
+    @Deprecated
     public SQLServerColumnEncryptionAzureKeyVaultProvider(SQLServerKeyVaultAuthenticationCallback authenticationCallback,
             ExecutorService executorService) throws SQLServerException {
         if (null == authenticationCallback) {
@@ -90,19 +93,37 @@ public class SQLServerColumnEncryptionAzureKeyVaultProvider extends SQLServerCol
             Object[] msgArgs1 = {"SQLServerKeyVaultAuthenticationCallback"};
             throw new SQLServerException(form.format(msgArgs1), null);
         }
-        credentials = new KeyVaultCredential(authenticationCallback);        
-        RestClient restClient = new RestClient.Builder(new OkHttpClient.Builder(), new Retrofit.Builder())
-                .withBaseUrl(baseUrl)
-                .withCredentials(credentials)
-                .withSerializerAdapter(new AzureJacksonAdapter())
-                .withResponseBuilderFactory(new AzureResponseBuilder.Factory())
-                .build();
+        credentials = new KeyVaultCredential(authenticationCallback);
+        RestClient restClient = new RestClient.Builder(new OkHttpClient.Builder(), new Retrofit.Builder()).withBaseUrl(baseUrl)
+                .withCredentials(credentials).withSerializerAdapter(new AzureJacksonAdapter())
+                .withResponseBuilderFactory(new AzureResponseBuilder.Factory()).build();
         keyVaultClient = new KeyVaultClient(restClient);
     }
-    
+
     /**
-     * Constructor that authenticates to AAD. This is used by KeyVaultClient at runtime to authenticate to Azure Key
+     * Constructor that takes a callback function to authenticate to AAD. This is used by KeyVaultClient at runtime to authenticate to Azure Key
      * Vault.
+     * 
+     * @param authenticationCallback
+     *            - Callback function used for authenticating to AAD.
+     * @throws SQLServerException
+     *             when an error occurs
+     */
+    public SQLServerColumnEncryptionAzureKeyVaultProvider(SQLServerKeyVaultAuthenticationCallback authenticationCallback) throws SQLServerException {
+        if (null == authenticationCallback) {
+            MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_NullValue"));
+            Object[] msgArgs1 = {"SQLServerKeyVaultAuthenticationCallback"};
+            throw new SQLServerException(form.format(msgArgs1), null);
+        }
+        credentials = new KeyVaultCredential(authenticationCallback);
+        RestClient restClient = new RestClient.Builder(new OkHttpClient.Builder(), new Retrofit.Builder()).withBaseUrl(baseUrl)
+                .withCredentials(credentials).withSerializerAdapter(new AzureJacksonAdapter())
+                .withResponseBuilderFactory(new AzureResponseBuilder.Factory()).build();
+        keyVaultClient = new KeyVaultClient(restClient);
+    }
+
+    /**
+     * Constructor that authenticates to AAD. This is used by KeyVaultClient at runtime to authenticate to Azure Key Vault.
      * 
      * @param clientId
      *            Identifier of the client requesting the token.

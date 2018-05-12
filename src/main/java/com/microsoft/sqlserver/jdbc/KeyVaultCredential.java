@@ -24,30 +24,33 @@ import com.microsoft.azure.keyvault.authentication.KeyVaultCredentials;
  */
 class KeyVaultCredential extends KeyVaultCredentials {
 
-	SQLServerKeyVaultAuthenticationCallback authenticationCallback = null;
-    String clientId = null;
-    String clientKey = null;
-    String accessToken = null;
+    SQLServerKeyVaultAuthenticationCallback authenticationCallback = null;
+    String                                  clientId               = null;
+    String                                  clientKey              = null;
+    String                                  accessToken            = null;
 
     KeyVaultCredential(String clientId,
             String clientKey) {
         this.clientId = clientId;
         this.clientKey = clientKey;
     }
-    
+
     KeyVaultCredential(SQLServerKeyVaultAuthenticationCallback authenticationCallback) {
         this.authenticationCallback = authenticationCallback;
     }
-    
+
     public String doAuthenticate(String authorization,
             String resource,
             String scope) {
-    	if(authenticationCallback==null) {
-    		AuthenticationResult token = getAccessTokenFromClientCredentials(authorization, resource, clientId, clientKey);
-    		return token.getAccessToken();
-    	}else {
-    		return authenticationCallback.getAccessToken(authorization, resource, scope);
-    	}
+        String accessToken;
+        if (authenticationCallback == null) {
+            AuthenticationResult token = getAccessTokenFromClientCredentials(authorization, resource, clientId, clientKey);
+            accessToken = token.getAccessToken();
+        }
+        else {
+            accessToken = authenticationCallback.getAccessToken(authorization, resource, scope);
+        }
+        return accessToken;
     }
 
     private static AuthenticationResult getAccessTokenFromClientCredentials(String authorization,
