@@ -3,6 +3,48 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](http://keepachangelog.com/) 
 
+## [6.5.2] Preview Release
+### Added
+- Added new connection property "cancelQueryTimeout" to cancel QueryTimeout on Connection and Statement [#674](https://github.com/Microsoft/mssql-jdbc/pull/674)
+
+### Fixed Issues
+- Improved performance degradation while maintaining JDBC compliance with results from sp_fkeys [#677](https://github.com/Microsoft/mssql-jdbc/pull/677)
+- Fixed an issue where ResultSetMetaData instances created by a ResultSet that has been closed were not persisting [#685](https://github.com/Microsoft/mssql-jdbc/pull/685)
+- Fixed an issue with PreparedStatement.setBigDecimal when no scale is passed [#684](https://github.com/Microsoft/mssql-jdbc/pull/684)
+- Fixed an issue with Clobs/NClobs not persisting after ResultSet/Connection closes [#682](https://github.com/Microsoft/mssql-jdbc/pull/682)
+
+### Changed
+- Updated the samples to be usable with Eclipse directly, and updated the driver version used by the samples to 6.4.0.jre9 [#679](https://github.com/Microsoft/mssql-jdbc/pull/679)
+- Updated Gradle script for building JDBC Driver [#689](https://github.com/Microsoft/mssql-jdbc/pull/689)
+- Updated Maven dependencies for test suite [#676](https://github.com/Microsoft/mssql-jdbc/pull/676)
+- Updated multiple Maven dependency and plugin versions [#688](https://github.com/Microsoft/mssql-jdbc/pull/688)
+
+## [6.5.1] Preview Release
+### Added
+- Test cases for Date, Time, and Datetime2 data types. [#558](https://github.com/Microsoft/mssql-jdbc/pull/558)
+
+### Fixed Issues
+- Fixed an issue where ResultSetMetadata returned incorrect columnType for Geometry and Geography data types [#657](https://github.com/Microsoft/mssql-jdbc/pull/657)
+- Fixed server side CPU Affinity problems caused by uneven connection distribution across NUMA Nodes when multiSubnetFailover is true [#662](https://github.com/Microsoft/mssql-jdbc/pull/662)
+- Fixed an issue where Driver wasn't parsing TDS Packets completely to capture exceptions raised inside executed stored procedures [#664](https://github.com/Microsoft/mssql-jdbc/pull/664)
+- Fixed an issue where driver throws exception when using setMaxRows() followed by query execution when SHOWPLAN_TEXT is ON [#666](https://github.com/Microsoft/mssql-jdbc/pull/666)
+
+### Changed
+- Removed unused imports which forced users to import the ADAL4J library [#652](https://github.com/Microsoft/mssql-jdbc/pull/652)
+
+## [6.5.0] Preview Release
+### Added
+- Support for spatial datatypes [#642](https://github.com/Microsoft/mssql-jdbc/pull/642)
+
+### Fixed Issues
+- Fixed blobs becoming unavailable when the Result Set cursor moves or the Result Set closes [#595](https://github.com/Microsoft/mssql-jdbc/pull/595)
+- Fixed an issue when attempting to insert an empty or null value into an encrypted column [#632](https://github.com/Microsoft/mssql-jdbc/pull/632)
+- Fixed a misleading error message thrown by the driver when a user doesn't have execute permissions [#635](https://github.com/Microsoft/mssql-jdbc/pull/635)
+- Fixed statements throwing SQLServerException instead of java.sql.SQLTimeoutException when the query times out [#641](https://github.com/Microsoft/mssql-jdbc/pull/641)
+
+### Changed
+- Unit tests now use SQLException in most cases instead of SQLServerException.
+
 ## [6.4.0] Stable Release
 ### Added
 - Support added for AAD Integrated Authentication with ADAL4J on Windows/Linux/Mac OS [#603](https://github.com/Microsoft/mssql-jdbc/pull/603) 

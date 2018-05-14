@@ -5,12 +5,10 @@
  * 
  * This program is made available under the terms of the MIT License. See the LICENSE file in the project root for more information.
  */
-
 package com.microsoft.sqlserver.jdbc;
 
-final class SQLJdbcVersion {
-    static final int major = 6;
-    static final int minor = 5;
-    static final int patch = 2;
-    static final int build = 0;
+import java.sql.SQLException;
+
+abstract class SQLServerLob {	
+	abstract void fillFromStream() throws SQLException;
 }

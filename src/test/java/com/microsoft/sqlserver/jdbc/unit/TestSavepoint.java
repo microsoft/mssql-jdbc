@@ -20,7 +20,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
 
-import com.microsoft.sqlserver.jdbc.SQLServerException;
 import com.microsoft.sqlserver.jdbc.SQLServerSavepoint;
 import com.microsoft.sqlserver.testframework.AbstractTest;
 import com.microsoft.sqlserver.testframework.util.RandomUtil;
@@ -54,7 +53,7 @@ public class TestSavepoint extends AbstractTest {
             savePoint.getSavepointId();
             assertTrue(false, "Expecting Exception as trying to get SavePointId when we created savepoint with name");
         }
-        catch (SQLServerException e) {
+        catch (SQLException e) {
         }
 
         connection.rollback();
@@ -78,7 +77,7 @@ public class TestSavepoint extends AbstractTest {
             savePoint.getSavepointName();
             assertTrue(false, "Expecting Exception as trying to get SavePointname when we created savepoint without name");
         }
-        catch (SQLServerException e) {
+        catch (SQLException e) {
         }
 
         assertTrue(savePoint.getSavepointId() != 0, "SavePoint should not be 0");
@@ -118,7 +117,7 @@ public class TestSavepoint extends AbstractTest {
             connection.setSavepoint(null);
             assertTrue(false, "Expecting Exception as can not set SetPoint when AutoCommit mode is set to true.");
         }
-        catch (SQLServerException e) {
+        catch (SQLException e) {
         }
 
     }

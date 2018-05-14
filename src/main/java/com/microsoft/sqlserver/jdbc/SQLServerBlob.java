@@ -25,7 +25,7 @@ import java.util.logging.Logger;
  * SQLServerBlob represents a binary LOB object and implements a java.sql.Blob.
  */
 
-public final class SQLServerBlob implements java.sql.Blob, java.io.Serializable {
+public final class SQLServerBlob extends SQLServerLob implements java.sql.Blob, java.io.Serializable {
     private static final long serialVersionUID = -3526170228097889085L;
 
     // The value of the BLOB that this Blob object represents.
@@ -232,8 +232,21 @@ public final class SQLServerBlob implements java.sql.Blob, java.io.Serializable 
      */
     public long length() throws SQLException {
         checkClosed();
+        if (value == null && activeStreams.get(0) instanceof PLPInputStream) {
+        	return (long)((PLPInputStream)activeStreams.get(0)).payloadLength;
+        }
         getBytesFromStream();
         return value.length;
+    }
+    
+    /**
+     * Function for the result set to maintain blobs it has created
+     * @throws SQLException
+     */
+    void fillFromStream() throws SQLException {
+    	if(!isClosed) {
+    		getBytesFromStream();
+    	}
     }
     
     /**

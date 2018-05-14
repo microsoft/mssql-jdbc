@@ -126,6 +126,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
      * occurs
      */
     private Closeable activeStream;
+    private SQLServerLob activeLOB;
 
     /**
      * A window of fetchSize quickly accessible rows for scrollable result sets
@@ -669,6 +670,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         // before moving to another one.
         if (null != activeStream) {
             try {
+            	fillLOBs();
                 activeStream.close();
             }
             catch (IOException e) {
@@ -747,6 +749,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
     /* ----------------- JDBC API methods ------------------ */
 
     private void moverInit() throws SQLServerException {
+    	fillLOBs();
         cancelInsert();
         cancelUpdates();
     }
@@ -1035,6 +1038,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
     public boolean wasNull() throws SQLServerException {
         loggerExternal.entering(getClassNameLogging(), "wasNull");
         checkClosed();
+        fillLOBs();
         loggerExternal.exiting(getClassNameLogging(), "wasNull", lastValueWasNull);
         return lastValueWasNull;
     }
@@ -1892,6 +1896,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         if (logger.isLoggable(java.util.logging.Level.FINER))
             logger.finer(toString() + " Getting Column:" + index);
 
+        fillLOBs();
         return loadColumn(index);
     }
 
@@ -2119,6 +2124,38 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         Float value = (Float) getValue(findColumn(columnName), JDBCType.REAL);
         loggerExternal.exiting(getClassNameLogging(), "getFloat", value);
         return null != value ? value : 0;
+    }
+    
+    public Geometry getGeometry(int columnIndex) throws SQLServerException {
+        loggerExternal.entering(getClassNameLogging(), "getFloat", columnIndex);
+        checkClosed();
+        Geometry value = (Geometry) getValue(columnIndex, JDBCType.GEOMETRY);
+        loggerExternal.exiting(getClassNameLogging(), "getFloat", value);
+        return value;
+    }
+
+    public Geometry getGeometry(String columnName) throws SQLServerException {
+        loggerExternal.entering(getClassNameLogging(), "getFloat", columnName);
+        checkClosed();
+        Geometry value = (Geometry) getValue(findColumn(columnName), JDBCType.GEOMETRY);
+        loggerExternal.exiting(getClassNameLogging(), "getFloat", value);
+        return value;
+    }
+    
+    public Geography getGeography(int columnIndex) throws SQLServerException {
+        loggerExternal.entering(getClassNameLogging(), "getFloat", columnIndex);
+        checkClosed();
+        Geography value = (Geography) getValue(columnIndex, JDBCType.GEOGRAPHY);
+        loggerExternal.exiting(getClassNameLogging(), "getFloat", value);
+        return value;
+    }
+
+    public Geography getGeography(String columnName) throws SQLServerException {
+        loggerExternal.entering(getClassNameLogging(), "getFloat", columnName);
+        checkClosed();
+        Geography value = (Geography) getValue(findColumn(columnName), JDBCType.GEOGRAPHY);
+        loggerExternal.exiting(getClassNameLogging(), "getFloat", value);
+        return value;
     }
 
     public int getInt(int columnIndex) throws SQLServerException {
@@ -2657,6 +2694,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         checkClosed();
         Blob value = (Blob) getValue(i, JDBCType.BLOB);
         loggerExternal.exiting(getClassNameLogging(), "getBlob", value);
+        activeLOB = (SQLServerLob) value;
         return value;
     }
 
@@ -2665,6 +2703,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         checkClosed();
         Blob value = (Blob) getValue(findColumn(colName), JDBCType.BLOB);
         loggerExternal.exiting(getClassNameLogging(), "getBlob", value);
+        activeLOB = (SQLServerLob) value;
         return value;
     }
 
@@ -2673,6 +2712,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         checkClosed();
         Clob value = (Clob) getValue(columnIndex, JDBCType.CLOB);
         loggerExternal.exiting(getClassNameLogging(), "getClob", value);
+        activeLOB = (SQLServerLob) value;
         return value;
     }
 
@@ -2681,6 +2721,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         checkClosed();
         Clob value = (Clob) getValue(findColumn(colName), JDBCType.CLOB);
         loggerExternal.exiting(getClassNameLogging(), "getClob", value);
+        activeLOB = (SQLServerLob) value;
         return value;
     }
 
@@ -2689,6 +2730,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         checkClosed();
         NClob value = (NClob) getValue(columnIndex, JDBCType.NCLOB);
         loggerExternal.exiting(getClassNameLogging(), "getNClob", value);
+        activeLOB = (SQLServerLob) value;
         return value;
     }
 
@@ -2697,6 +2739,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         checkClosed();
         NClob value = (NClob) getValue(findColumn(columnLabel), JDBCType.NCLOB);
         loggerExternal.exiting(getClassNameLogging(), "getNClob", value);
+        activeLOB = (SQLServerLob) value;
         return value;
     }
 
@@ -5638,7 +5681,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
             final String tableName;
 
             InsertRowRPC(String tableName) {
-                super("InsertRowRPC", 0);
+                super("InsertRowRPC", 0, 0);
                 this.tableName = tableName;
             }
 
@@ -5736,7 +5779,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         }
         final class UpdateRowRPC extends TDSCommand {
             UpdateRowRPC() {
-                super("UpdateRowRPC", 0);
+                super("UpdateRowRPC", 0, 0);
             }
 
             final boolean doExecute() throws SQLServerException {
@@ -5814,7 +5857,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         }
         final class DeleteRowRPC extends TDSCommand {
             DeleteRowRPC() {
-                super("DeleteRowRPC", 0);
+                super("DeleteRowRPC", 0, 0);
             }
 
             final boolean doExecute() throws SQLServerException {
@@ -6295,9 +6338,20 @@ public class SQLServerResultSet implements ISQLServerResultSet {
             boolean onDone(TDSReader tdsReader) throws SQLServerException {
                 ensureStartMark();
 
-                // Consume the done token
+                int token = tdsReader.peekTokenType();
                 StreamDone doneToken = new StreamDone();
                 doneToken.setFromTDS(tdsReader);
+        		
+                int packetType = tdsReader.peekTokenType();
+                if (-1 != packetType && TDS.TDS_DONEINPROC == token) {
+                	switch (packetType) {
+	                	case TDS.TDS_ENV_CHG:
+	                	case TDS.TDS_ERR:
+							return true;
+						default:
+							break;
+                	}
+                }
 
                 // Done with all the rows in this fetch buffer and done with parsing
                 // unless it's a server cursor, in which case there is a RETSTAT and
@@ -6403,7 +6457,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
                 int fetchType,
                 int startRow,
                 int numRows) {
-            super("doServerFetch", stmt.queryTimeout);
+            super("doServerFetch", stmt.queryTimeout, stmt.cancelQueryTimeoutSeconds);
             this.serverCursorId = serverCursorId;
             this.fetchType = fetchType;
             this.startRow = startRow;
@@ -6507,6 +6561,24 @@ public class SQLServerResultSet implements ISQLServerResultSet {
             scrollWindow.reset();
         }
     }
+    
+    /*
+     * Checks for any LOBs which need to be available after the RS is closed, and loads their contents from stream into memory.
+     * Closed LOBs will not be populated.
+     */
+    private void fillLOBs() {
+    	if (null != activeLOB) {
+    		try {
+    			activeLOB.fillFromStream();
+    		} catch (SQLException e) {
+    			if (logger.isLoggable(java.util.logging.Level.FINER)) {
+    				logger.finer(toString() + "Filling Lobs before closing: " + e.getMessage());
+    			}
+    		} finally {
+    			activeLOB = null;
+    		}
+    	}
+	}
 
     /**
      * Discards the contents of the current fetch buffer.
@@ -6519,6 +6591,9 @@ public class SQLServerResultSet implements ISQLServerResultSet {
      * fetch buffer is considered to be discarded.
      */
     private void discardFetchBuffer() {
+    	//fills blobs before discarding anything
+    	fillLOBs();
+
         // Clear the TDSReader mark at the start of the fetch buffer
         fetchBuffer.clearStartMark();
 

@@ -16,6 +16,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.SQLWarning;
 import java.sql.Statement;
+import java.sql.SQLTimeoutException;
 import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.ListIterator;
@@ -112,6 +113,11 @@ public class SQLServerStatement implements ISQLServerStatement {
     int queryTimeout;
 
     /**
+     * timeout value for canceling the query timeout
+     */
+    int cancelQueryTimeoutSeconds;
+    
+    /**
      * Is closeOnCompletion is enabled? If true statement will be closed when all of its dependent result sets are closed
      */
     boolean isCloseOnCompletion = false;
@@ -188,7 +194,7 @@ public class SQLServerStatement implements ISQLServerStatement {
      *
      * The TDSCommand is assumed to be a statement execution command (StmtExecCmd, PrepStmtExecCmd, PrepStmtBatchExecCmd).
      */
-    final void executeStatement(TDSCommand newStmtCmd) throws SQLServerException {
+    final void executeStatement(TDSCommand newStmtCmd) throws SQLServerException, SQLTimeoutException {
         // Ensure that any response left over from a previous execution has been
         // completely processed. There may be ENVCHANGEs in that response that
         // we must acknowledge before proceeding.
@@ -202,6 +208,11 @@ public class SQLServerStatement implements ISQLServerStatement {
         try {
             // (Re)execute this Statement with the new command
             executeCommand(newStmtCmd);
+        } catch (SQLServerException e) {
+        	if (e.getDriverErrorCode() == SQLServerException.ERROR_QUERY_TIMEOUT)
+        		throw new SQLTimeoutException(e.getMessage(), e.getSQLState(), e.getErrorCode(), e.getCause());
+        	else
+        		throw e;
         }
         finally {
             lastStmtExecCmd = newStmtCmd;
@@ -217,7 +228,7 @@ public class SQLServerStatement implements ISQLServerStatement {
      * This method does not prevent applications from simultaneously executing commands from multiple threads. The assumption is that apps only call
      * cancel() from another thread while the command is executing.
      */
-    final void executeCommand(TDSCommand newCommand) throws SQLServerException {
+    final void executeCommand(TDSCommand newCommand) throws SQLServerException{
         // Set the new command as the current command so that
         // its execution can be cancelled from another thread
         currentCommand = newCommand;
@@ -570,6 +581,7 @@ public class SQLServerStatement implements ISQLServerStatement {
         setResponseBuffering(connection.getResponseBuffering());
 
         setDefaultQueryTimeout();
+        setDefaultQueryCancelTimeout();
 
         if (stmtlogger.isLoggable(java.util.logging.Level.FINER)) {
             stmtlogger.finer("Properties for " + toString() + ":" + " Result type:" + appResultSetType + " (" + resultSetType + ")" + " Concurrency:"
@@ -582,7 +594,14 @@ public class SQLServerStatement implements ISQLServerStatement {
         }
     }
 
-    // add query timeout to statement
+    private void setDefaultQueryCancelTimeout() {
+        int cancelQueryTimeoutSeconds = this.connection.getCancelQueryTimeoutSeconds();
+        if (cancelQueryTimeoutSeconds > 0) {
+            this.cancelQueryTimeoutSeconds = cancelQueryTimeoutSeconds;
+        }
+	}
+
+	// add query timeout to statement
     private void setDefaultQueryTimeout() {
         int queryTimeoutSeconds = this.connection.getQueryTimeoutSeconds();
         if (queryTimeoutSeconds > 0) {
@@ -650,18 +669,18 @@ public class SQLServerStatement implements ISQLServerStatement {
      *                The SQL was invalid.
      * @return a JDBC result set.
      */
-    public java.sql.ResultSet executeQuery(String sql) throws SQLServerException {
+    public java.sql.ResultSet executeQuery(String sql) throws SQLServerException, SQLTimeoutException {
         loggerExternal.entering(getClassNameLogging(), "executeQuery", sql);
         if (loggerExternal.isLoggable(Level.FINER) && Util.IsActivityTraceOn()) {
             loggerExternal.finer(toString() + " ActivityId: " + ActivityCorrelator.getNext().toString());
         }
         checkClosed();
-        executeStatement(new StmtExecCmd(this, sql, EXECUTE_QUERY, NO_GENERATED_KEYS));
+    	executeStatement(new StmtExecCmd(this, sql, EXECUTE_QUERY, NO_GENERATED_KEYS));
         loggerExternal.exiting(getClassNameLogging(), "executeQuery", resultSet);
         return resultSet;
     }
 
-    final SQLServerResultSet executeQueryInternal(String sql) throws SQLServerException {
+    final SQLServerResultSet executeQueryInternal(String sql) throws SQLServerException, SQLTimeoutException {
         checkClosed();
         executeStatement(new StmtExecCmd(this, sql, EXECUTE_QUERY_INTERNAL, NO_GENERATED_KEYS));
         return resultSet;
@@ -676,7 +695,7 @@ public class SQLServerStatement implements ISQLServerStatement {
      *                The SQL was invalid.
      * @return The number of rows updated.
      */
-    public int executeUpdate(String sql) throws SQLServerException {
+    public int executeUpdate(String sql) throws SQLServerException, SQLTimeoutException {
         loggerExternal.entering(getClassNameLogging(), "executeUpdate", sql);
         if (loggerExternal.isLoggable(Level.FINER) && Util.IsActivityTraceOn()) {
             loggerExternal.finer(toString() + " ActivityId: " + ActivityCorrelator.getNext().toString());
@@ -702,7 +721,7 @@ public class SQLServerStatement implements ISQLServerStatement {
      *                The SQL was invalid.
      * @return The number of rows updated.
      */
-    public long executeLargeUpdate(String sql) throws SQLServerException {
+    public long executeLargeUpdate(String sql) throws SQLServerException, SQLTimeoutException {
         DriverJDBCVersion.checkSupportsJDBC42();
 
         loggerExternal.entering(getClassNameLogging(), "executeLargeUpdate", sql);
@@ -725,7 +744,7 @@ public class SQLServerStatement implements ISQLServerStatement {
      *                The SQL statement was not valid.
      * @return True if a result set was generated.
      */
-    public boolean execute(String sql) throws SQLServerException {
+    public boolean execute(String sql) throws SQLServerException, SQLTimeoutException {
         loggerExternal.entering(getClassNameLogging(), "execute", sql);
         if (loggerExternal.isLoggable(Level.FINER) && Util.IsActivityTraceOn()) {
             loggerExternal.finer(toString() + " ActivityId: " + ActivityCorrelator.getNext().toString());
@@ -746,7 +765,7 @@ public class SQLServerStatement implements ISQLServerStatement {
                 String sql,
                 int executeMethod,
                 int autoGeneratedKeys) {
-            super(stmt.toString() + " executeXXX", stmt.queryTimeout);
+            super(stmt.toString() + " executeXXX", stmt.queryTimeout, stmt.cancelQueryTimeoutSeconds);
             this.stmt = stmt;
             this.sql = sql;
             this.executeMethod = executeMethod;
@@ -877,7 +896,7 @@ public class SQLServerStatement implements ISQLServerStatement {
         final SQLServerStatement stmt;
 
         StmtBatchExecCmd(SQLServerStatement stmt) {
-            super(stmt.toString() + " executeBatch", stmt.queryTimeout);
+            super(stmt.toString() + " executeBatch", stmt.queryTimeout, stmt.cancelQueryTimeoutSeconds);
             this.stmt = stmt;
         }
 
@@ -1125,6 +1144,25 @@ public class SQLServerStatement implements ISQLServerStatement {
         }
         queryTimeout = seconds;
         loggerExternal.exiting(getClassNameLogging(), "setQueryTimeout");
+    }
+
+    /* L0 */ public final int getCancelQueryTimeout() throws SQLServerException {
+        loggerExternal.entering(getClassNameLogging(), "getCancelQueryTimeout");
+        checkClosed();
+        loggerExternal.exiting(getClassNameLogging(), "getCancelQueryTimeout", cancelQueryTimeoutSeconds);
+        return cancelQueryTimeoutSeconds;
+    }
+
+    /* L0 */ public final void setCancelQueryTimeout(int seconds) throws SQLServerException {
+        loggerExternal.entering(getClassNameLogging(), "setCancelQueryTimeout", seconds);
+        checkClosed();
+        if (seconds < 0) {
+            MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidCancelQueryTimeout"));
+            Object[] msgArgs = {seconds};
+            SQLServerException.makeFromDriverError(connection, this, form.format(msgArgs), null, true);
+        }
+        cancelQueryTimeoutSeconds = seconds;
+        loggerExternal.exiting(getClassNameLogging(), "setCancelQueryTimeout");
     }
 
     public final void cancel() throws SQLServerException {
@@ -1687,7 +1725,7 @@ public class SQLServerStatement implements ISQLServerStatement {
     /**
      * Send a batch of statements to the database.
      */
-    public int[] executeBatch() throws SQLServerException, BatchUpdateException {
+    public int[] executeBatch() throws SQLServerException, BatchUpdateException, SQLTimeoutException {
         loggerExternal.entering(getClassNameLogging(), "executeBatch");
         if (loggerExternal.isLoggable(Level.FINER) && Util.IsActivityTraceOn()) {
             loggerExternal.finer(toString() + " ActivityId: " + ActivityCorrelator.getNext().toString());
@@ -1764,7 +1802,7 @@ public class SQLServerStatement implements ISQLServerStatement {
         }
     } // executeBatch
 
-    public long[] executeLargeBatch() throws SQLServerException, BatchUpdateException {
+    public long[] executeLargeBatch() throws SQLServerException, BatchUpdateException, SQLTimeoutException {
         DriverJDBCVersion.checkSupportsJDBC42();
 
         loggerExternal.entering(getClassNameLogging(), "executeLargeBatch");
@@ -1960,7 +1998,7 @@ public class SQLServerStatement implements ISQLServerStatement {
     }
 
     public final boolean execute(java.lang.String sql,
-            int autoGeneratedKeys) throws SQLServerException {
+            int autoGeneratedKeys) throws SQLServerException, SQLTimeoutException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER)) {
             loggerExternal.entering(getClassNameLogging(), "execute", new Object[] {sql, autoGeneratedKeys});
             if (Util.IsActivityTraceOn()) {
@@ -1980,7 +2018,7 @@ public class SQLServerStatement implements ISQLServerStatement {
     }
 
     public final boolean execute(java.lang.String sql,
-            int[] columnIndexes) throws SQLServerException {
+            int[] columnIndexes) throws SQLServerException, SQLTimeoutException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "execute", new Object[] {sql, columnIndexes});
         checkClosed();
@@ -1993,7 +2031,7 @@ public class SQLServerStatement implements ISQLServerStatement {
     }
 
     public final boolean execute(java.lang.String sql,
-            java.lang.String[] columnNames) throws SQLServerException {
+            java.lang.String[] columnNames) throws SQLServerException, SQLTimeoutException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "execute", new Object[] {sql, columnNames});
         checkClosed();
@@ -2006,7 +2044,7 @@ public class SQLServerStatement implements ISQLServerStatement {
     }
 
     public final int executeUpdate(String sql,
-            int autoGeneratedKeys) throws SQLServerException {
+            int autoGeneratedKeys) throws SQLServerException, SQLTimeoutException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER)) {
             loggerExternal.entering(getClassNameLogging(), "executeUpdate", new Object[] {sql, autoGeneratedKeys});
             if (Util.IsActivityTraceOn()) {
@@ -2031,7 +2069,7 @@ public class SQLServerStatement implements ISQLServerStatement {
     }
 
     public final long executeLargeUpdate(String sql,
-            int autoGeneratedKeys) throws SQLServerException {
+            int autoGeneratedKeys) throws SQLServerException, SQLTimeoutException {
         DriverJDBCVersion.checkSupportsJDBC42();
 
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER)) {
@@ -2052,7 +2090,7 @@ public class SQLServerStatement implements ISQLServerStatement {
     }
 
     public final int executeUpdate(java.lang.String sql,
-            int[] columnIndexes) throws SQLServerException {
+            int[] columnIndexes) throws SQLServerException, SQLTimeoutException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "executeUpdate", new Object[] {sql, columnIndexes});
         checkClosed();
@@ -2065,7 +2103,7 @@ public class SQLServerStatement implements ISQLServerStatement {
     }
 
     public final long executeLargeUpdate(java.lang.String sql,
-            int[] columnIndexes) throws SQLServerException {
+            int[] columnIndexes) throws SQLServerException, SQLTimeoutException {
         DriverJDBCVersion.checkSupportsJDBC42();
 
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
@@ -2080,7 +2118,7 @@ public class SQLServerStatement implements ISQLServerStatement {
     }
 
     public final int executeUpdate(java.lang.String sql,
-            String[] columnNames) throws SQLServerException {
+            String[] columnNames) throws SQLServerException, SQLTimeoutException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "executeUpdate", new Object[] {sql, columnNames});
         checkClosed();
@@ -2093,7 +2131,7 @@ public class SQLServerStatement implements ISQLServerStatement {
     }
 
     public final long executeLargeUpdate(java.lang.String sql,
-            String[] columnNames) throws SQLServerException {
+            String[] columnNames) throws SQLServerException, SQLTimeoutException {
         DriverJDBCVersion.checkSupportsJDBC42();
 
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
