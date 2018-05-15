@@ -1589,11 +1589,8 @@ final class TDSChannel {
 
             String trustStoreFileName = con.activeConnectionProperties.getProperty(SQLServerDriverStringProperty.TRUST_STORE.toString());
             String trustStorePassword = con.activeConnectionProperties.getProperty(SQLServerDriverStringProperty.TRUST_STORE_PASSWORD.toString());
-            String hostNameInCertificate = con.getNewlyRoutedHostName();
-            if (null == hostNameInCertificate || hostNameInCertificate.isEmpty()) {
-                hostNameInCertificate = con.activeConnectionProperties
-                      .getProperty(SQLServerDriverStringProperty.HOSTNAME_IN_CERTIFICATE.toString());
-            }
+            String hostNameInCertificate = con.activeConnectionProperties
+                    .getProperty(SQLServerDriverStringProperty.HOSTNAME_IN_CERTIFICATE.toString());
 
             trustStoreType = con.activeConnectionProperties.getProperty(SQLServerDriverStringProperty.TRUST_STORE_TYPE.toString());
             

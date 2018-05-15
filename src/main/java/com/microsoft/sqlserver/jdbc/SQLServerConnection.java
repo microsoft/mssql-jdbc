@@ -116,6 +116,8 @@ public class SQLServerConnection implements ISQLServerConnection {
     private byte[] accessTokenInByte = null;
 
     private SqlFedAuthToken fedAuthToken = null;
+    
+    private String originalHostNameInCertificate = null;
 
     static class Sha1HashKey {
         private byte[] bytes;
@@ -397,14 +399,9 @@ public class SQLServerConnection implements ISQLServerConnection {
 
     // Contains the routing info received from routing ENVCHANGE
     private ServerPortPlaceHolder routingInfo = null;
-    private String newlyRoutedHostName = null;
 
     ServerPortPlaceHolder getRoutingInfo() {
         return routingInfo;
-    }
-    
-    String getNewlyRoutedHostName() {
-        return newlyRoutedHostName;
     }
     
     // Permission targets
@@ -1203,6 +1200,23 @@ public class SQLServerConnection implements ISQLServerConnection {
             activeConnectionProperties = (Properties) propsIn.clone();
 
             pooledConnectionParent = pooledConnection;
+            
+            String hostNameInCertificate = activeConnectionProperties.
+                    getProperty(SQLServerDriverStringProperty.HOSTNAME_IN_CERTIFICATE.toString());
+            
+            // hostNameInCertificate property can change when redirection is involved, so maintain this value
+            // for every instance of SQLServerConnection.
+            if (null == originalHostNameInCertificate && null != hostNameInCertificate && !hostNameInCertificate.isEmpty()) {
+                originalHostNameInCertificate = activeConnectionProperties.
+                        getProperty(SQLServerDriverStringProperty.HOSTNAME_IN_CERTIFICATE.toString());
+            }
+            
+            if (null != originalHostNameInCertificate && !originalHostNameInCertificate.isEmpty()) {
+                // if hostNameInCertificate has a legitimate value (and not empty or null),
+                // reset hostNameInCertificate to the original value every time we connect (or re-connect).
+                activeConnectionProperties.setProperty(SQLServerDriverStringProperty.HOSTNAME_IN_CERTIFICATE.toString(), 
+                        originalHostNameInCertificate);
+            }
 
             String sPropKey;
             String sPropValue;
@@ -3675,7 +3689,7 @@ public class SQLServerConnection implements ISQLServerConnection {
 
                     if (hostNameNeedsUpdate) {
                         String newHostName = "*" + routingServerName.substring(routingServerName.indexOf('.'));
-                        newlyRoutedHostName = newHostName;
+                        activeConnectionProperties.setProperty("hostNameInCertificate", newHostName);
 
                         if (connectionlogger.isLoggable(Level.FINER)) {
                             connectionlogger.finer(toString() + "Using new host to validate the SSL certificate");
