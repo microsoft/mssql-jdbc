@@ -202,8 +202,8 @@ public class PrecisionScaleTest extends AESetup {
             try {
                 if (rs.getMetaData().getColumnTypeName(i).equalsIgnoreCase("time")) {
                     assertTrue(stringValue2.equalsIgnoreCase("" + values[index]) && stringValue3.equalsIgnoreCase("" + values[index]),
-                            TestResource.getResource("R_decryptionFailed" + "getString(): " + stringValue1 + ", " + stringValue2 + ", " + stringValue3
-                                    + ".\n" + TestResource.getResource("R_expectedValue") + ": " + values[index]));
+                            TestResource.getResource("R_decryptionFailed") + "getString(): " + stringValue1 + ", " + stringValue2 + ", " + stringValue3
+                                    + ".\n" + TestResource.getResource("R_expectedValue") + ": " + values[index]);
                 }
                 else {
                     assertTrue(
