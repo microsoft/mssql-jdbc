@@ -26,6 +26,7 @@ import org.junit.runner.RunWith;
 import com.microsoft.sqlserver.jdbc.SQLServerCallableStatement;
 import com.microsoft.sqlserver.jdbc.SQLServerPreparedStatement;
 import com.microsoft.sqlserver.jdbc.SQLServerStatement;
+import com.microsoft.sqlserver.jdbc.TestResource;
 import com.microsoft.sqlserver.testframework.AbstractTest;
 import com.microsoft.sqlserver.testframework.Utils;
 
@@ -49,17 +50,17 @@ public class PoolableTest extends AbstractTest {
             try {
                 // First get the default values
                 boolean isPoolable = ((SQLServerStatement) statement).isPoolable();
-                assertEquals(isPoolable, false, "SQLServerStatement should not be Poolable by default");
+                assertEquals(isPoolable, false, "SQLServerStatement: " + TestResource.getResource("R_incorrectDefault"));
 
                 try (PreparedStatement prepStmt = connection.prepareStatement("select 1")) {
                     isPoolable = ((SQLServerPreparedStatement) prepStmt).isPoolable();
-                    assertEquals(isPoolable, true, "SQLServerPreparedStatement should be Poolable by default");
+                    assertEquals(isPoolable, true, "SQLServerPreparedStatement: " + TestResource.getResource("R_incorrectDefault"));
                 }
 
                 try (CallableStatement callableStatement = connection.prepareCall("{  ? = CALL " + "ProcName" + " (?, ?, ?, ?) }");) {
                     isPoolable = ((SQLServerCallableStatement) callableStatement).isPoolable();
 
-                    assertEquals(isPoolable, true, "SQLServerCallableStatement should be Poolable by default");
+                    assertEquals(isPoolable, true, "SQLServerCallableStatement: " + TestResource.getResource("R_incorrectDefault"));
 
                     // Now do couple of sets and gets
 
@@ -71,8 +72,10 @@ public class PoolableTest extends AbstractTest {
                 assertEquals(((SQLServerStatement) statement).isPoolable(), true, "set did not work");
             }
             catch (UnsupportedOperationException e) {
-                assertEquals(System.getProperty("java.specification.version"), "1.5", "PoolableTest should be supported in anything other than 1.5");
-                assertEquals(e.getMessage(), "This operation is not supported.", "Wrong exception message");
+                // PoolableTest should be supported in anything other than 1.5
+                assertEquals(System.getProperty("java.specification.version"), "1.5", "PoolableTest " + TestResource.getResource("R_shouldBeSupported"));
+                assertEquals(e.getMessage(), TestResource.getResource("R_operationNotSupported"));
+                assertEquals(e.getMessage(), TestResource.getResource("R_unexpectedExceptionContent"));
             }
         }
     }

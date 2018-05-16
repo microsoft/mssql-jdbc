@@ -22,6 +22,8 @@ import com.microsoft.sqlserver.jdbc.StringUtils;
 import com.microsoft.sqlserver.testframework.PrepUtil;
 import com.microsoft.sqlserver.testframework.Utils;
 
+import com.microsoft.sqlserver.jdbc.TestResource;;
+
 /**
  * Test class for testing FIPS property settings.
  */
@@ -48,12 +50,12 @@ public class FipsTest {
             Properties props = buildConnectionProperties();
             props.setProperty("TrustServerCertificate", "true");
             Connection con = PrepUtil.getConnection(connectionString, props);
-            Assertions.fail("It should fail as we are not passing appropriate params");
+            Assertions.fail(TestResource.getResource("R_expectedExceptionNotThrown"));
         }
         catch (SQLException e) {
             Assertions.assertTrue(
-                    e.getMessage().contains("Unable to verify FIPS mode settings."),
-                    "Should create exception for invalid TrustServerCertificate value");
+                    e.getMessage().contains(TestResource.getResource("R_invalidFipsConfig")),
+                    TestResource.getResource("R_invalidTrustCert"));
         }
     }
 
@@ -68,12 +70,12 @@ public class FipsTest {
             Properties props = buildConnectionProperties();
             props.setProperty("encrypt", "false");
             Connection con = PrepUtil.getConnection(connectionString, props);
-            Assertions.fail("It should fail as we are not passing appropriate params");
+            Assertions.fail(TestResource.getResource("R_expectedExceptionNotThrown"));
         }
         catch (SQLException e) {
             Assertions.assertTrue(
-                    e.getMessage().contains("Unable to verify FIPS mode settings."),
-                    "Should create exception for invalid encrypt value");
+                    e.getMessage().contains(TestResource.getResource("R_invalidFipsConfig")),
+                    TestResource.getResource("R_invalidEncrypt"));
         }
     }
 
@@ -123,12 +125,12 @@ public class FipsTest {
             ds.setEncrypt(false);
             Connection con = ds.getConnection();
 
-            Assertions.fail("It should fail as we are not passing appropriate params");
+            Assertions.fail(TestResource.getResource("R_expectedExceptionNotThrown"));
         }
         catch (SQLException e) {
             Assertions.assertTrue(
-                    e.getMessage().contains("Unable to verify FIPS mode settings."),
-                    "Should create exception for invalid encrypt value");
+                    e.getMessage().contains(TestResource.getResource("R_invalidFipsConfig")),
+                    TestResource.getResource("R_invalidEncrypt"));
         }
     }
 
@@ -144,12 +146,12 @@ public class FipsTest {
             setDataSourceProperties(ds);
             ds.setTrustServerCertificate(true);
             Connection con = ds.getConnection();
-            Assertions.fail("It should fail as we are not passing appropriate params");
+            Assertions.fail(TestResource.getResource("R_expectedExceptionNotThrown"));
         }
         catch (SQLException e) {
             Assertions.assertTrue(
-                    e.getMessage().contains("Unable to verify FIPS mode settings."),
-                    "Should create exception for invalid TrustServerCertificate value");
+                    e.getMessage().contains(TestResource.getResource("R_invalidFipsConfig")),
+                    TestResource.getResource("R_invalidTrustCert"));
         }
     }
 

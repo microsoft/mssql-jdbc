@@ -31,6 +31,7 @@ import org.junit.runner.RunWith;
 
 import com.microsoft.sqlserver.jdbc.ISQLServerConnection;
 import com.microsoft.sqlserver.jdbc.SQLServerXADataSource;
+import com.microsoft.sqlserver.jdbc.TestResource;
 import com.microsoft.sqlserver.testframework.AbstractTest;
 import com.microsoft.sqlserver.testframework.DBConnection;
 import com.microsoft.sqlserver.testframework.DBTable;
@@ -71,11 +72,11 @@ public class PoolingTest extends AbstractTest {
         }
         catch (SQLException e) {
             // make sure the temporary table is not found.
-            if (e.getMessage().startsWith("Invalid object name")) {
+            if (e.getMessage().startsWith(TestResource.getResource("R_invalidObjectName"))) {
                 tempTableFileRemoved = true;
             }
         }
-        assertTrue(tempTableFileRemoved, "Temporary table is not removed.");
+        assertTrue(tempTableFileRemoved, TestResource.getResource("R_tempTAbleNotRemoved"));
     }
 
     @Test
@@ -90,7 +91,7 @@ public class PoolingTest extends AbstractTest {
         Connection con2 = pc.getConnection();
 
         // assert that the first connection is closed.
-        assertTrue(con.isClosed(), "First connection is not closed");
+        assertTrue(con.isClosed(), TestResource.getResource("R_firstConnectionNotClosed"));
     }
 
     @Test
@@ -125,7 +126,7 @@ public class PoolingTest extends AbstractTest {
 
         pc.close();
         // assert that the first connection is closed.
-        assertTrue(con.isClosed(), "Connection is not closed with pool close");
+        assertTrue(con.isClosed(), TestResource.getResource("R_connectionNotClosedWithPoolClose"));
     }
 
     @Test
@@ -137,7 +138,7 @@ public class PoolingTest extends AbstractTest {
         ISQLServerConnection con = (ISQLServerConnection) pc.getConnection();
 
         UUID Id1 = con.getClientConnectionId();
-        assertTrue(Id1 != null, "Unexecepted: ClientConnectionId is null from Pool");
+        assertTrue(Id1 != null, TestResource.getResource("R_connectionNotClosedWithPoolClose"));
         con.close();
 
         // now reget the connection
@@ -146,7 +147,7 @@ public class PoolingTest extends AbstractTest {
         UUID Id2 = con2.getClientConnectionId();
         con2.close();
 
-        assertEquals(Id1, Id2, "ClientConnection Ids from pool are not the same.");
+        assertEquals(Id1, Id2, TestResource.getResource("R_idFromPoolNotSame"));
     }
     
     /**

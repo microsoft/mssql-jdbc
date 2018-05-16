@@ -31,8 +31,10 @@ import com.microsoft.sqlserver.jdbc.Geometry;
 import com.microsoft.sqlserver.jdbc.SQLServerConnection;
 import com.microsoft.sqlserver.jdbc.SQLServerPreparedStatement;
 import com.microsoft.sqlserver.jdbc.SQLServerResultSet;
+import com.microsoft.sqlserver.jdbc.TestResource;
 import com.microsoft.sqlserver.testframework.AbstractTest;
 import com.microsoft.sqlserver.testframework.Utils;
+
 
 /**
  * Test Geometry / Geography classes
@@ -338,7 +340,7 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest  {
             testWkt(geoWKT);
         }
         catch (IllegalArgumentException e) {
-            assertEquals(e.getMessage(), "Illegal character at wkt position 14");
+            assertEquals(e.getMessage(), TestResource.getResource("R_illegalCharWkt")+"14");
         }
         
         //Too many closing bracket
@@ -348,7 +350,7 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest  {
             testWkt(geoWKT);
         }
         catch (IllegalArgumentException e) {
-            assertEquals(e.getMessage(), "Illegal character at wkt position 91");
+            assertEquals(e.getMessage(), TestResource.getResource("R_illegalCharWkt")+"91");
         }
         
         //Too many opening bracket
@@ -358,7 +360,7 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest  {
             testWkt(geoWKT);
         }
         catch (IllegalArgumentException e) {
-            assertEquals(e.getMessage(), "Illegal character at wkt position 15");
+            assertEquals(e.getMessage(), TestResource.getResource("R_illegalCharWkt")+"15");
         }
         
         //Too many coordinates
@@ -368,7 +370,7 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest  {
             testWkt(geoWKT);
         }
         catch (IllegalArgumentException e) {
-            assertEquals(e.getMessage(), "Illegal character at wkt position 23");
+            assertEquals(e.getMessage(), TestResource.getResource("R_illegalCharWkt")+"23");
         }
         
         //Too little coordinates
@@ -378,7 +380,7 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest  {
             testWkt(geoWKT);
         }
         catch (IllegalArgumentException e) {
-            assertEquals(e.getMessage(), "Illegal character at wkt position 17");
+            assertEquals(e.getMessage(), TestResource.getResource("R_illegalCharWkt")+"17");
         }
         
         //Incorrect data type
@@ -388,7 +390,7 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest  {
             testWkt(geoWKT);
         }
         catch (IllegalArgumentException e) {
-            assertEquals(e.getMessage(), "Illegal character at wkt position 14");
+            assertEquals(e.getMessage(), TestResource.getResource("R_illegalCharWkt")+"14");
         }
         
         // too many commas
@@ -398,7 +400,7 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest  {
             testWkt(geoWKT);
         }
         catch (IllegalArgumentException e) {
-            assertEquals(e.getMessage(), "Illegal character at wkt position 35");
+            assertEquals(e.getMessage(), TestResource.getResource("R_illegalCharWkt")+"35");
         }
         
         // too little commas
@@ -408,7 +410,7 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest  {
             testWkt(geoWKT);
         }
         catch (IllegalArgumentException e) {
-            assertEquals(e.getMessage(), "Illegal character at wkt position 35");
+            assertEquals(e.getMessage(), TestResource.getResource("R_illegalCharWkt")+"35");
         }
     }
     
