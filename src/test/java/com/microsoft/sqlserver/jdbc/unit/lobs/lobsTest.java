@@ -209,7 +209,7 @@ public class lobsTest extends AbstractTest {
 
                         {
                             if (lobClass == DBCharacterStream.class || lobClass == DBBinaryStream.class)
-                                assertTrue(e.getSQLState() != null, TestResource.getResource("RSQLStateNull"));
+                                assertTrue(e.getSQLState() != null, TestResource.getResource("R_SQLStateNull"));
                             assertTrue(e.getMessage().contains(TestResource.getResource("R_streamReadError")));
                         }
 

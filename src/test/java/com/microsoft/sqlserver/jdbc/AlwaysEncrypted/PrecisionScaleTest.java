@@ -210,7 +210,7 @@ public class PrecisionScaleTest extends AESetup {
                             values[index].contains(stringValue1) && stringValue2.equalsIgnoreCase("" + values[index])
                                     && stringValue3.equalsIgnoreCase("" + values[index]),
                             TestResource.getResource("R_decryptionFailed") + "getString(): " + stringValue1 + ", " + stringValue2 + ", " + stringValue3
-                                    + TestResource.getResource("R_expected Value:") + values[index]);
+                                    + TestResource.getResource("R_expectedValue:") + values[index]);
                 }
             }
             finally {
