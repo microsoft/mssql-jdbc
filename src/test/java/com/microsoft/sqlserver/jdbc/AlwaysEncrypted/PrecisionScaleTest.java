@@ -328,8 +328,8 @@ public class PrecisionScaleTest extends AESetup {
                     assertTrue(
                             stringValue1.equalsIgnoreCase(dates[index]) && stringValue2.equalsIgnoreCase(dates[index])
                                     && stringValue3.equalsIgnoreCase(dates[index]),
-                            TestResource.getResource("R_decryptionFailed" + "getString(): " + stringValue1 + ", " + stringValue2 + ", " + stringValue3 + "\n" + TestResource.getResource("R_expectedValue") + ": "
-                                    + dates[index]));
+                            TestResource.getResource("R_decryptionFailed") + "getString(): " + stringValue1 + ", " + stringValue2 + ", " + stringValue3 + "\n" + TestResource.getResource("R_expectedValue") + ": "
+                                    + dates[index]);
                 }
                 finally {
                     index++;
