@@ -5,7 +5,7 @@
 	
 	<groupId>com.microsoft.sqlserver</groupId>
 	<artifactId>mssql-jdbc</artifactId>
-	<version>6.5.3-SNAPSHOT.${jreVersion}-preview</version>
+	<version>6.5.3-SNAPSHOT</version>
 	<packaging>jar</packaging>
 	
 	<name>Microsoft JDBC Driver for SQL Server</name>
@@ -136,6 +136,7 @@
 			</properties>
 			
 			<build>
+				<finalName>${project.artifactId}-${project.version}.${jreVersion}-preview</finalName>
 				<plugins>
 					<plugin>
 						<artifactId>maven-compiler-plugin</artifactId>
@@ -173,6 +174,7 @@
 			</properties>
 			
 			<build>
+				<finalName>${project.artifactId}-${project.version}.${jreVersion}-preview</finalName>
 				<plugins>
 					<plugin>
 						<artifactId>maven-compiler-plugin</artifactId>
@@ -328,6 +330,7 @@
 			<plugin>
 				<groupId>org.codehaus.mojo</groupId>
 				<artifactId>versions-maven-plugin</artifactId>
+				<version>2.5</version>
 				<inherited>true</inherited>
 				<configuration>
 					<outputFile>outdated-dependencies.txt</outputFile>
