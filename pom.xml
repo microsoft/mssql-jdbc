@@ -130,13 +130,8 @@
 	<profiles>
 		<profile>
 			<id>build42</id>
-			
-			<properties>
-			<jreVersion>jre8</jreVersion>
-			</properties>
-			
 			<build>
-				<finalName>${project.artifactId}-${project.version}.${jreVersion}-preview</finalName>
+				<finalName>${project.artifactId}-${project.version}.jre8-preview</finalName>
 				<plugins>
 					<plugin>
 						<artifactId>maven-compiler-plugin</artifactId>
@@ -167,14 +162,9 @@
 			<id>build43</id>
 			<activation>
 				<activeByDefault>true</activeByDefault>
-			</activation>
-			
-			<properties>
-			<jreVersion>jre9</jreVersion>
-			</properties>
-			
+			</activation>			
 			<build>
-				<finalName>${project.artifactId}-${project.version}.${jreVersion}-preview</finalName>
+				<finalName>${project.artifactId}-${project.version}.jre9-preview</finalName>
 				<plugins>
 					<plugin>
 						<artifactId>maven-compiler-plugin</artifactId>
