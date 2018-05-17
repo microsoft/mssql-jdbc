@@ -40,6 +40,7 @@
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<junit.platform.version>1.2.0</junit.platform.version>
 		<junit.jupiter.version>5.2.0</junit.jupiter.version>
+		<osgi.version>4.3.1</osgi.version>
 	</properties>
 	
 	<dependencies>
@@ -56,6 +57,22 @@
 			<version>1.5.0</version>
 			<optional>true</optional>
 		</dependency>
+		
+		<!-- dependecies provided by an OSGi-Framework -->
+		<dependency>
+		    <groupId>org.osgi</groupId>
+		    <artifactId>org.osgi.core</artifactId>
+		    <version>${osgi.version}</version>
+		    <scope>provided</scope>
+		</dependency>
+		<dependency>
+		    <groupId>org.osgi</groupId>
+		    <artifactId>org.osgi.compendium</artifactId>
+		    <version>${osgi.version}</version>
+		    <scope>provided</scope>
+		</dependency>
+				
+				
 		
 		<!-- dependencies for running tests -->
 		<dependency>
@@ -273,6 +290,7 @@
                     <instructions>
                     	<Export-Package>com.microsoft.sqlserver.jdbc,microsoft.sql</Export-Package>
                     	<Import-Package>!microsoft.sql,*</Import-Package>
+                    	<Bundle-Activator>com.microsoft.sqlserver.jdbc.osgi.Activator</Bundle-Activator>
                     </instructions>
                 </configuration>
                 	<executions>
