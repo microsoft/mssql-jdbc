@@ -252,10 +252,6 @@ final class StreamColumns extends StreamPacket {
         assert dataClassificationToken == TDS.TDS_SQLDATACLASSIFICATION;
         
         SensitivityClassification sensitivityClassification = null;
-
-        //2 BYTES EXTRA [ADDED TEMPORARILY]
-        tdsReader.readUnsignedByte();
-        tdsReader.readUnsignedByte();
         
         // get the label count
         int numLabels = tdsReader.readUnsignedShort();
