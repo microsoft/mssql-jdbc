@@ -267,11 +267,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
             hassoc = new HandleAssociation(catalog, CS);
             HandleAssociation previous = handleMap.put(request, hassoc);
             if (null != previous) {
-                //((SQLServerCallableStatement) previous.stmt).handleDBName = previous.databaseName;
-
                 previous.close();
-
-                //((SQLServerCallableStatement) previous.stmt).handleDBName = null;
             }
         }
         return hassoc.stmt;
