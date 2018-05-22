@@ -32,8 +32,8 @@ build_script:
   - keytool -importkeystore -srckeystore cert.pfx -srcstoretype pkcs12 -destkeystore clientcert.jks -deststoretype JKS -srcstorepass password -deststorepass password   
   - keytool -list -v -keystore clientcert.jks -storepass "password" > JavaKeyStore.txt
   - cd..
-  - mvn install -DskipTests=true -Dmaven.javadoc.skip=true -B -V -Pbuild43
-  - mvn install -DskipTests=true -Dmaven.javadoc.skip=true -B -V -Pbuild42
+  - mvn install -DskipTests=true -Dmaven.javadoc.skip=true -B -Pbuild43
+  - mvn install -DskipTests=true -Dmaven.javadoc.skip=true -B -Pbuild42
   
 test_script:
   - mvn test -B -Pbuild43
