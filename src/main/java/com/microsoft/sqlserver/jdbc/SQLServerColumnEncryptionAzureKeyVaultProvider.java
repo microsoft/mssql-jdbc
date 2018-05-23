@@ -88,16 +88,7 @@ public class SQLServerColumnEncryptionAzureKeyVaultProvider extends SQLServerCol
     @Deprecated
     public SQLServerColumnEncryptionAzureKeyVaultProvider(SQLServerKeyVaultAuthenticationCallback authenticationCallback,
             ExecutorService executorService) throws SQLServerException {
-        if (null == authenticationCallback) {
-            MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_NullValue"));
-            Object[] msgArgs1 = {"SQLServerKeyVaultAuthenticationCallback"};
-            throw new SQLServerException(form.format(msgArgs1), null);
-        }
-        credentials = new KeyVaultCredential(authenticationCallback);
-        RestClient restClient = new RestClient.Builder(new OkHttpClient.Builder(), new Retrofit.Builder()).withBaseUrl(baseUrl)
-                .withCredentials(credentials).withSerializerAdapter(new AzureJacksonAdapter())
-                .withResponseBuilderFactory(new AzureResponseBuilder.Factory()).build();
-        keyVaultClient = new KeyVaultClient(restClient);
+        this(authenticationCallback);
     }
 
     /**
