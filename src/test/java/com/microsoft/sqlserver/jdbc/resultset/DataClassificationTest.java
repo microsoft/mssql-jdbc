@@ -70,7 +70,6 @@ public class DataClassificationTest extends AbstractTest {
                 "[Country] [nvarchar](40) NULL," +
                 "[Phone] [nvarchar](30) MASKED WITH (FUNCTION = 'default()') NULL," +
                 "[Fax] [nvarchar](30) MASKED WITH (FUNCTION = 'default()') NULL)";
-        System.out.println(createQuery);
         stmt.execute(createQuery);
         
         stmt.execute("ADD SENSITIVITY CLASSIFICATION TO " + tableName + ".CompanyName WITH (LABEL='PII', LABEL_ID='L1', INFORMATION_TYPE='Company name', INFORMATION_TYPE_ID='COMPANY')");
