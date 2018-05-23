@@ -43,7 +43,7 @@ class KeyVaultCredential extends KeyVaultCredentials {
             String resource,
             String scope) {
         String accessToken;
-        if (authenticationCallback == null) {
+        if (null == authenticationCallback) {
             AuthenticationResult token = getAccessTokenFromClientCredentials(authorization, resource, clientId, clientKey);
             accessToken = token.getAccessToken();
         }
@@ -74,7 +74,7 @@ class KeyVaultCredential extends KeyVaultCredentials {
             service.shutdown();
         }
 
-        if (result == null) {
+        if (null == result) {
             throw new RuntimeException("authentication result was null");
         }
         return result;
