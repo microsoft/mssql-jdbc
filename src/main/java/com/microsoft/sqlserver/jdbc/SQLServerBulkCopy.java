@@ -1058,64 +1058,38 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable {
             case microsoft.sql.Types.DATETIME:
             case microsoft.sql.Types.SMALLDATETIME:
             case java.sql.Types.TIMESTAMP:
-                if ((!isBaseType) && (null != sourceBulkRecord)) {
-                    tdsWriter.writeByte(TDSType.BIGVARCHAR.byteValue());
-                    tdsWriter.writeShort((short) (srcPrecision));
-                    collation.writeCollation(tdsWriter);
-                }
-                else {
-                    switch (destSSType) {
-                        case SMALLDATETIME:
-                            if (!srcNullable)
-                                tdsWriter.writeByte(TDSType.DATETIME4.byteValue());
-                            else {
-                                tdsWriter.writeByte(TDSType.DATETIMEN.byteValue());
-                                tdsWriter.writeByte((byte) 4);
-                            }
-                            break;
-                        case DATETIME:
-                            if (!srcNullable)
-                                tdsWriter.writeByte(TDSType.DATETIME8.byteValue());
-                            else {
-                                tdsWriter.writeByte(TDSType.DATETIMEN.byteValue());
-                                tdsWriter.writeByte((byte) 8);
-                            }
-                            break;
-                        default:
-                            // DATETIME2 0x2A
-                            tdsWriter.writeByte(TDSType.DATETIME2N.byteValue());
-                            tdsWriter.writeByte((byte) srcScale);
-                            break;
-                    }
+                switch (destSSType) {
+                    case SMALLDATETIME:
+                        if (!srcNullable)
+                            tdsWriter.writeByte(TDSType.DATETIME4.byteValue());
+                        else {
+                            tdsWriter.writeByte(TDSType.DATETIMEN.byteValue());
+                            tdsWriter.writeByte((byte) 4);
+                        }
+                        break;
+                    case DATETIME:
+                        if (!srcNullable)
+                            tdsWriter.writeByte(TDSType.DATETIME8.byteValue());
+                        else {
+                            tdsWriter.writeByte(TDSType.DATETIMEN.byteValue());
+                            tdsWriter.writeByte((byte) 8);
+                        }
+                        break;
+                    default:
+                        // DATETIME2 0x2A
+                        tdsWriter.writeByte(TDSType.DATETIME2N.byteValue());
+                        tdsWriter.writeByte((byte) srcScale);
+                        break;
                 }
                 break;
 
             case java.sql.Types.DATE: // 0x28
-                /*
-                 * SQL Server supports numerous string literal formats for temporal types, hence sending them as varchar with approximate
-                 * precision(length) needed to send supported string literals if destination is unencrypted. string literal formats supported by
-                 * temporal types are available in MSDN page on data types.
-                 */
-                if ((!isBaseType) && (null != sourceBulkRecord)) {
-                    tdsWriter.writeByte(TDSType.BIGVARCHAR.byteValue());
-                    tdsWriter.writeShort((short) (srcPrecision));
-                    collation.writeCollation(tdsWriter);
-                }
-                else {
-                    tdsWriter.writeByte(TDSType.DATEN.byteValue());
-                }
+                tdsWriter.writeByte(TDSType.DATEN.byteValue());
                 break;
 
             case java.sql.Types.TIME: // 0x29
-                if ((!isBaseType) && (null != sourceBulkRecord)) {
-                    tdsWriter.writeByte(TDSType.BIGVARCHAR.byteValue());
-                    tdsWriter.writeShort((short) (srcPrecision));
-                    collation.writeCollation(tdsWriter);
-                }
-                else {
-                    tdsWriter.writeByte(TDSType.TIMEN.byteValue());
-                    tdsWriter.writeByte((byte) srcScale);
-                }
+                tdsWriter.writeByte(TDSType.TIMEN.byteValue());
+                tdsWriter.writeByte((byte) srcScale);
                 break;
 
             // Send as DATETIMEOFFSET for TIME_WITH_TIMEZONE and TIMESTAMP_WITH_TIMEZONE
@@ -1126,15 +1100,8 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable {
                 break;
 
             case microsoft.sql.Types.DATETIMEOFFSET: // 0x2B
-                if ((!isBaseType) && (null != sourceBulkRecord)) {
-                    tdsWriter.writeByte(TDSType.BIGVARCHAR.byteValue());
-                    tdsWriter.writeShort((short) (srcPrecision));
-                    collation.writeCollation(tdsWriter);
-                }
-                else {
-                    tdsWriter.writeByte(TDSType.DATETIMEOFFSETN.byteValue());
-                    tdsWriter.writeByte((byte) srcScale);
-                }
+                tdsWriter.writeByte(TDSType.DATETIMEOFFSETN.byteValue());
+                tdsWriter.writeByte((byte) srcScale);
                 break;
             case microsoft.sql.Types.SQL_VARIANT:  //0x62
                 tdsWriter.writeByte(TDSType.SQL_VARIANT.byteValue());
@@ -1387,77 +1354,26 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable {
             case java.sql.Types.TIMESTAMP:
                 switch (destSSType) {
                     case SMALLDATETIME:
-                        if (null != sourceBulkRecord) {
-                            return "varchar(" + ((0 == bulkPrecision) ? sourceBulkRecordTemporalMaxPrecision  : bulkPrecision) + ")";
-                        }
-                        else {
-                            return "smalldatetime";
-                        }
+                        return "smalldatetime";
                     case DATETIME:
-                        if (null != sourceBulkRecord) {
-                            return "varchar(" + ((0 == bulkPrecision) ? sourceBulkRecordTemporalMaxPrecision  : bulkPrecision) + ")";
-                        }
-                        else {
-                            return "datetime";
-                        }
+                        return "datetime";
                     default:
-                        // datetime2
-                        /*
-                         * If encrypted, varbinary will be returned before. The code will come here only if unencrypted. For unencrypted bulk copy if
-                         * the source is CSV, we send the data as varchar and SQL Server will do the conversion. if the source is ResultSet, we send
-                         * the data as the corresponding temporal type.
-                         */
-                        if (null != sourceBulkRecord) {
-                            return "varchar(" + ((0 == bulkPrecision) ? destPrecision : bulkPrecision) + ")";
-                        }
-                        else {
-                            return "datetime2(" + bulkScale + ")";
-                        }
+                        return "datetime2(" + bulkScale + ")";
                 }
 
             case java.sql.Types.DATE:
-                /*
-                 * If encrypted, varbinary will be returned before. The code will come here only if unencrypted. For unencrypted bulk copy if the
-                 * source is CSV, we send the data as varchar and SQL Server will do the conversion. if the source is ResultSet, we send the data as
-                 * the corresponding temporal type.
-                 */
-                if (null != sourceBulkRecord) {
-                    return "varchar(" + ((0 == bulkPrecision) ? destPrecision : bulkPrecision) + ")";
-                }
-                else {
-                    return "date";
-                }
+                return "date";
 
             case java.sql.Types.TIME:
-                /*
-                 * If encrypted, varbinary will be returned before. The code will come here only if unencrypted. For unencrypted bulk copy if the
-                 * source is CSV, we send the data as varchar and SQL Server will do the conversion. if the source is ResultSet, we send the data as
-                 * the corresponding temporal type.
-                 */
-                if (null != sourceBulkRecord) {
-                    return "varchar(" + ((0 == bulkPrecision) ? destPrecision : bulkPrecision) + ")";
-                }
-                else {
-                    return "time(" + bulkScale + ")";
-                }
-
+                return "time(" + bulkScale + ")";
+                
                 // Return DATETIMEOFFSET for TIME_WITH_TIMEZONE and TIMESTAMP_WITH_TIMEZONE
             case 2013:	// java.sql.Types.TIME_WITH_TIMEZONE
             case 2014:	// java.sql.Types.TIMESTAMP_WITH_TIMEZONE
                 return "datetimeoffset(" + bulkScale + ")";
 
             case microsoft.sql.Types.DATETIMEOFFSET:
-                /*
-                 * If encrypted, varbinary will be returned before. The code will come here only if unencrypted. For unencrypted bulk copy if the
-                 * source is CSV, we send the data as varchar and SQL Server will do the conversion. if the source is ResultSet, we send the data as
-                 * the corresponding temporal type.
-                 */
-                if (null != sourceBulkRecord) {
-                    return "varchar(" + ((0 == bulkPrecision) ? destPrecision : bulkPrecision) + ")";
-                }
-                else {
-                    return "datetimeoffset(" + bulkScale + ")";
-                }
+                return "datetimeoffset(" + bulkScale + ")";
             case microsoft.sql.Types.SQL_VARIANT:
                 return "sql_variant";
             default: {
@@ -2082,20 +1998,6 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable {
         else if (null != sourceCryptoMeta) {
             bulkJdbcType = destColumnMetadata.get(destColOrdinal).jdbcType;
             bulkScale = destColumnMetadata.get(destColOrdinal).scale;
-        }
-        else if (null != sourceBulkRecord) {
-            // Bulk copy from CSV and destination is not encrypted. In this case, we send the temporal types as varchar and
-            // SQL Server does the conversion. If destination is encrypted, then temporal types can not be sent as varchar.
-            switch (bulkJdbcType) {
-                case java.sql.Types.DATE:
-                case java.sql.Types.TIME:
-                case java.sql.Types.TIMESTAMP:
-                case microsoft.sql.Types.DATETIMEOFFSET:
-                    bulkJdbcType = java.sql.Types.VARCHAR;
-                    break;
-                default:
-                    break;
-            }
         }
 
         try {
