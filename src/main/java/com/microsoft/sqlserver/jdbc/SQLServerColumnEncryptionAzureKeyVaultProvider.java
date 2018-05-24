@@ -76,12 +76,12 @@ public class SQLServerColumnEncryptionAzureKeyVaultProvider extends SQLServerCol
      * Constructor that takes a callback function to authenticate to AAD. This is used by KeyVaultClient at runtime to authenticate to Azure Key
      * Vault.
      * 
-     * This constructor is present to maintain backwards compatibility with 6.0 version of the driver. Deprecated for removal in next Stable release.
+     * This constructor is present to maintain backwards compatibility with 6.0 version of the driver. Deprecated for removal in next stable release.
      * 
      * @param authenticationCallback
      *            - Callback function used for authenticating to AAD.
      * @param executorService
-     *            - The ExecutorService, previously used to create the keyVaultClient, but not in use anymore. - This param can be passed as 'null'
+     *            - The ExecutorService, previously used to create the keyVaultClient, but not in use anymore. - This parameter can be passed as 'null'
      * @throws SQLServerException
      *             when an error occurs
      */
@@ -121,7 +121,7 @@ public class SQLServerColumnEncryptionAzureKeyVaultProvider extends SQLServerCol
      * @param clientKey
      *            Key of the client requesting the token.
      * @throws SQLServerException
-     *             when an error occurs
+     *            when an error occurs
      */
     public SQLServerColumnEncryptionAzureKeyVaultProvider(String clientId,
             String clientKey) throws SQLServerException {

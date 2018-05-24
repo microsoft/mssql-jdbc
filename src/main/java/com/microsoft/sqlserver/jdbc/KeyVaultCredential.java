@@ -25,9 +25,9 @@ import com.microsoft.azure.keyvault.authentication.KeyVaultCredentials;
 class KeyVaultCredential extends KeyVaultCredentials {
 
     SQLServerKeyVaultAuthenticationCallback authenticationCallback = null;
-    String                                  clientId               = null;
-    String                                  clientKey              = null;
-    String                                  accessToken            = null;
+    String clientId = null;
+    String clientKey = null;
+    String accessToken = null;
 
     KeyVaultCredential(String clientId,
             String clientKey) {
