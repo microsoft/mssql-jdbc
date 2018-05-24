@@ -570,7 +570,7 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
 
                 if (("" + values[index]).length() >= 1000) {
                     assertTrue(matches, TestResource.getResource("R_decryptionFailed") + "getObject(): " + i + ", " + (i + 1) + ", " + (i + 2)
-                            + ".\n" + TestResource.getResource("R_expectedValue") + index);
+                            + ".\n" + TestResource.getResource("R_expectedValueAtIndex") + index);
                 }
                 else {
                     assertTrue(matches, TestResource.getResource("R_decryptionFailed") + "getObject(): " + objectValue1 + ", " + objectValue2 + ", " + objectValue3

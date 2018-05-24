@@ -164,6 +164,7 @@ public final class TestResource extends ListResourceBundle {
             {"R_inputParamFailed", "Test for input parameter failed."},
             {"R_decryptionFailed", "Decryption failed"},
             {"R_expectedValue", "Expected value: "},
+            {"R_expectedValueAtIndex", "Expected value at index: "},
             {"R_switchFailed", "Switch case is not matched with data"},
             {"R_resultsetNotInstance", "Result set is not instance of SQLServerResultSet"},
 

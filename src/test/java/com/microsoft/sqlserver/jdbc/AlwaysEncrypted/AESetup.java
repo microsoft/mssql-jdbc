@@ -141,7 +141,7 @@ public class AESetup extends AbstractTest {
         filePath = Utils.getCurrentClassPath();
         try {
             File f = new File(filePath + inputFile);
-            assumeTrue(f.exists(), "R_noKeyStore");
+            assumeTrue(f.exists(), TestResource.getResource("R_noKeyStore"));
             try(BufferedReader buffer = new BufferedReader(new FileReader(f))) {
 	            String readLine = "";
 	            String[] linecontents;

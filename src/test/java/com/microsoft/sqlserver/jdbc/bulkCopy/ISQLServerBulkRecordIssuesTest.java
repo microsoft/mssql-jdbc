@@ -150,7 +150,7 @@ public class ISQLServerBulkRecordIssuesTest extends AbstractTest {
         try (SQLServerBulkCopy bcOperation = new SQLServerBulkCopy(connectionString)) {
             bcOperation.setDestinationTableName(destTable);
             bcOperation.writeToServer(bData);
-            fail("R_expectedFailPassed");
+            fail(TestResource.getResource("R_expectedFailPassed"));
         }
         catch (Exception e) {
             if (e instanceof SQLException) {
@@ -177,7 +177,7 @@ public class ISQLServerBulkRecordIssuesTest extends AbstractTest {
         try (SQLServerBulkCopy bcOperation = new SQLServerBulkCopy(connectionString)) {
             bcOperation.setDestinationTableName(destTable);
             bcOperation.writeToServer(bData);
-            fail("R_expectedFailPassed");
+            fail(TestResource.getResource("R_expectedFailPassed"));
         }
         catch (Exception e) {
             if (e instanceof SQLException) {
