@@ -151,9 +151,6 @@
 						<configuration>
 							<archive>
 								<manifestFile>${project.build.outputDirectory}/META-INF/MANIFEST.MF</manifestFile>
-								<manifestEntries>
-									<Bundle-Version>${project.version}_jre8-preview</Bundle-Version>
-								</manifestEntries>
 							</archive>
 						</configuration>
 					</plugin>
@@ -187,9 +184,6 @@
 						<configuration>
 							<archive>
 								<manifestFile>${project.build.outputDirectory}/META-INF/MANIFEST.MF</manifestFile>
-								<manifestEntries>
-									<Bundle-Version>${project.version}_jre9-preview</Bundle-Version>
-								</manifestEntries>
 							</archive>
 						</configuration>
 					</plugin>
