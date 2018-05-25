@@ -492,6 +492,15 @@ public class SQLServerConnection implements ISQLServerConnection {
         return socketTimeoutMilliseconds;
     }
     
+    /**
+     * boolean value for deciding if the driver should use bulk copy API for batch inserts
+     */
+    private boolean useBulkCopyForBatchInsertOnDW;
+
+    final boolean getUseBulkCopyForBatchInsertOnDW() {
+        return useBulkCopyForBatchInsertOnDW;
+    }
+    
     boolean userSetTNIR = true;
 
     private boolean sendTimeAsDatetime = SQLServerDriverBooleanProperty.SEND_TIME_AS_DATETIME.getDefaultValue();
@@ -1746,7 +1755,13 @@ public class SQLServerConnection implements ISQLServerConnection {
             if (null != sPropValue) {
                 setEnablePrepareOnFirstPreparedStatementCall(booleanPropertyOn(sPropKey, sPropValue));
             }
-
+            
+            sPropKey = SQLServerDriverBooleanProperty.USE_BULK_COPY_FOR_BATCH_INSERT_ON_DW.toString();
+            sPropValue = activeConnectionProperties.getProperty(sPropKey);
+            if (null != sPropValue) {
+                useBulkCopyForBatchInsertOnDW = booleanPropertyOn(sPropKey, sPropValue);
+            }
+            
             sPropKey = SQLServerDriverStringProperty.SSL_PROTOCOL.toString();
             sPropValue = activeConnectionProperties.getProperty(sPropKey);
             if (null == sPropValue) {

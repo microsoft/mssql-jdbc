@@ -107,6 +107,19 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     private void setPreparedStatementHandle(int handle) {
         this.prepStmtHandle = handle;
     }
+    
+    /**
+     * boolean value for deciding if the driver should use bulk copy API for batch inserts
+     */
+    private boolean useBulkCopyForBatchInsertOnDW;
+    
+    public boolean getUseBulkCopyForBatchInsertOnDW() {
+        return useBulkCopyForBatchInsertOnDW;
+    }
+    
+    public void setUseBulkCopyForBatchInsertOnDW(boolean useBulkCopyForBatchInsertOnDW) {
+        this.useBulkCopyForBatchInsertOnDW = useBulkCopyForBatchInsertOnDW;
+    }
 
     /** The server handle for this prepared statement. If a value {@literal <} 1 is returned no handle has been created. 
      * 
@@ -2460,7 +2473,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         localUserSQL = userSQL;
         
         try {
-            if (isInsert(localUserSQL) && connection.isAzureDW()) {
+            if (isInsert(localUserSQL) && true && (this.useBulkCopyForBatchInsertOnDW || connection.getUseBulkCopyForBatchInsertOnDW())) {
                 if (batchParamValues == null) {
                     updateCounts = new int[0];
                     loggerExternal.exiting(getClassNameLogging(), "executeBatch", updateCounts);
@@ -2817,6 +2830,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
             } else {
                 sb.append(localUserSQL.charAt(0));
                 localUserSQL = localUserSQL.substring(1);
+                localUserSQL = localUserSQL.trim();
             }
         }
         
@@ -2919,6 +2933,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
             } else {
                 sb.append(localUserSQL.charAt(0));
                 localUserSQL = localUserSQL.substring(1);
+                localUserSQL = localUserSQL.trim();
             }
         }
         
@@ -2927,6 +2942,10 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     }
     
     private boolean checkAndRemoveComments() {
+        if (null == localUserSQL || localUserSQL.length() < 2) {
+            return false;
+        }
+        
         if (localUserSQL.substring(0, 2).equalsIgnoreCase("/*")) {
             int temp = localUserSQL.indexOf("*/") + 2;
             localUserSQL = localUserSQL.substring(temp);
