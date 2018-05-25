@@ -46,7 +46,7 @@ abstract class SQLServerBulkCommon {
     /*
      * Logger
      */
-    protected static final java.util.logging.Logger loggerExternal = java.util.logging.Logger.getLogger(loggerClassName);
+    protected java.util.logging.Logger loggerExternal;
     
     /*
      * Contains all the column names if firstLineIsColumnNames is true
@@ -99,7 +99,7 @@ abstract class SQLServerBulkCommon {
     /**
      * Adds metadata for the given column in the batch/file.
      * 
-     * @param positionInTable
+     * @param positionInSource
      *            Indicates which column the metadata is for. Columns start at 1.
      * @param name
      *            Name for the column (optional if only using column ordinal in a mapping for SQLServerBulkCopy operation)

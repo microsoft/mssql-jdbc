@@ -67,6 +67,7 @@ public class SQLServerBulkCSVFileRecord extends SQLServerBulkCommon implements I
             String delimiter,
             boolean firstLineIsColumnNames) throws SQLServerException {
         loggerClassName = "com.microsoft.sqlserver.jdbc.SQLServerBulkCSVFileRecord";
+        loggerExternal = java.util.logging.Logger.getLogger(loggerClassName);
         loggerExternal.entering(loggerClassName, "SQLServerBulkCSVFileRecord",
                 new Object[] {fileToParse, encoding, delimiter, firstLineIsColumnNames});
 
@@ -128,6 +129,7 @@ public class SQLServerBulkCSVFileRecord extends SQLServerBulkCommon implements I
             String delimiter,
             boolean firstLineIsColumnNames) throws SQLServerException {
         loggerClassName = "com.microsoft.sqlserver.jdbc.SQLServerBulkCSVFileRecord";
+        loggerExternal = java.util.logging.Logger.getLogger(loggerClassName);
         loggerExternal.entering(loggerClassName, "SQLServerBulkCSVFileRecord",
                 new Object[] {fileToParse, encoding, delimiter, firstLineIsColumnNames});
 

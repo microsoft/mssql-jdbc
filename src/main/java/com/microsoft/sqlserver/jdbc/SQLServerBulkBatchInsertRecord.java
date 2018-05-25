@@ -35,6 +35,7 @@ public class SQLServerBulkBatchInsertRecord extends SQLServerBulkCommon implemen
     public SQLServerBulkBatchInsertRecord(ArrayList<Parameter[]> batchParam, ArrayList<String> columnList, 
             ArrayList<String> valueList, String encoding) throws SQLServerException {
         loggerClassName = "com.microsoft.sqlserver.jdbc.SQLServerBulkBatchInsertRecord";
+        loggerExternal = java.util.logging.Logger.getLogger(loggerClassName);
         loggerExternal.entering(loggerClassName, "SQLServerBulkBatchInsertRecord",
                 new Object[] {batchParam, encoding});
         
