@@ -177,11 +177,11 @@ abstract class SQLServerBulkCommon {
             case java.sql.Types.TIMESTAMP:
             case microsoft.sql.Types.DATETIMEOFFSET:
                 if (this instanceof SQLServerBulkCSVFileRecord) {
-                    columnMetadata.put(positionInSource, new ColumnMetadata(colName, jdbcType, 50, precision, dateTimeFormatter));
+                    columnMetadata.put(positionInSource, new ColumnMetadata(colName, jdbcType, 50, scale, dateTimeFormatter));
                 } else if (this instanceof SQLServerBulkBatchInsertRecord) {
-                    columnMetadata.put(positionInSource, new ColumnMetadata(colName, jdbcType, precision, precision, dateTimeFormatter));
+                    columnMetadata.put(positionInSource, new ColumnMetadata(colName, jdbcType, precision, scale, dateTimeFormatter));
                 } else {
-                    columnMetadata.put(positionInSource, new ColumnMetadata(colName, jdbcType, 50, precision, dateTimeFormatter));
+                    columnMetadata.put(positionInSource, new ColumnMetadata(colName, jdbcType, 50, scale, dateTimeFormatter));
                 }
                 break;
 
