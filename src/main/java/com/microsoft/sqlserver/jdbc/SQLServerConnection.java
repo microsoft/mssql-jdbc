@@ -5722,18 +5722,18 @@ public class SQLServerConnection implements ISQLServerConnection {
     }
 
     /**
-     * Returns true if statement pooling is disabled.
+     * Determine whether statement pooling is disabled.
      * 
-     * @return
+     * @return true if statement pooling is disabled, false if it is enabled.
      */
     public boolean getDisableStatementPooling() {
         return this.disableStatementPooling;
     }
 
     /**
-     * Sets statement pooling to true or false;
+     * Disable/enable statement pooling.
      * 
-     * @param value
+     * @param value true to disable statement pooling, false to enable it.
      */
     public void setDisableStatementPooling(boolean value) {
         this.disableStatementPooling = value;
