@@ -11,6 +11,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Time;
 import java.sql.Timestamp;
+import java.util.Calendar;
 
 import com.microsoft.sqlserver.jdbc.SQLServerResultSetMetaData;
 import com.microsoft.sqlserver.testframework.DBConnection;
@@ -143,7 +144,11 @@ public class ComparisonUtil {
                     break;
 
                 case java.sql.Types.DATE:
-                    assertTrue((((Date) expectedValue).getDate() == (((Date) actualValue).getDate())), "Unexpected datetime value");
+                    Calendar expC = Calendar.getInstance();
+                    expC.setTime((Date)expectedValue);
+                    Calendar actC = Calendar.getInstance();
+                    actC.setTime((Date)actualValue);
+                    assertTrue(expC.get(Calendar.DAY_OF_MONTH) == actC.get(Calendar.DAY_OF_MONTH), "Unexpected datetime value");
                     break;
 
                 case java.sql.Types.TIME:
