@@ -36,6 +36,7 @@ import java.sql.Savepoint;
 import java.sql.Statement;
 import java.sql.Struct;
 import java.text.MessageFormat;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Enumeration;
 import java.util.HashMap;
@@ -3197,6 +3198,9 @@ public class SQLServerConnection implements ISQLServerConnection {
         checkClosed();
         Statement st = new SQLServerStatement(this, resultSetType, resultSetConcurrency,
                 SQLServerStatementColumnEncryptionSetting.UseConnectionSetting);
+        if (requestStarted) {
+            addOpenStatement(st);
+        }
         loggerExternal.exiting(getClassNameLogging(), "createStatement", st);
         return st;
     }
@@ -3220,7 +3224,9 @@ public class SQLServerConnection implements ISQLServerConnection {
             st = new SQLServerPreparedStatement(this, sql, resultSetType, resultSetConcurrency,
                     SQLServerStatementColumnEncryptionSetting.UseConnectionSetting);
         }
-
+        if (requestStarted) {
+            addOpenStatement(st);
+        }
         loggerExternal.exiting(getClassNameLogging(), "prepareStatement", st);
         return st;
     }
@@ -3243,7 +3249,9 @@ public class SQLServerConnection implements ISQLServerConnection {
         else {
             st = new SQLServerPreparedStatement(this, sql, resultSetType, resultSetConcurrency, stmtColEncSetting);
         }
-
+        if (requestStarted) {
+            addOpenStatement(st);
+        }
         loggerExternal.exiting(getClassNameLogging(), "prepareStatement", st);
         return st;
     }
@@ -3267,7 +3275,9 @@ public class SQLServerConnection implements ISQLServerConnection {
             st = new SQLServerCallableStatement(this, sql, resultSetType, resultSetConcurrency,
                     SQLServerStatementColumnEncryptionSetting.UseConnectionSetting);
         }
-
+        if (requestStarted) {
+            addOpenStatement(st);
+        }
         loggerExternal.exiting(getClassNameLogging(), "prepareCall", st);
         return st;
     }
@@ -4633,6 +4643,9 @@ public class SQLServerConnection implements ISQLServerConnection {
         checkValidHoldability(resultSetHoldability);
         checkMatchesCurrentHoldability(resultSetHoldability);
         Statement st = new SQLServerStatement(this, nType, nConcur, stmtColEncSetting);
+        if (requestStarted) {
+            addOpenStatement(st);
+        }
         loggerExternal.exiting(getClassNameLogging(), "createStatement", st);
         return st;
     }
@@ -4695,7 +4708,9 @@ public class SQLServerConnection implements ISQLServerConnection {
         else {
             st = new SQLServerPreparedStatement(this, sql, nType, nConcur, stmtColEncSetting);
         }
-
+        if (requestStarted) {
+            addOpenStatement(st);
+        }
         loggerExternal.exiting(getClassNameLogging(), "prepareStatement", st);
         return st;
     }
@@ -4731,7 +4746,9 @@ public class SQLServerConnection implements ISQLServerConnection {
         else {
             st = new SQLServerCallableStatement(this, sql, nType, nConcur, stmtColEncSetiing);
         }
-
+        if (requestStarted) {
+            addOpenStatement(st);
+        }
         loggerExternal.exiting(getClassNameLogging(), "prepareCall", st);
         return st;
     }
@@ -5283,14 +5300,99 @@ public class SQLServerConnection implements ISQLServerConnection {
         return t;
     }
 
-    public void beginRequest() throws SQLFeatureNotSupportedException {
+    private boolean requestStarted = false;
+    private boolean originalDatabaseAutoCommitMode;
+    private int originalTransactionIsolationLevel;
+    private int originalNetworkTimeout;
+    private int originalHoldability;
+    private boolean originalSendTimeAsDatetime;
+    private int originalStatementPoolingCacheSize;
+    private boolean originalDisableStatementPooling;
+    private int originalServerPreparedStatementDiscardThreshold;
+    private Boolean originalEnablePrepareOnFirstPreparedStatementCall;
+    private String originalSCatalog = null;
+    private volatile SQLWarning originalSqlWarnings = null;
+    private List<Statement> openStatements = null;
+
+    protected void beginRequestInternal() throws SQLException {
         DriverJDBCVersion.checkSupportsJDBC43();
-        throw new SQLFeatureNotSupportedException("beginRequest not implemented");
+        synchronized (this) {
+            if (!requestStarted) {
+                originalDatabaseAutoCommitMode = databaseAutoCommitMode;
+                originalTransactionIsolationLevel = transactionIsolationLevel;
+                originalNetworkTimeout = getNetworkTimeout();
+                originalHoldability = holdability;
+                originalSendTimeAsDatetime = sendTimeAsDatetime;
+                originalStatementPoolingCacheSize = statementPoolingCacheSize;
+                originalDisableStatementPooling = disableStatementPooling;
+                originalServerPreparedStatementDiscardThreshold = serverPreparedStatementDiscardThreshold;
+                originalEnablePrepareOnFirstPreparedStatementCall = enablePrepareOnFirstPreparedStatementCall;
+                originalSCatalog = sCatalog;
+                originalSqlWarnings = sqlWarnings;
+                openStatements = new ArrayList<Statement>();
+                requestStarted = true;
+            }
+        }
     }
 
-    public void endRequest() throws SQLFeatureNotSupportedException {
+    protected void endRequestInternal() throws SQLException {
         DriverJDBCVersion.checkSupportsJDBC43();
-        throw new SQLFeatureNotSupportedException("endRequest not implemented");
+        synchronized (this) {
+            if (requestStarted) {
+                if (!databaseAutoCommitMode) {
+                    rollback();
+                }
+                if (databaseAutoCommitMode != originalDatabaseAutoCommitMode) {
+                    setAutoCommit(originalDatabaseAutoCommitMode);
+                }
+                if (transactionIsolationLevel != originalTransactionIsolationLevel) {
+                    setTransactionIsolation(originalTransactionIsolationLevel);
+                }
+                if (getNetworkTimeout() != originalNetworkTimeout) {
+                    setNetworkTimeout(null, originalNetworkTimeout);
+                }
+                if (holdability != originalHoldability) {
+                    setHoldability(originalHoldability);
+                }
+                if (sendTimeAsDatetime != originalSendTimeAsDatetime) {
+                    setSendTimeAsDatetime(originalSendTimeAsDatetime);
+                }
+                if (statementPoolingCacheSize != originalStatementPoolingCacheSize) {
+                    setStatementPoolingCacheSize(originalStatementPoolingCacheSize);
+                }
+                if (disableStatementPooling != originalDisableStatementPooling) {
+                    setDisableStatementPooling(originalDisableStatementPooling);
+                }
+                if (serverPreparedStatementDiscardThreshold != originalServerPreparedStatementDiscardThreshold) {
+                    if (0 > originalServerPreparedStatementDiscardThreshold) {
+                        setServerPreparedStatementDiscardThreshold(DEFAULT_SERVER_PREPARED_STATEMENT_DISCARD_THRESHOLD);
+                    }
+                    else {
+                        setServerPreparedStatementDiscardThreshold(originalServerPreparedStatementDiscardThreshold);
+                    }
+                }
+                if (enablePrepareOnFirstPreparedStatementCall != originalEnablePrepareOnFirstPreparedStatementCall) {
+                    if (null == originalEnablePrepareOnFirstPreparedStatementCall) {
+                        setEnablePrepareOnFirstPreparedStatementCall(DEFAULT_ENABLE_PREPARE_ON_FIRST_PREPARED_STATEMENT_CALL);
+                    }
+                    else {
+                        setEnablePrepareOnFirstPreparedStatementCall(originalEnablePrepareOnFirstPreparedStatementCall);
+                    }
+                }
+                if (!sCatalog.equals(originalSCatalog)) {
+                    setCatalog(originalSCatalog);
+                }
+                sqlWarnings = originalSqlWarnings;
+                if (null != openStatements) {
+                    while (!openStatements.isEmpty()) {
+                        try (Statement st = openStatements.get(0)) {
+                        }
+                    }
+                    openStatements.clear();
+                }
+                requestStarted = false;
+            }
+        }
     }
 
     /**
@@ -5864,6 +5966,26 @@ public class SQLServerConnection implements ISQLServerConnection {
                     // Do not run discard actions here! Can interfere with executing statement.
                 }                    
             }
+        }
+    }
+
+    /**
+     * @param st
+     *            Statement to add to openStatements
+     */
+    final synchronized void addOpenStatement(Statement st) {
+        if (null != openStatements) {
+            openStatements.add(st);
+        }
+    }
+
+    /**
+     * @param st
+     *            Statement to remove from openStatements
+     */
+    final synchronized void removeOpenStatement(Statement st) {
+        if (null != openStatements) {
+            openStatements.remove(st);
         }
     }
 }

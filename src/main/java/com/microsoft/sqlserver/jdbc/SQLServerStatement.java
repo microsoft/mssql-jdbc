@@ -631,7 +631,9 @@ public class SQLServerStatement implements ISQLServerStatement {
         // Regardless what happens when cleaning up,
         // the statement is considered closed.
         assert !bIsClosed;
-
+        
+        connection.removeOpenStatement(this);
+        
         discardLastExecutionResults();
 
         bIsClosed = true;
