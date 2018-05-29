@@ -9,7 +9,6 @@
 package com.microsoft.sqlserver.testframework;
 
 import java.sql.Connection;
-import java.sql.SQLException;
 import java.util.Properties;
 import java.util.logging.ConsoleHandler;
 import java.util.logging.FileHandler;
