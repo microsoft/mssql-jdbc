@@ -99,7 +99,6 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
     /** The prepared statement handle returned by the server */
     private int prepStmtHandle = 0;
-    String handleDBName = null;
     
     /** Statement used for getMetadata(). Declared as a field to facilitate closing the statement. */
     private SQLServerStatement internalStmt = null;
@@ -128,12 +127,21 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         return 0 < prepStmtHandle;
     }
 
-    /** Resets the server handle for this prepared statement to no handle. 
-    */
-    private void resetPrepStmtHandle() {
+    /**
+     * Resets the server handle for this prepared statement to no handle.
+     */
+    private boolean resetPrepStmtHandle(boolean discardCurrentCacheItem) {
+        boolean statementPoolingUsed = null != cachedPreparedStatementHandle;
+        // Return to pool and decrement reference count
+        if (statementPoolingUsed) {
+            // Make sure the cached handle does not get re-used more.
+            if (discardCurrentCacheItem)
+                cachedPreparedStatementHandle.setIsExplicitlyDiscarded();
+        }
         prepStmtHandle = 0;
+        return statementPoolingUsed;
     }
-
+    
     /** Flag set to true when statement execution is expected to return the prepared statement handle */
     private boolean expectPrepStmtHandle = false;
     
@@ -216,10 +224,10 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         else {
             isExecutedAtLeastOnce = false;
             final int handleToClose = prepStmtHandle;
-            resetPrepStmtHandle();
+            
 
             // Handle unprepare actions through statement pooling.
-            if (null != cachedPreparedStatementHandle) {
+            if (resetPrepStmtHandle(false)) {
                 connection.returnCachedPreparedStatementHandle(cachedPreparedStatementHandle);
             }
             // If no reference to a statement pool cache item is found handle unprepare actions through batching @ connection level. 
@@ -328,7 +336,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     private boolean buildPreparedStrings(Parameter[] params,
             boolean renewDefinition) throws SQLServerException {
         String newTypeDefinitions = buildParamTypeDefinitions(params, renewDefinition);
-        if (null != preparedTypeDefinitions && newTypeDefinitions.equals(preparedTypeDefinitions))
+        if (null != preparedTypeDefinitions && newTypeDefinitions.equalsIgnoreCase(preparedTypeDefinitions))
             return false;   
 
         preparedTypeDefinitions = newTypeDefinitions;
@@ -533,13 +541,12 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
             hasNewTypeDefinitions = buildPreparedStrings(inOutParam, true);
         }
 
-        String dbName = connection.getSCatalog();
         boolean needsPrepare = true;
         // Retry execution if existing handle could not be re-used.
         for (int attempt = 1; attempt <= 2; ++attempt) {
             try {
                 // Re-use handle if available, requires parameter definitions which are not available until here.
-                if (reuseCachedHandle(hasNewTypeDefinitions, 1 < attempt, dbName)) {
+                if (reuseCachedHandle(hasNewTypeDefinitions, 1 < attempt)) {
                     hasNewTypeDefinitions = false;
                 }
 
@@ -554,7 +561,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                 getNextResult();
             }
             catch (SQLException e) {
-                if (retryBasedOnFailedReuseOfCachedHandle(e, attempt, needsPrepare))
+                if (retryBasedOnFailedReuseOfCachedHandle(e, attempt, needsPrepare, false))
                     continue;
                 else
                     throw e;
@@ -572,13 +579,16 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     
     /** Should the execution be retried because the re-used cached handle could not be re-used due to server side state changes? */
     private boolean retryBasedOnFailedReuseOfCachedHandle(SQLException e,
-            int attempt, boolean needsPrepare) {
+            int attempt,
+            boolean needsPrepare,
+            boolean isBatch) {
         // Only retry based on these error codes and if statementPooling is enabled:
         // 586: The prepared statement handle %d is not valid in this context. Please verify that current database, user default schema, and
         // ANSI_NULLS and QUOTED_IDENTIFIER set options are not changed since the handle is prepared.
         // 8179: Could not find prepared statement with handle %d.
-        if(needsPrepare) return false;
-    	return 1 == attempt && (586 == e.getErrorCode() || 8179 == e.getErrorCode()) && connection.isStatementPoolingEnabled();
+        if (needsPrepare && !isBatch)
+            return false;
+        return 1 == attempt && (586 == e.getErrorCode() || 8179 == e.getErrorCode()) && connection.isStatementPoolingEnabled();
     }
 
     /**
@@ -606,13 +616,8 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
                 // Cache the reference to the newly created handle, NOT for cursorable handles.
                 if (null == cachedPreparedStatementHandle && !isCursorable(executeMethod)) {
-                    String dbName = connection.getSCatalog();
-                    if (null != handleDBName) {
-                        dbName = handleDBName;
-                    }
-
                     cachedPreparedStatementHandle = connection.registerCachedPreparedStatementHandle(
-                            new Sha1HashKey(preparedSQL, preparedTypeDefinitions, dbName), prepStmtHandle, executedSqlDirectly);
+                            new Sha1HashKey(preparedSQL, preparedTypeDefinitions), prepStmtHandle, executedSqlDirectly);
                 }
                 
                 param.skipValue(tdsReader, true);
@@ -666,7 +671,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         // IN (reprepare): Old handle to unprepare before repreparing
         // OUT: The newly prepared handle
         tdsWriter.writeRPCInt(null, getPreparedStatementHandle(), true);
-        resetPrepStmtHandle();
+        resetPrepStmtHandle(false);
 
         // <cursor> OUT
         tdsWriter.writeRPCInt(null, 0, true); // cursor ID (OUTPUT)
@@ -708,7 +713,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         // IN (reprepare): Old handle to unprepare before repreparing
         // OUT: The newly prepared handle
         tdsWriter.writeRPCInt(null, getPreparedStatementHandle(), true);
-        resetPrepStmtHandle();
+        resetPrepStmtHandle(false);
 
         // <formal parameter defn> IN
         tdsWriter.writeRPCStringUnicode((preparedTypeDefinitions.length() > 0) ? preparedTypeDefinitions : null);
@@ -732,7 +737,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         tdsWriter.writeByte((byte) 0);  // RPC procedure option 2
 
         // No handle used.
-        resetPrepStmtHandle();
+        resetPrepStmtHandle(false);
 
         // <stmt> IN
         tdsWriter.writeRPCStringUnicode(preparedSQL);
@@ -933,39 +938,31 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         connection.resetCurrentCommand();
     }
 
-	/** Manage re-using cached handles */
-	private boolean reuseCachedHandle(boolean hasNewTypeDefinitions, boolean discardCurrentCacheItem, String dbName) {
-		// No re-use of caching for cursorable statements (statements that WILL use sp_cursor*)
-		if (isCursorable(executeMethod))
-			return false;
-		
-		// If current cache item should be discarded make sure it is not used again.
-		if (discardCurrentCacheItem && null != cachedPreparedStatementHandle) {
-			
-            cachedPreparedStatementHandle.removeReference();
-            
-            // Make sure the cached handle does not get re-used more.
-			resetPrepStmtHandle();
-			cachedPreparedStatementHandle.setIsExplicitlyDiscarded();
-			cachedPreparedStatementHandle = null;
-
+    /** Manage re-using cached handles */
+    private boolean reuseCachedHandle(boolean hasNewTypeDefinitions,
+            boolean discardCurrentCacheItem) {
+        // No re-use of caching for cursorable statements (statements that WILL use sp_cursor*)
+        if (isCursorable(executeMethod))
             return false;
-		}
-		
-		// New type definitions and existing cached handle reference then deregister cached handle.
-		if(hasNewTypeDefinitions) {
-			if (null != cachedPreparedStatementHandle && hasPreparedStatementHandle() && prepStmtHandle == cachedPreparedStatementHandle.getHandle()) {
-				cachedPreparedStatementHandle.removeReference();
-	            cachedPreparedStatementHandle.setIsExplicitlyDiscarded();
-			}
-			cachedPreparedStatementHandle = null; 			
-		}
-		
+
+        // If current cache items needs to be discarded or New type definitions found with existing cached handle reference then deregister cached
+        // handle.
+        if (discardCurrentCacheItem || hasNewTypeDefinitions) {
+            if (null != cachedPreparedStatementHandle
+                    && (discardCurrentCacheItem || (hasPreparedStatementHandle() && prepStmtHandle == cachedPreparedStatementHandle.getHandle()))) {
+                cachedPreparedStatementHandle.removeReference();
+            }
+
+            // Make sure the cached handle does not get re-used more if it should be discarded
+            resetPrepStmtHandle(discardCurrentCacheItem);
+            cachedPreparedStatementHandle = null;
+            if (discardCurrentCacheItem)
+                return false;
+        }
+
         // Check for new cache reference.
         if (null == cachedPreparedStatementHandle) {
-            PreparedStatementHandle cachedHandle = connection
-                    .getCachedPreparedStatementHandle(new Sha1HashKey(preparedSQL, preparedTypeDefinitions, dbName));
-
+            PreparedStatementHandle cachedHandle = connection.getCachedPreparedStatementHandle(new Sha1HashKey(preparedSQL, preparedTypeDefinitions));
             // If handle was found then re-use, only if AE is not on and is not a batch query with new type definitions (We shouldn't reuse handle
             // if it is batch query and has new type definition, or if it is on, make sure encryptionMetadataIsRetrieved is retrieved.
             if (null != cachedHandle) {
@@ -986,13 +983,13 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
             Parameter[] params,
             boolean hasNewTypeDefinitions,
             boolean hasExistingTypeDefinitions) throws SQLServerException {
-        
+
         boolean needsPrepare = (hasNewTypeDefinitions && hasExistingTypeDefinitions) || !hasPreparedStatementHandle();
 
         // Cursors don't use statement pooling.
         if (isCursorable(executeMethod)) {
-            
-            if (needsPrepare) 
+
+            if (needsPrepare)
                 buildServerCursorPrepExecParams(tdsWriter);
             else
                 buildServerCursorExecParams(tdsWriter);
@@ -1000,15 +997,12 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         else {
             // Move overhead of needing to do prepare & unprepare to only use cases that need more than one execution.
             // First execution, use sp_executesql, optimizing for asumption we will not re-use statement.
-            if (needsPrepare 
-                && !connection.getEnablePrepareOnFirstPreparedStatementCall() 
-                && !isExecutedAtLeastOnce
-            ) {
+            if (needsPrepare && !connection.getEnablePrepareOnFirstPreparedStatementCall() && !isExecutedAtLeastOnce) {
                 buildExecSQLParams(tdsWriter);
                 isExecutedAtLeastOnce = true;
             }
             // Second execution, use prepared statements since we seem to be re-using it.
-            else if(needsPrepare)
+            else if (needsPrepare)
                 buildPrepExecParams(tdsWriter);
             else
                 buildExecParams(tdsWriter);
@@ -2652,14 +2646,13 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                 }
             }
 
-            String dbName = connection.getSCatalog();
             boolean needsPrepare = true;
             // Retry execution if existing handle could not be re-used.
             for (int attempt = 1; attempt <= 2; ++attempt) {
                 try {
 
                     // Re-use handle if available, requires parameter definitions which are not available until here.
-                    if (reuseCachedHandle(hasNewTypeDefinitions, 1 < attempt, dbName)) {
+                    if (reuseCachedHandle(hasNewTypeDefinitions, 1 < attempt)) {
                         hasNewTypeDefinitions = false;
                     }
 
@@ -2716,7 +2709,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                                     throw e;
 
                                 // Retry if invalid handle exception.
-                                if (retryBasedOnFailedReuseOfCachedHandle(e, attempt, needsPrepare)) {
+                                if (retryBasedOnFailedReuseOfCachedHandle(e, attempt, needsPrepare, true)) {
                                     // reset number of batches prepare
                                     numBatchesPrepared = numBatchesExecuted;
                                     retry = true;
@@ -2747,7 +2740,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                     }
                 }
                 catch (SQLException e) {
-                    if (retryBasedOnFailedReuseOfCachedHandle(e, attempt, needsPrepare) && connection.isStatementPoolingEnabled()) {
+                    if (retryBasedOnFailedReuseOfCachedHandle(e, attempt, needsPrepare, true) && connection.isStatementPoolingEnabled()) {
                         // Reset number of batches prepared.
                         numBatchesPrepared = numBatchesExecuted;
                         continue;

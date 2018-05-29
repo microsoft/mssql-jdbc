@@ -123,13 +123,12 @@ public class SQLServerConnection implements ISQLServerConnection {
         private byte[] bytes;
 
         Sha1HashKey(String sql,
-                String parametersDefinition,
-                String dbName) {
-            this(String.format("%s%s%s", sql, parametersDefinition, dbName));
+                String parametersDefinition) {
+            this(String.format("%s%s", sql, parametersDefinition));
         }
 
         Sha1HashKey(String s) {
-        	bytes = getSha1Digest().digest(s.getBytes());
+            bytes = getSha1Digest().digest(s.getBytes());
         }
 
         public boolean equals(Object obj) {
