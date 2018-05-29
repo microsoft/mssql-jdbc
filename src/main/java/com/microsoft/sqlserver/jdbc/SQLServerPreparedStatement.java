@@ -2473,7 +2473,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         localUserSQL = userSQL;
         
         try {
-            if (isInsert(localUserSQL) && true && (this.useBulkCopyForBatchInsertOnDW || connection.getUseBulkCopyForBatchInsertOnDW())) {
+            if (isInsert(localUserSQL) && connection.isAzureDW() && (this.useBulkCopyForBatchInsertOnDW || connection.getUseBulkCopyForBatchInsertOnDW())) {
                 if (batchParamValues == null) {
                     updateCounts = new int[0];
                     loggerExternal.exiting(getClassNameLogging(), "executeBatch", updateCounts);
