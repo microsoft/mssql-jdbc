@@ -2328,9 +2328,9 @@ public class CallableStatementTest extends AESetup {
             assertEquals(callableStatement.getObject(9), // actual plain
                     callableStatement.getObject(10), // received expected enc
                     TestResource.getResource("R_outputParamFailed"));
+            assertEquals(callableStatement.getObject(11), callableStatement.getObject(12), TestResource.getResource("R_outputParamFailed"));
             assertEquals(callableStatement.getObject(13), callableStatement.getObject(14), TestResource.getResource("R_outputParamFailed"));
             assertEquals(callableStatement.getObject(15), callableStatement.getObject(16), TestResource.getResource("R_outputParamFailed"));
-TestResource.getResource("R_outputParamFailed");
             assertEquals(callableStatement.getObject(17), callableStatement.getObject(18), TestResource.getResource("R_outputParamFailed"));
 
         }
