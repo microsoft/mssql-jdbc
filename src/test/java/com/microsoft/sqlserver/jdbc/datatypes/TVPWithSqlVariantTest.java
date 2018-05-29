@@ -31,6 +31,7 @@ import com.microsoft.sqlserver.jdbc.SQLServerDataTable;
 import com.microsoft.sqlserver.jdbc.SQLServerPreparedStatement;
 import com.microsoft.sqlserver.jdbc.SQLServerResultSet;
 import com.microsoft.sqlserver.jdbc.SQLServerStatement;
+import com.microsoft.sqlserver.jdbc.TestResource;
 import com.microsoft.sqlserver.testframework.AbstractTest;
 import com.microsoft.sqlserver.testframework.Utils;
 import com.microsoft.sqlserver.testframework.sqlType.SqlDate;
@@ -302,7 +303,8 @@ public class TVPWithSqlVariantTest extends AbstractTest {
             assertTrue(e.getMessage().contains("SQL_VARIANT does not support string values of length greater than 8000."));
         }
         catch (Exception e) {
-            fail("Test should have failed! mistakenly inserted string value of more than 8000 in sql-variant");
+            // Test should have failed! mistakenly inserted string value of more than 8000 in sql-variant
+            fail(TestResource.getResource("R_unexpectedException"));
         }
         finally {
             if (null != pstmt) {

@@ -33,6 +33,7 @@ import org.junit.runner.RunWith;
 import com.microsoft.sqlserver.jdbc.SQLServerConnection;
 import com.microsoft.sqlserver.jdbc.SQLServerDataSource;
 import com.microsoft.sqlserver.jdbc.SQLServerPreparedStatement;
+import com.microsoft.sqlserver.jdbc.TestResource;
 import com.microsoft.sqlserver.testframework.AbstractTest;
 
 @RunWith(JUnitPlatform.class)
@@ -286,7 +287,7 @@ public class PreparedStatementTest extends AbstractTest {
             } 
             try {
                 System.out.println(outer.getPreparedStatementHandle());
-                fail("Error for invalid use of getPreparedStatementHandle() after statement close expected.");
+                fail(TestResource.getResource("R_invalidGetPreparedStatementHandle"));
             }
             catch(Exception e) {
                 // Good!
