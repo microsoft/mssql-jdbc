@@ -51,7 +51,7 @@ public class RequestBoundaryMethodsTest extends AbstractTest {
         boolean disableStatementPooling1 = true;
         int serverPreparedStatementDiscardThreshold1 = 10;
         boolean enablePrepareOnFirstPreparedStatementCall1 = false;
-        String sCatalog1 = "master";
+        String sCatalog1 = "model";
 
         boolean autoCommitMode2 = false;
         int transactionIsolationLevel2 = SQLServerConnection.TRANSACTION_SERIALIZABLE;
