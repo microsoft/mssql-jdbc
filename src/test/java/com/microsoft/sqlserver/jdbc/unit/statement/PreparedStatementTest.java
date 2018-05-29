@@ -317,7 +317,7 @@ public class PreparedStatementTest extends AbstractTest {
 
                 // Add new statements to fill up the statement pool.
                 for (int i = 0; i < cacheSize; ++i) {
-                    try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement)con.prepareStatement(query + new Integer(i).toString())) {
+                    try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement)con.prepareStatement(query + String.valueOf(i))) {
                         pstmt.execute(); // sp_executesql
                         pstmt.execute(); // sp_prepexec, actual handle created and cached.
                     } 
@@ -332,7 +332,7 @@ public class PreparedStatementTest extends AbstractTest {
                 // (new statement pushes existing statement from pool into discard 
                 // action queue).
                 for (int i = cacheSize; i < cacheSize + 5; ++i) {
-                    try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement)con.prepareStatement(query + new Integer(i).toString())) {
+                    try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement)con.prepareStatement(query + String.valueOf(i))) {
                         pstmt.execute(); // sp_executesql
                         pstmt.execute(); // sp_prepexec, actual handle created and cached.
                     } 
