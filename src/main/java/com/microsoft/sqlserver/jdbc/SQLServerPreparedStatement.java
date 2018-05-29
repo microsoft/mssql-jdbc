@@ -113,11 +113,23 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
      */
     private boolean useBulkCopyForBatchInsertOnDW;
     
-    public boolean getUseBulkCopyForBatchInsertOnDW() {
+    /** Sets the prepared statement's useBulkCopyForBatchInsertOnDW value.
+     * 
+     * @return 
+     *      Per the description.
+     * @throws SQLServerException when an error occurs
+    */
+    public boolean getUseBulkCopyForBatchInsertOnDW() throws SQLServerException {
+        checkClosed();
         return useBulkCopyForBatchInsertOnDW;
     }
     
-    public void setUseBulkCopyForBatchInsertOnDW(boolean useBulkCopyForBatchInsertOnDW) {
+    /** Fetches the prepared statement's useBulkCopyForBatchInsertOnDW value.
+     * 
+     * @throws SQLServerException when an error occurs
+    */
+    public void setUseBulkCopyForBatchInsertOnDW(boolean useBulkCopyForBatchInsertOnDW) throws SQLServerException {
+        checkClosed();
         this.useBulkCopyForBatchInsertOnDW = useBulkCopyForBatchInsertOnDW;
     }
 
