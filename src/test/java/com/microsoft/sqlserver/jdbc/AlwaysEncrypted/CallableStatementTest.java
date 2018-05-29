@@ -1904,25 +1904,25 @@ public class CallableStatementTest extends AESetup {
             return callableStatement.getString(ordinal);
         }
         else if (coercion == Boolean.class) {
-            return new Boolean(callableStatement.getBoolean(ordinal));
+            return Boolean.valueOf(callableStatement.getBoolean(ordinal));
         }
         else if (coercion == Byte.class) {
-            return new Byte(callableStatement.getByte(ordinal));
+            return Byte.valueOf(callableStatement.getByte(ordinal));
         }
         else if (coercion == Short.class) {
-            return new Short(callableStatement.getShort(ordinal));
+            return Short.valueOf(callableStatement.getShort(ordinal));
         }
         else if (coercion == Integer.class) {
-            return new Integer(callableStatement.getInt(ordinal));
+            return Integer.valueOf(callableStatement.getInt(ordinal));
         }
         else if (coercion == Long.class) {
-            return new Long(callableStatement.getLong(ordinal));
+            return Long.valueOf(callableStatement.getLong(ordinal));
         }
         else if (coercion == Float.class) {
-            return new Float(callableStatement.getFloat(ordinal));
+            return Float.valueOf(callableStatement.getFloat(ordinal));
         }
         else if (coercion == Double.class) {
-            return new Double(callableStatement.getDouble(ordinal));
+            return Double.valueOf(callableStatement.getDouble(ordinal));
         }
         else if (coercion == BigDecimal.class) {
             return callableStatement.getBigDecimal(ordinal);
