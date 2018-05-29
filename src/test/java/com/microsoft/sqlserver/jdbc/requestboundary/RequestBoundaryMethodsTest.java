@@ -44,7 +44,7 @@ public class RequestBoundaryMethodsTest extends AbstractTest {
         // List of SQLServerConnection fields that can be modified through public APIs.
         boolean autoCommitMode1 = true;
         int transactionIsolationLevel1 = SQLServerConnection.TRANSACTION_READ_COMMITTED;
-        int networkTimeout1 = 0;
+        int networkTimeout1 = 5;
         int holdability1 = ResultSet.HOLD_CURSORS_OVER_COMMIT;
         boolean sendTimeAsDatetime1 = true;
         int statementPoolingCacheSize1 = 0;
