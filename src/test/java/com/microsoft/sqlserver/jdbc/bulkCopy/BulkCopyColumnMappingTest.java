@@ -13,6 +13,7 @@ import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.util.concurrent.ThreadLocalRandom;
+import java.text.MessageFormat;
 
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
@@ -27,6 +28,8 @@ import com.microsoft.sqlserver.testframework.DBStatement;
 import com.microsoft.sqlserver.testframework.DBTable;
 import com.microsoft.sqlserver.testframework.sqlType.SqlType;
 import com.microsoft.sqlserver.testframework.util.ComparisonUtil;
+
+import com.microsoft.sqlserver.jdbc.TestResource;
 
 /**
  * Test BulkCopy Column Mapping
@@ -193,7 +196,10 @@ public class BulkCopyColumnMappingTest extends BulkCopyTestSetUp {
             validateValuesRepetativeCM(con, sourceTable1, destTable);
         }
         catch (SQLException e) {
-            fail("failed to validate values in " + sourceTable1.getTableName() + " and " + destTable.getTableName() + "\n" + e.getMessage());
+            MessageFormat form = new MessageFormat(TestResource.getResource("R_failedValidate"));
+            Object[] msgArgs = {sourceTable1.getTableName()+" and"+destTable.getTableName()};
+
+            fail(form.format(msgArgs) + "\n" + destTable.getTableName() + "\n" + e.getMessage());
         }
         dropTable(sourceTable1.getEscapedTableName());
         dropTable(destTable.getEscapedTableName());
@@ -367,7 +373,7 @@ public class BulkCopyColumnMappingTest extends BulkCopyTestSetUp {
             stmt.execute(dropSQL);
         }
         catch (SQLException e) {
-            fail("table " + tableName + " not dropped\n" + e.getMessage());
+            fail(tableName + " " + TestResource.getResource("R_tableNotDropped") + "\n" + e.getMessage());
         }
     }
 

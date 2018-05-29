@@ -20,6 +20,7 @@ import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
+import com.microsoft.sqlserver.jdbc.TestResource;
 import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
 import com.microsoft.sqlserver.testframework.AbstractTest;
 import com.microsoft.sqlserver.testframework.Utils;
@@ -66,21 +67,21 @@ public class CallableMixedTest extends AbstractTest {
                 ResultSet rs = callableStatement.executeQuery();
                 rs.next();
 
-                assertEquals(rs.getInt(1), 0, "Received data not equal to setdata");
-                assertEquals(callableStatement.getInt((int) 5), -5372, "Received data not equal to setdata");
+                assertEquals(rs.getInt(1), 0, TestResource.getResource("R_setDataNotEqual"));
+                assertEquals(callableStatement.getInt((int) 5), -5372, TestResource.getResource("R_setDataNotEqual"));
 
                 // do nothing and reexecute
                 rs = callableStatement.executeQuery();
                 // get the param without getting the resultset
                 rs = callableStatement.executeQuery();
-                assertEquals(callableStatement.getInt((int) 1), -2147483648, "Received data not equal to setdata");
+                assertEquals(callableStatement.getInt((int) 1), -2147483648, TestResource.getResource("R_setDataNotEqual"));
 
                 rs = callableStatement.executeQuery();
                 rs.next();
 
-                assertEquals(rs.getInt(1), 0, "Received data not equal to setdata");
-                assertEquals(callableStatement.getInt((int) 1), -2147483648, "Received data not equal to setdata");
-                assertEquals(callableStatement.getInt((int) 5), -5372, "Received data not equal to setdata");
+                assertEquals(rs.getInt(1), 0, TestResource.getResource("R_setDataNotEqual"));
+                assertEquals(callableStatement.getInt((int) 1), -2147483648, TestResource.getResource("R_setDataNotEqual"));
+                assertEquals(callableStatement.getInt((int) 5), -5372, TestResource.getResource("R_setDataNotEqual"));
                 rs = callableStatement.executeQuery();
                 rs.close();
             }

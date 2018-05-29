@@ -27,6 +27,7 @@ import org.junit.runner.RunWith;
 import org.opentest4j.TestAbortedException;
 
 import com.microsoft.sqlserver.jdbc.SQLServerStatement;
+import com.microsoft.sqlserver.jdbc.TestResource;
 import com.microsoft.sqlserver.testframework.AbstractTest;
 import com.microsoft.sqlserver.testframework.DBConnection;
 import com.microsoft.sqlserver.testframework.Utils;
@@ -77,7 +78,7 @@ public class BatchExecutionTest extends AbstractTest {
             int[] updateCount = pstmt.executeBatch();
             int updateCountlen = updateCount.length;
 
-            assertTrue(updateCountlen == 3, "addBatch does not add the SQL Statements to Batch ,call to addBatch failed");
+            assertTrue(updateCountlen == 3, TestResource.getResource("R_addBatchFailed") + ": " + TestResource.getResource("R_incorrectUpdateCount"));
 
             String sPrepStmt1 = "select count(*) from ctstable2 where TYPE_ID=?";
 
@@ -96,18 +97,18 @@ public class BatchExecutionTest extends AbstractTest {
             for (int j = 0; j < updateCount.length; j++) {
 
                 if (updateCount[j] != retValue[j] && updateCount[j] != Statement.SUCCESS_NO_INFO) {
-                    fail("affected row count does not match with the updateCount value, Call to addBatch is Failed!");
+                    fail(TestResource.getResource("R_incorrectUpdateCount"));
                 }
             }
         }
         catch (BatchUpdateException b) {
-            fail("BatchUpdateException :  Call to addBatch is Failed!");
+            fail(TestResource.getResource("R_addBatchFailed") + ": " + b.getMessage());
         }
         catch (SQLException sqle) {
-            fail("Call to addBatch is Failed!");
+            fail(TestResource.getResource("R_addBatchFailed") + ": " + sqle.getMessage());
         }
         catch (Exception e) {
-            fail("Call to addBatch is Failed!");
+            fail(TestResource.getResource("R_addBatchFailed") + ": " + e.getMessage());
         }
     }
 
@@ -118,7 +119,7 @@ public class BatchExecutionTest extends AbstractTest {
     public void testExecuteBatch1() {
         int i = 0;
         int retValue[] = {0, 0, 0};
-        int updCountLength = 0;
+        int updateCountlen = 0;
         try {
             String sPrepStmt = "update ctstable2 set PRICE=PRICE*20 where TYPE_ID=?";
 
@@ -133,9 +134,9 @@ public class BatchExecutionTest extends AbstractTest {
             pstmt.addBatch();
 
             int[] updateCount = pstmt.executeBatch();
-            updCountLength = updateCount.length;
+            updateCountlen = updateCount.length;
 
-            assertTrue(updCountLength == 3, "executeBatch does not execute the Batch of SQL statements, Call to executeBatch is Failed!");
+            assertTrue(updateCountlen == 3, TestResource.getResource("R_executeBatchFailed") + ": " + TestResource.getResource("R_incorrectUpdateCount"));
 
             String sPrepStmt1 = "select count(*) from ctstable2 where TYPE_ID=?";
 
@@ -152,18 +153,18 @@ public class BatchExecutionTest extends AbstractTest {
 
             for (int j = 0; j < updateCount.length; j++) {
                 if (updateCount[j] != retValue[j] && updateCount[j] != Statement.SUCCESS_NO_INFO) {
-                    fail("executeBatch does not execute the Batch of SQL statements, Call to executeBatch is Failed!");
+                    fail(TestResource.getResource("R_executeBatchFailed") + ": " + TestResource.getResource("R_incorrectUpdateCount"));
                 }
             }
         }
         catch (BatchUpdateException b) {
-            fail("BatchUpdateException :  Call to executeBatch is Failed!");
+            fail(TestResource.getResource("R_executeBatchFailed") + ": " + b.getMessage());
         }
         catch (SQLException sqle) {
-            fail("Call to executeBatch is Failed!");
+            fail(TestResource.getResource("R_executeBatchFailed") + ": " + sqle.getMessage());
         }
         catch (Exception e) {
-            fail("Call to executeBatch is Failed!");
+            fail(TestResource.getResource("R_executeBatchFailed") + ": " + e.getMessage());
         }
     }
 
@@ -192,7 +193,7 @@ public class BatchExecutionTest extends AbstractTest {
     @BeforeAll
     public static void testSetup() throws TestAbortedException, Exception {
         assumeTrue(13 <= new DBConnection(connectionString).getServerVersion(),
-                "Aborting test case as SQL Server version is not compatible with Always encrypted ");
+                TestResource.getResource("R_Incompat_SQLServerVersion"));
         connection = DriverManager.getConnection(connectionString + ";columnEncryptionSetting=Enabled;");
         stmt = (SQLServerStatement) connection.createStatement();
         dropTable();

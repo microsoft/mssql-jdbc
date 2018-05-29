@@ -34,6 +34,7 @@ import com.microsoft.sqlserver.jdbc.SQLServerConnection;
 import com.microsoft.sqlserver.jdbc.SQLServerPreparedStatement;
 import com.microsoft.sqlserver.jdbc.SQLServerStatement;
 import com.microsoft.sqlserver.jdbc.SQLServerStatementColumnEncryptionSetting;
+import com.microsoft.sqlserver.jdbc.TestResource;
 import com.microsoft.sqlserver.testframework.AbstractTest;
 import com.microsoft.sqlserver.testframework.DBConnection;
 import com.microsoft.sqlserver.testframework.Utils;
@@ -87,7 +88,7 @@ public class AESetup extends AbstractTest {
     @BeforeAll
     static void setUpConnection() throws TestAbortedException, Exception {
         assumeTrue(13 <= new DBConnection(connectionString).getServerVersion(),
-                "Aborting test case as SQL Server version is not compatible with Always encrypted ");
+                TestResource.getResource("R_Incompat_SQLServerVersion"));
 
         String AETestConenctionString = connectionString + ";sendTimeAsDateTime=false";
         readFromFile(javaKeyStoreInputFile, "Alias name");
@@ -140,7 +141,7 @@ public class AESetup extends AbstractTest {
         filePath = Utils.getCurrentClassPath();
         try {
             File f = new File(filePath + inputFile);
-            assumeTrue(f.exists(), "Aborting test case since no java key store and alias name exists!");
+            assumeTrue(f.exists(), TestResource.getResource("R_noKeyStore"));
             try(BufferedReader buffer = new BufferedReader(new FileReader(f))) {
 	            String readLine = "";
 	            String[] linecontents;

@@ -29,6 +29,8 @@ import com.microsoft.sqlserver.jdbc.SQLServerStatement;
 import com.microsoft.sqlserver.testframework.AbstractTest;
 import com.microsoft.sqlserver.testframework.Utils;
 
+import com.microsoft.sqlserver.jdbc.TestResource;;
+
 @RunWith(JUnitPlatform.class)
 public class TVPIssuesTest extends AbstractTest {
 
@@ -78,11 +80,11 @@ public class TVPIssuesTest extends AbstractTest {
         SQLServerCallableStatement Cstmt = (SQLServerCallableStatement) connection.prepareCall(sql);
         try {
             Cstmt.setObject(1, rs);
-            throw new Exception("Expected Exception for invalied stored procedure name is not thrown.");
+            throw new Exception(TestResource.getResource("R_expectedExceptionNotThrown"));
         }
         catch (Exception e) {
             if (e instanceof SQLException) {
-                assertTrue(e.getMessage().contains("Could not find stored procedure"), "Invalid Error Message.");
+                assertTrue(e.getMessage().contains(TestResource.getResource("R_StoredProcedureNotFound")), TestResource.getResource("R_invalidErrorMessage") + e.toString());
             }
             else {
                 throw e;
@@ -114,7 +116,7 @@ public class TVPIssuesTest extends AbstractTest {
     private void testCharDestTable() throws SQLException, IOException {
         ResultSet rs = connection.createStatement().executeQuery("select * from " + desTable_varcharMax);
         while (rs.next()) {
-            assertEquals(rs.getString(1).length(), 4001, " The inserted length is truncated or not correct!");
+            assertEquals(rs.getString(1).length(), 4001, TestResource.getResource("R_lengthTruncated"));
         }
         if (null != rs) {
             rs.close();
@@ -124,7 +126,7 @@ public class TVPIssuesTest extends AbstractTest {
     private void testTime6DestTable() throws SQLException, IOException {
         ResultSet rs = connection.createStatement().executeQuery("select * from " + desTable_time_6);
         while (rs.next()) {
-            assertEquals(rs.getString(1), expectedTime6value, " The time value is truncated or not correct!");
+            assertEquals(rs.getString(1), expectedTime6value, TestResource.getResource("R_timeValueTruncated"));
         }
         if (null != rs) {
             rs.close();

@@ -21,6 +21,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
 
+import com.microsoft.sqlserver.jdbc.TestResource;
 import com.microsoft.sqlserver.testframework.AbstractTest;
 import com.microsoft.sqlserver.testframework.DBConnection;
 import com.microsoft.sqlserver.testframework.DBStatement;
@@ -62,7 +63,7 @@ public class MergeTest extends AbstractTest {
                     stmt.executeUpdate(setupTables);
                     stmt.executeUpdate(mergeCmd2);
                     int updateCount = stmt.getUpdateCount();
-                    assertEquals(updateCount, 3, "Received the wrong update count!");
+                    assertEquals(updateCount, 3, TestResource.getResource("R_incorrectUpdateCount"));
 
                 }
             }
