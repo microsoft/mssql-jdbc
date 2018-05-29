@@ -70,7 +70,7 @@ public class ConnectionDriverTest extends AbstractTest {
         for (DriverPropertyInfo anInfoArray1 : infoArray) {
             logger.fine(anInfoArray1.name);
             logger.fine(anInfoArray1.description);
-            logger.fine(new Boolean(anInfoArray1.required).toString());
+            logger.fine(Boolean.valueOf(anInfoArray1.required).toString());
             logger.fine(anInfoArray1.value);
         }
 

@@ -381,7 +381,7 @@ class BulkCopyTestUtil {
 	                if(srcValue.getClass().getName().equalsIgnoreCase("java.lang.Double")){
 	                    // in case of SQL Server type Float (ie java type double), in float(n) if n is <=24 ie precsion is <=7 SQL Server type Real is returned(ie java type float)
 	                    if(destMeta.getPrecision(i) <8)
-	                        srcValue = new Float(((Double)srcValue));
+	                        srcValue = ((Double)srcValue).floatValue();
 	                }
 	                dstValue = dstResultSet.getObject(i);
 	                int dstType = destMeta.getColumnType(i);

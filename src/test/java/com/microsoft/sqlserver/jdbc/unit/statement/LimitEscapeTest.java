@@ -116,16 +116,13 @@ public class LimitEscapeTest extends AbstractTest {
             cArg[0] = String.class;
             Class<?> innerClass = Class.forName("com.microsoft.sqlserver.jdbc.JDBCSyntaxTranslator");
             Constructor<?> ctor = innerClass.getDeclaredConstructor();
-            if (!ctor.isAccessible()) {
-                ctor.setAccessible(true);
-            }
 
+            ctor.setAccessible(true);
             Object innerInstance = ctor.newInstance();
             Method method = innerClass.getDeclaredMethod("translate", cArg);
 
-            if (!method.isAccessible()) {
-                method.setAccessible(true);
-            }
+
+            method.setAccessible(true);
             Object str = method.invoke(innerInstance, inputSql);
             assertEquals(str, outputSql, TestResource.getResource("R_syntaxMatchError") + ": " + queryID);
         }
