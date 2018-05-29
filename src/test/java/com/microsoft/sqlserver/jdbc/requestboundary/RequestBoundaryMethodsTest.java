@@ -331,6 +331,7 @@ public class RequestBoundaryMethodsTest extends AbstractTest {
                     Thread.sleep(3000);
                 }
                 catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
                     e.printStackTrace();
                 }
                 con.endRequest();
@@ -379,6 +380,14 @@ public class RequestBoundaryMethodsTest extends AbstractTest {
         con.setAutoCommit(autoCommitMode);
         con.setTransactionIsolation(transactionIsolationLevel);
         con.setNetworkTimeout(null, networkTimeout);
+        // Wait for setNetworkTimeout to complete
+        try {
+            Thread.sleep(3000);
+        }
+        catch (InterruptedException e) {
+            e.printStackTrace();
+            Thread.currentThread().interrupt();
+        }
         con.setHoldability(holdability);
         con.setSendTimeAsDatetime(sendTimeAsDatetime);
         con.setStatementPoolingCacheSize(statementPoolingCacheSize);
