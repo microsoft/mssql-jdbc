@@ -44,7 +44,7 @@ public class RequestBoundaryMethodsTest extends AbstractTest {
         // List of SQLServerConnection fields that can be modified through public APIs.
         boolean autoCommitMode1 = true;
         int transactionIsolationLevel1 = SQLServerConnection.TRANSACTION_READ_COMMITTED;
-        int networkTimeout1 = 5;
+        int networkTimeout1 = 5000;
         int holdability1 = ResultSet.HOLD_CURSORS_OVER_COMMIT;
         boolean sendTimeAsDatetime1 = true;
         int statementPoolingCacheSize1 = 0;
@@ -55,7 +55,7 @@ public class RequestBoundaryMethodsTest extends AbstractTest {
 
         boolean autoCommitMode2 = false;
         int transactionIsolationLevel2 = SQLServerConnection.TRANSACTION_SERIALIZABLE;
-        int networkTimeout2 = 10;
+        int networkTimeout2 = 10000;
         int holdability2 = ResultSet.CLOSE_CURSORS_AT_COMMIT;
         boolean sendTimeAsDatetime2 = false;
         int statementPoolingCacheSize2 = 10;
@@ -380,14 +380,6 @@ public class RequestBoundaryMethodsTest extends AbstractTest {
         con.setAutoCommit(autoCommitMode);
         con.setTransactionIsolation(transactionIsolationLevel);
         con.setNetworkTimeout(null, networkTimeout);
-        // Wait for setNetworkTimeout to complete
-        try {
-            Thread.sleep(3000);
-        }
-        catch (InterruptedException e) {
-            e.printStackTrace();
-            Thread.currentThread().interrupt();
-        }
         con.setHoldability(holdability);
         con.setSendTimeAsDatetime(sendTimeAsDatetime);
         con.setStatementPoolingCacheSize(statementPoolingCacheSize);
