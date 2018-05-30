@@ -323,5 +323,4 @@ public class Utils {
     public static float getJDBCVersion(Connection connection) throws SQLException {
         return Float.valueOf(connection.getMetaData().getJDBCMajorVersion() + "." + connection.getMetaData().getJDBCMinorVersion());
     }
-    
 }
