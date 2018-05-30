@@ -40,6 +40,8 @@ import org.junit.jupiter.api.function.Executable;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
 
+import com.microsoft.sqlserver.jdbc.TestResource;
+
 import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
 import com.microsoft.sqlserver.testframework.AbstractTest;
 import com.microsoft.sqlserver.testframework.DBCoercion;
@@ -183,8 +185,8 @@ public class lobsTest extends AbstractTest {
                     // Case 1: Invalid length value is passed as LOB length
                     if (streamLength < 0 || streamLength == Long.MAX_VALUE) {
                         // Applies to all LOB types ("The length {0} is not valid}
-                        assertTrue(e.getMessage().startsWith("The length"), "Unexpected message thrown : " + e.getMessage());
-                        assertTrue(e.getMessage().endsWith("is not valid."), "Unexpected message thrown : " + e.getMessage());
+                        assertTrue(e.getMessage().startsWith("The length"), TestResource.getResource("R_unexpectedExceptionContent") + ": " + e.getMessage());
+                        assertTrue(e.getMessage().endsWith("is not valid."), TestResource.getResource("R_unexpectedExceptionContent") + ": " + e.getMessage());
                         verified = true;
 
                     }
@@ -203,12 +205,12 @@ public class lobsTest extends AbstractTest {
                     }
                     if (!verified) {
                         // Odd CharacterStream length will throw this exception
-                        if (!e.getMessage().contains("The stream value is not the specified length. The specified length was"))
+                        if (!e.getMessage().contains(TestResource.getResource("R_badStreamLength")))
 
                         {
                             if (lobClass == DBCharacterStream.class || lobClass == DBBinaryStream.class)
-                                assertTrue(e.getSQLState() != null, "SQLState should not be null");
-                            assertTrue(e.getMessage().contains("An error occurred while reading the value from the stream object. Error:"));
+                                assertTrue(e.getSQLState() != null, TestResource.getResource("R_SQLStateNull"));
+                            assertTrue(e.getMessage().contains(TestResource.getResource("R_streamReadError")));
                         }
 
                     }
@@ -258,14 +260,14 @@ public class lobsTest extends AbstractTest {
                 try {
                 	stream = blob.getBinaryStream();
                 } catch (SQLException e) {
-                    assertTrue(e.getMessage().contains("This Blob object has been freed."));
+                    assertTrue(e.getMessage().contains(TestResource.getResource("R_blobFreed")));
                 }
             }
             rs.close();
             try {
             	stream = blob.getBinaryStream();
             } catch (SQLException e) {
-                assertTrue(e.getMessage().contains("This Blob object has been freed."));
+                assertTrue(e.getMessage().contains(TestResource.getResource("R_blobFreed")));
             }
         }
         catch (Exception e) {
@@ -308,7 +310,7 @@ public class lobsTest extends AbstractTest {
                         continue;
                     Object stream = rs.getXXX(i + 1, streamClass);
                     if (stream == null) {
-                        assertEquals(stream, rs.getObject(i + 1), "Stream is null when data is not");
+                        assertEquals(stream, rs.getObject(i + 1), TestResource.getResource("R_streamNull"));
                     }
                     else {
                         // close the stream twice
@@ -652,7 +654,7 @@ public class lobsTest extends AbstractTest {
             ps.setClob(index, (Clob) lob);
         else
             ps.setBlob(index, (Blob) lob);
-        assertEquals(ps.executeUpdate(), 1, "ExecuteUpdate did not return the correct updateCount");
+        assertEquals(ps.executeUpdate(), 1, TestResource.getResource("R_incorrectUpdateCount"));
     }
 
     private void updateResultSet(ResultSet rs,

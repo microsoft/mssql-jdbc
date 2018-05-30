@@ -25,6 +25,7 @@ import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
 import com.microsoft.sqlserver.testframework.AbstractTest;
 import com.microsoft.sqlserver.testframework.Utils;
+import com.microsoft.sqlserver.jdbc.TestResource;
 
 /**
  * Tests with sql queries using preparedStatement without parameters
@@ -68,7 +69,7 @@ public class RegressionTest extends AbstractTest {
             pstmt2.execute();
         }
         catch (SQLException e) {
-            fail("Create/drop view with preparedStatement failed! Error message: " + e.getMessage());
+            fail(TestResource.getResource("R_createDropViewFailed") + TestResource.getResource("R_errorMessage") + e.getMessage());
         }
 
         finally {
@@ -95,7 +96,7 @@ public class RegressionTest extends AbstractTest {
             pstmt2.execute();
         }
         catch (SQLException e) {
-            fail("Create/drop schema with preparedStatement failed! Error message:" + e.getMessage());
+            fail(TestResource.getResource("R_createDropSchemaFailed") + TestResource.getResource("R_errorMessage") + e.getMessage());
         }
 
         finally {
@@ -122,7 +123,7 @@ public class RegressionTest extends AbstractTest {
             pstmt2.execute();
         }
         catch (SQLException e) {
-            fail("Create/drop table with preparedStatement failed! Error message:" + e.getMessage());
+            fail(TestResource.getResource("R_createDropTableFailed") + TestResource.getResource("R_errorMessage") + e.getMessage());
         }
 
         finally {
@@ -151,7 +152,7 @@ public class RegressionTest extends AbstractTest {
             pstmt3.execute();
         }
         catch (SQLException e) {
-            fail("Create/drop/alter table with preparedStatement failed! Error message:" + e.getMessage());
+            fail(TestResource.getResource("R_createDropAlterTableFailed") + TestResource.getResource("R_errorMessage") + e.getMessage());
         }
 
         finally {
@@ -185,7 +186,7 @@ public class RegressionTest extends AbstractTest {
             pstmt4.execute();
         }
         catch (SQLException e) {
-            fail("grant with preparedStatement failed! Error message:" + e.getMessage());
+            fail(TestResource.getResource("R_grantFailed") + TestResource.getResource("R_errorMessage") + e.getMessage());
         }
 
         finally {

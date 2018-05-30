@@ -7,7 +7,7 @@
  */
 package com.microsoft.sqlserver.jdbc.tvp;
 
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.io.IOException;
 import java.sql.SQLException;
@@ -167,14 +167,9 @@ public class TVPSchemaTest extends AbstractTest {
             String actualValue2 = rs.getString(2);
             String actualValue3 = rs.getString(3);
 
-            assertTrue(actualValue1.trim().equals(expectecValue1),
-                    "actual value does not match expected value." + "\n\tExpected value: " + expectecValue1 + "\n\tActual value: " + actualValue1);
-
-            assertTrue(actualValue2.trim().equals(expectecValue2),
-                    "actual value does not match expected value." + "\n\tExpected value: " + expectecValue2 + "\n\tActual value: " + actualValue2);
-
-            assertTrue(actualValue3.trim().equals(expectecValue3),
-                    "actual value does not match expected value." + "\n\tExpected value: " + expectecValue3 + "\n\tActual value: " + actualValue3);
+            assertEquals(actualValue1.trim(), expectecValue1);
+            assertEquals(actualValue2.trim(), expectecValue2);
+            assertEquals(actualValue3.trim(), expectecValue3);
         }
     }
 

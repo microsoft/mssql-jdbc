@@ -32,6 +32,8 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
+import com.microsoft.sqlserver.jdbc.TestResource;;
+
 /**
  * Tests JDBC 4.3 APIs
  *
@@ -56,14 +58,14 @@ public class JDBC43Test extends AbstractTest {
             superShardingKey = ds.createShardingKeyBuilder().subkey("EASTERN_REGION", JDBCType.VARCHAR).build();
         }
         catch (SQLException e) {
-            assert (e.getMessage().contains("not implemented"));
+            assert (e.getMessage().contains(TestResource.getResource("R_notImplemented")));
         }
 
         try {
             shardingKey = ds.createShardingKeyBuilder().subkey("PITTSBURGH_BRANCH", JDBCType.VARCHAR).build();
         }
         catch (SQLException e) {
-            assert (e.getMessage().contains("not implemented"));
+            assert (e.getMessage().contains(TestResource.getResource("R_notImplemented")));
         }
 
         try {
@@ -71,7 +73,7 @@ public class JDBC43Test extends AbstractTest {
                     .build();
         }
         catch (SQLException e) {
-            assert (e.getMessage().contains("not implemented"));
+            assert (e.getMessage().contains(TestResource.getResource("R_notImplemented")));
         }
     }
 
@@ -90,14 +92,14 @@ public class JDBC43Test extends AbstractTest {
             superShardingKey = ds.createShardingKeyBuilder().subkey("EASTERN_REGION", JDBCType.VARCHAR).build();
         }
         catch (SQLException e) {
-            assert (e.getMessage().contains("not implemented"));
+            assert (e.getMessage().contains(TestResource.getResource("R_notImplemented")));
         }
 
         try {
             shardingKey = ds.createShardingKeyBuilder().subkey("PITTSBURGH_BRANCH", JDBCType.VARCHAR).build();
         }
         catch (SQLException e) {
-            assert (e.getMessage().contains("not implemented"));
+            assert (e.getMessage().contains(TestResource.getResource("R_notImplemented")));
         }
 
         try {
@@ -105,7 +107,7 @@ public class JDBC43Test extends AbstractTest {
                     .superShardingKey(superShardingKey).build();
         }
         catch (SQLException e) {
-            assert (e.getMessage().contains("not implemented"));
+            assert (e.getMessage().contains(TestResource.getResource("R_notImplemented")));
         }
     }
 
@@ -123,21 +125,21 @@ public class JDBC43Test extends AbstractTest {
             superShardingKey = ds.createShardingKeyBuilder().subkey("EASTERN_REGION", JDBCType.VARCHAR).build();
         }
         catch (SQLException e) {
-            assert (e.getMessage().contains("not implemented"));
+            assert (e.getMessage().contains(TestResource.getResource("R_notImplemented")));
         }
 
         try {
             shardingKey = ds.createShardingKeyBuilder().subkey("PITTSBURGH_BRANCH", JDBCType.VARCHAR).build();
         }
         catch (SQLException e) {
-            assert (e.getMessage().contains("not implemented"));
+            assert (e.getMessage().contains(TestResource.getResource("R_notImplemented")));
         }
         try {
             PooledConnection con = ds.createPooledConnectionBuilder().user("rafa").password("tennis").shardingKey(shardingKey)
                     .superShardingKey(superShardingKey).build();
         }
         catch (SQLException e) {
-            assert (e.getMessage().contains("not implemented"));
+            assert (e.getMessage().contains(TestResource.getResource("R_notImplemented")));
         }
     }
     
@@ -155,13 +157,13 @@ public class JDBC43Test extends AbstractTest {
             connection43.setShardingKeyIfValid(shardingKey, 10);
         }
         catch (SQLException e) {
-            assert (e.getMessage().contains("not implemented"));
+            assert (e.getMessage().contains(TestResource.getResource("R_notImplemented")));
         }
         try {
             connection43.setShardingKeyIfValid(shardingKey, superShardingKey, 10);
         }
         catch (SQLException e) {
-            assert (e.getMessage().contains("not implemented"));
+            assert (e.getMessage().contains(TestResource.getResource("R_notImplemented")));
         }
        
     }
@@ -180,13 +182,13 @@ public class JDBC43Test extends AbstractTest {
             connection43.setShardingKey(shardingKey);
         }
         catch (SQLException e) {
-            assert (e.getMessage().contains("not implemented"));
+            assert (e.getMessage().contains(TestResource.getResource("R_notImplemented")));
         }
         try {
             connection43.setShardingKey(shardingKey, superShardingKey);
         }
         catch (SQLException e) {
-            assert (e.getMessage().contains("not implemented"));
+            assert (e.getMessage().contains(TestResource.getResource("R_notImplemented")));
         }
        
     }

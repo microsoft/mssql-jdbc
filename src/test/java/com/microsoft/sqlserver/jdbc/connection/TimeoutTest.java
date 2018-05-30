@@ -21,6 +21,7 @@ import org.junit.runner.RunWith;
 
 import com.microsoft.sqlserver.jdbc.SQLServerConnection;
 import com.microsoft.sqlserver.jdbc.SQLServerStatement;
+import com.microsoft.sqlserver.jdbc.TestResource;
 import com.microsoft.sqlserver.testframework.AbstractTest;
 import com.microsoft.sqlserver.testframework.Utils;
 import com.microsoft.sqlserver.testframework.util.RandomUtil;
@@ -42,10 +43,10 @@ public class TimeoutTest extends AbstractTest {
             DriverManager.getConnection("jdbc:sqlserver://" + randomServer + ";user=sa;password=pwd;");
         }
         catch (Exception e) {
-            assertTrue(e.getMessage().contains("The TCP/IP connection to the host"));
+            assertTrue(e.getMessage().contains(TestResource.getResource("R_tcpipConnectionToHost")));
             timerEnd = System.currentTimeMillis();
         }
-        assertTrue(0 != timerEnd, "Should not have connected.");
+        assertTrue(0 != timerEnd, TestResource.getResource("R_shouldNotConnect"));
 
         long timeDiff = timerEnd - timerStart;
         assertTrue(timeDiff > 14000);
@@ -62,10 +63,10 @@ public class TimeoutTest extends AbstractTest {
                     + "\\foo;user=sa;password=pwd;");
         }
         catch (Exception e) {
-            assertTrue(e.getMessage().contains("The TCP/IP connection to the host"));
+            assertTrue(e.getMessage().contains(TestResource.getResource("R_tcpipConnectionToHost")));
             timerEnd = System.currentTimeMillis();
         }
-        assertTrue(0 != timerEnd, "Should not have connected.");
+        assertTrue(0 != timerEnd, TestResource.getResource("R_shouldNotConnect"));
 
         long timeDiff = timerEnd - timerStart;
         assertTrue(timeDiff > 14000);
@@ -84,7 +85,7 @@ public class TimeoutTest extends AbstractTest {
         catch (Exception e) {
             timerEnd = System.currentTimeMillis();
         }
-        assertTrue(0 != timerEnd, "Should not have connected.");
+        assertTrue(0 != timerEnd, TestResource.getResource("R_shouldNotConnect"));
 
         long timeDiff = timerEnd - timerStart;
         assertTrue(timeDiff > 14000);
@@ -105,18 +106,18 @@ public class TimeoutTest extends AbstractTest {
         
         try {
             conn.createStatement().execute("exec " + waitForDelaySPName);
-            throw new Exception("Exception for queryTimeout is not thrown.");
+            throw new Exception(TestResource.getResource("R_expectedExceptionNotThrown"));
         }
         catch (Exception e) {
             if (!(e instanceof java.sql.SQLTimeoutException)) {
                 throw e;
             }
-            assertEquals(e.getMessage(), "The query has timed out.", "Invalid exception message");
+            assertEquals(e.getMessage(), TestResource.getResource("R_queryTimedOut"), TestResource.getResource("R_invalidExceptionMessage"));
         }
         try{
             conn.createStatement().execute("SELECT @@version");
         }catch (Exception e) {
-           fail("Unexpected error message occured! "+ e.toString() );
+           fail(TestResource.getResource("R_unexpectedErrorMessage") + e.toString() );
         }
     }
     
@@ -136,18 +137,18 @@ public class TimeoutTest extends AbstractTest {
         try {
             SQLServerStatement statement = (SQLServerStatement) conn.createStatement();
             statement.execute("exec " + waitForDelaySPName);
-            throw new Exception("Exception for queryTimeout is not thrown.");
+            throw new Exception(TestResource.getResource("R_expectedExceptionNotThrown"));
         }
         catch (Exception e) {
             if (!(e instanceof java.sql.SQLTimeoutException)) {
                 throw e;
             }
-            assertEquals(e.getMessage(), "The query has timed out.", "Invalid exception message");
+            assertEquals(e.getMessage(), TestResource.getResource("R_queryTimedOut"), TestResource.getResource("R_invalidExceptionMessage"));
         }
         try{
             conn.createStatement().execute("SELECT @@version");
         }catch (Exception e) {
-           fail("Unexpected error message occured! "+ e.toString() );
+           fail(TestResource.getResource("R_unexpectedErrorMessage") + e.toString() );
         }
     }
 
@@ -169,18 +170,18 @@ public class TimeoutTest extends AbstractTest {
             statement.setQueryTimeout(waitForDelaySeconds/2);
             statement.setCancelQueryTimeout(waitForDelaySeconds);
             statement.execute("exec " + waitForDelaySPName);
-            throw new Exception("Exception for queryTimeout is not thrown.");
+            throw new Exception(TestResource.getResource("R_expectedExceptionNotThrown"));
         }
         catch (Exception e) {
             if (!(e instanceof java.sql.SQLTimeoutException)) {
                 throw e;
             }
-            assertEquals(e.getMessage(), "The query has timed out.", "Invalid exception message");
+            assertEquals(e.getMessage(), TestResource.getResource("R_queryTimedOut"), TestResource.getResource("R_invalidExceptionMessage"));
         }
         try{
             conn.createStatement().execute("SELECT @@version");
         }catch (Exception e) {
-           fail("Unexpected error message occured! "+ e.toString() );
+           fail(TestResource.getResource("R_unexpectedErrorMessage") + e.toString() );
         }
     }
     
@@ -199,18 +200,18 @@ public class TimeoutTest extends AbstractTest {
 
         try {
             conn.createStatement().execute("exec " + waitForDelaySPName);
-            throw new Exception("Exception for socketTimeout is not thrown.");
+            throw new Exception(TestResource.getResource("R_expectedExceptionNotThrown"));
         }
         catch (Exception e) {
             if (!(e instanceof SQLException)) {
                 throw e;
             }
-            assertEquals(e.getMessage(), "Read timed out", "Invalid exception message");
+            assertEquals(e.getMessage(), TestResource.getResource("R_readTimedOut"), TestResource.getResource("R_invalidExceptionMessage"));
         }
         try{
             conn.createStatement().execute("SELECT @@version");
         }catch (SQLException e) {
-            assertEquals(e.getMessage(), "The connection is closed.", "Invalid exception message");
+            assertEquals(e.getMessage(), TestResource.getResource("R_connectionIsClosed"), TestResource.getResource("R_invalidExceptionMessage"));
         }
     }
 

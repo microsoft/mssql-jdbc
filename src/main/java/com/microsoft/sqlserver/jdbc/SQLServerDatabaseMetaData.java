@@ -225,7 +225,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
     private static final String FUNCTION_TYPE = "FUNCTION_TYPE";
     private static final String SS_IS_SPARSE = "SS_IS_SPARSE";
     private static final String SS_IS_COLUMN_SET = "SS_IS_COLUMN_SET";
-    private static final String SS_IS_COMPUTED = "SS_IS_COMPUTED";
+    private static final String IS_GENERATEDCOLUMN = "IS_GENERATEDCOLUMN";
     private static final String IS_AUTOINCREMENT = "IS_AUTOINCREMENT";
 
     /**
@@ -267,11 +267,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
             hassoc = new HandleAssociation(catalog, CS);
             HandleAssociation previous = handleMap.put(request, hassoc);
             if (null != previous) {
-                ((SQLServerCallableStatement) previous.stmt).handleDBName = previous.databaseName;
-
                 previous.close();
-
-                ((SQLServerCallableStatement) previous.stmt).handleDBName = null;
             }
         }
         return hassoc.stmt;
@@ -565,7 +561,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
     private static final String[] getColumnsColumnNamesKatmai = {/* 1 */ TABLE_CAT, /* 2 */ TABLE_SCHEM, /* 3 */ TABLE_NAME, /* 4 */ COLUMN_NAME,
             /* 5 */ DATA_TYPE, /* 6 */ TYPE_NAME, /* 7 */ COLUMN_SIZE, /* 8 */ BUFFER_LENGTH, /* 9 */ DECIMAL_DIGITS, /* 10 */ NUM_PREC_RADIX,
             /* 11 */ NULLABLE, /* 12 */ REMARKS, /* 13 */ COLUMN_DEF, /* 14 */ SQL_DATA_TYPE, /* 15 */ SQL_DATETIME_SUB, /* 16 */ CHAR_OCTET_LENGTH,
-            /* 17 */ ORDINAL_POSITION, /* 18 */ IS_NULLABLE, /* 20 */ SS_IS_SPARSE, /* 20 */ SS_IS_COLUMN_SET, /* 21 */ SS_IS_COMPUTED,
+            /* 17 */ ORDINAL_POSITION, /* 18 */ IS_NULLABLE, /* 20 */ SS_IS_SPARSE, /* 20 */ SS_IS_COLUMN_SET, /* 21 */ IS_GENERATEDCOLUMN,
             /* 22 */ IS_AUTOINCREMENT};
 
     /* L0 */ public java.sql.ResultSet getColumns(String catalog,

@@ -25,6 +25,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.logging.Logger;
+import java.text.MessageFormat;
 
 import javax.sql.ConnectionEvent;
 import javax.sql.PooledConnection;
@@ -39,6 +40,7 @@ import com.microsoft.sqlserver.jdbc.SQLServerConnection;
 import com.microsoft.sqlserver.jdbc.SQLServerConnectionPoolDataSource;
 import com.microsoft.sqlserver.jdbc.SQLServerDataSource;
 import com.microsoft.sqlserver.jdbc.SQLServerDriver;
+import com.microsoft.sqlserver.jdbc.TestResource;
 import com.microsoft.sqlserver.testframework.AbstractTest;
 import com.microsoft.sqlserver.testframework.DBConnection;
 import com.microsoft.sqlserver.testframework.DBTable;
@@ -68,7 +70,7 @@ public class ConnectionDriverTest extends AbstractTest {
         for (DriverPropertyInfo anInfoArray1 : infoArray) {
             logger.fine(anInfoArray1.name);
             logger.fine(anInfoArray1.description);
-            logger.fine(new Boolean(anInfoArray1.required).toString());
+            logger.fine(Boolean.valueOf(anInfoArray1.required).toString());
             logger.fine(anInfoArray1.value);
         }
 
@@ -77,16 +79,16 @@ public class ConnectionDriverTest extends AbstractTest {
         infoArray = d.getPropertyInfo(url.toString(), info);
         for (DriverPropertyInfo anInfoArray : infoArray) {
             if (anInfoArray.name.equals("encrypt")) {
-                assertTrue(anInfoArray.value.equals("true"), "Values are different");
+                assertTrue(anInfoArray.value.equals("true"), TestResource.getResource("R_valuesAreDifferent"));
             }
             if (anInfoArray.name.equals("trustStore")) {
-                assertTrue(anInfoArray.value.equals("someStore"), "Values are different");
+                assertTrue(anInfoArray.value.equals("someStore"), TestResource.getResource("R_valuesAreDifferent"));
             }
             if (anInfoArray.name.equals("trustStorePassword")) {
-                assertTrue(anInfoArray.value.equals("somepassword"), "Values are different");
+                assertTrue(anInfoArray.value.equals("somepassword"), TestResource.getResource("R_valuesAreDifferent"));
             }
             if (anInfoArray.name.equals("hostNameInCertificate")) {
-                assertTrue(anInfoArray.value.equals("someHost"), "Values are different");
+                assertTrue(anInfoArray.value.equals("someHost"), TestResource.getResource("R_valuesAreDifferent"));
             }
         }
     }
@@ -109,9 +111,9 @@ public class ConnectionDriverTest extends AbstractTest {
         ds.setEncrypt(true);
         ds.setTrustStorePassword(trustStorePassword);
         ds.setTrustServerCertificate(true);
-        assertEquals(trustStore, ds.getTrustStore(), "Values are different");
-        assertEquals(true, ds.getEncrypt(), "Values are different");
-        assertEquals(true, ds.getTrustServerCertificate(), "Values are different");
+        assertEquals(trustStore, ds.getTrustStore(), TestResource.getResource("R_valuesAreDifferent"));
+        assertEquals(true, ds.getEncrypt(), TestResource.getResource("R_valuesAreDifferent"));
+        assertEquals(true, ds.getTrustServerCertificate(), TestResource.getResource("R_valuesAreDifferent"));
     }
 
     @Test
@@ -129,14 +131,14 @@ public class ConnectionDriverTest extends AbstractTest {
     public void testJdbcDriverMethod() throws SQLFeatureNotSupportedException {
         SQLServerDriver serverDriver = new SQLServerDriver();
         Logger logger = serverDriver.getParentLogger();
-        assertEquals(logger.getName(), "com.microsoft.sqlserver.jdbc", "Parent Logger name is wrong");
+        assertEquals(logger.getName(), "com.microsoft.sqlserver.jdbc", TestResource.getResource("R_parrentLoggerNameWrong"));
     }
 
     @Test
     public void testJdbcDataSourceMethod() throws SQLFeatureNotSupportedException {
         SQLServerDataSource fxds = new SQLServerDataSource();
         Logger logger = fxds.getParentLogger();
-        assertEquals(logger.getName(), "com.microsoft.sqlserver.jdbc", "Parent Logger name is wrong");
+        assertEquals(logger.getName(), "com.microsoft.sqlserver.jdbc", TestResource.getResource("R_parrentLoggerNameWrong"));
     }
 
     class MyEventListener implements javax.sql.ConnectionEventListener {
@@ -162,7 +164,7 @@ public class ConnectionDriverTest extends AbstractTest {
      */
     @Test
     public void testConnectionEvents() throws SQLException {
-        assumeTrue(!DBConnection.isSqlAzure(DriverManager.getConnection(connectionString)), "Skipping test case on Azure SQL.");
+        assumeTrue(!DBConnection.isSqlAzure(DriverManager.getConnection(connectionString)), TestResource.getResource("R_skipAzure"));
 
         SQLServerConnectionPoolDataSource mds = new SQLServerConnectionPoolDataSource();
         mds.setURL(connectionString);
@@ -184,17 +186,17 @@ public class ConnectionDriverTest extends AbstractTest {
 	        catch (Exception e) {
 	            exceptionThrown = true;
 	        }
-	        assertTrue(exceptionThrown, "Expected exception is not thrown.");
+	        assertTrue(exceptionThrown, TestResource.getResource("R_expectedExceptionNotThrown"));
 	
 	        // Check to see if error occurred.
-	        assertTrue(myE.errorOccurred, "Error occurred is not called.");
+	        assertTrue(myE.errorOccurred, TestResource.getResource("R_errorNotCalled"));
         }
         // make sure that connection is closed.
     }
 
     @Test
     public void testConnectionPoolGetTwice() throws SQLException {
-        assumeTrue(!DBConnection.isSqlAzure(DriverManager.getConnection(connectionString)), "Skipping test case on Azure SQL.");
+        assumeTrue(!DBConnection.isSqlAzure(DriverManager.getConnection(connectionString)), TestResource.getResource("R_skipAzure"));
 
         SQLServerConnectionPoolDataSource mds = new SQLServerConnectionPoolDataSource();
         mds.setURL(connectionString);
@@ -209,18 +211,18 @@ public class ConnectionDriverTest extends AbstractTest {
         // raise a non severe exception and make sure that the connection is not closed.
         stmt.executeUpdate("RAISERROR ('foo', 3,1) WITH LOG");
         // not a serious error there should not be any errors.
-        assertTrue(!myE.errorOccurred, "Error occurred is called.");
+        assertTrue(!myE.errorOccurred, TestResource.getResource("R_errorCalled"));
         // check to make sure that connection is not closed.
-	    assertTrue(!con.isClosed(), "Connection is closed.");
+	    assertTrue(!con.isClosed(), TestResource.getResource("R_connectionIsClosed"));
 	    stmt.close();
 	    con.close();
         // check to make sure that connection is closed.
-        assertTrue(con.isClosed(), "Connection is not closed.");
+        assertTrue(con.isClosed(), TestResource.getResource("R_connectionIsNotClosed"));
     }
 
     @Test
     public void testConnectionClosed() throws SQLException {
-        assumeTrue(!DBConnection.isSqlAzure(DriverManager.getConnection(connectionString)), "Skipping test case on Azure SQL.");
+        assumeTrue(!DBConnection.isSqlAzure(DriverManager.getConnection(connectionString)), TestResource.getResource("R_skipAzure"));
 
         SQLServerDataSource mds = new SQLServerDataSource();
         mds.setURL(connectionString);
@@ -234,10 +236,10 @@ public class ConnectionDriverTest extends AbstractTest {
         catch (Exception e) {
             exceptionThrown = true;
         }
-        assertTrue(exceptionThrown, "Expected exception is not thrown.");
+        assertTrue(exceptionThrown, TestResource.getResource("R_expectedExceptionNotThrown"));
         
         // check to make sure that connection is closed.
-        assertTrue(con.isClosed(), "Connection is not closed.");
+        assertTrue(con.isClosed(), TestResource.getResource("R_connectionIsNotClosed"));
     }
 
     @Test
@@ -246,13 +248,17 @@ public class ConnectionDriverTest extends AbstractTest {
         		SQLServerConnection ssconn = (SQLServerConnection) conn) {
 	        boolean isWrapper;
 	        isWrapper = ssconn.isWrapperFor(ssconn.getClass());
-	        assertTrue(isWrapper, "SQLServerConnection supports unwrapping");
-	        assertEquals(ssconn.TRANSACTION_SNAPSHOT, ssconn.TRANSACTION_SNAPSHOT, "Cant access the TRANSACTION_SNAPSHOT ");
+                MessageFormat form = new MessageFormat(TestResource.getResource("R_supportUnwrapping"));
+                Object[] msgArgs1 = {"SQLServerConnection"};
+
+	        assertTrue(isWrapper, form.format(msgArgs1));
+	        assertEquals(ssconn.TRANSACTION_SNAPSHOT, ssconn.TRANSACTION_SNAPSHOT, TestResource.getResource("R_cantAccessSnapshot"));
 	
 	        isWrapper = ssconn.isWrapperFor(Class.forName("com.microsoft.sqlserver.jdbc.ISQLServerConnection"));
-	        assertTrue(isWrapper, "ISQLServerConnection supports unwrapping");
+                Object[] msgArgs2 = {"ISQLServerConnection"};
+	        assertTrue(isWrapper, form.format(msgArgs2));
 	        ISQLServerConnection iSql = (ISQLServerConnection) ssconn.unwrap(Class.forName("com.microsoft.sqlserver.jdbc.ISQLServerConnection"));
-	        assertEquals(iSql.TRANSACTION_SNAPSHOT, iSql.TRANSACTION_SNAPSHOT, "Cant access the TRANSACTION_SNAPSHOT ");
+	        assertEquals(iSql.TRANSACTION_SNAPSHOT, iSql.TRANSACTION_SNAPSHOT, TestResource.getResource("R_cantAccessSnapshot"));
 	
 	        ssconn.unwrap(Class.forName("java.sql.Connection"));
         }
@@ -261,7 +267,7 @@ public class ConnectionDriverTest extends AbstractTest {
     @Test
     public void testNewConnection() throws SQLException {
         try(SQLServerConnection conn = (SQLServerConnection) DriverManager.getConnection(connectionString)) {
-        	assertTrue(conn.isValid(0), "Newly created connection should be valid");
+        	assertTrue(conn.isValid(0), TestResource.getResource("R_newConnectionShouldBeValid"));
         }
     }
 
@@ -269,7 +275,7 @@ public class ConnectionDriverTest extends AbstractTest {
     public void testClosedConnection() throws SQLException {
         SQLServerConnection conn = (SQLServerConnection) DriverManager.getConnection(connectionString);
         conn.close();
-        assertTrue(!conn.isValid(0), "Closed connection should be invalid");
+        assertTrue(!conn.isValid(0), TestResource.getResource("R_closedConnectionShouldBeInvalid"));
     }
 
     @Test
@@ -277,17 +283,20 @@ public class ConnectionDriverTest extends AbstractTest {
         try (SQLServerConnection conn = (SQLServerConnection) DriverManager.getConnection(connectionString)) {
 	        try {
 	            conn.isValid(-42);
-	            throw new Exception("No exception thrown with negative timeout");
+	            throw new Exception(TestResource.getResource("R_noExceptionNegativeTimeout"));
 	        }
 	        catch (SQLException e) {
-	            assertEquals(e.getMessage(), "The query timeout value -42 is not valid.", "Wrong exception message");
+                    MessageFormat form = new MessageFormat(TestResource.getResource("R_invalidQueryTimeout"));
+                    Object[] msgArgs = {"-42"};
+
+	            assertEquals(e.getMessage(), form.format(msgArgs), TestResource.getResource("R_wrongExceptionMessage"));
 	        }
         }
     }
 
     @Test
     public void testDeadConnection() throws SQLException {
-        assumeTrue(!DBConnection.isSqlAzure(DriverManager.getConnection(connectionString)), "Skipping test case on Azure SQL.");
+        assumeTrue(!DBConnection.isSqlAzure(DriverManager.getConnection(connectionString)), TestResource.getResource("R_skipAzure"));
 
         try (SQLServerConnection conn = (SQLServerConnection) DriverManager.getConnection(connectionString + ";responseBuffering=adaptive")) {
         	
@@ -307,27 +316,27 @@ public class ConnectionDriverTest extends AbstractTest {
 	                    + " as x2; RAISERROR ('Oops', 21, 42) WITH LOG");
 	        }
 	        catch (SQLException e) {
-	            assertEquals(e.getMessage(), "Connection reset", "Unknown Exception");
+	            assertEquals(e.getMessage(), TestResource.getResource("R_connectionReset"), TestResource.getResource("R_unknownException"));
 	        }
 	        finally {
 	            DriverManager.getConnection(connectionString).createStatement().execute("drop table " + tableName);
 	        }
-	        assertEquals(conn.isValid(5), false, "Dead connection should be invalid");
+	        assertEquals(conn.isValid(5), false, TestResource.getResource("R_deadConnection"));
         }
     }
 
     @Test
     public void testClientConnectionId() throws Exception {
         SQLServerConnection conn = (SQLServerConnection) DriverManager.getConnection(connectionString);
-        assertTrue(conn.getClientConnectionId() != null, "ClientConnectionId is null");
+        assertTrue(conn.getClientConnectionId() != null, TestResource.getResource("R_clientConnectionIdNull"));
         conn.close();
         try {
             // Call getClientConnectionId on a closed connection, should raise exception
             conn.getClientConnectionId();
-            throw new Exception("No exception thrown calling getClientConnectionId on a closed connection");
+            throw new Exception(TestResource.getResource("R_noExceptionClosedConnection"));
         }
         catch (SQLException e) {
-            assertEquals(e.getMessage(), "The connection is closed.", "Wrong exception message");
+            assertEquals(e.getMessage(), TestResource.getResource("R_connectionIsClosed"), TestResource.getResource("R_wrongExceptionMessage"));
         }
 
         conn = null;
@@ -340,7 +349,7 @@ public class ConnectionDriverTest extends AbstractTest {
         }
         catch (SQLException e) {
             assertTrue(e.getMessage().indexOf("ClientConnectionId") != -1,
-                    "Unexpected: ClientConnectionId is not in exception message due to wrong DB");
+                    TestResource.getResource("R_unexpectedWrongDB"));
         }
 
         try {
@@ -352,7 +361,7 @@ public class ConnectionDriverTest extends AbstractTest {
         }
         catch (SQLException e) {
             assertEquals(false, e.getMessage().indexOf("ClientConnectionId") != -1,
-                    "Unexpected: ClientConnectionId is in exception message due to wrong host");
+                    TestResource.getResource("R_unexpectedWrongHost"));
         }
     }
 
@@ -371,13 +380,16 @@ public class ConnectionDriverTest extends AbstractTest {
             con = ds.getConnection();
         }
         catch (Exception e) {
-            assertTrue(e.getMessage().contains("Cannot open database"));
+            assertTrue(e.getMessage().contains(TestResource.getResource("R_cannotOpenDatabase")));
             timerEnd = System.currentTimeMillis();
         }
 
         long timeDiff = timerEnd - timerStart;
-        assertTrue(con == null, "Should not have connected.");
-        assertTrue(timeDiff <= milsecs, "Exited in more than " + (milsecs / 1000) + " seconds.");
+        assertTrue(con == null, TestResource.getResource("R_shouldNotConnect"));
+
+        MessageFormat form = new MessageFormat(TestResource.getResource("R_exitedMoreSeconds"));
+        Object[] msgArgs = {milsecs / 1000};
+        assertTrue(timeDiff <= milsecs, form.format(msgArgs));
     }
 
     @Test
@@ -395,13 +407,15 @@ public class ConnectionDriverTest extends AbstractTest {
             con = ds.getConnection();
         }
         catch (Exception e) {
-            assertTrue(e.getMessage().contains("Login failed"));
+            assertTrue(e.getMessage().contains(TestResource.getResource("R_loginFailed")));
             timerEnd = System.currentTimeMillis();
         }
 
         long timeDiff = timerEnd - timerStart;
-        assertTrue(con == null, "Should not have connected.");
-        assertTrue(timeDiff <= milsecs, "Exited in more than " + (milsecs / 1000) + " seconds.");
+        assertTrue(con == null, TestResource.getResource("R_shouldNotConnect"));
+        MessageFormat form = new MessageFormat(TestResource.getResource("R_exitedMoreSeconds"));
+        Object[] msgArgs = {milsecs / 1000};
+        assertTrue(timeDiff <= milsecs, form.format(msgArgs));
     }
 
     @Test
@@ -419,13 +433,15 @@ public class ConnectionDriverTest extends AbstractTest {
             con = ds.getConnection();
         }
         catch (Exception e) {
-            assertTrue(e.getMessage().contains("Login failed"));
+            assertTrue(e.getMessage().contains(TestResource.getResource("R_loginFailed")));
             timerEnd = System.currentTimeMillis();
         }
 
         long timeDiff = timerEnd - timerStart;
-        assertTrue(con == null, "Should not have connected.");
-        assertTrue(timeDiff <= milsecs, "Exited in more than " + (milsecs / 1000) + " seconds.");
+        assertTrue(con == null, TestResource.getResource("R_shouldNotConnect"));
+        MessageFormat form = new MessageFormat(TestResource.getResource("R_exitedMoreSeconds"));
+        Object[] msgArgs = {milsecs / 1000};
+        assertTrue(timeDiff <= milsecs, form.format(msgArgs));
     }
 
     @Test
@@ -444,13 +460,15 @@ public class ConnectionDriverTest extends AbstractTest {
             con = ds.getConnection();
         }
         catch (Exception e) {
-            assertTrue(e.getMessage().contains("Connecting to a mirrored"));
+            assertTrue(e.getMessage().contains(TestResource.getResource("R_connectMirrored")));
             timerEnd = System.currentTimeMillis();
         }
 
         long timeDiff = timerEnd - timerStart;
-        assertTrue(con == null, "Should not have connected.");
-        assertTrue(timeDiff <= milsecs, "Exited in more than " + (milsecs / 1000) + " seconds.");
+        assertTrue(con == null, TestResource.getResource("R_shouldNotConnect"));
+        MessageFormat form = new MessageFormat(TestResource.getResource("R_exitedMoreSeconds"));
+        Object[] msgArgs = {milsecs / 1000};
+        assertTrue(timeDiff <= milsecs, form.format(msgArgs));
     }
 
     @Test
@@ -473,8 +491,10 @@ public class ConnectionDriverTest extends AbstractTest {
         }
 
         long timeDiff = timerEnd - timerStart;
-        assertTrue(con == null, "Should not have connected.");
-        assertTrue(timeDiff >= ((loginTimeOutInSeconds - 1) * 1000), "Exited in less than " + (loginTimeOutInSeconds - 1) + " seconds.");
+        assertTrue(con == null, TestResource.getResource("R_shouldNotConnect"));
+        MessageFormat form = new MessageFormat(TestResource.getResource("R_exitedLessSeconds"));
+        Object[] msgArgs = {loginTimeOutInSeconds - 1};
+        assertTrue(timeDiff >= ((loginTimeOutInSeconds - 1) * 1000), form.format(msgArgs));
     }
 
     @Test
@@ -484,7 +504,7 @@ public class ConnectionDriverTest extends AbstractTest {
             conn.abort(null);
         }
         catch (SQLException e) {
-            assertTrue(e.getMessage().contains("The argument executor is not valid"));
+            assertTrue(e.getMessage().contains(TestResource.getResource("R_invalidArgumentExecutor")));
         }
     }
 
@@ -546,6 +566,6 @@ public class ConnectionDriverTest extends AbstractTest {
 
         executor.shutdownNow();
 
-        assertTrue(isInterrupted, "Thread's interrupt status is not set.");
+        assertTrue(isInterrupted, TestResource.getResource("R_threadInterruptNotSet"));
     }
 }

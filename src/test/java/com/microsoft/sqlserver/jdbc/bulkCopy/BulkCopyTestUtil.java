@@ -16,6 +16,7 @@ import java.sql.SQLException;
 import com.microsoft.sqlserver.jdbc.ISQLServerBulkRecord;
 import com.microsoft.sqlserver.jdbc.SQLServerBulkCopy;
 import com.microsoft.sqlserver.jdbc.bulkCopy.BulkCopyTestWrapper.ColumnMap;
+import com.microsoft.sqlserver.jdbc.TestResource;
 import com.microsoft.sqlserver.testframework.DBConnection;
 import com.microsoft.sqlserver.testframework.DBResultSet;
 import com.microsoft.sqlserver.testframework.DBStatement;
@@ -203,7 +204,7 @@ class BulkCopyTestUtil {
 	            }
 	            bulkCopy.writeToServer((ResultSet) srcResultSet.product());
 	            if (fail)
-	                fail("bulkCopy.writeToServer did not fail when it should have");
+	                fail(TestResource.getResource("R_expectedExceptionNotThrown"));
 	            if (validateResult) {
 	                validateValues(con, sourceTable, destinationTable);
 	            }
@@ -269,7 +270,7 @@ class BulkCopyTestUtil {
 	            }
 	            bulkCopy.writeToServer((ResultSet) srcResultSet.product());
 	            if (fail)
-	                fail("bulkCopy.writeToServer did not fail when it should have");
+	                fail(TestResource.getResource("R_expectedExceptionNotThrown"));
 	            bulkCopy.close();
 	            if (validateResult) {
 	                validateValues(con, sourceTable, destinationTable);
@@ -380,7 +381,7 @@ class BulkCopyTestUtil {
 	                if(srcValue.getClass().getName().equalsIgnoreCase("java.lang.Double")){
 	                    // in case of SQL Server type Float (ie java type double), in float(n) if n is <=24 ie precsion is <=7 SQL Server type Real is returned(ie java type float)
 	                    if(destMeta.getPrecision(i) <8)
-	                        srcValue = new Float(((Double)srcValue));
+	                        srcValue = ((Double)srcValue).floatValue();
 	                }
 	                dstValue = dstResultSet.getObject(i);
 	                int dstType = destMeta.getColumnType(i);

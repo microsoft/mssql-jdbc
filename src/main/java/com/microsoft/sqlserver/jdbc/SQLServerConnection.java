@@ -116,18 +116,19 @@ public class SQLServerConnection implements ISQLServerConnection {
     private byte[] accessTokenInByte = null;
 
     private SqlFedAuthToken fedAuthToken = null;
+    
+    private String originalHostNameInCertificate = null;
 
     static class Sha1HashKey {
         private byte[] bytes;
 
         Sha1HashKey(String sql,
-                String parametersDefinition,
-                String dbName) {
-            this(String.format("%s%s%s", sql, parametersDefinition, dbName));
+                String parametersDefinition) {
+            this(String.format("%s%s", sql, parametersDefinition));
         }
 
         Sha1HashKey(String s) {
-        	bytes = getSha1Digest().digest(s.getBytes());
+            bytes = getSha1Digest().digest(s.getBytes());
         }
 
         public boolean equals(Object obj) {
@@ -401,7 +402,7 @@ public class SQLServerConnection implements ISQLServerConnection {
     ServerPortPlaceHolder getRoutingInfo() {
         return routingInfo;
     }
-
+    
     // Permission targets
     private static final String callAbortPerm = "callAbort";
     
@@ -1198,6 +1199,23 @@ public class SQLServerConnection implements ISQLServerConnection {
             activeConnectionProperties = (Properties) propsIn.clone();
 
             pooledConnectionParent = pooledConnection;
+            
+            String hostNameInCertificate = activeConnectionProperties.
+                    getProperty(SQLServerDriverStringProperty.HOSTNAME_IN_CERTIFICATE.toString());
+            
+            // hostNameInCertificate property can change when redirection is involved, so maintain this value
+            // for every instance of SQLServerConnection.
+            if (null == originalHostNameInCertificate && null != hostNameInCertificate && !hostNameInCertificate.isEmpty()) {
+                originalHostNameInCertificate = activeConnectionProperties.
+                        getProperty(SQLServerDriverStringProperty.HOSTNAME_IN_CERTIFICATE.toString());
+            }
+            
+            if (null != originalHostNameInCertificate && !originalHostNameInCertificate.isEmpty()) {
+                // if hostNameInCertificate has a legitimate value (and not empty or null),
+                // reset hostNameInCertificate to the original value every time we connect (or re-connect).
+                activeConnectionProperties.setProperty(SQLServerDriverStringProperty.HOSTNAME_IN_CERTIFICATE.toString(), 
+                        originalHostNameInCertificate);
+            }
 
             String sPropKey;
             String sPropValue;
@@ -3654,7 +3672,6 @@ public class SQLServerConnection implements ISQLServerConnection {
 
                 isRoutedInCurrentAttempt = true;
                 routingInfo = new ServerPortPlaceHolder(routingServerName, routingPortNumber, null, integratedSecurity);
-
                 break;
 
             // Error on unrecognized, unused ENVCHANGES
@@ -5680,18 +5697,18 @@ public class SQLServerConnection implements ISQLServerConnection {
     }
 
     /**
-     * Returns true if statement pooling is disabled.
+     * Determine whether statement pooling is disabled.
      * 
-     * @return
+     * @return true if statement pooling is disabled, false if it is enabled.
      */
     public boolean getDisableStatementPooling() {
         return this.disableStatementPooling;
     }
 
     /**
-     * Sets statement pooling to true or false;
+     * Disable/enable statement pooling.
      * 
-     * @param value
+     * @param value true to disable statement pooling, false to enable it.
      */
     public void setDisableStatementPooling(boolean value) {
         this.disableStatementPooling = value;

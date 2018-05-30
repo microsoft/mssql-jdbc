@@ -23,6 +23,7 @@ import org.opentest4j.TestAbortedException;
 import com.microsoft.sqlserver.jdbc.SQLServerPreparedStatement;
 import com.microsoft.sqlserver.jdbc.SQLServerResultSet;
 import com.microsoft.sqlserver.jdbc.SQLServerStatement;
+import com.microsoft.sqlserver.jdbc.TestResource;
 import com.microsoft.sqlserver.testframework.util.RandomData;
 import com.microsoft.sqlserver.testframework.util.Util;
 
@@ -568,12 +569,12 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
                         && objectValue3.equalsIgnoreCase("" + values[index]);
 
                 if (("" + values[index]).length() >= 1000) {
-                    assertTrue(matches, "\nDecryption failed with getObject() at index: " + i + ", " + (i + 1) + ", " + (i + 2)
-                            + ".\nExpected Value at index: " + index);
+                    assertTrue(matches, TestResource.getResource("R_decryptionFailed") + "getObject(): " + i + ", " + (i + 1) + ", " + (i + 2)
+                            + ".\n" + TestResource.getResource("R_expectedValueAtIndex") + index);
                 }
                 else {
-                    assertTrue(matches, "\nDecryption failed with getObject(): " + objectValue1 + ", " + objectValue2 + ", " + objectValue3
-                            + ".\nExpected Value: " + values[index]);
+                    assertTrue(matches, TestResource.getResource("R_decryptionFailed") + "getObject(): " + objectValue1 + ", " + objectValue2 + ", " + objectValue3
+                            + ".\n" + TestResource.getResource("R_expectedValue") + values[index]);
                 }
             }
             finally {
@@ -605,8 +606,7 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
                 assertTrue(
                         objectValue1.equalsIgnoreCase("" + expected) && objectValue2.equalsIgnoreCase("" + expected)
                                 && objectValue3.equalsIgnoreCase("" + expected),
-                        "\nDecryption failed with getObject(): " + objectValue1 + ", " + objectValue2 + ", " + objectValue3 + ".\nExpected Value: "
-                                + expected);
+                        TestResource.getResource("R_decryptionFailed") + "getObject(): " + objectValue1 + ", " + objectValue2 + ", " + objectValue3 + ".\n" + TestResource.getResource("R_expectedValue") + expected);
             }
             finally {
                 index++;
@@ -633,7 +633,7 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
                 if (null != values.get(index)) {
                     for (int j = 0; j < expectedBytes.length; j++) {
                         assertTrue(expectedBytes[j] == objectValue1[j] && expectedBytes[j] == objectValue2[j] && expectedBytes[j] == objectValue3[j],
-                                "Decryption failed with getObject(): " + objectValue1 + ", " + objectValue2 + ", " + objectValue3 + ".\n");
+                                TestResource.getResource("R_decryptionFailed") + "getObject(): " + objectValue1 + ", " + objectValue2 + ", " + objectValue3 + ".\n");
                     }
                 }
             }
@@ -685,8 +685,8 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
                 assertTrue(
                         decimalValue1.equalsIgnoreCase("" + values[index]) && decimalValue2.equalsIgnoreCase("" + values[index])
                                 && decimalValue3.equalsIgnoreCase("" + values[index]),
-                        "\nDecryption failed with getBigDecimal(): " + decimalValue1 + ", " + decimalValue2 + ", " + decimalValue3
-                                + ".\nExpected Value: " + values[index]);
+                        TestResource.getResource("R_decryptionFailed") + "getBigDecimal(): " + decimalValue1 + ", " + decimalValue2 + ", " + decimalValue3
+                                + ".\n" + TestResource.getResource("R_expectedValue") + values[index]);
             }
             finally {
                 index++;
@@ -720,13 +720,12 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
                         && stringValue3.equalsIgnoreCase("" + values[index]);
 
                 if (("" + values[index]).length() >= 1000) {
-                    assertTrue(matches, "\nDecryption failed with getString() at index: " + i + ", " + (i + 1) + ", " + (i + 2)
-                            + ".\nExpected Value at index: " + index);
-
+                    assertTrue(matches, TestResource.getResource("R_decryptionFailed") + "getString():" + i + ", " + (i + 1) + ", " + (i + 2)
+                            + ".\n" + TestResource.getResource("R_expectedValue") + index);
                 }
                 else {
-                    assertTrue(matches, "\nDecryption failed with getString(): " + stringValue1 + ", " + stringValue2 + ", " + stringValue3
-                            + ".\nExpected Value: " + values[index]);
+                    assertTrue(matches, TestResource.getResource("R_decryptionFailed") + "getString(): " + stringValue1 + ", " + stringValue2 + ", " + stringValue3
+                            + ".\n" + TestResource.getResource("R_expectedValue") + values[index]);
                 }
             }
             finally {
@@ -752,8 +751,8 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
                     assertTrue(
                             stringValue1.contains("" + values.get(index)) && stringValue2.contains("" + values.get(index))
                                     && stringValue3.contains("" + values.get(index)),
-                            "\nDecryption failed with getString(): " + stringValue1 + ", " + stringValue2 + ", " + stringValue3
-                                    + ".\nExpected Value: " + values.get(index));
+                            TestResource.getResource("R_decryptionFailed") + "getString(): " + stringValue1 + ", " + stringValue2 + ", " + stringValue3
+                                    + ".\n" + TestResource.getResource("R_expectedValue") + values.get(index));
                 }
                 else if (index == 4) // round value for datetime
                 {
@@ -761,8 +760,8 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
                     assertTrue(
                             stringValue1.equalsIgnoreCase("" + datetimeValue) && stringValue2.equalsIgnoreCase("" + datetimeValue)
                                     && stringValue3.equalsIgnoreCase("" + datetimeValue),
-                            "\nDecryption failed with getString(): " + stringValue1 + ", " + stringValue2 + ", " + stringValue3
-                                    + ".\nExpected Value: " + datetimeValue);
+                            TestResource.getResource("R_decryptionFailed") + "getString(): " + stringValue1 + ", " + stringValue2 + ", " + stringValue3
+                                    + ".\n" + TestResource.getResource("R_expectedValue") + datetimeValue);
                 }
                 else if (index == 5) // round value for smalldatetime
                 {
@@ -770,15 +769,15 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
                     assertTrue(
                             stringValue1.equalsIgnoreCase("" + smalldatetimeValue) && stringValue2.equalsIgnoreCase("" + smalldatetimeValue)
                                     && stringValue3.equalsIgnoreCase("" + smalldatetimeValue),
-                            "\nDecryption failed with getString(): " + stringValue1 + ", " + stringValue2 + ", " + stringValue3
-                                    + ".\nExpected Value: " + smalldatetimeValue);
+                            TestResource.getResource("R_decryptionFailed") + "getString(): " + stringValue1 + ", " + stringValue2 + ", " + stringValue3
+                                    + ".\n" + TestResource.getResource("R_expectedValue") + smalldatetimeValue);
                 }
                 else {
                     assertTrue(
                             stringValue1.contains("" + values.get(index)) && stringValue2.contains("" + values.get(index))
                                     && stringValue3.contains("" + values.get(index)),
-                            "\nDecryption failed with getString(): " + stringValue1 + ", " + stringValue2 + ", " + stringValue3
-                                    + ".\nExpected Value: " + values.get(index));
+                            TestResource.getResource("R_decryptionFailed") + "getString(): " + stringValue1 + ", " + stringValue2 + ", " + stringValue3
+                                    + ".\n" + TestResource.getResource("R_expectedValue") + values.get(index));
                 }
             }
             finally {
@@ -806,7 +805,7 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
                 if (null != values.get(index)) {
                     for (int j = 0; j < expectedBytes.length; j++) {
                         assertTrue(expectedBytes[j] == b1[j] && expectedBytes[j] == b2[j] && expectedBytes[j] == b3[j],
-                                "Decryption failed with getObject(): " + b1 + ", " + b2 + ", " + b3 + ".\n");
+                                TestResource.getResource("R_decryptionFailed") + "getObject(): " + b1 + ", " + b2 + ", " + b3 + ".\n");
                     }
                 }
             }
@@ -841,7 +840,7 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
 
             try {
                 assertTrue(stringValue1.startsWith(expectedStr) && stringValue2.startsWith(expectedStr) && stringValue3.startsWith(expectedStr),
-                        "\nDecryption failed with getString(): " + stringValue1 + ", " + stringValue2 + ", " + stringValue3 + ".\nExpected Value: "
+                        TestResource.getResource("R_decryptionFailed") + "getString(): " + stringValue1 + ", " + stringValue2 + ", " + stringValue3 + ".\n" + TestResource.getResource("R_expectedValue")
                                 + expectedStr);
             }
             finally {
@@ -907,17 +906,17 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
                         break;
 
                     default:
-                        fail("Switch case is not matched with data");
+                        fail(TestResource.getResource("R_switchFailed"));
                 }
 
                 assertTrue(
                         stringValue1.equalsIgnoreCase(expected) && stringValue2.equalsIgnoreCase(expected) && stringValue3.equalsIgnoreCase(expected),
-                        "\nDecryption failed with testGetDate: " + stringValue1 + ", " + stringValue2 + ", " + stringValue3 + ".\nExpected Value: "
+                        TestResource.getResource("R_decryptionFailed") + "testGetDate: " + stringValue1 + ", " + stringValue2 + ", " + stringValue3 + ".\n" + TestResource.getResource("R_expectedValue")
                                 + expected);
             }
 
             else {
-                fail("Result set is not instance of SQLServerResultSet");
+                fail(TestResource.getResource("R_resultsetNotInstance"));
             }
         }
     }
@@ -1120,7 +1119,7 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
         assertTrue(
                 value1.equalsIgnoreCase("" + expectedValue) && value2.equalsIgnoreCase("" + expectedValue)
                         && value3.equalsIgnoreCase("" + expectedValue),
-                "\nDecryption failed with getBigDecimal(): " + value1 + ", " + value2 + ", " + value3 + ".\nExpected Value: " + expectedValue);
+                TestResource.getResource("R_decryptionFailed") + "getBigDecimal(): " + value1 + ", " + value2+ ", " + value3 + ".\n" + TestResource.getResource("R_expectedValue"));
     }
 
 }

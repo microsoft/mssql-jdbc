@@ -2,6 +2,7 @@ package com.microsoft.sqlserver.testframework.util;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
+import java.math.RoundingMode;
 import java.sql.Date;
 import java.sql.Time;
 import java.sql.Timestamp;
@@ -168,7 +169,7 @@ public class RandomData {
             if (r.nextBoolean()) {
                 n = BigInteger.TEN.pow(precision);
                 if (scale > 0)
-                    return new BigDecimal(n, scale).subtract(new BigDecimal("" + Math.pow(10, -scale)).setScale(scale, BigDecimal.ROUND_HALF_UP))
+                    return new BigDecimal(n, scale).subtract(new BigDecimal("" + Math.pow(10, -scale)).setScale(scale, RoundingMode.HALF_UP))
                             .negate();
                 else
                     return new BigDecimal(n, scale).subtract(new BigDecimal("1")).negate();
@@ -176,7 +177,7 @@ public class RandomData {
             else {
                 n = BigInteger.TEN.pow(precision);
                 if (scale > 0)
-                    return new BigDecimal(n, scale).subtract(new BigDecimal("" + Math.pow(10, -scale)).setScale(scale, BigDecimal.ROUND_HALF_UP))
+                    return new BigDecimal(n, scale).subtract(new BigDecimal("" + Math.pow(10, -scale)).setScale(scale, RoundingMode.HALF_UP))
                             .negate();
                 else
                     return new BigDecimal(n, scale).subtract(new BigDecimal("1")).negate();
@@ -226,7 +227,7 @@ public class RandomData {
         }
 
         if (returnZero) {
-            return new Double(0);
+            return Double.valueOf(0);
         }
 
         // only 2 options: 24 or 53

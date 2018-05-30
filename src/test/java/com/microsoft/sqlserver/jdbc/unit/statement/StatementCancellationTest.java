@@ -18,6 +18,7 @@ import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
 
 import com.microsoft.sqlserver.jdbc.SQLServerDataSource;
+import com.microsoft.sqlserver.jdbc.TestResource;
 import com.microsoft.sqlserver.testframework.AbstractTest;
 
 @RunWith(JUnitPlatform.class)
@@ -59,7 +60,8 @@ public class StatementCancellationTest extends AbstractTest {
                         stmt.execute("WAITFOR DELAY '00:00:" + (DELAY_WAIT_MILLISECONDS / 1000) + "'");
                     }
                     catch (SQLException e) {
-                        assertTrue(e.getMessage().startsWith("The query was canceled"), "Unexpected error message.");
+                        // The query was canceled"), "Unexpected error message
+                        assertTrue(e.getMessage().startsWith(TestResource.getResource("R_queryCancelled")), TestResource.getResource("R_unexpectedExceptionContent"));
                     }
                 }
             }
@@ -67,9 +69,9 @@ public class StatementCancellationTest extends AbstractTest {
         finally {
             timeEnd = System.currentTimeMillis();
             long timeDifference = timeEnd - timeStart;
-            assertTrue(timeDifference >= CANCEL_WAIT_MILLISECONDS, "Cancellation failed.");
-            assertTrue(timeDifference < DELAY_WAIT_MILLISECONDS, "Cancellation failed.");
-            assertTrue((timeDifference - CANCEL_WAIT_MILLISECONDS) < 1000, "Cancellation failed.");
+            assertTrue(timeDifference >= CANCEL_WAIT_MILLISECONDS, TestResource.getResource("R_cancellationFailed"));
+            assertTrue(timeDifference < DELAY_WAIT_MILLISECONDS, TestResource.getResource("R_cancellationFailed"));
+            assertTrue((timeDifference - CANCEL_WAIT_MILLISECONDS) < 1000, TestResource.getResource("R_cancellationFailed"));
         }
     }
 }

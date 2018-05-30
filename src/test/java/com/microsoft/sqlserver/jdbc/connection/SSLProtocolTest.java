@@ -16,12 +16,15 @@ import java.sql.DatabaseMetaData;
 import java.sql.DriverManager;
 import java.sql.Statement;
 
+import java.text.MessageFormat;
+
 import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
 
 import com.microsoft.sqlserver.jdbc.SQLServerException;
 import com.microsoft.sqlserver.jdbc.StringUtils;
+import com.microsoft.sqlserver.jdbc.TestResource;
 import com.microsoft.sqlserver.testframework.AbstractTest;
 
 /**
@@ -51,7 +54,7 @@ public class SSLProtocolTest extends AbstractTest {
             // Some older versions of SQLServer might not have all the TLS protocol versions enabled.
             // Example, if the highest TLS version enabled in the server is TLSv1.1,
             // the connection will fail if we enable only TLSv1.2
-            assertTrue(e.getMessage().contains("protocol version is not enabled or not supported by the client."));
+            assertTrue(e.getMessage().contains(TestResource.getResource("R_noProtocolVersion")));
         }
     }
 
@@ -66,12 +69,14 @@ public class SSLProtocolTest extends AbstractTest {
         try {
             String url = connectionString + ";sslProtocol=" + sslProtocol;
             con = DriverManager.getConnection(url);
-            assertFalse(true, "Any protocol other than TLSv1, TLSv1.1, and TLSv1.2 should throw Exception");
+            assertFalse(true, TestResource.getResource("R_protocolVersion"));
         }
         catch (SQLServerException e) {
-            assertTrue(true, "Should throw exception");
-            String errMsg = "SSL Protocol " + sslProtocol + " label is not valid. Only TLS, TLSv1, TLSv1.1, and TLSv1.2 are supported.";
-            assertTrue(errMsg.equals(e.getMessage()), "Message should be from SQL Server resources : " + e.getMessage());
+            assertTrue(true, TestResource.getResource("R_shouldThrowException"));
+            MessageFormat form = new MessageFormat(TestResource.getResource("R_invalidProtocolLabel"));
+            Object[] msgArgs = {sslProtocol};
+            String errMsg = form.format(msgArgs);
+            assertTrue(errMsg.equals(e.getMessage()), TestResource.getResource("R_SQLServerResourceMessage") + e.getMessage());
         }
     }
 
