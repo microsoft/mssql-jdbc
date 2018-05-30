@@ -3227,8 +3227,17 @@ public class SQLServerConnection implements ISQLServerConnection {
                     new Object[] {sql, resultSetType, resultSetConcurrency});
         checkClosed();
 
-        PreparedStatement st = new SQLServerPreparedStatement(this, sql, resultSetType, resultSetConcurrency,
+        PreparedStatement st;
+        
+        // Make sure SQLServerPreparedStatement42 is used for 4.2 and above. 
+        if (Util.use42Wrapper() || Util.use43Wrapper()) {
+            st = new SQLServerPreparedStatement42(this, sql, resultSetType, resultSetConcurrency,
                     SQLServerStatementColumnEncryptionSetting.UseConnectionSetting);
+        }
+        else {
+            st = new SQLServerPreparedStatement(this, sql, resultSetType, resultSetConcurrency,
+                    SQLServerStatementColumnEncryptionSetting.UseConnectionSetting);
+        }
 
         loggerExternal.exiting(getClassNameLogging(), "prepareStatement", st);
         return st;
@@ -3243,7 +3252,15 @@ public class SQLServerConnection implements ISQLServerConnection {
                     new Object[] {sql, resultSetType, resultSetConcurrency, stmtColEncSetting});
         checkClosed();
 
-        PreparedStatement st = new SQLServerPreparedStatement(this, sql, resultSetType, resultSetConcurrency, stmtColEncSetting);
+        PreparedStatement st;
+
+        // Make sure SQLServerPreparedStatement42 is used for 4.2 and above. 
+        if (Util.use42Wrapper() || Util.use43Wrapper()) {
+            st = new SQLServerPreparedStatement42(this, sql, resultSetType, resultSetConcurrency, stmtColEncSetting);
+        }
+        else {
+            st = new SQLServerPreparedStatement(this, sql, resultSetType, resultSetConcurrency, stmtColEncSetting);
+        }
 
         loggerExternal.exiting(getClassNameLogging(), "prepareStatement", st);
         return st;
@@ -3257,8 +3274,17 @@ public class SQLServerConnection implements ISQLServerConnection {
                     new Object[] {sql, resultSetType, resultSetConcurrency});
         checkClosed();
 
-        CallableStatement st = new SQLServerCallableStatement(this, sql, resultSetType, resultSetConcurrency,
+        CallableStatement st;
+
+        // Make sure SQLServerCallableStatement42 is used for 4.2 and above. 
+        if (Util.use42Wrapper() || Util.use43Wrapper()) {
+            st = new SQLServerCallableStatement42(this, sql, resultSetType, resultSetConcurrency,
                     SQLServerStatementColumnEncryptionSetting.UseConnectionSetting);
+        }
+        else {
+            st = new SQLServerCallableStatement(this, sql, resultSetType, resultSetConcurrency,
+                    SQLServerStatementColumnEncryptionSetting.UseConnectionSetting);
+        }
 
         loggerExternal.exiting(getClassNameLogging(), "prepareCall", st);
         return st;
@@ -4677,7 +4703,15 @@ public class SQLServerConnection implements ISQLServerConnection {
         checkValidHoldability(resultSetHoldability);
         checkMatchesCurrentHoldability(resultSetHoldability);
 
-        PreparedStatement st = new SQLServerPreparedStatement(this, sql, nType, nConcur, stmtColEncSetting);
+        PreparedStatement st;
+
+        // Make sure SQLServerPreparedStatement42 is used for 4.2 and above.
+        if (Util.use42Wrapper() || Util.use43Wrapper()) {
+            st = new SQLServerPreparedStatement42(this, sql, nType, nConcur, stmtColEncSetting);
+        }
+        else {
+            st = new SQLServerPreparedStatement(this, sql, nType, nConcur, stmtColEncSetting);
+        }
 
         loggerExternal.exiting(getClassNameLogging(), "prepareStatement", st);
         return st;
@@ -4705,7 +4739,15 @@ public class SQLServerConnection implements ISQLServerConnection {
         checkValidHoldability(resultSetHoldability);
         checkMatchesCurrentHoldability(resultSetHoldability);
 
-        CallableStatement st = new SQLServerCallableStatement(this, sql, nType, nConcur, stmtColEncSetiing);
+        CallableStatement st;
+
+        // Make sure SQLServerCallableStatement42 is used for 4.2 and above
+        if (Util.use42Wrapper() || Util.use43Wrapper()) {
+            st = new SQLServerCallableStatement42(this, sql, nType, nConcur, stmtColEncSetiing);
+        }
+        else {
+            st = new SQLServerCallableStatement(this, sql, nType, nConcur, stmtColEncSetiing);
+        }
 
         loggerExternal.exiting(getClassNameLogging(), "prepareCall", st);
         return st;
