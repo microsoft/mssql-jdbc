@@ -22,6 +22,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
+import java.text.MessageFormat;
 
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
@@ -34,6 +35,7 @@ import com.microsoft.sqlserver.jdbc.ISQLServerBulkRecord;
 import com.microsoft.sqlserver.jdbc.SQLServerBulkCopy;
 import com.microsoft.sqlserver.jdbc.SQLServerConnection;
 import com.microsoft.sqlserver.jdbc.SQLServerException;
+import com.microsoft.sqlserver.jdbc.TestResource;
 import com.microsoft.sqlserver.testframework.AbstractTest;
 import com.microsoft.sqlserver.testframework.Utils;
 
@@ -64,11 +66,11 @@ public class ISQLServerBulkRecordIssuesTest extends AbstractTest {
             bcOperation.setDestinationTableName(destTable);
             bcOperation.writeToServer(bData);
             bcOperation.close();
-            fail("BulkCopy executed for testVarchar when it it was expected to fail");
+            fail(TestResource.getResource("R_expectedFailPassed"));
         }
         catch (Exception e) {
             if (e instanceof SQLException) {
-                assertTrue(e.getMessage().contains("The given value of type"), "Invalid Error message: " + e.toString());
+                assertTrue(e.getMessage().contains(TestResource.getResource("R_givenValueType")), TestResource.getResource("R_invalidErrorMessage") + e.toString());
             }
             else {
                 fail(e.getMessage());
@@ -121,8 +123,11 @@ public class ISQLServerBulkRecordIssuesTest extends AbstractTest {
         }
         catch (Exception e) {
             if (e instanceof SQLException) {
-                assertTrue(e.getMessage().contains("Conversion failed when converting character string to smalldatetime data type"),
-                        "Invalid Error message: " + e.toString());
+                 MessageFormat form = new MessageFormat(TestResource.getResource("R_conversionFailed"));
+                Object[] msgArgs = {"character string", "smalldatetime"};
+
+                assertTrue(e.getMessage().contains(form.format(msgArgs)),
+                        TestResource.getResource("R_invalidErrorMessage") + e.toString());
             }
             else {
                 fail(e.getMessage());
@@ -145,11 +150,11 @@ public class ISQLServerBulkRecordIssuesTest extends AbstractTest {
         try (SQLServerBulkCopy bcOperation = new SQLServerBulkCopy(connectionString)) {
             bcOperation.setDestinationTableName(destTable);
             bcOperation.writeToServer(bData);
-            fail("BulkCopy executed for testBinaryColumnAsByte when it it was expected to fail");
+            fail(TestResource.getResource("R_expectedFailPassed"));
         }
         catch (Exception e) {
             if (e instanceof SQLException) {
-                assertTrue(e.getMessage().contains("The given value of type"), "Invalid Error message: " + e.toString());
+                assertTrue(e.getMessage().contains(TestResource.getResource("R_givenValueType")), TestResource.getResource("R_invalidErrorMessage") + e.toString());
             }
             else {
                 fail(e.getMessage());
@@ -172,11 +177,11 @@ public class ISQLServerBulkRecordIssuesTest extends AbstractTest {
         try (SQLServerBulkCopy bcOperation = new SQLServerBulkCopy(connectionString)) {
             bcOperation.setDestinationTableName(destTable);
             bcOperation.writeToServer(bData);
-            fail("BulkCopy executed for testBinaryColumnAsString when it it was expected to fail");
+            fail(TestResource.getResource("R_expectedFailPassed"));
         }
         catch (Exception e) {
             if (e instanceof SQLException) {
-                assertTrue(e.getMessage().contains("The given value of type"), "Invalid Error message: " + e.toString());
+                assertTrue(e.getMessage().contains(TestResource.getResource("R_givenValueType")), TestResource.getResource("R_invalidErrorMessage") + e.toString());
             }
             else {
                 fail(e.getMessage());

@@ -29,6 +29,8 @@ import com.microsoft.sqlserver.testframework.DBResultSet;
 import com.microsoft.sqlserver.testframework.DBResultSetTypes;
 import com.microsoft.sqlserver.testframework.DBStatement;
 
+import com.microsoft.sqlserver.jdbc.TestResource;;
+
 @RunWith(JUnitPlatform.class)
 @DisplayName("BVT Test")
 public class bvtTest extends bvtTestSetup {
@@ -53,9 +55,10 @@ public class bvtTest extends bvtTestSetup {
     @Test
     public void testConnectionIsClosed() throws SQLException {
         try (DBConnection conn = new DBConnection(connectionString)) {
-            assertTrue(!conn.isClosed(), "BVT connection should not be closed");
+            assertTrue(!conn.isClosed(), TestResource.getResource("R_connShouldNotBeClosed"));
             conn.close();
-            assertTrue(conn.isClosed(), "BVT connection should not be open");
+            assertTrue(conn.isClosed(), TestResource.getResource("R_connShouldNotBeOpen"));
+
         }
     }
 
@@ -70,10 +73,10 @@ public class bvtTest extends bvtTestSetup {
             DatabaseMetaData metaData = conn.getMetaData();
             Pattern p = Pattern.compile(driverNamePattern);
             Matcher m = p.matcher(metaData.getDriverName());
-            assertTrue(m.find(), "Driver name is not a correct format! ");
+            assertTrue(m.find(), TestResource.getResource("R_incorrectDriverNameFormat"));
             String[] parts = metaData.getDriverVersion().split("\\.");
             if (parts.length != 4)
-                assertTrue(true, "Driver version number should be four parts! ");
+                assertTrue(true, TestResource.getResource("R_incorrectDriverVewrsionFormat"));
         }
     }
 
@@ -209,7 +212,7 @@ public class bvtTest extends bvtTestSetup {
             rs.verifyCurrentRow(table1);
             try {
                 rs.previous();
-                assertTrue(false, "Previous should have thrown an exception");
+                assertTrue(false, TestResource.getResource("R_previousShouldThrow"));
             }
             catch (SQLException ex) {
                 // expected exception
@@ -402,7 +405,7 @@ public class bvtTest extends bvtTestSetup {
                 rs1.next();
             }
             catch (SQLException e) {
-                assertEquals(e.toString(), "com.microsoft.sqlserver.jdbc.SQLServerException: The result set is closed.");
+                assertEquals(e.getMessage(), TestResource.getResource("R_resultsetClosed"));        
             }
             rs2.next();
             rs2.verifyCurrentRow(table2);
@@ -410,7 +413,7 @@ public class bvtTest extends bvtTestSetup {
                 rs1.next();
             }
             catch (SQLException e) {
-                assertEquals(e.toString(), "com.microsoft.sqlserver.jdbc.SQLServerException: The result set is closed.");
+                assertEquals(e.getMessage(), TestResource.getResource("R_resultsetClosed"));
             }
             rs1.close();
             rs2.next();
@@ -436,7 +439,7 @@ public class bvtTest extends bvtTestSetup {
                 rs.next();
             }
             catch (SQLException e) {
-                assertEquals(e.toString(), "com.microsoft.sqlserver.jdbc.SQLServerException: The result set is closed.");
+                assertEquals(e.getMessage(), TestResource.getResource("R_resultsetClosed"));
             }
             assertTrue(true, "Previous one should have thrown exception!");
         }

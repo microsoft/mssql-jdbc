@@ -1274,7 +1274,7 @@ public class SQLServerStatement implements ISQLServerStatement {
 
                     // If statement execution was canceled then continue processing the
                     // remaining results before throwing the "statement canceled" exception.
-                    if (e.getSQLState().equals(SQLState.STATEMENT_CANCELED.getSQLStateCode())) {
+                    if (e.getSQLState()!=null && e.getSQLState().equals(SQLState.STATEMENT_CANCELED.getSQLStateCode())) {
                         interruptException = e;
                         continue;
                     }

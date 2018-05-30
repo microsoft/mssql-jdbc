@@ -27,6 +27,7 @@ import org.junit.runner.RunWith;
 
 import com.microsoft.sqlserver.jdbc.SQLServerConnection;
 import com.microsoft.sqlserver.jdbc.SQLServerParameterMetaData;
+import com.microsoft.sqlserver.jdbc.TestResource;
 import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
 import com.microsoft.sqlserver.testframework.AbstractTest;
 import com.microsoft.sqlserver.testframework.Utils;
@@ -227,7 +228,7 @@ public class PQImpsTest extends AbstractTest {
 
         ParameterMetaData pmd = pstmt.getParameterMetaData();
 
-        assertEquals(pmd.getParameterCount(), 15, "Not all parameters are recognized by driver.");
+        assertEquals(pmd.getParameterCount(), 15, TestResource.getResource("R_paramNotRecognized"));
 
         compareParameterMetaData(pmd, 1, "java.math.BigDecimal", 3, "decimal", 18, 0);
         compareParameterMetaData(pmd, 2, "java.math.BigDecimal", 3, "decimal", 10, 5);
@@ -250,7 +251,7 @@ public class PQImpsTest extends AbstractTest {
 
         ParameterMetaData pmd = pstmt.getParameterMetaData();
 
-        assertEquals(pmd.getParameterCount(), expectedParameterCount, "Not all parameters are recognized by driver.");
+        assertEquals(pmd.getParameterCount(), expectedParameterCount, TestResource.getResource("R_paramNotRecognized"));
 
         compareParameterMetaData(pmd, 1, "java.lang.String", 1, "char", 50, 0);
         compareParameterMetaData(pmd, 2, "java.lang.String", 12, "varchar", 20, 0);
@@ -267,7 +268,7 @@ public class PQImpsTest extends AbstractTest {
 
         ParameterMetaData pmd = pstmt.getParameterMetaData();
 
-        assertEquals(pmd.getParameterCount(), 2, "Not all parameters are recognized by driver.");
+        assertEquals(pmd.getParameterCount(), 2, TestResource.getResource("R_paramNotRecognized"));
 
         compareParameterMetaData(pmd, 1, "[B", -2, "binary", 100, 0);
         compareParameterMetaData(pmd, 2, "[B", -3, "varbinary", 200, 0);
@@ -276,7 +277,7 @@ public class PQImpsTest extends AbstractTest {
     private static void checkDateAndTimeMetaData() throws SQLException {
 
         ParameterMetaData pmd = pstmt.getParameterMetaData();
-        assertEquals(pmd.getParameterCount(), 9, "Not all parameters are recognized by driver.");
+        assertEquals(pmd.getParameterCount(), 9, TestResource.getResource("R_paramNotRecognized"));
 
         compareParameterMetaData(pmd, 1, "java.sql.Date", 91, "date", 10, 0);
         compareParameterMetaData(pmd, 2, "java.sql.Timestamp", 93, "datetime", 23, 3);
@@ -306,7 +307,7 @@ public class PQImpsTest extends AbstractTest {
         }
         try {
             assertTrue(pmd.getParameterType(index) == expectedType,
-                    "Parameter Type error:\n" + "expected: " + expectedType + " \n" + "actual: " + pmd.getParameterType(index));
+                    "getParameterType: " + TestResource.getResource("R_valueNotMatch") + expectedType + ", " + pmd.getParameterType(index));
         }
         catch (SQLException e) {
             fail(e.toString());
@@ -314,14 +315,14 @@ public class PQImpsTest extends AbstractTest {
 
         try {
             assertTrue(pmd.getParameterTypeName(index).equalsIgnoreCase(expectedTypeName),
-                    "Parameter Type Name error:\n" + "expected: " + expectedTypeName + " \n" + "actual: " + pmd.getParameterTypeName(index));
+                    "getParameterTypeName: " + TestResource.getResource("R_valueNotMatch") + expectedTypeName + ", " + pmd.getParameterTypeName(index));
         }
         catch (SQLException e) {
             fail(e.toString());
         }
         try {
             assertTrue(pmd.getPrecision(index) == expectedPrecision,
-                    "Parameter Prcision error:\n" + "expected: " + expectedPrecision + " \n" + "actual: " + pmd.getPrecision(index));
+                    "getPrecision: " + TestResource.getResource("R_valueNotMatch") + expectedPrecision + ", " + pmd.getPrecision(index));
         }
         catch (SQLException e) {
             fail(e.toString());
@@ -329,7 +330,7 @@ public class PQImpsTest extends AbstractTest {
 
         try {
             assertTrue(pmd.getScale(index) == expectedScale,
-                    "Parameter Prcision error:\n" + "expected: " + expectedScale + " \n" + "actual: " + pmd.getScale(index));
+                    "getScale: " + TestResource.getResource("R_valueNotMatch") + expectedScale + ", " + pmd.getScale(index));
         }
         catch (SQLException e) {
             fail(e.toString());
@@ -744,7 +745,7 @@ public class PQImpsTest extends AbstractTest {
 
             try {
                 pmd = pstmt.getParameterMetaData();
-                assertEquals(pmd.getParameterCount(), 3, "Not all parameters are recognized by driver.");
+                assertEquals(pmd.getParameterCount(), 3, TestResource.getResource("R_paramNotRecognized"));
             }
             catch (Exception e) {
                 fail(e.toString());
@@ -777,7 +778,7 @@ public class PQImpsTest extends AbstractTest {
 
             try {
                 pmd = pstmt.getParameterMetaData();
-                assertEquals(pmd.getParameterCount(), 2, "Not all parameters are recognized by driver.");
+                assertEquals(pmd.getParameterCount(), 2, TestResource.getResource("R_paramNotRecognized"));
             }
             catch (Exception e) {
                 fail(e.toString());
@@ -810,7 +811,7 @@ public class PQImpsTest extends AbstractTest {
 
             try {
                 pmd = pstmt.getParameterMetaData();
-                assertEquals(pmd.getParameterCount(), 2, "Not all parameters are recognized by driver.");
+                assertEquals(pmd.getParameterCount(), 2, TestResource.getResource("R_paramNotRecognized"));
             }
             catch (Exception e) {
                 fail(e.toString());
@@ -863,7 +864,7 @@ public class PQImpsTest extends AbstractTest {
         ParameterMetaData pmd = null;
         try {
             pmd = pstmt.getParameterMetaData();
-            assertEquals(pmd.getParameterCount(), 30, "Not all parameters are recognized by driver.");
+            assertEquals(pmd.getParameterCount(), 30, TestResource.getResource("R_paramNotRecognized"));
         }
         catch (Exception e) {
             fail(e.toString());
@@ -921,7 +922,7 @@ public class PQImpsTest extends AbstractTest {
         ParameterMetaData pmd = null;
         try {
             pmd = pstmt.getParameterMetaData();
-            assertEquals(pmd.getParameterCount(), 0, "Not all parameters are recognized by driver.");
+            assertEquals(pmd.getParameterCount(), 0, TestResource.getResource("R_paramNotRecognized"));
         }
         catch (Exception e) {
             fail(e.toString());
@@ -955,7 +956,7 @@ public class PQImpsTest extends AbstractTest {
         try {
             pmd = pstmt.getParameterMetaData();
 
-            assertEquals(pmd.getParameterCount(), 21, "Not all parameters are recognized by driver.");
+            assertEquals(pmd.getParameterCount(), 21, TestResource.getResource("R_paramNotRecognized"));
         }
         catch (Exception e) {
             fail(e.toString());
@@ -1004,7 +1005,7 @@ public class PQImpsTest extends AbstractTest {
 
         try {
             pmd = pstmt.getParameterMetaData();
-            assertEquals(pmd.getParameterCount(), 4, "Not all parameters are recognized by driver.");
+            assertEquals(pmd.getParameterCount(), 4, TestResource.getResource("R_paramNotRecognized"));
         }
         catch (Exception e) {
             fail(e.toString());
@@ -1034,7 +1035,7 @@ public class PQImpsTest extends AbstractTest {
 
         try {
             pmd = pstmt.getParameterMetaData();
-            assertEquals(pmd.getParameterCount(), 4, "Not all parameters are recognized by driver.");
+            assertEquals(pmd.getParameterCount(), 4, TestResource.getResource("R_paramNotRecognized"));
         }
         catch (Exception e) {
             fail(e.toString());
@@ -1063,7 +1064,7 @@ public class PQImpsTest extends AbstractTest {
         try {
             pmd = pstmt.getParameterMetaData();
 
-            assertEquals(pmd.getParameterCount(), 4, "Not all parameters are recognized by driver.");
+            assertEquals(pmd.getParameterCount(), 4, TestResource.getResource("R_paramNotRecognized"));
         }
         catch (Exception e) {
             fail(e.toString());
@@ -1091,7 +1092,7 @@ public class PQImpsTest extends AbstractTest {
 
         try {
             pmd = pstmt.getParameterMetaData();
-            assertEquals(pmd.getParameterCount(), 4, "Not all parameters are recognized by driver.");
+            assertEquals(pmd.getParameterCount(), 4, TestResource.getResource("R_paramNotRecognized"));
         }
         catch (Exception e) {
             fail(e.toString());
@@ -1126,7 +1127,7 @@ public class PQImpsTest extends AbstractTest {
             try {
                 pmd = pstmt.getParameterMetaData();
 
-                assertEquals(pmd.getParameterCount(), 3, "Not all parameters are recognized by driver.");
+                assertEquals(pmd.getParameterCount(), 3, TestResource.getResource("R_paramNotRecognized"));
             }
             catch (Exception e) {
                 fail(e.toString());
