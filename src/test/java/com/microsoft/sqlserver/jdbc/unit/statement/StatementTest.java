@@ -48,6 +48,7 @@ import com.microsoft.sqlserver.jdbc.SQLServerDataSource;
 import com.microsoft.sqlserver.jdbc.SQLServerResultSet;
 import com.microsoft.sqlserver.jdbc.SQLServerResultSetMetaData;
 import com.microsoft.sqlserver.jdbc.SQLServerStatement;
+import com.microsoft.sqlserver.jdbc.TestResource;
 import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
 import com.microsoft.sqlserver.testframework.AbstractTest;
 import com.microsoft.sqlserver.testframework.DBConnection;
@@ -121,7 +122,8 @@ public class StatementTest extends AbstractTest {
             while (rs.next())
                 ++numSelectedRows;
 
-            assertEquals(NUM_TABLE_ROWS, numSelectedRows, "Wrong number of rows returned");
+            // Wrong number of rows returned
+            assertEquals(NUM_TABLE_ROWS, numSelectedRows, TestResource.getResource("R_valueNotMatch"));
             stmt.close();
             con.close();
         }
@@ -154,7 +156,7 @@ public class StatementTest extends AbstractTest {
                 assertEquals(
                         "The stream value is not the specified length. The specified length was " + (TEST_STRING.length() - 1)
                                 + ", the actual length is " + TEST_STRING.length() + ".",
-                        e.getMessage(), "Unexpected exception executing batch update with bad value.");
+                        e.getMessage(), TestResource.getResource("R_unexpectedException"));
             }
 
             // Successfully closing the PreparedStatement is verification enough that the connection is
@@ -184,14 +186,15 @@ public class StatementTest extends AbstractTest {
             try {
                 ps.execute();
 
-                assertEquals(false, true, "Execution did not timeout");
+                assertEquals(false, true, TestResource.getResource("R_executionNotTimeout"));
             }
             catch (SQLException e) {
-                assertTrue("The query has timed out.".equalsIgnoreCase(e.getMessage()), "Unexpected exception on 1st execution");
+                assertTrue(TestResource.getResource("R_queryTimedOut").equalsIgnoreCase(e.getMessage()), TestResource.getResource("R_unexpectedException"));
+                assertTrue("The query has timed out.".equalsIgnoreCase(e.getMessage()), TestResource.getResource("R_unexpectedException"));
             }
             elapsedMillis += System.currentTimeMillis();
             if (elapsedMillis >= 3000) {
-                assertEquals(2000, (int) elapsedMillis, "1st execution took too long");
+                assertEquals(2000, (int) elapsedMillis, TestResource.getResource("R_executionTooLong"));
             }
 
             // Second execution:
@@ -205,7 +208,7 @@ public class StatementTest extends AbstractTest {
             // Oddly enough, the server's idea of 7 seconds is actually slightly less than
             // 7000 milliseconds by our clock (!) so we have to allow some slack here.
             if (elapsedMillis < 6500) {
-                assertEquals(6500, (int) elapsedMillis, "2nd execution didn't take long enough.");
+                assertEquals(6500, (int) elapsedMillis, TestResource.getResource("R_executionNotLong"));
             }
 
             ps.close();
@@ -222,7 +225,7 @@ public class StatementTest extends AbstractTest {
          */
         @Test
         public void testCancelLongResponse() throws Exception {
-            assumeTrue("JDBC42".equals(Utils.getConfiguredProperty("JDBC_Version")), "Aborting test case as JDBC version is not compatible. ");
+            assumeTrue("JDBC42".equals(Utils.getConfiguredProperty("JDBC_Version")), TestResource.getResource("R_incompatJDBC"));
             Connection con = DriverManager.getConnection(connectionString);
             Statement stmt = con.createStatement(SQLServerResultSet.TYPE_SS_DIRECT_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY);
             ((SQLServerStatement) stmt).setResponseBuffering("adaptive");
@@ -233,7 +236,7 @@ public class StatementTest extends AbstractTest {
             }
             catch (Exception e) {
 
-                throw new SQLException("testCancelLongResponse threw exception: ", e);
+                throw new SQLException(TestResource.getResource("R_unexpectedException") + ": ", e);
 
             }
 
@@ -245,7 +248,8 @@ public class StatementTest extends AbstractTest {
                 ;
 
             // Verify that MIN_TABLE_ROWS rows were returned
-            assertEquals(MIN_TABLE_ROWS, numSelectedRows, "Wrong number of rows returned in first scan");
+            // Wrong number of rows returned in first scan
+            assertEquals(MIN_TABLE_ROWS, numSelectedRows, TestResource.getResource("R_valueNotMatch"));
 
             // Cancel the statement and verify that the ResultSet
             // does NOT return all the remaining rows.
@@ -255,16 +259,16 @@ public class StatementTest extends AbstractTest {
                 while (rs.next())
                     ++numSelectedRows;
 
-                assertEquals(false, true, "Expected exception not thrown from ResultSet.next()");
+                assertEquals(false, true, TestResource.getResource("R_expectedExceptionNotThrown"));
             }
             catch (SQLException e) {
-                assertEquals("The query was canceled.", e.getMessage(), "Unexpected exception from ResultSet.next()");
+                assertEquals(TestResource.getResource("R_queryCancelled"), TestResource.getResource("R_unexpectedException"));
             }
 
             assertEquals(false, NUM_TABLE_ROWS * NUM_TABLE_ROWS == numSelectedRows, "All rows returned after cancel");
 
             rs.close();
-            assertEquals(stmt.isClosed(), true, "testCancelLongResponse: statement should be closed since resultset is closed.");
+            assertEquals(stmt.isClosed(), true, TestResource.getResource("R_statementShouldBeClosed"));
 
             con.close();
         }
@@ -363,10 +367,10 @@ public class StatementTest extends AbstractTest {
                         ++numSelectedRows;
                     log.fine("numSelectedRows: " + numSelectedRows);
 
-                    assertEquals(false, true, "Expected exception not thrown from ResultSet.next()");
+                    assertEquals(false, true, TestResource.getResource("R_expectedExceptionNotThrown"));
                 }
                 catch (SQLException e) {
-                    assertTrue("The query was canceled.".equalsIgnoreCase(e.getMessage()), "Unexpected exception from ResultSet.next()");
+                    assertTrue(TestResource.getResource("R_queryCancelled").equalsIgnoreCase(e.getMessage()), TestResource.getResource("R_unexpectedException"));
                 }
 
                 elapsedMillis += System.currentTimeMillis();
@@ -375,14 +379,14 @@ public class StatementTest extends AbstractTest {
                 // Note that we may actually get fewer rows than the number of rows before the blocked row
                 // if SQL Server is a little slow in returning rows to us.
                 if (numSelectedRows >= NUM_TABLE_ROWS - MIN_TABLE_ROWS) {
-                    assertEquals(NUM_TABLE_ROWS - MIN_TABLE_ROWS, numSelectedRows, "Wrong number of rows returned");
+                    assertEquals(NUM_TABLE_ROWS - MIN_TABLE_ROWS, numSelectedRows, TestResource.getResource("R_valueNotMatch"));
                 }
 
                 // If we were able to iterate through all of the expected
                 // rows without blocking, then something went wrong with our
                 // efforts to block execution.
                 if (elapsedMillis < 2500) {
-                    assertEquals(2500, (int) elapsedMillis, "Statement executed too quickly.");
+                    assertEquals(2500, (int) elapsedMillis, TestResource.getResource("R_executionNotLong"));
                 }
 
                 rs.close();
@@ -476,10 +480,10 @@ public class StatementTest extends AbstractTest {
                     while (rs.next())
                         ++numSelectedRows;
 
-                    assertEquals(false, true, "Expected exception not thrown from ResultSet.next()");
+                    assertEquals(false, true, TestResource.getResource("R_expectedExceptionNotThrown"));
                 }
                 catch (SQLException e) {
-                    assertTrue("The query was canceled.".contains(e.getMessage()), "Unexpected exception from ResultSet.next()");
+                    assertTrue(TestResource.getResource("R_queryCancelled").contains(e.getMessage()), TestResource.getResource("R_unexpectedException"));
                 }
 
                 elapsedMillis += System.currentTimeMillis();
@@ -488,14 +492,14 @@ public class StatementTest extends AbstractTest {
                 // Note that we may actually get fewer rows than the number of rows before the blocked row
                 // if SQL Server is a little slow in returning rows to us.
                 if (numSelectedRows >= NUM_TABLE_ROWS - MIN_TABLE_ROWS) {
-                    assertEquals(NUM_TABLE_ROWS - MIN_TABLE_ROWS, numSelectedRows, "Wrong number of rows returned");
+                    assertEquals(NUM_TABLE_ROWS - MIN_TABLE_ROWS, numSelectedRows, TestResource.getResource("R_valueNotMatch"));
                 }
 
                 // If we were able to iterate through all of the expected
                 // rows without blocking, then something went wrong with our
                 // efforts to block execution.
                 if (elapsedMillis < 2500) {
-                    assertEquals(2500, (int) elapsedMillis, "Statement executed too quickly.");
+                    assertEquals(2500, (int) elapsedMillis, TestResource.getResource("R_executionNotLong"));
                 }
 
                 rs.close();
@@ -587,7 +591,7 @@ public class StatementTest extends AbstractTest {
                 while (numSelectedRows < MIN_TABLE_ROWS && rs.next())
                     ++numSelectedRows;
 
-                assertEquals(MIN_TABLE_ROWS, numSelectedRows, "Too few rows returned initially.");
+                assertEquals(MIN_TABLE_ROWS, numSelectedRows, TestResource.getResource("R_valueNotMatch"));
 
                 // Now, try to grab the remaining rows from the result set. At some point the call
                 // to ResultSet.next() should block until the statement is cancelled from the other
@@ -596,17 +600,17 @@ public class StatementTest extends AbstractTest {
                     while (rs.next())
                         ++numSelectedRows;
 
-                    assertEquals(false, true, "Expected exception not thrown from ResultSet.next()");
+                    assertEquals(false, true, TestResource.getResource("R_expectedExceptionNotThrown"));
                 }
                 catch (SQLException e) {
-                    assertTrue("The query was canceled.".contains(e.getMessage()), "Unexpected exception from ResultSet.next()");
+                    assertTrue(TestResource.getResource("R_queryCancelled").contains(e.getMessage()), TestResource.getResource("R_unexpectedException"));
                 }
                 elapsedMillis += System.currentTimeMillis();
 
                 // If we get here to early, then we were able to scan through the rows too fast.
                 // There's some slop in the elapsed time due to imprecise timer resolution.
                 if (elapsedMillis < 2500) {
-                    assertEquals(2500, (int) elapsedMillis, "Statement executed too quickly.");
+                    assertEquals(2500, (int) elapsedMillis, TestResource.getResource("R_executionNotLong"));
                 }
 
                 // Looks like we were canceled. Exception message matched. Time took as long
@@ -614,7 +618,7 @@ public class StatementTest extends AbstractTest {
                 // we initially asked for. If any rows beyond the locked row were returned
                 // then something went wrong.
                 assertEquals(true, (numSelectedRows <= NUM_TABLE_ROWS - MIN_TABLE_ROWS),
-                        "Too many rows returned. " + "Expected: " + (NUM_TABLE_ROWS - MIN_TABLE_ROWS) + " " + "Actual: " + numSelectedRows);
+                        TestResource.getResource("R_valueNotMatch"));
             }
             finally {
                 if (null != con)
@@ -649,7 +653,7 @@ public class StatementTest extends AbstractTest {
             while (rs.next())
                 ++numSelectedRows;
             rs.close();
-            assertEquals(NUM_TABLE_ROWS, numSelectedRows, "Wrong number of rows returned in 1st select");
+            assertEquals(NUM_TABLE_ROWS, numSelectedRows, TestResource.getResource("R_valueNotMatch"));
 
             // "Cancel" the executed query
             stmt.cancel();
@@ -660,7 +664,7 @@ public class StatementTest extends AbstractTest {
             while (rs.next())
                 ++numSelectedRows;
             rs.close();
-            assertEquals(NUM_TABLE_ROWS, numSelectedRows, "Wrong number of rows returned in 2nd select");
+            assertEquals(NUM_TABLE_ROWS, numSelectedRows, TestResource.getResource("R_valueNotMatch"));
 
             stmt.close();
             con.close();
@@ -920,11 +924,11 @@ public class StatementTest extends AbstractTest {
             }
             catch (Exception e) {
 
-                throw new SQLException("testIsCloseOnCompletion threw exception: ", e);
+                throw new SQLException(TestResource.getResource("R_unexpectedException") + ": ", e);
 
             }
 
-            assertEquals(false, result, "isCloseOnCompletion default should be false.");
+            assertEquals(false, result, "isCloseOnCompletion: " + TestResource.getResource("R_incorrectDefault"));
 
             ps.close();
             con.close();
@@ -941,8 +945,7 @@ public class StatementTest extends AbstractTest {
                 ps.closeOnCompletion();
             }
             catch (Exception e) {
-
-                throw new SQLException("testCloseOnCompletion threw exception: ", e);
+                throw new SQLException(TestResource.getResource("R_unexpectedException") + ": ", e);
 
             }
 
@@ -955,7 +958,7 @@ public class StatementTest extends AbstractTest {
                 log.fine("testIsCloseOnCompletion threw: " + e.getMessage());
             }
 
-            assertEquals(ps.isClosed(), true, "testCloseOnCompletion: statement should be closed since resultset is closed.");
+            assertEquals(ps.isClosed(), true, TestResource.getResource("R_statementShouldBeClosed"));
 
             con.close();
         }
@@ -986,11 +989,11 @@ public class StatementTest extends AbstractTest {
             }
             catch (Exception e) {
 
-                throw new SQLException("testIsCloseOnCompletion threw exception: ", e);
+                throw new SQLException(TestResource.getResource("R_unexpectedException") + ": ", e);
 
             }
 
-            assertEquals(true, stmt.isCloseOnCompletion(), "isCloseOnCompletion should have been enabled.");
+            assertEquals(true, stmt.isCloseOnCompletion(), "isCloseOnCompletion " + TestResource.getResource("R_shouldBeEnabled"));
 
             stmt.close();
             con.close();
@@ -1010,18 +1013,18 @@ public class StatementTest extends AbstractTest {
             }
             catch (Exception e) {
 
-                throw new SQLException("testCloseOnCompletion threw exception: ", e);
+                throw new SQLException(TestResource.getResource("R_unexpectedException") + ": ", e);
 
             }
 
             ResultSet rs;
             rs = stmt.executeQuery("SELECT 1");
-            assertEquals(stmt.isClosed(), false, "testCloseOnCompletion: statement should be open since resultset is open.");
+            assertEquals(stmt.isClosed(), false, TestResource.getResource("R_statementShouldBeOpened"));
 
             // now statement should be closed
             rs.close();
 
-            assertEquals(stmt.isClosed(), true, "testCloseOnCompletion: statement should be closed since resultset is closed.");
+            assertEquals(stmt.isClosed(), true, TestResource.getResource("R_statementShouldBeClosed"));
 
             con.close();
         }
@@ -1043,9 +1046,7 @@ public class StatementTest extends AbstractTest {
                 stmt.closeOnCompletion();
             }
             catch (Exception e) {
-
-                throw new SQLException("testCloseOnCompletion threw exception: ", e);
-
+                throw new SQLException(TestResource.getResource("R_unexpectedException") + ": ", e);
             }
 
             try {
@@ -1068,9 +1069,7 @@ public class StatementTest extends AbstractTest {
                 ResultSet rs2 = stmt.executeQuery("SELECT * FROM " + table2Name);
             }
             catch (Exception e) {
-
-                assertEquals(stmt.isClosed(), true, "testCloseOnCompletion: statement should be closed since previous resultset was closed.");
-
+                assertEquals(stmt.isClosed(), true, TestResource.getResource("R_statementShouldBeClosed"));
             }
 
             con.close();
@@ -1083,7 +1082,7 @@ public class StatementTest extends AbstractTest {
          */
         @Test
         public void testLargeMaxRowsJDBC41() throws Exception {
-            assumeTrue("JDBC41".equals(Utils.getConfiguredProperty("JDBC_Version")), "Aborting test case as JDBC version is not compatible. ");
+            assumeTrue("JDBC41".equals(Utils.getConfiguredProperty("JDBC_Version")), TestResource.getResource("R_incompatJDBC"));
 
             Connection con = DriverManager.getConnection(connectionString);
             SQLServerStatement stmt = (SQLServerStatement) con.createStatement();
@@ -1092,7 +1091,7 @@ public class StatementTest extends AbstractTest {
             try {
 
                 stmt.getLargeMaxRows();
-                throw new SQLException("ERROR: We should not be here.");
+                throw new SQLException(TestResource.getResource("R_unexpectedException"));
             }
             catch (Exception e) {
                 fail(e.getMessage());
@@ -1101,7 +1100,7 @@ public class StatementTest extends AbstractTest {
             // testing exception for setLargeMaxRows method
             try {
                 stmt.setLargeMaxRows(2015);
-                throw new SQLException("ERROR: We should not be here.");
+                throw new SQLException(TestResource.getResource("R_unexpectedException"));
             }
             catch (Exception e) {
                 fail(e.getMessage());
@@ -1122,14 +1121,13 @@ public class StatementTest extends AbstractTest {
          */
         @Test
         public void testLargeMaxRowsJDBC42() throws Exception {
-            assumeTrue("JDBC42".equals(Utils.getConfiguredProperty("JDBC_Version")), "Aborting test case as JDBC version is not compatible. ");
-
+            assumeTrue("JDBC42".equals(Utils.getConfiguredProperty("JDBC_Version")), TestResource.getResource("R_incompatJDBC"));
             Connection dbcon = DriverManager.getConnection(connectionString);
             Statement dbstmt = dbcon.createStatement();
 
             // Default value should return zero
             long actual = dbstmt.getLargeMaxRows();
-            assertEquals(actual, (long) 0, "getLargeMaxRows() : default value is not zero");
+            assertEquals(actual, (long) 0, "getLargeMaxRows():" + TestResource.getResource("R_incorrectDefault"));
 
             // Set a new value less than MAX_VALUE, and then get the modified value
             long newValue = 2012L;
@@ -1149,7 +1147,7 @@ public class StatementTest extends AbstractTest {
                 assertEquals(
                         ("calling setLargeMaxRows failed : java.lang.UnsupportedOperationException: "
                                 + "The supported maximum row count for a result set is Integer.MAX_VALUE or less."),
-                        (e.getMessage()), "Wring setLargeMaxRows() Exception");
+                        (e.getMessage()), TestResource.getResource("R_unexpectedException"));
             }
 
             // Set a negative value. If negative is accepted, throw exception
@@ -1161,7 +1159,7 @@ public class StatementTest extends AbstractTest {
                 assertEquals(
                         "calling setLargeMaxRows failed : com.microsoft.sqlserver.jdbc.SQLServerException: "
                                 + "The maximum row count -2,012 for a result set must be non-negative.",
-                        e.getMessage(), "Wring setLargeMaxRows() Exception");
+                        e.getMessage(), TestResource.getResource("R_unexpectedException"));
             }
 
             if (null != dbstmt) {
@@ -1362,31 +1360,30 @@ public class StatementTest extends AbstractTest {
             ResultSet rs = stmt.getResultSet();
             if (rs != null) {
                 rs.close();
-                assertEquals(stmt.isClosed(), true, "testStatementOutParamGetsTwice: statement should be closed since resultset is closed.");
+                assertEquals(stmt.isClosed(), true, TestResource.getResource("R_statementShouldBeClosed"));
             }
             else {
-                assertEquals(stmt.isClosed(), false, "testStatementOutParamGetsTwice: statement should be open since no resultset.");
+                assertEquals(stmt.isClosed(), false, TestResource.getResource("R_statementShouldBeOpened"));
             }
             CallableStatement cstmt = con.prepareCall("{  ? = CALL " + procNameTemp + " (?,?)}");
             cstmt.registerOutParameter(1, Types.INTEGER);
             cstmt.setObject(2, Short.valueOf("32"), Types.SMALLINT);
             cstmt.registerOutParameter(3, Types.SMALLINT);
             cstmt.execute();
-            assertEquals(cstmt.getInt(1), 33, "Wrong value");
-            assertEquals(cstmt.getInt(3), 32, "Wrong value");
+            assertEquals(cstmt.getInt(1), 33, TestResource.getResource("R_valueNotMatch"));
+            assertEquals(cstmt.getInt(3), 32, TestResource.getResource("R_valueNotMatch"));
 
             cstmt.setObject(2, Short.valueOf("34"), Types.SMALLINT);
             cstmt.execute();
-            assertEquals(cstmt.getInt(1), 35, "Wrong value");
-            assertEquals(cstmt.getInt(3), 34, "Wrong value");
+            assertEquals(cstmt.getInt(1), 35, TestResource.getResource("R_valueNotMatch"));
+            assertEquals(cstmt.getInt(3), 34, TestResource.getResource("R_valueNotMatch"));
             rs = cstmt.getResultSet();
             if (rs != null) {
                 rs.close();
-                assertEquals(stmt.isClosed(), true, "testStatementOutParamGetsTwice: statement should be closed since resultset is closed.");
-
+                assertEquals(stmt.isClosed(), true, TestResource.getResource("R_statementShouldBeClosed"));
             }
             else {
-                assertEquals((stmt).isClosed(), false, "testStatementOutParamGetsTwice: statement should be open since no resultset.");
+                assertEquals(stmt.isClosed(), false, TestResource.getResource("R_statementShouldBeOpened"));
             }
         }
 
@@ -1405,16 +1402,16 @@ public class StatementTest extends AbstractTest {
             cstmt.setObject(4, Short.valueOf("23"), Types.SMALLINT);
             cstmt.registerOutParameter(5, Types.INTEGER);
             cstmt.execute();
-            assertEquals(cstmt.getInt(1), 33, "Wrong value");
-            assertEquals(cstmt.getInt(5), 23, "Wrong value");
-            assertEquals(cstmt.getInt(3), 32, "Wrong value");
+            assertEquals(cstmt.getInt(1), 33, TestResource.getResource("R_valueNotMatch"));
+            assertEquals(cstmt.getInt(5), 23, TestResource.getResource("R_valueNotMatch"));
+            assertEquals(cstmt.getInt(3), 32, TestResource.getResource("R_valueNotMatch"));
 
             cstmt.setObject(2, Short.valueOf("34"), Types.SMALLINT);
             cstmt.setObject(4, Short.valueOf("24"), Types.SMALLINT);
             cstmt.execute();
-            assertEquals(cstmt.getInt(3), 34, "Wrong value");
-            assertEquals(cstmt.getInt(5), 24, "Wrong value");
-            assertEquals(cstmt.getInt(1), 35, "Wrong value");
+            assertEquals(cstmt.getInt(3), 34, TestResource.getResource("R_valueNotMatch"));
+            assertEquals(cstmt.getInt(5), 24, TestResource.getResource("R_valueNotMatch"));
+            assertEquals(cstmt.getInt(1), 35, TestResource.getResource("R_valueNotMatch"));
         }
 
         /**
@@ -1436,13 +1433,13 @@ public class StatementTest extends AbstractTest {
             cstmt.setObject(3, Short.valueOf("100"), Types.SMALLINT);
             cstmt.registerOutParameter(3, Types.SMALLINT);
             cstmt.execute();
-            assertEquals(cstmt.getInt(1), 2, "Wrong value");
-            assertEquals(cstmt.getInt(3), 101, "Wrong value");
+            assertEquals(cstmt.getInt(1), 2, TestResource.getResource("R_valueNotMatch"));
+            assertEquals(cstmt.getInt(1), 2, TestResource.getResource("R_valueNotMatch"));
 
             cstmt.setObject(2, Short.valueOf("10"), Types.SMALLINT);
             cstmt.execute();
-            assertEquals(cstmt.getInt(1), 11, "Wrong value");
-            assertEquals(cstmt.getInt(3), 101, "Wrong value");
+            assertEquals(cstmt.getInt(1), 11, TestResource.getResource("R_valueNotMatch"));
+            assertEquals(cstmt.getInt(3), 101, TestResource.getResource("R_valueNotMatch"));
         }
 
         /**
@@ -1468,8 +1465,8 @@ public class StatementTest extends AbstractTest {
             cstmt.registerOutParameter(2, java.sql.Types.VARCHAR);
             ResultSet rs = cstmt.executeQuery();
             rs.next();
-            assertEquals(rs.getString(2), "hello", "Wrong value");
-            assertEquals(cstmt.getString(2), "hi", "Wrong value");
+            assertEquals(rs.getString(2), "hello", TestResource.getResource("R_valueNotMatch"));
+            assertEquals(cstmt.getString(2), "hi", TestResource.getResource("R_valueNotMatch"));
         }
 
         /**
@@ -1563,7 +1560,7 @@ public class StatementTest extends AbstractTest {
             }
             ;
 
-            assertEquals(null, cstmt.getString(2), "Wrong value");
+            assertEquals(null, cstmt.getString(2), TestResource.getResource("R_valueNotMatch"));
         }
 
         /**
@@ -1608,15 +1605,13 @@ public class StatementTest extends AbstractTest {
                     cstmt.closeOnCompletion();
                 }
                 catch (Exception e) {
-
-                    throw new SQLException("testRowError threw exception: ", e);
-
+                    throw new SQLException(TestResource.getResource("R_unexpectedException"));
                 }
 
                 ResultSet rs = cstmt.executeQuery();
                 assertEquals(true, rs.next(), "Query returned no rows");
                 rs.close();
-                assertEquals(cstmt.isClosed(), true, "testRowError: statement should be closed since resultset is closed.");
+                assertEquals(cstmt.isClosed(), true, TestResource.getResource("R_statementShouldBeClosed"));
 
                 // On a second connection, repeat the query, with an immediate
                 // lock timeout to induce an error.
@@ -1643,11 +1638,11 @@ public class StatementTest extends AbstractTest {
                 for (int i = 0; i < 2; i++) {
                     try {
                         rs.next();
-                        assertEquals(false, true, "Expected row lock timeout exception not thrown");
+                        assertEquals(false, true, "lock timeout" + TestResource.getResource("R_expectedExceptionNotThrown"));
                     }
                     catch (SQLException e) {
                         assertEquals(1222, // lock timeout
-                                e.getErrorCode(), "Wrong exception from ResultSet.next: " + e.getMessage());
+                                e.getErrorCode(), TestResource.getResource("R_unexpectedException") + e.getMessage());
                     }
                 }
 
@@ -2052,10 +2047,10 @@ public class StatementTest extends AbstractTest {
                 assertEquals(stmt.isClosed(), false, "Wrong return value from Statement.isClosed");
             }
             catch (UnsupportedOperationException e) {
-                assertEquals(e.getMessage(), "This operation is not supported.", "Wrong exception message");
+                assertEquals(e.getMessage(), TestResource.getResource("R_unexpectedException"), e.getMessage());
             }
 
-            assertEquals(stmt.isClosed(), false, "testActiveStatement: statement should be open since resultset is open.");
+            assertEquals(stmt.isClosed(), false, TestResource.getResource("R_statementShouldBeOpened"));
             stmt.close();
             conn.close();
         }
@@ -2077,7 +2072,7 @@ public class StatementTest extends AbstractTest {
                 assertEquals(stmt.isClosed(), true, "Wrong return value from Statement.isClosed");
             }
             catch (UnsupportedOperationException e) {
-                assertEquals(e.getMessage(), "This operation is not supported.", "Wrong exception message");
+                assertEquals(e.getMessage(), TestResource.getResource("R_unexpectedException"), e.getMessage());
             }
 
             conn.close();
@@ -2100,7 +2095,7 @@ public class StatementTest extends AbstractTest {
                 assertEquals(stmt.isClosed(), true, "Wrong return value from Statement.isClosed");
             }
             catch (UnsupportedOperationException e) {
-                assertEquals(e.getMessage(), "This operation is not supported.", "Wrong exception message");
+                assertEquals(e.getMessage(), TestResource.getResource("R_unexpectedException"), e.getMessage());
             }
         }
     }
@@ -2124,9 +2119,7 @@ public class StatementTest extends AbstractTest {
                 stmt.closeOnCompletion();
             }
             catch (Exception e) {
-
-                throw new SQLException("testActiveResultSet threw exception: ", e);
-
+                throw new SQLException(TestResource.getResource("R_unexpectedException"));
             }
 
             SQLServerResultSet rs = (SQLServerResultSet) stmt.executeQuery("SELECT 1");
@@ -2135,11 +2128,11 @@ public class StatementTest extends AbstractTest {
                 assertEquals(rs.isClosed(), false, "Wrong return value from ResultSet.isClosed");
             }
             catch (UnsupportedOperationException e) {
-                assertEquals(e.getMessage(), "This operation is not supported.", "Wrong exception message");
+                assertEquals(e.getMessage(), TestResource.getResource("R_unexpectedException"), e.getMessage());
             }
 
             rs.close();
-            assertEquals(stmt.isClosed(), true, "testActiveResultSet: statement should be closed since resultset is closed.");
+            assertEquals(stmt.isClosed(), true, TestResource.getResource("R_statementShouldBeClosed"));
 
             conn.close();
         }
@@ -2161,9 +2154,7 @@ public class StatementTest extends AbstractTest {
                 stmt.closeOnCompletion();
             }
             catch (Exception e) {
-
-                throw new SQLException("testClosedResultSet threw exception: ", e);
-
+                throw new SQLException(TestResource.getResource("R_unexpectedException"));
             }
 
             SQLServerResultSet rs = (SQLServerResultSet) stmt.executeQuery("SELECT 1");
@@ -2173,9 +2164,9 @@ public class StatementTest extends AbstractTest {
                 assertEquals(rs.isClosed(), true, "Wrong return value from ResultSet.isClosed");
             }
             catch (UnsupportedOperationException e) {
-                assertEquals(e.getMessage(), "This operation is not supported.", "Wrong exception message");
+                assertEquals(e.getMessage(), TestResource.getResource("R_unexpectedException"), e.getMessage());
             }
-            assertEquals(stmt.isClosed(), true, "testClosedResultSet: statement should be closed since resultset is closed.");
+            assertEquals(stmt.isClosed(), true, TestResource.getResource("R_statementShouldBeClosed"));
             conn.close();
         }
 
@@ -2198,7 +2189,7 @@ public class StatementTest extends AbstractTest {
                 assertEquals(rs.isClosed(), true, "Wrong return value from ResultSet.isClosed");
             }
             catch (UnsupportedOperationException e) {
-                assertEquals(e.getMessage(), "This operation is not supported.", "Wrong exception message");
+                assertEquals(e.getMessage(), TestResource.getResource("R_unexpectedException"), e.getMessage());
             }
 
             conn.close();
@@ -2223,7 +2214,7 @@ public class StatementTest extends AbstractTest {
                 assertEquals(rs.isClosed(), true, "Wrong return value from ResultSet.isClosed");
             }
             catch (UnsupportedOperationException e) {
-                assertEquals(e.getMessage(), "This operation is not supported.", "Wrong exception message");
+                assertEquals(e.getMessage(), TestResource.getResource("R_unexpectedException"), e.getMessage());
             }
         }
     }
@@ -2426,9 +2417,7 @@ public class StatementTest extends AbstractTest {
                 pstmt.closeOnCompletion();
             }
             catch (Exception e) {
-
-                throw new SQLException("testUpdateCountAfterRaiseError threw exception: ", e);
-
+                throw new SQLException(TestResource.getResource("R_unexpectedException"));
             }
 
             boolean result = pstmt.execute();
@@ -2438,7 +2427,7 @@ public class StatementTest extends AbstractTest {
 
             try {
                 result = pstmt.getMoreResults();
-                assertEquals(true, false, "Second result: Expected SQLException not thrown");
+                assertEquals(true, false, TestResource.getResource("R_expectedExceptionNotThrown"));
             }
             catch (SQLException e) {
                 String expectedMessage;
@@ -2464,7 +2453,7 @@ public class StatementTest extends AbstractTest {
             assertEquals(rowCount, NUM_ROWS, "Third result: wrong number of rows returned");
 
             rs.close();
-            assertEquals(pstmt.isClosed(), true, "testUpdateCountAfterRaiseError: statement should be closed since resultset is closed.");
+            assertEquals(pstmt.isClosed(), true, TestResource.getResource("R_statementShouldBeClosed"));
             con.close();
         }
 
@@ -2487,7 +2476,7 @@ public class StatementTest extends AbstractTest {
 
             try {
                 result = pstmt.getMoreResults();
-                assertEquals(true, false, "Second result: Expected SQLException not thrown");
+                assertEquals(true, false, TestResource.getResource("R_expectedExceptionNotThrown"));
             }
             catch (SQLException e) {
                 String expectedMessage;
@@ -2512,7 +2501,7 @@ public class StatementTest extends AbstractTest {
                 ++rowCount;
             assertEquals(rowCount, NUM_ROWS, "Wrong number of rows in table");
             assertEquals(pstmt.isClosed(), false,
-                    "testUpdateCountAfterErrorInTrigger_LastUpdateCountFalse: statement should be open since resultset is not closed.");
+                    TestResource.getResource("R_statementShouldBeOpened"));
             rs.close();
 
             pstmt.close();
@@ -2532,7 +2521,7 @@ public class StatementTest extends AbstractTest {
 
             try {
                 pstmt.executeUpdate();
-                assertEquals(true, false, "First result: Expected SQLException not thrown");
+                assertEquals(true, false, TestResource.getResource("R_expectedExceptionNotThrown"));
             }
             catch (SQLException e) {
                 String expectedMessage;
@@ -2595,15 +2584,13 @@ public class StatementTest extends AbstractTest {
                 stmt.closeOnCompletion();
             }
             catch (Exception e) {
-
-                throw new SQLException("setup threw exception: ", e);
-
+                throw new SQLException(TestResource.getResource("R_unexpectedException"), e);
             }
             stmt.executeUpdate("CREATE TABLE " + tableName + " (col1 INT primary key)");
             for (int i = 0; i < NUM_ROWS; i++)
                 stmt.executeUpdate("INSERT INTO " + tableName + " (col1) VALUES (" + i + ")");
 
-            assertEquals(stmt.isClosed(), false, "setup: statement should be open since resultset not closed.");
+            assertEquals(stmt.isClosed(), false, TestResource.getResource("R_statementShouldBeOpened"));
             stmt.close();
             con.commit();
             con.close();

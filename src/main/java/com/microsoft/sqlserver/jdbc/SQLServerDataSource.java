@@ -784,16 +784,16 @@ public class SQLServerDataSource implements ISQLServerDataSource, DataSource, ja
     }
     
     /**
-     * Sets the statement pooling to true or false
-     * @param disableStatementPooling
+     * Disable/enable statement pooling.
+     * @param disableStatementPooling true to disable statement pooling, false to enable it.
      */
     public void setDisableStatementPooling(boolean disableStatementPooling) {
         setBooleanProperty(connectionProps, SQLServerDriverBooleanProperty.DISABLE_STATEMENT_POOLING.toString(), disableStatementPooling);       
     }
     
     /**
-     * Returns true if statement pooling is disabled.
-     * @return
+     * Determine whether statement pooling is disabled.
+     * @return true if statement pooling is disabled, false if it is enabled.
      */
     public boolean getDisableStatementPooling() {
         boolean defaultValue = SQLServerDriverBooleanProperty.DISABLE_STATEMENT_POOLING.getDefaultValue();
