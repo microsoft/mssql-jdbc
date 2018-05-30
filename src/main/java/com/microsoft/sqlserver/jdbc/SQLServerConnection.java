@@ -3417,9 +3417,10 @@ public class SQLServerConnection implements ISQLServerConnection {
         if (integratedSecurity && AuthenticationScheme.nativeAuthentication == intAuthScheme)
             authentication = new AuthenticationJNI(this, currentConnectPlaceHolder.getServerName(), currentConnectPlaceHolder.getPortNumber());
         if (integratedSecurity && AuthenticationScheme.javaKerberos == intAuthScheme) {
-            if (null != ImpersonatedUserCred)
+            if (null != ImpersonatedUserCred) {
                 authentication = new KerbAuthentication(this, currentConnectPlaceHolder.getServerName(), currentConnectPlaceHolder.getPortNumber(),
                         ImpersonatedUserCred);
+            }
             else
                 authentication = new KerbAuthentication(this, currentConnectPlaceHolder.getServerName(), currentConnectPlaceHolder.getPortNumber());
         }
@@ -3441,7 +3442,6 @@ public class SQLServerConnection implements ISQLServerConnection {
             // No need any further info from the server for token based authentication. So set _federatedAuthenticationRequested to true
             federatedAuthenticationRequested = true;
         }
-
         try {
             sendLogon(command, authentication, fedAuthFeatureExtensionData);
 
@@ -3455,28 +3455,14 @@ public class SQLServerConnection implements ISQLServerConnection {
                     connectionCommand(sqlStmt, "Change Settings");
                 }
             }
-        }
-        finally {
-            if (integratedSecurity) {                
-                if (null != ImpersonatedUserCred) {
-                    try {
-                        if (ImpersonatedUserCred.getRemainingLifetime() <= 0) {
-                            if (null != authentication) {
-                                authentication.ReleaseClientContext();
-                            }
-                            authentication = null;
-                            ImpersonatedUserCred.dispose();
-                    	}
-                    }
-                    catch (GSSException e) {
-                        if (connectionlogger.isLoggable(Level.FINER))
-                            connectionlogger.finer(toString() + " Release of the credentials failed GSSException: " + e);
-                    }
-                } else {
-                    if (null != authentication) {
-                        authentication.ReleaseClientContext();
-                    }
+        } finally {
+            if (integratedSecurity) {
+                if (null != authentication) {
+                    authentication.ReleaseClientContext();
                     authentication = null;
+                }
+                if (null != ImpersonatedUserCred) {
+                    ImpersonatedUserCred = null;
                 }
             }
         }

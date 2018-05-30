@@ -49,6 +49,7 @@ final class KerbAuthentication extends SSPIAuthentication {
 
     private final GSSManager manager = GSSManager.getInstance();
     private LoginContext lc = null;
+    private boolean isUserCreatedCredential = false;
     private GSSCredential peerCredentials = null;
     private GSSContext peerContext = null;
 
@@ -390,6 +391,7 @@ final class KerbAuthentication extends SSPIAuthentication {
             int port,
             GSSCredential ImpersonatedUserCred) throws SQLServerException {
         this(con, address, port);
+        isUserCreatedCredential = true;
         peerCredentials = ImpersonatedUserCred;
     }
 
@@ -403,8 +405,11 @@ final class KerbAuthentication extends SSPIAuthentication {
 
     int ReleaseClientContext() throws SQLServerException {
         try {
-            if (null != peerCredentials)
+            if (null != peerCredentials && !isUserCreatedCredential) {
                 peerCredentials.dispose();
+            } else if (null != peerCredentials && isUserCreatedCredential) {
+                peerCredentials = null;
+            }
             if (null != peerContext)
                 peerContext.dispose();
             if (null != lc)
