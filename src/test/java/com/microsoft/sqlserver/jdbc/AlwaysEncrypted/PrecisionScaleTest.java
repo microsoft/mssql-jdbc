@@ -26,6 +26,7 @@ import org.junit.runner.RunWith;
 
 import com.microsoft.sqlserver.jdbc.SQLServerPreparedStatement;
 import com.microsoft.sqlserver.jdbc.SQLServerResultSet;
+import com.microsoft.sqlserver.jdbc.TestResource;
 import com.microsoft.sqlserver.testframework.util.Util;
 
 /**
@@ -201,15 +202,15 @@ public class PrecisionScaleTest extends AESetup {
             try {
                 if (rs.getMetaData().getColumnTypeName(i).equalsIgnoreCase("time")) {
                     assertTrue(stringValue2.equalsIgnoreCase("" + values[index]) && stringValue3.equalsIgnoreCase("" + values[index]),
-                            "\nDecryption failed with getString(): " + stringValue1 + ", " + stringValue2 + ", " + stringValue3
-                                    + ".\nExpected Value: " + values[index]);
+                            TestResource.getResource("R_decryptionFailed") + "getString(): " + stringValue1 + ", " + stringValue2 + ", " + stringValue3
+                                    + ".\n" + TestResource.getResource("R_expectedValue") + ": " + values[index]);
                 }
                 else {
                     assertTrue(
                             values[index].contains(stringValue1) && stringValue2.equalsIgnoreCase("" + values[index])
                                     && stringValue3.equalsIgnoreCase("" + values[index]),
-                            "\nDecryption failed with getString(): " + stringValue1 + ", " + stringValue2 + ", " + stringValue3
-                                    + ".\nExpected Value: " + values[index]);
+                            TestResource.getResource("R_decryptionFailed") + "getString(): " + stringValue1 + ", " + stringValue2 + ", " + stringValue3
+                                    + TestResource.getResource("R_expectedValue") + values[index]);
                 }
             }
             finally {
@@ -232,8 +233,8 @@ public class PrecisionScaleTest extends AESetup {
                 assertTrue(
                         decimalValue1.equalsIgnoreCase(values[index]) && decimalValue2.equalsIgnoreCase(values[index])
                                 && decimalValue3.equalsIgnoreCase(values[index]),
-                        "Decryption failed with getBigDecimal(): " + decimalValue1 + ", " + decimalValue2 + ", " + decimalValue3
-                                + "\nExpected value: " + values[index]);
+                        TestResource.getResource("R_decryptionFailed") + "getBigDecimal(): " + decimalValue1 + ", " + decimalValue2 + ", " + decimalValue3
+                                + "\n" + TestResource.getResource("R_expectedValue") + ": " + values[index]);
 
             }
             finally {
@@ -260,7 +261,7 @@ public class PrecisionScaleTest extends AESetup {
                 assertTrue(
                         objectValue1.equalsIgnoreCase(values[index]) && objectValue2.equalsIgnoreCase(values[index])
                                 && objectValue3.equalsIgnoreCase(values[index]),
-                        "Decryption failed with getObject(): " + objectValue1 + ", " + objectValue2 + ", " + objectValue3 + "\nExpected value: "
+                        TestResource.getResource("R_decryptionFailed") + "getObject(): " + objectValue1 + ", " + objectValue2 + ", " + objectValue3 + "\n" + TestResource.getResource("R_expectedValue") + ": "
                                 + values[index]);
 
             }
@@ -321,14 +322,13 @@ public class PrecisionScaleTest extends AESetup {
                         break;
 
                     default:
-                        fail("Switch case is not matched with data");
                 }
 
                 try {
                     assertTrue(
                             stringValue1.equalsIgnoreCase(dates[index]) && stringValue2.equalsIgnoreCase(dates[index])
                                     && stringValue3.equalsIgnoreCase(dates[index]),
-                            "Decryption failed with getString(): " + stringValue1 + ", " + stringValue2 + ", " + stringValue3 + "\nExpected value: "
+                            TestResource.getResource("R_decryptionFailed") + "getString(): " + stringValue1 + ", " + stringValue2 + ", " + stringValue3 + "\n" + TestResource.getResource("R_expectedValue") + ": "
                                     + dates[index]);
                 }
                 finally {
@@ -337,7 +337,7 @@ public class PrecisionScaleTest extends AESetup {
             }
 
             else {
-                throw new Exception("Result set is not instance of SQLServerResultSet");
+                throw new Exception(TestResource.getResource("R_resultsetNotInstance"));
             }
         }
     }

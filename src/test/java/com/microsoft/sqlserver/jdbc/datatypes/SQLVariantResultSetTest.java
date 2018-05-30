@@ -30,6 +30,7 @@ import com.microsoft.sqlserver.jdbc.SQLServerConnection;
 import com.microsoft.sqlserver.jdbc.SQLServerException;
 import com.microsoft.sqlserver.jdbc.SQLServerPreparedStatement;
 import com.microsoft.sqlserver.jdbc.SQLServerResultSet;
+import com.microsoft.sqlserver.jdbc.TestResource;
 import com.microsoft.sqlserver.testframework.AbstractTest;
 import com.microsoft.sqlserver.testframework.Utils;
 import com.microsoft.sqlserver.testframework.util.RandomData;
@@ -831,7 +832,7 @@ public class SQLVariantResultSetTest extends AbstractTest {
         rs.next();
         try {
             rs.getObject(1);
-            fail("Should have thrown unssuported tds type exception");
+            fail(TestResource.getResource("R_expectedExceptionNotThrown"));
         }
         catch (Exception e) {
             assertTrue(e.getMessage().equalsIgnoreCase("Unexpected TDS type  DATETIMEOFFSETN  in SQL_VARIANT."));
