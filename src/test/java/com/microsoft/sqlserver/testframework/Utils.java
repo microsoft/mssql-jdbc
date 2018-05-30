@@ -14,7 +14,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import java.io.ByteArrayInputStream;
 import java.io.CharArrayReader;
 import java.net.URI;
-import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -316,11 +315,4 @@ public class Utils {
         return true;
     }
     
-    public static boolean isJDBC43AndGreater(Connection connection) throws SQLException{
-        return getJDBCVersion(connection) >= 4.3F;
-    }
-    
-    public static float getJDBCVersion(Connection connection) throws SQLException {
-        return Float.valueOf(connection.getMetaData().getJDBCMajorVersion() + "." + connection.getMetaData().getJDBCMinorVersion());
-    }
 }
