@@ -3348,7 +3348,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable {
                             longValue = (long) (short) value;
                             break;
                         default:
-                            longValue = new Long((Integer) value);
+                            longValue = Long.valueOf((Integer) value);
                     }
                     return ByteBuffer.allocate(Long.SIZE / Byte.SIZE).order(ByteOrder.LITTLE_ENDIAN).putLong(longValue).array();
 
@@ -3362,7 +3362,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable {
                             longValue = (long) (short) value;
                             break;
                         case INTEGER:
-                            longValue = new Long((Integer) value);
+                            longValue = Long.valueOf((Integer) value);
                             break;
                         default:
                             longValue = (long) value;

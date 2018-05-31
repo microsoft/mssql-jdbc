@@ -25,6 +25,7 @@ import com.microsoft.sqlserver.jdbc.SQLServerConnection;
 import com.microsoft.sqlserver.jdbc.SQLServerDatabaseMetaData;
 import com.microsoft.sqlserver.jdbc.SQLServerResultSet;
 import com.microsoft.sqlserver.jdbc.SQLServerStatement;
+import com.microsoft.sqlserver.jdbc.TestResource;
 import com.microsoft.sqlserver.testframework.AbstractTest;
 import com.microsoft.sqlserver.testframework.Utils;
 
@@ -44,10 +45,6 @@ public class DatabaseMetaDataForeignKeyTest extends AbstractTest {
     
     private static String schema = null;
     private static String catalog = null;
-    
-    private static final String EXPECTED_ERROR_MESSAGE = "An object or column name is missing or empty.";
-    private static final String EXPECTED_ERROR_MESSAGE2 = "The database name component of the object qualifier must be the name of the current database.";
-
     
     @BeforeAll
     private static void setupVariation() throws SQLException {
@@ -113,10 +110,10 @@ public class DatabaseMetaDataForeignKeyTest extends AbstractTest {
 
         try {
             dmd.getImportedKeys("", schema, table1);
-            fail("Exception is not thrown.");
+            fail(TestResource.getResource("R_expectedExceptionNotThrown"));
         }
         catch (SQLException e) {
-            assertTrue(e.getMessage().startsWith(EXPECTED_ERROR_MESSAGE2));
+            assertTrue(e.getMessage().startsWith(TestResource.getResource("R_dbNameIsCurrentDB")));
         }
     }
 
@@ -145,7 +142,7 @@ public class DatabaseMetaDataForeignKeyTest extends AbstractTest {
         rowCount++;
 
         if(expectedRowCount != rowCount) {
-            assertEquals(expectedRowCount, rowCount, "number of foreign key entries is incorrect.");
+            assertEquals(expectedRowCount, rowCount, TestResource.getResource("R_numKeysIncorrect"));
         }
     }
     
@@ -187,10 +184,10 @@ public class DatabaseMetaDataForeignKeyTest extends AbstractTest {
 
             try {
                 dmd.getExportedKeys("", schema, pkTable);
-                fail("Exception is not thrown.");
+                fail(TestResource.getResource("R_expectedExceptionNotThrown"));
             }
             catch (SQLException e) {
-                assertTrue(e.getMessage().startsWith(EXPECTED_ERROR_MESSAGE2));
+                assertTrue(e.getMessage().startsWith(TestResource.getResource("R_dbNameIsCurrentDB")));
             }
         }
     }
@@ -234,10 +231,10 @@ public class DatabaseMetaDataForeignKeyTest extends AbstractTest {
 
             try {
                 dmd.getCrossReference("", schema, pkTable, "", schema, fkTable);
-                fail("Exception is not thrown.");
+                fail(TestResource.getResource("R_expectedExceptionNotThrown"));
             }
             catch (SQLException e) {
-                assertEquals(EXPECTED_ERROR_MESSAGE2, e.getMessage());
+                assertEquals(TestResource.getResource("R_dbNameIsCurrentDB"), e.getMessage());
             }
         }
     }

@@ -1,37 +1,38 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
 	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
 	<modelVersion>4.0.0</modelVersion>
-	
+
 	<groupId>com.microsoft.sqlserver</groupId>
 	<artifactId>mssql-jdbc</artifactId>
-	<version>6.5.3-SNAPSHOT.${jreVersion}-preview</version>
+	<version>6.5.3-SNAPSHOT</version>
 	<packaging>jar</packaging>
-	
+
 	<name>Microsoft JDBC Driver for SQL Server</name>
 	<description>
 		Microsoft JDBC Driver for SQL Server.
 	</description>
 	<url>https://github.com/Microsoft/mssql-jdbc</url>
-	
+
 	<licenses>
 		<license>
 			<name>MIT License</name>
 			<url>http://www.opensource.org/licenses/mit-license.php</url>
 		</license>
 	</licenses>
-	
+
 	<organization>
 		<name>Microsoft Corporation</name>
 	</organization>
-	
+
 	<developers>
 		<developer>
 			<organization>Microsoft</organization>
 			<organizationUrl>http://www.microsoft.com</organizationUrl>
 		</developer>
 	</developers>
-  
+
 	<scm>
 		<url>https://github.com/Microsoft/mssql-jdbc</url>
 	</scm>
@@ -41,7 +42,7 @@
 		<junit.platform.version>1.2.0</junit.platform.version>
 		<junit.jupiter.version>5.2.0</junit.jupiter.version>
 	</properties>
-	
+
 	<dependencies>
 		<dependency>
 			<groupId>com.microsoft.azure</groupId>
@@ -49,14 +50,14 @@
 			<version>1.0.0</version>
 			<optional>true</optional>
 		</dependency>
-		
+
 		<dependency>
 			<groupId>com.microsoft.azure</groupId>
 			<artifactId>adal4j</artifactId>
 			<version>1.5.0</version>
 			<optional>true</optional>
 		</dependency>
-		
+
 		<!-- dependencies for running tests -->
 		<dependency>
 			<groupId>junit</groupId>
@@ -130,12 +131,8 @@
 	<profiles>
 		<profile>
 			<id>build42</id>
-			
-			<properties>
-			<jreVersion>jre8</jreVersion>
-			</properties>
-			
 			<build>
+				<finalName>${project.artifactId}-${project.version}.jre8-preview</finalName>
 				<plugins>
 					<plugin>
 						<artifactId>maven-compiler-plugin</artifactId>
@@ -161,18 +158,14 @@
 				</plugins>
 			</build>
 		</profile>
-		
+
 		<profile>
 			<id>build43</id>
 			<activation>
 				<activeByDefault>true</activeByDefault>
 			</activation>
-			
-			<properties>
-			<jreVersion>jre9</jreVersion>
-			</properties>
-			
 			<build>
+				<finalName>${project.artifactId}-${project.version}.jre10-preview</finalName>
 				<plugins>
 					<plugin>
 						<artifactId>maven-compiler-plugin</artifactId>
@@ -181,8 +174,8 @@
 							<excludes>
 								<exclude>**/com/microsoft/sqlserver/jdbc/SQLServerJdbc42.java</exclude>
 							</excludes>
-							<source>9</source>
-							<target>9</target>
+							<source>10</source>
+							<target>10</target>
 						</configuration>
 					</plugin>
 					<plugin>
@@ -227,7 +220,7 @@
 				</includes>
 			</testResource>
 		</testResources>
- 
+
 		<plugins>
 
 			<plugin>
@@ -243,13 +236,14 @@
 					</execution>
 				</executions>
 			</plugin>
-			
+
 			<plugin>
 				<groupId>org.jacoco</groupId>
 				<artifactId>jacoco-maven-plugin</artifactId>
-				<version>0.7.8</version>
+				<version>0.8.1</version>
 				<executions>
 					<execution>
+						<id>pre-test</id>
 						<goals>
 							<goal>prepare-agent</goal>
 						</goals>
@@ -264,46 +258,46 @@
 				</executions>
 			</plugin>
 			<!-- Create OSGI Headers -->
-           	<plugin>
-           		<groupId>org.apache.felix</groupId>
-       			<artifactId>maven-bundle-plugin</artifactId>
-       			<version>3.4.0</version>
-                <extensions>true</extensions>
-                <configuration>
-                    <instructions>
-                    	<Export-Package>com.microsoft.sqlserver.jdbc,microsoft.sql</Export-Package>
-                    	<Import-Package>!microsoft.sql,*</Import-Package>
-                    </instructions>
-                </configuration>
-                	<executions>
-				    	<execution>
-				      		<id>bundle-manifest</id>
-				      		<phase>process-classes</phase>
-				      		<goals>    
-				        		<goal>manifest</goal>
-				      		</goals>   
-				    	</execution>
-				  	</executions>
-         	</plugin>
-			
+			<plugin>
+				<groupId>org.apache.felix</groupId>
+				<artifactId>maven-bundle-plugin</artifactId>
+				<version>3.5.0</version>
+				<extensions>true</extensions>
+				<configuration>
+					<instructions>
+						<Export-Package>com.microsoft.sqlserver.jdbc,microsoft.sql</Export-Package>
+						<Import-Package>!microsoft.sql,*</Import-Package>
+					</instructions>
+				</configuration>
+				<executions>
+					<execution>
+						<id>bundle-manifest</id>
+						<phase>process-classes</phase>
+						<goals>
+							<goal>manifest</goal>
+						</goals>
+					</execution>
+				</executions>
+			</plugin>
+      
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
- 				<artifactId>maven-javadoc-plugin</artifactId>
- 				<version>3.0.0</version>
- 				
- 				<configuration>
- 					<failOnError>true</failOnError>
- 				</configuration>
- 				 
- 				<executions>
- 					<execution>
- 						<id>attach-javadocs</id>
- 						<goals>
- 							<goal>jar</goal>
- 						</goals>
- 					</execution>
- 				</executions>
- 			</plugin>
+				<artifactId>maven-javadoc-plugin</artifactId>
+				<version>3.0.0</version>
+
+				<configuration>
+					<failOnError>true</failOnError>
+				</configuration>
+
+				<executions>
+					<execution>
+						<id>attach-javadocs</id>
+						<goals>
+							<goal>jar</goal>
+						</goals>
+					</execution>
+				</executions>
+			</plugin>
 
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
@@ -315,7 +309,7 @@
 						<excludeTags>${skipTestTag}</excludeTags>
 					</properties>
 				</configuration>
-				
+
 				<dependencies>
 					<dependency>
 						<groupId>org.junit.platform</groupId>
@@ -328,14 +322,15 @@
 			<plugin>
 				<groupId>org.codehaus.mojo</groupId>
 				<artifactId>versions-maven-plugin</artifactId>
+				<version>2.5</version>
 				<inherited>true</inherited>
 				<configuration>
 					<outputFile>outdated-dependencies.txt</outputFile>
 					<rulesUri>file:///${session.executionRootDirectory}/maven-version-rules.xml</rulesUri>
 				</configuration>
-			</plugin>				
-	  
+			</plugin>
+
 		</plugins>
 	</build>
-	
+
 </project>
