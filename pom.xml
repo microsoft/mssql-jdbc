@@ -243,6 +243,7 @@
 				<version>0.8.1</version>
 				<executions>
 					<execution>
+						<id>pre-test</id>
 						<goals>
 							<goal>prepare-agent</goal>
 						</goals>
