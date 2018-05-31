@@ -261,7 +261,7 @@
 			<plugin>
 				<groupId>org.apache.felix</groupId>
 				<artifactId>maven-bundle-plugin</artifactId>
-				<version>3.4.0</version>
+				<version>3.5.0</version>
 				<extensions>true</extensions>
 				<configuration>
 					<instructions>
@@ -279,7 +279,7 @@
 					</execution>
 				</executions>
 			</plugin>
-
+      
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-javadoc-plugin</artifactId>
