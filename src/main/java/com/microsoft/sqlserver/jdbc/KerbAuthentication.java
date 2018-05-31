@@ -394,14 +394,6 @@ final class KerbAuthentication extends SSPIAuthentication {
         peerCredentials = ImpersonatedUserCred;
         this.isUserCreatedCredential = (isUserCreated == null ? false : isUserCreated);
     }
-    
-    /**
-     * Sets the flag indicating whether we are using a user created credential. We should not dispose/change user created objects.
-     * @param b
-     */
-    void setUserCreatedCredential(boolean b) {
-        this.isUserCreatedCredential = b;
-    }
 
     byte[] GenerateClientContext(byte[] pin,
             boolean[] done) throws SQLServerException {
