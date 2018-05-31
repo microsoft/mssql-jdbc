@@ -389,10 +389,18 @@ final class KerbAuthentication extends SSPIAuthentication {
     KerbAuthentication(SQLServerConnection con,
             String address,
             int port,
-            GSSCredential ImpersonatedUserCred) throws SQLServerException {
+            GSSCredential ImpersonatedUserCred, Boolean isUserCreated) throws SQLServerException {
         this(con, address, port);
-        isUserCreatedCredential = true;
         peerCredentials = ImpersonatedUserCred;
+        this.isUserCreatedCredential = (isUserCreated == null ? false : isUserCreated);
+    }
+    
+    /**
+     * Sets the flag indicating whether we are using a user created credential. We should not dispose/change user created objects.
+     * @param b
+     */
+    void setUserCreatedCredential(boolean b) {
+        this.isUserCreatedCredential = b;
     }
 
     byte[] GenerateClientContext(byte[] pin,

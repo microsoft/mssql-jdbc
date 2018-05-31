@@ -753,7 +753,8 @@ public class SQLServerConnection implements ISQLServerConnection {
     Properties activeConnectionProperties; // the active set of connection properties
     private boolean integratedSecurity = SQLServerDriverBooleanProperty.INTEGRATED_SECURITY.getDefaultValue();
     private AuthenticationScheme intAuthScheme = AuthenticationScheme.nativeAuthentication;
-    private GSSCredential ImpersonatedUserCred ;
+    private GSSCredential ImpersonatedUserCred;
+    private Boolean isUserCreatedCredential;
     // This is the current connect place holder this should point one of the primary or failover place holder
     ServerPortPlaceHolder currentConnectPlaceHolder = null;
 
@@ -1483,8 +1484,10 @@ public class SQLServerConnection implements ISQLServerConnection {
 
             if(intAuthScheme == AuthenticationScheme.javaKerberos){
                 sPropKey = SQLServerDriverObjectProperty.GSS_CREDENTIAL.toString();
-                if(activeConnectionProperties.containsKey(sPropKey))
+                if(activeConnectionProperties.containsKey(sPropKey)) {
                     ImpersonatedUserCred = (GSSCredential) activeConnectionProperties.get(sPropKey);
+                    isUserCreatedCredential = true;
+                }
             }
             
             sPropKey = SQLServerDriverStringProperty.AUTHENTICATION.toString();
@@ -3437,7 +3440,7 @@ public class SQLServerConnection implements ISQLServerConnection {
         if (integratedSecurity && AuthenticationScheme.javaKerberos == intAuthScheme) {
             if (null != ImpersonatedUserCred) {
                 authentication = new KerbAuthentication(this, currentConnectPlaceHolder.getServerName(), currentConnectPlaceHolder.getPortNumber(),
-                        ImpersonatedUserCred);
+                        ImpersonatedUserCred, isUserCreatedCredential);
             }
             else
                 authentication = new KerbAuthentication(this, currentConnectPlaceHolder.getServerName(), currentConnectPlaceHolder.getPortNumber());
