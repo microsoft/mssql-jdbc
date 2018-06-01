@@ -3,6 +3,22 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](http://keepachangelog.com/) 
 
+## [6.5.3] Preview Release
+### Added
+- Added support for JDK 10 for both Maven and Gradle [#691](https://github.com/Microsoft/mssql-jdbc/pull/691)
+- Added a resource bundle to handle junit error strings [#698](https://github.com/Microsoft/mssql-jdbc/pull/698)
+
+### Fixed Issues
+- Fixed the driver disposing user created credentials when using Kerberos Constrained Delegation [#636](https://github.com/Microsoft/mssql-jdbc/pull/636)
+- Fixed an issue with HostnameInCertificate when redirected while connected to Azure [#644](https://github.com/Microsoft/mssql-jdbc/pull/644)
+- Fixed an intermittent issue with Prepared Statement handle not found [#648](https://github.com/Microsoft/mssql-jdbc/pull/648)
+- Fixed a conflict with JDBC Compliance where the driver was returning marked columns as SS_IS_COMPUTED instead of IS_GENERATED [#695](https://github.com/Microsoft/mssql-jdbc/pull/695)
+- Fixed maven build warnings and deprecated Java API warnings [#701](https://github.com/Microsoft/mssql-jdbc/pull/701)
+- Fixed some Javadoc related warnings [#702](https://github.com/Microsoft/mssql-jdbc/pull/702)
+
+### Changed
+- The old AKV constructor was re-added into the driver and marked as deprecated. This API may be removed in future versions of the driver. [#675](https://github.com/Microsoft/mssql-jdbc/pull/675)
+
 ## [6.5.2] Preview Release
 ### Added
 - Added new connection property "cancelQueryTimeout" to cancel QueryTimeout on Connection and Statement [#674](https://github.com/Microsoft/mssql-jdbc/pull/674)
