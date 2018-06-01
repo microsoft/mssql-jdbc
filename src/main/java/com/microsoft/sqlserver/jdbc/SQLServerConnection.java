@@ -753,7 +753,8 @@ public class SQLServerConnection implements ISQLServerConnection {
     Properties activeConnectionProperties; // the active set of connection properties
     private boolean integratedSecurity = SQLServerDriverBooleanProperty.INTEGRATED_SECURITY.getDefaultValue();
     private AuthenticationScheme intAuthScheme = AuthenticationScheme.nativeAuthentication;
-    private GSSCredential ImpersonatedUserCred ;
+    private GSSCredential ImpersonatedUserCred;
+    private Boolean isUserCreatedCredential;
     // This is the current connect place holder this should point one of the primary or failover place holder
     ServerPortPlaceHolder currentConnectPlaceHolder = null;
 
@@ -1483,8 +1484,10 @@ public class SQLServerConnection implements ISQLServerConnection {
 
             if(intAuthScheme == AuthenticationScheme.javaKerberos){
                 sPropKey = SQLServerDriverObjectProperty.GSS_CREDENTIAL.toString();
-                if(activeConnectionProperties.containsKey(sPropKey))
+                if(activeConnectionProperties.containsKey(sPropKey)) {
                     ImpersonatedUserCred = (GSSCredential) activeConnectionProperties.get(sPropKey);
+                    isUserCreatedCredential = true;
+                }
             }
             
             sPropKey = SQLServerDriverStringProperty.AUTHENTICATION.toString();
@@ -3409,9 +3412,10 @@ public class SQLServerConnection implements ISQLServerConnection {
         if (integratedSecurity && AuthenticationScheme.nativeAuthentication == intAuthScheme)
             authentication = new AuthenticationJNI(this, currentConnectPlaceHolder.getServerName(), currentConnectPlaceHolder.getPortNumber());
         if (integratedSecurity && AuthenticationScheme.javaKerberos == intAuthScheme) {
-            if (null != ImpersonatedUserCred)
+            if (null != ImpersonatedUserCred) {
                 authentication = new KerbAuthentication(this, currentConnectPlaceHolder.getServerName(), currentConnectPlaceHolder.getPortNumber(),
-                        ImpersonatedUserCred);
+                        ImpersonatedUserCred, isUserCreatedCredential);
+            }
             else
                 authentication = new KerbAuthentication(this, currentConnectPlaceHolder.getServerName(), currentConnectPlaceHolder.getPortNumber());
         }
@@ -3433,7 +3437,6 @@ public class SQLServerConnection implements ISQLServerConnection {
             // No need any further info from the server for token based authentication. So set _federatedAuthenticationRequested to true
             federatedAuthenticationRequested = true;
         }
-
         try {
             sendLogon(command, authentication, fedAuthFeatureExtensionData);
 
@@ -3447,21 +3450,14 @@ public class SQLServerConnection implements ISQLServerConnection {
                     connectionCommand(sqlStmt, "Change Settings");
                 }
             }
-        }
-        finally {
+        } finally {
             if (integratedSecurity) {
-                if (null != authentication)
+                if (null != authentication) {
                     authentication.ReleaseClientContext();
-                authentication = null;
-                
+                    authentication = null;
+                }
                 if (null != ImpersonatedUserCred) {
-                    try {
-                        ImpersonatedUserCred.dispose();
-                    }
-                    catch (GSSException e) {
-                        if (connectionlogger.isLoggable(Level.FINER))
-                            connectionlogger.finer(toString() + " Release of the credentials failed GSSException: " + e);
-                    }
+                    ImpersonatedUserCred = null;
                 }
             }
         }
