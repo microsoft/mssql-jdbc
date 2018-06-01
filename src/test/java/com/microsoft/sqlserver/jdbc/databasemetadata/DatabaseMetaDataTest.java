@@ -25,6 +25,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.jar.Attributes;
 import java.util.jar.Manifest;
+import java.text.MessageFormat;
 
 import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
@@ -32,6 +33,7 @@ import org.junit.runner.RunWith;
 
 import com.microsoft.sqlserver.jdbc.SQLServerDatabaseMetaData;
 import com.microsoft.sqlserver.jdbc.StringUtils;
+import com.microsoft.sqlserver.jdbc.TestResource;
 import com.microsoft.sqlserver.testframework.AbstractTest;
 import com.microsoft.sqlserver.testframework.Utils;
 
@@ -73,7 +75,7 @@ public class DatabaseMetaDataTest extends AbstractTest {
 
         File f = new File(manifestFile);
 
-        assumeTrue(f.exists(), "Manifest file does not exist on classpath so ignoring test");
+        assumeTrue(f.exists(), TestResource.getResource("R_manifestNotFound"));
 
         InputStream in = new BufferedInputStream(new FileInputStream(f));
         Manifest manifest = new Manifest(in);
@@ -99,10 +101,11 @@ public class DatabaseMetaDataTest extends AbstractTest {
 
         if (isSnapshot) {
             assertTrue(intDriverVersion < intBuildVersion,
-                    "In case of SNAPSHOT version, build version should be always greater than BuildVersion");
+                    TestResource.getResource("R_buildVersionError"));
         }
         else {
-            assertTrue(intDriverVersion == intBuildVersion, "For NON SNAPSHOT versions build & driver versions should match.");
+            assertTrue(intDriverVersion == intBuildVersion,
+                    TestResource.getResource("R_buildVersionError"));
         }
 
     }
@@ -117,7 +120,7 @@ public class DatabaseMetaDataTest extends AbstractTest {
         DatabaseMetaData databaseMetaData = connection.getMetaData();
         String url = databaseMetaData.getURL();
         url = url.toLowerCase();
-        assertFalse(url.contains("password"), "Get URL should not have password attribute / property.");
+        assertFalse(url.contains("password"), TestResource.getResource("R_getURLContainsPwd"));
     }
 
     /**
@@ -150,10 +153,10 @@ public class DatabaseMetaDataTest extends AbstractTest {
         String userFromConnectionString = connectionString.substring(startIndex, endIndex);
         String userName = databaseMetaData.getUserName();
 
-        assertNotNull(userName, "databaseMetaData.getUserName() should not be null");
+        assertNotNull(userName, TestResource.getResource("R_userNameNull"));
 
         assertTrue(userName.equalsIgnoreCase(userFromConnectionString),
-                "databaseMetaData.getUserName() should match with UserName from Connection String.");
+                TestResource.getResource("R_userNameNotMatch"));
     }
 
     /**
@@ -166,8 +169,10 @@ public class DatabaseMetaDataTest extends AbstractTest {
 
         ResultSet rs = databaseMetaData.getSchemas();
 
+        MessageFormat form = new MessageFormat(TestResource.getResource("R_nameEmpty"));
+        Object[] msgArgs = {"Schema"};
         while (rs.next()) {
-            assertTrue(!StringUtils.isEmpty(rs.getString(1)), "Schema Name should not be Empty");
+            assertTrue(!StringUtils.isEmpty(rs.getString(1)), form.format(msgArgs));
         }
     }
 
@@ -182,13 +187,17 @@ public class DatabaseMetaDataTest extends AbstractTest {
         
         ResultSet rsCatalog = databaseMetaData.getCatalogs();
         
-        assertTrue(rsCatalog.next(), "We should get atleast one catalog"); 
+        MessageFormat form1 = new MessageFormat(TestResource.getResource("R_atLeastOneFound"));
+        Object[] msgArgs1 = {"catalog"};
+        assertTrue(rsCatalog.next(), form1.format(msgArgs1));
         
         String[] types = {"TABLE"};
         ResultSet rs = databaseMetaData.getTables(rsCatalog.getString("TABLE_CAT"), null, "%", types);
         
+        MessageFormat form2 = new MessageFormat(TestResource.getResource("R_nameEmpty"));
+        Object[] msgArgs2 = {"Table"};
         while (rs.next()) {
-            assertTrue(!StringUtils.isEmpty(rs.getString("TABLE_NAME")),"Table Name should not be Empty"); 
+            assertTrue(!StringUtils.isEmpty(rs.getString("TABLE_NAME")), form2.format(msgArgs2));
         }
     }
 
@@ -208,22 +217,26 @@ public class DatabaseMetaDataTest extends AbstractTest {
         ResultSet rs = databaseMetaData.getTables(null, null, "%", types);
         
         //Fetch one table
-        assertTrue(rs.next(), "At least one table should be found");
+        MessageFormat form1 = new MessageFormat(TestResource.getResource("R_atLeastOneFound"));
+        Object[] msgArgs1 = {"table"};
+        assertTrue(rs.next(), form1.format(msgArgs1));
         
         //Go through all columns.
         ResultSet rs1 = databaseMetaData.getColumns(null, null, rs.getString("TABLE_NAME"), "%");
         
+        MessageFormat form2 = new MessageFormat(TestResource.getResource("R_nameEmpty"));
+        Object[][] msgArgs2 = {{"Category"}, {"SCHEMA"}, {"Table"}, {"COLUMN"}, {"Data Type"}, {"Type"}, {"Column Size"}, {"Nullable value"}, {"IS_NULLABLE"}, {"IS_AUTOINCREMENT"}};
         while (rs1.next()) {
-            assertTrue(!StringUtils.isEmpty(rs1.getString("TABLE_CAT")), "Category Name should not be Empty"); // 1
-            assertTrue(!StringUtils.isEmpty(rs1.getString("TABLE_SCHEM")), "SCHEMA Name should not be Empty");
-            assertTrue(!StringUtils.isEmpty(rs1.getString("TABLE_NAME")), "Table Name should not be Empty");
-            assertTrue(!StringUtils.isEmpty(rs1.getString("COLUMN_NAME")), "COLUMN NAME should not be Empty");
-            assertTrue(!StringUtils.isEmpty(rs1.getString("DATA_TYPE")), "Data Type should not be Empty");
-            assertTrue(!StringUtils.isEmpty(rs1.getString("TYPE_NAME")), "Data Type Name should not be Empty"); // 6
-            assertTrue(!StringUtils.isEmpty(rs1.getString("COLUMN_SIZE")), "Column Size should not be Empty"); // 7
-            assertTrue(!StringUtils.isEmpty(rs1.getString("NULLABLE")), "Nullable value should not be Empty"); // 11
-            assertTrue(!StringUtils.isEmpty(rs1.getString("IS_NULLABLE")), "Nullable value should not be Empty"); // 18
-            assertTrue(!StringUtils.isEmpty(rs1.getString("IS_AUTOINCREMENT")), "Nullable value should not be Empty"); // 22
+            assertTrue(!StringUtils.isEmpty(rs1.getString("TABLE_CAT")), form2.format(msgArgs2[0]));
+            assertTrue(!StringUtils.isEmpty(rs1.getString("TABLE_SCHEM")), form2.format(msgArgs2[1]));
+            assertTrue(!StringUtils.isEmpty(rs1.getString("TABLE_NAME")), form2.format(msgArgs2[2]));
+            assertTrue(!StringUtils.isEmpty(rs1.getString("COLUMN_NAME")), form2.format(msgArgs2[3]));
+            assertTrue(!StringUtils.isEmpty(rs1.getString("DATA_TYPE")), form2.format(msgArgs2[4]));
+            assertTrue(!StringUtils.isEmpty(rs1.getString("TYPE_NAME")), form2.format(msgArgs2[5]));
+            assertTrue(!StringUtils.isEmpty(rs1.getString("COLUMN_SIZE")), form2.format(msgArgs2[6]));
+            assertTrue(!StringUtils.isEmpty(rs1.getString("NULLABLE")), form2.format(msgArgs2[7])); // 11
+            assertTrue(!StringUtils.isEmpty(rs1.getString("IS_NULLABLE")), form2.format(msgArgs2[8])); // 18
+            assertTrue(!StringUtils.isEmpty(rs1.getString("IS_AUTOINCREMENT")), form2.format(msgArgs2[9])); // 22
         }
     }
     
@@ -242,21 +255,24 @@ public class DatabaseMetaDataTest extends AbstractTest {
         ResultSet rsTables = databaseMetaData.getTables(null, null, "%", types);
         
         //Fetch one table
-        assertTrue(rsTables.next(), "At least one table should be found");
+        MessageFormat form1 = new MessageFormat(TestResource.getResource("R_atLeastOneFound"));
+        Object[] msgArgs1 = {"table"};
+        assertTrue(rsTables.next(), form1.format(msgArgs1));
         
         //Go through all columns.
         ResultSet rs1 = databaseMetaData.getColumnPrivileges(null, null, rsTables.getString("TABLE_NAME"), "%");
         
+        MessageFormat form2 = new MessageFormat(TestResource.getResource("R_nameEmpty"));
+        Object[][] msgArgs2 = {{"Category"}, {"SCHEMA"}, {"Table"}, {"COLUMN"}, {"GRANTOR"}, {"GRANTEE"}, {"PRIVILEGE"}, {"IS_GRANTABLE"}};
         while(rs1.next()) {
-            assertTrue(!StringUtils.isEmpty(rs1.getString("TABLE_CAT")),"Category Name should not be Empty"); //1
-            assertTrue(!StringUtils.isEmpty(rs1.getString("TABLE_SCHEM")),"SCHEMA Name should not be Empty");
-            assertTrue(!StringUtils.isEmpty(rs1.getString("TABLE_NAME")),"Table Name should not be Empty");
-            assertTrue(!StringUtils.isEmpty(rs1.getString("COLUMN_NAME")),"COLUMN NAME should not be Empty");
-            assertTrue(!StringUtils.isEmpty(rs1.getString("GRANTOR")),"GRANTOR should not be Empty");
-            assertTrue(!StringUtils.isEmpty(rs1.getString("GRANTEE")),"GRANTEE should not be Empty");
-            assertTrue(!StringUtils.isEmpty(rs1.getString("PRIVILEGE")),"PRIVILEGE should not be Empty");
-            assertTrue(!StringUtils.isEmpty(rs1.getString("IS_GRANTABLE")),"IS_GRANTABLE should be YES / NO");
-
+            assertTrue(!StringUtils.isEmpty(rs1.getString("TABLE_CAT")), form2.format(msgArgs2[0]));
+            assertTrue(!StringUtils.isEmpty(rs1.getString("TABLE_SCHEM")), form2.format(msgArgs2[1]));
+            assertTrue(!StringUtils.isEmpty(rs1.getString("TABLE_NAME")), form2.format(msgArgs2[2]));
+            assertTrue(!StringUtils.isEmpty(rs1.getString("COLUMN_NAME")), form2.format(msgArgs2[3]));
+            assertTrue(!StringUtils.isEmpty(rs1.getString("GRANTOR")), form2.format(msgArgs2[4]));
+            assertTrue(!StringUtils.isEmpty(rs1.getString("GRANTEE")), form2.format(msgArgs2[5]));
+            assertTrue(!StringUtils.isEmpty(rs1.getString("PRIVILEGE")), form2.format(msgArgs2[6]));
+            assertTrue(!StringUtils.isEmpty(rs1.getString("IS_GRANTABLE")), form2.format(msgArgs2[7]));
         }
     }
     
@@ -271,8 +287,8 @@ public class DatabaseMetaDataTest extends AbstractTest {
         try {
         DatabaseMetaData databaseMetaData = connection.getMetaData();
         databaseMetaData.getFunctions("", null, "xp_%");
-        assertTrue(false,"As we are not supplying schema it should fail.");
-        }catch(Exception ae) {
+        assertTrue(false, TestResource.getResource("R_noSchemaShouldFail"));
+        } catch(Exception ae) {
             
         }
     }
@@ -286,14 +302,16 @@ public class DatabaseMetaDataTest extends AbstractTest {
         DatabaseMetaData databaseMetaData = connection.getMetaData();
         ResultSet rs = databaseMetaData.getFunctions(null, null, "xp_%");
         
+        MessageFormat form = new MessageFormat(TestResource.getResource("R_nameNull"));
+        Object[][] msgArgs = {{"FUNCTION_CAT"}, {"FUNCTION_SCHEM"}, {"FUNCTION_NAME"}, {"NUM_INPUT_PARAMS"}, {"NUM_OUPUT_PARAMS"}, {"NUM_RESULT_SETS"}, {"FUNCTION_TYPE"}};
         while(rs.next()) {
-            assertTrue(!StringUtils.isEmpty(rs.getString("FUNCTION_CAT")),"FUNCTION_CAT should not be NULL");
-            assertTrue(!StringUtils.isEmpty(rs.getString("FUNCTION_SCHEM")),"FUNCTION_SCHEM should not be NULL");
-            assertTrue(!StringUtils.isEmpty(rs.getString("FUNCTION_NAME")),"FUNCTION_NAME should not be NULL");
-            assertTrue(!StringUtils.isEmpty(rs.getString("NUM_INPUT_PARAMS")),"NUM_INPUT_PARAMS should not be NULL");
-            assertTrue(!StringUtils.isEmpty(rs.getString("NUM_OUTPUT_PARAMS")),"NUM_OUTPUT_PARAMS should not be NULL");
-            assertTrue(!StringUtils.isEmpty(rs.getString("NUM_RESULT_SETS")),"NUM_RESULT_SETS should not be NULL");
-            assertTrue(!StringUtils.isEmpty(rs.getString("FUNCTION_TYPE")),"FUNCTION_TYPE should not be NULL");
+            assertTrue(!StringUtils.isEmpty(rs.getString("FUNCTION_CAT")), form.format(msgArgs[0]));
+            assertTrue(!StringUtils.isEmpty(rs.getString("FUNCTION_SCHEM")), form.format(msgArgs[1]));
+            assertTrue(!StringUtils.isEmpty(rs.getString("FUNCTION_NAME")), form.format(msgArgs[2]));
+            assertTrue(!StringUtils.isEmpty(rs.getString("NUM_INPUT_PARAMS")), form.format(msgArgs[3]));
+            assertTrue(!StringUtils.isEmpty(rs.getString("NUM_OUTPUT_PARAMS")), form.format(msgArgs[4]));
+            assertTrue(!StringUtils.isEmpty(rs.getString("NUM_RESULT_SETS")), form.format(msgArgs[5]));
+            assertTrue(!StringUtils.isEmpty(rs.getString("FUNCTION_TYPE")), form.format(msgArgs[6]));
         }
         rs.close();
     }
@@ -307,22 +325,26 @@ public class DatabaseMetaDataTest extends AbstractTest {
         DatabaseMetaData databaseMetaData = connection.getMetaData();
         ResultSet rsFunctions = databaseMetaData.getFunctions(null, null, "%");
         
-      //Fetch one Function
-        assertTrue(rsFunctions.next(), "At least one function should be found");
+        //Fetch one Function
+        MessageFormat form1 = new MessageFormat(TestResource.getResource("R_atLeastOneFound"));
+        Object[] msgArgs1 = {"function"};
+        assertTrue(rsFunctions.next(), form1.format(msgArgs1));
         
         //Go through all columns.
         ResultSet rs = databaseMetaData.getFunctionColumns(null, null, rsFunctions.getString("FUNCTION_NAME"), "%");
         
+        MessageFormat form2 = new MessageFormat(TestResource.getResource("R_nameNull"));
+        Object[][] msgArgs2 = {{"FUNCTION_CAT"}, {"FUNCTION_SCHEM"}, {"FUNCTION_NAME"}, {"COLUMN_NAME"}, {"COLUMN_TYPE"}, {"DATA_TYPE"}, {"TYPE_NAME"}, {"NULLABLE"}, {"IS_NULLABLE"}};
         while(rs.next()) {
-            assertTrue(!StringUtils.isEmpty(rs.getString("FUNCTION_CAT")),"FUNCTION_CAT should not be NULL");
-            assertTrue(!StringUtils.isEmpty(rs.getString("FUNCTION_SCHEM")),"FUNCTION_SCHEM should not be NULL");
-            assertTrue(!StringUtils.isEmpty(rs.getString("FUNCTION_NAME")),"FUNCTION_NAME should not be NULL");
-            assertTrue(!StringUtils.isEmpty(rs.getString("COLUMN_NAME")),"COLUMN_NAME should not be NULL");
-            assertTrue(!StringUtils.isEmpty(rs.getString("COLUMN_TYPE")),"COLUMN_TYPE should not be NULL");
-            assertTrue(!StringUtils.isEmpty(rs.getString("DATA_TYPE")),"DATA_TYPE should not be NULL");
-            assertTrue(!StringUtils.isEmpty(rs.getString("TYPE_NAME")),"TYPE_NAME should not be NULL");
-            assertTrue(!StringUtils.isEmpty(rs.getString("NULLABLE")),"NULLABLE should not be NULL"); //12
-            assertTrue(!StringUtils.isEmpty(rs.getString("IS_NULLABLE")),"IS_NULLABLE should not be NULL"); //19
+            assertTrue(!StringUtils.isEmpty(rs.getString("FUNCTION_CAT")), form2.format(msgArgs2[0]));
+            assertTrue(!StringUtils.isEmpty(rs.getString("FUNCTION_SCHEM")), form2.format(msgArgs2[1]));
+            assertTrue(!StringUtils.isEmpty(rs.getString("FUNCTION_NAME")), form2.format(msgArgs2[2]));
+            assertTrue(!StringUtils.isEmpty(rs.getString("COLUMN_NAME")), form2.format(msgArgs2[3]));
+            assertTrue(!StringUtils.isEmpty(rs.getString("COLUMN_TYPE")), form2.format(msgArgs2[4]));
+            assertTrue(!StringUtils.isEmpty(rs.getString("DATA_TYPE")), form2.format(msgArgs2[5]));
+            assertTrue(!StringUtils.isEmpty(rs.getString("TYPE_NAME")), form2.format(msgArgs2[6]));
+            assertTrue(!StringUtils.isEmpty(rs.getString("NULLABLE")), form2.format(msgArgs2[7])); //12
+            assertTrue(!StringUtils.isEmpty(rs.getString("IS_NULLABLE")), form2.format(msgArgs2[8])); //19
         }
         
     }
