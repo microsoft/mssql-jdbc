@@ -52,7 +52,7 @@ public class ConnectionWrapper43Test extends AbstractTest {
         }
         finally {
             if (null != connection) {
-            	connection.close();
+                connection.close();
             }
         }
     }
