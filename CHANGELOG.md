@@ -5,6 +5,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/)
 
 ## [6.5.3] Preview Release
 ### Added
+- Added removed constructor back to AKV Provider which supports authentication with a customized method to fetch accessToken [#675](https://github.com/Microsoft/mssql-jdbc/pull/675)
 - Added support for JDK 10 for both Maven and Gradle [#691](https://github.com/Microsoft/mssql-jdbc/pull/691)
 - Added a resource bundle to handle junit error strings [#698](https://github.com/Microsoft/mssql-jdbc/pull/698)
 
@@ -15,9 +16,6 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/)
 - Fixed a conflict with JDBC Compliance where the driver was returning marked columns as SS_IS_COMPUTED instead of IS_GENERATED [#695](https://github.com/Microsoft/mssql-jdbc/pull/695)
 - Fixed maven build warnings and deprecated Java API warnings [#701](https://github.com/Microsoft/mssql-jdbc/pull/701)
 - Fixed some Javadoc related warnings [#702](https://github.com/Microsoft/mssql-jdbc/pull/702)
-
-### Changed
-- The old AKV constructor was re-added into the driver and marked as deprecated. This API may be removed in future versions of the driver. [#675](https://github.com/Microsoft/mssql-jdbc/pull/675)
 
 ## [6.5.2] Preview Release
 ### Added
