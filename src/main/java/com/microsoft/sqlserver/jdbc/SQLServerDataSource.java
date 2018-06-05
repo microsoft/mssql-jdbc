@@ -825,11 +825,11 @@ public class SQLServerDataSource implements ISQLServerDataSource, DataSource, ja
     /**
      * Setting the use Bulk Copy API for Batch Insert on Azure Data Warehouse boolean
      * 
-     * @param useBulkCopyForBatchInsertOnDW indicates whether Bulk Copy API should be used for Batch Insert operations.
+     * @param useBulkCopyForBatchInsert indicates whether Bulk Copy API should be used for Batch Insert operations.
      */
-    public void setUseBulkCopyForBatchInsertOnDW(boolean useBulkCopyForBatchInsertOnDW) {
-        setBooleanProperty(connectionProps, SQLServerDriverBooleanProperty.USE_BULK_COPY_FOR_BATCH_INSERT_ON_DW.toString(),
-                useBulkCopyForBatchInsertOnDW);
+    public void setUseBulkCopyForBatchInsert(boolean useBulkCopyForBatchInsert) {
+        setBooleanProperty(connectionProps, SQLServerDriverBooleanProperty.USE_BULK_COPY_FOR_BATCH_INSERT.toString(),
+                useBulkCopyForBatchInsert);
     }
 
     /**
@@ -837,9 +837,9 @@ public class SQLServerDataSource implements ISQLServerDataSource, DataSource, ja
      * 
      * @return whether the driver should use Bulk Copy API for Batch Insert operations.
      */
-    public boolean getUseBulkCopyForBatchInsertOnDW() {
-        return getBooleanProperty(connectionProps, SQLServerDriverBooleanProperty.USE_BULK_COPY_FOR_BATCH_INSERT_ON_DW.toString(),
-                SQLServerDriverBooleanProperty.USE_BULK_COPY_FOR_BATCH_INSERT_ON_DW.getDefaultValue());
+    public boolean getUseBulkCopyForBatchInsert() {
+        return getBooleanProperty(connectionProps, SQLServerDriverBooleanProperty.USE_BULK_COPY_FOR_BATCH_INSERT.toString(),
+                SQLServerDriverBooleanProperty.USE_BULK_COPY_FOR_BATCH_INSERT.getDefaultValue());
     }
 
     /**

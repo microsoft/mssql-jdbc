@@ -156,6 +156,8 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable {
     /* Statement level encryption setting needed for querying against encrypted columns. */
     private SQLServerStatementColumnEncryptionSetting stmtColumnEncriptionSetting = SQLServerStatementColumnEncryptionSetting.UseConnectionSetting;
     
+    private ResultSet destinationTableMetadata;
+    
     /*
      * Metadata for the destination table columns
      */
@@ -1746,10 +1748,16 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable {
         SQLServerStatement stmt = null;
         
         try {
-             stmt = (SQLServerStatement) connection.createStatement(ResultSet.TYPE_FORWARD_ONLY, 
-                    ResultSet.CONCUR_READ_ONLY, connection.getHoldability(), stmtColumnEncriptionSetting);
-            // Get destination metadata
-            rs = stmt.executeQueryInternal("SET FMTONLY ON SELECT * FROM " + destinationTableName + " SET FMTONLY OFF ");
+            if (null == destinationTableMetadata) {
+                stmt = (SQLServerStatement) connection.createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY,
+                        connection.getHoldability(), stmtColumnEncriptionSetting);
+
+                // Get destination metadata
+                rs = stmt.executeQueryInternal("sp_executesql N'SET FMTONLY ON SELECT * FROM " + destinationTableName + " '");
+            }
+            else {
+                rs = (SQLServerResultSet) destinationTableMetadata;
+            }
 
             destColumnCount = rs.getMetaData().getColumnCount();
             destColumnMetadata = new HashMap<>();
@@ -3583,5 +3591,9 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable {
 
     protected void setStmtColumnEncriptionSetting(SQLServerStatementColumnEncryptionSetting stmtColumnEncriptionSetting) {
         this.stmtColumnEncriptionSetting = stmtColumnEncriptionSetting;
+    }
+
+    protected void setDestinationTableMetadata(SQLServerResultSet rs) {
+        destinationTableMetadata = rs;
     }
 }

@@ -393,6 +393,6 @@ public final class SQLServerResource extends ListResourceBundle {
 				{"R_invalidSSLProtocol", "SSL Protocol {0} label is not valid. Only TLS, TLSv1, TLSv1.1, and TLSv1.2 are supported."},
 				{"R_cancelQueryTimeoutPropertyDescription", "The number of seconds to wait to cancel sending a query timeout."},
 				{"R_invalidCancelQueryTimeout", "The cancel timeout value {0} is not valid."},
-                {"R_useBulkCopyForBatchInsertOnDWPropertyDescription", "Whether the driver will use bulk copy API for batch insert operations on Azure Data Warehouse."},
+                {"R_useBulkCopyForBatchInsertPropertyDescription", "Whether the driver will use bulk copy API for batch insert operations"},
     };
 }

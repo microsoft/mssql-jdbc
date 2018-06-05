@@ -110,26 +110,26 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     /**
      * boolean value for deciding if the driver should use bulk copy API for batch inserts
      */
-    private boolean useBulkCopyForBatchInsertOnDW;
+    private boolean useBulkCopyForBatchInsert;
     
-    /** Sets the prepared statement's useBulkCopyForBatchInsertOnDW value.
+    /** Sets the prepared statement's useBulkCopyForBatchInsert value.
      * 
      * @return 
      *      Per the description.
      * @throws SQLServerException when an error occurs
     */
-    public boolean getUseBulkCopyForBatchInsertOnDW() throws SQLServerException {
+    public boolean getUseBulkCopyForBatchInsert() throws SQLServerException {
         checkClosed();
-        return useBulkCopyForBatchInsertOnDW;
+        return useBulkCopyForBatchInsert;
     }
     
-    /** Fetches the prepared statement's useBulkCopyForBatchInsertOnDW value.
+    /** Fetches the prepared statement's useBulkCopyForBatchInsert value.
      * 
      * @throws SQLServerException when an error occurs
     */
-    public void setUseBulkCopyForBatchInsertOnDW(boolean useBulkCopyForBatchInsertOnDW) throws SQLServerException {
+    public void setUseBulkCopyForBatchInsert(boolean useBulkCopyForBatchInsert) throws SQLServerException {
         checkClosed();
-        this.useBulkCopyForBatchInsertOnDW = useBulkCopyForBatchInsertOnDW;
+        this.useBulkCopyForBatchInsert = useBulkCopyForBatchInsert;
     }
 
     /** The server handle for this prepared statement. If a value {@literal <} 1 is returned no handle has been created. 
@@ -2479,24 +2479,24 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         localUserSQL = userSQL;
         
         try {
-            if (isInsert(localUserSQL) && connection.isAzureDW() && (this.useBulkCopyForBatchInsertOnDW || connection.getUseBulkCopyForBatchInsertOnDW())) {
+            if (isInsert(localUserSQL) && true && (this.useBulkCopyForBatchInsert || connection.getUseBulkCopyForBatchInsert())) {
                 if (batchParamValues == null) {
                     updateCounts = new int[0];
                     loggerExternal.exiting(getClassNameLogging(), "executeBatch", updateCounts);
-                    return updateCounts; 
+                    return updateCounts;
                 }
 
                 String tableName = parseUserSQLForTableNameDW(false, false);
                 ArrayList<String> columnList = parseUserSQLForColumnListDW();
                 ArrayList<String> valueList = parseUserSQLForValueListDW(false);
-                
+
                 String destinationTableName = tableName;
-                SQLServerStatement stmt = (SQLServerStatement) connection.createStatement(ResultSet.TYPE_FORWARD_ONLY, 
-                        ResultSet.CONCUR_READ_ONLY, connection.getHoldability(), stmtColumnEncriptionSetting);
+                SQLServerStatement stmt = (SQLServerStatement) connection.createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY,
+                        connection.getHoldability(), stmtColumnEncriptionSetting);
                 // Get destination metadata
                 try (SQLServerResultSet rs = stmt
-                        .executeQueryInternal("SET FMTONLY ON SELECT * FROM " + destinationTableName + " SET FMTONLY OFF ");) {
-                    
+                        .executeQueryInternal("sp_executesql N'SET FMTONLY ON SELECT * FROM " + destinationTableName + " '");) {
+
                     SQLServerBulkBatchInsertRecord batchRecord = new SQLServerBulkBatchInsertRecord(batchParamValues, columnList, valueList, null);
 
                     for (int i = 1; i <= rs.getColumnCount(); i++) {
@@ -2505,24 +2505,25 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                         int jdbctype;
                         TypeInfo ti = c.getTypeInfo();
                         if (null != cryptoMetadata) {
-                            jdbctype =  cryptoMetadata.getBaseTypeInfo().getSSType().getJDBCType().getIntValue();
-                        } else {
+                            jdbctype = cryptoMetadata.getBaseTypeInfo().getSSType().getJDBCType().getIntValue();
+                        }
+                        else {
                             jdbctype = ti.getSSType().getJDBCType().getIntValue();
                         }
                         batchRecord.addColumnMetadata(i, c.getColumnName(), jdbctype, ti.getPrecision(), ti.getScale());
                     }
-                    
+
                     SQLServerBulkCopy bcOperation = new SQLServerBulkCopy(connection);
                     bcOperation.setDestinationTableName(tableName);
                     bcOperation.setStmtColumnEncriptionSetting(this.getStmtColumnEncriptionSetting());
+                    bcOperation.setDestinationTableMetadata(rs);
                     bcOperation.writeToServer((ISQLServerBulkRecord) batchRecord);
                     bcOperation.close();
                     updateCounts = new int[batchParamValues.size()];
-                    for (int i = 0; i < batchParamValues.size(); ++i)
-                    {
+                    for (int i = 0; i < batchParamValues.size(); ++i) {
                         updateCounts[i] = 1;
                     }
-                    
+
                     batchParamValues = null;
                     loggerExternal.exiting(getClassNameLogging(), "executeBatch", updateCounts);
                     return updateCounts;

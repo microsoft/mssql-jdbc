@@ -354,7 +354,7 @@ enum SQLServerDriverBooleanProperty
     XOPEN_STATES                              ("xopenStates",                               false),
     FIPS                                      ("fips",                                      false),
     ENABLE_PREPARE_ON_FIRST_PREPARED_STATEMENT("enablePrepareOnFirstPreparedStatementCall", SQLServerConnection.DEFAULT_ENABLE_PREPARE_ON_FIRST_PREPARED_STATEMENT_CALL),
-    USE_BULK_COPY_FOR_BATCH_INSERT_ON_DW      ("useBulkCopyForBatchInsertOnDW",             false);
+    USE_BULK_COPY_FOR_BATCH_INSERT            ("useBulkCopyForBatchInsert",                 false);
 
     private final String name;
     private final boolean defaultValue;
@@ -431,7 +431,7 @@ public final class SQLServerDriver implements java.sql.Driver {
         new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.JAAS_CONFIG_NAME.toString(),                            SQLServerDriverStringProperty.JAAS_CONFIG_NAME.getDefaultValue(),                                       false,      null),
         new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.SSL_PROTOCOL.toString(),                                SQLServerDriverStringProperty.SSL_PROTOCOL.getDefaultValue(),                                           false,      new String[] {SSLProtocol.TLS.toString(), SSLProtocol.TLS_V10.toString(), SSLProtocol.TLS_V11.toString(), SSLProtocol.TLS_V12.toString()}),
         new SQLServerDriverPropertyInfo(SQLServerDriverIntProperty.CANCEL_QUERY_TIMEOUT.toString(),                           Integer.toString(SQLServerDriverIntProperty.CANCEL_QUERY_TIMEOUT.getDefaultValue()),                    false,      null),
-        new SQLServerDriverPropertyInfo(SQLServerDriverBooleanProperty.USE_BULK_COPY_FOR_BATCH_INSERT_ON_DW.toString(),       Boolean.toString(SQLServerDriverBooleanProperty.USE_BULK_COPY_FOR_BATCH_INSERT_ON_DW.getDefaultValue()),false,      TRUE_FALSE),
+        new SQLServerDriverPropertyInfo(SQLServerDriverBooleanProperty.USE_BULK_COPY_FOR_BATCH_INSERT.toString(),             Boolean.toString(SQLServerDriverBooleanProperty.USE_BULK_COPY_FOR_BATCH_INSERT.getDefaultValue()),      false,      TRUE_FALSE),
     };
 
     // Properties that can only be set by using Properties.
