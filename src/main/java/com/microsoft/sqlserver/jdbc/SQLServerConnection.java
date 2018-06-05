@@ -3433,7 +3433,7 @@ public class SQLServerConnection implements ISQLServerConnection {
 
         if (write) {
             // Write Feature ID, length of the version# field and Sensitivity Classification Version#
-        	tdsWriter.writeByte((byte) TDS.TDS_FEATUREEXT_DATACLASSIFICATION);
+        	tdsWriter.writeByte((byte) TDS.TDS_FEATURE_EXT_DATACLASSIFICATION);
         	tdsWriter.writeInt(1);
         	tdsWriter.writeByte((byte) TDS.MAX_SUPPORTED_DATA_CLASSIFICATION_VERSION);
         }
@@ -4137,7 +4137,7 @@ public class SQLServerConnection implements ISQLServerConnection {
                 serverSupportsColumnEncryption = true;
                 break;
             }
-            case TDS.TDS_FEATUREEXT_DATACLASSIFICATION: {
+            case TDS.TDS_FEATURE_EXT_DATACLASSIFICATION: {
             	if (connectionlogger.isLoggable(Level.FINER)) {
                     connectionlogger.fine(toString() + " Received feature extension acknowledgement for Data Classification.");
                 }

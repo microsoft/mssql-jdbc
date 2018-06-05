@@ -31,6 +31,8 @@ import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
 
+import com.microsoft.sqlserver.jdbc.dataclassification.SensitivityClassification;
+
 /**
  * Indicates the type of the row received from the server
  */

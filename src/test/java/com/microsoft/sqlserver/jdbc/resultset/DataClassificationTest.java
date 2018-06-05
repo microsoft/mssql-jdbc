@@ -10,7 +10,7 @@ import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
 
 import com.microsoft.sqlserver.jdbc.SQLServerResultSet;
-import com.microsoft.sqlserver.jdbc.SensitivityProperty;
+import com.microsoft.sqlserver.jdbc.dataclassification.SensitivityProperty;
 import com.microsoft.sqlserver.testframework.AbstractTest;
 import com.microsoft.sqlserver.testframework.util.RandomUtil;
 

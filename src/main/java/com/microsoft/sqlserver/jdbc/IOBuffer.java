@@ -74,6 +74,8 @@ import javax.net.ssl.TrustManager;
 import javax.net.ssl.TrustManagerFactory;
 import javax.net.ssl.X509TrustManager;
 
+import com.microsoft.sqlserver.jdbc.dataclassification.SensitivityClassification;
+
 import java.nio.Buffer;
 
 final class TDS {
@@ -122,7 +124,7 @@ final class TDS {
     // 0x06 is for x_eFeatureExtensionId_LoginToken 
     // 0x07 is for x_eFeatureExtensionId_ClientSideTelemetry 
     // Data Classification constants
-    static final int TDS_FEATUREEXT_DATACLASSIFICATION = 0x09;
+    static final int TDS_FEATURE_EXT_DATACLASSIFICATION = 0x09;
     static final int DATA_CLASSIFICATION_NOT_ENABLED = 0x00;
     static final int MAX_SUPPORTED_DATA_CLASSIFICATION_VERSION = 0x01;
     
@@ -188,8 +190,8 @@ final class TDS {
                 return "TDS_DONEINPROC (0xFF)";
             case TDS_FEDAUTHINFO:
                 return "TDS_FEDAUTHINFO (0xEE)";
-            case TDS_FEATUREEXT_DATACLASSIFICATION:
-                return "TDS_FEATUREEXT_DATACLASSIFICATION (0x09)";
+            case TDS_FEATURE_EXT_DATACLASSIFICATION:
+                return "TDS_FEATURE_EXT_DATACLASSIFICATION (0x09)";
             default:
                 return "unknown token (0x" + Integer.toHexString(tdsTokenType).toUpperCase() + ")";
         }

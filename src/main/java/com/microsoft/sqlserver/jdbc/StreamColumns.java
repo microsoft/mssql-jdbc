@@ -9,6 +9,13 @@
 package com.microsoft.sqlserver.jdbc;
 
 import java.util.List;
+
+import com.microsoft.sqlserver.jdbc.dataclassification.ColumnSensitivity;
+import com.microsoft.sqlserver.jdbc.dataclassification.InformationType;
+import com.microsoft.sqlserver.jdbc.dataclassification.Label;
+import com.microsoft.sqlserver.jdbc.dataclassification.SensitivityClassification;
+import com.microsoft.sqlserver.jdbc.dataclassification.SensitivityProperty;
+
 import java.util.ArrayList;
 
 /**
@@ -215,77 +222,76 @@ final class StreamColumns extends StreamPacket {
         }
 
         // Data Classification
-        if(tdsReader.getServerSupportsDataClassification() && tdsReader.peekTokenType() == TDS.TDS_SQLDATACLASSIFICATION) {
-        	// Read and parse
-        	tdsReader.TrySetSensitivityClassification(processDataClassification(tdsReader));
+        if (tdsReader.getServerSupportsDataClassification() && tdsReader.peekTokenType() == TDS.TDS_SQLDATACLASSIFICATION) {
+            // Read and parse
+            tdsReader.TrySetSensitivityClassification(processDataClassification(tdsReader));
         }
     }
 
     private String readByteString(TDSReader tdsReader) throws SQLServerException {
-    	String value = "";
-    	
+        String value = "";
+
         int byteLen = (int) tdsReader.readUnsignedByte();
         value = tdsReader.readUnicodeString(byteLen);
-        
+
         return value;
-	}
-    
+    }
+
     private Label readSensitivityLabel(TDSReader tdsReader) throws SQLServerException {
         String name = readByteString(tdsReader);
         String id = readByteString(tdsReader);
         return new Label(name, id);
     }
 
-	private InformationType readSensitivityInformationType(TDSReader tdsReader) throws SQLServerException {
+    private InformationType readSensitivityInformationType(TDSReader tdsReader) throws SQLServerException {
         String name = readByteString(tdsReader);
         String id = readByteString(tdsReader);
         return new InformationType(name, id);
     }
 
-    private SensitivityClassification processDataClassification(TDSReader tdsReader) throws SQLServerException 
-    {
+    private SensitivityClassification processDataClassification(TDSReader tdsReader) throws SQLServerException {
         if (!tdsReader.getServerSupportsDataClassification()) {
             tdsReader.throwInvalidTDS();
         }
-        
+
         int dataClassificationToken = tdsReader.readUnsignedByte();
         assert dataClassificationToken == TDS.TDS_SQLDATACLASSIFICATION;
-        
+
         SensitivityClassification sensitivityClassification = null;
-        
+
         // get the label count
         int numLabels = tdsReader.readUnsignedShort();
         List<Label> labels = new ArrayList<Label>(numLabels);
-        
+
         for (int i = 0; i < numLabels; i++) {
             labels.add(readSensitivityLabel(tdsReader));
         }
-                
+
         // get the information type count
         int numInformationTypes = tdsReader.readUnsignedShort();
-        
+
         List<InformationType> informationTypes = new ArrayList<InformationType>(numInformationTypes);
         for (int i = 0; i < numInformationTypes; i++) {
             informationTypes.add(readSensitivityInformationType(tdsReader));
         }
-        
+
         // get the per column classification data (corresponds to order of output columns for query)
-        int numResultColumns = tdsReader.readUnsignedShort(); 
+        int numResultColumns = tdsReader.readUnsignedShort();
 
         List<ColumnSensitivity> columnSensitivities = new ArrayList<ColumnSensitivity>(numResultColumns);
         for (int columnNum = 0; columnNum < numResultColumns; columnNum++) {
-            
-        	// get sensitivity properties for all the different sources which were used in generating the column output
+
+            // get sensitivity properties for all the different sources which were used in generating the column output
             int numSources = tdsReader.readUnsignedShort();
             List<SensitivityProperty> sensitivityProperties = new ArrayList<SensitivityProperty>(numSources);
-            for (int sourceNum = 0; sourceNum < numSources; sourceNum++){
-                
-            	// get the label index and then lookup label to use for source
+            for (int sourceNum = 0; sourceNum < numSources; sourceNum++) {
+
+                // get the label index and then lookup label to use for source
                 int labelIndex = tdsReader.readUnsignedShort();
                 Label label = null;
                 if (labelIndex != Integer.MAX_VALUE) {
                     if (labelIndex >= labels.size()) {
-                    	tdsReader.throwInvalidTDS();
+                        tdsReader.throwInvalidTDS();
                     }
                     label = labels.get(labelIndex);
                 }
@@ -307,7 +313,7 @@ final class StreamColumns extends StreamPacket {
         return sensitivityClassification;
     }
 
-	/**
+    /**
      * Applies per-column table information derived from COLINFO and TABNAME tokens to the set of columns defined by this COLMETADATA token to produce
      * the complete set of column information.
      */
