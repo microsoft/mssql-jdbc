@@ -36,10 +36,10 @@ import java.sql.Savepoint;
 import java.sql.Statement;
 import java.sql.Struct;
 import java.text.MessageFormat;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Enumeration;
 import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -5332,7 +5332,6 @@ public class SQLServerConnection implements ISQLServerConnection {
     private List<Statement> openStatements = null;
 
     protected void beginRequestInternal() throws SQLException {
-        DriverJDBCVersion.checkSupportsJDBC43();
         synchronized (this) {
             if (!requestStarted) {
                 originalDatabaseAutoCommitMode = databaseAutoCommitMode;
@@ -5342,18 +5341,17 @@ public class SQLServerConnection implements ISQLServerConnection {
                 originalSendTimeAsDatetime = sendTimeAsDatetime;
                 originalStatementPoolingCacheSize = statementPoolingCacheSize;
                 originalDisableStatementPooling = disableStatementPooling;
-                originalServerPreparedStatementDiscardThreshold = serverPreparedStatementDiscardThreshold;
-                originalEnablePrepareOnFirstPreparedStatementCall = enablePrepareOnFirstPreparedStatementCall;
+                originalServerPreparedStatementDiscardThreshold = getServerPreparedStatementDiscardThreshold();
+                originalEnablePrepareOnFirstPreparedStatementCall = getEnablePrepareOnFirstPreparedStatementCall();
                 originalSCatalog = sCatalog;
                 originalSqlWarnings = sqlWarnings;
-                openStatements = new ArrayList<Statement>();
+                openStatements = new LinkedList<Statement>();
                 requestStarted = true;
             }
         }
     }
 
     protected void endRequestInternal() throws SQLException {
-        DriverJDBCVersion.checkSupportsJDBC43();
         synchronized (this) {
             if (requestStarted) {
                 if (!databaseAutoCommitMode) {
@@ -5380,21 +5378,11 @@ public class SQLServerConnection implements ISQLServerConnection {
                 if (disableStatementPooling != originalDisableStatementPooling) {
                     setDisableStatementPooling(originalDisableStatementPooling);
                 }
-                if (serverPreparedStatementDiscardThreshold != originalServerPreparedStatementDiscardThreshold) {
-                    if (0 > originalServerPreparedStatementDiscardThreshold) {
-                        setServerPreparedStatementDiscardThreshold(DEFAULT_SERVER_PREPARED_STATEMENT_DISCARD_THRESHOLD);
-                    }
-                    else {
-                        setServerPreparedStatementDiscardThreshold(originalServerPreparedStatementDiscardThreshold);
-                    }
+                if (getServerPreparedStatementDiscardThreshold() != originalServerPreparedStatementDiscardThreshold) {
+                    setServerPreparedStatementDiscardThreshold(originalServerPreparedStatementDiscardThreshold);
                 }
-                if (enablePrepareOnFirstPreparedStatementCall != originalEnablePrepareOnFirstPreparedStatementCall) {
-                    if (null == originalEnablePrepareOnFirstPreparedStatementCall) {
-                        setEnablePrepareOnFirstPreparedStatementCall(DEFAULT_ENABLE_PREPARE_ON_FIRST_PREPARED_STATEMENT_CALL);
-                    }
-                    else {
-                        setEnablePrepareOnFirstPreparedStatementCall(originalEnablePrepareOnFirstPreparedStatementCall);
-                    }
+                if (getEnablePrepareOnFirstPreparedStatementCall() != originalEnablePrepareOnFirstPreparedStatementCall) {
+                    setEnablePrepareOnFirstPreparedStatementCall(originalEnablePrepareOnFirstPreparedStatementCall);
                 }
                 if (!sCatalog.equals(originalSCatalog)) {
                     setCatalog(originalSCatalog);

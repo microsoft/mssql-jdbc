@@ -284,6 +284,11 @@ public class Utils {
         dropObjectIfExists(procName, "IsProcedure", stmt);
     }
 
+    public static void dropDatabaseIfExists(String databaseName,
+            java.sql.Statement stmt) throws SQLException {
+        stmt.executeUpdate("IF EXISTS(SELECT * from sys.databases WHERE name='" + databaseName + "') DROP DATABASE [" + databaseName + "]");
+    }
+
     /**
      * actually perform the "DROP TABLE / PROCEDURE"
      */
@@ -316,7 +321,7 @@ public class Utils {
         return true;
     }
     
-    public static boolean isJDBC43AndGreater(Connection connection) throws SQLException{
+    public static boolean isJDBC43OrGreater(Connection connection) throws SQLException{
         return getJDBCVersion(connection) >= 4.3F;
     }
 
