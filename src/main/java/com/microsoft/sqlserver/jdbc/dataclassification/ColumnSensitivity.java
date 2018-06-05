@@ -4,7 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class ColumnSensitivity {
-    public List<SensitivityProperty> sensitivityProperties;
+    private List<SensitivityProperty> sensitivityProperties;
 
     public ColumnSensitivity(List<SensitivityProperty> sensitivityProperties) {
         this.sensitivityProperties = new ArrayList<SensitivityProperty>(sensitivityProperties);

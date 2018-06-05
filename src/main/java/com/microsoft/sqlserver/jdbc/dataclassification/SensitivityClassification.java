@@ -4,9 +4,9 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class SensitivityClassification {
-    public List<Label> labels;
-    public List<InformationType> informationTypes;
-    public List<ColumnSensitivity> columnSensitivities;
+    private List<Label> labels;
+    private List<InformationType> informationTypes;
+    private List<ColumnSensitivity> columnSensitivities;
 
     // Creating new ArrayList here assures that 'informationTypes' and 'labels' properties will not be null.
     // The Count of the ColumnSensitivities property will be equal to the number of output columns for the query result set.

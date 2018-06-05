@@ -1,8 +1,8 @@
 package com.microsoft.sqlserver.jdbc.dataclassification;
 
 public class InformationType {
-    public String name;
-    public String id;
+    private String name;
+    private String id;
 
     public InformationType(String name,
             String id) {

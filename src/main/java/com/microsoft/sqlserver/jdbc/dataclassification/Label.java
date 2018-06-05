@@ -1,8 +1,8 @@
 package com.microsoft.sqlserver.jdbc.dataclassification;
 
 public class Label {
-    public String name;
-    public String id;
+    private String name;
+    private String id;
 
     public Label(String name,
             String id) {

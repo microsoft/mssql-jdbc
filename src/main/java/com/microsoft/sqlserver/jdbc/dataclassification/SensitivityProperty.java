@@ -1,8 +1,8 @@
 package com.microsoft.sqlserver.jdbc.dataclassification;
 
 public class SensitivityProperty {
-    public Label label;
-    public InformationType informationType;
+    private Label label;
+    private InformationType informationType;
 
     public SensitivityProperty(Label label,
             InformationType informationType) {
