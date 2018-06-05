@@ -22,8 +22,8 @@ import java.util.Map.Entry;
 import java.util.Set;
 
 /**
- * A simple implementation of the ISQLServerBulkRecord interface that can be used to read in the basic Java data types from an ArrayList of
- * Parameters that were provided by pstmt/cstmt.
+ * A simple implementation of the ISQLServerBulkRecord interface that can be used to read in the basic Java data types from an ArrayList of Parameters
+ * that were provided by pstmt/cstmt.
  */
 public class SQLServerBulkBatchInsertRecord extends SQLServerBulkCommon implements ISQLServerBulkRecord, java.lang.AutoCloseable {
 
@@ -32,21 +32,22 @@ public class SQLServerBulkBatchInsertRecord extends SQLServerBulkCommon implemen
     private ArrayList<String> columnList;
     private ArrayList<String> valueList;
 
-    public SQLServerBulkBatchInsertRecord(ArrayList<Parameter[]> batchParam, ArrayList<String> columnList, 
-            ArrayList<String> valueList, String encoding) throws SQLServerException {
+    public SQLServerBulkBatchInsertRecord(ArrayList<Parameter[]> batchParam,
+            ArrayList<String> columnList,
+            ArrayList<String> valueList,
+            String encoding) throws SQLServerException {
         loggerClassName = "com.microsoft.sqlserver.jdbc.SQLServerBulkBatchInsertRecord";
         loggerExternal = java.util.logging.Logger.getLogger(loggerClassName);
-        loggerExternal.entering(loggerClassName, "SQLServerBulkBatchInsertRecord",
-                new Object[] {batchParam, encoding});
-        
+        loggerExternal.entering(loggerClassName, "SQLServerBulkBatchInsertRecord", new Object[] {batchParam, encoding});
+
         if (null == batchParam) {
             throwInvalidArgument("batchParam");
         }
-        
+
         if (null == valueList) {
             throwInvalidArgument("valueList");
         }
-                
+
         this.batchParam = batchParam;
         this.columnList = columnList;
         this.valueList = valueList;
@@ -100,26 +101,29 @@ public class SQLServerBulkBatchInsertRecord extends SQLServerBulkCommon implemen
 
     @Override
     public Object[] getRowData() throws SQLServerException {
-        
+
         Object[] data = new Object[columnMetadata.size()];
-        
+
         if (null == columnList || columnList.size() == 0) {
             int valueIndex = 0;
             for (int i = 0; i < data.length; i++) {
                 if (valueList.get(i).equalsIgnoreCase("?")) {
                     data[i] = batchParam.get(batchParamIndex)[valueIndex].getSetterValue();
                     valueIndex++;
-                } else {
+                }
+                else {
                     // remove 's at the beginning and end of the value, if it exists.
                     int len = valueList.get(i).length();
                     if (valueList.get(i).charAt(0) == '\'' && valueList.get(i).charAt(len - 1) == '\'') {
                         data[i] = valueList.get(i).substring(1, len - 1);
-                    } else {
+                    }
+                    else {
                         data[i] = valueList.get(i);
                     }
                 }
             }
-        } else {
+        }
+        else {
             int valueIndex = 0;
             int columnListIndex = 0;
             for (int i = 0; i < data.length; i++) {
@@ -127,17 +131,20 @@ public class SQLServerBulkBatchInsertRecord extends SQLServerBulkCommon implemen
                     if (valueList.get(i).equalsIgnoreCase("?")) {
                         data[i] = batchParam.get(i)[valueIndex].getSetterValue();
                         valueIndex++;
-                    } else {
+                    }
+                    else {
                         // remove 's at the beginning and end of the value, if it exists.
                         int len = valueList.get(i).length();
                         if (valueList.get(i).charAt(0) == '\'' && valueList.get(i).charAt(len - 1) == '\'') {
                             data[i] = valueList.get(i).substring(1, len - 1);
-                        } else {
+                        }
+                        else {
                             data[i] = valueList.get(i);
                         }
                     }
                     columnListIndex++;
-                } else {
+                }
+                else {
                     data[i] = "";
                 }
             }
@@ -170,8 +177,8 @@ public class SQLServerBulkBatchInsertRecord extends SQLServerBulkCommon implemen
 
                 switch (cm.columnType) {
                     /*
-                     * Both BCP and BULK INSERT considers double quotes as part of the data and throws error if any data (say "10") is to be
-                     * inserted into an numeric column. Our implementation does the same.
+                     * Both BCP and BULK INSERT considers double quotes as part of the data and throws error if any data (say "10") is to be inserted
+                     * into an numeric column. Our implementation does the same.
                      */
                     case Types.INTEGER: {
                         // Formatter to remove the decimal part as SQL Server floors the decimal in integer types
@@ -194,10 +201,11 @@ public class SQLServerBulkBatchInsertRecord extends SQLServerBulkCommon implemen
                         BigDecimal bd = new BigDecimal(data[pair.getKey() - 1].toString().trim());
                         try {
                             dataRow[pair.getKey() - 1] = bd.setScale(0, RoundingMode.DOWN).longValueExact();
-                        } catch (ArithmeticException ex) {
+                        }
+                        catch (ArithmeticException ex) {
                             String value = "'" + data[pair.getKey() - 1] + "'";
                             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_errorConvertingValue"));
-                            throw new SQLServerException(form.format(new Object[]{value, JDBCType.of(cm.columnType)}), null, 0, ex);
+                            throw new SQLServerException(form.format(new Object[] {value, JDBCType.of(cm.columnType)}), null, 0, ex);
                         }
                         break;
                     }
@@ -214,7 +222,8 @@ public class SQLServerBulkBatchInsertRecord extends SQLServerBulkCommon implemen
                         // Any non-zero value (integer/double) => 1, 0/0.0 => 0
                         try {
                             dataRow[pair.getKey() - 1] = (0 == Double.parseDouble(data[pair.getKey() - 1].toString())) ? Boolean.FALSE : Boolean.TRUE;
-                        } catch (NumberFormatException e) {
+                        }
+                        catch (NumberFormatException e) {
                             dataRow[pair.getKey() - 1] = Boolean.parseBoolean(data[pair.getKey() - 1].toString());
                         }
                         break;
@@ -238,7 +247,8 @@ public class SQLServerBulkBatchInsertRecord extends SQLServerBulkCommon implemen
                         String binData = data[pair.getKey() - 1].toString().trim();
                         if (binData.startsWith("0x") || binData.startsWith("0X")) {
                             dataRow[pair.getKey() - 1] = binData.substring(2);
-                        } else {
+                        }
+                        else {
                             dataRow[pair.getKey() - 1] = binData;
                         }
                         break;
@@ -297,18 +307,20 @@ public class SQLServerBulkBatchInsertRecord extends SQLServerBulkCommon implemen
                         break;
                     }
                 }
-            } catch (IllegalArgumentException e) {
+            }
+            catch (IllegalArgumentException e) {
                 String value = "'" + data[pair.getKey() - 1] + "'";
                 MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_errorConvertingValue"));
-                throw new SQLServerException(form.format(new Object[]{value, JDBCType.of(cm.columnType)}), null, 0, e);
-            } catch (ArrayIndexOutOfBoundsException e) {
+                throw new SQLServerException(form.format(new Object[] {value, JDBCType.of(cm.columnType)}), null, 0, e);
+            }
+            catch (ArrayIndexOutOfBoundsException e) {
                 throw new SQLServerException(SQLServerException.getErrString("R_CSVDataSchemaMismatch"), e);
             }
-            
+
         }
         return dataRow;
     }
-    
+
     @Override
     public boolean next() throws SQLServerException {
         batchParamIndex++;

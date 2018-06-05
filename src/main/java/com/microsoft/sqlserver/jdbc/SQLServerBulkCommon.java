@@ -14,7 +14,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 
 abstract class SQLServerBulkCommon {
-    
+
     /*
      * Class to represent the column metadata
      */
@@ -37,25 +37,25 @@ abstract class SQLServerBulkCommon {
             this.dateTimeFormatter = dateTimeFormatter;
         }
     }
-    
+
     /*
      * Class name for logging.
      */
     protected static String loggerClassName;
-    
+
     /*
      * Logger
      */
     protected java.util.logging.Logger loggerExternal;
-    
+
     /*
      * Contains all the column names if firstLineIsColumnNames is true
      */
     protected String[] columnNames = null;
-    
+
     /*
-     * Metadata to represent the columns in the batch/file. Each column should be mapped to its corresponding position within the parameter (from position 1 and
-     * onwards)
+     * Metadata to represent the columns in the batch/file. Each column should be mapped to its corresponding position within the parameter (from
+     * position 1 and onwards)
      */
     protected Map<Integer, ColumnMetadata> columnMetadata;
 
@@ -178,9 +178,11 @@ abstract class SQLServerBulkCommon {
             case microsoft.sql.Types.DATETIMEOFFSET:
                 if (this instanceof SQLServerBulkCSVFileRecord) {
                     columnMetadata.put(positionInSource, new ColumnMetadata(colName, jdbcType, 50, scale, dateTimeFormatter));
-                } else if (this instanceof SQLServerBulkBatchInsertRecord) {
+                }
+                else if (this instanceof SQLServerBulkBatchInsertRecord) {
                     columnMetadata.put(positionInSource, new ColumnMetadata(colName, jdbcType, precision, scale, dateTimeFormatter));
-                } else {
+                }
+                else {
                     columnMetadata.put(positionInSource, new ColumnMetadata(colName, jdbcType, 50, scale, dateTimeFormatter));
                 }
                 break;
@@ -266,7 +268,7 @@ abstract class SQLServerBulkCommon {
 
         loggerExternal.exiting(loggerClassName, "setTimeWithTimezoneFormat");
     }
-    
+
     /*
      * Helper method to throw a SQLServerExeption with the invalidArgument message and given argument.
      */
@@ -275,7 +277,7 @@ abstract class SQLServerBulkCommon {
         Object[] msgArgs = {argument};
         SQLServerException.makeFromDriverError(null, null, form.format(msgArgs), null, false);
     }
-    
+
     /*
      * Method to throw a SQLServerExeption for duplicate column names
      */

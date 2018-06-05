@@ -1748,15 +1748,15 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable {
         SQLServerStatement stmt = null;
         
         try {
-            if (null == destinationTableMetadata) {
+            if (null != destinationTableMetadata) {
+                rs = (SQLServerResultSet) destinationTableMetadata;
+            }
+            else {
                 stmt = (SQLServerStatement) connection.createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY,
                         connection.getHoldability(), stmtColumnEncriptionSetting);
 
                 // Get destination metadata
                 rs = stmt.executeQueryInternal("sp_executesql N'SET FMTONLY ON SELECT * FROM " + destinationTableName + " '");
-            }
-            else {
-                rs = (SQLServerResultSet) destinationTableMetadata;
             }
 
             destColumnCount = rs.getMetaData().getColumnCount();
