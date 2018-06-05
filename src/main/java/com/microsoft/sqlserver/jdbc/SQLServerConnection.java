@@ -3330,9 +3330,9 @@ public class SQLServerConnection implements ISQLServerConnection {
         int len = 6; // (1byte = featureID, 4bytes = featureData length, 1 bytes = Version)
 
         if (write) {
-            tdsWriter.writeByte((byte) TDS.TDS_FEATURE_EXT_AE); // FEATUREEXT_TCE
+            tdsWriter.writeByte(TDS.TDS_FEATURE_EXT_AE); // FEATUREEXT_TCE
             tdsWriter.writeInt(1);
-            tdsWriter.writeByte((byte) TDS.MAX_SUPPORTED_TCE_VERSION);
+            tdsWriter.writeByte(TDS.MAX_SUPPORTED_TCE_VERSION);
         }
         return len;
     }
@@ -3433,9 +3433,9 @@ public class SQLServerConnection implements ISQLServerConnection {
 
         if (write) {
             // Write Feature ID, length of the version# field and Sensitivity Classification Version#
-        	tdsWriter.writeByte((byte) TDS.TDS_FEATURE_EXT_DATACLASSIFICATION);
+        	tdsWriter.writeByte(TDS.TDS_FEATURE_EXT_DATACLASSIFICATION);
         	tdsWriter.writeInt(1);
-        	tdsWriter.writeByte((byte) TDS.MAX_SUPPORTED_DATA_CLASSIFICATION_VERSION);
+        	tdsWriter.writeByte(TDS.MAX_SUPPORTED_DATA_CLASSIFICATION_VERSION);
         }
         return len; // size of data written
     }
@@ -4064,7 +4064,7 @@ public class SQLServerConnection implements ISQLServerConnection {
         while (featureId != TDS.FEATURE_EXT_TERMINATOR);
     }
 
-    private void onFeatureExtAck(int featureId,
+    private void onFeatureExtAck(byte featureId,
             byte[] data) throws SQLServerException {
         if (null != routingInfo) {
             return;

@@ -107,7 +107,7 @@ final class TDS {
     static final int TDS_SQLDATACLASSIFICATION = 0xa3;
 
     // FedAuth
-    static final int TDS_FEATURE_EXT_FEDAUTH = 0x02;
+    static final byte TDS_FEATURE_EXT_FEDAUTH = 0x02;
     static final int TDS_FEDAUTH_LIBRARY_SECURITYTOKEN = 0x01;
     static final int TDS_FEDAUTH_LIBRARY_ADAL = 0x02;
     static final int TDS_FEDAUTH_LIBRARY_RESERVED = 0x7F;
@@ -118,15 +118,15 @@ final class TDS {
 
     // AE constants
     // 0x03 is for x_eFeatureExtensionId_Rcs
-    static final int TDS_FEATURE_EXT_AE = 0x04;
-    static final int MAX_SUPPORTED_TCE_VERSION = 0x01; // max version
+    static final byte TDS_FEATURE_EXT_AE = 0x04;
+    static final byte MAX_SUPPORTED_TCE_VERSION = 0x01; // max version
     static final int CUSTOM_CIPHER_ALGORITHM_ID = 0; // max version
     // 0x06 is for x_eFeatureExtensionId_LoginToken 
     // 0x07 is for x_eFeatureExtensionId_ClientSideTelemetry 
     // Data Classification constants
-    static final int TDS_FEATURE_EXT_DATACLASSIFICATION = 0x09;
-    static final int DATA_CLASSIFICATION_NOT_ENABLED = 0x00;
-    static final int MAX_SUPPORTED_DATA_CLASSIFICATION_VERSION = 0x01;
+    static final byte TDS_FEATURE_EXT_DATACLASSIFICATION = 0x09;
+    static final byte DATA_CLASSIFICATION_NOT_ENABLED = 0x00;
+    static final byte MAX_SUPPORTED_DATA_CLASSIFICATION_VERSION = 0x01;
     
     static final int AES_256_CBC = 1;
     static final int AEAD_AES_256_CBC_HMAC_SHA256 = 2;
