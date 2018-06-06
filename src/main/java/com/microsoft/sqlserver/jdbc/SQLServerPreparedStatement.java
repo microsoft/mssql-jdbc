@@ -33,7 +33,7 @@ import java.util.Vector;
 import java.util.logging.Level;
 
 import com.microsoft.sqlserver.jdbc.SQLServerConnection.PreparedStatementHandle;
-import com.microsoft.sqlserver.jdbc.SQLServerConnection.Sha1HashKey;
+import com.microsoft.sqlserver.jdbc.SQLServerConnection.CityHash128Key;
 
 /**
  * SQLServerPreparedStatement provides JDBC prepared statement functionality. SQLServerPreparedStatement provides methods for the user to supply
@@ -74,7 +74,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     private PreparedStatementHandle cachedPreparedStatementHandle; 
 
     /** Hash of user supplied SQL statement used for various cache lookups */
-    private Sha1HashKey sqlTextCacheKey;
+    private CityHash128Key sqlTextCacheKey;
 
     /**
      * Array with parameter names generated in buildParamTypeDefinitions For mapping encryption information to parameters, as the second result set
@@ -187,7 +187,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         stmtPoolable = true;
 
         // Create a cache key for this statement.
-        sqlTextCacheKey = new Sha1HashKey(sql);
+        sqlTextCacheKey = new CityHash128Key(sql);
 
         // Parse or fetch SQL metadata from cache.
         ParsedSQLCacheItem parsedSQL = getCachedParsedSQL(sqlTextCacheKey);
@@ -617,7 +617,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                 // Cache the reference to the newly created handle, NOT for cursorable handles.
                 if (null == cachedPreparedStatementHandle && !isCursorable(executeMethod)) {
                     cachedPreparedStatementHandle = connection.registerCachedPreparedStatementHandle(
-                            new Sha1HashKey(preparedSQL, preparedTypeDefinitions), prepStmtHandle, executedSqlDirectly);
+                            new CityHash128Key(preparedSQL, preparedTypeDefinitions), prepStmtHandle, executedSqlDirectly);
                 }
                 
                 param.skipValue(tdsReader, true);
@@ -962,7 +962,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
         // Check for new cache reference.
         if (null == cachedPreparedStatementHandle) {
-            PreparedStatementHandle cachedHandle = connection.getCachedPreparedStatementHandle(new Sha1HashKey(preparedSQL, preparedTypeDefinitions));
+            PreparedStatementHandle cachedHandle = connection.getCachedPreparedStatementHandle(new CityHash128Key(preparedSQL, preparedTypeDefinitions));
             // If handle was found then re-use, only if AE is not on and is not a batch query with new type definitions (We shouldn't reuse handle
             // if it is batch query and has new type definition, or if it is on, make sure encryptionMetadataIsRetrieved is retrieved.
             if (null != cachedHandle) {

@@ -53,8 +53,6 @@ import java.util.logging.Level;
 import javax.sql.XAConnection;
 
 import org.ietf.jgss.GSSCredential;
-import org.ietf.jgss.GSSException;
-
 import mssql.googlecode.concurrentlinkedhashmap.ConcurrentLinkedHashMap;
 import mssql.googlecode.concurrentlinkedhashmap.ConcurrentLinkedHashMap.Builder;
 import mssql.googlecode.concurrentlinkedhashmap.EvictionListener;
@@ -119,37 +117,31 @@ public class SQLServerConnection implements ISQLServerConnection {
     
     private String originalHostNameInCertificate = null;
 
-    static class Sha1HashKey {
-        private byte[] bytes;
+    static class CityHash128Key {
+        private long[] segments;
+        private int hashCode;
 
-        Sha1HashKey(String sql,
+        CityHash128Key(String sql,
                 String parametersDefinition) {
             this(String.format("%s%s", sql, parametersDefinition));
         }
-
-        Sha1HashKey(String s) {
-            bytes = getSha1Digest().digest(s.getBytes());
+        
+        CityHash128Key(String s) {
+            segments = CityHash.cityHash128(s.getBytes(), 0, s.length());
         }
 
         public boolean equals(Object obj) {
-            if (!(obj instanceof Sha1HashKey))
+            if (!(obj instanceof CityHash128Key))
                 return false;
 
-            return java.util.Arrays.equals(bytes, ((Sha1HashKey)obj).bytes);
+            return java.util.Arrays.equals(segments, ((CityHash128Key)obj).segments);
         }
 
         public int hashCode() {
-            return java.util.Arrays.hashCode(bytes);
-        }
-
-        private java.security.MessageDigest getSha1Digest() {
-            try {
-                return java.security.MessageDigest.getInstance("SHA-1");
+            if (0 == hashCode) {
+                hashCode = java.util.Arrays.hashCode(segments); 
             }
-            catch (final java.security.NoSuchAlgorithmException e) {
-                // This is not theoretically possible, but we're forced to catch it anyway
-                throw new RuntimeException(e);
-            }
+            return hashCode;
         }
     }
 
@@ -162,9 +154,9 @@ public class SQLServerConnection implements ISQLServerConnection {
         private boolean isDirectSql;
         private volatile boolean evictedFromCache; 
         private volatile boolean explicitlyDiscarded; 
-        private Sha1HashKey key;
+        private CityHash128Key key;
 
-        PreparedStatementHandle(Sha1HashKey key, int handle, boolean isDirectSql, boolean isEvictedFromCache) {
+        PreparedStatementHandle(CityHash128Key key, int handle, boolean isDirectSql, boolean isEvictedFromCache) {
         	this.key = key;
             this.handle = handle;
             this.isDirectSql = isDirectSql;
@@ -200,7 +192,7 @@ public class SQLServerConnection implements ISQLServerConnection {
         }
 
         /** Get the cache key. */
-        Sha1HashKey getKey() {
+        CityHash128Key getKey() {
             return key;
         }
 
@@ -248,21 +240,21 @@ public class SQLServerConnection implements ISQLServerConnection {
     static final private int PARSED_SQL_CACHE_SIZE = 100;
 
     /** Cache of parsed SQL meta data */
-    static private ConcurrentLinkedHashMap<Sha1HashKey, ParsedSQLCacheItem> parsedSQLCache;
+    static private ConcurrentLinkedHashMap<CityHash128Key, ParsedSQLCacheItem> parsedSQLCache;
 
     static {
-        parsedSQLCache = new Builder<Sha1HashKey, ParsedSQLCacheItem>()
+        parsedSQLCache = new Builder<CityHash128Key, ParsedSQLCacheItem>()
 	        .maximumWeightedCapacity(PARSED_SQL_CACHE_SIZE)
             .build();
     }
 
     /** Get prepared statement cache entry if exists, if not parse and create a new one */
-    static ParsedSQLCacheItem  getCachedParsedSQL(Sha1HashKey key) {
+    static ParsedSQLCacheItem  getCachedParsedSQL(CityHash128Key key) {
         return parsedSQLCache.get(key);
     }
 
     /** Parse and create a information about parsed SQL text */
-    static ParsedSQLCacheItem  parseAndCacheSQL(Sha1HashKey key, String sql) throws SQLServerException {
+    static ParsedSQLCacheItem  parseAndCacheSQL(CityHash128Key key, String sql) throws SQLServerException {
         JDBCSyntaxTranslator translator = new JDBCSyntaxTranslator();
 
         String parsedSql = translator.translate(sql);
@@ -282,9 +274,9 @@ public class SQLServerConnection implements ISQLServerConnection {
     private int statementPoolingCacheSize = DEFAULT_STATEMENT_POOLING_CACHE_SIZE;
 
     /** Cache of prepared statement handles */
-    private ConcurrentLinkedHashMap<Sha1HashKey, PreparedStatementHandle> preparedStatementHandleCache;
+    private ConcurrentLinkedHashMap<CityHash128Key, PreparedStatementHandle> preparedStatementHandleCache;
     /** Cache of prepared statement parameter metadata */
-    private ConcurrentLinkedHashMap<Sha1HashKey, SQLServerParameterMetaData> parameterMetadataCache;
+    private ConcurrentLinkedHashMap<CityHash128Key, SQLServerParameterMetaData> parameterMetadataCache;
     /**
      * Checks whether statement pooling is enabled or disabled. The default is set to true;
      */
@@ -5808,15 +5800,15 @@ public class SQLServerConnection implements ISQLServerConnection {
      * @param value
      */
     private void prepareCache() {
-        preparedStatementHandleCache = new Builder<Sha1HashKey, PreparedStatementHandle>().maximumWeightedCapacity(getStatementPoolingCacheSize())
+        preparedStatementHandleCache = new Builder<CityHash128Key, PreparedStatementHandle>().maximumWeightedCapacity(getStatementPoolingCacheSize())
                 .listener(new PreparedStatementCacheEvictionListener()).build();
 
-        parameterMetadataCache = new Builder<Sha1HashKey, SQLServerParameterMetaData>().maximumWeightedCapacity(getStatementPoolingCacheSize())
+        parameterMetadataCache = new Builder<CityHash128Key, SQLServerParameterMetaData>().maximumWeightedCapacity(getStatementPoolingCacheSize())
                 .build();
     }
 
     /** Get a parameter metadata cache entry if statement pooling is enabled */
-    final SQLServerParameterMetaData getCachedParameterMetadata(Sha1HashKey key) {
+    final SQLServerParameterMetaData getCachedParameterMetadata(CityHash128Key key) {
         if(!isStatementPoolingEnabled())
             return null;
         
@@ -5824,7 +5816,7 @@ public class SQLServerConnection implements ISQLServerConnection {
     }
 
     /** Register a parameter metadata cache entry if statement pooling is enabled */
-    final void registerCachedParameterMetadata(Sha1HashKey key, SQLServerParameterMetaData pmd) {
+    final void registerCachedParameterMetadata(CityHash128Key key, SQLServerParameterMetaData pmd) {
         if(!isStatementPoolingEnabled() || null == pmd)
             return;
         
@@ -5832,7 +5824,7 @@ public class SQLServerConnection implements ISQLServerConnection {
     }
 
     /** Get or create prepared statement handle cache entry if statement pooling is enabled */
-    final PreparedStatementHandle getCachedPreparedStatementHandle(Sha1HashKey key) {
+    final PreparedStatementHandle getCachedPreparedStatementHandle(CityHash128Key key) {
         if(!isStatementPoolingEnabled())
             return null;
         
@@ -5840,7 +5832,7 @@ public class SQLServerConnection implements ISQLServerConnection {
     }
 
     /** Get or create prepared statement handle cache entry if statement pooling is enabled */
-    final PreparedStatementHandle registerCachedPreparedStatementHandle(Sha1HashKey key, int handle, boolean isDirectSql) {
+    final PreparedStatementHandle registerCachedPreparedStatementHandle(CityHash128Key key, int handle, boolean isDirectSql) {
         if(!isStatementPoolingEnabled() || null == key)
             return null;
         
@@ -5866,8 +5858,8 @@ public class SQLServerConnection implements ISQLServerConnection {
     }
 
     // Handle closing handles when removed from cache.
-    final class PreparedStatementCacheEvictionListener implements EvictionListener<Sha1HashKey, PreparedStatementHandle> {
-        public void onEviction(Sha1HashKey key, PreparedStatementHandle handle) {
+    final class PreparedStatementCacheEvictionListener implements EvictionListener<CityHash128Key, PreparedStatementHandle> {
+        public void onEviction(CityHash128Key key, PreparedStatementHandle handle) {
             if(null != handle) {
                 handle.setIsEvictedFromCache(true); // Mark as evicted from cache.
 
