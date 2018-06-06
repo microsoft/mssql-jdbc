@@ -107,6 +107,8 @@ public class RequestBoundaryMethodsTest extends AbstractTest {
                 compareValuesAgainstConnection(con, autoCommitMode2, transactionIsolationLevel2, networkTimeout2, holdability2, sendTimeAsDatetime2,
                         statementPoolingCacheSize2, disableStatementPooling2, serverPreparedStatementDiscardThreshold2,
                         enablePrepareOnFirstPreparedStatementCall2, sCatalog2);
+                // drop the database
+                con.setCatalog("master");
                 Utils.dropDatabaseIfExists(sCatalog2, con.createStatement());
             }
         }
