@@ -26,6 +26,7 @@ import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
 
 import com.microsoft.sqlserver.jdbc.SQLServerConnection;
+import com.microsoft.sqlserver.jdbc.SQLServerPreparedStatement;
 import com.microsoft.sqlserver.testframework.AbstractTest;
 import com.microsoft.sqlserver.testframework.Utils;
 import com.microsoft.sqlserver.jdbc.TestResource;
@@ -320,7 +321,7 @@ public class RegressionTest extends AbstractTest {
     @Test
     public void batchWithLargeStringTestUseBulkCopyAPI() throws SQLException {
         Statement stmt = con.createStatement();
-        PreparedStatement pstmt = null;
+        SQLServerPreparedStatement pstmt = null;
         ResultSet rs = null;
         String testTable = "TEST_TABLE_BULK_COPY";
         Utils.dropTableIfExists(testTable, stmt);
@@ -357,7 +358,8 @@ public class RegressionTest extends AbstractTest {
             Field f1 = SQLServerConnection.class.getDeclaredField("isAzureDW");
             f1.setAccessible(true);
             f1.set(con, true);
-            pstmt = con.prepareStatement("insert into " + testTable + " values (?,?)");
+            pstmt = (SQLServerPreparedStatement) con.prepareStatement("insert into " + testTable + " values (?,?)");
+            pstmt.setUseBulkCopyForBatchInsert(true);
             // 0,a
             pstmt.setInt(1, 0);
             pstmt.setNString(2, values[0]);
@@ -395,7 +397,7 @@ public class RegressionTest extends AbstractTest {
         Map<Integer, String> selectedValues = new LinkedHashMap<>();
         int id = 0;
         try {
-            pstmt = con.prepareStatement("select * from " + testTable + ";");
+            pstmt = (SQLServerPreparedStatement) con.prepareStatement("select * from " + testTable + ";");
             try {
                 rs = pstmt.executeQuery();
                 int i = 0;

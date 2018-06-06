@@ -9,17 +9,23 @@ import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.sql.Connection;
+import java.sql.Date;
 import java.sql.DriverManager;
+import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.sql.Timestamp;
 import java.util.ArrayList;
 
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
 import org.opentest4j.TestAbortedException;
 
+import com.microsoft.sqlserver.jdbc.SQLServerConnection;
 import com.microsoft.sqlserver.jdbc.SQLServerPreparedStatement;
 import com.microsoft.sqlserver.jdbc.SQLServerStatement;
 import com.microsoft.sqlserver.testframework.AbstractTest;
@@ -27,11 +33,12 @@ import com.microsoft.sqlserver.testframework.DBConnection;
 import com.microsoft.sqlserver.testframework.Utils;
 
 @RunWith(JUnitPlatform.class)
-public class BatchExecutionWithBulkCopyParseTest extends AbstractTest {
+public class BatchExecutionWithBulkCopyTest extends AbstractTest {
 
     static SQLServerPreparedStatement pstmt = null;
     static Statement stmt = null;
     static Connection connection = null;
+    static String tableName = "BulkCopyParseTest" + System.currentTimeMillis();
 
     @Test
     public void testIsInsert() throws SQLException, NoSuchMethodException, SecurityException, IllegalAccessException, IllegalArgumentException, InvocationTargetException {
@@ -145,17 +152,154 @@ public class BatchExecutionWithBulkCopyParseTest extends AbstractTest {
             assertEquals(valueList.get(i), valueListExpected.get(i));
         }
     }
+    
+    @Test
+    public void testAllcolumns() throws Exception {
+        Field f1 = SQLServerConnection.class.getDeclaredField("isAzureDW");
+        f1.setAccessible(true);
+        f1.set(connection, true);
+        
+        String valid = "INSERT INTO " + tableName + " values "
+                + "("
+                + "?, "
+                + "?, "
+                + "?, "
+                + "?, "
+                + "?, "
+                + "?, "
+                + "?, "
+                + "?, "
+                + "?, "
+                + ")";
+        
+        SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) connection.prepareStatement(valid);
+        SQLServerStatement stmt = (SQLServerStatement) connection.createStatement();
+        
+        Timestamp myTimestamp = new Timestamp(114550L);
+        
+        Date d = new Date(114550L);
+        
+        pstmt.setInt(1, 1234);
+        pstmt.setBoolean(2, false);
+        pstmt.setString(3, "a");
+        pstmt.setDate(4, d);
+        pstmt.setDateTime(5, myTimestamp);
+        pstmt.setFloat(6, (float) 123.45);
+        pstmt.setString(7, "b");
+        pstmt.setString(8, "varc");
+        pstmt.setString(9, "varcmax");
+        pstmt.addBatch();
+        
+        pstmt.executeBatch();
+        
+        ResultSet rs = stmt.executeQuery("SELECT * FROM " + tableName);
+        
+        Object[] expected = new Object[9];
+        
+        expected[0] = 1234;
+        expected[1] = false;
+        expected[2] = "a";
+        expected[3] = d;
+        expected[4] = myTimestamp;
+        expected[5] = 123.45;
+        expected[6] = "b";
+        expected[7] = "varc";
+        expected[8] = "varcmax";
+        
+        rs.next();
+        for (int i=0; i < expected.length; i++) {
+            assertEquals(rs.getObject(i + 1).toString(), expected[i].toString());
+        }
+    }
 
+    @Test
+    public void testMixColumns() throws Exception {
+        Field f1 = SQLServerConnection.class.getDeclaredField("isAzureDW");
+        f1.setAccessible(true);
+        f1.set(connection, true);
+        
+        String valid = "INSERT INTO " + tableName + " (c1, c3, c5, c8) values "
+                + "("
+                + "?, "
+                + "?, "
+                + "?, "
+                + "?, "
+                + ")";
+        
+        SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) connection.prepareStatement(valid);
+        SQLServerStatement stmt = (SQLServerStatement) connection.createStatement();
+        
+        Timestamp myTimestamp = new Timestamp(114550L);
+        
+        Date d = new Date(114550L);
+        
+        pstmt.setInt(1, 1234);
+        pstmt.setString(2, "a");
+        pstmt.setDateTime(3, myTimestamp);
+        pstmt.setString(4, "varc");
+        pstmt.addBatch();
+        
+        pstmt.executeBatch();
+        
+        ResultSet rs = stmt.executeQuery("SELECT * FROM " + tableName);
+        
+        Object[] expected = new Object[9];
+        
+        expected[0] = 1234;
+        expected[1] = false;
+        expected[2] = "a";
+        expected[3] = d;
+        expected[4] = myTimestamp;
+        expected[5] = 123.45;
+        expected[6] = "b";
+        expected[7] = "varc";
+        expected[8] = "varcmax";
+        
+        rs.next();
+        for (int i=0; i < expected.length; i++) {
+            if (null != rs.getObject(i + 1)) {
+                assertEquals(rs.getObject(i + 1).toString(), expected[i].toString());
+            }
+        }
+    }
     @BeforeEach
     public void testSetup() throws TestAbortedException, Exception {
-        assumeTrue(13 <= new DBConnection(connectionString).getServerVersion(),
-                "Aborting test case as SQL Server version is not compatible with Always encrypted ");
-
-        connection = DriverManager.getConnection(connectionString);
+        connection = DriverManager.getConnection(connectionString + ";useBulkCopyForBatchInsert=true;");
         SQLServerStatement stmt = (SQLServerStatement) connection.createStatement();
-        Utils.dropTableIfExists("esimple", stmt);
-        String sql1 = "create table esimple (id integer not null, name varchar(255), constraint pk_esimple primary key (id))";
+        
+        Utils.dropTableIfExists(tableName, stmt);
+        String sql1 = "create table " + tableName + " "
+                + "("
+                + "c1 int DEFAULT 1234, "
+                + "c2 bit, "
+                + "c3 char DEFAULT NULL, "
+                + "c4 date, "
+                + "c5 datetime2, "
+                + "c6 float, "
+                + "c7 nchar, "
+                + "c8 varchar(20), "
+                + "c9 varchar(max)"
+                + ")";
+        
         stmt.execute(sql1);
         stmt.close();
+    }
+    
+    @AfterAll
+    public static void terminateVariation() throws SQLException {
+        connection = DriverManager.getConnection(connectionString);
+        
+        SQLServerStatement stmt = (SQLServerStatement) connection.createStatement();
+        Utils.dropTableIfExists(tableName, stmt);
+
+        if (null != pstmt) {
+            pstmt.close();
+        }
+        if (null != stmt) {
+            stmt.close();
+        }
+        if (null != connection) {
+            connection.close();
+        }
     }
 }

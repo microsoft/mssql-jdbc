@@ -2479,7 +2479,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         localUserSQL = userSQL;
         
         try {
-            if (isInsert(localUserSQL) && true && (this.useBulkCopyForBatchInsert || connection.getUseBulkCopyForBatchInsert())) {
+            if (isInsert(localUserSQL) && connection.isAzureDW() && (this.useBulkCopyForBatchInsert || connection.getUseBulkCopyForBatchInsert())) {
                 if (batchParamValues == null) {
                     updateCounts = new int[0];
                     loggerExternal.exiting(getClassNameLogging(), "executeBatch", updateCounts);
@@ -2546,7 +2546,6 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                 getStatementLogger().fine("Falling back to the original implementation for Batch Insert.");
             }
         }
-
 
         if (batchParamValues == null)
             updateCounts = new int[0];

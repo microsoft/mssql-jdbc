@@ -99,226 +99,216 @@ public class SQLServerBulkBatchInsertRecord extends SQLServerBulkCommon implemen
         return false;
     }
 
-    @Override
-    public Object[] getRowData() throws SQLServerException {
+    private Object convertValue(ColumnMetadata cm,
+            Object data) throws SQLServerException {
+        switch (cm.columnType) {
+            /*
+             * Both BCP and BULK INSERT considers double quotes as part of the data and throws error if any data (say "10") is to be inserted into an
+             * numeric column. Our implementation does the same.
+             */
+            case Types.INTEGER: {
+                // Formatter to remove the decimal part as SQL Server floors the decimal in integer types
+                DecimalFormat decimalFormatter = new DecimalFormat("#");
+                String formatedfInput = decimalFormatter.format(Double.parseDouble(data.toString()));
+                return Integer.valueOf(formatedfInput);
+            }
 
-        Object[] data = new Object[columnMetadata.size()];
+            case Types.TINYINT:
+            case Types.SMALLINT: {
+                // Formatter to remove the decimal part as SQL Server floors the decimal in integer types
+                DecimalFormat decimalFormatter = new DecimalFormat("#");
+                String formatedfInput = decimalFormatter.format(Double.parseDouble(data.toString()));
+                return Short.valueOf(formatedfInput);
+            }
 
-        if (null == columnList || columnList.size() == 0) {
-            int valueIndex = 0;
-            for (int i = 0; i < data.length; i++) {
-                if (valueList.get(i).equalsIgnoreCase("?")) {
-                    data[i] = batchParam.get(batchParamIndex)[valueIndex].getSetterValue();
-                    valueIndex++;
+            case Types.BIGINT: {
+                BigDecimal bd = new BigDecimal(data.toString().trim());
+                try {
+                    return bd.setScale(0, RoundingMode.DOWN).longValueExact();
                 }
-                else {
-                    // remove 's at the beginning and end of the value, if it exists.
-                    int len = valueList.get(i).length();
-                    if (valueList.get(i).charAt(0) == '\'' && valueList.get(i).charAt(len - 1) == '\'') {
-                        data[i] = valueList.get(i).substring(1, len - 1);
-                    }
-                    else {
-                        data[i] = valueList.get(i);
-                    }
+                catch (ArithmeticException ex) {
+                    String value = "'" + data + "'";
+                    MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_errorConvertingValue"));
+                    throw new SQLServerException(form.format(new Object[] {value, JDBCType.of(cm.columnType)}), null, 0, ex);
                 }
             }
+
+            case Types.DECIMAL:
+            case Types.NUMERIC: {
+                BigDecimal bd = new BigDecimal(data.toString().trim());
+                return bd.setScale(cm.scale, RoundingMode.HALF_UP);
+            }
+
+            case Types.BIT: {
+                // "true" => 1, "false" => 0
+                // Any non-zero value (integer/double) => 1, 0/0.0 => 0
+                try {
+                    return (0 == Double.parseDouble(data.toString())) ? Boolean.FALSE : Boolean.TRUE;
+                }
+                catch (NumberFormatException e) {
+                    return Boolean.parseBoolean(data.toString());
+                }
+            }
+
+            case Types.REAL: {
+                return Float.parseFloat(data.toString());
+            }
+
+            case Types.DOUBLE: {
+                return Double.parseDouble(data.toString());
+            }
+
+            case Types.BINARY:
+            case Types.VARBINARY:
+            case Types.LONGVARBINARY:
+            case Types.BLOB: {
+                // Strip off 0x if present.
+                String binData = data.toString().trim();
+                if (binData.startsWith("0x") || binData.startsWith("0X")) {
+                    return binData.substring(2);
+                }
+                else {
+                    return binData;
+                }
+            }
+
+            case 2013:    // java.sql.Types.TIME_WITH_TIMEZONE
+            {
+                DriverJDBCVersion.checkSupportsJDBC42();
+                OffsetTime offsetTimeValue;
+
+                // The per-column DateTimeFormatter gets priority.
+                if (null != cm.dateTimeFormatter)
+                    offsetTimeValue = OffsetTime.parse(data.toString(), cm.dateTimeFormatter);
+                else if (timeFormatter != null)
+                    offsetTimeValue = OffsetTime.parse(data.toString(), timeFormatter);
+                else
+                    offsetTimeValue = OffsetTime.parse(data.toString());
+
+                return offsetTimeValue;
+            }
+
+            case 2014: // java.sql.Types.TIMESTAMP_WITH_TIMEZONE
+            {
+                DriverJDBCVersion.checkSupportsJDBC42();
+                OffsetDateTime offsetDateTimeValue;
+
+                // The per-column DateTimeFormatter gets priority.
+                if (null != cm.dateTimeFormatter)
+                    offsetDateTimeValue = OffsetDateTime.parse(data.toString(), cm.dateTimeFormatter);
+                else if (dateTimeFormatter != null)
+                    offsetDateTimeValue = OffsetDateTime.parse(data.toString(), dateTimeFormatter);
+                else
+                    offsetDateTimeValue = OffsetDateTime.parse(data.toString());
+
+                return offsetDateTimeValue;
+            }
+
+            case Types.NULL: {
+                return null;
+            }
+
+            case Types.DATE:
+            case Types.CHAR:
+            case Types.NCHAR:
+            case Types.VARCHAR:
+            case Types.NVARCHAR:
+            case Types.LONGVARCHAR:
+            case Types.LONGNVARCHAR:
+            case Types.CLOB:
+            default: {
+                // The string is copied as is.
+                return data;
+            }
         }
-        else {
-            int valueIndex = 0;
-            int columnListIndex = 0;
-            for (int i = 0; i < data.length; i++) {
-                if (columnList.size() > columnListIndex && columnList.get(columnListIndex).equals(columnMetadata.get(i + 1).columnName)) {
-                    if (valueList.get(i).equalsIgnoreCase("?")) {
-                        data[i] = batchParam.get(i)[valueIndex].getSetterValue();
-                        valueIndex++;
+    }
+
+    private String removeSingleQuote(String s) {
+        int len = s.length();
+        return (s.charAt(0) == '\'' && s.charAt(len - 1) == '\'') ? s.substring(1, len - 1) : s;
+    }
+
+    @Override
+    public Object[] getRowData() throws SQLServerException {
+        Object[] data = new Object[columnMetadata.size()];
+        int valueIndex = 0;
+        String valueData;
+        Object rowData;
+        int columnListIndex = 0;
+        
+        // check if the size of the list of values = size of the list of columns (which is optional)
+        if (null != columnList && columnList.size() != valueList.size()) {
+            MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_CSVDataSchemaMismatch"));
+            Object[] msgArgs = {};
+            throw new SQLServerException(form.format(msgArgs), SQLState.COL_NOT_FOUND, DriverError.NOT_SET, null);
+        }
+        
+        for (Entry<Integer, ColumnMetadata> pair : columnMetadata.entrySet()) {
+            int index = pair.getKey() - 1;
+
+            // To explain what each variable represents:
+            // columnMetadata = map containing the ENTIRE list of columns in the table.
+            // columnList = the *optional* list of columns the user can provide. For example, the (c1, c3) part of this query: INSERT into t1 (c1, c3) values (?, ?)
+            // valueList = the *mandatory* list of columns the user needs provide. This is the (?, ?) part of the previous query. The size of this valueList will always equal the number of
+            // the entire columns in the table IF columnList has NOT been provided. If columnList HAS been provided, then this valueList may be smaller than the list of all columns (which is columnMetadata).
+            
+            // case when the user has not provided the optional list of column names.
+            if (null == columnList || columnList.size() == 0) {
+                valueData = valueList.get(index);
+                // if the user has provided a wildcard for this column, fetch the set value from the batchParam.
+                if (valueData.equalsIgnoreCase("?")) {
+                    rowData = batchParam.get(batchParamIndex)[valueIndex++].getSetterValue();
+                }
+                else if (valueData.equalsIgnoreCase("null")) {
+                    rowData = "";
+                }
+                // if the user has provided a hardcoded value for this column, rowData is simply set to the hardcoded value.
+                else {
+                    rowData = removeSingleQuote(valueData);
+                }
+            }
+            // case when the user has provided the optional list of column names.
+            else {
+                // columnListIndex is a separate counter we need to keep track of for each time we've processed a column
+                // that the user provided.
+                // for example, if the user provided an optional columnList of (c1, c3, c5, c7) in a table that has 8 columns (c1~c8),
+                // then the columnListIndex would increment only when we're dealing with the four columns inside columnMetadata.
+                // compare the list of the optional list of column names to the table's metadata, and match each other, so we assign the correct value to each column.
+                if (columnList.size() > columnListIndex && columnList.get(columnListIndex).equalsIgnoreCase(columnMetadata.get(index + 1).columnName)) {
+                    valueData = valueList.get(columnListIndex);
+                    if (valueData.equalsIgnoreCase("?")) {
+                        rowData = batchParam.get(batchParamIndex)[valueIndex++].getSetterValue();
+                    }
+                    else if (valueData.equalsIgnoreCase("null")) {
+                        rowData = "";
                     }
                     else {
-                        // remove 's at the beginning and end of the value, if it exists.
-                        int len = valueList.get(i).length();
-                        if (valueList.get(i).charAt(0) == '\'' && valueList.get(i).charAt(len - 1) == '\'') {
-                            data[i] = valueList.get(i).substring(1, len - 1);
-                        }
-                        else {
-                            data[i] = valueList.get(i);
-                        }
+                        rowData = removeSingleQuote(valueData);
                     }
                     columnListIndex++;
                 }
                 else {
-                    data[i] = "";
+                    rowData = "";
                 }
-            }
-        }
-
-        // Cannot go directly from String[] to Object[] and expect it to act as an array.
-        Object[] dataRow = new Object[data.length];
-
-        for (Entry<Integer, ColumnMetadata> pair : columnMetadata.entrySet()) {
-            ColumnMetadata cm = pair.getValue();
-
-            if (data.length < pair.getKey() - 1) {
-                MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidColumn"));
-                Object[] msgArgs = {pair.getKey()};
-                throw new SQLServerException(form.format(msgArgs), SQLState.COL_NOT_FOUND, DriverError.NOT_SET, null);
-            }
-
-            // Source header has more columns than current param read
-            if (columnNames != null && (columnNames.length > data.length)) {
-                MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_CSVDataSchemaMismatch"));
-                Object[] msgArgs = {};
-                throw new SQLServerException(form.format(msgArgs), SQLState.COL_NOT_FOUND, DriverError.NOT_SET, null);
             }
 
             try {
-                if (0 == data[pair.getKey() - 1].toString().length()) {
-                    dataRow[pair.getKey() - 1] = null;
+                if (0 == rowData.toString().length()) {
+                    data[index] = null;
                     continue;
                 }
-
-                switch (cm.columnType) {
-                    /*
-                     * Both BCP and BULK INSERT considers double quotes as part of the data and throws error if any data (say "10") is to be inserted
-                     * into an numeric column. Our implementation does the same.
-                     */
-                    case Types.INTEGER: {
-                        // Formatter to remove the decimal part as SQL Server floors the decimal in integer types
-                        DecimalFormat decimalFormatter = new DecimalFormat("#");
-                        String formatedfInput = decimalFormatter.format(Double.parseDouble(data[pair.getKey() - 1].toString()));
-                        dataRow[pair.getKey() - 1] = Integer.valueOf(formatedfInput);
-                        break;
-                    }
-
-                    case Types.TINYINT:
-                    case Types.SMALLINT: {
-                        // Formatter to remove the decimal part as SQL Server floors the decimal in integer types
-                        DecimalFormat decimalFormatter = new DecimalFormat("#");
-                        String formatedfInput = decimalFormatter.format(Double.parseDouble(data[pair.getKey() - 1].toString()));
-                        dataRow[pair.getKey() - 1] = Short.valueOf(formatedfInput);
-                        break;
-                    }
-
-                    case Types.BIGINT: {
-                        BigDecimal bd = new BigDecimal(data[pair.getKey() - 1].toString().trim());
-                        try {
-                            dataRow[pair.getKey() - 1] = bd.setScale(0, RoundingMode.DOWN).longValueExact();
-                        }
-                        catch (ArithmeticException ex) {
-                            String value = "'" + data[pair.getKey() - 1] + "'";
-                            MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_errorConvertingValue"));
-                            throw new SQLServerException(form.format(new Object[] {value, JDBCType.of(cm.columnType)}), null, 0, ex);
-                        }
-                        break;
-                    }
-
-                    case Types.DECIMAL:
-                    case Types.NUMERIC: {
-                        BigDecimal bd = new BigDecimal(data[pair.getKey() - 1].toString().trim());
-                        dataRow[pair.getKey() - 1] = bd.setScale(cm.scale, RoundingMode.HALF_UP);
-                        break;
-                    }
-
-                    case Types.BIT: {
-                        // "true" => 1, "false" => 0
-                        // Any non-zero value (integer/double) => 1, 0/0.0 => 0
-                        try {
-                            dataRow[pair.getKey() - 1] = (0 == Double.parseDouble(data[pair.getKey() - 1].toString())) ? Boolean.FALSE : Boolean.TRUE;
-                        }
-                        catch (NumberFormatException e) {
-                            dataRow[pair.getKey() - 1] = Boolean.parseBoolean(data[pair.getKey() - 1].toString());
-                        }
-                        break;
-                    }
-
-                    case Types.REAL: {
-                        dataRow[pair.getKey() - 1] = Float.parseFloat(data[pair.getKey() - 1].toString());
-                        break;
-                    }
-
-                    case Types.DOUBLE: {
-                        dataRow[pair.getKey() - 1] = Double.parseDouble(data[pair.getKey() - 1].toString());
-                        break;
-                    }
-
-                    case Types.BINARY:
-                    case Types.VARBINARY:
-                    case Types.LONGVARBINARY:
-                    case Types.BLOB: {
-                        // Strip off 0x if present.
-                        String binData = data[pair.getKey() - 1].toString().trim();
-                        if (binData.startsWith("0x") || binData.startsWith("0X")) {
-                            dataRow[pair.getKey() - 1] = binData.substring(2);
-                        }
-                        else {
-                            dataRow[pair.getKey() - 1] = binData;
-                        }
-                        break;
-                    }
-
-                    case 2013:    // java.sql.Types.TIME_WITH_TIMEZONE
-                    {
-                        DriverJDBCVersion.checkSupportsJDBC42();
-                        OffsetTime offsetTimeValue;
-
-                        // The per-column DateTimeFormatter gets priority.
-                        if (null != cm.dateTimeFormatter)
-                            offsetTimeValue = OffsetTime.parse(data[pair.getKey() - 1].toString(), cm.dateTimeFormatter);
-                        else if (timeFormatter != null)
-                            offsetTimeValue = OffsetTime.parse(data[pair.getKey() - 1].toString(), timeFormatter);
-                        else
-                            offsetTimeValue = OffsetTime.parse(data[pair.getKey() - 1].toString());
-
-                        dataRow[pair.getKey() - 1] = offsetTimeValue;
-                        break;
-                    }
-
-                    case 2014: // java.sql.Types.TIMESTAMP_WITH_TIMEZONE
-                    {
-                        DriverJDBCVersion.checkSupportsJDBC42();
-                        OffsetDateTime offsetDateTimeValue;
-
-                        // The per-column DateTimeFormatter gets priority.
-                        if (null != cm.dateTimeFormatter)
-                            offsetDateTimeValue = OffsetDateTime.parse(data[pair.getKey() - 1].toString(), cm.dateTimeFormatter);
-                        else if (dateTimeFormatter != null)
-                            offsetDateTimeValue = OffsetDateTime.parse(data[pair.getKey() - 1].toString(), dateTimeFormatter);
-                        else
-                            offsetDateTimeValue = OffsetDateTime.parse(data[pair.getKey() - 1].toString());
-
-                        dataRow[pair.getKey() - 1] = offsetDateTimeValue;
-                        break;
-                    }
-
-                    case Types.NULL: {
-                        dataRow[pair.getKey() - 1] = null;
-                        break;
-                    }
-
-                    case Types.DATE:
-                    case Types.CHAR:
-                    case Types.NCHAR:
-                    case Types.VARCHAR:
-                    case Types.NVARCHAR:
-                    case Types.LONGVARCHAR:
-                    case Types.LONGNVARCHAR:
-                    case Types.CLOB:
-                    default: {
-                        // The string is copied as is.
-                        dataRow[pair.getKey() - 1] = data[pair.getKey() - 1];
-                        break;
-                    }
-                }
+                data[index] = convertValue(pair.getValue(), rowData);
             }
             catch (IllegalArgumentException e) {
-                String value = "'" + data[pair.getKey() - 1] + "'";
+                String value = "'" + rowData + "'";
                 MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_errorConvertingValue"));
-                throw new SQLServerException(form.format(new Object[] {value, JDBCType.of(cm.columnType)}), null, 0, e);
+                throw new SQLServerException(form.format(new Object[] {value, JDBCType.of(pair.getValue().columnType)}), null, 0, e);
             }
             catch (ArrayIndexOutOfBoundsException e) {
                 throw new SQLServerException(SQLServerException.getErrString("R_CSVDataSchemaMismatch"), e);
             }
-
         }
-        return dataRow;
+        return data;
     }
 
     @Override
