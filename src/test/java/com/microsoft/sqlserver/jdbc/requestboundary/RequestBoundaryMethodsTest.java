@@ -107,12 +107,8 @@ public class RequestBoundaryMethodsTest extends AbstractTest {
                 compareValuesAgainstConnection(con, autoCommitMode2, transactionIsolationLevel2, networkTimeout2, holdability2, sendTimeAsDatetime2,
                         statementPoolingCacheSize2, disableStatementPooling2, serverPreparedStatementDiscardThreshold2,
                         enablePrepareOnFirstPreparedStatementCall2, sCatalog2);
+                Utils.dropDatabaseIfExists(sCatalog2, con.createStatement());
             }
-        }
-        finally {
-            SQLServerConnection conDrop = connect();
-            Utils.dropDatabaseIfExists(sCatalog2, conDrop.createStatement());
-            conDrop.close();
         }
     }
 
@@ -169,12 +165,8 @@ public class RequestBoundaryMethodsTest extends AbstractTest {
 
                 rs = con.createStatement().executeQuery("SELECT * from " + tableName);
                 assertTrue(!rs.isBeforeFirst(), "Should not have returned a result set.");
+                Utils.dropTableIfExists(tableName, con.createStatement());
             }
-        }
-        finally {
-            SQLServerConnection conDrop = connect();
-            Utils.dropTableIfExists(tableName, conDrop.createStatement());
-            conDrop.close();
         }
     }
 
