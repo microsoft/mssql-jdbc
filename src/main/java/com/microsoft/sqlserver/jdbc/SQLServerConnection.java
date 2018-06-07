@@ -125,7 +125,7 @@ public class SQLServerConnection implements ISQLServerConnection {
                 String parametersDefinition) {
             this(String.format("%s%s", sql, parametersDefinition));
         }
-        
+
         CityHash128Key(String s) {
             segments = CityHash.cityHash128(s.getBytes(), 0, s.length());
         }
@@ -134,12 +134,12 @@ public class SQLServerConnection implements ISQLServerConnection {
             if (!(obj instanceof CityHash128Key))
                 return false;
 
-            return java.util.Arrays.equals(segments, ((CityHash128Key)obj).segments);
+            return java.util.Arrays.equals(segments, ((CityHash128Key) obj).segments);
         }
 
         public int hashCode() {
             if (0 == hashCode) {
-                hashCode = java.util.Arrays.hashCode(segments); 
+                hashCode = java.util.Arrays.hashCode(segments);
             }
             return hashCode;
         }
