@@ -118,7 +118,7 @@ final class TDS {
     static final int AES_256_CBC = 1;
     static final int AEAD_AES_256_CBC_HMAC_SHA256 = 2;
     static final int AE_METADATA = 0x08;
-
+    
     static final byte TDS_FEATURE_EXT_UTF8SUPPORT = 0x0A;
 
     static final int TDS_TVP = 0xF3;
