@@ -119,6 +119,8 @@ final class TDS {
     static final int AEAD_AES_256_CBC_HMAC_SHA256 = 2;
     static final int AE_METADATA = 0x08;
 
+    static final byte TDS_FEATURE_EXT_UTF8SUPPORT = 0x0A;
+
     static final int TDS_TVP = 0xF3;
     static final int TVP_ROW = 0x01;
     static final int TVP_NULL_TOKEN = 0xFFFF;
@@ -177,6 +179,8 @@ final class TDS {
                 return "TDS_DONEINPROC (0xFF)";
             case TDS_FEDAUTHINFO:
                 return "TDS_FEDAUTHINFO (0xEE)";
+            case TDS_FEATURE_EXT_UTF8SUPPORT:
+                return "TDS_FEATURE_EXT_UTF8SUPPORT (0x0A)";
             default:
                 return "unknown token (0x" + Integer.toHexString(tdsTokenType).toUpperCase() + ")";
         }
