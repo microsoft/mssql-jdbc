@@ -5323,9 +5323,9 @@ public class SQLServerConnection implements ISQLServerConnection {
     private boolean originalDisableStatementPooling;
     private int originalServerPreparedStatementDiscardThreshold;
     private Boolean originalEnablePrepareOnFirstPreparedStatementCall;
-    private String originalSCatalog = null;
-    private volatile SQLWarning originalSqlWarnings = null;
-    private List<Statement> openStatements = null;
+    private String originalSCatalog;
+    private volatile SQLWarning originalSqlWarnings;
+    private List<Statement> openStatements;
 
     protected void beginRequestInternal() throws SQLException {
         synchronized (this) {

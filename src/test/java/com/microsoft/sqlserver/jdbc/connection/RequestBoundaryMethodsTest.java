@@ -1,4 +1,4 @@
-package com.microsoft.sqlserver.jdbc.requestboundary;
+package com.microsoft.sqlserver.jdbc.connection;
 
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
