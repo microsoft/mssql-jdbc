@@ -15,6 +15,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Timestamp;
+import java.sql.Types;
 import java.util.ArrayList;
 
 import org.junit.jupiter.api.AfterAll;
@@ -28,6 +29,7 @@ import org.opentest4j.TestAbortedException;
 import com.microsoft.sqlserver.jdbc.SQLServerConnection;
 import com.microsoft.sqlserver.jdbc.SQLServerPreparedStatement;
 import com.microsoft.sqlserver.jdbc.SQLServerStatement;
+import com.microsoft.sqlserver.jdbc.TestResource;
 import com.microsoft.sqlserver.testframework.AbstractTest;
 import com.microsoft.sqlserver.testframework.DBConnection;
 import com.microsoft.sqlserver.testframework.Utils;
@@ -262,6 +264,58 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
             }
         }
     }
+    
+    @Test
+    public void testNullOrEmptyColumns() throws Exception {
+        Field f1 = SQLServerConnection.class.getDeclaredField("isAzureDW");
+        f1.setAccessible(true);
+        f1.set(connection, true);
+        
+        String valid = "INSERT INTO " + tableName + " (c1, c2, c3, c4, c5, c6, c7) values "
+                + "("
+                + "?, "
+                + "?, "
+                + "?, "
+                + "?, "
+                + "?, "
+                + "?, "
+                + "?, "
+                + ")";
+
+        SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) connection.prepareStatement(valid);
+        SQLServerStatement stmt = (SQLServerStatement) connection.createStatement();
+        
+        pstmt.setInt(1, 1234);
+        pstmt.setBoolean(2, false);
+        pstmt.setString(3, null);
+        pstmt.setDate(4, null);
+        pstmt.setDateTime(5, null);
+        pstmt.setFloat(6, (float) 123.45);
+        pstmt.setString(7, "");
+        pstmt.addBatch();
+        
+        pstmt.executeBatch();
+        
+        ResultSet rs = stmt.executeQuery("SELECT * FROM " + tableName);
+        
+        Object[] expected = new Object[9];
+        
+        expected[0] = 1234;
+        expected[1] = false;
+        expected[2] = null;
+        expected[3] = null;
+        expected[4] = null;
+        expected[5] = 123.45;
+        expected[6] = " ";
+        
+        rs.next();
+        for (int i=0; i < expected.length; i++) {
+            if (null != rs.getObject(i + 1)) {
+                assertEquals(rs.getObject(i + 1), expected[i]);
+            }
+        }
+    }
+    
     @BeforeEach
     public void testSetup() throws TestAbortedException, Exception {
         connection = DriverManager.getConnection(connectionString + ";useBulkCopyForBatchInsert=true;");

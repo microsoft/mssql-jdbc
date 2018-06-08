@@ -232,6 +232,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         bReturnValueSyntax = parsedSQL.bReturnValueSyntax;
         userSQL = parsedSQL.processedSQL;
         initParams(parsedSQL.parameterCount);
+        useBulkCopyForBatchInsert = conn.getUseBulkCopyForBatchInsert();
     }
 
     /**
@@ -2479,7 +2480,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         localUserSQL = userSQL;
         
         try {
-            if (isInsert(localUserSQL) && connection.isAzureDW() && (this.useBulkCopyForBatchInsert || connection.getUseBulkCopyForBatchInsert())) {
+            if (isInsert(localUserSQL) && connection.isAzureDW() && (this.useBulkCopyForBatchInsert)) {
                 if (batchParamValues == null) {
                     updateCounts = new int[0];
                     loggerExternal.exiting(getClassNameLogging(), "executeBatch", updateCounts);
@@ -2696,7 +2697,8 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
             if (localUserSQL.charAt(tempint + 1) == '.') {
                 String tempstr = localUserSQL.substring(1, tempint);
                 localUserSQL = localUserSQL.substring(tempint + 2);
-                return tempstr + "." + parseUserSQLForTableNameDW(hasInsertBeenFound, hasIntoBeenFound);
+                // assume that "INSERT" and "INTO" has been found, since we're at the table part already.
+                return tempstr + "." + parseUserSQLForTableNameDW(true, true);
             } else {
                 // return tablename
                 String tempstr = localUserSQL.substring(1, tempint);
@@ -2721,7 +2723,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
             if (localUserSQL.charAt(tempint + 1) == '.') {
                 String tempstr = localUserSQL.substring(1, tempint);
                 localUserSQL = localUserSQL.substring(tempint + 2);
-                return tempstr + "." + parseUserSQLForTableNameDW(hasInsertBeenFound, hasIntoBeenFound);
+                return tempstr + "." + parseUserSQLForTableNameDW(true, true);
             } else {
                 // return tablename
                 String tempstr = localUserSQL.substring(1, tempint);
@@ -2737,7 +2739,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                     || localUserSQL.charAt(0) == '(') {
                 if (localUserSQL.charAt(0) == '.') {
                     localUserSQL = localUserSQL.substring(1);
-                    return sb.toString() + "." + parseUserSQLForTableNameDW(hasInsertBeenFound, hasIntoBeenFound);
+                    return sb.toString() + "." + parseUserSQLForTableNameDW(true, true);
                 } else {
                     return sb.toString();
                 }

@@ -260,7 +260,7 @@ public class SQLServerBulkBatchInsertRecord extends SQLServerBulkCommon implemen
                     rowData = batchParam.get(batchParamIndex)[valueIndex++].getSetterValue();
                 }
                 else if (valueData.equalsIgnoreCase("null")) {
-                    rowData = "";
+                    rowData = null;
                 }
                 // if the user has provided a hardcoded value for this column, rowData is simply set to the hardcoded value.
                 else {
@@ -280,7 +280,7 @@ public class SQLServerBulkBatchInsertRecord extends SQLServerBulkCommon implemen
                         rowData = batchParam.get(batchParamIndex)[valueIndex++].getSetterValue();
                     }
                     else if (valueData.equalsIgnoreCase("null")) {
-                        rowData = "";
+                        rowData = null;
                     }
                     else {
                         rowData = removeSingleQuote(valueData);
@@ -288,13 +288,16 @@ public class SQLServerBulkBatchInsertRecord extends SQLServerBulkCommon implemen
                     columnListIndex++;
                 }
                 else {
-                    rowData = "";
+                    rowData = null;
                 }
             }
 
             try {
-                if (0 == rowData.toString().length()) {
+                if (null == rowData) {
                     data[index] = null;
+                    continue;
+                } else if (0 == rowData.toString().length()) {
+                    data[index] = "";
                     continue;
                 }
                 data[index] = convertValue(pair.getValue(), rowData);
