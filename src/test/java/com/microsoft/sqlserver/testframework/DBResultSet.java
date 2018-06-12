@@ -213,7 +213,7 @@ public class DBResultSet extends AbstractParentWrapper implements AutoCloseable 
 
         // Verify
         // TODO: Check the intermittent verification error
-        // verifydata(ordinal, coercion, expectedData, retrieved);
+        verifydata(ordinal, coercion, expectedData, retrieved);
     }
 
     /**
@@ -237,14 +237,14 @@ public class DBResultSet extends AbstractParentWrapper implements AutoCloseable 
                 break;
 
             case java.sql.Types.INTEGER:
-                assertTrue((((Integer) expectedData).intValue() == ((Integer) retrieved).intValue()), "Unexpected int value, expected : "
-                        + (Integer) expectedData + " ,received: " + (Integer) retrieved);
+                assertTrue((((Integer) expectedData).intValue() == ((Integer) retrieved).intValue()),
+                        "Unexpected int value, expected : " + (Integer) expectedData + " ,received: " + (Integer) retrieved);
                 break;
 
             case java.sql.Types.SMALLINT:
             case java.sql.Types.TINYINT:
-                assertTrue((((Short) expectedData).shortValue() == ((Short) retrieved).shortValue()), "Unexpected smallint/tinyint value, expected: "
-                        + " " + (Short) expectedData + " received: " + (Short) retrieved);
+                assertTrue((((Short) expectedData).shortValue() == ((Short) retrieved).shortValue()),
+                        "Unexpected smallint/tinyint value, expected: " + " " + (Short) expectedData + " received: " + (Short) retrieved);
                 break;
 
             case java.sql.Types.BIT:
@@ -252,8 +252,8 @@ public class DBResultSet extends AbstractParentWrapper implements AutoCloseable 
                     expectedData = true;
                 else
                     expectedData = false;
-                assertTrue((((Boolean) expectedData).booleanValue() == ((Boolean) retrieved).booleanValue()), "Unexpected bit value, expected: "
-                        + (Boolean) expectedData + " ,received: " + (Boolean) retrieved);
+                assertTrue((((Boolean) expectedData).booleanValue() == ((Boolean) retrieved).booleanValue()),
+                        "Unexpected bit value, expected: " + (Boolean) expectedData + " ,received: " + (Boolean) retrieved);
                 break;
 
             case java.sql.Types.DECIMAL:
@@ -263,12 +263,15 @@ public class DBResultSet extends AbstractParentWrapper implements AutoCloseable 
                 break;
 
             case java.sql.Types.DOUBLE:
-                assertTrue((((Double) expectedData).doubleValue() == ((Double) retrieved).doubleValue()), "Unexpected float value, expected: "
-                        + (Double) expectedData + " received: " + (Double) retrieved);
+                assertTrue((((Double) expectedData).doubleValue() == ((Double) retrieved).doubleValue()),
+                        "Unexpected float value, expected: " + (Double) expectedData + " received: " + (Double) retrieved);
                 break;
 
             case java.sql.Types.REAL:
-                assertTrue((((Float) expectedData).floatValue() == ((Float) retrieved).floatValue()),
+                if (expectedData instanceof Double) {
+                    expectedData = (Float) (((Double) expectedData).floatValue());
+                }
+                assertTrue(((Float) expectedData).floatValue() == ((Float) retrieved).floatValue(),
                         "Unexpected real value, expected: " + (Float) expectedData + " received: " + (Float) retrieved);
                 break;
 
@@ -297,10 +300,14 @@ public class DBResultSet extends AbstractParentWrapper implements AutoCloseable 
                                     + " ,received: " + (((Timestamp) retrieved).getTime()));
                     break;
                 }
-                else
-                    assertTrue(("" + Timestamp.valueOf((LocalDateTime) expectedData)).equalsIgnoreCase("" + retrieved), "Unexpected datetime2 value, "
-                            + "expected: " + Timestamp.valueOf((LocalDateTime) expectedData) + " ,received: " + retrieved);
-                break;
+                else {
+                    // TODO: look into precision for TIME (why we're using contains)
+                    String expectedDataTimestampString = expectedData.toString();
+                    String retrivedDataTimestampString = retrieved.toString();
+                    assertTrue(expectedDataTimestampString.contains(retrivedDataTimestampString), "Unexpected datetime2 value, " + "expected: "
+                            + expectedDataTimestampString + " ,received: " + retrivedDataTimestampString);
+                    break;
+                }
 
             case java.sql.Types.DATE:
                 assertTrue((("" + expectedData).equalsIgnoreCase("" + retrieved)),
@@ -308,8 +315,11 @@ public class DBResultSet extends AbstractParentWrapper implements AutoCloseable 
                 break;
 
             case java.sql.Types.TIME:
-                assertTrue(("" + Time.valueOf((LocalTime) expectedData)).equalsIgnoreCase("" + retrieved),
-                        "Unexpected time value, exptected: " + Time.valueOf((LocalTime) expectedData) + " ,received: " + retrieved);
+                // TODO: look into precision for datetime/datetime2 (why we're using contains)
+                String retrivedTimeString = retrieved.toString();
+                String expectedTimeString = expectedData.toString();
+                assertTrue(expectedTimeString.contains(retrivedTimeString),
+                        "Unexpected time value, exptected: " + expectedTimeString + " ,received: " + retrivedTimeString);
                 break;
 
             case microsoft.sql.Types.DATETIMEOFFSET:
@@ -446,7 +456,7 @@ public class DBResultSet extends AbstractParentWrapper implements AutoCloseable 
             cal = (Calendar) value;
         }
         else {
-            ts = (java.sql.Timestamp) value;
+            ts = Timestamp.valueOf((String) value);
             cal = Calendar.getInstance();
             cal.setTimeInMillis(ts.getTime());
             nanos = ts.getNanos();
