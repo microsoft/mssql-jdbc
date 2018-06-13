@@ -181,5 +181,4 @@ public abstract class AbstractTest {
             System.err.println("Some how could not invoke logging: " + e.getMessage());
         }
     }
-
 }
