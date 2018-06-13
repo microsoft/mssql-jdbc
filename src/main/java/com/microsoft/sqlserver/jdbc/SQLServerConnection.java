@@ -934,15 +934,6 @@ public class SQLServerConnection implements ISQLServerConnection {
             connectionlogger.fine(toString() + " created by (" + parentInfo + ")");
         initResettableValues();
 
-        // JDBC 3 driver only works with 1.5 JRE
-        if (3 == DriverJDBCVersion.major && !"1.5".equals(Util.SYSTEM_SPEC_VERSION)) {
-            MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_unsupportedJREVersion"));
-            Object[] msgArgs = {Util.SYSTEM_SPEC_VERSION};
-            String message = form.format(msgArgs);
-            connectionlogger.severe(message);
-            throw new UnsupportedOperationException(message);
-        }
-        
         // Caching turned on?
         if (!this.getDisableStatementPooling() && 0 < this.getStatementPoolingCacheSize()) {
             prepareCache();
