@@ -4154,7 +4154,7 @@ public class SQLServerConnection implements ISQLServerConnection {
                 	if (connectionlogger.isLoggable(Level.SEVERE)) {
                         connectionlogger.severe(toString() + " Invalid version number for Data Classification");
                     }
-                    throw new SQLServerException(SQLServerException.getErrString("R_InvalidDataClsTokenNumber"), null);
+                    throw new SQLServerException(SQLServerException.getErrString("R_InvalidDataClsVersionNumber"), null);
                 }
 
                 if (data.length != 2) {

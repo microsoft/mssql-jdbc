@@ -14,6 +14,7 @@ import com.microsoft.sqlserver.jdbc.dataclassification.SensitivityProperty;
 import com.microsoft.sqlserver.testframework.AbstractTest;
 import com.microsoft.sqlserver.testframework.Utils;
 import com.microsoft.sqlserver.testframework.util.RandomUtil;
+import com.microsoft.sqlserver.testframework.util.Util;
 
 @RunWith(JUnitPlatform.class)
 public class DataClassificationTest extends AbstractTest {
@@ -28,30 +29,12 @@ public class DataClassificationTest extends AbstractTest {
     public void testDataClassificationMetadata() throws Exception {
         // Run this test only with newer SQL Servers (version>=2018) that support Data Classification
         try (Connection con = DriverManager.getConnection(connectionString); Statement stmt = connection.createStatement();) {
-            if (serverSupportsDataClassification(stmt)) {
+            if (Util.serverSupportsDataClassification(stmt)) {
                 createTable(connection, stmt);
                 runTestsForServer(stmt);
                 Utils.dropTableIfExists(tableName, stmt);
             }
         }
-    }
-
-    /**
-     * Checks if object SYS.SENSITIVITY_CLASSIFICATIONS exists in SQL Server
-     * 
-     * @param Statement
-     * @return boolean
-     */
-    private boolean serverSupportsDataClassification(Statement stmt) {
-        try {
-            stmt.execute("SELECT * FROM SYS.SENSITIVITY_CLASSIFICATIONS");
-        }
-        catch (SQLException e) {
-            if (e.getErrorCode() == 208) {
-                return false;
-            }
-        }
-        return true;
     }
 
     /**

@@ -116,7 +116,7 @@ final class TDSParser {
 
         // if TDS_FEATURE_EXTENSION_ACK is not received verify if TDS_FEATURE_EXT_AE was sent
         if (isLoginAck && !isFeatureExtAck)
-            tdsReader.TryProcessFeatureExtAck(isFeatureExtAck);
+            tdsReader.tryProcessFeatureExtAck(isFeatureExtAck);
     }
 
     /* Handle unexpected tokens - throw an exception */

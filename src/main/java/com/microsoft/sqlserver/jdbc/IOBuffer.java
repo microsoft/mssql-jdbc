@@ -6395,7 +6395,7 @@ final class TDSReader {
 
     private final byte valueBytes[] = new byte[256];
     
-	protected SensitivityClassification sensitivityClassification;
+    protected SensitivityClassification sensitivityClassification;
     
 	private static final AtomicInteger lastReaderID = new AtomicInteger(0);
 
@@ -7129,7 +7129,7 @@ final class TDSReader {
         }
     }
 
-    final void TryProcessFeatureExtAck(boolean featureExtAckReceived) throws SQLServerException {
+    final void tryProcessFeatureExtAck(boolean featureExtAckReceived) throws SQLServerException {
         // in case of redirection, do not check if TDS_FEATURE_EXTENSION_ACK is received or not.
         if (null != this.con.getRoutingInfo()) {
             return;
@@ -7138,13 +7138,11 @@ final class TDSReader {
         if (isColumnEncryptionSettingEnabled() && !featureExtAckReceived)
             throw new SQLServerException(this, SQLServerException.getErrString("R_AE_NotSupportedByServer"), null, 0, false);
     }
-    
-    boolean TrySetSensitivityClassification(SensitivityClassification sensitivityClassification) {
+
+    boolean trySetSensitivityClassification(SensitivityClassification sensitivityClassification) {
         this.sensitivityClassification = sensitivityClassification;
         return true;
     }
-    
-    
 }
 
 /**

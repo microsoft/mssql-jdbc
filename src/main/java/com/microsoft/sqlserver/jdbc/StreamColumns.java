@@ -224,7 +224,7 @@ final class StreamColumns extends StreamPacket {
         // Data Classification
         if (tdsReader.getServerSupportsDataClassification() && tdsReader.peekTokenType() == TDS.TDS_SQLDATACLASSIFICATION) {
             // Read and parse
-            tdsReader.TrySetSensitivityClassification(processDataClassification(tdsReader));
+            tdsReader.trySetSensitivityClassification(processDataClassification(tdsReader));
         }
     }
 
