@@ -100,10 +100,12 @@ public class UTF8SupportTest extends AbstractTest {
         databaseName = RandomUtil.getIdentifier("UTF8Database");
         tableName = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("RequestBoundaryTable"));
         connection = PrepUtil.getConnection(getConfiguredProperty("mssql_jdbc_test_connection_properties"));
-        createDatabaseWithUTF8Collation();
-        connection.setCatalog(databaseName);
+        if (Utils.serverSupportsUTF8(connection)) {
+            createDatabaseWithUTF8Collation();
+            connection.setCatalog(databaseName);
+        }
     }
-    
+
     @AfterAll
     public static void cleanUp() throws SQLException {
         Utils.dropDatabaseIfExists(databaseName, connection.createStatement());
