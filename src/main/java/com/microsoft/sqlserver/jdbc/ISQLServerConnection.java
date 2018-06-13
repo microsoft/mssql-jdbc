@@ -9,6 +9,8 @@
 package com.microsoft.sqlserver.jdbc;
 
 import java.sql.SQLException;
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 /**
@@ -29,4 +31,23 @@ public interface ISQLServerConnection extends java.sql.Connection {
      *             If any errors occur.
      */
     public UUID getClientConnectionId() throws SQLException;
+
+    public boolean getSendTimeAsDatetime() throws SQLServerException;
+
+    public static void registerColumnEncryptionKeyStoreProviders() {
+    };
+
+    public static void setColumnEncryptionTrustedMasterKeyPaths(Map<String, List<String>> trustedKeyPaths) {
+    };
+
+    public static void updateColumnEncryptionTrustedMasterKeyPaths(String server,
+            List<String> trustedKeyPaths) {
+    };
+
+    public static void removeColumnEncryptionTrustedMasterKeyPaths(String server) {
+    };
+
+    public static Map<String, List<String>> getColumnEncryptionTrustedMasterKeyPaths() {
+        return null;
+    };
 }

@@ -3027,12 +3027,9 @@ public class SQLServerConnection implements ISQLServerConnection {
 
         setState(State.Closed);
 
-        executor.execute(new Runnable() {
-            public void run() {
-                if (null != tdsChannel) {
-                    tdsChannel.close();
-                }
-            }
+        executor.execute(() -> {
+            if (null != tdsChannel)
+                tdsChannel.close();
         });
 
         loggerExternal.exiting(getClassNameLogging(), "abort");

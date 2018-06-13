@@ -64,5 +64,4 @@ public interface ISQLServerCallableStatement extends java.sql.CallableStatement,
             int precision,
             int scale) throws SQLServerException;
     
-    
 }
