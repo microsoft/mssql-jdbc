@@ -4228,7 +4228,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
     }
 
     public void updateAsciiStream(int index,
-            java.io.InputStream x,
+            InputStream x,
             int length) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "updateAsciiStream", new Object[] {index, x, length});
@@ -4262,7 +4262,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
     }
 
     public void updateAsciiStream(java.lang.String columnName,
-            java.io.InputStream x,
+            InputStream x,
             int length) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "updateAsciiStream", new Object[] {columnName, x, length});

@@ -10,6 +10,8 @@ package com.microsoft.sqlserver.jdbc;
 
 import javax.sql.CommonDataSource;
 
+import org.ietf.jgss.GSSCredential;
+
 /**
  * A factory to create connections to the data source represented by this object. This interface was added in SQL Server JDBC Driver 3.0.
  */
@@ -424,4 +426,56 @@ public interface ISQLServerDataSource extends CommonDataSource {
      * @return A String that contains the server spn
      */
     public String getServerSpn();
+            
+    public GSSCredential getGSSCredentials();
+    
+    public void setAccessToken(String accessToken);
+    
+    public String getAccessToken();
+    
+    public void setColumnEncryptionSetting(String columnEncryptionSetting);
+    
+    public String getColumnEncryptionSetting();
+    
+    public void setKeyStoreAuthentication(String keyStoreAuthentication);
+    
+    public String getKeyStoreAuthentication();
+    
+    public void setKeyStoreSecret(String keyStoreSecret);
+    
+    public void setKeyStoreLocation(String keyStoreLocation);
+    
+    public String getKeyStoreLocation();
+
+    public void setQueryTimeout(int queryTimeout);
+    
+    public int getQueryTimeout();
+    
+    public void setCancelQueryTimeout(int cancelQueryTimeout);
+    
+    public int getCancelQueryTimeout();
+    
+    public void setEnablePrepareOnFirstPreparedStatementCall(boolean enablePrepareOnFirstPreparedStatementCall);
+    
+    public boolean getEnablePrepareOnFirstPreparedStatementCall();
+    
+    public void setServerPreparedStatementDiscardThreshold(int serverPreparedStatementDiscardThreshold);
+    
+    public int getServerPreparedStatementDiscardThreshold();
+    
+    public void setStatementPoolingCacheSize(int statementPoolingCacheSize);
+    
+    public int getStatementPoolingCacheSize();
+    
+    public void setDisableStatementPooling(boolean disableStatementPooling);
+    
+    public boolean getDisableStatementPooling();
+    
+    public void setSocketTimeout(int socketTimeout);
+    
+    public int getSocketTimeout();
+    
+    public void setJASSConfigurationName(String configurationName);
+    
+    public String getJASSConfigurationName();
 }

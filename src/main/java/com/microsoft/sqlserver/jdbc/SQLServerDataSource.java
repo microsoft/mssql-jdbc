@@ -20,14 +20,13 @@ import java.util.logging.Logger;
 
 import javax.naming.Reference;
 import javax.naming.StringRefAddr;
-import javax.sql.DataSource;
 
 import org.ietf.jgss.GSSCredential;
 
 /**
  * This datasource lists properties specific for the SQLServerConnection class.
  */
-public class SQLServerDataSource implements ISQLServerDataSource, DataSource, java.io.Serializable, javax.naming.Referenceable {
+public class SQLServerDataSource implements ISQLServerDataSource, javax.sql.DataSource, java.io.Serializable, javax.naming.Referenceable {
     // dsLogger is logger used for all SQLServerDataSource instances.
     static final java.util.logging.Logger dsLogger = java.util.logging.Logger.getLogger("com.microsoft.sqlserver.jdbc.internals.SQLServerDataSource");
     static final java.util.logging.Logger loggerExternal = java.util.logging.Logger.getLogger("com.microsoft.sqlserver.jdbc.DataSource");

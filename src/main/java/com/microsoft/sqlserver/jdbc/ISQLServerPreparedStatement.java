@@ -8,6 +8,8 @@
 
 package com.microsoft.sqlserver.jdbc;
 
+import java.math.BigDecimal;
+import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.SQLType;
 
@@ -25,15 +27,6 @@ public interface ISQLServerPreparedStatement extends java.sql.PreparedStatement,
      */
     public void setDateTimeOffset(int parameterIndex,
             microsoft.sql.DateTimeOffset x) throws SQLException;
-
-    public void setObject(int index,
-            Object obj,
-            SQLType jdbcType) throws SQLServerException;
-
-    public void setObject(int parameterIndex,
-            Object x,
-            SQLType targetSqlType,
-            int scaleOrLength) throws SQLServerException;
 
     /**
      * Sets the value of the designated parameter with the given object.
@@ -95,4 +88,152 @@ public interface ISQLServerPreparedStatement extends java.sql.PreparedStatement,
             Integer precision,
             Integer scale,
             boolean forceEncrypt) throws SQLServerException;
+    
+    public int getPreparedStatementHandle() throws SQLServerException;
+    
+    public void setBigDecimal(int n,
+            BigDecimal x,
+            int precision,
+            int scale) throws SQLException;
+    
+    public void setBigDecimal(int n,
+            BigDecimal x,
+            int precision,
+            int scale,
+            boolean forceEncrypt) throws SQLException;
+    
+    public void setMoney(int n,
+            BigDecimal x) throws SQLException;
+    
+    public void setMoney(int n,
+            BigDecimal x,
+            boolean forceEncrypt) throws SQLException;
+    
+    public void setSmallMoney(int n,
+            BigDecimal x) throws SQLException;
+    
+    public void setSmallMoney(int n,
+            BigDecimal x,
+            boolean forceEncrypt) throws SQLException;
+    
+    public void setBoolean(int n,
+            boolean x,
+            boolean forceEncrypt) throws SQLException;
+    
+    public void setByte(int n,
+            byte x,
+            boolean forceEncrypt) throws SQLException;
+    
+    public void setBytes(int n,
+            byte x[],
+            boolean forceEncrypt) throws SQLException;
+    
+    public void setUniqueIdentifier(int index,
+            String guid) throws SQLException;
+    
+    public void setUniqueIdentifier(int index,
+            String guid,
+            boolean forceEncrypt) throws SQLException;
+    
+    public void setDouble(int n,
+            double x,
+            boolean forceEncrypt) throws SQLException;
+    
+    public void setFloat(int n,
+            float x,
+            boolean forceEncrypt) throws SQLException;
+    
+    public void setGeometry(int n,
+            Geometry x) throws SQLException;
+    
+    public void setGeography(int n,
+            Geography x) throws SQLException;
+    
+    public void setInt(int n,
+            int value,
+            boolean forceEncrypt) throws SQLException;
+    
+    public void setLong(int n,
+            long x,
+            boolean forceEncrypt) throws SQLException;
+    
+    public void setShort(int index,
+            short x,
+            boolean forceEncrypt) throws SQLException;
+    
+    public void setString(int index,
+            String str,
+            boolean forceEncrypt) throws SQLException;
+    
+    public void setNString(int parameterIndex,
+            String value,
+            boolean forceEncrypt) throws SQLException;
+    
+    public void setTime(int n,
+            java.sql.Time x,
+            int scale) throws SQLException;
+    
+    public void setTime(int n,
+            java.sql.Time x,
+            int scale,
+            boolean forceEncrypt) throws SQLException;
+    
+    public void setTimestamp(int n,
+            java.sql.Timestamp x,
+            int scale) throws SQLException;
+    
+    public void setTimestamp(int n,
+            java.sql.Timestamp x,
+            int scale,
+            boolean forceEncrypt) throws SQLException;
+    
+    public void setDateTimeOffset(int n,
+            microsoft.sql.DateTimeOffset x,
+            int scale) throws SQLException;
+    
+    public void setDateTimeOffset(int n,
+            microsoft.sql.DateTimeOffset x,
+            int scale,
+            boolean forceEncrypt) throws SQLException;
+    
+    public void setDateTime(int n,
+            java.sql.Timestamp x) throws SQLException;
+    
+    public void setDateTime(int n,
+            java.sql.Timestamp x,
+            boolean forceEncrypt) throws SQLException;
+    
+    public void setSmallDateTime(int n,
+            java.sql.Timestamp x) throws SQLException;
+    
+    public void setSmallDateTime(int n,
+            java.sql.Timestamp x,
+            boolean forceEncrypt) throws SQLException;
+    
+    public void setStructured(int n,
+            String tvpName,
+            SQLServerDataTable tvpDataTable) throws SQLException;
+    
+    public void setStructured(int n,
+            String tvpName,
+            ResultSet tvpResultSet) throws SQLException;
+    
+    public void setStructured(int n,
+            String tvpName,
+            ISQLServerDataRecord tvpBulkRecord) throws SQLException;
+    
+    public void setDate(int n,
+            java.sql.Date x,
+            java.util.Calendar cal,
+            boolean forceEncrypt) throws SQLException;
+    
+    public void setTime(int n,
+            java.sql.Time x,
+            java.util.Calendar cal,
+            boolean forceEncrypt) throws SQLException;
+    
+    public void setTimestamp(int n,
+            java.sql.Timestamp x,
+            java.util.Calendar cal,
+            boolean forceEncrypt) throws SQLException;
 }
