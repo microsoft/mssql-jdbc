@@ -289,7 +289,7 @@ abstract class SQLServerBulkCommon {
                 // duplicate check is not performed in case of same positionInTable value
                 if (null != entry && entry.getKey() != positionInTable) {
                     if (null != entry.getValue() && colName.trim().equalsIgnoreCase(entry.getValue().columnName)) {
-                        throw new SQLServerException(SQLServerException.getErrString("R_BulkCSVDataDuplicateColumn"), null);
+                        throw new SQLServerException(SQLServerException.getErrString("R_BulkDataDuplicateColumn"), null);
                     }
                 }
 

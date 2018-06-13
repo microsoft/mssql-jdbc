@@ -109,6 +109,7 @@ public class SQLServerBulkBatchInsertRecord extends SQLServerBulkCommon implemen
             case Types.INTEGER: {
                 // Formatter to remove the decimal part as SQL Server floors the decimal in integer types
                 DecimalFormat decimalFormatter = new DecimalFormat("#");
+                decimalFormatter.setRoundingMode(RoundingMode.DOWN);
                 String formatedfInput = decimalFormatter.format(Double.parseDouble(data.toString()));
                 return Integer.valueOf(formatedfInput);
             }
@@ -117,6 +118,7 @@ public class SQLServerBulkBatchInsertRecord extends SQLServerBulkCommon implemen
             case Types.SMALLINT: {
                 // Formatter to remove the decimal part as SQL Server floors the decimal in integer types
                 DecimalFormat decimalFormatter = new DecimalFormat("#");
+                decimalFormatter.setRoundingMode(RoundingMode.DOWN);
                 String formatedfInput = decimalFormatter.format(Double.parseDouble(data.toString()));
                 return Short.valueOf(formatedfInput);
             }
@@ -174,7 +176,6 @@ public class SQLServerBulkBatchInsertRecord extends SQLServerBulkCommon implemen
 
             case 2013:    // java.sql.Types.TIME_WITH_TIMEZONE
             {
-                DriverJDBCVersion.checkSupportsJDBC42();
                 OffsetTime offsetTimeValue;
 
                 // The per-column DateTimeFormatter gets priority.
@@ -190,7 +191,6 @@ public class SQLServerBulkBatchInsertRecord extends SQLServerBulkCommon implemen
 
             case 2014: // java.sql.Types.TIMESTAMP_WITH_TIMEZONE
             {
-                DriverJDBCVersion.checkSupportsJDBC42();
                 OffsetDateTime offsetDateTimeValue;
 
                 // The per-column DateTimeFormatter gets priority.
@@ -238,7 +238,7 @@ public class SQLServerBulkBatchInsertRecord extends SQLServerBulkCommon implemen
         
         // check if the size of the list of values = size of the list of columns (which is optional)
         if (null != columnList && columnList.size() != valueList.size()) {
-            MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_CSVDataSchemaMismatch"));
+            MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_DataSchemaMismatch"));
             Object[] msgArgs = {};
             throw new SQLServerException(form.format(msgArgs), SQLState.COL_NOT_FOUND, DriverError.NOT_SET, null);
         }
@@ -308,7 +308,7 @@ public class SQLServerBulkBatchInsertRecord extends SQLServerBulkCommon implemen
                 throw new SQLServerException(form.format(new Object[] {value, JDBCType.of(pair.getValue().columnType)}), null, 0, e);
             }
             catch (ArrayIndexOutOfBoundsException e) {
-                throw new SQLServerException(SQLServerException.getErrString("R_CSVDataSchemaMismatch"), e);
+                throw new SQLServerException(SQLServerException.getErrString("R_DataSchemaMismatch"), e);
             }
         }
         return data;

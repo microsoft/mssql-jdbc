@@ -294,7 +294,7 @@ public class SQLServerBulkCSVFileRecord extends SQLServerBulkCommon implements I
 
                 // Source header has more columns than current line read
                 if (columnNames != null && (columnNames.length > data.length)) {
-                    MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_CSVDataSchemaMismatch"));
+                    MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_DataSchemaMismatch"));
                     Object[] msgArgs = {};
                     throw new SQLServerException(form.format(msgArgs), SQLState.COL_NOT_FOUND, DriverError.NOT_SET, null);
                 }
@@ -313,6 +313,7 @@ public class SQLServerBulkCSVFileRecord extends SQLServerBulkCommon implements I
                         case Types.INTEGER: {
                             // Formatter to remove the decimal part as SQL Server floors the decimal in integer types
                             DecimalFormat decimalFormatter = new DecimalFormat("#");
+                            decimalFormatter.setRoundingMode(RoundingMode.DOWN);
                             String formatedfInput = decimalFormatter.format(Double.parseDouble(data[pair.getKey() - 1]));
                             dataRow[pair.getKey() - 1] = Integer.valueOf(formatedfInput);
                             break;
@@ -322,6 +323,7 @@ public class SQLServerBulkCSVFileRecord extends SQLServerBulkCommon implements I
                         case Types.SMALLINT: {
                             // Formatter to remove the decimal part as SQL Server floors the decimal in integer types
                             DecimalFormat decimalFormatter = new DecimalFormat("#");
+                            decimalFormatter.setRoundingMode(RoundingMode.DOWN);
                             String formatedfInput = decimalFormatter.format(Double.parseDouble(data[pair.getKey() - 1]));
                             dataRow[pair.getKey() - 1] = Short.valueOf(formatedfInput);
                             break;
@@ -390,7 +392,6 @@ public class SQLServerBulkCSVFileRecord extends SQLServerBulkCommon implements I
 
                         case 2013:    // java.sql.Types.TIME_WITH_TIMEZONE
                         {
-                            DriverJDBCVersion.checkSupportsJDBC42();
                             OffsetTime offsetTimeValue;
 
                             // The per-column DateTimeFormatter gets priority.
@@ -407,7 +408,6 @@ public class SQLServerBulkCSVFileRecord extends SQLServerBulkCommon implements I
 
                         case 2014: // java.sql.Types.TIMESTAMP_WITH_TIMEZONE
                         {
-                            DriverJDBCVersion.checkSupportsJDBC42();
                             OffsetDateTime offsetDateTimeValue;
 
                             // The per-column DateTimeFormatter gets priority.
@@ -458,7 +458,7 @@ public class SQLServerBulkCSVFileRecord extends SQLServerBulkCommon implements I
                     MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_errorConvertingValue"));
                     throw new SQLServerException(form.format(new Object[]{value, JDBCType.of(cm.columnType)}), null, 0, e);
                 } catch (ArrayIndexOutOfBoundsException e) {
-                    throw new SQLServerException(SQLServerException.getErrString("R_CSVDataSchemaMismatch"), e);
+                    throw new SQLServerException(SQLServerException.getErrString("R_DataSchemaMismatch"), e);
                 }
 
             }

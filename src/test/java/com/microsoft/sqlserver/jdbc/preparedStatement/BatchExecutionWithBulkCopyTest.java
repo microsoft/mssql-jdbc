@@ -189,7 +189,7 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
         pstmt.setFloat(6, (float) 123.45);
         pstmt.setString(7, "b");
         pstmt.setString(8, "varc");
-        pstmt.setString(9, "varcmax");
+        pstmt.setString(9, "''");
         pstmt.addBatch();
         
         pstmt.executeBatch();
@@ -206,7 +206,7 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
         expected[5] = 123.45;
         expected[6] = "b";
         expected[7] = "varc";
-        expected[8] = "varcmax";
+        expected[8] = "''";
         
         rs.next();
         for (int i=0; i < expected.length; i++) {
