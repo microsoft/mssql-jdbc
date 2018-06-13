@@ -3227,7 +3227,7 @@ public class SQLServerConnection implements ISQLServerConnection {
 
         PreparedStatement st = new SQLServerPreparedStatement(this, sql, resultSetType, resultSetConcurrency,
                     SQLServerStatementColumnEncryptionSetting.UseConnectionSetting);
-        }
+        
         if (requestStarted) {
             addOpenStatement(st);
         }
