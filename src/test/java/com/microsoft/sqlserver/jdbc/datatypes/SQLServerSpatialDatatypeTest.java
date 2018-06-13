@@ -8,6 +8,7 @@
 package com.microsoft.sqlserver.jdbc.datatypes;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.IOException;
 import java.sql.DriverManager;
@@ -15,6 +16,7 @@ import java.sql.ParameterMetaData;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -331,7 +333,7 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest  {
             testWkt(geoWKT);
         }
         catch (SQLServerException e) {
-            assertEquals(e.getMessage(), "Illegal Well-Known text. Please make sure Well-Known text is valid.");
+            assertEquals(e.getMessage(), TestResource.getResource("R_illegalCharWkt"));
         }
         
         //Not enough closing and opening bracket case
@@ -341,7 +343,9 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest  {
             testWkt(geoWKT);
         }
         catch (SQLServerException e) {
-            assertEquals(e.getMessage(), "Illegal character in Well-Known text at position 14.");
+            MessageFormat form = new MessageFormat(TestResource.getResource("R_illegalCharWktPosition"));
+            Object[] msgArgs1 = {"14"};
+            assertEquals(e.getMessage(), form.format(msgArgs1));
         }
         
         //Too many closing bracket
@@ -351,7 +355,9 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest  {
             testWkt(geoWKT);
         }
         catch (SQLServerException e) {
-            assertEquals(e.getMessage(), "Illegal character in Well-Known text at position 91.");
+            MessageFormat form = new MessageFormat(TestResource.getResource("R_illegalCharWktPosition"));
+            Object[] msgArgs1 = {"91"};
+            assertEquals(e.getMessage(), form.format(msgArgs1));
         }
         
         //Too many opening bracket
@@ -361,7 +367,9 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest  {
             testWkt(geoWKT);
         }
         catch (SQLServerException e) {
-            assertEquals(e.getMessage(), "Illegal character in Well-Known text at position 15.");
+            MessageFormat form = new MessageFormat(TestResource.getResource("R_illegalCharWktPosition"));
+            Object[] msgArgs1 = {"15"};
+            assertEquals(e.getMessage(), form.format(msgArgs1));
         }
         
         //Too many coordinates
@@ -371,7 +379,9 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest  {
             testWkt(geoWKT);
         }
         catch (SQLServerException e) {
-            assertEquals(e.getMessage(), "Illegal character in Well-Known text at position 23.");
+            MessageFormat form = new MessageFormat(TestResource.getResource("R_illegalCharWktPosition"));
+            Object[] msgArgs1 = {"23"};
+            assertEquals(e.getMessage(), form.format(msgArgs1));
         }
         
         //Too little coordinates
@@ -381,7 +391,9 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest  {
             testWkt(geoWKT);
         }
         catch (SQLServerException e) {
-            assertEquals(e.getMessage(), "Illegal character in Well-Known text at position 17.");
+            MessageFormat form = new MessageFormat(TestResource.getResource("R_illegalCharWktPosition"));
+            Object[] msgArgs1 = {"17"};
+            assertEquals(e.getMessage(), form.format(msgArgs1));
         }
         
         //Incorrect data type
@@ -391,7 +403,9 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest  {
             testWkt(geoWKT);
         }
         catch (SQLServerException e) {
-            assertEquals(e.getMessage(), "Illegal character in Well-Known text at position 14.");
+            MessageFormat form = new MessageFormat(TestResource.getResource("R_illegalCharWktPosition"));
+            Object[] msgArgs1 = {"14"};
+            assertEquals(e.getMessage(), form.format(msgArgs1));
         }
         
         // too many commas
@@ -401,7 +415,9 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest  {
             testWkt(geoWKT);
         }
         catch (SQLServerException e) {
-            assertEquals(e.getMessage(), "Illegal character in Well-Known text at position 35.");
+            MessageFormat form = new MessageFormat(TestResource.getResource("R_illegalCharWktPosition"));
+            Object[] msgArgs1 = {"35"};
+            assertEquals(e.getMessage(), form.format(msgArgs1));
         }
         
         // too little commas
@@ -411,7 +427,9 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest  {
             testWkt(geoWKT);
         }
         catch (SQLServerException e) {
-            assertEquals(e.getMessage(), "Illegal character in Well-Known text at position 35.");
+            MessageFormat form = new MessageFormat(TestResource.getResource("R_illegalCharWktPosition"));
+            Object[] msgArgs1 = {"35"};
+            assertEquals(e.getMessage(), form.format(msgArgs1));
         }
     }
     
