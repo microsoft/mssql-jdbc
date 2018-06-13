@@ -1,3 +1,11 @@
+/*
+ * Microsoft JDBC Driver for SQL Server
+ * 
+ * Copyright(c) Microsoft Corporation All rights reserved.
+ * 
+ * This program is made available under the terms of the MIT License. See the LICENSE file in the project root for more information.
+ */
+
 package com.microsoft.sqlserver.jdbc.unit;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
@@ -39,27 +47,29 @@ public class UTF8SupportTest extends AbstractTest {
      */
     @Test
     public void testChar() throws SQLException {
-        createTable("char(10)");
-        validate("teststring");
-        // This is 10 UTF-8 bytes. D1 82 D0 B5 D1 81 D1 82 31 32
-        validate("тест12");
-        // E2 95 A1 E2 95 A4 E2 88 9E 2D
-        validate("╡╤∞-");
+        if (Utils.serverSupportsUTF8(connection)) {
+            createTable("char(10)");
+            validate("teststring");
+            // This is 10 UTF-8 bytes. D1 82 D0 B5 D1 81 D1 82 31 32
+            validate("тест12");
+            // E2 95 A1 E2 95 A4 E2 88 9E 2D
+            validate("╡╤∞-");
 
-        createTable("char(4000)");
-        validate(String.join("", Collections.nCopies(400, "teststring")));
-        validate(String.join("", Collections.nCopies(400, "тест12")));
-        validate(String.join("", Collections.nCopies(400, "╡╤∞-")));
+            createTable("char(4000)");
+            validate(String.join("", Collections.nCopies(400, "teststring")));
+            validate(String.join("", Collections.nCopies(400, "тест12")));
+            validate(String.join("", Collections.nCopies(400, "╡╤∞-")));
 
-        createTable("char(4001)");
-        validate(String.join("", Collections.nCopies(400, "teststring")) + "1");
-        validate(String.join("", Collections.nCopies(400, "тест12")) + "1");
-        validate(String.join("", Collections.nCopies(400, "╡╤∞-")) + "1");
+            createTable("char(4001)");
+            validate(String.join("", Collections.nCopies(400, "teststring")) + "1");
+            validate(String.join("", Collections.nCopies(400, "тест12")) + "1");
+            validate(String.join("", Collections.nCopies(400, "╡╤∞-")) + "1");
 
-        createTable("char(8000)");
-        validate(String.join("", Collections.nCopies(800, "teststring")));
-        validate(String.join("", Collections.nCopies(800, "тест12")));
-        validate(String.join("", Collections.nCopies(800, "╡╤∞-")));
+            createTable("char(8000)");
+            validate(String.join("", Collections.nCopies(800, "teststring")));
+            validate(String.join("", Collections.nCopies(800, "тест12")));
+            validate(String.join("", Collections.nCopies(800, "╡╤∞-")));
+        }
     }
 
     /**
@@ -69,38 +79,40 @@ public class UTF8SupportTest extends AbstractTest {
      */
     @Test
     public void testVarchar() throws SQLException {
-        createTable("varchar(10)");
-        validate("teststring");
-        validate("тест12");
-        validate("╡╤∞-");
+        if (Utils.serverSupportsUTF8(connection)) {
+            createTable("varchar(10)");
+            validate("teststring");
+            validate("тест12");
+            validate("╡╤∞-");
 
-        createTable("varchar(4000)");
-        validate(String.join("", Collections.nCopies(400, "teststring")));
-        validate(String.join("", Collections.nCopies(400, "тест12")));
-        validate(String.join("", Collections.nCopies(400, "╡╤∞-")));
+            createTable("varchar(4000)");
+            validate(String.join("", Collections.nCopies(400, "teststring")));
+            validate(String.join("", Collections.nCopies(400, "тест12")));
+            validate(String.join("", Collections.nCopies(400, "╡╤∞-")));
 
-        createTable("varchar(4001)");
-        validate(String.join("", Collections.nCopies(400, "teststring")) + "1");
-        validate(String.join("", Collections.nCopies(400, "тест12")) + "1");
-        validate(String.join("", Collections.nCopies(400, "╡╤∞-")) + "1");
+            createTable("varchar(4001)");
+            validate(String.join("", Collections.nCopies(400, "teststring")) + "1");
+            validate(String.join("", Collections.nCopies(400, "тест12")) + "1");
+            validate(String.join("", Collections.nCopies(400, "╡╤∞-")) + "1");
 
-        createTable("varchar(8000)");
-        validate(String.join("", Collections.nCopies(800, "teststring")));
-        validate(String.join("", Collections.nCopies(800, "тест12")));
-        validate(String.join("", Collections.nCopies(800, "╡╤∞-")));
+            createTable("varchar(8000)");
+            validate(String.join("", Collections.nCopies(800, "teststring")));
+            validate(String.join("", Collections.nCopies(800, "тест12")));
+            validate(String.join("", Collections.nCopies(800, "╡╤∞-")));
 
-        createTable("varchar(MAX)");
-        validate(String.join("", Collections.nCopies(800, "teststring")));
-        validate(String.join("", Collections.nCopies(800, "тест12")));
-        validate(String.join("", Collections.nCopies(800, "╡╤∞-")));
+            createTable("varchar(MAX)");
+            validate(String.join("", Collections.nCopies(800, "teststring")));
+            validate(String.join("", Collections.nCopies(800, "тест12")));
+            validate(String.join("", Collections.nCopies(800, "╡╤∞-")));
+        }
     }
 
     @BeforeAll
     public static void setUp() throws ClassNotFoundException, SQLException {
-        databaseName = RandomUtil.getIdentifier("UTF8Database");
-        tableName = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("RequestBoundaryTable"));
         connection = PrepUtil.getConnection(getConfiguredProperty("mssql_jdbc_test_connection_properties"));
         if (Utils.serverSupportsUTF8(connection)) {
+            databaseName = RandomUtil.getIdentifier("UTF8Database");
+            tableName = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("RequestBoundaryTable"));
             createDatabaseWithUTF8Collation();
             connection.setCatalog(databaseName);
         }
@@ -108,7 +120,9 @@ public class UTF8SupportTest extends AbstractTest {
 
     @AfterAll
     public static void cleanUp() throws SQLException {
-        Utils.dropDatabaseIfExists(databaseName, connection.createStatement());
+        if (Utils.serverSupportsUTF8(connection)) {
+            Utils.dropDatabaseIfExists(databaseName, connection.createStatement());
+        }
         connection.close();
     }
 
@@ -132,31 +146,28 @@ public class UTF8SupportTest extends AbstractTest {
     }
 
     public void validate(String value) throws SQLException {
-        if (Utils.serverSupportsUTF8(connection)) {
-            try (PreparedStatement psInsert = connection.prepareStatement("INSERT INTO " + tableName + " VALUES(?)");
-                    PreparedStatement psFetch = connection.prepareStatement("SELECT * FROM " + tableName);
-                    Statement stmt = connection.createStatement();) {
-                clearTable();
-                // Used for exact byte comparison.
-                byte[] valueBytes = value.getBytes(StandardCharsets.UTF_8);
+        try (PreparedStatement psInsert = connection.prepareStatement("INSERT INTO " + tableName + " VALUES(?)");
+                PreparedStatement psFetch = connection.prepareStatement("SELECT * FROM " + tableName);
+                Statement stmt = connection.createStatement();) {
+            clearTable();
+            // Used for exact byte comparison.
+            byte[] valueBytes = value.getBytes(StandardCharsets.UTF_8);
 
-                psInsert.setString(1, value);
-                psInsert.executeUpdate();
+            psInsert.setString(1, value);
+            psInsert.executeUpdate();
 
-                // Fetch using Statement.
-                ResultSet rsStatement = stmt.executeQuery("SELECT * FROM " + tableName);
-                rsStatement.next();
-                // Compare Strings.
-                assertEquals(value, rsStatement.getString(1));
-                // Test UTF8 sequence returned from getBytes().
-                assertArrayEquals(valueBytes, rsStatement.getBytes(1));
+            // Fetch using Statement.
+            ResultSet rsStatement = stmt.executeQuery("SELECT * FROM " + tableName);
+            rsStatement.next();
+            // Compare Strings.
+            assertEquals(value, rsStatement.getString(1));
+            // Test UTF8 sequence returned from getBytes().
+            assertArrayEquals(valueBytes, rsStatement.getBytes(1));
 
-                // Fetch using PreparedStatement.
-                ResultSet rsPreparedStatement = psFetch.executeQuery();
-                rsPreparedStatement.next();
-                assertEquals(value, rsPreparedStatement.getString(1));
-                assertArrayEquals(valueBytes, rsPreparedStatement.getBytes(1));
-            }
+            // Fetch using PreparedStatement.
+            ResultSet rsPreparedStatement = psFetch.executeQuery();
+            rsPreparedStatement.next();
+            assertEquals(value, rsPreparedStatement.getString(1));
         }
     }
 }
