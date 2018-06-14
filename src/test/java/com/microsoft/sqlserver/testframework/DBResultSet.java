@@ -19,10 +19,14 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Time;
 import java.sql.Timestamp;
+import java.text.DateFormat;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.Arrays;
 import java.util.Calendar;
+import java.util.Date;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -210,10 +214,13 @@ public class DBResultSet extends AbstractParentWrapper implements AutoCloseable 
 
         // getXXX - default mapping
         Object retrieved = this.getXXX(ordinal + 1, coercion);
+        if (retrieved instanceof java.sql.Time) {
+            System.out.println();
+        }
 
         // Verify
         // TODO: Check the intermittent verification error
-        // verifydata(ordinal, coercion, expectedData, retrieved);
+        verifydata(ordinal, coercion, expectedData, retrieved);
     }
 
     /**
@@ -268,7 +275,10 @@ public class DBResultSet extends AbstractParentWrapper implements AutoCloseable 
                 break;
 
             case java.sql.Types.REAL:
-                assertTrue((((Float) expectedData).floatValue() == ((Float) retrieved).floatValue()),
+                if (expectedData instanceof Double) {
+                    expectedData = (Float) (((Double) expectedData).floatValue());
+                }
+                assertTrue(((Float) expectedData).floatValue() == ((Float) retrieved).floatValue(),
                         "Unexpected real value, expected: " + (Float) expectedData + " received: " + (Float) retrieved);
                 break;
 
@@ -297,10 +307,14 @@ public class DBResultSet extends AbstractParentWrapper implements AutoCloseable 
                                     + " ,received: " + (((Timestamp) retrieved).getTime()));
                     break;
                 }
-                else
-                    assertTrue(("" + Timestamp.valueOf((LocalDateTime) expectedData)).equalsIgnoreCase("" + retrieved), "Unexpected datetime2 value, "
-                            + "expected: " + Timestamp.valueOf((LocalDateTime) expectedData) + " ,received: " + retrieved);
-                break;
+                else {
+                    String retrivedTimestamp = retrieved.toString();
+                    String expectedTimestamp = expectedData.toString().substring(0,retrivedTimestamp.length());
+                    assertTrue(expectedTimestamp.equalsIgnoreCase(retrivedTimestamp), "Unexpected datetime2 value, " + "expected: "
+                            + expectedTimestamp + " ,received: " + retrivedTimestamp);
+             break;
+                }
+
 
             case java.sql.Types.DATE:
                 assertTrue((("" + expectedData).equalsIgnoreCase("" + retrieved)),
@@ -308,8 +322,10 @@ public class DBResultSet extends AbstractParentWrapper implements AutoCloseable 
                 break;
 
             case java.sql.Types.TIME:
-                assertTrue(("" + Time.valueOf((LocalTime) expectedData)).equalsIgnoreCase("" + retrieved),
-                        "Unexpected time value, exptected: " + Time.valueOf((LocalTime) expectedData) + " ,received: " + retrieved);
+                String retrievedTime = retrieved.toString();
+                String expectedTime = expectedData.toString().substring(0,retrievedTime.length());
+                assertTrue(expectedTime.equalsIgnoreCase(retrievedTime),
+                        "Unexpected time value, expected: " + expectedTime + " ,received: " + retrievedTime);
                 break;
 
             case microsoft.sql.Types.DATETIMEOFFSET:
@@ -446,7 +462,7 @@ public class DBResultSet extends AbstractParentWrapper implements AutoCloseable 
             cal = (Calendar) value;
         }
         else {
-            ts = (java.sql.Timestamp) value;
+            ts = Timestamp.valueOf((String) value);
             cal = Calendar.getInstance();
             cal.setTimeInMillis(ts.getTime());
             nanos = ts.getNanos();
