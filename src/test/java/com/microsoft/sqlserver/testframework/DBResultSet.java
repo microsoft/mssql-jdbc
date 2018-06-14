@@ -207,9 +207,6 @@ public class DBResultSet extends AbstractParentWrapper implements AutoCloseable 
 
         // getXXX - default mapping
         Object retrieved = this.getXXX(ordinal + 1, coercion);
-        if (retrieved instanceof java.sql.Time) {
-            System.out.println();
-        }
 
         // Verify
         // TODO: Check the intermittent verification error
