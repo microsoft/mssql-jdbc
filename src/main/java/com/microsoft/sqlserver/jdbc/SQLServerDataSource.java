@@ -823,7 +823,7 @@ public class SQLServerDataSource implements ISQLServerDataSource, DataSource, ja
     }
     
     /**
-     * Setting the use Bulk Copy API for Batch Insert on Azure Data Warehouse boolean
+     * Setting the use Bulk Copy API for Batch Insert
      * 
      * @param useBulkCopyForBatchInsert indicates whether Bulk Copy API should be used for Batch Insert operations.
      */
@@ -833,7 +833,7 @@ public class SQLServerDataSource implements ISQLServerDataSource, DataSource, ja
     }
 
     /**
-     * Getting the use Bulk Copy API for Batch Insert on Azure Data Warehouse boolean
+     * Getting the use Bulk Copy API for Batch Insert
      * 
      * @return whether the driver should use Bulk Copy API for Batch Insert operations.
      */

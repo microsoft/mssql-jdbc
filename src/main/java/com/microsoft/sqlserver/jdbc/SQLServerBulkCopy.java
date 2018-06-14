@@ -3074,8 +3074,6 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable {
             int srcJdbcType,
             int srcColOrdinal,
             DateTimeFormatter dateTimeFormatter) throws SQLServerException {
-        DriverJDBCVersion.checkSupportsJDBC42();
-
         SQLServerBulkCopy42Helper.getTemporalObjectFromCSVWithFormatter(valueStrUntrimmed, srcJdbcType, srcColOrdinal, dateTimeFormatter, connection,
                 this);
 
