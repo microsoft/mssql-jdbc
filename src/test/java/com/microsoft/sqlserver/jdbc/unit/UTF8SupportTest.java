@@ -168,6 +168,7 @@ public class UTF8SupportTest extends AbstractTest {
             ResultSet rsPreparedStatement = psFetch.executeQuery();
             rsPreparedStatement.next();
             assertEquals(value, rsPreparedStatement.getString(1));
+            assertArrayEquals(valueBytes, rsPreparedStatement.getBytes(1));
         }
     }
 }
