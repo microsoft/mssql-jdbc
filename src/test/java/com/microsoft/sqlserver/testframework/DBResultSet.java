@@ -298,10 +298,10 @@ public class DBResultSet extends AbstractParentWrapper implements AutoCloseable 
                     break;
                 }
                 else {
-                    String retrivedTimestamp = retrieved.toString();
-                    String expectedTimestamp = expectedData.toString().substring(0,retrivedTimestamp.length());
-                    assertTrue(expectedTimestamp.equalsIgnoreCase(retrivedTimestamp), "Unexpected datetime2 value, " + "expected: "
-                            + expectedTimestamp + " ,received: " + retrivedTimestamp);
+                    String retrievedTimestamp = retrieved.toString();
+                    String expectedTimestamp = expectedData.toString().substring(0,retrievedTimestamp.length());
+                    assertTrue(expectedTimestamp.equalsIgnoreCase(retrievedTimestamp), "Unexpected datetime2 value, " + "expected: "
+                            + expectedTimestamp + " ,received: " + retrievedTimestamp);
              break;
                 }
 
