@@ -166,7 +166,7 @@ class TDSTokenHandler {
         return databaseError;
     }
 
-	TDSTokenHandler(String logContext) {
+    TDSTokenHandler(String logContext) {
         this.logContext = logContext;
     }
 

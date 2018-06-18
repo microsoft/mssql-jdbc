@@ -6396,8 +6396,8 @@ final class TDSReader {
     private final byte valueBytes[] = new byte[256];
     
     protected SensitivityClassification sensitivityClassification;
-    
-	private static final AtomicInteger lastReaderID = new AtomicInteger(0);
+
+    private static final AtomicInteger lastReaderID = new AtomicInteger(0);
 
     private static int nextReaderID() {
         return lastReaderID.incrementAndGet();
@@ -7139,9 +7139,8 @@ final class TDSReader {
             throw new SQLServerException(this, SQLServerException.getErrString("R_AE_NotSupportedByServer"), null, 0, false);
     }
 
-    boolean trySetSensitivityClassification(SensitivityClassification sensitivityClassification) {
+    final void trySetSensitivityClassification(SensitivityClassification sensitivityClassification) {
         this.sensitivityClassification = sensitivityClassification;
-        return true;
     }
 }
 

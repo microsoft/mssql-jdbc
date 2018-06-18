@@ -1,3 +1,10 @@
+/*
+ * Microsoft JDBC Driver for SQL Server
+ * 
+ * Copyright(c) Microsoft Corporation All rights reserved.
+ * 
+ * This program is made available under the terms of the MIT License. See the LICENSE file in the project root for more information.
+ */
 package com.microsoft.sqlserver.jdbc.resultset;
 
 import java.sql.Connection;
@@ -42,7 +49,6 @@ public class DataClassificationTest extends AbstractTest {
      * 
      * @param connection
      * @param stmt
-     * @param tableName
      * @throws SQLException
      */
     private void createTable(Connection connection,
@@ -98,7 +104,6 @@ public class DataClassificationTest extends AbstractTest {
      * Selects data from the table and triggers verifySensitivityClassification method
      * 
      * @param stmt
-     * @param queries
      * @throws Exception
      */
     private void runTestsForServer(Statement stmt) throws Exception {
@@ -108,7 +113,7 @@ public class DataClassificationTest extends AbstractTest {
     }
 
     /**
-     * Verifies resultset recieved to contain data classification information as set.
+     * Verifies resultset received to contain data classification information as set.
      * 
      * @param rs
      * @throws SQLException

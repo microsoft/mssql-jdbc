@@ -216,20 +216,20 @@ public class SQLServerResultSet implements ISQLServerResultSet {
     private final FetchBuffer fetchBuffer;
     
     /**
-     * Exposes Data Classification information for the current ResultSet
-     * For SQL Servers that do not support Data Classification or results that do not fetch any classified columns, this data can be null
+     * Exposes Data Classification information for the current ResultSet For SQL Servers that do not support Data Classification or results that do
+     * not fetch any classified columns, this data can be null
      * 
      * @return SensitivityClassification
      */
     public SensitivityClassification getSensitivityClassification() {
-    	return tdsReader.sensitivityClassification;
+        return tdsReader.sensitivityClassification;
     }
     
     /**
      * Make a new result set
      * 
      * @param stmtIn
-     * the generating statement
+     *            the generating statement
      */
     SQLServerResultSet(SQLServerStatement stmtIn) throws SQLServerException {
         int resultSetID = nextResultSetID();

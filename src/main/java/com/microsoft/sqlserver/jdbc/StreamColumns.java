@@ -230,10 +230,8 @@ final class StreamColumns extends StreamPacket {
 
     private String readByteString(TDSReader tdsReader) throws SQLServerException {
         String value = "";
-
         int byteLen = (int) tdsReader.readUnsignedByte();
         value = tdsReader.readUnicodeString(byteLen);
-
         return value;
     }
 
