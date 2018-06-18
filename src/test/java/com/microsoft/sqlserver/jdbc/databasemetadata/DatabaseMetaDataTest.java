@@ -187,32 +187,30 @@ public class DatabaseMetaDataTest extends AbstractTest {
      */
     @Test
     public void testDBSchemasForDashedCatalogName() throws SQLException {
-        final UUID id = UUID.randomUUID();
-        final String testCatalog = "dash-catalog"+id;
-        final String testSchema = "some-schema"+id;
-        boolean dropDatabase = false;
+        UUID id = UUID.randomUUID();
+        String testCatalog = "dash-catalog"+id;
+        String testSchema = "some-schema"+id;
 
-        try (final Connection dashConn = DriverManager.getConnection(connectionString);
-             final Statement dashStatement = dashConn.createStatement()) {
+        try (Connection dashConn = DriverManager.getConnection(connectionString);
+             Statement dashStatement = dashConn.createStatement()) {
 
             connection.createStatement().execute(String.format("CREATE DATABASE [%s]", testCatalog));
-            dropDatabase = true;
             dashStatement.execute(String.format("USE [%s]", testCatalog));
             dashStatement.execute(String.format("CREATE SCHEMA [%s]", testSchema));
 
-            final DatabaseMetaData databaseMetaData = connection.getMetaData();
-            final ResultSet rs = databaseMetaData.getSchemas(testCatalog, null);
+            DatabaseMetaData databaseMetaData = connection.getMetaData();
+            ResultSet rs = databaseMetaData.getSchemas(testCatalog, null);
 
-            final MessageFormat schemaEmptyFormat = new MessageFormat(TestResource.getResource("R_nameEmpty"));
-            final Object[] schemaMsgArgs = {"Schema"};
+            MessageFormat schemaEmptyFormat = new MessageFormat(TestResource.getResource("R_nameEmpty"));
+            Object[] schemaMsgArgs = {"Schema"};
 
             boolean hasResults = false;
             boolean hasDashCatalogSchema = false;
             while (rs.next()) {
                 hasResults = true;
-                final String schemaName = rs.getString(1);
+                String schemaName = rs.getString(1);
                 assertTrue(!StringUtils.isEmpty(schemaName), schemaEmptyFormat.format(schemaMsgArgs));
-                final String catalogName = rs.getString(2);
+                String catalogName = rs.getString(2);
                 if (schemaName.equals(testSchema)) {
                     hasDashCatalogSchema = true;
                     assertEquals(catalogName, testCatalog);
@@ -221,15 +219,14 @@ public class DatabaseMetaDataTest extends AbstractTest {
                 }
             }
 
-            final MessageFormat atLeastOneFoundFormat = new MessageFormat(TestResource.getResource("R_atLeastOneFound"));
+            MessageFormat atLeastOneFoundFormat = new MessageFormat(TestResource.getResource("R_atLeastOneFound"));
             assertTrue(hasResults, atLeastOneFoundFormat.format(schemaMsgArgs));
 
-            final MessageFormat dashCatalogFormat = new MessageFormat(TestResource.getResource("R_atLeastOneFound"));
+            MessageFormat dashCatalogFormat = new MessageFormat(TestResource.getResource("R_atLeastOneFound"));
             assertTrue(hasDashCatalogSchema, dashCatalogFormat.format(new Object[] {testSchema}));
         } finally {
-            if (dropDatabase) {
-                connection.createStatement().execute(String.format("DROP DATABASE [%s]", testCatalog));
-            }
+            connection.createStatement().execute("IF EXISTS (SELECT name FROM sys.databases WHERE name = N'" + testCatalog + "') " + 
+                    "DROP DATABASE [" + testCatalog + "]");
         }
     }
 
@@ -240,43 +237,40 @@ public class DatabaseMetaDataTest extends AbstractTest {
      */
     @Test
     public void testDBSchemasForDashedCatalogNameWithPattern() throws SQLException {
-        final UUID id = UUID.randomUUID();
-        final String testCatalog = "dash-catalog"+id;
-        final String testSchema = "some-schema"+id;
-        boolean dropDatabase = false;
+        UUID id = UUID.randomUUID();
+        String testCatalog = "dash-catalog"+id;
+        String testSchema = "some-schema"+id;
 
-        try (final Connection dashConn = DriverManager.getConnection(connectionString);
-             final Statement dashStatement = dashConn.createStatement()) {
+        try (Connection dashConn = DriverManager.getConnection(connectionString);
+             Statement dashStatement = dashConn.createStatement()) {
 
             connection.createStatement().execute(String.format("CREATE DATABASE [%s]", testCatalog));
-            dropDatabase = true;
             dashStatement.execute(String.format("USE [%s]", testCatalog));
             dashStatement.execute(String.format("CREATE SCHEMA [%s]", testSchema));
 
-            final DatabaseMetaData databaseMetaData = connection.getMetaData();
-            final ResultSet rs = databaseMetaData.getSchemas(testCatalog, "some-%");
+            DatabaseMetaData databaseMetaData = connection.getMetaData();
+            ResultSet rs = databaseMetaData.getSchemas(testCatalog, "some-%");
 
-            final MessageFormat schemaEmptyFormat = new MessageFormat(TestResource.getResource("R_nameEmpty"));
-            final Object[] schemaMsgArgs = {testSchema};
-            final Object[] catalogMsgArgs = {testCatalog};
+            MessageFormat schemaEmptyFormat = new MessageFormat(TestResource.getResource("R_nameEmpty"));
+            Object[] schemaMsgArgs = {testSchema};
+            Object[] catalogMsgArgs = {testCatalog};
 
             boolean hasResults = false;
             while (rs.next()) {
                 hasResults = true;
-                final String schemaName = rs.getString(1);
-                final String catalogName = rs.getString(2);
+                String schemaName = rs.getString(1);
+                String catalogName = rs.getString(2);
                 assertTrue(!StringUtils.isEmpty(schemaName), schemaEmptyFormat.format(schemaMsgArgs));
                 assertTrue(!StringUtils.isEmpty(catalogName), schemaEmptyFormat.format(catalogMsgArgs));
                 assertEquals(schemaName, schemaMsgArgs[0]);
                 assertEquals(catalogName, catalogMsgArgs[0]);
             }
 
-            final MessageFormat atLeastOneFoundFormat = new MessageFormat(TestResource.getResource("R_atLeastOneFound"));
+            MessageFormat atLeastOneFoundFormat = new MessageFormat(TestResource.getResource("R_atLeastOneFound"));
             assertTrue(hasResults, atLeastOneFoundFormat.format(schemaMsgArgs));
         } finally {
-            if (dropDatabase) {
-                connection.createStatement().execute(String.format("DROP DATABASE [%s]", testCatalog));
-            }
+            connection.createStatement().execute("IF EXISTS (SELECT name FROM sys.databases WHERE name = N'" + testCatalog + "') " + 
+                    "DROP DATABASE [" + testCatalog + "]");
         }
     }
 
