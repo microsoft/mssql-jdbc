@@ -190,13 +190,12 @@ public class DatabaseMetaDataTest extends AbstractTest {
         UUID id = UUID.randomUUID();
         String testCatalog = "dash-catalog" + id;
         String testSchema = "some-schema" + id;
-        String dropDBIfExists = "IF EXISTS (SELECT name FROM sys.databases WHERE name = N'" + testCatalog + "') " + "DROP DATABASE [" + testCatalog
-                + "]";
+        Statement stmt = connection.createStatement();
 
         try (Connection dashConn = DriverManager.getConnection(connectionString); Statement dashStatement = dashConn.createStatement()) {
 
-            connection.createStatement().execute(dropDBIfExists);
-            connection.createStatement().execute(String.format("CREATE DATABASE [%s]", testCatalog));
+            Utils.dropDatabaseIfExists(testCatalog, stmt);
+            stmt.execute(String.format("CREATE DATABASE [%s]", testCatalog));
 
             dashStatement.execute(String.format("USE [%s]", testCatalog));
             dashStatement.execute(String.format("CREATE SCHEMA [%s]", testSchema));
@@ -230,8 +229,9 @@ public class DatabaseMetaDataTest extends AbstractTest {
             assertTrue(hasDashCatalogSchema, dashCatalogFormat.format(new Object[] {testSchema}));
         }
         finally {
-            connection.createStatement().execute(dropDBIfExists);
+            Utils.dropDatabaseIfExists(testCatalog, stmt);
         }
+        stmt.close();
     }
 
     /**
@@ -244,13 +244,12 @@ public class DatabaseMetaDataTest extends AbstractTest {
         UUID id = UUID.randomUUID();
         String testCatalog = "dash-catalog" + id;
         String testSchema = "some-schema" + id;
-        String dropDBIfExists = "IF EXISTS (SELECT name FROM sys.databases WHERE name = N'" + testCatalog + "') " + "DROP DATABASE [" + testCatalog
-                + "]";
+        Statement stmt = connection.createStatement();
 
         try (Connection dashConn = DriverManager.getConnection(connectionString); Statement dashStatement = dashConn.createStatement()) {
 
-            connection.createStatement().execute(dropDBIfExists);
-            connection.createStatement().execute(String.format("CREATE DATABASE [%s]", testCatalog));
+            Utils.dropDatabaseIfExists(testCatalog, stmt);
+            stmt.execute(String.format("CREATE DATABASE [%s]", testCatalog));
 
             dashStatement.execute(String.format("USE [%s]", testCatalog));
             dashStatement.execute(String.format("CREATE SCHEMA [%s]", testSchema));
@@ -277,8 +276,9 @@ public class DatabaseMetaDataTest extends AbstractTest {
             assertTrue(hasResults, atLeastOneFoundFormat.format(schemaMsgArgs));
         }
         finally {
-            connection.createStatement().execute(dropDBIfExists);
+            Utils.dropDatabaseIfExists(testCatalog, stmt);
         }
+        stmt.close();
     }
 
     /**
