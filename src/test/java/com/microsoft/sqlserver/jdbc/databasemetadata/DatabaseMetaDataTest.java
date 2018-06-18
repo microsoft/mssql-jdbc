@@ -181,20 +181,23 @@ public class DatabaseMetaDataTest extends AbstractTest {
     }
     
     /**
-     * Tests that the catalog parameter containing - is escaped by
-     * {@link SQLServerDatabaseMetaData#getSchemas(String catalog, String schemaPattern)}.
+     * Tests that the catalog parameter containing - is escaped by {@link SQLServerDatabaseMetaData#getSchemas(String catalog, String schemaPattern)}.
+     * 
      * @throws SQLException
      */
     @Test
     public void testDBSchemasForDashedCatalogName() throws SQLException {
         UUID id = UUID.randomUUID();
-        String testCatalog = "dash-catalog"+id;
-        String testSchema = "some-schema"+id;
+        String testCatalog = "dash-catalog" + id;
+        String testSchema = "some-schema" + id;
+        String dropDBIfExists = "IF EXISTS (SELECT name FROM sys.databases WHERE name = N'" + testCatalog + "') " + "DROP DATABASE [" + testCatalog
+                + "]";
 
-        try (Connection dashConn = DriverManager.getConnection(connectionString);
-             Statement dashStatement = dashConn.createStatement()) {
+        try (Connection dashConn = DriverManager.getConnection(connectionString); Statement dashStatement = dashConn.createStatement()) {
 
+            connection.createStatement().execute(dropDBIfExists);
             connection.createStatement().execute(String.format("CREATE DATABASE [%s]", testCatalog));
+
             dashStatement.execute(String.format("USE [%s]", testCatalog));
             dashStatement.execute(String.format("CREATE SCHEMA [%s]", testSchema));
 
@@ -214,7 +217,8 @@ public class DatabaseMetaDataTest extends AbstractTest {
                 if (schemaName.equals(testSchema)) {
                     hasDashCatalogSchema = true;
                     assertEquals(catalogName, testCatalog);
-                } else {
+                }
+                else {
                     assertNull(catalogName);
                 }
             }
@@ -224,27 +228,30 @@ public class DatabaseMetaDataTest extends AbstractTest {
 
             MessageFormat dashCatalogFormat = new MessageFormat(TestResource.getResource("R_atLeastOneFound"));
             assertTrue(hasDashCatalogSchema, dashCatalogFormat.format(new Object[] {testSchema}));
-        } finally {
-            connection.createStatement().execute("IF EXISTS (SELECT name FROM sys.databases WHERE name = N'" + testCatalog + "') " + 
-                    "DROP DATABASE [" + testCatalog + "]");
+        }
+        finally {
+            connection.createStatement().execute(dropDBIfExists);
         }
     }
 
     /**
-     * Tests that the catalog parameter containing - is escaped by
-     * {@link SQLServerDatabaseMetaData#getSchemas(String catalog, String schemaPattern)}.
+     * Tests that the catalog parameter containing - is escaped by {@link SQLServerDatabaseMetaData#getSchemas(String catalog, String schemaPattern)}.
+     * 
      * @throws SQLException
      */
     @Test
     public void testDBSchemasForDashedCatalogNameWithPattern() throws SQLException {
         UUID id = UUID.randomUUID();
-        String testCatalog = "dash-catalog"+id;
-        String testSchema = "some-schema"+id;
+        String testCatalog = "dash-catalog" + id;
+        String testSchema = "some-schema" + id;
+        String dropDBIfExists = "IF EXISTS (SELECT name FROM sys.databases WHERE name = N'" + testCatalog + "') " + "DROP DATABASE [" + testCatalog
+                + "]";
 
-        try (Connection dashConn = DriverManager.getConnection(connectionString);
-             Statement dashStatement = dashConn.createStatement()) {
+        try (Connection dashConn = DriverManager.getConnection(connectionString); Statement dashStatement = dashConn.createStatement()) {
 
+            connection.createStatement().execute(dropDBIfExists);
             connection.createStatement().execute(String.format("CREATE DATABASE [%s]", testCatalog));
+
             dashStatement.execute(String.format("USE [%s]", testCatalog));
             dashStatement.execute(String.format("CREATE SCHEMA [%s]", testSchema));
 
@@ -268,9 +275,9 @@ public class DatabaseMetaDataTest extends AbstractTest {
 
             MessageFormat atLeastOneFoundFormat = new MessageFormat(TestResource.getResource("R_atLeastOneFound"));
             assertTrue(hasResults, atLeastOneFoundFormat.format(schemaMsgArgs));
-        } finally {
-            connection.createStatement().execute("IF EXISTS (SELECT name FROM sys.databases WHERE name = N'" + testCatalog + "') " + 
-                    "DROP DATABASE [" + testCatalog + "]");
+        }
+        finally {
+            connection.createStatement().execute(dropDBIfExists);
         }
     }
 
