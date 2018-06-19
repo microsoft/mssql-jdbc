@@ -18,6 +18,7 @@ import java.time.OffsetTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map.Entry;
 import java.util.Set;
 
@@ -27,10 +28,10 @@ import java.util.Set;
  */
 public class SQLServerBulkBatchInsertRecord extends SQLServerBulkCommon implements ISQLServerBulkRecord, java.lang.AutoCloseable {
 
-    private ArrayList<Parameter[]> batchParam;
+    private List<Parameter[]> batchParam;
     private int batchParamIndex = -1;
-    private ArrayList<String> columnList;
-    private ArrayList<String> valueList;
+    private List<String> columnList;
+    private List<String> valueList;
 
     public SQLServerBulkBatchInsertRecord(ArrayList<Parameter[]> batchParam,
             ArrayList<String> columnList,

@@ -112,7 +112,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
      */
     private boolean useBulkCopyForBatchInsert;
     
-    /** Sets the prepared statement's useBulkCopyForBatchInsert value.
+    /** Gets the prepared statement's useBulkCopyForBatchInsert value.
      * 
      * @return 
      *      Per the description.
@@ -123,7 +123,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         return useBulkCopyForBatchInsert;
     }
     
-    /** Fetches the prepared statement's useBulkCopyForBatchInsert value.
+    /** Sets the prepared statement's useBulkCopyForBatchInsert value.
      * 
      * @throws SQLServerException when an error occurs
     */
@@ -2487,13 +2487,14 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                     return updateCounts;
                 }
 
-                String tableName = parseUserSQLForTableNameDW(false, false);
+                String tableName = parseUserSQLForTableNameDW(false, false, false, false);
                 ArrayList<String> columnList = parseUserSQLForColumnListDW();
                 ArrayList<String> valueList = parseUserSQLForValueListDW(false);
 
                 String destinationTableName = tableName;
                 SQLServerStatement stmt = (SQLServerStatement) connection.createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY,
                         connection.getHoldability(), stmtColumnEncriptionSetting);
+                
                 // Get destination metadata
                 try (SQLServerResultSet rs = stmt
                         .executeQueryInternal("sp_executesql N'SET FMTONLY ON SELECT * FROM " + destinationTableName + " '");) {
@@ -2649,33 +2650,49 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     }
     
     
-    private String parseUserSQLForTableNameDW(boolean hasInsertBeenFound, boolean hasIntoBeenFound) {
+    private String parseUserSQLForTableNameDW(boolean hasInsertBeenFound, boolean hasIntoBeenFound, boolean hasTableBeenFound,
+            boolean isExpectingTableName) {
         // As far as finding the table name goes, There are two cases:
         // Insert into <tableName> and Insert <tableName>
         // And there could be in-line comments (with /* and */) in between.
         // This method assumes the localUserSQL string starts with "insert".
         localUserSQL = localUserSQL.trim();
         if (checkAndRemoveComments()) {
-            return parseUserSQLForTableNameDW(hasInsertBeenFound, hasIntoBeenFound);
+            return parseUserSQLForTableNameDW(hasInsertBeenFound, hasIntoBeenFound, hasTableBeenFound, isExpectingTableName);
+        }
+        
+        StringBuilder sb = new StringBuilder();
+        
+        // If table has been found and the next character is not a . at this point, we've finished parsing the table name.
+        // This if statement is needed to handle the case where the user has something like:
+        // [dbo]     .   /* random comment */ [tableName]
+        if (hasTableBeenFound && !isExpectingTableName) {
+            if (localUserSQL.substring(0, 1).equalsIgnoreCase(".")) {
+                sb.append(".");
+                localUserSQL = localUserSQL.substring(1);
+                return sb.toString() + parseUserSQLForTableNameDW(true, true, true, true);
+            } else {
+                return "";
+            }
         }
         
         if (localUserSQL.substring(0, 6).equalsIgnoreCase("insert") && !hasInsertBeenFound) {
             localUserSQL = localUserSQL.substring(6);
-            return parseUserSQLForTableNameDW(true, hasIntoBeenFound);
+            return parseUserSQLForTableNameDW(true, hasIntoBeenFound, hasTableBeenFound, isExpectingTableName);
         }
         
         if (localUserSQL.substring(0, 4).equalsIgnoreCase("into") && !hasIntoBeenFound) {
             // is it really "into"?
             // if the "into" is followed by a blank space or /*, then yes.
-            if (localUserSQL.charAt(4) == ' ' || localUserSQL.charAt(4) == '\t' ||
+            if (Character.isWhitespace(localUserSQL.charAt(4)) ||
                     (localUserSQL.charAt(4) == '/' && localUserSQL.charAt(5) == '*')) {
                 localUserSQL = localUserSQL.substring(4);
-                return parseUserSQLForTableNameDW(hasInsertBeenFound, true);
+                return parseUserSQLForTableNameDW(hasInsertBeenFound, true, hasTableBeenFound, isExpectingTableName);
             }
             
             // otherwise, we found the token that either contains the databasename.tablename or tablename.
             // Recursively handle this, but into has been found. (or rather, it's absent in the query - the "into" keyword is optional)
-            return parseUserSQLForTableNameDW(hasInsertBeenFound, true);
+            return parseUserSQLForTableNameDW(hasInsertBeenFound, true, hasTableBeenFound, isExpectingTableName);
         }
         
         // At this point, the next token has to be the table name.
@@ -2687,24 +2704,14 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
             
             // keep checking if it's escaped
             while (localUserSQL.charAt(tempint + 1) == ']') {
-                localUserSQL = localUserSQL.substring(0, tempint) + localUserSQL.substring(tempint + 1);
-                tempint = localUserSQL.indexOf("]", tempint + 1);
+                tempint = localUserSQL.indexOf("]", tempint + 2);
             }
             
             // we've found a ] that is actually trying to close the square bracket.
-            // If it's followed by a dot, then it's a database.
-            // Otherwise, it's the table.
-            if (localUserSQL.charAt(tempint + 1) == '.') {
-                String tempstr = localUserSQL.substring(1, tempint);
-                localUserSQL = localUserSQL.substring(tempint + 2);
-                // assume that "INSERT" and "INTO" has been found, since we're at the table part already.
-                return tempstr + "." + parseUserSQLForTableNameDW(true, true);
-            } else {
-                // return tablename
-                String tempstr = localUserSQL.substring(1, tempint);
-                localUserSQL = localUserSQL.substring(tempint + 1);
-                return tempstr;
-            }
+            // return tablename + potentially more that's part of the table name
+            sb.append(localUserSQL.substring(0, tempint + 1));
+            localUserSQL = localUserSQL.substring(tempint + 1);
+            return sb.toString() + parseUserSQLForTableNameDW(true, true, true, false);
         }
         
         // do the same for ""
@@ -2713,36 +2720,21 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
             
             // keep checking if it's escaped
             while (localUserSQL.charAt(tempint + 1) == '\"') {
-                localUserSQL = localUserSQL.substring(0, tempint) + localUserSQL.substring(tempint + 1);
-                tempint = localUserSQL.indexOf("\"", tempint + 1);
+                tempint = localUserSQL.indexOf("\"", tempint + 2);
             }
             
             // we've found a " that is actually trying to close the quote.
-            // If it's followed by a dot, then it's a database.
-            // Otherwise, it's the table.
-            if (localUserSQL.charAt(tempint + 1) == '.') {
-                String tempstr = localUserSQL.substring(1, tempint);
-                localUserSQL = localUserSQL.substring(tempint + 2);
-                return tempstr + "." + parseUserSQLForTableNameDW(true, true);
-            } else {
-                // return tablename
-                String tempstr = localUserSQL.substring(1, tempint);
-                localUserSQL = localUserSQL.substring(tempint + 1);
-                return tempstr;
-            }
+            // return tablename + potentially more that's part of the table name
+            sb.append(localUserSQL.substring(0, tempint + 1));
+            localUserSQL = localUserSQL.substring(tempint + 1);
+            return sb.toString() + parseUserSQLForTableNameDW(true, true, true, false);
         }
         
-        // At this point, the next chunk of string is the table name (could have database name), without starting with [ or ".
-        StringBuilder sb = new StringBuilder();
+        // At this point, the next chunk of string is the table name, without starting with [ or ".
         while (localUserSQL.length() > 0) {
-            if (localUserSQL.charAt(0) == '.' || localUserSQL.charAt(0) == ' ' || localUserSQL.charAt(0) == '\t'
-                    || localUserSQL.charAt(0) == '(') {
-                if (localUserSQL.charAt(0) == '.') {
-                    localUserSQL = localUserSQL.substring(1);
-                    return sb.toString() + "." + parseUserSQLForTableNameDW(true, true);
-                } else {
-                    return sb.toString();
-                }
+            // Keep going until the end of the table name is signalled - either a ., whitespace, or comment is encountered
+            if (localUserSQL.charAt(0) == '.' || Character.isWhitespace(localUserSQL.charAt(0)) || checkAndRemoveComments()) {
+                return sb.toString() + parseUserSQLForTableNameDW(true, true, true, false);
             } else {
                 sb.append(localUserSQL.charAt(0));
                 localUserSQL = localUserSQL.substring(1);
@@ -2823,16 +2815,14 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         // At this point, the next chunk of string is the column name, without starting with [ or ".
         StringBuilder sb = new StringBuilder();
         while (localUserSQL.length() > 0) {
-            if (localUserSQL.charAt(0) == ',' || localUserSQL.charAt(0) == ')') {
-                if (localUserSQL.charAt(0) == ',') {
-                    localUserSQL = localUserSQL.substring(1);
-                    listOfColumns.add(sb.toString());
-                    return parseUserSQLForColumnListDWHelper(listOfColumns);
-                } else {
-                    localUserSQL = localUserSQL.substring(1);
-                    listOfColumns.add(sb.toString());
-                    return listOfColumns;
-                }
+            if (localUserSQL.charAt(0) == ',') {
+                localUserSQL = localUserSQL.substring(1);
+                listOfColumns.add(sb.toString());
+                return parseUserSQLForColumnListDWHelper(listOfColumns);
+            } else if (localUserSQL.charAt(0) == ')'){
+                localUserSQL = localUserSQL.substring(1);
+                listOfColumns.add(sb.toString());
+                return listOfColumns;
             } else if (checkAndRemoveComments()) {
                 localUserSQL = localUserSQL.trim();
             } else {

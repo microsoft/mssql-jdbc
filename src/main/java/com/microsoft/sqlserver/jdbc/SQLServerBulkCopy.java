@@ -1495,7 +1495,12 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable {
                 if (null != destType && (destType.toLowerCase(Locale.ENGLISH).trim().startsWith("char") || destType.toLowerCase(Locale.ENGLISH).trim().startsWith("varchar")))
                     addCollate = " COLLATE " + columnCollation;
             }
-            bulkCmd.append("[" + colMapping.destinationColumnName + "] " + destType + addCollate + endColumn);
+            if (colMapping.destinationColumnName.contains("]")) {
+                String escapedColumnName = colMapping.destinationColumnName.replaceAll("]", "]]");
+                bulkCmd.append("[" + escapedColumnName + "] " + destType + addCollate + endColumn);
+            } else {
+                bulkCmd.append("[" + colMapping.destinationColumnName + "] " + destType + addCollate + endColumn);
+            }
         }
 
         if (true == copyOptions.isCheckConstraints()) {

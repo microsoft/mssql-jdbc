@@ -40,10 +40,13 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
     static SQLServerPreparedStatement pstmt = null;
     static Statement stmt = null;
     static Connection connection = null;
-    static String tableName = "BulkCopyParseTest" + System.currentTimeMillis();
+    static long UUID = System.currentTimeMillis();;
+    static String tableName = "BulkCopyParseTest" + UUID;
+    static String squareBracketTableName = "[peter]]]]test" + UUID + "]";
+    static String doubleQuoteTableName = "\"peter\"\"\"\"test" + UUID + "\"";
 
     @Test
-    public void testIsInsert() throws SQLException, NoSuchMethodException, SecurityException, IllegalAccessException, IllegalArgumentException, InvocationTargetException {
+    public void testIsInsert() throws Exception {
         String valid1 = "INSERT INTO PeterTable values (1, 2)";
         String valid2 = " INSERT INTO PeterTable values (1, 2)";
         String valid3 = "/* asdf */ INSERT INTO PeterTable values (1, 2)";
@@ -59,7 +62,7 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
     }
 
     @Test
-    public void testComments() throws SQLException, NoSuchFieldException, SecurityException, IllegalArgumentException, IllegalAccessException, NoSuchMethodException, InvocationTargetException {
+    public void testComments() throws Exception {
         pstmt = (SQLServerPreparedStatement) connection.prepareStatement("");
 
         String valid = "/* rando comment *//* rando comment */ INSERT /* rando comment */ INTO /* rando comment *//*rando comment*/ PeterTable /*rando comment */"
@@ -69,14 +72,14 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
         f1.setAccessible(true);
         f1.set(pstmt, valid);
 
-        Method method = pstmt.getClass().getSuperclass().getDeclaredMethod("parseUserSQLForTableNameDW", boolean.class, boolean.class);
+        Method method = pstmt.getClass().getSuperclass().getDeclaredMethod("parseUserSQLForTableNameDW", boolean.class, boolean.class, boolean.class, boolean.class);
         method.setAccessible(true);
 
-        assertEquals((String) method.invoke(pstmt, false, false), "PeterTable");
+        assertEquals((String) method.invoke(pstmt, false, false, false, false), "PeterTable");
     }
 
     @Test
-    public void testBrackets() throws SQLException, NoSuchFieldException, SecurityException, IllegalArgumentException, IllegalAccessException, NoSuchMethodException, InvocationTargetException {
+    public void testBrackets() throws Exception {
         pstmt = (SQLServerPreparedStatement) connection.prepareStatement("");
 
         String valid = "/* rando comment *//* rando comment */ INSERT /* rando comment */ INTO /* rando comment *//*rando comment*/ [Peter[]]Table] /*rando comment */"
@@ -86,14 +89,14 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
         f1.setAccessible(true);
         f1.set(pstmt, valid);
 
-        Method method = pstmt.getClass().getSuperclass().getDeclaredMethod("parseUserSQLForTableNameDW", boolean.class, boolean.class);
+        Method method = pstmt.getClass().getSuperclass().getDeclaredMethod("parseUserSQLForTableNameDW", boolean.class, boolean.class, boolean.class, boolean.class);
         method.setAccessible(true);
 
-        assertEquals((String) method.invoke(pstmt, false, false), "Peter[]Table");
+        assertEquals((String) method.invoke(pstmt, false, false, false, false), "[Peter[]]Table]");
     }
 
     @Test
-    public void testDoubleQuotes() throws SQLException, NoSuchFieldException, SecurityException, IllegalArgumentException, IllegalAccessException, NoSuchMethodException, InvocationTargetException {
+    public void testDoubleQuotes() throws Exception {
         pstmt = (SQLServerPreparedStatement) connection.prepareStatement("");
 
         String valid = "/* rando comment *//* rando comment */ INSERT /* rando comment */ INTO /* rando comment *//*rando comment*/ \"Peter\"\"\"\"Table\" /*rando comment */"
@@ -103,14 +106,14 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
         f1.setAccessible(true);
         f1.set(pstmt, valid);
 
-        Method method = pstmt.getClass().getSuperclass().getDeclaredMethod("parseUserSQLForTableNameDW", boolean.class, boolean.class);
+        Method method = pstmt.getClass().getSuperclass().getDeclaredMethod("parseUserSQLForTableNameDW", boolean.class, boolean.class, boolean.class, boolean.class);
         method.setAccessible(true);
 
-        assertEquals((String) method.invoke(pstmt, false, false), "Peter\"\"Table");
+        assertEquals((String) method.invoke(pstmt, false, false, false, false), "\"Peter\"\"\"\"Table\"");
     }
 
     @Test
-    public void testAll() throws SQLException, NoSuchFieldException, SecurityException, IllegalArgumentException, IllegalAccessException, NoSuchMethodException, InvocationTargetException {
+    public void testAll() throws Exception {
         pstmt = (SQLServerPreparedStatement) connection.prepareStatement("");
 
         String valid = "/* rando comment *//* rando comment */ INSERT /* rando comment */ INTO /* rando comment *//*rando comment*/ \"Peter\"\"\"\"Table\" /*rando comment */"
@@ -121,10 +124,10 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
         f1.setAccessible(true);
         f1.set(pstmt, valid);
 
-        Method method = pstmt.getClass().getSuperclass().getDeclaredMethod("parseUserSQLForTableNameDW", boolean.class, boolean.class);
+        Method method = pstmt.getClass().getSuperclass().getDeclaredMethod("parseUserSQLForTableNameDW", boolean.class, boolean.class, boolean.class, boolean.class);
         method.setAccessible(true);
 
-        assertEquals((String) method.invoke(pstmt, false, false), "Peter\"\"Table");
+        assertEquals((String) method.invoke(pstmt, false, false, false, false), "\"Peter\"\"\"\"Table\"");
 
         method = pstmt.getClass().getSuperclass().getDeclaredMethod("parseUserSQLForColumnListDW");
         method.setAccessible(true);
@@ -174,8 +177,8 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
                 + "?, "
                 + ")";
         
-        SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) connection.prepareStatement(valid);
-        SQLServerStatement stmt = (SQLServerStatement) connection.createStatement();
+        pstmt = (SQLServerPreparedStatement) connection.prepareStatement(valid);
+        stmt = (SQLServerStatement) connection.createStatement();
         
         Timestamp myTimestamp = new Timestamp(114550L);
         
@@ -228,8 +231,8 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
                 + "?, "
                 + ")";
         
-        SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) connection.prepareStatement(valid);
-        SQLServerStatement stmt = (SQLServerStatement) connection.createStatement();
+        pstmt = (SQLServerPreparedStatement) connection.prepareStatement(valid);
+        stmt = (SQLServerStatement) connection.createStatement();
         
         Timestamp myTimestamp = new Timestamp(114550L);
         
@@ -282,8 +285,8 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
                 + "?, "
                 + ")";
 
-        SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) connection.prepareStatement(valid);
-        SQLServerStatement stmt = (SQLServerStatement) connection.createStatement();
+        pstmt = (SQLServerPreparedStatement) connection.prepareStatement(valid);
+        stmt = (SQLServerStatement) connection.createStatement();
         
         pstmt.setInt(1, 1234);
         pstmt.setBoolean(2, false);
@@ -316,10 +319,108 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
         }
     }
     
+    @Test
+    public void testSquareBracketAgainstDB() throws Exception {
+        Field f1 = SQLServerConnection.class.getDeclaredField("isAzureDW");
+        f1.setAccessible(true);
+        f1.set(connection, true);
+        stmt = (SQLServerStatement) connection.createStatement();
+
+        Utils.dropTableIfExists(squareBracketTableName, stmt);
+        String createTable = "create table " + squareBracketTableName + " (c1 int)";
+        stmt.execute(createTable);
+        
+        String valid = "insert into " + squareBracketTableName + " values (?)";
+        pstmt = (SQLServerPreparedStatement) connection.prepareStatement(valid);
+        pstmt.setInt(1, 1);
+        pstmt.addBatch();
+        
+        pstmt.executeBatch();
+        
+        ResultSet rs = stmt.executeQuery("SELECT * FROM " + squareBracketTableName);
+        rs.next();
+        
+        assertEquals(rs.getObject(1), 1);
+    }
+    
+    @Test
+    public void testDoubleQuoteAgainstDB() throws Exception {
+        Field f1 = SQLServerConnection.class.getDeclaredField("isAzureDW");
+        f1.setAccessible(true);
+        f1.set(connection, true);
+        stmt = (SQLServerStatement) connection.createStatement();
+        
+        Utils.dropTableIfExists(doubleQuoteTableName, stmt);
+        String createTable = "create table " + doubleQuoteTableName + " (c1 int)";
+        stmt.execute(createTable);
+        
+        String valid = "insert into " + doubleQuoteTableName + " values (?)";
+        pstmt = (SQLServerPreparedStatement) connection.prepareStatement(valid);
+        pstmt.setInt(1, 1);
+        pstmt.addBatch();
+        
+        pstmt.executeBatch();
+        
+        ResultSet rs = stmt.executeQuery("SELECT * FROM " + doubleQuoteTableName);
+        rs.next();
+        
+        assertEquals(rs.getObject(1), 1);
+    }
+    
+    @Test
+    public void testSchemaAgainstDB() throws Exception {
+        Field f1 = SQLServerConnection.class.getDeclaredField("isAzureDW");
+        f1.setAccessible(true);
+        f1.set(connection, true);
+        stmt = (SQLServerStatement) connection.createStatement();
+        
+        Utils.dropTableIfExists("[dbo]." + squareBracketTableName, stmt);
+        String schemaTableName = "[test]   /*some comment*/ .  \"dbo\"         . /*some comment */     " + squareBracketTableName;
+        
+        String createTable = "create table " + schemaTableName + " (c1 int)";
+        stmt.execute(createTable);
+        
+        String valid = "insert into " + schemaTableName + " values (?)";
+        pstmt = (SQLServerPreparedStatement) connection.prepareStatement(valid);
+        pstmt.setInt(1, 1);
+        pstmt.addBatch();
+        
+        pstmt.executeBatch();
+        
+        ResultSet rs = stmt.executeQuery("SELECT * FROM " + schemaTableName);
+        rs.next();
+        
+        assertEquals(rs.getObject(1), 1);
+    }
+    
+    @Test
+    public void testColumnNameMixAgainstDB() throws Exception {
+        Field f1 = SQLServerConnection.class.getDeclaredField("isAzureDW");
+        f1.setAccessible(true);
+        f1.set(connection, true);
+        stmt = (SQLServerStatement) connection.createStatement();
+                
+        Utils.dropTableIfExists(squareBracketTableName, stmt);
+        String createTable = "create table " + squareBracketTableName + " ([c]]]]1] int, [c]]]]2] int)";
+        stmt.execute(createTable);
+        
+        String valid = "insert into " + squareBracketTableName + " ([c]]]]1], [c]]]]2]) values (?, 1)";
+        pstmt = (SQLServerPreparedStatement) connection.prepareStatement(valid);
+        pstmt.setInt(1, 1);
+        pstmt.addBatch();
+        
+        pstmt.executeBatch();
+        
+        ResultSet rs = stmt.executeQuery("SELECT * FROM " + squareBracketTableName);
+        rs.next();
+        
+        assertEquals(rs.getObject(1), 1);
+    }
+    
     @BeforeEach
     public void testSetup() throws TestAbortedException, Exception {
         connection = DriverManager.getConnection(connectionString + ";useBulkCopyForBatchInsert=true;");
-        SQLServerStatement stmt = (SQLServerStatement) connection.createStatement();
+        stmt = (SQLServerStatement) connection.createStatement();
         
         Utils.dropTableIfExists(tableName, stmt);
         String sql1 = "create table " + tableName + " "
@@ -343,8 +444,10 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
     public static void terminateVariation() throws SQLException {
         connection = DriverManager.getConnection(connectionString);
         
-        SQLServerStatement stmt = (SQLServerStatement) connection.createStatement();
+        stmt = (SQLServerStatement) connection.createStatement();
         Utils.dropTableIfExists(tableName, stmt);
+        Utils.dropTableIfExists(squareBracketTableName, stmt);
+        Utils.dropTableIfExists(doubleQuoteTableName, stmt);
 
         if (null != pstmt) {
             pstmt.close();
