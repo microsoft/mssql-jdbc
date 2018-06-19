@@ -27,6 +27,7 @@ import org.junit.runner.RunWith;
 
 import com.microsoft.sqlserver.jdbc.SQLServerConnection;
 import com.microsoft.sqlserver.jdbc.SQLServerPreparedStatement;
+import com.microsoft.sqlserver.jdbc.TestResource;
 import com.microsoft.sqlserver.testframework.AbstractTest;
 import com.microsoft.sqlserver.testframework.DBConnection;
 import com.microsoft.sqlserver.testframework.Utils;
@@ -83,10 +84,10 @@ public class RegressionTest extends AbstractTest {
         // should return 1 row
         rs = pstmt.executeQuery();
         rs.last();
-        assertEquals(rs.getRow(), numRowsInResult, "getRow mismatch");
+        assertEquals(rs.getRow(), numRowsInResult, TestResource.getResource("R_valueNotMatch") + rs.getRow() + ", " + numRowsInResult);
         rs.beforeFirst();
         while (rs.next()) {
-            assertEquals(rs.getString(1), col3Value, "Value mismatch");
+            assertEquals(rs.getString(1), col3Value, TestResource.getResource("R_valueNotMatch") + rs.getString(1) + ", " + col3Value);
         }
 
         if (null != stmt)
@@ -120,7 +121,7 @@ public class RegressionTest extends AbstractTest {
             PreparedStatement ps = con.prepareStatement("SELECT * INTO #TMPTABLE FROM " + tableName + " WHERE col1 <= ?");
             ps.setInt(1, numRowsToCopy);
             int updateCount = ps.executeUpdate();
-            assertEquals(numRowsToCopy, updateCount, "Incorrect update count");
+            assertEquals(numRowsToCopy, updateCount, TestResource.getResource("R_incorrectUpdateCount"));
             
             if (null != stmt)
                 stmt.close();
@@ -136,7 +137,7 @@ public class RegressionTest extends AbstractTest {
      */
     @Test
     public void testUpdateQuery() throws SQLException {
-        assumeTrue("JDBC41".equals(Utils.getConfiguredProperty("JDBC_Version")), "Aborting test case as JDBC version is not compatible. ");
+        assumeTrue("JDBC41".equals(Utils.getConfiguredProperty("JDBC_Version")), TestResource.getResource("R_incompatJDBC"));
 
         SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(connectionString);
         String sql;
@@ -197,7 +198,7 @@ public class RegressionTest extends AbstractTest {
      */
     @Test
     public void testXmlQuery() throws SQLException {
-        assumeTrue("JDBC41".equals(Utils.getConfiguredProperty("JDBC_Version")), "Aborting test case as JDBC version is not compatible. ");
+        assumeTrue("JDBC41".equals(Utils.getConfiguredProperty("JDBC_Version")), TestResource.getResource("R_incompatJDBC"));
 
         Connection connection = DriverManager.getConnection(connectionString);
 

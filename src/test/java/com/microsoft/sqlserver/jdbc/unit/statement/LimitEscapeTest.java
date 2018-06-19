@@ -31,6 +31,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
 
+import com.microsoft.sqlserver.jdbc.TestResource;
 import com.microsoft.sqlserver.testframework.AbstractTest;
 import com.microsoft.sqlserver.testframework.Utils;
 
@@ -115,18 +116,15 @@ public class LimitEscapeTest extends AbstractTest {
             cArg[0] = String.class;
             Class<?> innerClass = Class.forName("com.microsoft.sqlserver.jdbc.JDBCSyntaxTranslator");
             Constructor<?> ctor = innerClass.getDeclaredConstructor();
-            if (!ctor.isAccessible()) {
-                ctor.setAccessible(true);
-            }
 
+            ctor.setAccessible(true);
             Object innerInstance = ctor.newInstance();
             Method method = innerClass.getDeclaredMethod("translate", cArg);
 
-            if (!method.isAccessible()) {
-                method.setAccessible(true);
-            }
+
+            method.setAccessible(true);
             Object str = method.invoke(innerInstance, inputSql);
-            assertEquals(str, outputSql, "Syntax tyranslation does not match for query: " + queryID);
+            assertEquals(str, outputSql, TestResource.getResource("R_syntaxMatchError") + ": " + queryID);
         }
 
         public void setverifyResult(boolean val) {
@@ -145,7 +143,7 @@ public class LimitEscapeTest extends AbstractTest {
             catch (Exception e) {
                 if (null != exceptionMsg) {
                     // This query is to verify right exception is thrown for errors in syntax.
-                    assertTrue(e.getMessage().equalsIgnoreCase(exceptionMsg), "Test fatal errors");
+                    assertTrue(e.getMessage().equalsIgnoreCase(exceptionMsg), TestResource.getResource("R_unexpectedExceptionContent") + e.getMessage());
                     // Exception message matched. Return as there is no result to verify.
                     return;
                 }
@@ -158,28 +156,28 @@ public class LimitEscapeTest extends AbstractTest {
             }
 
             if (null == resultSet) {
-                assertEquals(false, true, "ResultSet is null");
+                assertEquals(false, true, TestResource.getResource("R_resultsetNull"));
             }
 
             int rowCount = 0;
             while (resultSet.next()) {
                 // The int and string columns should be retrieved in order, for example cannot run a query that retrieves col2 but not col1
-                assertEquals(resultSet.getInt(1), idCols[rowCount], "ID value does not match for query: " + queryID + ", row: " + rowCount);
+                assertEquals(resultSet.getInt(1), idCols[rowCount], TestResource.getResource("R_valueNotMatch") + queryID + ", row: " + rowCount);
                 for (int j = 0, colNumber = 1; null != intResultCols && j < intResultCols[rowCount].length; ++j) {
                     String colName = "col" + colNumber;
                     assertEquals(resultSet.getInt(colName), intResultCols[rowCount][j],
-                            "Int value does not match for query: " + queryID + ", row: " + rowCount + ", column: " + colName);
+                            TestResource.getResource("R_valueNotMatch") + queryID + ", row: " + rowCount + ", column: " + colName);
                     colNumber++;
                 }
                 for (int j = 0, colNumber = 3; null != stringResultCols && j < stringResultCols[rowCount].length; ++j) {
                     String colName = "col" + colNumber;
                     assertEquals(resultSet.getString(colName), stringResultCols[rowCount][j],
-                            "String value does not match for query: " + queryID + ", row: " + rowCount + ", column: " + colName);
+                            TestResource.getResource("R_valueNotMatch") + queryID + ", row: " + rowCount + ", column: " + colName);
                     colNumber++;
                 }
                 rowCount++;
             }
-            assertEquals(rowCount, rows, "Row Count does not match for query");
+            assertEquals(rowCount, rows, TestResource.getResource("R_valueNotMatch") + "rowCount: " + rowCount + ", rows: " + rows);
             assertEquals(resultSet.getMetaData().getColumnCount(), columns, "Column Count does not match");
         }
     }

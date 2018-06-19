@@ -39,6 +39,7 @@ import java.text.MessageFormat;
 import java.util.Arrays;
 import java.util.Enumeration;
 import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -116,18 +117,19 @@ public class SQLServerConnection implements ISQLServerConnection {
     private byte[] accessTokenInByte = null;
 
     private SqlFedAuthToken fedAuthToken = null;
+    
+    private String originalHostNameInCertificate = null;
 
     static class Sha1HashKey {
         private byte[] bytes;
 
         Sha1HashKey(String sql,
-                String parametersDefinition,
-                String dbName) {
-            this(String.format("%s%s%s", sql, parametersDefinition, dbName));
+                String parametersDefinition) {
+            this(String.format("%s%s", sql, parametersDefinition));
         }
 
         Sha1HashKey(String s) {
-        	bytes = getSha1Digest().digest(s.getBytes());
+            bytes = getSha1Digest().digest(s.getBytes());
         }
 
         public boolean equals(Object obj) {
@@ -401,7 +403,7 @@ public class SQLServerConnection implements ISQLServerConnection {
     ServerPortPlaceHolder getRoutingInfo() {
         return routingInfo;
     }
-
+    
     // Permission targets
     private static final String callAbortPerm = "callAbort";
     
@@ -752,7 +754,8 @@ public class SQLServerConnection implements ISQLServerConnection {
     Properties activeConnectionProperties; // the active set of connection properties
     private boolean integratedSecurity = SQLServerDriverBooleanProperty.INTEGRATED_SECURITY.getDefaultValue();
     private AuthenticationScheme intAuthScheme = AuthenticationScheme.nativeAuthentication;
-    private GSSCredential ImpersonatedUserCred ;
+    private GSSCredential ImpersonatedUserCred;
+    private Boolean isUserCreatedCredential;
     // This is the current connect place holder this should point one of the primary or failover place holder
     ServerPortPlaceHolder currentConnectPlaceHolder = null;
 
@@ -1198,6 +1201,23 @@ public class SQLServerConnection implements ISQLServerConnection {
             activeConnectionProperties = (Properties) propsIn.clone();
 
             pooledConnectionParent = pooledConnection;
+            
+            String hostNameInCertificate = activeConnectionProperties.
+                    getProperty(SQLServerDriverStringProperty.HOSTNAME_IN_CERTIFICATE.toString());
+            
+            // hostNameInCertificate property can change when redirection is involved, so maintain this value
+            // for every instance of SQLServerConnection.
+            if (null == originalHostNameInCertificate && null != hostNameInCertificate && !hostNameInCertificate.isEmpty()) {
+                originalHostNameInCertificate = activeConnectionProperties.
+                        getProperty(SQLServerDriverStringProperty.HOSTNAME_IN_CERTIFICATE.toString());
+            }
+            
+            if (null != originalHostNameInCertificate && !originalHostNameInCertificate.isEmpty()) {
+                // if hostNameInCertificate has a legitimate value (and not empty or null),
+                // reset hostNameInCertificate to the original value every time we connect (or re-connect).
+                activeConnectionProperties.setProperty(SQLServerDriverStringProperty.HOSTNAME_IN_CERTIFICATE.toString(), 
+                        originalHostNameInCertificate);
+            }
 
             String sPropKey;
             String sPropValue;
@@ -1465,8 +1485,10 @@ public class SQLServerConnection implements ISQLServerConnection {
 
             if(intAuthScheme == AuthenticationScheme.javaKerberos){
                 sPropKey = SQLServerDriverObjectProperty.GSS_CREDENTIAL.toString();
-                if(activeConnectionProperties.containsKey(sPropKey))
+                if(activeConnectionProperties.containsKey(sPropKey)) {
                     ImpersonatedUserCred = (GSSCredential) activeConnectionProperties.get(sPropKey);
+                    isUserCreatedCredential = true;
+                }
             }
             
             sPropKey = SQLServerDriverStringProperty.AUTHENTICATION.toString();
@@ -1703,12 +1725,15 @@ public class SQLServerConnection implements ISQLServerConnection {
             
             sPropKey = SQLServerDriverIntProperty.CANCEL_QUERY_TIMEOUT.toString();
             int cancelQueryTimeout = SQLServerDriverIntProperty.CANCEL_QUERY_TIMEOUT.getDefaultValue();
-            // use cancelQueryTimeout only if queryTimeout is set.  
-            if (activeConnectionProperties.getProperty(sPropKey) != null && activeConnectionProperties.getProperty(sPropKey).length() > 0  && queryTimeoutSeconds > defaultQueryTimeout) {
+            
+            if (activeConnectionProperties.getProperty(sPropKey) != null && activeConnectionProperties.getProperty(sPropKey).length() > 0) {
                 try {
                     int n = Integer.parseInt(activeConnectionProperties.getProperty(sPropKey));
                     if (n >= cancelQueryTimeout) {
-                        cancelQueryTimeoutSeconds = n;
+                    	// use cancelQueryTimeout only if queryTimeout is set.
+                    	if(queryTimeoutSeconds > defaultQueryTimeout) {
+                        	cancelQueryTimeoutSeconds = n;
+                    	}
                     }
                     else {
                         MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidCancelQueryTimeout"));
@@ -3194,6 +3219,9 @@ public class SQLServerConnection implements ISQLServerConnection {
         checkClosed();
         Statement st = new SQLServerStatement(this, resultSetType, resultSetConcurrency,
                 SQLServerStatementColumnEncryptionSetting.UseConnectionSetting);
+        if (requestStarted) {
+            addOpenStatement(st);
+        }
         loggerExternal.exiting(getClassNameLogging(), "createStatement", st);
         return st;
     }
@@ -3217,7 +3245,9 @@ public class SQLServerConnection implements ISQLServerConnection {
             st = new SQLServerPreparedStatement(this, sql, resultSetType, resultSetConcurrency,
                     SQLServerStatementColumnEncryptionSetting.UseConnectionSetting);
         }
-
+        if (requestStarted) {
+            addOpenStatement(st);
+        }
         loggerExternal.exiting(getClassNameLogging(), "prepareStatement", st);
         return st;
     }
@@ -3240,7 +3270,9 @@ public class SQLServerConnection implements ISQLServerConnection {
         else {
             st = new SQLServerPreparedStatement(this, sql, resultSetType, resultSetConcurrency, stmtColEncSetting);
         }
-
+        if (requestStarted) {
+            addOpenStatement(st);
+        }
         loggerExternal.exiting(getClassNameLogging(), "prepareStatement", st);
         return st;
     }
@@ -3264,7 +3296,9 @@ public class SQLServerConnection implements ISQLServerConnection {
             st = new SQLServerCallableStatement(this, sql, resultSetType, resultSetConcurrency,
                     SQLServerStatementColumnEncryptionSetting.UseConnectionSetting);
         }
-
+        if (requestStarted) {
+            addOpenStatement(st);
+        }
         loggerExternal.exiting(getClassNameLogging(), "prepareCall", st);
         return st;
     }
@@ -3414,9 +3448,10 @@ public class SQLServerConnection implements ISQLServerConnection {
         if (integratedSecurity && AuthenticationScheme.nativeAuthentication == intAuthScheme)
             authentication = new AuthenticationJNI(this, currentConnectPlaceHolder.getServerName(), currentConnectPlaceHolder.getPortNumber());
         if (integratedSecurity && AuthenticationScheme.javaKerberos == intAuthScheme) {
-            if (null != ImpersonatedUserCred)
+            if (null != ImpersonatedUserCred) {
                 authentication = new KerbAuthentication(this, currentConnectPlaceHolder.getServerName(), currentConnectPlaceHolder.getPortNumber(),
-                        ImpersonatedUserCred);
+                        ImpersonatedUserCred, isUserCreatedCredential);
+            }
             else
                 authentication = new KerbAuthentication(this, currentConnectPlaceHolder.getServerName(), currentConnectPlaceHolder.getPortNumber());
         }
@@ -3438,7 +3473,6 @@ public class SQLServerConnection implements ISQLServerConnection {
             // No need any further info from the server for token based authentication. So set _federatedAuthenticationRequested to true
             federatedAuthenticationRequested = true;
         }
-
         try {
             sendLogon(command, authentication, fedAuthFeatureExtensionData);
 
@@ -3452,21 +3486,14 @@ public class SQLServerConnection implements ISQLServerConnection {
                     connectionCommand(sqlStmt, "Change Settings");
                 }
             }
-        }
-        finally {
+        } finally {
             if (integratedSecurity) {
-                if (null != authentication)
+                if (null != authentication) {
                     authentication.ReleaseClientContext();
-                authentication = null;
-                
+                    authentication = null;
+                }
                 if (null != ImpersonatedUserCred) {
-                    try {
-                        ImpersonatedUserCred.dispose();
-                    }
-                    catch (GSSException e) {
-                        if (connectionlogger.isLoggable(Level.FINER))
-                            connectionlogger.finer(toString() + " Release of the credentials failed GSSException: " + e);
-                    }
+                    ImpersonatedUserCred = null;
                 }
             }
         }
@@ -3677,7 +3704,6 @@ public class SQLServerConnection implements ISQLServerConnection {
 
                 isRoutedInCurrentAttempt = true;
                 routingInfo = new ServerPortPlaceHolder(routingServerName, routingPortNumber, null, integratedSecurity);
-
                 break;
 
             // Error on unrecognized, unused ENVCHANGES
@@ -4630,6 +4656,9 @@ public class SQLServerConnection implements ISQLServerConnection {
         checkValidHoldability(resultSetHoldability);
         checkMatchesCurrentHoldability(resultSetHoldability);
         Statement st = new SQLServerStatement(this, nType, nConcur, stmtColEncSetting);
+        if (requestStarted) {
+            addOpenStatement(st);
+        }
         loggerExternal.exiting(getClassNameLogging(), "createStatement", st);
         return st;
     }
@@ -4692,7 +4721,9 @@ public class SQLServerConnection implements ISQLServerConnection {
         else {
             st = new SQLServerPreparedStatement(this, sql, nType, nConcur, stmtColEncSetting);
         }
-
+        if (requestStarted) {
+            addOpenStatement(st);
+        }
         loggerExternal.exiting(getClassNameLogging(), "prepareStatement", st);
         return st;
     }
@@ -4728,7 +4759,9 @@ public class SQLServerConnection implements ISQLServerConnection {
         else {
             st = new SQLServerCallableStatement(this, sql, nType, nConcur, stmtColEncSetiing);
         }
-
+        if (requestStarted) {
+            addOpenStatement(st);
+        }
         loggerExternal.exiting(getClassNameLogging(), "prepareCall", st);
         return st;
     }
@@ -5280,14 +5313,87 @@ public class SQLServerConnection implements ISQLServerConnection {
         return t;
     }
 
-    public void beginRequest() throws SQLFeatureNotSupportedException {
-        DriverJDBCVersion.checkSupportsJDBC43();
-        throw new SQLFeatureNotSupportedException("beginRequest not implemented");
+    private boolean requestStarted = false;
+    private boolean originalDatabaseAutoCommitMode;
+    private int originalTransactionIsolationLevel;
+    private int originalNetworkTimeout;
+    private int originalHoldability;
+    private boolean originalSendTimeAsDatetime;
+    private int originalStatementPoolingCacheSize;
+    private boolean originalDisableStatementPooling;
+    private int originalServerPreparedStatementDiscardThreshold;
+    private Boolean originalEnablePrepareOnFirstPreparedStatementCall;
+    private String originalSCatalog;
+    private volatile SQLWarning originalSqlWarnings;
+    private List<Statement> openStatements;
+
+    protected void beginRequestInternal() throws SQLException {
+        synchronized (this) {
+            if (!requestStarted) {
+                originalDatabaseAutoCommitMode = databaseAutoCommitMode;
+                originalTransactionIsolationLevel = transactionIsolationLevel;
+                originalNetworkTimeout = getNetworkTimeout();
+                originalHoldability = holdability;
+                originalSendTimeAsDatetime = sendTimeAsDatetime;
+                originalStatementPoolingCacheSize = statementPoolingCacheSize;
+                originalDisableStatementPooling = disableStatementPooling;
+                originalServerPreparedStatementDiscardThreshold = getServerPreparedStatementDiscardThreshold();
+                originalEnablePrepareOnFirstPreparedStatementCall = getEnablePrepareOnFirstPreparedStatementCall();
+                originalSCatalog = sCatalog;
+                originalSqlWarnings = sqlWarnings;
+                openStatements = new LinkedList<Statement>();
+                requestStarted = true;
+            }
+        }
     }
 
-    public void endRequest() throws SQLFeatureNotSupportedException {
-        DriverJDBCVersion.checkSupportsJDBC43();
-        throw new SQLFeatureNotSupportedException("endRequest not implemented");
+    protected void endRequestInternal() throws SQLException {
+        synchronized (this) {
+            if (requestStarted) {
+                if (!databaseAutoCommitMode) {
+                    rollback();
+                }
+                if (databaseAutoCommitMode != originalDatabaseAutoCommitMode) {
+                    setAutoCommit(originalDatabaseAutoCommitMode);
+                }
+                if (transactionIsolationLevel != originalTransactionIsolationLevel) {
+                    setTransactionIsolation(originalTransactionIsolationLevel);
+                }
+                if (getNetworkTimeout() != originalNetworkTimeout) {
+                    setNetworkTimeout(null, originalNetworkTimeout);
+                }
+                if (holdability != originalHoldability) {
+                    setHoldability(originalHoldability);
+                }
+                if (sendTimeAsDatetime != originalSendTimeAsDatetime) {
+                    setSendTimeAsDatetime(originalSendTimeAsDatetime);
+                }
+                if (statementPoolingCacheSize != originalStatementPoolingCacheSize) {
+                    setStatementPoolingCacheSize(originalStatementPoolingCacheSize);
+                }
+                if (disableStatementPooling != originalDisableStatementPooling) {
+                    setDisableStatementPooling(originalDisableStatementPooling);
+                }
+                if (getServerPreparedStatementDiscardThreshold() != originalServerPreparedStatementDiscardThreshold) {
+                    setServerPreparedStatementDiscardThreshold(originalServerPreparedStatementDiscardThreshold);
+                }
+                if (getEnablePrepareOnFirstPreparedStatementCall() != originalEnablePrepareOnFirstPreparedStatementCall) {
+                    setEnablePrepareOnFirstPreparedStatementCall(originalEnablePrepareOnFirstPreparedStatementCall);
+                }
+                if (!sCatalog.equals(originalSCatalog)) {
+                    setCatalog(originalSCatalog);
+                }
+                sqlWarnings = originalSqlWarnings;
+                if (null != openStatements) {
+                    while (!openStatements.isEmpty()) {
+                        try (Statement st = openStatements.get(0)) {
+                        }
+                    }
+                    openStatements.clear();
+                }
+                requestStarted = false;
+            }
+        }
     }
 
     /**
@@ -5719,18 +5825,18 @@ public class SQLServerConnection implements ISQLServerConnection {
     }
 
     /**
-     * Returns true if statement pooling is disabled.
+     * Determine whether statement pooling is disabled.
      * 
-     * @return
+     * @return true if statement pooling is disabled, false if it is enabled.
      */
     public boolean getDisableStatementPooling() {
         return this.disableStatementPooling;
     }
 
     /**
-     * Sets statement pooling to true or false;
+     * Disable/enable statement pooling.
      * 
-     * @param value
+     * @param value true to disable statement pooling, false to enable it.
      */
     public void setDisableStatementPooling(boolean value) {
         this.disableStatementPooling = value;
@@ -5861,6 +5967,26 @@ public class SQLServerConnection implements ISQLServerConnection {
                     // Do not run discard actions here! Can interfere with executing statement.
                 }                    
             }
+        }
+    }
+
+    /**
+     * @param st
+     *            Statement to add to openStatements
+     */
+    final synchronized void addOpenStatement(Statement st) {
+        if (null != openStatements) {
+            openStatements.add(st);
+        }
+    }
+
+    /**
+     * @param st
+     *            Statement to remove from openStatements
+     */
+    final synchronized void removeOpenStatement(Statement st) {
+        if (null != openStatements) {
+            openStatements.remove(st);
         }
     }
 }

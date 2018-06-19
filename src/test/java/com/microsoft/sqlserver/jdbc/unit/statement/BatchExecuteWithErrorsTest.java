@@ -28,6 +28,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
 
+import com.microsoft.sqlserver.jdbc.TestResource;
 import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
 import com.microsoft.sqlserver.testframework.AbstractTest;
 import com.microsoft.sqlserver.testframework.DBConnection;
@@ -140,7 +141,7 @@ public class BatchExecuteWithErrorsTest extends AbstractTest {
             log.fine("" + updateCount + ",");
         }
         log.fine("");
-        assertTrue(Arrays.equals(actualUpdateCounts, expectedUpdateCounts), "Test interleaved inserts and warnings");
+        assertTrue(Arrays.equals(actualUpdateCounts, expectedUpdateCounts), TestResource.getResource("R_testInterleaved"));
 
         expectedUpdateCounts = new int[] {-3, 1, 1, 1};
         stmt.addBatch(error);
@@ -160,7 +161,7 @@ public class BatchExecuteWithErrorsTest extends AbstractTest {
             log.fine("" + updateCount + ",");
         }
         log.fine("");
-        assertTrue(Arrays.equals(actualUpdateCounts, expectedUpdateCounts), "Test error followed by inserts");
+        assertTrue(Arrays.equals(actualUpdateCounts, expectedUpdateCounts), TestResource.getResource("R_errorFollowInserts"));
         // 50280
         expectedUpdateCounts = new int[] {1, -3};
         stmt.addBatch(insertStmt);
@@ -177,7 +178,7 @@ public class BatchExecuteWithErrorsTest extends AbstractTest {
             log.fine("" + updateCount + ",");
         }
         log.fine("");
-        assertTrue(Arrays.equals(actualUpdateCounts, expectedUpdateCounts), "Test insert followed by non-fatal error (50280)");
+        assertTrue(Arrays.equals(actualUpdateCounts, expectedUpdateCounts), TestResource.getResource("R_errorFollow50280"));
 
         // Test "soft" errors
         conn.setAutoCommit(false);
@@ -187,12 +188,13 @@ public class BatchExecuteWithErrorsTest extends AbstractTest {
         stmt.addBatch(insertStmt);
         try {
             stmt.executeBatch();
-            assertEquals(true, false, "Soft error test: executeBatch unexpectedly succeeded");
+            // Soft error test: executeBatch unexpectedly succeeded
+            assertEquals(true, false, TestResource.getResource("R_shouldThrowException"));
         }
         catch (BatchUpdateException bue) {
-            assertEquals("A result set was generated for update.", bue.getMessage(), "Soft error test: wrong error message in BatchUpdateException");
+            assertEquals("A result set was generated for update.", bue.getMessage(), TestResource.getResource("R_unexpectedExceptionContent"));
             assertEquals(Arrays.equals(bue.getUpdateCounts(), new int[] {-3, 1, -3, 1}), true,
-                    "Soft error test: wrong update counts in BatchUpdateException");
+                    TestResource.getResource("R_incorrectUpdateCount"));
         }
         conn.rollback();
 
@@ -205,12 +207,12 @@ public class BatchExecuteWithErrorsTest extends AbstractTest {
             stmt.executeBatch();
         }
         catch (BatchUpdateException bue) {
-            assertThat(bue.getMessage(), containsString("Syntax error converting date"));
+            assertThat(bue.getMessage(), containsString(TestResource.getResource("R_syntaxErrorDateConvert")));
             // CTestLog.CompareStartsWith(bue.getMessage(), "Syntax error converting date", "Transaction rollback with conversion error threw wrong
             // BatchUpdateException");
         }
         catch (SQLException e) {
-            assertThat(e.getMessage(), containsString("Conversion failed when converting date"));
+            assertThat(e.getMessage(), containsString(TestResource.getResource("R_dateConvertError")));
             // CTestLog.CompareStartsWith(e.getMessage(), "Conversion failed when converting date", "Transaction rollback with conversion error threw
             // wrong SQLException");
         }
@@ -237,19 +239,22 @@ public class BatchExecuteWithErrorsTest extends AbstractTest {
             stmt.addBatch(insertStmt);
             try {
                 stmt.executeBatch();
-                assertEquals(false, true, "Test fatal errors batch execution succeeded (should have failed)");
+                // Test fatal errors batch execution succeeded (should have failed)
+                assertEquals(false, true, TestResource.getResource("R_shouldThrowException"));
             }
             catch (BatchUpdateException bue) {
-                assertEquals(false, true, "Test fatal errors returned BatchUpdateException rather than SQLException");
+                // Test fatal errors returned BatchUpdateException rather than SQLException
+                assertEquals(false, true, TestResource.getResource("R_unexpectedException") + bue.getMessage());
+
             }
             catch (SQLException e) {
                 actualExceptionText = e.getMessage();
 
                 if (actualExceptionText.endsWith("reset")) {
-                    assertTrue(actualExceptionText.equalsIgnoreCase("Connection reset"), "Test fatal errors");
+                    assertTrue(actualExceptionText.equalsIgnoreCase("Connection reset"), TestResource.getResource("R_unexpectedExceptionContent") + ": " + actualExceptionText);
                 }
                 else {
-                    assertTrue(actualExceptionText.equalsIgnoreCase("raiserror level 20"), "Test fatal errors");
+                    assertTrue(actualExceptionText.equalsIgnoreCase("raiserror level 20"), TestResource.getResource("R_unexpectedExceptionContent") + ": " + actualExceptionText);
                 }
             }
         }
@@ -272,7 +277,7 @@ public class BatchExecuteWithErrorsTest extends AbstractTest {
     @DisplayName("Regression test for using 'large' methods")
     public void Repro47239large() throws Exception {
 
-        assumeTrue("JDBC42".equals(Utils.getConfiguredProperty("JDBC_Version")), "Aborting test case as JDBC version is not compatible. ");
+        assumeTrue("JDBC42".equals(Utils.getConfiguredProperty("JDBC_Version")), TestResource.getResource("R_incompatJDBC"));
         // the DBConnection for detecting whether the server is SQL Azure or SQL Server.
         con = DriverManager.getConnection(connectionString);
         final String warning;
@@ -344,7 +349,7 @@ public class BatchExecuteWithErrorsTest extends AbstractTest {
             log.fine("" + updateCount + ",");
         }
         log.fine("");
-        assertTrue(Arrays.equals(actualUpdateCounts, expectedUpdateCounts), "Test interleaved inserts and warnings");
+        assertTrue(Arrays.equals(actualUpdateCounts, expectedUpdateCounts), TestResource.getResource("R_testInterleaved"));
 
         expectedUpdateCounts = new long[] {-3, 1, 1, 1};
         stmt.addBatch(error);
@@ -364,7 +369,7 @@ public class BatchExecuteWithErrorsTest extends AbstractTest {
             log.fine("" + updateCount + ",");
         }
         log.fine("");
-        assertTrue(Arrays.equals(actualUpdateCounts, expectedUpdateCounts), "Test error followed by inserts");
+        assertTrue(Arrays.equals(actualUpdateCounts, expectedUpdateCounts), TestResource.getResource("R_errorFollowInserts"));
 
         // 50280
         expectedUpdateCounts = new long[] {1, -3};
@@ -382,7 +387,7 @@ public class BatchExecuteWithErrorsTest extends AbstractTest {
             log.fine("" + updateCount + ",");
         }
         log.fine("");
-        assertTrue(Arrays.equals(actualUpdateCounts, expectedUpdateCounts), "Test insert followed by non-fatal error (50280)");
+        assertTrue(Arrays.equals(actualUpdateCounts, expectedUpdateCounts), TestResource.getResource("R_errorFollow50280"));
 
         // Test "soft" errors
         conn.setAutoCommit(false);
@@ -392,12 +397,15 @@ public class BatchExecuteWithErrorsTest extends AbstractTest {
         stmt.addBatch(insertStmt);
         try {
             stmt.executeLargeBatch();
-            assertEquals(false, true, "Soft error test: executeLargeBatch unexpectedly succeeded");
+            // Soft error test: executeLargeBatch unexpectedly succeeded
+            assertEquals(false, true, TestResource.getResource("R_shouldThrowException"));
         }
         catch (BatchUpdateException bue) {
-            assertEquals("A result set was generated for update.", bue.getMessage(), "Soft error test: wrong error message in BatchUpdateException");
+            // Soft error test: wrong error message in BatchUpdateException
+            assertEquals("A result set was generated for update.", bue.getMessage(), TestResource.getResource("R_unexpectedExceptionContent"));
+            // Soft error test: wrong update counts in BatchUpdateException
             assertEquals(Arrays.equals(bue.getLargeUpdateCounts(), new long[] {-3, 1, -3, 1}), true,
-                    "Soft error test: wrong update counts in BatchUpdateException");
+                    TestResource.getResource("R_incorrectUpdateCount"));
         }
         conn.rollback();
 
@@ -410,10 +418,10 @@ public class BatchExecuteWithErrorsTest extends AbstractTest {
             stmt.executeLargeBatch();
         }
         catch (BatchUpdateException bue) {
-            assertThat(bue.getMessage(), containsString("Syntax error converting date"));
+            assertThat(bue.getMessage(), containsString(TestResource.getResource("R_syntaxErrorDateConvert")));
         }
         catch (SQLException e) {
-            assertThat(e.getMessage(), containsString("Conversion failed when converting date"));
+            assertThat(e.getMessage(), containsString(TestResource.getResource("R_dateConvertError")));
         }
 
         conn.setAutoCommit(true);
@@ -437,19 +445,21 @@ public class BatchExecuteWithErrorsTest extends AbstractTest {
             stmt.addBatch(insertStmt);
             try {
                 stmt.executeLargeBatch();
-                assertEquals(false, true, "Test fatal errors batch execution succeeded (should have failed)");
+                // Test fatal errors batch execution succeeded (should have failed)
+                assertEquals(false, true, TestResource.getResource("R_shouldThrowException"));
             }
             catch (BatchUpdateException bue) {
-                assertEquals(false, true, "Test fatal errors returned BatchUpdateException rather than SQLException");
+                // Test fatal errors returned BatchUpdateException rather than SQLException
+                assertEquals(false, true, TestResource.getResource("R_unexpectedException") + bue.getMessage());
             }
             catch (SQLException e) {
                 actualExceptionText = e.getMessage();
 
                 if (actualExceptionText.endsWith("reset")) {
-                    assertTrue(actualExceptionText.equalsIgnoreCase("Connection reset"), "Test fatal errors");
+                    assertTrue(actualExceptionText.equalsIgnoreCase("Connection reset"), TestResource.getResource("R_unexpectedExceptionContent") + ": " + actualExceptionText);
                 }
                 else {
-                    assertTrue(actualExceptionText.equalsIgnoreCase("raiserror level 20"), "Test fatal errors");
+                    assertTrue(actualExceptionText.equalsIgnoreCase("raiserror level 20"), TestResource.getResource("R_unexpectedExceptionContent") + ": " + actualExceptionText);
 
                 }
             }
