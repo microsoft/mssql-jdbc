@@ -375,7 +375,7 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
         stmt = (SQLServerStatement) connection.createStatement();
         
         Utils.dropTableIfExists("[dbo]." + squareBracketTableName, stmt);
-        String schemaTableName = "[test]   /*some comment*/ .  \"dbo\"         . /*some comment */     " + squareBracketTableName;
+        String schemaTableName = "\"dbo\"         . /*some comment */     " + squareBracketTableName;
         
         String createTable = "create table " + schemaTableName + " (c1 int)";
         stmt.execute(createTable);
