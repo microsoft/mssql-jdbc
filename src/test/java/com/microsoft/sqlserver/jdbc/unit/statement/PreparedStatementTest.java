@@ -32,8 +32,8 @@ import org.junit.runner.RunWith;
 
 import com.microsoft.sqlserver.jdbc.SQLServerConnection;
 import com.microsoft.sqlserver.jdbc.SQLServerDataSource;
-import com.microsoft.sqlserver.jdbc.SQLServerException;
 import com.microsoft.sqlserver.jdbc.SQLServerPreparedStatement;
+import com.microsoft.sqlserver.jdbc.TestResource;
 import com.microsoft.sqlserver.testframework.AbstractTest;
 
 @RunWith(JUnitPlatform.class)
@@ -188,7 +188,7 @@ public class PreparedStatementTest extends AbstractTest {
                     try {
                         assertSame(1, pstmt.executeUpdate());
                     }
-                    catch (SQLServerException e) {
+                    catch (SQLException e) {
                         // Error "Prepared handle GAH" is expected to happen. But it should not terminate the execution with RAISERROR.
                         // Since the original "Could not find prepared statement with handle" error does not terminate the execution after it.
                         if (!e.getMessage().contains("Prepared handle GAH")) {
@@ -287,7 +287,7 @@ public class PreparedStatementTest extends AbstractTest {
             } 
             try {
                 System.out.println(outer.getPreparedStatementHandle());
-                fail("Error for invalid use of getPreparedStatementHandle() after statement close expected.");
+                fail(TestResource.getResource("R_invalidGetPreparedStatementHandle"));
             }
             catch(Exception e) {
                 // Good!
@@ -318,7 +318,7 @@ public class PreparedStatementTest extends AbstractTest {
 
                 // Add new statements to fill up the statement pool.
                 for (int i = 0; i < cacheSize; ++i) {
-                    try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement)con.prepareStatement(query + new Integer(i).toString())) {
+                    try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement)con.prepareStatement(query + String.valueOf(i))) {
                         pstmt.execute(); // sp_executesql
                         pstmt.execute(); // sp_prepexec, actual handle created and cached.
                     } 
@@ -333,7 +333,7 @@ public class PreparedStatementTest extends AbstractTest {
                 // (new statement pushes existing statement from pool into discard 
                 // action queue).
                 for (int i = cacheSize; i < cacheSize + 5; ++i) {
-                    try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement)con.prepareStatement(query + new Integer(i).toString())) {
+                    try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement)con.prepareStatement(query + String.valueOf(i))) {
                         pstmt.execute(); // sp_executesql
                         pstmt.execute(); // sp_prepexec, actual handle created and cached.
                     } 

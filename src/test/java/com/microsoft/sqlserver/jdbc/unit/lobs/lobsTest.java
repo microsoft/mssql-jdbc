@@ -40,6 +40,8 @@ import org.junit.jupiter.api.function.Executable;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
 
+import com.microsoft.sqlserver.jdbc.TestResource;
+
 import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
 import com.microsoft.sqlserver.testframework.AbstractTest;
 import com.microsoft.sqlserver.testframework.DBCoercion;
@@ -183,8 +185,8 @@ public class lobsTest extends AbstractTest {
                     // Case 1: Invalid length value is passed as LOB length
                     if (streamLength < 0 || streamLength == Long.MAX_VALUE) {
                         // Applies to all LOB types ("The length {0} is not valid}
-                        assertTrue(e.getMessage().startsWith("The length"), "Unexpected message thrown : " + e.getMessage());
-                        assertTrue(e.getMessage().endsWith("is not valid."), "Unexpected message thrown : " + e.getMessage());
+                        assertTrue(e.getMessage().startsWith("The length"), TestResource.getResource("R_unexpectedExceptionContent") + ": " + e.getMessage());
+                        assertTrue(e.getMessage().endsWith("is not valid."), TestResource.getResource("R_unexpectedExceptionContent") + ": " + e.getMessage());
                         verified = true;
 
                     }
@@ -203,16 +205,69 @@ public class lobsTest extends AbstractTest {
                     }
                     if (!verified) {
                         // Odd CharacterStream length will throw this exception
-                        if (!e.getMessage().contains("The stream value is not the specified length. The specified length was"))
+                        if (!e.getMessage().contains(TestResource.getResource("R_badStreamLength")))
 
                         {
                             if (lobClass == DBCharacterStream.class || lobClass == DBBinaryStream.class)
-                                assertTrue(e.getSQLState() != null, "SQLState should not be null");
-                            assertTrue(e.getMessage().contains("An error occurred while reading the value from the stream object. Error:"));
+                                assertTrue(e.getSQLState() != null, TestResource.getResource("R_SQLStateNull"));
+                            assertTrue(e.getMessage().contains(TestResource.getResource("R_streamReadError")));
                         }
 
                     }
                 }
+            }
+        }
+        catch (Exception e) {
+            this.dropTables(table);
+            e.printStackTrace();
+        }
+    }
+
+    @Test
+    @DisplayName("testFreedBlobs")
+    private void testFreedBlobs(Class lobClass,
+            boolean isResultSet) throws SQLException {
+        String types[] = {"varbinary(max)"};
+        try {
+        	table = createTable(table, types, false);  // create empty table
+            int size = 10000;
+
+            byte[] data = new byte[size];
+            ThreadLocalRandom.current().nextBytes(data);
+
+            Blob blob = null;
+            InputStream stream = null;
+            for (int i = 0; i < 5; i++)
+            {
+                PreparedStatement ps = conn.prepareStatement("INSERT INTO " + table.getEscapedTableName() + "  VALUES(?)");
+                blob = conn.createBlob();
+                blob.setBytes(1, data);
+                ps.setBlob(1, blob);
+                ps.executeUpdate();
+            }
+
+            byte[] chunk = new byte[size];
+            ResultSet rs = stmt.executeQuery("select * from " + table.getEscapedTableName());
+            for (int i = 0; i < 5; i++)
+            {
+                rs.next();
+                
+                blob = rs.getBlob(1);
+                stream = blob.getBinaryStream();
+                while (stream.available() > 0)
+                	stream.read();
+                blob.free();
+                try {
+                	stream = blob.getBinaryStream();
+                } catch (SQLException e) {
+                    assertTrue(e.getMessage().contains(TestResource.getResource("R_blobFreed")));
+                }
+            }
+            rs.close();
+            try {
+            	stream = blob.getBinaryStream();
+            } catch (SQLException e) {
+                assertTrue(e.getMessage().contains(TestResource.getResource("R_blobFreed")));
             }
         }
         catch (Exception e) {
@@ -255,7 +310,7 @@ public class lobsTest extends AbstractTest {
                         continue;
                     Object stream = rs.getXXX(i + 1, streamClass);
                     if (stream == null) {
-                        assertEquals(stream, rs.getObject(i + 1), "Stream is null when data is not");
+                        assertEquals(stream, rs.getObject(i + 1), TestResource.getResource("R_streamNull"));
                     }
                     else {
                         // close the stream twice
@@ -413,6 +468,92 @@ public class lobsTest extends AbstractTest {
         String types[] = {"varchar(max)"};
         testUpdateLobs(types, Clob.class);
     }
+    
+    @Test
+    @DisplayName("readBlobStreamAfterClosingRS") 
+    public void readBlobStreamAfterClosingRS() throws Exception {
+        String types[] = {"varbinary(max)"};
+        table = createTable(table, types, false);  // create empty table
+        int size = 10000;
+
+        byte[] data = new byte[size];
+        ThreadLocalRandom.current().nextBytes(data);
+
+        Blob blob = null;
+        InputStream stream = null;
+        PreparedStatement ps = conn.prepareStatement("INSERT INTO " + table.getEscapedTableName() + "  VALUES(?)");
+        blob = conn.createBlob();
+        blob.setBytes(1, data);
+        ps.setBlob(1, blob);
+        ps.executeUpdate();
+
+        byte[] chunk = new byte[size];
+        ResultSet rs = stmt.executeQuery("select * from " + table.getEscapedTableName());
+        rs.next();
+        
+        blob = rs.getBlob(1);
+        stream = blob.getBinaryStream();
+        ByteArrayOutputStream buffer = new ByteArrayOutputStream();
+        int read = 0;
+        while ((read = stream.read(chunk)) > 0)
+            buffer.write(chunk, 0, read);
+        assertEquals(chunk.length, size);
+        rs.close();
+        stream = blob.getBinaryStream();
+        buffer = new ByteArrayOutputStream();
+        read = 0;
+        while ((read = stream.read(chunk)) > 0)
+            buffer.write(chunk, 0, read);
+        assertEquals(chunk.length, size);
+
+        if (null != blob)
+            blob.free();
+        dropTables(table);
+    }
+    
+    @Test
+    @DisplayName("readMultipleBlobStreamsThenCloseRS")
+    public void readMultipleBlobStreamsThenCloseRS() throws Exception {
+    	String types[] = {"varbinary(max)"};
+    	table = createTable(table, types, false);
+    	int size = 10000;
+    	
+    	byte[] data = new byte[size];
+    	Blob[] blobs = {null, null, null, null, null};
+        InputStream stream = null;
+        for (int i = 0; i < 5; i++)//create 5 blobs
+        {
+            PreparedStatement ps = conn.prepareStatement("INSERT INTO " + table.getEscapedTableName() + "  VALUES(?)");
+            blobs[i] = conn.createBlob();
+            ThreadLocalRandom.current().nextBytes(data);
+            blobs[i].setBytes(1, data);
+            ps.setBlob(1, blobs[i]);
+            ps.executeUpdate();
+        }
+        byte[] chunk = new byte[size];
+        ResultSet rs = stmt.executeQuery("select * from " + table.getEscapedTableName());
+        for (int i = 0; i < 5; i++)
+        {
+        	rs.next();
+        	blobs[i] = rs.getBlob(1);
+        	stream = blobs[i].getBinaryStream();
+        	ByteArrayOutputStream buffer = new ByteArrayOutputStream();
+        	int read = 0;
+        	while ((read = stream.read(chunk)) > 0)
+        		buffer.write(chunk, 0, read);
+        	assertEquals(chunk.length, size);
+        }
+        rs.close();
+        for (int i = 0; i < 5; i++)
+        {
+        	stream = blobs[i].getBinaryStream();
+        	ByteArrayOutputStream buffer = new ByteArrayOutputStream();
+        	int read = 0;
+        	while ((read = stream.read(chunk)) > 0)
+        		buffer.write(chunk, 0, read);
+        	assertEquals(chunk.length, size);
+        }
+    }
 
     private void testUpdateLobs(String types[],
             Class lobClass) throws Exception {
@@ -513,7 +654,7 @@ public class lobsTest extends AbstractTest {
             ps.setClob(index, (Clob) lob);
         else
             ps.setBlob(index, (Blob) lob);
-        assertEquals(ps.executeUpdate(), 1, "ExecuteUpdate did not return the correct updateCount");
+        assertEquals(ps.executeUpdate(), 1, TestResource.getResource("R_incorrectUpdateCount"));
     }
 
     private void updateResultSet(ResultSet rs,

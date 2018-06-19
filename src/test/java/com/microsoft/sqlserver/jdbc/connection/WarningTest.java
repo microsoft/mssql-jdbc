@@ -22,6 +22,7 @@ import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
 
 import com.microsoft.sqlserver.jdbc.SQLServerConnection;
+import com.microsoft.sqlserver.jdbc.TestResource;
 import com.microsoft.sqlserver.testframework.AbstractTest;
 
 @RunWith(JUnitPlatform.class)
@@ -51,7 +52,7 @@ public class WarningTest extends AbstractTest {
                     break;
                 }
             }
-            assertTrue(found, "warning : '" + warn.toString() + "' not found!");
+            assertTrue(found, TestResource.getResource("R_warningsNotFound") + ": " + warn.toString());
             warn = warn.getNextWarning();
             found = false;
         }
@@ -59,8 +60,8 @@ public class WarningTest extends AbstractTest {
 
         conn.setClientInfo("prop7", "");
         warn = conn.getWarnings();
-        assertTrue(warn.toString().contains("prop7"), "Warnings not found!");
+        assertTrue(warn.toString().contains("prop7"), TestResource.getResource("R_warningsNotFound"));
         warn = warn.getNextWarning();
-        assertEquals(null, warn, "Warnings found!");
+        assertEquals(null, warn, TestResource.getResource("R_warningsFound"));
     }
 }

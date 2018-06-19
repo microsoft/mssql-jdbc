@@ -26,9 +26,9 @@ import java.sql.Timestamp;
 import java.util.LinkedList;
 
 import com.microsoft.sqlserver.jdbc.SQLServerCallableStatement;
-import com.microsoft.sqlserver.jdbc.SQLServerException;
 import com.microsoft.sqlserver.jdbc.SQLServerPreparedStatement;
 import com.microsoft.sqlserver.jdbc.SQLServerResultSet;
+import com.microsoft.sqlserver.jdbc.TestResource;
 import com.microsoft.sqlserver.testframework.Utils;
 import com.microsoft.sqlserver.testframework.util.RandomData;
 import com.microsoft.sqlserver.testframework.util.Util;
@@ -83,7 +83,6 @@ public class CallableStatementTest extends AESetup {
     /**
      * Initialize the tables for this class. This method will execute AFTER the parent class (AESetup) finishes initializing.
      * 
-     * @throws SQLServerException
      * @throws SQLException
      */
     @BeforeAll
@@ -113,7 +112,7 @@ public class CallableStatementTest extends AESetup {
     }
 
     @AfterAll
-    private static void dropAll() throws SQLServerException, SQLException {
+    private static void dropAll() throws SQLException {
         dropTables();
     }
 
@@ -705,7 +704,7 @@ public class CallableStatementTest extends AESetup {
 
             try (SQLServerResultSet rs = (SQLServerResultSet) callableStatement.executeQuery()) {
             	rs.next();
-            	assertEquals(rs.getString(1), values[3], "" + "Test for input parameter fails.\n");
+            	assertEquals(rs.getString(1), values[3], "" + TestResource.getResource("R_inputParamFailed"));
             }
         }
         catch (Exception e) {
@@ -743,14 +742,14 @@ public class CallableStatementTest extends AESetup {
 
             try (SQLServerResultSet rs = (SQLServerResultSet) callableStatement.executeQuery()) {
 	            rs.next();
-	            assertEquals(rs.getString(1).trim(), charValues[1], "Test for input parameter fails.\n");
-	            assertEquals(rs.getUniqueIdentifier(2), charValues[6].toUpperCase(), "Test for input parameter fails.\n");
-	            assertEquals(rs.getString(3).trim(), charValues[2], "Test for input parameter fails.\n");
-	            assertEquals(rs.getString(4).trim(), charValues[3], "Test for input parameter fails.\n");
-	            assertEquals(rs.getString(5).trim(), charValues[4], "Test for input parameter fails.\n");
-	            assertEquals(rs.getString(6).trim(), charValues[5], "Test for input parameter fails.\n");
-	            assertEquals(rs.getString(7).trim(), charValues[7], "Test for input parameter fails.\n");
-	            assertEquals(rs.getString(8).trim(), charValues[8], "Test for input parameter fails.\n");
+	            assertEquals(rs.getString(1).trim(), charValues[1], TestResource.getResource("R_inputParamFailed"));
+	            assertEquals(rs.getUniqueIdentifier(2), charValues[6].toUpperCase(), TestResource.getResource("R_inputParamFailed"));
+	            assertEquals(rs.getString(3).trim(), charValues[2], TestResource.getResource("R_inputParamFailed"));
+	            assertEquals(rs.getString(4).trim(), charValues[3], TestResource.getResource("R_inputParamFailed"));
+	            assertEquals(rs.getString(5).trim(), charValues[4], TestResource.getResource("R_inputParamFailed"));
+	            assertEquals(rs.getString(6).trim(), charValues[5], TestResource.getResource("R_inputParamFailed"));
+	            assertEquals(rs.getString(7).trim(), charValues[7], TestResource.getResource("R_inputParamFailed"));
+	            assertEquals(rs.getString(8).trim(), charValues[8], TestResource.getResource("R_inputParamFailed"));
             }
         }
         catch (Exception e) {
@@ -779,19 +778,19 @@ public class CallableStatementTest extends AESetup {
             callableStatement.execute();
 
             int intValue2 = callableStatement.getInt(2);
-            assertEquals("" + intValue2, numericValues[3], "Test for output parameter fails.\n");
+            assertEquals("" + intValue2, numericValues[3], TestResource.getResource("R_outputParamFailed"));
 
             int intValue = callableStatement.getInt(1);
-            assertEquals("" + intValue, numericValues[3], "Test for output parameter fails.\n");
+            assertEquals("" + intValue, numericValues[3], TestResource.getResource("R_outputParamFailed"));
 
             int intValue3 = callableStatement.getInt(2);
-            assertEquals("" + intValue3, numericValues[3], "Test for output parameter fails.\n");
+            assertEquals("" + intValue3, numericValues[3], TestResource.getResource("R_outputParamFailed"));
 
             int intValue4 = callableStatement.getInt(2);
-            assertEquals("" + intValue4, numericValues[3], "Test for output parameter fails.\n");
+            assertEquals("" + intValue4, numericValues[3], TestResource.getResource("R_outputParamFailed"));
 
             int intValue5 = callableStatement.getInt(1);
-            assertEquals("" + intValue5, numericValues[3], "Test for output parameter fails.\n");
+            assertEquals("" + intValue5, numericValues[3], TestResource.getResource("R_outputParamFailed"));
         }
         catch (Exception e) {
             fail(e.toString());
@@ -808,10 +807,10 @@ public class CallableStatementTest extends AESetup {
             callableStatement.execute();
 
             int intValue = callableStatement.getInt(1);
-            assertEquals("" + intValue, numericValues[3], "Test for output parameter fails.\n");
+            assertEquals("" + intValue, numericValues[3], TestResource.getResource("R_outputParamFailed"));
 
             int intValue2 = callableStatement.getInt(2);
-            assertEquals("" + intValue2, numericValues[3], "Test for output parameter fails.\n");
+            assertEquals("" + intValue2, numericValues[3], TestResource.getResource("R_outputParamFailed"));
         }
         catch (Exception e) {
             fail(e.toString());
@@ -828,10 +827,10 @@ public class CallableStatementTest extends AESetup {
             callableStatement.execute();
 
             int intValue2 = callableStatement.getInt(2);
-            assertEquals("" + intValue2, numericValues[3], "Test for output parameter fails.\n");
+            assertEquals("" + intValue2, numericValues[3], TestResource.getResource("R_outputParamFailed"));
 
             int intValue = callableStatement.getInt(1);
-            assertEquals("" + intValue, numericValues[3], "Test for output parameter fails.\n");
+            assertEquals("" + intValue, numericValues[3], TestResource.getResource("R_outputParamFailed"));
         }
         catch (Exception e) {
             fail(e.toString());
@@ -872,34 +871,34 @@ public class CallableStatementTest extends AESetup {
             callableStatement.execute();
 
             BigDecimal ecnryptedSmallMoney = callableStatement.getSmallMoney(7);
-            assertEquals("" + ecnryptedSmallMoney, values[12], "Test for output parameter fails.\n");
+            assertEquals("" + ecnryptedSmallMoney, values[12], TestResource.getResource("R_outputParamFailed"));
 
             short encryptedSmallint = callableStatement.getShort(4);
-            assertEquals("" + encryptedSmallint, values[2], "Test for output parameter fails.\n");
+            assertEquals("" + encryptedSmallint, values[2], TestResource.getResource("R_outputParamFailed"));
 
             BigDecimal SmallMoneyValue = callableStatement.getSmallMoney(8);
-            assertEquals("" + SmallMoneyValue, values[12], "Test for output parameter fails.\n");
+            assertEquals("" + SmallMoneyValue, values[12], TestResource.getResource("R_outputParamFailed"));
 
             short encryptedTinyint = callableStatement.getShort(6);
-            assertEquals("" + encryptedTinyint, values[1], "Test for output parameter fails.\n");
+            assertEquals("" + encryptedTinyint, values[1], TestResource.getResource("R_outputParamFailed"));
 
             short tinyintValue = callableStatement.getShort(5);
-            assertEquals("" + tinyintValue, values[1], "Test for output parameter fails.\n");
+            assertEquals("" + tinyintValue, values[1], TestResource.getResource("R_outputParamFailed"));
 
             BigDecimal encryptedMoneyValue = callableStatement.getMoney(9);
-            assertEquals("" + encryptedMoneyValue, values[13], "Test for output parameter fails.\n");
+            assertEquals("" + encryptedMoneyValue, values[13], TestResource.getResource("R_outputParamFailed"));
 
             short smallintValue = callableStatement.getShort(3);
-            assertEquals("" + smallintValue, values[2], "Test for output parameter fails.\n");
+            assertEquals("" + smallintValue, values[2], TestResource.getResource("R_outputParamFailed"));
 
             int intValue = callableStatement.getInt(1);
-            assertEquals("" + intValue, values[3], "Test for output parameter fails.\n");
+            assertEquals("" + intValue, values[3], TestResource.getResource("R_outputParamFailed"));
 
             BigDecimal encryptedSmallMoney = callableStatement.getMoney(10);
-            assertEquals("" + encryptedSmallMoney, values[13], "Test for output parameter fails.\n");
+            assertEquals("" + encryptedSmallMoney, values[13], TestResource.getResource("R_outputParamFailed"));
 
             int encryptedInt = callableStatement.getInt(2);
-            assertEquals("" + encryptedInt, values[3], "Test for output parameter fails.\n");
+            assertEquals("" + encryptedInt, values[3], TestResource.getResource("R_outputParamFailed"));
         }
         catch (Exception e) {
             fail(e.toString());
@@ -924,34 +923,34 @@ public class CallableStatementTest extends AESetup {
             callableStatement.execute();
 
             int intValue = callableStatement.getInt(1);
-            assertEquals("" + intValue, values[3], "Test for output parameter fails.\n");
+            assertEquals("" + intValue, values[3], TestResource.getResource("R_outputParamFailed"));
 
             int encryptedInt = callableStatement.getInt(2);
-            assertEquals("" + encryptedInt, values[3], "Test for output parameter fails.\n");
+            assertEquals("" + encryptedInt, values[3], TestResource.getResource("R_outputParamFailed"));
 
             short smallintValue = callableStatement.getShort(3);
-            assertEquals("" + smallintValue, values[2], "Test for output parameter fails.\n");
+            assertEquals("" + smallintValue, values[2], TestResource.getResource("R_outputParamFailed"));
 
             short encryptedSmallint = callableStatement.getShort(4);
-            assertEquals("" + encryptedSmallint, values[2], "Test for output parameter fails.\n");
+            assertEquals("" + encryptedSmallint, values[2], TestResource.getResource("R_outputParamFailed"));
 
             short tinyintValue = callableStatement.getShort(5);
-            assertEquals("" + tinyintValue, values[1], "Test for output parameter fails.\n");
+            assertEquals("" + tinyintValue, values[1], TestResource.getResource("R_outputParamFailed"));
 
             short encryptedTinyint = callableStatement.getShort(6);
-            assertEquals("" + encryptedTinyint, values[1], "Test for output parameter fails.\n");
+            assertEquals("" + encryptedTinyint, values[1], TestResource.getResource("R_outputParamFailed"));
 
             BigDecimal encryptedSmallMoney = callableStatement.getSmallMoney(7);
-            assertEquals("" + encryptedSmallMoney, values[12], "Test for output parameter fails.\n");
+            assertEquals("" + encryptedSmallMoney, values[12], TestResource.getResource("R_outputParamFailed"));
 
             BigDecimal SmallMoneyValue = callableStatement.getSmallMoney(8);
-            assertEquals("" + SmallMoneyValue, values[12], "Test for output parameter fails.\n");
+            assertEquals("" + SmallMoneyValue, values[12], TestResource.getResource("R_outputParamFailed"));
 
             BigDecimal MoneyValue = callableStatement.getMoney(9);
-            assertEquals("" + MoneyValue, values[13], "Test for output parameter fails.\n");
+            assertEquals("" + MoneyValue, values[13], TestResource.getResource("R_outputParamFailed"));
 
             BigDecimal encryptedMoney = callableStatement.getMoney(10);
-            assertEquals("" + encryptedMoney, values[13], "Test for output parameter fails.\n");
+            assertEquals("" + encryptedMoney, values[13], TestResource.getResource("R_outputParamFailed"));
 
         }
         catch (Exception e) {
@@ -978,34 +977,33 @@ public class CallableStatementTest extends AESetup {
             callableStatement.execute();
 
             BigDecimal encryptedMoney = callableStatement.getMoney(10);
-            assertEquals("" + encryptedMoney, values[13], "Test for output parameter fails.\n");
+            assertEquals("" + encryptedMoney, values[13], TestResource.getResource("R_outputParamFailed"));
 
             BigDecimal MoneyValue = callableStatement.getMoney(9);
-            assertEquals("" + MoneyValue, values[13], "Test for output parameter fails.\n");
+            assertEquals("" + MoneyValue, values[13], TestResource.getResource("R_outputParamFailed"));
 
             BigDecimal SmallMoneyValue = callableStatement.getSmallMoney(8);
-            assertEquals("" + SmallMoneyValue, values[12], "Test for output parameter fails.\n");
+            assertEquals("" + SmallMoneyValue, values[12], TestResource.getResource("R_outputParamFailed"));
 
             BigDecimal encryptedSmallMoney = callableStatement.getSmallMoney(7);
-            assertEquals("" + encryptedSmallMoney, values[12], "Test for output parameter fails.\n");
+            assertEquals("" + encryptedSmallMoney, values[12], TestResource.getResource("R_outputParamFailed"));
 
             short encryptedTinyint = callableStatement.getShort(6);
-            assertEquals("" + encryptedTinyint, values[1], "Test for output parameter fails.\n");
 
             short tinyintValue = callableStatement.getShort(5);
-            assertEquals("" + tinyintValue, values[1], "Test for output parameter fails.\n");
+            assertEquals("" + tinyintValue, values[1], TestResource.getResource("R_outputParamFailed"));
 
             short encryptedSmallint = callableStatement.getShort(4);
-            assertEquals("" + encryptedSmallint, values[2], "Test for output parameter fails.\n");
+            assertEquals("" + encryptedSmallint, values[2], TestResource.getResource("R_outputParamFailed"));
 
             short smallintValue = callableStatement.getShort(3);
-            assertEquals("" + smallintValue, values[2], "Test for output parameter fails.\n");
+            assertEquals("" + smallintValue, values[2], TestResource.getResource("R_outputParamFailed"));
 
             int encryptedInt = callableStatement.getInt(2);
-            assertEquals("" + encryptedInt, values[3], "Test for output parameter fails.\n");
+            assertEquals("" + encryptedInt, values[3], TestResource.getResource("R_outputParamFailed"));
 
             int intValue = callableStatement.getInt(1);
-            assertEquals("" + intValue, values[3], "Test for output parameter fails.\n");
+            assertEquals("" + intValue, values[3], TestResource.getResource("R_outputParamFailed"));
 
         }
         catch (Exception e) {
@@ -1042,33 +1040,33 @@ public class CallableStatementTest extends AESetup {
             callableStatement.execute();
 
             double floatValue0 = callableStatement.getDouble(2);
-            assertEquals("" + floatValue0, "" + values[5], "Test for output parameter fails.\n");
+            assertEquals("" + floatValue0, "" + values[5], TestResource.getResource("R_outputParamFailed"));
 
             long bigintValue = callableStatement.getLong(4);
-            assertEquals("" + bigintValue, values[4], "Test for output parameter fails.\n");
+            assertEquals("" + bigintValue, values[4], TestResource.getResource("R_outputParamFailed"));
 
             short tinyintValue = callableStatement.getShort(5); // tinyint
-            assertEquals("" + tinyintValue, values[1], "Test for output parameter fails.\n");
+            assertEquals("" + tinyintValue, values[1], TestResource.getResource("R_outputParamFailed"));
 
             double floatValue1 = callableStatement.getDouble(2);
-            assertEquals("" + floatValue1, "" + values[5], "Test for output parameter fails.\n");
+            assertEquals("" + floatValue1, "" + values[5], TestResource.getResource("R_outputParamFailed"));
 
             int intValue2 = callableStatement.getInt(1);
-            assertEquals("" + intValue2, "" + values[3], "Test for output parameter fails.\n");
+            assertEquals("" + intValue2, "" + values[3], TestResource.getResource("R_outputParamFailed"));
 
             double floatValue2 = callableStatement.getDouble(2);
-            assertEquals("" + floatValue2, "" + values[5], "Test for output parameter fails.\n");
+            assertEquals("" + floatValue2, "" + values[5], TestResource.getResource("R_outputParamFailed"));
 
             short shortValue3 = callableStatement.getShort(3); // smallint
-            assertEquals("" + shortValue3, "" + values[2], "Test for output parameter fails.\n");
+            assertEquals("" + shortValue3, "" + values[2], TestResource.getResource("R_outputParamFailed"));
 
             short shortValue32 = callableStatement.getShort(3);
-            assertEquals("" + shortValue32, "" + values[2], "Test for output parameter fails.\n");
+            assertEquals("" + shortValue32, "" + values[2], TestResource.getResource("R_outputParamFailed"));
 
             BigDecimal smallmoney1 = callableStatement.getSmallMoney(6);
-            assertEquals("" + smallmoney1, "" + values[12], "Test for output parameter fails.\n");
+            assertEquals("" + smallmoney1, "" + values[12], TestResource.getResource("R_outputParamFailed"));
             BigDecimal money1 = callableStatement.getMoney(7);
-            assertEquals("" + money1, "" + values[13], "Test for output parameter fails.\n");
+            assertEquals("" + money1, "" + values[13], TestResource.getResource("R_outputParamFailed"));
         }
         catch (Exception e) {
             fail(e.toString());
@@ -1091,25 +1089,25 @@ public class CallableStatementTest extends AESetup {
             callableStatement.execute();
 
             int intValue2 = callableStatement.getInt(1);
-            assertEquals("" + intValue2, values[3], "Test for output parameter fails.\n");
+            assertEquals("" + intValue2, values[3], TestResource.getResource("R_outputParamFailed"));
 
             double floatValue0 = callableStatement.getDouble(2);
-            assertEquals("" + floatValue0, values[5], "Test for output parameter fails.\n");
+            assertEquals("" + floatValue0, values[5], TestResource.getResource("R_outputParamFailed"));
 
             short shortValue3 = callableStatement.getShort(3);
-            assertEquals("" + shortValue3, values[2], "Test for output parameter fails.\n");
+            assertEquals("" + shortValue3, values[2], TestResource.getResource("R_outputParamFailed"));
 
             long bigintValue = callableStatement.getLong(4);
-            assertEquals("" + bigintValue, values[4], "Test for output parameter fails.\n");
+            assertEquals("" + bigintValue, values[4], TestResource.getResource("R_outputParamFailed"));
 
             short tinyintValue = callableStatement.getShort(5);
-            assertEquals("" + tinyintValue, values[1], "Test for output parameter fails.\n");
+            assertEquals("" + tinyintValue, values[1], TestResource.getResource("R_outputParamFailed"));
 
             BigDecimal smallMoney1 = callableStatement.getSmallMoney(6);
-            assertEquals("" + smallMoney1, values[12], "Test for output parameter fails.\n");
+            assertEquals("" + smallMoney1, values[12], TestResource.getResource("R_outputParamFailed"));
 
             BigDecimal money1 = callableStatement.getMoney(7);
-            assertEquals("" + money1, values[13], "Test for output parameter fails.\n");
+            assertEquals("" + money1, values[13], TestResource.getResource("R_outputParamFailed"));
 
         }
         catch (Exception e) {
@@ -1132,25 +1130,25 @@ public class CallableStatementTest extends AESetup {
             callableStatement.execute();
 
             BigDecimal smallMoney1 = callableStatement.getSmallMoney(6);
-            assertEquals("" + smallMoney1, values[12], "Test for output parameter fails.\n");
+            assertEquals("" + smallMoney1, values[12], TestResource.getResource("R_outputParamFailed"));
 
             BigDecimal money1 = callableStatement.getMoney(7);
-            assertEquals("" + money1, values[13], "Test for output parameter fails.\n");
+            assertEquals("" + money1, values[13], TestResource.getResource("R_outputParamFailed"));
 
             short tinyintValue = callableStatement.getShort(5);
-            assertEquals("" + tinyintValue, values[1], "Test for output parameter fails.\n");
+            assertEquals("" + tinyintValue, values[1], TestResource.getResource("R_outputParamFailed"));
 
             long bigintValue = callableStatement.getLong(4);
-            assertEquals("" + bigintValue, values[4], "Test for output parameter fails.\n");
+            assertEquals("" + bigintValue, values[4], TestResource.getResource("R_outputParamFailed"));
 
             short shortValue3 = callableStatement.getShort(3);
-            assertEquals("" + shortValue3, values[2], "Test for output parameter fails.\n");
+            assertEquals("" + shortValue3, values[2], TestResource.getResource("R_outputParamFailed"));
 
             double floatValue0 = callableStatement.getDouble(2);
-            assertEquals("" + floatValue0, values[5], "Test for output parameter fails.\n");
+            assertEquals("" + floatValue0, values[5], TestResource.getResource("R_outputParamFailed"));
 
             int intValue2 = callableStatement.getInt(1);
-            assertEquals("" + intValue2, values[3], "Test for output parameter fails.\n");
+            assertEquals("" + intValue2, values[3], TestResource.getResource("R_outputParamFailed"));
 
         }
         catch (Exception e) {
@@ -1216,7 +1214,7 @@ public class CallableStatementTest extends AESetup {
             assertEquals("" + intValue, numericValues[3], "Test for Inout parameter fails.\n");
 
             double floatValue = callableStatement.getDouble(3);
-            assertEquals("" + floatValue, numericValues[5], "Test for output parameter fails.\n");
+            assertEquals("" + floatValue, numericValues[5], TestResource.getResource("R_outputParamFailed"));
 
             int returnedValue = callableStatement.getInt(1);
             assertEquals("" + returnedValue, "" + 123, "Test for Inout parameter fails.\n");
@@ -1249,22 +1247,22 @@ public class CallableStatementTest extends AESetup {
             callableStatement.execute();
 
             double floatValue = callableStatement.getDouble(2);
-            assertEquals("" + floatValue, numericValues[5], "Test for output parameter fails.\n");
+            assertEquals("" + floatValue, numericValues[5], TestResource.getResource("R_outputParamFailed"));
 
             int intValue = callableStatement.getInt(1);
-            assertEquals("" + intValue, numericValues[3], "Test for output parameter fails.\n");
+            assertEquals("" + intValue, numericValues[3], TestResource.getResource("R_outputParamFailed"));
 
             double floatValue2 = callableStatement.getDouble(2);
-            assertEquals("" + floatValue2, numericValues[5], "Test for output parameter fails.\n");
+            assertEquals("" + floatValue2, numericValues[5], TestResource.getResource("R_outputParamFailed"));
 
             int intValue2 = callableStatement.getInt(1);
-            assertEquals("" + intValue2, numericValues[3], "Test for output parameter fails.\n");
+            assertEquals("" + intValue2, numericValues[3], TestResource.getResource("R_outputParamFailed"));
 
             int intValue3 = callableStatement.getInt(1);
-            assertEquals("" + intValue3, numericValues[3], "Test for output parameter fails.\n");
+            assertEquals("" + intValue3, numericValues[3], TestResource.getResource("R_outputParamFailed"));
 
             double floatValue3 = callableStatement.getDouble(2);
-            assertEquals("" + floatValue3, numericValues[5], "Test for output parameter fails.\n");
+            assertEquals("" + floatValue3, numericValues[5], TestResource.getResource("R_outputParamFailed"));
 
         }
         catch (Exception e) {
@@ -1283,10 +1281,10 @@ public class CallableStatementTest extends AESetup {
             callableStatement.execute();
 
             int intValue = callableStatement.getInt(1);
-            assertEquals("" + intValue, numericValues[3], "Test for output parameter fails.\n");
+            assertEquals("" + intValue, numericValues[3], TestResource.getResource("R_outputParamFailed"));
 
             double floatValue = callableStatement.getDouble(2);
-            assertEquals("" + floatValue, numericValues[5], "Test for output parameter fails.\n");
+            assertEquals("" + floatValue, numericValues[5], TestResource.getResource("R_outputParamFailed"));
         }
         catch (Exception e) {
             fail(e.toString());
@@ -1315,22 +1313,22 @@ public class CallableStatementTest extends AESetup {
             callableStatement.execute();
 
             double floatValue = callableStatement.getDouble(2);
-            assertEquals("" + floatValue, numericValues[5], "Test for output parameter fails.\n");
+            assertEquals("" + floatValue, numericValues[5], TestResource.getResource("R_outputParamFailed"));
 
             long bigintValue = callableStatement.getLong(1);
-            assertEquals("" + bigintValue, numericValues[4], "Test for output parameter fails.\n");
+            assertEquals("" + bigintValue, numericValues[4], TestResource.getResource("R_outputParamFailed"));
 
             long bigintValue1 = callableStatement.getLong(1);
-            assertEquals("" + bigintValue1, numericValues[4], "Test for output parameter fails.\n");
+            assertEquals("" + bigintValue1, numericValues[4], TestResource.getResource("R_outputParamFailed"));
 
             double floatValue2 = callableStatement.getDouble(2);
-            assertEquals("" + floatValue2, numericValues[5], "Test for output parameter fails.\n");
+            assertEquals("" + floatValue2, numericValues[5], TestResource.getResource("R_outputParamFailed"));
 
             double floatValue3 = callableStatement.getDouble(2);
-            assertEquals("" + floatValue3, numericValues[5], "Test for output parameter fails.\n");
+            assertEquals("" + floatValue3, numericValues[5], TestResource.getResource("R_outputParamFailed"));
 
             long bigintValue3 = callableStatement.getLong(1);
-            assertEquals("" + bigintValue3, numericValues[4], "Test for output parameter fails.\n");
+            assertEquals("" + bigintValue3, numericValues[4], TestResource.getResource("R_outputParamFailed"));
 
         }
         catch (Exception e) {
@@ -1349,10 +1347,10 @@ public class CallableStatementTest extends AESetup {
             callableStatement.execute();
 
             long bigintValue = callableStatement.getLong(1);
-            assertEquals("" + bigintValue, numericValues[4], "Test for output parameter fails.\n");
+            assertEquals("" + bigintValue, numericValues[4], TestResource.getResource("R_outputParamFailed"));
 
             double floatValue = callableStatement.getDouble(2);
-            assertEquals("" + floatValue, numericValues[5], "Test for output parameter fails.\n");
+            assertEquals("" + floatValue, numericValues[5], TestResource.getResource("R_outputParamFailed"));
         }
         catch (Exception e) {
             fail(e.toString());
@@ -1370,10 +1368,10 @@ public class CallableStatementTest extends AESetup {
             callableStatement.execute();
 
             double floatValue = callableStatement.getDouble(2);
-            assertEquals("" + floatValue, numericValues[5], "Test for output parameter fails.\n");
+            assertEquals("" + floatValue, numericValues[5], TestResource.getResource("R_outputParamFailed"));
 
             long bigintValue = callableStatement.getLong(1);
-            assertEquals("" + bigintValue, numericValues[4], "Test for output parameter fails.\n");
+            assertEquals("" + bigintValue, numericValues[4], TestResource.getResource("R_outputParamFailed"));
         }
         catch (Exception e) {
             fail(e.toString());
@@ -1483,31 +1481,31 @@ public class CallableStatementTest extends AESetup {
 
             callableStatement.execute();
             String charValue = callableStatement.getString(1).trim();
-            assertEquals(charValue, charValues[0], "Test for output parameter fails.\n");
+            assertEquals(charValue, charValues[0], TestResource.getResource("R_outputParamFailed"));
 
             String varcharValue = callableStatement.getString(2).trim();
-            assertEquals(varcharValue, charValues[1], "Test for output parameter fails.\n");
+            assertEquals(varcharValue, charValues[1], TestResource.getResource("R_outputParamFailed"));
 
             String ncharValue = callableStatement.getString(3).trim();
-            assertEquals(ncharValue, charValues[3], "Test for output parameter fails.\n");
+            assertEquals(ncharValue, charValues[3], TestResource.getResource("R_outputParamFailed"));
 
             String nvarcharValue = callableStatement.getString(4).trim();
-            assertEquals(nvarcharValue, charValues[4], "Test for output parameter fails.\n");
+            assertEquals(nvarcharValue, charValues[4], TestResource.getResource("R_outputParamFailed"));
 
             String uniqueIdentifierValue = callableStatement.getString(5).trim();
-            assertEquals(uniqueIdentifierValue.toLowerCase(), charValues[6], "Test for output parameter fails.\n");
+            assertEquals(uniqueIdentifierValue.toLowerCase(), charValues[6], TestResource.getResource("R_outputParamFailed"));
 
             String varcharValuemax = callableStatement.getString(6).trim();
-            assertEquals(varcharValuemax, charValues[2], "Test for output parameter fails.\n");
+            assertEquals(varcharValuemax, charValues[2], TestResource.getResource("R_outputParamFailed"));
 
             String nvarcharValuemax = callableStatement.getString(7).trim();
-            assertEquals(nvarcharValuemax, charValues[5], "Test for output parameter fails.\n");
+            assertEquals(nvarcharValuemax, charValues[5], TestResource.getResource("R_outputParamFailed"));
 
             String varcharValue8000 = callableStatement.getString(8).trim();
-            assertEquals(varcharValue8000, charValues[7], "Test for output parameter fails.\n");
+            assertEquals(varcharValue8000, charValues[7], TestResource.getResource("R_outputParamFailed"));
 
             String nvarcharValue4000 = callableStatement.getNString(9).trim();
-            assertEquals(nvarcharValue4000, charValues[8], "Test for output parameter fails.\n");
+            assertEquals(nvarcharValue4000, charValues[8], TestResource.getResource("R_outputParamFailed"));
 
         }
         catch (Exception e) {
@@ -1531,33 +1529,33 @@ public class CallableStatementTest extends AESetup {
             callableStatement.execute();
 
             String charValue = (String) callableStatement.getObject(1);
-            assertEquals(charValue.trim(), charValues[0], "Test for output parameter fails.\n");
+            assertEquals(charValue.trim(), charValues[0], TestResource.getResource("R_outputParamFailed"));
 
             String varcharValue = (String) callableStatement.getObject(2);
-            assertEquals(varcharValue.trim(), charValues[1], "Test for output parameter fails.\n");
+            assertEquals(varcharValue.trim(), charValues[1], TestResource.getResource("R_outputParamFailed"));
 
             String ncharValue = (String) callableStatement.getObject(3);
-            assertEquals(ncharValue.trim(), charValues[3], "Test for output parameter fails.\n");
+            assertEquals(ncharValue.trim(), charValues[3], TestResource.getResource("R_outputParamFailed"));
 
             String nvarcharValue = (String) callableStatement.getObject(4);
-            assertEquals(nvarcharValue.trim(), charValues[4], "Test for output parameter fails.\n");
+            assertEquals(nvarcharValue.trim(), charValues[4], TestResource.getResource("R_outputParamFailed"));
 
             String uniqueIdentifierValue = (String) callableStatement.getObject(5);
-            assertEquals(uniqueIdentifierValue.toLowerCase(), charValues[6], "Test for output parameter fails.\n");
+            assertEquals(uniqueIdentifierValue.toLowerCase(), charValues[6], TestResource.getResource("R_outputParamFailed"));
 
             String varcharValuemax = (String) callableStatement.getObject(6);
 
-            assertEquals(varcharValuemax, charValues[2], "Test for output parameter fails.\n");
+            assertEquals(varcharValuemax, charValues[2], TestResource.getResource("R_outputParamFailed"));
 
             String nvarcharValuemax = (String) callableStatement.getObject(7);
 
-            assertEquals(nvarcharValuemax.trim(), charValues[5], "Test for output parameter fails.\n");
+            assertEquals(nvarcharValuemax.trim(), charValues[5], TestResource.getResource("R_outputParamFailed"));
 
             String varcharValue8000 = (String) callableStatement.getObject(8);
-            assertEquals(varcharValue8000, charValues[7], "Test for output parameter fails.\n");
+            assertEquals(varcharValue8000, charValues[7], TestResource.getResource("R_outputParamFailed"));
 
             String nvarcharValue4000 = (String) callableStatement.getObject(9);
-            assertEquals(nvarcharValue4000, charValues[8], "Test for output parameter fails.\n");
+            assertEquals(nvarcharValue4000, charValues[8], TestResource.getResource("R_outputParamFailed"));
 
         }
         catch (Exception e) {
@@ -1606,54 +1604,54 @@ public class CallableStatementTest extends AESetup {
 
             int bitValue = callableStatement.getInt(1);
             if (bitValue == 0)
-                assertEquals("" + false, numericValues[0], "Test for output parameter fails.\n");
+                assertEquals("" + false, numericValues[0], TestResource.getResource("R_outputParamFailed"));
             else
-                assertEquals("" + true, numericValues[0], "Test for output parameter fails.\n");
+                assertEquals("" + true, numericValues[0], TestResource.getResource("R_outputParamFailed"));
 
             short tinyIntValue = callableStatement.getShort(2);
-            assertEquals("" + tinyIntValue, numericValues[1], "Test for output parameter fails.\n");
+            assertEquals("" + tinyIntValue, numericValues[1], TestResource.getResource("R_outputParamFailed"));
 
             short smallIntValue = callableStatement.getShort(3);
-            assertEquals("" + smallIntValue, numericValues[2], "Test for output parameter fails.\n");
+            assertEquals("" + smallIntValue, numericValues[2], TestResource.getResource("R_outputParamFailed"));
 
             int intValue = callableStatement.getInt(4);
-            assertEquals("" + intValue, numericValues[3], "Test for output parameter fails.\n");
+            assertEquals("" + intValue, numericValues[3], TestResource.getResource("R_outputParamFailed"));
 
             long bigintValue = callableStatement.getLong(5);
-            assertEquals("" + bigintValue, numericValues[4], "Test for output parameter fails.\n");
+            assertEquals("" + bigintValue, numericValues[4], TestResource.getResource("R_outputParamFailed"));
 
             double floatDefault = callableStatement.getDouble(6);
-            assertEquals("" + floatDefault, numericValues[5], "Test for output parameter fails.\n");
+            assertEquals("" + floatDefault, numericValues[5], TestResource.getResource("R_outputParamFailed"));
 
             double floatValue = callableStatement.getDouble(7);
-            assertEquals("" + floatValue, numericValues[6], "Test for output parameter fails.\n");
+            assertEquals("" + floatValue, numericValues[6], TestResource.getResource("R_outputParamFailed"));
 
             float realValue = callableStatement.getFloat(8);
-            assertEquals("" + realValue, numericValues[7], "Test for output parameter fails.\n");
+            assertEquals("" + realValue, numericValues[7], TestResource.getResource("R_outputParamFailed"));
 
             BigDecimal decimalDefault = callableStatement.getBigDecimal(9);
-            assertEquals(decimalDefault, new BigDecimal(numericValues[8]), "Test for output parameter fails.\n");
+            assertEquals(decimalDefault, new BigDecimal(numericValues[8]), TestResource.getResource("R_outputParamFailed"));
 
             BigDecimal decimalValue = callableStatement.getBigDecimal(10);
-            assertEquals(decimalValue, new BigDecimal(numericValues[9]), "Test for output parameter fails.\n");
+            assertEquals(decimalValue, new BigDecimal(numericValues[9]), TestResource.getResource("R_outputParamFailed"));
 
             BigDecimal numericDefault = callableStatement.getBigDecimal(11);
-            assertEquals(numericDefault, new BigDecimal(numericValues[10]), "Test for output parameter fails.\n");
+            assertEquals(numericDefault, new BigDecimal(numericValues[10]), TestResource.getResource("R_outputParamFailed"));
 
             BigDecimal numericValue = callableStatement.getBigDecimal(12);
-            assertEquals(numericValue, new BigDecimal(numericValues[11]), "Test for output parameter fails.\n");
+            assertEquals(numericValue, new BigDecimal(numericValues[11]), TestResource.getResource("R_outputParamFailed"));
 
             BigDecimal smallMoneyValue = callableStatement.getSmallMoney(13);
-            assertEquals(smallMoneyValue, new BigDecimal(numericValues[12]), "Test for output parameter fails.\n");
+            assertEquals(smallMoneyValue, new BigDecimal(numericValues[12]), TestResource.getResource("R_outputParamFailed"));
 
             BigDecimal moneyValue = callableStatement.getMoney(14);
-            assertEquals(moneyValue, new BigDecimal(numericValues[13]), "Test for output parameter fails.\n");
+            assertEquals(moneyValue, new BigDecimal(numericValues[13]), TestResource.getResource("R_outputParamFailed"));
 
             BigDecimal decimalValue2 = callableStatement.getBigDecimal(15);
-            assertEquals(decimalValue2, new BigDecimal(numericValues[14]), "Test for output parameter fails.\n");
+            assertEquals(decimalValue2, new BigDecimal(numericValues[14]), TestResource.getResource("R_outputParamFailed"));
 
             BigDecimal numericValue2 = callableStatement.getBigDecimal(16);
-            assertEquals(numericValue2, new BigDecimal(numericValues[15]), "Test for output parameter fails.\n");
+            assertEquals(numericValue2, new BigDecimal(numericValues[15]), TestResource.getResource("R_outputParamFailed"));
 
         }
         catch (Exception e) {
@@ -1692,7 +1690,7 @@ public class CallableStatementTest extends AESetup {
                     boolVal = true;
                 else if (value.toString().equals("0") || value.equals(false) || value.toString().equals("0.0"))
                     boolVal = false;
-                assertEquals("" + boolVal, numericValues[0], "Test for output parameter fails.\n");
+                assertEquals("" + boolVal, numericValues[0], TestResource.getResource("R_outputParamFailed"));
             }
             Class[] tinyint_coercions = {Object.class, Short.class, Integer.class, Long.class, Float.class, Double.class, BigDecimal.class,
                     String.class};
@@ -1702,9 +1700,9 @@ public class CallableStatementTest extends AESetup {
                 Object x = createValue(tinyint_coercions[i], 1);
 
                 if (x instanceof String)
-                    assertEquals("" + tinyIntValue, x, "Test for output parameter fails.\n");
+                    assertEquals("" + tinyIntValue, x, TestResource.getResource("R_outputParamFailed"));
                 else
-                    assertEquals(tinyIntValue, x, "Test for output parameter fails.\n");
+                    assertEquals(tinyIntValue, x, TestResource.getResource("R_outputParamFailed"));
             }
 
             Class[] smallint_coercions = {Object.class, Short.class, Integer.class, Long.class, Float.class, Double.class, BigDecimal.class,
@@ -1714,9 +1712,9 @@ public class CallableStatementTest extends AESetup {
                 Object x = createValue(smallint_coercions[i], 2);
 
                 if (x instanceof String)
-                    assertEquals("" + smallIntValue, x, "Test for output parameter fails.\n");
+                    assertEquals("" + smallIntValue, x, TestResource.getResource("R_outputParamFailed"));
                 else
-                    assertEquals(smallIntValue, x, "Test for output parameter fails.\n");
+                    assertEquals(smallIntValue, x, TestResource.getResource("R_outputParamFailed"));
             }
 
             Class[] int_coercions = {Object.class, Short.class, Integer.class, Long.class, Float.class, Double.class, BigDecimal.class, String.class};
@@ -1725,9 +1723,9 @@ public class CallableStatementTest extends AESetup {
                 Object x = createValue(int_coercions[i], 3);
                 if (x != null) {
                     if (x instanceof String)
-                        assertEquals("" + IntValue, x, "Test for output parameter fails.\n");
+                        assertEquals("" + IntValue, x, TestResource.getResource("R_outputParamFailed"));
                     else
-                        assertEquals(IntValue, x, "Test for output parameter fails.\n");
+                        assertEquals(IntValue, x, TestResource.getResource("R_outputParamFailed"));
                 }
             }
 
@@ -1738,9 +1736,9 @@ public class CallableStatementTest extends AESetup {
                 Object x = createValue(bigint_coercions[i], 4);
                 if (x != null) {
                     if (x instanceof String)
-                        assertEquals("" + bigIntValue, x, "Test for output parameter fails.\n");
+                        assertEquals("" + bigIntValue, x, TestResource.getResource("R_outputParamFailed"));
                     else
-                        assertEquals(bigIntValue, x, "Test for output parameter fails.\n");
+                        assertEquals(bigIntValue, x, TestResource.getResource("R_outputParamFailed"));
                 }
             }
 
@@ -1751,9 +1749,9 @@ public class CallableStatementTest extends AESetup {
                 Object x = createValue(float_coercions[i], 5);
                 if (x != null) {
                     if (x instanceof String)
-                        assertEquals("" + floatDefaultValue, x, "Test for output parameter fails.\n");
+                        assertEquals("" + floatDefaultValue, x, TestResource.getResource("R_outputParamFailed"));
                     else
-                        assertEquals(floatDefaultValue, x, "Test for output parameter fails.\n");
+                        assertEquals(floatDefaultValue, x, TestResource.getResource("R_outputParamFailed"));
                 }
             }
 
@@ -1762,9 +1760,9 @@ public class CallableStatementTest extends AESetup {
                 Object x = createValue(float_coercions[i], 6);
                 if (x != null) {
                     if (x instanceof String)
-                        assertEquals("" + floatValue, x, "Test for output parameter fails.\n");
+                        assertEquals("" + floatValue, x, TestResource.getResource("R_outputParamFailed"));
                     else
-                        assertEquals(floatValue, x, "Test for output parameter fails.\n");
+                        assertEquals(floatValue, x, TestResource.getResource("R_outputParamFailed"));
                 }
             }
 
@@ -1776,9 +1774,9 @@ public class CallableStatementTest extends AESetup {
                 Object x = createValue(real_coercions[i], 7);
                 if (x != null) {
                     if (x instanceof String)
-                        assertEquals("" + realValue, x, "Test for output parameter fails for Coercion: " + real_coercions[i] + " for real value.\n");
+                        assertEquals("" + realValue, x, TestResource.getResource("R_outputParamFailed"));
                     else
-                        assertEquals(realValue, x, "Test for output parameter fails for Coercion: " + real_coercions[i] + " for real value.\n");
+                        assertEquals(realValue, x, TestResource.getResource("R_outputParamFailed"));
                 }
             }
 
@@ -1789,9 +1787,9 @@ public class CallableStatementTest extends AESetup {
                 Object x = createValue(decimalDefault_coercions[i], 8);
                 if (x != null) {
                     if (x instanceof String)
-                        assertEquals("" + decimalDefaultValue, x, "Test for output parameter fails.\n");
+                        assertEquals("" + decimalDefaultValue, x, TestResource.getResource("R_outputParamFailed"));
                     else
-                        assertEquals(decimalDefaultValue, x, "Test for output parameter fails.\n");
+                        assertEquals(decimalDefaultValue, x, TestResource.getResource("R_outputParamFailed"));
                 }
             }
 
@@ -1800,9 +1798,9 @@ public class CallableStatementTest extends AESetup {
                 Object x = createValue(decimalDefault_coercions[i], 9);
                 if (x != null) {
                     if (x instanceof String)
-                        assertEquals("" + decimalValue, x, "Test for output parameter fails.\n");
+                        assertEquals("" + decimalValue, x, TestResource.getResource("R_outputParamFailed"));
                     else
-                        assertEquals(decimalValue, x, "Test for output parameter fails.\n");
+                        assertEquals(decimalValue, x, TestResource.getResource("R_outputParamFailed"));
                 }
             }
 
@@ -1811,9 +1809,9 @@ public class CallableStatementTest extends AESetup {
                 Object x = createValue(decimalDefault_coercions[i], 10);
                 if (x != null) {
                     if (x instanceof String)
-                        assertEquals("" + numericDefaultValue, x, "Test for output parameter fails.\n");
+                        assertEquals("" + numericDefaultValue, x, TestResource.getResource("R_outputParamFailed"));
                     else
-                        assertEquals(numericDefaultValue, x, "Test for output parameter fails.\n");
+                        assertEquals(numericDefaultValue, x, TestResource.getResource("R_outputParamFailed"));
                 }
             }
 
@@ -1822,9 +1820,9 @@ public class CallableStatementTest extends AESetup {
                 Object x = createValue(decimalDefault_coercions[i], 11);
                 if (x != null) {
                     if (x instanceof String)
-                        assertEquals("" + numericValue, x, "Test for output parameter fails.\n");
+                        assertEquals("" + numericValue, x, TestResource.getResource("R_outputParamFailed"));
                     else
-                        assertEquals(numericValue, x, "Test for output parameter fails.\n");
+                        assertEquals(numericValue, x, TestResource.getResource("R_outputParamFailed"));
                 }
             }
 
@@ -1833,9 +1831,9 @@ public class CallableStatementTest extends AESetup {
                 Object x = createValue(decimalDefault_coercions[i], 12);
                 if (x != null) {
                     if (x instanceof String)
-                        assertEquals("" + smallMoneyValue, x, "Test for output parameter fails.\n");
+                        assertEquals("" + smallMoneyValue, x, TestResource.getResource("R_outputParamFailed"));
                     else
-                        assertEquals(smallMoneyValue, x, "Test for output parameter fails.\n");
+                        assertEquals(smallMoneyValue, x, TestResource.getResource("R_outputParamFailed"));
                 }
             }
 
@@ -1844,9 +1842,9 @@ public class CallableStatementTest extends AESetup {
                 Object x = createValue(decimalDefault_coercions[i], 13);
                 if (x != null) {
                     if (x instanceof String)
-                        assertEquals("" + moneyValue, x, "Test for output parameter fails.\n");
+                        assertEquals("" + moneyValue, x, TestResource.getResource("R_outputParamFailed"));
                     else
-                        assertEquals(moneyValue, x, "Test for output parameter fails.\n");
+                        assertEquals(moneyValue, x, TestResource.getResource("R_outputParamFailed"));
                 }
             }
             for (int i = 0; i < decimalDefault_coercions.length; i++) {
@@ -1854,9 +1852,9 @@ public class CallableStatementTest extends AESetup {
                 Object x = createValue(decimalDefault_coercions[i], 14);
                 if (x != null) {
                     if (x instanceof String)
-                        assertEquals("" + decimalValue2, x, "Test for output parameter fails.\n");
+                        assertEquals("" + decimalValue2, x, TestResource.getResource("R_outputParamFailed"));
                     else
-                        assertEquals(decimalValue2, x, "Test for output parameter fails.\n");
+                        assertEquals(decimalValue2, x, TestResource.getResource("R_outputParamFailed"));
                 }
             }
 
@@ -1865,9 +1863,9 @@ public class CallableStatementTest extends AESetup {
                 Object x = createValue(decimalDefault_coercions[i], 15);
                 if (x != null) {
                     if (x instanceof String)
-                        assertEquals("" + numericValue1, x, "Test for output parameter fails.\n");
+                        assertEquals("" + numericValue1, x, TestResource.getResource("R_outputParamFailed"));
                     else
-                        assertEquals(numericValue1, x, "Test for output parameter fails.\n");
+                        assertEquals(numericValue1, x, TestResource.getResource("R_outputParamFailed"));
                 }
             }
 
@@ -1913,25 +1911,25 @@ public class CallableStatementTest extends AESetup {
             return callableStatement.getString(ordinal);
         }
         else if (coercion == Boolean.class) {
-            return new Boolean(callableStatement.getBoolean(ordinal));
+            return Boolean.valueOf(callableStatement.getBoolean(ordinal));
         }
         else if (coercion == Byte.class) {
-            return new Byte(callableStatement.getByte(ordinal));
+            return Byte.valueOf(callableStatement.getByte(ordinal));
         }
         else if (coercion == Short.class) {
-            return new Short(callableStatement.getShort(ordinal));
+            return Short.valueOf(callableStatement.getShort(ordinal));
         }
         else if (coercion == Integer.class) {
-            return new Integer(callableStatement.getInt(ordinal));
+            return Integer.valueOf(callableStatement.getInt(ordinal));
         }
         else if (coercion == Long.class) {
-            return new Long(callableStatement.getLong(ordinal));
+            return Long.valueOf(callableStatement.getLong(ordinal));
         }
         else if (coercion == Float.class) {
-            return new Float(callableStatement.getFloat(ordinal));
+            return Float.valueOf(callableStatement.getFloat(ordinal));
         }
         else if (coercion == Double.class) {
-            return new Double(callableStatement.getDouble(ordinal));
+            return Double.valueOf(callableStatement.getDouble(ordinal));
         }
         else if (coercion == BigDecimal.class) {
             return callableStatement.getBigDecimal(ordinal);
@@ -1986,31 +1984,31 @@ public class CallableStatementTest extends AESetup {
 
             byte[] received1 = callableStatement.getBytes(1);
             for (int i = 0; i < expected.length; i++) {
-                assertEquals(received1[i], expected[i], "Test for output parameter fails.\n");
+                assertEquals(received1[i], expected[i], TestResource.getResource("R_outputParamFailed"));
             }
 
             expected = byteValues.get(1);
             byte[] received2 = callableStatement.getBytes(2);
             for (int i = 0; i < expected.length; i++) {
-                assertEquals(received2[i], expected[i], "Test for output parameter fails.\n");
+                assertEquals(received2[i], expected[i], TestResource.getResource("R_outputParamFailed"));
             }
 
             expected = byteValues.get(2);
             byte[] received3 = callableStatement.getBytes(3);
             for (int i = 0; i < expected.length; i++) {
-                assertEquals(received3[i], expected[i], "Test for output parameter fails.\n");
+                assertEquals(received3[i], expected[i], TestResource.getResource("R_outputParamFailed"));
             }
 
             expected = byteValues.get(3);
             byte[] received4 = callableStatement.getBytes(4);
             for (int i = 0; i < expected.length; i++) {
-                assertEquals(received4[i], expected[i], "Test for output parameter fails.\n");
+                assertEquals(received4[i], expected[i], TestResource.getResource("R_outputParamFailed"));
             }
 
             expected = byteValues.get(4);
             byte[] received5 = callableStatement.getBytes(5);
             for (int i = 0; i < expected.length; i++) {
-                assertEquals(received5[i], expected[i], "Test for output parameter fails.\n");
+                assertEquals(received5[i], expected[i], TestResource.getResource("R_outputParamFailed"));
             }
         }
         catch (Exception e) {
@@ -2282,7 +2280,6 @@ public class CallableStatementTest extends AESetup {
             callableStatement.registerOutParameter(17, microsoft.sql.Types.DATETIMEOFFSET, 2);
             callableStatement.registerOutParameter(18, microsoft.sql.Types.DATETIMEOFFSET, 2);
             callableStatement.execute();
-
             assertEquals(callableStatement.getDate(1), callableStatement.getDate(2), "Test for output parameter Date fails.\n");
 
             assertEquals(callableStatement.getTimestamp(3), callableStatement.getTimestamp(4), "Test for output parameter datetime2 fails.\n");
@@ -2297,7 +2294,6 @@ public class CallableStatementTest extends AESetup {
             assertEquals(callableStatement.getTimestamp(13), callableStatement.getTimestamp(14), "Test for output parameter datetime2 fails.\n");
             assertEquals(callableStatement.getTime(15).getTime(), callableStatement.getTime(16).getTime(), "Test for output parameter time fails.\n");
             assertEquals(callableStatement.getDateTimeOffset(17), callableStatement.getDateTimeOffset(18), "Test for output parameter Datetimeoffsetfails.\n");
-
         }
         catch (Exception e) {
             fail(e.toString());
@@ -2327,20 +2323,20 @@ public class CallableStatementTest extends AESetup {
             callableStatement.registerOutParameter(18, microsoft.sql.Types.DATETIMEOFFSET, 2);
             callableStatement.execute();
 
-            assertEquals(callableStatement.getObject(1), callableStatement.getObject(2), "Test for output parameter fails.\n");
+            assertEquals(callableStatement.getObject(1), callableStatement.getObject(2), TestResource.getResource("R_outputParamFailed"));
 
-            assertEquals(callableStatement.getObject(3), callableStatement.getObject(4), "Test for output parameter fails.\n");
+            assertEquals(callableStatement.getObject(3), callableStatement.getObject(4), TestResource.getResource("R_outputParamFailed"));
 
-            assertEquals(callableStatement.getObject(5), callableStatement.getObject(6), "Test for output parameter fails.\n");
+            assertEquals(callableStatement.getObject(5), callableStatement.getObject(6), TestResource.getResource("R_outputParamFailed"));
 
-            assertEquals(callableStatement.getObject(7), callableStatement.getObject(8), "Test for output parameter fails.\n");
+            assertEquals(callableStatement.getObject(7), callableStatement.getObject(8), TestResource.getResource("R_outputParamFailed"));
             assertEquals(callableStatement.getObject(9), // actual plain
                     callableStatement.getObject(10), // received expected enc
-                    "Test for output parameter fails.\n");
-            assertEquals(callableStatement.getObject(11), callableStatement.getObject(12), "Test for output parameter fails.\n");
-            assertEquals(callableStatement.getObject(13), callableStatement.getObject(14), "Test for output parameter fails.\n");
-            assertEquals(callableStatement.getObject(15), callableStatement.getObject(16), "Test for output parameter fails.\n");
-            assertEquals(callableStatement.getObject(17), callableStatement.getObject(18), "Test for output parameter fails.\n");
+                    TestResource.getResource("R_outputParamFailed"));
+            assertEquals(callableStatement.getObject(11), callableStatement.getObject(12), TestResource.getResource("R_outputParamFailed"));
+            assertEquals(callableStatement.getObject(13), callableStatement.getObject(14), TestResource.getResource("R_outputParamFailed"));
+            assertEquals(callableStatement.getObject(15), callableStatement.getObject(16), TestResource.getResource("R_outputParamFailed"));
+            assertEquals(callableStatement.getObject(17), callableStatement.getObject(18), TestResource.getResource("R_outputParamFailed"));
 
         }
         catch (Exception e) {
@@ -2373,16 +2369,16 @@ public class CallableStatementTest extends AESetup {
             callableStatement.execute();
 
             int intValue2 = callableStatement.getInt(1);
-            assertEquals("" + intValue2, numericValues[3], "Test for output parameter fails.\n");
+            assertEquals("" + intValue2, numericValues[3], TestResource.getResource("R_outputParamFailed"));
 
             double floatValue0 = callableStatement.getDouble(2);
-            assertEquals("" + floatValue0, numericValues[5], "Test for output parameter fails.\n");
+            assertEquals("" + floatValue0, numericValues[5], TestResource.getResource("R_outputParamFailed"));
 
             short shortValue3 = callableStatement.getShort(3);
-            assertEquals("" + shortValue3, numericValues[2], "Test for output parameter fails.\n");
+            assertEquals("" + shortValue3, numericValues[2], TestResource.getResource("R_outputParamFailed"));
 
             BigDecimal smallmoneyValue = callableStatement.getSmallMoney(4);
-            assertEquals("" + smallmoneyValue, numericValues[12], "Test for output parameter fails.\n");
+            assertEquals("" + smallmoneyValue, numericValues[12], TestResource.getResource("R_outputParamFailed"));
         }
         catch (Exception e) {
             fail(e.toString());
@@ -2431,11 +2427,11 @@ public class CallableStatementTest extends AESetup {
             callableStatement.setDateTimeOffset(5, (DateTimeOffset) dateValues.get(6), 2);
             callableStatement.execute();
 
-            assertEquals(callableStatement.getTimestamp(1), callableStatement.getTimestamp(2), "Test for output parameter fails.\n");
+            assertEquals(callableStatement.getTimestamp(1), callableStatement.getTimestamp(2), TestResource.getResource("R_outputParamFailed"));
 
-            assertEquals(callableStatement.getTime(3), callableStatement.getTime(4), "Test for output parameter fails.\n");
+            assertEquals(callableStatement.getTime(3), callableStatement.getTime(4), TestResource.getResource("R_outputParamFailed"));
 
-            assertEquals(callableStatement.getDateTimeOffset(5), callableStatement.getDateTimeOffset(6), "Test for output parameter fails.\n");
+            assertEquals(callableStatement.getDateTimeOffset(5), callableStatement.getDateTimeOffset(6), TestResource.getResource("R_outputParamFailed"));
 
         }
         catch (Exception e) {
@@ -2457,11 +2453,11 @@ public class CallableStatementTest extends AESetup {
             callableStatement.setDateTimeOffset("p5", (DateTimeOffset) dateValues.get(6), 2);
             callableStatement.execute();
 
-            assertEquals(callableStatement.getTimestamp(1), callableStatement.getTimestamp(2), "Test for output parameter fails.\n");
+            assertEquals(callableStatement.getTimestamp(1), callableStatement.getTimestamp(2), TestResource.getResource("R_outputParamFailed"));
 
-            assertEquals(callableStatement.getTime(3), callableStatement.getTime(4), "Test for output parameter fails.\n");
+            assertEquals(callableStatement.getTime(3), callableStatement.getTime(4), TestResource.getResource("R_outputParamFailed"));
 
-            assertEquals(callableStatement.getDateTimeOffset(5), callableStatement.getDateTimeOffset(6), "Test for output parameter fails.\n");
+            assertEquals(callableStatement.getDateTimeOffset(5), callableStatement.getDateTimeOffset(6), TestResource.getResource("R_outputParamFailed"));
 
         }
         catch (Exception e) {

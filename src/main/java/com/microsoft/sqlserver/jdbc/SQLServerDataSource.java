@@ -690,6 +690,26 @@ public class SQLServerDataSource implements ISQLServerDataSource, DataSource, ja
         return getIntProperty(connectionProps, SQLServerDriverIntProperty.QUERY_TIMEOUT.toString(),
                 SQLServerDriverIntProperty.QUERY_TIMEOUT.getDefaultValue());
     }
+    
+    /**
+     * Setting the cancel timeout
+     * 
+     * @param cancelQueryTimeout
+     *            The number of seconds to wait before we wait for the query timeout to happen.
+     */
+    public void setCancelQueryTimeout(int cancelQueryTimeout) {
+        setIntProperty(connectionProps, SQLServerDriverIntProperty.CANCEL_QUERY_TIMEOUT.toString(), cancelQueryTimeout);
+    }
+
+    /**
+     * Getting the cancel timeout
+     * 
+     * @return the number of seconds to wait before we wait for the query timeout to happen.
+     */
+    public int getCancelQueryTimeout() {
+        return getIntProperty(connectionProps, SQLServerDriverIntProperty.CANCEL_QUERY_TIMEOUT.toString(),
+                SQLServerDriverIntProperty.CANCEL_QUERY_TIMEOUT.getDefaultValue());
+    }
 
     /**
      * If this configuration is false the first execution of a prepared statement will call sp_executesql and not prepare 
@@ -764,16 +784,16 @@ public class SQLServerDataSource implements ISQLServerDataSource, DataSource, ja
     }
     
     /**
-     * Sets the statement pooling to true or false
-     * @param disableStatementPooling
+     * Disable/enable statement pooling.
+     * @param disableStatementPooling true to disable statement pooling, false to enable it.
      */
     public void setDisableStatementPooling(boolean disableStatementPooling) {
         setBooleanProperty(connectionProps, SQLServerDriverBooleanProperty.DISABLE_STATEMENT_POOLING.toString(), disableStatementPooling);       
     }
     
     /**
-     * Returns true if statement pooling is disabled.
-     * @return
+     * Determine whether statement pooling is disabled.
+     * @return true if statement pooling is disabled, false if it is enabled.
      */
     public boolean getDisableStatementPooling() {
         boolean defaultValue = SQLServerDriverBooleanProperty.DISABLE_STATEMENT_POOLING.getDefaultValue();

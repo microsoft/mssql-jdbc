@@ -8,17 +8,16 @@
 
 package com.microsoft.sqlserver.jdbc;
 
-import java.sql.BatchUpdateException;
 import java.sql.CallableStatement;
 import java.sql.Connection;
 import java.sql.DriverPropertyInfo;
 import java.sql.ResultSet;
 import java.sql.RowIdLifetime;
 import java.sql.SQLException;
+import java.sql.SQLTimeoutException;
 import java.text.MessageFormat;
 import java.util.EnumMap;
 import java.util.Properties;
-import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
 
@@ -226,7 +225,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
     private static final String FUNCTION_TYPE = "FUNCTION_TYPE";
     private static final String SS_IS_SPARSE = "SS_IS_SPARSE";
     private static final String SS_IS_COLUMN_SET = "SS_IS_COLUMN_SET";
-    private static final String SS_IS_COMPUTED = "SS_IS_COMPUTED";
+    private static final String IS_GENERATEDCOLUMN = "IS_GENERATEDCOLUMN";
     private static final String IS_AUTOINCREMENT = "IS_AUTOINCREMENT";
 
     /**
@@ -237,9 +236,10 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
      * @param query
      *            to execute
      * @return Resultset from the execution
+     * @throws SQLTimeoutException 
      */
     private SQLServerResultSet getResultSetFromInternalQueries(String catalog,
-            String query) throws SQLServerException {
+            String query) throws SQLServerException, SQLTimeoutException {
         checkClosed();
         String orgCat = null;
         orgCat = switchCatalogs(catalog);
@@ -267,11 +267,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
             hassoc = new HandleAssociation(catalog, CS);
             HandleAssociation previous = handleMap.put(request, hassoc);
             if (null != previous) {
-                ((SQLServerCallableStatement) previous.stmt).handleDBName = previous.databaseName;
-
                 previous.close();
-
-                ((SQLServerCallableStatement) previous.stmt).handleDBName = null;
             }
         }
         return hassoc.stmt;
@@ -287,10 +283,11 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
      * @param arguments
      *            for the stored procedure
      * @return Resultset from the execution
+     * @throws SQLTimeoutException 
      */
     private SQLServerResultSet getResultSetFromStoredProc(String catalog,
             CallableHandles procedure,
-            String[] arguments) throws SQLServerException {
+            String[] arguments) throws SQLServerException, SQLTimeoutException {
         checkClosed();
         assert null != arguments;
         String orgCat = null;
@@ -316,7 +313,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
     private SQLServerResultSet getResultSetWithProvidedColumnNames(String catalog,
             CallableHandles procedure,
             String[] arguments,
-            String[] columnNames) throws SQLServerException {
+            String[] columnNames) throws SQLServerException, SQLTimeoutException {
         // Execute the query
         SQLServerResultSet rs = getResultSetFromStoredProc(catalog, procedure, arguments);
 
@@ -408,7 +405,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
         return false;
     }
 
-    /* L0 */ public java.sql.ResultSet getCatalogs() throws SQLServerException {
+    /* L0 */ public java.sql.ResultSet getCatalogs() throws SQLServerException, SQLTimeoutException {
         if (loggerExternal.isLoggable(Level.FINER) && Util.IsActivityTraceOn()) {
             loggerExternal.finer(toString() + " ActivityId: " + ActivityCorrelator.getNext().toString());
         }
@@ -434,7 +431,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
     /* L0 */ public java.sql.ResultSet getColumnPrivileges(String catalog,
             String schema,
             String table,
-            String col) throws SQLServerException {
+            String col) throws SQLServerException, SQLTimeoutException {
         if (loggerExternal.isLoggable(Level.FINER) && Util.IsActivityTraceOn()) {
             loggerExternal.finer(toString() + " ActivityId: " + ActivityCorrelator.getNext().toString());
         }
@@ -460,7 +457,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
     /* L0 */ public java.sql.ResultSet getTables(String catalog,
             String schema,
             String table,
-            String types[]) throws SQLServerException {
+            String types[]) throws SQLServerException, SQLTimeoutException {
         if (loggerExternal.isLoggable(Level.FINER) && Util.IsActivityTraceOn()) {
             loggerExternal.finer(toString() + " ActivityId: " + ActivityCorrelator.getNext().toString());
         }
@@ -564,13 +561,13 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
     private static final String[] getColumnsColumnNamesKatmai = {/* 1 */ TABLE_CAT, /* 2 */ TABLE_SCHEM, /* 3 */ TABLE_NAME, /* 4 */ COLUMN_NAME,
             /* 5 */ DATA_TYPE, /* 6 */ TYPE_NAME, /* 7 */ COLUMN_SIZE, /* 8 */ BUFFER_LENGTH, /* 9 */ DECIMAL_DIGITS, /* 10 */ NUM_PREC_RADIX,
             /* 11 */ NULLABLE, /* 12 */ REMARKS, /* 13 */ COLUMN_DEF, /* 14 */ SQL_DATA_TYPE, /* 15 */ SQL_DATETIME_SUB, /* 16 */ CHAR_OCTET_LENGTH,
-            /* 17 */ ORDINAL_POSITION, /* 18 */ IS_NULLABLE, /* 20 */ SS_IS_SPARSE, /* 20 */ SS_IS_COLUMN_SET, /* 21 */ SS_IS_COMPUTED,
+            /* 17 */ ORDINAL_POSITION, /* 18 */ IS_NULLABLE, /* 20 */ SS_IS_SPARSE, /* 20 */ SS_IS_COLUMN_SET, /* 21 */ IS_GENERATEDCOLUMN,
             /* 22 */ IS_AUTOINCREMENT};
 
     /* L0 */ public java.sql.ResultSet getColumns(String catalog,
             String schema,
             String table,
-            String col) throws SQLServerException {
+            String col) throws SQLServerException, SQLTimeoutException {
         if (loggerExternal.isLoggable(Level.FINER) && Util.IsActivityTraceOn()) {
             loggerExternal.finer(toString() + " ActivityId: " + ActivityCorrelator.getNext().toString());
         }
@@ -709,7 +706,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
             String schema,
             String table,
             int scope,
-            boolean nullable) throws SQLServerException {
+            boolean nullable) throws SQLServerException, SQLTimeoutException {
         if (loggerExternal.isLoggable(Level.FINER) && Util.IsActivityTraceOn()) {
             loggerExternal.finer(toString() + " ActivityId: " + ActivityCorrelator.getNext().toString());
         }
@@ -742,16 +739,12 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
         return rs;
     }
 
-    private static final String[] pkfkColumnNames = {/* 1 */ PKTABLE_CAT, /* 2 */ PKTABLE_SCHEM, /* 3 */ PKTABLE_NAME, /* 4 */ PKCOLUMN_NAME,
-            /* 5 */ FKTABLE_CAT, /* 6 */ FKTABLE_SCHEM, /* 7 */ FKTABLE_NAME, /* 8 */ FKCOLUMN_NAME, /* 9 */ KEY_SEQ, /* 10 */ UPDATE_RULE,
-            /* 11 */ DELETE_RULE, /* 12 */ FK_NAME, /* 13 */ PK_NAME, /* 14 */ DEFERRABILITY};
-
     /* L0 */ public java.sql.ResultSet getCrossReference(String cat1,
             String schem1,
             String tab1,
             String cat2,
             String schem2,
-            String tab2) throws SQLServerException {
+            String tab2) throws SQLServerException, SQLTimeoutException {
         if (loggerExternal.isLoggable(Level.FINER) && Util.IsActivityTraceOn()) {
             loggerExternal.finer(toString() + " ActivityId: " + ActivityCorrelator.getNext().toString());
         }
@@ -761,17 +754,8 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
          * sp_fkeys [ @pktable_name = ] 'pktable_name' [ , [ @pktable_owner = ] 'pktable_owner' ] [ , [ @pktable_qualifier = ] 'pktable_qualifier' ] {
          * , [ @fktable_name = ] 'fktable_name' } [ , [ @fktable_owner = ] 'fktable_owner' ] [ , [ @fktable_qualifier = ] 'fktable_qualifier' ]
          */
-        String[] arguments = new String[6];
-        arguments[0] = tab1; // pktable_name
-        arguments[1] = schem1;
-        arguments[2] = cat1;
-        arguments[3] = tab2;
-        arguments[4] = schem2;
-        arguments[5] = cat2;
-
-        SQLServerResultSet fkeysRS = getResultSetWithProvidedColumnNames(null, CallableHandles.SP_FKEYS, arguments, pkfkColumnNames);
-
-        return getResultSetForForeignKeyInformation(fkeysRS, null);
+        String[] arguments = {tab1, schem1, cat1, tab2, schem2, cat2};
+        return executeSPFkeys(arguments);
     }
 
     /* L0 */ public String getDatabaseProductName() throws SQLServerException {
@@ -817,27 +801,8 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
 
     /* L0 */ public java.sql.ResultSet getExportedKeys(String cat,
             String schema,
-            String table) throws SQLServerException {
-        if (loggerExternal.isLoggable(Level.FINER) && Util.IsActivityTraceOn()) {
-            loggerExternal.finer(toString() + " ActivityId: " + ActivityCorrelator.getNext().toString());
-        }
-        checkClosed();
-
-        /*
-         * sp_fkeys [ @pktable_name = ] 'pktable_name' [ , [ @pktable_owner = ] 'pktable_owner' ] [ , [ @pktable_qualifier = ] 'pktable_qualifier' ] {
-         * , [ @fktable_name = ] 'fktable_name' } [ , [ @fktable_owner = ] 'fktable_owner' ] [ , [ @fktable_qualifier = ] 'fktable_qualifier' ]
-         */
-        String[] arguments = new String[6];
-        arguments[0] = table; // pktable_name
-        arguments[1] = schema;
-        arguments[2] = cat;
-        arguments[3] = null; // fktable_name
-        arguments[4] = null;
-        arguments[5] = null;
-        
-        SQLServerResultSet fkeysRS = getResultSetWithProvidedColumnNames(cat, CallableHandles.SP_FKEYS, arguments, pkfkColumnNames);
-
-        return getResultSetForForeignKeyInformation(fkeysRS, cat);
+            String table) throws SQLServerException, SQLTimeoutException {
+        return getCrossReference(cat, schema, table, null, null, null);
     }
 
     /* L0 */ public String getExtraNameCharacters() throws SQLServerException {
@@ -852,164 +817,69 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
 
     /* L0 */ public java.sql.ResultSet getImportedKeys(String cat,
             String schema,
-            String table) throws SQLServerException {
-        if (loggerExternal.isLoggable(Level.FINER) && Util.IsActivityTraceOn()) {
-            loggerExternal.finer(toString() + " ActivityId: " + ActivityCorrelator.getNext().toString());
-        }
-        checkClosed();
-
-        /*
-         * sp_fkeys [ @pktable_name = ] 'pktable_name' [ , [ @pktable_owner = ] 'pktable_owner' ] [ , [ @pktable_qualifier = ] 'pktable_qualifier' ] {
-         * , [ @fktable_name = ] 'fktable_name' } [ , [ @fktable_owner = ] 'fktable_owner' ] [ , [ @fktable_qualifier = ] 'fktable_qualifier' ]
-         */
-        String[] arguments = new String[6];
-        arguments[0] = null; // pktable_name
-        arguments[1] = null;
-        arguments[2] = null;
-        arguments[3] = table; // fktable_name
-        arguments[4] = schema;
-        arguments[5] = cat;
-
-        SQLServerResultSet fkeysRS = getResultSetWithProvidedColumnNames(cat, CallableHandles.SP_FKEYS, arguments, pkfkColumnNames);
-
-        return getResultSetForForeignKeyInformation(fkeysRS, cat);
+            String table) throws SQLServerException, SQLTimeoutException {
+        return getCrossReference(null, null, null, cat, schema, table);
     }
 
-    /**
-     * The original sp_fkeys stored procedure does not give the required values from JDBC specification. This method creates 2 temporary tables and
-     * uses join and other operations on them to give the correct values.
-     * 
-     * @param sp_fkeys_Query
-     * @return
-     * @throws SQLServerException
-     */
-    private ResultSet getResultSetForForeignKeyInformation(SQLServerResultSet fkeysRS, String cat) throws SQLServerException {
-        UUID uuid = UUID.randomUUID();
-        String fkeys_results_tableName = "[#fkeys_results" + uuid + "]";
-        String foreign_keys_combined_tableName = "[#foreign_keys_combined_results" + uuid + "]";
-        String sys_foreign_keys = "sys.foreign_keys";
-
-        String fkeys_results_column_definition = "PKTABLE_QUALIFIER sysname, PKTABLE_OWNER sysname, PKTABLE_NAME sysname, PKCOLUMN_NAME sysname, FKTABLE_QUALIFIER sysname, FKTABLE_OWNER sysname, FKTABLE_NAME sysname, FKCOLUMN_NAME sysname, KEY_SEQ smallint, UPDATE_RULE smallint, DELETE_RULE smallint, FK_NAME sysname, PK_NAME sysname, DEFERRABILITY smallint";
-        String foreign_keys_combined_column_definition = "name sysname, delete_referential_action_desc nvarchar(60), update_referential_action_desc nvarchar(60),"
-                + fkeys_results_column_definition;
-
-        // cannot close this statement, otherwise the returned resultset would be closed too.
-        SQLServerStatement stmt = (SQLServerStatement) connection.createStatement();
-    
-        /**
-         * create a temp table that has the same definition as the result of sp_fkeys:
-         * 
-         * create table #fkeys_results ( 
-         * PKTABLE_QUALIFIER sysname, 
-         * PKTABLE_OWNER sysname, 
-         * PKTABLE_NAME sysname, 
-         * PKCOLUMN_NAME sysname,
-         * FKTABLE_QUALIFIER sysname, 
-         * FKTABLE_OWNER sysname, 
-         * FKTABLE_NAME sysname, 
-         * FKCOLUMN_NAME sysname, 
-         * KEY_SEQ smallint, 
-         * UPDATE_RULE smallint,
-         * DELETE_RULE smallint, 
-         * FK_NAME sysname, 
-         * PK_NAME sysname, 
-         * DEFERRABILITY smallint 
-         * );
-         * 
-         */
-        stmt.execute("create table " + fkeys_results_tableName + " (" + fkeys_results_column_definition + ")");
-
-        /**
-         * insert the results of sp_fkeys to the temp table #fkeys_results
-         */
-        SQLServerPreparedStatement ps = (SQLServerPreparedStatement) connection
-                .prepareCall("insert into " + fkeys_results_tableName + "values(?,?,?,?,?,?,?,?,?,?,?,?,?,?)");
-        try {
-            while (fkeysRS.next()) {
-                ps.setString(1, fkeysRS.getString(1));
-                ps.setString(2, fkeysRS.getString(2));
-                ps.setString(3, fkeysRS.getString(3));
-                ps.setString(4, fkeysRS.getString(4));
-                ps.setString(5, fkeysRS.getString(5));
-                ps.setString(6, fkeysRS.getString(6));
-                ps.setString(7, fkeysRS.getString(7));
-                ps.setString(8, fkeysRS.getString(8));
-                ps.setInt(9, fkeysRS.getInt(9));
-                ps.setInt(10, fkeysRS.getInt(10));
-                ps.setInt(11, fkeysRS.getInt(11));
-                ps.setString(12, fkeysRS.getString(12));
-                ps.setString(13, fkeysRS.getString(13));
-                ps.setInt(14, fkeysRS.getInt(14));
-                ps.execute();
-            }
+    private ResultSet executeSPFkeys(String[] procParams) throws SQLServerException, SQLTimeoutException
+    {
+        String tempTableName = "@jdbc_temp_fkeys_result";
+        String sql = "DECLARE " + tempTableName + " table (PKTABLE_QUALIFIER sysname, " + 
+                                              "PKTABLE_OWNER sysname, " + 
+                                              "PKTABLE_NAME sysname, " + 
+                                              "PKCOLUMN_NAME sysname, " + 
+                                              "FKTABLE_QUALIFIER sysname, " + 
+                                              "FKTABLE_OWNER sysname, " + 
+                                              "FKTABLE_NAME sysname, " + 
+                                              "FKCOLUMN_NAME sysname, " + 
+                                              "KEY_SEQ smallint, " + 
+                                              "UPDATE_RULE smallint, " + 
+                                              "DELETE_RULE smallint, " + 
+                                              "FK_NAME sysname, " + 
+                                              "PK_NAME sysname, " + 
+                                              "DEFERRABILITY smallint);" + 
+                     "INSERT INTO " + tempTableName + " EXEC sp_fkeys ?,?,?,?,?,?;" +
+                     "SELECT  t.PKTABLE_QUALIFIER AS PKTABLE_CAT, " + 
+                             "t.PKTABLE_OWNER AS PKTABLE_SCHEM, " + 
+                             "t.PKTABLE_NAME, " + 
+                             "t.PKCOLUMN_NAME, " + 
+                             "t.FKTABLE_QUALIFIER AS FKTABLE_CAT, " + 
+                             "t.FKTABLE_OWNER AS FKTABLE_SCHEM, " + 
+                             "t.FKTABLE_NAME, " + 
+                             "t.FKCOLUMN_NAME, " + 
+                             "t.KEY_SEQ, " + 
+                             "CASE s.update_referential_action " + 
+                                 "WHEN 1 THEN 0 " + //cascade - note that sp_fkey and sys.foreign_keys have flipped values for cascade and no action
+                                 "WHEN 0 THEN 3 " + //no action
+                                 "WHEN 2 THEN 2 " + //set null
+                                 "WHEN 3 THEN 4 " + //set default
+                             "END as UPDATE_RULE, " + 
+                             "CASE s.delete_referential_action " + 
+                                 "WHEN 1 THEN 0 " + 
+                                 "WHEN 0 THEN 3 " + 
+                                 "WHEN 2 THEN 2 " + 
+                                 "WHEN 3 THEN 4 " + 
+                             "END as DELETE_RULE, " + 
+                             "t.FK_NAME, " + 
+                             "t.PK_NAME, " + 
+                             "t.DEFERRABILITY " + 
+                     "FROM " + tempTableName + " t " + 
+                     "LEFT JOIN sys.foreign_keys s ON t.FK_NAME = s.name collate database_default;";
+        SQLServerCallableStatement cstmt = (SQLServerCallableStatement) connection.prepareCall(sql);
+        for (int i = 0; i < 6; i++) {
+            cstmt.setString(i+1, procParams[i]);
         }
-        finally {
-            if (null != ps) {
-                ps.close();
-            }
-            if (null != fkeysRS) {
-                fkeysRS.close();
-            }
+        String currentDB = null;
+        if (procParams[2] != null && procParams[2] != "") {//pktable_qualifier
+            currentDB = switchCatalogs(procParams[2]);
+        } else if (procParams[5] != null && procParams[5] != "") {//fktable_qualifier
+            currentDB = switchCatalogs(procParams[5]);
         }
-
-        /**
-         * create another temp table that has 3 columns from sys.foreign_keys and the rest of columns are the same as #fkeys_results:
-         * 
-         * create table #foreign_keys_combined_results ( 
-         * name sysname, 
-         * delete_referential_action_desc nvarchar(60), 
-         * update_referential_action_desc nvarchar(60), 
-         * ......
-         * ......
-         * ......
-         * );
-         * 
-         */
-        stmt.addBatch("create table " + foreign_keys_combined_tableName + " (" + foreign_keys_combined_column_definition + ")");
-
-        /**
-         * right join the content of sys.foreign_keys and the content of #fkeys_results base on foreign key name and save the result to the new temp
-         * table #foreign_keys_combined_results
-         */
-        stmt.addBatch("insert into " + foreign_keys_combined_tableName 
-                + " select " + sys_foreign_keys + ".name, " + sys_foreign_keys + ".delete_referential_action_desc, " + sys_foreign_keys + ".update_referential_action_desc," 
-                + fkeys_results_tableName + ".PKTABLE_QUALIFIER," + fkeys_results_tableName + ".PKTABLE_OWNER," + fkeys_results_tableName + ".PKTABLE_NAME," + fkeys_results_tableName + ".PKCOLUMN_NAME,"
-                + fkeys_results_tableName + ".FKTABLE_QUALIFIER," + fkeys_results_tableName + ".FKTABLE_OWNER," + fkeys_results_tableName + ".FKTABLE_NAME," + fkeys_results_tableName + ".FKCOLUMN_NAME,"
-                + fkeys_results_tableName + ".KEY_SEQ," + fkeys_results_tableName + ".UPDATE_RULE," + fkeys_results_tableName + ".DELETE_RULE," + fkeys_results_tableName + ".FK_NAME," + fkeys_results_tableName + ".PK_NAME,"
-                + fkeys_results_tableName + ".DEFERRABILITY from " + sys_foreign_keys 
-                + " right join " + fkeys_results_tableName + " on " + sys_foreign_keys + ".name=" + fkeys_results_tableName + ".FK_NAME");
-    
-        /**
-         * the DELETE_RULE value and UPDATE_RULE value returned from sp_fkeys are not the same as required by JDBC spec. therefore, we need to update
-         * those values to JDBC required values base on delete_referential_action_desc and update_referential_action_desc returned from sys.foreign_keys
-         * No Action: 3
-         * Cascade: 0
-         * Set Null: 2
-         * Set Default: 4
-         */
-        stmt.addBatch("update " + foreign_keys_combined_tableName + " set DELETE_RULE=3 where delete_referential_action_desc='NO_ACTION';" 
-                + "update " + foreign_keys_combined_tableName + " set DELETE_RULE=0 where delete_referential_action_desc='Cascade';" 
-                + "update " + foreign_keys_combined_tableName + " set DELETE_RULE=2 where delete_referential_action_desc='SET_NULL';" 
-                + "update " + foreign_keys_combined_tableName + " set DELETE_RULE=4 where delete_referential_action_desc='SET_DEFAULT';" 
-                + "update " + foreign_keys_combined_tableName + " set UPDATE_RULE=3 where update_referential_action_desc='NO_ACTION';" 
-                + "update " + foreign_keys_combined_tableName + " set UPDATE_RULE=0 where update_referential_action_desc='Cascade';" 
-                + "update " + foreign_keys_combined_tableName + " set UPDATE_RULE=2 where update_referential_action_desc='SET_NULL';" 
-                + "update " + foreign_keys_combined_tableName + " set UPDATE_RULE=4 where update_referential_action_desc='SET_DEFAULT';");
-
-        try {
-            stmt.executeBatch();
+        ResultSet rs = cstmt.executeQuery();
+        if (currentDB != null) {
+            switchCatalogs(currentDB);
         }
-        catch (BatchUpdateException e) {
-            throw new SQLServerException(e.getMessage(), e.getSQLState(), e.getErrorCode(), null);
-        }
-
-        /**
-         * now, the #foreign_keys_combined_results table has the correct values for DELETE_RULE and UPDATE_RULE. Then we can return the result of
-         * the table with the same definition of the resultset return by sp_fkeys (same column definition and same order).
-         */
-        return stmt.executeQuery(
-                "select PKTABLE_QUALIFIER as 'PKTABLE_CAT',PKTABLE_OWNER as 'PKTABLE_SCHEM',PKTABLE_NAME,PKCOLUMN_NAME,FKTABLE_QUALIFIER as 'FKTABLE_CAT',FKTABLE_OWNER as 'FKTABLE_SCHEM',FKTABLE_NAME,FKCOLUMN_NAME,KEY_SEQ,UPDATE_RULE,DELETE_RULE,FK_NAME,PK_NAME,DEFERRABILITY from "
-                        + foreign_keys_combined_tableName + " order by FKTABLE_QUALIFIER, FKTABLE_OWNER, FKTABLE_NAME, KEY_SEQ");
+        return rs;
     }
 
     private static final String[] getIndexInfoColumnNames = {/* 1 */ TABLE_CAT, /* 2 */ TABLE_SCHEM, /* 3 */ TABLE_NAME, /* 4 */ NON_UNIQUE,
@@ -1020,7 +890,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
             String schema,
             String table,
             boolean unique,
-            boolean approximate) throws SQLServerException {
+            boolean approximate) throws SQLServerException, SQLTimeoutException {
         if (loggerExternal.isLoggable(Level.FINER) && Util.IsActivityTraceOn()) {
             loggerExternal.finer(toString() + " ActivityId: " + ActivityCorrelator.getNext().toString());
         }
@@ -1091,7 +961,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
         return 1024;
     }
 
-    /* L0 */ public int getMaxConnections() throws SQLServerException {
+    /* L0 */ public int getMaxConnections() throws SQLServerException, SQLTimeoutException {
         checkClosed();
         try {
             String s = "sp_configure 'user connections'";
@@ -1171,7 +1041,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
 
     /* L0 */ public java.sql.ResultSet getPrimaryKeys(String cat,
             String schema,
-            String table) throws SQLServerException {
+            String table) throws SQLServerException, SQLTimeoutException {
         if (loggerExternal.isLoggable(Level.FINER) && Util.IsActivityTraceOn()) {
             loggerExternal.finer(toString() + " ActivityId: " + ActivityCorrelator.getNext().toString());
         }
@@ -1194,7 +1064,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
     /* L0 */ public java.sql.ResultSet getProcedureColumns(String catalog,
             String schema,
             String proc,
-            String col) throws SQLServerException {
+            String col) throws SQLServerException, SQLTimeoutException {
         if (loggerExternal.isLoggable(Level.FINER) && Util.IsActivityTraceOn()) {
             loggerExternal.finer(toString() + " ActivityId: " + ActivityCorrelator.getNext().toString());
         }
@@ -1236,7 +1106,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
 
     /* L0 */ public java.sql.ResultSet getProcedures(String catalog,
             String schema,
-            String proc) throws SQLServerException {
+            String proc) throws SQLServerException, SQLTimeoutException {
         if (loggerExternal.isLoggable(Level.FINER) && Util.IsActivityTraceOn()) {
             loggerExternal.finer(toString() + " ActivityId: " + ActivityCorrelator.getNext().toString());
         }
@@ -1286,7 +1156,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
         /* 13 */ " cast(NULL as char(1)) as IS_NULLABLE" + " where 0 = 1");
     }
 
-    /* L0 */ public java.sql.ResultSet getSchemas() throws SQLServerException {
+    /* L0 */ public java.sql.ResultSet getSchemas() throws SQLServerException, SQLTimeoutException {
         if (loggerExternal.isLoggable(Level.FINER) && Util.IsActivityTraceOn()) {
             loggerExternal.finer(toString() + " ActivityId: " + ActivityCorrelator.getNext().toString());
         }
@@ -1296,7 +1166,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
     }
 
     private java.sql.ResultSet getSchemasInternal(String catalog,
-            String schemaPattern) throws SQLServerException {
+            String schemaPattern) throws SQLServerException, SQLTimeoutException {
 
         String s;
         // The schemas that return null for catalog name, these are prebuilt schemas shipped by SQLServer, if SQLServer adds anymore of these
@@ -1401,7 +1271,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
 
     /* L0 */ public java.sql.ResultSet getTablePrivileges(String catalog,
             String schema,
-            String table) throws SQLServerException {
+            String table) throws SQLServerException, SQLTimeoutException {
         if (loggerExternal.isLoggable(Level.FINER) && Util.IsActivityTraceOn()) {
             loggerExternal.finer(toString() + " ActivityId: " + ActivityCorrelator.getNext().toString());
         }
@@ -1420,7 +1290,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
         return getResultSetWithProvidedColumnNames(catalog, CallableHandles.SP_TABLE_PRIVILEGES, arguments, getTablePrivilegesColumnNames);
     }
 
-    /* L0 */ public java.sql.ResultSet getTableTypes() throws SQLServerException {
+    /* L0 */ public java.sql.ResultSet getTableTypes() throws SQLServerException, SQLTimeoutException {
         if (loggerExternal.isLoggable(Level.FINER) && Util.IsActivityTraceOn()) {
             loggerExternal.finer(toString() + " ActivityId: " + ActivityCorrelator.getNext().toString());
         }
@@ -1435,7 +1305,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
         return "CURDATE,CURTIME,DAYNAME,DAYOFMONTH,DAYOFWEEK,DAYOFYEAR,HOUR,MINUTE,MONTH,MONTHNAME,NOW,QUARTER,SECOND,TIMESTAMPADD,TIMESTAMPDIFF,WEEK,YEAR";
     }
 
-    /* L0 */ public java.sql.ResultSet getTypeInfo() throws SQLServerException {
+    /* L0 */ public java.sql.ResultSet getTypeInfo() throws SQLServerException, SQLTimeoutException {
         if (loggerExternal.isLoggable(Level.FINER) && Util.IsActivityTraceOn()) {
             loggerExternal.finer(toString() + " ActivityId: " + ActivityCorrelator.getNext().toString());
         }
@@ -1517,7 +1387,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
         return (url.toString());
     }
 
-    /* L0 */ public String getUserName() throws SQLServerException {
+    /* L0 */ public String getUserName() throws SQLServerException, SQLTimeoutException {
         if (loggerExternal.isLoggable(Level.FINER) && Util.IsActivityTraceOn()) {
             loggerExternal.finer(toString() + " ActivityId: " + ActivityCorrelator.getNext().toString());
         }
@@ -1551,7 +1421,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
 
     /* L0 */ public java.sql.ResultSet getVersionColumns(String catalog,
             String schema,
-            String table) throws SQLServerException {
+            String table) throws SQLServerException, SQLTimeoutException {
         if (loggerExternal.isLoggable(Level.FINER) && Util.IsActivityTraceOn()) {
             loggerExternal.finer(toString() + " ActivityId: " + ActivityCorrelator.getNext().toString());
         }
@@ -2093,7 +1963,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
     /* L0 */ public java.sql.ResultSet getUDTs(String catalog,
             String schemaPattern,
             String typeNamePattern,
-            int[] types) throws SQLServerException {
+            int[] types) throws SQLServerException, SQLTimeoutException {
         if (loggerExternal.isLoggable(Level.FINER) && Util.IsActivityTraceOn()) {
             loggerExternal.finer(toString() + " ActivityId: " + ActivityCorrelator.getNext().toString());
         }
@@ -2130,7 +2000,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
         if (p > 0)
             s = s.substring(0, p);
         try {
-            return new Integer(s);
+            return Integer.parseInt(s);
         }
         catch (NumberFormatException e) {
             return 0;
@@ -2145,7 +2015,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
         if (p > 0 && q > 0)
             s = s.substring(p + 1, q);
         try {
-            return new Integer(s);
+            return Integer.parseInt(s);
         }
         catch (NumberFormatException e) {
             return 0;
@@ -2187,7 +2057,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
     /* L3 */ public ResultSet getAttributes(String catalog,
             String schemaPattern,
             String typeNamePattern,
-            String attributeNamePattern) throws SQLServerException {
+            String attributeNamePattern) throws SQLServerException, SQLTimeoutException {
         if (loggerExternal.isLoggable(Level.FINER) && Util.IsActivityTraceOn()) {
             loggerExternal.finer(toString() + " ActivityId: " + ActivityCorrelator.getNext().toString());
         }
@@ -2218,7 +2088,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
 
     /* L3 */ public ResultSet getSuperTables(String catalog,
             String schemaPattern,
-            String tableNamePattern) throws SQLServerException {
+            String tableNamePattern) throws SQLServerException, SQLTimeoutException {
         if (loggerExternal.isLoggable(Level.FINER) && Util.IsActivityTraceOn()) {
             loggerExternal.finer(toString() + " ActivityId: " + ActivityCorrelator.getNext().toString());
         }
@@ -2232,7 +2102,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
 
     /* L3 */ public ResultSet getSuperTypes(String catalog,
             String schemaPattern,
-            String typeNamePattern) throws SQLServerException {
+            String typeNamePattern) throws SQLServerException, SQLTimeoutException {
         if (loggerExternal.isLoggable(Level.FINER) && Util.IsActivityTraceOn()) {
             loggerExternal.finer(toString() + " ActivityId: " + ActivityCorrelator.getNext().toString());
         }

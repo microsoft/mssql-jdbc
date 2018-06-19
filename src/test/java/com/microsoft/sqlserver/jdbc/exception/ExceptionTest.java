@@ -13,6 +13,7 @@ import java.io.UnsupportedEncodingException;
 import java.net.SocketTimeoutException;
 import java.sql.DriverManager;
 import java.sql.SQLException;
+import java.text.MessageFormat;
 
 import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
@@ -20,7 +21,7 @@ import org.junit.runner.RunWith;
 
 import com.microsoft.sqlserver.jdbc.SQLServerBulkCSVFileRecord;
 import com.microsoft.sqlserver.jdbc.SQLServerConnection;
-import com.microsoft.sqlserver.jdbc.SQLServerException;
+import com.microsoft.sqlserver.jdbc.TestResource;
 import com.microsoft.sqlserver.testframework.AbstractTest;
 import com.microsoft.sqlserver.testframework.Utils;
 
@@ -29,7 +30,7 @@ public class ExceptionTest extends AbstractTest {
     static String inputFile = "BulkCopyCSVTestInput.csv";
 
     /**
-     * Test the SQLServerException has the proper cause when encoding is not supported.
+     * Test the SQLException has the proper cause when encoding is not supported.
      * 
      * @throws Exception
      */
@@ -41,12 +42,14 @@ public class ExceptionTest extends AbstractTest {
             SQLServerBulkCSVFileRecord scvFileRecord = new SQLServerBulkCSVFileRecord(filePath + inputFile, "invalid_encoding", true);
         }
         catch (Exception e) {
-            if (!(e instanceof SQLServerException)) {
+            if (!(e instanceof SQLException)) {
                 throw e;
             }
 
-            assertTrue(null != e.getCause(), "Cause should not be null.");
-            assertTrue(e.getCause() instanceof UnsupportedEncodingException, "Cause should be instance of UnsupportedEncodingException.");
+            assertTrue(null != e.getCause(), TestResource.getResource("R_causeShouldNotBeNull"));
+            MessageFormat form = new MessageFormat(TestResource.getResource("R_causeShouldBeInstance"));
+            Object[] msgArgs = {"UnsupportedEncodingException"};
+            assertTrue(e.getCause() instanceof UnsupportedEncodingException, form.format(msgArgs));
         }
     }
 
@@ -54,7 +57,7 @@ public class ExceptionTest extends AbstractTest {
     final int waitForDelaySeconds = 10;
 
     /**
-     * Test the SQLServerException has the proper cause when socket timeout occurs.
+     * Test the SQLException has the proper cause when socket timeout occurs.
      * 
      * @throws Exception
      * 
@@ -72,15 +75,17 @@ public class ExceptionTest extends AbstractTest {
 
             try {
                 conn.createStatement().execute("exec " + waitForDelaySPName);
-                throw new Exception("Exception for socketTimeout is not thrown.");
+                throw new Exception(TestResource.getResource("R_expectedExceptionNotThrown"));
             }
             catch (Exception e) {
-                if (!(e instanceof SQLServerException)) {
+                if (!(e instanceof SQLException)) {
                     throw e;
                 }
 
-                assertTrue(null != e.getCause(), "Cause should not be null.");
-                assertTrue(e.getCause() instanceof SocketTimeoutException, "Cause should be instance of SocketTimeoutException.");
+                assertTrue(null != e.getCause(), TestResource.getResource("R_causeShouldNotBeNull"));
+                MessageFormat form = new MessageFormat(TestResource.getResource("R_causeShouldBeInstance"));
+                Object[] msgArgs = {"SocketTimeoutException"};
+                assertTrue(e.getCause() instanceof SocketTimeoutException, form.format(msgArgs));
             }
         }
         finally {

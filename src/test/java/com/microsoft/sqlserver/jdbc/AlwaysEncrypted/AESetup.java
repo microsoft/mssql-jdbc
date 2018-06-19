@@ -31,10 +31,10 @@ import org.opentest4j.TestAbortedException;
 import com.microsoft.sqlserver.jdbc.SQLServerColumnEncryptionJavaKeyStoreProvider;
 import com.microsoft.sqlserver.jdbc.SQLServerColumnEncryptionKeyStoreProvider;
 import com.microsoft.sqlserver.jdbc.SQLServerConnection;
-import com.microsoft.sqlserver.jdbc.SQLServerException;
 import com.microsoft.sqlserver.jdbc.SQLServerPreparedStatement;
 import com.microsoft.sqlserver.jdbc.SQLServerStatement;
 import com.microsoft.sqlserver.jdbc.SQLServerStatementColumnEncryptionSetting;
+import com.microsoft.sqlserver.jdbc.TestResource;
 import com.microsoft.sqlserver.testframework.AbstractTest;
 import com.microsoft.sqlserver.testframework.DBConnection;
 import com.microsoft.sqlserver.testframework.Utils;
@@ -88,7 +88,7 @@ public class AESetup extends AbstractTest {
     @BeforeAll
     static void setUpConnection() throws TestAbortedException, Exception {
         assumeTrue(13 <= new DBConnection(connectionString).getServerVersion(),
-                "Aborting test case as SQL Server version is not compatible with Always encrypted ");
+                TestResource.getResource("R_Incompat_SQLServerVersion"));
 
         String AETestConenctionString = connectionString + ";sendTimeAsDateTime=false";
         readFromFile(javaKeyStoreInputFile, "Alias name");
@@ -119,11 +119,10 @@ public class AESetup extends AbstractTest {
      * Dropping all CMKs and CEKs and any open resources. Technically, dropAll depends on the state of the class so it shouldn't be static, but the
      * AfterAll annotation requires it to be static.
      * 
-     * @throws SQLServerException
      * @throws SQLException
      */
     @AfterAll
-    private static void dropAll() throws SQLServerException, SQLException {
+    private static void dropAll() throws SQLException {
         dropTables(stmt);
         dropCEK(stmt);
         dropCMK(stmt);
@@ -142,7 +141,7 @@ public class AESetup extends AbstractTest {
         filePath = Utils.getCurrentClassPath();
         try {
             File f = new File(filePath + inputFile);
-            assumeTrue(f.exists(), "Aborting test case since no java key store and alias name exists!");
+            assumeTrue(f.exists(), TestResource.getResource("R_noKeyStore"));
             try(BufferedReader buffer = new BufferedReader(new FileReader(f))) {
 	            String readLine = "";
 	            String[] linecontents;
@@ -2058,10 +2057,9 @@ public class AESetup extends AbstractTest {
     /**
      * Dropping column encryption key
      * 
-     * @throws SQLServerException
      * @throws SQLException
      */
-    private static void dropCEK(SQLServerStatement stmt) throws SQLServerException, SQLException {
+    private static void dropCEK(SQLServerStatement stmt) throws SQLException {
         String cekSql = " if exists (SELECT name from sys.column_encryption_keys where name='" + cekName + "')" + " begin"
                 + " drop column encryption key " + cekName + " end";
         stmt.execute(cekSql);
@@ -2070,10 +2068,9 @@ public class AESetup extends AbstractTest {
     /**
      * Dropping column master key
      * 
-     * @throws SQLServerException
      * @throws SQLException
      */
-    private static void dropCMK(SQLServerStatement stmt) throws SQLServerException, SQLException {
+    private static void dropCMK(SQLServerStatement stmt) throws SQLException {
         String cekSql = " if exists (SELECT name from sys.column_master_keys where name='" + cmkName + "')" + " begin" + " drop column master key "
                 + cmkName + " end";
         stmt.execute(cekSql);

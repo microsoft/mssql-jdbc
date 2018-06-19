@@ -1636,6 +1636,12 @@ final class DTV {
                     else if (JDBCType.SQL_VARIANT == jdbcType) {
                         op.execute(this, String.valueOf(value));
                     }
+                    else if (JDBCType.GEOMETRY == jdbcType) {
+                        op.execute(this, ((Geometry) value).serialize());
+                    }
+                    else if (JDBCType.GEOGRAPHY == jdbcType) {
+                        op.execute(this, ((Geography) value).serialize());
+                    }
                     else {
                         if (null != cryptoMeta) {
                             // if streaming types check for allowed data length in AE
@@ -2211,11 +2217,20 @@ final class AppDTVImpl extends DTVImpl {
                 BigDecimal bigDecimalValue) throws SQLServerException {
             // Rescale the value if necessary
             if (null != bigDecimalValue) {
-                Integer inScale = dtv.getScale();
-                if (null != inScale && inScale != bigDecimalValue.scale())
-                    bigDecimalValue = bigDecimalValue.setScale(inScale, RoundingMode.DOWN);
+            	Integer dtvScale, biScale = bigDecimalValue.scale();
+                if (null == dtv.getScale() && JDBCType.DECIMAL==dtv.getJdbcType()) {
+                	dtvScale = bigDecimalValue.precision() > SQLServerConnection.maxDecimalPrecision ? 
+                			SQLServerConnection.maxDecimalPrecision - (bigDecimalValue.precision() - biScale) : biScale;
+                	if(dtvScale > SQLServerConnection.maxDecimalPrecision) {
+                		dtv.setScale(SQLServerConnection.maxDecimalPrecision);
+                		dtvScale = SQLServerConnection.maxDecimalPrecision;
+                	}else {
+                		dtv.setScale(dtvScale);
+                	}
+                }else dtvScale = dtv.getScale();
+                if (dtvScale!=null && dtvScale != biScale)
+                    bigDecimalValue = bigDecimalValue.setScale(dtvScale, RoundingMode.DOWN);
             }
-
             dtv.setValue(bigDecimalValue, JavaType.BIGDECIMAL);
         }
 

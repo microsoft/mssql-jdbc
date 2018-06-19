@@ -1537,6 +1537,8 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
         int l = 0;
         if (paramNames != null)
             l = paramNames.size();
+        if (l == 0)//Server didn't return anything, user might not have access
+        	return 1;//attempting to look up the first column will return no access exception
 
         // handle `@name` as well as `name`, since `@name` is what's returned 
         // by DatabaseMetaData#getProcedureColumns

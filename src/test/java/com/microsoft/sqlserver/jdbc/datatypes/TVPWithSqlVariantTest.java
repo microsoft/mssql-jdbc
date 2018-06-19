@@ -15,6 +15,7 @@ import java.math.BigDecimal;
 import java.sql.Date;
 import java.sql.DriverManager;
 import java.sql.SQLException;
+import java.sql.SQLTimeoutException;
 import java.util.Random;
 
 import org.junit.jupiter.api.AfterAll;
@@ -27,10 +28,10 @@ import org.junit.runner.RunWith;
 import com.microsoft.sqlserver.jdbc.SQLServerCallableStatement;
 import com.microsoft.sqlserver.jdbc.SQLServerConnection;
 import com.microsoft.sqlserver.jdbc.SQLServerDataTable;
-import com.microsoft.sqlserver.jdbc.SQLServerException;
 import com.microsoft.sqlserver.jdbc.SQLServerPreparedStatement;
 import com.microsoft.sqlserver.jdbc.SQLServerResultSet;
 import com.microsoft.sqlserver.jdbc.SQLServerStatement;
+import com.microsoft.sqlserver.jdbc.TestResource;
 import com.microsoft.sqlserver.testframework.AbstractTest;
 import com.microsoft.sqlserver.testframework.Utils;
 import com.microsoft.sqlserver.testframework.sqlType.SqlDate;
@@ -51,10 +52,11 @@ public class TVPWithSqlVariantTest extends AbstractTest {
     /**
      * Test a previous failure regarding to numeric precision. Issue #211
      * 
-     * @throws SQLServerException
+     * @throws SQLException
+     * @throws SQLTimeoutException 
      */
     @Test
-    public void testInt() throws SQLServerException {
+    public void testInt() throws SQLException {
         tvp = new SQLServerDataTable();
         tvp.addColumnMetadata("c1", microsoft.sql.Types.SQL_VARIANT);
         tvp.addRow(12);
@@ -76,10 +78,11 @@ public class TVPWithSqlVariantTest extends AbstractTest {
     /**
      * Test with date value
      * 
-     * @throws SQLServerException
+     * @throws SQLException
+     * @throws SQLTimeoutException 
      */
     @Test
-    public void testDate() throws SQLServerException {
+    public void testDate() throws SQLException {
         SqlDate sqlDate = new SqlDate();
         Date date = (Date) sqlDate.createdata();
         tvp = new SQLServerDataTable();
@@ -100,10 +103,11 @@ public class TVPWithSqlVariantTest extends AbstractTest {
     /**
      * Test with money value
      * 
-     * @throws SQLServerException
+     * @throws SQLException
+     * @throws SQLTimeoutException 
      */
     @Test
-    public void testMoney() throws SQLServerException {
+    public void testMoney() throws SQLException {
         tvp = new SQLServerDataTable();
         tvp.addColumnMetadata("c1", microsoft.sql.Types.SQL_VARIANT);
         String[] numeric = createNumericValues();
@@ -123,10 +127,11 @@ public class TVPWithSqlVariantTest extends AbstractTest {
     /**
      * Test with small int value
      * 
-     * @throws SQLServerException
+     * @throws SQLException
+     * @throws SQLTimeoutException 
      */
     @Test
-    public void testSmallInt() throws SQLServerException {
+    public void testSmallInt() throws SQLException {
         tvp = new SQLServerDataTable();
         tvp.addColumnMetadata("c1", microsoft.sql.Types.SQL_VARIANT);
         String[] numeric = createNumericValues();
@@ -148,10 +153,11 @@ public class TVPWithSqlVariantTest extends AbstractTest {
     /**
      * Test with bigint value
      * 
-     * @throws SQLServerException
+     * @throws SQLException
+     * @throws SQLTimeoutException 
      */
     @Test
-    public void testBigInt() throws SQLServerException {
+    public void testBigInt() throws SQLException {
         Random r = new Random();
         tvp = new SQLServerDataTable();
         tvp.addColumnMetadata("c1", microsoft.sql.Types.SQL_VARIANT);
@@ -173,10 +179,11 @@ public class TVPWithSqlVariantTest extends AbstractTest {
     /**
      * Test with boolean value
      * 
-     * @throws SQLServerException
+     * @throws SQLException
+     * @throws SQLTimeoutException 
      */
     @Test
-    public void testBoolean() throws SQLServerException {
+    public void testBoolean() throws SQLException {
         tvp = new SQLServerDataTable();
         tvp.addColumnMetadata("c1", microsoft.sql.Types.SQL_VARIANT);
         String[] numeric = createNumericValues();
@@ -196,10 +203,11 @@ public class TVPWithSqlVariantTest extends AbstractTest {
     /**
      * Test with float value
      * 
-     * @throws SQLServerException
+     * @throws SQLException
+     * @throws SQLTimeoutException 
      */
     @Test
-    public void testFloat() throws SQLServerException {
+    public void testFloat() throws SQLException {
         tvp = new SQLServerDataTable();
         tvp.addColumnMetadata("c1", microsoft.sql.Types.SQL_VARIANT);
         String[] numeric = createNumericValues();
@@ -219,10 +227,11 @@ public class TVPWithSqlVariantTest extends AbstractTest {
     /**
      * Test with nvarchar
      * 
-     * @throws SQLServerException
+     * @throws SQLException
+     * @throws SQLTimeoutException 
      */
     @Test
-    public void testNvarChar() throws SQLServerException {
+    public void testNvarChar() throws SQLException {
         tvp = new SQLServerDataTable();
         tvp.addColumnMetadata("c1", microsoft.sql.Types.SQL_VARIANT);
         String colValue = "س";
@@ -242,10 +251,11 @@ public class TVPWithSqlVariantTest extends AbstractTest {
     /**
      * Test with varchar8000
      * 
-     * @throws SQLServerException
+     * @throws SQLException
+     * @throws SQLTimeoutException 
      */
     @Test
-    public void testVarChar8000() throws SQLServerException {
+    public void testVarChar8000() throws SQLException {
         tvp = new SQLServerDataTable();
         tvp.addColumnMetadata("c1", microsoft.sql.Types.SQL_VARIANT);
         StringBuffer buffer = new StringBuffer();
@@ -270,10 +280,10 @@ public class TVPWithSqlVariantTest extends AbstractTest {
     /**
      * Check that we throw proper error message when inserting more than 8000
      * 
-     * @throws SQLServerException
+     * @throws SQLException
      */
     @Test
-    public void testLongVarChar() throws SQLServerException {
+    public void testLongVarChar() throws SQLException {
         tvp = new SQLServerDataTable();
         tvp.addColumnMetadata("c1", microsoft.sql.Types.SQL_VARIANT);
 
@@ -289,11 +299,12 @@ public class TVPWithSqlVariantTest extends AbstractTest {
         try {
             pstmt.execute();
         }
-        catch (SQLServerException e) {
+        catch (SQLException e) {
             assertTrue(e.getMessage().contains("SQL_VARIANT does not support string values of length greater than 8000."));
         }
         catch (Exception e) {
-            fail("Test should have failed! mistakenly inserted string value of more than 8000 in sql-variant");
+            // Test should have failed! mistakenly inserted string value of more than 8000 in sql-variant
+            fail(TestResource.getResource("R_unexpectedException"));
         }
         finally {
             if (null != pstmt) {
@@ -305,10 +316,11 @@ public class TVPWithSqlVariantTest extends AbstractTest {
     /**
      * Test ith datetime
      * 
-     * @throws SQLServerException
+     * @throws SQLException
+     * @throws SQLTimeoutException 
      */
     @Test
-    public void testDateTime() throws SQLServerException {
+    public void testDateTime() throws SQLException {
         java.sql.Timestamp timestamp = java.sql.Timestamp.valueOf("2007-09-23 10:10:10.0");
         tvp = new SQLServerDataTable();
         tvp.addColumnMetadata("c1", microsoft.sql.Types.SQL_VARIANT);
@@ -330,10 +342,11 @@ public class TVPWithSqlVariantTest extends AbstractTest {
     /**
      * Test with null value
      * 
-     * @throws SQLServerException
+     * @throws SQLException
+     * @throws SQLTimeoutException 
      */
     @Test // TODO We need to check this later. Right now sending null with TVP is not supported
-    public void testNull() throws SQLServerException {
+    public void testNull() throws SQLException {
         tvp = new SQLServerDataTable();
         tvp.addColumnMetadata("c1", microsoft.sql.Types.SQL_VARIANT);
         try {
@@ -358,10 +371,11 @@ public class TVPWithSqlVariantTest extends AbstractTest {
     /**
      * Test with stored procedure
      * 
-     * @throws SQLServerException
+     * @throws SQLException
+     * @throws SQLTimeoutException 
      */
     @Test
-    public void testIntStoredProcedure() throws SQLServerException {
+    public void testIntStoredProcedure() throws SQLException {
         java.sql.Timestamp timestamp = java.sql.Timestamp.valueOf("2007-09-23 10:10:10.0");
         final String sql = "{call " + procedureName + "(?)}";
         tvp = new SQLServerDataTable();
@@ -382,16 +396,16 @@ public class TVPWithSqlVariantTest extends AbstractTest {
     /**
      * Test for allowing duplicate columns
      * 
-     * @throws SQLServerException
+     * @throws SQLException
      */
     @Test
-    public void testDuplicateColumn() throws SQLServerException {
+    public void testDuplicateColumn() throws SQLException {
         tvp = new SQLServerDataTable();
         tvp.addColumnMetadata("c1", microsoft.sql.Types.SQL_VARIANT);
         tvp.addColumnMetadata("c2", microsoft.sql.Types.SQL_VARIANT);
         try {
             tvp.addColumnMetadata("c2", microsoft.sql.Types.SQL_VARIANT);
-        } catch (SQLServerException e) {
+        } catch (SQLException e) {
             assertEquals(e.getMessage(), "A column name c2 already belongs to this SQLServerDataTable.");
         }
     }
