@@ -6254,31 +6254,31 @@ public class SQLServerResultSet implements ISQLServerResultSet {
 
     /* L3 */ public void updateArray(int columnIndex,
             Array x) throws SQLServerException {
-        stmt.NotImplemented();
+        stmt.throwNotImplementedException();
     }
 
     /* L3 */ public void updateArray(java.lang.String columnName,
             Array x) throws SQLServerException {
-        stmt.NotImplemented();
+        stmt.throwNotImplementedException();
     }
 
     /* L3 */ public void updateRef(int columnIndex,
             Ref x) throws SQLServerException {
-        stmt.NotImplemented();
+        stmt.throwNotImplementedException();
     }
 
     /* L3 */ public void updateRef(java.lang.String columnName,
             Ref x) throws SQLServerException {
-        stmt.NotImplemented();
+        stmt.throwNotImplementedException();
     }
 
     /* L3 */ public java.net.URL getURL(int columnIndex) throws SQLServerException {
-        stmt.NotImplemented();
+        stmt.throwNotImplementedException();
         return null;
     }
 
     /* L3 */ public java.net.URL getURL(String sColumn) throws SQLServerException {
-        stmt.NotImplemented();
+        stmt.throwNotImplementedException();
         return null;
     }
 

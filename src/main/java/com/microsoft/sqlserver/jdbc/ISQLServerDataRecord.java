@@ -9,10 +9,9 @@
 package com.microsoft.sqlserver.jdbc;
 
 /**
- * The ISQLServerDataRecord interface can be used to create classes that read in data from any source (such as a file) and allow a structured type to
- * be sent to SQL Server tables.
+ * This interface can be used to create classes that read in data from any source (such as a file) and allow a structured type to be sent to SQL
+ * Server tables.
  */
-
 public interface ISQLServerDataRecord {
     /**
      * Get the column meta data

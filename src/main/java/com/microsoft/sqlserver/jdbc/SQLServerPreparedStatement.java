@@ -2443,7 +2443,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     public final void setUnicodeStream(int n,
             java.io.InputStream x,
             int length) throws SQLException {
-        NotImplemented();
+        throwNotImplementedException();
     }
 
     public final void addBatch() throws SQLServerException {
@@ -2838,7 +2838,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
     /* L0 */ public final void setRef(int i,
             java.sql.Ref x) throws SQLServerException {
-        NotImplemented();
+        throwNotImplementedException();
     }
 
     public final void setBlob(int i,
@@ -2927,7 +2927,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
     /* L0 */ public final void setArray(int i,
             java.sql.Array x) throws SQLServerException {
-        NotImplemented();
+        throwNotImplementedException();
     }
 
     public final void setDate(int n,
@@ -3100,7 +3100,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
     /* L3 */ public final void setURL(int parameterIndex,
             java.net.URL x) throws SQLServerException {
-        NotImplemented();
+        throwNotImplementedException();
     }
 
     public final void setRowId(int parameterIndex,

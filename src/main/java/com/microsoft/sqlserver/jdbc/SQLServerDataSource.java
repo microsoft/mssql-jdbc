@@ -154,60 +154,28 @@ public class SQLServerDataSource implements ISQLServerDataSource, javax.sql.Data
         setStringProperty(connectionProps, SQLServerDriverStringProperty.AUTHENTICATION_SCHEME.toString(), authenticationScheme);
     }
 
-    /**
-     * sets the authentication mode
-     * 
-     * @param authentication
-     *            the authentication mode
-     */
     public void setAuthentication(String authentication) {
         setStringProperty(connectionProps, SQLServerDriverStringProperty.AUTHENTICATION.toString(), authentication);
     }
 
-    /**
-     * Retrieves the authentication mode
-     * 
-     * @return the authentication value
-     */
     public String getAuthentication() {
         return getStringProperty(connectionProps, SQLServerDriverStringProperty.AUTHENTICATION.toString(),
                 SQLServerDriverStringProperty.AUTHENTICATION.getDefaultValue());
     }
 
-    /**
-     * sets GSSCredential
-     * 
-     * @param userCredential the credential
-     */
-    public void setGSSCredentials(GSSCredential userCredential){
-        setObjectProperty(connectionProps,SQLServerDriverObjectProperty.GSS_CREDENTIAL.toString(), userCredential);
+    public void setGSSCredentials(GSSCredential userCredential) {
+        setObjectProperty(connectionProps, SQLServerDriverObjectProperty.GSS_CREDENTIAL.toString(), userCredential);
     }
 
-    /**
-     * Retrieves the GSSCredential
-     * 
-     * @return GSSCredential
-     */
-    public GSSCredential getGSSCredentials(){
+    public GSSCredential getGSSCredentials() {
         return (GSSCredential) getObjectProperty(connectionProps, SQLServerDriverObjectProperty.GSS_CREDENTIAL.toString(),
                 SQLServerDriverObjectProperty.GSS_CREDENTIAL.getDefaultValue());
     }
-    
-    /**
-     * Sets the access token.
-     * 
-     * @param accessToken
-     *            to be set in the string property.
-     */
+
     public void setAccessToken(String accessToken) {
         setStringProperty(connectionProps, SQLServerDriverStringProperty.ACCESS_TOKEN.toString(), accessToken);
     }
 
-    /**
-     * Retrieves the access token.
-     * 
-     * @return the access token.
-     */
     public String getAccessToken() {
         return getStringProperty(connectionProps, SQLServerDriverStringProperty.ACCESS_TOKEN.toString(), null);
     }
@@ -216,73 +184,32 @@ public class SQLServerDataSource implements ISQLServerDataSource, javax.sql.Data
     // count from all the update counts returned by a batch. The default of false will
     // return all update counts. If lastUpdateCount is not set, getLastUpdateCount
     // returns the default value of false.
-    /**
-     * Enables/disables Always Encrypted functionality for the data source object. The default is Disabled.
-     * 
-     * @param columnEncryptionSetting
-     *            Enables/disables Always Encrypted functionality for the data source object. The default is Disabled.
-     */
     public void setColumnEncryptionSetting(String columnEncryptionSetting) {
         setStringProperty(connectionProps, SQLServerDriverStringProperty.COLUMN_ENCRYPTION.toString(), columnEncryptionSetting);
     }
 
-    /**
-     * Retrieves the Always Encrypted functionality setting for the data source object.
-     * 
-     * @return the Always Encrypted functionality setting for the data source object.
-     */
     public String getColumnEncryptionSetting() {
         return getStringProperty(connectionProps, SQLServerDriverStringProperty.COLUMN_ENCRYPTION.toString(),
                 SQLServerDriverStringProperty.COLUMN_ENCRYPTION.getDefaultValue());
     }
 
-    /**
-     * Sets the name that identifies a key store. Only value supported is the "JavaKeyStorePassword" for identifying the Java Key Store. The default
-     * is null.
-     * 
-     * @param keyStoreAuthentication
-     *            the name that identifies a key store.
-     */
     public void setKeyStoreAuthentication(String keyStoreAuthentication) {
         setStringProperty(connectionProps, SQLServerDriverStringProperty.KEY_STORE_AUTHENTICATION.toString(), keyStoreAuthentication);
     }
 
-    /**
-     * Gets the value of the keyStoreAuthentication setting for the data source object.
-     * 
-     * @return the value of the keyStoreAuthentication setting for the data source object.
-     */
     public String getKeyStoreAuthentication() {
         return getStringProperty(connectionProps, SQLServerDriverStringProperty.KEY_STORE_AUTHENTICATION.toString(),
                 SQLServerDriverStringProperty.KEY_STORE_AUTHENTICATION.getDefaultValue());
     }
 
-    /**
-     * Sets the password for the Java keystore. Note that, for Java Key Store provider the password for the keystore and the key must be the same.
-     * Note that, keyStoreAuthentication must be set with "JavaKeyStorePassword".
-     * 
-     * @param keyStoreSecret
-     *            the password to use for the keystore as well as for the key
-     */
     public void setKeyStoreSecret(String keyStoreSecret) {
         setStringProperty(connectionProps, SQLServerDriverStringProperty.KEY_STORE_SECRET.toString(), keyStoreSecret);
     }
 
-    /**
-     * Sets the location including the file name for the Java keystore. Note that, keyStoreAuthentication must be set with "JavaKeyStorePassword".
-     * 
-     * @param keyStoreLocation
-     *            the location including the file name for the Java keystore.
-     */
     public void setKeyStoreLocation(String keyStoreLocation) {
         setStringProperty(connectionProps, SQLServerDriverStringProperty.KEY_STORE_LOCATION.toString(), keyStoreLocation);
     }
 
-    /**
-     * Retrieves the keyStoreLocation for the Java Key Store.
-     * 
-     * @return the keyStoreLocation for the Java Key Store.
-     */
     public String getKeyStoreLocation() {
         return getStringProperty(connectionProps, SQLServerDriverStringProperty.KEY_STORE_LOCATION.toString(),
                 SQLServerDriverStringProperty.KEY_STORE_LOCATION.getDefaultValue());
@@ -297,7 +224,6 @@ public class SQLServerDataSource implements ISQLServerDataSource, javax.sql.Data
                 SQLServerDriverBooleanProperty.LAST_UPDATE_COUNT.getDefaultValue());
     }
 
-    // Encryption
     public void setEncrypt(boolean encrypt) {
         setBooleanProperty(connectionProps, SQLServerDriverBooleanProperty.ENCRYPT.toString(), encrypt);
     }
@@ -307,31 +233,10 @@ public class SQLServerDataSource implements ISQLServerDataSource, javax.sql.Data
                 SQLServerDriverBooleanProperty.ENCRYPT.getDefaultValue());
     }
 
-    /**
-     * Beginning in version 6.0 of the Microsoft JDBC Driver for SQL Server, a new connection property transparentNetworkIPResolution (TNIR) is added
-     * for transparent connection to Always On availability groups or to a server which has multiple IP addresses associated. When
-     * transparentNetworkIPResolution is true, the driver attempts to connect to the first IP address available. If the first attempt fails, the
-     * driver tries to connect to all IP addresses in parallel until the timeout expires, discarding any pending connection attempts when one of them
-     * succeeds.
-     * <p>
-     * transparentNetworkIPResolution is ignored if multiSubnetFailover is true
-     * <p>
-     * transparentNetworkIPResolution is ignored if database mirroring is used
-     * <p>
-     * transparentNetworkIPResolution is ignored if there are more than 64 IP addresses
-     * 
-     * @param tnir
-     *            if set to true, the driver attempts to connect to the first IP address available. It is true by default.
-     */
     public void setTransparentNetworkIPResolution(boolean tnir) {
         setBooleanProperty(connectionProps, SQLServerDriverBooleanProperty.TRANSPARENT_NETWORK_IP_RESOLUTION.toString(), tnir);
     }
 
-    /**
-     * Retrieves the TransparentNetworkIPResolution value.
-     * 
-     * @return if enabled, returns true. Otherwise, false.
-     */
     public boolean getTransparentNetworkIPResolution() {
         return getBooleanProperty(connectionProps, SQLServerDriverBooleanProperty.TRANSPARENT_NETWORK_IP_RESOLUTION.toString(),
                 SQLServerDriverBooleanProperty.TRANSPARENT_NETWORK_IP_RESOLUTION.getDefaultValue());
@@ -355,23 +260,23 @@ public class SQLServerDataSource implements ISQLServerDataSource, javax.sql.Data
                 SQLServerDriverStringProperty.TRUST_STORE_TYPE.getDefaultValue());
     }
 
-    public void setTrustStore(String st) {
-        setStringProperty(connectionProps, SQLServerDriverStringProperty.TRUST_STORE.toString(), st);
+    public void setTrustStore(String trustStore) {
+        setStringProperty(connectionProps, SQLServerDriverStringProperty.TRUST_STORE.toString(), trustStore);
     }
 
     public String getTrustStore() {
         return getStringProperty(connectionProps, SQLServerDriverStringProperty.TRUST_STORE.toString(), null);
     }
 
-    public void setTrustStorePassword(String p) {
+    public void setTrustStorePassword(String trustStorePassword) {
         // if a non value property is set
-        if (p != null)
+        if (trustStorePassword != null)
             trustStorePasswordStripped = false;
-        setStringProperty(connectionProps, SQLServerDriverStringProperty.TRUST_STORE_PASSWORD.toString(), p);
+        setStringProperty(connectionProps, SQLServerDriverStringProperty.TRUST_STORE_PASSWORD.toString(), trustStorePassword);
     }
 
-    public void setHostNameInCertificate(String host) {
-        setStringProperty(connectionProps, SQLServerDriverStringProperty.HOSTNAME_IN_CERTIFICATE.toString(), host);
+    public void setHostNameInCertificate(String hostName) {
+        setStringProperty(connectionProps, SQLServerDriverStringProperty.HOSTNAME_IN_CERTIFICATE.toString(), hostName);
     }
 
     public String getHostNameInCertificate() {
@@ -432,8 +337,8 @@ public class SQLServerDataSource implements ISQLServerDataSource, javax.sql.Data
                 SQLServerDriverStringProperty.SELECT_METHOD.getDefaultValue());
     }
 
-    public void setResponseBuffering(String respo) {
-        setStringProperty(connectionProps, SQLServerDriverStringProperty.RESPONSE_BUFFERING.toString(), respo);
+    public void setResponseBuffering(String bufferingMode) {
+        setStringProperty(connectionProps, SQLServerDriverStringProperty.RESPONSE_BUFFERING.toString(), bufferingMode);
     }
 
     public String getResponseBuffering() {
@@ -474,21 +379,10 @@ public class SQLServerDataSource implements ISQLServerDataSource, javax.sql.Data
                 SQLServerDriverBooleanProperty.SEND_STRING_PARAMETERS_AS_UNICODE.getDefaultValue());
     }
 
-    /**
-     * Translates the serverName from Unicode to ASCII Compatible Encoding (ACE)
-     * 
-     * @param serverNameAsACE
-     *            if enabled the servername will be translated to ASCII Compatible Encoding (ACE)
-     */
     public void setServerNameAsACE(boolean serverNameAsACE) {
         setBooleanProperty(connectionProps, SQLServerDriverBooleanProperty.SERVER_NAME_AS_ACE.toString(), serverNameAsACE);
     }
 
-    /**
-     * Retrieves if the serverName should be translated from Unicode to ASCII Compatible Encoding (ACE)
-     * 
-     * @return if enabled, will return true. Otherwise, false.
-     */
     public boolean getServerNameAsACE() {
         return getBooleanProperty(connectionProps, SQLServerDriverBooleanProperty.SERVER_NAME_AS_ACE.toString(),
                 SQLServerDriverBooleanProperty.SERVER_NAME_AS_ACE.getDefaultValue());
@@ -575,7 +469,7 @@ public class SQLServerDataSource implements ISQLServerDataSource, javax.sql.Data
         return getBooleanProperty(connectionProps, SQLServerDriverBooleanProperty.XOPEN_STATES.toString(),
                 SQLServerDriverBooleanProperty.XOPEN_STATES.getDefaultValue());
     }
-    
+
     public void setFIPS(boolean fips) {
         setBooleanProperty(connectionProps, SQLServerDriverBooleanProperty.FIPS.toString(), fips);
     }
@@ -584,7 +478,7 @@ public class SQLServerDataSource implements ISQLServerDataSource, javax.sql.Data
         return getBooleanProperty(connectionProps, SQLServerDriverBooleanProperty.FIPS.toString(),
                 SQLServerDriverBooleanProperty.FIPS.getDefaultValue());
     }
-    
+
     public void setSSLProtocol(String sslProtocol) {
         setStringProperty(connectionProps, SQLServerDriverStringProperty.SSL_PROTOCOL.toString(), sslProtocol);
     }
@@ -642,7 +536,6 @@ public class SQLServerDataSource implements ISQLServerDataSource, javax.sql.Data
     }
 
     // DataSource specific property setters/getters.
-
     // Per JDBC specification 16.1.1 "...the only property that all DataSource
     // implementations are required to support is the description property".
     public void setDescription(String description) {
@@ -670,178 +563,81 @@ public class SQLServerDataSource implements ISQLServerDataSource, javax.sql.Data
                 SQLServerDriverIntProperty.PACKET_SIZE.getDefaultValue());
     }
 
-    /**
-     * Setting the query timeout
-     * 
-     * @param queryTimeout
-     *            The number of seconds to wait before a timeout has occurred on a query. The default value is 0, which means infinite timeout.
-     */
     public void setQueryTimeout(int queryTimeout) {
         setIntProperty(connectionProps, SQLServerDriverIntProperty.QUERY_TIMEOUT.toString(), queryTimeout);
     }
 
-    /**
-     * Getting the query timeout
-     * 
-     * @return The number of seconds to wait before a timeout has occurred on a query.
-     */
     public int getQueryTimeout() {
         return getIntProperty(connectionProps, SQLServerDriverIntProperty.QUERY_TIMEOUT.toString(),
                 SQLServerDriverIntProperty.QUERY_TIMEOUT.getDefaultValue());
     }
-    
-    /**
-     * Setting the cancel timeout
-     * 
-     * @param cancelQueryTimeout
-     *            The number of seconds to wait before we wait for the query timeout to happen.
-     */
+
     public void setCancelQueryTimeout(int cancelQueryTimeout) {
         setIntProperty(connectionProps, SQLServerDriverIntProperty.CANCEL_QUERY_TIMEOUT.toString(), cancelQueryTimeout);
     }
 
-    /**
-     * Getting the cancel timeout
-     * 
-     * @return the number of seconds to wait before we wait for the query timeout to happen.
-     */
     public int getCancelQueryTimeout() {
         return getIntProperty(connectionProps, SQLServerDriverIntProperty.CANCEL_QUERY_TIMEOUT.toString(),
                 SQLServerDriverIntProperty.CANCEL_QUERY_TIMEOUT.getDefaultValue());
     }
 
-    /**
-     * If this configuration is false the first execution of a prepared statement will call sp_executesql and not prepare 
-     * a statement, once the second execution happens it will call sp_prepexec and actually setup a prepared statement handle. Following
-     * executions will call sp_execute. This relieves the need for sp_unprepare on prepared statement close if the statement is only
-     * executed once.  
-     * 
-     * @param enablePrepareOnFirstPreparedStatementCall
-     *      Changes the setting per the description.
-     */
     public void setEnablePrepareOnFirstPreparedStatementCall(boolean enablePrepareOnFirstPreparedStatementCall) {
-        setBooleanProperty(connectionProps, SQLServerDriverBooleanProperty.ENABLE_PREPARE_ON_FIRST_PREPARED_STATEMENT.toString(), enablePrepareOnFirstPreparedStatementCall);
+        setBooleanProperty(connectionProps, SQLServerDriverBooleanProperty.ENABLE_PREPARE_ON_FIRST_PREPARED_STATEMENT.toString(),
+                enablePrepareOnFirstPreparedStatementCall);
     }
 
-    /**
-     * If this configuration returns false the first execution of a prepared statement will call sp_executesql and not prepare a statement, once the
-     * second execution happens it will call sp_prepexec and actually setup a prepared statement handle. Following executions will call sp_execute.
-     * This relieves the need for sp_unprepare on prepared statement close if the statement is only executed once.
-     * 
-     * @return Returns the current setting per the description.
-     */
     public boolean getEnablePrepareOnFirstPreparedStatementCall() {
         boolean defaultValue = SQLServerDriverBooleanProperty.ENABLE_PREPARE_ON_FIRST_PREPARED_STATEMENT.getDefaultValue();
         return getBooleanProperty(connectionProps, SQLServerDriverBooleanProperty.ENABLE_PREPARE_ON_FIRST_PREPARED_STATEMENT.toString(),
                 defaultValue);
     }
 
-    /**
-     * This setting controls how many outstanding prepared statement discard actions (sp_unprepare) can be outstanding per connection before a call to
-     * clean-up the outstanding handles on the server is executed. If the setting is {@literal <=} 1 unprepare actions will be executed immedietely on
-     * prepared statement close. If it is set to {@literal >} 1 these calls will be batched together to avoid overhead of calling sp_unprepare too
-     * often.
-     * 
-     * @param serverPreparedStatementDiscardThreshold
-     *            Changes the setting per the description.
-     */
     public void setServerPreparedStatementDiscardThreshold(int serverPreparedStatementDiscardThreshold) {
-        setIntProperty(connectionProps, SQLServerDriverIntProperty.SERVER_PREPARED_STATEMENT_DISCARD_THRESHOLD.toString(), serverPreparedStatementDiscardThreshold);
+        setIntProperty(connectionProps, SQLServerDriverIntProperty.SERVER_PREPARED_STATEMENT_DISCARD_THRESHOLD.toString(),
+                serverPreparedStatementDiscardThreshold);
     }
 
-    /**
-     * This setting controls how many outstanding prepared statement discard actions (sp_unprepare) can be outstanding per connection before a call to
-     * clean-up the outstanding handles on the server is executed. If the setting is {@literal <=} 1 unprepare actions will be executed immedietely on
-     * prepared statement close. If it is set to {@literal >} 1 these calls will be batched together to avoid overhead of calling sp_unprepare too
-     * often.
-     * 
-     * @return Returns the current setting per the description.
-     */
     public int getServerPreparedStatementDiscardThreshold() {
         int defaultSize = SQLServerDriverIntProperty.SERVER_PREPARED_STATEMENT_DISCARD_THRESHOLD.getDefaultValue();
         return getIntProperty(connectionProps, SQLServerDriverIntProperty.SERVER_PREPARED_STATEMENT_DISCARD_THRESHOLD.toString(), defaultSize);
     }
 
-    /**
-     * Specifies the size of the prepared statement cache for this connection. A value less than 1 means no cache.
-     * 
-     * @param statementPoolingCacheSize
-     *            Changes the setting per the description.
-     */
     public void setStatementPoolingCacheSize(int statementPoolingCacheSize) {
         setIntProperty(connectionProps, SQLServerDriverIntProperty.STATEMENT_POOLING_CACHE_SIZE.toString(), statementPoolingCacheSize);
     }
 
-    /**
-     * Returns the size of the prepared statement cache for this connection. A value less than 1 means no cache.
-     * 
-     * @return Returns the current setting per the description.
-     */
     public int getStatementPoolingCacheSize() {
         int defaultSize = SQLServerDriverIntProperty.STATEMENT_POOLING_CACHE_SIZE.getDefaultValue();
         return getIntProperty(connectionProps, SQLServerDriverIntProperty.STATEMENT_POOLING_CACHE_SIZE.toString(), defaultSize);
     }
-    
-    /**
-     * Disable/enable statement pooling.
-     * @param disableStatementPooling true to disable statement pooling, false to enable it.
-     */
+
     public void setDisableStatementPooling(boolean disableStatementPooling) {
-        setBooleanProperty(connectionProps, SQLServerDriverBooleanProperty.DISABLE_STATEMENT_POOLING.toString(), disableStatementPooling);       
-    }
-    
-    /**
-     * Determine whether statement pooling is disabled.
-     * @return true if statement pooling is disabled, false if it is enabled.
-     */
-    public boolean getDisableStatementPooling() {
-        boolean defaultValue = SQLServerDriverBooleanProperty.DISABLE_STATEMENT_POOLING.getDefaultValue();
-        return getBooleanProperty(connectionProps, SQLServerDriverBooleanProperty.DISABLE_STATEMENT_POOLING.toString(),
-                defaultValue);
+        setBooleanProperty(connectionProps, SQLServerDriverBooleanProperty.DISABLE_STATEMENT_POOLING.toString(), disableStatementPooling);
     }
 
-    /**
-     * Setting the socket timeout
-     * 
-     * @param socketTimeout
-     *            The number of milliseconds to wait before a timeout is occurred on a socket read or accept. The default value is 0, which means
-     *            infinite timeout.
-     */
+    public boolean getDisableStatementPooling() {
+        boolean defaultValue = SQLServerDriverBooleanProperty.DISABLE_STATEMENT_POOLING.getDefaultValue();
+        return getBooleanProperty(connectionProps, SQLServerDriverBooleanProperty.DISABLE_STATEMENT_POOLING.toString(), defaultValue);
+    }
+
     public void setSocketTimeout(int socketTimeout) {
         setIntProperty(connectionProps, SQLServerDriverIntProperty.SOCKET_TIMEOUT.toString(), socketTimeout);
     }
 
-    /**
-     * Getting the socket timeout
-     * 
-     * @return The number of milliseconds to wait before a timeout is occurred on a socket read or accept.
-     */
     public int getSocketTimeout() {
         int defaultTimeOut = SQLServerDriverIntProperty.SOCKET_TIMEOUT.getDefaultValue();
         return getIntProperty(connectionProps, SQLServerDriverIntProperty.SOCKET_TIMEOUT.toString(), defaultTimeOut);
     }
 
-    /**
-     * Sets the login configuration file for Kerberos authentication. This
-     * overrides the default configuration <i> SQLJDBCDriver </i>
-     * 
-     * @param configurationName the configuration name
-     */
     public void setJASSConfigurationName(String configurationName) {
-        setStringProperty(connectionProps, SQLServerDriverStringProperty.JAAS_CONFIG_NAME.toString(),
-                configurationName);
+        setStringProperty(connectionProps, SQLServerDriverStringProperty.JAAS_CONFIG_NAME.toString(), configurationName);
     }
 
-    /**
-     * Retrieves the login configuration file for Kerberos authentication.
-     * 
-     * @return login configuration file name
-     */
     public String getJASSConfigurationName() {
         return getStringProperty(connectionProps, SQLServerDriverStringProperty.JAAS_CONFIG_NAME.toString(),
                 SQLServerDriverStringProperty.JAAS_CONFIG_NAME.getDefaultValue());
     }
-    
+
     // responseBuffering controls the driver's buffering of responses from SQL Server.
     // Possible values are:
     //
@@ -986,7 +782,7 @@ public class SQLServerDataSource implements ISQLServerDataSource, javax.sql.Data
         loggerExternal.exiting(getClassNameLogging(), "get" + propKey);
         return propValue;
     }
-    
+
     // Returns a SQLServerConnection given username, password, and pooledConnection.
     // Note that the DataSource properties set to connectionProps are used when creating
     // the connection.
@@ -1147,7 +943,6 @@ public class SQLServerDataSource implements ISQLServerDataSource, javax.sql.Data
         loggerExternal.exiting(getClassNameLogging(), "unwrap", t);
         return t;
     }
-
 
     // Returns unique id for each DataSource instance.
     private static int nextDataSourceID() {

@@ -13,8 +13,11 @@ import java.util.Set;
 /**
  * The ISQLServerBulkRecord interface can be used to create classes that read in data from any source (such as a file) and allow a SQLServerBulkCopy
  * class to write the data to SQL Server tables.
+ * 
+ * Implemented by {@link SQLServerBulkCSVFileRecord}
  */
 public interface ISQLServerBulkRecord {
+
     /**
      * Get the ordinals for each of the columns represented in this data record.
      * 

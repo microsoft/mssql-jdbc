@@ -14,8 +14,11 @@ import org.ietf.jgss.GSSCredential;
 
 /**
  * A factory to create connections to the data source represented by this object. This interface was added in SQL Server JDBC Driver 3.0.
+ * 
+ * This interface is implemented by {@link SQLServerDataSource} Class.
  */
 public interface ISQLServerDataSource extends CommonDataSource {
+
     /**
      * Sets the application intent.
      * 
@@ -115,10 +118,35 @@ public interface ISQLServerDataSource extends CommonDataSource {
     public boolean getEncrypt();
 
     /**
+     * Beginning in version 6.0 of the Microsoft JDBC Driver for SQL Server, a new connection property transparentNetworkIPResolution (TNIR) is added
+     * for transparent connection to Always On availability groups or to a server which has multiple IP addresses associated. When
+     * transparentNetworkIPResolution is true, the driver attempts to connect to the first IP address available. If the first attempt fails, the
+     * driver tries to connect to all IP addresses in parallel until the timeout expires, discarding any pending connection attempts when one of them
+     * succeeds.
+     * <p>
+     * transparentNetworkIPResolution is ignored if multiSubnetFailover is true
+     * <p>
+     * transparentNetworkIPResolution is ignored if database mirroring is used
+     * <p>
+     * transparentNetworkIPResolution is ignored if there are more than 64 IP addresses
+     * 
+     * @param tnir
+     *            if set to true, the driver attempts to connect to the first IP address available. It is true by default.
+     */
+    public void setTransparentNetworkIPResolution(boolean tnir);
+
+    /**
+     * Retrieves the TransparentNetworkIPResolution value.
+     * 
+     * @return if enabled, returns true. Otherwise, false.
+     */
+    public boolean getTransparentNetworkIPResolution();
+
+    /**
      * Sets a Boolean value that indicates if the trustServerCertificate property is enabled.
      * 
      * @param e
-     *            true if the server Secure Sockets Layer (SSL) certificate should be automatically trusted when the communication layer is encrypted
+     *            true, if the server Secure Sockets Layer (SSL) certificate should be automatically trusted when the communication layer is encrypted
      *            using SSL. Otherwise, false.
      */
     public void setTrustServerCertificate(boolean e);
@@ -131,35 +159,49 @@ public interface ISQLServerDataSource extends CommonDataSource {
     public boolean getTrustServerCertificate();
 
     /**
+     * This parameter defines the keystore type for the trustStore.
+     * 
+     * @param trustStoreType
+     */
+    public void setTrustStoreType(String trustStoreType);
+
+    /**
+     * Returns the keyStore Type for the trustStore
+     * 
+     * @return trustStoreType A String that contains the trust store type
+     */
+    public String getTrustStoreType();
+
+    /**
      * Sets the path (including file name) to the certificate trustStore file.
      * 
-     * @param st
+     * @param trustStore
      *            A String that contains the path (including file name) to the certificate trustStore file.
      */
-    public void setTrustStore(String st);
+    public void setTrustStore(String trustStore);
 
     /**
      * Returns the path (including file name) to the certificate trustStore file.
      * 
-     * @return A String that contains the path (including file name) to the certificate trustStore file, or null if no value is set.
+     * @return trustStore A String that contains the path (including file name) to the certificate trustStore file, or null if no value is set.
      */
     public String getTrustStore();
 
     /**
      * Sets the password that is used to check the integrity of the trustStore data.
      * 
-     * @param p
+     * @param trustStorePassword
      *            A String that contains the password that is used to check the integrity of the trustStore data.
      */
-    public void setTrustStorePassword(String p);
+    public void setTrustStorePassword(String trustStorePassword);
 
     /**
      * Sets the host name to be used in validating the SQL Server Secure Sockets Layer (SSL) certificate.
      * 
-     * @param host
+     * @param hostName
      *            A String that contains the host name.
      */
-    public void setHostNameInCertificate(String host);
+    public void setHostNameInCertificate(String hostName);
 
     /**
      * Returns the host name used in validating the SQL Server Secure Sockets Layer (SSL) certificate.
@@ -224,11 +266,11 @@ public interface ISQLServerDataSource extends CommonDataSource {
     /**
      * Sets the response buffering mode for connections created by using this SQLServerDataSource object.
      * 
-     * @param respo
+     * @param bufferingMode
      *            A String that contains the buffering and streaming mode. The valid mode can be one of the following case-insensitive Strings: full
      *            or adaptive.
      */
-    public void setResponseBuffering(String respo);
+    public void setResponseBuffering(String bufferingMode);
 
     /**
      * Returns the response buffering mode for this SQLServerDataSource object.
@@ -268,6 +310,21 @@ public interface ISQLServerDataSource extends CommonDataSource {
      * @return true if string parameters are sent to the server in UNICODE format. Otherwise, false.
      */
     public boolean getSendStringParametersAsUnicode();
+
+    /**
+     * Translates the serverName from Unicode to ASCII Compatible Encoding (ACE)
+     * 
+     * @param serverNameAsACE
+     *            if enabled the servername will be translated to ASCII Compatible Encoding (ACE)
+     */
+    public void setServerNameAsACE(boolean serverNameAsACE);
+
+    /**
+     * Retrieves if the serverName should be translated from Unicode to ASCII Compatible Encoding (ACE)
+     * 
+     * @return if enabled, will return true. Otherwise, false.
+     */
+    public boolean getServerNameAsACE();
 
     /**
      * Sets the name of the computer that is running SQL Server.
@@ -413,6 +470,21 @@ public interface ISQLServerDataSource extends CommonDataSource {
     public void setAuthenticationScheme(String authenticationScheme);
 
     /**
+     * sets the authentication mode
+     * 
+     * @param authentication
+     *            the authentication mode
+     */
+    public void setAuthentication(String authentication);
+
+    /**
+     * Retrieves the authentication mode
+     * 
+     * @return the authentication value
+     */
+    public String getAuthentication();
+
+    /**
      * Sets the server spn
      * 
      * @param serverSpn
@@ -426,56 +498,220 @@ public interface ISQLServerDataSource extends CommonDataSource {
      * @return A String that contains the server spn
      */
     public String getServerSpn();
-            
+
+    /**
+     * sets GSSCredential
+     * 
+     * @param userCredential
+     *            the credential
+     */
+    public void setGSSCredentials(GSSCredential userCredential);
+
+    /**
+     * Retrieves the GSSCredential
+     * 
+     * @return GSSCredential
+     */
     public GSSCredential getGSSCredentials();
-    
+
+    /**
+     * Sets the access token.
+     * 
+     * @param accessToken
+     *            to be set in the string property.
+     */
     public void setAccessToken(String accessToken);
-    
+
+    /**
+     * Retrieves the access token.
+     * 
+     * @return the access token.
+     */
     public String getAccessToken();
-    
+
+    /**
+     * Enables/disables Always Encrypted functionality for the data source object. The default is Disabled.
+     * 
+     * @param columnEncryptionSetting
+     *            Enables/disables Always Encrypted functionality for the data source object. The default is Disabled.
+     */
     public void setColumnEncryptionSetting(String columnEncryptionSetting);
-    
+
+    /**
+     * Retrieves the Always Encrypted functionality setting for the data source object.
+     * 
+     * @return the Always Encrypted functionality setting for the data source object.
+     */
     public String getColumnEncryptionSetting();
-    
+
+    /**
+     * Sets the name that identifies a key store. Only value supported is the "JavaKeyStorePassword" for identifying the Java Key Store. The default
+     * is null.
+     * 
+     * @param keyStoreAuthentication
+     *            the name that identifies a key store.
+     */
     public void setKeyStoreAuthentication(String keyStoreAuthentication);
-    
+
+    /**
+     * Gets the value of the keyStoreAuthentication setting for the data source object.
+     * 
+     * @return the value of the keyStoreAuthentication setting for the data source object.
+     */
     public String getKeyStoreAuthentication();
-    
+
+    /**
+     * Sets the password for the Java keystore. Note that, for Java Key Store provider the password for the keystore and the key must be the same.
+     * Note that, keyStoreAuthentication must be set with "JavaKeyStorePassword".
+     * 
+     * @param keyStoreSecret
+     *            the password to use for the keystore as well as for the key
+     */
     public void setKeyStoreSecret(String keyStoreSecret);
-    
+
+    /**
+     * Sets the location including the file name for the Java keystore. Note that, keyStoreAuthentication must be set with "JavaKeyStorePassword".
+     * 
+     * @param keyStoreLocation
+     *            the location including the file name for the Java keystore.
+     */
     public void setKeyStoreLocation(String keyStoreLocation);
-    
+
+    /**
+     * Retrieves the keyStoreLocation for the Java Key Store.
+     * 
+     * @return the keyStoreLocation for the Java Key Store.
+     */
     public String getKeyStoreLocation();
 
+    /**
+     * Setting the query timeout
+     * 
+     * @param queryTimeout
+     *            The number of seconds to wait before a timeout has occurred on a query. The default value is 0, which means infinite timeout.
+     */
     public void setQueryTimeout(int queryTimeout);
-    
+
+    /**
+     * Getting the query timeout
+     * 
+     * @return The number of seconds to wait before a timeout has occurred on a query.
+     */
     public int getQueryTimeout();
-    
+
+    /**
+     * Setting the cancel timeout
+     * 
+     * @param cancelQueryTimeout
+     *            The number of seconds to wait before we wait for the query timeout to happen.
+     */
     public void setCancelQueryTimeout(int cancelQueryTimeout);
-    
+
+    /**
+     * Getting the cancel timeout
+     * 
+     * @return the number of seconds to wait before we wait for the query timeout to happen.
+     */
     public int getCancelQueryTimeout();
-    
+
+    /**
+     * If this configuration is false the first execution of a prepared statement will call sp_executesql and not prepare a statement, once the second
+     * execution happens it will call sp_prepexec and actually setup a prepared statement handle. Following executions will call sp_execute. This
+     * relieves the need for sp_unprepare on prepared statement close if the statement is only executed once.
+     * 
+     * @param enablePrepareOnFirstPreparedStatementCall
+     *            Changes the setting per the description.
+     */
     public void setEnablePrepareOnFirstPreparedStatementCall(boolean enablePrepareOnFirstPreparedStatementCall);
-    
+
+    /**
+     * If this configuration returns false the first execution of a prepared statement will call sp_executesql and not prepare a statement, once the
+     * second execution happens it will call sp_prepexec and actually setup a prepared statement handle. Following executions will call sp_execute.
+     * This relieves the need for sp_unprepare on prepared statement close if the statement is only executed once.
+     * 
+     * @return Returns the current setting per the description.
+     */
     public boolean getEnablePrepareOnFirstPreparedStatementCall();
-    
+
+    /**
+     * This setting controls how many outstanding prepared statement discard actions (sp_unprepare) can be outstanding per connection before a call to
+     * clean-up the outstanding handles on the server is executed. If the setting is {@literal <=} 1 unprepare actions will be executed immedietely on
+     * prepared statement close. If it is set to {@literal >} 1 these calls will be batched together to avoid overhead of calling sp_unprepare too
+     * often.
+     * 
+     * @param serverPreparedStatementDiscardThreshold
+     *            Changes the setting per the description.
+     */
     public void setServerPreparedStatementDiscardThreshold(int serverPreparedStatementDiscardThreshold);
-    
+
+    /**
+     * This setting controls how many outstanding prepared statement discard actions (sp_unprepare) can be outstanding per connection before a call to
+     * clean-up the outstanding handles on the server is executed. If the setting is {@literal <=} 1 unprepare actions will be executed immedietely on
+     * prepared statement close. If it is set to {@literal >} 1 these calls will be batched together to avoid overhead of calling sp_unprepare too
+     * often.
+     * 
+     * @return Returns the current setting per the description.
+     */
     public int getServerPreparedStatementDiscardThreshold();
-    
+
+    /**
+     * Specifies the size of the prepared statement cache for this connection. A value less than 1 means no cache.
+     * 
+     * @param statementPoolingCacheSize
+     *            Changes the setting per the description.
+     */
     public void setStatementPoolingCacheSize(int statementPoolingCacheSize);
-    
+
+    /**
+     * Returns the size of the prepared statement cache for this connection. A value less than 1 means no cache.
+     * 
+     * @return Returns the current setting per the description.
+     */
     public int getStatementPoolingCacheSize();
-    
+
+    /**
+     * Disable/enable statement pooling.
+     * 
+     * @param disableStatementPooling
+     *            true to disable statement pooling, false to enable it.
+     */
     public void setDisableStatementPooling(boolean disableStatementPooling);
-    
+
+    /**
+     * Determine whether statement pooling is disabled.
+     * 
+     * @return true if statement pooling is disabled, false if it is enabled.
+     */
     public boolean getDisableStatementPooling();
-    
+
+    /**
+     * Setting the socket timeout
+     * 
+     * @param socketTimeout
+     *            The number of milliseconds to wait before a timeout is occurred on a socket read or accept. The default value is 0, which means
+     *            infinite timeout.
+     */
     public void setSocketTimeout(int socketTimeout);
-    
+
+    /**
+     * Getting the socket timeout
+     * 
+     * @return The number of milliseconds to wait before a timeout is occurred on a socket read or accept.
+     */
     public int getSocketTimeout();
-    
+
+    /**
+     * Sets the login configuration file for Kerberos authentication. This overrides the default configuration <i> SQLJDBCDriver </i>
+     * 
+     * @param configurationName
+     *            the configuration name
+     */
     public void setJASSConfigurationName(String configurationName);
-    
+
+    /**
+     * Retrieves the login configuration file for Kerberos authentication.
+     * 
+     * @return login configuration file name
+     */
     public String getJASSConfigurationName();
 }

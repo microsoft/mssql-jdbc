@@ -162,7 +162,7 @@ public class SQLServerBulkCSVFileRecord implements ISQLServerBulkRecord, java.la
 
         loggerExternal.exiting(loggerClassName, "SQLServerBulkCSVFileRecord");
     }
-    
+
     /**
      * Creates a simple reader to parse data from a delimited file with the given encoding.
      * 
@@ -574,10 +574,11 @@ public class SQLServerBulkCSVFileRecord implements ISQLServerBulkRecord, java.la
                             BigDecimal bd = new BigDecimal(data[pair.getKey() - 1].trim());
                             try {
                                 dataRow[pair.getKey() - 1] = bd.setScale(0, RoundingMode.DOWN).longValueExact();
-                            } catch (ArithmeticException ex) {
+                            }
+                            catch (ArithmeticException ex) {
                                 String value = "'" + data[pair.getKey() - 1] + "'";
                                 MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_errorConvertingValue"));
-                                throw new SQLServerException(form.format(new Object[]{value, JDBCType.of(cm.columnType)}), null, 0, ex);
+                                throw new SQLServerException(form.format(new Object[] {value, JDBCType.of(cm.columnType)}), null, 0, ex);
                             }
                             break;
                         }
@@ -594,7 +595,8 @@ public class SQLServerBulkCSVFileRecord implements ISQLServerBulkRecord, java.la
                             // Any non-zero value (integer/double) => 1, 0/0.0 => 0
                             try {
                                 dataRow[pair.getKey() - 1] = (0 == Double.parseDouble(data[pair.getKey() - 1])) ? Boolean.FALSE : Boolean.TRUE;
-                            } catch (NumberFormatException e) {
+                            }
+                            catch (NumberFormatException e) {
                                 dataRow[pair.getKey() - 1] = Boolean.parseBoolean(data[pair.getKey() - 1]);
                             }
                             break;
@@ -625,7 +627,8 @@ public class SQLServerBulkCSVFileRecord implements ISQLServerBulkRecord, java.la
                             String binData = data[pair.getKey() - 1].trim();
                             if (binData.startsWith("0x") || binData.startsWith("0X")) {
                                 dataRow[pair.getKey() - 1] = binData.substring(2);
-                            } else {
+                            }
+                            else {
                                 dataRow[pair.getKey() - 1] = binData;
                             }
                             break;
@@ -694,11 +697,13 @@ public class SQLServerBulkCSVFileRecord implements ISQLServerBulkRecord, java.la
                             break;
                         }
                     }
-                } catch (IllegalArgumentException e) {
+                }
+                catch (IllegalArgumentException e) {
                     String value = "'" + data[pair.getKey() - 1] + "'";
                     MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_errorConvertingValue"));
-                    throw new SQLServerException(form.format(new Object[]{value, JDBCType.of(cm.columnType)}), null, 0, e);
-                } catch (ArrayIndexOutOfBoundsException e) {
+                    throw new SQLServerException(form.format(new Object[] {value, JDBCType.of(cm.columnType)}), null, 0, e);
+                }
+                catch (ArrayIndexOutOfBoundsException e) {
                     throw new SQLServerException(SQLServerException.getErrString("R_CSVDataSchemaMismatch"), e);
                 }
 

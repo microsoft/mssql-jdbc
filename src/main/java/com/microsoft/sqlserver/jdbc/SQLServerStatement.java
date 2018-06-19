@@ -616,7 +616,7 @@ public class SQLServerStatement implements ISQLServerStatement {
     /**
      * Standard handler for unsupported data types.
      */
-    /* L0 */ final void NotImplemented() throws SQLServerException {
+    /* L0 */ final void throwNotImplementedException() throws SQLServerException {
         SQLServerException.makeFromDriverError(connection, this, SQLServerException.getErrString("R_notSupported"), null, false);
     }
 
@@ -2157,7 +2157,7 @@ public class SQLServerStatement implements ISQLServerStatement {
             loggerExternal.entering(getClassNameLogging(), "getMoreResults", mode);
         checkClosed();
         if (KEEP_CURRENT_RESULT == mode)
-            NotImplemented();
+            throwNotImplementedException();
 
         if (CLOSE_CURRENT_RESULT != mode && CLOSE_ALL_RESULTS != mode)
             SQLServerException.makeFromDriverError(connection, this, SQLServerException.getErrString("R_modeSuppliedNotValid"), null, true);
