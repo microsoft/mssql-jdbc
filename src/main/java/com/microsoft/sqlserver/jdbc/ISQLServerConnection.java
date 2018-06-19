@@ -10,8 +10,6 @@ package com.microsoft.sqlserver.jdbc;
 
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
-import java.util.List;
-import java.util.Map;
 import java.util.UUID;
 
 /**

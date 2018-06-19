@@ -686,4 +686,64 @@ class SQLServerConnectionPoolProxy implements ISQLServerConnection {
         checkClosed();
         return wrappedConnection.getSendTimeAsDatetime();
     }
+
+    @Override
+    public int getDiscardedServerPreparedStatementCount() {
+        return wrappedConnection.getDiscardedServerPreparedStatementCount();
+    }
+
+    @Override
+    public void closeUnreferencedPreparedStatementHandles() {
+        wrappedConnection.closeUnreferencedPreparedStatementHandles();
+    }
+
+    @Override
+    public boolean getEnablePrepareOnFirstPreparedStatementCall() {
+        return wrappedConnection.getEnablePrepareOnFirstPreparedStatementCall();
+    }
+
+    @Override
+    public void setEnablePrepareOnFirstPreparedStatementCall(boolean value) {
+        wrappedConnection.setEnablePrepareOnFirstPreparedStatementCall(value);
+    }
+
+    @Override
+    public int getServerPreparedStatementDiscardThreshold() {
+        return wrappedConnection.getServerPreparedStatementDiscardThreshold();
+    }
+
+    @Override
+    public void setServerPreparedStatementDiscardThreshold(int value) {
+        wrappedConnection.setServerPreparedStatementDiscardThreshold(value);
+    }
+
+    @Override
+    public void setStatementPoolingCacheSize(int value) {
+        wrappedConnection.setStatementPoolingCacheSize(value);
+    }
+
+    @Override
+    public int getStatementPoolingCacheSize() {
+        return wrappedConnection.getStatementPoolingCacheSize();
+    }
+
+    @Override
+    public boolean isStatementPoolingEnabled() {
+        return wrappedConnection.isStatementPoolingEnabled();
+    }
+
+    @Override
+    public int getStatementHandleCacheEntryCount() {
+        return wrappedConnection.getStatementHandleCacheEntryCount();
+    }
+
+    @Override
+    public void setDisableStatementPooling(boolean value) {
+        wrappedConnection.setDisableStatementPooling(value);
+    }
+
+    @Override
+    public boolean getDisableStatementPooling() {
+        return wrappedConnection.getDisableStatementPooling();
+    }
 }

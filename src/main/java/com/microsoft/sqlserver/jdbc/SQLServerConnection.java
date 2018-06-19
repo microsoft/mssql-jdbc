@@ -86,7 +86,7 @@ public class SQLServerConnection implements ISQLServerConnection {
     long timerExpire;
     boolean attemptRefreshTokenLocked = false;
 
-    // Threasholds related to when prepared statement handles are cleaned-up. 1 == immediately.
+    // Thresholds related to when prepared statement handles are cleaned-up. 1 == immediately.
     /**
      * The default for the prepared statement clean-up action threshold (i.e. when sp_unprepare is called). 
      */    
