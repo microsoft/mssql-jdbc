@@ -161,7 +161,7 @@ public interface ISQLServerDataSource extends CommonDataSource {
     /**
      * This parameter defines the keystore type for the trustStore.
      * 
-     * @param trustStoreType
+     * @param trustStoreType A String that contains the trust store type
      */
     public void setTrustStoreType(String trustStoreType);
 

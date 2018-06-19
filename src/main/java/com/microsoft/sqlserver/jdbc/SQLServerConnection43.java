@@ -11,35 +11,41 @@ import java.sql.SQLException;
 import java.sql.SQLFeatureNotSupportedException;
 import java.sql.ShardingKey;
 
-public class SQLServerConnection43 extends SQLServerConnection implements ISQLServerConnection43 {
+public class SQLServerConnection43 extends SQLServerConnection {
 
     SQLServerConnection43(String parentInfo) throws SQLServerException {
         super(parentInfo);
     }
 
+    @Override
     public void beginRequest() throws SQLException {
         beginRequestInternal();
     }
 
+    @Override
     public void endRequest() throws SQLException {
         endRequestInternal();
     }
 
+    @Override
     public void setShardingKey(ShardingKey shardingKey) throws SQLServerException {
         throw new SQLServerException("setShardingKey not implemented", new SQLFeatureNotSupportedException("setShardingKey not implemented"));
     }
 
+    @Override
     public void setShardingKey(ShardingKey shardingKey,
             ShardingKey superShardingKey) throws SQLServerException {
         throw new SQLServerException("setShardingKey not implemented", new SQLFeatureNotSupportedException("setShardingKey not implemented"));
     }
 
+    @Override
     public boolean setShardingKeyIfValid(ShardingKey shardingKey,
             int timeout) throws SQLServerException {
         throw new SQLServerException("setShardingKeyIfValid not implemented",
                 new SQLFeatureNotSupportedException("setShardingKeyIfValid not implemented"));
     }
 
+    @Override
     public boolean setShardingKeyIfValid(ShardingKey shardingKey,
             ShardingKey superShardingKey,
             int timeout) throws SQLServerException {

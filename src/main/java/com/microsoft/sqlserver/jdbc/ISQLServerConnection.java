@@ -166,26 +166,6 @@ public interface ISQLServerConnection extends java.sql.Connection {
      * @return boolean value of sendTimeAsDatetime
      */
     public boolean getSendTimeAsDatetime() throws SQLServerException;
-
-    /**
-     * Determine whether the connection is still valid.
-     *
-     * The driver shall submit a query on the connection or use some other mechanism that positively verifies the connection is still valid when this
-     * method is called.
-     *
-     * The query submitted by the driver to validate the connection shall be executed in the context of the current transaction.
-     *
-     * @param timeout
-     *            The time in seconds to wait for the database operation used to validate the connection to complete. If the timeout period expires
-     *            before the operation completes, this method returns false. A value of 0 indicates a timeout is not applied to the database
-     *            operation. Note that if the value is 0, the call to isValid may block indefinitely if the connection is not valid...
-     *
-     * @return true if the connection has not been closed and is still valid.
-     *
-     * @throws SQLException
-     *             if the value supplied for the timeout is less than 0.
-     */
-    public boolean isValid(int timeout) throws SQLException;
     
     /**
      * Returns the number of currently outstanding prepared statement un-prepare actions.
