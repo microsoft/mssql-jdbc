@@ -616,7 +616,7 @@ public class SQLServerStatement implements ISQLServerStatement {
     /**
      * Standard handler for unsupported data types.
      */
-    /* L0 */ final void throwNotImplementedException() throws SQLServerException {
+    final void throwNotImplementedException() throws SQLServerException {
         SQLServerException.makeFromDriverError(connection, this, SQLServerException.getErrString("R_notSupported"), null, false);
     }
 
