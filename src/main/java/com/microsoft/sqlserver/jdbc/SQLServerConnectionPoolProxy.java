@@ -47,6 +47,7 @@ class SQLServerConnectionPoolProxy implements ISQLServerConnection {
         return baseConnectionID.incrementAndGet();
     }
 
+    @Override
     public String toString() {
         return traceID;
     }

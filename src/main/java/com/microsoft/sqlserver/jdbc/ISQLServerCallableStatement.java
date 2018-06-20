@@ -488,7 +488,19 @@ public interface ISQLServerCallableStatement extends java.sql.CallableStatement,
             java.sql.Timestamp value,
             int scale,
             boolean forceEncrypt) throws SQLServerException;
-
+    /**
+     * Sets parameter parameterName to DateTimeOffset x
+     * 
+     * @param parameterName
+     *            the name of the parameter
+     * @param value
+     *            DateTimeOffset value
+     * @throws SQLServerException
+     *             if an error occurs
+     */
+    public void setDateTimeOffset(String parameterName,
+            microsoft.sql.DateTimeOffset value) throws SQLServerException;
+    
     /**
      * Sets parameter parameterName to DateTimeOffset x
      * 
@@ -1090,4 +1102,64 @@ public interface ISQLServerCallableStatement extends java.sql.CallableStatement,
             int sqlType,
             int precision,
             int scale) throws SQLServerException;
+
+    /**
+     * Registers the parameter in ordinal position index to be of JDBC type sqlType. All OUT parameters must be registered before a stored procedure
+     * is executed.
+     * <p>
+     * The JDBC type specified by sqlType for an OUT parameter determines the Java type that must be used in the get method to read the value of that
+     * parameter.
+     * 
+     * @param parameterName
+     *            the name of the parameter
+     * @param sqlType
+     *            the JDBC type code defined by SQLType to use to register the OUT Parameter.
+     * @param precision
+     *            the sum of the desired number of digits to the left and right of the decimal point. It must be greater than or equal to zero.
+     * @param scale
+     *            the desired number of digits to the right of the decimal point. It must be greater than or equal to zero.
+     * @throws SQLServerException
+     *             If any errors occur.
+     */
+    public void registerOutParameter(String parameterName,
+            int sqlType,
+            int precision,
+            int scale) throws SQLServerException;
+    
+    /**
+     * Sets the value of the designated parameter with the given object.
+     *
+     * <p>
+     * The given Java object will be converted to the given targetSqlType before being sent to the database.
+     *
+     * If the object has a custom mapping (is of a class implementing the interface <code>SQLData</code>), the JDBC driver should call the method
+     * <code>SQLData.writeSQL</code> to write it to the SQL data stream. If, on the other hand, the object is of a class implementing
+     * <code>Ref</code>, <code>Blob</code>, <code>Clob</code>, <code>NClob</code>, <code>Struct</code>, <code>java.net.URL</code>, or
+     * <code>Array</code>, the driver should pass it to the database as a value of the corresponding SQL type.
+     * <P>
+     * Note that this method may be used to pass datatabase- specific abstract data types.
+     *
+     * @param parameterName
+     *            the name of the parameter
+     * @param value
+     *            the object containing the input parameter value
+     * @param jdbcType
+     *            the SQL type (as defined in java.sql.Types) to be sent to the database. The scale argument may further qualify this type.
+     * @param scale
+     *            the scale of the column.
+     * @param forceEncrypt
+     *            If the boolean forceEncrypt is set to true, the query parameter will only be set if the designation column is encrypted and Always
+     *            Encrypted is enabled on the connection or on the statement. If the boolean forceEncrypt is set to false, the driver will not force
+     *            encryption on parameters.
+     * @throws SQLServerException
+     *             if parameterName does not correspond to a named parameter; if a database access error occurs or this method is called on a closed
+     *             <code>CallableStatement</code>
+     * @see java.sql.Types
+     * @see #getObject
+     */
+    public void setObject(String parameterName,
+            Object value,
+            SQLType jdbcType,
+            int scale,
+            boolean forceEncrypt) throws SQLServerException;
 }
