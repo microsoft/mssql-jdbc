@@ -49,7 +49,7 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
      * Always refresh SerialVersionUID when prompted
      */
     private static final long serialVersionUID = -1624082547992040463L;
-    
+
     /** Generate the statement's logging ID */
     private static final AtomicInteger lastResultSetID = new AtomicInteger(0);
     private final String traceID;
@@ -2710,33 +2710,33 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
 
     @Override
     @Deprecated
-    public java.io.InputStream getUnicodeStream(int columnIndex) throws SQLServerException {
+    public java.io.InputStream getUnicodeStream(int columnIndex) throws SQLException {
         loggerExternal.entering(getClassNameLogging(), "getUnicodeStream", columnIndex);
-        stmt.throwNotImplementedException();
+        SQLServerException.throwFeatureNotSupportedException();
         return null;
     }
 
     @Override
     @Deprecated
-    public java.io.InputStream getUnicodeStream(String columnName) throws SQLServerException {
+    public java.io.InputStream getUnicodeStream(String columnName) throws SQLException {
         loggerExternal.entering(getClassNameLogging(), "getUnicodeStream", columnName);
-        stmt.throwNotImplementedException();
+        SQLServerException.throwFeatureNotSupportedException();
         return null;
     }
 
     @Override
     public Object getObject(int i,
-            java.util.Map<String, Class<?>> map) throws SQLServerException {
+            java.util.Map<String, Class<?>> map) throws SQLException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "getObject", new Object[] {i, map});
-        stmt.throwNotImplementedException();
+        SQLServerException.throwFeatureNotSupportedException();
         return null;
     }
 
     @Override
-    public Ref getRef(int i) throws SQLServerException {
+    public Ref getRef(int i) throws SQLException {
         loggerExternal.entering(getClassNameLogging(), "getRef");
-        stmt.throwNotImplementedException();
+        SQLServerException.throwFeatureNotSupportedException();
         return null;
     }
 
@@ -2925,13 +2925,13 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
 
     @Override
     public RowId getRowId(int columnIndex) throws SQLException {
-        stmt.throwNotImplementedException();
+        SQLServerException.throwFeatureNotSupportedException();
         return null;
     }
 
     @Override
     public RowId getRowId(String columnLabel) throws SQLException {
-        stmt.throwNotImplementedException();
+        SQLServerException.throwFeatureNotSupportedException();
         return null;
     }
 
@@ -5400,37 +5400,37 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
 
     @Override
     public void updateArray(int columnIndex,
-            Array x) throws SQLServerException {
-        stmt.throwNotImplementedException();
+            Array x) throws SQLException {
+        SQLServerException.throwFeatureNotSupportedException();
     }
 
     @Override
     public void updateArray(java.lang.String columnName,
-            Array x) throws SQLServerException {
-        stmt.throwNotImplementedException();
+            Array x) throws SQLException {
+        SQLServerException.throwFeatureNotSupportedException();
     }
 
     @Override
     public void updateRef(int columnIndex,
-            Ref x) throws SQLServerException {
-        stmt.throwNotImplementedException();
+            Ref x) throws SQLException {
+        SQLServerException.throwFeatureNotSupportedException();
     }
 
     @Override
     public void updateRef(java.lang.String columnName,
-            Ref x) throws SQLServerException {
-        stmt.throwNotImplementedException();
+            Ref x) throws SQLException {
+        SQLServerException.throwFeatureNotSupportedException();
     }
 
     @Override
-    public java.net.URL getURL(int columnIndex) throws SQLServerException {
-        stmt.throwNotImplementedException();
+    public java.net.URL getURL(int columnIndex) throws SQLException {
+        SQLServerException.throwFeatureNotSupportedException();
         return null;
     }
 
     @Override
-    public java.net.URL getURL(String sColumn) throws SQLServerException {
-        stmt.throwNotImplementedException();
+    public java.net.URL getURL(String sColumn) throws SQLException {
+        SQLServerException.throwFeatureNotSupportedException();
         return null;
     }
 

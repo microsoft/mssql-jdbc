@@ -402,7 +402,7 @@ public interface ISQLServerCallableStatement extends java.sql.CallableStatement,
      * @throws SQLServerException
      *             if parameterName does not correspond to a named parameter; if a database access error occurs or this method is called on a closed
      *             <code>CallableStatement</code>
-     * @see Types
+     * @see java.sql.Types
      * @see #getObject
      */
     public void setObject(String parameterName,
@@ -437,7 +437,7 @@ public interface ISQLServerCallableStatement extends java.sql.CallableStatement,
      * @throws SQLServerException
      *             if parameterName does not correspond to a named parameter; if a database access error occurs or this method is called on a closed
      *             <code>CallableStatement</code>
-     * @see Types
+     * @see java.sql.Types
      * @see #getObject
      */
     public void setObject(String parameterName,

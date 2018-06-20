@@ -8,8 +8,6 @@
 
 package com.microsoft.sqlserver.jdbc;
 
-import javax.sql.CommonDataSource;
-
 import org.ietf.jgss.GSSCredential;
 
 /**
@@ -17,7 +15,7 @@ import org.ietf.jgss.GSSCredential;
  * 
  * This interface is implemented by {@link SQLServerDataSource} Class.
  */
-public interface ISQLServerDataSource extends CommonDataSource {
+public interface ISQLServerDataSource extends javax.sql.CommonDataSource {
 
     /**
      * Sets the application intent.

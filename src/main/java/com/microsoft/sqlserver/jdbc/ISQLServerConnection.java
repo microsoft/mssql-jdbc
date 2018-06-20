@@ -10,8 +10,6 @@ package com.microsoft.sqlserver.jdbc;
 
 import java.sql.CallableStatement;
 import java.sql.PreparedStatement;
-import java.sql.SQLException;
-import java.sql.SQLFeatureNotSupportedException;
 import java.sql.Statement;
 import java.util.UUID;
 
@@ -52,8 +50,8 @@ public interface ISQLServerConnection extends java.sql.Connection {
      *            Specifies how data will be sent and received when reading and writing encrypted columns.
      * @return a new <code>Statement</code> object that will generate <code>ResultSet</code> objects with the given type, concurrency, and holdability
      * @throws SQLServerException
-     *                if a database access error occurs, this method is called on a closed connection or the given parameters are not
-     *                <code>ResultSet</code> constants indicating type, concurrency, and holdability
+     *             if a database access error occurs, this method is called on a closed connection or the given parameters are not
+     *             <code>ResultSet</code> constants indicating type, concurrency, and holdability
      */
     public Statement createStatement(int nType,
             int nConcur,
@@ -210,8 +208,8 @@ public interface ISQLServerConnection extends java.sql.Connection {
      * @return a new <code>CallableStatement</code> object, containing the pre-compiled SQL statement, that will generate <code>ResultSet</code>
      *         objects with the given type, concurrency, and holdability
      * @throws SQLServerException
-     *                if a database access error occurs, this method is called on a closed connection or the given parameters are not
-     *                <code>ResultSet</code> constants indicating type, concurrency, and holdability
+     *             if a database access error occurs, this method is called on a closed connection or the given parameters are not
+     *             <code>ResultSet</code> constants indicating type, concurrency, and holdability
      */
     public CallableStatement prepareCall(String sql,
             int nType,
@@ -227,12 +225,11 @@ public interface ISQLServerConnection extends java.sql.Connection {
      * @param sendTimeAsDateTimeValue
      *            enables/disables setting the sendTimeAsDatetime connection property. For more information about how the Microsoft JDBC Driver for
      *            SQL Server configures java.sql.Time values before sending them to the server, see
-     *            <a href="https://msdn.microsoft.com/en-us/library/ff427224(v=sql.110).aspx" >
-     *            Configuring How java.sql.Time Values are Sent to the
+     *            <a href="https://msdn.microsoft.com/en-us/library/ff427224(v=sql.110).aspx" > Configuring How java.sql.Time Values are Sent to the
      *            Server.</a>
-     *            
+     * 
      * @throws SQLServerException
-     *                if a database access error occurs
+     *             if a database access error occurs
      */
     public void setSendTimeAsDatetime(boolean sendTimeAsDateTimeValue) throws SQLServerException;
 
@@ -242,7 +239,7 @@ public interface ISQLServerConnection extends java.sql.Connection {
      * @return boolean value of sendTimeAsDatetime
      * 
      * @throws SQLServerException
-     *                if a database access error occurs
+     *             if a database access error occurs
      */
     public boolean getSendTimeAsDatetime() throws SQLServerException;
 

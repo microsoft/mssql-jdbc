@@ -1161,33 +1161,33 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
     }
 
     public Object getObject(int parameterIndex,
-            java.util.Map<String, Class<?>> map) throws SQLServerException {
-        throwNotImplementedException();
+            java.util.Map<String, Class<?>> map) throws SQLException {
+        SQLServerException.throwFeatureNotSupportedException();
         return null;
     }
 
     public Object getObject(String parameterName,
-            java.util.Map<String, Class<?>> m) throws SQLServerException {
+            java.util.Map<String, Class<?>> m) throws SQLException {
         checkClosed();
         return getObject(findColumn(parameterName), m);
     }
 
-    public Ref getRef(int parameterIndex) throws SQLServerException {
-        throwNotImplementedException();
+    public Ref getRef(int parameterIndex) throws SQLException {
+        SQLServerException.throwFeatureNotSupportedException();
         return null;
     }
 
-    public Ref getRef(String parameterName) throws SQLServerException {
+    public Ref getRef(String parameterName) throws SQLException {
         checkClosed();
         return getRef(findColumn(parameterName));
     }
 
-    public java.sql.Array getArray(int parameterIndex) throws SQLServerException {
-        throwNotImplementedException();
+    public java.sql.Array getArray(int parameterIndex) throws SQLException {
+        SQLServerException.throwFeatureNotSupportedException();
         return null;
     }
 
-    public java.sql.Array getArray(String parameterName) throws SQLServerException {
+    public java.sql.Array getArray(String parameterName) throws SQLException {
         checkClosed();
         return getArray(findColumn(parameterName));
     }
@@ -2086,7 +2086,7 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
     }
 
     public void setURL(String parameterName,
-            URL url) throws SQLServerException {
+            URL url) throws SQLException {
         loggerExternal.entering(getClassNameLogging(), "setURL", parameterName);
         checkClosed();
         setURL(findColumn(parameterName), url);
@@ -2126,13 +2126,13 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
         loggerExternal.exiting(getClassNameLogging(), "setStructured");
     }
 
-    public URL getURL(int parameterIndex) throws SQLServerException {
-        throwNotImplementedException();
+    public URL getURL(int parameterIndex) throws SQLException {
+        SQLServerException.throwFeatureNotSupportedException();
         return null;
     }
 
-    public URL getURL(String parameterName) throws SQLServerException {
-        throwNotImplementedException();
+    public URL getURL(String parameterName) throws SQLException {
+        SQLServerException.throwFeatureNotSupportedException();
         return null;
     }
 
@@ -2163,16 +2163,16 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
 
     public final void setRowId(String parameterName,
             RowId value) throws SQLException {
-        throwNotImplementedException();
+        SQLServerException.throwFeatureNotSupportedException();
     }
 
     public final RowId getRowId(int parameterIndex) throws SQLException {
-        throwNotImplementedException();
+        SQLServerException.throwFeatureNotSupportedException();
         return null;
     }
 
     public final RowId getRowId(String parameterName) throws SQLException {
-        throwNotImplementedException();
+        SQLServerException.throwFeatureNotSupportedException();
         return null;
     }
 

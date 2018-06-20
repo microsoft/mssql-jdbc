@@ -36,4 +36,25 @@ public interface ISQLServerStatement extends java.sql.Statement {
      *             If there are any errors in retrieving the response buffering mode.
      */
     public String getResponseBuffering() throws SQLServerException;
+    
+    /**
+     * Retrieves the <code>cancelQueryTimeout</code> property set on this SQLServerStatement object.
+     * 
+     * @return cancelQueryTimeout
+     *              Time duration in seconds.
+     * @throws SQLServerException
+     *              if any error occurs
+     */
+    public int getCancelQueryTimeout() throws SQLServerException;
+    
+    /**
+     * Sets the cancelQueryTimeout property on this SQLServerStatement object to cancel <code>queryTimeout</code> 
+     * set on <code>Connection</code> or <code>Statement</code> level.
+     * 
+     * @param seconds
+     *              Time duration in seconds.
+     * @throws SQLServerException
+     *              if any error occurs
+     */
+    public void setCancelQueryTimeout(int seconds) throws SQLServerException;
 }
