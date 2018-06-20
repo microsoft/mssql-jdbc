@@ -103,10 +103,6 @@ public class SQLServerBulkBatchInsertRecord extends SQLServerBulkCommon implemen
     private Object convertValue(ColumnMetadata cm,
             Object data) throws SQLServerException {
         switch (cm.columnType) {
-            /*
-             * Both BCP and BULK INSERT considers double quotes as part of the data and throws error if any data (say "10") is to be inserted into an
-             * numeric column. Our implementation does the same.
-             */
             case Types.INTEGER: {
                 // Formatter to remove the decimal part as SQL Server floors the decimal in integer types
                 DecimalFormat decimalFormatter = new DecimalFormat("#");
