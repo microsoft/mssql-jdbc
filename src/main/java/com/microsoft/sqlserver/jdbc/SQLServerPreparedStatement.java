@@ -2481,6 +2481,24 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         
         try {
             if (isInsert(localUserSQL) && connection.isAzureDW() && (this.useBulkCopyForBatchInsert)) {
+                // From the JDBC spec, section 9.1.4 - Making Batch Updates:
+                // The CallableStatement.executeBatch method (inherited from PreparedStatement) will
+                // throw a BatchUpdateException if the stored procedure returns anything other than an
+                // update count or takes OUT or INOUT parameters.
+                //
+                // Non-update count results (e.g. ResultSets) are treated as individual batch errors
+                // when they are encountered in the response.
+                //
+                // OUT and INOUT parameter checking is done here, before executing the batch. If any
+                // OUT or INOUT are present, the entire batch fails.
+                for (Parameter[] paramValues : batchParamValues) {
+                    for (Parameter paramValue : paramValues) {
+                        if (paramValue.isOutput()) {
+                            throw new BatchUpdateException(SQLServerException.getErrString("R_outParamsNotPermittedinBatch"), null, 0, null);
+                        }
+                    }
+                }
+                
                 if (batchParamValues == null) {
                     updateCounts = new int[0];
                     loggerExternal.exiting(getClassNameLogging(), "executeBatch", updateCounts);
@@ -2537,9 +2555,8 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
             }
         }
         catch (SQLException e) {
-            // Unable to retrieve metadata for destination
-            // create an error message for failing bulk copy + insert batch
-            throw new SQLServerException(SQLServerException.getErrString("R_unableRetrieveColMeta"), e);
+            // throw a BatchUpdateException with the given error message, and return null for the updateCounts.
+            throw new BatchUpdateException(e.getMessage(), null, 0, null);
         }
         catch (Exception e) {
             // If we fail with non-SQLException, fall back to the original batch insert logic.
