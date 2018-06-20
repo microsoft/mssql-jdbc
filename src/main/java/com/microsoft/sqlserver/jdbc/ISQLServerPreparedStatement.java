@@ -528,7 +528,7 @@ public interface ISQLServerPreparedStatement extends java.sql.PreparedStatement,
      *            If the boolean forceEncrypt is set to true, the query parameter will only be set if the designation column is encrypted and Always
      *            Encrypted is enabled on the connection or on the statement. If the boolean forceEncrypt is set to false, the driver will not force
      *            encryption on parameters.
-     * @throws SQLException
+     * @throws SQLServerException
      *             when an error occurs
      */
     public void setNString(int parameterIndex,
