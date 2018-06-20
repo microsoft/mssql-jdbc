@@ -120,7 +120,12 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
     private String originalHostNameInCertificate = null;
 
-    static class Sha1HashKey {
+    static class Sha1HashKey implements java.io.Serializable {
+
+        /**
+         * Always refresh SerialVersionUID when prompted
+         */
+        private static final long serialVersionUID = 166788428640603097L;
         private byte[] bytes;
 
         Sha1HashKey(String sql,
