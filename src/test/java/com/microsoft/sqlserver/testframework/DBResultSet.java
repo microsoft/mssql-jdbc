@@ -209,7 +209,6 @@ public class DBResultSet extends AbstractParentWrapper implements AutoCloseable 
         Object retrieved = this.getXXX(ordinal + 1, coercion);
 
         // Verify
-        // TODO: Check the intermittent verification error
         verifydata(ordinal, coercion, expectedData, retrieved);
     }
 
