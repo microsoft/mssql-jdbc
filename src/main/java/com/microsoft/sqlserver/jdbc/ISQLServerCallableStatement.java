@@ -9,11 +9,8 @@
 package com.microsoft.sqlserver.jdbc;
 
 import java.math.BigDecimal;
-import java.sql.ResultSet;
-import java.sql.SQLException;
 import java.sql.SQLType;
 import java.sql.Timestamp;
-import java.sql.Types;
 import java.util.Calendar;
 
 /**
@@ -23,7 +20,7 @@ public interface ISQLServerCallableStatement extends java.sql.CallableStatement,
 
     @Deprecated
     public BigDecimal getBigDecimal(String parameterName,
-            int scale) throws SQLException;
+            int scale) throws SQLServerException;
 
     /**
      * Retrieves the value of the designated column in the current row of this ResultSet object as a java.sql.Timestamp object in the Java programming
@@ -142,11 +139,11 @@ public interface ISQLServerCallableStatement extends java.sql.CallableStatement,
      * @param parameterIndex
      *            the first parameter is 1, the second is 2, and so on
      * @return DateTimeOffset value
-     * @throws SQLException
+     * @throws SQLServerException
      *             if parameterIndex is out of range; if a database access error occurs or this method is called on a closed
      *             <code>CallableStatement</code>
      */
-    public microsoft.sql.DateTimeOffset getDateTimeOffset(int parameterIndex) throws SQLException;
+    public microsoft.sql.DateTimeOffset getDateTimeOffset(int parameterIndex) throws SQLServerException;
 
     /**
      * Gets the DateTimeOffset value of parameter with name parameterName
@@ -154,11 +151,11 @@ public interface ISQLServerCallableStatement extends java.sql.CallableStatement,
      * @param parameterName
      *            the name of the parameter
      * @return DateTimeOffset value
-     * @throws SQLException
+     * @throws SQLServerException
      *             if parameterName does not correspond to a named parameter; if a database access error occurs or this method is called on a closed
      *             <code>CallableStatement</code>
      */
-    public microsoft.sql.DateTimeOffset getDateTimeOffset(String parameterName) throws SQLException;
+    public microsoft.sql.DateTimeOffset getDateTimeOffset(String parameterName) throws SQLServerException;
 
     /**
      * Retrieves the value of the designated column in the current row of this <code>ResultSet</code> object as a stream of ASCII characters. The
@@ -367,14 +364,14 @@ public interface ISQLServerCallableStatement extends java.sql.CallableStatement,
      *            If the boolean forceEncrypt is set to true, the query parameter will only be set if the designation column is encrypted and Always
      *            Encrypted is enabled on the connection or on the statement. If the boolean forceEncrypt is set to false, the driver will not force
      *            encryption on parameters.
-     * @throws SQLException
+     * @throws SQLServerException
      *             if parameterName does not correspond to a named parameter; if the driver does not support national character sets; if the driver
      *             can detect that a data conversion error could occur; if a database access error occurs or this method is called on a closed
      *             <code>CallableStatement</code>
      */
     public void setNString(String parameterName,
             String value,
-            boolean forceEncrypt) throws SQLException;
+            boolean forceEncrypt) throws SQLServerException;
 
     /**
      * Sets the value of the designated parameter with the given object.
@@ -501,12 +498,12 @@ public interface ISQLServerCallableStatement extends java.sql.CallableStatement,
      *            DateTimeOffset value
      * @param scale
      *            the scale of the parameter
-     * @throws SQLException
+     * @throws SQLServerException
      *             if an error occurs
      */
     public void setDateTimeOffset(String parameterName,
             microsoft.sql.DateTimeOffset value,
-            int scale) throws SQLException;
+            int scale) throws SQLServerException;
 
     /**
      * Sets parameter parameterName to DateTimeOffset x
@@ -521,13 +518,13 @@ public interface ISQLServerCallableStatement extends java.sql.CallableStatement,
      *            If the boolean forceEncrypt is set to true, the query parameter will only be set if the designation column is encrypted and Always
      *            Encrypted is enabled on the connection or on the statement. If the boolean forceEncrypt is set to false, the driver will not force
      *            encryption on parameters.
-     * @throws SQLException
+     * @throws SQLServerException
      *             if an error occurs
      */
     public void setDateTimeOffset(String parameterName,
             microsoft.sql.DateTimeOffset value,
             int scale,
-            boolean forceEncrypt) throws SQLException;
+            boolean forceEncrypt) throws SQLServerException;
 
     /**
      * Sets the designated parameter to the given <code>java.sql.Time</code> value. The driver converts this to an SQL <code>TIME</code> value when it
@@ -1006,7 +1003,7 @@ public interface ISQLServerCallableStatement extends java.sql.CallableStatement,
      */
     public void setStructured(String parameterName,
             String tvpName,
-            ResultSet tvpResultSet) throws SQLServerException;
+            java.sql.ResultSet tvpResultSet) throws SQLServerException;
 
     /**
      * Populates a table valued parameter passed to a stored procedure with an ISQLServerDataRecord object.

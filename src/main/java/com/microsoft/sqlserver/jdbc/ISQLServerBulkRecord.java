@@ -8,8 +8,6 @@
 
 package com.microsoft.sqlserver.jdbc;
 
-import java.util.Set;
-
 /**
  * The ISQLServerBulkRecord interface can be used to create classes that read in data from any source (such as a file) and allow a SQLServerBulkCopy
  * class to write the data to SQL Server tables.
@@ -23,7 +21,7 @@ public interface ISQLServerBulkRecord {
      * 
      * @return Set of ordinals for the columns.
      */
-    public Set<Integer> getColumnOrdinals();
+    public java.util.Set<Integer> getColumnOrdinals();
 
     /**
      * Get the name of the given column.

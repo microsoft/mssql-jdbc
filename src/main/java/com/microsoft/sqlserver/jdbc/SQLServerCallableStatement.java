@@ -521,7 +521,7 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
 
     @Deprecated
     public BigDecimal getBigDecimal(String parameterName,
-            int scale) throws SQLException {
+            int scale) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "getBigDecimal", new Object[] {parameterName, scale});
         checkClosed();
@@ -946,7 +946,7 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
         return value;
     }
 
-    public microsoft.sql.DateTimeOffset getDateTimeOffset(int index) throws SQLException {
+    public microsoft.sql.DateTimeOffset getDateTimeOffset(int index) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "getDateTimeOffset", index);
         checkClosed();
@@ -961,7 +961,7 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
         return value;
     }
 
-    public microsoft.sql.DateTimeOffset getDateTimeOffset(String parameterName) throws SQLException {
+    public microsoft.sql.DateTimeOffset getDateTimeOffset(String parameterName) throws SQLServerException {
         loggerExternal.entering(getClassNameLogging(), "getDateTimeOffset", parameterName);
         checkClosed();
 
@@ -1491,7 +1491,7 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
 
     public final void setNString(String parameterName,
             String value,
-            boolean forceEncrypt) throws SQLException {
+            boolean forceEncrypt) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setNString", new Object[] {parameterName, value, forceEncrypt});
         checkClosed();
@@ -1708,7 +1708,7 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
 
     public void setDateTimeOffset(String parameterName,
             microsoft.sql.DateTimeOffset value,
-            int scale) throws SQLException {
+            int scale) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setDateTimeOffset", new Object[] {parameterName, value});
         checkClosed();
@@ -1719,7 +1719,7 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
     public void setDateTimeOffset(String parameterName,
             microsoft.sql.DateTimeOffset value,
             int scale,
-            boolean forceEncrypt) throws SQLException {
+            boolean forceEncrypt) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setDateTimeOffset", new Object[] {parameterName, value, forceEncrypt});
         checkClosed();
