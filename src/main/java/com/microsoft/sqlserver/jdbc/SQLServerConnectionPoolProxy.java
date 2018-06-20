@@ -263,7 +263,7 @@ class SQLServerConnectionPoolProxy implements ISQLServerConnection {
     }
 
     @Override
-    public void setTypeMap(java.util.Map<String, Class<?>> map) throws SQLServerException {
+    public void setTypeMap(java.util.Map<String, Class<?>> map) throws SQLException {
         checkClosed();
         wrappedConnection.setTypeMap(map);
     }
@@ -379,7 +379,7 @@ class SQLServerConnectionPoolProxy implements ISQLServerConnection {
     /* JDBC 3.0 Savepoints */
 
     @Override
-    public void releaseSavepoint(Savepoint savepoint) throws SQLServerException {
+    public void releaseSavepoint(Savepoint savepoint) throws SQLException {
         checkClosed();
         wrappedConnection.releaseSavepoint(savepoint);
     }
