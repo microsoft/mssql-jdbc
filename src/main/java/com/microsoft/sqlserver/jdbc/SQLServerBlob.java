@@ -161,8 +161,8 @@ public final class SQLServerBlob extends SQLServerLob implements java.sql.Blob, 
 
     public InputStream getBinaryStream(long pos,
             long length) throws SQLException {
-        // Not implemented - partial materialization
-        throw new SQLFeatureNotSupportedException(SQLServerException.getErrString("R_notSupported"));
+        SQLServerException.throwFeatureNotSupportedException();
+        return null;
     }
 
     private InputStream getBinaryStreamInternal(int pos,

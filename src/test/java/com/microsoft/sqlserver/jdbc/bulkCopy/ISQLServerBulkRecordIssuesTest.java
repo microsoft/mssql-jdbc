@@ -23,6 +23,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 import java.text.MessageFormat;
+import java.time.format.DateTimeFormatter;
 
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
@@ -70,7 +71,8 @@ public class ISQLServerBulkRecordIssuesTest extends AbstractTest {
         }
         catch (Exception e) {
             if (e instanceof SQLException) {
-                assertTrue(e.getMessage().contains(TestResource.getResource("R_givenValueType")), TestResource.getResource("R_invalidErrorMessage") + e.toString());
+                assertTrue(e.getMessage().contains(TestResource.getResource("R_givenValueType")),
+                        TestResource.getResource("R_invalidErrorMessage") + e.toString());
             }
             else {
                 fail(e.getMessage());
@@ -92,14 +94,14 @@ public class ISQLServerBulkRecordIssuesTest extends AbstractTest {
         stmt.executeUpdate(query);
 
         try (SQLServerBulkCopy bcOperation = new SQLServerBulkCopy(connectionString)) {
-	        bcOperation.setDestinationTableName(destTable);
-	        bcOperation.writeToServer(bData);
-	
-	        try (ResultSet rs = stmt.executeQuery("select * from " + destTable)) {
-		        while (rs.next()) {
-		            assertEquals(rs.getString(1), value);
-		        }
-	        }
+            bcOperation.setDestinationTableName(destTable);
+            bcOperation.writeToServer(bData);
+
+            try (ResultSet rs = stmt.executeQuery("select * from " + destTable)) {
+                while (rs.next()) {
+                    assertEquals(rs.getString(1), value);
+                }
+            }
         }
     }
 
@@ -112,7 +114,7 @@ public class ISQLServerBulkRecordIssuesTest extends AbstractTest {
     public void testSmalldatetimeOutofRange() throws Exception {
         variation = "testSmalldatetimeOutofRange";
         BulkData bData = new BulkData(variation);
-        
+
         query = "CREATE TABLE " + destTable + " (smallDATA smalldatetime)";
         stmt.executeUpdate(query);
 
@@ -123,11 +125,10 @@ public class ISQLServerBulkRecordIssuesTest extends AbstractTest {
         }
         catch (Exception e) {
             if (e instanceof SQLException) {
-                 MessageFormat form = new MessageFormat(TestResource.getResource("R_conversionFailed"));
+                MessageFormat form = new MessageFormat(TestResource.getResource("R_conversionFailed"));
                 Object[] msgArgs = {"character string", "smalldatetime"};
 
-                assertTrue(e.getMessage().contains(form.format(msgArgs)),
-                        TestResource.getResource("R_invalidErrorMessage") + e.toString());
+                assertTrue(e.getMessage().contains(form.format(msgArgs)), TestResource.getResource("R_invalidErrorMessage") + e.toString());
             }
             else {
                 fail(e.getMessage());
@@ -154,7 +155,8 @@ public class ISQLServerBulkRecordIssuesTest extends AbstractTest {
         }
         catch (Exception e) {
             if (e instanceof SQLException) {
-                assertTrue(e.getMessage().contains(TestResource.getResource("R_givenValueType")), TestResource.getResource("R_invalidErrorMessage") + e.toString());
+                assertTrue(e.getMessage().contains(TestResource.getResource("R_givenValueType")),
+                        TestResource.getResource("R_invalidErrorMessage") + e.toString());
             }
             else {
                 fail(e.getMessage());
@@ -181,7 +183,8 @@ public class ISQLServerBulkRecordIssuesTest extends AbstractTest {
         }
         catch (Exception e) {
             if (e instanceof SQLException) {
-                assertTrue(e.getMessage().contains(TestResource.getResource("R_givenValueType")), TestResource.getResource("R_invalidErrorMessage") + e.toString());
+                assertTrue(e.getMessage().contains(TestResource.getResource("R_givenValueType")),
+                        TestResource.getResource("R_invalidErrorMessage") + e.toString());
             }
             else {
                 fail(e.getMessage());
@@ -204,15 +207,15 @@ public class ISQLServerBulkRecordIssuesTest extends AbstractTest {
         try (SQLServerBulkCopy bcOperation = new SQLServerBulkCopy(connectionString)) {
             bcOperation.setDestinationTableName(destTable);
             bcOperation.writeToServer(bData);
-            
+
             try (ResultSet rs = stmt.executeQuery("select * from " + destTable)) {
-	            while (rs.next()) {
-	                assertEquals(rs.getString(1), "0101010000");
-	            }
+                while (rs.next()) {
+                    assertEquals(rs.getString(1), "0101010000");
+                }
             }
         }
         catch (Exception e) {
-           fail(e.getMessage());
+            fail(e.getMessage());
         }
     }
 
@@ -352,71 +355,36 @@ class BulkData implements ISQLServerBulkRecord {
 
     }
 
-    /*
-     * (non-Javadoc)
-     * 
-     * @see com.microsoft.sqlserver.jdbc.ISQLServerBulkRecord#getColumnOrdinals()
-     */
     @Override
     public Set<Integer> getColumnOrdinals() {
         return columnMetadata.keySet();
     }
 
-    /*
-     * (non-Javadoc)
-     * 
-     * @see com.microsoft.sqlserver.jdbc.ISQLServerBulkRecord#getColumnName(int)
-     */
     @Override
     public String getColumnName(int column) {
         return columnMetadata.get(column).columnName;
     }
 
-    /*
-     * (non-Javadoc)
-     * 
-     * @see com.microsoft.sqlserver.jdbc.ISQLServerBulkRecord#getColumnType(int)
-     */
     @Override
     public int getColumnType(int column) {
         return columnMetadata.get(column).columnType;
     }
 
-    /*
-     * (non-Javadoc)
-     * 
-     * @see com.microsoft.sqlserver.jdbc.ISQLServerBulkRecord#getPrecision(int)
-     */
     @Override
     public int getPrecision(int column) {
         return columnMetadata.get(column).precision;
     }
 
-    /*
-     * (non-Javadoc)
-     * 
-     * @see com.microsoft.sqlserver.jdbc.ISQLServerBulkRecord#getScale(int)
-     */
     @Override
     public int getScale(int column) {
         return columnMetadata.get(column).scale;
     }
 
-    /*
-     * (non-Javadoc)
-     * 
-     * @see com.microsoft.sqlserver.jdbc.ISQLServerBulkRecord#isAutoIncrement(int)
-     */
     @Override
     public boolean isAutoIncrement(int column) {
         return false;
     }
 
-    /*
-     * (non-Javadoc)
-     * 
-     * @see com.microsoft.sqlserver.jdbc.ISQLServerBulkRecord#getRowData()
-     */
     @Override
     public Object[] getRowData() throws SQLServerException {
         Object[] dataRow = new Object[columnMetadata.size()];
@@ -432,17 +400,62 @@ class BulkData implements ISQLServerBulkRecord {
         return dataRow;
     }
 
-    /*
-     * (non-Javadoc)
-     * 
-     * @see com.microsoft.sqlserver.jdbc.ISQLServerBulkRecord#next()
-     */
     @Override
     public boolean next() throws SQLServerException {
         if (counter < rowCount) {
             return true;
         }
         return false;
+    }
+
+    @Override
+    public void addColumnMetadata(int positionInFile,
+            String name,
+            int jdbcType,
+            int precision,
+            int scale,
+            DateTimeFormatter dateTimeFormatter) throws SQLServerException {
+        // TODO Not Implemented
+    }
+
+    @Override
+    public void addColumnMetadata(int positionInFile,
+            String name,
+            int jdbcType,
+            int precision,
+            int scale) throws SQLServerException {
+        // TODO Not Implemented
+    }
+
+    @Override
+    public void setTimestampWithTimezoneFormat(String dateTimeFormat) {
+        // TODO Not Implemented
+    }
+
+    @Override
+    public void setTimestampWithTimezoneFormat(DateTimeFormatter dateTimeFormatter) {
+        // TODO Not Implemented
+    }
+
+    @Override
+    public void setTimeWithTimezoneFormat(String timeFormat) {
+        // TODO Not Implemented
+    }
+
+    @Override
+    public void setTimeWithTimezoneFormat(DateTimeFormatter dateTimeFormatter) {
+        // TODO Not Implemented
+    }
+
+    @Override
+    public void close() throws SQLServerException {
+        // TODO Not Implemented
+    }
+
+    @Override
+    public DateTimeFormatter getColumnDateTimeFormatter(int column) {
+        // TODO Not Implemented
+        return null;
     }
 
 }

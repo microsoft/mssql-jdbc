@@ -246,8 +246,8 @@ abstract class SQLServerClobBase extends SQLServerLob implements Serializable {
      */
     public Reader getCharacterStream(long pos,
             long length) throws SQLException {
-        // Not implemented
-        throw new SQLFeatureNotSupportedException(SQLServerException.getErrString("R_notSupported"));
+        SQLServerException.throwFeatureNotSupportedException();
+        return null;
     }
 
     /**
