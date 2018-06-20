@@ -14,6 +14,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import java.io.ByteArrayInputStream;
 import java.io.CharArrayReader;
 import java.net.URI;
+import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -283,6 +284,11 @@ public class Utils {
         dropObjectIfExists(procName, "IsProcedure", stmt);
     }
 
+    public static void dropDatabaseIfExists(String databaseName,
+            java.sql.Statement stmt) throws SQLException {
+        stmt.executeUpdate("IF EXISTS(SELECT * from sys.databases WHERE name='" + databaseName + "') DROP DATABASE [" + databaseName + "]");
+    }
+
     /**
      * actually perform the "DROP TABLE / PROCEDURE"
      */
@@ -315,4 +321,11 @@ public class Utils {
         return true;
     }
     
+    public static boolean isJDBC43OrGreater(Connection connection) throws SQLException{
+        return getJDBCVersion(connection) >= 4.3F;
+    }
+
+    public static float getJDBCVersion(Connection connection) throws SQLException {
+        return Float.valueOf(connection.getMetaData().getJDBCMajorVersion() + "." + connection.getMetaData().getJDBCMinorVersion());
+    }
 }
