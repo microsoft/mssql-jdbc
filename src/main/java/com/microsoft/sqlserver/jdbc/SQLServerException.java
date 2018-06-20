@@ -8,6 +8,7 @@
 
 package com.microsoft.sqlserver.jdbc;
 
+import java.sql.SQLFeatureNotSupportedException;
 import java.text.MessageFormat;
 import java.util.UUID;
 import java.util.logging.Level;
@@ -92,7 +93,7 @@ public final class SQLServerException extends java.sql.SQLException {
      * @param bStack
      *            true to generate the stack trace
      */
-    /* L0 */ private void logException(Object o,
+    private void logException(Object o,
             String errText,
             boolean bStack) {
         String id = "";
@@ -105,19 +106,20 @@ public final class SQLServerException extends java.sql.SQLException {
             if (exLogger.isLoggable(Level.FINE)) {
                 StringBuilder sb = new StringBuilder(100);
                 StackTraceElement st[] = this.getStackTrace();
-                for (StackTraceElement aSt : st) sb.append(aSt.toString());
+                for (StackTraceElement aSt : st)
+                    sb.append(aSt.toString());
                 Throwable t = this.getCause();
                 if (t != null) {
                     sb.append("\n caused by " + t + "\n");
                     StackTraceElement tst[] = t.getStackTrace();
-                    for (StackTraceElement aTst : tst) sb.append(aTst.toString());
+                    for (StackTraceElement aTst : tst)
+                        sb.append(aTst.toString());
                 }
                 exLogger.fine(sb.toString());
             }
         }
-        if (errText.equals(SQLServerException.getErrString("R_queryTimedOut")))
-        {
-        	this.setDriverErrorCode(SQLServerException.ERROR_QUERY_TIMEOUT);
+        if (errText.equals(SQLServerException.getErrString("R_queryTimedOut"))) {
+            this.setDriverErrorCode(SQLServerException.ERROR_QUERY_TIMEOUT);
         }
     }
 
@@ -397,9 +399,12 @@ public final class SQLServerException extends java.sql.SQLException {
             sb.append(clientConnId.toString());
             return sb.toString();
         }
-        else
+        else {
             return errMsg;
-
+        }
     }
-
+    
+    static void throwFeatureNotSupportedException() throws SQLFeatureNotSupportedException {
+        throw new SQLFeatureNotSupportedException(SQLServerException.getErrString("R_notSupported"));
+    }
 }
