@@ -1202,7 +1202,6 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
      * Retrieves whether the cursor is on the last row of this <code>ResultSet</code> object. <strong>Note:</strong> Calling the method
      * <code>isLast</code> may be expensive because the JDBC driver might need to fetch ahead one row in order to determine whether the current row is
      * the last row in the result set.
-     * <p>
      * 
      * <p>
      * This method should be called only on ResultSet objects that are scrollable: TYPE_SCROLL_SENSITIVE, TYPE_SCROLL_INSENSITIVE,
@@ -2680,7 +2679,7 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
     }
 
     @Override
-    public microsoft.sql.DateTimeOffset getDateTimeOffset(int columnIndex) throws SQLException {
+    public microsoft.sql.DateTimeOffset getDateTimeOffset(int columnIndex) throws SQLServerException {
         loggerExternal.entering(getClassNameLogging(), "getDateTimeOffset", columnIndex);
         checkClosed();
 
@@ -2695,7 +2694,7 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
     }
 
     @Override
-    public microsoft.sql.DateTimeOffset getDateTimeOffset(String columnName) throws SQLException {
+    public microsoft.sql.DateTimeOffset getDateTimeOffset(String columnName) throws SQLServerException {
         loggerExternal.entering(getClassNameLogging(), "getDateTimeOffset", columnName);
         checkClosed();
 
@@ -3455,7 +3454,7 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
     @Override
     public void updateNString(int columnIndex,
             String nString,
-            boolean forceEncrypt) throws SQLException {
+            boolean forceEncrypt) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "updateNString", new Object[] {columnIndex, nString, forceEncrypt});
 
@@ -3480,7 +3479,7 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
     @Override
     public void updateNString(String columnLabel,
             String nString,
-            boolean forceEncrypt) throws SQLException {
+            boolean forceEncrypt) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "updateNString", new Object[] {columnLabel, nString, forceEncrypt});
 
@@ -3698,7 +3697,7 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
 
     @Override
     public void updateDateTimeOffset(int index,
-            microsoft.sql.DateTimeOffset x) throws SQLException {
+            microsoft.sql.DateTimeOffset x) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "updateDateTimeOffset", new Object[] {index, x});
 
@@ -3711,7 +3710,7 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
     @Override
     public void updateDateTimeOffset(int index,
             microsoft.sql.DateTimeOffset x,
-            Integer scale) throws SQLException {
+            Integer scale) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "updateDateTimeOffset", new Object[] {index, x, scale});
 
@@ -4621,7 +4620,7 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
 
     @Override
     public void updateDateTimeOffset(String columnName,
-            microsoft.sql.DateTimeOffset x) throws SQLException {
+            microsoft.sql.DateTimeOffset x) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "updateDateTimeOffset", new Object[] {columnName, x});
 
@@ -4634,7 +4633,7 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
     @Override
     public void updateDateTimeOffset(String columnName,
             microsoft.sql.DateTimeOffset x,
-            int scale) throws SQLException {
+            int scale) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "updateDateTimeOffset", new Object[] {columnName, x, scale});
 

@@ -9,7 +9,6 @@
 package com.microsoft.sqlserver.jdbc;
 
 import java.math.BigDecimal;
-import java.sql.SQLException;
 import java.sql.SQLType;
 import java.util.Calendar;
 
@@ -80,7 +79,7 @@ public interface ISQLServerResultSet extends java.sql.ResultSet {
      * @param columnIndex
      *            the first column is 1, the second is 2, ...
      * @return the column value; if the value is SQL NULL, the value returned is null
-     * @throws SQLException
+     * @throws SQLServerException
      *             when an error occurs
      */
     public String getUniqueIdentifier(int columnIndex) throws SQLServerException;
@@ -91,7 +90,7 @@ public interface ISQLServerResultSet extends java.sql.ResultSet {
      * @param columnLabel
      *            the name of the column
      * @return the column value; if the value is SQL NULL, the value returned is null
-     * @throws SQLException
+     * @throws SQLServerException
      *             when an error occurs
      */
     public String getUniqueIdentifier(String columnLabel) throws SQLServerException;
@@ -211,10 +210,10 @@ public interface ISQLServerResultSet extends java.sql.ResultSet {
      * @param columnIndex
      *            The zero-based ordinal of a column.
      * @return A DateTimeOffset Class object.
-     * @throws SQLException
+     * @throws SQLServerException
      *             when an error occurs
      */
-    public microsoft.sql.DateTimeOffset getDateTimeOffset(int columnIndex) throws SQLException;
+    public microsoft.sql.DateTimeOffset getDateTimeOffset(int columnIndex) throws SQLServerException;
 
     /**
      * Retrieves the value of the column specified as a microsoft.sql.DateTimeOffset object, given a column name.
@@ -222,10 +221,10 @@ public interface ISQLServerResultSet extends java.sql.ResultSet {
      * @param columnName
      *            The name of a column.
      * @return A DateTimeOffset Class object.
-     * @throws SQLException
+     * @throws SQLServerException
      *             when an error occurs
      */
-    public microsoft.sql.DateTimeOffset getDateTimeOffset(String columnName) throws SQLException;
+    public microsoft.sql.DateTimeOffset getDateTimeOffset(String columnName) throws SQLServerException;
 
     /**
      * Retrieves the value of the column specified as a java.math.BigDecimal object.
@@ -278,11 +277,11 @@ public interface ISQLServerResultSet extends java.sql.ResultSet {
      *            The zero-based ordinal of a column.
      * @param x
      *            A DateTimeOffset Class object.
-     * @throws SQLException
+     * @throws SQLServerException
      *             when an error occurs
      */
     public void updateDateTimeOffset(int index,
-            microsoft.sql.DateTimeOffset x) throws SQLException;
+            microsoft.sql.DateTimeOffset x) throws SQLServerException;
 
     /**
      * Updates the value of the column specified to the DateTimeOffset Class value, given a column name.
@@ -291,11 +290,11 @@ public interface ISQLServerResultSet extends java.sql.ResultSet {
      *            The name of a column.
      * @param x
      *            A DateTimeOffset Class object.
-     * @throws SQLException
+     * @throws SQLServerException
      *             when an error occurs
      */
     public void updateDateTimeOffset(String columnName,
-            microsoft.sql.DateTimeOffset x) throws SQLException;
+            microsoft.sql.DateTimeOffset x) throws SQLServerException;
 
     /**
      * Updates the designated column with an {@code Object} value.
@@ -324,7 +323,7 @@ public interface ISQLServerResultSet extends java.sql.ResultSet {
      * The updater methods do not update the underlying database; instead the updateRow or insertRow methods are called to update the database. If the
      * second argument is an InputStream then the stream must contain the number of bytes specified by scaleOrLength. If the second argument is a
      * Reader then the reader must contain the number of characters specified by scaleOrLength. If these conditions are not true the driver will
-     * generate a SQLException when the statement is executed. The default implementation will throw SQLFeatureNotSupportedException
+     * generate a SQLServerException when the statement is executed. The default implementation will throw SQLFeatureNotSupportedException
      * 
      * @param index
      *            the first column is 1, the second is 2, ...
@@ -354,7 +353,7 @@ public interface ISQLServerResultSet extends java.sql.ResultSet {
      * The updater methods do not update the underlying database; instead the updateRow or insertRow methods are called to update the database. If the
      * second argument is an InputStream then the stream must contain the number of bytes specified by scaleOrLength. If the second argument is a
      * Reader then the reader must contain the number of characters specified by scaleOrLength. If these conditions are not true the driver will
-     * generate a SQLException when the statement is executed. The default implementation will throw SQLFeatureNotSupportedException
+     * generate a SQLServerException when the statement is executed. The default implementation will throw SQLFeatureNotSupportedException
      * 
      * @param columnName
      *            the label for the column specified with the SQL AS clause. If the SQL AS clause was not specified, then the label is the name of the
@@ -397,7 +396,7 @@ public interface ISQLServerResultSet extends java.sql.ResultSet {
      */
     public void updateBoolean(int index,
             boolean x,
-            boolean forceEncrypt) throws SQLException;
+            boolean forceEncrypt) throws SQLServerException;
 
     /**
      * Updates the designated column with a <code>byte</code> value. The updater methods are used to update column values in the current row or the
@@ -417,7 +416,7 @@ public interface ISQLServerResultSet extends java.sql.ResultSet {
      */
     public void updateByte(int index,
             byte x,
-            boolean forceEncrypt) throws SQLException;
+            boolean forceEncrypt) throws SQLServerException;
 
     /**
      * Updates the designated column with a <code>short</code> value. The updater methods are used to update column values in the current row or the
@@ -437,7 +436,7 @@ public interface ISQLServerResultSet extends java.sql.ResultSet {
      */
     public void updateShort(int index,
             short x,
-            boolean forceEncrypt) throws SQLException;
+            boolean forceEncrypt) throws SQLServerException;
 
     /**
      * Updates the designated column with an <code>int</code> value. The updater methods are used to update column values in the current row or the
@@ -740,12 +739,12 @@ public interface ISQLServerResultSet extends java.sql.ResultSet {
      *            If the boolean forceEncrypt is set to true, the query parameter will only be set if the designation column is encrypted and Always
      *            Encrypted is enabled on the connection or on the statement. If the boolean forceEncrypt is set to false, the driver will not force
      *            encryption on parameters.
-     * @throws SQLException
+     * @throws SQLServerException
      *             when an error occurs
      */
     public void updateNString(int columnIndex,
             String nString,
-            boolean forceEncrypt) throws SQLException;
+            boolean forceEncrypt) throws SQLServerException;
 
     /**
      * Updates the designated column with a <code>String</code> value. It is intended for use when updating <code>NCHAR</code>,<code>NVARCHAR</code>
@@ -762,12 +761,12 @@ public interface ISQLServerResultSet extends java.sql.ResultSet {
      *            If the boolean forceEncrypt is set to true, the query parameter will only be set if the designation column is encrypted and Always
      *            Encrypted is enabled on the connection or on the statement. If the boolean forceEncrypt is set to false, the driver will not force
      *            encryption on parameters.
-     * @throws SQLException
+     * @throws SQLServerException
      *             when an error occurs
      */
     public void updateNString(String columnLabel,
             String nString,
-            boolean forceEncrypt) throws SQLException;
+            boolean forceEncrypt) throws SQLServerException;
 
     /**
      * Updates the designated column with a <code>byte</code> array value. The updater methods are used to update column values in the current row or
@@ -1012,12 +1011,12 @@ public interface ISQLServerResultSet extends java.sql.ResultSet {
      *            A DateTimeOffset Class object.
      * @param scale
      *            scale of the column
-     * @throws SQLException
+     * @throws SQLServerException
      *             when an error occurs
      */
     public void updateDateTimeOffset(int index,
             microsoft.sql.DateTimeOffset x,
-            Integer scale) throws SQLException;
+            Integer scale) throws SQLServerException;
 
     /**
      * Updates the value of the column specified to the DateTimeOffset Class value, given a zero-based column ordinal.
@@ -1053,7 +1052,7 @@ public interface ISQLServerResultSet extends java.sql.ResultSet {
      *             when an error occurs
      */
     public void updateUniqueIdentifier(int index,
-            String x) throws SQLException;
+            String x) throws SQLServerException;
 
     /**
      * Updates the designated column with a <code>String</code> value. The updater methods are used to update column values in the current row or the
@@ -1581,7 +1580,7 @@ public interface ISQLServerResultSet extends java.sql.ResultSet {
      */
     public void updateDateTimeOffset(String columnName,
             microsoft.sql.DateTimeOffset x,
-            int scale) throws SQLException;
+            int scale) throws SQLServerException;
 
     /**
      * Updates the value of the column specified to the DateTimeOffset Class value, given a column name.
@@ -1596,7 +1595,7 @@ public interface ISQLServerResultSet extends java.sql.ResultSet {
      *            If the boolean forceEncrypt is set to true, the query parameter will only be set if the designation column is encrypted and Always
      *            Encrypted is enabled on the connection or on the statement. If the boolean forceEncrypt is set to false, the driver will not force
      *            encryption on parameters.
-     * @throws SQLException
+     * @throws SQLServerException
      *             If any errors occur.
      */
     public void updateDateTimeOffset(String columnName,
@@ -1613,7 +1612,7 @@ public interface ISQLServerResultSet extends java.sql.ResultSet {
      *            The name of a column.
      * @param x
      *            the new column value
-     * @throws SQLException
+     * @throws SQLServerException
      *             If any errors occur.
      */
     public void updateUniqueIdentifier(String columnName,
@@ -1632,7 +1631,7 @@ public interface ISQLServerResultSet extends java.sql.ResultSet {
      *            If the boolean forceEncrypt is set to true, the query parameter will only be set if the designation column is encrypted and Always
      *            Encrypted is enabled on the connection or on the statement. If the boolean forceEncrypt is set to false, the driver will not force
      *            encryption on parameters.
-     * @throws SQLException
+     * @throws SQLServerException
      *             If any errors occur.
      */
     public void updateUniqueIdentifier(String columnName,

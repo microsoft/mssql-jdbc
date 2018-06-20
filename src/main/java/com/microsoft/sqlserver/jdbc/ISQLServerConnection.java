@@ -29,7 +29,7 @@ public interface ISQLServerConnection extends java.sql.Connection {
      * 
      * @return 16-byte GUID representing the connection ID of the most recent connection attempt. Or, NULL if there is a failure after the connection
      *         request is initiated and the pre-login handshake.
-     * @throws SQLException
+     * @throws SQLServerException
      *             If any errors occur.
      */
     public UUID getClientConnectionId() throws SQLServerException;
@@ -51,7 +51,7 @@ public interface ISQLServerConnection extends java.sql.Connection {
      * @param stmtColEncSetting
      *            Specifies how data will be sent and received when reading and writing encrypted columns.
      * @return a new <code>Statement</code> object that will generate <code>ResultSet</code> objects with the given type, concurrency, and holdability
-     * @exception SQLServerException
+     * @throws SQLServerException
      *                if a database access error occurs, this method is called on a closed connection or the given parameters are not
      *                <code>ResultSet</code> constants indicating type, concurrency, and holdability
      */
@@ -209,7 +209,7 @@ public interface ISQLServerConnection extends java.sql.Connection {
      *            Specifies how data will be sent and received when reading and writing encrypted columns.
      * @return a new <code>CallableStatement</code> object, containing the pre-compiled SQL statement, that will generate <code>ResultSet</code>
      *         objects with the given type, concurrency, and holdability
-     * @exception SQLException
+     * @throws SQLServerException
      *                if a database access error occurs, this method is called on a closed connection or the given parameters are not
      *                <code>ResultSet</code> constants indicating type, concurrency, and holdability
      */
@@ -217,7 +217,7 @@ public interface ISQLServerConnection extends java.sql.Connection {
             int nType,
             int nConcur,
             int nHold,
-            SQLServerStatementColumnEncryptionSetting stmtColEncSetiing) throws SQLServerException;
+            SQLServerStatementColumnEncryptionSetting stmtColEncSetting) throws SQLServerException;
 
     /**
      * Modifies the setting of the sendTimeAsDatetime connection property. When true, java.sql.Time values will be sent to the server as SQL
@@ -227,15 +227,22 @@ public interface ISQLServerConnection extends java.sql.Connection {
      * @param sendTimeAsDateTimeValue
      *            enables/disables setting the sendTimeAsDatetime connection property. For more information about how the Microsoft JDBC Driver for
      *            SQL Server configures java.sql.Time values before sending them to the server, see
-     *            <a href="https://msdn.microsoft.com/en-us/library/ff427224(v=sql.110).aspx" > Configuring How java.sql.Time Values are Sent to the
-     *            Server.
+     *            <a href="https://msdn.microsoft.com/en-us/library/ff427224(v=sql.110).aspx" >
+     *            Configuring How java.sql.Time Values are Sent to the
+     *            Server.</a>
+     *            
+     * @throws SQLServerException
+     *                if a database access error occurs
      */
     public void setSendTimeAsDatetime(boolean sendTimeAsDateTimeValue) throws SQLServerException;
-    
+
     /**
      * Checks the sendTimeAsDatetime property.
      * 
      * @return boolean value of sendTimeAsDatetime
+     * 
+     * @throws SQLServerException
+     *                if a database access error occurs
      */
     public boolean getSendTimeAsDatetime() throws SQLServerException;
 
