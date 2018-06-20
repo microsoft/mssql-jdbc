@@ -8,15 +8,18 @@
 
 package com.microsoft.sqlserver.jdbc;
 
+import java.sql.CallableStatement;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
+import java.sql.SQLFeatureNotSupportedException;
+import java.sql.Statement;
 import java.util.UUID;
 
 /**
  * This interface is implemented by {@link SQLServerConnection} Class.
  */
 public interface ISQLServerConnection extends java.sql.Connection {
-    
+
     // Transaction types.
     // TRANSACTION_SNAPSHOT corresponds to -> SET TRANSACTION ISOLATION LEVEL SNAPSHOT
     public final static int TRANSACTION_SNAPSHOT = 0x1000;
@@ -29,40 +32,34 @@ public interface ISQLServerConnection extends java.sql.Connection {
      * @throws SQLException
      *             If any errors occur.
      */
-    public UUID getClientConnectionId() throws SQLException;
+    public UUID getClientConnectionId() throws SQLServerException;
 
     /**
-     * Creates a <code>PreparedStatement</code> object that will generate <code>ResultSet</code> objects with the given type, concurrency, and
-     * holdability.
-     * <P>
-     * This method is the same as the <code>prepareStatement</code> method above, but it allows the default result set type, concurrency, and
+     * Creates a <code>Statement</code> object that will generate <code>ResultSet</code> objects with the given type, concurrency, and holdability.
+     * This method is the same as the <code>createStatement</code> method above, but it allows the default result set type, concurrency, and
      * holdability to be overridden.
      *
-     * @param sql
-     *            a <code>String</code> object that is the SQL statement to be sent to the database; may contain one or more '?' IN parameters
      * @param nType
      *            one of the following <code>ResultSet</code> constants: <code>ResultSet.TYPE_FORWARD_ONLY</code>,
      *            <code>ResultSet.TYPE_SCROLL_INSENSITIVE</code>, or <code>ResultSet.TYPE_SCROLL_SENSITIVE</code>
      * @param nConcur
      *            one of the following <code>ResultSet</code> constants: <code>ResultSet.CONCUR_READ_ONLY</code> or
      *            <code>ResultSet.CONCUR_UPDATABLE</code>
-     * @param resultSetHoldability
+     * @param nHold
      *            one of the following <code>ResultSet</code> constants: <code>ResultSet.HOLD_CURSORS_OVER_COMMIT</code> or
      *            <code>ResultSet.CLOSE_CURSORS_AT_COMMIT</code>
      * @param stmtColEncSetting
      *            Specifies how data will be sent and received when reading and writing encrypted columns.
-     * @return a new <code>PreparedStatement</code> object, containing the pre-compiled SQL statement, that will generate <code>ResultSet</code>
-     *         objects with the given type, concurrency, and holdability
-     * @throws SQLServerException
-     *             if a database access error occurs, this method is called on a closed connection or the given parameters are not
-     *             <code>ResultSet</code> constants indicating type, concurrency, and holdability
+     * @return a new <code>Statement</code> object that will generate <code>ResultSet</code> objects with the given type, concurrency, and holdability
+     * @exception SQLServerException
+     *                if a database access error occurs, this method is called on a closed connection or the given parameters are not
+     *                <code>ResultSet</code> constants indicating type, concurrency, and holdability
      */
-    public PreparedStatement prepareStatement(java.lang.String sql,
-            int nType,
+    public Statement createStatement(int nType,
             int nConcur,
-            int resultSetHoldability,
+            int nHold,
             SQLServerStatementColumnEncryptionSetting stmtColEncSetting) throws SQLServerException;
-    
+
     /**
      * Creates a default <code>PreparedStatement</code> object that has the capability to retrieve auto-generated keys. The given constant tells the
      * driver whether it should make auto-generated keys available for retrieval. This parameter is ignored if the SQL statement is not an
@@ -93,7 +90,7 @@ public interface ISQLServerConnection extends java.sql.Connection {
     public PreparedStatement prepareStatement(String sql,
             int flag,
             SQLServerStatementColumnEncryptionSetting stmtColEncSetting) throws SQLServerException;
-    
+
     /**
      * Creates a default <code>PreparedStatement</code> object capable of returning the auto-generated keys designated by the given array. This array
      * contains the indexes of the columns in the target table that contain the auto-generated keys that should be made available. The driver will
@@ -126,7 +123,7 @@ public interface ISQLServerConnection extends java.sql.Connection {
     public PreparedStatement prepareStatement(String sql,
             int[] columnIndexes,
             SQLServerStatementColumnEncryptionSetting stmtColEncSetting) throws SQLServerException;
-    
+
     /**
      * Creates a default <code>PreparedStatement</code> object capable of returning the auto-generated keys designated by the given array. This array
      * contains the names of the columns in the target table that contain the auto-generated keys that should be returned. The driver will ignore the
@@ -161,56 +158,130 @@ public interface ISQLServerConnection extends java.sql.Connection {
             SQLServerStatementColumnEncryptionSetting stmtColEncSetting) throws SQLServerException;
 
     /**
+     * Creates a <code>PreparedStatement</code> object that will generate <code>ResultSet</code> objects with the given type, concurrency, and
+     * holdability.
+     * <P>
+     * This method is the same as the <code>prepareStatement</code> method above, but it allows the default result set type, concurrency, and
+     * holdability to be overridden.
+     *
+     * @param sql
+     *            a <code>String</code> object that is the SQL statement to be sent to the database; may contain one or more '?' IN parameters
+     * @param nType
+     *            one of the following <code>ResultSet</code> constants: <code>ResultSet.TYPE_FORWARD_ONLY</code>,
+     *            <code>ResultSet.TYPE_SCROLL_INSENSITIVE</code>, or <code>ResultSet.TYPE_SCROLL_SENSITIVE</code>
+     * @param nConcur
+     *            one of the following <code>ResultSet</code> constants: <code>ResultSet.CONCUR_READ_ONLY</code> or
+     *            <code>ResultSet.CONCUR_UPDATABLE</code>
+     * @param resultSetHoldability
+     *            one of the following <code>ResultSet</code> constants: <code>ResultSet.HOLD_CURSORS_OVER_COMMIT</code> or
+     *            <code>ResultSet.CLOSE_CURSORS_AT_COMMIT</code>
+     * @param stmtColEncSetting
+     *            Specifies how data will be sent and received when reading and writing encrypted columns.
+     * @return a new <code>PreparedStatement</code> object, containing the pre-compiled SQL statement, that will generate <code>ResultSet</code>
+     *         objects with the given type, concurrency, and holdability
+     * @throws SQLServerException
+     *             if a database access error occurs, this method is called on a closed connection or the given parameters are not
+     *             <code>ResultSet</code> constants indicating type, concurrency, and holdability
+     */
+    public PreparedStatement prepareStatement(java.lang.String sql,
+            int nType,
+            int nConcur,
+            int resultSetHoldability,
+            SQLServerStatementColumnEncryptionSetting stmtColEncSetting) throws SQLServerException;
+
+    /**
+     * Creates a <code>CallableStatement</code> object that will generate <code>ResultSet</code> objects with the given type and concurrency. This
+     * method is the same as the <code>prepareCall</code> method above, but it allows the default result set type, result set concurrency type and
+     * holdability to be overridden.
+     *
+     * @param sql
+     *            a <code>String</code> object that is the SQL statement to be sent to the database; may contain on or more '?' parameters
+     * @param nType
+     *            one of the following <code>ResultSet</code> constants: <code>ResultSet.TYPE_FORWARD_ONLY</code>,
+     *            <code>ResultSet.TYPE_SCROLL_INSENSITIVE</code>, or <code>ResultSet.TYPE_SCROLL_SENSITIVE</code>
+     * @param nConcur
+     *            one of the following <code>ResultSet</code> constants: <code>ResultSet.CONCUR_READ_ONLY</code> or
+     *            <code>ResultSet.CONCUR_UPDATABLE</code>
+     * @param nHold
+     *            one of the following <code>ResultSet</code> constants: <code>ResultSet.HOLD_CURSORS_OVER_COMMIT</code> or
+     *            <code>ResultSet.CLOSE_CURSORS_AT_COMMIT</code>
+     * @param stmtColEncSetting
+     *            Specifies how data will be sent and received when reading and writing encrypted columns.
+     * @return a new <code>CallableStatement</code> object, containing the pre-compiled SQL statement, that will generate <code>ResultSet</code>
+     *         objects with the given type, concurrency, and holdability
+     * @exception SQLException
+     *                if a database access error occurs, this method is called on a closed connection or the given parameters are not
+     *                <code>ResultSet</code> constants indicating type, concurrency, and holdability
+     */
+    public CallableStatement prepareCall(String sql,
+            int nType,
+            int nConcur,
+            int nHold,
+            SQLServerStatementColumnEncryptionSetting stmtColEncSetiing) throws SQLServerException;
+
+    /**
+     * Modifies the setting of the sendTimeAsDatetime connection property. When true, java.sql.Time values will be sent to the server as SQL
+     * Serverdatetime values. When false, java.sql.Time values will be sent to the server as SQL Servertime values. sendTimeAsDatetime can also be
+     * modified programmatically with SQLServerDataSource.setSendTimeAsDatetime. The default value for this property may change in a future release.
+     * 
+     * @param sendTimeAsDateTimeValue
+     *            enables/disables setting the sendTimeAsDatetime connection property. For more information about how the Microsoft JDBC Driver for
+     *            SQL Server configures java.sql.Time values before sending them to the server, see
+     *            <a href="https://msdn.microsoft.com/en-us/library/ff427224(v=sql.110).aspx" > Configuring How java.sql.Time Values are Sent to the
+     *            Server.
+     */
+    public void setSendTimeAsDatetime(boolean sendTimeAsDateTimeValue) throws SQLServerException;
+    
+    /**
      * Checks the sendTimeAsDatetime property.
      * 
      * @return boolean value of sendTimeAsDatetime
      */
     public boolean getSendTimeAsDatetime() throws SQLServerException;
-    
+
     /**
      * Returns the number of currently outstanding prepared statement un-prepare actions.
      * 
      * @return Returns the current value per the description.
      */
     public int getDiscardedServerPreparedStatementCount();
-    
+
     /**
      * Forces the un-prepare requests for any outstanding discarded prepared statements to be executed.
      */
     public void closeUnreferencedPreparedStatementHandles();
-    
+
     /**
-     * Returns the behavior for a specific connection instance. If false the first execution will call sp_executesql and not prepare 
-     * a statement, once the second execution happens it will call sp_prepexec and actually setup a prepared statement handle. Following
-     * executions will call sp_execute. This relieves the need for sp_unprepare on prepared statement close if the statement is only
-     * executed once. The default for this option can be changed by calling setDefaultEnablePrepareOnFirstPreparedStatementCall(). 
+     * Returns the behavior for a specific connection instance. If false the first execution will call sp_executesql and not prepare a statement, once
+     * the second execution happens it will call sp_prepexec and actually setup a prepared statement handle. Following executions will call
+     * sp_execute. This relieves the need for sp_unprepare on prepared statement close if the statement is only executed once. The default for this
+     * option can be changed by calling setDefaultEnablePrepareOnFirstPreparedStatementCall().
      * 
      * @return Returns the current setting per the description.
      */
     public boolean getEnablePrepareOnFirstPreparedStatementCall();
-    
+
     /**
-     * Specifies the behavior for a specific connection instance. If value is false the first execution will call sp_executesql and not prepare 
-     * a statement, once the second execution happens it will call sp_prepexec and actually setup a prepared statement handle. Following
-     * executions will call sp_execute. This relieves the need for sp_unprepare on prepared statement close if the statement is only
-     * executed once.  
+     * Specifies the behavior for a specific connection instance. If value is false the first execution will call sp_executesql and not prepare a
+     * statement, once the second execution happens it will call sp_prepexec and actually setup a prepared statement handle. Following executions will
+     * call sp_execute. This relieves the need for sp_unprepare on prepared statement close if the statement is only executed once.
      * 
      * @param value
-     *      Changes the setting per the description.
+     *            Changes the setting per the description.
      */
     public void setEnablePrepareOnFirstPreparedStatementCall(boolean value);
-    
+
     /**
      * Returns the behavior for a specific connection instance. This setting controls how many outstanding prepared statement discard actions
      * (sp_unprepare) can be outstanding per connection before a call to clean-up the outstanding handles on the server is executed. If the setting is
-     * {@literal <=} 1, unprepare actions will be executed immedietely on prepared statement close. If it is set to {@literal >} 1, these calls
-     * will be batched together to avoid overhead of calling sp_unprepare too often. The default for this option can be changed by calling
+     * {@literal <=} 1, unprepare actions will be executed immedietely on prepared statement close. If it is set to {@literal >} 1, these calls will
+     * be batched together to avoid overhead of calling sp_unprepare too often. The default for this option can be changed by calling
      * getDefaultServerPreparedStatementDiscardThreshold().
      * 
      * @return Returns the current setting per the description.
      */
     public int getServerPreparedStatementDiscardThreshold();
-    
+
     /**
      * Specifies the behavior for a specific connection instance. This setting controls how many outstanding prepared statement discard actions
      * (sp_unprepare) can be outstanding per connection before a call to clean-up the outstanding handles on the server is executed. If the setting is
@@ -230,7 +301,7 @@ public interface ISQLServerConnection extends java.sql.Connection {
      * 
      */
     public void setStatementPoolingCacheSize(int value);
-    
+
     /**
      * Returns the size of the prepared statement cache for this connection. A value less than 1 means no cache.
      * 
@@ -251,11 +322,12 @@ public interface ISQLServerConnection extends java.sql.Connection {
      * @return Returns the current setting per the description.
      */
     public int getStatementHandleCacheEntryCount();
-    
+
     /**
      * Disable/enable statement pooling.
      * 
-     * @param value true to disable statement pooling, false to enable it.
+     * @param value
+     *            true to disable statement pooling, false to enable it.
      */
     public void setDisableStatementPooling(boolean value);
 

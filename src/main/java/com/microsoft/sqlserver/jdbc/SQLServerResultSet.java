@@ -43,8 +43,13 @@ enum RowType {
 /**
  * Top-level JDBC ResultSet implementation
  */
-public class SQLServerResultSet implements ISQLServerResultSet {
+public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializable {
 
+    /**
+     * Always refresh SerialVersionUID when prompted
+     */
+    private static final long serialVersionUID = -1624082547992040463L;
+    
     /** Generate the statement's logging ID */
     private static final AtomicInteger lastResultSetID = new AtomicInteger(0);
     private final String traceID;
@@ -1878,7 +1883,6 @@ public class SQLServerResultSet implements ISQLServerResultSet {
 
     /** Clear any updated column values for the current row in the result set. */
     final void clearColumnsValues() {
-        int l = columns.length;
         for (Column column : columns)
             column.cancelUpdates();
     }
@@ -1921,7 +1925,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
     }
 
     @Override
-    public void setFetchSize(int rows) throws SQLException {
+    public void setFetchSize(int rows) throws SQLServerException {
         loggerExternal.entering(getClassNameLogging(), "setFetchSize", rows);
         checkClosed();
         if (rows < 0)

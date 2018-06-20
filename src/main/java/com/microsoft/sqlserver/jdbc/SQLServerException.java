@@ -403,7 +403,7 @@ public final class SQLServerException extends java.sql.SQLException {
             return errMsg;
         }
     }
-    
+
     static void throwFeatureNotSupportedException() throws SQLFeatureNotSupportedException {
         throw new SQLFeatureNotSupportedException(SQLServerException.getErrString("R_notSupported"));
     }

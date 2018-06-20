@@ -8,10 +8,14 @@
 package com.microsoft.sqlserver.jdbc;
 
 import java.sql.SQLException;
-import java.sql.SQLFeatureNotSupportedException;
 import java.sql.ShardingKey;
 
 public class SQLServerConnection43 extends SQLServerConnection {
+
+    /**
+     * Always refresh SerialVersionUID when prompted
+     */
+    private static final long serialVersionUID = -6904163521498951547L;
 
     SQLServerConnection43(String parentInfo) throws SQLServerException {
         super(parentInfo);
@@ -28,28 +32,28 @@ public class SQLServerConnection43 extends SQLServerConnection {
     }
 
     @Override
-    public void setShardingKey(ShardingKey shardingKey) throws SQLServerException {
-        throw new SQLServerException("setShardingKey not implemented", new SQLFeatureNotSupportedException("setShardingKey not implemented"));
+    public void setShardingKey(ShardingKey shardingKey) throws SQLException {
+        SQLServerException.throwFeatureNotSupportedException();
     }
 
     @Override
     public void setShardingKey(ShardingKey shardingKey,
-            ShardingKey superShardingKey) throws SQLServerException {
-        throw new SQLServerException("setShardingKey not implemented", new SQLFeatureNotSupportedException("setShardingKey not implemented"));
+            ShardingKey superShardingKey) throws SQLException {
+        SQLServerException.throwFeatureNotSupportedException();
     }
 
     @Override
     public boolean setShardingKeyIfValid(ShardingKey shardingKey,
-            int timeout) throws SQLServerException {
-        throw new SQLServerException("setShardingKeyIfValid not implemented",
-                new SQLFeatureNotSupportedException("setShardingKeyIfValid not implemented"));
+            int timeout) throws SQLException {
+        SQLServerException.throwFeatureNotSupportedException();
+        return false;
     }
 
     @Override
     public boolean setShardingKeyIfValid(ShardingKey shardingKey,
             ShardingKey superShardingKey,
-            int timeout) throws SQLServerException {
-        throw new SQLServerException("setShardingKeyIfValid not implemented",
-                new SQLFeatureNotSupportedException("setShardingKeyIfValid not implemented"));
+            int timeout) throws SQLException {
+        SQLServerException.throwFeatureNotSupportedException();
+        return false;
     }
 }
