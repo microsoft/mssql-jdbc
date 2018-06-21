@@ -394,5 +394,8 @@ public final class SQLServerResource extends ListResourceBundle {
 				{"R_cancelQueryTimeoutPropertyDescription", "The number of seconds to wait to cancel sending a query timeout."},
 				{"R_invalidCancelQueryTimeout", "The cancel timeout value {0} is not valid."},
 				{"R_unknownUTF8SupportValue", "Unknown value for UTF8 support."},
+				{"R_illegalWKT", "Illegal Well-Known text. Please make sure Well-Known text is valid."},
+				{"R_illegalTypeForGeometry", "{0} is not supported for Geometry."},
+				{"R_illegalWKTposition", "Illegal character in Well-Known text at position {0}."},
     };
 }

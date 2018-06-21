@@ -15,8 +15,9 @@ public class Geography extends SQLServerSpatialDatatype {
     
     /**
      * Private constructor used for creating a Geography object from WKT and srid.
+     * @throws SQLServerException 
      */
-    private Geography(String WellKnownText, int srid) {
+    private Geography(String WellKnownText, int srid) throws SQLServerException {
         this.wkt = WellKnownText;
         this.srid = srid;
         
@@ -24,7 +25,8 @@ public class Geography extends SQLServerSpatialDatatype {
             parseWKTForSerialization(this, currentWktPos, -1, false);
         }
         catch (StringIndexOutOfBoundsException e) {
-            throw new IllegalArgumentException("Reached unexpected end of WKT. Please make sure WKT is valid.");
+            String strError = SQLServerException.getErrString("R_illegalWKT");
+            throw new SQLServerException(strError, null, 0, null);
         }
         
         serializeToWkb(false);
@@ -33,8 +35,9 @@ public class Geography extends SQLServerSpatialDatatype {
 
     /**
      * Private constructor used for creating a Geography object from WKB.
+     * @throws SQLServerException 
      */
-    private Geography(byte[] wkb) {
+    private Geography(byte[] wkb) throws SQLServerException {
         this.wkb = wkb;
         buffer = ByteBuffer.wrap(wkb);
         buffer.order(ByteOrder.LITTLE_ENDIAN);
@@ -62,8 +65,9 @@ public class Geography extends SQLServerSpatialDatatype {
      * @param wkt WKT
      * @param srid SRID
      * @return Geography instance
+     * @throws SQLServerException 
      */
-    public static Geography STGeomFromText(String wkt, int srid) {
+    public static Geography STGeomFromText(String wkt, int srid) throws SQLServerException {
         return new Geography(wkt, srid);
     }
     
@@ -73,8 +77,9 @@ public class Geography extends SQLServerSpatialDatatype {
      * 
      * @param wkb WKB
      * @return Geography instance
+     * @throws SQLServerException 
      */
-    public static Geography STGeomFromWKB(byte[] wkb) {
+    public static Geography STGeomFromWKB(byte[] wkb) throws SQLServerException {
         return new Geography(wkb);
     }
     
@@ -83,8 +88,9 @@ public class Geography extends SQLServerSpatialDatatype {
      * 
      * @param wkb WKB
      * @return Geography instance
+     * @throws SQLServerException 
      */
-    public static Geography deserialize(byte[] wkb) {
+    public static Geography deserialize(byte[] wkb) throws SQLServerException {
         return new Geography(wkb);
     }
 
@@ -94,8 +100,9 @@ public class Geography extends SQLServerSpatialDatatype {
      * 
      * @param wkt WKt
      * @return Geography instance
+     * @throws SQLServerException 
      */
-    public static Geography parse(String wkt) {
+    public static Geography parse(String wkt) throws SQLServerException {
         return new Geography(wkt, 4326);
     }
     
@@ -106,8 +113,9 @@ public class Geography extends SQLServerSpatialDatatype {
      * @param y y coordinate
      * @param srid SRID
      * @return Geography instance
+     * @throws SQLServerException 
      */
-    public static Geography point(double x, double y, int srid) {
+    public static Geography point(double x, double y, int srid) throws SQLServerException {
         return new Geography("POINT (" + x + " " + y + ")", srid);
     }
 
@@ -116,8 +124,9 @@ public class Geography extends SQLServerSpatialDatatype {
      * Geography instance. This text will not contain any Z (elevation) or M (measure) values carried by the instance.
      * 
      * @return the WKT representation without the Z and M values.
+     * @throws SQLServerException 
      */
-    public String STAsText() {
+    public String STAsText() throws SQLServerException {
         if (null == wktNoZM) {
             buffer = ByteBuffer.wrap(wkb);
             buffer.order(ByteOrder.LITTLE_ENDIAN);
