@@ -1177,8 +1177,9 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
         String schema = "sys.schemas";
         String schemaName = "sys.schemas.name";
         if (null != catalog && catalog.length() != 0) {
-            schema = catalog + "." + schema;
-            schemaName = catalog + "." + schemaName;
+            final String catalogId = Util.escapeSQLId(catalog);
+            schema = catalogId + "." + schema;
+            schemaName = catalogId + "." + schemaName;
         }
 
         // The common schemas need to be under null catalog name however the schemas specific to the particular catalog has to have the current
