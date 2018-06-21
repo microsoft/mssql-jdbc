@@ -76,12 +76,7 @@ import mssql.googlecode.concurrentlinkedhashmap.EvictionListener;
 // NOTE: All the public functions in this class also need to be defined in SQLServerConnectionPoolProxy
 // Declare all new custom (non-static) Public APIs in ISQLServerConnection interface such that they can also be implemented by
 // SQLServerConnectionPoolProxy
-public class SQLServerConnection implements ISQLServerConnection, java.io.Serializable {
-
-    /**
-     * Always refresh SerialVersionUID when prompted
-     */
-    private static final long serialVersionUID = -5943332583950710302L;
+public class SQLServerConnection implements ISQLServerConnection {
 
     long timerExpire;
     boolean attemptRefreshTokenLocked = false;

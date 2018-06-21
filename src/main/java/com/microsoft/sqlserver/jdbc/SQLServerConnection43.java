@@ -12,11 +12,6 @@ import java.sql.ShardingKey;
 
 public class SQLServerConnection43 extends SQLServerConnection {
 
-    /**
-     * Always refresh SerialVersionUID when prompted
-     */
-    private static final long serialVersionUID = -6904163521498951547L;
-
     SQLServerConnection43(String parentInfo) throws SQLServerException {
         super(parentInfo);
     }
