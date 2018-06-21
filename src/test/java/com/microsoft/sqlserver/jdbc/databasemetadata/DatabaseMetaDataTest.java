@@ -7,8 +7,10 @@
  */
 package com.microsoft.sqlserver.jdbc.databasemetadata;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
@@ -23,6 +25,8 @@ import java.sql.DatabaseMetaData;
 import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Statement;
+import java.util.UUID;
 import java.util.jar.Attributes;
 import java.util.jar.Manifest;
 import java.text.MessageFormat;
@@ -173,6 +177,107 @@ public class DatabaseMetaDataTest extends AbstractTest {
         Object[] msgArgs = {"Schema"};
         while (rs.next()) {
             assertTrue(!StringUtils.isEmpty(rs.getString(1)), form.format(msgArgs));
+        }
+    }
+    
+    /**
+     * Tests that the catalog parameter containing - is escaped by {@link SQLServerDatabaseMetaData#getSchemas(String catalog, String schemaPattern)}.
+     * 
+     * @throws SQLException
+     */
+    @Test
+    public void testDBSchemasForDashedCatalogName() throws SQLException {
+        UUID id = UUID.randomUUID();
+        String testCatalog = "dash-catalog" + id;
+        String testSchema = "some-schema" + id;
+
+        try (Statement stmt = connection.createStatement()) {
+            try (Connection dashConn = DriverManager.getConnection(connectionString); Statement dashStatement = dashConn.createStatement()) {
+
+                Utils.dropDatabaseIfExists(testCatalog, stmt);
+                stmt.execute(String.format("CREATE DATABASE [%s]", testCatalog));
+
+                dashStatement.execute(String.format("USE [%s]", testCatalog));
+                dashStatement.execute(String.format("CREATE SCHEMA [%s]", testSchema));
+
+                DatabaseMetaData databaseMetaData = connection.getMetaData();
+                ResultSet rs = databaseMetaData.getSchemas(testCatalog, null);
+
+                MessageFormat schemaEmptyFormat = new MessageFormat(TestResource.getResource("R_nameEmpty"));
+                Object[] schemaMsgArgs = {"Schema"};
+
+                boolean hasResults = false;
+                boolean hasDashCatalogSchema = false;
+                while (rs.next()) {
+                    hasResults = true;
+                    String schemaName = rs.getString(1);
+                    assertTrue(!StringUtils.isEmpty(schemaName), schemaEmptyFormat.format(schemaMsgArgs));
+                    String catalogName = rs.getString(2);
+                    if (schemaName.equals(testSchema)) {
+                        hasDashCatalogSchema = true;
+                        assertEquals(catalogName, testCatalog);
+                    }
+                    else {
+                        assertNull(catalogName);
+                    }
+                }
+
+                MessageFormat atLeastOneFoundFormat = new MessageFormat(TestResource.getResource("R_atLeastOneFound"));
+                assertTrue(hasResults, atLeastOneFoundFormat.format(schemaMsgArgs));
+
+                MessageFormat dashCatalogFormat = new MessageFormat(TestResource.getResource("R_atLeastOneFound"));
+                assertTrue(hasDashCatalogSchema, dashCatalogFormat.format(new Object[] {testSchema}));
+            }
+            finally {
+                Utils.dropDatabaseIfExists(testCatalog, stmt);
+            }
+        }
+    }
+
+    /**
+     * Tests that the catalog parameter containing - is escaped by {@link SQLServerDatabaseMetaData#getSchemas(String catalog, String schemaPattern)}.
+     * 
+     * @throws SQLException
+     */
+    @Test
+    public void testDBSchemasForDashedCatalogNameWithPattern() throws SQLException {
+        UUID id = UUID.randomUUID();
+        String testCatalog = "dash-catalog" + id;
+        String testSchema = "some-schema" + id;
+
+        try (Statement stmt = connection.createStatement()) {
+            try (Connection dashConn = DriverManager.getConnection(connectionString); Statement dashStatement = dashConn.createStatement()) {
+
+                Utils.dropDatabaseIfExists(testCatalog, stmt);
+                stmt.execute(String.format("CREATE DATABASE [%s]", testCatalog));
+
+                dashStatement.execute(String.format("USE [%s]", testCatalog));
+                dashStatement.execute(String.format("CREATE SCHEMA [%s]", testSchema));
+
+                DatabaseMetaData databaseMetaData = connection.getMetaData();
+                ResultSet rs = databaseMetaData.getSchemas(testCatalog, "some-%");
+
+                MessageFormat schemaEmptyFormat = new MessageFormat(TestResource.getResource("R_nameEmpty"));
+                Object[] schemaMsgArgs = {testSchema};
+                Object[] catalogMsgArgs = {testCatalog};
+
+                boolean hasResults = false;
+                while (rs.next()) {
+                    hasResults = true;
+                    String schemaName = rs.getString(1);
+                    String catalogName = rs.getString(2);
+                    assertTrue(!StringUtils.isEmpty(schemaName), schemaEmptyFormat.format(schemaMsgArgs));
+                    assertTrue(!StringUtils.isEmpty(catalogName), schemaEmptyFormat.format(catalogMsgArgs));
+                    assertEquals(schemaName, schemaMsgArgs[0]);
+                    assertEquals(catalogName, catalogMsgArgs[0]);
+                }
+
+                MessageFormat atLeastOneFoundFormat = new MessageFormat(TestResource.getResource("R_atLeastOneFound"));
+                assertTrue(hasResults, atLeastOneFoundFormat.format(schemaMsgArgs));
+            }
+            finally {
+                Utils.dropDatabaseIfExists(testCatalog, stmt);
+            }
         }
     }
 
