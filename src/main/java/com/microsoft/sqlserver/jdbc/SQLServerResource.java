@@ -393,5 +393,8 @@ public final class SQLServerResource extends ListResourceBundle {
 				{"R_invalidSSLProtocol", "SSL Protocol {0} label is not valid. Only TLS, TLSv1, TLSv1.1, and TLSv1.2 are supported."},
 				{"R_cancelQueryTimeoutPropertyDescription", "The number of seconds to wait to cancel sending a query timeout."},
 				{"R_invalidCancelQueryTimeout", "The cancel timeout value {0} is not valid."},
+				{"R_illegalWKT", "Illegal Well-Known text. Please make sure Well-Known text is valid."},
+				{"R_illegalTypeForGeometry", "{0} is not supported for Geometry."},
+				{"R_illegalWKTposition", "Illegal character in Well-Known text at position {0}."},
     };
 }
