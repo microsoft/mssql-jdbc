@@ -14,6 +14,9 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.SQLType;
 
+/**
+ * This interface is implemented by {@link SQLServerPreparedStatement} class.
+ */
 public interface ISQLServerPreparedStatement extends java.sql.PreparedStatement, ISQLServerStatement {
     /**
      * Sets the designated parameter to the given <code>microsoft.sql.DateTimeOffset</code> value.

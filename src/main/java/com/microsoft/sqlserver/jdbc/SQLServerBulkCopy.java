@@ -60,8 +60,13 @@ import microsoft.sql.DateTimeOffset;
  * The SQLServerBulkCopy class can be used to write data only to SQL Server tables. However, the data source is not limited to SQL Server; any data
  * source can be used, as long as the data can be read with a ResultSet or ISQLServerBulkRecord instance.
  */
-public class SQLServerBulkCopy implements java.lang.AutoCloseable {
-    /*
+public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Serializable {
+    /**
+	 * 
+	 */
+	private static final long serialVersionUID = 1989903904654306244L;
+
+	/*
      * Class to represent the column mappings between the source and destination table
      */
     private class ColumnMapping {
