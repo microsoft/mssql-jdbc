@@ -12,6 +12,9 @@ import java.math.BigDecimal;
 import java.sql.SQLType;
 import java.util.Calendar;
 
+/**
+ * This interface is implemented by {@link SQLServerResultSet} class.
+ */
 public interface ISQLServerResultSet extends java.sql.ResultSet {
 
     public static final int TYPE_SS_DIRECT_FORWARD_ONLY = 2003; // TYPE_FORWARD_ONLY + 1000
