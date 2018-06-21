@@ -138,7 +138,7 @@ public interface ISQLServerCallableStatement extends java.sql.CallableStatement,
      * 
      * @param parameterIndex
      *            the first parameter is 1, the second is 2, and so on
-     * @return DateTimeOffset value
+     * @return DateTimeOffset value if the value is SQL NULL, the value returned is null
      * @throws SQLServerException
      *             if parameterIndex is out of range; if a database access error occurs or this method is called on a closed
      *             <code>CallableStatement</code>
@@ -150,7 +150,7 @@ public interface ISQLServerCallableStatement extends java.sql.CallableStatement,
      * 
      * @param parameterName
      *            the name of the parameter
-     * @return DateTimeOffset value
+     * @return DateTimeOffset value if the value is SQL NULL, the value returned is null
      * @throws SQLServerException
      *             if parameterName does not correspond to a named parameter; if a database access error occurs or this method is called on a closed
      *             <code>CallableStatement</code>
@@ -488,6 +488,7 @@ public interface ISQLServerCallableStatement extends java.sql.CallableStatement,
             java.sql.Timestamp value,
             int scale,
             boolean forceEncrypt) throws SQLServerException;
+
     /**
      * Sets parameter parameterName to DateTimeOffset x
      * 
@@ -500,7 +501,7 @@ public interface ISQLServerCallableStatement extends java.sql.CallableStatement,
      */
     public void setDateTimeOffset(String parameterName,
             microsoft.sql.DateTimeOffset value) throws SQLServerException;
-    
+
     /**
      * Sets parameter parameterName to DateTimeOffset x
      * 
@@ -1125,7 +1126,7 @@ public interface ISQLServerCallableStatement extends java.sql.CallableStatement,
             int sqlType,
             int precision,
             int scale) throws SQLServerException;
-    
+
     /**
      * Sets the value of the designated parameter with the given object.
      *
