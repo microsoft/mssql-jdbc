@@ -72,10 +72,10 @@ public final class SQLServerException extends java.sql.SQLException {
     static final int DRIVER_ERROR_INTERMITTENT_TLS_FAILED = 7;
     static final int ERROR_SOCKET_TIMEOUT = 8;
     static final int ERROR_QUERY_TIMEOUT = 9;
-    static final int DATA_CLASSIFICATION_INVALID_VERSION = 24;
-    static final int DATA_CLASSIFICATION_NOT_EXPECTED = 25;
-    static final int DATA_CLASSIFICATION_INVALID_LABEL_INDEX = 26;
-    static final int DATA_CLASSIFICATION_INVALID_INFORMATION_TYPE_INDEX = 27;
+    static final int DATA_CLASSIFICATION_INVALID_VERSION = 10;
+    static final int DATA_CLASSIFICATION_NOT_EXPECTED = 11;
+    static final int DATA_CLASSIFICATION_INVALID_LABEL_INDEX = 12;
+    static final int DATA_CLASSIFICATION_INVALID_INFORMATION_TYPE_INDEX = 13;
     
     private int driverErrorCode = DRIVER_ERROR_NONE;
 
