@@ -2329,58 +2329,22 @@ final class SocketFinder {
                 conn.terminate(SQLServerException.DRIVER_ERROR_UNSUPPORTED_CONFIG, errorStr);
             }
 
+            if (inetAddrs.length == 1) {
+                // Single address so do not start any threads
+                return getConnectedSocket(inetAddrs[0], portNumber, timeoutInMilliSeconds);
+            }
+            timeoutInMilliSeconds = Math.max(timeoutInMilliSeconds, minTimeoutForParallelConnections);                
             if (Util.isIBM()) {
-                timeoutInMilliSeconds = Math.max(timeoutInMilliSeconds, minTimeoutForParallelConnections);
                 if (logger.isLoggable(Level.FINER)) {
                     logger.finer(this.toString() + "Using Java NIO with timeout:" + timeoutInMilliSeconds);
                 }
                 findSocketUsingJavaNIO(inetAddrs, portNumber, timeoutInMilliSeconds);
             }
             else {
-                LinkedList<InetAddress> inet4Addrs = new LinkedList<>();
-                LinkedList<InetAddress> inet6Addrs = new LinkedList<>();
-
-                for (InetAddress inetAddr : inetAddrs) {
-                    if (inetAddr instanceof Inet4Address) {
-                        inet4Addrs.add((Inet4Address) inetAddr);
-                    }
-                    else {
-                        assert inetAddr instanceof Inet6Address : "Unexpected IP address " + inetAddr.toString();
-                        inet6Addrs.add((Inet6Address) inetAddr);
-                    }
+                if (logger.isLoggable(Level.FINER)) {
+                    logger.finer(this.toString() + "Using Threading with timeout:" + timeoutInMilliSeconds);
                 }
-
-                // use half timeout only if both IPv4 and IPv6 addresses are present
-                int timeoutForEachIPAddressType;
-                if ((!inet4Addrs.isEmpty()) && (!inet6Addrs.isEmpty())) {
-                    timeoutForEachIPAddressType = Math.max(timeoutInMilliSeconds / 2, minTimeoutForParallelConnections);
-                }
-                else
-                    timeoutForEachIPAddressType = Math.max(timeoutInMilliSeconds, minTimeoutForParallelConnections);
-
-                if (!inet4Addrs.isEmpty()) {
-                    if (logger.isLoggable(Level.FINER)) {
-                        logger.finer(this.toString() + "Using Java Threading with timeout:" + timeoutForEachIPAddressType);
-                    }
-
-                    findSocketUsingThreading(inet4Addrs, portNumber, timeoutForEachIPAddressType);
-                }
-
-                if (!result.equals(Result.SUCCESS)) {
-                    // try threading logic
-                    if (!inet6Addrs.isEmpty()) {
-                        // do not start any threads if there is only one ipv6 address
-                        if (inet6Addrs.size() == 1) {
-                            return getConnectedSocket(inet6Addrs.get(0), portNumber, timeoutForEachIPAddressType);
-                        }
-
-                        if (logger.isLoggable(Level.FINER)) {
-                            logger.finer(this.toString() + "Using Threading with timeout:" + timeoutForEachIPAddressType);
-                        }
-
-                        findSocketUsingThreading(inet6Addrs, portNumber, timeoutForEachIPAddressType);
-                    }
-                }
+                findSocketUsingThreading(inetAddrs, portNumber, timeoutInMilliSeconds);
             }
 
             // If the thread continued execution due to timeout, the result may not be known.
@@ -2633,12 +2597,12 @@ final class SocketFinder {
         return selectedSocket;
     }
 
-    private void findSocketUsingThreading(LinkedList<InetAddress> inetAddrs,
+    private void findSocketUsingThreading(InetAddress[] inetAddrs,
             int portNumber,
             int timeoutInMilliSeconds) throws IOException, InterruptedException {
         assert timeoutInMilliSeconds != 0 : "The timeout cannot be zero";
         
-        assert inetAddrs.isEmpty() == false : "Number of inetAddresses should not be zero in this function";
+        assert inetAddrs.length != 0 : "Number of inetAddresses should not be zero in this function";
 
         LinkedList<Socket> sockets = new LinkedList<>();
         LinkedList<SocketConnector> socketConnectors = new LinkedList<>();
@@ -2646,7 +2610,7 @@ final class SocketFinder {
         try {
 
             // create a socket, inetSocketAddress and a corresponding socketConnector per inetAddress
-            noOfSpawnedThreads = inetAddrs.size();
+            noOfSpawnedThreads = inetAddrs.length;
             for (InetAddress inetAddress : inetAddrs) {
                 Socket s = new Socket();
                 sockets.add(s);
