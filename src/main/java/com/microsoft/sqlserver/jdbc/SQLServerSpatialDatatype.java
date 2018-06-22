@@ -10,6 +10,7 @@ package com.microsoft.sqlserver.jdbc;
 
 import java.math.BigDecimal;
 import java.nio.ByteBuffer;
+import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
@@ -107,13 +108,15 @@ abstract class SQLServerSpatialDatatype {
      * @param figureIndexEnd upper bound for reading figures
      * @param segmentIndexEnd upper bound for reading segments
      * @param shapeIndexEnd upper bound for reading shapes
+     * @throws SQLServerException 
      */
     protected void constructWKT(SQLServerSpatialDatatype sd, InternalSpatialDatatype isd, int pointIndexEnd, int figureIndexEnd, 
-            int segmentIndexEnd, int shapeIndexEnd) {
+            int segmentIndexEnd, int shapeIndexEnd) throws SQLServerException {
         if (null == points || numberOfPoints == 0) {
             if (isd.getTypeCode() == 11) { // FULLGLOBE
                 if (sd instanceof Geometry) {
-                    throw new IllegalArgumentException("Fullglobe is not supported for Geometry.");
+                    MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_illegalTypeForGeometry"));
+                    throw new SQLServerException(form.format(new Object[]{"Fullglobe"}), null, 0, null);
                 } else {
                     appendToWKTBuffers("FULLGLOBE");
                     return;
@@ -163,7 +166,8 @@ abstract class SQLServerSpatialDatatype {
                 constructCurvepolygonWKT(currentFigureIndex, figureIndexEnd, currentSegmentIndex, segmentIndexEnd);
                 break;
             default:
-                throw new IllegalArgumentException("Illegal character at wkt position " + currentWktPos);
+                MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_illegalWKTposition"));
+                throw new SQLServerException(form.format(new Object[]{currentWktPos}), null, 0, null);
         }
         
         appendToWKTBuffers(")");
@@ -176,8 +180,9 @@ abstract class SQLServerSpatialDatatype {
      * @param startPos The index to start from from the WKT.
      * @param parentShapeIndex The index of the parent's Shape in the shapes array. Used to determine this shape's parent.
      * @param isGeoCollection flag to indicate if this is part of a GeometryCollection.
+     * @throws SQLServerException 
      */
-    protected void parseWKTForSerialization(SQLServerSpatialDatatype sd, int startPos, int parentShapeIndex, boolean isGeoCollection) {
+    protected void parseWKTForSerialization(SQLServerSpatialDatatype sd, int startPos, int parentShapeIndex, boolean isGeoCollection) throws SQLServerException {
         //after every iteration of this while loop, the currentWktPosition will be set to the
         //end of the geometry/geography shape, except for the very first iteration of it.
         //This means that there has to be comma (that separates the previous shape with the next shape),
@@ -199,7 +204,8 @@ abstract class SQLServerSpatialDatatype {
                 isd = InternalSpatialDatatype.valueOf(nextToken);
             }
             catch (Exception e) {
-                throw new IllegalArgumentException("Illegal character at wkt position " + currentWktPos);
+                MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_illegalWKTposition"));
+                throw new SQLServerException(form.format(new Object[]{currentWktPos}), null, 0, null);
             }
             byte fa = 0;
             
@@ -211,11 +217,13 @@ abstract class SQLServerSpatialDatatype {
             // check for FULLGLOBE before reading the first open bracket, since FULLGLOBE doesn't have one.
             if (nextToken.equals("FULLGLOBE")) {
                 if (sd instanceof Geometry) {
-                    throw new IllegalArgumentException("Fullglobe is not supported for Geometry.");
+                    MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_illegalTypeForGeometry"));
+                    throw new SQLServerException(form.format(new Object[]{"Fullglobe"}), null, 0, null);
                 }
                 
                 if (startPos != 0) {
-                    throw new IllegalArgumentException("Illegal character at wkt position " + currentWktPos);
+                    MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_illegalWKTposition"));
+                    throw new SQLServerException(form.format(new Object[]{currentWktPos}), null, 0, null);
                 }
                 
                 shapeList.add(new Shape(parentShapeIndex, -1, isd.getTypeCode()));
@@ -293,7 +301,8 @@ abstract class SQLServerSpatialDatatype {
                     
                     break;
                 default:
-                    throw new IllegalArgumentException("Illegal character at wkt position " + currentWktPos);
+                    MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_illegalWKTposition"));
+                    throw new SQLServerException(form.format(new Object[]{currentWktPos}), null, 0, null);
             }
             readCloseBracket();
         }
@@ -668,8 +677,9 @@ abstract class SQLServerSpatialDatatype {
      * The starting point for constructing a GeometryCollection type in WKT form.
      * 
      * @param shapeEndIndex .
+     * @throws SQLServerException 
      */
-    protected void constructGeometryCollectionWKT(int shapeEndIndex) {
+    protected void constructGeometryCollectionWKT(int shapeEndIndex) throws SQLServerException {
         currentShapeIndex++;
         constructGeometryCollectionWKThelper(shapeEndIndex);
     }
@@ -677,8 +687,9 @@ abstract class SQLServerSpatialDatatype {
     /**
      * Reads Point WKT and adds it to the list of points.
      * This method will read up until and including the comma that may come at the end of the Point WKT.
+     * @throws SQLServerException 
      */
-    protected void readPointWkt() {
+    protected void readPointWkt() throws SQLServerException {
         int numOfCoordinates = 0;
         double sign;
         double coords[] = new double[4];
@@ -708,7 +719,8 @@ abstract class SQLServerSpatialDatatype {
                 coords[numOfCoordinates] = sign *
                         new BigDecimal(wkt.substring(startPos, currentWktPos)).doubleValue();
             } catch (Exception e) { //modify to conversion exception
-                throw new IllegalArgumentException("Illegal character at wkt position " + currentWktPos); 
+                MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_illegalWKTposition"));
+                throw new SQLServerException(form.format(new Object[]{currentWktPos}), null, 0, null);
             }
             
             numOfCoordinates++;
@@ -719,14 +731,16 @@ abstract class SQLServerSpatialDatatype {
             // character has to be either a , or ), or the WKT is invalid.
             if (numOfCoordinates == 4) {
                 if (wkt.charAt(currentWktPos) != ',' && wkt.charAt(currentWktPos) != ')') {
-                    throw new IllegalArgumentException("Illegal character at wkt position " + currentWktPos); 
+                    MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_illegalWKTposition"));
+                    throw new SQLServerException(form.format(new Object[]{currentWktPos}), null, 0, null);
                 }
             }
             
             if (wkt.charAt(currentWktPos) == ',') {
                 // need at least 2 coordinates
                 if (numOfCoordinates == 1) {
-                    throw new IllegalArgumentException("Illegal character at wkt position " + currentWktPos); 
+                    MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_illegalWKTposition"));
+                    throw new SQLServerException(form.format(new Object[]{currentWktPos}), null, 0, null);
                 }
                 currentWktPos++;
                 skipWhiteSpaces();
@@ -747,8 +761,9 @@ abstract class SQLServerSpatialDatatype {
     
     /**
      * Reads a series of Point types.
+     * @throws SQLServerException 
      */
-    protected void readLineWkt() {
+    protected void readLineWkt() throws SQLServerException {
         while (currentWktPos < wkt.length() && wkt.charAt(currentWktPos) != ')') {
             readPointWkt();
         }
@@ -759,8 +774,9 @@ abstract class SQLServerSpatialDatatype {
      * 
      * @param parentShapeIndex shape index of the parent shape that called this method
      * @param nextToken next string token
+     * @throws SQLServerException 
      */
-    protected void readShapeWkt(int parentShapeIndex, String nextToken) {
+    protected void readShapeWkt(int parentShapeIndex, String nextToken) throws SQLServerException {
         byte fa = FA_POINT;
         while (currentWktPos < wkt.length() && wkt.charAt(currentWktPos) != ')') {
             
@@ -803,15 +819,17 @@ abstract class SQLServerSpatialDatatype {
             } else if (wkt.charAt(currentWktPos) == ')') { // about to exit while loop
                 continue;
             } else { // unexpected input
-                throw new IllegalArgumentException("Illegal character at wkt position " + currentWktPos);
+                MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_illegalWKTposition"));
+                throw new SQLServerException(form.format(new Object[]{currentWktPos}), null, 0, null);
             }
         }
     }
     
     /**
      * Reads a CurvePolygon WKT
+     * @throws SQLServerException 
      */
-    protected void readCurvePolygon() {
+    protected void readCurvePolygon() throws SQLServerException {
         while (currentWktPos < wkt.length() && wkt.charAt(currentWktPos) != ')') {
             String nextPotentialToken = getNextStringToken().toUpperCase(Locale.US);
             if (nextPotentialToken.equals("CIRCULARSTRING")) {
@@ -830,7 +848,8 @@ abstract class SQLServerSpatialDatatype {
                 readLineWkt();
                 readCloseBracket();
             } else {
-                throw new IllegalArgumentException("Illegal character at wkt position " + currentWktPos);
+                MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_illegalWKTposition"));
+                throw new SQLServerException(form.format(new Object[]{currentWktPos}), null, 0, null);
             }
             
             if (wkt.charAt(currentWktPos) == ',') { // more polygons to follow
@@ -838,7 +857,8 @@ abstract class SQLServerSpatialDatatype {
             } else if (wkt.charAt(currentWktPos) == ')') { // about to exit while loop
                 continue;
             } else { // unexpected input
-                throw new IllegalArgumentException("Illegal character at wkt position " + currentWktPos);
+                MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_illegalWKTposition"));
+                throw new SQLServerException(form.format(new Object[]{currentWktPos}), null, 0, null);
             }
         }
     }
@@ -848,8 +868,9 @@ abstract class SQLServerSpatialDatatype {
      * 
      * @param thisShapeIndex shape index of current shape
      * @param nextToken next string token
+     * @throws SQLServerException 
      */
-    protected void readMultiPolygonWkt(int thisShapeIndex, String nextToken) {
+    protected void readMultiPolygonWkt(int thisShapeIndex, String nextToken) throws SQLServerException {
         while (currentWktPos < wkt.length() && wkt.charAt(currentWktPos) != ')') {
             if (checkEmptyKeyword(thisShapeIndex, InternalSpatialDatatype.valueOf(nextToken), true)) {
                 continue;
@@ -864,7 +885,8 @@ abstract class SQLServerSpatialDatatype {
             } else if (wkt.charAt(currentWktPos) == ')') { // about to exit while loop
                 continue;
             } else { // unexpected input
-                throw new IllegalArgumentException("Illegal character at wkt position " + currentWktPos);
+                MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_illegalWKTposition"));
+                throw new SQLServerException(form.format(new Object[]{currentWktPos}), null, 0, null);
             }
         }
     }
@@ -874,8 +896,9 @@ abstract class SQLServerSpatialDatatype {
      * 
      * @param segmentType segment type
      * @param isFirstIteration flag that indicates if this is the first iteration from the loop outside
+     * @throws SQLServerException 
      */
-    protected void readSegmentWkt(int segmentType, boolean isFirstIteration) {
+    protected void readSegmentWkt(int segmentType, boolean isFirstIteration) throws SQLServerException {
         segmentList.add(new Segment((byte) segmentType));
         
         int segmentLength = segmentType;
@@ -908,8 +931,9 @@ abstract class SQLServerSpatialDatatype {
      * Reads a CompoundCurve WKT
      * 
      * @param isFirstIteration flag that indicates if this is the first iteration from the loop outside
+     * @throws SQLServerException 
      */
-    protected void readCompoundCurveWkt(boolean isFirstIteration) {
+    protected void readCompoundCurveWkt(boolean isFirstIteration) throws SQLServerException {
         while (currentWktPos < wkt.length() && wkt.charAt(currentWktPos) != ')') {
             String nextPotentialToken = getNextStringToken().toUpperCase(Locale.US);
             if (nextPotentialToken.equals("CIRCULARSTRING")) {
@@ -921,7 +945,8 @@ abstract class SQLServerSpatialDatatype {
                 readSegmentWkt(SEGMENT_FIRST_LINE, isFirstIteration);
                 readCloseBracket();
             } else {
-                throw new IllegalArgumentException("Illegal character at wkt position " + currentWktPos);
+                MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_illegalWKTposition"));
+                throw new SQLServerException(form.format(new Object[]{currentWktPos}), null, 0, null);
             }
             
             isFirstIteration = false;
@@ -931,7 +956,8 @@ abstract class SQLServerSpatialDatatype {
             } else if (wkt.charAt(currentWktPos) == ')') { // about to exit while loop
                 continue;
             } else { // unexpected input
-                throw new IllegalArgumentException("Illegal character at wkt position " + currentWktPos);
+                MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_illegalWKTposition"));
+                throw new SQLServerException(form.format(new Object[]{currentWktPos}), null, 0, null);
             }
         }        
     }
@@ -1029,23 +1055,25 @@ abstract class SQLServerSpatialDatatype {
         numberOfSegments = segmentList.size();
     }
     
-    protected void readOpenBracket() {
+    protected void readOpenBracket() throws SQLServerException {
         skipWhiteSpaces();
         if (wkt.charAt(currentWktPos) == '(') {
             currentWktPos++;
             skipWhiteSpaces();
         } else {
-            throw new IllegalArgumentException("Illegal character at wkt position " + currentWktPos);
+            MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_illegalWKTposition"));
+            throw new SQLServerException(form.format(new Object[]{currentWktPos}), null, 0, null);
         }
     }
     
-    protected void readCloseBracket() {
+    protected void readCloseBracket() throws SQLServerException {
         skipWhiteSpaces();
         if (wkt.charAt(currentWktPos) == ')') {
             currentWktPos++;
             skipWhiteSpaces();
         } else {
-            throw new IllegalArgumentException("Illegal character at wkt position " + currentWktPos);
+            MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_illegalWKTposition"));
+            throw new SQLServerException(form.format(new Object[]{currentWktPos}), null, 0, null);
         }
     }
 
@@ -1221,7 +1249,7 @@ abstract class SQLServerSpatialDatatype {
         }
     }
     
-    protected boolean checkEmptyKeyword(int parentShapeIndex, InternalSpatialDatatype isd, boolean isInsideAnotherShape) {
+    protected boolean checkEmptyKeyword(int parentShapeIndex, InternalSpatialDatatype isd, boolean isInsideAnotherShape) throws SQLServerException {
         String potentialEmptyKeyword = getNextStringToken().toUpperCase(Locale.US);
         if (potentialEmptyKeyword.equals("EMPTY")) {
             
@@ -1238,7 +1266,8 @@ abstract class SQLServerSpatialDatatype {
                 } else if (parentTypeCode == 7) { // GeometryCollection
                     typeCode = InternalSpatialDatatype.GEOMETRYCOLLECTION.getTypeCode();
                 } else {
-                    throw new IllegalArgumentException("Illegal parentTypeCode."); 
+                    String strError = SQLServerException.getErrString("R_illegalWKT");
+                    throw new SQLServerException(strError, null, 0, null);
                 }
             } else {
                 typeCode = isd.getTypeCode();
@@ -1254,7 +1283,8 @@ abstract class SQLServerSpatialDatatype {
         }
         
         if (!potentialEmptyKeyword.equals("")) {
-            throw new IllegalArgumentException("Illegal character at wkt position " + currentWktPos); 
+            MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_illegalWKTposition"));
+            throw new SQLServerException(form.format(new Object[]{currentWktPos}), null, 0, null);
         }
         return false;
     }
@@ -1271,8 +1301,9 @@ abstract class SQLServerSpatialDatatype {
      * Helper used for resurcive iteration for constructing GeometryCollection in WKT form.
      * 
      * @param shapeEndIndex .
+     * @throws SQLServerException 
      */
-    private void constructGeometryCollectionWKThelper(int shapeEndIndex) {
+    private void constructGeometryCollectionWKThelper(int shapeEndIndex) throws SQLServerException {
         //phase 1: assume that there is no multi - stuff and no geometrycollection
         while (currentShapeIndex < shapeEndIndex) {
             InternalSpatialDatatype isd = InternalSpatialDatatype.valueOf(shapes[currentShapeIndex].getOpenGISType());
@@ -1531,13 +1562,14 @@ abstract class SQLServerSpatialDatatype {
         }
     }
     
-    private void readComma() {
+    private void readComma() throws SQLServerException {
         skipWhiteSpaces();
         if (wkt.charAt(currentWktPos) == ',') {
             currentWktPos++;
             skipWhiteSpaces();
         } else {
-            throw new IllegalArgumentException("Illegal character at wkt position " + currentWktPos);
+            MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_illegalWKTposition"));
+            throw new SQLServerException(form.format(new Object[]{currentWktPos}), null, 0, null);
         }
     }
     

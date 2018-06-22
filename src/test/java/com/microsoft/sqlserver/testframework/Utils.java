@@ -15,7 +15,9 @@ import java.io.ByteArrayInputStream;
 import java.io.CharArrayReader;
 import java.net.URI;
 import java.sql.Connection;
+import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.logging.Level;
@@ -286,7 +288,7 @@ public class Utils {
 
     public static void dropDatabaseIfExists(String databaseName,
             java.sql.Statement stmt) throws SQLException {
-        stmt.executeUpdate("IF EXISTS(SELECT * from sys.databases WHERE name='" + databaseName + "') DROP DATABASE [" + databaseName + "]");
+        stmt.executeUpdate("USE MASTER; IF EXISTS(SELECT * from sys.databases WHERE name='" + databaseName + "') DROP DATABASE [" + databaseName + "]");
     }
 
     /**
@@ -327,5 +329,12 @@ public class Utils {
 
     public static float getJDBCVersion(Connection connection) throws SQLException {
         return Float.valueOf(connection.getMetaData().getJDBCMajorVersion() + "." + connection.getMetaData().getJDBCMinorVersion());
+    }
+
+    public static boolean serverSupportsUTF8(Connection connection) throws SQLException {
+        try (Statement stmt = connection.createStatement();
+                ResultSet rs = stmt.executeQuery("SELECT name FROM sys.fn_helpcollations() WHERE name LIKE '%UTF8%'");) {
+            return rs.isBeforeFirst();
+        }
     }
 }

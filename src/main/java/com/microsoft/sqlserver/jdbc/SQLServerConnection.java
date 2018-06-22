@@ -3440,7 +3440,6 @@ public class SQLServerConnection implements ISQLServerConnection {
     int writeDataClassificationFeatureRequest(boolean write /* if false just calculates the length */,
             TDSWriter tdsWriter) throws SQLServerException {
         int len = 6; // 1byte = featureID, 4bytes = featureData length, 1 bytes = Version
-
         if (write) {
             // Write Feature ID, length of the version# field and Sensitivity Classification Version#
             tdsWriter.writeByte(TDS.TDS_FEATURE_EXT_DATACLASSIFICATION);
@@ -3450,6 +3449,16 @@ public class SQLServerConnection implements ISQLServerConnection {
         return len; // size of data written
     }
     
+    int writeUTF8SupportFeatureRequest(boolean write,
+            TDSWriter tdsWriter /* if false just calculates the length */) throws SQLServerException {
+        int len = 5; // 1byte = featureID, 4bytes = featureData length
+        if (write) {
+            tdsWriter.writeByte(TDS.TDS_FEATURE_EXT_UTF8SUPPORT);
+            tdsWriter.writeInt(0);
+        }
+        return len;
+    }
+
     private final class LogonCommand extends UninterruptableTDSCommand {
         LogonCommand() {
             super("logon");
@@ -4170,6 +4179,17 @@ public class SQLServerConnection implements ISQLServerConnection {
 
                 byte enabled = data[1];
                 serverSupportsDataClassification = (enabled == 0) ? false : true;
+            case TDS.TDS_FEATURE_EXT_UTF8SUPPORT: {
+                if (connectionlogger.isLoggable(Level.FINER)) {
+                    connectionlogger.fine(toString() + " Received feature extension acknowledgement for UTF8 support.");
+                }
+
+                if (1 > data.length) {
+                    if (connectionlogger.isLoggable(Level.SEVERE)) {
+                        connectionlogger.severe(toString() + " Unknown value for UTF8 support.");
+                    }
+                    throw new SQLServerException(SQLServerException.getErrString("R_unknownUTF8SupportValue"), null);
+                }
                 break;
             }
             default: {
@@ -4461,8 +4481,10 @@ public class SQLServerConnection implements ISQLServerConnection {
         // Data Classification is always enabled (by default)
         len2 += writeDataClassificationFeatureRequest(false, tdsWriter);
         
+        len2 = len2 + writeUTF8SupportFeatureRequest(false, tdsWriter);
+      
         len2 = len2 + 1; // add 1 to length because of FeatureEx terminator
-        
+
         // Length of entire Login 7 packet
         tdsWriter.writeInt(len2);
         tdsWriter.writeInt(tdsVersion);
@@ -4643,6 +4665,7 @@ public class SQLServerConnection implements ISQLServerConnection {
         }
 
         writeDataClassificationFeatureRequest(true, tdsWriter);
+        writeUTF8SupportFeatureRequest(true, tdsWriter);
 
         tdsWriter.writeByte((byte) TDS.FEATURE_EXT_TERMINATOR);
         tdsWriter.setDataLoggable(true);
