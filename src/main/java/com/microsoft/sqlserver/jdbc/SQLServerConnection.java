@@ -4179,6 +4179,7 @@ public class SQLServerConnection implements ISQLServerConnection {
 
                 byte enabled = data[1];
                 serverSupportsDataClassification = (enabled == 0) ? false : true;
+            }
             case TDS.TDS_FEATURE_EXT_UTF8SUPPORT: {
                 if (connectionlogger.isLoggable(Level.FINER)) {
                     connectionlogger.fine(toString() + " Received feature extension acknowledgement for UTF8 support.");
