@@ -3432,6 +3432,16 @@ public class SQLServerConnection implements ISQLServerConnection {
         return totalLen;
     }
 
+    int writeUTF8SupportFeatureRequest(boolean write,
+            TDSWriter tdsWriter /* if false just calculates the length */) throws SQLServerException {
+        int len = 5; // 1byte = featureID, 4bytes = featureData length
+        if (write) {
+            tdsWriter.writeByte(TDS.TDS_FEATURE_EXT_UTF8SUPPORT);
+            tdsWriter.writeInt(0);
+        }
+        return len;
+    }
+
     private final class LogonCommand extends UninterruptableTDSCommand {
         LogonCommand() {
             super("logon");
@@ -4130,7 +4140,19 @@ public class SQLServerConnection implements ISQLServerConnection {
                 serverSupportsColumnEncryption = true;
                 break;
             }
+            case TDS.TDS_FEATURE_EXT_UTF8SUPPORT: {
+                if (connectionlogger.isLoggable(Level.FINER)) {
+                    connectionlogger.fine(toString() + " Received feature extension acknowledgement for UTF8 support.");
+                }
 
+                if (1 > data.length) {
+                    if (connectionlogger.isLoggable(Level.SEVERE)) {
+                        connectionlogger.severe(toString() + " Unknown value for UTF8 support.");
+                    }
+                    throw new SQLServerException(SQLServerException.getErrString("R_unknownUTF8SupportValue"), null);
+                }
+                break;
+            }
             default: {
                 // Unknown feature ack
                 if (connectionlogger.isLoggable(Level.SEVERE)) {
@@ -4419,6 +4441,8 @@ public class SQLServerConnection implements ISQLServerConnection {
 
         len2 = len2 + 1; // add 1 to length becaue of FeatureEx terminator
 
+        len2 = len2 + writeUTF8SupportFeatureRequest(false, tdsWriter);
+
         // Length of entire Login 7 packet
         tdsWriter.writeInt(len2);
         tdsWriter.writeInt(tdsVersion);
@@ -4597,6 +4621,8 @@ public class SQLServerConnection implements ISQLServerConnection {
         if (federatedAuthenticationInfoRequested || federatedAuthenticationRequested) {
             writeFedAuthFeatureRequest(true, tdsWriter, fedAuthFeatureExtensionData);
         }
+
+        writeUTF8SupportFeatureRequest(true, tdsWriter);
 
         tdsWriter.writeByte((byte) TDS.FEATURE_EXT_TERMINATOR);
         tdsWriter.setDataLoggable(true);
