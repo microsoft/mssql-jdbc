@@ -713,4 +713,65 @@ public interface ISQLServerDataSource extends javax.sql.CommonDataSource {
      * @return login configuration file name
      */
     public String getJASSConfigurationName();
+
+    /**
+     * Enables Fips Mode on the connection For FIPS enabled JVM this property should be true.
+     * 
+     * @param fips
+     *            Boolean property to enable/disable fips
+     */
+    public void setFIPS(boolean fips);
+
+    /**
+     * Retrieves value of connection property "fips" For FIPS enabled JVM this property should be true.
+     * 
+     * @return fips boolean value
+     */
+    public boolean getFIPS();
+
+    /**
+     * Sets the sslProtocol property for connection Set this value to specify TLS protocol keyword.
+     * 
+     * Acceptable values are: TLS, TLSv1, TLSv1.1, and TLSv1.2.
+     * 
+     * @param sslProtocol
+     *            Value for SSL Protocol to be set.
+     */
+    public void setSSLProtocol(String sslProtocol);
+
+    /**
+     * Retrieves value of connection property 'sslProtocol'
+     * 
+     * @return sslProtocol property value
+     */
+    public String getSSLProtocol();
+
+    /**
+     * Sets the connection property 'trustManagerClass' on the connection
+     * 
+     * @param trustManagerClass
+     *            The fully qualified class name of a custom javax.net.ssl.TrustManager.
+     */
+    public void setTrustManagerClass(String trustManagerClass);
+
+    /**
+     * Retrieves value for the connection property 'trustManagerClass'
+     * 
+     * @return trustManagerClass property value
+     */
+    public String getTrustManagerClass();
+
+    /**
+     * Sets Constructor Arguments to be provided on constructor of 'trustManagerClass'
+     * 
+     * @param trustManagerConstructorArg 'trustManagerClass' constructor arguments
+     */
+    public void setTrustManagerConstructorArg(String trustManagerConstructorArg);
+
+    /**
+     * Retrieves value for the connection property 'trustManagerConstructorArg'
+     * 
+     * @return trustManagerConstructorArg property value
+     */
+    public String getTrustManagerConstructorArg();
 }

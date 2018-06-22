@@ -28,7 +28,12 @@ import java.util.concurrent.atomic.AtomicInteger;
  * details.
  */
 
-class SQLServerConnectionPoolProxy implements ISQLServerConnection {
+class SQLServerConnectionPoolProxy implements ISQLServerConnection, java.io.Serializable {
+    /**
+     * Always refresh SerialVersionUID when prompted
+     */
+    private static final long serialVersionUID = 5752599482349578127L;
+    
     private SQLServerConnection wrappedConnection;
     private boolean bIsOpen;
     static private final AtomicInteger baseConnectionID = new AtomicInteger(0);       // connection id dispenser
@@ -108,12 +113,6 @@ class SQLServerConnectionPoolProxy implements ISQLServerConnection {
         wrappedConnection.commit();
     }
 
-    /**
-     * Rollback a transaction.
-     *
-     * @throws SQLServerException
-     *             if no transaction exists or if the connection is in auto-commit mode.
-     */
     @Override
     public void rollback() throws SQLServerException {
         checkClosed();

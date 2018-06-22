@@ -11,7 +11,16 @@ package com.microsoft.sqlserver.jdbc;
 import java.sql.SQLException;
 import java.sql.ShardingKey;
 
+/**
+ * SQLServerConnection43 extends SQLServerConnection class and implements methods introduced in JDBC 4.3 Specifications. This class is used by the
+ * drdiver when initializing a class with 43 driver version
+ */
 public class SQLServerConnection43 extends SQLServerConnection {
+
+    /**
+     * Always refresh SerialVersionUID when prompted
+     */
+    private static final long serialVersionUID = -6904163521498951547L;
 
     SQLServerConnection43(String parentInfo) throws SQLServerException {
         super(parentInfo);
@@ -39,9 +48,9 @@ public class SQLServerConnection43 extends SQLServerConnection {
      * 
      * @throws SQLException
      *             if an error occurs
-     * @see endRequest
+     * @see #endRequest()
      */
-	@Override
+    @Override
     public void beginRequest() throws SQLException {
         beginRequestInternal();
     }
@@ -56,9 +65,9 @@ public class SQLServerConnection43 extends SQLServerConnection {
      * 
      * @throws SQLException
      *             if an error occurs
-     * @see beginRequest
+     * @see #beginRequest()
      */
-	@Override
+    @Override
     public void endRequest() throws SQLException {
         endRequestInternal();
     }

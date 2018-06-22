@@ -11,7 +11,6 @@ package com.microsoft.sqlserver.jdbc;
 import java.io.PrintWriter;
 import java.sql.Connection;
 import java.sql.SQLException;
-import java.sql.SQLFeatureNotSupportedException;
 import java.util.Enumeration;
 import java.util.Properties;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -33,6 +32,10 @@ public class SQLServerDataSource implements ISQLServerDataSource, javax.sql.Data
     static final private java.util.logging.Logger parentLogger = java.util.logging.Logger.getLogger("com.microsoft.sqlserver.jdbc");
     final private String loggingClassName;
     private boolean trustStorePasswordStripped = false;
+    
+    /**
+     * Always refresh SerialVersionUID when prompted
+     */
     private static final long serialVersionUID = 654861379544314296L;
 
     private Properties connectionProps;			// Properties passed to SQLServerConnection class.
@@ -57,12 +60,14 @@ public class SQLServerDataSource implements ISQLServerDataSource, javax.sql.Data
         return loggingClassName;
     }
 
+    @Override
     public String toString() {
         return traceID;
     }
 
     // DataSource interface public methods
 
+    @Override
     public Connection getConnection() throws SQLServerException {
         loggerExternal.entering(getClassNameLogging(), "getConnection");
         Connection con = getConnectionInternal(null, null, null);
@@ -70,6 +75,7 @@ public class SQLServerDataSource implements ISQLServerDataSource, javax.sql.Data
         return con;
     }
 
+    @Override
     public Connection getConnection(String username,
             String password) throws SQLServerException {
         if (loggerExternal.isLoggable(Level.FINER))
@@ -81,10 +87,12 @@ public class SQLServerDataSource implements ISQLServerDataSource, javax.sql.Data
 
     // Sets the maximum time in seconds that this data source will wait while
     // attempting to connect to a database. Note default value is 0.
+    @Override
     public void setLoginTimeout(int loginTimeout) {
         setIntProperty(connectionProps, SQLServerDriverIntProperty.LOGIN_TIMEOUT.toString(), loginTimeout);
     }
 
+    @Override
     public int getLoginTimeout() {
         int defaultTimeOut = SQLServerDriverIntProperty.LOGIN_TIMEOUT.getDefaultValue();
         final int logintimeout = getIntProperty(connectionProps, SQLServerDriverIntProperty.LOGIN_TIMEOUT.toString(), defaultTimeOut);
@@ -96,6 +104,7 @@ public class SQLServerDataSource implements ISQLServerDataSource, javax.sql.Data
     // Currently we just hold onto this logWriter and pass it back to callers, nothing else.
     private transient PrintWriter logWriter;
 
+    @Override
     public void setLogWriter(PrintWriter out) {
         loggerExternal.entering(getClassNameLogging(), "setLogWriter", out);
         logWriter = out;
@@ -103,13 +112,15 @@ public class SQLServerDataSource implements ISQLServerDataSource, javax.sql.Data
     }
 
     // Retrieves the log writer for this DataSource.
+    @Override
     public PrintWriter getLogWriter() {
         loggerExternal.entering(getClassNameLogging(), "getLogWriter");
         loggerExternal.exiting(getClassNameLogging(), "getLogWriter", logWriter);
         return logWriter;
     }
 
-    public Logger getParentLogger() throws SQLFeatureNotSupportedException {
+    @Override
+    public Logger getParentLogger() throws java.sql.SQLFeatureNotSupportedException {
         return parentLogger;
     }
 
@@ -117,10 +128,12 @@ public class SQLServerDataSource implements ISQLServerDataSource, javax.sql.Data
 
     // applicationName is used to identify the specific application in various SQL Server
     // profiling and logging tools.
+    @Override
     public void setApplicationName(String applicationName) {
         setStringProperty(connectionProps, SQLServerDriverStringProperty.APPLICATION_NAME.toString(), applicationName);
     }
 
+    @Override
     public String getApplicationName() {
         return getStringProperty(connectionProps, SQLServerDriverStringProperty.APPLICATION_NAME.toString(),
                 SQLServerDriverStringProperty.APPLICATION_NAME.getDefaultValue());
@@ -128,54 +141,66 @@ public class SQLServerDataSource implements ISQLServerDataSource, javax.sql.Data
 
     // databaseName is the name of the database to connect to. If databaseName is not set,
     // getDatabaseName returns the default value of null.
+    @Override
     public void setDatabaseName(String databaseName) {
         setStringProperty(connectionProps, SQLServerDriverStringProperty.DATABASE_NAME.toString(), databaseName);
     }
 
+    @Override
     public String getDatabaseName() {
         return getStringProperty(connectionProps, SQLServerDriverStringProperty.DATABASE_NAME.toString(), null);
     }
 
     // instanceName is the SQL Server instance name to connect to.
     // If instanceName is not set, getInstanceName returns the default value of null.
+    @Override
     public void setInstanceName(String instanceName) {
         setStringProperty(connectionProps, SQLServerDriverStringProperty.INSTANCE_NAME.toString(), instanceName);
     }
 
+    @Override
     public String getInstanceName() {
         return getStringProperty(connectionProps, SQLServerDriverStringProperty.INSTANCE_NAME.toString(), null);
     }
 
+    @Override
     public void setIntegratedSecurity(boolean enable) {
         setBooleanProperty(connectionProps, SQLServerDriverBooleanProperty.INTEGRATED_SECURITY.toString(), enable);
     }
 
+    @Override
     public void setAuthenticationScheme(String authenticationScheme) {
         setStringProperty(connectionProps, SQLServerDriverStringProperty.AUTHENTICATION_SCHEME.toString(), authenticationScheme);
     }
 
+    @Override
     public void setAuthentication(String authentication) {
         setStringProperty(connectionProps, SQLServerDriverStringProperty.AUTHENTICATION.toString(), authentication);
     }
 
+    @Override
     public String getAuthentication() {
         return getStringProperty(connectionProps, SQLServerDriverStringProperty.AUTHENTICATION.toString(),
                 SQLServerDriverStringProperty.AUTHENTICATION.getDefaultValue());
     }
 
+    @Override
     public void setGSSCredentials(GSSCredential userCredential) {
         setObjectProperty(connectionProps, SQLServerDriverObjectProperty.GSS_CREDENTIAL.toString(), userCredential);
     }
 
+    @Override
     public GSSCredential getGSSCredentials() {
         return (GSSCredential) getObjectProperty(connectionProps, SQLServerDriverObjectProperty.GSS_CREDENTIAL.toString(),
                 SQLServerDriverObjectProperty.GSS_CREDENTIAL.getDefaultValue());
     }
 
+    @Override
     public void setAccessToken(String accessToken) {
         setStringProperty(connectionProps, SQLServerDriverStringProperty.ACCESS_TOKEN.toString(), accessToken);
     }
 
+    @Override
     public String getAccessToken() {
         return getStringProperty(connectionProps, SQLServerDriverStringProperty.ACCESS_TOKEN.toString(), null);
     }
@@ -184,90 +209,110 @@ public class SQLServerDataSource implements ISQLServerDataSource, javax.sql.Data
     // count from all the update counts returned by a batch. The default of false will
     // return all update counts. If lastUpdateCount is not set, getLastUpdateCount
     // returns the default value of false.
+    @Override
     public void setColumnEncryptionSetting(String columnEncryptionSetting) {
         setStringProperty(connectionProps, SQLServerDriverStringProperty.COLUMN_ENCRYPTION.toString(), columnEncryptionSetting);
     }
 
+    @Override
     public String getColumnEncryptionSetting() {
         return getStringProperty(connectionProps, SQLServerDriverStringProperty.COLUMN_ENCRYPTION.toString(),
                 SQLServerDriverStringProperty.COLUMN_ENCRYPTION.getDefaultValue());
     }
 
+    @Override
     public void setKeyStoreAuthentication(String keyStoreAuthentication) {
         setStringProperty(connectionProps, SQLServerDriverStringProperty.KEY_STORE_AUTHENTICATION.toString(), keyStoreAuthentication);
     }
 
+    @Override
     public String getKeyStoreAuthentication() {
         return getStringProperty(connectionProps, SQLServerDriverStringProperty.KEY_STORE_AUTHENTICATION.toString(),
                 SQLServerDriverStringProperty.KEY_STORE_AUTHENTICATION.getDefaultValue());
     }
 
+    @Override
     public void setKeyStoreSecret(String keyStoreSecret) {
         setStringProperty(connectionProps, SQLServerDriverStringProperty.KEY_STORE_SECRET.toString(), keyStoreSecret);
     }
 
+    @Override
     public void setKeyStoreLocation(String keyStoreLocation) {
         setStringProperty(connectionProps, SQLServerDriverStringProperty.KEY_STORE_LOCATION.toString(), keyStoreLocation);
     }
 
+    @Override
     public String getKeyStoreLocation() {
         return getStringProperty(connectionProps, SQLServerDriverStringProperty.KEY_STORE_LOCATION.toString(),
                 SQLServerDriverStringProperty.KEY_STORE_LOCATION.getDefaultValue());
     }
 
+    @Override
     public void setLastUpdateCount(boolean lastUpdateCount) {
         setBooleanProperty(connectionProps, SQLServerDriverBooleanProperty.LAST_UPDATE_COUNT.toString(), lastUpdateCount);
     }
 
+    @Override
     public boolean getLastUpdateCount() {
         return getBooleanProperty(connectionProps, SQLServerDriverBooleanProperty.LAST_UPDATE_COUNT.toString(),
                 SQLServerDriverBooleanProperty.LAST_UPDATE_COUNT.getDefaultValue());
     }
 
+    @Override
     public void setEncrypt(boolean encrypt) {
         setBooleanProperty(connectionProps, SQLServerDriverBooleanProperty.ENCRYPT.toString(), encrypt);
     }
 
+    @Override
     public boolean getEncrypt() {
         return getBooleanProperty(connectionProps, SQLServerDriverBooleanProperty.ENCRYPT.toString(),
                 SQLServerDriverBooleanProperty.ENCRYPT.getDefaultValue());
     }
 
+    @Override
     public void setTransparentNetworkIPResolution(boolean tnir) {
         setBooleanProperty(connectionProps, SQLServerDriverBooleanProperty.TRANSPARENT_NETWORK_IP_RESOLUTION.toString(), tnir);
     }
 
+    @Override
     public boolean getTransparentNetworkIPResolution() {
         return getBooleanProperty(connectionProps, SQLServerDriverBooleanProperty.TRANSPARENT_NETWORK_IP_RESOLUTION.toString(),
                 SQLServerDriverBooleanProperty.TRANSPARENT_NETWORK_IP_RESOLUTION.getDefaultValue());
     }
 
+    @Override
     public void setTrustServerCertificate(boolean e) {
         setBooleanProperty(connectionProps, SQLServerDriverBooleanProperty.TRUST_SERVER_CERTIFICATE.toString(), e);
     }
 
+    @Override
     public boolean getTrustServerCertificate() {
         return getBooleanProperty(connectionProps, SQLServerDriverBooleanProperty.TRUST_SERVER_CERTIFICATE.toString(),
                 SQLServerDriverBooleanProperty.TRUST_SERVER_CERTIFICATE.getDefaultValue());
     }
 
+    @Override
     public void setTrustStoreType(String trustStoreType) {
         setStringProperty(connectionProps, SQLServerDriverStringProperty.TRUST_STORE_TYPE.toString(), trustStoreType);
     }
 
+    @Override
     public String getTrustStoreType() {
         return getStringProperty(connectionProps, SQLServerDriverStringProperty.TRUST_STORE_TYPE.toString(),
                 SQLServerDriverStringProperty.TRUST_STORE_TYPE.getDefaultValue());
     }
 
+    @Override
     public void setTrustStore(String trustStore) {
         setStringProperty(connectionProps, SQLServerDriverStringProperty.TRUST_STORE.toString(), trustStore);
     }
 
+    @Override
     public String getTrustStore() {
         return getStringProperty(connectionProps, SQLServerDriverStringProperty.TRUST_STORE.toString(), null);
     }
 
+    @Override
     public void setTrustStorePassword(String trustStorePassword) {
         // if a non value property is set
         if (trustStorePassword != null)
@@ -275,10 +320,12 @@ public class SQLServerDataSource implements ISQLServerDataSource, javax.sql.Data
         setStringProperty(connectionProps, SQLServerDriverStringProperty.TRUST_STORE_PASSWORD.toString(), trustStorePassword);
     }
 
+    @Override
     public void setHostNameInCertificate(String hostName) {
         setStringProperty(connectionProps, SQLServerDriverStringProperty.HOSTNAME_IN_CERTIFICATE.toString(), hostName);
     }
 
+    @Override
     public String getHostNameInCertificate() {
         return getStringProperty(connectionProps, SQLServerDriverStringProperty.HOSTNAME_IN_CERTIFICATE.toString(), null);
     }
@@ -288,10 +335,12 @@ public class SQLServerDataSource implements ISQLServerDataSource, javax.sql.Data
     // this value will be the default for all statements on the connection. Note a
     // value of 0 means no wait. If lockTimeout is not set, getLockTimeout returns
     // the default of -1.
+    @Override
     public void setLockTimeout(int lockTimeout) {
         setIntProperty(connectionProps, SQLServerDriverIntProperty.LOCK_TIMEOUT.toString(), lockTimeout);
     }
 
+    @Override
     public int getLockTimeout() {
         return getIntProperty(connectionProps, SQLServerDriverIntProperty.LOCK_TIMEOUT.toString(),
                 SQLServerDriverIntProperty.LOCK_TIMEOUT.getDefaultValue());
@@ -300,6 +349,7 @@ public class SQLServerDataSource implements ISQLServerDataSource, javax.sql.Data
     // setPassword sets the password that will be used when connecting to SQL Server.
     // Note getPassword is deliberately declared non-public for security reasons.
     // If the password is not set, getPassword returns the default value of null.
+    @Override
     public void setPassword(String password) {
         setStringProperty(connectionProps, SQLServerDriverStringProperty.PASSWORD.toString(), password);
     }
@@ -313,10 +363,12 @@ public class SQLServerDataSource implements ISQLServerDataSource, javax.sql.Data
     // of 1433. Note as mentioned above, setPortNumber does not do any range
     // checking on the port value passed in, invalid port numbers like 99999 can
     // be passed in without triggering any error.
+    @Override
     public void setPortNumber(int portNumber) {
         setIntProperty(connectionProps, SQLServerDriverIntProperty.PORT_NUMBER.toString(), portNumber);
     }
 
+    @Override
     public int getPortNumber() {
         return getIntProperty(connectionProps, SQLServerDriverIntProperty.PORT_NUMBER.toString(),
                 SQLServerDriverIntProperty.PORT_NUMBER.getDefaultValue());
@@ -328,37 +380,45 @@ public class SQLServerDataSource implements ISQLServerDataSource, javax.sql.Data
     // the property to "cursor" you will be able to create a server side cursor that
     // can fetch smaller chunks of data at a time. If selectMethod is not set,
     // getSelectMethod returns the default value of "direct".
+    @Override
     public void setSelectMethod(String selectMethod) {
         setStringProperty(connectionProps, SQLServerDriverStringProperty.SELECT_METHOD.toString(), selectMethod);
     }
 
+    @Override
     public String getSelectMethod() {
         return getStringProperty(connectionProps, SQLServerDriverStringProperty.SELECT_METHOD.toString(),
                 SQLServerDriverStringProperty.SELECT_METHOD.getDefaultValue());
     }
 
+    @Override
     public void setResponseBuffering(String bufferingMode) {
         setStringProperty(connectionProps, SQLServerDriverStringProperty.RESPONSE_BUFFERING.toString(), bufferingMode);
     }
 
+    @Override
     public String getResponseBuffering() {
         return getStringProperty(connectionProps, SQLServerDriverStringProperty.RESPONSE_BUFFERING.toString(),
                 SQLServerDriverStringProperty.RESPONSE_BUFFERING.getDefaultValue());
     }
 
+    @Override
     public void setApplicationIntent(String applicationIntent) {
         setStringProperty(connectionProps, SQLServerDriverStringProperty.APPLICATION_INTENT.toString(), applicationIntent);
     }
 
+    @Override
     public String getApplicationIntent() {
         return getStringProperty(connectionProps, SQLServerDriverStringProperty.APPLICATION_INTENT.toString(),
                 SQLServerDriverStringProperty.APPLICATION_INTENT.getDefaultValue());
     }
 
+    @Override
     public void setSendTimeAsDatetime(boolean sendTimeAsDatetime) {
         setBooleanProperty(connectionProps, SQLServerDriverBooleanProperty.SEND_TIME_AS_DATETIME.toString(), sendTimeAsDatetime);
     }
 
+    @Override
     public boolean getSendTimeAsDatetime() {
         return getBooleanProperty(connectionProps, SQLServerDriverBooleanProperty.SEND_TIME_AS_DATETIME.toString(),
                 SQLServerDriverBooleanProperty.SEND_TIME_AS_DATETIME.getDefaultValue());
@@ -369,20 +429,24 @@ public class SQLServerDataSource implements ISQLServerDataSource, javax.sql.Data
     // is set to false, string parameters are sent to the server in the native TDS collation
     // format of the database, not in UNICODE. If sendStringParametersAsUnicode is not set,
     // getSendStringParametersAsUnicode returns the default of true.
+    @Override
     public void setSendStringParametersAsUnicode(boolean sendStringParametersAsUnicode) {
         setBooleanProperty(connectionProps, SQLServerDriverBooleanProperty.SEND_STRING_PARAMETERS_AS_UNICODE.toString(),
                 sendStringParametersAsUnicode);
     }
 
+    @Override
     public boolean getSendStringParametersAsUnicode() {
         return getBooleanProperty(connectionProps, SQLServerDriverBooleanProperty.SEND_STRING_PARAMETERS_AS_UNICODE.toString(),
                 SQLServerDriverBooleanProperty.SEND_STRING_PARAMETERS_AS_UNICODE.getDefaultValue());
     }
 
+    @Override
     public void setServerNameAsACE(boolean serverNameAsACE) {
         setBooleanProperty(connectionProps, SQLServerDriverBooleanProperty.SERVER_NAME_AS_ACE.toString(), serverNameAsACE);
     }
 
+    @Override
     public boolean getServerNameAsACE() {
         return getBooleanProperty(connectionProps, SQLServerDriverBooleanProperty.SERVER_NAME_AS_ACE.toString(),
                 SQLServerDriverBooleanProperty.SERVER_NAME_AS_ACE.getDefaultValue());
@@ -390,38 +454,46 @@ public class SQLServerDataSource implements ISQLServerDataSource, javax.sql.Data
 
     // serverName is the host name of the target SQL Server. If serverName is not set,
     // getServerName returns the default value of null is returned.
+    @Override
     public void setServerName(String serverName) {
         setStringProperty(connectionProps, SQLServerDriverStringProperty.SERVER_NAME.toString(), serverName);
     }
 
+    @Override
     public String getServerName() {
         return getStringProperty(connectionProps, SQLServerDriverStringProperty.SERVER_NAME.toString(), null);
     }
 
     // Specify an Service Principal Name (SPN) of the target SQL Server.
     // https://msdn.microsoft.com/en-us/library/cc280459.aspx
+    @Override
     public void setServerSpn(String serverSpn) {
         setStringProperty(connectionProps, SQLServerDriverStringProperty.SERVER_SPN.toString(), serverSpn);
     }
 
+    @Override
     public String getServerSpn() {
         return getStringProperty(connectionProps, SQLServerDriverStringProperty.SERVER_SPN.toString(), null);
     }
 
     // serverName is the host name of the target SQL Server. If serverName is not set,
     // getServerName returns the default value of null is returned.
+    @Override
     public void setFailoverPartner(String serverName) {
         setStringProperty(connectionProps, SQLServerDriverStringProperty.FAILOVER_PARTNER.toString(), serverName);
     }
 
+    @Override
     public String getFailoverPartner() {
         return getStringProperty(connectionProps, SQLServerDriverStringProperty.FAILOVER_PARTNER.toString(), null);
     }
 
+    @Override
     public void setMultiSubnetFailover(boolean multiSubnetFailover) {
         setBooleanProperty(connectionProps, SQLServerDriverBooleanProperty.MULTI_SUBNET_FAILOVER.toString(), multiSubnetFailover);
     }
 
+    @Override
     public boolean getMultiSubnetFailover() {
         return getBooleanProperty(connectionProps, SQLServerDriverBooleanProperty.MULTI_SUBNET_FAILOVER.toString(),
                 SQLServerDriverBooleanProperty.MULTI_SUBNET_FAILOVER.getDefaultValue());
@@ -429,10 +501,12 @@ public class SQLServerDataSource implements ISQLServerDataSource, javax.sql.Data
 
     // setUser set's the user name that will be used when connecting to SQL Server.
     // If user is not set, getUser returns the default value of null.
+    @Override
     public void setUser(String user) {
         setStringProperty(connectionProps, SQLServerDriverStringProperty.USER.toString(), user);
     }
 
+    @Override
     public String getUser() {
         return getStringProperty(connectionProps, SQLServerDriverStringProperty.USER.toString(), null);
     }
@@ -441,10 +515,12 @@ public class SQLServerDataSource implements ISQLServerDataSource, javax.sql.Data
     // workstationID is the host name of the client in other words. If workstationID
     // is not set, the default value is constructed by calling InetAddress.getLocalHost().getHostName()
     // or if getHostName() returns blank then getHostAddress().toString().
+    @Override
     public void setWorkstationID(String workstationID) {
         setStringProperty(connectionProps, SQLServerDriverStringProperty.WORKSTATION_ID.toString(), workstationID);
     }
 
+    @Override
     public String getWorkstationID() {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "getWorkstationID");
@@ -461,46 +537,56 @@ public class SQLServerDataSource implements ISQLServerDataSource, javax.sql.Data
     // compliant states. The default is false which causes the driver to generate SQL 99
     // state codes. If xopenStates is not set, getXopenStates returns the default value
     // of false.
+    @Override
     public void setXopenStates(boolean xopenStates) {
         setBooleanProperty(connectionProps, SQLServerDriverBooleanProperty.XOPEN_STATES.toString(), xopenStates);
     }
 
+    @Override
     public boolean getXopenStates() {
         return getBooleanProperty(connectionProps, SQLServerDriverBooleanProperty.XOPEN_STATES.toString(),
                 SQLServerDriverBooleanProperty.XOPEN_STATES.getDefaultValue());
     }
 
+    @Override
     public void setFIPS(boolean fips) {
         setBooleanProperty(connectionProps, SQLServerDriverBooleanProperty.FIPS.toString(), fips);
     }
 
+    @Override
     public boolean getFIPS() {
         return getBooleanProperty(connectionProps, SQLServerDriverBooleanProperty.FIPS.toString(),
                 SQLServerDriverBooleanProperty.FIPS.getDefaultValue());
     }
 
+    @Override
     public void setSSLProtocol(String sslProtocol) {
         setStringProperty(connectionProps, SQLServerDriverStringProperty.SSL_PROTOCOL.toString(), sslProtocol);
     }
 
+    @Override
     public String getSSLProtocol() {
         return getStringProperty(connectionProps, SQLServerDriverStringProperty.SSL_PROTOCOL.toString(),
                 SQLServerDriverStringProperty.SSL_PROTOCOL.getDefaultValue());
     }
 
+    @Override
     public void setTrustManagerClass(String trustManagerClass) {
         setStringProperty(connectionProps, SQLServerDriverStringProperty.TRUST_MANAGER_CLASS.toString(), trustManagerClass);
     }
 
+    @Override
     public String getTrustManagerClass() {
         return getStringProperty(connectionProps, SQLServerDriverStringProperty.TRUST_MANAGER_CLASS.toString(),
                 SQLServerDriverStringProperty.TRUST_MANAGER_CLASS.getDefaultValue());
     }
 
-    public void setTrustManagerConstructorArg(String trustManagerClass) {
-        setStringProperty(connectionProps, SQLServerDriverStringProperty.TRUST_MANAGER_CONSTRUCTOR_ARG.toString(), trustManagerClass);
+    @Override
+    public void setTrustManagerConstructorArg(String trustManagerConstructorArg) {
+        setStringProperty(connectionProps, SQLServerDriverStringProperty.TRUST_MANAGER_CONSTRUCTOR_ARG.toString(), trustManagerConstructorArg);
     }
 
+    @Override
     public String getTrustManagerConstructorArg() {
         return getStringProperty(connectionProps, SQLServerDriverStringProperty.TRUST_MANAGER_CONSTRUCTOR_ARG.toString(),
                 SQLServerDriverStringProperty.TRUST_MANAGER_CONSTRUCTOR_ARG.getDefaultValue());
@@ -518,6 +604,7 @@ public class SQLServerDataSource implements ISQLServerDataSource, javax.sql.Data
     // that is set on the DataSource in the configuration GUI.
 
     // Note if setURL is not called, getURL returns the default value of "jdbc:sqlserver://".
+    @Override
     public void setURL(String url) {
         loggerExternal.entering(getClassNameLogging(), "setURL", url);
         // URL is not stored in a property set, it is maintained separately.
@@ -525,6 +612,7 @@ public class SQLServerDataSource implements ISQLServerDataSource, javax.sql.Data
         loggerExternal.exiting(getClassNameLogging(), "setURL");
     }
 
+    @Override
     public String getURL() {
         String url = dataSourceURL;
         loggerExternal.entering(getClassNameLogging(), "getURL");
@@ -538,12 +626,14 @@ public class SQLServerDataSource implements ISQLServerDataSource, javax.sql.Data
     // DataSource specific property setters/getters.
     // Per JDBC specification 16.1.1 "...the only property that all DataSource
     // implementations are required to support is the description property".
+    @Override
     public void setDescription(String description) {
         loggerExternal.entering(getClassNameLogging(), "setDescription", description);
         dataSourceDescription = description;
         loggerExternal.exiting(getClassNameLogging(), "setDescription");
     }
 
+    @Override
     public String getDescription() {
         loggerExternal.entering(getClassNameLogging(), "getDescription");
         loggerExternal.exiting(getClassNameLogging(), "getDescription", dataSourceDescription);
@@ -554,85 +644,103 @@ public class SQLServerDataSource implements ISQLServerDataSource, javax.sql.Data
     // buffer. It is also the value used for the TDS packet size (SQL Server
     // Network Packet Size). Validity of the value is checked at connect time.
     // If no value is set for this property, its default value is 4KB.
+    @Override
     public void setPacketSize(int packetSize) {
         setIntProperty(connectionProps, SQLServerDriverIntProperty.PACKET_SIZE.toString(), packetSize);
     }
 
+    @Override
     public int getPacketSize() {
         return getIntProperty(connectionProps, SQLServerDriverIntProperty.PACKET_SIZE.toString(),
                 SQLServerDriverIntProperty.PACKET_SIZE.getDefaultValue());
     }
 
+    @Override
     public void setQueryTimeout(int queryTimeout) {
         setIntProperty(connectionProps, SQLServerDriverIntProperty.QUERY_TIMEOUT.toString(), queryTimeout);
     }
 
+    @Override
     public int getQueryTimeout() {
         return getIntProperty(connectionProps, SQLServerDriverIntProperty.QUERY_TIMEOUT.toString(),
                 SQLServerDriverIntProperty.QUERY_TIMEOUT.getDefaultValue());
     }
 
+    @Override
     public void setCancelQueryTimeout(int cancelQueryTimeout) {
         setIntProperty(connectionProps, SQLServerDriverIntProperty.CANCEL_QUERY_TIMEOUT.toString(), cancelQueryTimeout);
     }
 
+    @Override
     public int getCancelQueryTimeout() {
         return getIntProperty(connectionProps, SQLServerDriverIntProperty.CANCEL_QUERY_TIMEOUT.toString(),
                 SQLServerDriverIntProperty.CANCEL_QUERY_TIMEOUT.getDefaultValue());
     }
 
+    @Override
     public void setEnablePrepareOnFirstPreparedStatementCall(boolean enablePrepareOnFirstPreparedStatementCall) {
         setBooleanProperty(connectionProps, SQLServerDriverBooleanProperty.ENABLE_PREPARE_ON_FIRST_PREPARED_STATEMENT.toString(),
                 enablePrepareOnFirstPreparedStatementCall);
     }
 
+    @Override
     public boolean getEnablePrepareOnFirstPreparedStatementCall() {
         boolean defaultValue = SQLServerDriverBooleanProperty.ENABLE_PREPARE_ON_FIRST_PREPARED_STATEMENT.getDefaultValue();
         return getBooleanProperty(connectionProps, SQLServerDriverBooleanProperty.ENABLE_PREPARE_ON_FIRST_PREPARED_STATEMENT.toString(),
                 defaultValue);
     }
 
+    @Override
     public void setServerPreparedStatementDiscardThreshold(int serverPreparedStatementDiscardThreshold) {
         setIntProperty(connectionProps, SQLServerDriverIntProperty.SERVER_PREPARED_STATEMENT_DISCARD_THRESHOLD.toString(),
                 serverPreparedStatementDiscardThreshold);
     }
 
+    @Override
     public int getServerPreparedStatementDiscardThreshold() {
         int defaultSize = SQLServerDriverIntProperty.SERVER_PREPARED_STATEMENT_DISCARD_THRESHOLD.getDefaultValue();
         return getIntProperty(connectionProps, SQLServerDriverIntProperty.SERVER_PREPARED_STATEMENT_DISCARD_THRESHOLD.toString(), defaultSize);
     }
 
+    @Override
     public void setStatementPoolingCacheSize(int statementPoolingCacheSize) {
         setIntProperty(connectionProps, SQLServerDriverIntProperty.STATEMENT_POOLING_CACHE_SIZE.toString(), statementPoolingCacheSize);
     }
 
+    @Override
     public int getStatementPoolingCacheSize() {
         int defaultSize = SQLServerDriverIntProperty.STATEMENT_POOLING_CACHE_SIZE.getDefaultValue();
         return getIntProperty(connectionProps, SQLServerDriverIntProperty.STATEMENT_POOLING_CACHE_SIZE.toString(), defaultSize);
     }
 
+    @Override
     public void setDisableStatementPooling(boolean disableStatementPooling) {
         setBooleanProperty(connectionProps, SQLServerDriverBooleanProperty.DISABLE_STATEMENT_POOLING.toString(), disableStatementPooling);
     }
 
+    @Override
     public boolean getDisableStatementPooling() {
         boolean defaultValue = SQLServerDriverBooleanProperty.DISABLE_STATEMENT_POOLING.getDefaultValue();
         return getBooleanProperty(connectionProps, SQLServerDriverBooleanProperty.DISABLE_STATEMENT_POOLING.toString(), defaultValue);
     }
 
+    @Override
     public void setSocketTimeout(int socketTimeout) {
         setIntProperty(connectionProps, SQLServerDriverIntProperty.SOCKET_TIMEOUT.toString(), socketTimeout);
     }
 
+    @Override
     public int getSocketTimeout() {
         int defaultTimeOut = SQLServerDriverIntProperty.SOCKET_TIMEOUT.getDefaultValue();
         return getIntProperty(connectionProps, SQLServerDriverIntProperty.SOCKET_TIMEOUT.toString(), defaultTimeOut);
     }
 
+    @Override
     public void setJASSConfigurationName(String configurationName) {
         setStringProperty(connectionProps, SQLServerDriverStringProperty.JAAS_CONFIG_NAME.toString(), configurationName);
     }
 
+    @Override
     public String getJASSConfigurationName() {
         return getStringProperty(connectionProps, SQLServerDriverStringProperty.JAAS_CONFIG_NAME.toString(),
                 SQLServerDriverStringProperty.JAAS_CONFIG_NAME.getDefaultValue());
@@ -851,6 +959,7 @@ public class SQLServerDataSource implements ISQLServerDataSource, javax.sql.Data
 
     // Implement javax.naming.Referenceable interface methods.
 
+    @Override
     public Reference getReference() {
         loggerExternal.entering(getClassNameLogging(), "getReference");
         Reference ref = getReferenceInternal("com.microsoft.sqlserver.jdbc.SQLServerDataSource");
@@ -924,6 +1033,7 @@ public class SQLServerDataSource implements ISQLServerDataSource, javax.sql.Data
         }
     }
 
+    @Override
     public boolean isWrapperFor(Class<?> iface) throws SQLException {
         loggerExternal.entering(getClassNameLogging(), "isWrapperFor", iface);
         boolean f = iface.isInstance(this);
@@ -931,6 +1041,7 @@ public class SQLServerDataSource implements ISQLServerDataSource, javax.sql.Data
         return f;
     }
 
+    @Override
     public <T> T unwrap(Class<T> iface) throws SQLException {
         loggerExternal.entering(getClassNameLogging(), "unwrap", iface);
         T t;

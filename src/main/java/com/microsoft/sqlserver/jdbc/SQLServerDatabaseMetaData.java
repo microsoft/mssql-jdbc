@@ -112,7 +112,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
      * @param con
      *            the connection
      */
-    /* L0 */ public SQLServerDatabaseMetaData(SQLServerConnection con) {
+    public SQLServerDatabaseMetaData(SQLServerConnection con) {
         traceID = " SQLServerDatabaseMetaData:" + nextInstanceID();
         connection = con;
         if (logger.isLoggable(java.util.logging.Level.FINE)) {
@@ -331,7 +331,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
      * @throws SQLServerException
      * @return the old catalog
      */
-    /* L0 */ private String switchCatalogs(String catalog) throws SQLServerException {
+    private String switchCatalogs(String catalog) throws SQLServerException {
         if (catalog == null)
             return null;
         String sCurr = null;
@@ -347,12 +347,12 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
 
     /* -------------- JDBC Interface API starts here ---------------- */
 
-    /* L0 */ public boolean allProceduresAreCallable() throws SQLServerException {
+    public boolean allProceduresAreCallable() throws SQLServerException {
         checkClosed();
         return true;
     }
 
-    /* L0 */ public boolean allTablesAreSelectable() throws SQLServerException {
+    public boolean allTablesAreSelectable() throws SQLServerException {
         checkClosed();
         return true;
     }
@@ -362,17 +362,17 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
         return false;
     }
 
-    /* L0 */ public boolean dataDefinitionCausesTransactionCommit() throws SQLServerException {
+    public boolean dataDefinitionCausesTransactionCommit() throws SQLServerException {
         checkClosed();
         return false;
     }
 
-    /* L0 */ public boolean dataDefinitionIgnoredInTransactions() throws SQLServerException {
+    public boolean dataDefinitionIgnoredInTransactions() throws SQLServerException {
         checkClosed();
         return false;
     }
 
-    /* L0 */ public boolean doesMaxRowSizeIncludeBlobs() throws SQLServerException {
+    public boolean doesMaxRowSizeIncludeBlobs() throws SQLServerException {
         checkClosed();
         return false;
     }
@@ -405,7 +405,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
         return false;
     }
 
-    /* L0 */ public java.sql.ResultSet getCatalogs() throws SQLServerException, SQLTimeoutException {
+    public java.sql.ResultSet getCatalogs() throws SQLServerException, SQLTimeoutException {
         if (loggerExternal.isLoggable(Level.FINER) && Util.IsActivityTraceOn()) {
             loggerExternal.finer(toString() + " ActivityId: " + ActivityCorrelator.getNext().toString());
         }
@@ -415,12 +415,12 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
         return getResultSetFromInternalQueries(null, s);
     }
 
-    /* L0 */ public String getCatalogSeparator() throws SQLServerException {
+    public String getCatalogSeparator() throws SQLServerException {
         checkClosed();
         return ".";
     }
 
-    /* L0 */ public String getCatalogTerm() throws SQLServerException {
+    public String getCatalogTerm() throws SQLServerException {
         checkClosed();
         return "database";
     }
@@ -428,7 +428,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
     private static final String[] getColumnPrivilegesColumnNames = {/* 1 */ TABLE_CAT, /* 2 */ TABLE_SCHEM, /* 3 */ TABLE_NAME, /* 4 */ COLUMN_NAME,
             /* 5 */ GRANTOR, /* 6 */ GRANTEE, /* 7 */ PRIVILEGE, /* 8 */ IS_GRANTABLE};
 
-    /* L0 */ public java.sql.ResultSet getColumnPrivileges(String catalog,
+    public java.sql.ResultSet getColumnPrivileges(String catalog,
             String schema,
             String table,
             String col) throws SQLServerException, SQLTimeoutException {
@@ -454,7 +454,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
     private static final String[] getTablesColumnNames = {/* 1 */ TABLE_CAT, /* 2 */ TABLE_SCHEM, /* 3 */ TABLE_NAME, /* 4 */ TABLE_TYPE,
             /* 5 */ REMARKS};
 
-    /* L0 */ public java.sql.ResultSet getTables(String catalog,
+    public java.sql.ResultSet getTables(String catalog,
             String schema,
             String table,
             String types[]) throws SQLServerException, SQLTimeoutException {
@@ -564,7 +564,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
             /* 17 */ ORDINAL_POSITION, /* 18 */ IS_NULLABLE, /* 20 */ SS_IS_SPARSE, /* 20 */ SS_IS_COLUMN_SET, /* 21 */ IS_GENERATEDCOLUMN,
             /* 22 */ IS_AUTOINCREMENT};
 
-    /* L0 */ public java.sql.ResultSet getColumns(String catalog,
+    public java.sql.ResultSet getColumns(String catalog,
             String schema,
             String table,
             String col) throws SQLServerException, SQLTimeoutException {
@@ -702,7 +702,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
     private static final String[] getBestRowIdentifierColumnNames = {/* 1 */ SCOPE, /* 2 */ COLUMN_NAME, /* 3 */ DATA_TYPE, /* 4 */ TYPE_NAME,
             /* 5 */ COLUMN_SIZE, /* 6 */ BUFFER_LENGTH, /* 7 */ DECIMAL_DIGITS, /* 8 */ PSEUDO_COLUMN};
 
-    /* L0 */ public java.sql.ResultSet getBestRowIdentifier(String catalog,
+    public java.sql.ResultSet getBestRowIdentifier(String catalog,
             String schema,
             String table,
             int scope,
@@ -739,7 +739,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
         return rs;
     }
 
-    /* L0 */ public java.sql.ResultSet getCrossReference(String cat1,
+    public java.sql.ResultSet getCrossReference(String cat1,
             String schem1,
             String tab1,
             String cat2,
@@ -758,35 +758,35 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
         return executeSPFkeys(arguments);
     }
 
-    /* L0 */ public String getDatabaseProductName() throws SQLServerException {
+    public String getDatabaseProductName() throws SQLServerException {
         checkClosed();
         return "Microsoft SQL Server";
     }
 
-    /* L0 */ public String getDatabaseProductVersion() throws SQLServerException {
+    public String getDatabaseProductVersion() throws SQLServerException {
         checkClosed();
         return connection.sqlServerVersion;
     }
 
-    /* L0 */ public int getDefaultTransactionIsolation() throws SQLServerException {
+    public int getDefaultTransactionIsolation() throws SQLServerException {
         checkClosed();
         return java.sql.Connection.TRANSACTION_READ_COMMITTED;
     }
 
-    /* L0 */ public int getDriverMajorVersion() {
+    public int getDriverMajorVersion() {
         return SQLJdbcVersion.major;
     }
 
-    /* L0 */ public int getDriverMinorVersion() {
+    public int getDriverMinorVersion() {
         return SQLJdbcVersion.minor;
     }
 
-    /* L0 */ public String getDriverName() throws SQLServerException {
+    public String getDriverName() throws SQLServerException {
         checkClosed();
         return SQLServerDriver.PRODUCT_NAME;
     }
 
-    /* L0 */ public String getDriverVersion() throws SQLServerException {
+    public String getDriverVersion() throws SQLServerException {
 
         // driver version in the Major.Minor.MMDD.Revision form
         int n = getDriverMinorVersion();
@@ -799,23 +799,23 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
         return s;
     }
 
-    /* L0 */ public java.sql.ResultSet getExportedKeys(String cat,
+    public java.sql.ResultSet getExportedKeys(String cat,
             String schema,
             String table) throws SQLServerException, SQLTimeoutException {
         return getCrossReference(cat, schema, table, null, null, null);
     }
 
-    /* L0 */ public String getExtraNameCharacters() throws SQLServerException {
+    public String getExtraNameCharacters() throws SQLServerException {
         checkClosed();
         return "$#@";
     }
 
-    /* L0 */ public String getIdentifierQuoteString() throws SQLServerException {
+    public String getIdentifierQuoteString() throws SQLServerException {
         checkClosed();
         return "\"";
     }
 
-    /* L0 */ public java.sql.ResultSet getImportedKeys(String cat,
+    public java.sql.ResultSet getImportedKeys(String cat,
             String schema,
             String table) throws SQLServerException, SQLTimeoutException {
         return getCrossReference(null, null, null, cat, schema, table);
@@ -886,7 +886,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
             /* 5 */ INDEX_QUALIFIER, /* 6 */ INDEX_NAME, /* 7 */ TYPE, /* 8 */ ORDINAL_POSITION, /* 9 */ COLUMN_NAME, /* 10 */ ASC_OR_DESC,
             /* 11 */ CARDINALITY, /* 12 */ PAGES, /* 13 */ FILTER_CONDITION};
 
-    /* L0 */ public java.sql.ResultSet getIndexInfo(String cat,
+    public java.sql.ResultSet getIndexInfo(String cat,
             String schema,
             String table,
             boolean unique,
@@ -916,52 +916,52 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
         return getResultSetWithProvidedColumnNames(cat, CallableHandles.SP_STATISTICS, arguments, getIndexInfoColumnNames);
     }
 
-    /* L0 */ public int getMaxBinaryLiteralLength() throws SQLServerException {
+    public int getMaxBinaryLiteralLength() throws SQLServerException {
         checkClosed();
         return 0;
     }
 
-    /* L0 */ public int getMaxCatalogNameLength() throws SQLServerException {
+    public int getMaxCatalogNameLength() throws SQLServerException {
         checkClosed();
         return 128;
     }
 
-    /* L0 */ public int getMaxCharLiteralLength() throws SQLServerException {
+    public int getMaxCharLiteralLength() throws SQLServerException {
         checkClosed();
         return 0;
     }
 
-    /* L0 */ public int getMaxColumnNameLength() throws SQLServerException {
+    public int getMaxColumnNameLength() throws SQLServerException {
         checkClosed();
         return 128;
     }
 
-    /* L0 */ public int getMaxColumnsInGroupBy() throws SQLServerException {
+    public int getMaxColumnsInGroupBy() throws SQLServerException {
         checkClosed();
         return 0;
     }
 
-    /* L0 */ public int getMaxColumnsInIndex() throws SQLServerException {
+    public int getMaxColumnsInIndex() throws SQLServerException {
         checkClosed();
         return 16;
     }
 
-    /* L0 */ public int getMaxColumnsInOrderBy() throws SQLServerException {
+    public int getMaxColumnsInOrderBy() throws SQLServerException {
         checkClosed();
         return 0;
     }
 
-    /* L0 */ public int getMaxColumnsInSelect() throws SQLServerException {
+    public int getMaxColumnsInSelect() throws SQLServerException {
         checkClosed();
         return 4096;
     }
 
-    /* L0 */ public int getMaxColumnsInTable() throws SQLServerException {
+    public int getMaxColumnsInTable() throws SQLServerException {
         checkClosed();
         return 1024;
     }
 
-    /* L0 */ public int getMaxConnections() throws SQLServerException, SQLTimeoutException {
+    public int getMaxConnections() throws SQLServerException, SQLTimeoutException {
         checkClosed();
         try {
             String s = "sp_configure 'user connections'";
@@ -976,32 +976,32 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
 
     }
 
-    /* L0 */ public int getMaxCursorNameLength() throws SQLServerException {
+    public int getMaxCursorNameLength() throws SQLServerException {
         checkClosed();
         return 0;
     }
 
-    /* L0 */ public int getMaxIndexLength() throws SQLServerException {
+    public int getMaxIndexLength() throws SQLServerException {
         checkClosed();
         return 900;
     }
 
-    /* L0 */ public int getMaxProcedureNameLength() throws SQLServerException {
+    public int getMaxProcedureNameLength() throws SQLServerException {
         checkClosed();
         return 128;
     }
 
-    /* L0 */ public int getMaxRowSize() throws SQLServerException {
+    public int getMaxRowSize() throws SQLServerException {
         checkClosed();
         return 8060;
     }
 
-    /* L0 */ public int getMaxSchemaNameLength() throws SQLServerException {
+    public int getMaxSchemaNameLength() throws SQLServerException {
         checkClosed();
         return 128;
     }
 
-    /* L0 */ public int getMaxStatementLength() throws SQLServerException {
+    public int getMaxStatementLength() throws SQLServerException {
         checkClosed();
 
         // SQL Server currently limits to 64K the number of TDS packets per conversation.
@@ -1011,27 +1011,27 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
         return 65536 * connection.getTDSPacketSize();
     }
 
-    /* L0 */ public int getMaxStatements() throws SQLServerException {
+    public int getMaxStatements() throws SQLServerException {
         checkClosed();
         return 0;
     }
 
-    /* L0 */ public int getMaxTableNameLength() throws SQLServerException {
+    public int getMaxTableNameLength() throws SQLServerException {
         checkClosed();
         return 128;
     }
 
-    /* L0 */ public int getMaxTablesInSelect() throws SQLServerException {
+    public int getMaxTablesInSelect() throws SQLServerException {
         checkClosed();
         return 256;
     }
 
-    /* L0 */ public int getMaxUserNameLength() throws SQLServerException {
+    public int getMaxUserNameLength() throws SQLServerException {
         checkClosed();
         return 128;
     }
 
-    /* L0 */ public String getNumericFunctions() throws SQLServerException {
+    public String getNumericFunctions() throws SQLServerException {
         checkClosed();
         return "ABS,ACOS,ASIN,ATAN,ATAN2,CEILING,COS,COT,DEGREES,EXP, FLOOR,LOG,LOG10,MOD,PI,POWER,RADIANS,RAND,ROUND,SIGN,SIN,SQRT,TAN,TRUNCATE";
     }
@@ -1039,7 +1039,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
     private static final String[] getPrimaryKeysColumnNames = {/* 1 */ TABLE_CAT, /* 2 */ TABLE_SCHEM, /* 3 */ TABLE_NAME, /* 4 */ COLUMN_NAME,
             /* 5 */ KEY_SEQ, /* 6 */ PK_NAME};
 
-    /* L0 */ public java.sql.ResultSet getPrimaryKeys(String cat,
+    public java.sql.ResultSet getPrimaryKeys(String cat,
             String schema,
             String table) throws SQLServerException, SQLTimeoutException {
         if (loggerExternal.isLoggable(Level.FINER) && Util.IsActivityTraceOn()) {
@@ -1061,7 +1061,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
             /* 11 */ RADIX, /* 12 */ NULLABLE, /* 13 */ REMARKS, /* 14 */ COLUMN_DEF, /* 15 */ SQL_DATA_TYPE, /* 16 */ SQL_DATETIME_SUB,
             /* 17 */ CHAR_OCTET_LENGTH, /* 18 */ ORDINAL_POSITION, /* 19 */ IS_NULLABLE};
 
-    /* L0 */ public java.sql.ResultSet getProcedureColumns(String catalog,
+    public java.sql.ResultSet getProcedureColumns(String catalog,
             String schema,
             String proc,
             String col) throws SQLServerException, SQLTimeoutException {
@@ -1104,7 +1104,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
     private static final String[] getProceduresColumnNames = {/* 1 */ PROCEDURE_CAT, /* 2 */ PROCEDURE_SCHEM, /* 3 */ PROCEDURE_NAME,
             /* 4 */ NUM_INPUT_PARAMS, /* 5 */ NUM_OUTPUT_PARAMS, /* 6 */ NUM_RESULT_SETS, /* 7 */ REMARKS, /* 8 */ PROCEDURE_TYPE};
 
-    /* L0 */ public java.sql.ResultSet getProcedures(String catalog,
+    public java.sql.ResultSet getProcedures(String catalog,
             String schema,
             String proc) throws SQLServerException, SQLTimeoutException {
         if (loggerExternal.isLoggable(Level.FINER) && Util.IsActivityTraceOn()) {
@@ -1123,7 +1123,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
         return getResultSetWithProvidedColumnNames(catalog, CallableHandles.SP_STORED_PROCEDURES, arguments, getProceduresColumnNames);
     }
 
-    /* L0 */ public String getProcedureTerm() throws SQLServerException {
+    public String getProcedureTerm() throws SQLServerException {
         checkClosed();
         return "stored procedure";
     }
@@ -1156,7 +1156,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
         /* 13 */ " cast(NULL as char(1)) as IS_NULLABLE" + " where 0 = 1");
     }
 
-    /* L0 */ public java.sql.ResultSet getSchemas() throws SQLServerException, SQLTimeoutException {
+    public java.sql.ResultSet getSchemas() throws SQLServerException, SQLTimeoutException {
         if (loggerExternal.isLoggable(Level.FINER) && Util.IsActivityTraceOn()) {
             loggerExternal.finer(toString() + " ActivityId: " + ActivityCorrelator.getNext().toString());
         }
@@ -1242,27 +1242,27 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
         return getSchemasInternal(catalog, schemaPattern);
     }
 
-    /* L0 */ public String getSchemaTerm() throws SQLServerException {
+    public String getSchemaTerm() throws SQLServerException {
         checkClosed();
         return "schema";
     }
 
-    /* L0 */ public String getSearchStringEscape() throws SQLServerException {
+    public String getSearchStringEscape() throws SQLServerException {
         checkClosed();
         return "\\";
     }
 
-    /* L0 */ public String getSQLKeywords() throws SQLServerException {
+    public String getSQLKeywords() throws SQLServerException {
         checkClosed();
         return "BACKUP,BREAK,BROWSE,BULK,CHECKPOINT,CLUSTERED,COMPUTE,CONTAINS,CONTAINSTABLE,DATABASE,DBCC,DENY,DISK,DISTRIBUTED,DUMMY,DUMP,ERRLVL,EXIT,FILE,FILLFACTOR,FREETEXT,FREETEXTTABLE,FUNCTION,HOLDLOCK,IDENTITY_INSERT,IDENTITYCOL,IF,KILL,LINENO,LOAD,NOCHECK,NONCLUSTERED,OFF,OFFSETS,OPENDATASOURCE,OPENQUERY,OPENROWSET,OPENXML,OVER,PERCENT,PLAN,PRINT,PROC,RAISERROR,READTEXT,RECONFIGURE,REPLICATION,RESTORE,RETURN,ROWCOUNT,ROWGUIDCOL,RULE,SAVE,SETUSER,SHUTDOWN,STATISTICS,TEXTSIZE,TOP,TRAN,TRIGGER,TRUNCATE,TSEQUAL,UPDATETEXT,USE,WAITFOR,WHILE,WRITETEXT";
     }
 
-    /* L0 */ public String getStringFunctions() throws SQLServerException {
+    public String getStringFunctions() throws SQLServerException {
         checkClosed();
         return "ASCII,CHAR,CONCAT, DIFFERENCE,INSERT,LCASE,LEFT,LENGTH,LOCATE,LTRIM,REPEAT,REPLACE,RIGHT,RTRIM,SOUNDEX,SPACE,SUBSTRING,UCASE";
     }
 
-    /* L0 */ public String getSystemFunctions() throws SQLServerException {
+    public String getSystemFunctions() throws SQLServerException {
         checkClosed();
         return "DATABASE,IFNULL,USER"; // The functions no reinstated after the CTS certification.
     }
@@ -1270,7 +1270,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
     private static final String[] getTablePrivilegesColumnNames = {/* 1 */ TABLE_CAT, /* 2 */ TABLE_SCHEM, /* 3 */ TABLE_NAME, /* 4 */ GRANTOR,
             /* 5 */ GRANTEE, /* 6 */ PRIVILEGE, /* 7 */ IS_GRANTABLE};
 
-    /* L0 */ public java.sql.ResultSet getTablePrivileges(String catalog,
+    public java.sql.ResultSet getTablePrivileges(String catalog,
             String schema,
             String table) throws SQLServerException, SQLTimeoutException {
         if (loggerExternal.isLoggable(Level.FINER) && Util.IsActivityTraceOn()) {
@@ -1291,7 +1291,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
         return getResultSetWithProvidedColumnNames(catalog, CallableHandles.SP_TABLE_PRIVILEGES, arguments, getTablePrivilegesColumnNames);
     }
 
-    /* L0 */ public java.sql.ResultSet getTableTypes() throws SQLServerException, SQLTimeoutException {
+    public java.sql.ResultSet getTableTypes() throws SQLServerException, SQLTimeoutException {
         if (loggerExternal.isLoggable(Level.FINER) && Util.IsActivityTraceOn()) {
             loggerExternal.finer(toString() + " ActivityId: " + ActivityCorrelator.getNext().toString());
         }
@@ -1301,12 +1301,12 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
         return rs;
     }
 
-    /* L0 */ public String getTimeDateFunctions() throws SQLServerException {
+    public String getTimeDateFunctions() throws SQLServerException {
         checkClosed();
         return "CURDATE,CURTIME,DAYNAME,DAYOFMONTH,DAYOFWEEK,DAYOFYEAR,HOUR,MINUTE,MONTH,MONTHNAME,NOW,QUARTER,SECOND,TIMESTAMPADD,TIMESTAMPDIFF,WEEK,YEAR";
     }
 
-    /* L0 */ public java.sql.ResultSet getTypeInfo() throws SQLServerException, SQLTimeoutException {
+    public java.sql.ResultSet getTypeInfo() throws SQLServerException, SQLTimeoutException {
         if (loggerExternal.isLoggable(Level.FINER) && Util.IsActivityTraceOn()) {
             loggerExternal.finer(toString() + " ActivityId: " + ActivityCorrelator.getNext().toString());
         }
@@ -1327,7 +1327,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
         return rs;
     }
 
-    /* L0 */ public String getURL() throws SQLServerException {
+    public String getURL() throws SQLServerException {
         checkClosed();
         // Build up the URL with the connection properties do not hand out user ID and password
         StringBuilder url = new StringBuilder();
@@ -1388,7 +1388,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
         return (url.toString());
     }
 
-    /* L0 */ public String getUserName() throws SQLServerException, SQLTimeoutException {
+    public String getUserName() throws SQLServerException, SQLTimeoutException {
         if (loggerExternal.isLoggable(Level.FINER) && Util.IsActivityTraceOn()) {
             loggerExternal.finer(toString() + " ActivityId: " + ActivityCorrelator.getNext().toString());
         }
@@ -1420,7 +1420,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
     private static final String[] getVersionColumnsColumnNames = {/* 1 */ SCOPE, /* 2 */ COLUMN_NAME, /* 3 */ DATA_TYPE, /* 4 */ TYPE_NAME,
             /* 5 */ COLUMN_SIZE, /* 6 */ BUFFER_LENGTH, /* 7 */ DECIMAL_DIGITS, /* 8 */ PSEUDO_COLUMN};
 
-    /* L0 */ public java.sql.ResultSet getVersionColumns(String catalog,
+    public java.sql.ResultSet getVersionColumns(String catalog,
             String schema,
             String table) throws SQLServerException, SQLTimeoutException {
         if (loggerExternal.isLoggable(Level.FINER) && Util.IsActivityTraceOn()) {
@@ -1449,338 +1449,338 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
         return rs;
     }
 
-    /* L0 */ public boolean isCatalogAtStart() throws SQLServerException {
+    public boolean isCatalogAtStart() throws SQLServerException {
         checkClosed();
         return true;
     }
 
-    /* L0 */ public boolean isReadOnly() throws SQLServerException {
+    public boolean isReadOnly() throws SQLServerException {
         checkClosed();
         return false;
     }
 
-    /* L0 */ public boolean nullPlusNonNullIsNull() throws SQLServerException {
+    public boolean nullPlusNonNullIsNull() throws SQLServerException {
         checkClosed();
         return true;
     }
 
-    /* L0 */ public boolean nullsAreSortedAtEnd() throws SQLServerException {
+    public boolean nullsAreSortedAtEnd() throws SQLServerException {
         checkClosed();
         return false;
     }
 
-    /* L0 */ public boolean nullsAreSortedAtStart() throws SQLServerException {
+    public boolean nullsAreSortedAtStart() throws SQLServerException {
         checkClosed();
         return false;
     }
 
-    /* L0 */ public boolean nullsAreSortedHigh() throws SQLServerException {
+    public boolean nullsAreSortedHigh() throws SQLServerException {
         checkClosed();
         return false;
     }
 
-    /* L0 */ public boolean nullsAreSortedLow() throws SQLServerException {
+    public boolean nullsAreSortedLow() throws SQLServerException {
         checkClosed();
         return true;
     }
 
-    /* L0 */ public boolean storesLowerCaseIdentifiers() throws SQLServerException {
+    public boolean storesLowerCaseIdentifiers() throws SQLServerException {
         checkClosed();
         return false;
     }
 
-    /* L0 */ public boolean storesLowerCaseQuotedIdentifiers() throws SQLServerException {
+    public boolean storesLowerCaseQuotedIdentifiers() throws SQLServerException {
         checkClosed();
         return false;
     }
 
-    /* L0 */ public boolean storesMixedCaseIdentifiers() throws SQLServerException {
+    public boolean storesMixedCaseIdentifiers() throws SQLServerException {
         checkClosed();
         return true;
     }
 
-    /* L0 */ public boolean storesMixedCaseQuotedIdentifiers() throws SQLServerException {
+    public boolean storesMixedCaseQuotedIdentifiers() throws SQLServerException {
         checkClosed();
         return true;
     }
 
-    /* L0 */ public boolean storesUpperCaseIdentifiers() throws SQLServerException {
+    public boolean storesUpperCaseIdentifiers() throws SQLServerException {
         checkClosed();
         return false;
     }
 
-    /* L0 */ public boolean storesUpperCaseQuotedIdentifiers() throws SQLServerException {
+    public boolean storesUpperCaseQuotedIdentifiers() throws SQLServerException {
         checkClosed();
         return false;
     }
 
-    /* L0 */ public boolean supportsAlterTableWithAddColumn() throws SQLServerException {
+    public boolean supportsAlterTableWithAddColumn() throws SQLServerException {
         checkClosed();
         return true;
     }
 
-    /* L0 */ public boolean supportsAlterTableWithDropColumn() throws SQLServerException {
+    public boolean supportsAlterTableWithDropColumn() throws SQLServerException {
         checkClosed();
         return true;
     }
 
-    /* L0 */ public boolean supportsANSI92EntryLevelSQL() throws SQLServerException {
+    public boolean supportsANSI92EntryLevelSQL() throws SQLServerException {
         checkClosed();
         return true;
     }
 
-    /* L0 */ public boolean supportsANSI92FullSQL() throws SQLServerException {
+    public boolean supportsANSI92FullSQL() throws SQLServerException {
         checkClosed();
         return false;
     }
 
-    /* L0 */ public boolean supportsANSI92IntermediateSQL() throws SQLServerException {
+    public boolean supportsANSI92IntermediateSQL() throws SQLServerException {
         checkClosed();
         return false;
     }
 
-    /* L0 */ public boolean supportsCatalogsInDataManipulation() throws SQLServerException {
+    public boolean supportsCatalogsInDataManipulation() throws SQLServerException {
         checkClosed();
         return true;
     }
 
-    /* L0 */ public boolean supportsCatalogsInIndexDefinitions() throws SQLServerException {
+    public boolean supportsCatalogsInIndexDefinitions() throws SQLServerException {
         checkClosed();
         return true;
     }
 
-    /* L0 */ public boolean supportsCatalogsInPrivilegeDefinitions() throws SQLServerException {
+    public boolean supportsCatalogsInPrivilegeDefinitions() throws SQLServerException {
         checkClosed();
         return true;
     }
 
-    /* L0 */ public boolean supportsCatalogsInProcedureCalls() throws SQLServerException {
+    public boolean supportsCatalogsInProcedureCalls() throws SQLServerException {
         checkClosed();
         return true;
     }
 
-    /* L0 */ public boolean supportsCatalogsInTableDefinitions() throws SQLServerException {
+    public boolean supportsCatalogsInTableDefinitions() throws SQLServerException {
         checkClosed();
         return true;
     }
 
-    /* L0 */ public boolean supportsColumnAliasing() throws SQLServerException {
+    public boolean supportsColumnAliasing() throws SQLServerException {
         checkClosed();
         return true;
     }
 
-    /* L0 */ public boolean supportsConvert() throws SQLServerException {
+    public boolean supportsConvert() throws SQLServerException {
         checkClosed();
         return true;
     }
 
-    /* L0 */ public boolean supportsConvert(int fromType,
+    public boolean supportsConvert(int fromType,
             int toType) throws SQLServerException {
         checkClosed();
         return true;
     }
 
-    /* L0 */ public boolean supportsCoreSQLGrammar() throws SQLServerException {
+    public boolean supportsCoreSQLGrammar() throws SQLServerException {
         checkClosed();
         return true;
     }
 
-    /* L0 */ public boolean supportsCorrelatedSubqueries() throws SQLServerException {
+    public boolean supportsCorrelatedSubqueries() throws SQLServerException {
         checkClosed();
         return true;
     }
 
-    /* L0 */ public boolean supportsDataDefinitionAndDataManipulationTransactions() throws SQLServerException {
+    public boolean supportsDataDefinitionAndDataManipulationTransactions() throws SQLServerException {
         checkClosed();
         return true;
     }
 
-    /* L0 */ public boolean supportsDataManipulationTransactionsOnly() throws SQLServerException {
+    public boolean supportsDataManipulationTransactionsOnly() throws SQLServerException {
         checkClosed();
         return false;
     }
 
-    /* L0 */ public boolean supportsDifferentTableCorrelationNames() throws SQLServerException {
+    public boolean supportsDifferentTableCorrelationNames() throws SQLServerException {
         checkClosed();
         return false;
     }
 
-    /* L0 */ public boolean supportsExpressionsInOrderBy() throws SQLServerException {
+    public boolean supportsExpressionsInOrderBy() throws SQLServerException {
         checkClosed();
         return true;
     }
 
-    /* L0 */ public boolean supportsExtendedSQLGrammar() throws SQLServerException {
+    public boolean supportsExtendedSQLGrammar() throws SQLServerException {
         checkClosed();
         return false;
     }
 
-    /* L0 */ public boolean supportsFullOuterJoins() throws SQLServerException {
+    public boolean supportsFullOuterJoins() throws SQLServerException {
         checkClosed();
         return true;
     }
 
-    /* L0 */ public boolean supportsGroupBy() throws SQLServerException {
+    public boolean supportsGroupBy() throws SQLServerException {
         checkClosed();
         return true;
     }
 
-    /* L0 */ public boolean supportsGroupByBeyondSelect() throws SQLServerException {
+    public boolean supportsGroupByBeyondSelect() throws SQLServerException {
         checkClosed();
         return true;
     }
 
-    /* L0 */ public boolean supportsGroupByUnrelated() throws SQLServerException {
+    public boolean supportsGroupByUnrelated() throws SQLServerException {
         checkClosed();
         return true;
     }
 
-    /* L0 */ public boolean supportsIntegrityEnhancementFacility() throws SQLServerException {
+    public boolean supportsIntegrityEnhancementFacility() throws SQLServerException {
         checkClosed();
         return false;
     }
 
-    /* L0 */ public boolean supportsLikeEscapeClause() throws SQLServerException {
+    public boolean supportsLikeEscapeClause() throws SQLServerException {
         checkClosed();
         return true;
     }
 
-    /* L0 */ public boolean supportsLimitedOuterJoins() throws SQLServerException {
+    public boolean supportsLimitedOuterJoins() throws SQLServerException {
         checkClosed();
         return true;
     }
 
-    /* L0 */ public boolean supportsMinimumSQLGrammar() throws SQLServerException {
+    public boolean supportsMinimumSQLGrammar() throws SQLServerException {
         checkClosed();
         return true;
     }
 
-    /* L0 */ public boolean supportsMixedCaseIdentifiers() throws SQLServerException {
+    public boolean supportsMixedCaseIdentifiers() throws SQLServerException {
         checkClosed();
         return true;
     }
 
-    /* L0 */ public boolean supportsMixedCaseQuotedIdentifiers() throws SQLServerException {
+    public boolean supportsMixedCaseQuotedIdentifiers() throws SQLServerException {
         checkClosed();
         return true;
     }
 
-    /* L0 */ public boolean supportsMultipleResultSets() throws SQLServerException {
+    public boolean supportsMultipleResultSets() throws SQLServerException {
         checkClosed();
         return true;
     }
 
-    /* L0 */ public boolean supportsMultipleTransactions() throws SQLServerException {
+    public boolean supportsMultipleTransactions() throws SQLServerException {
         checkClosed();
         return true;
     }
 
-    /* L0 */ public boolean supportsNonNullableColumns() throws SQLServerException {
+    public boolean supportsNonNullableColumns() throws SQLServerException {
         checkClosed();
         return true;
     }
 
-    /* L0 */ public boolean supportsOpenCursorsAcrossCommit() throws SQLServerException {
+    public boolean supportsOpenCursorsAcrossCommit() throws SQLServerException {
         checkClosed();
         return false;
     }
 
-    /* L0 */ public boolean supportsOpenCursorsAcrossRollback() throws SQLServerException {
+    public boolean supportsOpenCursorsAcrossRollback() throws SQLServerException {
         checkClosed();
         return false;
     }
 
-    /* L0 */ public boolean supportsOpenStatementsAcrossCommit() throws SQLServerException {
+    public boolean supportsOpenStatementsAcrossCommit() throws SQLServerException {
         checkClosed();
         return true;
     }
 
-    /* L0 */ public boolean supportsOpenStatementsAcrossRollback() throws SQLServerException {
+    public boolean supportsOpenStatementsAcrossRollback() throws SQLServerException {
         checkClosed();
         return true;
     }
 
-    /* L0 */ public boolean supportsOrderByUnrelated() throws SQLServerException {
+    public boolean supportsOrderByUnrelated() throws SQLServerException {
         checkClosed();
         return true;
     }
 
-    /* L0 */ public boolean supportsOuterJoins() throws SQLServerException {
+    public boolean supportsOuterJoins() throws SQLServerException {
         checkClosed();
         return true;
     }
 
-    /* L0 */ public boolean supportsPositionedDelete() throws SQLServerException {
+    public boolean supportsPositionedDelete() throws SQLServerException {
         checkClosed();
         return true;
     }
 
-    /* L0 */ public boolean supportsPositionedUpdate() throws SQLServerException {
+    public boolean supportsPositionedUpdate() throws SQLServerException {
         checkClosed();
         return true;
     }
 
-    /* L0 */ public boolean supportsSchemasInDataManipulation() throws SQLServerException {
+    public boolean supportsSchemasInDataManipulation() throws SQLServerException {
         checkClosed();
         return true;
     }
 
-    /* L0 */ public boolean supportsSchemasInIndexDefinitions() throws SQLServerException {
+    public boolean supportsSchemasInIndexDefinitions() throws SQLServerException {
         checkClosed();
         return true;
     }
 
-    /* L0 */ public boolean supportsSchemasInPrivilegeDefinitions() throws SQLServerException {
+    public boolean supportsSchemasInPrivilegeDefinitions() throws SQLServerException {
         checkClosed();
         return true;
     }
 
-    /* L0 */ public boolean supportsSchemasInProcedureCalls() throws SQLServerException {
+    public boolean supportsSchemasInProcedureCalls() throws SQLServerException {
         checkClosed();
         return true;
     }
 
-    /* L0 */ public boolean supportsSchemasInTableDefinitions() throws SQLServerException {
+    public boolean supportsSchemasInTableDefinitions() throws SQLServerException {
         checkClosed();
         return true;
     }
 
-    /* L0 */ public boolean supportsSelectForUpdate() throws SQLServerException {
+    public boolean supportsSelectForUpdate() throws SQLServerException {
         checkClosed();
         return false;
     }
 
-    /* L0 */ public boolean supportsStoredProcedures() throws SQLServerException {
+    public boolean supportsStoredProcedures() throws SQLServerException {
         checkClosed();
         return true;
     }
 
-    /* L0 */ public boolean supportsSubqueriesInComparisons() throws SQLServerException {
+    public boolean supportsSubqueriesInComparisons() throws SQLServerException {
         checkClosed();
         return true;
     }
 
-    /* L0 */ public boolean supportsSubqueriesInExists() throws SQLServerException {
+    public boolean supportsSubqueriesInExists() throws SQLServerException {
         checkClosed();
         return true;
     }
 
-    /* L0 */ public boolean supportsSubqueriesInIns() throws SQLServerException {
+    public boolean supportsSubqueriesInIns() throws SQLServerException {
         checkClosed();
         return true;
     }
 
-    /* L0 */ public boolean supportsSubqueriesInQuantifieds() throws SQLServerException {
+    public boolean supportsSubqueriesInQuantifieds() throws SQLServerException {
         checkClosed();
         return true;
     }
 
-    /* L0 */ public boolean supportsTableCorrelationNames() throws SQLServerException {
+    public boolean supportsTableCorrelationNames() throws SQLServerException {
         checkClosed();
         return true;
     }
 
-    /* L0 */ public boolean supportsTransactionIsolationLevel(int level) throws SQLServerException {
+    public boolean supportsTransactionIsolationLevel(int level) throws SQLServerException {
         checkClosed();
         switch (level) {
             case Connection.TRANSACTION_READ_UNCOMMITTED:
@@ -1793,32 +1793,32 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
         return false;
     }
 
-    /* L0 */ public boolean supportsTransactions() throws SQLServerException {
+    public boolean supportsTransactions() throws SQLServerException {
         checkClosed();
         return true;
     }
 
-    /* L0 */ public boolean supportsUnion() throws SQLServerException {
+    public boolean supportsUnion() throws SQLServerException {
         checkClosed();
         return true;
     }
 
-    /* L0 */ public boolean supportsUnionAll() throws SQLServerException {
+    public boolean supportsUnionAll() throws SQLServerException {
         checkClosed();
         return true;
     }
 
-    /* L0 */ public boolean usesLocalFilePerTable() throws SQLServerException {
+    public boolean usesLocalFilePerTable() throws SQLServerException {
         checkClosed();
         return false;
     }
 
-    /* L0 */ public boolean usesLocalFiles() throws SQLServerException {
+    public boolean usesLocalFiles() throws SQLServerException {
         checkClosed();
         return false;
     }
 
-    /* L0 */ public boolean supportsResultSetType(int type) throws SQLServerException {
+    public boolean supportsResultSetType(int type) throws SQLServerException {
         checkClosed();
         checkResultType(type);
         switch (type) {
@@ -1835,7 +1835,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
         return false;
     }
 
-    /* L0 */ public boolean supportsResultSetConcurrency(int type,
+    public boolean supportsResultSetConcurrency(int type,
             int concurrency) throws SQLServerException {
         checkClosed();
         checkResultType(type);
@@ -1856,7 +1856,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
         return false;
     }
 
-    /* L0 */ public boolean ownUpdatesAreVisible(int type) throws SQLServerException {
+    public boolean ownUpdatesAreVisible(int type) throws SQLServerException {
         checkClosed();
         checkResultType(type);
         return (type == SQLServerResultSet.TYPE_SS_SCROLL_DYNAMIC || SQLServerResultSet.TYPE_FORWARD_ONLY == type
@@ -1864,7 +1864,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
                 || SQLServerResultSet.TYPE_SS_SERVER_CURSOR_FORWARD_ONLY == type);
     }
 
-    /* L0 */ public boolean ownDeletesAreVisible(int type) throws SQLServerException {
+    public boolean ownDeletesAreVisible(int type) throws SQLServerException {
         checkClosed();
         checkResultType(type);
         return (type == SQLServerResultSet.TYPE_SS_SCROLL_DYNAMIC || SQLServerResultSet.TYPE_FORWARD_ONLY == type
@@ -1872,7 +1872,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
                 || SQLServerResultSet.TYPE_SS_SERVER_CURSOR_FORWARD_ONLY == type);
     }
 
-    /* L0 */ public boolean ownInsertsAreVisible(int type) throws SQLServerException {
+    public boolean ownInsertsAreVisible(int type) throws SQLServerException {
         checkClosed();
         checkResultType(type);
         return (type == SQLServerResultSet.TYPE_SS_SCROLL_DYNAMIC || SQLServerResultSet.TYPE_FORWARD_ONLY == type
@@ -1880,7 +1880,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
                 || SQLServerResultSet.TYPE_SS_SERVER_CURSOR_FORWARD_ONLY == type);
     }
 
-    /* L0 */ public boolean othersUpdatesAreVisible(int type) throws SQLServerException {
+    public boolean othersUpdatesAreVisible(int type) throws SQLServerException {
         checkClosed();
         checkResultType(type);
         return (type == SQLServerResultSet.TYPE_SS_SCROLL_DYNAMIC || SQLServerResultSet.TYPE_FORWARD_ONLY == type
@@ -1888,7 +1888,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
                 || SQLServerResultSet.TYPE_SS_SERVER_CURSOR_FORWARD_ONLY == type);
     }
 
-    /* L0 */ public boolean othersDeletesAreVisible(int type) throws SQLServerException {
+    public boolean othersDeletesAreVisible(int type) throws SQLServerException {
         checkClosed();
         checkResultType(type);
         return (type == SQLServerResultSet.TYPE_SS_SCROLL_DYNAMIC || SQLServerResultSet.TYPE_FORWARD_ONLY == type
@@ -1896,27 +1896,27 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
                 || SQLServerResultSet.TYPE_SS_SERVER_CURSOR_FORWARD_ONLY == type);
     }
 
-    /* L0 */ public boolean othersInsertsAreVisible(int type) throws SQLServerException {
+    public boolean othersInsertsAreVisible(int type) throws SQLServerException {
         checkClosed();
         checkResultType(type);
         return (type == SQLServerResultSet.TYPE_SS_SCROLL_DYNAMIC || SQLServerResultSet.TYPE_FORWARD_ONLY == type
                 || SQLServerResultSet.TYPE_SS_SERVER_CURSOR_FORWARD_ONLY == type);
     }
 
-    /* L0 */ public boolean updatesAreDetected(int type) throws SQLServerException {
+    public boolean updatesAreDetected(int type) throws SQLServerException {
         checkClosed();
         checkResultType(type);
         return false;
     }
 
-    /* L0 */ public boolean deletesAreDetected(int type) throws SQLServerException {
+    public boolean deletesAreDetected(int type) throws SQLServerException {
         checkClosed();
         checkResultType(type);
         return (SQLServerResultSet.TYPE_SS_SCROLL_KEYSET == type);
     }
 
     // Check the result types to make sure the user does not pass a bad value.
-    /* L0 */ private void checkResultType(int type) throws SQLServerException {
+    private void checkResultType(int type) throws SQLServerException {
         switch (type) {
             case ResultSet.TYPE_FORWARD_ONLY:
             case ResultSet.TYPE_SCROLL_INSENSITIVE:
@@ -1935,7 +1935,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
     }
 
     // Check the concurrency values and make sure the value is a supported value.
-    /* L0 */ private void checkConcurrencyType(int type) throws SQLServerException {
+    private void checkConcurrencyType(int type) throws SQLServerException {
         switch (type) {
             case ResultSet.CONCUR_READ_ONLY:
             case ResultSet.CONCUR_UPDATABLE:
@@ -1950,18 +1950,18 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
         throw new SQLServerException(null, form.format(msgArgs), null, 0, true);
     }
 
-    /* L0 */ public boolean insertsAreDetected(int type) throws SQLServerException {
+    public boolean insertsAreDetected(int type) throws SQLServerException {
         checkClosed();
         checkResultType(type);
         return false;
     }
 
-    /* L0 */ public boolean supportsBatchUpdates() throws SQLServerException {
+    public boolean supportsBatchUpdates() throws SQLServerException {
         checkClosed();
         return true;
     }
 
-    /* L0 */ public java.sql.ResultSet getUDTs(String catalog,
+    public java.sql.ResultSet getUDTs(String catalog,
             String schemaPattern,
             String typeNamePattern,
             int[] types) throws SQLServerException, SQLTimeoutException {
@@ -1979,14 +1979,14 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
         /* 7 */ " cast(0 as smallint) as BASE_TYPE" + " where 0 = 1");
     }
 
-    /* L0 */ public java.sql.Connection getConnection() throws SQLServerException {
+    public java.sql.Connection getConnection() throws SQLServerException {
         checkClosed();
         return connection.getConnection();
     }
 
     /* JDBC 3.0 */
 
-    /* L3 */ public int getSQLStateType() throws SQLServerException {
+    public int getSQLStateType() throws SQLServerException {
         checkClosed();
         if (connection != null && connection.xopenStates)
             return sqlStateXOpen;
@@ -1994,7 +1994,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
             return sqlStateSQL99;
     }
 
-    /* L3 */ public int getDatabaseMajorVersion() throws SQLServerException {
+    public int getDatabaseMajorVersion() throws SQLServerException {
         checkClosed();
         String s = connection.sqlServerVersion;
         int p = s.indexOf('.');
@@ -2008,7 +2008,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
         }
     }
 
-    /* L3 */ public int getDatabaseMinorVersion() throws SQLServerException {
+    public int getDatabaseMinorVersion() throws SQLServerException {
         checkClosed();
         String s = connection.sqlServerVersion;
         int p = s.indexOf('.');
@@ -2023,17 +2023,17 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
         }
     }
 
-    /* L3 */ public int getJDBCMajorVersion() throws SQLServerException {
+    public int getJDBCMajorVersion() throws SQLServerException {
         checkClosed();
         return DriverJDBCVersion.major;
     }
 
-    /* L3 */ public int getJDBCMinorVersion() throws SQLServerException {
+    public int getJDBCMinorVersion() throws SQLServerException {
         checkClosed();
         return DriverJDBCVersion.minor;
     }
 
-    /* L3 */ public int getResultSetHoldability() throws SQLServerException {
+    public int getResultSetHoldability() throws SQLServerException {
         checkClosed();
         return ResultSet.HOLD_CURSORS_OVER_COMMIT; // Hold over commit is the default for SQL Server
     }
@@ -2043,7 +2043,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
         return RowIdLifetime.ROWID_UNSUPPORTED;
     }
 
-    /* L3 */ public boolean supportsResultSetHoldability(int holdability) throws SQLServerException {
+    public boolean supportsResultSetHoldability(int holdability) throws SQLServerException {
         checkClosed();
         if (ResultSet.HOLD_CURSORS_OVER_COMMIT == holdability || ResultSet.CLOSE_CURSORS_AT_COMMIT == holdability) {
             return true; // supported one a per connection level only, not statement by statement
@@ -2055,7 +2055,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
         throw new SQLServerException(null, form.format(msgArgs), null, 0, true);
     }
 
-    /* L3 */ public ResultSet getAttributes(String catalog,
+    public ResultSet getAttributes(String catalog,
             String schemaPattern,
             String typeNamePattern,
             String attributeNamePattern) throws SQLServerException, SQLTimeoutException {
@@ -2087,7 +2087,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
         /* 21 */ " cast(0 as smallint) as SOURCE_DATA_TYPE" + " where 0 = 1");
     }
 
-    /* L3 */ public ResultSet getSuperTables(String catalog,
+    public ResultSet getSuperTables(String catalog,
             String schemaPattern,
             String tableNamePattern) throws SQLServerException, SQLTimeoutException {
         if (loggerExternal.isLoggable(Level.FINER) && Util.IsActivityTraceOn()) {
@@ -2101,7 +2101,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
         /* 4 */ " cast(NULL as char(1)) as SUPERTABLE_NAME" + " where 0 = 1");
     }
 
-    /* L3 */ public ResultSet getSuperTypes(String catalog,
+    public ResultSet getSuperTypes(String catalog,
             String schemaPattern,
             String typeNamePattern) throws SQLServerException, SQLTimeoutException {
         if (loggerExternal.isLoggable(Level.FINER) && Util.IsActivityTraceOn()) {
@@ -2117,27 +2117,27 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
         /* 6 */ " cast(NULL as char(1)) as SUPERTYPE_NAME" + " where 0 = 1");
     }
 
-    /* L3 */ public boolean supportsGetGeneratedKeys() throws SQLServerException {
+    public boolean supportsGetGeneratedKeys() throws SQLServerException {
         checkClosed();
         return true;
     }
 
-    /* L3 */ public boolean supportsMultipleOpenResults() throws SQLServerException {
+    public boolean supportsMultipleOpenResults() throws SQLServerException {
         checkClosed();
         return false;
     }
 
-    /* L3 */ public boolean supportsNamedParameters() throws SQLServerException {
+    public boolean supportsNamedParameters() throws SQLServerException {
         checkClosed();
         return true;
     }
 
-    /* L3 */ public boolean supportsSavepoints() throws SQLServerException {
+    public boolean supportsSavepoints() throws SQLServerException {
         checkClosed();
         return true;
     }
 
-    /* L3 */ public boolean supportsStatementPooling() throws SQLException {
+    public boolean supportsStatementPooling() throws SQLException {
         checkClosed();
         return false;
     }
@@ -2147,7 +2147,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
         return true;
     }
 
-    /* L3 */ public boolean locatorsUpdateCopy() throws SQLException {
+    public boolean locatorsUpdateCopy() throws SQLException {
         checkClosed();
         return true;
     }
