@@ -390,7 +390,7 @@ public class SQLServerBulkCSVFileRecord extends SQLServerBulkCommon implements I
                             break;
                         }
 
-                        case 2013:    // java.sql.Types.TIME_WITH_TIMEZONE
+                        case java.sql.Types.TIME_WITH_TIMEZONE:
                         {
                             OffsetTime offsetTimeValue;
 
@@ -406,7 +406,7 @@ public class SQLServerBulkCSVFileRecord extends SQLServerBulkCommon implements I
                             break;
                         }
 
-                        case 2014: // java.sql.Types.TIMESTAMP_WITH_TIMEZONE
+                        case java.sql.Types.TIMESTAMP_WITH_TIMEZONE:
                         {
                             OffsetDateTime offsetDateTimeValue;
 

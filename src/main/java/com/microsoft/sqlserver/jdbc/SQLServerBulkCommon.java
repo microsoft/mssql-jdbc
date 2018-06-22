@@ -156,10 +156,10 @@ abstract class SQLServerBulkCommon {
 
         if (null != name)
             colName = name.trim();
-        else if ((columnNames != null) && (columnNames.length >= positionInSource))
+        else if ((null != columnNames) && (columnNames.length >= positionInSource))
             colName = columnNames[positionInSource - 1];
 
-        if ((columnNames != null) && (positionInSource > columnNames.length)) {
+        if ((null != columnNames) && (positionInSource > columnNames.length)) {
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidColumn"));
             Object[] msgArgs = {positionInSource};
             throw new SQLServerException(form.format(msgArgs), SQLState.COL_NOT_FOUND, DriverError.NOT_SET, null);
