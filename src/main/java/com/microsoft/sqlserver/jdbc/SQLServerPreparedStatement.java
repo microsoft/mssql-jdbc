@@ -118,7 +118,8 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
      *      Per the description.
      * @throws SQLServerException when an error occurs
     */
-    public boolean getUseBulkCopyForBatchInsert() throws SQLServerException {
+    @SuppressWarnings("unused")
+    private boolean getUseBulkCopyForBatchInsert() throws SQLServerException {
         checkClosed();
         return useBulkCopyForBatchInsert;
     }
@@ -129,7 +130,8 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
      *            the boolean value
      * @throws SQLServerException when an error occurs
     */
-    public void setUseBulkCopyForBatchInsert(boolean useBulkCopyForBatchInsert) throws SQLServerException {
+    @SuppressWarnings("unused")
+    private void setUseBulkCopyForBatchInsert(boolean useBulkCopyForBatchInsert) throws SQLServerException {
         checkClosed();
         this.useBulkCopyForBatchInsert = useBulkCopyForBatchInsert;
     }

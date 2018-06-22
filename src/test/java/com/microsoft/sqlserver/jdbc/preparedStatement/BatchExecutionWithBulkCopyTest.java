@@ -320,6 +320,56 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
     }
     
     @Test
+    public void testAllFilledColumns() throws Exception {
+        Field f1 = SQLServerConnection.class.getDeclaredField("isAzureDW");
+        f1.setAccessible(true);
+        f1.set(connection, true);
+
+        String valid = "INSERT INTO " + tableName + " values "
+                + "("
+                + "1234, "
+                + "false, "
+                + "a, "
+                + "null, "
+                + "null, "
+                + "123.45, "
+                + "b, "
+                + "varc, "
+                + "sadf, "
+                + ")";
+        
+        pstmt = (SQLServerPreparedStatement) connection.prepareStatement(valid);
+        stmt = (SQLServerStatement) connection.createStatement();
+        
+        Timestamp myTimestamp = new Timestamp(114550L);
+        
+        Date d = new Date(114550L);
+
+        pstmt.addBatch();
+        
+        pstmt.executeBatch();
+        
+        ResultSet rs = stmt.executeQuery("SELECT * FROM " + tableName);
+        
+        Object[] expected = new Object[9];
+        
+        expected[0] = 1234;
+        expected[1] = false;
+        expected[2] = "a";
+        expected[3] = null;
+        expected[4] = null;
+        expected[5] = 123.45;
+        expected[6] = "b";
+        expected[7] = "varc";
+        expected[8] = "sadf";
+        
+        rs.next();
+        for (int i=0; i < expected.length; i++) {
+            assertEquals(rs.getObject(i + 1), expected[i]);
+        }
+    }
+    
+    @Test
     public void testSquareBracketAgainstDB() throws Exception {
         Field f1 = SQLServerConnection.class.getDeclaredField("isAzureDW");
         f1.setAccessible(true);

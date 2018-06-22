@@ -320,6 +320,7 @@ public class RegressionTest extends AbstractTest {
     
     @Test
     public void batchWithLargeStringTestUseBulkCopyAPI() throws SQLException {
+        Connection con = DriverManager.getConnection(connectionString + ";useBulkCopyForBatchInsert=true;");
         Statement stmt = con.createStatement();
         SQLServerPreparedStatement pstmt = null;
         ResultSet rs = null;
@@ -359,7 +360,6 @@ public class RegressionTest extends AbstractTest {
             f1.setAccessible(true);
             f1.set(con, true);
             pstmt = (SQLServerPreparedStatement) con.prepareStatement("insert into " + testTable + " values (?,?)");
-            pstmt.setUseBulkCopyForBatchInsert(true);
             // 0,a
             pstmt.setInt(1, 0);
             pstmt.setNString(2, values[0]);
