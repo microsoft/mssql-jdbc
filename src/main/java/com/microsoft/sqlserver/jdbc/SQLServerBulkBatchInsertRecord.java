@@ -20,25 +20,36 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map.Entry;
+
+import com.microsoft.sqlserver.jdbc.SQLServerBulkCommon.ColumnMetadata;
+
 import java.util.Set;
 
 /**
  * A simple implementation of the ISQLServerBulkRecord interface that can be used to read in the basic Java data types from an ArrayList of Parameters
  * that were provided by pstmt/cstmt.
  */
-public class SQLServerBulkBatchInsertRecord extends SQLServerBulkCommon implements ISQLServerBulkRecord, java.lang.AutoCloseable {
+public class SQLServerBulkBatchInsertRecord extends SQLServerBulkCommon implements ISQLServerBulkRecord {
 
     private List<Parameter[]> batchParam;
     private int batchParamIndex = -1;
     private List<String> columnList;
     private List<String> valueList;
+    
+    /*  
+     * Class name for logging.  
+     */ 
+    private static final String loggerClassName = "com.microsoft.sqlserver.jdbc.SQLServerBulkBatchInsertRecord";    
+    
+    /*  
+     * Logger   
+     */ 
+    private static final java.util.logging.Logger loggerExternal = java.util.logging.Logger.getLogger(loggerClassName); 
 
     public SQLServerBulkBatchInsertRecord(ArrayList<Parameter[]> batchParam,
             ArrayList<String> columnList,
             ArrayList<String> valueList,
             String encoding) throws SQLServerException {
-        loggerClassName = "com.microsoft.sqlserver.jdbc.SQLServerBulkBatchInsertRecord";
-        loggerExternal = java.util.logging.Logger.getLogger(loggerClassName);
         loggerExternal.entering(loggerClassName, "SQLServerBulkBatchInsertRecord", new Object[] {batchParam, encoding});
 
         if (null == batchParam) {
@@ -55,15 +66,6 @@ public class SQLServerBulkBatchInsertRecord extends SQLServerBulkCommon implemen
         columnMetadata = new HashMap<>();
 
         loggerExternal.exiting(loggerClassName, "SQLServerBulkBatchInsertRecord");
-    }
-
-    /**
-     * Releases any resources associated with the batch.
-     * 
-     * @throws SQLServerException
-     *             when an error occurs
-     */
-    public void close() throws SQLServerException {
     }
 
     public DateTimeFormatter getColumnDateTimeFormatter(int column) {
@@ -309,6 +311,108 @@ public class SQLServerBulkBatchInsertRecord extends SQLServerBulkCommon implemen
             }
         }
         return data;
+    }
+    
+    @Override
+    void addColumnMetadataInternal(int positionInSource,
+            String name,
+            int jdbcType,
+            int precision,
+            int scale,
+            DateTimeFormatter dateTimeFormatter) throws SQLServerException {
+        loggerExternal.entering(loggerClassName, "addColumnMetadata", new Object[] {positionInSource, name, jdbcType, precision, scale});
+
+        String colName = "";
+
+        if (0 >= positionInSource) {
+            MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidColumnOrdinal"));
+            Object[] msgArgs = {positionInSource};
+            throw new SQLServerException(form.format(msgArgs), SQLState.COL_NOT_FOUND, DriverError.NOT_SET, null);
+        }
+
+        if (null != name)
+            colName = name.trim();
+        else if ((null != columnNames) && (columnNames.length >= positionInSource))
+            colName = columnNames[positionInSource - 1];
+
+        if ((null != columnNames) && (positionInSource > columnNames.length)) {
+            MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidColumn"));
+            Object[] msgArgs = {positionInSource};
+            throw new SQLServerException(form.format(msgArgs), SQLState.COL_NOT_FOUND, DriverError.NOT_SET, null);
+        }
+
+        checkDuplicateColumnName(positionInSource, name);
+        switch (jdbcType) {
+            /*
+             * SQL Server supports numerous string literal formats for temporal types, hence sending them as varchar with approximate
+             * precision(length) needed to send supported string literals. string literal formats supported by temporal types are available in MSDN
+             * page on data types.
+             */
+            case java.sql.Types.DATE:
+            case java.sql.Types.TIME:
+            case java.sql.Types.TIMESTAMP:
+            case microsoft.sql.Types.DATETIMEOFFSET:
+                columnMetadata.put(positionInSource, new ColumnMetadata(colName, jdbcType, precision, scale, dateTimeFormatter));
+                break;
+
+            // Redirect SQLXML as LONGNVARCHAR
+            // SQLXML is not valid type in TDS
+            case java.sql.Types.SQLXML:
+                columnMetadata.put(positionInSource, new ColumnMetadata(colName, java.sql.Types.LONGNVARCHAR, precision, scale, dateTimeFormatter));
+                break;
+
+            // Redirecting Float as Double based on data type mapping
+            // https://msdn.microsoft.com/en-us/library/ms378878%28v=sql.110%29.aspx
+            case java.sql.Types.FLOAT:
+                columnMetadata.put(positionInSource, new ColumnMetadata(colName, java.sql.Types.DOUBLE, precision, scale, dateTimeFormatter));
+                break;
+
+            // redirecting BOOLEAN as BIT
+            case java.sql.Types.BOOLEAN:
+                columnMetadata.put(positionInSource, new ColumnMetadata(colName, java.sql.Types.BIT, precision, scale, dateTimeFormatter));
+                break;
+
+            default:
+                columnMetadata.put(positionInSource, new ColumnMetadata(colName, jdbcType, precision, scale, dateTimeFormatter));
+        }
+
+        loggerExternal.exiting(loggerClassName, "addColumnMetadata");
+    }
+
+    @Override
+    public void setTimestampWithTimezoneFormat(String dateTimeFormat) {
+        loggerExternal.entering(loggerClassName, "setTimestampWithTimezoneFormat", dateTimeFormat);
+
+        this.dateTimeFormatter = DateTimeFormatter.ofPattern(dateTimeFormat);
+
+        loggerExternal.exiting(loggerClassName, "setTimestampWithTimezoneFormat");
+    }
+
+    @Override
+    public void setTimestampWithTimezoneFormat(DateTimeFormatter dateTimeFormatter) {
+        loggerExternal.entering(loggerClassName, "setTimestampWithTimezoneFormat", new Object[] {dateTimeFormatter});
+
+        this.dateTimeFormatter = dateTimeFormatter;
+
+        loggerExternal.exiting(loggerClassName, "setTimestampWithTimezoneFormat");
+    }
+
+    @Override
+    public void setTimeWithTimezoneFormat(String timeFormat) {
+        loggerExternal.entering(loggerClassName, "setTimeWithTimezoneFormat", timeFormat);
+
+        this.timeFormatter = DateTimeFormatter.ofPattern(timeFormat);
+
+        loggerExternal.exiting(loggerClassName, "setTimeWithTimezoneFormat");
+    }
+
+    @Override
+    public void setTimeWithTimezoneFormat(DateTimeFormatter dateTimeFormatter) {
+        loggerExternal.entering(loggerClassName, "setTimeWithTimezoneFormat", new Object[] {dateTimeFormatter});
+
+        this.timeFormatter = dateTimeFormatter;
+
+        loggerExternal.exiting(loggerClassName, "setTimeWithTimezoneFormat");
     }
 
     @Override

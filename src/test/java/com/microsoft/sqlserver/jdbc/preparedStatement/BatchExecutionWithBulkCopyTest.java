@@ -417,6 +417,65 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
         assertEquals(rs.getObject(1), 1);
     }
     
+    @Test
+    public void testAlColumnsLargeBatch() throws Exception {
+        Field f1 = SQLServerConnection.class.getDeclaredField("isAzureDW");
+        f1.setAccessible(true);
+        f1.set(connection, true);
+        
+        String valid = "INSERT INTO " + tableName + " values "
+                + "("
+                + "?, "
+                + "?, "
+                + "?, "
+                + "?, "
+                + "?, "
+                + "?, "
+                + "?, "
+                + "?, "
+                + "?, "
+                + ")";
+        
+        pstmt = (SQLServerPreparedStatement) connection.prepareStatement(valid);
+        stmt = (SQLServerStatement) connection.createStatement();
+        
+        Timestamp myTimestamp = new Timestamp(114550L);
+        
+        Date d = new Date(114550L);
+        
+        pstmt.setInt(1, 1234);
+        pstmt.setBoolean(2, false);
+        pstmt.setString(3, "a");
+        pstmt.setDate(4, d);
+        pstmt.setDateTime(5, myTimestamp);
+        pstmt.setFloat(6, (float) 123.45);
+        pstmt.setString(7, "b");
+        pstmt.setString(8, "varc");
+        pstmt.setString(9, "''");
+        pstmt.addBatch();
+        
+        pstmt.executeLargeBatch();
+        
+        ResultSet rs = stmt.executeQuery("SELECT * FROM " + tableName);
+        
+        Object[] expected = new Object[9];
+        
+        expected[0] = 1234;
+        expected[1] = false;
+        expected[2] = "a";
+        expected[3] = d;
+        expected[4] = myTimestamp;
+        expected[5] = 123.45;
+        expected[6] = "b";
+        expected[7] = "varc";
+        expected[8] = "''";
+        
+        rs.next();
+        for (int i=0; i < expected.length; i++) {
+            assertEquals(rs.getObject(i + 1).toString(), expected[i].toString());
+        }
+    }
+    
     @BeforeEach
     public void testSetup() throws TestAbortedException, Exception {
         connection = DriverManager.getConnection(connectionString + ";useBulkCopyForBatchInsert=true;");
