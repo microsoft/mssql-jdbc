@@ -18,9 +18,8 @@ import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeFormatterBuilder;
 import java.time.format.ResolverStyle;
 import java.time.temporal.ChronoField;
+import java.util.Random;
 import java.util.concurrent.ThreadLocalRandom;
-
-import org.apache.commons.lang3.RandomStringUtils;
 
 public class SqlTime extends SqlDateTime {
 
@@ -50,7 +49,8 @@ public class SqlTime extends SqlDateTime {
 
     public Object createdata() {
         Time temp = new Time(ThreadLocalRandom.current().nextLong(((Time) minvalue).getTime(), ((Time) maxvalue).getTime()));
-        String timeNano = temp.toString() + "." + RandomStringUtils.randomNumeric(this.scale);
+        Random rnd = new Random();
+        String timeNano = temp.toString() + "." + 1 * 10 * this.scale + rnd.nextInt(9 * 10 * this.scale);
         return timeNano;
 
         // can pass String rather than converting to loacTime, but leaving it
