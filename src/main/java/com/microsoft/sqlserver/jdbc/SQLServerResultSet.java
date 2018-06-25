@@ -31,6 +31,8 @@ import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
 
+import com.microsoft.sqlserver.jdbc.dataclassification.SensitivityClassification;
+
 /**
  * Indicates the type of the row received from the server
  */
@@ -212,7 +214,17 @@ public class SQLServerResultSet implements ISQLServerResultSet {
     }
 
     private final FetchBuffer fetchBuffer;
-
+    
+    /**
+     * Exposes Data Classification information for the current ResultSet For SQL Servers that do not support Data Classification or results that do
+     * not fetch any classified columns, this data can be null
+     * 
+     * @return SensitivityClassification
+     */
+    public SensitivityClassification getSensitivityClassification() {
+        return tdsReader.sensitivityClassification;
+    }
+    
     /**
      * Make a new result set
      * 
