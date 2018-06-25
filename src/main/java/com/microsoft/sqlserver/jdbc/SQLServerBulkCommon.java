@@ -143,6 +143,7 @@ abstract class SQLServerBulkCommon {
      *            format to parse data sent as java.sql.Types.TIMESTAMP_WITH_TIMEZONE
      */
     public void setTimestampWithTimezoneFormat(String dateTimeFormat) {
+        this.dateTimeFormatter = DateTimeFormatter.ofPattern(dateTimeFormat);
     }
 
     /**
@@ -152,6 +153,7 @@ abstract class SQLServerBulkCommon {
      *            format to parse data sent as java.sql.Types.TIMESTAMP_WITH_TIMEZONE
      */
     public void setTimestampWithTimezoneFormat(DateTimeFormatter dateTimeFormatter) {
+        this.dateTimeFormatter = dateTimeFormatter;
     }
 
     /**
@@ -161,6 +163,7 @@ abstract class SQLServerBulkCommon {
      *            format to parse data sent as java.sql.Types.TIME_WITH_TIMEZONE
      */
     public void setTimeWithTimezoneFormat(String timeFormat) {
+        this.timeFormatter = DateTimeFormatter.ofPattern(timeFormat);
     }
 
     /**
@@ -170,6 +173,7 @@ abstract class SQLServerBulkCommon {
      *            format to parse data sent as java.sql.Types.TIME_WITH_TIMEZONE
      */
     public void setTimeWithTimezoneFormat(DateTimeFormatter dateTimeFormatter) {
+        this.timeFormatter = dateTimeFormatter;
     }
 
     /*
@@ -195,7 +199,6 @@ abstract class SQLServerBulkCommon {
                         throw new SQLServerException(SQLServerException.getErrString("R_BulkDataDuplicateColumn"), null);
                     }
                 }
-
             }
         }
     }

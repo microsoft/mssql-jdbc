@@ -383,7 +383,7 @@ public class SQLServerBulkBatchInsertRecord extends SQLServerBulkCommon implemen
     public void setTimestampWithTimezoneFormat(String dateTimeFormat) {
         loggerExternal.entering(loggerClassName, "setTimestampWithTimezoneFormat", dateTimeFormat);
 
-        this.dateTimeFormatter = DateTimeFormatter.ofPattern(dateTimeFormat);
+        super.setTimestampWithTimezoneFormat(dateTimeFormat);
 
         loggerExternal.exiting(loggerClassName, "setTimestampWithTimezoneFormat");
     }
@@ -392,7 +392,7 @@ public class SQLServerBulkBatchInsertRecord extends SQLServerBulkCommon implemen
     public void setTimestampWithTimezoneFormat(DateTimeFormatter dateTimeFormatter) {
         loggerExternal.entering(loggerClassName, "setTimestampWithTimezoneFormat", new Object[] {dateTimeFormatter});
 
-        this.dateTimeFormatter = dateTimeFormatter;
+        super.setTimestampWithTimezoneFormat(dateTimeFormatter);
 
         loggerExternal.exiting(loggerClassName, "setTimestampWithTimezoneFormat");
     }
@@ -401,7 +401,7 @@ public class SQLServerBulkBatchInsertRecord extends SQLServerBulkCommon implemen
     public void setTimeWithTimezoneFormat(String timeFormat) {
         loggerExternal.entering(loggerClassName, "setTimeWithTimezoneFormat", timeFormat);
 
-        this.timeFormatter = DateTimeFormatter.ofPattern(timeFormat);
+        super.setTimeWithTimezoneFormat(timeFormat);
 
         loggerExternal.exiting(loggerClassName, "setTimeWithTimezoneFormat");
     }
@@ -410,7 +410,7 @@ public class SQLServerBulkBatchInsertRecord extends SQLServerBulkCommon implemen
     public void setTimeWithTimezoneFormat(DateTimeFormatter dateTimeFormatter) {
         loggerExternal.entering(loggerClassName, "setTimeWithTimezoneFormat", new Object[] {dateTimeFormatter});
 
-        this.timeFormatter = dateTimeFormatter;
+        super.setTimeWithTimezoneFormat(dateTimeFormatter);
 
         loggerExternal.exiting(loggerClassName, "setTimeWithTimezoneFormat");
     }

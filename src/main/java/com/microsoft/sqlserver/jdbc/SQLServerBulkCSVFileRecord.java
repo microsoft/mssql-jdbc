@@ -545,7 +545,7 @@ public class SQLServerBulkCSVFileRecord extends SQLServerBulkCommon implements I
     public void setTimestampWithTimezoneFormat(String dateTimeFormat) {
         loggerExternal.entering(loggerClassName, "setTimestampWithTimezoneFormat", dateTimeFormat);
 
-        this.dateTimeFormatter = DateTimeFormatter.ofPattern(dateTimeFormat);
+        super.setTimestampWithTimezoneFormat(dateTimeFormat);
 
         loggerExternal.exiting(loggerClassName, "setTimestampWithTimezoneFormat");
     }
@@ -554,7 +554,7 @@ public class SQLServerBulkCSVFileRecord extends SQLServerBulkCommon implements I
     public void setTimestampWithTimezoneFormat(DateTimeFormatter dateTimeFormatter) {
         loggerExternal.entering(loggerClassName, "setTimestampWithTimezoneFormat", new Object[] {dateTimeFormatter});
 
-        this.dateTimeFormatter = dateTimeFormatter;
+        super.setTimestampWithTimezoneFormat(dateTimeFormatter);
 
         loggerExternal.exiting(loggerClassName, "setTimestampWithTimezoneFormat");
     }
@@ -563,7 +563,7 @@ public class SQLServerBulkCSVFileRecord extends SQLServerBulkCommon implements I
     public void setTimeWithTimezoneFormat(String timeFormat) {
         loggerExternal.entering(loggerClassName, "setTimeWithTimezoneFormat", timeFormat);
 
-        this.timeFormatter = DateTimeFormatter.ofPattern(timeFormat);
+        super.setTimeWithTimezoneFormat(dateTimeFormatter);
 
         loggerExternal.exiting(loggerClassName, "setTimeWithTimezoneFormat");
     }
@@ -572,7 +572,7 @@ public class SQLServerBulkCSVFileRecord extends SQLServerBulkCommon implements I
     public void setTimeWithTimezoneFormat(DateTimeFormatter dateTimeFormatter) {
         loggerExternal.entering(loggerClassName, "setTimeWithTimezoneFormat", new Object[] {dateTimeFormatter});
 
-        this.timeFormatter = dateTimeFormatter;
+        super.setTimeWithTimezoneFormat(dateTimeFormatter);
 
         loggerExternal.exiting(loggerClassName, "setTimeWithTimezoneFormat");
     }
