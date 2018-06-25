@@ -499,8 +499,20 @@ public class SQLServerConnection implements ISQLServerConnection {
      */
     private boolean useBulkCopyForBatchInsert;
 
-    final boolean getUseBulkCopyForBatchInsert() {
+    /**
+     * Retrieves the useBulkCopyForBatchInsert value.
+     * @return flag for using Bulk Copy API for batch insert operations.
+     */
+    public boolean getUseBulkCopyForBatchInsert() {
         return useBulkCopyForBatchInsert;
+    }
+    
+    /**
+     * Specifies the flag for using Bulk Copy API for batch insert operations.
+     * @param useBulkCopyForBatchInsert boolean value for useBulkCopyForBatchInsert.
+     */
+    public void setUseBulkCopyForBatchInsert(boolean useBulkCopyForBatchInsert) {
+        this.useBulkCopyForBatchInsert = useBulkCopyForBatchInsert;
     }
     
     boolean userSetTNIR = true;
