@@ -36,6 +36,7 @@ import java.sql.Savepoint;
 import java.sql.Statement;
 import java.sql.Struct;
 import java.text.MessageFormat;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Enumeration;
 import java.util.HashMap;
@@ -123,11 +124,13 @@ public class SQLServerConnection implements ISQLServerConnection {
 
         CityHash128Key(String sql,
                 String parametersDefinition) {
-            this(String.format("%s%s", sql, parametersDefinition));
+            this(sql + parametersDefinition);
         }
 
         CityHash128Key(String s) {
-            segments = CityHash.cityHash128(s.getBytes(), 0, s.length());
+            byte[] bytes = new byte[s.length()];
+            s.getBytes(0, s.length(), bytes, 0);
+            segments = CityHash.cityHash128(bytes, 0, bytes.length);
         }
 
         public boolean equals(Object obj) {
@@ -260,9 +263,9 @@ public class SQLServerConnection implements ISQLServerConnection {
         String parsedSql = translator.translate(sql);
         String procName = translator.getProcedureName(); // may return null        
         boolean returnValueSyntax = translator.hasReturnValueSyntax();
-        int paramCount = countParams(parsedSql);
+        int[] parameterPositions = locateParams(parsedSql);
 
-        ParsedSQLCacheItem  cacheItem = new ParsedSQLCacheItem (parsedSql, paramCount, procName, returnValueSyntax);
+        ParsedSQLCacheItem  cacheItem = new ParsedSQLCacheItem (parsedSql, parameterPositions, procName, returnValueSyntax);
         parsedSQLCache.putIfAbsent(key, cacheItem);
         return cacheItem;
     }
@@ -283,22 +286,28 @@ public class SQLServerConnection implements ISQLServerConnection {
     private boolean disableStatementPooling = true;
 
      /**
-      * Find statement parameters.
+      * Locate statement parameters.
       * 
       * @param sql
-      *          SQL text to parse for number of parameters to intialize.
+      *          SQL text to parse for positions of parameters to intialize.
       */
-     private static int countParams(String sql) {
-         int nParams = 0;
- 
-         // Figure out the expected number of parameters by counting the
-         // parameter placeholders in the SQL string.
-         int offset = -1;
-         while ((offset = ParameterUtils.scanSQLForChar('?', sql, ++offset)) < sql.length())
-             ++nParams;
- 
-         return nParams;
-     }
+    private static int[] locateParams(String sql) {
+        List<Integer> parameterPositions = new ArrayList<Integer>(0);
+
+        // Locate the parameter placeholders in the SQL string.
+        int offset = -1;
+        while ((offset = ParameterUtils.scanSQLForChar('?', sql, ++offset)) < sql.length()) {
+            parameterPositions.add(offset);
+        }
+
+        // Convert to int[]
+        int[] result = new int[parameterPositions.size()];
+        int i = 0;
+        for (Integer parameterPosition : parameterPositions) {
+            result[i++] = parameterPosition;
+        }
+        return result;
+    }
 
     SqlFedAuthToken getAuthenticationResult() {
         return fedAuthToken;
@@ -5309,6 +5318,7 @@ public class SQLServerConnection implements ISQLServerConnection {
     static final char[] OUT = {' ', 'O', 'U', 'T'};
 
     /* L0 */ String replaceParameterMarkers(String sqlSrc,
+            int[] paramPositions,
             Parameter[] params,
             boolean isReturnValueSyntax) throws SQLServerException {
         final int MAX_PARAM_NAME_LEN = 6;
@@ -5319,7 +5329,13 @@ public class SQLServerConnection implements ISQLServerConnection {
 
         int paramIndex = 0;
         while (true) {
-            int srcEnd = ParameterUtils.scanSQLForChar('?', sqlSrc, srcBegin);
+            int srcEnd;
+            if (paramIndex >= paramPositions.length) {
+                srcEnd = sqlSrc.length();
+            }
+            else {
+                srcEnd = paramPositions[paramIndex];
+            }
             sqlSrc.getChars(srcBegin, srcEnd, sqlDst, dstBegin);
             dstBegin += srcEnd - srcBegin;
 

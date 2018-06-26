@@ -608,6 +608,7 @@ public final class SQLServerParameterMetaData implements ParameterMetaData {
                 if (con.getServerMajorVersion() >= SQL_SERVER_2012_VERSION) {
                     // new implementation for SQL verser 2012 and above
                     String preparedSQL = con.replaceParameterMarkers(((SQLServerPreparedStatement) stmtParent).userSQL,
+                            ((SQLServerPreparedStatement) stmtParent).userSQLParamPositions,
                             ((SQLServerPreparedStatement) stmtParent).inOutParam, ((SQLServerPreparedStatement) stmtParent).bReturnValueSyntax);
 
                     SQLServerCallableStatement cstmt = (SQLServerCallableStatement) con.prepareCall("exec sp_describe_undeclared_parameters ?");

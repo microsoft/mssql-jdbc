@@ -64,6 +64,9 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     /** Processed SQL statement text, may not be same as what user initially passed. */
     final String userSQL;
 
+    /** Parameter positions in processed SQL statement text. */
+    final int[] userSQLParamPositions;
+
     /** SQL statement with expanded parameter tokens */
     private String preparedSQL;
 
@@ -204,7 +207,8 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         procedureName = parsedSQL.procedureName;
         bReturnValueSyntax = parsedSQL.bReturnValueSyntax;
         userSQL = parsedSQL.processedSQL;
-        initParams(parsedSQL.parameterCount);
+        userSQLParamPositions = parsedSQL.parameterPositions;
+        initParams(userSQLParamPositions.length);
     }
 
     /**
@@ -342,7 +346,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         preparedTypeDefinitions = newTypeDefinitions;
 
         /* Replace the parameter marker '?' with the param numbers @p1, @p2 etc */
-        preparedSQL = connection.replaceParameterMarkers(userSQL, params, bReturnValueSyntax);
+        preparedSQL = connection.replaceParameterMarkers(userSQL, userSQLParamPositions, params, bReturnValueSyntax);
         if (bRequestedGeneratedKeys)
             preparedSQL = preparedSQL + identityQuery;
 
