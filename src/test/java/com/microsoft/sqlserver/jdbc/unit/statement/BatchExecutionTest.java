@@ -12,7 +12,6 @@ import static org.junit.jupiter.api.Assertions.fail;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 import java.lang.reflect.Field;
-import java.sql.BatchUpdateException;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
@@ -22,7 +21,6 @@ import java.sql.Statement;
 
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
@@ -89,7 +87,7 @@ public class BatchExecutionTest extends AbstractTest {
         int i = 0;
         int retValue[] = {0, 0, 0};
         int updateCountlen = 0;
-        try {
+        try (Connection connection = DriverManager.getConnection(connectionString + ";columnEncryptionSetting=Enabled;");){
             String sPrepStmt = "update ctstable2 set PRICE=PRICE*20 where TYPE_ID=?";
 
             if (mode.equalsIgnoreCase("bulkcopy")) {
@@ -160,7 +158,7 @@ public class BatchExecutionTest extends AbstractTest {
     private void testAddBatch1Internal(String mode) {
         int i = 0;
         int retValue[] = {0, 0, 0};
-        try {
+        try (Connection connection = DriverManager.getConnection(connectionString + ";columnEncryptionSetting=Enabled;");){
             String sPrepStmt = "update ctstable2 set PRICE=PRICE*20 where TYPE_ID=?";
             
             if (mode.equalsIgnoreCase("bulkcopy")) {
@@ -216,7 +214,7 @@ public class BatchExecutionTest extends AbstractTest {
         con.setUseBulkCopyForBatchInsert(true);
     }
 
-    @BeforeEach
+    @BeforeAll
     public static void testSetup() throws TestAbortedException, Exception {
         assumeTrue(13 <= new DBConnection(connectionString).getServerVersion(),
                 TestResource.getResource("R_Incompat_SQLServerVersion"));
