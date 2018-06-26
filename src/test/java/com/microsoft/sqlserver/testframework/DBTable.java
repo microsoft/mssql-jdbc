@@ -19,8 +19,6 @@ import java.util.StringJoiner;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import org.apache.commons.codec.binary.Hex;
-
 import com.microsoft.sqlserver.testframework.sqlType.SqlType;
 import com.microsoft.sqlserver.testframework.sqlType.VariableLengthType;
 import com.microsoft.sqlserver.testframework.util.RandomUtil;
@@ -362,7 +360,7 @@ public class DBTable extends AbstractSQLGenerator {
                     sb.add("'" + String.valueOf(getColumn(colNum).getRowValue(i)) + "'");
                 }
                 else if (passDataAsHex(colNum)) {
-                    sb.add("0X" + Hex.encodeHexString((byte[]) (getColumn(colNum).getRowValue(i))));
+                    sb.add("0X" + byteArrayToHex((byte[]) (getColumn(colNum).getRowValue(i))));
                 }
                 else {
                     sb.add(String.valueOf(getColumn(colNum).getRowValue(i)));
@@ -474,4 +472,11 @@ public class DBTable extends AbstractSQLGenerator {
         return (JDBCType.BINARY == getColumn(colNum).getJdbctype() || JDBCType.VARBINARY == getColumn(colNum).getJdbctype()
                 || JDBCType.LONGVARBINARY == getColumn(colNum).getJdbctype());
     }
+    
+    private static String byteArrayToHex(byte[] a) {
+        StringBuilder sb = new StringBuilder(a.length * 2);
+        for(byte b: a)
+           sb.append(String.format("%02x", b));
+        return sb.toString();
+     }
 }
