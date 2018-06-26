@@ -21,6 +21,7 @@ import java.util.Map;
 
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
@@ -49,7 +50,7 @@ public class RegressionTest extends AbstractTest {
      * 
      * @throws SQLException
      */
-    @BeforeAll
+    @BeforeEach
     public static void setupTest() throws SQLException {
         con = DriverManager.getConnection(connectionString);
         Statement stmt = con.createStatement();
@@ -215,7 +216,19 @@ public class RegressionTest extends AbstractTest {
      * @throws SQLException
      */
     @Test
-    public void batchWithLargeStringTest() throws SQLException {
+    public void batchWithLargeStringTest() throws Exception {
+        batchWithLargeStringTestInternal("BatchInsert");
+    }
+    
+    @Test
+    public void batchWithLargeStringTestUseBulkCopyAPI() throws Exception {
+        batchWithLargeStringTestInternal("BulkCopy");
+    }
+    
+    private void batchWithLargeStringTestInternal(String mode) throws Exception {
+        if (mode.equalsIgnoreCase("bulkcopy")) {
+            modifyConnectionForBulkCopyAPI((SQLServerConnection) con);
+        }
         Statement stmt = con.createStatement();
         PreparedStatement pstmt = null;
         ResultSet rs = null;
@@ -315,118 +328,8 @@ public class RegressionTest extends AbstractTest {
                 stmt.close();
             }
         }
-
     }
     
-    @Test
-    public void batchWithLargeStringTestUseBulkCopyAPI() throws SQLException {
-        Connection con = DriverManager.getConnection(connectionString + ";useBulkCopyForBatchInsert=true;");
-        Statement stmt = con.createStatement();
-        SQLServerPreparedStatement pstmt = null;
-        ResultSet rs = null;
-        String testTable = "TEST_TABLE_BULK_COPY";
-        Utils.dropTableIfExists(testTable, stmt);
-
-        con.setAutoCommit(false);
-
-        // create a table with two columns
-        boolean createPrimaryKey = false;
-        try {
-            stmt.execute("if object_id('" + testTable + "', 'U') is not null\ndrop table " + testTable + ";");
-            if (createPrimaryKey) {
-                stmt.execute("create table " + testTable + " ( ID int, DATA nvarchar(max), primary key (ID) );");
-            }
-            else {
-                stmt.execute("create table " + testTable + " ( ID int, DATA nvarchar(max) );");
-            }
-        }
-        catch (Exception e) {
-            fail(e.toString());
-        }
-
-        con.commit();
-
-        // build a String with 4001 characters
-        StringBuilder stringBuilder = new StringBuilder();
-        for (int i = 0; i < 4001; i++) {
-            stringBuilder.append('c');
-        }
-        String largeString = stringBuilder.toString();
-
-        String[] values = {"a", "b", largeString, "d", "e"};
-        // insert five rows into the table; use a batch for each row
-        try {
-            Field f1 = SQLServerConnection.class.getDeclaredField("isAzureDW");
-            f1.setAccessible(true);
-            f1.set(con, true);
-            pstmt = (SQLServerPreparedStatement) con.prepareStatement("insert into " + testTable + " values (?,?)");
-            // 0,a
-            pstmt.setInt(1, 0);
-            pstmt.setNString(2, values[0]);
-            pstmt.addBatch();
-
-            // 1,b
-            pstmt.setInt(1, 1);
-            pstmt.setNString(2, values[1]);
-            pstmt.addBatch();
-
-            // 2,ccc...
-            pstmt.setInt(1, 2);
-            pstmt.setNString(2, values[2]);
-            pstmt.addBatch();
-
-            // 3,d
-            pstmt.setInt(1, 3);
-            pstmt.setNString(2, values[3]);
-            pstmt.addBatch();
-
-            // 4,e
-            pstmt.setInt(1, 4);
-            pstmt.setNString(2, values[4]);
-            pstmt.addBatch();
-
-            pstmt.executeBatch();
-        }
-        catch (Exception e) {
-            fail(e.toString());
-        }
-        
-        connection.commit();
-        
-        // check the data in the table
-        Map<Integer, String> selectedValues = new LinkedHashMap<>();
-        int id = 0;
-        try {
-            pstmt = (SQLServerPreparedStatement) con.prepareStatement("select * from " + testTable + ";");
-            try {
-                rs = pstmt.executeQuery();
-                int i = 0;
-                while (rs.next()) {
-                    id = rs.getInt(1);
-                    String data = rs.getNString(2);
-                    if (selectedValues.containsKey(id)) {
-                        fail("Found duplicate id: " + id + " ,actual values is : " + values[i++] + " data is: " + data);
-                    }
-                    selectedValues.put(id, data);
-                }
-            }
-            finally {
-                if (null != rs) {
-                    rs.close();
-                }
-            }
-        }
-        finally {
-            Utils.dropTableIfExists(testTable, stmt);
-            if (null != pstmt) {
-                pstmt.close();
-            }
-            if (null != stmt) {
-                stmt.close();
-            }
-        }
-
-    }
     /**
      * Test with large string and tests with more batch queries
      * 
@@ -547,4 +450,11 @@ public class RegressionTest extends AbstractTest {
 
     }
 
+    private void modifyConnectionForBulkCopyAPI(SQLServerConnection con) throws Exception {
+        Field f1 = SQLServerConnection.class.getDeclaredField("isAzureDW");
+        f1.setAccessible(true);
+        f1.set(con, true);
+        
+        con.setUseBulkCopyForBatchInsert(true);
+    }
 }

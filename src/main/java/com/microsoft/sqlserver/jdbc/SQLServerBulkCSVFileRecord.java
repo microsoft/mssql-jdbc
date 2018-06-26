@@ -563,7 +563,7 @@ public class SQLServerBulkCSVFileRecord extends SQLServerBulkCommon implements I
     public void setTimeWithTimezoneFormat(String timeFormat) {
         loggerExternal.entering(loggerClassName, "setTimeWithTimezoneFormat", timeFormat);
 
-        super.setTimeWithTimezoneFormat(dateTimeFormatter);
+        super.setTimeWithTimezoneFormat(timeFormat);
 
         loggerExternal.exiting(loggerClassName, "setTimeWithTimezoneFormat");
     }
