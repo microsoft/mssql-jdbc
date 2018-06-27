@@ -455,11 +455,10 @@ public class DBTable extends AbstractSQLGenerator {
      * @return <code>true</code> if value can be passed as String for the column
      */
     boolean passDataAsString(int colNum) {
-        return (JDBCType.CHAR == getColumn(colNum).getJdbctype() || JDBCType.VARCHAR == getColumn(colNum).getJdbctype()
-                || JDBCType.NCHAR == getColumn(colNum).getJdbctype() || JDBCType.NVARCHAR == getColumn(colNum).getJdbctype()
-                || JDBCType.TIMESTAMP == getColumn(colNum).getJdbctype() || JDBCType.DATE == getColumn(colNum).getJdbctype()
-                || JDBCType.TIME == getColumn(colNum).getJdbctype() || JDBCType.LONGVARCHAR == getColumn(colNum).getJdbctype()
-                || JDBCType.LONGNVARCHAR == getColumn(colNum).getJdbctype());
+        JDBCType jt = getColumn(colNum).getJdbctype();
+        return (JDBCType.CHAR == jt || JDBCType.VARCHAR == jt || JDBCType.NCHAR == jt || JDBCType.NVARCHAR == jt
+                || JDBCType.TIMESTAMP == jt || JDBCType.DATE == jt || JDBCType.TIME == jt || JDBCType.LONGVARCHAR == jt
+                || JDBCType.LONGNVARCHAR == jt);
     }
 
     /**
@@ -469,8 +468,8 @@ public class DBTable extends AbstractSQLGenerator {
      */
 
     boolean passDataAsHex(int colNum) {
-        return (JDBCType.BINARY == getColumn(colNum).getJdbctype() || JDBCType.VARBINARY == getColumn(colNum).getJdbctype()
-                || JDBCType.LONGVARBINARY == getColumn(colNum).getJdbctype());
+        JDBCType jt = getColumn(colNum).getJdbctype();
+        return (JDBCType.BINARY == jt || JDBCType.VARBINARY == jt || JDBCType.LONGVARBINARY == jt);
     }
     
     private String byteArrayToHex(byte[] a) {
