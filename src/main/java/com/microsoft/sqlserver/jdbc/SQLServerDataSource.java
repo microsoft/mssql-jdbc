@@ -821,6 +821,26 @@ public class SQLServerDataSource implements ISQLServerDataSource, DataSource, ja
         int defaultTimeOut = SQLServerDriverIntProperty.SOCKET_TIMEOUT.getDefaultValue();
         return getIntProperty(connectionProps, SQLServerDriverIntProperty.SOCKET_TIMEOUT.toString(), defaultTimeOut);
     }
+    
+    /**
+     * Setting the use Bulk Copy API for Batch Insert
+     * 
+     * @param useBulkCopyForBatchInsert indicates whether Bulk Copy API should be used for Batch Insert operations.
+     */
+    public void setUseBulkCopyForBatchInsert(boolean useBulkCopyForBatchInsert) {
+        setBooleanProperty(connectionProps, SQLServerDriverBooleanProperty.USE_BULK_COPY_FOR_BATCH_INSERT.toString(),
+                useBulkCopyForBatchInsert);
+    }
+
+    /**
+     * Getting the use Bulk Copy API for Batch Insert
+     * 
+     * @return whether the driver should use Bulk Copy API for Batch Insert operations.
+     */
+    public boolean getUseBulkCopyForBatchInsert() {
+        return getBooleanProperty(connectionProps, SQLServerDriverBooleanProperty.USE_BULK_COPY_FOR_BATCH_INSERT.toString(),
+                SQLServerDriverBooleanProperty.USE_BULK_COPY_FOR_BATCH_INSERT.getDefaultValue());
+    }
 
     /**
      * Sets the login configuration file for Kerberos authentication. This

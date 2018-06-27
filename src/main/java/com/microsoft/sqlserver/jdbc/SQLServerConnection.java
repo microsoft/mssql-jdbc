@@ -119,6 +119,8 @@ public class SQLServerConnection implements ISQLServerConnection {
     private SqlFedAuthToken fedAuthToken = null;
     
     private String originalHostNameInCertificate = null;
+    
+    private Boolean isAzureDW = null;
 
     static class Sha1HashKey {
         private byte[] bytes;
@@ -403,7 +405,7 @@ public class SQLServerConnection implements ISQLServerConnection {
     ServerPortPlaceHolder getRoutingInfo() {
         return routingInfo;
     }
-    
+
     // Permission targets
     private static final String callAbortPerm = "callAbort";
     
@@ -490,6 +492,27 @@ public class SQLServerConnection implements ISQLServerConnection {
 
     final int getSocketTimeoutMilliseconds() {
         return socketTimeoutMilliseconds;
+    }
+    
+    /**
+     * boolean value for deciding if the driver should use bulk copy API for batch inserts
+     */
+    private boolean useBulkCopyForBatchInsert;
+
+    /**
+     * Retrieves the useBulkCopyForBatchInsert value.
+     * @return flag for using Bulk Copy API for batch insert operations.
+     */
+    public boolean getUseBulkCopyForBatchInsert() {
+        return useBulkCopyForBatchInsert;
+    }
+    
+    /**
+     * Specifies the flag for using Bulk Copy API for batch insert operations.
+     * @param useBulkCopyForBatchInsert boolean value for useBulkCopyForBatchInsert.
+     */
+    public void setUseBulkCopyForBatchInsert(boolean useBulkCopyForBatchInsert) {
+        this.useBulkCopyForBatchInsert = useBulkCopyForBatchInsert;
     }
     
     boolean userSetTNIR = true;
@@ -1207,7 +1230,7 @@ public class SQLServerConnection implements ISQLServerConnection {
             activeConnectionProperties = (Properties) propsIn.clone();
 
             pooledConnectionParent = pooledConnection;
-            
+
             String hostNameInCertificate = activeConnectionProperties.
                     getProperty(SQLServerDriverStringProperty.HOSTNAME_IN_CERTIFICATE.toString());
             
@@ -1224,7 +1247,7 @@ public class SQLServerConnection implements ISQLServerConnection {
                 activeConnectionProperties.setProperty(SQLServerDriverStringProperty.HOSTNAME_IN_CERTIFICATE.toString(), 
                         originalHostNameInCertificate);
             }
-
+            
             String sPropKey;
             String sPropValue;
 
@@ -1772,7 +1795,13 @@ public class SQLServerConnection implements ISQLServerConnection {
             if (null != sPropValue) {
                 setEnablePrepareOnFirstPreparedStatementCall(booleanPropertyOn(sPropKey, sPropValue));
             }
-
+            
+            sPropKey = SQLServerDriverBooleanProperty.USE_BULK_COPY_FOR_BATCH_INSERT.toString();
+            sPropValue = activeConnectionProperties.getProperty(sPropKey);
+            if (null != sPropValue) {
+                useBulkCopyForBatchInsert = booleanPropertyOn(sPropKey, sPropValue);
+            }
+            
             sPropKey = SQLServerDriverStringProperty.SSL_PROTOCOL.toString();
             sPropValue = activeConnectionProperties.getProperty(sPropKey);
             if (null == sPropValue) {
@@ -3731,6 +3760,7 @@ public class SQLServerConnection implements ISQLServerConnection {
 
                 isRoutedInCurrentAttempt = true;
                 routingInfo = new ServerPortPlaceHolder(routingServerName, routingPortNumber, null, integratedSecurity);
+
                 break;
 
             // Error on unrecognized, unused ENVCHANGES
@@ -6037,6 +6067,33 @@ public class SQLServerConnection implements ISQLServerConnection {
                     // Do not run discard actions here! Can interfere with executing statement.
                 }                    
             }
+        }
+    }
+
+    boolean isAzureDW() throws SQLServerException, SQLException {
+        if (null == isAzureDW) {
+            try (Statement stmt = this.createStatement(); ResultSet rs = stmt.executeQuery("SELECT CAST(SERVERPROPERTY('EngineEdition') as INT)");)
+            {
+                // SERVERPROPERTY('EngineEdition') can be used to determine whether the db server is SQL Azure. 
+                // It should return 6 for SQL Azure DW. This is more reliable than @@version or serverproperty('edition').
+                // Reference:  http://msdn.microsoft.com/en-us/library/ee336261.aspx
+                // 
+                // SERVERPROPERTY('EngineEdition') means 
+                // Database Engine edition of the instance of SQL Server installed on the server.
+                // 1 = Personal or Desktop Engine (Not available for SQL Server.)
+                // 2 = Standard (This is returned for Standard and Workgroup.) 
+                // 3 = Enterprise (This is returned for Enterprise, Enterprise Evaluation, and Developer.)
+                // 4 = Express (This is returned for Express, Express with Advanced Services, and Windows Embedded SQL.)
+                // 5 = SQL Azure
+                // 6 = SQL Azure DW
+                // Base data type: int
+                final int ENGINE_EDITION_FOR_SQL_AZURE_DW = 6;
+                rs.next();
+                isAzureDW = (rs.getInt(1) == ENGINE_EDITION_FOR_SQL_AZURE_DW) ? true : false;
+            }
+            return isAzureDW;
+        } else {
+            return isAzureDW;
         }
     }
 

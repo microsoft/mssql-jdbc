@@ -227,8 +227,8 @@ public final class SQLServerResource extends ListResourceBundle {
 				{"R_invalidTransactionOption", "UseInternalTransaction option cannot be set to TRUE when used with a Connection object."},
 				{"R_invalidNegativeArg", "The {0} argument cannot be negative."},
 				{"R_BulkColumnMappingsIsEmpty", "Cannot perform bulk copy operation if the only mapping is an identity column and KeepIdentity is set to false."},        
-				{"R_CSVDataSchemaMismatch", "Source data does not match source schema."},
-				{"R_BulkCSVDataDuplicateColumn", "Duplicate column names are not allowed."},
+				{"R_DataSchemaMismatch", "Source data does not match source schema."},
+				{"R_BulkDataDuplicateColumn", "Duplicate column names are not allowed."},
 				{"R_invalidColumnOrdinal", "Column {0} is invalid. Column number should be greater than zero."},
 				{"R_unsupportedEncoding", "The encoding {0} is not supported."},
 				{"R_UnexpectedDescribeParamFormat", "Internal error. The format of the resultset returned by sp_describe_parameter_encryption is invalid. One of the resultsets is missing."},
@@ -393,6 +393,7 @@ public final class SQLServerResource extends ListResourceBundle {
 				{"R_invalidSSLProtocol", "SSL Protocol {0} label is not valid. Only TLS, TLSv1, TLSv1.1, and TLSv1.2 are supported."},
 				{"R_cancelQueryTimeoutPropertyDescription", "The number of seconds to wait to cancel sending a query timeout."},
 				{"R_invalidCancelQueryTimeout", "The cancel timeout value {0} is not valid."},
+                {"R_useBulkCopyForBatchInsertPropertyDescription", "Whether the driver will use bulk copy API for batch insert operations"},
 				{"R_UnknownDataClsTokenNumber", "Unknown token for Data Classification."},	// From Server
 				{"R_InvalidDataClsVersionNumber", "Invalid version number {0} for Data Classification."},	// From Server
 				{"R_unknownUTF8SupportValue", "Unknown value for UTF8 support."},

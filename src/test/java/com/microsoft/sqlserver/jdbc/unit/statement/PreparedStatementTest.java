@@ -14,6 +14,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.fail;
 
+import java.lang.reflect.Field;
 import java.sql.BatchUpdateException;
 import java.sql.DriverManager;
 import java.sql.ResultSet;
@@ -133,168 +134,25 @@ public class PreparedStatementTest extends AbstractTest {
      */
     @Test
     @Tag("slow")
-    public void testStatementPooling() throws SQLException {
-        // Test % handle re-use
-        try (SQLServerConnection con = (SQLServerConnection)DriverManager.getConnection(connectionString)) {
-            String query = String.format("/*statementpoolingtest_re-use_%s*/SELECT TOP(1) * FROM sys.tables;", UUID.randomUUID().toString());
-
-            con.setStatementPoolingCacheSize(10);
-
-            boolean[] prepOnFirstCalls = {false, true};
-
-            for(boolean prepOnFirstCall : prepOnFirstCalls) {
-
-                con.setEnablePrepareOnFirstPreparedStatementCall(prepOnFirstCall);
-
-                int[] queryCounts = {10, 20, 30, 40};
-                for(int queryCount : queryCounts) {
-                    String[] queries = new String[queryCount];
-                    for(int i = 0; i < queries.length; ++i) {
-                        queries[i] = String.format("%s--%s--%s--%s", query, i, queryCount, prepOnFirstCall);
-                    }
-
-                    int testsWithHandleReuse = 0;
-                    final int testCount = 500;
-                    for(int i = 0; i < testCount; ++i) {
-                        Random random = new Random();
-                        int queryNumber = random.nextInt(queries.length);
-                        try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) con.prepareStatement(queries[queryNumber])) {
-                            pstmt.execute();
-
-                            // Grab handle-reuse before it would be populated if initially created.
-                            if(0 < pstmt.getPreparedStatementHandle())
-                                testsWithHandleReuse++;
-
-                            pstmt.getMoreResults(); // Make sure handle is updated.
-                        }
-                    }
-                    System.out.println(String.format("Prep on first call: %s Query count:%s: %s of %s (%s)", prepOnFirstCall, queryCount, testsWithHandleReuse, testCount, (double)testsWithHandleReuse/(double)testCount));
-                }
-            }
-        }
-
-        try (SQLServerConnection con = (SQLServerConnection)DriverManager.getConnection(connectionString)) {
-
-            // Test behvaior with statement pooling.
-            con.setStatementPoolingCacheSize(10);
-            this.executeSQL(con,
-                    "IF NOT EXISTS (SELECT * FROM sys.messages WHERE message_id = 99586) EXEC sp_addmessage 99586, 16, 'Prepared handle GAH!';");
-            // Test with missing handle failures (fake).
-            this.executeSQL(con, "CREATE TABLE #update1 (col INT);INSERT #update1 VALUES (1);");
-            this.executeSQL(con,
-                    "CREATE PROC #updateProc1 AS UPDATE #update1 SET col += 1; IF EXISTS (SELECT * FROM #update1 WHERE col % 5 = 0) RAISERROR(99586,16,1);");
-            try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) con.prepareStatement("#updateProc1")) {
-                for (int i = 0; i < 100; ++i) {
-                    try {
-                        assertSame(1, pstmt.executeUpdate());
-                    }
-                    catch (SQLException e) {
-                        // Error "Prepared handle GAH" is expected to happen. But it should not terminate the execution with RAISERROR.
-                        // Since the original "Could not find prepared statement with handle" error does not terminate the execution after it.
-                        if (!e.getMessage().contains("Prepared handle GAH")) {
-                            throw e;
-                        }
-                    }
-                }
-            }
-
-            // test updated value, should be 1 + 100 = 101
-            // although executeUpdate() throws exception, update operation should be executed successfully.
-            try (ResultSet rs = con.createStatement().executeQuery("select * from #update1")) {
-                rs.next();
-                assertSame(101, rs.getInt(1));
-            }
-
-            // Test batching with missing handle failures (fake).
-            this.executeSQL(con,
-                    "IF NOT EXISTS (SELECT * FROM sys.messages WHERE message_id = 99586) EXEC sp_addmessage 99586, 16, 'Prepared handle GAH!';");
-            this.executeSQL(con, "CREATE TABLE #update2 (col INT);INSERT #update2 VALUES (1);");
-            this.executeSQL(con,
-                    "CREATE PROC #updateProc2 AS UPDATE #update2 SET col += 1; IF EXISTS (SELECT * FROM #update2 WHERE col % 5 = 0) RAISERROR(99586,16,1);");
-            try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) con.prepareStatement("#updateProc2")) {
-                for (int i = 0; i < 100; ++i) {
-                    pstmt.addBatch();
-                }
-
-                int[] updateCounts = null;
-                try {
-                    updateCounts = pstmt.executeBatch();
-                }
-                catch (BatchUpdateException e) {
-                    // Error "Prepared handle GAH" is expected to happen. But it should not terminate the execution with RAISERROR.
-                    // Since the original "Could not find prepared statement with handle" error does not terminate the execution after it.
-                    if (!e.getMessage().contains("Prepared handle GAH")) {
-                        throw e;
-                    }
-                }
-
-                // since executeBatch() throws exception, it does not return anthing. So updateCounts is still null.
-                assertSame(null, updateCounts);
-
-                // test updated value, should be 1 + 100 = 101
-                // although executeBatch() throws exception, update operation should be executed successfully.
-                try (ResultSet rs = con.createStatement().executeQuery("select * from #update2")) {
-                    rs.next();
-                    assertSame(101, rs.getInt(1));
-                }
-            }
-        }
-                
-        try (SQLServerConnection con = (SQLServerConnection)DriverManager.getConnection(connectionString)) {
-            // Test behvaior with statement pooling.
-            con.setDisableStatementPooling(false);
-            con.setStatementPoolingCacheSize(10);
-
-            String lookupUniqueifier = UUID.randomUUID().toString();
-            String query = String.format("/*statementpoolingtest_%s*/SELECT * FROM sys.tables;", lookupUniqueifier);
-
-            // Execute statement first, should create cache entry WITHOUT handle (since sp_executesql was used).
-            try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement)con.prepareStatement(query)) {
-                pstmt.execute(); // sp_executesql
-                pstmt.getMoreResults(); // Make sure handle is updated.
-
-                assertSame(0, pstmt.getPreparedStatementHandle());
-            } 
-
-            // Execute statement again, should now create handle.
-            int handle = 0;
-            try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement)con.prepareStatement(query)) {
-                pstmt.execute(); // sp_prepexec
-                pstmt.getMoreResults(); // Make sure handle is updated.
-                
-                handle = pstmt.getPreparedStatementHandle();
-                assertNotSame(0, handle);
-            } 
-
-            // Execute statement again and verify same handle was used. 
-            try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement)con.prepareStatement(query)) {
-                pstmt.execute(); // sp_execute
-                pstmt.getMoreResults(); // Make sure handle is updated.
-
-                assertNotSame(0, pstmt.getPreparedStatementHandle());
-                assertSame(handle, pstmt.getPreparedStatementHandle());
-            } 
-
-            // Execute new statement with different SQL text and verify it does NOT get same handle (should now fall back to using sp_executesql). 
-            SQLServerPreparedStatement outer = null;
-            try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement)con.prepareStatement(query + ";")) {
-                outer = pstmt;
-                pstmt.execute(); // sp_executesql
-                pstmt.getMoreResults(); // Make sure handle is updated.
-
-                assertSame(0, pstmt.getPreparedStatementHandle());
-                assertNotSame(handle, pstmt.getPreparedStatementHandle());
-            } 
-            try {
-                System.out.println(outer.getPreparedStatementHandle());
-                fail(TestResource.getResource("R_invalidGetPreparedStatementHandle"));
-            }
-            catch(Exception e) {
-                // Good!
-            }
-        } 
+    public void testStatementPooling() throws Exception {
+        testStatementPoolingInternal("batchInsert");
     }
 
+    /**
+     * Test handling of statement pooling for prepared statements.
+     * 
+     * @throws SQLException
+     * @throws SecurityException 
+     * @throws NoSuchFieldException 
+     * @throws IllegalAccessException 
+     * @throws IllegalArgumentException 
+     */
+    @Test
+    @Tag("slow")
+    public void testStatementPoolingUseBulkCopyAPI() throws Exception {
+        testStatementPoolingInternal("BulkCopy");
+    }
+    
     /**
      * Test handling of eviction from statement pooling for prepared statements.
      * 
@@ -568,5 +426,183 @@ public class PreparedStatementTest extends AbstractTest {
             // Verify that the un-prepare action was handled immediately.
             assertSame(0, con.getDiscardedServerPreparedStatementCount());
         }
+    }
+    
+    private void testStatementPoolingInternal(String mode) throws Exception {
+        // Test % handle re-use
+        try (SQLServerConnection con = (SQLServerConnection)DriverManager.getConnection(connectionString)) {
+            if (mode.equalsIgnoreCase("bulkcopy")) {
+                modifyConnectionForBulkCopyAPI(con);
+            }
+            String query = String.format("/*statementpoolingtest_re-use_%s*/SELECT TOP(1) * FROM sys.tables;", UUID.randomUUID().toString());
+
+            con.setStatementPoolingCacheSize(10);
+
+            boolean[] prepOnFirstCalls = {false, true};
+
+            for(boolean prepOnFirstCall : prepOnFirstCalls) {
+
+                con.setEnablePrepareOnFirstPreparedStatementCall(prepOnFirstCall);
+
+                int[] queryCounts = {10, 20, 30, 40};
+                for(int queryCount : queryCounts) {
+                    String[] queries = new String[queryCount];
+                    for(int i = 0; i < queries.length; ++i) {
+                        queries[i] = String.format("%s--%s--%s--%s", query, i, queryCount, prepOnFirstCall);
+                    }
+
+                    int testsWithHandleReuse = 0;
+                    final int testCount = 500;
+                    for(int i = 0; i < testCount; ++i) {
+                        Random random = new Random();
+                        int queryNumber = random.nextInt(queries.length);
+                        try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) con.prepareStatement(queries[queryNumber])) {
+                            pstmt.execute();
+
+                            // Grab handle-reuse before it would be populated if initially created.
+                            if(0 < pstmt.getPreparedStatementHandle())
+                                testsWithHandleReuse++;
+
+                            pstmt.getMoreResults(); // Make sure handle is updated.
+                        }
+                    }
+                    System.out.println(String.format("Prep on first call: %s Query count:%s: %s of %s (%s)", prepOnFirstCall, queryCount, testsWithHandleReuse, testCount, (double)testsWithHandleReuse/(double)testCount));
+                }
+            }
+        }
+
+        try (SQLServerConnection con = (SQLServerConnection)DriverManager.getConnection(connectionString)) {
+            if (mode.equalsIgnoreCase("bulkcopy")) {
+                modifyConnectionForBulkCopyAPI(con);
+            }
+            // Test behvaior with statement pooling.
+            con.setStatementPoolingCacheSize(10);
+            this.executeSQL(con,
+                    "IF NOT EXISTS (SELECT * FROM sys.messages WHERE message_id = 99586) EXEC sp_addmessage 99586, 16, 'Prepared handle GAH!';");
+            // Test with missing handle failures (fake).
+            this.executeSQL(con, "CREATE TABLE #update1 (col INT);INSERT #update1 VALUES (1);");
+            this.executeSQL(con,
+                    "CREATE PROC #updateProc1 AS UPDATE #update1 SET col += 1; IF EXISTS (SELECT * FROM #update1 WHERE col % 5 = 0) RAISERROR(99586,16,1);");
+            try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) con.prepareStatement("#updateProc1")) {
+                for (int i = 0; i < 100; ++i) {
+                    try {
+                        assertSame(1, pstmt.executeUpdate());
+                    }
+                    catch (SQLException e) {
+                        // Error "Prepared handle GAH" is expected to happen. But it should not terminate the execution with RAISERROR.
+                        // Since the original "Could not find prepared statement with handle" error does not terminate the execution after it.
+                        if (!e.getMessage().contains("Prepared handle GAH")) {
+                            throw e;
+                        }
+                    }
+                }
+            }
+
+            // test updated value, should be 1 + 100 = 101
+            // although executeUpdate() throws exception, update operation should be executed successfully.
+            try (ResultSet rs = con.createStatement().executeQuery("select * from #update1")) {
+                rs.next();
+                assertSame(101, rs.getInt(1));
+            }
+
+            // Test batching with missing handle failures (fake).
+            this.executeSQL(con,
+                    "IF NOT EXISTS (SELECT * FROM sys.messages WHERE message_id = 99586) EXEC sp_addmessage 99586, 16, 'Prepared handle GAH!';");
+            this.executeSQL(con, "CREATE TABLE #update2 (col INT);INSERT #update2 VALUES (1);");
+            this.executeSQL(con,
+                    "CREATE PROC #updateProc2 AS UPDATE #update2 SET col += 1; IF EXISTS (SELECT * FROM #update2 WHERE col % 5 = 0) RAISERROR(99586,16,1);");
+            try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) con.prepareStatement("#updateProc2")) {
+                for (int i = 0; i < 100; ++i) {
+                    pstmt.addBatch();
+                }
+
+                int[] updateCounts = null;
+                try {
+                    updateCounts = pstmt.executeBatch();
+                }
+                catch (BatchUpdateException e) {
+                    // Error "Prepared handle GAH" is expected to happen. But it should not terminate the execution with RAISERROR.
+                    // Since the original "Could not find prepared statement with handle" error does not terminate the execution after it.
+                    if (!e.getMessage().contains("Prepared handle GAH")) {
+                        throw e;
+                    }
+                }
+
+                // since executeBatch() throws exception, it does not return anthing. So updateCounts is still null.
+                assertSame(null, updateCounts);
+
+                // test updated value, should be 1 + 100 = 101
+                // although executeBatch() throws exception, update operation should be executed successfully.
+                try (ResultSet rs = con.createStatement().executeQuery("select * from #update2")) {
+                    rs.next();
+                    assertSame(101, rs.getInt(1));
+                }
+            }
+        }
+                
+        try (SQLServerConnection con = (SQLServerConnection)DriverManager.getConnection(connectionString)) {
+            if (mode.equalsIgnoreCase("bulkcopy")) {
+                modifyConnectionForBulkCopyAPI(con);
+            }
+            // Test behvaior with statement pooling.
+            con.setDisableStatementPooling(false);
+            con.setStatementPoolingCacheSize(10);
+
+            String lookupUniqueifier = UUID.randomUUID().toString();
+            String query = String.format("/*statementpoolingtest_%s*/SELECT * FROM sys.tables;", lookupUniqueifier);
+
+            // Execute statement first, should create cache entry WITHOUT handle (since sp_executesql was used).
+            try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement)con.prepareStatement(query)) {
+                pstmt.execute(); // sp_executesql
+                pstmt.getMoreResults(); // Make sure handle is updated.
+
+                assertSame(0, pstmt.getPreparedStatementHandle());
+            } 
+
+            // Execute statement again, should now create handle.
+            int handle = 0;
+            try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement)con.prepareStatement(query)) {
+                pstmt.execute(); // sp_prepexec
+                pstmt.getMoreResults(); // Make sure handle is updated.
+                
+                handle = pstmt.getPreparedStatementHandle();
+                assertNotSame(0, handle);
+            } 
+
+            // Execute statement again and verify same handle was used. 
+            try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement)con.prepareStatement(query)) {
+                pstmt.execute(); // sp_execute
+                pstmt.getMoreResults(); // Make sure handle is updated.
+
+                assertNotSame(0, pstmt.getPreparedStatementHandle());
+                assertSame(handle, pstmt.getPreparedStatementHandle());
+            } 
+
+            // Execute new statement with different SQL text and verify it does NOT get same handle (should now fall back to using sp_executesql). 
+            SQLServerPreparedStatement outer = null;
+            try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement)con.prepareStatement(query + ";")) {
+                outer = pstmt;
+                pstmt.execute(); // sp_executesql
+                pstmt.getMoreResults(); // Make sure handle is updated.
+
+                assertSame(0, pstmt.getPreparedStatementHandle());
+                assertNotSame(handle, pstmt.getPreparedStatementHandle());
+            } 
+            try {
+                System.out.println(outer.getPreparedStatementHandle());
+                fail(TestResource.getResource("R_invalidGetPreparedStatementHandle"));
+            }
+            catch(Exception e) {
+                // Good!
+            }
+        } 
+    }
+    
+    private void modifyConnectionForBulkCopyAPI(SQLServerConnection con) throws Exception {
+        Field f1 = SQLServerConnection.class.getDeclaredField("isAzureDW");
+        f1.setAccessible(true);
+        f1.set(con, true);
+        
+        con.setUseBulkCopyForBatchInsert(true);
     }
 }

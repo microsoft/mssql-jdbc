@@ -154,6 +154,9 @@ public class SQLServerStatement implements ISQLServerStatement {
      */
     protected SQLServerStatementColumnEncryptionSetting stmtColumnEncriptionSetting = SQLServerStatementColumnEncryptionSetting.UseConnectionSetting;
 
+    protected SQLServerStatementColumnEncryptionSetting getStmtColumnEncriptionSetting() {
+        return stmtColumnEncriptionSetting;
+    }
     /**
      * ExecuteProperties encapsulates a subset of statement property values as they were set at execution time.
      */
@@ -965,17 +968,39 @@ public class SQLServerStatement implements ISQLServerStatement {
      * 
      * @param sql
      *            The statment SQL.
-     * @return True is the statement is a select.
+     * @return True if the statement is a select.
      */
     /* L0 */ final boolean isSelect(String sql) throws SQLServerException {
         checkClosed();
         // Used to check just the first letter which would cause
         // "Set" commands to return true...
         String temp = sql.trim();
-        char c = temp.charAt(0);
-        if (c != 's' && c != 'S')
+        if (null == sql || sql.length() < 6) {
             return false;
+        }
         return temp.substring(0, 6).equalsIgnoreCase("select");
+    }
+    
+    /**
+     * Determine if the SQL is a INSERT.
+     * 
+     * @param sql
+     *            The statment SQL.
+     * @return True if the statement is an insert.
+     */
+    /* L0 */ final boolean isInsert(String sql) throws SQLServerException {
+        checkClosed();
+        // Used to check just the first letter which would cause
+        // "Set" commands to return true...
+        String temp = sql.trim();
+        if (null == sql || sql.length() < 6) {
+            return false;
+        }
+        if (temp.substring(0, 2).equalsIgnoreCase("/*")) {
+            int index = temp.indexOf("*/") + 2;
+            return isInsert(temp.substring(index));
+        }
+        return temp.substring(0, 6).equalsIgnoreCase("insert");
     }
 
     /**
