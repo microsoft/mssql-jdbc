@@ -198,11 +198,6 @@ public class BulkCopyISQLServerBulkRecordTest extends AbstractTest {
         }
 
         @Override
-        public void close() throws SQLServerException {
-            // TODO Not Implemented
-        }
-
-        @Override
         public DateTimeFormatter getColumnDateTimeFormatter(int column) {
             // TODO Not Implemented
             return null;

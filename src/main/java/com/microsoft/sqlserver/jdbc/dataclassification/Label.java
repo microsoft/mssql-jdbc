@@ -8,8 +8,6 @@
 
 package com.microsoft.sqlserver.jdbc.dataclassification;
 
-import java.beans.ConstructorProperties;
-
 /**
  * This class retrieves Labels as recieved from SQL Server for the active
  * resultSet
@@ -26,7 +24,6 @@ public class Label {
 	 * @param id
 	 *            ID of Label
 	 */
-	@ConstructorProperties({"name", "id"})
 	public Label(String name, String id) {
 		this.name = name;
 		this.id = id;

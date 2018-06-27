@@ -171,14 +171,6 @@ public interface ISQLServerBulkRecord {
     public void setTimeWithTimezoneFormat(DateTimeFormatter dateTimeFormatter);
 
     /**
-     * Releases any resources associated with the file reader.
-     * 
-     * @throws SQLServerException
-     *             when an error occurs
-     */
-    public void close() throws SQLServerException;
-
-    /**
      * Retreives <code>dateTimeFormatter</code> for the given column
      * 
      * @param column
