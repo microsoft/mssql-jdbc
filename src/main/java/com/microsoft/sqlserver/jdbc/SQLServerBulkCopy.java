@@ -163,6 +163,11 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
     /* The CekTable for the destination table. */
     private CekTable destCekTable = null;
 
+    /* Statement level encryption setting needed for querying against encrypted columns. */
+    private SQLServerStatementColumnEncryptionSetting stmtColumnEncriptionSetting = SQLServerStatementColumnEncryptionSetting.UseConnectionSetting;
+    
+    private ResultSet destinationTableMetadata;
+    
     /*
      * Metadata for the destination table columns
      */
@@ -1500,7 +1505,12 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
                 if (null != destType && (destType.toLowerCase(Locale.ENGLISH).trim().startsWith("char") || destType.toLowerCase(Locale.ENGLISH).trim().startsWith("varchar")))
                     addCollate = " COLLATE " + columnCollation;
             }
-            bulkCmd.append("[" + colMapping.destinationColumnName + "] " + destType + addCollate + endColumn);
+            if (colMapping.destinationColumnName.contains("]")) {
+                String escapedColumnName = colMapping.destinationColumnName.replaceAll("]", "]]");
+                bulkCmd.append("[" + escapedColumnName + "] " + destType + addCollate + endColumn);
+            } else {
+                bulkCmd.append("[" + colMapping.destinationColumnName + "] " + destType + addCollate + endColumn);
+            }
         }
 
         if (true == copyOptions.isCheckConstraints()) {
@@ -1750,11 +1760,19 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
 
         SQLServerResultSet rs = null;
         SQLServerResultSet rsMoreMetaData = null;
-
+        SQLServerStatement stmt = null;
+        
         try {
-            // Get destination metadata
-            rs = ((SQLServerStatement) connection.createStatement())
-                    .executeQueryInternal("SET FMTONLY ON SELECT * FROM " + destinationTableName + " SET FMTONLY OFF ");
+            if (null != destinationTableMetadata) {
+                rs = (SQLServerResultSet) destinationTableMetadata;
+            }
+            else {
+                stmt = (SQLServerStatement) connection.createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY,
+                        connection.getHoldability(), stmtColumnEncriptionSetting);
+
+                // Get destination metadata
+                rs = stmt.executeQueryInternal("sp_executesql N'SET FMTONLY ON SELECT * FROM " + destinationTableName + " '");
+            }
 
             destColumnCount = rs.getMetaData().getColumnCount();
             destColumnMetadata = new HashMap<>();
@@ -1793,6 +1811,8 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
         finally {
             if (null != rs)
                 rs.close();
+            if (null != stmt)
+                stmt.close();
             if (null != rsMoreMetaData)
                 rsMoreMetaData.close();
         }
@@ -3104,7 +3124,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
                 taNano *= 10;
             Timestamp ts = new Timestamp(cal.getTimeInMillis());
             ts.setNanos(taNano);
-
+          
             switch (srcJdbcType) {
                 case java.sql.Types.TIMESTAMP:
                     return ts;
@@ -3633,5 +3653,13 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
                 TDSParser.parse(command.startResponse(), command.getLogContext());
             }
         }
+    }
+
+    protected void setStmtColumnEncriptionSetting(SQLServerStatementColumnEncryptionSetting stmtColumnEncriptionSetting) {
+        this.stmtColumnEncriptionSetting = stmtColumnEncriptionSetting;
+    }
+
+    protected void setDestinationTableMetadata(SQLServerResultSet rs) {
+        destinationTableMetadata = rs;
     }
 }

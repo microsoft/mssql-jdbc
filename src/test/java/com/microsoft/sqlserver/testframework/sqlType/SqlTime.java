@@ -20,8 +20,6 @@ import java.time.format.ResolverStyle;
 import java.time.temporal.ChronoField;
 import java.util.concurrent.ThreadLocalRandom;
 
-import org.apache.commons.lang3.RandomStringUtils;
-
 public class SqlTime extends SqlDateTime {
 
     static SimpleDateFormat dateFormat = new SimpleDateFormat("HH:mm:ss.SSSSSSS");
@@ -50,7 +48,7 @@ public class SqlTime extends SqlDateTime {
 
     public Object createdata() {
         Time temp = new Time(ThreadLocalRandom.current().nextLong(((Time) minvalue).getTime(), ((Time) maxvalue).getTime()));
-        String timeNano = temp.toString() + "." + RandomStringUtils.randomNumeric(this.scale);
+        String timeNano = temp.toString() + "." + generateRandomInt(this.scale);
         return timeNano;
 
         // can pass String rather than converting to loacTime, but leaving it

@@ -119,6 +119,8 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     private SqlFedAuthToken fedAuthToken = null;
 
     private String originalHostNameInCertificate = null;
+    
+    private Boolean isAzureDW = null;
 
     static class Sha1HashKey implements java.io.Serializable {
 
@@ -491,7 +493,28 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     final int getSocketTimeoutMilliseconds() {
         return socketTimeoutMilliseconds;
     }
+    
+    /**
+     * boolean value for deciding if the driver should use bulk copy API for batch inserts
+     */
+    private boolean useBulkCopyForBatchInsert;
 
+    /**
+     * Retrieves the useBulkCopyForBatchInsert value.
+     * @return flag for using Bulk Copy API for batch insert operations.
+     */
+    public boolean getUseBulkCopyForBatchInsert() {
+        return useBulkCopyForBatchInsert;
+    }
+    
+    /**
+     * Specifies the flag for using Bulk Copy API for batch insert operations.
+     * @param useBulkCopyForBatchInsert boolean value for useBulkCopyForBatchInsert.
+     */
+    public void setUseBulkCopyForBatchInsert(boolean useBulkCopyForBatchInsert) {
+        this.useBulkCopyForBatchInsert = useBulkCopyForBatchInsert;
+    }
+    
     boolean userSetTNIR = true;
 
     private boolean sendTimeAsDatetime = SQLServerDriverBooleanProperty.SEND_TIME_AS_DATETIME.getDefaultValue();
@@ -556,6 +579,12 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         return serverSupportsColumnEncryption;
     }
 
+    private boolean serverSupportsDataClassification = false;
+
+    boolean getServerSupportsDataClassification() {
+        return serverSupportsDataClassification;
+    }
+    
     static boolean isWindows;
     static Map<String, SQLServerColumnEncryptionKeyStoreProvider> globalSystemColumnEncryptionKeyStoreProviders = new HashMap<>();
     static {
@@ -1191,7 +1220,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 activeConnectionProperties.setProperty(SQLServerDriverStringProperty.HOSTNAME_IN_CERTIFICATE.toString(),
                         originalHostNameInCertificate);
             }
-
+            
             String sPropKey;
             String sPropValue;
 
@@ -1740,7 +1769,13 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             if (null != sPropValue) {
                 setEnablePrepareOnFirstPreparedStatementCall(booleanPropertyOn(sPropKey, sPropValue));
             }
-
+            
+            sPropKey = SQLServerDriverBooleanProperty.USE_BULK_COPY_FOR_BATCH_INSERT.toString();
+            sPropValue = activeConnectionProperties.getProperty(sPropKey);
+            if (null != sPropValue) {
+                useBulkCopyForBatchInsert = booleanPropertyOn(sPropKey, sPropValue);
+            }
+            
             sPropKey = SQLServerDriverStringProperty.SSL_PROTOCOL.toString();
             sPropValue = activeConnectionProperties.getProperty(sPropKey);
             if (null == sPropValue) {
@@ -3292,9 +3327,9 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         int len = 6; // (1byte = featureID, 4bytes = featureData length, 1 bytes = Version)
 
         if (write) {
-            tdsWriter.writeByte((byte) TDS.TDS_FEATURE_EXT_AE); // FEATUREEXT_TCE
+            tdsWriter.writeByte(TDS.TDS_FEATURE_EXT_AE); // FEATUREEXT_TCE
             tdsWriter.writeInt(1);
-            tdsWriter.writeByte((byte) TDS.MAX_SUPPORTED_TCE_VERSION);
+            tdsWriter.writeByte(TDS.MAX_SUPPORTED_TCE_VERSION);
         }
         return len;
     }
@@ -3305,7 +3340,6 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                                                                                                                   * if false just calculates the
                                                                                                                   * length
                                                                                                                   */
-
         assert (fedAuthFeatureExtensionData.libraryType == TDS.TDS_FEDAUTH_LIBRARY_ADAL
                 || fedAuthFeatureExtensionData.libraryType == TDS.TDS_FEDAUTH_LIBRARY_SECURITYTOKEN);
 
@@ -3388,6 +3422,28 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             }
         }
         return totalLen;
+    }
+    
+    int writeDataClassificationFeatureRequest(boolean write /* if false just calculates the length */,
+            TDSWriter tdsWriter) throws SQLServerException {
+        int len = 6; // 1byte = featureID, 4bytes = featureData length, 1 bytes = Version
+        if (write) {
+            // Write Feature ID, length of the version# field and Sensitivity Classification Version#
+            tdsWriter.writeByte(TDS.TDS_FEATURE_EXT_DATACLASSIFICATION);
+            tdsWriter.writeInt(1);
+            tdsWriter.writeByte(TDS.MAX_SUPPORTED_DATA_CLASSIFICATION_VERSION);
+        }
+        return len; // size of data written
+    }
+    
+    int writeUTF8SupportFeatureRequest(boolean write,
+            TDSWriter tdsWriter /* if false just calculates the length */) throws SQLServerException {
+        int len = 5; // 1byte = featureID, 4bytes = featureData length
+        if (write) {
+            tdsWriter.writeByte(TDS.TDS_FEATURE_EXT_UTF8SUPPORT);
+            tdsWriter.writeInt(0);
+        }
+        return len;
     }
 
     private final class LogonCommand extends UninterruptableTDSCommand {
@@ -3667,6 +3723,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
                 isRoutedInCurrentAttempt = true;
                 routingInfo = new ServerPortPlaceHolder(routingServerName, routingPortNumber, null, integratedSecurity);
+
                 break;
 
             // Error on unrecognized, unused ENVCHANGES
@@ -4019,7 +4076,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         while (featureId != TDS.FEATURE_EXT_TERMINATOR);
     }
 
-    private void onFeatureExtAck(int featureId,
+    private void onFeatureExtAck(byte featureId,
             byte[] data) throws SQLServerException {
         if (null != routingInfo) {
             return;
@@ -4087,11 +4144,46 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                     throw new SQLServerException(SQLServerException.getErrString("R_InvalidAEVersionNumber"), null);
                 }
 
-                assert supportedTceVersion == TDS.MAX_SUPPORTED_TCE_VERSION; // Client support TCE version 1
                 serverSupportsColumnEncryption = true;
                 break;
             }
+            case TDS.TDS_FEATURE_EXT_DATACLASSIFICATION: {
+                if (connectionlogger.isLoggable(Level.FINER)) {
+                    connectionlogger.fine(toString() + " Received feature extension acknowledgement for Data Classification.");
+                }
 
+                if (2 != data.length) {
+                    if (connectionlogger.isLoggable(Level.SEVERE)) {
+                        connectionlogger.severe(toString() + " Unknown token for Data Classification.");
+                    }
+                    throw new SQLServerException(SQLServerException.getErrString("R_UnknownDataClsTokenNumber"), null);
+                }
+
+                byte supportedDataClassificationVersion = data[0];
+                if ((0 == supportedDataClassificationVersion)
+                        || (supportedDataClassificationVersion > TDS.MAX_SUPPORTED_DATA_CLASSIFICATION_VERSION)) {
+                    if (connectionlogger.isLoggable(Level.SEVERE)) {
+                        connectionlogger.severe(toString() + " Invalid version number for Data Classification");
+                    }
+                    throw new SQLServerException(SQLServerException.getErrString("R_InvalidDataClsVersionNumber"), null);
+                }
+
+                byte enabled = data[1];
+                serverSupportsDataClassification = (enabled == 0) ? false : true;
+            }
+            case TDS.TDS_FEATURE_EXT_UTF8SUPPORT: {
+                if (connectionlogger.isLoggable(Level.FINER)) {
+                    connectionlogger.fine(toString() + " Received feature extension acknowledgement for UTF8 support.");
+                }
+
+                if (1 > data.length) {
+                    if (connectionlogger.isLoggable(Level.SEVERE)) {
+                        connectionlogger.severe(toString() + " Unknown value for UTF8 support.");
+                    }
+                    throw new SQLServerException(SQLServerException.getErrString("R_unknownUTF8SupportValue"), null);
+                }
+                break;
+            }
             default: {
                 // Unknown feature ack
                 if (connectionlogger.isLoggable(Level.SEVERE)) {
@@ -4378,7 +4470,12 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             len2 = len2 + writeFedAuthFeatureRequest(false, tdsWriter, fedAuthFeatureExtensionData);
         }
 
-        len2 = len2 + 1; // add 1 to length becaue of FeatureEx terminator
+        // Data Classification is always enabled (by default)
+        len2 += writeDataClassificationFeatureRequest(false, tdsWriter);
+        
+        len2 = len2 + writeUTF8SupportFeatureRequest(false, tdsWriter);
+      
+        len2 = len2 + 1; // add 1 to length because of FeatureEx terminator
 
         // Length of entire Login 7 packet
         tdsWriter.writeInt(len2);
@@ -4559,6 +4656,9 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         if (federatedAuthenticationInfoRequested || federatedAuthenticationRequested) {
             writeFedAuthFeatureRequest(true, tdsWriter, fedAuthFeatureExtensionData);
         }
+
+        writeDataClassificationFeatureRequest(true, tdsWriter);
+        writeUTF8SupportFeatureRequest(true, tdsWriter);
 
         tdsWriter.writeByte((byte) TDS.FEATURE_EXT_TERMINATOR);
         tdsWriter.setDataLoggable(true);
@@ -5770,6 +5870,33 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                     // Do not run discard actions here! Can interfere with executing statement.
                 }
             }
+        }
+    }
+
+    boolean isAzureDW() throws SQLServerException, SQLException {
+        if (null == isAzureDW) {
+            try (Statement stmt = this.createStatement(); ResultSet rs = stmt.executeQuery("SELECT CAST(SERVERPROPERTY('EngineEdition') as INT)");)
+            {
+                // SERVERPROPERTY('EngineEdition') can be used to determine whether the db server is SQL Azure. 
+                // It should return 6 for SQL Azure DW. This is more reliable than @@version or serverproperty('edition').
+                // Reference:  http://msdn.microsoft.com/en-us/library/ee336261.aspx
+                // 
+                // SERVERPROPERTY('EngineEdition') means 
+                // Database Engine edition of the instance of SQL Server installed on the server.
+                // 1 = Personal or Desktop Engine (Not available for SQL Server.)
+                // 2 = Standard (This is returned for Standard and Workgroup.) 
+                // 3 = Enterprise (This is returned for Enterprise, Enterprise Evaluation, and Developer.)
+                // 4 = Express (This is returned for Express, Express with Advanced Services, and Windows Embedded SQL.)
+                // 5 = SQL Azure
+                // 6 = SQL Azure DW
+                // Base data type: int
+                final int ENGINE_EDITION_FOR_SQL_AZURE_DW = 6;
+                rs.next();
+                isAzureDW = (rs.getInt(1) == ENGINE_EDITION_FOR_SQL_AZURE_DW) ? true : false;
+            }
+            return isAzureDW;
+        } else {
+            return isAzureDW;
         }
     }
 

@@ -310,6 +310,25 @@ public class Util {
     }
 
     /**
+     * Checks if object SYS.SENSITIVITY_CLASSIFICATIONS exists in SQL Server
+     * 
+     * @param Statement
+     * @return boolean
+     */
+    public static boolean serverSupportsDataClassification(Statement stmt) {
+        try {
+            stmt.execute("SELECT * FROM SYS.SENSITIVITY_CLASSIFICATIONS");
+        }
+        catch (SQLException e) {
+            // Check for Error 208: Invalid Object Name
+            if (e.getErrorCode() == 208) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    /**
      * 
      * @param b
      *            byte value
