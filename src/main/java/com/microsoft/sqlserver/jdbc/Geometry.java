@@ -16,6 +16,10 @@ public class Geometry extends SQLServerSpatialDatatype {
     /**
      * Private constructor used for creating a Geometry object from WKT and srid.
      * 
+     * @param WellKnownText
+     *             Well-Known Text (WKT)
+     * @param srid 
+     *             Spatial Reference Identifier (SRID).
      * @throws SQLServerException
      *             if an exception occurs
      */
@@ -39,6 +43,8 @@ public class Geometry extends SQLServerSpatialDatatype {
     /**
      * Private constructor used for creating a Geometry object from WKB.
      * 
+     * @param wkb 
+     *             Well-Known Binary (WKB)
      * @throws SQLServerException
      *             if an exception occurs
      */
@@ -67,7 +73,8 @@ public class Geometry extends SQLServerSpatialDatatype {
      *            WKT
      * @param srid
      *            SRID
-     * @return Geometry instance
+     * @return Geometry
+     *            Geometry instance created from WKT and SRID
      * @throws SQLServerException
      *             if an exception occurs
      */
@@ -81,7 +88,8 @@ public class Geometry extends SQLServerSpatialDatatype {
      * 
      * @param wkb
      *            WKB
-     * @return Geometry instance
+     * @return Geometry
+     *            Geometry instance created from WKB
      * @throws SQLServerException
      *             if an exception occurs
      */
@@ -94,7 +102,8 @@ public class Geometry extends SQLServerSpatialDatatype {
      * 
      * @param wkb
      *            WKB
-     * @return Geometry instance
+     * @return Geometry
+     *            Geometry instance created from WKB
      * @throws SQLServerException
      *             if an exception occurs
      */
@@ -107,7 +116,8 @@ public class Geometry extends SQLServerSpatialDatatype {
      * 
      * @param wkt
      *            WKT
-     * @return Geometry instance
+     * @return Geometry
+     *            Geometry instance created from WKT
      * @throws SQLServerException
      *             if an exception occurs
      */
@@ -124,7 +134,8 @@ public class Geometry extends SQLServerSpatialDatatype {
      *            y coordinate
      * @param srid
      *            SRID
-     * @return Geometry instance
+     * @return Geometry
+     *            Geography instance
      * @throws SQLServerException
      *             if an exception occurs
      */
@@ -138,7 +149,8 @@ public class Geometry extends SQLServerSpatialDatatype {
      * Returns the Open Geospatial Consortium (OGC) Well-Known Text (WKT) representation of a Geometry instance. This text will not contain any Z
      * (elevation) or M (measure) values carried by the instance.
      * 
-     * @return the WKT representation without the Z and M values.
+     * @return
+     *             the WKT representation without the Z and M values.
      * @throws SQLServerException
      *             if an exception occurs
      */
@@ -161,7 +173,7 @@ public class Geometry extends SQLServerSpatialDatatype {
      * Returns the Open Geospatial Consortium (OGC) Well-Known Binary (WKB) representation of a Geometry instance. This value will not contain any Z
      * or M values carried by the instance.
      * 
-     * @return WKB
+     * @return byte array representation of the Geometry object.
      */
     public byte[] STAsBinary() {
         if (null == wkbNoZM) {
@@ -173,31 +185,34 @@ public class Geometry extends SQLServerSpatialDatatype {
     /**
      * Returns the bytes that represent an internal SQL Server format of Geometry type.
      * 
-     * @return WKB
+     * @return byte array representation of the Geometry object.
      */
     public byte[] serialize() {
         return wkb;
     }
 
     /**
+     * Returns if the object contains a M (measure) value.
      * 
-     * @return
+     * @return boolean that indicates if the object contains M value.
      */
     public boolean hasM() {
         return hasMvalues;
     }
 
     /**
+     * Returns if the object contains a Z (elevation) value.
      * 
-     * @return
+     * @return boolean that indicates if the object contains Z value.
      */
     public boolean hasZ() {
         return hasZvalues;
     }
 
     /**
+     * Returns the X coordinate value.
      * 
-     * @return
+     * @return double value that represents the X coordinate.
      */
     public Double getX() {
         if (null != internalType && internalType == InternalSpatialDatatype.POINT && points.length == 2) {
@@ -207,8 +222,9 @@ public class Geometry extends SQLServerSpatialDatatype {
     }
 
     /**
+     * Returns the Y coordinate value.
      * 
-     * @return
+     * @return double value that represents the Y coordinate.
      */
     public Double getY() {
         if (null != internalType && internalType == InternalSpatialDatatype.POINT && points.length == 2) {
@@ -218,8 +234,9 @@ public class Geometry extends SQLServerSpatialDatatype {
     }
 
     /**
+     * Returns the M (measure) value of the object.
      * 
-     * @return
+     * @return double value that represents the M value.
      */
     public Double getM() {
         if (null != internalType && internalType == InternalSpatialDatatype.POINT && hasM()) {
@@ -229,8 +246,9 @@ public class Geometry extends SQLServerSpatialDatatype {
     }
 
     /**
+     * Returns the Z (elevation) value of the object.
      * 
-     * @return
+     * @return double value that represents the Z value.
      */
     public Double getZ() {
         if (null != internalType && internalType == InternalSpatialDatatype.POINT && hasZ()) {
@@ -240,24 +258,27 @@ public class Geometry extends SQLServerSpatialDatatype {
     }
 
     /**
+     * Returns the Spatial Reference Identifier (SRID) value.
      * 
-     * @return
+     * @return int value of SRID.
      */
     public int getSrid() {
         return srid;
     }
 
     /**
+     * Returns if the Geometry object is null.
      * 
-     * @return
+     * @return boolean that indicates if the object is null.
      */
     public boolean isNull() {
         return isNull;
     }
 
     /**
+     * Returns the number of points in the Geometry object.
      * 
-     * @return
+     * @return int that indicates the number of points in the Geometry object.
      */
     public int STNumPoints() {
         return numberOfPoints;
@@ -266,7 +287,7 @@ public class Geometry extends SQLServerSpatialDatatype {
     /**
      * Returns the Open Geospatial Consortium (OGC) type name represented by a geometry instance.
      * 
-     * @return type name
+     * @return String that contains the Geometry object's type name
      */
     public String STGeometryType() {
         if (null != internalType) {
@@ -276,17 +297,20 @@ public class Geometry extends SQLServerSpatialDatatype {
     }
 
     /**
+     * Returns the WKT representation of the Geometry object.
      * 
-     * @return
+     * @return String that contains the WKT representation of the Geometry object.
      */
     public String asTextZM() {
         return wkt;
     }
 
     /**
+     * Returns the String representation of the Geometry object.
      * 
-     * @return
+     * @return String that contains the WKT representation of the Geometry object.
      */
+    @Override
     public String toString() {
         return wkt;
     }

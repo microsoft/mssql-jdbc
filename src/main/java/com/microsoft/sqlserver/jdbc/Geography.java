@@ -15,6 +15,11 @@ public class Geography extends SQLServerSpatialDatatype {
     
     /**
      * Private constructor used for creating a Geography object from WKT and srid.
+     * 
+     * @param WellKnownText
+     *             Well-Known Text (WKT)
+     * @param srid 
+     *             Spatial Reference Identifier (SRID).
      * @throws SQLServerException 
      *              if an exception occurs
      */
@@ -36,6 +41,9 @@ public class Geography extends SQLServerSpatialDatatype {
 
     /**
      * Private constructor used for creating a Geography object from WKB.
+     * 
+     * @param wkb 
+     *             Well-Known Binary (WKB)
      * @throws SQLServerException 
      *              if an exception occurs
      */
@@ -60,9 +68,12 @@ public class Geography extends SQLServerSpatialDatatype {
      * Returns a Geography instance from an Open Geospatial Consortium (OGC) Well-Known Text (WKT)
      *  representation augmented with any Z (elevation) and M (measure) values carried by the instance.
      *  
-     * @param wkt WKT
-     * @param srid SRID
-     * @return Geography instance
+     * @param wkt
+     *            WKT
+     * @param srid
+     *            SRID
+     * @return Geography
+     *            Geography instance created from WKT and SRID
      * @throws SQLServerException 
      *              if an exception occurs
      */
@@ -74,8 +85,10 @@ public class Geography extends SQLServerSpatialDatatype {
      * Returns a Geography instance from an Open Geospatial Consortium (OGC) 
      * Well-Known Binary (WKB) representation.
      * 
-     * @param wkb WKB
-     * @return Geography instance
+     * @param wkb
+     *            WKB
+     * @return Geography
+     *            Geography instance created from WKB
      * @throws SQLServerException 
      *              if an exception occurs
      */
@@ -86,8 +99,10 @@ public class Geography extends SQLServerSpatialDatatype {
     /**
      * Returns a constructed Geography from an internal SQL Server format for spatial data.
      * 
-     * @param wkb WKB
-     * @return Geography instance
+     * @param wkb
+     *            WKB
+     * @return Geography
+     *            Geography instance created from WKB
      * @throws SQLServerException 
      *              if an exception occurs
      */
@@ -99,8 +114,10 @@ public class Geography extends SQLServerSpatialDatatype {
      * Returns a Geography instance from an Open Geospatial Consortium (OGC) Well-Known Text (WKT) representation.
      * SRID is defaulted to 4326.
      * 
-     * @param wkt WKt
-     * @return Geography instance
+     * @param wkt
+     *            WKT
+     * @return Geography
+     *            Geography instance created from WKT
      * @throws SQLServerException 
      *              if an exception occurs
      */
@@ -111,10 +128,14 @@ public class Geography extends SQLServerSpatialDatatype {
     /**
      * Constructs a Geography instance that represents a Point instance from its X and Y values and an SRID.
      * 
-     * @param x x coordinate
-     * @param y y coordinate
-     * @param srid SRID
-     * @return Geography instance
+     * @param x 
+     *            x coordinate
+     * @param y
+     *            y coordinate
+     * @param srid
+     *            SRID
+     * @return Geography
+     *            Geography instance
      * @throws SQLServerException 
      *              if an exception occurs
      */
@@ -126,7 +147,8 @@ public class Geography extends SQLServerSpatialDatatype {
      * Returns the Open Geospatial Consortium (OGC) Well-Known Text (WKT) representation of a 
      * Geography instance. This text will not contain any Z (elevation) or M (measure) values carried by the instance.
      * 
-     * @return the WKT representation without the Z and M values.
+     * @return
+     *              the WKT representation without the Z and M values.
      * @throws SQLServerException 
      *              if an exception occurs
      */
@@ -148,7 +170,8 @@ public class Geography extends SQLServerSpatialDatatype {
     /**
      *  Returns the Open Geospatial Consortium (OGC) Well-Known Binary (WKB) representation of a 
      *  Geography instance. This value will not contain any Z or M values carried by the instance.
-     * @return WKB
+     *  
+     * @return byte array representation of the Geography object.
      */
     public byte[] STAsBinary() {
         if (null == wkbNoZM) {
@@ -160,32 +183,34 @@ public class Geography extends SQLServerSpatialDatatype {
     /**
      *  Returns the bytes that represent an internal SQL Server format of Geography type.
      * 
-     * @return WKB
+     * @return byte array representation of the Geography object.
      */
     public byte[] serialize() {
         return wkb;
     }
     
     /**
-     * Returns boolean whether 
+     * Returns if the object contains a M (measure) value.
      * 
-     * @return Boolean 
+     * @return boolean that indicates if the object contains M value.
      */
     public boolean hasM() {
         return hasMvalues;
     }
     
     /**
+     * Returns if the object contains a Z (elevation) value.
      * 
-     * @return
+     * @return boolean that indicates if the object contains Z value.
      */
     public boolean hasZ() {
         return hasZvalues;
     }
     
     /**
+     * Returns the X coordinate value.
      * 
-     * @return
+     * @return double value that represents the X coordinate.
      */
     public Double getX() {
         if (null != internalType && internalType == InternalSpatialDatatype.POINT && points.length == 2) {
@@ -195,8 +220,9 @@ public class Geography extends SQLServerSpatialDatatype {
     }
     
     /**
+     * Returns the Y coordinate value.
      * 
-     * @return
+     * @return double value that represents the Y coordinate.
      */
     public Double getY() {
         if (null != internalType && internalType == InternalSpatialDatatype.POINT && points.length == 2) {
@@ -206,8 +232,9 @@ public class Geography extends SQLServerSpatialDatatype {
     }
     
     /**
+     * Returns the M (measure) value of the object.
      * 
-     * @return
+     * @return double value that represents the M value.
      */
     public Double getM() {
         if (null != internalType && internalType == InternalSpatialDatatype.POINT && hasM()) {
@@ -215,9 +242,11 @@ public class Geography extends SQLServerSpatialDatatype {
         }
         return null;
     }
+    
     /**
+     * Returns the Z (elevation) value of the object.
      * 
-     * @return
+     * @return double value that represents the Z value.
      */
     public Double getZ() {
         if (null != internalType && internalType == InternalSpatialDatatype.POINT && hasZ()) {
@@ -227,24 +256,27 @@ public class Geography extends SQLServerSpatialDatatype {
     }
 
     /**
+     * Returns the Spatial Reference Identifier (SRID) value.
      * 
-     * @return
+     * @return int value of SRID.
      */
     public int getSrid() {
         return srid;
     }
     
     /**
+     * Returns if the Geography object is null.
      * 
-     * @return
+     * @return boolean that indicates if the object is null.
      */
     public boolean isNull() {
         return isNull;
     }
     
     /**
+     * Returns the number of points in the Geography object.
      * 
-     * @return
+     * @return int that indicates the number of points in the Geography object.
      */
     public int STNumPoints() {
         return numberOfPoints;
@@ -253,7 +285,7 @@ public class Geography extends SQLServerSpatialDatatype {
     /**
      * Returns the Open Geospatial Consortium (OGC) type name represented by a Geography instance.
      * 
-     * @return type name
+     * @return String that contains the Geography object's type name
      */
     public String STGeographyType() {
         if (null != internalType) {
@@ -263,13 +295,19 @@ public class Geography extends SQLServerSpatialDatatype {
     }
     
     /**
+     * Returns the WKT representation of the Geography object.
      * 
-     * @return
+     * @return String that contains the WKT representation of the Geography object.
      */
     public String asTextZM() {
         return wkt;
     }
     
+    /**
+     * Returns the String representation of the Geography object.
+     * 
+     * @return String that contains the WKT representation of the Geography object.
+     */
     @Override
     public String toString() {
         return wkt;
