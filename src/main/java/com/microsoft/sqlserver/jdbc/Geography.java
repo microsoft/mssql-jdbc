@@ -17,9 +17,9 @@ public class Geography extends SQLServerSpatialDatatype {
      * Private constructor used for creating a Geography object from WKT and srid.
      * 
      * @param WellKnownText
-     *             Well-Known Text (WKT)
+     *              Well-Known Text (WKT) provided by the user.
      * @param srid 
-     *             Spatial Reference Identifier (SRID).
+     *             Spatial Reference Identifier (SRID) provided by the user.
      * @throws SQLServerException 
      *              if an exception occurs
      */
@@ -43,7 +43,7 @@ public class Geography extends SQLServerSpatialDatatype {
      * Private constructor used for creating a Geography object from WKB.
      * 
      * @param wkb 
-     *             Well-Known Binary (WKB)
+     *             Well-Known Binary (WKB) provided by the user.
      * @throws SQLServerException 
      *              if an exception occurs
      */
@@ -69,9 +69,9 @@ public class Geography extends SQLServerSpatialDatatype {
      *  representation augmented with any Z (elevation) and M (measure) values carried by the instance.
      *  
      * @param wkt
-     *            WKT
+     *             Well-Known Text (WKT) provided by the user.
      * @param srid
-     *            SRID
+     *            Spatial Reference Identifier (SRID) provided by the user.
      * @return Geography
      *            Geography instance created from WKT and SRID
      * @throws SQLServerException 
@@ -86,7 +86,7 @@ public class Geography extends SQLServerSpatialDatatype {
      * Well-Known Binary (WKB) representation.
      * 
      * @param wkb
-     *            WKB
+     *            Well-Known Binary (WKB) provided by the user.
      * @return Geography
      *            Geography instance created from WKB
      * @throws SQLServerException 
@@ -100,7 +100,7 @@ public class Geography extends SQLServerSpatialDatatype {
      * Returns a constructed Geography from an internal SQL Server format for spatial data.
      * 
      * @param wkb
-     *            WKB
+     *            Well-Known Binary (WKB) provided by the user.
      * @return Geography
      *            Geography instance created from WKB
      * @throws SQLServerException 
@@ -115,7 +115,7 @@ public class Geography extends SQLServerSpatialDatatype {
      * SRID is defaulted to 4326.
      * 
      * @param wkt
-     *            WKT
+     *             Well-Known Text (WKT) provided by the user.
      * @return Geography
      *            Geography instance created from WKT
      * @throws SQLServerException 
@@ -295,7 +295,7 @@ public class Geography extends SQLServerSpatialDatatype {
     }
     
     /**
-     * Returns the WKT representation of the Geography object.
+     * Returns the  Well-Known Text (WKT) representation of the Geography object.
      * 
      * @return String that contains the WKT representation of the Geography object.
      */

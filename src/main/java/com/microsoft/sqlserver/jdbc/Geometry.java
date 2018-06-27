@@ -17,9 +17,9 @@ public class Geometry extends SQLServerSpatialDatatype {
      * Private constructor used for creating a Geometry object from WKT and srid.
      * 
      * @param WellKnownText
-     *             Well-Known Text (WKT)
+     *             Well-Known Text (WKT) provided by the user.
      * @param srid 
-     *             Spatial Reference Identifier (SRID).
+     *             Spatial Reference Identifier (SRID) provided by the user.
      * @throws SQLServerException
      *             if an exception occurs
      */
@@ -44,7 +44,7 @@ public class Geometry extends SQLServerSpatialDatatype {
      * Private constructor used for creating a Geometry object from WKB.
      * 
      * @param wkb 
-     *             Well-Known Binary (WKB)
+     *             Well-Known Binary (WKB) provided by the user.
      * @throws SQLServerException
      *             if an exception occurs
      */
@@ -70,9 +70,9 @@ public class Geometry extends SQLServerSpatialDatatype {
      * M (measure) values carried by the instance.
      * 
      * @param wkt
-     *            WKT
+     *            Well-Known Text (WKT) provided by the user.
      * @param srid
-     *            SRID
+     *            Spatial Reference Identifier (SRID) provided by the user.
      * @return Geometry
      *            Geometry instance created from WKT and SRID
      * @throws SQLServerException
@@ -87,7 +87,7 @@ public class Geometry extends SQLServerSpatialDatatype {
      * Returns a Geometry instance from an Open Geospatial Consortium (OGC) Well-Known Binary (WKB) representation.
      * 
      * @param wkb
-     *            WKB
+     *            Well-Known Binary (WKB) provided by the user.
      * @return Geometry
      *            Geometry instance created from WKB
      * @throws SQLServerException
@@ -101,7 +101,7 @@ public class Geometry extends SQLServerSpatialDatatype {
      * Returns a constructed Geometry from an internal SQL Server format for spatial data.
      * 
      * @param wkb
-     *            WKB
+     *            Well-Known Binary (WKB) provided by the user.
      * @return Geometry
      *            Geometry instance created from WKB
      * @throws SQLServerException
@@ -115,7 +115,7 @@ public class Geometry extends SQLServerSpatialDatatype {
      * Returns a Geometry instance from an Open Geospatial Consortium (OGC) Well-Known Text (WKT) representation. SRID is defaulted to 0.
      * 
      * @param wkt
-     *            WKT
+     *            Well-Known Text (WKT) provided by the user.
      * @return Geometry
      *            Geometry instance created from WKT
      * @throws SQLServerException
@@ -297,7 +297,7 @@ public class Geometry extends SQLServerSpatialDatatype {
     }
 
     /**
-     * Returns the WKT representation of the Geometry object.
+     * Returns the Well-Known Text (WKT) representation of the Geometry object.
      * 
      * @return String that contains the WKT representation of the Geometry object.
      */
