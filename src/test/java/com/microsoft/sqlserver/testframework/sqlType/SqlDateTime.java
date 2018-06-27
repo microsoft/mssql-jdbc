@@ -14,6 +14,7 @@ import java.sql.JDBCType;
 import java.sql.Timestamp;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.util.Random;
 import java.util.concurrent.ThreadLocalRandom;
 
 public class SqlDateTime extends SqlType {
@@ -40,5 +41,23 @@ public class SqlDateTime extends SqlType {
 
     public Object createdata() {
         return new Timestamp(ThreadLocalRandom.current().nextLong(((Timestamp) minvalue).getTime(), ((Timestamp) maxvalue).getTime()));
+    }
+    
+    protected int generateRandomInt(int length) {
+        Random rnd = new Random();
+        int power = (int) Math.pow(10, length - 1);
+        
+        //Example of how this works:
+        // if length is 3, then we add 100 + random number between 0~899, so that we get a random number between 100~999.
+        int randomNumeric;
+        if (length <= 0) {
+            randomNumeric = 0;
+        } else if (length == 1) {
+            randomNumeric = rnd.nextInt(10);
+        } else {
+            randomNumeric = power + rnd.nextInt((int) (9 * power));
+        }
+        
+        return randomNumeric;
     }
 }

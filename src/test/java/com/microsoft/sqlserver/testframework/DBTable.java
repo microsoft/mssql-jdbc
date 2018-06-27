@@ -473,7 +473,7 @@ public class DBTable extends AbstractSQLGenerator {
                 || JDBCType.LONGVARBINARY == getColumn(colNum).getJdbctype());
     }
     
-    private static String byteArrayToHex(byte[] a) {
+    private String byteArrayToHex(byte[] a) {
         StringBuilder sb = new StringBuilder(a.length * 2);
         for(byte b: a)
            sb.append(String.format("%02x", b));
