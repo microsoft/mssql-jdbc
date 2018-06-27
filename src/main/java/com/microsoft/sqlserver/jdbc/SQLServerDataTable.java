@@ -299,7 +299,7 @@ public final class SQLServerDataTable {
      * Retrieves <code>java.util.Map</code> object type of columnMetaData for all columns where column indexes are mapped with their
      * respective {@link SQLServerDataColumn} Java object
      * 
-     * @return Map<Integer, SQLServerDataColumn>
+     * @return Map
      */
     public synchronized Map<Integer, SQLServerDataColumn> getColumnMetadata() {
         return columnMetadata;
