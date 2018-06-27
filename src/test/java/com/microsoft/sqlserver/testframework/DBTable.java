@@ -19,8 +19,6 @@ import java.util.StringJoiner;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import org.apache.commons.codec.binary.Hex;
-
 import com.microsoft.sqlserver.testframework.sqlType.SqlType;
 import com.microsoft.sqlserver.testframework.sqlType.VariableLengthType;
 import com.microsoft.sqlserver.testframework.util.RandomUtil;
@@ -362,7 +360,7 @@ public class DBTable extends AbstractSQLGenerator {
                     sb.add("'" + String.valueOf(getColumn(colNum).getRowValue(i)) + "'");
                 }
                 else if (passDataAsHex(colNum)) {
-                    sb.add("0X" + Hex.encodeHexString((byte[]) (getColumn(colNum).getRowValue(i))));
+                    sb.add("0X" + byteArrayToHex((byte[]) (getColumn(colNum).getRowValue(i))));
                 }
                 else {
                     sb.add(String.valueOf(getColumn(colNum).getRowValue(i)));
@@ -457,11 +455,10 @@ public class DBTable extends AbstractSQLGenerator {
      * @return <code>true</code> if value can be passed as String for the column
      */
     boolean passDataAsString(int colNum) {
-        return (JDBCType.CHAR == getColumn(colNum).getJdbctype() || JDBCType.VARCHAR == getColumn(colNum).getJdbctype()
-                || JDBCType.NCHAR == getColumn(colNum).getJdbctype() || JDBCType.NVARCHAR == getColumn(colNum).getJdbctype()
-                || JDBCType.TIMESTAMP == getColumn(colNum).getJdbctype() || JDBCType.DATE == getColumn(colNum).getJdbctype()
-                || JDBCType.TIME == getColumn(colNum).getJdbctype() || JDBCType.LONGVARCHAR == getColumn(colNum).getJdbctype()
-                || JDBCType.LONGNVARCHAR == getColumn(colNum).getJdbctype());
+        JDBCType jt = getColumn(colNum).getJdbctype();
+        return (JDBCType.CHAR == jt || JDBCType.VARCHAR == jt || JDBCType.NCHAR == jt || JDBCType.NVARCHAR == jt
+                || JDBCType.TIMESTAMP == jt || JDBCType.DATE == jt || JDBCType.TIME == jt || JDBCType.LONGVARCHAR == jt
+                || JDBCType.LONGNVARCHAR == jt);
     }
 
     /**
@@ -471,7 +468,14 @@ public class DBTable extends AbstractSQLGenerator {
      */
 
     boolean passDataAsHex(int colNum) {
-        return (JDBCType.BINARY == getColumn(colNum).getJdbctype() || JDBCType.VARBINARY == getColumn(colNum).getJdbctype()
-                || JDBCType.LONGVARBINARY == getColumn(colNum).getJdbctype());
+        JDBCType jt = getColumn(colNum).getJdbctype();
+        return (JDBCType.BINARY == jt || JDBCType.VARBINARY == jt || JDBCType.LONGVARBINARY == jt);
     }
+    
+    private String byteArrayToHex(byte[] a) {
+        StringBuilder sb = new StringBuilder(a.length * 2);
+        for(byte b: a)
+           sb.append(String.format("%02x", b));
+        return sb.toString();
+     }
 }
