@@ -764,7 +764,8 @@ public interface ISQLServerDataSource extends javax.sql.CommonDataSource {
     /**
      * Sets Constructor Arguments to be provided on constructor of 'trustManagerClass'
      * 
-     * @param trustManagerConstructorArg 'trustManagerClass' constructor arguments
+     * @param trustManagerConstructorArg
+     *            'trustManagerClass' constructor arguments
      */
     public void setTrustManagerConstructorArg(String trustManagerConstructorArg);
 
@@ -774,4 +775,19 @@ public interface ISQLServerDataSource extends javax.sql.CommonDataSource {
      * @return trustManagerConstructorArg property value
      */
     public String getTrustManagerConstructorArg();
+
+    /**
+     * Getting the use Bulk Copy API for Batch Insert
+     * 
+     * @return whether the driver should use Bulk Copy API for Batch Insert operations.
+     */
+    public boolean getUseBulkCopyForBatchInsert();
+
+    /**
+     * Setting the use Bulk Copy API for Batch Insert
+     * 
+     * @param useBulkCopyForBatchInsert
+     *            indicates whether Bulk Copy API should be used for Batch Insert operations.
+     */
+    public void setUseBulkCopyForBatchInsert(boolean useBulkCopyForBatchInsert);
 }

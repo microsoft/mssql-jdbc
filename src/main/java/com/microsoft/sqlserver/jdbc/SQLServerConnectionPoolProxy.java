@@ -33,10 +33,12 @@ class SQLServerConnectionPoolProxy implements ISQLServerConnection, java.io.Seri
      * Always refresh SerialVersionUID when prompted
      */
     private static final long serialVersionUID = 5752599482349578127L;
-    
+
     private SQLServerConnection wrappedConnection;
     private boolean bIsOpen;
-    static private final AtomicInteger baseConnectionID = new AtomicInteger(0);       // connection id dispenser
+    static private final AtomicInteger baseConnectionID = new AtomicInteger(0); // connection
+                                                                                // id
+                                                                                // dispenser
     final private String traceID;
 
     // Permission targets
@@ -491,14 +493,16 @@ class SQLServerConnectionPoolProxy implements ISQLServerConnection, java.io.Seri
 
     @Override
     public void setClientInfo(java.util.Properties properties) throws SQLClientInfoException {
-        // No checkClosed() call since we can only throw SQLClientInfoException from here
+        // No checkClosed() call since we can only throw SQLClientInfoException
+        // from here
         wrappedConnection.setClientInfo(properties);
     }
 
     @Override
     public void setClientInfo(String name,
             String value) throws SQLClientInfoException {
-        // No checkClosed() call since we can only throw SQLClientInfoException from here
+        // No checkClosed() call since we can only throw SQLClientInfoException
+        // from here
         wrappedConnection.setClientInfo(name, value);
     }
 

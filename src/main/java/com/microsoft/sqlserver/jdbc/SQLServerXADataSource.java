@@ -52,7 +52,8 @@ public final class SQLServerXADataSource extends SQLServerConnectionPoolDataSour
      * @exception SQLException
      *                The database connection failed.
      */
-    /* L0 */ public XAConnection getXAConnection(String user,
+    @Override
+    public XAConnection getXAConnection(String user,
             String password) throws SQLException {
         if (loggerExternal.isLoggable(Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "getXAConnection", new Object[] {user, "Password not traced"});
@@ -84,7 +85,8 @@ public final class SQLServerXADataSource extends SQLServerConnectionPoolDataSour
      * @exception SQLException
      *                The database connection failed.
      */
-    /* L0 */ public XAConnection getXAConnection() throws SQLException {
+    @Override
+    public XAConnection getXAConnection() throws SQLException {
         if (loggerExternal.isLoggable(Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "getXAConnection");
         return getXAConnection(getUser(), getPassword());
@@ -92,6 +94,7 @@ public final class SQLServerXADataSource extends SQLServerConnectionPoolDataSour
 
     // Implement javax.naming.Referenceable interface methods.
 
+    @Override
     public Reference getReference() {
         if (loggerExternal.isLoggable(Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "getReference");
@@ -129,5 +132,4 @@ public final class SQLServerXADataSource extends SQLServerConnectionPoolDataSour
             return ds;
         }
     }
-
 }

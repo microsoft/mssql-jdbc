@@ -62,6 +62,7 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
 
     final static java.util.logging.Logger logger = java.util.logging.Logger.getLogger("com.microsoft.sqlserver.jdbc.internals.SQLServerResultSet");
 
+    @Override
     public String toString() {
         return traceID;
     }
@@ -219,13 +220,8 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
     }
 
     private final FetchBuffer fetchBuffer;
-    
-    /**
-     * Exposes Data Classification information for the current ResultSet For SQL Servers that do not support Data Classification or results that do
-     * not fetch any classified columns, this data can be null
-     * 
-     * @return SensitivityClassification
-     */
+
+    @Override
     public SensitivityClassification getSensitivityClassification() {
         return tdsReader.sensitivityClassification;
     }

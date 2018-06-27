@@ -12,6 +12,8 @@ import java.math.BigDecimal;
 import java.sql.SQLType;
 import java.util.Calendar;
 
+import com.microsoft.sqlserver.jdbc.dataclassification.SensitivityClassification;
+
 /**
  * This interface is implemented by {@link SQLServerResultSet} class.
  */
@@ -1689,4 +1691,12 @@ public interface ISQLServerResultSet extends java.sql.ResultSet {
             int precision,
             int scale,
             boolean forceEncrypt) throws SQLServerException;
+    
+    /**
+     * Exposes Data Classification information for the current ResultSet For SQL Servers that do not support Data Classification or results that do
+     * not fetch any classified columns, this data can be null
+     * 
+     * @return SensitivityClassification
+     */
+    public SensitivityClassification getSensitivityClassification();
 }

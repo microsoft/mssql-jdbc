@@ -16,6 +16,7 @@ public class Geography extends SQLServerSpatialDatatype {
     /**
      * Private constructor used for creating a Geography object from WKT and srid.
      * @throws SQLServerException 
+     *              if an exception occurs
      */
     private Geography(String WellKnownText, int srid) throws SQLServerException {
         this.wkt = WellKnownText;
@@ -36,6 +37,7 @@ public class Geography extends SQLServerSpatialDatatype {
     /**
      * Private constructor used for creating a Geography object from WKB.
      * @throws SQLServerException 
+     *              if an exception occurs
      */
     private Geography(byte[] wkb) throws SQLServerException {
         this.wkb = wkb;
@@ -54,10 +56,6 @@ public class Geography extends SQLServerSpatialDatatype {
         isNull = false;
     }
     
-    public Geography() {
-        // TODO Auto-generated constructor stub
-    }
-    
     /**
      * Returns a Geography instance from an Open Geospatial Consortium (OGC) Well-Known Text (WKT)
      *  representation augmented with any Z (elevation) and M (measure) values carried by the instance.
@@ -66,6 +64,7 @@ public class Geography extends SQLServerSpatialDatatype {
      * @param srid SRID
      * @return Geography instance
      * @throws SQLServerException 
+     *              if an exception occurs
      */
     public static Geography STGeomFromText(String wkt, int srid) throws SQLServerException {
         return new Geography(wkt, srid);
@@ -78,6 +77,7 @@ public class Geography extends SQLServerSpatialDatatype {
      * @param wkb WKB
      * @return Geography instance
      * @throws SQLServerException 
+     *              if an exception occurs
      */
     public static Geography STGeomFromWKB(byte[] wkb) throws SQLServerException {
         return new Geography(wkb);
@@ -89,6 +89,7 @@ public class Geography extends SQLServerSpatialDatatype {
      * @param wkb WKB
      * @return Geography instance
      * @throws SQLServerException 
+     *              if an exception occurs
      */
     public static Geography deserialize(byte[] wkb) throws SQLServerException {
         return new Geography(wkb);
@@ -101,6 +102,7 @@ public class Geography extends SQLServerSpatialDatatype {
      * @param wkt WKt
      * @return Geography instance
      * @throws SQLServerException 
+     *              if an exception occurs
      */
     public static Geography parse(String wkt) throws SQLServerException {
         return new Geography(wkt, 4326);
@@ -114,6 +116,7 @@ public class Geography extends SQLServerSpatialDatatype {
      * @param srid SRID
      * @return Geography instance
      * @throws SQLServerException 
+     *              if an exception occurs
      */
     public static Geography point(double x, double y, int srid) throws SQLServerException {
         return new Geography("POINT (" + x + " " + y + ")", srid);
@@ -125,6 +128,7 @@ public class Geography extends SQLServerSpatialDatatype {
      * 
      * @return the WKT representation without the Z and M values.
      * @throws SQLServerException 
+     *              if an exception occurs
      */
     public String STAsText() throws SQLServerException {
         if (null == wktNoZM) {
@@ -162,14 +166,27 @@ public class Geography extends SQLServerSpatialDatatype {
         return wkb;
     }
     
+    /**
+     * Returns boolean whether 
+     * 
+     * @return Boolean 
+     */
     public boolean hasM() {
         return hasMvalues;
     }
     
+    /**
+     * 
+     * @return
+     */
     public boolean hasZ() {
         return hasZvalues;
     }
     
+    /**
+     * 
+     * @return
+     */
     public Double getX() {
         if (null != internalType && internalType == InternalSpatialDatatype.POINT && points.length == 2) {
             return points[0];
@@ -177,6 +194,10 @@ public class Geography extends SQLServerSpatialDatatype {
         return null;
     }
     
+    /**
+     * 
+     * @return
+     */
     public Double getY() {
         if (null != internalType && internalType == InternalSpatialDatatype.POINT && points.length == 2) {
             return points[1];
@@ -184,13 +205,20 @@ public class Geography extends SQLServerSpatialDatatype {
         return null;
     }
     
+    /**
+     * 
+     * @return
+     */
     public Double getM() {
         if (null != internalType && internalType == InternalSpatialDatatype.POINT && hasM()) {
             return mValues[0];
         }
         return null;
     }
-    
+    /**
+     * 
+     * @return
+     */
     public Double getZ() {
         if (null != internalType && internalType == InternalSpatialDatatype.POINT && hasZ()) {
             return zValues[0];
@@ -198,14 +226,26 @@ public class Geography extends SQLServerSpatialDatatype {
         return null;
     }
 
+    /**
+     * 
+     * @return
+     */
     public int getSrid() {
         return srid;
     }
     
+    /**
+     * 
+     * @return
+     */
     public boolean isNull() {
         return isNull;
     }
     
+    /**
+     * 
+     * @return
+     */
     public int STNumPoints() {
         return numberOfPoints;
     }
@@ -222,10 +262,15 @@ public class Geography extends SQLServerSpatialDatatype {
         return null;
     }
     
+    /**
+     * 
+     * @return
+     */
     public String asTextZM() {
         return wkt;
     }
     
+    @Override
     public String toString() {
         return wkt;
     }
@@ -254,7 +299,6 @@ public class Geography extends SQLServerSpatialDatatype {
                     buf.putDouble(zValues[i]);
                 }
             }
-            
             if (hasMvalues) {
                 for (int i = 0; i < numberOfPoints; i++) {
                     buf.putDouble(mValues[i]);

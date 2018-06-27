@@ -35,7 +35,12 @@ import java.util.Map;
  */
 final class SQLCollation implements java.io.Serializable
 {
-    private final int info;     // First 4 bytes of TDS collation.
+	/**
+	 * 
+	 */
+	private static final long serialVersionUID = 6748833280721312349L;
+	
+	private final int info;     // First 4 bytes of TDS collation.
     private int langID() { return info & 0x0000FFFF; }
     private final int sortId;   // 5th byte of TDS collation.
     private final Encoding encoding;

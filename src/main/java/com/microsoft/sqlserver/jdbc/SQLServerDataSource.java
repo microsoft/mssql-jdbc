@@ -32,17 +32,26 @@ public class SQLServerDataSource implements ISQLServerDataSource, javax.sql.Data
     static final private java.util.logging.Logger parentLogger = java.util.logging.Logger.getLogger("com.microsoft.sqlserver.jdbc");
     final private String loggingClassName;
     private boolean trustStorePasswordStripped = false;
-    
+
     /**
      * Always refresh SerialVersionUID when prompted
      */
     private static final long serialVersionUID = 654861379544314296L;
 
-    private Properties connectionProps;			// Properties passed to SQLServerConnection class.
-    private String dataSourceURL;				// URL for datasource.
-    private String dataSourceDescription;		// Description for datasource.
-    static private final AtomicInteger baseDataSourceID = new AtomicInteger(0);	// Unique id generator for each DataSource instance (used for
-                                                                               	// logging).
+    private Properties connectionProps; // Properties passed to
+                                        // SQLServerConnection class.
+    private String dataSourceURL; // URL for datasource.
+    private String dataSourceDescription; // Description for datasource.
+    static private final AtomicInteger baseDataSourceID = new AtomicInteger(0); // Unique
+                                                                                // id
+                                                                                // generator
+                                                                                // for
+                                                                                // each
+                                                                                // DataSource
+                                                                                // instance
+                                                                                // (used
+                                                                                // for
+                                                                                // logging).
     final private String traceID;
 
     /**
@@ -101,7 +110,8 @@ public class SQLServerDataSource implements ISQLServerDataSource, javax.sql.Data
     }
 
     // Sets the log writer for this DataSource.
-    // Currently we just hold onto this logWriter and pass it back to callers, nothing else.
+    // Currently we just hold onto this logWriter and pass it back to callers,
+    // nothing else.
     private transient PrintWriter logWriter;
 
     @Override
@@ -126,7 +136,8 @@ public class SQLServerDataSource implements ISQLServerDataSource, javax.sql.Data
 
     // Core Connection property setters/getters.
 
-    // applicationName is used to identify the specific application in various SQL Server
+    // applicationName is used to identify the specific application in various
+    // SQL Server
     // profiling and logging tools.
     @Override
     public void setApplicationName(String applicationName) {
@@ -139,7 +150,8 @@ public class SQLServerDataSource implements ISQLServerDataSource, javax.sql.Data
                 SQLServerDriverStringProperty.APPLICATION_NAME.getDefaultValue());
     }
 
-    // databaseName is the name of the database to connect to. If databaseName is not set,
+    // databaseName is the name of the database to connect to. If databaseName
+    // is not set,
     // getDatabaseName returns the default value of null.
     @Override
     public void setDatabaseName(String databaseName) {
@@ -152,7 +164,8 @@ public class SQLServerDataSource implements ISQLServerDataSource, javax.sql.Data
     }
 
     // instanceName is the SQL Server instance name to connect to.
-    // If instanceName is not set, getInstanceName returns the default value of null.
+    // If instanceName is not set, getInstanceName returns the default value of
+    // null.
     @Override
     public void setInstanceName(String instanceName) {
         setStringProperty(connectionProps, SQLServerDriverStringProperty.INSTANCE_NAME.toString(), instanceName);
@@ -205,9 +218,12 @@ public class SQLServerDataSource implements ISQLServerDataSource, javax.sql.Data
         return getStringProperty(connectionProps, SQLServerDriverStringProperty.ACCESS_TOKEN.toString(), null);
     }
 
-    // If lastUpdateCount is set to true, the driver will return only the last update
-    // count from all the update counts returned by a batch. The default of false will
-    // return all update counts. If lastUpdateCount is not set, getLastUpdateCount
+    // If lastUpdateCount is set to true, the driver will return only the last
+    // update
+    // count from all the update counts returned by a batch. The default of
+    // false will
+    // return all update counts. If lastUpdateCount is not set,
+    // getLastUpdateCount
     // returns the default value of false.
     @Override
     public void setColumnEncryptionSetting(String columnEncryptionSetting) {
@@ -330,10 +346,13 @@ public class SQLServerDataSource implements ISQLServerDataSource, javax.sql.Data
         return getStringProperty(connectionProps, SQLServerDriverStringProperty.HOSTNAME_IN_CERTIFICATE.toString(), null);
     }
 
-    // lockTimeout is the number of milliseconds to wait before the database reports
+    // lockTimeout is the number of milliseconds to wait before the database
+    // reports
     // a lock timeout. The default value of -1 means wait forever. If specified,
-    // this value will be the default for all statements on the connection. Note a
-    // value of 0 means no wait. If lockTimeout is not set, getLockTimeout returns
+    // this value will be the default for all statements on the connection. Note
+    // a
+    // value of 0 means no wait. If lockTimeout is not set, getLockTimeout
+    // returns
     // the default of -1.
     @Override
     public void setLockTimeout(int lockTimeout) {
@@ -346,9 +365,12 @@ public class SQLServerDataSource implements ISQLServerDataSource, javax.sql.Data
                 SQLServerDriverIntProperty.LOCK_TIMEOUT.getDefaultValue());
     }
 
-    // setPassword sets the password that will be used when connecting to SQL Server.
-    // Note getPassword is deliberately declared non-public for security reasons.
-    // If the password is not set, getPassword returns the default value of null.
+    // setPassword sets the password that will be used when connecting to SQL
+    // Server.
+    // Note getPassword is deliberately declared non-public for security
+    // reasons.
+    // If the password is not set, getPassword returns the default value of
+    // null.
     @Override
     public void setPassword(String password) {
         setStringProperty(connectionProps, SQLServerDriverStringProperty.PASSWORD.toString(), password);
@@ -358,8 +380,10 @@ public class SQLServerDataSource implements ISQLServerDataSource, javax.sql.Data
         return getStringProperty(connectionProps, SQLServerDriverStringProperty.PASSWORD.toString(), null);
     }
 
-    // portNumber is the TCP-IP port number used when opening a socket connection
-    // to SQL Server. If portNumber is not set, getPortNumber returns the default
+    // portNumber is the TCP-IP port number used when opening a socket
+    // connection
+    // to SQL Server. If portNumber is not set, getPortNumber returns the
+    // default
     // of 1433. Note as mentioned above, setPortNumber does not do any range
     // checking on the port value passed in, invalid port numbers like 99999 can
     // be passed in without triggering any error.
@@ -376,8 +400,10 @@ public class SQLServerDataSource implements ISQLServerDataSource, javax.sql.Data
 
     // selectMethod is the default cursor type used for the result set. This
     // property is useful when you are dealing with large result sets and don't
-    // want to store the whole result set in memory on the client side. By setting
-    // the property to "cursor" you will be able to create a server side cursor that
+    // want to store the whole result set in memory on the client side. By
+    // setting
+    // the property to "cursor" you will be able to create a server side cursor
+    // that
     // can fetch smaller chunks of data at a time. If selectMethod is not set,
     // getSelectMethod returns the default value of "direct".
     @Override
@@ -425,9 +451,12 @@ public class SQLServerDataSource implements ISQLServerDataSource, javax.sql.Data
     }
 
     // If sendStringParametersAsUnicode is set to true (which is the default),
-    // string parameters are sent to the server in UNICODE format. If sendStringParametersAsUnicode
-    // is set to false, string parameters are sent to the server in the native TDS collation
-    // format of the database, not in UNICODE. If sendStringParametersAsUnicode is not set,
+    // string parameters are sent to the server in UNICODE format. If
+    // sendStringParametersAsUnicode
+    // is set to false, string parameters are sent to the server in the native
+    // TDS collation
+    // format of the database, not in UNICODE. If sendStringParametersAsUnicode
+    // is not set,
     // getSendStringParametersAsUnicode returns the default of true.
     @Override
     public void setSendStringParametersAsUnicode(boolean sendStringParametersAsUnicode) {
@@ -452,7 +481,8 @@ public class SQLServerDataSource implements ISQLServerDataSource, javax.sql.Data
                 SQLServerDriverBooleanProperty.SERVER_NAME_AS_ACE.getDefaultValue());
     }
 
-    // serverName is the host name of the target SQL Server. If serverName is not set,
+    // serverName is the host name of the target SQL Server. If serverName is
+    // not set,
     // getServerName returns the default value of null is returned.
     @Override
     public void setServerName(String serverName) {
@@ -476,7 +506,8 @@ public class SQLServerDataSource implements ISQLServerDataSource, javax.sql.Data
         return getStringProperty(connectionProps, SQLServerDriverStringProperty.SERVER_SPN.toString(), null);
     }
 
-    // serverName is the host name of the target SQL Server. If serverName is not set,
+    // serverName is the host name of the target SQL Server. If serverName is
+    // not set,
     // getServerName returns the default value of null is returned.
     @Override
     public void setFailoverPartner(String serverName) {
@@ -499,7 +530,8 @@ public class SQLServerDataSource implements ISQLServerDataSource, javax.sql.Data
                 SQLServerDriverBooleanProperty.MULTI_SUBNET_FAILOVER.getDefaultValue());
     }
 
-    // setUser set's the user name that will be used when connecting to SQL Server.
+    // setUser set's the user name that will be used when connecting to SQL
+    // Server.
     // If user is not set, getUser returns the default value of null.
     @Override
     public void setUser(String user) {
@@ -512,8 +544,10 @@ public class SQLServerDataSource implements ISQLServerDataSource, javax.sql.Data
     }
 
     // workstationID is the name of the client machine (or client workstation).
-    // workstationID is the host name of the client in other words. If workstationID
-    // is not set, the default value is constructed by calling InetAddress.getLocalHost().getHostName()
+    // workstationID is the host name of the client in other words. If
+    // workstationID
+    // is not set, the default value is constructed by calling
+    // InetAddress.getLocalHost().getHostName()
     // or if getHostName() returns blank then getHostAddress().toString().
     @Override
     public void setWorkstationID(String workstationID) {
@@ -525,7 +559,8 @@ public class SQLServerDataSource implements ISQLServerDataSource, javax.sql.Data
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "getWorkstationID");
         String getWSID = connectionProps.getProperty(SQLServerDriverStringProperty.WORKSTATION_ID.toString());
-        // Per spec, return what the logon will send here if workstationID property is not set.
+        // Per spec, return what the logon will send here if workstationID
+        // property is not set.
         if (null == getWSID) {
             getWSID = Util.lookupHostName();
         }
@@ -533,9 +568,12 @@ public class SQLServerDataSource implements ISQLServerDataSource, javax.sql.Data
         return getWSID;
     }
 
-    // If xopenStates is set to true, the driver will convert SQL states to XOPEN
-    // compliant states. The default is false which causes the driver to generate SQL 99
-    // state codes. If xopenStates is not set, getXopenStates returns the default value
+    // If xopenStates is set to true, the driver will convert SQL states to
+    // XOPEN
+    // compliant states. The default is false which causes the driver to
+    // generate SQL 99
+    // state codes. If xopenStates is not set, getXopenStates returns the
+    // default value
     // of false.
     @Override
     public void setXopenStates(boolean xopenStates) {
@@ -592,18 +630,26 @@ public class SQLServerDataSource implements ISQLServerDataSource, javax.sql.Data
                 SQLServerDriverStringProperty.TRUST_MANAGER_CONSTRUCTOR_ARG.getDefaultValue());
     }
 
-    // The URL property is exposed for backwards compatibility reasons. Also, several
-    // Java Application servers expect a setURL function on the DataSource and set it
+    // The URL property is exposed for backwards compatibility reasons. Also,
+    // several
+    // Java Application servers expect a setURL function on the DataSource and
+    // set it
     // by default (JBoss and WebLogic).
 
-    // Note for security reasons we do not recommend that customers include the password
-    // in the url supplied to setURL. The reason for this is third-party Java Application
-    // Servers will very often display the value set to URL property in their DataSource
-    // configuration GUI. We recommend instead that clients use the setPassword method
-    // to set the password value. The Java Application Servers will not display a password
+    // Note for security reasons we do not recommend that customers include the
+    // password
+    // in the url supplied to setURL. The reason for this is third-party Java
+    // Application
+    // Servers will very often display the value set to URL property in their
+    // DataSource
+    // configuration GUI. We recommend instead that clients use the setPassword
+    // method
+    // to set the password value. The Java Application Servers will not display
+    // a password
     // that is set on the DataSource in the configuration GUI.
 
-    // Note if setURL is not called, getURL returns the default value of "jdbc:sqlserver://".
+    // Note if setURL is not called, getURL returns the default value of
+    // "jdbc:sqlserver://".
     @Override
     public void setURL(String url) {
         loggerExternal.entering(getClassNameLogging(), "setURL", url);
@@ -734,22 +780,13 @@ public class SQLServerDataSource implements ISQLServerDataSource, javax.sql.Data
         int defaultTimeOut = SQLServerDriverIntProperty.SOCKET_TIMEOUT.getDefaultValue();
         return getIntProperty(connectionProps, SQLServerDriverIntProperty.SOCKET_TIMEOUT.toString(), defaultTimeOut);
     }
-    
-    /**
-     * Setting the use Bulk Copy API for Batch Insert
-     * 
-     * @param useBulkCopyForBatchInsert indicates whether Bulk Copy API should be used for Batch Insert operations.
-     */
+
+    @Override
     public void setUseBulkCopyForBatchInsert(boolean useBulkCopyForBatchInsert) {
-        setBooleanProperty(connectionProps, SQLServerDriverBooleanProperty.USE_BULK_COPY_FOR_BATCH_INSERT.toString(),
-                useBulkCopyForBatchInsert);
+        setBooleanProperty(connectionProps, SQLServerDriverBooleanProperty.USE_BULK_COPY_FOR_BATCH_INSERT.toString(), useBulkCopyForBatchInsert);
     }
 
-    /**
-     * Getting the use Bulk Copy API for Batch Insert
-     * 
-     * @return whether the driver should use Bulk Copy API for Batch Insert operations.
-     */
+    @Override
     public boolean getUseBulkCopyForBatchInsert() {
         return getBooleanProperty(connectionProps, SQLServerDriverBooleanProperty.USE_BULK_COPY_FOR_BATCH_INSERT.toString(),
                 SQLServerDriverBooleanProperty.USE_BULK_COPY_FOR_BATCH_INSERT.getDefaultValue());
@@ -766,7 +803,8 @@ public class SQLServerDataSource implements ISQLServerDataSource, javax.sql.Data
                 SQLServerDriverStringProperty.JAAS_CONFIG_NAME.getDefaultValue());
     }
 
-    // responseBuffering controls the driver's buffering of responses from SQL Server.
+    // responseBuffering controls the driver's buffering of responses from SQL
+    // Server.
     // Possible values are:
     //
     // "full" - Fully buffer the response at execution time.
@@ -788,7 +826,8 @@ public class SQLServerDataSource implements ISQLServerDataSource, javax.sql.Data
 
     // Set a string property value.
     // Caller will always supply a non-null props and propKey.
-    // Caller may supply a null propValue, in this case no property value is set.
+    // Caller may supply a null propValue, in this case no property value is
+    // set.
     private void setStringProperty(Properties props,
             String propKey,
             String propValue) {
@@ -911,20 +950,24 @@ public class SQLServerDataSource implements ISQLServerDataSource, javax.sql.Data
         return propValue;
     }
 
-    // Returns a SQLServerConnection given username, password, and pooledConnection.
-    // Note that the DataSource properties set to connectionProps are used when creating
+    // Returns a SQLServerConnection given username, password, and
+    // pooledConnection.
+    // Note that the DataSource properties set to connectionProps are used when
+    // creating
     // the connection.
 
     // Both username and password can be null.
 
-    // If pooledConnection is not null, then connection returned is attached to the pooledConnection
+    // If pooledConnection is not null, then connection returned is attached to
+    // the pooledConnection
     // and participates in connection pooling.
     SQLServerConnection getConnectionInternal(String username,
             String password,
             SQLServerPooledConnection pooledConnection) throws SQLServerException {
         Properties userSuppliedProps;
         Properties mergedProps;
-        // Trust store password stripped and this object got created via Objectfactory referencing.
+        // Trust store password stripped and this object got created via
+        // Objectfactory referencing.
         if (trustStorePasswordStripped)
             SQLServerException.makeFromDriverError(null, null, SQLServerException.getErrString("R_referencingFailedTSP"), null, true);
 
@@ -951,7 +994,8 @@ public class SQLServerDataSource implements ISQLServerDataSource, javax.sql.Data
         // Merge in URL properties into userSuppliedProps if URL is set.
         if (null != dataSourceURL) {
             Properties urlProps = Util.parseUrl(dataSourceURL, dsLogger);
-            // null returned properties means that the passed in URL is not supported.
+            // null returned properties means that the passed in URL is not
+            // supported.
             if (null == urlProps)
                 SQLServerException.makeFromDriverError(null, null, SQLServerException.getErrString("R_errorConnectionString"), null, true);
             // Manually merge URL props and user supplied props.
@@ -1002,20 +1046,24 @@ public class SQLServerDataSource implements ISQLServerDataSource, javax.sql.Data
         Enumeration<?> e = connectionProps.keys();
         while (e.hasMoreElements()) {
             String propertyName = (String) e.nextElement();
-            // If a trustStore password is set, it is omitted and a trustStorePasswordSet flag is set.
+            // If a trustStore password is set, it is omitted and a
+            // trustStorePasswordSet flag is set.
             if (propertyName.equals(SQLServerDriverStringProperty.TRUST_STORE_PASSWORD.toString())) {
-                // The property set and the variable set at the same time is not possible
+                // The property set and the variable set at the same time is not
+                // possible
                 assert trustStorePasswordStripped == false;
                 ref.add(new StringRefAddr("trustStorePasswordStripped", "true"));
             }
             else {
-                // do not add passwords to the collection. we have normal password
+                // do not add passwords to the collection. we have normal
+                // password
                 if (!propertyName.contains(SQLServerDriverStringProperty.PASSWORD.toString()))
                     ref.add(new StringRefAddr(propertyName, connectionProps.getProperty(propertyName)));
             }
         }
 
-        // Add dataSourceURL and dataSourceDescription as these will not appear in connectionProps.
+        // Add dataSourceURL and dataSourceDescription as these will not appear
+        // in connectionProps.
         if (null != dataSourceURL)
             ref.add(new StringRefAddr("dataSourceURL", dataSourceURL));
 
@@ -1025,10 +1073,13 @@ public class SQLServerDataSource implements ISQLServerDataSource, javax.sql.Data
         return ref;
     }
 
-    // Initialize this datasource from properties found inside the reference ref.
-    // Called by SQLServerDataSourceObjectFactory to initialize new DataSource instance.
+    // Initialize this datasource from properties found inside the reference
+    // ref.
+    // Called by SQLServerDataSourceObjectFactory to initialize new DataSource
+    // instance.
     void initializeFromReference(javax.naming.Reference ref) {
-        // Enumerate all the StringRefAddr objects in the Reference and assign properties appropriately.
+        // Enumerate all the StringRefAddr objects in the Reference and assign
+        // properties appropriately.
         Enumeration<?> e = ref.getAll();
         while (e.hasMoreElements()) {
             StringRefAddr addr = (StringRefAddr) e.nextElement();
@@ -1045,7 +1096,8 @@ public class SQLServerDataSource implements ISQLServerDataSource, javax.sql.Data
             else if ("trustStorePasswordStripped".equals(propertyName)) {
                 trustStorePasswordStripped = true;
             }
-            // Just skip "class" StringRefAddr, it does not go into connectionProps
+            // Just skip "class" StringRefAddr, it does not go into
+            // connectionProps
             else if (!"class".equals(propertyName)) {
 
                 connectionProps.setProperty(propertyName, propertyValue);
@@ -1085,8 +1137,10 @@ public class SQLServerDataSource implements ISQLServerDataSource, javax.sql.Data
     }
 
     private void readObject(java.io.ObjectInputStream stream) throws java.io.InvalidObjectException {
-        // For added security/robustness, the only way to rehydrate a serialized SQLServerDataSource
-        // is to use a SerializationProxy. Direct use of readObject() is not supported.
+        // For added security/robustness, the only way to rehydrate a serialized
+        // SQLServerDataSource
+        // is to use a SerializationProxy. Direct use of readObject() is not
+        // supported.
         throw new java.io.InvalidObjectException("");
     }
 
@@ -1096,7 +1150,8 @@ public class SQLServerDataSource implements ISQLServerDataSource, javax.sql.Data
         private static final long serialVersionUID = 654661379542314226L;
 
         SerializationProxy(SQLServerDataSource ds) {
-            // We do not need the class name so pass null, serialization mechanism
+            // We do not need the class name so pass null, serialization
+            // mechanism
             // stores the class info.
             ref = ds.getReferenceInternal(null);
         }

@@ -14,7 +14,7 @@ import java.time.format.DateTimeFormatter;
  * The ISQLServerBulkRecord interface can be used to create classes that read in data from any source (such as a file) and allow a SQLServerBulkCopy
  * class to write the data to SQL Server tables.
  * 
- * Implemented by {@link SQLServerBulkCSVFileRecord}
+ * Implemented by {@link SQLServerBulkCommon}
  */
 public interface ISQLServerBulkRecord {
 

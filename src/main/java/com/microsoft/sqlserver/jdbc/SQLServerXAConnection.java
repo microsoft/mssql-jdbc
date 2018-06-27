@@ -29,7 +29,7 @@ public final class SQLServerXAConnection extends SQLServerPooledConnection imple
     private SQLServerConnection physicalControlConnection;
     private Logger xaLogger;
 
-    /* L0 */ SQLServerXAConnection(SQLServerDataSource ds,
+    SQLServerXAConnection(SQLServerDataSource ds,
             String user,
             String pwd) throws java.sql.SQLException {
         super(ds, user, pwd);
@@ -60,7 +60,8 @@ public final class SQLServerXAConnection extends SQLServerPooledConnection imple
             xaLogger.finer(ds.toString() + " user:" + user);
     }
 
-    /* L0 */ public synchronized XAResource getXAResource() throws java.sql.SQLException {
+    @Override
+    public synchronized XAResource getXAResource() throws java.sql.SQLException {
         // All connections handed out from this physical connection have a common XAResource
         // for transaction control. IE the XAResource is one to one with the physical connection.
 
@@ -72,6 +73,7 @@ public final class SQLServerXAConnection extends SQLServerPooledConnection imple
     /**
      * Closes the physical connection that this PooledConnection object represents.
      */
+    @Override
     public void close() throws SQLException {
         synchronized (this) {
             if (XAResource != null) {
@@ -85,5 +87,4 @@ public final class SQLServerXAConnection extends SQLServerPooledConnection imple
         }
         super.close();
     }
-
 }
