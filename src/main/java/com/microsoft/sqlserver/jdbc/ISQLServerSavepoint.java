@@ -10,6 +10,9 @@ package com.microsoft.sqlserver.jdbc;
 
 import java.sql.Savepoint;
 
+/**
+ * This interface is implemented by {@link SQLServerSavepoint} class.
+ */
 public interface ISQLServerSavepoint extends Savepoint {
 
     /**

@@ -11,7 +11,6 @@ package com.microsoft.sqlserver.jdbc;
 import java.math.BigDecimal;
 import java.sql.ParameterMetaData;
 import java.sql.ResultSet;
-import java.sql.SQLException;
 import java.sql.SQLType;
 
 /**

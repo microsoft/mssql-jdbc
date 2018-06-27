@@ -14,7 +14,7 @@ import java.sql.Statement;
 import java.util.UUID;
 
 /**
- * This interface is implemented by {@link SQLServerConnection} and {@link SQLServerConnectionPoolProxy} Class.
+ * This interface is implemented by {@link SQLServerConnection} and {@link SQLServerConnectionPoolProxy} Classes.
  */
 public interface ISQLServerConnection extends java.sql.Connection {
 
