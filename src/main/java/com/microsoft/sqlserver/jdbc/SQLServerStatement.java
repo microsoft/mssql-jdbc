@@ -28,7 +28,7 @@ import java.util.logging.Level;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import com.microsoft.sqlserver.jdbc.SQLServerConnection.SQLServerHashKey;
+import com.microsoft.sqlserver.jdbc.SQLServerConnection.Sha1HashKey;
 
 /**
  * SQLServerStatment provides the basic implementation of JDBC statement functionality. It also provides a number of base class implementation methods
@@ -752,7 +752,7 @@ public class SQLServerStatement implements ISQLServerStatement {
     private String ensureSQLSyntax(String sql) throws SQLServerException {
         if (sql.indexOf(LEFT_CURLY_BRACKET) >= 0) {
 
-            SQLServerHashKey cacheKey = new SQLServerHashKey(sql);
+            Sha1HashKey cacheKey = new Sha1HashKey(sql);
 
             // Check for cached SQL metadata.
             ParsedSQLCacheItem cacheItem = getCachedParsedSQL(cacheKey);

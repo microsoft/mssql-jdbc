@@ -122,7 +122,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     
     private Boolean isAzureDW = null;
 
-    static class SQLServerHashKey implements java.io.Serializable {
+    static class Sha1HashKey implements java.io.Serializable {
 
         /**
          * Always refresh SerialVersionUID when prompted
@@ -130,29 +130,29 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         private static final long serialVersionUID = 166788428640603097L;
         private byte[] bytes;
 
-        SQLServerHashKey(String sql,
+        Sha1HashKey(String sql,
                 String parametersDefinition) {
-            this(sql + parametersDefinition);
+            this(String.format("%s%s", sql, parametersDefinition));
         }
 
-        SQLServerHashKey(String s) {
-            bytes = getSha256Digest().digest(s.getBytes());
+        Sha1HashKey(String s) {
+            bytes = getSha1Digest().digest(s.getBytes());
         }
 
         public boolean equals(Object obj) {
-            if (!(obj instanceof SQLServerHashKey))
+            if (!(obj instanceof Sha1HashKey))
                 return false;
 
-            return java.util.Arrays.equals(bytes, ((SQLServerHashKey) obj).bytes);
+            return java.util.Arrays.equals(bytes, ((Sha1HashKey) obj).bytes);
         }
 
         public int hashCode() {
             return java.util.Arrays.hashCode(bytes);
         }
 
-        private java.security.MessageDigest getSha256Digest() {
+        private java.security.MessageDigest getSha1Digest() {
             try {
-                return java.security.MessageDigest.getInstance("SHA-256");
+                return java.security.MessageDigest.getInstance("SHA-1");
             }
             catch (final java.security.NoSuchAlgorithmException e) {
                 // This is not theoretically possible, but we're forced to catch it anyway
@@ -170,9 +170,9 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         private boolean isDirectSql;
         private volatile boolean evictedFromCache;
         private volatile boolean explicitlyDiscarded;
-        private SQLServerHashKey key;
+        private Sha1HashKey key;
 
-        PreparedStatementHandle(SQLServerHashKey key,
+        PreparedStatementHandle(Sha1HashKey key,
                 int handle,
                 boolean isDirectSql,
                 boolean isEvictedFromCache) {
@@ -211,7 +211,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         }
 
         /** Get the cache key. */
-        SQLServerHashKey getKey() {
+        Sha1HashKey getKey() {
             return key;
         }
 
@@ -258,19 +258,19 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     static final private int PARSED_SQL_CACHE_SIZE = 100;
 
     /** Cache of parsed SQL meta data */
-    static private ConcurrentLinkedHashMap<SQLServerHashKey, ParsedSQLCacheItem> parsedSQLCache;
+    static private ConcurrentLinkedHashMap<Sha1HashKey, ParsedSQLCacheItem> parsedSQLCache;
 
     static {
-        parsedSQLCache = new Builder<SQLServerHashKey, ParsedSQLCacheItem>().maximumWeightedCapacity(PARSED_SQL_CACHE_SIZE).build();
+        parsedSQLCache = new Builder<Sha1HashKey, ParsedSQLCacheItem>().maximumWeightedCapacity(PARSED_SQL_CACHE_SIZE).build();
     }
 
     /** Get prepared statement cache entry if exists, if not parse and create a new one */
-    static ParsedSQLCacheItem getCachedParsedSQL(SQLServerHashKey key) {
+    static ParsedSQLCacheItem getCachedParsedSQL(Sha1HashKey key) {
         return parsedSQLCache.get(key);
     }
 
     /** Parse and create a information about parsed SQL text */
-    static ParsedSQLCacheItem parseAndCacheSQL(SQLServerHashKey key,
+    static ParsedSQLCacheItem parseAndCacheSQL(Sha1HashKey key,
             String sql) throws SQLServerException {
         JDBCSyntaxTranslator translator = new JDBCSyntaxTranslator();
 
@@ -291,9 +291,9 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     private int statementPoolingCacheSize = DEFAULT_STATEMENT_POOLING_CACHE_SIZE;
 
     /** Cache of prepared statement handles */
-    private ConcurrentLinkedHashMap<SQLServerHashKey, PreparedStatementHandle> preparedStatementHandleCache;
+    private ConcurrentLinkedHashMap<Sha1HashKey, PreparedStatementHandle> preparedStatementHandleCache;
     /** Cache of prepared statement parameter metadata */
-    private ConcurrentLinkedHashMap<SQLServerHashKey, SQLServerParameterMetaData> parameterMetadataCache;
+    private ConcurrentLinkedHashMap<Sha1HashKey, SQLServerParameterMetaData> parameterMetadataCache;
     /**
      * Checks whether statement pooling is enabled or disabled. The default is set to true;
      */
@@ -5797,15 +5797,15 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
      * @param value
      */
     private void prepareCache() {
-        preparedStatementHandleCache = new Builder<SQLServerHashKey, PreparedStatementHandle>().maximumWeightedCapacity(getStatementPoolingCacheSize())
+        preparedStatementHandleCache = new Builder<Sha1HashKey, PreparedStatementHandle>().maximumWeightedCapacity(getStatementPoolingCacheSize())
                 .listener(new PreparedStatementCacheEvictionListener()).build();
 
-        parameterMetadataCache = new Builder<SQLServerHashKey, SQLServerParameterMetaData>().maximumWeightedCapacity(getStatementPoolingCacheSize())
+        parameterMetadataCache = new Builder<Sha1HashKey, SQLServerParameterMetaData>().maximumWeightedCapacity(getStatementPoolingCacheSize())
                 .build();
     }
 
     /** Get a parameter metadata cache entry if statement pooling is enabled */
-    final SQLServerParameterMetaData getCachedParameterMetadata(SQLServerHashKey key) {
+    final SQLServerParameterMetaData getCachedParameterMetadata(Sha1HashKey key) {
         if (!isStatementPoolingEnabled())
             return null;
 
@@ -5813,7 +5813,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     }
 
     /** Register a parameter metadata cache entry if statement pooling is enabled */
-    final void registerCachedParameterMetadata(SQLServerHashKey key,
+    final void registerCachedParameterMetadata(Sha1HashKey key,
             SQLServerParameterMetaData pmd) {
         if (!isStatementPoolingEnabled() || null == pmd)
             return;
@@ -5822,7 +5822,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     }
 
     /** Get or create prepared statement handle cache entry if statement pooling is enabled */
-    final PreparedStatementHandle getCachedPreparedStatementHandle(SQLServerHashKey key) {
+    final PreparedStatementHandle getCachedPreparedStatementHandle(Sha1HashKey key) {
         if (!isStatementPoolingEnabled())
             return null;
 
@@ -5830,7 +5830,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     }
 
     /** Get or create prepared statement handle cache entry if statement pooling is enabled */
-    final PreparedStatementHandle registerCachedPreparedStatementHandle(SQLServerHashKey key,
+    final PreparedStatementHandle registerCachedPreparedStatementHandle(Sha1HashKey key,
             int handle,
             boolean isDirectSql) {
         if (!isStatementPoolingEnabled() || null == key)
@@ -5858,8 +5858,8 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     }
 
     // Handle closing handles when removed from cache.
-    final class PreparedStatementCacheEvictionListener implements EvictionListener<SQLServerHashKey, PreparedStatementHandle> {
-        public void onEviction(SQLServerHashKey key,
+    final class PreparedStatementCacheEvictionListener implements EvictionListener<Sha1HashKey, PreparedStatementHandle> {
+        public void onEviction(Sha1HashKey key,
                 PreparedStatementHandle handle) {
             if (null != handle) {
                 handle.setIsEvictedFromCache(true); // Mark as evicted from cache.
