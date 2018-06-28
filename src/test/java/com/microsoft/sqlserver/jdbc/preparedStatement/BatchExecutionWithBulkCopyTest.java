@@ -109,6 +109,7 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
         }
     }
 
+    @SuppressWarnings("unchecked")
     @Test
     public void testAll() throws Exception {
         try (Connection connection = DriverManager.getConnection(connectionString + ";useBulkCopyForBatchInsert=true;");
@@ -341,10 +342,6 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
             Field f1 = SQLServerConnection.class.getDeclaredField("isAzureDW");
             f1.setAccessible(true);
             f1.set(connection, true);
-
-            Timestamp myTimestamp = new Timestamp(114550L);
-            
-            Date d = new Date(114550L);
 
             pstmt.addBatch();
             
