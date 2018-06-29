@@ -6,7 +6,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/)
 ## [6.5.4] Preview Release
 ### Added
 - Added Bulk Copy API support for batch insert operation [#686](https://github.com/Microsoft/mssql-jdbc/pull/686)
-- Added Request Boundary methods beginRequest() / endRequest() that were introduced in JAVA 9 [#708](https://github.com/Microsoft/mssql-jdbc/pull/708)
+- Added Request Boundary methods beginRequest() / endRequest() that were introduced in Java 9 [#708](https://github.com/Microsoft/mssql-jdbc/pull/708)
 - Added support for "Data Classification Specifications" on fetched resultsets [#709](https://github.com/Microsoft/mssql-jdbc/pull/709)
 - Added support for UTF-8 feature extension [#722](https://github.com/Microsoft/mssql-jdbc/pull/722)
 - Added missing licence headers for some files [#725](https://github.com/Microsoft/mssql-jdbc/pull/725)
