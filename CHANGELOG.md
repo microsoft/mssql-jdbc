@@ -51,7 +51,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/)
 
 ## [6.5.1] Preview Release
 ### Added
-- Test cases for Date, Time, and Datetime2 data types. [#558](https://github.com/Microsoft/mssql-jdbc/pull/558)
+- Test cases for Date, Time, and Datetime2 data types [#558](https://github.com/Microsoft/mssql-jdbc/pull/558)
 
 ### Fixed Issues
 - Fixed an issue where ResultSetMetadata returned incorrect columnType for Geometry and Geography data types [#657](https://github.com/Microsoft/mssql-jdbc/pull/657)
@@ -109,7 +109,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/)
 
 ## [6.3.4] Preview Release
 ### Added
-- Added new ThreadGroup creation to prevent IllegalThreadStateException if the underlying ThreadGroup has been destroyed. [#474](https://github.com/Microsoft/mssql-jdbc/pull/474)
+- Added new ThreadGroup creation to prevent IllegalThreadStateException if the underlying ThreadGroup has been destroyed [#474](https://github.com/Microsoft/mssql-jdbc/pull/474)
 - Added try-with-resources to JUnit tests [#520](https://github.com/Microsoft/mssql-jdbc/pull/520)
 
 ### Fixed Issues 
