@@ -16,6 +16,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/)
 
 ### Changed
 - Made driver default compliant to JDBC 4.2 specifications [#711](https://github.com/Microsoft/mssql-jdbc/pull/711)
+- Updated ADAL4J dependency version to 1.6.0 [#711](https://github.com/Microsoft/mssql-jdbc/pull/711)
 - Cleaned up socket handling implementation to generalize functionality for different JVMs and simplified the logic for single address case [#663](https://github.com/Microsoft/mssql-jdbc/pull/663)
 
 ## [6.5.3] Preview Release
