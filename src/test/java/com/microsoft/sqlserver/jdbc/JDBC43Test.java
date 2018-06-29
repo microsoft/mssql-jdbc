@@ -157,13 +157,13 @@ public class JDBC43Test extends AbstractTest {
             connection43.setShardingKeyIfValid(shardingKey, 10);
         }
         catch (SQLException e) {
-            assert (e.getMessage().contains(TestResource.getResource("R_notImplemented")));
+            assert (e.getMessage().contains(TestResource.getResource("R_operationNotSupported")));
         }
         try {
             connection43.setShardingKeyIfValid(shardingKey, superShardingKey, 10);
         }
         catch (SQLException e) {
-            assert (e.getMessage().contains(TestResource.getResource("R_notImplemented")));
+            assert (e.getMessage().contains(TestResource.getResource("R_operationNotSupported")));
         }
        
     }
@@ -182,13 +182,13 @@ public class JDBC43Test extends AbstractTest {
             connection43.setShardingKey(shardingKey);
         }
         catch (SQLException e) {
-            assert (e.getMessage().contains(TestResource.getResource("R_notImplemented")));
+            assert (e.getMessage().contains(TestResource.getResource("R_operationNotSupported")));
         }
         try {
             connection43.setShardingKey(shardingKey, superShardingKey);
         }
         catch (SQLException e) {
-            assert (e.getMessage().contains(TestResource.getResource("R_notImplemented")));
+            assert (e.getMessage().contains(TestResource.getResource("R_operationNotSupported")));
         }
        
     }

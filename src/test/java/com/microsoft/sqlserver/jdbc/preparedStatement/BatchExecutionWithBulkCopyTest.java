@@ -62,11 +62,11 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
             String valid = "/* rando comment *//* rando comment */ INSERT /* rando comment */ INTO /* rando comment *//*rando comment*/ PeterTable /*rando comment */"
                     + " /* rando comment */values/* rando comment */ (1, 2)";
 
-            Field f1 = pstmt.getClass().getSuperclass().getDeclaredField("localUserSQL");
+            Field f1 = pstmt.getClass().getDeclaredField("localUserSQL");
             f1.setAccessible(true);
             f1.set(pstmt, valid);
 
-            Method method = pstmt.getClass().getSuperclass().getDeclaredMethod("parseUserSQLForTableNameDW", boolean.class, boolean.class, boolean.class, boolean.class);
+            Method method = pstmt.getClass().getDeclaredMethod("parseUserSQLForTableNameDW", boolean.class, boolean.class, boolean.class, boolean.class);
             method.setAccessible(true);
 
             assertEquals((String) method.invoke(pstmt, false, false, false, false), "PeterTable");
@@ -80,11 +80,11 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
             String valid = "/* rando comment *//* rando comment */ INSERT /* rando comment */ INTO /* rando comment *//*rando comment*/ [Peter[]]Table] /*rando comment */"
                     + " /* rando comment */values/* rando comment */ (1, 2)";
 
-            Field f1 = pstmt.getClass().getSuperclass().getDeclaredField("localUserSQL");
+            Field f1 = pstmt.getClass().getDeclaredField("localUserSQL");
             f1.setAccessible(true);
             f1.set(pstmt, valid);
 
-            Method method = pstmt.getClass().getSuperclass().getDeclaredMethod("parseUserSQLForTableNameDW", boolean.class, boolean.class, boolean.class, boolean.class);
+            Method method = pstmt.getClass().getDeclaredMethod("parseUserSQLForTableNameDW", boolean.class, boolean.class, boolean.class, boolean.class);
             method.setAccessible(true);
 
             assertEquals((String) method.invoke(pstmt, false, false, false, false), "[Peter[]]Table]");
@@ -98,17 +98,18 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
             String valid = "/* rando comment *//* rando comment */ INSERT /* rando comment */ INTO /* rando comment *//*rando comment*/ \"Peter\"\"\"\"Table\" /*rando comment */"
                     + " /* rando comment */values/* rando comment */ (1, 2)";
 
-            Field f1 = pstmt.getClass().getSuperclass().getDeclaredField("localUserSQL");
+            Field f1 = pstmt.getClass().getDeclaredField("localUserSQL");
             f1.setAccessible(true);
             f1.set(pstmt, valid);
 
-            Method method = pstmt.getClass().getSuperclass().getDeclaredMethod("parseUserSQLForTableNameDW", boolean.class, boolean.class, boolean.class, boolean.class);
+            Method method = pstmt.getClass().getDeclaredMethod("parseUserSQLForTableNameDW", boolean.class, boolean.class, boolean.class, boolean.class);
             method.setAccessible(true);
 
             assertEquals((String) method.invoke(pstmt, false, false, false, false), "\"Peter\"\"\"\"Table\"");
         }
     }
 
+    @SuppressWarnings("unchecked")
     @Test
     public void testAll() throws Exception {
         try (Connection connection = DriverManager.getConnection(connectionString + ";useBulkCopyForBatchInsert=true;");
@@ -117,16 +118,16 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
                     + " /* rando comment */ (\"c1\"/* rando comment */, /* rando comment */[c2]/* rando comment */, /* rando comment */ /* rando comment */c3/* rando comment */, c4)"
                     + "values/* rando comment */ (/* rando comment */1/* rando comment */, /* rando comment */2/* rando comment */ , '?', ?)/* rando comment */";
 
-            Field f1 = pstmt.getClass().getSuperclass().getDeclaredField("localUserSQL");
+            Field f1 = pstmt.getClass().getDeclaredField("localUserSQL");
             f1.setAccessible(true);
             f1.set(pstmt, valid);
 
-            Method method = pstmt.getClass().getSuperclass().getDeclaredMethod("parseUserSQLForTableNameDW", boolean.class, boolean.class, boolean.class, boolean.class);
+            Method method = pstmt.getClass().getDeclaredMethod("parseUserSQLForTableNameDW", boolean.class, boolean.class, boolean.class, boolean.class);
             method.setAccessible(true);
 
             assertEquals((String) method.invoke(pstmt, false, false, false, false), "\"Peter\"\"\"\"Table\"");
 
-            method = pstmt.getClass().getSuperclass().getDeclaredMethod("parseUserSQLForColumnListDW");
+            method = pstmt.getClass().getDeclaredMethod("parseUserSQLForColumnListDW");
             method.setAccessible(true);
 
             ArrayList<String> columnList = (ArrayList<String>) method.invoke(pstmt);
@@ -140,7 +141,7 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
                 assertEquals(columnList.get(i), columnListExpected.get(i));
             }
 
-            method = pstmt.getClass().getSuperclass().getDeclaredMethod("parseUserSQLForValueListDW", boolean.class);
+            method = pstmt.getClass().getDeclaredMethod("parseUserSQLForValueListDW", boolean.class);
             method.setAccessible(true);
 
             ArrayList<String> valueList = (ArrayList<String>) method.invoke(pstmt, false);
@@ -341,10 +342,6 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
             Field f1 = SQLServerConnection.class.getDeclaredField("isAzureDW");
             f1.setAccessible(true);
             f1.set(connection, true);
-
-            Timestamp myTimestamp = new Timestamp(114550L);
-            
-            Date d = new Date(114550L);
 
             pstmt.addBatch();
             

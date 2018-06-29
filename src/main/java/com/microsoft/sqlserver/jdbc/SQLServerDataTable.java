@@ -97,7 +97,6 @@ public final class SQLServerDataTable {
         columnMetadata.put(columnCount++, column);
     }
 
-
     /**
      * Adds one row of data to the data table.
      * 
@@ -139,14 +138,20 @@ public final class SQLServerDataTable {
         }
 
     }
-    
+
     /**
      * Adding rows one row of data to data table.
-     * @param jdbcType The jdbcType
-     * @param val The data value
-     * @param rowValues Row of data
-     * @param pair pair to be added to data table
+     * 
+     * @param jdbcType
+     *            The jdbcType
+     * @param val
+     *            The data value
+     * @param rowValues
+     *            Row of data
+     * @param pair
+     *            pair to be added to data table
      * @throws SQLServerException
+     *             when an error occurs
      */
     private void internalAddrow(JDBCType jdbcType,
             Object val,
@@ -218,7 +223,6 @@ public final class SQLServerDataTable {
 
             case TIMESTAMP_WITH_TIMEZONE:
             case TIME_WITH_TIMEZONE:
-                DriverJDBCVersion.checkSupportsJDBC42();
             case DATE:
             case TIME:
             case TIMESTAMP:
@@ -290,17 +294,29 @@ public final class SQLServerDataTable {
                 throw new SQLServerException(null, form.format(msgArgs), null, 0, false);
         }
     }
-    
+
+    /**
+     * Retrieves <code>java.util.Map</code> object type of columnMetaData for all columns where column indexes are mapped with their
+     * respective {@link SQLServerDataColumn} Java object
+     * 
+     * @return Map
+     */
     public synchronized Map<Integer, SQLServerDataColumn> getColumnMetadata() {
         return columnMetadata;
     }
 
+    /**
+     * Returns name of TVP type set by {@link #setTvpName(String)}
+     * 
+     * @return tvpName
+     */
     public String getTvpName() {
         return tvpName;
     }
 
     /**
-     * Retrieves the column meta data of this data table.
+     * Sets the TVP Name
+     * 
      * @param tvpName
      *            the name of TVP
      */

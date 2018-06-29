@@ -8,8 +8,6 @@
 
 package com.microsoft.sqlserver.jdbc.dataclassification;
 
-import java.beans.ConstructorProperties;
-
 /**
  * This class retrieves Information Types as recieved from SQL Server for the
  * active resultSet
@@ -26,7 +24,6 @@ public class InformationType {
 	 * @param id
 	 *            ID of Information Type
 	 */
-	@ConstructorProperties({"name", "id"})
 	public InformationType(String name, String id) {
 		this.name = name;
 		this.id = id;

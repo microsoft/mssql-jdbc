@@ -8,7 +8,6 @@
 
 package com.microsoft.sqlserver.jdbc;
 
-import java.sql.Savepoint;
 import java.text.MessageFormat;
 
 /**
@@ -19,7 +18,7 @@ import java.text.MessageFormat;
  * details.
  */
 
-public final class SQLServerSavepoint implements Savepoint {
+public final class SQLServerSavepoint implements ISQLServerSavepoint {
     private final String sName;
     private final int nId;
     private final SQLServerConnection con;
@@ -45,17 +44,14 @@ public final class SQLServerSavepoint implements Savepoint {
         }
     }
 
+    @Override
     public String getSavepointName() throws SQLServerException {
         if (sName == null)
             SQLServerException.makeFromDriverError(con, null, SQLServerException.getErrString("R_savepointNotNamed"), null, false);
         return sName;
     }
 
-    /**
-     * Get the savepoint label
-     * 
-     * @return the name
-     */
+    @Override
     public String getLabel() {
         if (sName == null)
             return "S" + nId;
@@ -63,15 +59,12 @@ public final class SQLServerSavepoint implements Savepoint {
             return sName;
     }
 
-    /**
-     * Checks if the savepoint label is null
-     * 
-     * @return true is the savepoint is named. Otherwise, false.
-     */
+    @Override
     public boolean isNamed() {
         return sName != null;
     }
 
+    @Override
     public int getSavepointId() throws SQLServerException {
         if (sName != null) {
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_savepointNamed"));
