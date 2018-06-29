@@ -136,6 +136,7 @@ public class PreparedStatementTest extends AbstractTest {
     @Tag("slow")
     public void testStatementPooling() throws Exception {
         testStatementPoolingInternal("batchInsert");
+
     }
 
     /**

@@ -117,6 +117,8 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     private byte[] accessTokenInByte = null;
 
     private SqlFedAuthToken fedAuthToken = null;
+    
+    private String originalHostNameInCertificate = null;
 
     private String originalHostNameInCertificate = null;
     
@@ -408,7 +410,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     ServerPortPlaceHolder getRoutingInfo() {
         return routingInfo;
     }
-
+    
     // Permission targets
     private static final String callAbortPerm = "callAbort";
 
@@ -1204,6 +1206,23 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             activeConnectionProperties = (Properties) propsIn.clone();
 
             pooledConnectionParent = pooledConnection;
+            
+            String hostNameInCertificate = activeConnectionProperties.
+                    getProperty(SQLServerDriverStringProperty.HOSTNAME_IN_CERTIFICATE.toString());
+            
+            // hostNameInCertificate property can change when redirection is involved, so maintain this value
+            // for every instance of SQLServerConnection.
+            if (null == originalHostNameInCertificate && null != hostNameInCertificate && !hostNameInCertificate.isEmpty()) {
+                originalHostNameInCertificate = activeConnectionProperties.
+                        getProperty(SQLServerDriverStringProperty.HOSTNAME_IN_CERTIFICATE.toString());
+            }
+            
+            if (null != originalHostNameInCertificate && !originalHostNameInCertificate.isEmpty()) {
+                // if hostNameInCertificate has a legitimate value (and not empty or null),
+                // reset hostNameInCertificate to the original value every time we connect (or re-connect).
+                activeConnectionProperties.setProperty(SQLServerDriverStringProperty.HOSTNAME_IN_CERTIFICATE.toString(), 
+                        originalHostNameInCertificate);
+            }
 
             String hostNameInCertificate = activeConnectionProperties.getProperty(SQLServerDriverStringProperty.HOSTNAME_IN_CERTIFICATE.toString());
 
@@ -3500,8 +3519,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                     connectionCommand(sqlStmt, "Change Settings");
                 }
             }
-        }
-        finally {
+        } finally {
             if (integratedSecurity) {
                 if (null != authentication) {
                     authentication.ReleaseClientContext();
@@ -3723,7 +3741,6 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
                 isRoutedInCurrentAttempt = true;
                 routingInfo = new ServerPortPlaceHolder(routingServerName, routingPortNumber, null, integratedSecurity);
-
                 break;
 
             // Error on unrecognized, unused ENVCHANGES

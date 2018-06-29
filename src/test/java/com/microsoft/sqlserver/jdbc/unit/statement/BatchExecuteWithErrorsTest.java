@@ -297,12 +297,10 @@ public class BatchExecuteWithErrorsTest extends AbstractTest {
                 catch (Exception ignored) {
                 }
             }
-
         }
     }
     
     private void Repro47239largeInternal(String mode) throws Exception {
-
         assumeTrue("JDBC42".equals(Utils.getConfiguredProperty("JDBC_Version")), TestResource.getResource("R_incompatJDBC"));
         // the DBConnection for detecting whether the server is SQL Azure or SQL Server.
         con = DriverManager.getConnection(connectionString);
