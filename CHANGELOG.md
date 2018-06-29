@@ -3,6 +3,22 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](http://keepachangelog.com/) 
 
+## [6.5.4] Preview Release
+### Added
+- Added Bulk Copy API support for batch insert operation [#686](https://github.com/Microsoft/mssql-jdbc/pull/686)
+- Added Request Boundary methods beginRequest() / endRequest() that were introduced in JAVA 9 [#708](https://github.com/Microsoft/mssql-jdbc/pull/708)
+- Added support for "Data Classification Specifications" on fetched resultsets [#709](https://github.com/Microsoft/mssql-jdbc/pull/709)
+- Added support for UTF-8 feature extension [#722](https://github.com/Microsoft/mssql-jdbc/pull/722)
+- Added missing licence headers for some files [#725](https://github.com/Microsoft/mssql-jdbc/pull/725)
+
+### Fixed Issues
+- Fixed getSchema escaping catalog name when using "-" in the name [#718](https://github.com/Microsoft/mssql-jdbc/pull/718)
+- Fixed issue with tests requiring additional dependencies [#729](https://github.com/Microsoft/mssql-jdbc/pull/729)
+
+### Changed
+- Made driver compliant to JDBC 4.2 specifications [#711](https://github.com/Microsoft/mssql-jdbc/pull/711)
+- Cleaned up SocketFinder.findSocket handling and simplified the logic single address case [#663](https://github.com/Microsoft/mssql-jdbc/pull/663)
+
 ## [6.5.3] Preview Release
 ### Added
 - Added removed constructor back to AKV Provider which supports authentication with a customized method to fetch accessToken [#675](https://github.com/Microsoft/mssql-jdbc/pull/675)
