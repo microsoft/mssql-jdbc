@@ -2187,7 +2187,7 @@ public class SQLServerStatement implements ISQLServerStatement {
             loggerExternal.entering(getClassNameLogging(), "getMoreResults", mode);
         checkClosed();
         if (KEEP_CURRENT_RESULT == mode) {
-            SQLServerException.throwFeatureNotSupportedException();
+            SQLServerException.throwNotSupportedException(connection, this);
         }
 
         if (CLOSE_CURRENT_RESULT != mode && CLOSE_ALL_RESULTS != mode)

@@ -409,6 +409,10 @@ public final class SQLServerException extends java.sql.SQLException {
         }
     }
 
+    static void throwNotSupportedException(SQLServerConnection con, Object obj) throws SQLServerException {
+        SQLServerException.makeFromDriverError(con, obj, SQLServerException.getErrString("R_notSupported"), null, false); 
+    }
+    
     static void throwFeatureNotSupportedException() throws SQLFeatureNotSupportedException {
         throw new SQLFeatureNotSupportedException(SQLServerException.getErrString("R_notSupported"));
     }

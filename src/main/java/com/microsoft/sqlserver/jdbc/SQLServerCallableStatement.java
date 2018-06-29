@@ -1236,7 +1236,7 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
     @Override
     public Object getObject(int parameterIndex,
             java.util.Map<String, Class<?>> map) throws SQLException {
-        SQLServerException.throwFeatureNotSupportedException();
+        SQLServerException.throwNotSupportedException(connection, this);
         return null;
     }
 
@@ -1249,7 +1249,7 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
 
     @Override
     public Ref getRef(int parameterIndex) throws SQLException {
-        SQLServerException.throwFeatureNotSupportedException();
+        SQLServerException.throwNotSupportedException(connection, this);
         return null;
     }
 
@@ -1261,7 +1261,7 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
 
     @Override
     public java.sql.Array getArray(int parameterIndex) throws SQLException {
-        SQLServerException.throwFeatureNotSupportedException();
+        SQLServerException.throwNotSupportedException(connection, this);
         return null;
     }
 
@@ -2287,13 +2287,13 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
 
     @Override
     public URL getURL(int parameterIndex) throws SQLException {
-        SQLServerException.throwFeatureNotSupportedException();
+        SQLServerException.throwNotSupportedException(connection, this);
         return null;
     }
 
     @Override
     public URL getURL(String parameterName) throws SQLException {
-        SQLServerException.throwFeatureNotSupportedException();
+        SQLServerException.throwNotSupportedException(connection, this);
         return null;
     }
 
@@ -2328,18 +2328,18 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
     @Override
     public final void setRowId(String parameterName,
             RowId value) throws SQLException {
-        SQLServerException.throwFeatureNotSupportedException();
+        SQLServerException.throwNotSupportedException(connection, this);
     }
 
     @Override
     public final RowId getRowId(int parameterIndex) throws SQLException {
-        SQLServerException.throwFeatureNotSupportedException();
+        SQLServerException.throwNotSupportedException(connection, this);
         return null;
     }
 
     @Override
     public final RowId getRowId(String parameterName) throws SQLException {
-        SQLServerException.throwFeatureNotSupportedException();
+        SQLServerException.throwNotSupportedException(connection, this);
         return null;
     }
 

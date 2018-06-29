@@ -3306,7 +3306,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             }
 
         }
-        SQLServerException.throwFeatureNotSupportedException();
+        SQLServerException.throwNotSupportedException(this, null);
     }
 
     @Override
@@ -4878,7 +4878,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     @Override
     public void releaseSavepoint(Savepoint savepoint) throws SQLException {
         loggerExternal.entering(getClassNameLogging(), "releaseSavepoint", savepoint);
-        SQLServerException.throwFeatureNotSupportedException();
+        SQLServerException.throwNotSupportedException(this, null);
     }
 
     final private Savepoint setNamedSavepoint(String sName) throws SQLServerException {
@@ -5082,7 +5082,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     @Override
     public java.sql.Array createArrayOf(String typeName,
             Object[] elements) throws SQLException {
-        SQLServerException.throwFeatureNotSupportedException();
+        SQLServerException.throwNotSupportedException(this, null);
         return null;
     }
 
@@ -5117,7 +5117,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     @Override
     public java.sql.Struct createStruct(String typeName,
             Object[] attributes) throws SQLException {
-        SQLServerException.throwFeatureNotSupportedException();
+        SQLServerException.throwNotSupportedException(this, null);
         return null;
     }
 

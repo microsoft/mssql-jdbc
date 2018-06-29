@@ -2014,7 +2014,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     public final void setUnicodeStream(int n,
             java.io.InputStream x,
             int length) throws SQLException {
-        SQLServerException.throwFeatureNotSupportedException();
+        SQLServerException.throwNotSupportedException(connection, this);
     }
 
     @Override
@@ -2901,7 +2901,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     @Override
     public final void setRef(int i,
             java.sql.Ref x) throws SQLException {
-        SQLServerException.throwFeatureNotSupportedException();
+        SQLServerException.throwNotSupportedException(connection, this);
     }
 
     @Override
@@ -3000,7 +3000,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     @Override
     public final void setArray(int i,
             java.sql.Array x) throws SQLException {
-        SQLServerException.throwFeatureNotSupportedException();
+        SQLServerException.throwNotSupportedException(connection, this);
     }
 
     @Override
@@ -3116,13 +3116,13 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     @Override
     public final void setURL(int parameterIndex,
             java.net.URL x) throws SQLException {
-        SQLServerException.throwFeatureNotSupportedException();
+        SQLServerException.throwNotSupportedException(connection, this);
     }
 
     @Override
     public final void setRowId(int parameterIndex,
             RowId x) throws SQLException {
-        SQLServerException.throwFeatureNotSupportedException();
+        SQLServerException.throwNotSupportedException(connection, this);
     }
 
     @Override

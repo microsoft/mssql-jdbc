@@ -225,7 +225,7 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
     public SensitivityClassification getSensitivityClassification() {
         return tdsReader.sensitivityClassification;
     }
-    
+
     /**
      * Make a new result set
      * 
@@ -467,7 +467,8 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
      * @throws SQLFeatureNotSupportedException
      */
     private void throwNotScrollable() throws SQLException {
-        SQLServerException.throwFeatureNotSupportedException();
+        SQLServerException.makeFromDriverError(stmt.connection, this, SQLServerException.getErrString("R_requestedOpNotSupportedOnForward"), null,
+                true);
     }
 
     protected boolean isForwardOnly() {
@@ -2720,7 +2721,7 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
     @Deprecated
     public java.io.InputStream getUnicodeStream(int columnIndex) throws SQLException {
         loggerExternal.entering(getClassNameLogging(), "getUnicodeStream", columnIndex);
-        SQLServerException.throwFeatureNotSupportedException();
+        SQLServerException.throwNotSupportedException(stmt.connection, stmt);
         return null;
     }
 
@@ -2728,7 +2729,7 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
     @Deprecated
     public java.io.InputStream getUnicodeStream(String columnName) throws SQLException {
         loggerExternal.entering(getClassNameLogging(), "getUnicodeStream", columnName);
-        SQLServerException.throwFeatureNotSupportedException();
+        SQLServerException.throwNotSupportedException(stmt.connection, stmt);
         return null;
     }
 
@@ -2737,14 +2738,14 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
             java.util.Map<String, Class<?>> map) throws SQLException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "getObject", new Object[] {i, map});
-        SQLServerException.throwFeatureNotSupportedException();
+        SQLServerException.throwNotSupportedException(stmt.connection, stmt);
         return null;
     }
 
     @Override
     public Ref getRef(int i) throws SQLException {
         loggerExternal.entering(getClassNameLogging(), "getRef");
-        SQLServerException.throwFeatureNotSupportedException();
+        SQLServerException.throwNotSupportedException(stmt.connection, stmt);
         return null;
     }
 
@@ -2810,26 +2811,26 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
 
     @Override
     public Array getArray(int i) throws SQLException {
-        SQLServerException.throwFeatureNotSupportedException();
+        SQLServerException.throwNotSupportedException(stmt.connection, stmt);
         return null;
     }
 
     @Override
     public Object getObject(String colName,
             java.util.Map<String, Class<?>> map) throws SQLException {
-        SQLServerException.throwFeatureNotSupportedException();
+        SQLServerException.throwNotSupportedException(stmt.connection, stmt);
         return null;
     }
 
     @Override
     public Ref getRef(String colName) throws SQLException {
-        SQLServerException.throwFeatureNotSupportedException();
+        SQLServerException.throwNotSupportedException(stmt.connection, stmt);
         return null;
     }
 
     @Override
     public Array getArray(String colName) throws SQLException {
-        SQLServerException.throwFeatureNotSupportedException();
+        SQLServerException.throwNotSupportedException(stmt.connection, stmt);
         return null;
     }
 
@@ -2933,13 +2934,13 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
 
     @Override
     public RowId getRowId(int columnIndex) throws SQLException {
-        SQLServerException.throwFeatureNotSupportedException();
+        SQLServerException.throwNotSupportedException(stmt.connection, stmt);
         return null;
     }
 
     @Override
     public RowId getRowId(String columnLabel) throws SQLException {
-        SQLServerException.throwFeatureNotSupportedException();
+        SQLServerException.throwNotSupportedException(stmt.connection, stmt);
         return null;
     }
 
@@ -4747,13 +4748,13 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
     @Override
     public void updateRowId(int columnIndex,
             RowId x) throws SQLException {
-        SQLServerException.throwFeatureNotSupportedException();
+        SQLServerException.throwNotSupportedException(stmt.connection, stmt);
     }
 
     @Override
     public void updateRowId(String columnLabel,
             RowId x) throws SQLException {
-        SQLServerException.throwFeatureNotSupportedException();
+        SQLServerException.throwNotSupportedException(stmt.connection, stmt);
     }
 
     @Override
@@ -5409,36 +5410,36 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
     @Override
     public void updateArray(int columnIndex,
             Array x) throws SQLException {
-        SQLServerException.throwFeatureNotSupportedException();
+        SQLServerException.throwNotSupportedException(stmt.connection, stmt);
     }
 
     @Override
     public void updateArray(java.lang.String columnName,
             Array x) throws SQLException {
-        SQLServerException.throwFeatureNotSupportedException();
+        SQLServerException.throwNotSupportedException(stmt.connection, stmt);
     }
 
     @Override
     public void updateRef(int columnIndex,
             Ref x) throws SQLException {
-        SQLServerException.throwFeatureNotSupportedException();
+        SQLServerException.throwNotSupportedException(stmt.connection, stmt);
     }
 
     @Override
     public void updateRef(java.lang.String columnName,
             Ref x) throws SQLException {
-        SQLServerException.throwFeatureNotSupportedException();
+        SQLServerException.throwNotSupportedException(stmt.connection, stmt);
     }
 
     @Override
     public java.net.URL getURL(int columnIndex) throws SQLException {
-        SQLServerException.throwFeatureNotSupportedException();
+        SQLServerException.throwNotSupportedException(stmt.connection, stmt);
         return null;
     }
 
     @Override
     public java.net.URL getURL(String sColumn) throws SQLException {
-        SQLServerException.throwFeatureNotSupportedException();
+        SQLServerException.throwNotSupportedException(stmt.connection, stmt);
         return null;
     }
 
