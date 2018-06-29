@@ -458,7 +458,7 @@ public class TVPWithSqlVariantTest extends AbstractTest {
     }
 
     @BeforeEach
-    private void testSetup() throws SQLException {
+    public void testSetup() throws SQLException {
         conn = (SQLServerConnection) DriverManager.getConnection(connectionString + ";sendStringParametersAsUnicode=true;");
         stmt = (SQLServerStatement) conn.createStatement();
 
@@ -493,7 +493,7 @@ public class TVPWithSqlVariantTest extends AbstractTest {
     }
 
     @AfterEach
-    private void terminateVariation() throws SQLException {
+    public void terminateVariation() throws SQLException {
         Utils.dropProcedureIfExists(procedureName, stmt);
         Utils.dropTableIfExists(destTable, stmt);
         dropTVPS();

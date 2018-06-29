@@ -512,7 +512,7 @@ public class TVPTypesTest extends AbstractTest {
     }
     
     @BeforeEach
-    private void testSetup() throws SQLException {
+    public void testSetup() throws SQLException {
         conn = DriverManager.getConnection(connectionString);
         stmt = conn.createStatement();
 
@@ -571,7 +571,7 @@ public class TVPTypesTest extends AbstractTest {
     }
 
     @AfterEach
-    private void terminateVariation() throws SQLException {
+    public void terminateVariation() throws SQLException {
         if (null != conn) {
             conn.close();
         }

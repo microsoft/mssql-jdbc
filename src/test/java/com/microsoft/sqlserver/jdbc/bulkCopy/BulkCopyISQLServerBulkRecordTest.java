@@ -38,7 +38,7 @@ import com.microsoft.sqlserver.testframework.sqlType.SqlType;
 public class BulkCopyISQLServerBulkRecordTest extends AbstractTest {
 
     @Test
-    void testISQLServerBulkRecord() throws SQLException {
+    public void testISQLServerBulkRecord() throws SQLException {
         try (DBConnection con = new DBConnection(connectionString); DBStatement stmt = con.createStatement()) {
             DBTable dstTable = new DBTable(true);
             stmt.createTable(dstTable);

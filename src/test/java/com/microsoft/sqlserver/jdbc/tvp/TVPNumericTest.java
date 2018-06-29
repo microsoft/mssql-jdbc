@@ -63,7 +63,7 @@ public class TVPNumericTest extends AbstractTest {
     }
 
     @BeforeEach
-    private void testSetup() throws SQLException {
+    public void testSetup() throws SQLException {
         conn = new DBConnection(connectionString);
         stmt = conn.createStatement();
 
@@ -108,7 +108,7 @@ public class TVPNumericTest extends AbstractTest {
     }
 
     @AfterEach
-    private void terminateVariation() throws SQLException {
+    public void terminateVariation() throws SQLException {
         if (null != conn) {
             conn.close();
         }

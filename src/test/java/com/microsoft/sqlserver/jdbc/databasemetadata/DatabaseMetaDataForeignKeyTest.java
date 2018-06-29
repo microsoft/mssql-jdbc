@@ -47,7 +47,7 @@ public class DatabaseMetaDataForeignKeyTest extends AbstractTest {
     private static String catalog = null;
     
     @BeforeAll
-    private static void setupVariation() throws SQLException {
+    public static void setupVariation() throws SQLException {
         conn = (SQLServerConnection) DriverManager.getConnection(connectionString);
         SQLServerStatement stmt = (SQLServerStatement) conn.createStatement();
 
@@ -78,7 +78,7 @@ public class DatabaseMetaDataForeignKeyTest extends AbstractTest {
     }
 
     @AfterAll
-    private static void terminateVariation() throws SQLException {
+    public static void terminateVariation() throws SQLException {
         conn = (SQLServerConnection) DriverManager.getConnection(connectionString);
         stmt = (SQLServerStatement) conn.createStatement();
 
