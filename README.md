@@ -125,7 +125,7 @@ Projects that require either of the two features need to explicitly declare the 
 <dependency>
 	<groupId>com.microsoft.azure</groupId>
 	<artifactId>adal4j</artifactId>
-	<version>1.5.0</version>
+	<version>1.6.0</version>
 </dependency>
 ```
 
@@ -141,7 +141,7 @@ Projects that require either of the two features need to explicitly declare the 
 <dependency>
 	<groupId>com.microsoft.azure</groupId>
 	<artifactId>adal4j</artifactId>
-	<version>1.5.0</version>
+	<version>1.6.0</version>
 </dependency>
 
 <dependency>
