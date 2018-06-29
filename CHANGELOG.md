@@ -12,12 +12,12 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/)
 - Added missing licence headers for some files [#725](https://github.com/Microsoft/mssql-jdbc/pull/725)
 
 ### Fixed Issues
-- Fixed getSchema escaping catalog name when using "-" in the name [#718](https://github.com/Microsoft/mssql-jdbc/pull/718)
+- Fixed issue with escaping catalog name in DatabaseMetadata.getSchemas() function [#718](https://github.com/Microsoft/mssql-jdbc/pull/718)
 - Fixed issue with tests requiring additional dependencies [#729](https://github.com/Microsoft/mssql-jdbc/pull/729)
 
 ### Changed
-- Made driver compliant to JDBC 4.2 specifications [#711](https://github.com/Microsoft/mssql-jdbc/pull/711)
-- Cleaned up SocketFinder.findSocket handling and simplified the logic for single address case [#663](https://github.com/Microsoft/mssql-jdbc/pull/663)
+- Made driver default compliant to JDBC 4.2 specifications [#711](https://github.com/Microsoft/mssql-jdbc/pull/711)
+- Cleaned up SocketFinder.findSocket() handling and simplified the logic for single address case [#663](https://github.com/Microsoft/mssql-jdbc/pull/663)
 
 ## [6.5.3] Preview Release
 ### Added
