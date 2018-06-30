@@ -166,7 +166,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         prepStmtHandle = 0;
         return statementPoolingUsed;
     }
-    
+
     /** Flag set to true when statement execution is expected to return the prepared statement handle */
     private boolean expectPrepStmtHandle = false;
 
@@ -252,6 +252,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         else {
             isExecutedAtLeastOnce = false;
             final int handleToClose = prepStmtHandle;
+
             // Handle unprepare actions through statement pooling.
             if (resetPrepStmtHandle(false)) {
                 connection.returnCachedPreparedStatementHandle(cachedPreparedStatementHandle);

@@ -42,6 +42,7 @@ import com.microsoft.sqlserver.testframework.Utils;
 
 @RunWith(JUnitPlatform.class)
 public class ISQLServerBulkRecordIssuesTest extends AbstractTest {
+
 	static Statement stmt = null;
 	static PreparedStatement pStmt = null;
 	static String query;
@@ -271,6 +272,7 @@ public class ISQLServerBulkRecordIssuesTest extends AbstractTest {
 			con.close();
 		}
 	}
+
 }
 
 class BulkData implements ISQLServerBulkRecord {
