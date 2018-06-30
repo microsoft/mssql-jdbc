@@ -45,13 +45,14 @@ public final class SQLServerDataSourceObjectFactory implements ObjectFactory {
 
             // Our reference will always have a "class" RefAddr.
             if (null == ra) {
-                SQLServerException.makeFromDriverError(null, null, SQLServerException.getErrString("R_invalidDataSourceReference"), null, true);
+                throwInvalidDataSourceRefException();
             }
 
             String className = (String) ra.getContent();
 
-            if (null == className)
-                SQLServerException.makeFromDriverError(null, null, SQLServerException.getErrString("R_invalidDataSourceReference"), null, true);
+            if (null == className) {
+                throwInvalidDataSourceRefException();
+            }
 
             // Check that we have the expected class name inside our reference.
             if (("com.microsoft.sqlserver.jdbc.SQLServerDataSource").equals(className)
@@ -69,32 +70,18 @@ public final class SQLServerDataSourceObjectFactory implements ObjectFactory {
                 return dataSourceClassInstance;
             }
             // Class not found, throw invalid reference exception.
-            SQLServerException.makeFromDriverError(null, null, SQLServerException.getErrString("R_invalidDataSourceReference"), null, true);
+            throwInvalidDataSourceRefException();
         }
-        catch (ClassNotFoundException e) {
-            SQLServerException.makeFromDriverError(null, null, SQLServerException.getErrString("R_invalidDataSourceReference"), null, true);
-        }
-        catch (InstantiationException e) {
-            SQLServerException.makeFromDriverError(null, null, SQLServerException.getErrString("R_invalidDataSourceReference"), null, true);
-        }
-        catch (IllegalAccessException e) {
-            SQLServerException.makeFromDriverError(null, null, SQLServerException.getErrString("R_invalidDataSourceReference"), null, true);
-        }
-        catch (IllegalArgumentException e) {
-            SQLServerException.makeFromDriverError(null, null, SQLServerException.getErrString("R_invalidDataSourceReference"), null, true);
-        }
-        catch (InvocationTargetException e) {
-            SQLServerException.makeFromDriverError(null, null, SQLServerException.getErrString("R_invalidDataSourceReference"), null, true);
-        }
-        catch (NoSuchMethodException e) {
-            SQLServerException.makeFromDriverError(null, null, SQLServerException.getErrString("R_invalidDataSourceReference"), null, true);
-        }
-        catch (SecurityException e) {
-            SQLServerException.makeFromDriverError(null, null, SQLServerException.getErrString("R_invalidDataSourceReference"), null, true);
+        catch (ClassNotFoundException | InstantiationException | IllegalAccessException | IllegalArgumentException | InvocationTargetException
+                | NoSuchMethodException | SecurityException e) {
+            throwInvalidDataSourceRefException();
         }
         // no chance of getting here but to keep the compiler happy
         return null;
+    }
 
+    private void throwInvalidDataSourceRefException() throws SQLServerException {
+        SQLServerException.makeFromDriverError(null, null, SQLServerException.getErrString("R_invalidDataSourceReference"), null, true);
     }
 
 }

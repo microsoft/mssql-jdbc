@@ -66,6 +66,7 @@ public final class SQLServerParameterMetaData implements ParameterMetaData {
      * 
      * @return traceID string
      */
+    @Override
     final public String toString() {
         return traceID;
     }
@@ -79,7 +80,7 @@ public final class SQLServerParameterMetaData implements ParameterMetaData {
      *            the token that prfixes the column set
      * @throws SQLServerException 
      */
-    /* L2 */ private String parseColumns(String columnSet,
+    private String parseColumns(String columnSet,
             String columnStartToken) throws SQLServerException {
         StringTokenizer st = new StringTokenizer(columnSet, " =?<>!\r\n\t\f", true);
         final int START = 0;
@@ -141,7 +142,7 @@ public final class SQLServerParameterMetaData implements ParameterMetaData {
      *            the token that denotes the start of the column set
      * @throws SQLServerException 
      */
-    /* L2 */ private String parseInsertColumns(String sql,
+    private String parseInsertColumns(String sql,
             String columnMarker) throws SQLServerException {
         StringTokenizer st = new StringTokenizer(sql, " (),", true);
         int nState = 0;
@@ -685,11 +686,13 @@ public final class SQLServerParameterMetaData implements ParameterMetaData {
         }
     }
 
+    @Override
     public boolean isWrapperFor(Class<?> iface) throws SQLException {
         boolean f = iface.isInstance(this);
         return f;
     }
 
+    @Override
     public <T> T unwrap(Class<T> iface) throws SQLException {
         T t;
         try {
@@ -701,7 +704,7 @@ public final class SQLServerParameterMetaData implements ParameterMetaData {
         return t;
     }
 
-    /* L2 */ private void verifyParameterPosition(int param) throws SQLServerException {
+    private void verifyParameterPosition(int param) throws SQLServerException {
         boolean bFound = false;
         try {
             if (((SQLServerPreparedStatement) stmtParent).bReturnValueSyntax && isTVP) {
@@ -723,13 +726,14 @@ public final class SQLServerParameterMetaData implements ParameterMetaData {
         }
     }
 
-    /* L2 */ private void checkParam(int n) throws SQLServerException {
+    private void checkParam(int n) throws SQLServerException {
         if (!queryMetaMap.containsKey(n)) {
             SQLServerException.makeFromDriverError(con, stmtParent, SQLServerException.getErrString("R_noMetadata"), null, false);
         }
     }
 
-    /* L2 */ public String getParameterClassName(int param) throws SQLServerException {
+    @Override
+    public String getParameterClassName(int param) throws SQLServerException {
         checkClosed();
         try {
             if (rsProcedureMeta == null) {
@@ -749,7 +753,8 @@ public final class SQLServerParameterMetaData implements ParameterMetaData {
         }
     }
 
-    /* L2 */ public int getParameterCount() throws SQLServerException {
+    @Override
+    public int getParameterCount() throws SQLServerException {
         checkClosed();
         try {
             if (rsProcedureMeta == null) {
@@ -770,7 +775,8 @@ public final class SQLServerParameterMetaData implements ParameterMetaData {
         }
     }
 
-    /* L2 */ public int getParameterMode(int param) throws SQLServerException {
+    @Override
+    public int getParameterMode(int param) throws SQLServerException {
         checkClosed();
         try {
             if (rsProcedureMeta == null) {
@@ -797,7 +803,8 @@ public final class SQLServerParameterMetaData implements ParameterMetaData {
         }
     }
 
-    /* L2 */ public int getParameterType(int param) throws SQLServerException {
+    @Override
+    public int getParameterType(int param) throws SQLServerException {
         checkClosed();
 
         int parameterType;
@@ -834,7 +841,8 @@ public final class SQLServerParameterMetaData implements ParameterMetaData {
         }
     }
 
-    /* L2 */ public String getParameterTypeName(int param) throws SQLServerException {
+    @Override
+    public String getParameterTypeName(int param) throws SQLServerException {
         checkClosed();
         try {
             if (rsProcedureMeta == null) {
@@ -853,7 +861,8 @@ public final class SQLServerParameterMetaData implements ParameterMetaData {
         }
     }
 
-    /* L2 */ public int getPrecision(int param) throws SQLServerException {
+    @Override
+    public int getPrecision(int param) throws SQLServerException {
         checkClosed();
         try {
             if (rsProcedureMeta == null) {
@@ -873,7 +882,8 @@ public final class SQLServerParameterMetaData implements ParameterMetaData {
         }
     }
 
-    /* L2 */ public int getScale(int param) throws SQLServerException {
+    @Override
+    public int getScale(int param) throws SQLServerException {
         checkClosed();
         try {
             if (rsProcedureMeta == null) {
@@ -893,7 +903,8 @@ public final class SQLServerParameterMetaData implements ParameterMetaData {
         }
     }
 
-    /* L2 */ public int isNullable(int param) throws SQLServerException {
+    @Override
+    public int isNullable(int param) throws SQLServerException {
         checkClosed();
         try {
             if (rsProcedureMeta == null) {
@@ -926,7 +937,8 @@ public final class SQLServerParameterMetaData implements ParameterMetaData {
      *             when an error occurs
      * @return boolean
      */
-    /* L2 */ public boolean isSigned(int param) throws SQLServerException {
+    @Override
+    public boolean isSigned(int param) throws SQLServerException {
         checkClosed();
         try {
             if (rsProcedureMeta == null) {

@@ -35,10 +35,16 @@ import java.util.Map;
  */
 final class SQLCollation implements java.io.Serializable
 {
-    private final int info;     // First 4 bytes of TDS collation.
+	/**
+	 * 
+	 */
+	private static final long serialVersionUID = 6748833280721312349L;
+	
+	private final int info;     // First 4 bytes of TDS collation.
     private int langID() { return info & 0x0000FFFF; }
     private final int sortId;   // 5th byte of TDS collation.
     private final Encoding encoding;
+    private static final int UTF8_IN_TDSCOLLATION = 0x4000000;
 
     // Utility methods for getting details of this collation's encoding
     final Charset getCharset() throws SQLServerException { return encoding.charset(); }
@@ -77,8 +83,13 @@ final class SQLCollation implements java.io.Serializable
     	 */
         info = tdsReader.readInt(); // 4 bytes, contains: LCID ColFlags Version 
         sortId = tdsReader.readUnsignedByte(); // 1 byte, contains: SortId
-        // For a SortId==0 collation, the LCID bits correspond to a LocaleId
-        encoding = (0 == sortId) ? encodingFromLCID() : encodingFromSortId();
+        if (UTF8_IN_TDSCOLLATION == (info & UTF8_IN_TDSCOLLATION)) {
+            encoding = Encoding.UTF8;
+        }
+        else {
+            // For a SortId==0 collation, the LCID bits correspond to a LocaleId
+            encoding = (0 == sortId) ? encodingFromLCID() : encodingFromSortId();
+        }
     }
 
     /**
@@ -549,6 +560,7 @@ final class SQLCollation implements java.io.Serializable
 enum Encoding
 {
     UNICODE ("UTF-16LE", true, false),
+    UTF8    ("UTF-8", true, false),
     CP437   ("Cp437", false, false),
     CP850   ("Cp850", false, false),
     CP874   ("MS874", true, true),

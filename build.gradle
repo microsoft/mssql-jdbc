@@ -10,7 +10,7 @@
 
 apply plugin: 'java'
 
-version = '6.5.3'
+version = '6.5.4'
 def jreVersion = ""
 def testOutputDir = file("build/classes/java/test")
 def archivesBaseName = 'mssql-jdbc'
@@ -79,7 +79,7 @@ repositories {
 
 dependencies {
 	compile 'com.microsoft.azure:azure-keyvault:1.0.0',
-	'com.microsoft.azure:adal4j:1.5.0'
+	'com.microsoft.azure:adal4j:1.6.0'
 	testCompile 'junit:junit:4.12',
 	'org.junit.platform:junit-platform-console:1.2.0',
 	'org.junit.platform:junit-platform-commons:1.2.0',

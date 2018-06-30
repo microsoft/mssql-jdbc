@@ -14,7 +14,10 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import java.io.ByteArrayInputStream;
 import java.io.CharArrayReader;
 import java.net.URI;
+import java.sql.Connection;
+import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.logging.Level;
@@ -283,6 +286,11 @@ public class Utils {
         dropObjectIfExists(procName, "IsProcedure", stmt);
     }
 
+    public static void dropDatabaseIfExists(String databaseName,
+            java.sql.Statement stmt) throws SQLException {
+        stmt.executeUpdate("USE MASTER; IF EXISTS(SELECT * from sys.databases WHERE name='" + databaseName + "') DROP DATABASE [" + databaseName + "]");
+    }
+
     /**
      * actually perform the "DROP TABLE / PROCEDURE"
      */
@@ -315,4 +323,18 @@ public class Utils {
         return true;
     }
     
+    public static boolean isJDBC43OrGreater(Connection connection) throws SQLException{
+        return getJDBCVersion(connection) >= 4.3F;
+    }
+
+    public static float getJDBCVersion(Connection connection) throws SQLException {
+        return Float.valueOf(connection.getMetaData().getJDBCMajorVersion() + "." + connection.getMetaData().getJDBCMinorVersion());
+    }
+
+    public static boolean serverSupportsUTF8(Connection connection) throws SQLException {
+        try (Statement stmt = connection.createStatement();
+                ResultSet rs = stmt.executeQuery("SELECT name FROM sys.fn_helpcollations() WHERE name LIKE '%UTF8%'");) {
+            return rs.isBeforeFirst();
+        }
+    }
 }

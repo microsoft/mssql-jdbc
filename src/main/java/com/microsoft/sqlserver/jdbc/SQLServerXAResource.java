@@ -51,7 +51,7 @@ final class XidImpl implements Xid {
      * @param bqual
      *            branch id
      */
-    /* L0 */ public XidImpl(int formatId,
+    public XidImpl(int formatId,
             byte gtrid[],
             byte bqual[]) {
         this.formatId = formatId;
@@ -60,15 +60,15 @@ final class XidImpl implements Xid {
         traceID = " XID:" + xidDisplay(this);
     }
 
-    /* L0 */ public byte[] getGlobalTransactionId() {
+    public byte[] getGlobalTransactionId() {
         return gtrid;
     }
 
-    /* L0 */ public byte[] getBranchQualifier() {
+    public byte[] getBranchQualifier() {
         return bqual;
     }
 
-    /* L0 */ public int getFormatId() {
+    public int getFormatId() {
         return formatId;
     }
 
@@ -172,11 +172,12 @@ public final class SQLServerXAResource implements javax.transaction.xa.XAResourc
         xaInitLock = new Object();
     }
 
+    @Override
     public String toString() {
         return traceID;
     }
 
-    /* L0 */ SQLServerXAResource(SQLServerConnection original,
+    SQLServerXAResource(SQLServerConnection original,
             SQLServerConnection control,
             String loginfo) {
         traceID = " XAResourceID:" + nextResourceID();
@@ -358,7 +359,7 @@ public final class SQLServerXAResource implements javax.transaction.xa.XAResourc
 
     }
 
-    /* L0 */ private XAReturnValue DTC_XA_Interface(int nType,
+    private XAReturnValue DTC_XA_Interface(int nType,
             Xid xid,
             int xaFlags) throws XAException {
 
@@ -746,7 +747,8 @@ public final class SQLServerXAResource implements javax.transaction.xa.XAResourc
         return returnStatus;
     }
 
-    /* L0 */ public void start(Xid xid,
+    @Override
+    public void start(Xid xid,
             int flags) throws XAException {
         /*
          * Transaction mgr will use this resource in the global transaction. After this call the app server will call getConnection() to get a
@@ -771,7 +773,8 @@ public final class SQLServerXAResource implements javax.transaction.xa.XAResourc
         DTC_XA_Interface(XA_START, xid, flags);
     }
 
-    /* L0 */ public void end(Xid xid,
+    @Override
+    public void end(Xid xid,
             int flags) throws XAException {
         // Called by the transaction mgr after the app closes the connection it was given from this physical
         // connection
@@ -785,7 +788,8 @@ public final class SQLServerXAResource implements javax.transaction.xa.XAResourc
         DTC_XA_Interface(XA_END, xid, flags | tightlyCoupled);
     }
 
-    /* L0 */ public int prepare(Xid xid) throws XAException {
+    @Override
+    public int prepare(Xid xid) throws XAException {
         /*
          * Ask the resource manager to prepare for a transaction commit of the transaction specified in xid. Parameters: xid - A global transaction
          * identifier Returns: A value indicating the resource manager's vote on the outcome of the transaction. The possible values are: XA_RDONLY or
@@ -799,20 +803,24 @@ public final class SQLServerXAResource implements javax.transaction.xa.XAResourc
         return nStatus;
     }
 
-    /* L0 */ public void commit(Xid xid,
+    @Override
+    public void commit(Xid xid,
             boolean onePhase) throws XAException {
         DTC_XA_Interface(XA_COMMIT, xid, ((onePhase) ? TMONEPHASE : TMNOFLAGS) | tightlyCoupled);
     }
 
-    /* L0 */ public void rollback(Xid xid) throws XAException {
+    @Override
+    public void rollback(Xid xid) throws XAException {
         DTC_XA_Interface(XA_ROLLBACK, xid, tightlyCoupled);
     }
 
-    /* L0 */ public void forget(Xid xid) throws XAException {
+    @Override
+    public void forget(Xid xid) throws XAException {
         DTC_XA_Interface(XA_FORGET, xid, tightlyCoupled);
     }
 
-    /* L0 */ public Xid[] recover(int flags) throws XAException {
+    @Override
+    public Xid[] recover(int flags) throws XAException {
         XAReturnValue r = DTC_XA_Interface(XA_RECOVER, null, flags | tightlyCoupled);
         int offset = 0;
         ArrayList<XidImpl> al = new ArrayList<>();
@@ -859,7 +867,8 @@ public final class SQLServerXAResource implements javax.transaction.xa.XAResourc
         return xids;
     }
 
-    /* L0 */ public boolean isSameRM(XAResource xares) throws XAException {
+    @Override
+    public boolean isSameRM(XAResource xares) throws XAException {
         // A Resource Manager (RM) is an instance of a connection to a DB
 
         if (xaLogger.isLoggable(Level.FINER))
@@ -872,7 +881,8 @@ public final class SQLServerXAResource implements javax.transaction.xa.XAResourc
         return jxa.sResourceManagerId.equals(this.sResourceManagerId);
     }
 
-    /* L0 */ public boolean setTransactionTimeout(int seconds) throws XAException {
+    @Override
+    public boolean setTransactionTimeout(int seconds) throws XAException {
 
         isTransacrionTimeoutSet = 1;
         timeoutSeconds = seconds;
@@ -881,7 +891,8 @@ public final class SQLServerXAResource implements javax.transaction.xa.XAResourc
         return true;
     }
 
-    /* L0 */ public int getTransactionTimeout() throws XAException {
+    @Override
+    public int getTransactionTimeout() throws XAException {
         return timeoutSeconds;
     }
 
