@@ -24,4 +24,5 @@ module mssqljdbc {
 	requires java.security.jgss;
 	requires java.sql;
 	requires java.xml;
+    requires jdk.security.jgss;
 }

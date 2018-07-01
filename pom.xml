@@ -140,6 +140,7 @@
 						<configuration>
 							<excludes>
 								<exclude>**/com/microsoft/sqlserver/jdbc/SQLServerJdbc43.java</exclude>
+								<exclude>**/module-info.java</exclude>
 							</excludes>
 							<source>1.8</source>
 							<target>1.8</target>
