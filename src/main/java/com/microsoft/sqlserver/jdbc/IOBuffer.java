@@ -73,6 +73,9 @@ import javax.net.ssl.SSLSocket;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.TrustManagerFactory;
 import javax.net.ssl.X509TrustManager;
+
+import com.microsoft.sqlserver.jdbc.dataclassification.SensitivityClassification;
+
 import java.nio.Buffer;
 
 final class TDS {
@@ -100,9 +103,11 @@ final class TDS {
     static final int TDS_DONEPROC = 0xFE;
     static final int TDS_DONEINPROC = 0xFF;
     static final int TDS_FEDAUTHINFO = 0xEE;
+    static final int TDS_SQLRESCOLSRCS = 0xa2;
+    static final int TDS_SQLDATACLASSIFICATION = 0xa3;
 
     // FedAuth
-    static final int TDS_FEATURE_EXT_FEDAUTH = 0x02;
+    static final byte TDS_FEATURE_EXT_FEDAUTH = 0x02;
     static final int TDS_FEDAUTH_LIBRARY_SECURITYTOKEN = 0x01;
     static final int TDS_FEDAUTH_LIBRARY_ADAL = 0x02;
     static final int TDS_FEDAUTH_LIBRARY_RESERVED = 0x7F;
@@ -112,12 +117,22 @@ final class TDS {
     static final byte FEDAUTH_INFO_ID_SPN = 0x02; // FedAuthInfoData is the SPN to use for acquiring fed auth token
 
     // AE constants
-    static final int TDS_FEATURE_EXT_AE = 0x04;
-    static final int MAX_SUPPORTED_TCE_VERSION = 0x01; // max version
+    // 0x03 is for x_eFeatureExtensionId_Rcs
+    static final byte TDS_FEATURE_EXT_AE = 0x04;
+    static final byte MAX_SUPPORTED_TCE_VERSION = 0x01; // max version
     static final int CUSTOM_CIPHER_ALGORITHM_ID = 0; // max version
+    // 0x06 is for x_eFeatureExtensionId_LoginToken 
+    // 0x07 is for x_eFeatureExtensionId_ClientSideTelemetry 
+    // Data Classification constants
+    static final byte TDS_FEATURE_EXT_DATACLASSIFICATION = 0x09;
+    static final byte DATA_CLASSIFICATION_NOT_ENABLED = 0x00;
+    static final byte MAX_SUPPORTED_DATA_CLASSIFICATION_VERSION = 0x01;
+    
     static final int AES_256_CBC = 1;
     static final int AEAD_AES_256_CBC_HMAC_SHA256 = 2;
     static final int AE_METADATA = 0x08;
+    
+    static final byte TDS_FEATURE_EXT_UTF8SUPPORT = 0x0A;
 
     static final int TDS_TVP = 0xF3;
     static final int TVP_ROW = 0x01;
@@ -177,6 +192,10 @@ final class TDS {
                 return "TDS_DONEINPROC (0xFF)";
             case TDS_FEDAUTHINFO:
                 return "TDS_FEDAUTHINFO (0xEE)";
+            case TDS_FEATURE_EXT_DATACLASSIFICATION:
+                return "TDS_FEATURE_EXT_DATACLASSIFICATION (0x09)";
+            case TDS_FEATURE_EXT_UTF8SUPPORT:
+                return "TDS_FEATURE_EXT_UTF8SUPPORT (0x0A)";
             default:
                 return "unknown token (0x" + Integer.toHexString(tdsTokenType).toUpperCase() + ")";
         }
@@ -2329,58 +2348,22 @@ final class SocketFinder {
                 conn.terminate(SQLServerException.DRIVER_ERROR_UNSUPPORTED_CONFIG, errorStr);
             }
 
+            if (inetAddrs.length == 1) {
+                // Single address so do not start any threads
+                return getConnectedSocket(inetAddrs[0], portNumber, timeoutInMilliSeconds);
+            }
+            timeoutInMilliSeconds = Math.max(timeoutInMilliSeconds, minTimeoutForParallelConnections);                
             if (Util.isIBM()) {
-                timeoutInMilliSeconds = Math.max(timeoutInMilliSeconds, minTimeoutForParallelConnections);
                 if (logger.isLoggable(Level.FINER)) {
                     logger.finer(this.toString() + "Using Java NIO with timeout:" + timeoutInMilliSeconds);
                 }
                 findSocketUsingJavaNIO(inetAddrs, portNumber, timeoutInMilliSeconds);
             }
             else {
-                LinkedList<InetAddress> inet4Addrs = new LinkedList<>();
-                LinkedList<InetAddress> inet6Addrs = new LinkedList<>();
-
-                for (InetAddress inetAddr : inetAddrs) {
-                    if (inetAddr instanceof Inet4Address) {
-                        inet4Addrs.add((Inet4Address) inetAddr);
-                    }
-                    else {
-                        assert inetAddr instanceof Inet6Address : "Unexpected IP address " + inetAddr.toString();
-                        inet6Addrs.add((Inet6Address) inetAddr);
-                    }
+                if (logger.isLoggable(Level.FINER)) {
+                    logger.finer(this.toString() + "Using Threading with timeout:" + timeoutInMilliSeconds);
                 }
-
-                // use half timeout only if both IPv4 and IPv6 addresses are present
-                int timeoutForEachIPAddressType;
-                if ((!inet4Addrs.isEmpty()) && (!inet6Addrs.isEmpty())) {
-                    timeoutForEachIPAddressType = Math.max(timeoutInMilliSeconds / 2, minTimeoutForParallelConnections);
-                }
-                else
-                    timeoutForEachIPAddressType = Math.max(timeoutInMilliSeconds, minTimeoutForParallelConnections);
-
-                if (!inet4Addrs.isEmpty()) {
-                    if (logger.isLoggable(Level.FINER)) {
-                        logger.finer(this.toString() + "Using Java Threading with timeout:" + timeoutForEachIPAddressType);
-                    }
-
-                    findSocketUsingThreading(inet4Addrs, portNumber, timeoutForEachIPAddressType);
-                }
-
-                if (!result.equals(Result.SUCCESS)) {
-                    // try threading logic
-                    if (!inet6Addrs.isEmpty()) {
-                        // do not start any threads if there is only one ipv6 address
-                        if (inet6Addrs.size() == 1) {
-                            return getConnectedSocket(inet6Addrs.get(0), portNumber, timeoutForEachIPAddressType);
-                        }
-
-                        if (logger.isLoggable(Level.FINER)) {
-                            logger.finer(this.toString() + "Using Threading with timeout:" + timeoutForEachIPAddressType);
-                        }
-
-                        findSocketUsingThreading(inet6Addrs, portNumber, timeoutForEachIPAddressType);
-                    }
-                }
+                findSocketUsingThreading(inetAddrs, portNumber, timeoutInMilliSeconds);
             }
 
             // If the thread continued execution due to timeout, the result may not be known.
@@ -2633,12 +2616,12 @@ final class SocketFinder {
         return selectedSocket;
     }
 
-    private void findSocketUsingThreading(LinkedList<InetAddress> inetAddrs,
+    private void findSocketUsingThreading(InetAddress[] inetAddrs,
             int portNumber,
             int timeoutInMilliSeconds) throws IOException, InterruptedException {
         assert timeoutInMilliSeconds != 0 : "The timeout cannot be zero";
         
-        assert inetAddrs.isEmpty() == false : "Number of inetAddresses should not be zero in this function";
+        assert inetAddrs.length != 0 : "Number of inetAddresses should not be zero in this function";
 
         LinkedList<Socket> sockets = new LinkedList<>();
         LinkedList<SocketConnector> socketConnectors = new LinkedList<>();
@@ -2646,7 +2629,7 @@ final class SocketFinder {
         try {
 
             // create a socket, inetSocketAddress and a corresponding socketConnector per inetAddress
-            noOfSpawnedThreads = inetAddrs.size();
+            noOfSpawnedThreads = inetAddrs.length;
             for (InetAddress inetAddress : inetAddrs) {
                 Socket s = new Socket();
                 sockets.add(s);
@@ -6348,7 +6331,8 @@ final class TDSReaderMark {
 final class TDSReader {
     private final static Logger logger = Logger.getLogger("com.microsoft.sqlserver.jdbc.internals.TDS.Reader");
     final private String traceID;
-
+    private TimeoutTimer tcpKeepAliveTimeoutTimer;
+    
     final public String toString() {
         return traceID;
     }
@@ -6366,7 +6350,7 @@ final class TDSReader {
     final SQLServerConnection getConnection() {
         return con;
     }
-
+    
     private TDSPacket currentPacket = new TDSPacket(0);
     private TDSPacket lastPacket = currentPacket;
     private int payloadOffset = 0;
@@ -6375,8 +6359,12 @@ final class TDSReader {
     private boolean isStreaming = true;
     private boolean useColumnEncryption = false;
     private boolean serverSupportsColumnEncryption = false;
+    private boolean serverSupportsDataClassification = false;
 
     private final byte valueBytes[] = new byte[256];
+    
+    protected SensitivityClassification sensitivityClassification;
+
     private static final AtomicInteger lastReaderID = new AtomicInteger(0);
 
     private static int nextReaderID() {
@@ -6389,7 +6377,12 @@ final class TDSReader {
         this.tdsChannel = tdsChannel;
         this.con = con;
         this.command = command; // may be null
-        // if the logging level is not detailed than fine or more we will not have proper readerids.
+        if(null != command) {
+            //if cancelQueryTimeout is set, we should wait for the total amount of queryTimeout + cancelQueryTimeout to terminate the connection.
+            this.tcpKeepAliveTimeoutTimer = (command.getCancelQueryTimeoutSeconds() > 0 && command.getQueryTimeoutSeconds() > 0 ) ? 
+        	    (new TimeoutTimer(command.getCancelQueryTimeoutSeconds() + command.getQueryTimeoutSeconds(), null, con)) : null;
+        }
+        // if the logging level is not detailed than fine or more we will not have proper reader IDs.
         if (logger.isLoggable(Level.FINE))
             traceID = "TDSReader@" + nextReaderID() + " (" + con.toString() + ")";
         else
@@ -6398,6 +6391,7 @@ final class TDSReader {
             useColumnEncryption = true;
         }
         serverSupportsColumnEncryption = con.getServerSupportsColumnEncryption();
+        serverSupportsDataClassification = con.getServerSupportsDataClassification();
     }
 
     final boolean isColumnEncryptionSettingEnabled() {
@@ -6408,6 +6402,10 @@ final class TDSReader {
         return serverSupportsColumnEncryption;
     }
 
+    final boolean getServerSupportsDataClassification() {
+        return serverSupportsDataClassification;
+    }
+    
     final void throwInvalidTDS() throws SQLServerException {
         if (logger.isLoggable(Level.SEVERE))
             logger.severe(toString() + " got unexpected value in TDS response at offset:" + payloadOffset);
@@ -6487,7 +6485,12 @@ final class TDSReader {
                 + tdsChannel.numMsgsSent;
 
         TDSPacket newPacket = new TDSPacket(con.getTDSPacketSize());
-
+        if (null != tcpKeepAliveTimeoutTimer) {
+            if (logger.isLoggable(Level.FINEST)) {
+                logger.finest(this.toString() + ": starting timer...");
+            }
+            tcpKeepAliveTimeoutTimer.start();
+        }
         // First, read the packet header.
         for (int headerBytesRead = 0; headerBytesRead < TDS.PACKET_HEADER_SIZE;) {
             int bytesRead = tdsChannel.read(newPacket.header, headerBytesRead, TDS.PACKET_HEADER_SIZE - headerBytesRead);
@@ -6501,7 +6504,14 @@ final class TDSReader {
 
             headerBytesRead += bytesRead;
         }
-
+        
+        // if execution was subject to timeout then stop timing
+        if (null != tcpKeepAliveTimeoutTimer) {
+            if (logger.isLoggable(Level.FINEST)) {
+                logger.finest(this.toString() + ":stopping timer...");
+            }
+            tcpKeepAliveTimeoutTimer.stop();
+        }
         // Header size is a 2 byte unsigned short integer in big-endian order.
         int packetLength = Util.readUnsignedShortBigEndian(newPacket.header, TDS.PACKET_HEADER_MESSAGE_LENGTH);
 
@@ -7087,7 +7097,7 @@ final class TDSReader {
         }
     }
 
-    final void TryProcessFeatureExtAck(boolean featureExtAckReceived) throws SQLServerException {
+    final void tryProcessFeatureExtAck(boolean featureExtAckReceived) throws SQLServerException {
         // in case of redirection, do not check if TDS_FEATURE_EXTENSION_ACK is received or not.
         if (null != this.con.getRoutingInfo()) {
             return;
@@ -7095,6 +7105,10 @@ final class TDSReader {
 
         if (isColumnEncryptionSettingEnabled() && !featureExtAckReceived)
             throw new SQLServerException(this, SQLServerException.getErrString("R_AE_NotSupportedByServer"), null, 0, false);
+    }
+
+    final void trySetSensitivityClassification(SensitivityClassification sensitivityClassification) {
+        this.sensitivityClassification = sensitivityClassification;
     }
 }
 
@@ -7109,7 +7123,8 @@ final class TimeoutTimer implements Runnable {
     private final int timeoutSeconds;
     private final TDSCommand command;
     private volatile Future<?> task;
-
+    private final SQLServerConnection con;
+    
     private static final ExecutorService executor = Executors.newCachedThreadPool(new ThreadFactory() {
         private final AtomicReference<ThreadGroup> tgr = new AtomicReference<>();
         private final AtomicInteger threadNumber = new AtomicInteger(0);
@@ -7134,12 +7149,13 @@ final class TimeoutTimer implements Runnable {
     private volatile boolean canceled = false;
 
     TimeoutTimer(int timeoutSeconds,
-            TDSCommand command) {
+            TDSCommand command,
+            SQLServerConnection con) {
         assert timeoutSeconds > 0;
-        assert null != command;
 
         this.timeoutSeconds = timeoutSeconds;
         this.command = command;
+        this.con = con;
     }
 
     final void start() {
@@ -7173,12 +7189,22 @@ final class TimeoutTimer implements Runnable {
         // If the timer wasn't canceled before it ran out of
         // time then interrupt the registered command.
         try {
-            command.interrupt(SQLServerException.getErrString("R_queryTimedOut"));
+            // If TCP Connection to server is silently dropped, exceeding the query timeout on the same connection does not throw SQLTimeoutException
+            // The application stops responding instead until SocketTimeoutException is thrown. In this case, we must manually terminate the connection.
+            if (null == command && null != con) {
+                con.terminate(SQLServerException.DRIVER_ERROR_IO_FAILED, SQLServerException.getErrString("R_connectionIsClosed"));
+            }
+            else {
+                // If the timer wasn't canceled before it ran out of
+                // time then interrupt the registered command.
+                command.interrupt(SQLServerException.getErrString("R_queryTimedOut"));
+            }
         }
         catch (SQLServerException e) {
             // Unfortunately, there's nothing we can do if we
             // fail to time out the request. There is no way
             // to report back what happened.
+            assert null != command;
             command.log(Level.FINE, "Command could not be timed out. Reason: " + e.getMessage());
         }
     }
@@ -7306,7 +7332,17 @@ abstract class TDSCommand {
     // any attention ack. The command's response is read either on demand as it is processed,
     // or by detaching.
     private volatile boolean readingResponse;
+	private int queryTimeoutSeconds;
+	private int cancelQueryTimeoutSeconds;
 
+    protected int getQueryTimeoutSeconds() {
+    	return this.queryTimeoutSeconds;
+    }
+
+    protected int getCancelQueryTimeoutSeconds() {
+    	return this.cancelQueryTimeoutSeconds;
+    }
+    
     final boolean readingResponse() {
         return readingResponse;
     }
@@ -7320,9 +7356,11 @@ abstract class TDSCommand {
      *            (optional) the time before which the command must complete before it is interrupted. A value of 0 means no timeout.
      */
     TDSCommand(String logContext,
-            int timeoutSeconds) {
+            int queryTimeoutSeconds, int cancelQueryTimeoutSeconds) {
         this.logContext = logContext;
-        this.timeoutTimer = (timeoutSeconds > 0) ? (new TimeoutTimer(timeoutSeconds, this)) : null;
+        this.queryTimeoutSeconds = queryTimeoutSeconds;
+        this.cancelQueryTimeoutSeconds = cancelQueryTimeoutSeconds;
+        this.timeoutTimer = (queryTimeoutSeconds > 0) ? (new TimeoutTimer(queryTimeoutSeconds, this, null)) : null;
     }
 
     /**
@@ -7770,7 +7808,7 @@ abstract class TDSCommand {
  */
 abstract class UninterruptableTDSCommand extends TDSCommand {
     UninterruptableTDSCommand(String logContext) {
-        super(logContext, 0);
+        super(logContext, 0, 0);
     }
 
     final void interrupt(String reason) throws SQLServerException {

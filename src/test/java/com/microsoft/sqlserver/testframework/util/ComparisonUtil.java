@@ -1,3 +1,11 @@
+/*
+ * Microsoft JDBC Driver for SQL Server
+ *
+ * Copyright(c) Microsoft Corporation All rights reserved.
+ *
+ * This program is made available under the terms of the MIT License. See the LICENSE file in the project root for more information.
+ */
+
 package com.microsoft.sqlserver.testframework.util;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -11,6 +19,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Time;
 import java.sql.Timestamp;
+import java.util.Calendar;
 
 import com.microsoft.sqlserver.jdbc.SQLServerResultSetMetaData;
 import com.microsoft.sqlserver.testframework.DBConnection;
@@ -143,7 +152,11 @@ public class ComparisonUtil {
                     break;
 
                 case java.sql.Types.DATE:
-                    assertTrue((((Date) expectedValue).getDate() == (((Date) actualValue).getDate())), "Unexpected datetime value");
+                    Calendar expC = Calendar.getInstance();
+                    expC.setTime((Date)expectedValue);
+                    Calendar actC = Calendar.getInstance();
+                    actC.setTime((Date)actualValue);
+                    assertTrue(expC.get(Calendar.DAY_OF_MONTH) == actC.get(Calendar.DAY_OF_MONTH), "Unexpected datetime value");
                     break;
 
                 case java.sql.Types.TIME:

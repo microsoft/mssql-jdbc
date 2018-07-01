@@ -11,7 +11,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
-import java.sql.BatchUpdateException;
+import java.lang.reflect.Field;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
@@ -26,7 +26,9 @@ import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
 import org.opentest4j.TestAbortedException;
 
+import com.microsoft.sqlserver.jdbc.SQLServerConnection;
 import com.microsoft.sqlserver.jdbc.SQLServerStatement;
+import com.microsoft.sqlserver.jdbc.TestResource;
 import com.microsoft.sqlserver.testframework.AbstractTest;
 import com.microsoft.sqlserver.testframework.DBConnection;
 import com.microsoft.sqlserver.testframework.Utils;
@@ -53,6 +55,8 @@ public class BatchExecutionTest extends AbstractTest {
     public void testBatchExceptionAEOn() throws Exception {
         testAddBatch1();
         testExecuteBatch1();
+        testAddBatch1UseBulkCopyAPI();
+        testExecuteBatch1UseBulkCopyAPI();
     }
 
     /**
@@ -60,55 +64,11 @@ public class BatchExecutionTest extends AbstractTest {
      * array of Integer values of length 3
      */
     public void testAddBatch1() {
-        int i = 0;
-        int retValue[] = {0, 0, 0};
-        try {
-            String sPrepStmt = "update ctstable2 set PRICE=PRICE*20 where TYPE_ID=?";
-            pstmt = connection.prepareStatement(sPrepStmt);
-            pstmt.setInt(1, 2);
-            pstmt.addBatch();
+        testAddBatch1Internal("BatchInsert");
+    }
 
-            pstmt.setInt(1, 3);
-            pstmt.addBatch();
-
-            pstmt.setInt(1, 4);
-            pstmt.addBatch();
-
-            int[] updateCount = pstmt.executeBatch();
-            int updateCountlen = updateCount.length;
-
-            assertTrue(updateCountlen == 3, "addBatch does not add the SQL Statements to Batch ,call to addBatch failed");
-
-            String sPrepStmt1 = "select count(*) from ctstable2 where TYPE_ID=?";
-
-            pstmt1 = connection.prepareStatement(sPrepStmt1);
-
-            // 2 is the number that is set First for Type Id in Prepared Statement
-            for (int n = 2; n <= 4; n++) {
-                pstmt1.setInt(1, n);
-                rs = pstmt1.executeQuery();
-                rs.next();
-                retValue[i++] = rs.getInt(1);
-            }
-
-            pstmt1.close();
-
-            for (int j = 0; j < updateCount.length; j++) {
-
-                if (updateCount[j] != retValue[j] && updateCount[j] != Statement.SUCCESS_NO_INFO) {
-                    fail("affected row count does not match with the updateCount value, Call to addBatch is Failed!");
-                }
-            }
-        }
-        catch (BatchUpdateException b) {
-            fail("BatchUpdateException :  Call to addBatch is Failed!");
-        }
-        catch (SQLException sqle) {
-            fail("Call to addBatch is Failed!");
-        }
-        catch (Exception e) {
-            fail("Call to addBatch is Failed!");
-        }
+    public void testAddBatch1UseBulkCopyAPI() {
+        testAddBatch1Internal("BulkCopy");
     }
 
     /**
@@ -116,12 +76,24 @@ public class BatchExecutionTest extends AbstractTest {
      * an array of Integer values of length 3.
      */
     public void testExecuteBatch1() {
+        testExecuteBatch1Internal("BatchInsert");
+    }
+    
+    public void testExecuteBatch1UseBulkCopyAPI() {
+        testExecuteBatch1Internal("BulkCopy");
+    }
+    
+    private void testExecuteBatch1Internal(String mode) {
         int i = 0;
         int retValue[] = {0, 0, 0};
-        int updCountLength = 0;
-        try {
+        int updateCountlen = 0;
+        try (Connection connection = DriverManager.getConnection(connectionString + ";columnEncryptionSetting=Enabled;");){
             String sPrepStmt = "update ctstable2 set PRICE=PRICE*20 where TYPE_ID=?";
 
+            if (mode.equalsIgnoreCase("bulkcopy")) {
+                modifyConnectionForBulkCopyAPI((SQLServerConnection) connection);
+            }
+            
             pstmt = connection.prepareStatement(sPrepStmt);
             pstmt.setInt(1, 1);
             pstmt.addBatch();
@@ -133,9 +105,9 @@ public class BatchExecutionTest extends AbstractTest {
             pstmt.addBatch();
 
             int[] updateCount = pstmt.executeBatch();
-            updCountLength = updateCount.length;
+            updateCountlen = updateCount.length;
 
-            assertTrue(updCountLength == 3, "executeBatch does not execute the Batch of SQL statements, Call to executeBatch is Failed!");
+            assertTrue(updateCountlen == 3, TestResource.getResource("R_executeBatchFailed") + ": " + TestResource.getResource("R_incorrectUpdateCount"));
 
             String sPrepStmt1 = "select count(*) from ctstable2 where TYPE_ID=?";
 
@@ -152,18 +124,12 @@ public class BatchExecutionTest extends AbstractTest {
 
             for (int j = 0; j < updateCount.length; j++) {
                 if (updateCount[j] != retValue[j] && updateCount[j] != Statement.SUCCESS_NO_INFO) {
-                    fail("executeBatch does not execute the Batch of SQL statements, Call to executeBatch is Failed!");
+                    fail(TestResource.getResource("R_executeBatchFailed") + ": " + TestResource.getResource("R_incorrectUpdateCount"));
                 }
             }
         }
-        catch (BatchUpdateException b) {
-            fail("BatchUpdateException :  Call to executeBatch is Failed!");
-        }
-        catch (SQLException sqle) {
-            fail("Call to executeBatch is Failed!");
-        }
         catch (Exception e) {
-            fail("Call to executeBatch is Failed!");
+            fail(TestResource.getResource("R_executeBatchFailed") + ": " + e.getMessage());
         }
     }
 
@@ -188,11 +154,70 @@ public class BatchExecutionTest extends AbstractTest {
         stmt.execute(sqlin1);
 
     }
+    
+    private void testAddBatch1Internal(String mode) {
+        int i = 0;
+        int retValue[] = {0, 0, 0};
+        try (Connection connection = DriverManager.getConnection(connectionString + ";columnEncryptionSetting=Enabled;");){
+            String sPrepStmt = "update ctstable2 set PRICE=PRICE*20 where TYPE_ID=?";
+            
+            if (mode.equalsIgnoreCase("bulkcopy")) {
+                modifyConnectionForBulkCopyAPI((SQLServerConnection) connection);
+            }
+            
+            pstmt = connection.prepareStatement(sPrepStmt);
+            pstmt.setInt(1, 2);
+            pstmt.addBatch();
+
+            pstmt.setInt(1, 3);
+            pstmt.addBatch();
+
+            pstmt.setInt(1, 4);
+            pstmt.addBatch();
+
+            int[] updateCount = pstmt.executeBatch();
+            int updateCountlen = updateCount.length;
+
+            assertTrue(updateCountlen == 3, TestResource.getResource("R_addBatchFailed") + ": " + TestResource.getResource("R_incorrectUpdateCount"));
+
+            String sPrepStmt1 = "select count(*) from ctstable2 where TYPE_ID=?";
+
+            pstmt1 = connection.prepareStatement(sPrepStmt1);
+
+            // 2 is the number that is set First for Type Id in Prepared Statement
+            for (int n = 2; n <= 4; n++) {
+                pstmt1.setInt(1, n);
+                rs = pstmt1.executeQuery();
+                rs.next();
+                retValue[i++] = rs.getInt(1);
+            }
+
+            pstmt1.close();
+
+            for (int j = 0; j < updateCount.length; j++) {
+
+                if (updateCount[j] != retValue[j] && updateCount[j] != Statement.SUCCESS_NO_INFO) {
+                    fail(TestResource.getResource("R_incorrectUpdateCount"));
+                }
+            }
+        }
+        catch (Exception e) {
+            fail(TestResource.getResource("R_addBatchFailed") + ": " + e.getMessage());
+        }
+    }
+    
+    private void modifyConnectionForBulkCopyAPI(SQLServerConnection con) throws Exception {
+        Field f1 = SQLServerConnection.class.getDeclaredField("isAzureDW");
+        f1.setAccessible(true);
+        f1.set(con, true);
+        
+        con.setUseBulkCopyForBatchInsert(true);
+    }
 
     @BeforeAll
     public static void testSetup() throws TestAbortedException, Exception {
         assumeTrue(13 <= new DBConnection(connectionString).getServerVersion(),
-                "Aborting test case as SQL Server version is not compatible with Always encrypted ");
+                TestResource.getResource("R_Incompat_SQLServerVersion"));
         connection = DriverManager.getConnection(connectionString + ";columnEncryptionSetting=Enabled;");
         stmt = (SQLServerStatement) connection.createStatement();
         dropTable();

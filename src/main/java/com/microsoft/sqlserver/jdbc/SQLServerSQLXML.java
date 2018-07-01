@@ -158,7 +158,8 @@ final class SQLServerSQLXML implements java.sql.SQLXML {
     InputStream getStream() {
         return contents;
     }
-
+    
+    @Override
     public void free() throws SQLException {
         if (!isFreed) {
             isFreed = true;
@@ -209,6 +210,7 @@ final class SQLServerSQLXML implements java.sql.SQLXML {
      *             when an error occurs
      * @return the input stream to that contains the SQLXML data
      */
+    @Override
     public InputStream getBinaryStream() throws SQLException {
         checkClosed();
         checkReadXML();
@@ -224,6 +226,7 @@ final class SQLServerSQLXML implements java.sql.SQLXML {
      *             when an error occurs
      * @return OutputStream
      */
+    @Override
     public java.io.OutputStream setBinaryStream() throws SQLException {
         checkClosed();
         checkWriteXML();
@@ -232,6 +235,7 @@ final class SQLServerSQLXML implements java.sql.SQLXML {
         return outputStreamValue;
     }
 
+    @Override
     public java.io.Writer setCharacterStream() throws SQLException {
         checkClosed();
         checkWriteXML();
@@ -240,6 +244,7 @@ final class SQLServerSQLXML implements java.sql.SQLXML {
         return new OutputStreamWriter(outputStreamValue, Encoding.UNICODE.charset());
     }
 
+    @Override
     public Reader getCharacterStream() throws SQLException {
         checkClosed();
         checkReadXML();
@@ -261,6 +266,7 @@ final class SQLServerSQLXML implements java.sql.SQLXML {
         return rd;
     }
 
+    @Override
     public String getString() throws SQLException {
         checkClosed();
         checkReadXML();
@@ -279,6 +285,7 @@ final class SQLServerSQLXML implements java.sql.SQLXML {
         return new String(byteContents, 0, byteContents.length, Encoding.UNICODE.charset());
     }
 
+    @Override
     public void setString(String value) throws SQLException {
         checkClosed();
         checkWriteXML();
@@ -289,6 +296,7 @@ final class SQLServerSQLXML implements java.sql.SQLXML {
     }
     // Support the following DOMSource, SAXSource, StAX and Stream. Also, null means default which is stream source
 
+    @Override
     public <T extends Source> T getSource(Class<T> iface) throws SQLException {
         checkClosed();
         checkReadXML();
@@ -324,6 +332,7 @@ final class SQLServerSQLXML implements java.sql.SQLXML {
         return src;
     }
 
+    @Override
     public <T extends Result> T setResult(Class<T> resultClass) throws SQLException {
         checkClosed();
         checkWriteXML();

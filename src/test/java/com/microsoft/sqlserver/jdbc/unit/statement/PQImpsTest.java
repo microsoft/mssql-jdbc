@@ -27,6 +27,7 @@ import org.junit.runner.RunWith;
 
 import com.microsoft.sqlserver.jdbc.SQLServerConnection;
 import com.microsoft.sqlserver.jdbc.SQLServerParameterMetaData;
+import com.microsoft.sqlserver.jdbc.TestResource;
 import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
 import com.microsoft.sqlserver.testframework.AbstractTest;
 import com.microsoft.sqlserver.testframework.Utils;
@@ -227,7 +228,7 @@ public class PQImpsTest extends AbstractTest {
 
         ParameterMetaData pmd = pstmt.getParameterMetaData();
 
-        assertEquals(pmd.getParameterCount(), 13, "Not all parameters are recognized by driver.");
+        assertEquals(pmd.getParameterCount(), 15, TestResource.getResource("R_paramNotRecognized"));
 
         compareParameterMetaData(pmd, 1, "java.math.BigDecimal", 3, "decimal", 18, 0);
         compareParameterMetaData(pmd, 2, "java.math.BigDecimal", 3, "decimal", 10, 5);
@@ -242,13 +243,15 @@ public class PQImpsTest extends AbstractTest {
         compareParameterMetaData(pmd, 11, "java.lang.Short", -6, "tinyint", 3, 0);
         compareParameterMetaData(pmd, 12, "java.math.BigDecimal", 3, "money", 19, 4);
         compareParameterMetaData(pmd, 13, "java.math.BigDecimal", 3, "smallmoney", 10, 4);
+        compareParameterMetaData(pmd, 14, "java.math.BigDecimal", 3, "decimal", 10, 9);
+        compareParameterMetaData(pmd, 15, "java.math.BigDecimal", 3, "decimal", 38, 37);
     }
 
     private static void checkCharMetaData(int expectedParameterCount) throws SQLException {
 
         ParameterMetaData pmd = pstmt.getParameterMetaData();
 
-        assertEquals(pmd.getParameterCount(), expectedParameterCount, "Not all parameters are recognized by driver.");
+        assertEquals(pmd.getParameterCount(), expectedParameterCount, TestResource.getResource("R_paramNotRecognized"));
 
         compareParameterMetaData(pmd, 1, "java.lang.String", 1, "char", 50, 0);
         compareParameterMetaData(pmd, 2, "java.lang.String", 12, "varchar", 20, 0);
@@ -265,7 +268,7 @@ public class PQImpsTest extends AbstractTest {
 
         ParameterMetaData pmd = pstmt.getParameterMetaData();
 
-        assertEquals(pmd.getParameterCount(), 2, "Not all parameters are recognized by driver.");
+        assertEquals(pmd.getParameterCount(), 2, TestResource.getResource("R_paramNotRecognized"));
 
         compareParameterMetaData(pmd, 1, "[B", -2, "binary", 100, 0);
         compareParameterMetaData(pmd, 2, "[B", -3, "varbinary", 200, 0);
@@ -274,7 +277,7 @@ public class PQImpsTest extends AbstractTest {
     private static void checkDateAndTimeMetaData() throws SQLException {
 
         ParameterMetaData pmd = pstmt.getParameterMetaData();
-        assertEquals(pmd.getParameterCount(), 9, "Not all parameters are recognized by driver.");
+        assertEquals(pmd.getParameterCount(), 9, TestResource.getResource("R_paramNotRecognized"));
 
         compareParameterMetaData(pmd, 1, "java.sql.Date", 91, "date", 10, 0);
         compareParameterMetaData(pmd, 2, "java.sql.Timestamp", 93, "datetime", 23, 3);
@@ -304,7 +307,7 @@ public class PQImpsTest extends AbstractTest {
         }
         try {
             assertTrue(pmd.getParameterType(index) == expectedType,
-                    "Parameter Type error:\n" + "expected: " + expectedType + " \n" + "actual: " + pmd.getParameterType(index));
+                    "getParameterType: " + TestResource.getResource("R_valueNotMatch") + expectedType + ", " + pmd.getParameterType(index));
         }
         catch (SQLException e) {
             fail(e.toString());
@@ -312,14 +315,14 @@ public class PQImpsTest extends AbstractTest {
 
         try {
             assertTrue(pmd.getParameterTypeName(index).equalsIgnoreCase(expectedTypeName),
-                    "Parameter Type Name error:\n" + "expected: " + expectedTypeName + " \n" + "actual: " + pmd.getParameterTypeName(index));
+                    "getParameterTypeName: " + TestResource.getResource("R_valueNotMatch") + expectedTypeName + ", " + pmd.getParameterTypeName(index));
         }
         catch (SQLException e) {
             fail(e.toString());
         }
         try {
             assertTrue(pmd.getPrecision(index) == expectedPrecision,
-                    "Parameter Prcision error:\n" + "expected: " + expectedPrecision + " \n" + "actual: " + pmd.getPrecision(index));
+                    "getPrecision: " + TestResource.getResource("R_valueNotMatch") + expectedPrecision + ", " + pmd.getPrecision(index));
         }
         catch (SQLException e) {
             fail(e.toString());
@@ -327,7 +330,7 @@ public class PQImpsTest extends AbstractTest {
 
         try {
             assertTrue(pmd.getScale(index) == expectedScale,
-                    "Parameter Prcision error:\n" + "expected: " + expectedScale + " \n" + "actual: " + pmd.getScale(index));
+                    "getScale: " + TestResource.getResource("R_valueNotMatch") + expectedScale + ", " + pmd.getScale(index));
         }
         catch (SQLException e) {
             fail(e.toString());
@@ -337,7 +340,7 @@ public class PQImpsTest extends AbstractTest {
 
     private static void populateNumericTable() throws SQLException {
         stmt.execute("insert into " + numericTable + " values (" + "1.123," + "1.123," + "1.2345," + "1.2345," + "1.543," + "1.543," + "5.1234,"
-                + "104935," + "34323," + "123," + "5," + "1.45," + "1.3" + ")");
+                + "104935," + "34323," + "123," + "5," + "1.45," + "1.3," + "0.123456789," + "0.1234567890123456789012345678901234567" + ")");
     }
 
     private static void testBeforeExcute() throws SQLException {
@@ -346,7 +349,7 @@ public class PQImpsTest extends AbstractTest {
         }
 
         String sql = "select * from " + numericTable + " where " + "c1 = ? and " + "c2 = ? and " + "c3 = ? and " + "c4 = ? and " + "c5 = ? and "
-                + "c6 = ? and " + "c7 = ? and " + "c8 = ? and " + "c9 = ? and " + "c10 = ? and " + "c11 = ? and " + "c12 = ? and " + "c13 = ? ";
+                + "c6 = ? and " + "c7 = ? and " + "c8 = ? and " + "c9 = ? and " + "c10 = ? and " + "c11 = ? and " + "c12 = ? and " + "c13 = ? and " + "c14 = ? and " + "c15 = ? ";
 
         pstmt = connection.prepareStatement(sql);
 
@@ -359,11 +362,11 @@ public class PQImpsTest extends AbstractTest {
 
     private static void selectNumeric() throws SQLException {
         String sql = "select * from " + numericTable + " where " + "c1 = ? and " + "c2 = ? and " + "c3 = ? and " + "c4 = ? and " + "c5 = ? and "
-                + "c6 = ? and " + "c7 = ? and " + "c8 = ? and " + "c9 = ? and " + "c10 = ? and " + "c11 = ? and " + "c12 = ? and " + "c13 = ? ";
+                + "c6 = ? and " + "c7 = ? and " + "c8 = ? and " + "c9 = ? and " + "c10 = ? and " + "c11 = ? and " + "c12 = ? and " + "c13 = ?  and " + "c14 = ? and " + "c15 = ? ";
 
         pstmt = connection.prepareStatement(sql);
 
-        for (int i = 1; i <= 13; i++) {
+        for (int i = 1; i <= 15; i++) {
             pstmt.setString(i, "1");
         }
 
@@ -372,12 +375,11 @@ public class PQImpsTest extends AbstractTest {
 
     private static void insertNumeric() throws SQLException {
 
-        String sql = "insert into " + numericTable + " values( " + "?," + "?," + "?," + "?," + "?," + "?," + "?," + "?," + "?," + "?," + "?," + "?,"
-                + "?" + ")";
+        String sql = "insert into " + numericTable + " values( " + "?," + "?," + "?," + "?," + "?," + "?," + "?," + "?," + "?," + "?," + "?," + "?," + "?,"  + "?,"  + "?" + ")";
 
         pstmt = connection.prepareStatement(sql);
 
-        for (int i = 1; i <= 13; i++) {
+        for (int i = 1; i <= 15; i++) {
             pstmt.setString(i, "1");
         }
 
@@ -387,11 +389,11 @@ public class PQImpsTest extends AbstractTest {
     private static void updateNumeric() throws SQLException {
 
         String sql = "update " + numericTable + " set " + "c1 = ?," + "c2 = ?," + "c3 = ?," + "c4 = ?," + "c5 = ?," + "c6 = ?," + "c7 = ?,"
-                + "c8 = ?," + "c9 = ?," + "c10 = ?," + "c11 = ?," + "c12 = ?," + "c13 = ?" + ";";
+                + "c8 = ?," + "c9 = ?," + "c10 = ?," + "c11 = ?," + "c12 = ?," + "c13 = ?," + "c14 = ?," + "c15 = ?" + ";";
 
         pstmt = connection.prepareStatement(sql);
 
-        for (int i = 1; i <= 13; i++) {
+        for (int i = 1; i <= 15; i++) {
             pstmt.setString(i, "1");
         }
 
@@ -401,11 +403,11 @@ public class PQImpsTest extends AbstractTest {
     private static void deleteNumeric() throws SQLException {
 
         String sql = "delete from " + numericTable + " where " + "c1 = ? and " + "c2 = ? and " + "c3 = ? and " + "c4 = ? and " + "c5 = ? and "
-                + "c6 = ? and " + "c7 = ? and " + "c8 = ? and " + "c9 = ? and " + "c10 = ? and " + "c11 = ? and " + "c12 = ? and " + "c13 = ?" + ";";
+                + "c6 = ? and " + "c7 = ? and " + "c8 = ? and " + "c9 = ? and " + "c10 = ? and " + "c11 = ? and " + "c12 = ? and " + "c13 = ? and " + "c14 = ? and " + "c15 = ?" + ";";
 
         pstmt = connection.prepareStatement(sql);
 
-        for (int i = 1; i <= 13; i++) {
+        for (int i = 1; i <= 15; i++) {
             pstmt.setString(i, "1");
         }
 
@@ -416,8 +418,8 @@ public class PQImpsTest extends AbstractTest {
 
         stmt.execute("Create table " + numericTable + " (" + "c1 decimal not null," + "c2 decimal(10,5) not null," + "c3 numeric not null,"
                 + "c4 numeric(8,4) not null," + "c5 float not null," + "c6 float(10) not null," + "c7 real not null," + "c8 int not null,"
-                + "c9 bigint not null," + "c10 smallint not null," + "c11 tinyint not null," + "c12 money not null," + "c13 smallmoney not null"
-                + ")");
+                + "c9 bigint not null," + "c10 smallint not null," + "c11 tinyint not null," + "c12 money not null," + "c13 smallmoney not null,"
+                + "c14 decimal(10,9) not null," + "c15 decimal(38,37) not null" + ")");
     }
 
     private static void createCharTable() throws SQLException {
@@ -743,7 +745,7 @@ public class PQImpsTest extends AbstractTest {
 
             try {
                 pmd = pstmt.getParameterMetaData();
-                assertEquals(pmd.getParameterCount(), 3, "Not all parameters are recognized by driver.");
+                assertEquals(pmd.getParameterCount(), 3, TestResource.getResource("R_paramNotRecognized"));
             }
             catch (Exception e) {
                 fail(e.toString());
@@ -776,7 +778,7 @@ public class PQImpsTest extends AbstractTest {
 
             try {
                 pmd = pstmt.getParameterMetaData();
-                assertEquals(pmd.getParameterCount(), 2, "Not all parameters are recognized by driver.");
+                assertEquals(pmd.getParameterCount(), 2, TestResource.getResource("R_paramNotRecognized"));
             }
             catch (Exception e) {
                 fail(e.toString());
@@ -809,7 +811,7 @@ public class PQImpsTest extends AbstractTest {
 
             try {
                 pmd = pstmt.getParameterMetaData();
-                assertEquals(pmd.getParameterCount(), 2, "Not all parameters are recognized by driver.");
+                assertEquals(pmd.getParameterCount(), 2, TestResource.getResource("R_paramNotRecognized"));
             }
             catch (Exception e) {
                 fail(e.toString());
@@ -862,7 +864,7 @@ public class PQImpsTest extends AbstractTest {
         ParameterMetaData pmd = null;
         try {
             pmd = pstmt.getParameterMetaData();
-            assertEquals(pmd.getParameterCount(), 30, "Not all parameters are recognized by driver.");
+            assertEquals(pmd.getParameterCount(), 30, TestResource.getResource("R_paramNotRecognized"));
         }
         catch (Exception e) {
             fail(e.toString());
@@ -920,7 +922,7 @@ public class PQImpsTest extends AbstractTest {
         ParameterMetaData pmd = null;
         try {
             pmd = pstmt.getParameterMetaData();
-            assertEquals(pmd.getParameterCount(), 0, "Not all parameters are recognized by driver.");
+            assertEquals(pmd.getParameterCount(), 0, TestResource.getResource("R_paramNotRecognized"));
         }
         catch (Exception e) {
             fail(e.toString());
@@ -954,7 +956,7 @@ public class PQImpsTest extends AbstractTest {
         try {
             pmd = pstmt.getParameterMetaData();
 
-            assertEquals(pmd.getParameterCount(), 21, "Not all parameters are recognized by driver.");
+            assertEquals(pmd.getParameterCount(), 21, TestResource.getResource("R_paramNotRecognized"));
         }
         catch (Exception e) {
             fail(e.toString());
@@ -1003,7 +1005,7 @@ public class PQImpsTest extends AbstractTest {
 
         try {
             pmd = pstmt.getParameterMetaData();
-            assertEquals(pmd.getParameterCount(), 4, "Not all parameters are recognized by driver.");
+            assertEquals(pmd.getParameterCount(), 4, TestResource.getResource("R_paramNotRecognized"));
         }
         catch (Exception e) {
             fail(e.toString());
@@ -1033,7 +1035,7 @@ public class PQImpsTest extends AbstractTest {
 
         try {
             pmd = pstmt.getParameterMetaData();
-            assertEquals(pmd.getParameterCount(), 4, "Not all parameters are recognized by driver.");
+            assertEquals(pmd.getParameterCount(), 4, TestResource.getResource("R_paramNotRecognized"));
         }
         catch (Exception e) {
             fail(e.toString());
@@ -1062,7 +1064,7 @@ public class PQImpsTest extends AbstractTest {
         try {
             pmd = pstmt.getParameterMetaData();
 
-            assertEquals(pmd.getParameterCount(), 4, "Not all parameters are recognized by driver.");
+            assertEquals(pmd.getParameterCount(), 4, TestResource.getResource("R_paramNotRecognized"));
         }
         catch (Exception e) {
             fail(e.toString());
@@ -1090,7 +1092,7 @@ public class PQImpsTest extends AbstractTest {
 
         try {
             pmd = pstmt.getParameterMetaData();
-            assertEquals(pmd.getParameterCount(), 4, "Not all parameters are recognized by driver.");
+            assertEquals(pmd.getParameterCount(), 4, TestResource.getResource("R_paramNotRecognized"));
         }
         catch (Exception e) {
             fail(e.toString());
@@ -1125,7 +1127,7 @@ public class PQImpsTest extends AbstractTest {
             try {
                 pmd = pstmt.getParameterMetaData();
 
-                assertEquals(pmd.getParameterCount(), 3, "Not all parameters are recognized by driver.");
+                assertEquals(pmd.getParameterCount(), 3, TestResource.getResource("R_paramNotRecognized"));
             }
             catch (Exception e) {
                 fail(e.toString());

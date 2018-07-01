@@ -12,9 +12,7 @@ import java.io.ByteArrayInputStream;
 import java.io.Closeable;
 import java.io.IOException;
 import java.io.InputStream;
-import java.sql.Blob;
 import java.sql.SQLException;
-import java.sql.SQLFeatureNotSupportedException;
 import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -25,7 +23,10 @@ import java.util.logging.Logger;
  * SQLServerBlob represents a binary LOB object and implements a java.sql.Blob.
  */
 
-public final class SQLServerBlob implements java.sql.Blob, java.io.Serializable {
+public final class SQLServerBlob extends SQLServerLob implements java.sql.Blob, java.io.Serializable {
+    /**
+     * Always refresh SerialVersionUID when prompted
+     */
     private static final long serialVersionUID = -3526170228097889085L;
 
     // The value of the BLOB that this Blob object represents.
@@ -38,15 +39,17 @@ public final class SQLServerBlob implements java.sql.Blob, java.io.Serializable 
     // Active streams which must be closed when the Blob is closed
     //
     // Initial size of the array is based on an assumption that a Blob object is
-    // typically used either for input or output, and then only once. The array size
+    // typically used either for input or output, and then only once. The array
+    // size
     // grows automatically if multiple streams are used.
     ArrayList<Closeable> activeStreams = new ArrayList<>(1);
 
     static private final Logger logger = Logger.getLogger("com.microsoft.sqlserver.jdbc.internals.SQLServerBlob");
 
-    static private final AtomicInteger baseID = new AtomicInteger(0);   // Unique id generator for each instance (used for logging).
+    // Unique id generator for each instance (use for logging).
+    static private final AtomicInteger baseID = new AtomicInteger(0);
     final private String traceID;
-    
+
     final public String toString() {
         return traceID;
     }
@@ -63,7 +66,7 @@ public final class SQLServerBlob implements java.sql.Blob, java.io.Serializable 
      *            the database connection this blob is implemented on
      * @param data
      *            the BLOB's data
-     * @deprecated Use {@link SQLServerConnection#createBlob()} instead. 
+     * @deprecated Use {@link SQLServerConnection#createBlob()} instead.
      */
     @Deprecated
     public SQLServerBlob(SQLServerConnection connection,
@@ -71,8 +74,10 @@ public final class SQLServerBlob implements java.sql.Blob, java.io.Serializable 
         traceID = " SQLServerBlob:" + nextInstanceID();
         con = connection;
 
-        // Disallow Blobs with internal null values. We throw a NullPointerException here
-        // because the method signature of the public constructor does not permit a SQLException
+        // Disallow Blobs with internal null values. We throw a
+        // NullPointerException here
+        // because the method signature of the public constructor does not
+        // permit a SQLException
         // to be thrown.
         if (null == data)
             throw new NullPointerException(SQLServerException.getErrString("R_cantSetNull"));
@@ -100,15 +105,11 @@ public final class SQLServerBlob implements java.sql.Blob, java.io.Serializable 
             logger.fine(toString() + " created by (null connection)");
     }
 
-    /**
-     * Frees this Blob object and releases the resources that it holds.
-     * <p>
-     * After free() has been called, any attempt to invoke a method other than free() will result in a SQLException being thrown. If free() is called
-     * multiple times, the subsequent calls to free are treated as a no-op.
-     */
+    @Override
     public void free() throws SQLException {
         if (!isClosed) {
-            // Close active streams, ignoring any errors, since nothing can be done with them after that point anyway.
+            // Close active streams, ignoring any errors, since nothing can be
+            // done with them after that point anyway.
             if (null != activeStreams) {
                 for (Closeable stream : activeStreams) {
                     try {
@@ -123,7 +124,6 @@ public final class SQLServerBlob implements java.sql.Blob, java.io.Serializable 
 
             // Discard the value
             value = null;
-
             isClosed = true;
         }
     }
@@ -138,9 +138,9 @@ public final class SQLServerBlob implements java.sql.Blob, java.io.Serializable 
         }
     }
 
+    @Override
     public InputStream getBinaryStream() throws SQLException {
         checkClosed();
-
         if (null == value && !activeStreams.isEmpty()) {
             InputStream stream = (InputStream) activeStreams.get(0);
             try {
@@ -159,10 +159,11 @@ public final class SQLServerBlob implements java.sql.Blob, java.io.Serializable 
         }
     }
 
+    @Override
     public InputStream getBinaryStream(long pos,
             long length) throws SQLException {
-        // Not implemented - partial materialization
-        throw new SQLFeatureNotSupportedException(SQLServerException.getErrString("R_notSupported"));
+        SQLServerException.throwFeatureNotSupportedException();
+        return null;
     }
 
     private InputStream getBinaryStreamInternal(int pos,
@@ -177,19 +178,7 @@ public final class SQLServerBlob implements java.sql.Blob, java.io.Serializable 
         return getterStream;
     }
 
-    /**
-     * Retrieves all or part of the BLOB value that this Blob object represents, as an array of bytes. This byte array contains up to length
-     * consecutive bytes starting at position pos.
-     *
-     * @param pos
-     *            - the ordinal position of the first byte in the BLOB value to be extracted; the first byte is at position 1
-     * @param length
-     *            - the number of consecutive bytes to be copied; the value for length must be 0 or greater
-     * @return a byte array containing up to length consecutive bytes from the BLOB value designated by this Blob object, starting with the byte at
-     *         position pos
-     * @throws SQLException
-     *             - if there is an error accessing the BLOB value; if pos is less than 1 or length is less than 0
-     */
+    @Override
     public byte[] getBytes(long pos,
             int length) throws SQLException {
         checkClosed();
@@ -223,34 +212,26 @@ public final class SQLServerBlob implements java.sql.Blob, java.io.Serializable 
         return bTemp;
     }
 
-    /**
-     * Return the length of the BLOB
-     * 
-     * @throws SQLException
-     *             when an error occurs
-     * @return the data length
-     */
+    @Override
     public long length() throws SQLException {
         checkClosed();
         if (value == null && activeStreams.get(0) instanceof PLPInputStream) {
-        	return (long)((PLPInputStream)activeStreams.get(0)).payloadLength;
+            return (long) ((PLPInputStream) activeStreams.get(0)).payloadLength;
         }
         getBytesFromStream();
         return value.length;
     }
-    
-    /**
-     * Function for the result set to maintain blobs it has created
-     * @throws SQLException
-     */
-    void fillByteArray() throws SQLException {
-    	if(!isClosed) {
-    		getBytesFromStream();
-    	}
+
+    @Override
+    void fillFromStream() throws SQLException {
+        if (!isClosed) {
+            getBytesFromStream();
+        }
     }
-    
+
     /**
      * Converts stream to byte[]
+     * 
      * @throws SQLServerException
      */
     private void getBytesFromStream() throws SQLServerException {
@@ -266,21 +247,11 @@ public final class SQLServerBlob implements java.sql.Blob, java.io.Serializable 
         }
     }
 
-    /**
-     * Retrieves the byte position in the BLOB value designated by this Blob object at which pattern begins. The search begins at position start.
-     *
-     * @param pattern
-     *            - the Blob object designating the BLOB value for which to search
-     * @param start
-     *            - the position in the BLOB value at which to begin searching; the first position is 1
-     * @return the postion at which the pattern begins, else -1
-     * @throws SQLException
-     *             - if there is an error accessing the BLOB value or if start is less than 1
-     */
-    public long position(Blob pattern,
+    @Override
+    public long position(java.sql.Blob pattern,
             long start) throws SQLException {
         checkClosed();
-        
+
         getBytesFromStream();
         if (start < 1) {
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidPositionIndex"));
@@ -294,18 +265,7 @@ public final class SQLServerBlob implements java.sql.Blob, java.io.Serializable 
         return position(pattern.getBytes((long) 1, (int) pattern.length()), start);
     }
 
-    /**
-     * Retrieves the byte position at which the specified byte array pattern begins within the BLOB value that this Blob object represents. The search
-     * for pattern begins at position start.
-     *
-     * @param bPattern
-     *            - the byte array for which to search
-     * @param start
-     *            - the position at which to begin searching; the first position is 1
-     * @return the position at which the pattern appears, else -1
-     * @throws SQLException
-     *             - if there is an error accessing the BLOB or if start is less than 1
-     */
+    @Override
     public long position(byte[] bPattern,
             long start) throws SQLException {
         checkClosed();
@@ -316,7 +276,8 @@ public final class SQLServerBlob implements java.sql.Blob, java.io.Serializable 
             SQLServerException.makeFromDriverError(con, null, form.format(msgArgs), null, true);
         }
 
-        // Back compat: Handle null search string as not found rather than throw an exception.
+        // Back compat: Handle null search string as not found rather than throw
+        // an exception.
         // JDBC spec doesn't describe the behavior for a null pattern.
         if (null == bPattern)
             return -1;
@@ -342,20 +303,11 @@ public final class SQLServerBlob implements java.sql.Blob, java.io.Serializable 
         return -1;
     }
 
-    /* JDBC 3.0 methods */
-
-    /**
-     * Truncate a BLOB
-     * 
-     * @param len
-     *            the new length for the BLOB
-     * @throws SQLException
-     *             when an error occurs
-     */
+    @Override
     public void truncate(long len) throws SQLException {
         checkClosed();
         getBytesFromStream();
-        
+
         if (len < 0) {
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidLength"));
             Object[] msgArgs = {len};
@@ -369,15 +321,7 @@ public final class SQLServerBlob implements java.sql.Blob, java.io.Serializable 
         }
     }
 
-    /**
-     * Retrieves a stream that can be used to write to the BLOB value that this Blob object represents
-     * 
-     * @param pos
-     *            - the position in the BLOB value at which to start writing; the first position is 1
-     * @return a java.io.OutputStream object to which data can be written
-     * @throws SQLException
-     *             - if there is an error accessing the BLOB value or if pos is less than 1
-     */
+    @Override
     public java.io.OutputStream setBinaryStream(long pos) throws SQLException {
         checkClosed();
 
@@ -389,21 +333,11 @@ public final class SQLServerBlob implements java.sql.Blob, java.io.Serializable 
         return new SQLServerBlobOutputStream(this, pos);
     }
 
-    /**
-     * Writes the given array of bytes into the Blob starting at position pos, and returns the number of bytes written.
-     * 
-     * @param pos
-     *            the position (1 based) in the Blob object at which to start writing the data.
-     * @param bytes
-     *            the array of bytes to be written into the Blob.
-     * @throws SQLException
-     *             if there is an error accessing the BLOB value.
-     * @return the number of bytes written.
-     */
+    @Override
     public int setBytes(long pos,
             byte[] bytes) throws SQLException {
         checkClosed();
-        
+
         getBytesFromStream();
         if (null == bytes)
             SQLServerException.makeFromDriverError(con, null, SQLServerException.getErrString("R_cantSetNull"), null, true);
@@ -411,26 +345,7 @@ public final class SQLServerBlob implements java.sql.Blob, java.io.Serializable 
         return setBytes(pos, bytes, 0, bytes.length);
     }
 
-    /**
-     * Writes all or part of the given byte array to the BLOB value that this Blob object represents and returns the number of bytes written. Writing
-     * starts at position pos in the BLOB value; len bytes from the given byte wrray are written. The array of bytes will overwrite the existing bytes
-     * in the Blob object starting at the position pos. If the end of the Blob value is reached while writing the array bytes, then the length of the
-     * Blob value will be increased to accomodate the extra bytes.
-     *
-     * SQL Server behavior: If the value specified for pos is greater than the length+1 of the BLOB value then a SQLException is thrown.
-     *
-     * @param pos
-     *            - the position in the BLOB object at which to start writing; the first position is 1
-     * @param bytes
-     *            - the array of bytes to be written to this BLOB object.
-     * @param offset
-     *            - the offset (0-based) into the array bytes at which to start reading the bytes to set
-     * @param len
-     *            - the number of bytes to be written to the BLOB value from the array of bytes bytes
-     * @return the number of bytes written.
-     * @throws SQLException
-     *             - if there is an error accessing the BLOB value or if pos is less than 1
-     */
+    @Override
     public int setBytes(long pos,
             byte[] bytes,
             int offset,
@@ -469,7 +384,8 @@ public final class SQLServerBlob implements java.sql.Blob, java.io.Serializable 
 
         // Overwrite past end of value case.
         if (len >= value.length - pos) {
-            // Make sure the new value length wouldn't exceed the maximum allowed
+            // Make sure the new value length wouldn't exceed the maximum
+            // allowed
             DataTypes.getCheckedLength(con, JDBCType.BLOB, pos + len, false);
             assert pos + len <= Integer.MAX_VALUE;
 
@@ -506,14 +422,14 @@ final class SQLServerBlobOutputStream extends java.io.OutputStream {
         this.currentPos = startPos;
     }
 
-    // java.io.OutputStream interface methods.
-
+    @Override
     public void write(byte[] b) throws IOException {
         if (null == b)
             return;
         write(b, 0, b.length);
     }
 
+    @Override
     public void write(byte[] b,
             int off,
             int len) throws IOException {
@@ -529,6 +445,7 @@ final class SQLServerBlobOutputStream extends java.io.OutputStream {
         }
     }
 
+    @Override
     public void write(int b) throws java.io.IOException {
         byte[] bTemp = new byte[1];
         bTemp[0] = (byte) (b & 0xFF);

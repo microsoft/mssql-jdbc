@@ -24,9 +24,6 @@ final class DriverJDBCVersion {
 
     static final void checkSupportsJDBC43() {
     }
-    
-    static final void checkSupportsJDBC42() {
-    }
 
     static final void throwBatchUpdateException(SQLServerException lastError,
             long[] updateCounts) throws BatchUpdateException {

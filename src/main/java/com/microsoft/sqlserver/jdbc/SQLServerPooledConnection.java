@@ -63,6 +63,7 @@ public class SQLServerPooledConnection implements PooledConnection {
      * 
      * @return traceID String
      */
+    @Override
     public String toString() {
         return traceID;
     }
@@ -79,6 +80,7 @@ public class SQLServerPooledConnection implements PooledConnection {
      *             when an error occurs
      * @return a Connection object that is a handle to this PooledConnection object
      */
+    @Override
     public Connection getConnection() throws SQLException {
         if (pcLogger.isLoggable(Level.FINER))
             pcLogger.finer(toString() + " user:(default).");
@@ -161,6 +163,7 @@ public class SQLServerPooledConnection implements PooledConnection {
         }
     }
 
+    @Override
     public void addConnectionEventListener(ConnectionEventListener listener) {
         if (pcLogger.isLoggable(Level.FINER))
             pcLogger.finer(toString() + safeCID());
@@ -169,6 +172,7 @@ public class SQLServerPooledConnection implements PooledConnection {
         }
     }
 
+    @Override
     public void close() throws SQLException {
         if (pcLogger.isLoggable(Level.FINER))
             pcLogger.finer(toString() + " Closing physical connection, " + safeCID());
@@ -189,6 +193,7 @@ public class SQLServerPooledConnection implements PooledConnection {
 
     }
 
+    @Override
     public void removeConnectionEventListener(ConnectionEventListener listener) {
         if (pcLogger.isLoggable(Level.FINER))
             pcLogger.finer(toString() + safeCID());
@@ -197,11 +202,13 @@ public class SQLServerPooledConnection implements PooledConnection {
         }
     }
 
+    @Override
     public void addStatementEventListener(StatementEventListener listener) {
         // Not implemented
         throw new UnsupportedOperationException(SQLServerException.getErrString("R_notSupported"));
     }
 
+    @Override
     public void removeStatementEventListener(StatementEventListener listener) {
         // Not implemented
         throw new UnsupportedOperationException(SQLServerException.getErrString("R_notSupported"));

@@ -318,6 +318,7 @@ enum SQLServerDriverIntProperty {
     SOCKET_TIMEOUT                             ("socketTimeout",                           0),
     SERVER_PREPARED_STATEMENT_DISCARD_THRESHOLD("serverPreparedStatementDiscardThreshold", SQLServerConnection.DEFAULT_SERVER_PREPARED_STATEMENT_DISCARD_THRESHOLD),
     STATEMENT_POOLING_CACHE_SIZE               ("statementPoolingCacheSize",               SQLServerConnection.DEFAULT_STATEMENT_POOLING_CACHE_SIZE),
+    CANCEL_QUERY_TIMEOUT                       ("cancelQueryTimeout",                      -1),
     ;  
     
     private final String name;
@@ -352,7 +353,8 @@ enum SQLServerDriverBooleanProperty
     TRUST_SERVER_CERTIFICATE                  ("trustServerCertificate",                    false),
     XOPEN_STATES                              ("xopenStates",                               false),
     FIPS                                      ("fips",                                      false),
-    ENABLE_PREPARE_ON_FIRST_PREPARED_STATEMENT("enablePrepareOnFirstPreparedStatementCall", SQLServerConnection.DEFAULT_ENABLE_PREPARE_ON_FIRST_PREPARED_STATEMENT_CALL);
+    ENABLE_PREPARE_ON_FIRST_PREPARED_STATEMENT("enablePrepareOnFirstPreparedStatementCall", SQLServerConnection.DEFAULT_ENABLE_PREPARE_ON_FIRST_PREPARED_STATEMENT_CALL),
+    USE_BULK_COPY_FOR_BATCH_INSERT            ("useBulkCopyForBatchInsert",                 false);
 
     private final String name;
     private final boolean defaultValue;
@@ -428,6 +430,8 @@ public final class SQLServerDriver implements java.sql.Driver {
         new SQLServerDriverPropertyInfo(SQLServerDriverIntProperty.STATEMENT_POOLING_CACHE_SIZE.toString(),                   Integer.toString(SQLServerDriverIntProperty.STATEMENT_POOLING_CACHE_SIZE.getDefaultValue()),            false,      null),
         new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.JAAS_CONFIG_NAME.toString(),                            SQLServerDriverStringProperty.JAAS_CONFIG_NAME.getDefaultValue(),                                       false,      null),
         new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.SSL_PROTOCOL.toString(),                                SQLServerDriverStringProperty.SSL_PROTOCOL.getDefaultValue(),                                           false,      new String[] {SSLProtocol.TLS.toString(), SSLProtocol.TLS_V10.toString(), SSLProtocol.TLS_V11.toString(), SSLProtocol.TLS_V12.toString()}),
+        new SQLServerDriverPropertyInfo(SQLServerDriverIntProperty.CANCEL_QUERY_TIMEOUT.toString(),                           Integer.toString(SQLServerDriverIntProperty.CANCEL_QUERY_TIMEOUT.getDefaultValue()),                    false,      null),
+        new SQLServerDriverPropertyInfo(SQLServerDriverBooleanProperty.USE_BULK_COPY_FOR_BATCH_INSERT.toString(),             Boolean.toString(SQLServerDriverBooleanProperty.USE_BULK_COPY_FOR_BATCH_INSERT.getDefaultValue()),      false,      TRUE_FALSE),
     };
 
     // Properties that can only be set by using Properties.

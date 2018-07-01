@@ -26,9 +26,12 @@ import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.text.MessageFormat;
+import java.time.DateTimeException;
 import java.time.OffsetDateTime;
 import java.time.OffsetTime;
 import java.time.format.DateTimeFormatter;
+import java.time.temporal.ChronoField;
+import java.time.temporal.TemporalAccessor;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.GregorianCalendar;
@@ -46,6 +49,8 @@ import java.util.logging.Level;
 
 import javax.sql.RowSet;
 
+import microsoft.sql.DateTimeOffset;
+
 /**
  * Lets you efficiently bulk load a SQL Server table with data from another source. <br>
  * <br>
@@ -55,8 +60,13 @@ import javax.sql.RowSet;
  * The SQLServerBulkCopy class can be used to write data only to SQL Server tables. However, the data source is not limited to SQL Server; any data
  * source can be used, as long as the data can be read with a ResultSet or ISQLServerBulkRecord instance.
  */
-public class SQLServerBulkCopy implements java.lang.AutoCloseable {
-    /*
+public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Serializable {
+    /**
+	 * 
+	 */
+	private static final long serialVersionUID = 1989903904654306244L;
+
+	/*
      * Class to represent the column mappings between the source and destination table
      */
     private class ColumnMapping {
@@ -153,6 +163,11 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable {
     /* The CekTable for the destination table. */
     private CekTable destCekTable = null;
 
+    /* Statement level encryption setting needed for querying against encrypted columns. */
+    private SQLServerStatementColumnEncryptionSetting stmtColumnEncriptionSetting = SQLServerStatementColumnEncryptionSetting.UseConnectionSetting;
+    
+    private ResultSet destinationTableMetadata;
+    
     /*
      * Metadata for the destination table columns
      */
@@ -689,7 +704,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable {
     private void sendBulkLoadBCP() throws SQLServerException {
         final class InsertBulk extends TDSCommand {
             InsertBulk() {
-                super("InsertBulk", 0);
+                super("InsertBulk", 0, 0);
                 int timeoutSeconds = copyOptions.getBulkCopyTimeout();
                 timeoutTimer = (timeoutSeconds > 0) ? (new BulkTimeoutTimer(timeoutSeconds, this)) : null;
             }
@@ -1490,7 +1505,12 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable {
                 if (null != destType && (destType.toLowerCase(Locale.ENGLISH).trim().startsWith("char") || destType.toLowerCase(Locale.ENGLISH).trim().startsWith("varchar")))
                     addCollate = " COLLATE " + columnCollation;
             }
-            bulkCmd.append("[" + colMapping.destinationColumnName + "] " + destType + addCollate + endColumn);
+            if (colMapping.destinationColumnName.contains("]")) {
+                String escapedColumnName = colMapping.destinationColumnName.replaceAll("]", "]]");
+                bulkCmd.append("[" + escapedColumnName + "] " + destType + addCollate + endColumn);
+            } else {
+                bulkCmd.append("[" + colMapping.destinationColumnName + "] " + destType + addCollate + endColumn);
+            }
         }
 
         if (true == copyOptions.isCheckConstraints()) {
@@ -1740,11 +1760,19 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable {
 
         SQLServerResultSet rs = null;
         SQLServerResultSet rsMoreMetaData = null;
-
+        SQLServerStatement stmt = null;
+        
         try {
-            // Get destination metadata
-            rs = ((SQLServerStatement) connection.createStatement())
-                    .executeQueryInternal("SET FMTONLY ON SELECT * FROM " + destinationTableName + " SET FMTONLY OFF ");
+            if (null != destinationTableMetadata) {
+                rs = (SQLServerResultSet) destinationTableMetadata;
+            }
+            else {
+                stmt = (SQLServerStatement) connection.createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY,
+                        connection.getHoldability(), stmtColumnEncriptionSetting);
+
+                // Get destination metadata
+                rs = stmt.executeQueryInternal("sp_executesql N'SET FMTONLY ON SELECT * FROM " + destinationTableName + " '");
+            }
 
             destColumnCount = rs.getMetaData().getColumnCount();
             destColumnMetadata = new HashMap<>();
@@ -1783,6 +1811,8 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable {
         finally {
             if (null != rs)
                 rs.close();
+            if (null != stmt)
+                stmt.close();
             if (null != rsMoreMetaData)
                 rsMoreMetaData.close();
         }
@@ -3059,12 +3089,63 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable {
             int srcJdbcType,
             int srcColOrdinal,
             DateTimeFormatter dateTimeFormatter) throws SQLServerException {
-        DriverJDBCVersion.checkSupportsJDBC42();
+        try {
+            TemporalAccessor ta = dateTimeFormatter.parse(valueStrUntrimmed);
 
-        SQLServerBulkCopy42Helper.getTemporalObjectFromCSVWithFormatter(valueStrUntrimmed, srcJdbcType, srcColOrdinal, dateTimeFormatter, connection,
-                this);
+            int taHour, taMin, taSec, taYear, taMonth, taDay, taNano, taOffsetSec;
+            taHour = taMin = taSec = taYear = taMonth = taDay = taNano = taOffsetSec = 0;
+            if (ta.isSupported(ChronoField.NANO_OF_SECOND))
+                taNano = ta.get(ChronoField.NANO_OF_SECOND);
+            if (ta.isSupported(ChronoField.OFFSET_SECONDS))
+                taOffsetSec = ta.get(ChronoField.OFFSET_SECONDS);
+            if (ta.isSupported(ChronoField.HOUR_OF_DAY))
+                taHour = ta.get(ChronoField.HOUR_OF_DAY);
+            if (ta.isSupported(ChronoField.MINUTE_OF_HOUR))
+                taMin = ta.get(ChronoField.MINUTE_OF_HOUR);
+            if (ta.isSupported(ChronoField.SECOND_OF_MINUTE))
+                taSec = ta.get(ChronoField.SECOND_OF_MINUTE);
+            if (ta.isSupported(ChronoField.DAY_OF_MONTH))
+                taDay = ta.get(ChronoField.DAY_OF_MONTH);
+            if (ta.isSupported(ChronoField.MONTH_OF_YEAR))
+                taMonth = ta.get(ChronoField.MONTH_OF_YEAR);
+            if (ta.isSupported(ChronoField.YEAR))
+                taYear = ta.get(ChronoField.YEAR);
 
-        return null;
+            Calendar cal = new GregorianCalendar(new SimpleTimeZone(taOffsetSec * 1000, ""));
+            cal.clear();
+            cal.set(Calendar.HOUR_OF_DAY, taHour);
+            cal.set(Calendar.MINUTE, taMin);
+            cal.set(Calendar.SECOND, taSec);
+            cal.set(Calendar.DATE, taDay);
+            cal.set(Calendar.MONTH, taMonth - 1);
+            cal.set(Calendar.YEAR, taYear);
+            int fractionalSecondsLength = Integer.toString(taNano).length();
+            for (int i = 0; i < (9 - fractionalSecondsLength); i++)
+                taNano *= 10;
+            Timestamp ts = new Timestamp(cal.getTimeInMillis());
+            ts.setNanos(taNano);
+          
+            switch (srcJdbcType) {
+                case java.sql.Types.TIMESTAMP:
+                    return ts;
+                case java.sql.Types.TIME:
+                    // Time is returned as Timestamp to preserve nano seconds.
+                    cal.set(connection.baseYear(), Calendar.JANUARY, 01);
+                    ts = new java.sql.Timestamp(cal.getTimeInMillis());
+                    ts.setNanos(taNano);
+                    return new java.sql.Timestamp(ts.getTime());
+                case java.sql.Types.DATE:
+                    return new java.sql.Date(ts.getTime());
+                case microsoft.sql.Types.DATETIMEOFFSET:
+                    return DateTimeOffset.valueOf(ts, taOffsetSec / 60);
+            }
+        }
+        catch (DateTimeException | ArithmeticException e) {
+            MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_ParsingError"));
+            Object[] msgArgs = {JDBCType.of(srcJdbcType)};
+            throw new SQLServerException(this, form.format(msgArgs), null, 0, false);
+        }
+        return valueStrUntrimmed;
     }
 
     private Object getTemporalObjectFromCSV(Object value,
@@ -3348,7 +3429,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable {
                             longValue = (long) (short) value;
                             break;
                         default:
-                            longValue = new Long((Integer) value);
+                            longValue = Long.valueOf((Integer) value);
                     }
                     return ByteBuffer.allocate(Long.SIZE / Byte.SIZE).order(ByteOrder.LITTLE_ENDIAN).putLong(longValue).array();
 
@@ -3362,7 +3443,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable {
                             longValue = (long) (short) value;
                             break;
                         case INTEGER:
-                            longValue = new Long((Integer) value);
+                            longValue = Long.valueOf((Integer) value);
                             break;
                         default:
                             longValue = (long) value;
@@ -3572,5 +3653,13 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable {
                 TDSParser.parse(command.startResponse(), command.getLogContext());
             }
         }
+    }
+
+    protected void setStmtColumnEncriptionSetting(SQLServerStatementColumnEncryptionSetting stmtColumnEncriptionSetting) {
+        this.stmtColumnEncriptionSetting = stmtColumnEncriptionSetting;
+    }
+
+    protected void setDestinationTableMetadata(SQLServerResultSet rs) {
+        destinationTableMetadata = rs;
     }
 }

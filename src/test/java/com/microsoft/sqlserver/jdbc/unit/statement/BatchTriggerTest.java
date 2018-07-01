@@ -23,6 +23,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
 import com.microsoft.sqlserver.jdbc.SQLServerStatement;
+import com.microsoft.sqlserver.jdbc.TestResource;
 import com.microsoft.sqlserver.testframework.AbstractTest;
 import com.microsoft.sqlserver.testframework.Utils;
 
@@ -37,7 +38,6 @@ public class BatchTriggerTest extends AbstractTest {
     static Connection connection = null;
     static String tableName = "triggerTable";
     static String triggerName = "triggerTest";
-    static String customErrorMessage = "Custom error message, you should see me. col1 should be higher than 10";
     static String insertQuery = "insert into " + tableName + " (col1, col2, col3, col4) values (1, '22-08-2017 17:30:00.000', 'R4760', 31)";
 
     /**
@@ -52,10 +52,10 @@ public class BatchTriggerTest extends AbstractTest {
             stmt = connection.createStatement();
             stmt.addBatch(insertQuery);
             stmt.executeBatch();
-            fail("Trigger Exception not thrown");
+            fail(TestResource.getResource("R_expectedExceptionNotThrown"));
         }
         catch (Exception e) {
-            assertTrue(e.getMessage().equalsIgnoreCase(customErrorMessage));
+            assertTrue(e.getMessage().equalsIgnoreCase(TestResource.getResource("R_customErrorMessage")));
         }
 
         finally {
@@ -77,11 +77,11 @@ public class BatchTriggerTest extends AbstractTest {
             pstmt = connection.prepareStatement(insertQuery);
             pstmt.addBatch();
             pstmt.executeBatch();
-            fail("Trigger Exception not thrown");
+            fail(TestResource.getResource("R_expectedExceptionNotThrown"));
         }
         catch (Exception e) {
 
-            assertTrue(e.getMessage().equalsIgnoreCase(customErrorMessage));
+            assertTrue(e.getMessage().equalsIgnoreCase(TestResource.getResource("R_customErrorMessage")));
         }
         finally {
             if (pstmt != null) {
@@ -99,7 +99,7 @@ public class BatchTriggerTest extends AbstractTest {
     private static void createTrigger(String triggerName) throws SQLException {
         String sql = "create trigger " + triggerName + " on " + tableName + " for insert " + "as " + "begin " + "if (select col1 from " + tableName
                 + ") > 10 " + "begin " + "return " + "end "
-                + "RAISERROR ('Custom error message, you should see me. col1 should be higher than 10', 16, 0) " + "rollback transaction " + "end";
+                + "RAISERROR ('" + TestResource.getResource("R_customErrorMessage") + "', 16, 0) " + "rollback transaction " + "end";
         stmt.execute(sql);
     }
 

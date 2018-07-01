@@ -11,6 +11,7 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Types;
 import java.util.UUID;
+import java.text.MessageFormat;
 
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
@@ -20,6 +21,7 @@ import org.junit.runner.RunWith;
 
 import com.microsoft.sqlserver.jdbc.SQLServerCallableStatement;
 import com.microsoft.sqlserver.jdbc.SQLServerDataSource;
+import com.microsoft.sqlserver.jdbc.TestResource;
 import com.microsoft.sqlserver.testframework.AbstractTest;
 import com.microsoft.sqlserver.testframework.Utils;
 
@@ -150,10 +152,14 @@ public class CallableStatementTest extends AbstractTest {
         CallableStatement cs3 = connection.prepareCall(call);
         try {
             cs3.setString("@whatever", "test");
-            fail("SQLException should have been thrown");
+            fail(TestResource.getResource("R_shouldThrowException"));
         } catch (SQLException sse) {
-            if (!sse.getMessage().startsWith("Parameter @whatever was not defined")) {
-                fail("Unexpected content in exception message");
+
+            MessageFormat form = new MessageFormat(TestResource.getResource("R_parameterNotDefined"));
+            Object[] msgArgs = {"@whatever"};
+
+            if (!sse.getMessage().startsWith(form.format(msgArgs))) {
+                fail(TestResource.getResource("R_unexpectedExceptionContent"));
             }
         }
 

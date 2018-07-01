@@ -18,7 +18,7 @@ import java.util.concurrent.atomic.AtomicInteger;
  * details.
  */
 
-public final class SQLServerResultSetMetaData implements java.sql.ResultSetMetaData {
+public final class SQLServerResultSetMetaData implements ISQLServerResultSetMetaData {
     private SQLServerConnection con;
     private final SQLServerResultSet rs;
     static final private java.util.logging.Logger logger = java.util.logging.Logger
@@ -44,7 +44,7 @@ public final class SQLServerResultSetMetaData implements java.sql.ResultSetMetaD
      * @param rs
      *            the parent result set
      */
-    /* L0 */ SQLServerResultSetMetaData(SQLServerConnection con,
+    SQLServerResultSetMetaData(SQLServerConnection con,
             SQLServerResultSet rs) {
         traceID = " SQLServerResultSetMetaData:" + nextInstanceID();
         this.con = con;
@@ -55,17 +55,15 @@ public final class SQLServerResultSetMetaData implements java.sql.ResultSetMetaD
         }
     }
 
-    private void checkClosed() throws SQLServerException {
-        rs.checkClosed();
-    }
-
     /* ------------------ JDBC API Methods --------------------- */
 
+    @Override
     public boolean isWrapperFor(Class<?> iface) throws SQLException {
         boolean f = iface.isInstance(this);
         return f;
     }
 
+    @Override
     public <T> T unwrap(Class<T> iface) throws SQLException {
         T t;
         try {
@@ -77,21 +75,18 @@ public final class SQLServerResultSetMetaData implements java.sql.ResultSetMetaD
         return t;
     }
 
+    @Override
     public String getCatalogName(int column) throws SQLServerException {
-        checkClosed();
         return rs.getColumn(column).getTableName().getDatabaseName();
     }
 
-    /* L0 */ public int getColumnCount() throws SQLServerException {
-        checkClosed();
-        if (rs == null)
-            return 0;
+    @Override
+    public int getColumnCount() throws SQLServerException {
         return rs.getColumnCount();
     }
 
+    @Override
     public int getColumnDisplaySize(int column) throws SQLServerException {
-        checkClosed();
-
         CryptoMetadata cryptoMetadata = rs.getColumn(column).getCryptoMetadata();
         if (null != cryptoMetadata) {
             return cryptoMetadata.getBaseTypeInfo().getDisplaySize();
@@ -100,18 +95,18 @@ public final class SQLServerResultSetMetaData implements java.sql.ResultSetMetaD
         return rs.getColumn(column).getTypeInfo().getDisplaySize();
     }
 
+    @Override
     public String getColumnLabel(int column) throws SQLServerException {
-        checkClosed();
         return rs.getColumn(column).getColumnName();
     }
 
+    @Override
     public String getColumnName(int column) throws SQLServerException {
-        checkClosed();
         return rs.getColumn(column).getColumnName();
     }
 
+    @Override
     public int getColumnType(int column) throws SQLServerException {
-        checkClosed();
         // under Katmai map the max types to non max to be inline with DBMD.
         TypeInfo typeInfo = rs.getColumn(column).getTypeInfo();
 
@@ -165,9 +160,8 @@ public final class SQLServerResultSetMetaData implements java.sql.ResultSetMetaD
         return r;
     }
 
+    @Override
     public String getColumnTypeName(int column) throws SQLServerException {
-        checkClosed();
-
         CryptoMetadata cryptoMetadata = rs.getColumn(column).getCryptoMetadata();
         if (null != cryptoMetadata) {
             return cryptoMetadata.getBaseTypeInfo().getSSTypeName();
@@ -176,9 +170,8 @@ public final class SQLServerResultSetMetaData implements java.sql.ResultSetMetaD
         return rs.getColumn(column).getTypeInfo().getSSTypeName();
     }
 
+    @Override
     public int getPrecision(int column) throws SQLServerException {
-        checkClosed();
-
         CryptoMetadata cryptoMetadata = rs.getColumn(column).getCryptoMetadata();
         if (null != cryptoMetadata) {
             return cryptoMetadata.getBaseTypeInfo().getPrecision();
@@ -187,9 +180,8 @@ public final class SQLServerResultSetMetaData implements java.sql.ResultSetMetaD
         return rs.getColumn(column).getTypeInfo().getPrecision();
     }
 
+    @Override
     public int getScale(int column) throws SQLServerException {
-        checkClosed();
-
         CryptoMetadata cryptoMetadata = rs.getColumn(column).getCryptoMetadata();
         if (null != cryptoMetadata) {
             return cryptoMetadata.getBaseTypeInfo().getScale();
@@ -198,19 +190,18 @@ public final class SQLServerResultSetMetaData implements java.sql.ResultSetMetaD
         return rs.getColumn(column).getTypeInfo().getScale();
     }
 
+    @Override
     public String getSchemaName(int column) throws SQLServerException {
-        checkClosed();
         return rs.getColumn(column).getTableName().getSchemaName();
     }
 
+    @Override
     public String getTableName(int column) throws SQLServerException {
-        checkClosed();
         return rs.getColumn(column).getTableName().getObjectName();
     }
 
+    @Override
     public boolean isAutoIncrement(int column) throws SQLServerException {
-        checkClosed();
-
         CryptoMetadata cryptoMetadata = rs.getColumn(column).getCryptoMetadata();
         if (null != cryptoMetadata) {
             return cryptoMetadata.getBaseTypeInfo().isIdentity();
@@ -219,9 +210,8 @@ public final class SQLServerResultSetMetaData implements java.sql.ResultSetMetaD
         return rs.getColumn(column).getTypeInfo().isIdentity();
     }
 
+    @Override
     public boolean isCaseSensitive(int column) throws SQLServerException {
-        checkClosed();
-
         CryptoMetadata cryptoMetadata = rs.getColumn(column).getCryptoMetadata();
         if (null != cryptoMetadata) {
             return cryptoMetadata.getBaseTypeInfo().isCaseSensitive();
@@ -230,8 +220,8 @@ public final class SQLServerResultSetMetaData implements java.sql.ResultSetMetaD
         return rs.getColumn(column).getTypeInfo().isCaseSensitive();
     }
 
+    @Override
     public boolean isCurrency(int column) throws SQLServerException {
-        checkClosed();
         SSType ssType = rs.getColumn(column).getTypeInfo().getSSType();
 
         CryptoMetadata cryptoMetadata = rs.getColumn(column).getCryptoMetadata();
@@ -242,9 +232,8 @@ public final class SQLServerResultSetMetaData implements java.sql.ResultSetMetaD
         return SSType.MONEY == ssType || SSType.SMALLMONEY == ssType;
     }
 
+    @Override
     public boolean isDefinitelyWritable(int column) throws SQLServerException {
-        checkClosed();
-
         CryptoMetadata cryptoMetadata = rs.getColumn(column).getCryptoMetadata();
         if (null != cryptoMetadata) {
             return TypeInfo.UPDATABLE_READ_WRITE == cryptoMetadata.getBaseTypeInfo().getUpdatability();
@@ -253,9 +242,8 @@ public final class SQLServerResultSetMetaData implements java.sql.ResultSetMetaD
         return TypeInfo.UPDATABLE_READ_WRITE == rs.getColumn(column).getTypeInfo().getUpdatability();
     }
 
+    @Override
     public int isNullable(int column) throws SQLServerException {
-        checkClosed();
-
         CryptoMetadata cryptoMetadata = rs.getColumn(column).getCryptoMetadata();
         if (null != cryptoMetadata) {
             return cryptoMetadata.getBaseTypeInfo().isNullable() ? columnNullable : columnNoNulls;
@@ -264,9 +252,8 @@ public final class SQLServerResultSetMetaData implements java.sql.ResultSetMetaD
         return rs.getColumn(column).getTypeInfo().isNullable() ? columnNullable : columnNoNulls;
     }
 
+    @Override
     public boolean isReadOnly(int column) throws SQLServerException {
-        checkClosed();
-
         CryptoMetadata cryptoMetadata = rs.getColumn(column).getCryptoMetadata();
         if (null != cryptoMetadata) {
             return TypeInfo.UPDATABLE_READ_ONLY == cryptoMetadata.getBaseTypeInfo().getUpdatability();
@@ -275,9 +262,8 @@ public final class SQLServerResultSetMetaData implements java.sql.ResultSetMetaD
         return TypeInfo.UPDATABLE_READ_ONLY == rs.getColumn(column).getTypeInfo().getUpdatability();
     }
 
+    @Override
     public boolean isSearchable(int column) throws SQLServerException {
-        checkClosed();
-
         SSType ssType = null;
         CryptoMetadata cryptoMetadata = rs.getColumn(column).getCryptoMetadata();
 
@@ -301,9 +287,8 @@ public final class SQLServerResultSetMetaData implements java.sql.ResultSetMetaD
         }
     }
 
+    @Override
     public boolean isSigned(int column) throws SQLServerException {
-        checkClosed();
-
         CryptoMetadata cryptoMetadata = rs.getColumn(column).getCryptoMetadata();
         if (null != cryptoMetadata) {
             return cryptoMetadata.getBaseTypeInfo().getSSType().getJDBCType().isSigned();
@@ -312,18 +297,8 @@ public final class SQLServerResultSetMetaData implements java.sql.ResultSetMetaD
         return rs.getColumn(column).getTypeInfo().getSSType().getJDBCType().isSigned();
     }
 
-    /**
-     * Returns true if the column is a SQLServer SparseColumnSet
-     * 
-     * @param column
-     *            The column number
-     * @return true if a column in a result set is a sparse column set, otherwise false.
-     * @throws SQLServerException
-     *             when an error occurs
-     */
+    @Override
     public boolean isSparseColumnSet(int column) throws SQLServerException {
-        checkClosed();
-
         CryptoMetadata cryptoMetadata = rs.getColumn(column).getCryptoMetadata();
         if (null != cryptoMetadata) {
             return cryptoMetadata.getBaseTypeInfo().isSparseColumnSet();
@@ -332,9 +307,8 @@ public final class SQLServerResultSetMetaData implements java.sql.ResultSetMetaD
         return rs.getColumn(column).getTypeInfo().isSparseColumnSet();
     }
 
+    @Override
     public boolean isWritable(int column) throws SQLServerException {
-        checkClosed();
-
         int updatability = -1;
         CryptoMetadata cryptoMetadata = rs.getColumn(column).getCryptoMetadata();
         if (null != cryptoMetadata) {
@@ -346,9 +320,8 @@ public final class SQLServerResultSetMetaData implements java.sql.ResultSetMetaD
         return TypeInfo.UPDATABLE_READ_WRITE == updatability || TypeInfo.UPDATABLE_UNKNOWN == updatability;
     }
 
+    @Override
     public String getColumnClassName(int column) throws SQLServerException {
-        checkClosed();
-
         CryptoMetadata cryptoMetadata = rs.getColumn(column).getCryptoMetadata();
         if (null != cryptoMetadata) {
             return cryptoMetadata.getBaseTypeInfo().getSSType().getJDBCType().className();

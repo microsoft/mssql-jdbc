@@ -8,19 +8,22 @@
 
 package com.microsoft.sqlserver.jdbc;
 
-import java.util.Set;
+import java.time.format.DateTimeFormatter;
 
 /**
  * The ISQLServerBulkRecord interface can be used to create classes that read in data from any source (such as a file) and allow a SQLServerBulkCopy
  * class to write the data to SQL Server tables.
+ * 
+ * This interface is implemented by {@link SQLServerBulkCommon} Class
  */
 public interface ISQLServerBulkRecord {
+
     /**
      * Get the ordinals for each of the columns represented in this data record.
      * 
      * @return Set of ordinals for the columns.
      */
-    public Set<Integer> getColumnOrdinals();
+    public java.util.Set<Integer> getColumnOrdinals();
 
     /**
      * Get the name of the given column.
@@ -87,4 +90,92 @@ public interface ISQLServerBulkRecord {
      *             If there are any errors in advancing to the next row.
      */
     public boolean next() throws SQLServerException;
+
+    /**
+     * Adds metadata for the given column in the file.
+     * 
+     * @param positionInFile
+     *            Indicates which column the metadata is for. Columns start at 1.
+     * @param name
+     *            Name for the column (optional if only using column ordinal in a mapping for SQLServerBulkCopy operation)
+     * @param jdbcType
+     *            JDBC data type of the column
+     * @param precision
+     *            Precision for the column (ignored for the appropriate data types)
+     * @param scale
+     *            Scale for the column (ignored for the appropriate data types)
+     * @param dateTimeFormatter
+     *            format to parse data that is sent
+     * @throws SQLServerException
+     *             when an error occurs
+     */
+    public void addColumnMetadata(int positionInFile,
+            String name,
+            int jdbcType,
+            int precision,
+            int scale,
+            DateTimeFormatter dateTimeFormatter) throws SQLServerException;
+
+    /**
+     * Adds metadata for the given column in the file.
+     * 
+     * @param positionInFile
+     *            Indicates which column the metadata is for. Columns start at 1.
+     * @param name
+     *            Name for the column (optional if only using column ordinal in a mapping for SQLServerBulkCopy operation)
+     * @param jdbcType
+     *            JDBC data type of the column
+     * @param precision
+     *            Precision for the column (ignored for the appropriate data types)
+     * @param scale
+     *            Scale for the column (ignored for the appropriate data types)
+     * @throws SQLServerException
+     *             when an error occurs
+     */
+    public void addColumnMetadata(int positionInFile,
+            String name,
+            int jdbcType,
+            int precision,
+            int scale) throws SQLServerException;
+
+    /**
+     * Set the format for reading in dates from the file.
+     * 
+     * @param dateTimeFormat
+     *            format to parse data sent as java.sql.Types.TIMESTAMP_WITH_TIMEZONE
+     */
+    public void setTimestampWithTimezoneFormat(String dateTimeFormat);
+
+    /**
+     * Set the format for reading in dates from the file.
+     * 
+     * @param dateTimeFormatter
+     *            format to parse data sent as java.sql.Types.TIMESTAMP_WITH_TIMEZONE
+     */
+    public void setTimestampWithTimezoneFormat(DateTimeFormatter dateTimeFormatter);
+
+    /**
+     * Set the format for reading in dates from the file.
+     * 
+     * @param timeFormat
+     *            format to parse data sent as java.sql.Types.TIME_WITH_TIMEZONE
+     */
+    public void setTimeWithTimezoneFormat(String timeFormat);
+
+    /**
+     * Set the format for reading in dates from the file.
+     * 
+     * @param dateTimeFormatter
+     *            format to parse data sent as java.sql.Types.TIME_WITH_TIMEZONE
+     */
+    public void setTimeWithTimezoneFormat(DateTimeFormatter dateTimeFormatter);
+
+    /**
+     * Retreives <code>dateTimeFormatter</code> for the given column
+     * 
+     * @param column
+     *            Column ordinal
+     * @return dateTimeFormatter
+     */
+    public DateTimeFormatter getColumnDateTimeFormatter(int column);
 }

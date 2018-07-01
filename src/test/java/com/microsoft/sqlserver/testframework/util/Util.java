@@ -1,3 +1,11 @@
+/*
+ * Microsoft JDBC Driver for SQL Server
+ *
+ * Copyright(c) Microsoft Corporation All rights reserved.
+ *
+ * This program is made available under the terms of the MIT License. See the LICENSE file in the project root for more information.
+ */
+
 package com.microsoft.sqlserver.testframework.util;
 
 import java.sql.CallableStatement;
@@ -299,6 +307,25 @@ public class Util {
     public static boolean supportJDBC43(Connection con) throws SQLException {
         SQLServerDatabaseMetaData meta = (SQLServerDatabaseMetaData) con.getMetaData();
         return (meta.getJDBCMajorVersion() >= 4 && meta.getJDBCMinorVersion() >= 3);
+    }
+
+    /**
+     * Checks if object SYS.SENSITIVITY_CLASSIFICATIONS exists in SQL Server
+     * 
+     * @param Statement
+     * @return boolean
+     */
+    public static boolean serverSupportsDataClassification(Statement stmt) {
+        try {
+            stmt.execute("SELECT * FROM SYS.SENSITIVITY_CLASSIFICATIONS");
+        }
+        catch (SQLException e) {
+            // Check for Error 208: Invalid Object Name
+            if (e.getErrorCode() == 208) {
+                return false;
+            }
+        }
+        return true;
     }
 
     /**

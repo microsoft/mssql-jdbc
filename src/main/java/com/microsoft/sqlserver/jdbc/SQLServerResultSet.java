@@ -22,7 +22,7 @@ import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.RowId;
 import java.sql.SQLException;
-import java.sql.SQLFeatureNotSupportedException;
+import java.sql.SQLType;
 import java.sql.SQLWarning;
 import java.sql.SQLXML;
 import java.text.MessageFormat;
@@ -30,6 +30,8 @@ import java.util.Calendar;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
+
+import com.microsoft.sqlserver.jdbc.dataclassification.SensitivityClassification;
 
 /**
  * Indicates the type of the row received from the server
@@ -43,7 +45,12 @@ enum RowType {
 /**
  * Top-level JDBC ResultSet implementation
  */
-public class SQLServerResultSet implements ISQLServerResultSet {
+public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializable {
+
+    /**
+     * Always refresh SerialVersionUID when prompted
+     */
+    private static final long serialVersionUID = -1624082547992040463L;
 
     /** Generate the statement's logging ID */
     private static final AtomicInteger lastResultSetID = new AtomicInteger(0);
@@ -55,6 +62,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
 
     final static java.util.logging.Logger logger = java.util.logging.Logger.getLogger("com.microsoft.sqlserver.jdbc.internals.SQLServerResultSet");
 
+    @Override
     public String toString() {
         return traceID;
     }
@@ -84,7 +92,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
     private boolean isClosed = false;
 
     private final int serverCursorId;
-    
+
     protected int getServerCursorId() {
         return serverCursorId;
     }
@@ -126,7 +134,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
      * occurs
      */
     private Closeable activeStream;
-    private Blob activeBlob;
+    private SQLServerLob activeLOB;
 
     /**
      * A window of fetchSize quickly accessible rows for scrollable result sets
@@ -206,12 +214,17 @@ public class SQLServerResultSet implements ISQLServerResultSet {
 
     /** TDS reader from which row values are read */
     private TDSReader tdsReader;
-    
+
     protected TDSReader getTDSReader() {
         return tdsReader;
     }
 
     private final FetchBuffer fetchBuffer;
+
+    @Override
+    public SensitivityClassification getSensitivityClassification() {
+        return tdsReader.sensitivityClassification;
+    }
 
     /**
      * Make a new result set
@@ -394,6 +407,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         }
     }
 
+    @Override
     public boolean isWrapperFor(Class<?> iface) throws SQLException {
         loggerExternal.entering(getClassNameLogging(), "isWrapperFor");
         boolean f = iface.isInstance(this);
@@ -401,6 +415,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         return f;
     }
 
+    @Override
     public <T> T unwrap(Class<T> iface) throws SQLException {
         loggerExternal.entering(getClassNameLogging(), "unwrap");
         T t;
@@ -421,7 +436,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
      * 
      * @throws SQLServerException
      */
-    /* L0 */ void checkClosed() throws SQLServerException {
+    void checkClosed() throws SQLServerException {
 
         if (isClosed) {
             SQLServerException.makeFromDriverError(null, null, SQLServerException.getErrString("R_resultsetClosed"), null, false);
@@ -436,6 +451,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
             throw rowErrorException;
     }
 
+    @Override
     public boolean isClosed() throws SQLException {
         loggerExternal.entering(getClassNameLogging(), "isClosed");
         boolean result = isClosed || stmt.isClosed();
@@ -446,10 +462,11 @@ public class SQLServerResultSet implements ISQLServerResultSet {
     /**
      * Called by ResultSet API methods to disallow method use on forward only result sets.
      *
-     * @throws SQLServerException
+     * @throws SQLException
      *             if the result set is forward only.
+     * @throws SQLFeatureNotSupportedException
      */
-    private void throwNotScrollable() throws SQLServerException {
+    private void throwNotScrollable() throws SQLException {
         SQLServerException.makeFromDriverError(stmt.connection, this, SQLServerException.getErrString("R_requestedOpNotSupportedOnForward"), null,
                 true);
     }
@@ -462,7 +479,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         return 0 != serverCursorId && TDS.SCROLLOPT_DYNAMIC == stmt.getCursorType();
     }
 
-    private void verifyResultSetIsScrollable() throws SQLServerException {
+    private void verifyResultSetIsScrollable() throws SQLException {
         if (isForwardOnly())
             throwNotScrollable();
     }
@@ -591,6 +608,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         stmt.decrResultSetCount();
     }
 
+    @Override
     public void close() throws SQLServerException {
         loggerExternal.entering(getClassNameLogging(), "close");
         if (loggerExternal.isLoggable(Level.FINER) && Util.IsActivityTraceOn()) {
@@ -609,6 +627,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
      *             If any errors occur.
      * @return the column index
      */
+    @Override
     public int findColumn(String columnName) throws SQLServerException {
         loggerExternal.entering(getClassNameLogging(), "findColumn", columnName);
         checkClosed();
@@ -670,7 +689,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         // before moving to another one.
         if (null != activeStream) {
             try {
-            	fillBlobs();
+                fillLOBs();
                 activeStream.close();
             }
             catch (IOException e) {
@@ -731,17 +750,14 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         return getColumn(index);
     }
 
-    /* L0 */ private void NotImplemented() throws SQLServerException {
-        SQLServerException.makeFromDriverError(stmt.connection, stmt, SQLServerException.getErrString("R_notSupported"), null, false);
-    }
-
     /**
      * Clear result set warnings
      * 
      * @throws SQLServerException
      *             when an error occurs
      */
-    /* L0 */ public void clearWarnings() throws SQLServerException {
+    @Override
+    public void clearWarnings() throws SQLServerException {
         loggerExternal.entering(getClassNameLogging(), "clearWarnings");
         loggerExternal.exiting(getClassNameLogging(), "clearWarnings");
     }
@@ -749,12 +765,13 @@ public class SQLServerResultSet implements ISQLServerResultSet {
     /* ----------------- JDBC API methods ------------------ */
 
     private void moverInit() throws SQLServerException {
-    	fillBlobs();
+        fillLOBs();
         cancelInsert();
         cancelUpdates();
     }
 
-    public boolean relative(int rows) throws SQLServerException {
+    @Override
+    public boolean relative(int rows) throws SQLException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "relative", rows);
 
@@ -943,6 +960,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
      *
      * @return false when there are no more rows to read
      */
+    @Override
     public boolean next() throws SQLServerException {
         loggerExternal.entering(getClassNameLogging(), "next");
         if (loggerExternal.isLoggable(Level.FINER) && Util.IsActivityTraceOn()) {
@@ -968,7 +986,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
                 moveFirst();
             else
                 moveForward(1);
-            
+
             boolean value = hasCurrentRow();
             loggerExternal.exiting(getClassNameLogging(), "next", value);
             return value;
@@ -1035,10 +1053,11 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         return false;
     }
 
+    @Override
     public boolean wasNull() throws SQLServerException {
         loggerExternal.entering(getClassNameLogging(), "wasNull");
         checkClosed();
-        fillBlobs();
+        fillLOBs();
         loggerExternal.exiting(getClassNameLogging(), "wasNull", lastValueWasNull);
         return lastValueWasNull;
     }
@@ -1046,7 +1065,8 @@ public class SQLServerResultSet implements ISQLServerResultSet {
     /**
      * @return true if the cursor is before the first row in this result set, returns false otherwise or if the result set contains no rows.
      */
-    public boolean isBeforeFirst() throws SQLServerException {
+    @Override
+    public boolean isBeforeFirst() throws SQLException {
         loggerExternal.entering(getClassNameLogging(), "isBeforeFirst");
         if (logger.isLoggable(java.util.logging.Level.FINER))
             logger.finer(toString() + logCursorState());
@@ -1105,7 +1125,8 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         return value;
     }
 
-    public boolean isAfterLast() throws SQLServerException {
+    @Override
+    public boolean isAfterLast() throws SQLException {
         loggerExternal.entering(getClassNameLogging(), "isAfterLast");
         if (logger.isLoggable(java.util.logging.Level.FINER))
             logger.finer(toString() + logCursorState());
@@ -1140,14 +1161,24 @@ public class SQLServerResultSet implements ISQLServerResultSet {
     }
 
     /**
-     * Determines whether the cursor is on the first row in this ResultSet object.
-     *
+     * Retrieves whether the cursor is on the first row of this <code>ResultSet</code> object.
+     * 
      * This method should be called only on ResultSet objects that are scrollable: TYPE_SCROLL_SENSITIVE, TYPE_SCROLL_INSENSITIVE,
      * TYPE_SS_SCROLL_STATIC, TYPE_SS_SCROLL_KEYSET, TYPE_SS_SCROLL_DYNAMIC.
+     * 
+     * <p>
+     * <strong>Note:</strong>Support for the <code>isFirst</code> method is optional for <code>ResultSet</code>s with a result set type of
+     * <code>TYPE_FORWARD_ONLY</code>
      *
-     * @return true if the cursor is on the first row in this result set
+     * @return <code>true</code> if the cursor is on the first row; <code>false</code> otherwise
+     * 
+     * @exception SQLException
+     *                if a database access error occurs or this method is called on a closed result set
+     * 
+     * @since 1.2
      */
-    public boolean isFirst() throws SQLServerException {
+    @Override
+    public boolean isFirst() throws SQLException {
         loggerExternal.entering(getClassNameLogging(), "isFirst");
         if (logger.isLoggable(java.util.logging.Level.FINER))
             logger.finer(toString() + logCursorState());
@@ -1177,14 +1208,27 @@ public class SQLServerResultSet implements ISQLServerResultSet {
     }
 
     /**
-     * Determines whether the cursor is on the last row in this ResultSet object.
-     *
+     * Retrieves whether the cursor is on the last row of this <code>ResultSet</code> object. <strong>Note:</strong> Calling the method
+     * <code>isLast</code> may be expensive because the JDBC driver might need to fetch ahead one row in order to determine whether the current row is
+     * the last row in the result set.
+     * 
+     * <p>
      * This method should be called only on ResultSet objects that are scrollable: TYPE_SCROLL_SENSITIVE, TYPE_SCROLL_INSENSITIVE,
      * TYPE_SS_SCROLL_STATIC, TYPE_SS_SCROLL_KEYSET, TYPE_SS_SCROLL_DYNAMIC.
-     *
-     * @return true if the cursor is on the last row in this result set
+     * </p>
+     * 
+     * <strong>Note:</strong> Support for the <code>isLast</code> method is optional for <code>ResultSet</code>s with a result set type of
+     * <code>TYPE_FORWARD_ONLY</code>
+     * 
+     * @return <code>true</code> if the cursor is on the last row; <code>false</code> otherwise
+     * 
+     * @exception SQLException
+     *                if a database access error occurs or this method is called on a closed result set
+     * 
+     * @since 1.2
      */
-    public boolean isLast() throws SQLServerException {
+    @Override
+    public boolean isLast() throws SQLException {
         loggerExternal.entering(getClassNameLogging(), "isLast");
         if (logger.isLoggable(java.util.logging.Level.FINER))
             logger.finer(toString() + logCursorState());
@@ -1234,7 +1278,8 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         return isLast;
     }
 
-    public void beforeFirst() throws SQLServerException {
+    @Override
+    public void beforeFirst() throws SQLException {
         loggerExternal.entering(getClassNameLogging(), "beforeFirst");
         if (loggerExternal.isLoggable(Level.FINER) && Util.IsActivityTraceOn()) {
             loggerExternal.finer(toString() + " ActivityId: " + ActivityCorrelator.getNext().toString());
@@ -1265,7 +1310,8 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         currentRow = BEFORE_FIRST_ROW;
     }
 
-    public void afterLast() throws SQLServerException {
+    @Override
+    public void afterLast() throws SQLException {
         loggerExternal.entering(getClassNameLogging(), "afterLast");
         if (loggerExternal.isLoggable(Level.FINER) && Util.IsActivityTraceOn()) {
             loggerExternal.finer(toString() + " ActivityId: " + ActivityCorrelator.getNext().toString());
@@ -1297,14 +1343,23 @@ public class SQLServerResultSet implements ISQLServerResultSet {
     }
 
     /**
-     * Moves the cursor to the first row in this ResultSet object.
+     * Moves the cursor to the first row in this <code>ResultSet</code> object.
      *
+     * <p>
      * This method should be called only on ResultSet objects that are scrollable: TYPE_SCROLL_SENSITIVE, TYPE_SCROLL_INSENSITIVE,
      * TYPE_SS_SCROLL_STATIC, TYPE_SS_SCROLL_KEYSET, TYPE_SS_SCROLL_DYNAMIC.
-     *
-     * @return true if the cursor is on a valid row, otherwise returns false if there are no rows in this ResultSet object
+     * </p>
+     * 
+     * @return <code>true</code> if the cursor is on a valid row; <code>false</code> if there are no rows in the result set
+     * 
+     * @exception SQLException
+     *                if a database access error occurs; this method is called on a closed result set or the result set type is
+     *                <code>TYPE_FORWARD_ONLY</code>
+     * 
+     * @since 1.2
      */
-    public boolean first() throws SQLServerException {
+    @Override
+    public boolean first() throws SQLException {
         loggerExternal.entering(getClassNameLogging(), "first");
         if (logger.isLoggable(java.util.logging.Level.FINER))
             logger.finer(toString() + logCursorState());
@@ -1347,14 +1402,21 @@ public class SQLServerResultSet implements ISQLServerResultSet {
     }
 
     /**
-     * Moves the cursor to the last row in this ResultSet object.
-     *
+     * Moves the cursor to the last row in this <code>ResultSet</code> object.
+     * 
      * This method should be called only on ResultSet objects that are scrollable: TYPE_SCROLL_SENSITIVE, TYPE_SCROLL_INSENSITIVE,
      * TYPE_SS_SCROLL_STATIC, TYPE_SS_SCROLL_KEYSET, TYPE_SS_SCROLL_DYNAMIC.
      *
-     * @return true if the cursor is on a valid row, otherwise returns false if there are no rows in this ResultSet object
+     * @return <code>true</code> if the cursor is on a valid row; <code>false</code> if there are no rows in the result set
+     * 
+     * @exception SQLException
+     *                if a database access error occurs; this method is called on a closed result set or the result set type is
+     *                <code>TYPE_FORWARD_ONLY</code>
+     * 
+     * @since 1.2
      */
-    public boolean last() throws SQLServerException {
+    @Override
+    public boolean last() throws SQLException {
         loggerExternal.entering(getClassNameLogging(), "last");
         if (logger.isLoggable(java.util.logging.Level.FINER))
             logger.finer(toString() + logCursorState());
@@ -1401,12 +1463,8 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         currentRow = isDynamic() ? UNKNOWN_ROW : rowCount;
     }
 
-    /**
-     * Retrieves the number of the current row in this ResultSet object. The first row is number 1, the second is 2, and so on.
-     *
-     * @return the number of the current row; 0 if there is no current row
-     */
-    public int getRow() throws SQLServerException {
+    @Override
+    public int getRow() throws SQLException {
         loggerExternal.entering(getClassNameLogging(), "getRow");
         if (logger.isLoggable(java.util.logging.Level.FINER))
             logger.finer(toString() + logCursorState());
@@ -1435,15 +1493,48 @@ public class SQLServerResultSet implements ISQLServerResultSet {
     }
 
     /**
-     * Moves the cursor to the specified row in this ResultSet object. The specified row may be positive, negative or zero.
+     * Moves the cursor to the given row number in this <code>ResultSet</code> object.
      *
+     * <p>
      * This method should be called only on ResultSet objects that are scrollable: TYPE_SCROLL_SENSITIVE, TYPE_SCROLL_INSENSITIVE,
      * TYPE_SS_SCROLL_STATIC, TYPE_SS_SCROLL_KEYSET, TYPE_SS_SCROLL_DYNAMIC.
+     * </p>
+     * 
+     * <p>
+     * If the row number is positive, the cursor moves to the given row number with respect to the beginning of the result set. The first row is row
+     * 1, the second is row 2, and so on.
      *
-     * @return true if the cursor is on a valid row in this result set, otherwise returns false if the cursor is before the first row or after the
-     *         last row
+     * <p>
+     * If the given row number is negative, the cursor moves to an absolute row position with respect to the end of the result set. For example,
+     * calling the method <code>absolute(-1)</code> positions the cursor on the last row; calling the method <code>absolute(-2)</code> moves the
+     * cursor to the next-to-last row, and so on.
+     *
+     * <p>
+     * If the row number specified is zero, the cursor is moved to before the first row.
+     *
+     * <p>
+     * An attempt to position the cursor beyond the first/last row in the result set leaves the cursor before the first row or after the last row.
+     *
+     * <p>
+     * <B>Note:</B> Calling <code>absolute(1)</code> is the same as calling <code>first()</code>. Calling <code>absolute(-1)</code> is the same as
+     * calling <code>last()</code>.
+     *
+     * @param row
+     *            the number of the row to which the cursor should move. A value of zero indicates that the cursor will be positioned before the first
+     *            row; a positive number indicates the row number counting from the beginning of the result set; a negative number indicates the row
+     *            number counting from the end of the result set
+     * 
+     * @return <code>true</code> if the cursor is moved to a position in this <code>ResultSet</code> object; <code>false</code> if the cursor is
+     *         before the first row or after the last row
+     * 
+     * @exception SQLException
+     *                if a database access error occurs; this method is called on a closed result set or the result set type is
+     *                <code>TYPE_FORWARD_ONLY</code>
+     * 
+     * @since 1.2
      */
-    public boolean absolute(int row) throws SQLServerException {
+    @Override
+    public boolean absolute(int row) throws SQLException {
         loggerExternal.entering(getClassNameLogging(), "absolute");
         if (loggerExternal.isLoggable(Level.FINER) && Util.IsActivityTraceOn()) {
             loggerExternal.finer(toString() + " ActivityId: " + ActivityCorrelator.getNext().toString());
@@ -1751,14 +1842,21 @@ public class SQLServerResultSet implements ISQLServerResultSet {
     }
 
     /**
-     * Moves the cursor to the previous row in this ResultSet object.
+     * Moves the cursor to the previous row in this <code>ResultSet</code> object.
      *
      * This method should be called only on ResultSet objects that are scrollable: TYPE_SCROLL_SENSITIVE, TYPE_SCROLL_INSENSITIVE,
      * TYPE_SS_SCROLL_STATIC, TYPE_SS_SCROLL_KEYSET, TYPE_SS_SCROLL_DYNAMIC.
      *
-     * @return true if the cursor is on a valid row in this result set
+     * @return <code>true</code> if the cursor is now positioned on a valid row; <code>false</code> if the cursor is positioned before the first row
+     * 
+     * @exception SQLException
+     *                if a database access error occurs; this method is called on a closed result set or the result set type is
+     *                <code>TYPE_FORWARD_ONLY</code>
+     * 
+     * @since 1.2
      */
-    public boolean previous() throws SQLServerException {
+    @Override
+    public boolean previous() throws SQLException {
         loggerExternal.entering(getClassNameLogging(), "previous");
         if (logger.isLoggable(java.util.logging.Level.FINER))
             logger.finer(toString() + logCursorState());
@@ -1793,17 +1891,19 @@ public class SQLServerResultSet implements ISQLServerResultSet {
 
     /** Clear any updated column values for the current row in the result set. */
     final void clearColumnsValues() {
-        int l = columns.length;
-        for (Column column : columns) column.cancelUpdates();
+        for (Column column : columns)
+            column.cancelUpdates();
     }
 
-    /* L0 */ public SQLWarning getWarnings() throws SQLServerException {
+    @Override
+    public SQLWarning getWarnings() throws SQLException {
         loggerExternal.entering(getClassNameLogging(), "getWarnings");
         loggerExternal.exiting(getClassNameLogging(), "getWarnings", null);
         return null;
     }
 
-    public void setFetchDirection(int direction) throws SQLServerException {
+    @Override
+    public void setFetchDirection(int direction) throws SQLException {
         loggerExternal.entering(getClassNameLogging(), "setFetchDirection", direction);
         checkClosed();
 
@@ -1824,13 +1924,15 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         loggerExternal.exiting(getClassNameLogging(), "setFetchDirection");
     }
 
-    public int getFetchDirection() throws SQLServerException {
+    @Override
+    public int getFetchDirection() throws SQLException {
         loggerExternal.entering(getClassNameLogging(), "getFetchDirection");
         checkClosed();
         loggerExternal.exiting(getClassNameLogging(), "getFetchDirection", fetchDirection);
         return fetchDirection;
     }
 
+    @Override
     public void setFetchSize(int rows) throws SQLServerException {
         loggerExternal.entering(getClassNameLogging(), "setFetchSize", rows);
         checkClosed();
@@ -1841,14 +1943,16 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         loggerExternal.exiting(getClassNameLogging(), "setFetchSize");
     }
 
-    /* L0 */ public int getFetchSize() throws SQLServerException {
+    @Override
+    public int getFetchSize() throws SQLException {
         loggerExternal.entering(getClassNameLogging(), "getFetchSize");
         checkClosed();
         loggerExternal.exiting(getClassNameLogging(), "getFloat", fetchSize);
         return fetchSize;
     }
 
-    /* L0 */ public int getType() throws SQLServerException {
+    @Override
+    public int getType() throws SQLServerException {
         loggerExternal.entering(getClassNameLogging(), "getType");
         checkClosed();
 
@@ -1857,7 +1961,8 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         return value;
     }
 
-    /* L0 */ public int getConcurrency() throws SQLServerException {
+    @Override
+    public int getConcurrency() throws SQLServerException {
         loggerExternal.entering(getClassNameLogging(), "getConcurrency");
         checkClosed();
         int value = stmt.getResultSetConcurrency();
@@ -1896,7 +2001,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         if (logger.isLoggable(java.util.logging.Level.FINER))
             logger.finer(toString() + " Getting Column:" + index);
 
-        fillBlobs();
+        fillLOBs();
         return loadColumn(index);
     }
 
@@ -1925,15 +2030,16 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         lastValueWasNull = (null == o);
         return o;
     }
-    
-    void setInternalVariantType(int columnIndex, SqlVariant type) throws SQLServerException{
+
+    void setInternalVariantType(int columnIndex,
+            SqlVariant type) throws SQLServerException {
         getterGetColumn(columnIndex).setInternalVariant(type);
     }
-    
+
     SqlVariant getVariantInternalType(int columnIndex) throws SQLServerException {
         return getterGetColumn(columnIndex).getInternalVariant();
-    }    
-    
+    }
+
     private Object getStream(int columnIndex,
             StreamType streamType) throws SQLServerException {
         Object value = getValue(columnIndex, streamType.getJDBCType(),
@@ -1952,6 +2058,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         return value;
     }
 
+    @Override
     public java.io.InputStream getAsciiStream(int columnIndex) throws SQLServerException {
         loggerExternal.entering(getClassNameLogging(), "getAsciiStream", columnIndex);
         checkClosed();
@@ -1960,6 +2067,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         return value;
     }
 
+    @Override
     public java.io.InputStream getAsciiStream(String columnName) throws SQLServerException {
         loggerExternal.entering(getClassNameLogging(), "getAsciiStream", columnName);
         checkClosed();
@@ -1969,6 +2077,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
     }
 
     @Deprecated
+    @Override
     public BigDecimal getBigDecimal(int columnIndex,
             int scale) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
@@ -1982,6 +2091,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
     }
 
     @Deprecated
+    @Override
     public BigDecimal getBigDecimal(String columnName,
             int scale) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
@@ -1994,6 +2104,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         return value;
     }
 
+    @Override
     public java.io.InputStream getBinaryStream(int columnIndex) throws SQLServerException {
         loggerExternal.entering(getClassNameLogging(), "getBinaryStream", columnIndex);
         checkClosed();
@@ -2002,6 +2113,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         return value;
     }
 
+    @Override
     public java.io.InputStream getBinaryStream(String columnName) throws SQLServerException {
         loggerExternal.entering(getClassNameLogging(), "getBinaryStream", columnName);
         checkClosed();
@@ -2010,6 +2122,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         return value;
     }
 
+    @Override
     public boolean getBoolean(int columnIndex) throws SQLServerException {
         loggerExternal.entering(getClassNameLogging(), "getBoolean", columnIndex);
         checkClosed();
@@ -2018,6 +2131,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         return null != value ? value : false;
     }
 
+    @Override
     public boolean getBoolean(String columnName) throws SQLServerException {
         loggerExternal.entering(getClassNameLogging(), "getBoolean", columnName);
         checkClosed();
@@ -2026,6 +2140,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         return null != value ? value : false;
     }
 
+    @Override
     public byte getByte(int columnIndex) throws SQLServerException {
         loggerExternal.entering(getClassNameLogging(), "getByte", columnIndex);
         checkClosed();
@@ -2034,6 +2149,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         return null != value ? value.byteValue() : 0;
     }
 
+    @Override
     public byte getByte(String columnName) throws SQLServerException {
         loggerExternal.entering(getClassNameLogging(), "getByte", columnName);
         checkClosed();
@@ -2042,6 +2158,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         return null != value ? value.byteValue() : 0;
     }
 
+    @Override
     public byte[] getBytes(int columnIndex) throws SQLServerException {
         loggerExternal.entering(getClassNameLogging(), "getBytes", columnIndex);
         checkClosed();
@@ -2050,6 +2167,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         return value;
     }
 
+    @Override
     public byte[] getBytes(String columnName) throws SQLServerException {
         loggerExternal.entering(getClassNameLogging(), "getBytes", columnName);
         checkClosed();
@@ -2058,6 +2176,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         return value;
     }
 
+    @Override
     public java.sql.Date getDate(int columnIndex) throws SQLServerException {
         loggerExternal.entering(getClassNameLogging(), "getDate", columnIndex);
         checkClosed();
@@ -2066,6 +2185,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         return value;
     }
 
+    @Override
     public java.sql.Date getDate(String columnName) throws SQLServerException {
         loggerExternal.entering(getClassNameLogging(), "getDate", columnName);
         checkClosed();
@@ -2074,6 +2194,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         return value;
     }
 
+    @Override
     public java.sql.Date getDate(int columnIndex,
             Calendar cal) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
@@ -2084,6 +2205,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         return value;
     }
 
+    @Override
     public java.sql.Date getDate(String colName,
             Calendar cal) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
@@ -2094,6 +2216,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         return value;
     }
 
+    @Override
     public double getDouble(int columnIndex) throws SQLServerException {
         loggerExternal.entering(getClassNameLogging(), "getDouble", columnIndex);
         checkClosed();
@@ -2102,6 +2225,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         return null != value ? value : 0;
     }
 
+    @Override
     public double getDouble(String columnName) throws SQLServerException {
         loggerExternal.entering(getClassNameLogging(), "getDouble", columnName);
         checkClosed();
@@ -2110,6 +2234,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         return null != value ? value : 0;
     }
 
+    @Override
     public float getFloat(int columnIndex) throws SQLServerException {
         loggerExternal.entering(getClassNameLogging(), "getFloat", columnIndex);
         checkClosed();
@@ -2118,6 +2243,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         return null != value ? value : 0;
     }
 
+    @Override
     public float getFloat(String columnName) throws SQLServerException {
         loggerExternal.entering(getClassNameLogging(), "getFloat", columnName);
         checkClosed();
@@ -2125,7 +2251,8 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         loggerExternal.exiting(getClassNameLogging(), "getFloat", value);
         return null != value ? value : 0;
     }
-    
+
+    @Override
     public Geometry getGeometry(int columnIndex) throws SQLServerException {
         loggerExternal.entering(getClassNameLogging(), "getFloat", columnIndex);
         checkClosed();
@@ -2134,6 +2261,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         return value;
     }
 
+    @Override
     public Geometry getGeometry(String columnName) throws SQLServerException {
         loggerExternal.entering(getClassNameLogging(), "getFloat", columnName);
         checkClosed();
@@ -2141,7 +2269,8 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         loggerExternal.exiting(getClassNameLogging(), "getFloat", value);
         return value;
     }
-    
+
+    @Override
     public Geography getGeography(int columnIndex) throws SQLServerException {
         loggerExternal.entering(getClassNameLogging(), "getFloat", columnIndex);
         checkClosed();
@@ -2150,6 +2279,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         return value;
     }
 
+    @Override
     public Geography getGeography(String columnName) throws SQLServerException {
         loggerExternal.entering(getClassNameLogging(), "getFloat", columnName);
         checkClosed();
@@ -2158,6 +2288,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         return value;
     }
 
+    @Override
     public int getInt(int columnIndex) throws SQLServerException {
         loggerExternal.entering(getClassNameLogging(), "getInt", columnIndex);
         checkClosed();
@@ -2166,6 +2297,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         return null != value ? value : 0;
     }
 
+    @Override
     public int getInt(String columnName) throws SQLServerException {
         loggerExternal.entering(getClassNameLogging(), "getInt", columnName);
         checkClosed();
@@ -2174,6 +2306,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         return null != value ? value : 0;
     }
 
+    @Override
     public long getLong(int columnIndex) throws SQLServerException {
         loggerExternal.entering(getClassNameLogging(), "getLong", columnIndex);
         checkClosed();
@@ -2182,6 +2315,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         return null != value ? value : 0;
     }
 
+    @Override
     public long getLong(String columnName) throws SQLServerException {
         loggerExternal.entering(getClassNameLogging(), "getLong", columnName);
         checkClosed();
@@ -2190,6 +2324,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         return null != value ? value : 0;
     }
 
+    @Override
     public java.sql.ResultSetMetaData getMetaData() throws SQLServerException {
         loggerExternal.entering(getClassNameLogging(), "getMetaData");
         checkClosed();
@@ -2199,6 +2334,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         return metaData;
     }
 
+    @Override
     public Object getObject(int columnIndex) throws SQLServerException {
         loggerExternal.entering(getClassNameLogging(), "getObject", columnIndex);
         checkClosed();
@@ -2207,6 +2343,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         return value;
     }
 
+    @Override
     public <T> T getObject(int columnIndex,
             Class<T> type) throws SQLException {
         loggerExternal.entering(getClassNameLogging(), "getObject", columnIndex);
@@ -2289,6 +2426,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         return type.cast(returnValue);
     }
 
+    @Override
     public Object getObject(String columnName) throws SQLServerException {
         loggerExternal.entering(getClassNameLogging(), "getObject", columnName);
         checkClosed();
@@ -2297,6 +2435,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         return value;
     }
 
+    @Override
     public <T> T getObject(String columnName,
             Class<T> type) throws SQLException {
         loggerExternal.entering(getClassNameLogging(), "getObject", columnName);
@@ -2306,6 +2445,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         return value;
     }
 
+    @Override
     public short getShort(int columnIndex) throws SQLServerException {
         loggerExternal.entering(getClassNameLogging(), "getShort", columnIndex);
         checkClosed();
@@ -2314,6 +2454,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         return null != value ? value : 0;
     }
 
+    @Override
     public short getShort(String columnName) throws SQLServerException {
         loggerExternal.entering(getClassNameLogging(), "getShort", columnName);
         checkClosed();
@@ -2322,6 +2463,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         return null != value ? value : 0;
     }
 
+    @Override
     public String getString(int columnIndex) throws SQLServerException {
         loggerExternal.entering(getClassNameLogging(), "getString", columnIndex);
         checkClosed();
@@ -2335,6 +2477,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         return value;
     }
 
+    @Override
     public String getString(String columnName) throws SQLServerException {
         loggerExternal.entering(getClassNameLogging(), "getString", columnName);
         checkClosed();
@@ -2348,6 +2491,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         return value;
     }
 
+    @Override
     public String getNString(int columnIndex) throws SQLException {
         loggerExternal.entering(getClassNameLogging(), "getNString", columnIndex);
         checkClosed();
@@ -2356,6 +2500,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         return value;
     }
 
+    @Override
     public String getNString(String columnLabel) throws SQLException {
         loggerExternal.entering(getClassNameLogging(), "getNString", columnLabel);
         checkClosed();
@@ -2364,17 +2509,8 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         return value;
     }
 
-    /**
-     * Retrieves the value of the designated column in the current row of this ResultSet object as a microsoft.sql.datetimeoffset object in the Java
-     * programming language.
-     * 
-     * @param columnIndex
-     *            the first column is 1, the second is 2, ...
-     * @return the column value; if the value is SQL NULL, the value returned is null
-     * @throws SQLException
-     *             when an error occurs
-     */
-    public String getUniqueIdentifier(int columnIndex) throws SQLException {
+    @Override
+    public String getUniqueIdentifier(int columnIndex) throws SQLServerException {
         loggerExternal.entering(getClassNameLogging(), "getUniqueIdentifier", columnIndex);
         checkClosed();
         String value = (String) getValue(columnIndex, JDBCType.GUID);
@@ -2382,17 +2518,8 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         return value;
     }
 
-    /**
-     * Retrieves the value of the designated column in the current row of this ResultSet object as a microsoft.sql.datetimeoffset object in the Java
-     * programming language.
-     * 
-     * @param columnLabel
-     *            the name of the column
-     * @return the column value; if the value is SQL NULL, the value returned is null
-     * @throws SQLException
-     *             when an error occurs
-     */
-    public String getUniqueIdentifier(String columnLabel) throws SQLException {
+    @Override
+    public String getUniqueIdentifier(String columnLabel) throws SQLServerException {
         loggerExternal.entering(getClassNameLogging(), "getUniqueIdentifier", columnLabel);
         checkClosed();
         String value = (String) getValue(findColumn(columnLabel), JDBCType.GUID);
@@ -2400,6 +2527,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         return value;
     }
 
+    @Override
     public java.sql.Time getTime(int columnIndex) throws SQLServerException {
         loggerExternal.entering(getClassNameLogging(), "getTime", columnIndex);
         checkClosed();
@@ -2408,6 +2536,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         return value;
     }
 
+    @Override
     public java.sql.Time getTime(String columnName) throws SQLServerException {
         loggerExternal.entering(getClassNameLogging(), "getTime", columnName);
         checkClosed();
@@ -2416,6 +2545,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         return value;
     }
 
+    @Override
     public java.sql.Time getTime(int columnIndex,
             Calendar cal) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
@@ -2426,6 +2556,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         return value;
     }
 
+    @Override
     public java.sql.Time getTime(String colName,
             Calendar cal) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
@@ -2436,6 +2567,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         return value;
     }
 
+    @Override
     public java.sql.Timestamp getTimestamp(int columnIndex) throws SQLServerException {
         loggerExternal.entering(getClassNameLogging(), "getTimestamp", columnIndex);
         checkClosed();
@@ -2444,6 +2576,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         return value;
     }
 
+    @Override
     public java.sql.Timestamp getTimestamp(String columnName) throws SQLServerException {
         loggerExternal.entering(getClassNameLogging(), "getTimestamp", columnName);
         checkClosed();
@@ -2452,6 +2585,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         return value;
     }
 
+    @Override
     public java.sql.Timestamp getTimestamp(int columnIndex,
             Calendar cal) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
@@ -2462,6 +2596,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         return value;
     }
 
+    @Override
     public java.sql.Timestamp getTimestamp(String colName,
             Calendar cal) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
@@ -2472,16 +2607,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         return value;
     }
 
-    /**
-     * Retrieves the value of the designated column in the current row of this ResultSet object as a java.sql.Timestamp object in the Java programming
-     * language.
-     * 
-     * @param columnIndex
-     *            the first column is 1, the second is 2, ...
-     * @return the column value; if the value is SQL NULL, the value returned is null
-     * @throws SQLServerException
-     *             when an error occurs
-     */
+    @Override
     public java.sql.Timestamp getDateTime(int columnIndex) throws SQLServerException {
         loggerExternal.entering(getClassNameLogging(), "getDateTime", columnIndex);
         checkClosed();
@@ -2490,16 +2616,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         return value;
     }
 
-    /**
-     * Retrieves the value of the designated column in the current row of this ResultSet object as a java.sql.Timestamp object in the Java programming
-     * language.
-     * 
-     * @param columnName
-     *            is the name of the column
-     * @return the column value; if the value is SQL NULL, the value returned is null
-     * @throws SQLServerException
-     *             If any errors occur.
-     */
+    @Override
     public java.sql.Timestamp getDateTime(String columnName) throws SQLServerException {
         loggerExternal.entering(getClassNameLogging(), "getDateTime", columnName);
         checkClosed();
@@ -2508,19 +2625,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         return value;
     }
 
-    /**
-     * Retrieves the value of the designated column in the current row of this ResultSet object as a java.sql.Timestamp object in the Java programming
-     * language. This method uses the given calendar to construct an appropriate millisecond value for the timestamp if the underlying database does
-     * not store timezone information.
-     * 
-     * @param columnIndex
-     *            the first column is 1, the second is 2, ...
-     * @param cal
-     *            the java.util.Calendar object to use in constructing the dateTime
-     * @return the column value; if the value is SQL NULL, the value returned is null
-     * @throws SQLServerException
-     *             If any errors occur.
-     */
+    @Override
     public java.sql.Timestamp getDateTime(int columnIndex,
             Calendar cal) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
@@ -2531,20 +2636,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         return value;
     }
 
-    /**
-     * Retrieves the value of the designated column in the current row of this ResultSet object as a java.sql.Timestamp object in the Java programming
-     * language. This method uses the given calendar to construct an appropriate millisecond value for the timestamp if the underlying database does
-     * not store timezone information.
-     * 
-     * @param colName
-     *            the label for the column specified with the SQL AS clause. If the SQL AS clause was not specified, then the label is the name of the
-     *            column
-     * @param cal
-     *            the java.util.Calendar object to use in constructing the dateTime
-     * @return the column value; if the value is SQL NULL, the value returned is null
-     * @throws SQLServerException
-     *             If any errors occur.
-     */
+    @Override
     public java.sql.Timestamp getDateTime(String colName,
             Calendar cal) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
@@ -2555,16 +2647,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         return value;
     }
 
-    /**
-     * Retrieves the value of the designated column in the current row of this ResultSet object as a java.sql.Timestamp object in the Java programming
-     * language.
-     * 
-     * @param columnIndex
-     *            the first column is 1, the second is 2, ...
-     * @return the column value; if the value is SQL NULL, the value returned is null
-     * @throws SQLServerException
-     *             when an error occurs
-     */
+    @Override
     public java.sql.Timestamp getSmallDateTime(int columnIndex) throws SQLServerException {
         loggerExternal.entering(getClassNameLogging(), "getSmallDateTime", columnIndex);
         checkClosed();
@@ -2573,16 +2656,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         return value;
     }
 
-    /**
-     * Retrieves the value of the designated column in the current row of this ResultSet object as a java.sql.Timestamp object in the Java programming
-     * language.
-     * 
-     * @param columnName
-     *            is the name of a column.
-     * @return the column value; if the value is SQL NULL, the value returned is null
-     * @throws SQLServerException
-     *             If any errors occur.
-     */
+    @Override
     public java.sql.Timestamp getSmallDateTime(String columnName) throws SQLServerException {
         loggerExternal.entering(getClassNameLogging(), "getSmallDateTime", columnName);
         checkClosed();
@@ -2591,18 +2665,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         return value;
     }
 
-    /**
-     * Retrieves the value of the designated column in the current row of this ResultSet object as a java.sql.Timestamp object in the Java programming
-     * language.
-     * 
-     * @param columnIndex
-     *            the first column is 1, the second is 2, ...
-     * @param cal
-     *            the java.util.Calendar object to use in constructing the smalldateTime
-     * @return the column value; if the value is SQL NULL, the value returned is null
-     * @throws SQLServerException
-     *             If any errors occur.
-     */
+    @Override
     public java.sql.Timestamp getSmallDateTime(int columnIndex,
             Calendar cal) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
@@ -2613,16 +2676,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         return value;
     }
 
-    /**
-     * 
-     * @param colName
-     *            The name of a column
-     * @param cal
-     *            the java.util.Calendar object to use in constructing the smalldateTime
-     * @return the column value; if the value is SQL NULL, the value returned is null
-     * @throws SQLServerException
-     *             If any errors occur.
-     */
+    @Override
     public java.sql.Timestamp getSmallDateTime(String colName,
             Calendar cal) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
@@ -2633,7 +2687,8 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         return value;
     }
 
-    public microsoft.sql.DateTimeOffset getDateTimeOffset(int columnIndex) throws SQLException {
+    @Override
+    public microsoft.sql.DateTimeOffset getDateTimeOffset(int columnIndex) throws SQLServerException {
         loggerExternal.entering(getClassNameLogging(), "getDateTimeOffset", columnIndex);
         checkClosed();
 
@@ -2647,7 +2702,8 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         return value;
     }
 
-    public microsoft.sql.DateTimeOffset getDateTimeOffset(String columnName) throws SQLException {
+    @Override
+    public microsoft.sql.DateTimeOffset getDateTimeOffset(String columnName) throws SQLServerException {
         loggerExternal.entering(getClassNameLogging(), "getDateTimeOffset", columnName);
         checkClosed();
 
@@ -2661,113 +2717,133 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         return value;
     }
 
+    @Override
     @Deprecated
-    public java.io.InputStream getUnicodeStream(int columnIndex) throws SQLServerException {
+    public java.io.InputStream getUnicodeStream(int columnIndex) throws SQLException {
         loggerExternal.entering(getClassNameLogging(), "getUnicodeStream", columnIndex);
-        NotImplemented();
+        SQLServerException.throwNotSupportedException(stmt.connection, stmt);
         return null;
     }
 
+    @Override
     @Deprecated
-    public java.io.InputStream getUnicodeStream(String columnName) throws SQLServerException {
+    public java.io.InputStream getUnicodeStream(String columnName) throws SQLException {
         loggerExternal.entering(getClassNameLogging(), "getUnicodeStream", columnName);
-        NotImplemented();
+        SQLServerException.throwNotSupportedException(stmt.connection, stmt);
         return null;
     }
 
+    @Override
     public Object getObject(int i,
-            java.util.Map<String, Class<?>> map) throws SQLServerException {
+            java.util.Map<String, Class<?>> map) throws SQLException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "getObject", new Object[] {i, map});
-        NotImplemented();
+        SQLServerException.throwNotSupportedException(stmt.connection, stmt);
         return null;
     }
 
-    public Ref getRef(int i) throws SQLServerException {
+    @Override
+    public Ref getRef(int i) throws SQLException {
         loggerExternal.entering(getClassNameLogging(), "getRef");
-        NotImplemented();
+        SQLServerException.throwNotSupportedException(stmt.connection, stmt);
         return null;
     }
 
+    @Override
     public Blob getBlob(int i) throws SQLServerException {
         loggerExternal.entering(getClassNameLogging(), "getBlob", i);
         checkClosed();
         Blob value = (Blob) getValue(i, JDBCType.BLOB);
         loggerExternal.exiting(getClassNameLogging(), "getBlob", value);
-        activeBlob = value;
+        activeLOB = (SQLServerLob) value;
         return value;
     }
 
+    @Override
     public Blob getBlob(String colName) throws SQLServerException {
         loggerExternal.entering(getClassNameLogging(), "getBlob", colName);
         checkClosed();
         Blob value = (Blob) getValue(findColumn(colName), JDBCType.BLOB);
         loggerExternal.exiting(getClassNameLogging(), "getBlob", value);
-        activeBlob = value;
+        activeLOB = (SQLServerLob) value;
         return value;
     }
 
+    @Override
     public Clob getClob(int columnIndex) throws SQLServerException {
         loggerExternal.entering(getClassNameLogging(), "getClob", columnIndex);
         checkClosed();
         Clob value = (Clob) getValue(columnIndex, JDBCType.CLOB);
         loggerExternal.exiting(getClassNameLogging(), "getClob", value);
+        activeLOB = (SQLServerLob) value;
         return value;
     }
 
+    @Override
     public Clob getClob(String colName) throws SQLServerException {
         loggerExternal.entering(getClassNameLogging(), "getClob", colName);
         checkClosed();
         Clob value = (Clob) getValue(findColumn(colName), JDBCType.CLOB);
         loggerExternal.exiting(getClassNameLogging(), "getClob", value);
+        activeLOB = (SQLServerLob) value;
         return value;
     }
 
+    @Override
     public NClob getNClob(int columnIndex) throws SQLException {
         loggerExternal.entering(getClassNameLogging(), "getNClob", columnIndex);
         checkClosed();
         NClob value = (NClob) getValue(columnIndex, JDBCType.NCLOB);
         loggerExternal.exiting(getClassNameLogging(), "getNClob", value);
+        activeLOB = (SQLServerLob) value;
         return value;
     }
 
+    @Override
     public NClob getNClob(String columnLabel) throws SQLException {
         loggerExternal.entering(getClassNameLogging(), "getNClob", columnLabel);
         checkClosed();
         NClob value = (NClob) getValue(findColumn(columnLabel), JDBCType.NCLOB);
         loggerExternal.exiting(getClassNameLogging(), "getNClob", value);
+        activeLOB = (SQLServerLob) value;
         return value;
     }
 
-    public Array getArray(int i) throws SQLServerException {
-        NotImplemented();
+    @Override
+    public Array getArray(int i) throws SQLException {
+        SQLServerException.throwNotSupportedException(stmt.connection, stmt);
         return null;
     }
 
+    @Override
     public Object getObject(String colName,
-            java.util.Map<String, Class<?>> map) throws SQLServerException {
-        NotImplemented();
+            java.util.Map<String, Class<?>> map) throws SQLException {
+        SQLServerException.throwNotSupportedException(stmt.connection, stmt);
         return null;
     }
 
-    public Ref getRef(String colName) throws SQLServerException {
-        NotImplemented();
+    @Override
+    public Ref getRef(String colName) throws SQLException {
+        SQLServerException.throwNotSupportedException(stmt.connection, stmt);
         return null;
     }
 
-    public Array getArray(String colName) throws SQLServerException {
-        NotImplemented();
+    @Override
+    public Array getArray(String colName) throws SQLException {
+        SQLServerException.throwNotSupportedException(stmt.connection, stmt);
         return null;
     }
 
-    public String getCursorName() throws SQLServerException {
+    @Override
+    public String getCursorName() throws SQLException {
         loggerExternal.entering(getClassNameLogging(), "getCursorName");
         SQLServerException.makeFromDriverError(null, null, SQLServerException.getErrString("R_positionedUpdatesNotSupported"), null, false);
         loggerExternal.exiting(getClassNameLogging(), "getCursorName", null);
         return null;
     }
 
-    public java.io.Reader getCharacterStream(int columnIndex) throws SQLServerException {
+    @Override
+    public java.io.Reader getCharacterStream(int columnIndex) throws SQLException {
         loggerExternal.entering(getClassNameLogging(), "getCharacterStream", columnIndex);
         checkClosed();
         Reader value = (Reader) getStream(columnIndex, StreamType.CHARACTER);
@@ -2775,7 +2851,8 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         return value;
     }
 
-    public java.io.Reader getCharacterStream(String columnName) throws SQLServerException {
+    @Override
+    public java.io.Reader getCharacterStream(String columnName) throws SQLException {
         checkClosed();
         loggerExternal.entering(getClassNameLogging(), "getCharacterStream", columnName);
         Reader value = (Reader) getStream(findColumn(columnName), StreamType.CHARACTER);
@@ -2783,6 +2860,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         return value;
     }
 
+    @Override
     public Reader getNCharacterStream(int columnIndex) throws SQLException {
         loggerExternal.entering(getClassNameLogging(), "getNCharacterStream", columnIndex);
         checkClosed();
@@ -2791,6 +2869,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         return value;
     }
 
+    @Override
     public Reader getNCharacterStream(String columnLabel) throws SQLException {
         loggerExternal.entering(getClassNameLogging(), "getNCharacterStream", columnLabel);
         checkClosed();
@@ -2799,7 +2878,8 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         return value;
     }
 
-    public BigDecimal getBigDecimal(int columnIndex) throws SQLServerException {
+    @Override
+    public BigDecimal getBigDecimal(int columnIndex) throws SQLException {
         loggerExternal.entering(getClassNameLogging(), "getBigDecimal", columnIndex);
         checkClosed();
         BigDecimal value = (BigDecimal) getValue(columnIndex, JDBCType.DECIMAL);
@@ -2807,7 +2887,8 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         return value;
     }
 
-    public BigDecimal getBigDecimal(String columnName) throws SQLServerException {
+    @Override
+    public BigDecimal getBigDecimal(String columnName) throws SQLException {
         loggerExternal.entering(getClassNameLogging(), "getBigDecimal", columnName);
         checkClosed();
         BigDecimal value = (BigDecimal) getValue(findColumn(columnName), JDBCType.DECIMAL);
@@ -2815,15 +2896,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         return value;
     }
 
-    /**
-     * Retrieves the value of the column specified as a java.math.BigDecimal object.
-     * 
-     * @param columnIndex
-     *            The zero-based ordinal of a column.
-     * @return the column value; if the value is SQL NULL, the value returned is null
-     * @throws SQLServerException
-     *             when an error occurs
-     */
+    @Override
     public BigDecimal getMoney(int columnIndex) throws SQLServerException {
         loggerExternal.entering(getClassNameLogging(), "getMoney", columnIndex);
         checkClosed();
@@ -2832,15 +2905,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         return value;
     }
 
-    /**
-     * Retrieves the value of the column specified as a java.math.BigDecimal object.
-     * 
-     * @param columnName
-     *            is the name of a column.
-     * @return the column value; if the value is SQL NULL, the value returned is null.
-     * @throws SQLServerException
-     *             If any errors occur.
-     */
+    @Override
     public BigDecimal getMoney(String columnName) throws SQLServerException {
         loggerExternal.entering(getClassNameLogging(), "getMoney", columnName);
         checkClosed();
@@ -2849,15 +2914,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         return value;
     }
 
-    /**
-     * Retrieves the value of the column specified as a java.math.BigDecimal object.
-     * 
-     * @param columnIndex
-     *            The zero-based ordinal of a column.
-     * @return the column value; if the value is SQL NULL, the value returned is null
-     * @throws SQLServerException
-     *             If any errors occur.
-     */
+    @Override
     public BigDecimal getSmallMoney(int columnIndex) throws SQLServerException {
         loggerExternal.entering(getClassNameLogging(), "getSmallMoney", columnIndex);
         checkClosed();
@@ -2866,15 +2923,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         return value;
     }
 
-    /**
-     * Retrieves the value of the column specified as a java.math.BigDecimal object.
-     * 
-     * @param columnName
-     *            is the name of a column.
-     * @return the column value; if the value is SQL NULL, the value returned is null.
-     * @throws SQLServerException
-     *             If any errors occur.
-     */
+    @Override
     public BigDecimal getSmallMoney(String columnName) throws SQLServerException {
         loggerExternal.entering(getClassNameLogging(), "getSmallMoney", columnName);
         checkClosed();
@@ -2883,17 +2932,19 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         return value;
     }
 
+    @Override
     public RowId getRowId(int columnIndex) throws SQLException {
-        // Not implemented
-        throw new SQLFeatureNotSupportedException(SQLServerException.getErrString("R_notSupported"));
+        SQLServerException.throwNotSupportedException(stmt.connection, stmt);
+        return null;
     }
 
+    @Override
     public RowId getRowId(String columnLabel) throws SQLException {
-
-        // Not implemented
-        throw new SQLFeatureNotSupportedException(SQLServerException.getErrString("R_notSupported"));
+        SQLServerException.throwNotSupportedException(stmt.connection, stmt);
+        return null;
     }
 
+    @Override
     public SQLXML getSQLXML(int columnIndex) throws SQLException {
         loggerExternal.entering(getClassNameLogging(), "getSQLXML", columnIndex);
         SQLXML xml = getSQLXMLInternal(columnIndex);
@@ -2901,6 +2952,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         return xml;
     }
 
+    @Override
     public SQLXML getSQLXML(String columnLabel) throws SQLException {
         loggerExternal.entering(getClassNameLogging(), "getSQLXML", columnLabel);
         SQLXML xml = getSQLXMLInternal(findColumn(columnLabel));
@@ -2908,6 +2960,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         return xml;
     }
 
+    @Override
     public boolean rowUpdated() throws SQLServerException {
         loggerExternal.entering(getClassNameLogging(), "rowUpdated");
         checkClosed();
@@ -2921,6 +2974,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         return false;
     }
 
+    @Override
     public boolean rowInserted() throws SQLServerException {
         loggerExternal.entering(getClassNameLogging(), "rowInserted");
         checkClosed();
@@ -2935,6 +2989,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         return false;
     }
 
+    @Override
     public boolean rowDeleted() throws SQLServerException {
         loggerExternal.entering(getClassNameLogging(), "rowDeleted");
         checkClosed();
@@ -3052,6 +3107,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
                 stmt.stmtColumnEncriptionSetting, null, false, columnIndex);
     }
 
+    @Override
     public void updateNull(int index) throws SQLServerException {
         loggerExternal.entering(getClassNameLogging(), "updateNull", index);
 
@@ -3061,8 +3117,9 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         loggerExternal.exiting(getClassNameLogging(), "updateNull");
     }
 
+    @Override
     public void updateBoolean(int index,
-            boolean x) throws SQLServerException {
+            boolean x) throws SQLException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "updateBoolean", new Object[] {index, x});
         checkClosed();
@@ -3071,22 +3128,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         loggerExternal.exiting(getClassNameLogging(), "updateBoolean");
     }
 
-    /**
-     * Updates the designated column with a <code>boolean</code> value. The updater methods are used to update column values in the current row or the
-     * insert row. The updater methods do not update the underlying database; instead the <code>updateRow</code> or <code>insertRow</code> methods are
-     * called to update the database.
-     *
-     * @param index
-     *            the first column is 1, the second is 2, ...
-     * @param x
-     *            the new column value
-     * @param forceEncrypt
-     *            If the boolean forceEncrypt is set to true, the query parameter will only be set if the designation column is encrypted and Always
-     *            Encrypted is enabled on the connection or on the statement. If the boolean forceEncrypt is set to false, the driver will not force
-     *            encryption on parameters.
-     * @throws SQLServerException
-     *             when an error occurs
-     */
+    @Override
     public void updateBoolean(int index,
             boolean x,
             boolean forceEncrypt) throws SQLServerException {
@@ -3098,8 +3140,9 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         loggerExternal.exiting(getClassNameLogging(), "updateBoolean");
     }
 
+    @Override
     public void updateByte(int index,
-            byte x) throws SQLServerException {
+            byte x) throws SQLException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "updateByte", new Object[] {index, x});
 
@@ -3109,22 +3152,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         loggerExternal.exiting(getClassNameLogging(), "updateByte");
     }
 
-    /**
-     * Updates the designated column with a <code>byte</code> value. The updater methods are used to update column values in the current row or the
-     * insert row. The updater methods do not update the underlying database; instead the <code>updateRow</code> or <code>insertRow</code> methods are
-     * called to update the database.
-     *
-     * @param index
-     *            the first column is 1, the second is 2, ...
-     * @param x
-     *            the new column value
-     * @param forceEncrypt
-     *            If the boolean forceEncrypt is set to true, the query parameter will only be set if the designation column is encrypted and Always
-     *            Encrypted is enabled on the connection or on the statement. If the boolean forceEncrypt is set to false, the driver will not force
-     *            encryption on parameters.
-     * @throws SQLServerException
-     *             when an error occurs
-     */
+    @Override
     public void updateByte(int index,
             byte x,
             boolean forceEncrypt) throws SQLServerException {
@@ -3137,8 +3165,9 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         loggerExternal.exiting(getClassNameLogging(), "updateByte");
     }
 
+    @Override
     public void updateShort(int index,
-            short x) throws SQLServerException {
+            short x) throws SQLException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "updateShort", new Object[] {index, x});
 
@@ -3148,22 +3177,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         loggerExternal.exiting(getClassNameLogging(), "updateShort");
     }
 
-    /**
-     * Updates the designated column with a <code>short</code> value. The updater methods are used to update column values in the current row or the
-     * insert row. The updater methods do not update the underlying database; instead the <code>updateRow</code> or <code>insertRow</code> methods are
-     * called to update the database.
-     *
-     * @param index
-     *            the first column is 1, the second is 2, ...
-     * @param x
-     *            the new column value
-     * @param forceEncrypt
-     *            If the boolean forceEncrypt is set to true, the query parameter will only be set if the designation column is encrypted and Always
-     *            Encrypted is enabled on the connection or on the statement. If the boolean forceEncrypt is set to false, the driver will not force
-     *            encryption on parameters.
-     * @throws SQLServerException
-     *             when an error occurs
-     */
+    @Override
     public void updateShort(int index,
             short x,
             boolean forceEncrypt) throws SQLServerException {
@@ -3176,8 +3190,9 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         loggerExternal.exiting(getClassNameLogging(), "updateShort");
     }
 
+    @Override
     public void updateInt(int index,
-            int x) throws SQLServerException {
+            int x) throws SQLException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "updateInt", new Object[] {index, x});
 
@@ -3187,22 +3202,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         loggerExternal.exiting(getClassNameLogging(), "updateInt");
     }
 
-    /**
-     * Updates the designated column with an <code>int</code> value. The updater methods are used to update column values in the current row or the
-     * insert row. The updater methods do not update the underlying database; instead the <code>updateRow</code> or <code>insertRow</code> methods are
-     * called to update the database.
-     *
-     * @param index
-     *            the first column is 1, the second is 2, ...
-     * @param x
-     *            the new column value
-     * @param forceEncrypt
-     *            If the boolean forceEncrypt is set to true, the query parameter will only be set if the designation column is encrypted and Always
-     *            Encrypted is enabled on the connection or on the statement. If the boolean forceEncrypt is set to false, the driver will not force
-     *            encryption on parameters.
-     * @throws SQLServerException
-     *             when an error occurs
-     */
+    @Override
     public void updateInt(int index,
             int x,
             boolean forceEncrypt) throws SQLServerException {
@@ -3215,8 +3215,9 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         loggerExternal.exiting(getClassNameLogging(), "updateInt");
     }
 
+    @Override
     public void updateLong(int index,
-            long x) throws SQLServerException {
+            long x) throws SQLException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "updateLong", new Object[] {index, x});
 
@@ -3226,22 +3227,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         loggerExternal.exiting(getClassNameLogging(), "updateLong");
     }
 
-    /**
-     * Updates the designated column with a <code>long</code> value. The updater methods are used to update column values in the current row or the
-     * insert row. The updater methods do not update the underlying database; instead the <code>updateRow</code> or <code>insertRow</code> methods are
-     * called to update the database.
-     *
-     * @param index
-     *            the first column is 1, the second is 2, ...
-     * @param x
-     *            the new column value
-     * @param forceEncrypt
-     *            If the boolean forceEncrypt is set to true, the query parameter will only be set if the designation column is encrypted and Always
-     *            Encrypted is enabled on the connection or on the statement. If the boolean forceEncrypt is set to false, the driver will not force
-     *            encryption on parameters.
-     * @throws SQLServerException
-     *             when an error occurs
-     */
+    @Override
     public void updateLong(int index,
             long x,
             boolean forceEncrypt) throws SQLServerException {
@@ -3254,8 +3240,9 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         loggerExternal.exiting(getClassNameLogging(), "updateLong");
     }
 
+    @Override
     public void updateFloat(int index,
-            float x) throws SQLServerException {
+            float x) throws SQLException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "updateFloat", new Object[] {index, x});
 
@@ -3265,22 +3252,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         loggerExternal.exiting(getClassNameLogging(), "updateFloat");
     }
 
-    /**
-     * Updates the designated column with a <code>float</code> value. The updater methods are used to update column values in the current row or the
-     * insert row. The updater methods do not update the underlying database; instead the <code>updateRow</code> or <code>insertRow</code> methods are
-     * called to update the database.
-     *
-     * @param index
-     *            the first column is 1, the second is 2, ...
-     * @param x
-     *            the new column value
-     * @param forceEncrypt
-     *            If the boolean forceEncrypt is set to true, the query parameter will only be set if the designation column is encrypted and Always
-     *            Encrypted is enabled on the connection or on the statement. If the boolean forceEncrypt is set to false, the driver will not force
-     *            encryption on parameters.
-     * @throws SQLServerException
-     *             when an error occurs
-     */
+    @Override
     public void updateFloat(int index,
             float x,
             boolean forceEncrypt) throws SQLServerException {
@@ -3293,8 +3265,9 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         loggerExternal.exiting(getClassNameLogging(), "updateFloat");
     }
 
+    @Override
     public void updateDouble(int index,
-            double x) throws SQLServerException {
+            double x) throws SQLException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "updateDouble", new Object[] {index, x});
 
@@ -3304,22 +3277,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         loggerExternal.exiting(getClassNameLogging(), "updateDouble");
     }
 
-    /**
-     * Updates the designated column with a <code>double</code> value. The updater methods are used to update column values in the current row or the
-     * insert row. The updater methods do not update the underlying database; instead the <code>updateRow</code> or <code>insertRow</code> methods are
-     * called to update the database.
-     *
-     * @param index
-     *            the first column is 1, the second is 2, ...
-     * @param x
-     *            the new column value
-     * @param forceEncrypt
-     *            If the boolean forceEncrypt is set to true, the query parameter will only be set if the designation column is encrypted and Always
-     *            Encrypted is enabled on the connection or on the statement. If the boolean forceEncrypt is set to false, the driver will not force
-     *            encryption on parameters.
-     * @throws SQLServerException
-     *             when an error occurs
-     */
+    @Override
     public void updateDouble(int index,
             double x,
             boolean forceEncrypt) throws SQLServerException {
@@ -3332,18 +3290,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         loggerExternal.exiting(getClassNameLogging(), "updateDouble");
     }
 
-    /**
-     * Updates the designated column with a <code>money</code> value. The updater methods are used to update column values in the current row or the
-     * insert row. The updater methods do not update the underlying database; instead the <code>updateRow</code> or <code>insertRow</code> methods are
-     * called to update the database.
-     *
-     * @param index
-     *            the first column is 1, the second is 2, ...
-     * @param x
-     *            the new column value
-     * @throws SQLServerException
-     *             when an error occurs
-     */
+    @Override
     public void updateMoney(int index,
             BigDecimal x) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
@@ -3354,22 +3301,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         loggerExternal.exiting(getClassNameLogging(), "updateMoney");
     }
 
-    /**
-     * Updates the designated column with a <code>money</code> value. The updater methods are used to update column values in the current row or the
-     * insert row. The updater methods do not update the underlying database; instead the <code>updateRow</code> or <code>insertRow</code> methods are
-     * called to update the database.
-     *
-     * @param index
-     *            the first column is 1, the second is 2, ...
-     * @param x
-     *            the new column value
-     * @param forceEncrypt
-     *            If the boolean forceEncrypt is set to true, the query parameter will only be set if the designation column is encrypted and Always
-     *            Encrypted is enabled on the connection or on the statement. If the boolean forceEncrypt is set to false, the driver will not force
-     *            encryption on parameters.
-     * @throws SQLServerException
-     *             when an error occurs
-     */
+    @Override
     public void updateMoney(int index,
             BigDecimal x,
             boolean forceEncrypt) throws SQLServerException {
@@ -3381,18 +3313,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         loggerExternal.exiting(getClassNameLogging(), "updateMoney");
     }
 
-    /**
-     * Updates the designated column with a <code>money</code> value. The updater methods are used to update column values in the current row or the
-     * insert row. The updater methods do not update the underlying database; instead the <code>updateRow</code> or <code>insertRow</code> methods are
-     * called to update the database.
-     *
-     * @param columnName
-     *            is the column name
-     * @param x
-     *            the new column value
-     * @throws SQLServerException
-     *             If any errors occur.
-     */
+    @Override
     public void updateMoney(String columnName,
             BigDecimal x) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
@@ -3403,22 +3324,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         loggerExternal.exiting(getClassNameLogging(), "updateMoney");
     }
 
-    /**
-     * Updates the designated column with a <code>money</code> value. The updater methods are used to update column values in the current row or the
-     * insert row. The updater methods do not update the underlying database; instead the <code>updateRow</code> or <code>insertRow</code> methods are
-     * called to update the database.
-     *
-     * @param columnName
-     *            the column name
-     * @param x
-     *            the new column value
-     * @param forceEncrypt
-     *            If the boolean forceEncrypt is set to true, the query parameter will only be set if the designation column is encrypted and Always
-     *            Encrypted is enabled on the connection or on the statement. If the boolean forceEncrypt is set to false, the driver will not force
-     *            encryption on parameters.
-     * @throws SQLServerException
-     *             If any errors occur.
-     */
+    @Override
     public void updateMoney(String columnName,
             BigDecimal x,
             boolean forceEncrypt) throws SQLServerException {
@@ -3430,18 +3336,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         loggerExternal.exiting(getClassNameLogging(), "updateMoney");
     }
 
-    /**
-     * Updates the designated column with a <code>smallmoney</code> value. The updater methods are used to update column values in the current row or
-     * the insert row. The updater methods do not update the underlying database; instead the <code>updateRow</code> or <code>insertRow</code> methods
-     * are called to update the database.
-     *
-     * @param index
-     *            the first column is 1, the second is 2, ...
-     * @param x
-     *            the new column value
-     * @throws SQLServerException
-     *             when an error occurs
-     */
+    @Override
     public void updateSmallMoney(int index,
             BigDecimal x) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
@@ -3452,22 +3347,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         loggerExternal.exiting(getClassNameLogging(), "updateSmallMoney");
     }
 
-    /**
-     * Updates the designated column with a <code>smallmoney</code> value. The updater methods are used to update column values in the current row or
-     * the insert row. The updater methods do not update the underlying database; instead the <code>updateRow</code> or <code>insertRow</code> methods
-     * are called to update the database.
-     *
-     * @param index
-     *            the first column is 1, the second is 2, ...
-     * @param x
-     *            the new column value
-     * @param forceEncrypt
-     *            If the boolean forceEncrypt is set to true, the query parameter will only be set if the designation column is encrypted and Always
-     *            Encrypted is enabled on the connection or on the statement. If the boolean forceEncrypt is set to false, the driver will not force
-     *            encryption on parameters.
-     * @throws SQLServerException
-     *             when an error occurs
-     */
+    @Override
     public void updateSmallMoney(int index,
             BigDecimal x,
             boolean forceEncrypt) throws SQLServerException {
@@ -3479,18 +3359,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         loggerExternal.exiting(getClassNameLogging(), "updateSmallMoney");
     }
 
-    /**
-     * Updates the designated column with a <code>smallmoney</code> value. The updater methods are used to update column values in the current row or
-     * the insert row. The updater methods do not update the underlying database; instead the <code>updateRow</code> or <code>insertRow</code> methods
-     * are called to update the database.
-     *
-     * @param columnName
-     *            the column name
-     * @param x
-     *            the new column value
-     * @throws SQLServerException
-     *             If any errors occur.
-     */
+    @Override
     public void updateSmallMoney(String columnName,
             BigDecimal x) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
@@ -3501,22 +3370,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         loggerExternal.exiting(getClassNameLogging(), "updateSmallMoney");
     }
 
-    /**
-     * Updates the designated column with a <code>smallmoney</code> value. The updater methods are used to update column values in the current row or
-     * the insert row. The updater methods do not update the underlying database; instead the <code>updateRow</code> or <code>insertRow</code> methods
-     * are called to update the database.
-     *
-     * @param columnName
-     *            the column name
-     * @param x
-     *            the new column value
-     * @param forceEncrypt
-     *            If the boolean forceEncrypt is set to true, the query parameter will only be set if the designation column is encrypted and Always
-     *            Encrypted is enabled on the connection or on the statement. If the boolean forceEncrypt is set to false, the driver will not force
-     *            encryption on parameters.
-     * @throws SQLServerException
-     *             If any errors occur.
-     */
+    @Override
     public void updateSmallMoney(String columnName,
             BigDecimal x,
             boolean forceEncrypt) throws SQLServerException {
@@ -3528,6 +3382,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         loggerExternal.exiting(getClassNameLogging(), "updateSmallMoney");
     }
 
+    @Override
     public void updateBigDecimal(int index,
             BigDecimal x) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
@@ -3539,22 +3394,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         loggerExternal.exiting(getClassNameLogging(), "updateBigDecimal");
     }
 
-    /**
-     * Updates the designated column with a <code>java.math.BigDecimal</code> value. The updater methods are used to update column values in the
-     * current row or the insert row. The updater methods do not update the underlying database; instead the <code>updateRow</code> or
-     * <code>insertRow</code> methods are called to update the database.
-     *
-     * @param index
-     *            the first column is 1, the second is 2, ...
-     * @param x
-     *            the new column value
-     * @param precision
-     *            the precision of the column
-     * @param scale
-     *            the scale of the column
-     * @throws SQLServerException
-     *             when an error occurs
-     */
+    @Override
     public void updateBigDecimal(int index,
             BigDecimal x,
             Integer precision,
@@ -3568,26 +3408,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         loggerExternal.exiting(getClassNameLogging(), "updateBigDecimal");
     }
 
-    /**
-     * Updates the designated column with a <code>java.math.BigDecimal</code> value. The updater methods are used to update column values in the
-     * current row or the insert row. The updater methods do not update the underlying database; instead the <code>updateRow</code> or
-     * <code>insertRow</code> methods are called to update the database.
-     *
-     * @param index
-     *            the first column is 1, the second is 2, ...
-     * @param x
-     *            the new column value
-     * @param precision
-     *            the precision of the column
-     * @param scale
-     *            the scale of the column
-     * @param forceEncrypt
-     *            If the boolean forceEncrypt is set to true, the query parameter will only be set if the designation column is encrypted and Always
-     *            Encrypted is enabled on the connection or on the statement. If the boolean forceEncrypt is set to false, the driver will not force
-     *            encryption on parameters.
-     * @throws SQLServerException
-     *             when an error occurs
-     */
+    @Override
     public void updateBigDecimal(int index,
             BigDecimal x,
             Integer precision,
@@ -3602,6 +3423,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         loggerExternal.exiting(getClassNameLogging(), "updateBigDecimal");
     }
 
+    @Override
     public void updateString(int columnIndex,
             String stringValue) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
@@ -3613,22 +3435,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         loggerExternal.exiting(getClassNameLogging(), "updateString");
     }
 
-    /**
-     * Updates the designated column with a <code>String</code> value. The updater methods are used to update column values in the current row or the
-     * insert row. The updater methods do not update the underlying database; instead the <code>updateRow</code> or <code>insertRow</code> methods are
-     * called to update the database.
-     *
-     * @param columnIndex
-     *            the first column is 1, the second is 2, ...
-     * @param stringValue
-     *            the new column value
-     * @param forceEncrypt
-     *            If the boolean forceEncrypt is set to true, the query parameter will only be set if the designation column is encrypted and Always
-     *            Encrypted is enabled on the connection or on the statement. If the boolean forceEncrypt is set to false, the driver will not force
-     *            encryption on parameters.
-     * @throws SQLServerException
-     *             when an error occurs
-     */
+    @Override
     public void updateString(int columnIndex,
             String stringValue,
             boolean forceEncrypt) throws SQLServerException {
@@ -3641,6 +3448,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         loggerExternal.exiting(getClassNameLogging(), "updateString");
     }
 
+    @Override
     public void updateNString(int columnIndex,
             String nString) throws SQLException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
@@ -3652,26 +3460,10 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         loggerExternal.exiting(getClassNameLogging(), "updateNString");
     }
 
-    /**
-     * Updates the designated column with a <code>String</code> value. It is intended for use when updating <code>NCHAR</code>,<code>NVARCHAR</code>
-     * and <code>LONGNVARCHAR</code> columns. The updater methods are used to update column values in the current row or the insert row. The updater
-     * methods do not update the underlying database; instead the <code>updateRow</code> or <code>insertRow</code> methods are called to update the
-     * database.
-     *
-     * @param columnIndex
-     *            the first column is 1, the second 2, ...
-     * @param nString
-     *            the value for the column to be updated
-     * @param forceEncrypt
-     *            If the boolean forceEncrypt is set to true, the query parameter will only be set if the designation column is encrypted and Always
-     *            Encrypted is enabled on the connection or on the statement. If the boolean forceEncrypt is set to false, the driver will not force
-     *            encryption on parameters.
-     * @throws SQLException
-     *             when an error occurs
-     */
+    @Override
     public void updateNString(int columnIndex,
             String nString,
-            boolean forceEncrypt) throws SQLException {
+            boolean forceEncrypt) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "updateNString", new Object[] {columnIndex, nString, forceEncrypt});
 
@@ -3681,6 +3473,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         loggerExternal.exiting(getClassNameLogging(), "updateNString");
     }
 
+    @Override
     public void updateNString(String columnLabel,
             String nString) throws SQLException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
@@ -3692,27 +3485,10 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         loggerExternal.exiting(getClassNameLogging(), "updateNString");
     }
 
-    /**
-     * Updates the designated column with a <code>String</code> value. It is intended for use when updating <code>NCHAR</code>,<code>NVARCHAR</code>
-     * and <code>LONGNVARCHAR</code> columns. The updater methods are used to update column values in the current row or the insert row. The updater
-     * methods do not update the underlying database; instead the <code>updateRow</code> or <code>insertRow</code> methods are called to update the
-     * database.
-     *
-     * @param columnLabel
-     *            the label for the column specified with the SQL AS clause. If the SQL AS clause was not specified, then the label is the name of the
-     *            column
-     * @param nString
-     *            the value for the column to be updated
-     * @param forceEncrypt
-     *            If the boolean forceEncrypt is set to true, the query parameter will only be set if the designation column is encrypted and Always
-     *            Encrypted is enabled on the connection or on the statement. If the boolean forceEncrypt is set to false, the driver will not force
-     *            encryption on parameters.
-     * @throws SQLException
-     *             when an error occurs
-     */
+    @Override
     public void updateNString(String columnLabel,
             String nString,
-            boolean forceEncrypt) throws SQLException {
+            boolean forceEncrypt) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "updateNString", new Object[] {columnLabel, nString, forceEncrypt});
 
@@ -3722,8 +3498,9 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         loggerExternal.exiting(getClassNameLogging(), "updateNString");
     }
 
+    @Override
     public void updateBytes(int index,
-            byte x[]) throws SQLServerException {
+            byte x[]) throws SQLException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "updateBytes", new Object[] {index, x});
 
@@ -3733,22 +3510,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         loggerExternal.exiting(getClassNameLogging(), "updateBytes");
     }
 
-    /**
-     * Updates the designated column with a <code>byte</code> array value. The updater methods are used to update column values in the current row or
-     * the insert row. The updater methods do not update the underlying database; instead the <code>updateRow</code> or <code>insertRow</code> methods
-     * are called to update the database.
-     *
-     * @param index
-     *            the first column is 1, the second is 2, ...
-     * @param x
-     *            the new column value
-     * @param forceEncrypt
-     *            If the boolean forceEncrypt is set to true, the query parameter will only be set if the designation column is encrypted and Always
-     *            Encrypted is enabled on the connection or on the statement. If the boolean forceEncrypt is set to false, the driver will not force
-     *            encryption on parameters.
-     * @throws SQLServerException
-     *             when an error occurs
-     */
+    @Override
     public void updateBytes(int index,
             byte x[],
             boolean forceEncrypt) throws SQLServerException {
@@ -3761,6 +3523,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         loggerExternal.exiting(getClassNameLogging(), "updateBytes");
     }
 
+    @Override
     public void updateDate(int index,
             java.sql.Date x) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
@@ -3772,22 +3535,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         loggerExternal.exiting(getClassNameLogging(), "updateDate");
     }
 
-    /**
-     * Updates the designated column with a <code>java.sql.Date</code> value. The updater methods are used to update column values in the current row
-     * or the insert row. The updater methods do not update the underlying database; instead the <code>updateRow</code> or <code>insertRow</code>
-     * methods are called to update the database.
-     *
-     * @param index
-     *            the first column is 1, the second is 2, ...
-     * @param x
-     *            the new column value
-     * @param forceEncrypt
-     *            If the boolean forceEncrypt is set to true, the query parameter will only be set if the designation column is encrypted and Always
-     *            Encrypted is enabled on the connection or on the statement. If the boolean forceEncrypt is set to false, the driver will not force
-     *            encryption on parameters.
-     * @throws SQLServerException
-     *             when an error occurs
-     */
+    @Override
     public void updateDate(int index,
             java.sql.Date x,
             boolean forceEncrypt) throws SQLServerException {
@@ -3800,6 +3548,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         loggerExternal.exiting(getClassNameLogging(), "updateDate");
     }
 
+    @Override
     public void updateTime(int index,
             java.sql.Time x) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
@@ -3811,20 +3560,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         loggerExternal.exiting(getClassNameLogging(), "updateTime");
     }
 
-    /**
-     * Updates the designated column with a <code>java.sql.Time</code> value. The updater methods are used to update column values in the current row
-     * or the insert row. The updater methods do not update the underlying database; instead the <code>updateRow</code> or <code>insertRow</code>
-     * methods are called to update the database.
-     *
-     * @param index
-     *            the first column is 1, the second is 2, ...
-     * @param x
-     *            the new column value
-     * @param scale
-     *            the scale of the column
-     * @throws SQLServerException
-     *             when an error occurs
-     */
+    @Override
     public void updateTime(int index,
             java.sql.Time x,
             Integer scale) throws SQLServerException {
@@ -3837,24 +3573,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         loggerExternal.exiting(getClassNameLogging(), "updateTime");
     }
 
-    /**
-     * Updates the designated column with a <code>java.sql.Time</code> value. The updater methods are used to update column values in the current row
-     * or the insert row. The updater methods do not update the underlying database; instead the <code>updateRow</code> or <code>insertRow</code>
-     * methods are called to update the database.
-     *
-     * @param index
-     *            the first column is 1, the second is 2, ...
-     * @param x
-     *            the new column value
-     * @param scale
-     *            the scale of the column
-     * @param forceEncrypt
-     *            If the boolean forceEncrypt is set to true, the query parameter will only be set if the designation column is encrypted and Always
-     *            Encrypted is enabled on the connection or on the statement. If the boolean forceEncrypt is set to false, the driver will not force
-     *            encryption on parameters.
-     * @throws SQLServerException
-     *             when an error occurs
-     */
+    @Override
     public void updateTime(int index,
             java.sql.Time x,
             Integer scale,
@@ -3868,6 +3587,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         loggerExternal.exiting(getClassNameLogging(), "updateTime");
     }
 
+    @Override
     public void updateTimestamp(int index,
             java.sql.Timestamp x) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
@@ -3879,20 +3599,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         loggerExternal.exiting(getClassNameLogging(), "updateTimestamp");
     }
 
-    /**
-     * Updates the designated column with a <code>java.sql.Timestamp</code> value. The updater methods are used to update column values in the current
-     * row or the insert row. The updater methods do not update the underlying database; instead the <code>updateRow</code> or <code>insertRow</code>
-     * methods are called to update the database.
-     *
-     * @param index
-     *            the first column is 1, the second is 2, ...
-     * @param x
-     *            the new column value
-     * @param scale
-     *            the scale of the column
-     * @throws SQLServerException
-     *             when an error occurs
-     */
+    @Override
     public void updateTimestamp(int index,
             java.sql.Timestamp x,
             int scale) throws SQLServerException {
@@ -3905,24 +3612,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         loggerExternal.exiting(getClassNameLogging(), "updateTimestamp");
     }
 
-    /**
-     * Updates the designated column with a <code>java.sql.Timestamp</code> value. The updater methods are used to update column values in the current
-     * row or the insert row. The updater methods do not update the underlying database; instead the <code>updateRow</code> or <code>insertRow</code>
-     * methods are called to update the database.
-     *
-     * @param index
-     *            the first column is 1, the second is 2, ...
-     * @param x
-     *            the new column value
-     * @param scale
-     *            the scale of the column
-     * @param forceEncrypt
-     *            If the boolean forceEncrypt is set to true, the query parameter will only be set if the designation column is encrypted and Always
-     *            Encrypted is enabled on the connection or on the statement. If the boolean forceEncrypt is set to false, the driver will not force
-     *            encryption on parameters.
-     * @throws SQLServerException
-     *             when an error occurs
-     */
+    @Override
     public void updateTimestamp(int index,
             java.sql.Timestamp x,
             int scale,
@@ -3936,18 +3626,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         loggerExternal.exiting(getClassNameLogging(), "updateTimestamp");
     }
 
-    /**
-     * Updates the designated column with a <code>java.sql.Timestamp</code> value. The updater methods are used to update column values in the current
-     * row or the insert row. The updater methods do not update the underlying database; instead the <code>updateRow</code> or <code>insertRow</code>
-     * methods are called to update the database.
-     *
-     * @param index
-     *            the first column is 1, the second is 2, ...
-     * @param x
-     *            the new column value
-     * @throws SQLServerException
-     *             when an error occurs
-     */
+    @Override
     public void updateDateTime(int index,
             java.sql.Timestamp x) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
@@ -3959,20 +3638,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         loggerExternal.exiting(getClassNameLogging(), "updateDateTime");
     }
 
-    /**
-     * Updates the designated column with a <code>java.sql.Timestamp</code> value. The updater methods are used to update column values in the current
-     * row or the insert row. The updater methods do not update the underlying database; instead the <code>updateRow</code> or <code>insertRow</code>
-     * methods are called to update the database.
-     *
-     * @param index
-     *            the first column is 1, the second is 2, ...
-     * @param x
-     *            the new column value
-     * @param scale
-     *            the scale of the column
-     * @throws SQLServerException
-     *             when an error occurs
-     */
+    @Override
     public void updateDateTime(int index,
             java.sql.Timestamp x,
             Integer scale) throws SQLServerException {
@@ -3985,24 +3651,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         loggerExternal.exiting(getClassNameLogging(), "updateDateTime");
     }
 
-    /**
-     * Updates the designated column with a <code>java.sql.Timestamp</code> value. The updater methods are used to update column values in the current
-     * row or the insert row. The updater methods do not update the underlying database; instead the <code>updateRow</code> or <code>insertRow</code>
-     * methods are called to update the database.
-     *
-     * @param index
-     *            the first column is 1, the second is 2, ...
-     * @param x
-     *            the new column value
-     * @param scale
-     *            the scale of the column
-     * @param forceEncrypt
-     *            If the boolean forceEncrypt is set to true, the query parameter will only be set if the designation column is encrypted and Always
-     *            Encrypted is enabled on the connection or on the statement. If the boolean forceEncrypt is set to false, the driver will not force
-     *            encryption on parameters.
-     * @throws SQLServerException
-     *             when an error occurs
-     */
+    @Override
     public void updateDateTime(int index,
             java.sql.Timestamp x,
             Integer scale,
@@ -4016,18 +3665,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         loggerExternal.exiting(getClassNameLogging(), "updateDateTime");
     }
 
-    /**
-     * Updates the designated column with a <code>java.sql.Timestamp</code> value. The updater methods are used to update column values in the current
-     * row or the insert row. The updater methods do not update the underlying database; instead the <code>updateRow</code> or <code>insertRow</code>
-     * methods are called to update the database.
-     *
-     * @param index
-     *            the first column is 1, the second is 2, ...
-     * @param x
-     *            the new column value
-     * @throws SQLServerException
-     *             when an error occurs
-     */
+    @Override
     public void updateSmallDateTime(int index,
             java.sql.Timestamp x) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
@@ -4039,20 +3677,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         loggerExternal.exiting(getClassNameLogging(), "updateSmallDateTime");
     }
 
-    /**
-     * Updates the designated column with a <code>java.sql.Timestamp</code> value. The updater methods are used to update column values in the current
-     * row or the insert row. The updater methods do not update the underlying database; instead the <code>updateRow</code> or <code>insertRow</code>
-     * methods are called to update the database.
-     *
-     * @param index
-     *            the first column is 1, the second is 2, ...
-     * @param x
-     *            the new column value
-     * @param scale
-     *            the scale of the column
-     * @throws SQLServerException
-     *             when an error occurs
-     */
+    @Override
     public void updateSmallDateTime(int index,
             java.sql.Timestamp x,
             Integer scale) throws SQLServerException {
@@ -4065,24 +3690,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         loggerExternal.exiting(getClassNameLogging(), "updateSmallDateTime");
     }
 
-    /**
-     * Updates the designated column with a <code>java.sql.Timestamp</code> value. The updater methods are used to update column values in the current
-     * row or the insert row. The updater methods do not update the underlying database; instead the <code>updateRow</code> or <code>insertRow</code>
-     * methods are called to update the database.
-     *
-     * @param index
-     *            the first column is 1, the second is 2, ...
-     * @param x
-     *            the new column value
-     * @param scale
-     *            the scale of the column
-     * @param forceEncrypt
-     *            If the boolean forceEncrypt is set to true, the query parameter will only be set if the designation column is encrypted and Always
-     *            Encrypted is enabled on the connection or on the statement. If the boolean forceEncrypt is set to false, the driver will not force
-     *            encryption on parameters.
-     * @throws SQLServerException
-     *             when an error occurs
-     */
+    @Override
     public void updateSmallDateTime(int index,
             java.sql.Timestamp x,
             Integer scale,
@@ -4096,8 +3704,9 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         loggerExternal.exiting(getClassNameLogging(), "updateSmallDateTime");
     }
 
+    @Override
     public void updateDateTimeOffset(int index,
-            microsoft.sql.DateTimeOffset x) throws SQLException {
+            microsoft.sql.DateTimeOffset x) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "updateDateTimeOffset", new Object[] {index, x});
 
@@ -4107,21 +3716,10 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         loggerExternal.exiting(getClassNameLogging(), "updateDateTimeOffset");
     }
 
-    /**
-     * Updates the value of the column specified to the DateTimeOffset Class value, given a zero-based column ordinal.
-     * 
-     * @param index
-     *            The zero-based ordinal of a column.
-     * @param x
-     *            A DateTimeOffset Class object.
-     * @param scale
-     *            scale of the column
-     * @throws SQLException
-     *             when an error occurs
-     */
+    @Override
     public void updateDateTimeOffset(int index,
             microsoft.sql.DateTimeOffset x,
-            Integer scale) throws SQLException {
+            Integer scale) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "updateDateTimeOffset", new Object[] {index, x, scale});
 
@@ -4131,26 +3729,11 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         loggerExternal.exiting(getClassNameLogging(), "updateDateTimeOffset");
     }
 
-    /**
-     * Updates the value of the column specified to the DateTimeOffset Class value, given a zero-based column ordinal.
-     * 
-     * @param index
-     *            The zero-based ordinal of a column.
-     * @param x
-     *            A DateTimeOffset Class object.
-     * @param scale
-     *            scale of the column
-     * @param forceEncrypt
-     *            If the boolean forceEncrypt is set to true, the query parameter will only be set if the designation column is encrypted and Always
-     *            Encrypted is enabled on the connection or on the statement. If the boolean forceEncrypt is set to false, the driver will not force
-     *            encryption on parameters.
-     * @throws SQLException
-     *             when an error occurs
-     */
+    @Override
     public void updateDateTimeOffset(int index,
             microsoft.sql.DateTimeOffset x,
             Integer scale,
-            boolean forceEncrypt) throws SQLException {
+            boolean forceEncrypt) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "updateDateTimeOffset", new Object[] {index, x, scale, forceEncrypt});
 
@@ -4160,20 +3743,9 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         loggerExternal.exiting(getClassNameLogging(), "updateDateTimeOffset");
     }
 
-    /**
-     * Updates the designated column with a <code>String</code> value. The updater methods are used to update column values in the current row or the
-     * insert row. The updater methods do not update the underlying database; instead the <code>updateRow</code> or <code>insertRow</code> methods are
-     * called to update the database.
-     * 
-     * @param index
-     *            The zero-based ordinal of a column.
-     * @param x
-     *            the new column value
-     * @throws SQLException
-     *             when an error occurs
-     */
+    @Override
     public void updateUniqueIdentifier(int index,
-            String x) throws SQLException {
+            String x) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "updateUniqueIdentifier", new Object[] {index, x});
 
@@ -4183,25 +3755,10 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         loggerExternal.exiting(getClassNameLogging(), "updateUniqueIdentifier");
     }
 
-    /**
-     * Updates the designated column with a <code>String</code> value. The updater methods are used to update column values in the current row or the
-     * insert row. The updater methods do not update the underlying database; instead the <code>updateRow</code> or <code>insertRow</code> methods are
-     * called to update the database.
-     * 
-     * @param index
-     *            The zero-based ordinal of a column.
-     * @param x
-     *            the new column value
-     * @param forceEncrypt
-     *            If the boolean forceEncrypt is set to true, the query parameter will only be set if the designation column is encrypted and Always
-     *            Encrypted is enabled on the connection or on the statement. If the boolean forceEncrypt is set to false, the driver will not force
-     *            encryption on parameters.
-     * @throws SQLException
-     *             when an error occurs
-     */
+    @Override
     public void updateUniqueIdentifier(int index,
             String x,
-            boolean forceEncrypt) throws SQLException {
+            boolean forceEncrypt) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "updateUniqueIdentifier", new Object[] {index, x, forceEncrypt});
 
@@ -4211,6 +3768,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         loggerExternal.exiting(getClassNameLogging(), "updateUniqueIdentifier");
     }
 
+    @Override
     public void updateAsciiStream(int columnIndex,
             InputStream x) throws SQLException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
@@ -4222,8 +3780,9 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         loggerExternal.exiting(getClassNameLogging(), "updateAsciiStream");
     }
 
+    @Override
     public void updateAsciiStream(int index,
-            java.io.InputStream x,
+            InputStream x,
             int length) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "updateAsciiStream", new Object[] {index, x, length});
@@ -4234,6 +3793,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         loggerExternal.exiting(getClassNameLogging(), "updateAsciiStream");
     }
 
+    @Override
     public void updateAsciiStream(int columnIndex,
             InputStream x,
             long length) throws SQLException {
@@ -4245,6 +3805,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         loggerExternal.exiting(getClassNameLogging(), "updateAsciiStream");
     }
 
+    @Override
     public void updateAsciiStream(String columnLabel,
             InputStream x) throws SQLException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
@@ -4256,8 +3817,9 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         loggerExternal.exiting(getClassNameLogging(), "updateAsciiStream");
     }
 
+    @Override
     public void updateAsciiStream(java.lang.String columnName,
-            java.io.InputStream x,
+            InputStream x,
             int length) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "updateAsciiStream", new Object[] {columnName, x, length});
@@ -4268,6 +3830,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         loggerExternal.exiting(getClassNameLogging(), "updateAsciiStream");
     }
 
+    @Override
     public void updateAsciiStream(String columnName,
             InputStream streamValue,
             long length) throws SQLException {
@@ -4280,6 +3843,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         loggerExternal.exiting(getClassNameLogging(), "updateAsciiStream");
     }
 
+    @Override
     public void updateBinaryStream(int columnIndex,
             InputStream x) throws SQLException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
@@ -4291,6 +3855,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         loggerExternal.exiting(getClassNameLogging(), "updateBinaryStream");
     }
 
+    @Override
     public void updateBinaryStream(int columnIndex,
             InputStream streamValue,
             int length) throws SQLException {
@@ -4303,6 +3868,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         loggerExternal.exiting(getClassNameLogging(), "updateBinaryStream");
     }
 
+    @Override
     public void updateBinaryStream(int columnIndex,
             InputStream x,
             long length) throws SQLException {
@@ -4315,6 +3881,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         loggerExternal.exiting(getClassNameLogging(), "updateBinaryStream");
     }
 
+    @Override
     public void updateBinaryStream(String columnLabel,
             InputStream x) throws SQLException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
@@ -4326,6 +3893,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         loggerExternal.exiting(getClassNameLogging(), "updateBinaryStream");
     }
 
+    @Override
     public void updateBinaryStream(String columnName,
             InputStream streamValue,
             int length) throws SQLException {
@@ -4338,6 +3906,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         loggerExternal.exiting(getClassNameLogging(), "updateBinaryStream");
     }
 
+    @Override
     public void updateBinaryStream(String columnLabel,
             InputStream x,
             long length) throws SQLException {
@@ -4350,6 +3919,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         loggerExternal.exiting(getClassNameLogging(), "updateBinaryStream");
     }
 
+    @Override
     public void updateCharacterStream(int columnIndex,
             Reader x) throws SQLException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
@@ -4361,6 +3931,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         loggerExternal.exiting(getClassNameLogging(), "updateCharacterStream");
     }
 
+    @Override
     public void updateCharacterStream(int columnIndex,
             Reader readerValue,
             int length) throws SQLServerException {
@@ -4373,6 +3944,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         loggerExternal.exiting(getClassNameLogging(), "updateCharacterStream");
     }
 
+    @Override
     public void updateCharacterStream(int columnIndex,
             Reader x,
             long length) throws SQLException {
@@ -4385,6 +3957,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         loggerExternal.exiting(getClassNameLogging(), "updateCharacterStream");
     }
 
+    @Override
     public void updateCharacterStream(String columnLabel,
             Reader reader) throws SQLException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
@@ -4396,6 +3969,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         loggerExternal.exiting(getClassNameLogging(), "updateCharacterStream");
     }
 
+    @Override
     public void updateCharacterStream(String columnName,
             Reader readerValue,
             int length) throws SQLServerException {
@@ -4408,6 +3982,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         loggerExternal.exiting(getClassNameLogging(), "updateCharacterStream");
     }
 
+    @Override
     public void updateCharacterStream(String columnLabel,
             Reader reader,
             long length) throws SQLException {
@@ -4420,6 +3995,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         loggerExternal.exiting(getClassNameLogging(), "updateNCharacterStream");
     }
 
+    @Override
     public void updateNCharacterStream(int columnIndex,
             Reader x) throws SQLException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
@@ -4431,6 +4007,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         loggerExternal.exiting(getClassNameLogging(), "updateNCharacterStream");
     }
 
+    @Override
     public void updateNCharacterStream(int columnIndex,
             Reader x,
             long length) throws SQLException {
@@ -4443,6 +4020,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         loggerExternal.exiting(getClassNameLogging(), "updateNCharacterStream");
     }
 
+    @Override
     public void updateNCharacterStream(String columnLabel,
             Reader reader) throws SQLException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
@@ -4454,6 +4032,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         loggerExternal.exiting(getClassNameLogging(), "updateNCharacterStream");
     }
 
+    @Override
     public void updateNCharacterStream(String columnLabel,
             Reader reader,
             long length) throws SQLException {
@@ -4466,6 +4045,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         loggerExternal.exiting(getClassNameLogging(), "updateNCharacterStream");
     }
 
+    @Override
     public void updateObject(int index,
             Object obj) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
@@ -4477,6 +4057,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         loggerExternal.exiting(getClassNameLogging(), "updateObject");
     }
 
+    @Override
     public void updateObject(int index,
             Object x,
             int scale) throws SQLServerException {
@@ -4489,23 +4070,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         loggerExternal.exiting(getClassNameLogging(), "updateObject");
     }
 
-    /**
-     * Updates the designated column with an {@code Object} value.
-     *
-     * The updater methods are used to update column values in the current row or the insert row. The updater methods do not update the underlying
-     * database; instead the {@code updateRow} or {@code insertRow} methods are called to update the database.
-     *
-     * @param index
-     *            the first column is 1, the second is 2, ...
-     * @param x
-     *            the new column value
-     * @param precision
-     *            the precision of the column
-     * @param scale
-     *            the scale of the column
-     * @throws SQLServerException
-     *             when an error occurs
-     */
+    @Override
     public void updateObject(int index,
             Object x,
             int precision,
@@ -4519,27 +4084,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         loggerExternal.exiting(getClassNameLogging(), "updateObject");
     }
 
-    /**
-     * Updates the designated column with an {@code Object} value.
-     *
-     * The updater methods are used to update column values in the current row or the insert row. The updater methods do not update the underlying
-     * database; instead the {@code updateRow} or {@code insertRow} methods are called to update the database.
-     *
-     * @param index
-     *            the first column is 1, the second is 2, ...
-     * @param x
-     *            the new column value
-     * @param precision
-     *            the precision of the column
-     * @param scale
-     *            the scale of the column
-     * @param forceEncrypt
-     *            If the boolean forceEncrypt is set to true, the query parameter will only be set if the designation column is encrypted and Always
-     *            Encrypted is enabled on the connection or on the statement. If the boolean forceEncrypt is set to false, the driver will not force
-     *            encryption on parameters.
-     * @throws SQLServerException
-     *             when an error occurs
-     */
+    @Override
     public void updateObject(int index,
             Object x,
             int precision,
@@ -4611,6 +4156,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         }
     }
 
+    @Override
     public void updateNull(String columnName) throws SQLServerException {
         loggerExternal.entering(getClassNameLogging(), "updateNull", columnName);
 
@@ -4621,6 +4167,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         loggerExternal.exiting(getClassNameLogging(), "updateNull");
     }
 
+    @Override
     public void updateBoolean(String columnName,
             boolean x) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
@@ -4632,22 +4179,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         loggerExternal.exiting(getClassNameLogging(), "updateBoolean");
     }
 
-    /**
-     * Updates the designated column with a <code>boolean</code> value. The updater methods are used to update column values in the current row or the
-     * insert row. The updater methods do not update the underlying database; instead the <code>updateRow</code> or <code>insertRow</code> methods are
-     * called to update the database.
-     *
-     * @param columnName
-     *            the name of the column
-     * @param x
-     *            the new column value
-     * @param forceEncrypt
-     *            If the boolean forceEncrypt is set to true, the query parameter will only be set if the designation column is encrypted and Always
-     *            Encrypted is enabled on the connection or on the statement. If the boolean forceEncrypt is set to false, the driver will not force
-     *            encryption on parameters.
-     * @throws SQLServerException
-     *             when an error occurs
-     */
+    @Override
     public void updateBoolean(String columnName,
             boolean x,
             boolean forceEncrypt) throws SQLServerException {
@@ -4660,6 +4192,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         loggerExternal.exiting(getClassNameLogging(), "updateBoolean");
     }
 
+    @Override
     public void updateByte(String columnName,
             byte x) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
@@ -4671,23 +4204,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         loggerExternal.exiting(getClassNameLogging(), "updateByte");
     }
 
-    /**
-     * Updates the designated column with a <code>byte</code> value. The updater methods are used to update column values in the current row or the
-     * insert row. The updater methods do not update the underlying database; instead the <code>updateRow</code> or <code>insertRow</code> methods are
-     * called to update the database.
-     *
-     *
-     * @param columnName
-     *            the name of the column
-     * @param x
-     *            the new column value
-     * @param forceEncrypt
-     *            If the boolean forceEncrypt is set to true, the query parameter will only be set if the designation column is encrypted and Always
-     *            Encrypted is enabled on the connection or on the statement. If the boolean forceEncrypt is set to false, the driver will not force
-     *            encryption on parameters.
-     * @throws SQLServerException
-     *             If any errors occur.
-     */
+    @Override
     public void updateByte(String columnName,
             byte x,
             boolean forceEncrypt) throws SQLServerException {
@@ -4700,6 +4217,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         loggerExternal.exiting(getClassNameLogging(), "updateByte");
     }
 
+    @Override
     public void updateShort(String columnName,
             short x) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
@@ -4711,22 +4229,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         loggerExternal.exiting(getClassNameLogging(), "updateShort");
     }
 
-    /**
-     * Updates the designated column with a <code>short</code> value. The updater methods are used to update column values in the current row or the
-     * insert row. The updater methods do not update the underlying database; instead the <code>updateRow</code> or <code>insertRow</code> methods are
-     * called to update the database.
-     *
-     * @param columnName
-     *            the name of the column
-     * @param x
-     *            the new column value
-     * @param forceEncrypt
-     *            If the boolean forceEncrypt is set to true, the query parameter will only be set if the designation column is encrypted and Always
-     *            Encrypted is enabled on the connection or on the statement. If the boolean forceEncrypt is set to false, the driver will not force
-     *            encryption on parameters.
-     * @throws SQLServerException
-     *             If any errors occur.
-     */
+    @Override
     public void updateShort(String columnName,
             short x,
             boolean forceEncrypt) throws SQLServerException {
@@ -4739,6 +4242,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         loggerExternal.exiting(getClassNameLogging(), "updateShort");
     }
 
+    @Override
     public void updateInt(String columnName,
             int x) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
@@ -4750,22 +4254,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         loggerExternal.exiting(getClassNameLogging(), "updateInt");
     }
 
-    /**
-     * Updates the designated column with an <code>int</code> value. The updater methods are used to update column values in the current row or the
-     * insert row. The updater methods do not update the underlying database; instead the <code>updateRow</code> or <code>insertRow</code> methods are
-     * called to update the database.
-     *
-     * @param columnName
-     *            is the name of the column
-     * @param x
-     *            the new column value
-     * @param forceEncrypt
-     *            If the boolean forceEncrypt is set to true, the query parameter will only be set if the designation column is encrypted and Always
-     *            Encrypted is enabled on the connection or on the statement. If the boolean forceEncrypt is set to false, the driver will not force
-     *            encryption on parameters.
-     * @throws SQLServerException
-     *             If any errors occur.
-     */
+    @Override
     public void updateInt(String columnName,
             int x,
             boolean forceEncrypt) throws SQLServerException {
@@ -4778,6 +4267,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         loggerExternal.exiting(getClassNameLogging(), "updateInt");
     }
 
+    @Override
     public void updateLong(String columnName,
             long x) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
@@ -4789,22 +4279,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         loggerExternal.exiting(getClassNameLogging(), "updateLong");
     }
 
-    /**
-     * Updates the designated column with a <code>long</code> value. The updater methods are used to update column values in the current row or the
-     * insert row. The updater methods do not update the underlying database; instead the <code>updateRow</code> or <code>insertRow</code> methods are
-     * called to update the database.
-     *
-     * @param columnName
-     *            is the name of the column
-     * @param x
-     *            the new column value
-     * @param forceEncrypt
-     *            If the boolean forceEncrypt is set to true, the query parameter will only be set if the designation column is encrypted and Always
-     *            Encrypted is enabled on the connection or on the statement. If the boolean forceEncrypt is set to false, the driver will not force
-     *            encryption on parameters.
-     * @throws SQLServerException
-     *             If any errors occur.
-     */
+    @Override
     public void updateLong(String columnName,
             long x,
             boolean forceEncrypt) throws SQLServerException {
@@ -4817,6 +4292,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         loggerExternal.exiting(getClassNameLogging(), "updateLong");
     }
 
+    @Override
     public void updateFloat(String columnName,
             float x) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
@@ -4828,22 +4304,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         loggerExternal.exiting(getClassNameLogging(), "updateFloat");
     }
 
-    /**
-     * Updates the designated column with a <code>float </code> value. The updater methods are used to update column values in the current row or the
-     * insert row. The updater methods do not update the underlying database; instead the <code>updateRow</code> or <code>insertRow</code> methods are
-     * called to update the database.
-     *
-     * @param columnName
-     *            is the name of the column
-     * @param x
-     *            the new column value
-     * @param forceEncrypt
-     *            If the boolean forceEncrypt is set to true, the query parameter will only be set if the designation column is encrypted and Always
-     *            Encrypted is enabled on the connection or on the statement. If the boolean forceEncrypt is set to false, the driver will not force
-     *            encryption on parameters.
-     * @throws SQLServerException
-     *             If any errors occur.
-     */
+    @Override
     public void updateFloat(String columnName,
             float x,
             boolean forceEncrypt) throws SQLServerException {
@@ -4856,6 +4317,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         loggerExternal.exiting(getClassNameLogging(), "updateFloat");
     }
 
+    @Override
     public void updateDouble(String columnName,
             double x) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
@@ -4867,22 +4329,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         loggerExternal.exiting(getClassNameLogging(), "updateDouble");
     }
 
-    /**
-     * Updates the designated column with a <code>double</code> value. The updater methods are used to update column values in the current row or the
-     * insert row. The updater methods do not update the underlying database; instead the <code>updateRow</code> or <code>insertRow</code> methods are
-     * called to update the database.
-     *
-     * @param columnName
-     *            is the name of the column
-     * @param x
-     *            the new column value
-     * @param forceEncrypt
-     *            If the boolean forceEncrypt is set to true, the query parameter will only be set if the designation column is encrypted and Always
-     *            Encrypted is enabled on the connection or on the statement. If the boolean forceEncrypt is set to false, the driver will not force
-     *            encryption on parameters.
-     * @throws SQLServerException
-     *             If any errors occur.
-     */
+    @Override
     public void updateDouble(String columnName,
             double x,
             boolean forceEncrypt) throws SQLServerException {
@@ -4895,6 +4342,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         loggerExternal.exiting(getClassNameLogging(), "updateDouble");
     }
 
+    @Override
     public void updateBigDecimal(String columnName,
             BigDecimal x) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
@@ -4906,22 +4354,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         loggerExternal.exiting(getClassNameLogging(), "updateBigDecimal");
     }
 
-    /**
-     * Updates the designated column with a <code>java.sql.BigDecimal</code> value. The updater methods are used to update column values in the
-     * current row or the insert row. The updater methods do not update the underlying database; instead the <code>updateRow</code> or
-     * <code>insertRow</code> methods are called to update the database.
-     *
-     * @param columnName
-     *            is the name of the column
-     * @param x
-     *            the new column value
-     * @param forceEncrypt
-     *            If the boolean forceEncrypt is set to true, the query parameter will only be set if the designation column is encrypted and Always
-     *            Encrypted is enabled on the connection or on the statement. If the boolean forceEncrypt is set to false, the driver will not force
-     *            encryption on parameters.
-     * @throws SQLServerException
-     *             If any errors occur.
-     */
+    @Override
     public void updateBigDecimal(String columnName,
             BigDecimal x,
             boolean forceEncrypt) throws SQLServerException {
@@ -4934,23 +4367,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         loggerExternal.exiting(getClassNameLogging(), "updateBigDecimal");
     }
 
-    /**
-     * Updates the designated column with a <code>java.sql.BigDecimal</code> value. The updater methods are used to update column values in the
-     * current row or the insert row. The updater methods do not update the underlying database; instead the <code>updateRow</code> or
-     * <code>insertRow</code> methods are called to update the database.
-     *
-     * @param columnName
-     *            is the name of the column and Always Encrypted is enabled on the connection or on the statement. If the boolean forceEncrypt is set
-     *            to false, the driver will not force encryption on parameters.
-     * @param x
-     *            BigDecimal value
-     * @param precision
-     *            the precision of the column
-     * @param scale
-     *            the scale of the column
-     * @throws SQLServerException
-     *             If any errors occur.
-     */
+    @Override
     public void updateBigDecimal(String columnName,
             BigDecimal x,
             Integer precision,
@@ -4964,27 +4381,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         loggerExternal.exiting(getClassNameLogging(), "updateBigDecimal");
     }
 
-    /**
-     * Updates the designated column with a <code>java.sql.BigDecimal</code> value. The updater methods are used to update column values in the
-     * current row or the insert row. The updater methods do not update the underlying database; instead the <code>updateRow</code> or
-     * <code>insertRow</code> methods are called to update the database.
-     *
-     * @param columnName
-     *            is the name of the column and Always Encrypted is enabled on the connection or on the statement. If the boolean forceEncrypt is set
-     *            to false, the driver will not force encryption on parameters.
-     * @param x
-     *            BigDecimal value
-     * @param precision
-     *            the precision of the column
-     * @param scale
-     *            the scale of the column
-     * @param forceEncrypt
-     *            If the boolean forceEncrypt is set to true, the query parameter will only be set if the designation column is encrypted and Always
-     *            Encrypted is enabled on the connection or on the statement. If the boolean forceEncrypt is set to false, the driver will not force
-     *            encryption on parameters.
-     * @throws SQLServerException
-     *             If any errors occur.
-     */
+    @Override
     public void updateBigDecimal(String columnName,
             BigDecimal x,
             Integer precision,
@@ -4999,6 +4396,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         loggerExternal.exiting(getClassNameLogging(), "updateBigDecimal");
     }
 
+    @Override
     public void updateString(String columnName,
             String x) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
@@ -5010,22 +4408,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         loggerExternal.exiting(getClassNameLogging(), "updateString");
     }
 
-    /**
-     * Updates the designated column with a <code>String</code> value. The updater methods are used to update column values in the current row or the
-     * insert row. The updater methods do not update the underlying database; instead the <code>updateRow</code> or <code>insertRow</code> methods are
-     * called to update the database.
-     *
-     * @param columnName
-     *            is the name of the column
-     * @param x
-     *            the new column value
-     * @param forceEncrypt
-     *            If the boolean forceEncrypt is set to true, the query parameter will only be set if the designation column is encrypted and Always
-     *            Encrypted is enabled on the connection or on the statement. If the boolean forceEncrypt is set to false, the driver will not force
-     *            encryption on parameters.
-     * @throws SQLServerException
-     *             If any errors occur.
-     */
+    @Override
     public void updateString(String columnName,
             String x,
             boolean forceEncrypt) throws SQLServerException {
@@ -5038,6 +4421,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         loggerExternal.exiting(getClassNameLogging(), "updateString");
     }
 
+    @Override
     public void updateBytes(String columnName,
             byte x[]) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
@@ -5049,23 +4433,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         loggerExternal.exiting(getClassNameLogging(), "updateBytes");
     }
 
-    /**
-     * Updates the designated column with a byte array value.
-     *
-     * The updater methods are used to update column values in the current row or the insert row. The updater methods do not update the underlying
-     * database; instead the <code>updateRow</code> or <code>insertRow</code> methods are called to update the database.
-     *
-     * @param columnName
-     *            is the name of the column
-     * @param x
-     *            the new column value
-     * @param forceEncrypt
-     *            If the boolean forceEncrypt is set to true, the query parameter will only be set if the designation column is encrypted and Always
-     *            Encrypted is enabled on the connection or on the statement. If the boolean forceEncrypt is set to false, the driver will not force
-     *            encryption on parameters.
-     * @throws SQLServerException
-     *             If any errors occur.
-     */
+    @Override
     public void updateBytes(String columnName,
             byte x[],
             boolean forceEncrypt) throws SQLServerException {
@@ -5078,6 +4446,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         loggerExternal.exiting(getClassNameLogging(), "updateBytes");
     }
 
+    @Override
     public void updateDate(String columnName,
             java.sql.Date x) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
@@ -5089,22 +4458,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         loggerExternal.exiting(getClassNameLogging(), "updateDate");
     }
 
-    /**
-     * Updates the designated column with a <code>java.sql.Date</code> value. The updater methods are used to update column values in the current row
-     * or the insert row. The updater methods do not update the underlying database; instead the <code>updateRow</code> or <code>insertRow</code>
-     * methods are called to update the database.
-     *
-     * @param columnName
-     *            is the name of the column
-     * @param x
-     *            the new column value
-     * @param forceEncrypt
-     *            If the boolean forceEncrypt is set to true, the query parameter will only be set if the designation column is encrypted and Always
-     *            Encrypted is enabled on the connection or on the statement. If the boolean forceEncrypt is set to false, the driver will not force
-     *            encryption on parameters.
-     * @throws SQLServerException
-     *             If any errors occur.
-     */
+    @Override
     public void updateDate(String columnName,
             java.sql.Date x,
             boolean forceEncrypt) throws SQLServerException {
@@ -5117,6 +4471,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         loggerExternal.exiting(getClassNameLogging(), "updateDate");
     }
 
+    @Override
     public void updateTime(String columnName,
             java.sql.Time x) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
@@ -5128,20 +4483,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         loggerExternal.exiting(getClassNameLogging(), "updateTime");
     }
 
-    /**
-     * Updates the designated column with a <code>java.sql.Time</code> value. The updater methods are used to update column values in the current row
-     * or the insert row. The updater methods do not update the underlying database; instead the <code>updateRow</code> or <code>insertRow</code>
-     * methods are called to update the database.
-     *
-     * @param columnName
-     *            is the name of the column
-     * @param x
-     *            the new column value
-     * @param scale
-     *            the scale of the column
-     * @throws SQLServerException
-     *             If any errors occur.
-     */
+    @Override
     public void updateTime(String columnName,
             java.sql.Time x,
             int scale) throws SQLServerException {
@@ -5154,24 +4496,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         loggerExternal.exiting(getClassNameLogging(), "updateTime");
     }
 
-    /**
-     * Updates the designated column with a <code>java.sql.Time</code> value. The updater methods are used to update column values in the current row
-     * or the insert row. The updater methods do not update the underlying database; instead the <code>updateRow</code> or <code>insertRow</code>
-     * methods are called to update the database.
-     *
-     * @param columnName
-     *            is the name of the column
-     * @param x
-     *            the new column value
-     * @param scale
-     *            the scale of the column
-     * @param forceEncrypt
-     *            If the boolean forceEncrypt is set to true, the query parameter will only be set if the designation column is encrypted and Always
-     *            Encrypted is enabled on the connection or on the statement. If the boolean forceEncrypt is set to false, the driver will not force
-     *            encryption on parameters.
-     * @throws SQLServerException
-     *             If any errors occur.
-     */
+    @Override
     public void updateTime(String columnName,
             java.sql.Time x,
             int scale,
@@ -5185,6 +4510,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         loggerExternal.exiting(getClassNameLogging(), "updateTime");
     }
 
+    @Override
     public void updateTimestamp(String columnName,
             java.sql.Timestamp x) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
@@ -5196,20 +4522,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         loggerExternal.exiting(getClassNameLogging(), "updateTimestamp");
     }
 
-    /**
-     * Updates the designated column with a <code>java.sql.Timestamp</code> value. The updater methods are used to update column values in the current
-     * row or the insert row. The updater methods do not update the underlying database; instead the <code>updateRow</code> or <code>insertRow</code>
-     * methods are called to update the database.
-     *
-     * @param columnName
-     *            is the name of the column
-     * @param x
-     *            the new column value
-     * @param scale
-     *            the scale of the column
-     * @throws SQLServerException
-     *             If any errors occur.
-     */
+    @Override
     public void updateTimestamp(String columnName,
             java.sql.Timestamp x,
             int scale) throws SQLServerException {
@@ -5222,24 +4535,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         loggerExternal.exiting(getClassNameLogging(), "updateTimestamp");
     }
 
-    /**
-     * Updates the designated column with a <code>java.sql.Timestamp</code> value. The updater methods are used to update column values in the current
-     * row or the insert row. The updater methods do not update the underlying database; instead the <code>updateRow</code> or <code>insertRow</code>
-     * methods are called to update the database.
-     *
-     * @param columnName
-     *            is the name of the column
-     * @param x
-     *            the new column value
-     * @param scale
-     *            the scale of the column
-     * @param forceEncrypt
-     *            If the boolean forceEncrypt is set to true, the query parameter will only be set if the designation column is encrypted and Always
-     *            Encrypted is enabled on the connection or on the statement. If the boolean forceEncrypt is set to false, the driver will not force
-     *            encryption on parameters.
-     * @throws SQLServerException
-     *             If any errors occur.
-     */
+    @Override
     public void updateTimestamp(String columnName,
             java.sql.Timestamp x,
             int scale,
@@ -5253,18 +4549,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         loggerExternal.exiting(getClassNameLogging(), "updateTimestamp");
     }
 
-    /**
-     * Updates the designated column with a <code>java.sql.Timestamp</code> value. The updater methods are used to update column values in the current
-     * row or the insert row. The updater methods do not update the underlying database; instead the <code>updateRow</code> or <code>insertRow</code>
-     * methods are called to update the database.
-     *
-     * @param columnName
-     *            is the name of the column
-     * @param x
-     *            the new column value
-     * @throws SQLServerException
-     *             If any errors occur.
-     */
+    @Override
     public void updateDateTime(String columnName,
             java.sql.Timestamp x) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
@@ -5276,20 +4561,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         loggerExternal.exiting(getClassNameLogging(), "updateDateTime");
     }
 
-    /**
-     * Updates the designated column with a <code>java.sql.Timestamp</code> value. The updater methods are used to update column values in the current
-     * row or the insert row. The updater methods do not update the underlying database; instead the <code>updateRow</code> or <code>insertRow</code>
-     * methods are called to update the database.
-     *
-     * @param columnName
-     *            is the name of the column
-     * @param x
-     *            the new column value
-     * @param scale
-     *            the scale of the column
-     * @throws SQLServerException
-     *             If any errors occur.
-     */
+    @Override
     public void updateDateTime(String columnName,
             java.sql.Timestamp x,
             int scale) throws SQLServerException {
@@ -5302,24 +4574,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         loggerExternal.exiting(getClassNameLogging(), "updateDateTime");
     }
 
-    /**
-     * Updates the designated column with a <code>java.sql.Timestamp</code> value. The updater methods are used to update column values in the current
-     * row or the insert row. The updater methods do not update the underlying database; instead the <code>updateRow</code> or <code>insertRow</code>
-     * methods are called to update the database.
-     *
-     * @param columnName
-     *            is the name of the column
-     * @param x
-     *            the new column value
-     * @param scale
-     *            the scale of the column
-     * @param forceEncrypt
-     *            If the boolean forceEncrypt is set to true, the query parameter will only be set if the designation column is encrypted and Always
-     *            Encrypted is enabled on the connection or on the statement. If the boolean forceEncrypt is set to false, the driver will not force
-     *            encryption on parameters.
-     * @throws SQLServerException
-     *             If any errors occur.
-     */
+    @Override
     public void updateDateTime(String columnName,
             java.sql.Timestamp x,
             int scale,
@@ -5333,18 +4588,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         loggerExternal.exiting(getClassNameLogging(), "updateDateTime");
     }
 
-    /**
-     * Updates the designated column with a <code>java.sql.Timestamp</code> value. The updater methods are used to update column values in the current
-     * row or the insert row. The updater methods do not update the underlying database; instead the <code>updateRow</code> or <code>insertRow</code>
-     * methods are called to update the database.
-     *
-     * @param columnName
-     *            is the name of the column
-     * @param x
-     *            the new column value
-     * @throws SQLServerException
-     *             If any errors occur.
-     */
+    @Override
     public void updateSmallDateTime(String columnName,
             java.sql.Timestamp x) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
@@ -5356,20 +4600,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         loggerExternal.exiting(getClassNameLogging(), "updateSmallDateTime");
     }
 
-    /**
-     * Updates the designated column with a <code>java.sql.Timestamp</code> value. The updater methods are used to update column values in the current
-     * row or the insert row. The updater methods do not update the underlying database; instead the <code>updateRow</code> or <code>insertRow</code>
-     * methods are called to update the database.
-     *
-     * @param columnName
-     *            is the name of the column
-     * @param x
-     *            the new column value
-     * @param scale
-     *            the scale of the column
-     * @throws SQLServerException
-     *             If any errors occur.
-     */
+    @Override
     public void updateSmallDateTime(String columnName,
             java.sql.Timestamp x,
             int scale) throws SQLServerException {
@@ -5382,24 +4613,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         loggerExternal.exiting(getClassNameLogging(), "updateSmallDateTime");
     }
 
-    /**
-     * Updates the designated column with a <code>java.sql.Timestamp</code> value. The updater methods are used to update column values in the current
-     * row or the insert row. The updater methods do not update the underlying database; instead the <code>updateRow</code> or <code>insertRow</code>
-     * methods are called to update the database.
-     *
-     * @param columnName
-     *            is the name of the column
-     * @param x
-     *            the new column value
-     * @param scale
-     *            the scale of the column
-     * @param forceEncrypt
-     *            If the boolean forceEncrypt is set to true, the query parameter will only be set if the designation column is encrypted and Always
-     *            Encrypted is enabled on the connection or on the statement. If the boolean forceEncrypt is set to false, the driver will not force
-     *            encryption on parameters.
-     * @throws SQLServerException
-     *             If any errors occur.
-     */
+    @Override
     public void updateSmallDateTime(String columnName,
             java.sql.Timestamp x,
             int scale,
@@ -5413,8 +4627,9 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         loggerExternal.exiting(getClassNameLogging(), "updateSmallDateTime");
     }
 
+    @Override
     public void updateDateTimeOffset(String columnName,
-            microsoft.sql.DateTimeOffset x) throws SQLException {
+            microsoft.sql.DateTimeOffset x) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "updateDateTimeOffset", new Object[] {columnName, x});
 
@@ -5424,21 +4639,10 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         loggerExternal.exiting(getClassNameLogging(), "updateDateTimeOffset");
     }
 
-    /**
-     * Updates the value of the column specified to the DateTimeOffset Class value, given a column name.
-     * 
-     * @param columnName
-     *            The name of a column.
-     * @param x
-     *            A DateTimeOffset Class object.
-     * @param scale
-     *            the scale of the column
-     * @throws SQLServerException
-     *             If any errors occur.
-     */
+    @Override
     public void updateDateTimeOffset(String columnName,
             microsoft.sql.DateTimeOffset x,
-            int scale) throws SQLException {
+            int scale) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "updateDateTimeOffset", new Object[] {columnName, x, scale});
 
@@ -5448,26 +4652,11 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         loggerExternal.exiting(getClassNameLogging(), "updateDateTimeOffset");
     }
 
-    /**
-     * Updates the value of the column specified to the DateTimeOffset Class value, given a column name.
-     * 
-     * @param columnName
-     *            The name of a column.
-     * @param x
-     *            A DateTimeOffset Class object.
-     * @param scale
-     *            the scale of the column
-     * @param forceEncrypt
-     *            If the boolean forceEncrypt is set to true, the query parameter will only be set if the designation column is encrypted and Always
-     *            Encrypted is enabled on the connection or on the statement. If the boolean forceEncrypt is set to false, the driver will not force
-     *            encryption on parameters.
-     * @throws SQLException
-     *             If any errors occur.
-     */
+    @Override
     public void updateDateTimeOffset(String columnName,
             microsoft.sql.DateTimeOffset x,
             int scale,
-            boolean forceEncrypt) throws SQLException {
+            boolean forceEncrypt) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "updateDateTimeOffset", new Object[] {columnName, x, scale, forceEncrypt});
 
@@ -5477,20 +4666,9 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         loggerExternal.exiting(getClassNameLogging(), "updateDateTimeOffset");
     }
 
-    /**
-     * Updates the designated column with a <code>String</code>value. The updater methods are used to update column values in the current row or the
-     * insert row. The updater methods do not update the underlying database; instead the <code>updateRow</code> or <code>insertRow</code> methods are
-     * called to update the database.
-     * 
-     * @param columnName
-     *            The name of a column.
-     * @param x
-     *            the new column value
-     * @throws SQLException
-     *             If any errors occur.
-     */
+    @Override
     public void updateUniqueIdentifier(String columnName,
-            String x) throws SQLException {
+            String x) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "updateUniqueIdentifier", new Object[] {columnName, x});
 
@@ -5500,25 +4678,10 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         loggerExternal.exiting(getClassNameLogging(), "updateUniqueIdentifier");
     }
 
-    /**
-     * Updates the designated column with a <code>String</code>value. The updater methods are used to update column values in the current row or the
-     * insert row. The updater methods do not update the underlying database; instead the <code>updateRow</code> or <code>insertRow</code> methods are
-     * called to update the database.
-     * 
-     * @param columnName
-     *            The name of a column.
-     * @param x
-     *            the new column value
-     * @param forceEncrypt
-     *            If the boolean forceEncrypt is set to true, the query parameter will only be set if the designation column is encrypted and Always
-     *            Encrypted is enabled on the connection or on the statement. If the boolean forceEncrypt is set to false, the driver will not force
-     *            encryption on parameters.
-     * @throws SQLException
-     *             If any errors occur.
-     */
+    @Override
     public void updateUniqueIdentifier(String columnName,
             String x,
-            boolean forceEncrypt) throws SQLException {
+            boolean forceEncrypt) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "updateUniqueIdentifier", new Object[] {columnName, x, forceEncrypt});
 
@@ -5528,6 +4691,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         loggerExternal.exiting(getClassNameLogging(), "updateUniqueIdentifier");
     }
 
+    @Override
     public void updateObject(String columnName,
             Object x,
             int scale) throws SQLServerException {
@@ -5540,23 +4704,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         loggerExternal.exiting(getClassNameLogging(), "updateObject");
     }
 
-    /**
-     * Updates the designated column with an {@code Object} value.
-     *
-     * The updater methods are used to update column values in the current row or the insert row. The updater methods do not update the underlying
-     * database; instead the {@code updateRow} or {@code insertRow} methods are called to update the database.
-     *
-     * @param columnName
-     *            The name of a column.
-     * @param x
-     *            the new column value
-     * @param precision
-     *            the precision of the column
-     * @param scale
-     *            the scale of the column
-     * @throws SQLServerException
-     *             If any errors occur.
-     */
+    @Override
     public void updateObject(String columnName,
             Object x,
             int precision,
@@ -5570,27 +4718,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         loggerExternal.exiting(getClassNameLogging(), "updateObject");
     }
 
-    /**
-     * Updates the designated column with an {@code Object} value.
-     *
-     * The updater methods are used to update column values in the current row or the insert row. The updater methods do not update the underlying
-     * database; instead the {@code updateRow} or {@code insertRow} methods are called to update the database.
-     *
-     * @param columnName
-     *            The name of a column.
-     * @param x
-     *            the new column value
-     * @param precision
-     *            the precision of the column
-     * @param scale
-     *            the scale of the column
-     * @param forceEncrypt
-     *            If the boolean forceEncrypt is set to true, the query parameter will only be set if the designation column is encrypted and Always
-     *            Encrypted is enabled on the connection or on the statement. If the boolean forceEncrypt is set to false, the driver will not force
-     *            encryption on parameters.
-     * @throws SQLServerException
-     *             If any errors occur.
-     */
+    @Override
     public void updateObject(String columnName,
             Object x,
             int precision,
@@ -5605,6 +4733,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         loggerExternal.exiting(getClassNameLogging(), "updateObject");
     }
 
+    @Override
     public void updateObject(String columnName,
             Object x) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
@@ -5616,18 +4745,19 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         loggerExternal.exiting(getClassNameLogging(), "updateObject");
     }
 
+    @Override
     public void updateRowId(int columnIndex,
             RowId x) throws SQLException {
-        // Not implemented
-        throw new SQLFeatureNotSupportedException(SQLServerException.getErrString("R_notSupported"));
+        SQLServerException.throwNotSupportedException(stmt.connection, stmt);
     }
 
+    @Override
     public void updateRowId(String columnLabel,
             RowId x) throws SQLException {
-        // Not implemented
-        throw new SQLFeatureNotSupportedException(SQLServerException.getErrString("R_notSupported"));
+        SQLServerException.throwNotSupportedException(stmt.connection, stmt);
     }
 
+    @Override
     public void updateSQLXML(int columnIndex,
             SQLXML xmlObject) throws SQLException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
@@ -5636,6 +4766,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         loggerExternal.exiting(getClassNameLogging(), "updateSQLXML");
     }
 
+    @Override
     public void updateSQLXML(String columnLabel,
             SQLXML x) throws SQLException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
@@ -5644,6 +4775,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         loggerExternal.exiting(getClassNameLogging(), "updateSQLXML");
     }
 
+    @Override
     public int getHoldability() throws SQLException {
         loggerExternal.entering(getClassNameLogging(), "getHoldability");
 
@@ -5667,7 +4799,8 @@ public class SQLServerResultSet implements ISQLServerResultSet {
 
     /* ----------------------- Update result set ------------------------- */
 
-    public void insertRow() throws SQLServerException {
+    @Override
+    public void insertRow() throws SQLException {
         loggerExternal.entering(getClassNameLogging(), "insertRow");
         if (loggerExternal.isLoggable(Level.FINER) && Util.IsActivityTraceOn()) {
             loggerExternal.finer(toString() + " ActivityId: " + ActivityCorrelator.getNext().toString());
@@ -5677,7 +4810,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
             final String tableName;
 
             InsertRowRPC(String tableName) {
-                super("InsertRowRPC", 0);
+                super("InsertRowRPC", 0, 0);
                 this.tableName = tableName;
             }
 
@@ -5758,7 +4891,8 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         if (hasUpdatedColumns()) {
             tdsWriter.writeRPCStringUnicode(tableName);
 
-            for (Column column : columns) column.sendByRPC(tdsWriter, stmt.connection);
+            for (Column column : columns)
+                column.sendByRPC(tdsWriter, stmt.connection);
         }
         else {
             tdsWriter.writeRPCStringUnicode("");
@@ -5768,14 +4902,15 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         TDSParser.parse(command.startResponse(), command.getLogContext());
     }
 
-    public void updateRow() throws SQLServerException {
+    @Override
+    public void updateRow() throws SQLException {
         loggerExternal.entering(getClassNameLogging(), "updateRow");
         if (loggerExternal.isLoggable(Level.FINER) && Util.IsActivityTraceOn()) {
             loggerExternal.finer(toString() + " ActivityId: " + ActivityCorrelator.getNext().toString());
         }
         final class UpdateRowRPC extends TDSCommand {
             UpdateRowRPC() {
-                super("UpdateRowRPC", 0);
+                super("UpdateRowRPC", 0, 0);
             }
 
             final boolean doExecute() throws SQLServerException {
@@ -5832,7 +4967,8 @@ public class SQLServerResultSet implements ISQLServerResultSet {
 
         assert hasUpdatedColumns();
 
-        for (Column column : columns) column.sendByRPC(tdsWriter, stmt.connection);
+        for (Column column : columns)
+            column.sendByRPC(tdsWriter, stmt.connection);
 
         TDSParser.parse(command.startResponse(), command.getLogContext());
     }
@@ -5846,14 +4982,15 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         return false;
     }
 
-    public void deleteRow() throws SQLServerException {
+    @Override
+    public void deleteRow() throws SQLException {
         loggerExternal.entering(getClassNameLogging(), "deleteRow");
         if (loggerExternal.isLoggable(Level.FINER) && Util.IsActivityTraceOn()) {
             loggerExternal.finer(toString() + " ActivityId: " + ActivityCorrelator.getNext().toString());
         }
         final class DeleteRowRPC extends TDSCommand {
             DeleteRowRPC() {
-                super("DeleteRowRPC", 0);
+                super("DeleteRowRPC", 0, 0);
             }
 
             final boolean doExecute() throws SQLServerException {
@@ -5905,7 +5042,8 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         TDSParser.parse(command.startResponse(), command.getLogContext());
     }
 
-    public void refreshRow() throws SQLServerException {
+    @Override
+    public void refreshRow() throws SQLException {
         loggerExternal.entering(getClassNameLogging(), "refreshRow");
         if (loggerExternal.isLoggable(Level.FINER) && Util.IsActivityTraceOn()) {
             loggerExternal.finer(toString() + " ActivityId: " + ActivityCorrelator.getNext().toString());
@@ -5984,6 +5122,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
             clearColumnsValues();
     }
 
+    @Override
     public void cancelRowUpdates() throws SQLServerException {
         loggerExternal.entering(getClassNameLogging(), "cancelRowUpdates");
         checkClosed();
@@ -5998,6 +5137,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         loggerExternal.exiting(getClassNameLogging(), "cancelRowUpdates");
     }
 
+    @Override
     public void moveToInsertRow() throws SQLServerException {
         loggerExternal.entering(getClassNameLogging(), "moveToInsertRow");
         if (logger.isLoggable(java.util.logging.Level.FINER))
@@ -6014,6 +5154,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         loggerExternal.exiting(getClassNameLogging(), "moveToInsertRow");
     }
 
+    @Override
     public void moveToCurrentRow() throws SQLServerException {
         loggerExternal.entering(getClassNameLogging(), "moveToCurrentRow");
         if (logger.isLoggable(java.util.logging.Level.FINER))
@@ -6034,7 +5175,8 @@ public class SQLServerResultSet implements ISQLServerResultSet {
 
     }
 
-    /* L0 */ public java.sql.Statement getStatement() throws SQLServerException {
+    @Override
+    public java.sql.Statement getStatement() throws SQLServerException {
         loggerExternal.entering(getClassNameLogging(), "getStatement");
         checkClosed();
         loggerExternal.exiting(getClassNameLogging(), "getStatement", stmt);
@@ -6043,6 +5185,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
 
     /* JDBC 3.0 */
 
+    @Override
     public void updateClob(int columnIndex,
             Clob clobValue) throws SQLException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
@@ -6054,6 +5197,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         loggerExternal.exiting(getClassNameLogging(), "updateClob");
     }
 
+    @Override
     public void updateClob(int columnIndex,
             Reader reader) throws SQLException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
@@ -6065,6 +5209,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         loggerExternal.exiting(getClassNameLogging(), "updateClob");
     }
 
+    @Override
     public void updateClob(int columnIndex,
             Reader reader,
             long length) throws SQLException {
@@ -6077,6 +5222,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         loggerExternal.exiting(getClassNameLogging(), "updateClob");
     }
 
+    @Override
     public void updateClob(String columnName,
             Clob clobValue) throws SQLException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
@@ -6088,6 +5234,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         loggerExternal.exiting(getClassNameLogging(), "updateClob");
     }
 
+    @Override
     public void updateClob(String columnLabel,
             Reader reader) throws SQLException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
@@ -6099,6 +5246,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         loggerExternal.exiting(getClassNameLogging(), "updateClob");
     }
 
+    @Override
     public void updateClob(String columnLabel,
             Reader reader,
             long length) throws SQLException {
@@ -6111,6 +5259,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         loggerExternal.exiting(getClassNameLogging(), "updateClob");
     }
 
+    @Override
     public void updateNClob(int columnIndex,
             NClob nClob) throws SQLException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
@@ -6122,6 +5271,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         loggerExternal.exiting(getClassNameLogging(), "updateNClob");
     }
 
+    @Override
     public void updateNClob(int columnIndex,
             Reader reader) throws SQLException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
@@ -6133,6 +5283,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         loggerExternal.exiting(getClassNameLogging(), "updateNClob");
     }
 
+    @Override
     public void updateNClob(int columnIndex,
             Reader reader,
             long length) throws SQLException {
@@ -6145,6 +5296,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         loggerExternal.exiting(getClassNameLogging(), "updateNClob");
     }
 
+    @Override
     public void updateNClob(String columnLabel,
             NClob nClob) throws SQLException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
@@ -6156,6 +5308,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         loggerExternal.exiting(getClassNameLogging(), "updateNClob");
     }
 
+    @Override
     public void updateNClob(String columnLabel,
             Reader reader) throws SQLException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
@@ -6167,6 +5320,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         loggerExternal.exiting(getClassNameLogging(), "updateNClob");
     }
 
+    @Override
     public void updateNClob(String columnLabel,
             Reader reader,
             long length) throws SQLException {
@@ -6179,6 +5333,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         loggerExternal.exiting(getClassNameLogging(), "updateNClob");
     }
 
+    @Override
     public void updateBlob(int columnIndex,
             Blob blobValue) throws SQLException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
@@ -6190,6 +5345,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         loggerExternal.exiting(getClassNameLogging(), "updateBlob");
     }
 
+    @Override
     public void updateBlob(int columnIndex,
             InputStream inputStream) throws SQLException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
@@ -6201,6 +5357,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         loggerExternal.exiting(getClassNameLogging(), "updateBlob");
     }
 
+    @Override
     public void updateBlob(int columnIndex,
             InputStream inputStream,
             long length) throws SQLException {
@@ -6213,6 +5370,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         loggerExternal.exiting(getClassNameLogging(), "updateBlob");
     }
 
+    @Override
     public void updateBlob(String columnName,
             Blob blobValue) throws SQLException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
@@ -6224,6 +5382,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         loggerExternal.exiting(getClassNameLogging(), "updateBlob");
     }
 
+    @Override
     public void updateBlob(String columnLabel,
             InputStream inputStream) throws SQLException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
@@ -6235,6 +5394,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         loggerExternal.exiting(getClassNameLogging(), "updateBlob");
     }
 
+    @Override
     public void updateBlob(String columnLabel,
             InputStream inputStream,
             long length) throws SQLException {
@@ -6247,33 +5407,39 @@ public class SQLServerResultSet implements ISQLServerResultSet {
         loggerExternal.exiting(getClassNameLogging(), "updateBlob");
     }
 
-    /* L3 */ public void updateArray(int columnIndex,
-            Array x) throws SQLServerException {
-        stmt.NotImplemented();
+    @Override
+    public void updateArray(int columnIndex,
+            Array x) throws SQLException {
+        SQLServerException.throwNotSupportedException(stmt.connection, stmt);
     }
 
-    /* L3 */ public void updateArray(java.lang.String columnName,
-            Array x) throws SQLServerException {
-        stmt.NotImplemented();
+    @Override
+    public void updateArray(java.lang.String columnName,
+            Array x) throws SQLException {
+        SQLServerException.throwNotSupportedException(stmt.connection, stmt);
     }
 
-    /* L3 */ public void updateRef(int columnIndex,
-            Ref x) throws SQLServerException {
-        stmt.NotImplemented();
+    @Override
+    public void updateRef(int columnIndex,
+            Ref x) throws SQLException {
+        SQLServerException.throwNotSupportedException(stmt.connection, stmt);
     }
 
-    /* L3 */ public void updateRef(java.lang.String columnName,
-            Ref x) throws SQLServerException {
-        stmt.NotImplemented();
+    @Override
+    public void updateRef(java.lang.String columnName,
+            Ref x) throws SQLException {
+        SQLServerException.throwNotSupportedException(stmt.connection, stmt);
     }
 
-    /* L3 */ public java.net.URL getURL(int columnIndex) throws SQLServerException {
-        stmt.NotImplemented();
+    @Override
+    public java.net.URL getURL(int columnIndex) throws SQLException {
+        SQLServerException.throwNotSupportedException(stmt.connection, stmt);
         return null;
     }
 
-    /* L3 */ public java.net.URL getURL(String sColumn) throws SQLServerException {
-        stmt.NotImplemented();
+    @Override
+    public java.net.URL getURL(String sColumn) throws SQLException {
+        SQLServerException.throwNotSupportedException(stmt.connection, stmt);
         return null;
     }
 
@@ -6337,16 +5503,16 @@ public class SQLServerResultSet implements ISQLServerResultSet {
                 int token = tdsReader.peekTokenType();
                 StreamDone doneToken = new StreamDone();
                 doneToken.setFromTDS(tdsReader);
-        		
+
                 int packetType = tdsReader.peekTokenType();
                 if (-1 != packetType && TDS.TDS_DONEINPROC == token) {
-                	switch (packetType) {
-	                	case TDS.TDS_ENV_CHG:
-	                	case TDS.TDS_ERR:
-							return true;
-						default:
-							break;
-                	}
+                    switch (packetType) {
+                        case TDS.TDS_ENV_CHG:
+                        case TDS.TDS_ERR:
+                            return true;
+                        default:
+                            break;
+                    }
                 }
 
                 // Done with all the rows in this fetch buffer and done with parsing
@@ -6453,7 +5619,7 @@ public class SQLServerResultSet implements ISQLServerResultSet {
                 int fetchType,
                 int startRow,
                 int numRows) {
-            super("doServerFetch", stmt.queryTimeout);
+            super("doServerFetch", stmt.queryTimeout, stmt.cancelQueryTimeoutSeconds);
             this.serverCursorId = serverCursorId;
             this.fetchType = fetchType;
             this.startRow = startRow;
@@ -6557,24 +5723,26 @@ public class SQLServerResultSet implements ISQLServerResultSet {
             scrollWindow.reset();
         }
     }
-    
+
     /*
-     * Iterates through the list of objects which rely on the stream that's about to be closed, filling them with their data
-     * Will skip over closed blobs, implemented in SQLServerBlob
+     * Checks for any LOBs which need to be available after the RS is closed, and loads their contents from stream into memory. Closed LOBs will not
+     * be populated.
      */
-    private void fillBlobs() {
-    	if (null != activeBlob && activeBlob instanceof SQLServerBlob) {
-    		try {
-    			((SQLServerBlob)activeBlob).fillByteArray();
-    		} catch (SQLException e) {
-    			if (logger.isLoggable(java.util.logging.Level.FINER)) {
-    				logger.finer(toString() + "Filling blobs before closing: " + e.getMessage());
-    			}
-    		} finally {
-    			activeBlob = null;
-    		}
-    	}
-	}
+    private void fillLOBs() {
+        if (null != activeLOB) {
+            try {
+                activeLOB.fillFromStream();
+            }
+            catch (SQLException e) {
+                if (logger.isLoggable(java.util.logging.Level.FINER)) {
+                    logger.finer(toString() + "Filling Lobs before closing: " + e.getMessage());
+                }
+            }
+            finally {
+                activeLOB = null;
+            }
+        }
+    }
 
     /**
      * Discards the contents of the current fetch buffer.
@@ -6587,8 +5755,8 @@ public class SQLServerResultSet implements ISQLServerResultSet {
      * fetch buffer is considered to be discarded.
      */
     private void discardFetchBuffer() {
-    	//fills blobs before discarding anything
-    	fillBlobs();
+        // fills blobs before discarding anything
+        fillLOBs();
 
         // Clear the TDSReader mark at the start of the fetch buffer
         fetchBuffer.clearStartMark();
@@ -6658,4 +5826,104 @@ public class SQLServerResultSet implements ISQLServerResultSet {
                 logger.finer(toString() + " Closed cursor:" + serverCursorId);
         }
     }
+
+    @Override
+    public void updateObject(int index,
+            Object obj,
+            SQLType targetSqlType) throws SQLServerException {
+
+        if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
+            loggerExternal.entering(getClassNameLogging(), "updateObject", new Object[] {index, obj, targetSqlType});
+
+        checkClosed();
+        // getVendorTypeNumber() returns the same constant integer values as in java.sql.Types
+        updateObject(index, obj, null, JDBCType.of(targetSqlType.getVendorTypeNumber()), null, false);
+
+        loggerExternal.exiting(getClassNameLogging(), "updateObject");
+    }
+
+    @Override
+    public void updateObject(int index,
+            Object obj,
+            SQLType targetSqlType,
+            int scale) throws SQLServerException {
+
+        if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
+            loggerExternal.entering(getClassNameLogging(), "updateObject", new Object[] {index, obj, targetSqlType, scale});
+
+        checkClosed();
+        // getVendorTypeNumber() returns the same constant integer values as in java.sql.Types
+        updateObject(index, obj, scale, JDBCType.of(targetSqlType.getVendorTypeNumber()), null, false);
+
+        loggerExternal.exiting(getClassNameLogging(), "updateObject");
+    }
+
+    @Override
+    public void updateObject(int index,
+            Object obj,
+            SQLType targetSqlType,
+            int scale,
+            boolean forceEncrypt) throws SQLServerException {
+
+        if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
+            loggerExternal.entering(getClassNameLogging(), "updateObject", new Object[] {index, obj, targetSqlType, scale, forceEncrypt});
+
+        checkClosed();
+        // getVendorTypeNumber() returns the same constant integer values as in java.sql.Types
+        updateObject(index, obj, scale, JDBCType.of(targetSqlType.getVendorTypeNumber()), null, forceEncrypt);
+
+        loggerExternal.exiting(getClassNameLogging(), "updateObject");
+    }
+
+    @Override
+    public void updateObject(String columnName,
+            Object obj,
+            SQLType targetSqlType,
+            int scale) throws SQLServerException {
+
+        if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
+            loggerExternal.entering(getClassNameLogging(), "updateObject", new Object[] {columnName, obj, targetSqlType, scale});
+
+        checkClosed();
+
+        // getVendorTypeNumber() returns the same constant integer values as in java.sql.Types
+        updateObject(findColumn(columnName), obj, scale, JDBCType.of(targetSqlType.getVendorTypeNumber()), null, false);
+
+        loggerExternal.exiting(getClassNameLogging(), "updateObject");
+    }
+
+    @Override
+    public void updateObject(String columnName,
+            Object obj,
+            SQLType targetSqlType,
+            int scale,
+            boolean forceEncrypt) throws SQLServerException {
+
+        if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
+            loggerExternal.entering(getClassNameLogging(), "updateObject", new Object[] {columnName, obj, targetSqlType, scale, forceEncrypt});
+
+        checkClosed();
+
+        // getVendorTypeNumber() returns the same constant integer values as in java.sql.Types
+        updateObject(findColumn(columnName), obj, scale, JDBCType.of(targetSqlType.getVendorTypeNumber()), null, forceEncrypt);
+
+        loggerExternal.exiting(getClassNameLogging(), "updateObject");
+    }
+
+    @Override
+    public void updateObject(String columnName,
+            Object obj,
+            SQLType targetSqlType) throws SQLServerException {
+
+        if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
+            loggerExternal.entering(getClassNameLogging(), "updateObject", new Object[] {columnName, obj, targetSqlType});
+
+        checkClosed();
+
+        // getVendorTypeNumber() returns the same constant integer values as in java.sql.Types
+        updateObject(findColumn(columnName), obj, null, JDBCType.of(targetSqlType.getVendorTypeNumber()), null, false);
+
+        loggerExternal.exiting(getClassNameLogging(), "updateObject");
+    }
+
 }

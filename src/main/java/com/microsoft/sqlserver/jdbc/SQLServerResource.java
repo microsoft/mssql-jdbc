@@ -40,7 +40,6 @@ public final class SQLServerResource extends ListResourceBundle {
 				{"R_unknownJDBCType", "Invalid JDBC data type {0}."},                        
 				{"R_notSQLServer", "The driver received an unexpected pre-login response. Verify the connection properties and check that an instance of SQL Server is running on the host and accepting TCP/IP connections at the port. This driver can be used only with SQL Server 2005 or later."},
 				{"R_tcpOpenFailed", "{0}. Verify the connection properties. Make sure that an instance of SQL Server is running on the host and accepting TCP/IP connections at the port. Make sure that TCP connections to the port are not blocked by a firewall."},
-				{"R_unsupportedJREVersion", "Java Runtime Environment (JRE) version {0} is not supported by this driver. Use the sqljdbc4.jar class library, which provides support for JDBC 4.0."},
 				{"R_unsupportedServerVersion", "SQL Server version {0} is not supported by this driver."},
 				{"R_noServerResponse", "SQL Server did not return a response. The connection has been closed."},
 				{"R_truncatedServerResponse", "SQL Server returned an incomplete response. The connection has been closed."},
@@ -227,8 +226,8 @@ public final class SQLServerResource extends ListResourceBundle {
 				{"R_invalidTransactionOption", "UseInternalTransaction option cannot be set to TRUE when used with a Connection object."},
 				{"R_invalidNegativeArg", "The {0} argument cannot be negative."},
 				{"R_BulkColumnMappingsIsEmpty", "Cannot perform bulk copy operation if the only mapping is an identity column and KeepIdentity is set to false."},        
-				{"R_CSVDataSchemaMismatch", "Source data does not match source schema."},
-				{"R_BulkCSVDataDuplicateColumn", "Duplicate column names are not allowed."},
+				{"R_DataSchemaMismatch", "Source data does not match source schema."},
+				{"R_BulkDataDuplicateColumn", "Duplicate column names are not allowed."},
 				{"R_invalidColumnOrdinal", "Column {0} is invalid. Column number should be greater than zero."},
 				{"R_unsupportedEncoding", "The encoding {0} is not supported."},
 				{"R_UnexpectedDescribeParamFormat", "Internal error. The format of the resultset returned by sp_describe_parameter_encryption is invalid. One of the resultsets is missing."},
@@ -391,5 +390,14 @@ public final class SQLServerResource extends ListResourceBundle {
 				{"R_invalidDataTypeSupportForSQLVariant", "Unexpected TDS type ' '{0}' ' in SQL_VARIANT."},
 				{"R_sslProtocolPropertyDescription", "SSL protocol label from TLS, TLSv1, TLSv1.1, and TLSv1.2. The default is TLS."},
 				{"R_invalidSSLProtocol", "SSL Protocol {0} label is not valid. Only TLS, TLSv1, TLSv1.1, and TLSv1.2 are supported."},
+				{"R_cancelQueryTimeoutPropertyDescription", "The number of seconds to wait to cancel sending a query timeout."},
+				{"R_invalidCancelQueryTimeout", "The cancel timeout value {0} is not valid."},
+                {"R_useBulkCopyForBatchInsertPropertyDescription", "Whether the driver will use bulk copy API for batch insert operations"},
+				{"R_UnknownDataClsTokenNumber", "Unknown token for Data Classification."},	// From Server
+				{"R_InvalidDataClsVersionNumber", "Invalid version number {0} for Data Classification."},	// From Server
+				{"R_unknownUTF8SupportValue", "Unknown value for UTF8 support."},
+				{"R_illegalWKT", "Illegal Well-Known text. Please make sure Well-Known text is valid."},
+				{"R_illegalTypeForGeometry", "{0} is not supported for Geometry."},
+				{"R_illegalWKTposition", "Illegal character in Well-Known text at position {0}."},
     };
 }

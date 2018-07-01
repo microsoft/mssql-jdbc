@@ -5,14 +5,13 @@
  * 
  * This program is made available under the terms of the MIT License. See the LICENSE file in the project root for more information.
  */
-package com.microsoft.sqlserver.jdbc.resultset;
+package com.microsoft.sqlserver.jdbc.connection;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.DriverManager;
-import java.sql.ResultSet;
 import java.sql.SQLException;
 
 import org.junit.jupiter.api.AfterAll;
@@ -21,44 +20,39 @@ import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
 
-import com.microsoft.sqlserver.jdbc.SQLServerResultSet;
-import com.microsoft.sqlserver.jdbc.SQLServerResultSet42;
+import com.microsoft.sqlserver.jdbc.SQLServerConnection;
+import com.microsoft.sqlserver.jdbc.SQLServerConnection43;
 import com.microsoft.sqlserver.testframework.AbstractTest;
 
 /**
- * Test SQLServerResultSet42 class
+ * Test ConnectionWrapper43Test class
  *
  */
 @RunWith(JUnitPlatform.class)
-public class ResultSetWrapper42Test extends AbstractTest {
+public class ConnectionWrapper43Test extends AbstractTest {
     static Connection connection = null;
     double javaVersion = Double.parseDouble(System.getProperty("java.specification.version"));
     static int major;
     static int minor;
 
     /**
-     * Tests creation of SQLServerResultSet42 object
+     * Tests creation of SQLServerConnection43Test object
      * 
      * @throws SQLException
      */
     @Test
-    public void SQLServerResultSet42Test() throws SQLException {
-        String sql = "SELECT SUSER_SNAME()";
-
-        ResultSet rs = null;
+    public void SQLServerConnection43Test() throws SQLException {
         try {
-            rs = connection.createStatement().executeQuery(sql);
-
             if (1.8d <= javaVersion && 4 == major && 2 == minor) {
-                assertTrue(rs instanceof SQLServerResultSet42);
+                assertTrue(connection instanceof SQLServerConnection);
             }
             else {
-                assertTrue(rs instanceof SQLServerResultSet);
+                assertTrue(connection instanceof SQLServerConnection43);
             }
         }
         finally {
-            if (null != rs) {
-                rs.close();
+            if (null != connection) {
+                connection.close();
             }
         }
     }
