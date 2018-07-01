@@ -88,7 +88,7 @@ To get the latest preview version of the driver, add the following to your POM f
 <dependency>
 	<groupId>com.microsoft.sqlserver</groupId>
 	<artifactId>mssql-jdbc</artifactId>
-	<version>6.5.3.jre10-preview</version>
+	<version>6.5.4.jre10-preview</version>
 </dependency>
 ```
 
@@ -118,14 +118,14 @@ Projects that require either of the two features need to explicitly declare the 
 <dependency>
 	<groupId>com.microsoft.sqlserver</groupId>
 	<artifactId>mssql-jdbc</artifactId>
-	<version>6.5.3.jre10-preview</version>
+	<version>6.5.4.jre10-preview</version>
 	<scope>compile</scope>
 </dependency>
 
 <dependency>
 	<groupId>com.microsoft.azure</groupId>
 	<artifactId>adal4j</artifactId>
-	<version>1.5.0</version>
+	<version>1.6.0</version>
 </dependency>
 ```
 
@@ -134,14 +134,14 @@ Projects that require either of the two features need to explicitly declare the 
 <dependency>
 	<groupId>com.microsoft.sqlserver</groupId>
 	<artifactId>mssql-jdbc</artifactId>
-	<version>6.5.3.jre10-preview</version>
+	<version>6.5.4.jre10-preview</version>
 	<scope>compile</scope>
 </dependency>
 
 <dependency>
 	<groupId>com.microsoft.azure</groupId>
 	<artifactId>adal4j</artifactId>
-	<version>1.5.0</version>
+	<version>1.6.0</version>
 </dependency>
 
 <dependency>

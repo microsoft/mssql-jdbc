@@ -11,35 +11,29 @@ package com.microsoft.sqlserver.jdbc;
 import static java.nio.charset.StandardCharsets.UTF_16LE;
 
 import java.io.IOException;
-import java.io.UnsupportedEncodingException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
-import java.net.IDN;
 import java.net.InetAddress;
 import java.net.SocketException;
 import java.net.UnknownHostException;
-import java.sql.Blob;
 import java.sql.CallableStatement;
-import java.sql.Clob;
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
-import java.sql.NClob;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLClientInfoException;
 import java.sql.SQLException;
-import java.sql.SQLFeatureNotSupportedException;
 import java.sql.SQLPermission;
 import java.sql.SQLWarning;
 import java.sql.SQLXML;
 import java.sql.Savepoint;
 import java.sql.Statement;
-import java.sql.Struct;
 import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Enumeration;
 import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -80,23 +74,33 @@ import mssql.googlecode.concurrentlinkedhashmap.EvictionListener;
  * details.
  */
 
-// Note all the public functions in this class also need to be defined in SQLServerConnectionPoolProxy.
-public class SQLServerConnection implements ISQLServerConnection {
+// NOTE: All the public functions in this class also need to be defined in SQLServerConnectionPoolProxy
+// Declare all new custom (non-static) Public APIs in ISQLServerConnection interface such that they can also be implemented by
+// SQLServerConnectionPoolProxy
+public class SQLServerConnection implements ISQLServerConnection, java.io.Serializable {
 
-    long timerExpire;
+    /**
+	 * Always refresh SerialVersionUID when prompted
+	 */
+	private static final long serialVersionUID = 1965647556064751510L;
+	
+	long timerExpire;
     boolean attemptRefreshTokenLocked = false;
 
-    // Threasholds related to when prepared statement handles are cleaned-up. 1 == immediately.
+    // Thresholds related to when prepared statement handles are cleaned-up. 1 == immediately.
     /**
-     * The default for the prepared statement clean-up action threshold (i.e. when sp_unprepare is called). 
-     */    
+     * The default for the prepared statement clean-up action threshold (i.e. when sp_unprepare is called).
+     */
     static final int DEFAULT_SERVER_PREPARED_STATEMENT_DISCARD_THRESHOLD = 10; // Used to set the initial default, can be changed later.
     private int serverPreparedStatementDiscardThreshold = -1; // Current limit for this particular connection.
 
     /**
-     * The default for if prepared statements should execute sp_executesql before following the prepare, unprepare pattern. 
-     */    
-    static final boolean DEFAULT_ENABLE_PREPARE_ON_FIRST_PREPARED_STATEMENT_CALL = false; // Used to set the initial default, can be changed later. false == use sp_executesql -> sp_prepexec -> sp_execute -> batched -> sp_unprepare pattern, true == skip sp_executesql part of pattern.
+     * The default for if prepared statements should execute sp_executesql before following the prepare, unprepare pattern.
+     */
+    static final boolean DEFAULT_ENABLE_PREPARE_ON_FIRST_PREPARED_STATEMENT_CALL = false; // Used to set the initial default, can be changed later.
+                                                                                          // false == use sp_executesql -> sp_prepexec -> sp_execute
+                                                                                          // -> batched -> sp_unprepare pattern, true == skip
+                                                                                          // sp_executesql part of pattern.
     private Boolean enablePrepareOnFirstPreparedStatementCall = null; // Current limit for this particular connection.
 
     // Handle the actual queue of discarded prepared statements.
@@ -105,7 +109,6 @@ public class SQLServerConnection implements ISQLServerConnection {
 
     private boolean fedAuthRequiredByUser = false;
     private boolean fedAuthRequiredPreLoginResponse = false;
-    private boolean federatedAuthenticationAcknowledged = false;
     private boolean federatedAuthenticationRequested = false;
     private boolean federatedAuthenticationInfoRequested = false; // Keep this distinct from _federatedAuthenticationRequested, since some fedauth
                                                                   // library types may not need more info
@@ -115,10 +118,17 @@ public class SQLServerConnection implements ISQLServerConnection {
     private byte[] accessTokenInByte = null;
 
     private SqlFedAuthToken fedAuthToken = null;
-    
-    private String originalHostNameInCertificate = null;
 
-    static class CityHash128Key {
+    private String originalHostNameInCertificate = null;
+    
+    private Boolean isAzureDW = null;
+
+    static class CityHash128Key implements java.io.Serializable {
+
+        /**
+         * Always refresh SerialVersionUID when prompted
+         */
+        private static final long serialVersionUID = 166788428640603097L;
         private long[] segments;
         private int hashCode;
 
@@ -151,7 +161,7 @@ public class SQLServerConnection implements ISQLServerConnection {
     /**
      * Used to keep track of an individual prepared statement handle.
      */
-    class PreparedStatementHandle  {
+    class PreparedStatementHandle {
         private int handle = 0;
         private final AtomicInteger handleRefCount = new AtomicInteger();
         private boolean isDirectSql;
@@ -179,9 +189,9 @@ public class SQLServerConnection implements ISQLServerConnection {
 
         /** Specify that this statement has been explicitly discarded from being used by the cache. */
         void setIsExplicitlyDiscarded() {
-        	this.explicitlyDiscarded = true;
-        	
-    		evictCachedPreparedStatementHandle(this);
+            this.explicitlyDiscarded = true;
+
+            evictCachedPreparedStatementHandle(this);
         }
 
         /** Has the statement been explicitly discarded. */
@@ -203,12 +213,11 @@ public class SQLServerConnection implements ISQLServerConnection {
             return isDirectSql;
         }
 
-        /** Make sure handle cannot be re-used. 
+        /**
+         * Make sure handle cannot be re-used.
          * 
-         * @return 
-         *      false: Handle could not be discarded, it is in use.
-         *      true: Handle was successfully put on path for discarding.
-        */
+         * @return false: Handle could not be discarded, it is in use. true: Handle was successfully put on path for discarding.
+         */
         private boolean tryDiscardHandle() {
             return handleRefCount.compareAndSet(0, -999);
         }
@@ -218,12 +227,12 @@ public class SQLServerConnection implements ISQLServerConnection {
             return 0 > handleRefCount.intValue();
         }
 
-        /** Adds a new reference to this handle, i.e. re-using it. 
+        /**
+         * Adds a new reference to this handle, i.e. re-using it.
          * 
-         * @return 
-         *      false: Reference could not be added, statement has been discarded or does not have a handle associated with it.
-         *      true: Reference was successfully added.
-        */
+         * @return false: Reference could not be added, statement has been discarded or does not have a handle associated with it. true: Reference was
+         *         successfully added.
+         */
         boolean tryAddReference() {
             if (isDiscarded() || isExplicitlyDiscarded())
                 return false;
@@ -233,7 +242,7 @@ public class SQLServerConnection implements ISQLServerConnection {
             }
         }
 
-        /** Remove a reference from this handle*/ 
+        /** Remove a reference from this handle */
         void removeReference() {
             handleRefCount.decrementAndGet();
         }
@@ -261,7 +270,7 @@ public class SQLServerConnection implements ISQLServerConnection {
         JDBCSyntaxTranslator translator = new JDBCSyntaxTranslator();
 
         String parsedSql = translator.translate(sql);
-        String procName = translator.getProcedureName(); // may return null        
+        String procName = translator.getProcedureName(); // may return null
         boolean returnValueSyntax = translator.hasReturnValueSyntax();
         int[] parameterPositions = locateParams(parsedSql);
 
@@ -269,11 +278,11 @@ public class SQLServerConnection implements ISQLServerConnection {
         parsedSQLCache.putIfAbsent(key, cacheItem);
         return cacheItem;
     }
- 
+
     /** Default size for prepared statement caches */
-    static final int DEFAULT_STATEMENT_POOLING_CACHE_SIZE = 0; 
-    
-    /** Size of the  prepared statement handle cache */
+    static final int DEFAULT_STATEMENT_POOLING_CACHE_SIZE = 0;
+
+    /** Size of the prepared statement handle cache */
     private int statementPoolingCacheSize = DEFAULT_STATEMENT_POOLING_CACHE_SIZE;
 
     /** Cache of prepared statement handles */
@@ -362,8 +371,6 @@ public class SQLServerConnection implements ISQLServerConnection {
         }
     }
 
-    
-
     class ActiveDirectoryAuthentication {
         static final String JDBC_FEDAUTH_CLIENT_ID = "7f98cb04-cd1e-40df-9140-3bf7e2cea4db";
         static final String ADAL_GET_ACCESS_TOKEN_FUNCTION_NAME = "ADALGetAccessToken";
@@ -391,7 +398,6 @@ public class SQLServerConnection implements ISQLServerConnection {
      * Connection state variables. NB If new state is added then logical connections derived from a physical connection must inherit the same state.
      * If state variables are added they must be added also in connection cloning method clone()
      */
-
     private final static int INTERMITTENT_TLS_MAX_RETRY = 5;
 
     // Indicates if we received a routing ENVCHANGE in the current connection attempt
@@ -403,27 +409,22 @@ public class SQLServerConnection implements ISQLServerConnection {
     ServerPortPlaceHolder getRoutingInfo() {
         return routingInfo;
     }
-    
+
     // Permission targets
     private static final String callAbortPerm = "callAbort";
-    
+
     private static final String SET_NETWORK_TIMEOUT_PERM = "setNetworkTimeout";
 
-    private boolean sendStringParametersAsUnicode = SQLServerDriverBooleanProperty.SEND_STRING_PARAMETERS_AS_UNICODE.getDefaultValue();        // see
-                                                                                                                                               // connection
-                                                                                                                                               // properties
-                                                                                                                                               // doc
-                                                                                                                                               // (default
-                                                                                                                                               // is
-                                                                                                                                               // false).
+    // see connection properties doc (default is false).
+    private boolean sendStringParametersAsUnicode = SQLServerDriverBooleanProperty.SEND_STRING_PARAMETERS_AS_UNICODE.getDefaultValue();
 
     private String hostName = null;
-    
+
     boolean sendStringParametersAsUnicode() {
         return sendStringParametersAsUnicode;
     }
 
-    private boolean lastUpdateCount;              // see connection properties doc
+    private boolean lastUpdateCount; // see connection properties doc
 
     final boolean useLastUpdateCount() {
         return lastUpdateCount;
@@ -455,8 +456,8 @@ public class SQLServerConnection implements ISQLServerConnection {
         return applicationIntent;
     }
 
-    private int nLockTimeout;                     // see connection properties doc
-    private String selectMethod;         // see connection properties doc 4.0 new property
+    private int nLockTimeout;  // see connection properties doc
+    private String selectMethod;  // see connection properties doc 4.0 new property
 
     final String getSelectMethod() {
         return selectMethod;
@@ -473,13 +474,15 @@ public class SQLServerConnection implements ISQLServerConnection {
     final int getQueryTimeoutSeconds() {
         return queryTimeoutSeconds;
     }
+
     /**
      * timeout value for canceling the query timeout
      */
     private int cancelQueryTimeoutSeconds;
-    
+
     /**
      * Retrieves the cancelTimeout in seconds
+     * 
      * @return
      */
     final int getCancelQueryTimeoutSeconds() {
@@ -492,15 +495,32 @@ public class SQLServerConnection implements ISQLServerConnection {
         return socketTimeoutMilliseconds;
     }
     
+    /**
+     * boolean value for deciding if the driver should use bulk copy API for batch inserts
+     */
+    private boolean useBulkCopyForBatchInsert;
+
+    /**
+     * Retrieves the useBulkCopyForBatchInsert value.
+     * @return flag for using Bulk Copy API for batch insert operations.
+     */
+    public boolean getUseBulkCopyForBatchInsert() {
+        return useBulkCopyForBatchInsert;
+    }
+    
+    /**
+     * Specifies the flag for using Bulk Copy API for batch insert operations.
+     * @param useBulkCopyForBatchInsert boolean value for useBulkCopyForBatchInsert.
+     */
+    public void setUseBulkCopyForBatchInsert(boolean useBulkCopyForBatchInsert) {
+        this.useBulkCopyForBatchInsert = useBulkCopyForBatchInsert;
+    }
+    
     boolean userSetTNIR = true;
 
     private boolean sendTimeAsDatetime = SQLServerDriverBooleanProperty.SEND_TIME_AS_DATETIME.getDefaultValue();
 
-    /**
-     * Checks the sendTimeAsDatetime property.
-     * 
-     * @return boolean value of sendTimeAsDatetime
-     */
+    @Override
     public synchronized final boolean getSendTimeAsDatetime() {
         return !isKatmaiOrLater() || sendTimeAsDatetime;
     }
@@ -560,6 +580,12 @@ public class SQLServerConnection implements ISQLServerConnection {
         return serverSupportsColumnEncryption;
     }
 
+    private boolean serverSupportsDataClassification = false;
+
+    boolean getServerSupportsDataClassification() {
+        return serverSupportsDataClassification;
+    }
+    
     static boolean isWindows;
     static Map<String, SQLServerColumnEncryptionKeyStoreProvider> globalSystemColumnEncryptionKeyStoreProviders = new HashMap<>();
     static {
@@ -903,12 +929,7 @@ public class SQLServerConnection implements ISQLServerConnection {
 
     private UUID clientConnectionId = null;
 
-    /**
-     * Retrieves the clientConnectionID.
-     * 
-     * @throws SQLServerException
-     *             when an error occurs
-     */
+    @Override
     public UUID getClientConnectionId() throws SQLServerException {
         // If the connection is closed, we do not allow external application to get
         // ClientConnectionId.
@@ -935,15 +956,6 @@ public class SQLServerConnection implements ISQLServerConnection {
             connectionlogger.fine(toString() + " created by (" + parentInfo + ")");
         initResettableValues();
 
-        // JDBC 3 driver only works with 1.5 JRE
-        if (3 == DriverJDBCVersion.major && !"1.5".equals(Util.SYSTEM_SPEC_VERSION)) {
-            MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_unsupportedJREVersion"));
-            Object[] msgArgs = {Util.SYSTEM_SPEC_VERSION};
-            String message = form.format(msgArgs);
-            connectionlogger.severe(message);
-            throw new UnsupportedOperationException(message);
-        }
-        
         // Caching turned on?
         if (!this.getDisableStatementPooling() && 0 < this.getStatementPoolingCacheSize()) {
             prepareCache();
@@ -981,7 +993,7 @@ public class SQLServerConnection implements ISQLServerConnection {
      * 
      * @return the next conn id
      */
-    /* L0 */ private static int nextConnectionID() {
+    private static int nextConnectionID() {
         return baseConnectionID.incrementAndGet(); // 4.04 Ensure thread safe id allocation
     }
 
@@ -996,6 +1008,7 @@ public class SQLServerConnection implements ISQLServerConnection {
     /**
      * This is a helper function to provide an ID string suitable for tracing.
      */
+    @Override
     public String toString() {
         if (null != clientConnectionId)
             return traceID + " ClientConnectionId: " + clientConnectionId.toString();
@@ -1004,20 +1017,11 @@ public class SQLServerConnection implements ISQLServerConnection {
     }
 
     /**
-     * Throw a not implemeneted exception.
-     * 
-     * @throws SQLServerException
-     */
-    /* L0 */ void NotImplemented() throws SQLServerException {
-        SQLServerException.makeFromDriverError(this, this, SQLServerException.getErrString("R_notSupported"), null, false);
-    }
-
-    /**
      * Check if the connection is closed Create a new connection if it's a fedauth connection and the access token is going to expire.
      * 
      * @throws SQLServerException
      */
-    /* L0 */ void checkClosed() throws SQLServerException {
+    void checkClosed() throws SQLServerException {
         if (isSessionUnAvailable()) {
             SQLServerException.makeFromDriverError(null, null, SQLServerException.getErrString("R_connectionIsClosed"), null, false);
         }
@@ -1042,7 +1046,7 @@ public class SQLServerConnection implements ISQLServerConnection {
      * @exception SQLServerException
      *                thrown if value is not recognized.
      */
-    /* L0 */ private boolean booleanPropertyOn(String propName,
+    private boolean booleanPropertyOn(String propName,
             String propValue) throws SQLServerException {
         // Null means take the default of false.
         if (null == propValue)
@@ -1137,8 +1141,8 @@ public class SQLServerConnection implements ISQLServerConnection {
                     else {
                         // Retry the connection.
                         if (connectionlogger.isLoggable(Level.FINE)) {
-                            connectionlogger
-                                    .fine("Connection failed during SSL handshake. Retrying due to an intermittent TLS 1.2 failure issue. Retry attempt = "
+                            connectionlogger.fine(
+                                    "Connection failed during SSL handshake. Retrying due to an intermittent TLS 1.2 failure issue. Retry attempt = "
                                             + retryAttempt + ".");
                         }
                     }
@@ -1201,24 +1205,23 @@ public class SQLServerConnection implements ISQLServerConnection {
             activeConnectionProperties = (Properties) propsIn.clone();
 
             pooledConnectionParent = pooledConnection;
-            
-            String hostNameInCertificate = activeConnectionProperties.
-                    getProperty(SQLServerDriverStringProperty.HOSTNAME_IN_CERTIFICATE.toString());
-            
+
+            String hostNameInCertificate = activeConnectionProperties.getProperty(SQLServerDriverStringProperty.HOSTNAME_IN_CERTIFICATE.toString());
+
             // hostNameInCertificate property can change when redirection is involved, so maintain this value
             // for every instance of SQLServerConnection.
             if (null == originalHostNameInCertificate && null != hostNameInCertificate && !hostNameInCertificate.isEmpty()) {
-                originalHostNameInCertificate = activeConnectionProperties.
-                        getProperty(SQLServerDriverStringProperty.HOSTNAME_IN_CERTIFICATE.toString());
+                originalHostNameInCertificate = activeConnectionProperties
+                        .getProperty(SQLServerDriverStringProperty.HOSTNAME_IN_CERTIFICATE.toString());
             }
-            
+
             if (null != originalHostNameInCertificate && !originalHostNameInCertificate.isEmpty()) {
                 // if hostNameInCertificate has a legitimate value (and not empty or null),
                 // reset hostNameInCertificate to the original value every time we connect (or re-connect).
-                activeConnectionProperties.setProperty(SQLServerDriverStringProperty.HOSTNAME_IN_CERTIFICATE.toString(), 
+                activeConnectionProperties.setProperty(SQLServerDriverStringProperty.HOSTNAME_IN_CERTIFICATE.toString(),
                         originalHostNameInCertificate);
             }
-
+            
             String sPropKey;
             String sPropValue;
 
@@ -1298,7 +1301,7 @@ public class SQLServerConnection implements ISQLServerConnection {
 
             if (true == serverNameAsACE) {
                 try {
-                    sPropValue = IDN.toASCII(sPropValue);
+                    sPropValue = java.net.IDN.toASCII(sPropValue);
                 }
                 catch (IllegalArgumentException ex) {
                     MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_InvalidConnectionSetting"));
@@ -1403,7 +1406,8 @@ public class SQLServerConnection implements ISQLServerConnection {
             trustServerCertificate = booleanPropertyOn(sPropKey, sPropValue);
 
             trustManagerClass = activeConnectionProperties.getProperty(SQLServerDriverStringProperty.TRUST_MANAGER_CLASS.toString());
-            trustManagerConstructorArg = activeConnectionProperties.getProperty(SQLServerDriverStringProperty.TRUST_MANAGER_CONSTRUCTOR_ARG.toString());
+            trustManagerConstructorArg = activeConnectionProperties
+                    .getProperty(SQLServerDriverStringProperty.TRUST_MANAGER_CONSTRUCTOR_ARG.toString());
 
             sPropKey = SQLServerDriverStringProperty.SELECT_METHOD.toString();
             sPropValue = activeConnectionProperties.getProperty(sPropKey);
@@ -1466,7 +1470,7 @@ public class SQLServerConnection implements ISQLServerConnection {
             sPropValue = activeConnectionProperties.getProperty(sPropKey);
             if (null != sPropValue) {
                 setDisableStatementPooling(booleanPropertyOn(sPropKey, sPropValue));
-            } 
+            }
 
             sPropKey = SQLServerDriverBooleanProperty.INTEGRATED_SECURITY.toString();
             sPropValue = activeConnectionProperties.getProperty(sPropKey);
@@ -1483,14 +1487,14 @@ public class SQLServerConnection implements ISQLServerConnection {
                 }
             }
 
-            if(intAuthScheme == AuthenticationScheme.javaKerberos){
+            if (intAuthScheme == AuthenticationScheme.javaKerberos) {
                 sPropKey = SQLServerDriverObjectProperty.GSS_CREDENTIAL.toString();
-                if(activeConnectionProperties.containsKey(sPropKey)) {
+                if (activeConnectionProperties.containsKey(sPropKey)) {
                     ImpersonatedUserCred = (GSSCredential) activeConnectionProperties.get(sPropKey);
                     isUserCreatedCredential = true;
                 }
             }
-            
+
             sPropKey = SQLServerDriverStringProperty.AUTHENTICATION.toString();
             sPropValue = activeConnectionProperties.getProperty(sPropKey);
             if (sPropValue == null) {
@@ -1722,18 +1726,18 @@ public class SQLServerConnection implements ISQLServerConnection {
                     SQLServerException.makeFromDriverError(this, this, form.format(msgArgs), null, false);
                 }
             }
-            
+
             sPropKey = SQLServerDriverIntProperty.CANCEL_QUERY_TIMEOUT.toString();
             int cancelQueryTimeout = SQLServerDriverIntProperty.CANCEL_QUERY_TIMEOUT.getDefaultValue();
-            
+
             if (activeConnectionProperties.getProperty(sPropKey) != null && activeConnectionProperties.getProperty(sPropKey).length() > 0) {
                 try {
                     int n = Integer.parseInt(activeConnectionProperties.getProperty(sPropKey));
                     if (n >= cancelQueryTimeout) {
-                    	// use cancelQueryTimeout only if queryTimeout is set.
-                    	if(queryTimeoutSeconds > defaultQueryTimeout) {
-                        	cancelQueryTimeoutSeconds = n;
-                    	}
+                        // use cancelQueryTimeout only if queryTimeout is set.
+                        if (queryTimeoutSeconds > defaultQueryTimeout) {
+                            cancelQueryTimeoutSeconds = n;
+                        }
                     }
                     else {
                         MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidCancelQueryTimeout"));
@@ -1747,7 +1751,7 @@ public class SQLServerConnection implements ISQLServerConnection {
                     SQLServerException.makeFromDriverError(this, this, form.format(msgArgs), null, false);
                 }
             }
-           
+
             sPropKey = SQLServerDriverIntProperty.SERVER_PREPARED_STATEMENT_DISCARD_THRESHOLD.toString();
             if (activeConnectionProperties.getProperty(sPropKey) != null && activeConnectionProperties.getProperty(sPropKey).length() > 0) {
                 try {
@@ -1766,7 +1770,13 @@ public class SQLServerConnection implements ISQLServerConnection {
             if (null != sPropValue) {
                 setEnablePrepareOnFirstPreparedStatementCall(booleanPropertyOn(sPropKey, sPropValue));
             }
-
+            
+            sPropKey = SQLServerDriverBooleanProperty.USE_BULK_COPY_FOR_BATCH_INSERT.toString();
+            sPropValue = activeConnectionProperties.getProperty(sPropKey);
+            if (null != sPropValue) {
+                useBulkCopyForBatchInsert = booleanPropertyOn(sPropKey, sPropValue);
+            }
+            
             sPropKey = SQLServerDriverStringProperty.SSL_PROTOCOL.toString();
             sPropValue = activeConnectionProperties.getProperty(sPropKey);
             if (null == sPropValue) {
@@ -1776,7 +1786,7 @@ public class SQLServerConnection implements ISQLServerConnection {
             else {
                 activeConnectionProperties.setProperty(sPropKey, SSLProtocol.valueOfString(sPropValue).toString());
             }
-            
+
             FailoverInfo fo = null;
             String databaseNameProperty = SQLServerDriverStringProperty.DATABASE_NAME.toString();
             String serverNameProperty = SQLServerDriverStringProperty.SERVER_NAME.toString();
@@ -2287,14 +2297,14 @@ public class SQLServerConnection implements ISQLServerConnection {
             connectionlogger.fine(toString() + " Connecting with server: " + serverInfo.getServerName() + " port: " + serverInfo.getPortNumber()
                     + " Timeout slice: " + timeOutsliceInMillis + " Timeout Full: " + timeOutFullInSeconds);
         }
-        
+
         // Before opening the TDSChannel, calculate local hostname
         // as the InetAddress.getLocalHost() takes more than usual time in certain OS and JVM combination, it avoids connection loss
         hostName = activeConnectionProperties.getProperty(SQLServerDriverStringProperty.WORKSTATION_ID.toString());
         if (StringUtils.isEmpty(hostName)) {
             hostName = Util.lookupHostName();
         }
-        
+
         // if the timeout is infinite slices are infinite too.
         tdsChannel = new TDSChannel(this);
         if (0 == timeOutFullInSeconds)
@@ -2823,7 +2833,7 @@ public class SQLServerConnection implements ISQLServerConnection {
      * 
      * @return the syntax string
      */
-    /* L0 */ private String sqlStatementToInitialize() {
+    private String sqlStatementToInitialize() {
         String s = null;
         if (nLockTimeout > -1)
             s = " set lock_timeout " + nLockTimeout;
@@ -2837,7 +2847,7 @@ public class SQLServerConnection implements ISQLServerConnection {
      *            the new catalog
      * @return the required syntax
      */
-    /* L0 */ void setCatalogName(String sDB) {
+    void setCatalogName(String sDB) {
         if (sDB != null) {
             if (sDB.length() > 0) {
                 sCatalog = sDB;
@@ -2850,7 +2860,7 @@ public class SQLServerConnection implements ISQLServerConnection {
      * 
      * @return the required syntax
      */
-    /* L0 */ String sqlStatementToSetTransactionIsolationLevel() throws SQLServerException {
+    String sqlStatementToSetTransactionIsolationLevel() throws SQLServerException {
         String sql = "set transaction isolation level ";
 
         switch (transactionIsolationLevel) {
@@ -2892,34 +2902,39 @@ public class SQLServerConnection implements ISQLServerConnection {
         return (true == autoCommit) ? "set implicit_transactions off " : "set implicit_transactions on ";
     }
 
-    /* L0 */ public Statement createStatement() throws SQLServerException {
+    @Override
+    public Statement createStatement() throws SQLServerException {
         loggerExternal.entering(getClassNameLogging(), "createStatement");
         Statement st = createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY);
         loggerExternal.exiting(getClassNameLogging(), "createStatement", st);
         return st;
     }
 
-    /* L0 */ public PreparedStatement prepareStatement(String sql) throws SQLServerException {
+    @Override
+    public PreparedStatement prepareStatement(String sql) throws SQLServerException {
         loggerExternal.entering(getClassNameLogging(), "prepareStatement", sql);
         PreparedStatement pst = prepareStatement(sql, ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY);
         loggerExternal.exiting(getClassNameLogging(), "prepareStatement", pst);
         return pst;
     }
 
-    /* L0 */ public CallableStatement prepareCall(String sql) throws SQLServerException {
+    @Override
+    public CallableStatement prepareCall(String sql) throws SQLServerException {
         loggerExternal.entering(getClassNameLogging(), "prepareCall", sql);
         CallableStatement st = prepareCall(sql, ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY);
         loggerExternal.exiting(getClassNameLogging(), "prepareCall", st);
         return st;
     }
 
-    /* L0 */ public String nativeSQL(String sql) throws SQLServerException {
+    @Override
+    public String nativeSQL(String sql) throws SQLServerException {
         loggerExternal.entering(getClassNameLogging(), "nativeSQL", sql);
         checkClosed();
         loggerExternal.exiting(getClassNameLogging(), "nativeSQL", sql);
         return sql;
     }
 
+    @Override
     public void setAutoCommit(boolean newAutoCommitMode) throws SQLServerException {
         if (loggerExternal.isLoggable(Level.FINER)) {
             loggerExternal.entering(getClassNameLogging(), "setAutoCommit", newAutoCommitMode);
@@ -2947,7 +2962,8 @@ public class SQLServerConnection implements ISQLServerConnection {
         loggerExternal.exiting(getClassNameLogging(), "setAutoCommit");
     }
 
-    /* L0 */ public boolean getAutoCommit() throws SQLServerException {
+    @Override
+    public boolean getAutoCommit() throws SQLServerException {
         loggerExternal.entering(getClassNameLogging(), "getAutoCommit");
         checkClosed();
         boolean res = !inXATransaction && databaseAutoCommitMode;
@@ -2956,16 +2972,11 @@ public class SQLServerConnection implements ISQLServerConnection {
         return res;
     }
 
-    /* LO */ final byte[] getTransactionDescriptor() {
+    final byte[] getTransactionDescriptor() {
         return transactionDescriptor;
     }
 
-    /**
-     * Commit a transcation. Per our transaction spec, see also SDT#410729, a commit in autocommit mode = true is a NO-OP.
-     *
-     * @throws SQLServerException
-     *             if no transaction exists.
-     */
+    @Override
     public void commit() throws SQLServerException {
         loggerExternal.entering(getClassNameLogging(), "commit");
         if (loggerExternal.isLoggable(Level.FINER) && Util.IsActivityTraceOn()) {
@@ -2978,12 +2989,7 @@ public class SQLServerConnection implements ISQLServerConnection {
         loggerExternal.exiting(getClassNameLogging(), "commit");
     }
 
-    /**
-     * Rollback a transcation.
-     *
-     * @throws SQLServerException
-     *             if no transaction exists or if the connection is in auto-commit mode.
-     */
+    @Override
     public void rollback() throws SQLServerException {
         loggerExternal.entering(getClassNameLogging(), "rollback");
         if (loggerExternal.isLoggable(Level.FINER) && Util.IsActivityTraceOn()) {
@@ -2999,6 +3005,7 @@ public class SQLServerConnection implements ISQLServerConnection {
         loggerExternal.exiting(getClassNameLogging(), "rollback");
     }
 
+    @Override
     public void abort(Executor executor) throws SQLException {
         loggerExternal.entering(getClassNameLogging(), "abort", executor);
 
@@ -3028,17 +3035,13 @@ public class SQLServerConnection implements ISQLServerConnection {
 
         setState(State.Closed);
 
-        executor.execute(new Runnable() {
-            public void run() {
-                if (null != tdsChannel) {
-                    tdsChannel.close();
-                }
-            }
-        });
+        if (null != tdsChannel)
+            executor.execute(() -> tdsChannel.close());
 
         loggerExternal.exiting(getClassNameLogging(), "abort");
     }
 
+    @Override
     public void close() throws SQLServerException {
         loggerExternal.entering(getClassNameLogging(), "close");
 
@@ -3063,7 +3066,7 @@ public class SQLServerConnection implements ISQLServerConnection {
 
         // Clean-up queue etc. related to batching of prepared statement discard actions (sp_unprepare).
         cleanupPreparedStatementDiscardActions();
-        
+
         ActivityCorrelator.cleanupActivityId();
 
         loggerExternal.exiting(getClassNameLogging(), "close");
@@ -3093,13 +3096,15 @@ public class SQLServerConnection implements ISQLServerConnection {
 
     }
 
-    /* L0 */ public boolean isClosed() throws SQLServerException {
+    @Override
+    public boolean isClosed() throws SQLServerException {
         loggerExternal.entering(getClassNameLogging(), "isClosed");
         loggerExternal.exiting(getClassNameLogging(), "isClosed", isSessionUnAvailable());
         return isSessionUnAvailable();
     }
 
-    /* L0 */ public DatabaseMetaData getMetaData() throws SQLServerException {
+    @Override
+    public DatabaseMetaData getMetaData() throws SQLServerException {
         loggerExternal.entering(getClassNameLogging(), "getMetaData");
         checkClosed();
         if (databaseMetaData == null) {
@@ -3109,7 +3114,8 @@ public class SQLServerConnection implements ISQLServerConnection {
         return databaseMetaData;
     }
 
-    /* L0 */ public void setReadOnly(boolean readOnly) throws SQLServerException {
+    @Override
+    public void setReadOnly(boolean readOnly) throws SQLServerException {
         if (loggerExternal.isLoggable(Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setReadOnly", readOnly);
         checkClosed();
@@ -3117,7 +3123,8 @@ public class SQLServerConnection implements ISQLServerConnection {
         loggerExternal.exiting(getClassNameLogging(), "setReadOnly");
     }
 
-    /* L0 */ public boolean isReadOnly() throws SQLServerException {
+    @Override
+    public boolean isReadOnly() throws SQLServerException {
         loggerExternal.entering(getClassNameLogging(), "isReadOnly");
         checkClosed();
         if (loggerExternal.isLoggable(Level.FINER))
@@ -3125,7 +3132,8 @@ public class SQLServerConnection implements ISQLServerConnection {
         return false;
     }
 
-    /* L0 */ public void setCatalog(String catalog) throws SQLServerException {
+    @Override
+    public void setCatalog(String catalog) throws SQLServerException {
         loggerExternal.entering(getClassNameLogging(), "setCatalog", catalog);
         if (loggerExternal.isLoggable(Level.FINER) && Util.IsActivityTraceOn()) {
             loggerExternal.finer(toString() + " ActivityId: " + ActivityCorrelator.getNext().toString());
@@ -3138,7 +3146,8 @@ public class SQLServerConnection implements ISQLServerConnection {
         loggerExternal.exiting(getClassNameLogging(), "setCatalog");
     }
 
-    /* L0 */ public String getCatalog() throws SQLServerException {
+    @Override
+    public String getCatalog() throws SQLServerException {
         loggerExternal.entering(getClassNameLogging(), "getCatalog");
         checkClosed();
         loggerExternal.exiting(getClassNameLogging(), "getCatalog", sCatalog);
@@ -3149,7 +3158,8 @@ public class SQLServerConnection implements ISQLServerConnection {
         return sCatalog;
     }
 
-    /* L0 */ public void setTransactionIsolation(int level) throws SQLServerException {
+    @Override
+    public void setTransactionIsolation(int level) throws SQLServerException {
         if (loggerExternal.isLoggable(Level.FINER)) {
             loggerExternal.entering(getClassNameLogging(), "setTransactionIsolation", level);
             if (Util.IsActivityTraceOn()) {
@@ -3167,7 +3177,8 @@ public class SQLServerConnection implements ISQLServerConnection {
         loggerExternal.exiting(getClassNameLogging(), "setTransactionIsolation");
     }
 
-    /* L0 */ public int getTransactionIsolation() throws SQLServerException {
+    @Override
+    public int getTransactionIsolation() throws SQLServerException {
         loggerExternal.entering(getClassNameLogging(), "getTransactionIsolation");
         checkClosed();
         if (loggerExternal.isLoggable(Level.FINER))
@@ -3179,7 +3190,8 @@ public class SQLServerConnection implements ISQLServerConnection {
     Object warningSynchronization = new Object();
 
     // Think about returning a copy when we implement additional warnings.
-    /* L0 */ public SQLWarning getWarnings() throws SQLServerException {
+    @Override
+    public SQLWarning getWarnings() throws SQLServerException {
         loggerExternal.entering(getClassNameLogging(), "getWarnings");
         checkClosed();
         // check null warn wont crash
@@ -3201,7 +3213,8 @@ public class SQLServerConnection implements ISQLServerConnection {
         }
     }
 
-    /* L2 */ public void clearWarnings() throws SQLServerException {
+    @Override
+    public void clearWarnings() throws SQLServerException {
         synchronized (warningSynchronization) {
             loggerExternal.entering(getClassNameLogging(), "clearWarnings");
             checkClosed();
@@ -3211,38 +3224,35 @@ public class SQLServerConnection implements ISQLServerConnection {
     }
 
     // --------------------------JDBC 2.0-----------------------------
+    @Override
     public Statement createStatement(int resultSetType,
             int resultSetConcurrency) throws SQLServerException {
         if (loggerExternal.isLoggable(Level.FINER))
-            loggerExternal.entering(getClassNameLogging(), "createStatement",
-                    new Object[] {resultSetType, resultSetConcurrency});
+            loggerExternal.entering(getClassNameLogging(), "createStatement", new Object[] {resultSetType, resultSetConcurrency});
         checkClosed();
         Statement st = new SQLServerStatement(this, resultSetType, resultSetConcurrency,
                 SQLServerStatementColumnEncryptionSetting.UseConnectionSetting);
+        if (requestStarted) {
+            addOpenStatement(st);
+        }
         loggerExternal.exiting(getClassNameLogging(), "createStatement", st);
         return st;
     }
 
+    @Override
     public PreparedStatement prepareStatement(String sql,
             int resultSetType,
             int resultSetConcurrency) throws SQLServerException {
         if (loggerExternal.isLoggable(Level.FINER))
-            loggerExternal.entering(getClassNameLogging(), "prepareStatement",
-                    new Object[] {sql, resultSetType, resultSetConcurrency});
+            loggerExternal.entering(getClassNameLogging(), "prepareStatement", new Object[] {sql, resultSetType, resultSetConcurrency});
         checkClosed();
 
-        PreparedStatement st;
-        
-        // Make sure SQLServerPreparedStatement42 is used for 4.2 and above. 
-        if (Util.use42Wrapper() || Util.use43Wrapper()) {
-            st = new SQLServerPreparedStatement42(this, sql, resultSetType, resultSetConcurrency,
-                    SQLServerStatementColumnEncryptionSetting.UseConnectionSetting);
-        }
-        else {
-            st = new SQLServerPreparedStatement(this, sql, resultSetType, resultSetConcurrency,
-                    SQLServerStatementColumnEncryptionSetting.UseConnectionSetting);
-        }
+        PreparedStatement st = new SQLServerPreparedStatement(this, sql, resultSetType, resultSetConcurrency,
+                SQLServerStatementColumnEncryptionSetting.UseConnectionSetting);
 
+        if (requestStarted) {
+            addOpenStatement(st);
+        }
         loggerExternal.exiting(getClassNameLogging(), "prepareStatement", st);
         return st;
     }
@@ -3256,45 +3266,37 @@ public class SQLServerConnection implements ISQLServerConnection {
                     new Object[] {sql, resultSetType, resultSetConcurrency, stmtColEncSetting});
         checkClosed();
 
-        PreparedStatement st;
+        PreparedStatement st = new SQLServerPreparedStatement(this, sql, resultSetType, resultSetConcurrency, stmtColEncSetting);
 
-        // Make sure SQLServerPreparedStatement42 is used for 4.2 and above. 
-        if (Util.use42Wrapper() || Util.use43Wrapper()) {
-            st = new SQLServerPreparedStatement42(this, sql, resultSetType, resultSetConcurrency, stmtColEncSetting);
-        }
-        else {
-            st = new SQLServerPreparedStatement(this, sql, resultSetType, resultSetConcurrency, stmtColEncSetting);
+        if (requestStarted) {
+            addOpenStatement(st);
         }
 
         loggerExternal.exiting(getClassNameLogging(), "prepareStatement", st);
         return st;
     }
 
+    @Override
     public CallableStatement prepareCall(String sql,
             int resultSetType,
             int resultSetConcurrency) throws SQLServerException {
         if (loggerExternal.isLoggable(Level.FINER))
-            loggerExternal.entering(getClassNameLogging(), "prepareCall",
-                    new Object[] {sql, resultSetType, resultSetConcurrency});
+            loggerExternal.entering(getClassNameLogging(), "prepareCall", new Object[] {sql, resultSetType, resultSetConcurrency});
         checkClosed();
 
-        CallableStatement st;
+        CallableStatement st = new SQLServerCallableStatement(this, sql, resultSetType, resultSetConcurrency,
+                SQLServerStatementColumnEncryptionSetting.UseConnectionSetting);
 
-        // Make sure SQLServerCallableStatement42 is used for 4.2 and above. 
-        if (Util.use42Wrapper() || Util.use43Wrapper()) {
-            st = new SQLServerCallableStatement42(this, sql, resultSetType, resultSetConcurrency,
-                    SQLServerStatementColumnEncryptionSetting.UseConnectionSetting);
-        }
-        else {
-            st = new SQLServerCallableStatement(this, sql, resultSetType, resultSetConcurrency,
-                    SQLServerStatementColumnEncryptionSetting.UseConnectionSetting);
+        if (requestStarted) {
+            addOpenStatement(st);
         }
 
         loggerExternal.exiting(getClassNameLogging(), "prepareCall", st);
         return st;
     }
 
-    /* L2 */ public void setTypeMap(java.util.Map<String, Class<?>> map) throws SQLServerException {
+    @Override
+    public void setTypeMap(java.util.Map<String, Class<?>> map) throws SQLException {
         loggerExternal.entering(getClassNameLogging(), "setTypeMap", map);
         checkClosed();
         if (map != null && (map instanceof java.util.HashMap)) {
@@ -3305,9 +3307,10 @@ public class SQLServerConnection implements ISQLServerConnection {
             }
 
         }
-        NotImplemented();
+        SQLServerException.throwNotSupportedException(this, null);
     }
 
+    @Override
     public java.util.Map<String, Class<?>> getTypeMap() throws SQLServerException {
         loggerExternal.entering(getClassNameLogging(), "getTypeMap");
         checkClosed();
@@ -3325,9 +3328,9 @@ public class SQLServerConnection implements ISQLServerConnection {
         int len = 6; // (1byte = featureID, 4bytes = featureData length, 1 bytes = Version)
 
         if (write) {
-            tdsWriter.writeByte((byte) TDS.TDS_FEATURE_EXT_AE); // FEATUREEXT_TCE
+            tdsWriter.writeByte(TDS.TDS_FEATURE_EXT_AE); // FEATUREEXT_TCE
             tdsWriter.writeInt(1);
-            tdsWriter.writeByte((byte) TDS.MAX_SUPPORTED_TCE_VERSION);
+            tdsWriter.writeByte(TDS.MAX_SUPPORTED_TCE_VERSION);
         }
         return len;
     }
@@ -3338,7 +3341,6 @@ public class SQLServerConnection implements ISQLServerConnection {
                                                                                                                   * if false just calculates the
                                                                                                                   * length
                                                                                                                   */
-
         assert (fedAuthFeatureExtensionData.libraryType == TDS.TDS_FEDAUTH_LIBRARY_ADAL
                 || fedAuthFeatureExtensionData.libraryType == TDS.TDS_FEDAUTH_LIBRARY_SECURITYTOKEN);
 
@@ -3422,6 +3424,28 @@ public class SQLServerConnection implements ISQLServerConnection {
         }
         return totalLen;
     }
+    
+    int writeDataClassificationFeatureRequest(boolean write /* if false just calculates the length */,
+            TDSWriter tdsWriter) throws SQLServerException {
+        int len = 6; // 1byte = featureID, 4bytes = featureData length, 1 bytes = Version
+        if (write) {
+            // Write Feature ID, length of the version# field and Sensitivity Classification Version#
+            tdsWriter.writeByte(TDS.TDS_FEATURE_EXT_DATACLASSIFICATION);
+            tdsWriter.writeInt(1);
+            tdsWriter.writeByte(TDS.MAX_SUPPORTED_DATA_CLASSIFICATION_VERSION);
+        }
+        return len; // size of data written
+    }
+    
+    int writeUTF8SupportFeatureRequest(boolean write,
+            TDSWriter tdsWriter /* if false just calculates the length */) throws SQLServerException {
+        int len = 5; // 1byte = featureID, 4bytes = featureData length
+        if (write) {
+            tdsWriter.writeByte(TDS.TDS_FEATURE_EXT_UTF8SUPPORT);
+            tdsWriter.writeInt(0);
+        }
+        return len;
+    }
 
     private final class LogonCommand extends UninterruptableTDSCommand {
         LogonCommand() {
@@ -3434,7 +3458,7 @@ public class SQLServerConnection implements ISQLServerConnection {
         }
     }
 
-    /* L0 */ private void logon(LogonCommand command) throws SQLServerException {
+    private void logon(LogonCommand command) throws SQLServerException {
         SSPIAuthentication authentication = null;
         if (integratedSecurity && AuthenticationScheme.nativeAuthentication == intAuthScheme)
             authentication = new AuthenticationJNI(this, currentConnectPlaceHolder.getServerName(), currentConnectPlaceHolder.getPortNumber());
@@ -3477,7 +3501,8 @@ public class SQLServerConnection implements ISQLServerConnection {
                     connectionCommand(sqlStmt, "Change Settings");
                 }
             }
-        } finally {
+        }
+        finally {
             if (integratedSecurity) {
                 if (null != authentication) {
                     authentication.ReleaseClientContext();
@@ -3503,6 +3528,7 @@ public class SQLServerConnection implements ISQLServerConnection {
     private static final int ENVCHANGE_DTC_ENLIST = 11;
     private static final int ENVCHANGE_DTC_DEFECT = 12;
     private static final int ENVCHANGE_CHANGE_MIRROR = 13;
+    @SuppressWarnings("unused")
     private static final int ENVCHANGE_UNUSED_14 = 14;
     private static final int ENVCHANGE_DTC_PROMOTE = 15;
     private static final int ENVCHANGE_DTC_MGR_ADDR = 16;
@@ -3537,7 +3563,7 @@ public class SQLServerConnection implements ISQLServerConnection {
                 try {
                     databaseCollation = new SQLCollation(tdsReader);
                 }
-                catch (UnsupportedEncodingException e) {
+                catch (java.io.UnsupportedEncodingException e) {
                     terminate(SQLServerException.DRIVER_ERROR_INVALID_TDS, e.getMessage(), e);
                 }
 
@@ -3665,8 +3691,11 @@ public class SQLServerConnection implements ISQLServerConnection {
 
                 // Check if the hostNameInCertificate needs to be updated to handle the rerouted subdomain in Azure
                 String currentHostName = activeConnectionProperties.getProperty("hostNameInCertificate");
-                if (null != currentHostName && currentHostName.startsWith("*")
-                        && (null != routingServerName) /* skip the check for hostNameInCertificate if routingServerName is null */
+                if (null != currentHostName && currentHostName.startsWith("*") && (null != routingServerName) /*
+                                                                                                               * skip the check for
+                                                                                                               * hostNameInCertificate if
+                                                                                                               * routingServerName is null
+                                                                                                               */
                         && routingServerName.indexOf('.') != -1) {
                     char[] currentHostNameCharArray = currentHostName.toCharArray();
                     char[] routingServerNameCharArray = routingServerName.toCharArray();
@@ -3695,6 +3724,7 @@ public class SQLServerConnection implements ISQLServerConnection {
 
                 isRoutedInCurrentAttempt = true;
                 routingInfo = new ServerPortPlaceHolder(routingServerName, routingPortNumber, null, integratedSecurity);
+
                 break;
 
             // Error on unrecognized, unused ENVCHANGES
@@ -3901,7 +3931,7 @@ public class SQLServerConnection implements ISQLServerConnection {
 
         // No:of milliseconds to sleep for the inital back off.
         int sleepInterval = 100;
-        
+
         while (true) {
             if (authenticationString.trim().equalsIgnoreCase(SqlAuthentication.ActiveDirectoryPassword.toString())) {
                 fedAuthToken = SQLServerADAL4JUtils.getSqlFedAuthToken(fedAuthInfo, user, password, authenticationString);
@@ -3910,7 +3940,7 @@ public class SQLServerConnection implements ISQLServerConnection {
                 break;
             }
             else if (authenticationString.trim().equalsIgnoreCase(SqlAuthentication.ActiveDirectoryIntegrated.toString())) {
-                
+
                 // If operating system is windows and sqljdbc_auth is loaded then choose the DLL authentication.
                 if (System.getProperty("os.name").toLowerCase(Locale.ENGLISH).startsWith("windows") && AuthenticationJNI.isDllLoaded()) {
                     try {
@@ -4047,7 +4077,7 @@ public class SQLServerConnection implements ISQLServerConnection {
         while (featureId != TDS.FEATURE_EXT_TERMINATOR);
     }
 
-    private void onFeatureExtAck(int featureId,
+    private void onFeatureExtAck(byte featureId,
             byte[] data) throws SQLServerException {
         if (null != routingInfo) {
             return;
@@ -4093,8 +4123,6 @@ public class SQLServerConnection implements ISQLServerConnection {
                         Object[] msgArgs = {fedAuthFeatureExtensionData.libraryType};
                         throw new SQLServerException(form.format(msgArgs), null);
                 }
-                federatedAuthenticationAcknowledged = true;
-
                 break;
             }
             case TDS.TDS_FEATURE_EXT_AE: {
@@ -4117,11 +4145,46 @@ public class SQLServerConnection implements ISQLServerConnection {
                     throw new SQLServerException(SQLServerException.getErrString("R_InvalidAEVersionNumber"), null);
                 }
 
-                assert supportedTceVersion == TDS.MAX_SUPPORTED_TCE_VERSION; // Client support TCE version 1
                 serverSupportsColumnEncryption = true;
                 break;
             }
+            case TDS.TDS_FEATURE_EXT_DATACLASSIFICATION: {
+                if (connectionlogger.isLoggable(Level.FINER)) {
+                    connectionlogger.fine(toString() + " Received feature extension acknowledgement for Data Classification.");
+                }
 
+                if (2 != data.length) {
+                    if (connectionlogger.isLoggable(Level.SEVERE)) {
+                        connectionlogger.severe(toString() + " Unknown token for Data Classification.");
+                    }
+                    throw new SQLServerException(SQLServerException.getErrString("R_UnknownDataClsTokenNumber"), null);
+                }
+
+                byte supportedDataClassificationVersion = data[0];
+                if ((0 == supportedDataClassificationVersion)
+                        || (supportedDataClassificationVersion > TDS.MAX_SUPPORTED_DATA_CLASSIFICATION_VERSION)) {
+                    if (connectionlogger.isLoggable(Level.SEVERE)) {
+                        connectionlogger.severe(toString() + " Invalid version number for Data Classification");
+                    }
+                    throw new SQLServerException(SQLServerException.getErrString("R_InvalidDataClsVersionNumber"), null);
+                }
+
+                byte enabled = data[1];
+                serverSupportsDataClassification = (enabled == 0) ? false : true;
+            }
+            case TDS.TDS_FEATURE_EXT_UTF8SUPPORT: {
+                if (connectionlogger.isLoggable(Level.FINER)) {
+                    connectionlogger.fine(toString() + " Received feature extension acknowledgement for UTF8 support.");
+                }
+
+                if (1 > data.length) {
+                    if (connectionlogger.isLoggable(Level.SEVERE)) {
+                        connectionlogger.severe(toString() + " Unknown value for UTF8 support.");
+                    }
+                    throw new SQLServerException(SQLServerException.getErrString("R_unknownUTF8SupportValue"), null);
+                }
+                break;
+            }
             default: {
                 // Unknown feature ack
                 if (connectionlogger.isLoggable(Level.SEVERE)) {
@@ -4207,7 +4270,7 @@ public class SQLServerConnection implements ISQLServerConnection {
      * @throws SQLServerException
      * @return the encoded data
      */
-    /* L0 */ private byte[] toUCS16(String s) throws SQLServerException {
+    private byte[] toUCS16(String s) throws SQLServerException {
         if (s == null)
             return new byte[0];
         int l = s.length();
@@ -4229,7 +4292,7 @@ public class SQLServerConnection implements ISQLServerConnection {
      *            the password
      * @return the encryption
      */
-    /* L0 */ private byte[] encryptPassword(String pwd) {
+    private byte[] encryptPassword(String pwd) {
         // Changed to handle non ascii passwords
         if (pwd == null)
             pwd = "";
@@ -4408,7 +4471,12 @@ public class SQLServerConnection implements ISQLServerConnection {
             len2 = len2 + writeFedAuthFeatureRequest(false, tdsWriter, fedAuthFeatureExtensionData);
         }
 
-        len2 = len2 + 1; // add 1 to length becaue of FeatureEx terminator
+        // Data Classification is always enabled (by default)
+        len2 += writeDataClassificationFeatureRequest(false, tdsWriter);
+        
+        len2 = len2 + writeUTF8SupportFeatureRequest(false, tdsWriter);
+      
+        len2 = len2 + 1; // add 1 to length because of FeatureEx terminator
 
         // Length of entire Login 7 packet
         tdsWriter.writeInt(len2);
@@ -4435,8 +4503,9 @@ public class SQLServerConnection implements ISQLServerConnection {
                         TDS.LOGIN_OPTION2_INTEGRATED_SECURITY_ON : TDS.LOGIN_OPTION2_INTEGRATED_SECURITY_OFF)));
 
         // TypeFlags
-        tdsWriter.writeByte((byte) (TDS.LOGIN_SQLTYPE_DEFAULT | (applicationIntent != null && applicationIntent.equals(ApplicationIntent.READ_ONLY)
-                ? TDS.LOGIN_READ_ONLY_INTENT : TDS.LOGIN_READ_WRITE_INTENT)));
+        tdsWriter.writeByte((byte) (TDS.LOGIN_SQLTYPE_DEFAULT
+                | (applicationIntent != null && applicationIntent.equals(ApplicationIntent.READ_ONLY) ? TDS.LOGIN_READ_ONLY_INTENT
+                        : TDS.LOGIN_READ_WRITE_INTENT)));
 
         // OptionFlags3
         byte colEncSetting;
@@ -4589,6 +4658,9 @@ public class SQLServerConnection implements ISQLServerConnection {
             writeFedAuthFeatureRequest(true, tdsWriter, fedAuthFeatureExtensionData);
         }
 
+        writeDataClassificationFeatureRequest(true, tdsWriter);
+        writeUTF8SupportFeatureRequest(true, tdsWriter);
+
         tdsWriter.writeByte((byte) TDS.FEATURE_EXT_TERMINATOR);
         tdsWriter.setDataLoggable(true);
 
@@ -4627,123 +4699,92 @@ public class SQLServerConnection implements ISQLServerConnection {
         }
     }
 
+    @Override
     public Statement createStatement(int nType,
             int nConcur,
             int resultSetHoldability) throws SQLServerException {
-        loggerExternal.entering(getClassNameLogging(), "createStatement",
-                new Object[] {nType, nConcur, resultSetHoldability});
+        loggerExternal.entering(getClassNameLogging(), "createStatement", new Object[] {nType, nConcur, resultSetHoldability});
         Statement st = createStatement(nType, nConcur, resultSetHoldability, SQLServerStatementColumnEncryptionSetting.UseConnectionSetting);
         loggerExternal.exiting(getClassNameLogging(), "createStatement", st);
         return st;
     }
 
+    @Override
     public Statement createStatement(int nType,
             int nConcur,
             int resultSetHoldability,
             SQLServerStatementColumnEncryptionSetting stmtColEncSetting) throws SQLServerException {
-        loggerExternal.entering(getClassNameLogging(), "createStatement",
-                new Object[] {nType, nConcur, resultSetHoldability, stmtColEncSetting});
+        loggerExternal.entering(getClassNameLogging(), "createStatement", new Object[] {nType, nConcur, resultSetHoldability, stmtColEncSetting});
         checkClosed();
         checkValidHoldability(resultSetHoldability);
         checkMatchesCurrentHoldability(resultSetHoldability);
         Statement st = new SQLServerStatement(this, nType, nConcur, stmtColEncSetting);
+        if (requestStarted) {
+            addOpenStatement(st);
+        }
         loggerExternal.exiting(getClassNameLogging(), "createStatement", st);
         return st;
     }
 
-    /* L3 */ public PreparedStatement prepareStatement(java.lang.String sql,
+    @Override
+    public PreparedStatement prepareStatement(java.lang.String sql,
             int nType,
             int nConcur,
             int resultSetHoldability) throws SQLServerException {
-        loggerExternal.entering(getClassNameLogging(), "prepareStatement",
-                new Object[] {nType, nConcur, resultSetHoldability});
+        loggerExternal.entering(getClassNameLogging(), "prepareStatement", new Object[] {nType, nConcur, resultSetHoldability});
         PreparedStatement st = prepareStatement(sql, nType, nConcur, resultSetHoldability,
                 SQLServerStatementColumnEncryptionSetting.UseConnectionSetting);
         loggerExternal.exiting(getClassNameLogging(), "prepareStatement", st);
         return st;
     }
 
-    /**
-     * Creates a <code>PreparedStatement</code> object that will generate <code>ResultSet</code> objects with the given type, concurrency, and
-     * holdability.
-     * <P>
-     * This method is the same as the <code>prepareStatement</code> method above, but it allows the default result set type, concurrency, and
-     * holdability to be overridden.
-     *
-     * @param sql
-     *            a <code>String</code> object that is the SQL statement to be sent to the database; may contain one or more '?' IN parameters
-     * @param nType
-     *            one of the following <code>ResultSet</code> constants: <code>ResultSet.TYPE_FORWARD_ONLY</code>,
-     *            <code>ResultSet.TYPE_SCROLL_INSENSITIVE</code>, or <code>ResultSet.TYPE_SCROLL_SENSITIVE</code>
-     * @param nConcur
-     *            one of the following <code>ResultSet</code> constants: <code>ResultSet.CONCUR_READ_ONLY</code> or
-     *            <code>ResultSet.CONCUR_UPDATABLE</code>
-     * @param resultSetHoldability
-     *            one of the following <code>ResultSet</code> constants: <code>ResultSet.HOLD_CURSORS_OVER_COMMIT</code> or
-     *            <code>ResultSet.CLOSE_CURSORS_AT_COMMIT</code>
-     * @param stmtColEncSetting
-     *            Specifies how data will be sent and received when reading and writing encrypted columns.
-     * @return a new <code>PreparedStatement</code> object, containing the pre-compiled SQL statement, that will generate <code>ResultSet</code>
-     *         objects with the given type, concurrency, and holdability
-     * @throws SQLServerException
-     *             if a database access error occurs, this method is called on a closed connection or the given parameters are not
-     *             <code>ResultSet</code> constants indicating type, concurrency, and holdability
-     */
+    @Override
     public PreparedStatement prepareStatement(java.lang.String sql,
             int nType,
             int nConcur,
             int resultSetHoldability,
             SQLServerStatementColumnEncryptionSetting stmtColEncSetting) throws SQLServerException {
-        loggerExternal.entering(getClassNameLogging(), "prepareStatement",
-                new Object[] {nType, nConcur, resultSetHoldability, stmtColEncSetting});
+        loggerExternal.entering(getClassNameLogging(), "prepareStatement", new Object[] {nType, nConcur, resultSetHoldability, stmtColEncSetting});
         checkClosed();
         checkValidHoldability(resultSetHoldability);
         checkMatchesCurrentHoldability(resultSetHoldability);
 
-        PreparedStatement st;
+        PreparedStatement st = new SQLServerPreparedStatement(this, sql, nType, nConcur, stmtColEncSetting);
 
-        // Make sure SQLServerPreparedStatement42 is used for 4.2 and above.
-        if (Util.use42Wrapper() || Util.use43Wrapper()) {
-            st = new SQLServerPreparedStatement42(this, sql, nType, nConcur, stmtColEncSetting);
-        }
-        else {
-            st = new SQLServerPreparedStatement(this, sql, nType, nConcur, stmtColEncSetting);
+        if (requestStarted) {
+            addOpenStatement(st);
         }
 
         loggerExternal.exiting(getClassNameLogging(), "prepareStatement", st);
         return st;
     }
 
-    /* L3 */ public CallableStatement prepareCall(String sql,
+    @Override
+    public CallableStatement prepareCall(String sql,
             int nType,
             int nConcur,
             int resultSetHoldability) throws SQLServerException {
-        loggerExternal.entering(getClassNameLogging(), "prepareStatement",
-                new Object[] {nType, nConcur, resultSetHoldability});
+        loggerExternal.entering(getClassNameLogging(), "prepareStatement", new Object[] {nType, nConcur, resultSetHoldability});
         CallableStatement st = prepareCall(sql, nType, nConcur, resultSetHoldability, SQLServerStatementColumnEncryptionSetting.UseConnectionSetting);
         loggerExternal.exiting(getClassNameLogging(), "prepareCall", st);
         return st;
     }
 
+    @Override
     public CallableStatement prepareCall(String sql,
             int nType,
             int nConcur,
             int resultSetHoldability,
             SQLServerStatementColumnEncryptionSetting stmtColEncSetiing) throws SQLServerException {
-        loggerExternal.entering(getClassNameLogging(), "prepareStatement",
-                new Object[] {nType, nConcur, resultSetHoldability, stmtColEncSetiing});
+        loggerExternal.entering(getClassNameLogging(), "prepareStatement", new Object[] {nType, nConcur, resultSetHoldability, stmtColEncSetiing});
         checkClosed();
         checkValidHoldability(resultSetHoldability);
         checkMatchesCurrentHoldability(resultSetHoldability);
 
-        CallableStatement st;
+        CallableStatement st = new SQLServerCallableStatement(this, sql, nType, nConcur, stmtColEncSetiing);
 
-        // Make sure SQLServerCallableStatement42 is used for 4.2 and above
-        if (Util.use42Wrapper() || Util.use43Wrapper()) {
-            st = new SQLServerCallableStatement42(this, sql, nType, nConcur, stmtColEncSetiing);
-        }
-        else {
-            st = new SQLServerCallableStatement(this, sql, nType, nConcur, stmtColEncSetiing);
+        if (requestStarted) {
+            addOpenStatement(st);
         }
 
         loggerExternal.exiting(getClassNameLogging(), "prepareCall", st);
@@ -4752,7 +4793,8 @@ public class SQLServerConnection implements ISQLServerConnection {
 
     /* JDBC 3.0 Auto generated keys */
 
-    /* L3 */ public PreparedStatement prepareStatement(String sql,
+    @Override
+    public PreparedStatement prepareStatement(String sql,
             int flag) throws SQLServerException {
         loggerExternal.entering(getClassNameLogging(), "prepareStatement", new Object[] {sql, flag});
 
@@ -4763,33 +4805,7 @@ public class SQLServerConnection implements ISQLServerConnection {
         return ps;
     }
 
-    /**
-     * Creates a default <code>PreparedStatement</code> object that has the capability to retrieve auto-generated keys. The given constant tells the
-     * driver whether it should make auto-generated keys available for retrieval. This parameter is ignored if the SQL statement is not an
-     * <code>INSERT</code> statement, or an SQL statement able to return auto-generated keys (the list of such statements is vendor-specific).
-     * <P>
-     * <B>Note:</B> This method is optimized for handling parametric SQL statements that benefit from precompilation. If the driver supports
-     * precompilation, the method <code>prepareStatement</code> will send the statement to the database for precompilation. Some drivers may not
-     * support precompilation. In this case, the statement may not be sent to the database until the <code>PreparedStatement</code> object is
-     * executed. This has no direct effect on users; however, it does affect which methods throw certain SQLExceptions.
-     * <P>
-     * Result sets created using the returned <code>PreparedStatement</code> object will by default be type <code>TYPE_FORWARD_ONLY</code> and have a
-     * concurrency level of <code>CONCUR_READ_ONLY</code>. The holdability of the created result sets can be determined by calling
-     * {@link #getHoldability}.
-     *
-     * @param sql
-     *            an SQL statement that may contain one or more '?' IN parameter placeholders
-     * @param flag
-     *            a flag indicating whether auto-generated keys should be returned; one of <code>Statement.RETURN_GENERATED_KEYS</code> or
-     *            <code>Statement.NO_GENERATED_KEYS</code>
-     * @param stmtColEncSetting
-     *            Specifies how data will be sent and received when reading and writing encrypted columns.
-     * @return a new <code>PreparedStatement</code> object, containing the pre-compiled SQL statement, that will have the capability of returning
-     *         auto-generated keys
-     * @throws SQLServerException
-     *             if a database access error occurs, this method is called on a closed connection or the given parameter is not a
-     *             <code>Statement</code> constant indicating whether auto-generated keys should be returned
-     */
+    @Override
     public PreparedStatement prepareStatement(String sql,
             int flag,
             SQLServerStatementColumnEncryptionSetting stmtColEncSetting) throws SQLServerException {
@@ -4802,7 +4818,8 @@ public class SQLServerConnection implements ISQLServerConnection {
         return ps;
     }
 
-    /* L3 */ public PreparedStatement prepareStatement(String sql,
+    @Override
+    public PreparedStatement prepareStatement(String sql,
             int[] columnIndexes) throws SQLServerException {
         loggerExternal.entering(getClassNameLogging(), "prepareStatement", new Object[] {sql, columnIndexes});
         SQLServerPreparedStatement ps = (SQLServerPreparedStatement) prepareStatement(sql, columnIndexes,
@@ -4812,35 +4829,7 @@ public class SQLServerConnection implements ISQLServerConnection {
         return ps;
     }
 
-    /**
-     * Creates a default <code>PreparedStatement</code> object capable of returning the auto-generated keys designated by the given array. This array
-     * contains the indexes of the columns in the target table that contain the auto-generated keys that should be made available. The driver will
-     * ignore the array if the SQL statement is not an <code>INSERT</code> statement, or an SQL statement able to return auto-generated keys (the list
-     * of such statements is vendor-specific).
-     * <p>
-     * An SQL statement with or without IN parameters can be pre-compiled and stored in a <code>PreparedStatement</code> object. This object can then
-     * be used to efficiently execute this statement multiple times.
-     * <P>
-     * <B>Note:</B> This method is optimized for handling parametric SQL statements that benefit from precompilation. If the driver supports
-     * precompilation, the method <code>prepareStatement</code> will send the statement to the database for precompilation. Some drivers may not
-     * support precompilation. In this case, the statement may not be sent to the database until the <code>PreparedStatement</code> object is
-     * executed. This has no direct effect on users; however, it does affect which methods throw certain SQLExceptions.
-     * <P>
-     * Result sets created using the returned <code>PreparedStatement</code> object will by default be type <code>TYPE_FORWARD_ONLY</code> and have a
-     * concurrency level of <code>CONCUR_READ_ONLY</code>. The holdability of the created result sets can be determined by calling
-     * {@link #getHoldability}.
-     *
-     * @param sql
-     *            an SQL statement that may contain one or more '?' IN parameter placeholders
-     * @param columnIndexes
-     *            an array of column indexes indicating the columns that should be returned from the inserted row or rows
-     * @param stmtColEncSetting
-     *            Specifies how data will be sent and received when reading and writing encrypted columns.
-     * @return a new <code>PreparedStatement</code> object, containing the pre-compiled statement, that is capable of returning the auto-generated
-     *         keys designated by the given array of column indexes
-     * @throws SQLServerException
-     *             if a database access error occurs or this method is called on a closed connection
-     */
+    @Override
     public PreparedStatement prepareStatement(String sql,
             int[] columnIndexes,
             SQLServerStatementColumnEncryptionSetting stmtColEncSetting) throws SQLServerException {
@@ -4857,7 +4846,8 @@ public class SQLServerConnection implements ISQLServerConnection {
         return ps;
     }
 
-    /* L3 */ public PreparedStatement prepareStatement(String sql,
+    @Override
+    public PreparedStatement prepareStatement(String sql,
             String[] columnNames) throws SQLServerException {
         loggerExternal.entering(getClassNameLogging(), "prepareStatement", new Object[] {sql, columnNames});
 
@@ -4868,35 +4858,7 @@ public class SQLServerConnection implements ISQLServerConnection {
         return ps;
     }
 
-    /**
-     * Creates a default <code>PreparedStatement</code> object capable of returning the auto-generated keys designated by the given array. This array
-     * contains the names of the columns in the target table that contain the auto-generated keys that should be returned. The driver will ignore the
-     * array if the SQL statement is not an <code>INSERT</code> statement, or an SQL statement able to return auto-generated keys (the list of such
-     * statements is vendor-specific).
-     * <P>
-     * An SQL statement with or without IN parameters can be pre-compiled and stored in a <code>PreparedStatement</code> object. This object can then
-     * be used to efficiently execute this statement multiple times.
-     * <P>
-     * <B>Note:</B> This method is optimized for handling parametric SQL statements that benefit from precompilation. If the driver supports
-     * precompilation, the method <code>prepareStatement</code> will send the statement to the database for precompilation. Some drivers may not
-     * support precompilation. In this case, the statement may not be sent to the database until the <code>PreparedStatement</code> object is
-     * executed. This has no direct effect on users; however, it does affect which methods throw certain SQLExceptions.
-     * <P>
-     * Result sets created using the returned <code>PreparedStatement</code> object will by default be type <code>TYPE_FORWARD_ONLY</code> and have a
-     * concurrency level of <code>CONCUR_READ_ONLY</code>. The holdability of the created result sets can be determined by calling
-     * {@link #getHoldability}.
-     *
-     * @param sql
-     *            an SQL statement that may contain one or more '?' IN parameter placeholders
-     * @param columnNames
-     *            an array of column names indicating the columns that should be returned from the inserted row or rows
-     * @param stmtColEncSetting
-     *            Specifies how data will be sent and received when reading and writing encrypted columns.
-     * @return a new <code>PreparedStatement</code> object, containing the pre-compiled statement, that is capable of returning the auto-generated
-     *         keys designated by the given array of column names
-     * @throws SQLServerException
-     *             if a database access error occurs or this method is called on a closed connection
-     */
+    @Override
     public PreparedStatement prepareStatement(String sql,
             String[] columnNames,
             SQLServerStatementColumnEncryptionSetting stmtColEncSetting) throws SQLServerException {
@@ -4914,9 +4876,10 @@ public class SQLServerConnection implements ISQLServerConnection {
 
     /* JDBC 3.0 Savepoints */
 
-    public void releaseSavepoint(Savepoint savepoint) throws SQLServerException {
+    @Override
+    public void releaseSavepoint(Savepoint savepoint) throws SQLException {
         loggerExternal.entering(getClassNameLogging(), "releaseSavepoint", savepoint);
-        NotImplemented();
+        SQLServerException.throwNotSupportedException(this, null);
     }
 
     final private Savepoint setNamedSavepoint(String sName) throws SQLServerException {
@@ -4939,7 +4902,8 @@ public class SQLServerConnection implements ISQLServerConnection {
         return s;
     }
 
-    /* L3 */ public Savepoint setSavepoint(String sName) throws SQLServerException {
+    @Override
+    public Savepoint setSavepoint(String sName) throws SQLServerException {
         loggerExternal.entering(getClassNameLogging(), "setSavepoint", sName);
         if (loggerExternal.isLoggable(Level.FINER) && Util.IsActivityTraceOn()) {
             loggerExternal.finer(toString() + " ActivityId: " + ActivityCorrelator.getNext().toString());
@@ -4950,7 +4914,8 @@ public class SQLServerConnection implements ISQLServerConnection {
         return pt;
     }
 
-    /* L3 */ public Savepoint setSavepoint() throws SQLServerException {
+    @Override
+    public Savepoint setSavepoint() throws SQLServerException {
         loggerExternal.entering(getClassNameLogging(), "setSavepoint");
         if (loggerExternal.isLoggable(Level.FINER) && Util.IsActivityTraceOn()) {
             loggerExternal.finer(toString() + " ActivityId: " + ActivityCorrelator.getNext().toString());
@@ -4961,7 +4926,8 @@ public class SQLServerConnection implements ISQLServerConnection {
         return pt;
     }
 
-    /* L3 */ public void rollback(Savepoint s) throws SQLServerException {
+    @Override
+    public void rollback(Savepoint s) throws SQLServerException {
         loggerExternal.entering(getClassNameLogging(), "rollback", s);
         if (loggerExternal.isLoggable(Level.FINER) && Util.IsActivityTraceOn()) {
             loggerExternal.finer(toString() + " ActivityId: " + ActivityCorrelator.getNext().toString());
@@ -4974,13 +4940,15 @@ public class SQLServerConnection implements ISQLServerConnection {
         loggerExternal.exiting(getClassNameLogging(), "rollback");
     }
 
-    /* L3 */ public int getHoldability() throws SQLServerException {
+    @Override
+    public int getHoldability() throws SQLServerException {
         loggerExternal.entering(getClassNameLogging(), "getHoldability");
         if (loggerExternal.isLoggable(Level.FINER))
             loggerExternal.exiting(getClassNameLogging(), "getHoldability", holdability);
         return holdability;
     }
 
+    @Override
     public void setHoldability(int holdability) throws SQLServerException {
         loggerExternal.entering(getClassNameLogging(), "setHoldability", holdability);
 
@@ -5003,6 +4971,7 @@ public class SQLServerConnection implements ISQLServerConnection {
         loggerExternal.exiting(getClassNameLogging(), "setHoldability");
     }
 
+    @Override
     public int getNetworkTimeout() throws SQLException {
         loggerExternal.entering(getClassNameLogging(), "getNetworkTimeout");
 
@@ -5020,6 +4989,7 @@ public class SQLServerConnection implements ISQLServerConnection {
         return timeout;
     }
 
+    @Override
     public void setNetworkTimeout(Executor executor,
             int timeout) throws SQLException {
         loggerExternal.entering(getClassNameLogging(), "setNetworkTimeout", timeout);
@@ -5031,7 +5001,7 @@ public class SQLServerConnection implements ISQLServerConnection {
         }
 
         checkClosed();
-        
+
         // check for setNetworkTimeout permission
         SecurityManager secMgr = System.getSecurityManager();
         if (secMgr != null) {
@@ -5056,6 +5026,7 @@ public class SQLServerConnection implements ISQLServerConnection {
         loggerExternal.exiting(getClassNameLogging(), "setNetworkTimeout");
     }
 
+    @Override
     public String getSchema() throws SQLException {
         loggerExternal.entering(getClassNameLogging(), "getSchema");
 
@@ -5095,6 +5066,7 @@ public class SQLServerConnection implements ISQLServerConnection {
         return null;
     }
 
+    @Override
     public void setSchema(String schema) throws SQLException {
         loggerExternal.entering(getClassNameLogging(), "setSchema", schema);
         checkClosed();
@@ -5103,61 +5075,58 @@ public class SQLServerConnection implements ISQLServerConnection {
         loggerExternal.exiting(getClassNameLogging(), "setSchema");
     }
 
-    /**
-     * Modifies the setting of the sendTimeAsDatetime connection property. When true, java.sql.Time values will be sent to the server as SQL
-     * Serverdatetime values. When false, java.sql.Time values will be sent to the server as SQL Servertime values. sendTimeAsDatetime can also be
-     * modified programmatically with SQLServerDataSource.setSendTimeAsDatetime. The default value for this property may change in a future release.
-     * 
-     * @param sendTimeAsDateTimeValue
-     *            enables/disables setting the sendTimeAsDatetime connection property. For more information about how the Microsoft JDBC Driver for
-     *            SQL Server configures java.sql.Time values before sending them to the server, see
-     *            <a href="https://msdn.microsoft.com/en-us/library/ff427224(v=sql.110).aspx">Configuring How java.sql.Time Values are Sent to the
-     *            Server</a>.
-     */
-    public synchronized void setSendTimeAsDatetime(boolean sendTimeAsDateTimeValue) {
+    @Override
+    public void setSendTimeAsDatetime(boolean sendTimeAsDateTimeValue) {
         sendTimeAsDatetime = sendTimeAsDateTimeValue;
     }
 
+    @Override
     public java.sql.Array createArrayOf(String typeName,
             Object[] elements) throws SQLException {
-        // Not implemented
-        throw new SQLFeatureNotSupportedException(SQLServerException.getErrString("R_notSupported"));
+        SQLServerException.throwNotSupportedException(this, null);
+        return null;
     }
 
-    public Blob createBlob() throws SQLException {
+    @Override
+    public java.sql.Blob createBlob() throws SQLException {
         checkClosed();
         return new SQLServerBlob(this);
     }
 
-    public Clob createClob() throws SQLException {
+    @Override
+    public java.sql.Clob createClob() throws SQLException {
         checkClosed();
         return new SQLServerClob(this);
     }
 
-    public NClob createNClob() throws SQLException {
+    @Override
+    public java.sql.NClob createNClob() throws SQLException {
         checkClosed();
         return new SQLServerNClob(this);
     }
 
+    @Override
     public SQLXML createSQLXML() throws SQLException {
         loggerExternal.entering(getClassNameLogging(), "createSQLXML");
-         SQLXML sqlxml = new SQLServerSQLXML(this);
+        SQLXML sqlxml = new SQLServerSQLXML(this);
 
         if (loggerExternal.isLoggable(Level.FINER))
             loggerExternal.exiting(getClassNameLogging(), "createSQLXML", sqlxml);
         return sqlxml;
     }
 
-    public Struct createStruct(String typeName,
+    @Override
+    public java.sql.Struct createStruct(String typeName,
             Object[] attributes) throws SQLException {
-        // Not implemented
-        throw new SQLFeatureNotSupportedException(SQLServerException.getErrString("R_notSupported"));
+        SQLServerException.throwNotSupportedException(this, null);
+        return null;
     }
 
     String getTrustedServerNameAE() throws SQLServerException {
         return trustedServerNameAE.toUpperCase();
     }
 
+    @Override
     public Properties getClientInfo() throws SQLException {
         loggerExternal.entering(getClassNameLogging(), "getClientInfo");
         checkClosed();
@@ -5166,6 +5135,7 @@ public class SQLServerConnection implements ISQLServerConnection {
         return p;
     }
 
+    @Override
     public String getClientInfo(String name) throws SQLException {
         loggerExternal.entering(getClassNameLogging(), "getClientInfo", name);
         checkClosed();
@@ -5173,6 +5143,7 @@ public class SQLServerConnection implements ISQLServerConnection {
         return null;
     }
 
+    @Override
     public void setClientInfo(Properties properties) throws SQLClientInfoException {
         loggerExternal.entering(getClassNameLogging(), "setClientInfo", properties);
         // This function is only marked as throwing only SQLClientInfoException so the conversion is necessary
@@ -5196,6 +5167,7 @@ public class SQLServerConnection implements ISQLServerConnection {
         loggerExternal.exiting(getClassNameLogging(), "setClientInfo");
     }
 
+    @Override
     public void setClientInfo(String name,
             String value) throws SQLClientInfoException {
         loggerExternal.entering(getClassNameLogging(), "setClientInfo", new Object[] {name, value});
@@ -5232,6 +5204,7 @@ public class SQLServerConnection implements ISQLServerConnection {
      * @throws SQLException
      *             if the value supplied for the timeout is less than 0.
      */
+	@Override
     public boolean isValid(int timeout) throws SQLException {
         boolean isValid = false;
 
@@ -5275,6 +5248,7 @@ public class SQLServerConnection implements ISQLServerConnection {
         return isValid;
     }
 
+    @Override
     public boolean isWrapperFor(Class<?> iface) throws SQLException {
         loggerExternal.entering(getClassNameLogging(), "isWrapperFor", iface);
         boolean f = iface.isInstance(this);
@@ -5282,6 +5256,7 @@ public class SQLServerConnection implements ISQLServerConnection {
         return f;
     }
 
+    @Override
     public <T> T unwrap(Class<T> iface) throws SQLException {
         loggerExternal.entering(getClassNameLogging(), "unwrap", iface);
         T t;
@@ -5297,14 +5272,91 @@ public class SQLServerConnection implements ISQLServerConnection {
         return t;
     }
 
-    public void beginRequest() throws SQLFeatureNotSupportedException {
-        DriverJDBCVersion.checkSupportsJDBC43();
-        throw new SQLFeatureNotSupportedException("beginRequest not implemented");
+    private boolean requestStarted = false;
+    private boolean originalDatabaseAutoCommitMode;
+    private int originalTransactionIsolationLevel;
+    private int originalNetworkTimeout;
+    private int originalHoldability;
+    private boolean originalSendTimeAsDatetime;
+    private int originalStatementPoolingCacheSize;
+    private boolean originalDisableStatementPooling;
+    private int originalServerPreparedStatementDiscardThreshold;
+    private Boolean originalEnablePrepareOnFirstPreparedStatementCall;
+    private String originalSCatalog;
+    private volatile SQLWarning originalSqlWarnings;
+    private List<Statement> openStatements;
+
+    protected void beginRequestInternal() throws SQLException {
+        loggerExternal.entering(getClassNameLogging(), "beginRequest", this);
+        synchronized (this) {
+            if (!requestStarted) {
+                originalDatabaseAutoCommitMode = databaseAutoCommitMode;
+                originalTransactionIsolationLevel = transactionIsolationLevel;
+                originalNetworkTimeout = getNetworkTimeout();
+                originalHoldability = holdability;
+                originalSendTimeAsDatetime = sendTimeAsDatetime;
+                originalStatementPoolingCacheSize = statementPoolingCacheSize;
+                originalDisableStatementPooling = disableStatementPooling;
+                originalServerPreparedStatementDiscardThreshold = getServerPreparedStatementDiscardThreshold();
+                originalEnablePrepareOnFirstPreparedStatementCall = getEnablePrepareOnFirstPreparedStatementCall();
+                originalSCatalog = sCatalog;
+                originalSqlWarnings = sqlWarnings;
+                openStatements = new LinkedList<Statement>();
+                requestStarted = true;
+            }
+        }
+        loggerExternal.exiting(getClassNameLogging(), "beginRequest", this);
     }
 
-    public void endRequest() throws SQLFeatureNotSupportedException {
-        DriverJDBCVersion.checkSupportsJDBC43();
-        throw new SQLFeatureNotSupportedException("endRequest not implemented");
+    protected void endRequestInternal() throws SQLException {
+        loggerExternal.entering(getClassNameLogging(), "endRequest", this);
+        synchronized (this) {
+            if (requestStarted) {
+                if (!databaseAutoCommitMode) {
+                    rollback();
+                }
+                if (databaseAutoCommitMode != originalDatabaseAutoCommitMode) {
+                    setAutoCommit(originalDatabaseAutoCommitMode);
+                }
+                if (transactionIsolationLevel != originalTransactionIsolationLevel) {
+                    setTransactionIsolation(originalTransactionIsolationLevel);
+                }
+                if (getNetworkTimeout() != originalNetworkTimeout) {
+                    setNetworkTimeout(null, originalNetworkTimeout);
+                }
+                if (holdability != originalHoldability) {
+                    setHoldability(originalHoldability);
+                }
+                if (sendTimeAsDatetime != originalSendTimeAsDatetime) {
+                    setSendTimeAsDatetime(originalSendTimeAsDatetime);
+                }
+                if (statementPoolingCacheSize != originalStatementPoolingCacheSize) {
+                    setStatementPoolingCacheSize(originalStatementPoolingCacheSize);
+                }
+                if (disableStatementPooling != originalDisableStatementPooling) {
+                    setDisableStatementPooling(originalDisableStatementPooling);
+                }
+                if (getServerPreparedStatementDiscardThreshold() != originalServerPreparedStatementDiscardThreshold) {
+                    setServerPreparedStatementDiscardThreshold(originalServerPreparedStatementDiscardThreshold);
+                }
+                if (getEnablePrepareOnFirstPreparedStatementCall() != originalEnablePrepareOnFirstPreparedStatementCall) {
+                    setEnablePrepareOnFirstPreparedStatementCall(originalEnablePrepareOnFirstPreparedStatementCall);
+                }
+                if (!sCatalog.equals(originalSCatalog)) {
+                    setCatalog(originalSCatalog);
+                }
+                sqlWarnings = originalSqlWarnings;
+                if (null != openStatements) {
+                    while (!openStatements.isEmpty()) {
+                        try (Statement st = openStatements.get(0)) {
+                        }
+                    }
+                    openStatements.clear();
+                }
+                requestStarted = false;
+            }
+        }
+        loggerExternal.exiting(getClassNameLogging(), "endRequest", this);
     }
 
     /**
@@ -5317,7 +5369,7 @@ public class SQLServerConnection implements ISQLServerConnection {
      */
     static final char[] OUT = {' ', 'O', 'U', 'T'};
 
-    /* L0 */ String replaceParameterMarkers(String sqlSrc,
+    String replaceParameterMarkers(String sqlSrc,
             int[] paramPositions,
             Parameter[] params,
             boolean isReturnValueSyntax) throws SQLServerException {
@@ -5369,7 +5421,7 @@ public class SQLServerConnection implements ISQLServerConnection {
      * @param offset
      * @return int
      */
-    /* L0 */ static int makeParamName(int nParam,
+    static int makeParamName(int nParam,
             char[] name,
             int offset) {
         name[offset + 0] = '@';
@@ -5507,8 +5559,7 @@ public class SQLServerConnection implements ISQLServerConnection {
                 datagramSocket.receive(udpResponse);
                 browserResult = new String(receiveBuffer, 3, receiveBuffer.length - 3);
                 if (connectionlogger.isLoggable(Level.FINER))
-                    connectionlogger.fine(
-                            toString() + " Received SSRP UDP response from IP address: " + udpResponse.getAddress().getHostAddress());
+                    connectionlogger.fine(toString() + " Received SSRP UDP response from IP address: " + udpResponse.getAddress().getHostAddress());
             }
             catch (IOException ioException) {
                 // Warn and retry
@@ -5542,7 +5593,7 @@ public class SQLServerConnection implements ISQLServerConnection {
         return browserResult.substring(p1, p2);
     }
 
-    /* L0 */ int getNextSavepointId() {
+    int getNextSavepointId() {
         nNextSavePointId++; // Make them unique for this connection
         return nNextSavePointId;
     }
@@ -5583,16 +5634,15 @@ public class SQLServerConnection implements ISQLServerConnection {
     static synchronized long getColumnEncryptionKeyCacheTtl() {
         return columnEncryptionKeyCacheTtl;
     }
-    
 
     /**
      * Enqueue a discarded prepared statement handle to be clean-up on the server.
      * 
      * @param statementHandle
-     *      The prepared statement handle that should be scheduled for unprepare.
+     *            The prepared statement handle that should be scheduled for unprepare.
      */
     final void enqueueUnprepareStatementHandle(PreparedStatementHandle statementHandle) {
-        if(null == statementHandle)
+        if (null == statementHandle)
             return;
 
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
@@ -5603,19 +5653,12 @@ public class SQLServerConnection implements ISQLServerConnection {
         this.discardedPreparedStatementHandleCount.incrementAndGet();
     }
 
-
-    /**
-     * Returns the number of currently outstanding prepared statement un-prepare actions.
-     * 
-     * @return Returns the current value per the description.
-     */
+    @Override
     public int getDiscardedServerPreparedStatementCount() {
         return this.discardedPreparedStatementHandleCount.get();
     }
 
-    /**
-     * Forces the un-prepare requests for any outstanding discarded prepared statements to be executed.
-     */
+    @Override
     public void closeUnreferencedPreparedStatementHandles() {
         this.unprepareUnreferencedPreparedStatementHandles(true);
     }
@@ -5628,43 +5671,20 @@ public class SQLServerConnection implements ISQLServerConnection {
         discardedPreparedStatementHandleCount.set(0);
     }
 
-    /**
-     * Returns the behavior for a specific connection instance. If false the first execution will call sp_executesql and not prepare 
-     * a statement, once the second execution happens it will call sp_prepexec and actually setup a prepared statement handle. Following
-     * executions will call sp_execute. This relieves the need for sp_unprepare on prepared statement close if the statement is only
-     * executed once. The default for this option can be changed by calling setDefaultEnablePrepareOnFirstPreparedStatementCall(). 
-     * 
-     * @return Returns the current setting per the description.
-     */
+    @Override
     public boolean getEnablePrepareOnFirstPreparedStatementCall() {
-        if(null == this.enablePrepareOnFirstPreparedStatementCall)
+        if (null == this.enablePrepareOnFirstPreparedStatementCall)
             return DEFAULT_ENABLE_PREPARE_ON_FIRST_PREPARED_STATEMENT_CALL;
         else
-            return this.enablePrepareOnFirstPreparedStatementCall;        
+            return this.enablePrepareOnFirstPreparedStatementCall;
     }
 
-    /**
-     * Specifies the behavior for a specific connection instance. If value is false the first execution will call sp_executesql and not prepare 
-     * a statement, once the second execution happens it will call sp_prepexec and actually setup a prepared statement handle. Following
-     * executions will call sp_execute. This relieves the need for sp_unprepare on prepared statement close if the statement is only
-     * executed once.  
-     * 
-     * @param value
-     *      Changes the setting per the description.
-     */
+    @Override
     public void setEnablePrepareOnFirstPreparedStatementCall(boolean value) {
         this.enablePrepareOnFirstPreparedStatementCall = value;
     }
 
-    /**
-     * Returns the behavior for a specific connection instance. This setting controls how many outstanding prepared statement discard actions
-     * (sp_unprepare) can be outstanding per connection before a call to clean-up the outstanding handles on the server is executed. If the setting is
-     * {@literal <=} 1, unprepare actions will be executed immedietely on prepared statement close. If it is set to {@literal >} 1, these calls
-     * will be batched together to avoid overhead of calling sp_unprepare too often. The default for this option can be changed by calling
-     * getDefaultServerPreparedStatementDiscardThreshold().
-     * 
-     * @return Returns the current setting per the description.
-     */
+    @Override
     public int getServerPreparedStatementDiscardThreshold() {
         if (0 > this.serverPreparedStatementDiscardThreshold)
             return DEFAULT_SERVER_PREPARED_STATEMENT_DISCARD_THRESHOLD;
@@ -5672,32 +5692,24 @@ public class SQLServerConnection implements ISQLServerConnection {
             return this.serverPreparedStatementDiscardThreshold;
     }
 
-    /**
-     * Specifies the behavior for a specific connection instance. This setting controls how many outstanding prepared statement discard actions
-     * (sp_unprepare) can be outstanding per connection before a call to clean-up the outstanding handles on the server is executed. If the setting is
-     * {@literal <=} 1 unprepare actions will be executed immedietely on prepared statement close. If it is set to {@literal >} 1 these calls will be
-     * batched together to avoid overhead of calling sp_unprepare too often.
-     * 
-     * @param value
-     *            Changes the setting per the description.
-     */
+    @Override
     public void setServerPreparedStatementDiscardThreshold(int value) {
         this.serverPreparedStatementDiscardThreshold = Math.max(0, value);
     }
 
     final boolean isPreparedStatementUnprepareBatchingEnabled() {
-    	return 1 < getServerPreparedStatementDiscardThreshold();
+        return 1 < getServerPreparedStatementDiscardThreshold();
     }
 
     /**
      * Cleans-up discarded prepared statement handles on the server using batched un-prepare actions if the batching threshold has been reached.
      * 
-     * @param force 
-     *      When force is set to true we ignore the current threshold for if the discard actions should run and run them anyway.
+     * @param force
+     *            When force is set to true we ignore the current threshold for if the discard actions should run and run them anyway.
      */
     final void unprepareUnreferencedPreparedStatementHandles(boolean force) {
         // Skip out if session is unavailable to adhere to previous non-batched behavior.
-        if (isSessionUnAvailable()) 
+        if (isSessionUnAvailable())
             return;
 
         final int threshold = getServerPreparedStatementDiscardThreshold();
@@ -5706,33 +5718,32 @@ public class SQLServerConnection implements ISQLServerConnection {
         if (force || threshold < getDiscardedServerPreparedStatementCount()) {
 
             // Create batch of sp_unprepare statements.
-            StringBuilder sql = new StringBuilder(threshold  * 32/*EXEC sp_cursorunprepare++;*/);
+            StringBuilder sql = new StringBuilder(threshold * 32/* EXEC sp_cursorunprepare++; */);
 
             // Build the string containing no more than the # of handles to remove.
-            // Note that sp_unprepare can fail if the statement is already removed. 
-            // However, the server will only abort that statement and continue with 
+            // Note that sp_unprepare can fail if the statement is already removed.
+            // However, the server will only abort that statement and continue with
             // the remaining clean-up.
             int handlesRemoved = 0;
             PreparedStatementHandle statementHandle = null;
 
-            while (null != (statementHandle = discardedPreparedStatementHandles.poll())){
+            while (null != (statementHandle = discardedPreparedStatementHandles.poll())) {
                 ++handlesRemoved;
-                
-                sql.append(statementHandle.isDirectSql() ? "EXEC sp_unprepare " : "EXEC sp_cursorunprepare ")
-                    .append(statementHandle.getHandle())
-                    .append(';');
+
+                sql.append(statementHandle.isDirectSql() ? "EXEC sp_unprepare " : "EXEC sp_cursorunprepare ").append(statementHandle.getHandle())
+                        .append(';');
             }
 
             try {
                 // Execute the batched set.
-                try(Statement stmt = this.createStatement()) {
+                try (Statement stmt = this.createStatement()) {
                     stmt.execute(sql.toString());
                 }
 
                 if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
                     loggerExternal.finer(this + ": Finished un-preparing handle count:" + handlesRemoved);
             }
-            catch(SQLException e) {
+            catch (SQLException e) {
                 if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
                     loggerExternal.log(Level.FINER, this + ": Error batch-closing at least one prepared handle", e);
             }
@@ -5742,61 +5753,38 @@ public class SQLServerConnection implements ISQLServerConnection {
         }
     }
 
-    /**
-     * Determine whether statement pooling is disabled.
-     * 
-     * @return true if statement pooling is disabled, false if it is enabled.
-     */
+    @Override
     public boolean getDisableStatementPooling() {
         return this.disableStatementPooling;
     }
 
-    /**
-     * Disable/enable statement pooling.
-     * 
-     * @param value true to disable statement pooling, false to enable it.
-     */
+    @Override
     public void setDisableStatementPooling(boolean value) {
         this.disableStatementPooling = value;
         if (!value && 0 < this.getStatementPoolingCacheSize()) {
             prepareCache();
         }
     }
-    
-    /**
-     * Returns the size of the prepared statement cache for this connection. A value less than 1 means no cache.
-     * @return Returns the current setting per the description.
-     */
+
+    @Override
     public int getStatementPoolingCacheSize() {
         return statementPoolingCacheSize;
-    }   
+    }
 
-    /**
-     * Returns the current number of pooled prepared statement handles.
-     * @return Returns the current setting per the description.
-     */
+    @Override
     public int getStatementHandleCacheEntryCount() {
-        if(!isStatementPoolingEnabled())
+        if (!isStatementPoolingEnabled())
             return 0;
         else
             return this.preparedStatementHandleCache.size();
     }
 
-    /**
-     * Whether statement pooling is enabled or not for this connection.
-     * @return Returns the current setting per the description.
-     */
+    @Override
     public boolean isStatementPoolingEnabled() {
         return null != preparedStatementHandleCache && 0 < this.getStatementPoolingCacheSize() && !this.getDisableStatementPooling();
     }
 
-    /**
-     * Specifies the size of the prepared statement cache for this connection. A value less than 1 means no cache.
-     * 
-     * @param value
-     *            The new cache size.
-     * 
-     */
+    @Override
     public void setStatementPoolingCacheSize(int value) {
         value = Math.max(0, value);
         statementPoolingCacheSize = value;
@@ -5813,6 +5801,7 @@ public class SQLServerConnection implements ISQLServerConnection {
 
     /**
      * Internal method to prepare the cache handle
+     * 
      * @param value
      */
     private void prepareCache() {
@@ -5827,7 +5816,7 @@ public class SQLServerConnection implements ISQLServerConnection {
     final SQLServerParameterMetaData getCachedParameterMetadata(CityHash128Key key) {
         if(!isStatementPoolingEnabled())
             return null;
-        
+
         return parameterMetadataCache.get(key);
     }
 
@@ -5835,7 +5824,7 @@ public class SQLServerConnection implements ISQLServerConnection {
     final void registerCachedParameterMetadata(CityHash128Key key, SQLServerParameterMetaData pmd) {
         if(!isStatementPoolingEnabled() || null == pmd)
             return;
-        
+
         parameterMetadataCache.put(key, pmd);
     }
 
@@ -5843,7 +5832,7 @@ public class SQLServerConnection implements ISQLServerConnection {
     final PreparedStatementHandle getCachedPreparedStatementHandle(CityHash128Key key) {
         if(!isStatementPoolingEnabled())
             return null;
-        
+
         return preparedStatementHandleCache.get(key);
     }
 
@@ -5851,7 +5840,7 @@ public class SQLServerConnection implements ISQLServerConnection {
     final PreparedStatementHandle registerCachedPreparedStatementHandle(CityHash128Key key, int handle, boolean isDirectSql) {
         if(!isStatementPoolingEnabled() || null == key)
             return null;
-        
+
         PreparedStatementHandle cacheItem = new PreparedStatementHandle(key, handle, isDirectSql, false);
         preparedStatementHandleCache.putIfAbsent(key, cacheItem);
         return cacheItem;
@@ -5867,10 +5856,10 @@ public class SQLServerConnection implements ISQLServerConnection {
 
     /** Force eviction of prepared statement handle cache entry. */
     final void evictCachedPreparedStatementHandle(PreparedStatementHandle handle) {
-    	if(null == handle || null == handle.getKey())
-    		return;
-    	
-    	preparedStatementHandleCache.remove(handle.getKey());
+        if (null == handle || null == handle.getKey())
+            return;
+
+        preparedStatementHandleCache.remove(handle.getKey());
     }
 
     // Handle closing handles when removed from cache.
@@ -5880,11 +5869,58 @@ public class SQLServerConnection implements ISQLServerConnection {
                 handle.setIsEvictedFromCache(true); // Mark as evicted from cache.
 
                 // Only discard if not referenced.
-                if(handle.tryDiscardHandle()) {
+                if (handle.tryDiscardHandle()) {
                     enqueueUnprepareStatementHandle(handle);
                     // Do not run discard actions here! Can interfere with executing statement.
-                }                    
+                }
             }
+        }
+    }
+
+    boolean isAzureDW() throws SQLServerException, SQLException {
+        if (null == isAzureDW) {
+            try (Statement stmt = this.createStatement(); ResultSet rs = stmt.executeQuery("SELECT CAST(SERVERPROPERTY('EngineEdition') as INT)");)
+            {
+                // SERVERPROPERTY('EngineEdition') can be used to determine whether the db server is SQL Azure. 
+                // It should return 6 for SQL Azure DW. This is more reliable than @@version or serverproperty('edition').
+                // Reference:  http://msdn.microsoft.com/en-us/library/ee336261.aspx
+                // 
+                // SERVERPROPERTY('EngineEdition') means 
+                // Database Engine edition of the instance of SQL Server installed on the server.
+                // 1 = Personal or Desktop Engine (Not available for SQL Server.)
+                // 2 = Standard (This is returned for Standard and Workgroup.) 
+                // 3 = Enterprise (This is returned for Enterprise, Enterprise Evaluation, and Developer.)
+                // 4 = Express (This is returned for Express, Express with Advanced Services, and Windows Embedded SQL.)
+                // 5 = SQL Azure
+                // 6 = SQL Azure DW
+                // Base data type: int
+                final int ENGINE_EDITION_FOR_SQL_AZURE_DW = 6;
+                rs.next();
+                isAzureDW = (rs.getInt(1) == ENGINE_EDITION_FOR_SQL_AZURE_DW) ? true : false;
+            }
+            return isAzureDW;
+        } else {
+            return isAzureDW;
+        }
+    }
+
+    /**
+     * @param st
+     *            Statement to add to openStatements
+     */
+    final synchronized void addOpenStatement(Statement st) {
+        if (null != openStatements) {
+            openStatements.add(st);
+        }
+    }
+
+    /**
+     * @param st
+     *            Statement to remove from openStatements
+     */
+    final synchronized void removeOpenStatement(Statement st) {
+        if (null != openStatements) {
+            openStatements.remove(st);
         }
     }
 }

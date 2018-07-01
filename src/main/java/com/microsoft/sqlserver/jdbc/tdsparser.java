@@ -102,7 +102,6 @@ final class TDSParser {
                 case TDS.TDS_FEDAUTHINFO:
                     parsing = tdsTokenHandler.onFedAuthInfo(tdsReader);
                     break;
-
                 case -1:
                     tdsReader.getCommand().onTokenEOF();
                     tdsTokenHandler.onEOF(tdsReader);
@@ -117,7 +116,7 @@ final class TDSParser {
 
         // if TDS_FEATURE_EXTENSION_ACK is not received verify if TDS_FEATURE_EXT_AE was sent
         if (isLoginAck && !isFeatureExtAck)
-            tdsReader.TryProcessFeatureExtAck(isFeatureExtAck);
+            tdsReader.tryProcessFeatureExtAck(isFeatureExtAck);
     }
 
     /* Handle unexpected tokens - throw an exception */

@@ -3,6 +3,22 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](http://keepachangelog.com/) 
 
+## [6.5.4] Preview Release
+### Added
+- Added new connection property "useBulkCopyForBatchInsert" to enable Bulk Copy API support for batch insert operation [#686](https://github.com/Microsoft/mssql-jdbc/pull/686)
+- Added implementation for Java 9 introduced Boundary methods APIs on Connection interface [#708](https://github.com/Microsoft/mssql-jdbc/pull/708)
+- Added support for "Data Classification Specifications" on fetched resultsets [#709](https://github.com/Microsoft/mssql-jdbc/pull/709)
+- Added support for UTF-8 feature extension [#722](https://github.com/Microsoft/mssql-jdbc/pull/722)
+
+### Fixed Issues
+- Fixed issue with escaping catalog name when retrieving from database metadata [#718](https://github.com/Microsoft/mssql-jdbc/pull/718)
+- Fixed issue with tests requiring additional dependencies [#729](https://github.com/Microsoft/mssql-jdbc/pull/729)
+
+### Changed
+- Made driver default compliant to JDBC 4.2 specifications [#711](https://github.com/Microsoft/mssql-jdbc/pull/711)
+- Updated ADAL4J dependency version to 1.6.0 [#711](https://github.com/Microsoft/mssql-jdbc/pull/711)
+- Cleaned up socket handling implementation to generalize functionality for different JVMs and simplified the logic for single address case [#663](https://github.com/Microsoft/mssql-jdbc/pull/663)
+
 ## [6.5.3] Preview Release
 ### Added
 - Added removed constructor back to AKV Provider which supports authentication with a customized method to fetch accessToken [#675](https://github.com/Microsoft/mssql-jdbc/pull/675)
@@ -35,7 +51,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/)
 
 ## [6.5.1] Preview Release
 ### Added
-- Test cases for Date, Time, and Datetime2 data types. [#558](https://github.com/Microsoft/mssql-jdbc/pull/558)
+- Test cases for Date, Time, and Datetime2 data types [#558](https://github.com/Microsoft/mssql-jdbc/pull/558)
 
 ### Fixed Issues
 - Fixed an issue where ResultSetMetadata returned incorrect columnType for Geometry and Geography data types [#657](https://github.com/Microsoft/mssql-jdbc/pull/657)
@@ -93,7 +109,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/)
 
 ## [6.3.4] Preview Release
 ### Added
-- Added new ThreadGroup creation to prevent IllegalThreadStateException if the underlying ThreadGroup has been destroyed. [#474](https://github.com/Microsoft/mssql-jdbc/pull/474)
+- Added new ThreadGroup creation to prevent IllegalThreadStateException if the underlying ThreadGroup has been destroyed [#474](https://github.com/Microsoft/mssql-jdbc/pull/474)
 - Added try-with-resources to JUnit tests [#520](https://github.com/Microsoft/mssql-jdbc/pull/520)
 
 ### Fixed Issues 

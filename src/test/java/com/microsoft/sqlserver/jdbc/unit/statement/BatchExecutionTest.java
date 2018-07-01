@@ -11,7 +11,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
-import java.sql.BatchUpdateException;
+import java.lang.reflect.Field;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
@@ -26,6 +26,7 @@ import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
 import org.opentest4j.TestAbortedException;
 
+import com.microsoft.sqlserver.jdbc.SQLServerConnection;
 import com.microsoft.sqlserver.jdbc.SQLServerStatement;
 import com.microsoft.sqlserver.jdbc.TestResource;
 import com.microsoft.sqlserver.testframework.AbstractTest;
@@ -54,6 +55,8 @@ public class BatchExecutionTest extends AbstractTest {
     public void testBatchExceptionAEOn() throws Exception {
         testAddBatch1();
         testExecuteBatch1();
+        testAddBatch1UseBulkCopyAPI();
+        testExecuteBatch1UseBulkCopyAPI();
     }
 
     /**
@@ -61,10 +64,107 @@ public class BatchExecutionTest extends AbstractTest {
      * array of Integer values of length 3
      */
     public void testAddBatch1() {
+        testAddBatch1Internal("BatchInsert");
+    }
+
+    public void testAddBatch1UseBulkCopyAPI() {
+        testAddBatch1Internal("BulkCopy");
+    }
+
+    /**
+     * Get a PreparedStatement object and call the addBatch() method with a 3 valid SQL statements and call the executeBatch() method It should return
+     * an array of Integer values of length 3.
+     */
+    public void testExecuteBatch1() {
+        testExecuteBatch1Internal("BatchInsert");
+    }
+    
+    public void testExecuteBatch1UseBulkCopyAPI() {
+        testExecuteBatch1Internal("BulkCopy");
+    }
+    
+    private void testExecuteBatch1Internal(String mode) {
         int i = 0;
         int retValue[] = {0, 0, 0};
-        try {
+        int updateCountlen = 0;
+        try (Connection connection = DriverManager.getConnection(connectionString + ";columnEncryptionSetting=Enabled;");){
             String sPrepStmt = "update ctstable2 set PRICE=PRICE*20 where TYPE_ID=?";
+
+            if (mode.equalsIgnoreCase("bulkcopy")) {
+                modifyConnectionForBulkCopyAPI((SQLServerConnection) connection);
+            }
+            
+            pstmt = connection.prepareStatement(sPrepStmt);
+            pstmt.setInt(1, 1);
+            pstmt.addBatch();
+
+            pstmt.setInt(1, 2);
+            pstmt.addBatch();
+
+            pstmt.setInt(1, 3);
+            pstmt.addBatch();
+
+            int[] updateCount = pstmt.executeBatch();
+            updateCountlen = updateCount.length;
+
+            assertTrue(updateCountlen == 3, TestResource.getResource("R_executeBatchFailed") + ": " + TestResource.getResource("R_incorrectUpdateCount"));
+
+            String sPrepStmt1 = "select count(*) from ctstable2 where TYPE_ID=?";
+
+            pstmt1 = connection.prepareStatement(sPrepStmt1);
+
+            for (int n = 1; n <= 3; n++) {
+                pstmt1.setInt(1, n);
+                rs = pstmt1.executeQuery();
+                rs.next();
+                retValue[i++] = rs.getInt(1);
+            }
+
+            pstmt1.close();
+
+            for (int j = 0; j < updateCount.length; j++) {
+                if (updateCount[j] != retValue[j] && updateCount[j] != Statement.SUCCESS_NO_INFO) {
+                    fail(TestResource.getResource("R_executeBatchFailed") + ": " + TestResource.getResource("R_incorrectUpdateCount"));
+                }
+            }
+        }
+        catch (Exception e) {
+            fail(TestResource.getResource("R_executeBatchFailed") + ": " + e.getMessage());
+        }
+    }
+
+    private static void createTable() throws SQLException {
+        String sql1 = "create table ctstable1 (TYPE_ID int, TYPE_DESC varchar(32), primary key(TYPE_ID)) ";
+        String sql2 = "create table ctstable2 (KEY_ID int,  COF_NAME varchar(32),  PRICE float, TYPE_ID int, primary key(KEY_ID), foreign key(TYPE_ID) references ctstable1) ";
+        stmt.execute(sql1);
+        stmt.execute(sql2);
+
+        String sqlin2 = "insert into ctstable1 values (1,'COFFEE-Desc')";
+        stmt.execute(sqlin2);
+        sqlin2 = "insert into ctstable1 values (2,'COFFEE-Desc2')";
+        stmt.execute(sqlin2);
+        sqlin2 = "insert into ctstable1 values (3,'COFFEE-Desc3')";
+        stmt.execute(sqlin2);
+
+        String sqlin1 = "insert into ctstable2 values (9,'COFFEE-9',9.0, 1)";
+        stmt.execute(sqlin1);
+        sqlin1 = "insert into ctstable2 values (10,'COFFEE-10',10.0, 2)";
+        stmt.execute(sqlin1);
+        sqlin1 = "insert into ctstable2 values (11,'COFFEE-11',11.0, 3)";
+        stmt.execute(sqlin1);
+
+    }
+    
+    private void testAddBatch1Internal(String mode) {
+        int i = 0;
+        int retValue[] = {0, 0, 0};
+        try (Connection connection = DriverManager.getConnection(connectionString + ";columnEncryptionSetting=Enabled;");){
+            String sPrepStmt = "update ctstable2 set PRICE=PRICE*20 where TYPE_ID=?";
+            
+            if (mode.equalsIgnoreCase("bulkcopy")) {
+                modifyConnectionForBulkCopyAPI((SQLServerConnection) connection);
+            }
+            
             pstmt = connection.prepareStatement(sPrepStmt);
             pstmt.setInt(1, 2);
             pstmt.addBatch();
@@ -101,93 +201,17 @@ public class BatchExecutionTest extends AbstractTest {
                 }
             }
         }
-        catch (BatchUpdateException b) {
-            fail(TestResource.getResource("R_addBatchFailed") + ": " + b.getMessage());
-        }
-        catch (SQLException sqle) {
-            fail(TestResource.getResource("R_addBatchFailed") + ": " + sqle.getMessage());
-        }
         catch (Exception e) {
             fail(TestResource.getResource("R_addBatchFailed") + ": " + e.getMessage());
         }
     }
-
-    /**
-     * Get a PreparedStatement object and call the addBatch() method with a 3 valid SQL statements and call the executeBatch() method It should return
-     * an array of Integer values of length 3.
-     */
-    public void testExecuteBatch1() {
-        int i = 0;
-        int retValue[] = {0, 0, 0};
-        int updateCountlen = 0;
-        try {
-            String sPrepStmt = "update ctstable2 set PRICE=PRICE*20 where TYPE_ID=?";
-
-            pstmt = connection.prepareStatement(sPrepStmt);
-            pstmt.setInt(1, 1);
-            pstmt.addBatch();
-
-            pstmt.setInt(1, 2);
-            pstmt.addBatch();
-
-            pstmt.setInt(1, 3);
-            pstmt.addBatch();
-
-            int[] updateCount = pstmt.executeBatch();
-            updateCountlen = updateCount.length;
-
-            assertTrue(updateCountlen == 3, TestResource.getResource("R_executeBatchFailed") + ": " + TestResource.getResource("R_incorrectUpdateCount"));
-
-            String sPrepStmt1 = "select count(*) from ctstable2 where TYPE_ID=?";
-
-            pstmt1 = connection.prepareStatement(sPrepStmt1);
-
-            for (int n = 1; n <= 3; n++) {
-                pstmt1.setInt(1, n);
-                rs = pstmt1.executeQuery();
-                rs.next();
-                retValue[i++] = rs.getInt(1);
-            }
-
-            pstmt1.close();
-
-            for (int j = 0; j < updateCount.length; j++) {
-                if (updateCount[j] != retValue[j] && updateCount[j] != Statement.SUCCESS_NO_INFO) {
-                    fail(TestResource.getResource("R_executeBatchFailed") + ": " + TestResource.getResource("R_incorrectUpdateCount"));
-                }
-            }
-        }
-        catch (BatchUpdateException b) {
-            fail(TestResource.getResource("R_executeBatchFailed") + ": " + b.getMessage());
-        }
-        catch (SQLException sqle) {
-            fail(TestResource.getResource("R_executeBatchFailed") + ": " + sqle.getMessage());
-        }
-        catch (Exception e) {
-            fail(TestResource.getResource("R_executeBatchFailed") + ": " + e.getMessage());
-        }
-    }
-
-    private static void createTable() throws SQLException {
-        String sql1 = "create table ctstable1 (TYPE_ID int, TYPE_DESC varchar(32), primary key(TYPE_ID)) ";
-        String sql2 = "create table ctstable2 (KEY_ID int,  COF_NAME varchar(32),  PRICE float, TYPE_ID int, primary key(KEY_ID), foreign key(TYPE_ID) references ctstable1) ";
-        stmt.execute(sql1);
-        stmt.execute(sql2);
-
-        String sqlin2 = "insert into ctstable1 values (1,'COFFEE-Desc')";
-        stmt.execute(sqlin2);
-        sqlin2 = "insert into ctstable1 values (2,'COFFEE-Desc2')";
-        stmt.execute(sqlin2);
-        sqlin2 = "insert into ctstable1 values (3,'COFFEE-Desc3')";
-        stmt.execute(sqlin2);
-
-        String sqlin1 = "insert into ctstable2 values (9,'COFFEE-9',9.0, 1)";
-        stmt.execute(sqlin1);
-        sqlin1 = "insert into ctstable2 values (10,'COFFEE-10',10.0, 2)";
-        stmt.execute(sqlin1);
-        sqlin1 = "insert into ctstable2 values (11,'COFFEE-11',11.0, 3)";
-        stmt.execute(sqlin1);
-
+    
+    private void modifyConnectionForBulkCopyAPI(SQLServerConnection con) throws Exception {
+        Field f1 = SQLServerConnection.class.getDeclaredField("isAzureDW");
+        f1.setAccessible(true);
+        f1.set(con, true);
+        
+        con.setUseBulkCopyForBatchInsert(true);
     }
 
     @BeforeAll

@@ -415,6 +415,10 @@ final class Parameter {
         // statement level), cryptoMeta would be null.
         return getterDTV.getValue(jdbcType, outScale, getterArgs, cal, typeInfo, cryptoMeta, tdsReader);
     }
+    
+    Object getSetterValue() {
+        return setterDTV.getSetterValue();
+    }
 
     int getInt(TDSReader tdsReader) throws SQLServerException {
         Integer value = (Integer) getValue(JDBCType.INTEGER, null, null, tdsReader);

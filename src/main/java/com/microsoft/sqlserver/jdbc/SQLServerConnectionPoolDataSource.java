@@ -21,10 +21,10 @@ import javax.sql.PooledConnection;
  * physical connections. For example, J2EE application servers that provide JDBC 3.0 API spec connection pooling.
  *
  */
-
 public class SQLServerConnectionPoolDataSource extends SQLServerDataSource implements ConnectionPoolDataSource {
     // Get a new physical connection that the pool manager will issue logical connections from
-    /* L0 */ public PooledConnection getPooledConnection() throws SQLException {
+    @Override
+    public PooledConnection getPooledConnection() throws SQLException {
         if (loggerExternal.isLoggable(Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "getPooledConnection");
         PooledConnection pcon = getPooledConnection(getUser(), getPassword());
@@ -33,7 +33,8 @@ public class SQLServerConnectionPoolDataSource extends SQLServerDataSource imple
         return pcon;
     }
 
-    /* L0 */ public PooledConnection getPooledConnection(String user,
+    @Override
+    public PooledConnection getPooledConnection(String user,
             String password) throws SQLException {
         if (loggerExternal.isLoggable(Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "getPooledConnection", new Object[] {user, "Password not traced"});
@@ -45,6 +46,7 @@ public class SQLServerConnectionPoolDataSource extends SQLServerDataSource imple
 
     // Implement javax.naming.Referenceable interface methods.
 
+    @Override
     public Reference getReference() {
         if (loggerExternal.isLoggable(Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "getReference");
@@ -82,5 +84,4 @@ public class SQLServerConnectionPoolDataSource extends SQLServerDataSource imple
             return ds;
         }
     }
-
 }

@@ -984,29 +984,7 @@ final class Util {
 
         return false;
     }
-
-    static final boolean use42Wrapper;
-
-    static {
-        boolean supportJDBC42 = true;
-        try {
-            DriverJDBCVersion.checkSupportsJDBC42();
-        }
-        catch (UnsupportedOperationException e) {
-            supportJDBC42 = false;
-        }
-
-        double jvmVersion = Double.parseDouble(Util.SYSTEM_SPEC_VERSION);
-
-        use42Wrapper = supportJDBC42 && (1.8 <= jvmVersion);
-    }
-
-    // if driver is for JDBC 42 and jvm version is 8 or higher, then always return as SQLServerPreparedStatement42,
-    // otherwise return SQLServerPreparedStatement
-    static boolean use42Wrapper() {
-        return use42Wrapper;
-    }
-
+    
     static final boolean use43Wrapper;
 
     static {
