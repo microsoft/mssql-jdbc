@@ -236,6 +236,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         userSQL = parsedSQL.processedSQL;
         userSQLParamPositions = parsedSQL.parameterPositions;
         initParams(userSQLParamPositions.length);
+        useBulkCopyForBatchInsert = conn.getUseBulkCopyForBatchInsert();
     }
 
     /**

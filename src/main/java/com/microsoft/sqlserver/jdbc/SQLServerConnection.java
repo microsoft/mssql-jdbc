@@ -129,6 +129,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
          * Always refresh SerialVersionUID when prompted
          */
         private static final long serialVersionUID = 166788428640603097L;
+        String unhashedString;
         private long[] segments;
         private int hashCode;
 
@@ -138,6 +139,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         }
 
         CityHash128Key(String s) {
+            unhashedString = s;
             byte[] bytes = new byte[s.length()];
             s.getBytes(0, s.length(), bytes, 0);
             segments = CityHash.cityHash128(bytes, 0, bytes.length);
@@ -147,7 +149,8 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             if (!(obj instanceof CityHash128Key))
                 return false;
 
-            return java.util.Arrays.equals(segments, ((CityHash128Key) obj).segments);
+            return (java.util.Arrays.equals(segments, ((CityHash128Key) obj).segments)//checks if hash is equal; && short circuits so if hashes aren't equal, string cmp won't be executed
+                    && this.unhashedString.equals(((CityHash128Key) obj).unhashedString));//checks if string is equal
         }
 
         public int hashCode() {
