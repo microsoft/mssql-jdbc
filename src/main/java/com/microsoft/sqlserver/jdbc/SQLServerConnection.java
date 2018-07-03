@@ -149,7 +149,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             if (!(obj instanceof CityHash128Key))
                 return false;
 
-            return (java.util.Arrays.equals(segments, ((CityHash128Key) obj).segments)//checks if hash is equal; && short circuits so if hashes aren't equal, string cmp won't be executed
+            return (java.util.Arrays.equals(segments, ((CityHash128Key) obj).segments)//checks if hash is equal, short-circuitting;
                     && this.unhashedString.equals(((CityHash128Key) obj).unhashedString));//checks if string is equal
         }
 
