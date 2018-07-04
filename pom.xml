@@ -140,18 +140,10 @@
 						<configuration>
 							<excludes>
 								<exclude>**/com/microsoft/sqlserver/jdbc/SQLServerJdbc43.java</exclude>
-								<exclude>**/module-info.java</exclude>
 							</excludes>
 							<source>1.8</source>
 							<target>1.8</target>
 						</configuration>
-						<dependencies>
-							<dependency>
-					            <groupId>org.ow2.asm</groupId>
-					            <artifactId>asm</artifactId>
-					            <version>6.2</version> <!-- Use newer version of ASM -->
-					        </dependency>
-				        </dependencies>
 					</plugin>
 					<plugin>
 						<groupId>org.apache.maven.plugins</groupId>
@@ -185,13 +177,6 @@
 							<source>10</source>
 							<target>10</target>
 						</configuration>
-						<dependencies>
-							<dependency>
-					            <groupId>org.ow2.asm</groupId>
-					            <artifactId>asm</artifactId>
-					            <version>6.2</version> <!-- Use newer version of ASM -->
-					        </dependency>
-				        </dependencies>
 					</plugin>
 					<plugin>
 						<groupId>org.apache.maven.plugins</groupId>
