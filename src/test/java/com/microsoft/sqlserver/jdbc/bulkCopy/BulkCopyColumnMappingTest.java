@@ -45,20 +45,20 @@ public class BulkCopyColumnMappingTest extends BulkCopyTestSetUp {
      * Create connection, statement and generate path of resource file
      */
     @BeforeAll
-    static void setUpConnection() {
+    public static void setUpConnection() {
         con = new DBConnection(connectionString);
         stmt = con.createStatement();
     }
 
     @AfterAll
-    static void closeConnection() throws SQLException {
+    public static void closeConnection() throws SQLException {
         stmt.close();
         con.close();
     }
 
     @Test
     @DisplayName("BulkCopy:test no explicit column mapping")
-    void testNoExplicitCM() {
+    public void testNoExplicitCM() {
 
         // create dest table
         DBTable destTable = sourceTable.cloneSchema();
@@ -72,7 +72,7 @@ public class BulkCopyColumnMappingTest extends BulkCopyTestSetUp {
 
     @Test
     @DisplayName("BulkCopy:test explicit column mapping")
-    void testExplicitCM() {
+    public void testExplicitCM() {
 
         // create dest table
         DBTable destTable = sourceTable.cloneSchema();
@@ -107,7 +107,7 @@ public class BulkCopyColumnMappingTest extends BulkCopyTestSetUp {
 
     @Test
     @DisplayName("BulkCopy:test unicode column mapping")
-    void testUnicodeCM() {
+    public void testUnicodeCM() {
 
         // create source unicode table
         DBTable sourceTableUnicode = new DBTable(true, true);
@@ -147,7 +147,7 @@ public class BulkCopyColumnMappingTest extends BulkCopyTestSetUp {
 
     @Test
     @DisplayName("BulkCopy:test repetative column mapping")
-    void testRepetativeCM() {
+    public void testRepetativeCM() {
 
         // create source table
         DBTable sourceTable1 = new DBTable(true);
@@ -207,7 +207,7 @@ public class BulkCopyColumnMappingTest extends BulkCopyTestSetUp {
 
     @Test
     @DisplayName("BulkCopy:test implicit mismatched column mapping")
-    void testImplicitMismatchCM() {
+    public void testImplicitMismatchCM() {
 
         // create non unicode dest table with different schema from source table
         DBTable destTable = new DBTable(true, false, true);
@@ -242,7 +242,7 @@ public class BulkCopyColumnMappingTest extends BulkCopyTestSetUp {
 
     @Test
     @DisplayName("BulkCopy:test invalid column mapping")
-    void testInvalidCM() {
+    public void testInvalidCM() {
 
         // create dest table
         DBTable destTable = sourceTable.cloneSchema();

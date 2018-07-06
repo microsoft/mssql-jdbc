@@ -37,7 +37,7 @@ public class BulkCopyTimeoutTest extends BulkCopyTestSetUp {
      */
     @Test
     @DisplayName("BulkCopy:test zero timeout")
-    void testZeroTimeOut() throws SQLException {
+    public void testZeroTimeOut() throws SQLException {
         testBulkCopyWithTimeout(0);
     }
 
@@ -48,7 +48,7 @@ public class BulkCopyTimeoutTest extends BulkCopyTestSetUp {
      */
     @Test
     @DisplayName("BulkCopy:test negative timeout")
-    void testNegativeTimeOut() throws SQLException {
+    public void testNegativeTimeOut() throws SQLException {
         assertThrows(SQLException.class, new org.junit.jupiter.api.function.Executable() {
             @Override
             public void execute() throws SQLException {

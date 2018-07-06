@@ -33,7 +33,7 @@ public class BulkCopyTestSetUp extends AbstractTest {
      * @throws SQLException 
      */
     @BeforeAll
-    static void setUpSourceTable() throws SQLException {
+    public static void setUpSourceTable() throws SQLException {
         try (DBConnection con = new DBConnection(connectionString);
         	 DBStatement stmt = con.createStatement();
         	 DBPreparedStatement pstmt = new DBPreparedStatement(con);) {
@@ -48,7 +48,7 @@ public class BulkCopyTestSetUp extends AbstractTest {
      * @throws SQLException 
      */
     @AfterAll
-    static void dropSourceTable() throws SQLException {
+    public static void dropSourceTable() throws SQLException {
         try (DBConnection con = new DBConnection(connectionString);
         	 DBStatement stmt = con.createStatement()) {
             stmt.dropTable(sourceTable);

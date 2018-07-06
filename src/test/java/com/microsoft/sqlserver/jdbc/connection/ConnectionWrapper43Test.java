@@ -58,7 +58,7 @@ public class ConnectionWrapper43Test extends AbstractTest {
     }
 
     @BeforeAll
-    private static void setupConnection() throws SQLException {
+    public static void setupConnection() throws SQLException {
         connection = DriverManager.getConnection(connectionString);
 
         DatabaseMetaData metadata = connection.getMetaData();
@@ -67,7 +67,7 @@ public class ConnectionWrapper43Test extends AbstractTest {
     }
 
     @AfterAll
-    private static void terminateVariation() throws SQLException {
+    public static void terminateVariation() throws SQLException {
         if (null != connection) {
             connection.close();
         }

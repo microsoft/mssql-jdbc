@@ -2229,7 +2229,7 @@ public class StatementTest extends AbstractTest {
         private final String triggerName = "[TCUpdateCountWithTriggersTrigger]";
 
         @BeforeEach
-        private void setup() throws Exception {
+        public void setup() throws Exception {
             Connection con = DriverManager.getConnection(connectionString);
             con.setAutoCommit(false);
             Statement stmt = con.createStatement();
@@ -2364,7 +2364,7 @@ public class StatementTest extends AbstractTest {
         private final String errorMessage50001InSqlAzure = "Error 50001, severity 17, state 1 was raised, but no message with that error number was found in sys.messages. If error is larger than 50000, make sure the user-defined message is added using sp_addmessage.";
 
         @BeforeEach
-        private void setup() throws Exception {
+        public void setup() throws Exception {
             Connection con = DriverManager.getConnection(connectionString);
             con.setAutoCommit(false);
             Statement stmt = con.createStatement();
@@ -2574,7 +2574,7 @@ public class StatementTest extends AbstractTest {
         private static final int NUM_ROWS = 3;
 
         @BeforeEach
-        private void setup() throws Exception {
+        public void setup() throws Exception {
             Connection con = DriverManager.getConnection(connectionString);
             con.setAutoCommit(false);
             Statement stmt = con.createStatement();

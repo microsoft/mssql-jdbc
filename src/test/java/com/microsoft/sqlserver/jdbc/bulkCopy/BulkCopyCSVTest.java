@@ -64,7 +64,7 @@ public class BulkCopyCSVTest extends AbstractTest {
      * Create connection, statement and generate path of resource file
      */
     @BeforeAll
-    static void setUpConnection() {
+    public static void setUpConnection() {
         con = new DBConnection(connectionString);
         stmt = con.createStatement();
         filePath = Utils.getCurrentClassPath();
@@ -75,7 +75,7 @@ public class BulkCopyCSVTest extends AbstractTest {
      */
     @Test
     @DisplayName("Test SQLServerBulkCSVFileRecord")
-    void testCSV() {
+    public void testCSV() {
         try (SQLServerBulkCSVFileRecord fileRecord = new SQLServerBulkCSVFileRecord(filePath + inputFile, encoding, delimiter, true)) {
             testBulkCopyCSV(fileRecord, true);
         }
@@ -89,7 +89,7 @@ public class BulkCopyCSVTest extends AbstractTest {
      */
     @Test
     @DisplayName("Test SQLServerBulkCSVFileRecord First line not being column name")
-    void testCSVFirstLineNotColumnName() {
+    public void testCSVFirstLineNotColumnName() {
         try (SQLServerBulkCSVFileRecord fileRecord = new SQLServerBulkCSVFileRecord(filePath + inputFileNoColumnName, encoding, delimiter, false)) {
             testBulkCopyCSV(fileRecord, false);
         }
@@ -105,7 +105,7 @@ public class BulkCopyCSVTest extends AbstractTest {
      */
     @Test
     @DisplayName("Test SQLServerBulkCSVFileRecord with passing file from url")
-    void testCSVFromURL() throws SQLException {
+    public void testCSVFromURL() throws SQLException {
         try (InputStream csvFileInputStream = new URL(
                     "https://raw.githubusercontent.com/Microsoft/mssql-jdbc/master/src/test/resources/BulkCopyCSVTestInput.csv").openStream();
             SQLServerBulkCSVFileRecord fileRecord = new SQLServerBulkCSVFileRecord(csvFileInputStream, encoding, delimiter, true)) {
@@ -223,7 +223,7 @@ public class BulkCopyCSVTest extends AbstractTest {
      * @throws SQLException
      */
     @AfterAll
-    static void tearConnection() throws SQLException {
+    public static void tearConnection() throws SQLException {
         stmt.close();
         con.close();
     }
