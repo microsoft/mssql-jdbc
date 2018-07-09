@@ -9,7 +9,7 @@ package com.microsoft.sqlserver.jdbc.bvt;
 
 import java.sql.SQLException;
 
-import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
 
@@ -25,11 +25,11 @@ import com.microsoft.sqlserver.testframework.DBTable;
 @RunWith(JUnitPlatform.class)
 public class bvtTestSetup extends AbstractTest {
 
-    static DBTable table1;
-    static DBTable table2;
+    DBTable table1;
+    DBTable table2;
 
-    @BeforeAll
-    public static void init() throws SQLException {
+    @BeforeEach
+    public void init() throws SQLException {
         try (DBConnection conn = new DBConnection(connectionString);
              DBStatement stmt = conn.createStatement()) {
             // create tables
