@@ -128,7 +128,7 @@ public class UTF8SupportTest extends AbstractTest {
 
     private static void createDatabaseWithUTF8Collation() throws SQLException {
         try (Statement stmt = connection.createStatement();) {
-            stmt.executeUpdate("CREATE DATABASE " + AbstractSQLGenerator.escapeIdentifier(databaseName) + " COLLATE Cyrillic_General_100_CS_AS_UTF8");
+            stmt.executeUpdate("CREATE DATABASE " + AbstractSQLGenerator.escapeIdentifier(databaseName) + " COLLATE Cyrillic_General_100_CS_AS_SC_UTF8");
         }
     }
 
