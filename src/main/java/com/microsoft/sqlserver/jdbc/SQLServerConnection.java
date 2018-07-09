@@ -264,12 +264,12 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     }
 
     /** Get prepared statement cache entry if exists, if not parse and create a new one */
-    static ParsedSQLCacheItem  getCachedParsedSQL(CityHash128Key key) {
+    static ParsedSQLCacheItem getCachedParsedSQL(CityHash128Key key) {
         return parsedSQLCache.get(key);
     }
 
     /** Parse and create a information about parsed SQL text */
-    static ParsedSQLCacheItem  parseAndCacheSQL(CityHash128Key key, String sql) throws SQLServerException {
+    static ParsedSQLCacheItem parseAndCacheSQL(CityHash128Key key, String sql) throws SQLServerException {
         JDBCSyntaxTranslator translator = new JDBCSyntaxTranslator();
 
         String parsedSql = translator.translate(sql);
@@ -277,7 +277,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         boolean returnValueSyntax = translator.hasReturnValueSyntax();
         int[] parameterPositions = locateParams(parsedSql);
 
-        ParsedSQLCacheItem  cacheItem = new ParsedSQLCacheItem (parsedSql, parameterPositions, procName, returnValueSyntax);
+        ParsedSQLCacheItem cacheItem = new ParsedSQLCacheItem(parsedSql, parameterPositions, procName, returnValueSyntax);
         parsedSQLCache.putIfAbsent(key, cacheItem);
         return cacheItem;
     }
@@ -304,7 +304,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
       *          SQL text to parse for positions of parameters to intialize.
       */
     private static int[] locateParams(String sql) {
-        List<Integer> parameterPositions = new ArrayList<Integer>(0);
+        LinkedList<Integer> parameterPositions = new LinkedList<>();
 
         // Locate the parameter placeholders in the SQL string.
         int offset = -1;
@@ -312,13 +312,8 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             parameterPositions.add(offset);
         }
 
-        // Convert to int[]
-        int[] result = new int[parameterPositions.size()];
-        int i = 0;
-        for (Integer parameterPosition : parameterPositions) {
-            result[i++] = parameterPosition;
-        }
-        return result;
+        // return as int[]
+        return parameterPositions.stream().mapToInt(Integer::valueOf).toArray();
     }
 
     SqlFedAuthToken getAuthenticationResult() {
@@ -5384,13 +5379,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
         int paramIndex = 0;
         while (true) {
-            int srcEnd;
-            if (paramIndex >= paramPositions.length) {
-                srcEnd = sqlSrc.length();
-            }
-            else {
-                srcEnd = paramPositions[paramIndex];
-            }
+            int srcEnd = (paramIndex >= paramPositions.length) ? sqlSrc.length() : paramPositions[paramIndex];
             sqlSrc.getChars(srcBegin, srcEnd, sqlDst, dstBegin);
             dstBegin += srcEnd - srcBegin;
 
