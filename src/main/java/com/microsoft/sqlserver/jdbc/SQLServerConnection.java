@@ -48,6 +48,8 @@ import java.util.logging.Level;
 import javax.sql.XAConnection;
 
 import org.ietf.jgss.GSSCredential;
+
+import mssql.googlecode.cityhash.CityHash;
 import mssql.googlecode.concurrentlinkedhashmap.ConcurrentLinkedHashMap;
 import mssql.googlecode.concurrentlinkedhashmap.ConcurrentLinkedHashMap.Builder;
 import mssql.googlecode.concurrentlinkedhashmap.EvictionListener;
