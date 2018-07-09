@@ -56,6 +56,7 @@ public class RequestBoundaryMethodsTest extends AbstractTest {
         int serverPreparedStatementDiscardThreshold1 = 10;
         boolean enablePrepareOnFirstPreparedStatementCall1 = false;
         String sCatalog1 = "master";
+        boolean useBulkCopyForBatchInsert1 = true;
 
         boolean autoCommitMode2 = false;
         int transactionIsolationLevel2 = SQLServerConnection.TRANSACTION_SERIALIZABLE;
@@ -67,6 +68,7 @@ public class RequestBoundaryMethodsTest extends AbstractTest {
         int serverPreparedStatementDiscardThreshold2 = 100;
         boolean enablePrepareOnFirstPreparedStatementCall2 = true;
         String sCatalog2 = RandomUtil.getIdentifier("RequestBoundaryDatabase");
+        boolean useBulkCopyForBatchInsert2 = false;
 
         try (SQLServerConnection con = connect()) {
             if (Utils.isJDBC43OrGreater(con)) {
@@ -76,45 +78,45 @@ public class RequestBoundaryMethodsTest extends AbstractTest {
                 // First set of values.
                 setConnectionFields(con, autoCommitMode1, transactionIsolationLevel1, networkTimeout1, holdability1, sendTimeAsDatetime1,
                         statementPoolingCacheSize1, disableStatementPooling1, serverPreparedStatementDiscardThreshold1,
-                        enablePrepareOnFirstPreparedStatementCall1, sCatalog1);
+                        enablePrepareOnFirstPreparedStatementCall1, sCatalog1, useBulkCopyForBatchInsert1);
                 con.beginRequest();
                 // Call setters with the second set of values inside beginRequest()/endRequest() block.
                 setConnectionFields(con, autoCommitMode2, transactionIsolationLevel2, networkTimeout2, holdability2, sendTimeAsDatetime2,
                         statementPoolingCacheSize2, disableStatementPooling2, serverPreparedStatementDiscardThreshold2,
-                        enablePrepareOnFirstPreparedStatementCall2, sCatalog2);
+                        enablePrepareOnFirstPreparedStatementCall2, sCatalog2, useBulkCopyForBatchInsert2);
                 con.endRequest();
                 // Test if endRequest() resets the SQLServerConnection properties back to the first set of values.
                 compareValuesAgainstConnection(con, autoCommitMode1, transactionIsolationLevel1, networkTimeout1, holdability1, sendTimeAsDatetime1,
                         statementPoolingCacheSize1, disableStatementPooling1, serverPreparedStatementDiscardThreshold1,
-                        enablePrepareOnFirstPreparedStatementCall1, sCatalog1);
+                        enablePrepareOnFirstPreparedStatementCall1, sCatalog1, useBulkCopyForBatchInsert1);
 
                 // Multiple calls to beginRequest() without an intervening call to endRequest() are no-op.
                 setConnectionFields(con, autoCommitMode2, transactionIsolationLevel2, networkTimeout2, holdability2, sendTimeAsDatetime2,
                         statementPoolingCacheSize2, disableStatementPooling2, serverPreparedStatementDiscardThreshold2,
-                        enablePrepareOnFirstPreparedStatementCall2, sCatalog2);
+                        enablePrepareOnFirstPreparedStatementCall2, sCatalog2, useBulkCopyForBatchInsert2);
                 con.beginRequest();
                 setConnectionFields(con, autoCommitMode1, transactionIsolationLevel1, networkTimeout1, holdability1, sendTimeAsDatetime1,
                         statementPoolingCacheSize1, disableStatementPooling1, serverPreparedStatementDiscardThreshold1,
-                        enablePrepareOnFirstPreparedStatementCall1, sCatalog1);
+                        enablePrepareOnFirstPreparedStatementCall1, sCatalog1, useBulkCopyForBatchInsert1);
                 con.beginRequest();
                 con.endRequest();
                 // Same values as before the first beginRequest()
                 compareValuesAgainstConnection(con, autoCommitMode2, transactionIsolationLevel2, networkTimeout2, holdability2, sendTimeAsDatetime2,
                         statementPoolingCacheSize2, disableStatementPooling2, serverPreparedStatementDiscardThreshold2,
-                        enablePrepareOnFirstPreparedStatementCall2, sCatalog2);
+                        enablePrepareOnFirstPreparedStatementCall2, sCatalog2, useBulkCopyForBatchInsert2);
 
                 // A call to endRequest() without an intervening call to beginRequest() is no-op.
                 setConnectionFields(con, autoCommitMode1, transactionIsolationLevel1, networkTimeout1, holdability1, sendTimeAsDatetime1,
                         statementPoolingCacheSize1, disableStatementPooling1, serverPreparedStatementDiscardThreshold1,
-                        enablePrepareOnFirstPreparedStatementCall1, sCatalog1);
+                        enablePrepareOnFirstPreparedStatementCall1, sCatalog1, useBulkCopyForBatchInsert1);
                 setConnectionFields(con, autoCommitMode2, transactionIsolationLevel2, networkTimeout2, holdability2, sendTimeAsDatetime2,
                         statementPoolingCacheSize2, disableStatementPooling2, serverPreparedStatementDiscardThreshold2,
-                        enablePrepareOnFirstPreparedStatementCall2, sCatalog2);
+                        enablePrepareOnFirstPreparedStatementCall2, sCatalog2, useBulkCopyForBatchInsert2);
                 con.endRequest();
                 // No change.
                 compareValuesAgainstConnection(con, autoCommitMode2, transactionIsolationLevel2, networkTimeout2, holdability2, sendTimeAsDatetime2,
                         statementPoolingCacheSize2, disableStatementPooling2, serverPreparedStatementDiscardThreshold2,
-                        enablePrepareOnFirstPreparedStatementCall2, sCatalog2);
+                        enablePrepareOnFirstPreparedStatementCall2, sCatalog2, useBulkCopyForBatchInsert2);
                 // drop the database
                 con.setCatalog("master");
                 Utils.dropDatabaseIfExists(sCatalog2, con.createStatement());
@@ -372,7 +374,8 @@ public class RequestBoundaryMethodsTest extends AbstractTest {
             boolean disableStatementPooling,
             int serverPreparedStatementDiscardThreshold,
             boolean enablePrepareOnFirstPreparedStatementCall,
-            String sCatalog) throws SQLException {
+            String sCatalog,
+            boolean useBulkCopyForBatchInsert) throws SQLException {
         con.setAutoCommit(autoCommitMode);
         con.setTransactionIsolation(transactionIsolationLevel);
         con.setNetworkTimeout(null, networkTimeout);
@@ -383,6 +386,7 @@ public class RequestBoundaryMethodsTest extends AbstractTest {
         con.setServerPreparedStatementDiscardThreshold(serverPreparedStatementDiscardThreshold);
         con.setEnablePrepareOnFirstPreparedStatementCall(enablePrepareOnFirstPreparedStatementCall);
         con.setCatalog(sCatalog);
+        con.setUseBulkCopyForBatchInsert(useBulkCopyForBatchInsert);
     }
 
     private void compareValuesAgainstConnection(SQLServerConnection con,
@@ -395,7 +399,8 @@ public class RequestBoundaryMethodsTest extends AbstractTest {
             boolean disableStatementPooling,
             int serverPreparedStatementDiscardThreshold,
             boolean enablePrepareOnFirstPreparedStatementCall,
-            String sCatalog) throws SQLException {
+            String sCatalog,
+            boolean useBulkCopyForBatchInsert) throws SQLException {
         final String description = " values do not match.";
         assertEquals(autoCommitMode, con.getAutoCommit(), "autoCommitmode" + description);
         assertEquals(transactionIsolationLevel, con.getTransactionIsolation(), "transactionIsolationLevel" + description);
@@ -409,6 +414,7 @@ public class RequestBoundaryMethodsTest extends AbstractTest {
         assertEquals(enablePrepareOnFirstPreparedStatementCall, con.getEnablePrepareOnFirstPreparedStatementCall(),
                 "enablePrepareOnFirstPreparedStatementCall" + description);
         assertEquals(sCatalog, con.getCatalog(), "sCatalog" + description);
+        assertEquals(useBulkCopyForBatchInsert, con.getUseBulkCopyForBatchInsert(), "useBulkCopyForBatchInsert" + description);
     }
 
     private void generateWarning(SQLServerConnection con) throws SQLException {

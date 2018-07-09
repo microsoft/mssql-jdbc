@@ -5281,6 +5281,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     private int originalServerPreparedStatementDiscardThreshold;
     private Boolean originalEnablePrepareOnFirstPreparedStatementCall;
     private String originalSCatalog;
+    private boolean originalUseBulkCopyForBatchInsert;
     private volatile SQLWarning originalSqlWarnings;
     private List<Statement> openStatements;
 
@@ -5298,6 +5299,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 originalServerPreparedStatementDiscardThreshold = getServerPreparedStatementDiscardThreshold();
                 originalEnablePrepareOnFirstPreparedStatementCall = getEnablePrepareOnFirstPreparedStatementCall();
                 originalSCatalog = sCatalog;
+                originalUseBulkCopyForBatchInsert = getUseBulkCopyForBatchInsert();
                 originalSqlWarnings = sqlWarnings;
                 openStatements = new LinkedList<Statement>();
                 requestStarted = true;
@@ -5342,6 +5344,9 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 }
                 if (!sCatalog.equals(originalSCatalog)) {
                     setCatalog(originalSCatalog);
+                }
+                if (getUseBulkCopyForBatchInsert() != originalUseBulkCopyForBatchInsert) {
+                    setUseBulkCopyForBatchInsert(originalUseBulkCopyForBatchInsert);
                 }
                 sqlWarnings = originalSqlWarnings;
                 if (null != openStatements) {
