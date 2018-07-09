@@ -14,13 +14,13 @@ package com.microsoft.sqlserver.jdbc;
 final class ParsedSQLCacheItem {
     /** The SQL text AFTER processing. */
     String processedSQL;
-    int parameterCount; 
+    int[] parameterPositions;
     String procedureName;
     boolean bReturnValueSyntax; 
     
-    ParsedSQLCacheItem(String processedSQL, int parameterCount, String procedureName, boolean bReturnValueSyntax) {
+    ParsedSQLCacheItem(String processedSQL, int[] parameterPositions, String procedureName, boolean bReturnValueSyntax) {
         this.processedSQL = processedSQL;
-        this.parameterCount = parameterCount;
+        this.parameterPositions = parameterPositions;
         this.procedureName = procedureName;
         this.bReturnValueSyntax = bReturnValueSyntax;
     }

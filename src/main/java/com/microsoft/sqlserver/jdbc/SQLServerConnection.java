@@ -29,6 +29,7 @@ import java.sql.SQLXML;
 import java.sql.Savepoint;
 import java.sql.Statement;
 import java.text.MessageFormat;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Enumeration;
 import java.util.HashMap;
@@ -122,42 +123,41 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     
     private Boolean isAzureDW = null;
 
-    static class Sha1HashKey implements java.io.Serializable {
+    static class CityHash128Key implements java.io.Serializable {
 
         /**
          * Always refresh SerialVersionUID when prompted
          */
         private static final long serialVersionUID = 166788428640603097L;
-        private byte[] bytes;
+        String unhashedString;
+        private long[] segments;
+        private int hashCode;
 
-        Sha1HashKey(String sql,
+        CityHash128Key(String sql,
                 String parametersDefinition) {
-            this(String.format("%s%s", sql, parametersDefinition));
+            this(sql + parametersDefinition);
         }
 
-        Sha1HashKey(String s) {
-            bytes = getSha1Digest().digest(s.getBytes());
+        CityHash128Key(String s) {
+            unhashedString = s;
+            byte[] bytes = new byte[s.length()];
+            s.getBytes(0, s.length(), bytes, 0);
+            segments = CityHash.cityHash128(bytes, 0, bytes.length);
         }
 
         public boolean equals(Object obj) {
-            if (!(obj instanceof Sha1HashKey))
+            if (!(obj instanceof CityHash128Key))
                 return false;
 
-            return java.util.Arrays.equals(bytes, ((Sha1HashKey) obj).bytes);
+            return (java.util.Arrays.equals(segments, ((CityHash128Key) obj).segments)//checks if hash is equal, short-circuitting;
+                    && this.unhashedString.equals(((CityHash128Key) obj).unhashedString));//checks if string is equal
         }
 
         public int hashCode() {
-            return java.util.Arrays.hashCode(bytes);
-        }
-
-        private java.security.MessageDigest getSha1Digest() {
-            try {
-                return java.security.MessageDigest.getInstance("SHA-1");
+            if (0 == hashCode) {
+                hashCode = java.util.Arrays.hashCode(segments);
             }
-            catch (final java.security.NoSuchAlgorithmException e) {
-                // This is not theoretically possible, but we're forced to catch it anyway
-                throw new RuntimeException(e);
-            }
+            return hashCode;
         }
     }
 
@@ -168,15 +168,12 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         private int handle = 0;
         private final AtomicInteger handleRefCount = new AtomicInteger();
         private boolean isDirectSql;
-        private volatile boolean evictedFromCache;
-        private volatile boolean explicitlyDiscarded;
-        private Sha1HashKey key;
+        private volatile boolean evictedFromCache; 
+        private volatile boolean explicitlyDiscarded; 
+        private CityHash128Key key;
 
-        PreparedStatementHandle(Sha1HashKey key,
-                int handle,
-                boolean isDirectSql,
-                boolean isEvictedFromCache) {
-            this.key = key;
+        PreparedStatementHandle(CityHash128Key key, int handle, boolean isDirectSql, boolean isEvictedFromCache) {
+        	this.key = key;
             this.handle = handle;
             this.isDirectSql = isDirectSql;
             this.setIsEvictedFromCache(isEvictedFromCache);
@@ -211,7 +208,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         }
 
         /** Get the cache key. */
-        Sha1HashKey getKey() {
+        CityHash128Key getKey() {
             return key;
         }
 
@@ -258,28 +255,29 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     static final private int PARSED_SQL_CACHE_SIZE = 100;
 
     /** Cache of parsed SQL meta data */
-    static private ConcurrentLinkedHashMap<Sha1HashKey, ParsedSQLCacheItem> parsedSQLCache;
+    static private ConcurrentLinkedHashMap<CityHash128Key, ParsedSQLCacheItem> parsedSQLCache;
 
     static {
-        parsedSQLCache = new Builder<Sha1HashKey, ParsedSQLCacheItem>().maximumWeightedCapacity(PARSED_SQL_CACHE_SIZE).build();
+        parsedSQLCache = new Builder<CityHash128Key, ParsedSQLCacheItem>()
+	        .maximumWeightedCapacity(PARSED_SQL_CACHE_SIZE)
+            .build();
     }
 
     /** Get prepared statement cache entry if exists, if not parse and create a new one */
-    static ParsedSQLCacheItem getCachedParsedSQL(Sha1HashKey key) {
+    static ParsedSQLCacheItem getCachedParsedSQL(CityHash128Key key) {
         return parsedSQLCache.get(key);
     }
 
     /** Parse and create a information about parsed SQL text */
-    static ParsedSQLCacheItem parseAndCacheSQL(Sha1HashKey key,
-            String sql) throws SQLServerException {
+    static ParsedSQLCacheItem parseAndCacheSQL(CityHash128Key key, String sql) throws SQLServerException {
         JDBCSyntaxTranslator translator = new JDBCSyntaxTranslator();
 
         String parsedSql = translator.translate(sql);
         String procName = translator.getProcedureName(); // may return null
         boolean returnValueSyntax = translator.hasReturnValueSyntax();
-        int paramCount = countParams(parsedSql);
+        int[] parameterPositions = locateParams(parsedSql);
 
-        ParsedSQLCacheItem cacheItem = new ParsedSQLCacheItem(parsedSql, paramCount, procName, returnValueSyntax);
+        ParsedSQLCacheItem cacheItem = new ParsedSQLCacheItem(parsedSql, parameterPositions, procName, returnValueSyntax);
         parsedSQLCache.putIfAbsent(key, cacheItem);
         return cacheItem;
     }
@@ -291,30 +289,31 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     private int statementPoolingCacheSize = DEFAULT_STATEMENT_POOLING_CACHE_SIZE;
 
     /** Cache of prepared statement handles */
-    private ConcurrentLinkedHashMap<Sha1HashKey, PreparedStatementHandle> preparedStatementHandleCache;
+    private ConcurrentLinkedHashMap<CityHash128Key, PreparedStatementHandle> preparedStatementHandleCache;
     /** Cache of prepared statement parameter metadata */
-    private ConcurrentLinkedHashMap<Sha1HashKey, SQLServerParameterMetaData> parameterMetadataCache;
+    private ConcurrentLinkedHashMap<CityHash128Key, SQLServerParameterMetaData> parameterMetadataCache;
     /**
      * Checks whether statement pooling is enabled or disabled. The default is set to true;
      */
     private boolean disableStatementPooling = true;
 
-    /**
-     * Find statement parameters.
-     * 
-     * @param sql
-     *            SQL text to parse for number of parameters to intialize.
-     */
-    private static int countParams(String sql) {
-        int nParams = 0;
+     /**
+      * Locate statement parameters.
+      * 
+      * @param sql
+      *          SQL text to parse for positions of parameters to intialize.
+      */
+    private static int[] locateParams(String sql) {
+        LinkedList<Integer> parameterPositions = new LinkedList<>();
 
-        // Figure out the expected number of parameters by counting the
-        // parameter placeholders in the SQL string.
+        // Locate the parameter placeholders in the SQL string.
         int offset = -1;
-        while ((offset = ParameterUtils.scanSQLForChar('?', sql, ++offset)) < sql.length())
-            ++nParams;
+        while ((offset = ParameterUtils.scanSQLForChar('?', sql, ++offset)) < sql.length()) {
+            parameterPositions.add(offset);
+        }
 
-        return nParams;
+        // return as int[]
+        return parameterPositions.stream().mapToInt(Integer::valueOf).toArray();
     }
 
     SqlFedAuthToken getAuthenticationResult() {
@@ -5369,6 +5368,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     static final char[] OUT = {' ', 'O', 'U', 'T'};
 
     String replaceParameterMarkers(String sqlSrc,
+            int[] paramPositions,
             Parameter[] params,
             boolean isReturnValueSyntax) throws SQLServerException {
         final int MAX_PARAM_NAME_LEN = 6;
@@ -5379,7 +5379,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
         int paramIndex = 0;
         while (true) {
-            int srcEnd = ParameterUtils.scanSQLForChar('?', sqlSrc, srcBegin);
+            int srcEnd = (paramIndex >= paramPositions.length) ? sqlSrc.length() : paramPositions[paramIndex];
             sqlSrc.getChars(srcBegin, srcEnd, sqlDst, dstBegin);
             dstBegin += srcEnd - srcBegin;
 
@@ -5797,43 +5797,40 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
      * @param value
      */
     private void prepareCache() {
-        preparedStatementHandleCache = new Builder<Sha1HashKey, PreparedStatementHandle>().maximumWeightedCapacity(getStatementPoolingCacheSize())
+        preparedStatementHandleCache = new Builder<CityHash128Key, PreparedStatementHandle>().maximumWeightedCapacity(getStatementPoolingCacheSize())
                 .listener(new PreparedStatementCacheEvictionListener()).build();
 
-        parameterMetadataCache = new Builder<Sha1HashKey, SQLServerParameterMetaData>().maximumWeightedCapacity(getStatementPoolingCacheSize())
+        parameterMetadataCache = new Builder<CityHash128Key, SQLServerParameterMetaData>().maximumWeightedCapacity(getStatementPoolingCacheSize())
                 .build();
     }
 
     /** Get a parameter metadata cache entry if statement pooling is enabled */
-    final SQLServerParameterMetaData getCachedParameterMetadata(Sha1HashKey key) {
-        if (!isStatementPoolingEnabled())
+    final SQLServerParameterMetaData getCachedParameterMetadata(CityHash128Key key) {
+        if(!isStatementPoolingEnabled())
             return null;
 
         return parameterMetadataCache.get(key);
     }
 
     /** Register a parameter metadata cache entry if statement pooling is enabled */
-    final void registerCachedParameterMetadata(Sha1HashKey key,
-            SQLServerParameterMetaData pmd) {
-        if (!isStatementPoolingEnabled() || null == pmd)
+    final void registerCachedParameterMetadata(CityHash128Key key, SQLServerParameterMetaData pmd) {
+        if(!isStatementPoolingEnabled() || null == pmd)
             return;
 
         parameterMetadataCache.put(key, pmd);
     }
 
     /** Get or create prepared statement handle cache entry if statement pooling is enabled */
-    final PreparedStatementHandle getCachedPreparedStatementHandle(Sha1HashKey key) {
-        if (!isStatementPoolingEnabled())
+    final PreparedStatementHandle getCachedPreparedStatementHandle(CityHash128Key key) {
+        if(!isStatementPoolingEnabled())
             return null;
 
         return preparedStatementHandleCache.get(key);
     }
 
     /** Get or create prepared statement handle cache entry if statement pooling is enabled */
-    final PreparedStatementHandle registerCachedPreparedStatementHandle(Sha1HashKey key,
-            int handle,
-            boolean isDirectSql) {
-        if (!isStatementPoolingEnabled() || null == key)
+    final PreparedStatementHandle registerCachedPreparedStatementHandle(CityHash128Key key, int handle, boolean isDirectSql) {
+        if(!isStatementPoolingEnabled() || null == key)
             return null;
 
         PreparedStatementHandle cacheItem = new PreparedStatementHandle(key, handle, isDirectSql, false);
@@ -5858,10 +5855,9 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     }
 
     // Handle closing handles when removed from cache.
-    final class PreparedStatementCacheEvictionListener implements EvictionListener<Sha1HashKey, PreparedStatementHandle> {
-        public void onEviction(Sha1HashKey key,
-                PreparedStatementHandle handle) {
-            if (null != handle) {
+    final class PreparedStatementCacheEvictionListener implements EvictionListener<CityHash128Key, PreparedStatementHandle> {
+        public void onEviction(CityHash128Key key, PreparedStatementHandle handle) {
+            if(null != handle) {
                 handle.setIsEvictedFromCache(true); // Mark as evicted from cache.
 
                 // Only discard if not referenced.

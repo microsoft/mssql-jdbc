@@ -391,8 +391,8 @@ final class Util {
                         if (null != name) {
                             if (logger.isLoggable(Level.FINE)) {
                                 if (false == name.equals(SQLServerDriverStringProperty.USER.toString())) {
-                                    if (!name.toLowerCase(Locale.ENGLISH).contains("password") &&
-                                        !name.toLowerCase(Locale.ENGLISH).contains("keystoresecret")) {
+                                    if (!name.toLowerCase(Locale.ENGLISH).contains("password")
+                                            && !name.toLowerCase(Locale.ENGLISH).contains("keystoresecret")) {
                                         logger.fine("Property:" + name + " Value:" + value);
                                     }
                                     else {
@@ -559,7 +559,7 @@ final class Util {
         outID.append(']');
         return outID.toString();
     }
-    
+
     /**
      * Checks if duplicate columns exists, in O(n) time.
      * 
@@ -570,7 +570,7 @@ final class Util {
      */
     static void checkDuplicateColumnName(String columnName,
             Set<String> columnNames) throws SQLServerException {
-        //columnList.add will return false if the same column name already exists
+        // columnList.add will return false if the same column name already exists
         if (!columnNames.add(columnName)) {
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_TVPDuplicateColumnName"));
             Object[] msgArgs = {columnName};
@@ -741,11 +741,11 @@ final class Util {
 
         long msb = 0L;
         for (int i = 0; i < 8; i++) {
-            msb = msb << 8 | ((long) inputGUID[i]  & 0xFFL);
+            msb = msb << 8 | ((long) inputGUID[i] & 0xFFL);
         }
         long lsb = 0L;
         for (int i = 8; i < 16; i++) {
-            lsb = lsb << 8 | ((long) inputGUID[i]  & 0xFFL);
+            lsb = lsb << 8 | ((long) inputGUID[i] & 0xFFL);
         }
         return new UUID(msb, lsb);
     }
@@ -1000,7 +1000,7 @@ final class Util {
 
         use43Wrapper = supportJDBC43 && (9 <= jvmVersion);
     }
-    
+
     // if driver is for JDBC 43 and jvm version is 9 or higher, then always return as SQLServerConnection43,
     // otherwise return SQLServerConnection
     static boolean use43Wrapper() {
