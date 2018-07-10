@@ -1,9 +1,6 @@
 /*
- * Microsoft JDBC Driver for SQL Server
- * 
- * Copyright(c) Microsoft Corporation All rights reserved.
- * 
- * This program is made available under the terms of the MIT License. See the LICENSE file in the project root for more information.
+ * Microsoft JDBC Driver for SQL Server Copyright(c) Microsoft Corporation All rights reserved. This program is made
+ * available under the terms of the MIT License. See the LICENSE file in the project root for more information.
  */
 
 package com.microsoft.sqlserver.jdbc;
@@ -11,9 +8,11 @@ package com.microsoft.sqlserver.jdbc;
 import java.text.MessageFormat;
 import java.util.logging.Level;
 
+
 /**
- * This class keeps the failover server info and if the mirror has become the primary. For synchronizing better and not to keep a lock in the class
- * through a connection open a placeholder class is used to get the failover info in one shot. This class should never directly expose its members.
+ * This class keeps the failover server info and if the mirror has become the primary. For synchronizing better and not
+ * to keep a lock in the class through a connection open a placeholder class is used to get the failover info in one
+ * shot. This class should never directly expose its members.
  */
 
 final class FailoverInfo {
@@ -30,19 +29,18 @@ final class FailoverInfo {
         return useFailoverPartner;
     }
 
-    FailoverInfo(String failover,
-            SQLServerConnection con,
-            boolean actualFailoverPartner) {
+    FailoverInfo(String failover, SQLServerConnection con, boolean actualFailoverPartner) {
         failoverPartner = failover;
         useFailoverPartner = actualFailoverPartner;
-        portNumber = -1; // init to -1 to make sure that the user of this class calls the failover check before getting the port number.
+        portNumber = -1; // init to -1 to make sure that the user of this class calls the failover check before getting
+                         // the port number.
     }
 
     // the members of this class are not exposed so inorder to log we call this function.
     void log(SQLServerConnection con) {
         if (con.getConnectionLogger().isLoggable(Level.FINE))
-            con.getConnectionLogger()
-                    .fine(con.toString() + " Failover server :" + failoverPartner + " Failover partner is primary : " + useFailoverPartner);
+            con.getConnectionLogger().fine(con.toString() + " Failover server :" + failoverPartner
+                    + " Failover partner is primary : " + useFailoverPartner);
     }
 
     // this function gets the failover server port and sets up the security manager
@@ -53,8 +51,7 @@ final class FailoverInfo {
 
         if (0 == failoverPartner.length()) {
             portNumber = SQLServerConnection.DEFAULTPORT;
-        }
-        else {
+        } else {
             // 3.3006 get the instance name
             int px = failoverPartner.indexOf('\\');
             String instancePort;
@@ -72,15 +69,13 @@ final class FailoverInfo {
 
                 try {
                     portNumber = Integer.parseInt(instancePort);
-                }
-                catch (NumberFormatException e) {
+                } catch (NumberFormatException e) {
                     // Should not get here as the server should give a proper port number anyway.
                     MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidPortNumber"));
                     Object[] msgArgs = {instancePort};
                     SQLServerException.makeFromDriverError(con, null, form.format(msgArgs), null, false);
                 }
-            }
-            else
+            } else
                 portNumber = SQLServerConnection.DEFAULTPORT;
         }
         setUpInfocalled = true;
@@ -93,12 +88,12 @@ final class FailoverInfo {
     }
 
     // Add/replace the failover server,
-    synchronized void failoverAdd(SQLServerConnection connection,
-            boolean actualUseFailoverPartner,
+    synchronized void failoverAdd(SQLServerConnection connection, boolean actualUseFailoverPartner,
             String actualFailoverPartner) throws SQLServerException {
         if (useFailoverPartner != actualUseFailoverPartner) {
             if (connection.getConnectionLogger().isLoggable(Level.FINE))
-                connection.getConnectionLogger().fine(connection.toString() + " Failover detected. failover partner=" + actualFailoverPartner);
+                connection.getConnectionLogger()
+                        .fine(connection.toString() + " Failover detected. failover partner=" + actualFailoverPartner);
             useFailoverPartner = actualUseFailoverPartner;
         }
         // The checking for actualUseFailoverPartner may look weird but this is required
@@ -113,6 +108,7 @@ final class FailoverInfo {
     }
 }
 
+
 // A simple readonly placeholder class to store the current server info.
 // We need this class so during a connection open we can keep a copy of the current failover info stable
 // This is also used to keep the standalone primary server connection information.
@@ -124,10 +120,7 @@ final class ServerPortPlaceHolder {
     private final boolean checkLink;
     private final SQLServerConnectionSecurityManager securityManager;
 
-    ServerPortPlaceHolder(String name,
-            int conPort,
-            String instance,
-            boolean fLink) {
+    ServerPortPlaceHolder(String name, int conPort, String instance, boolean fLink) {
         serverName = name;
         port = conPort;
         instanceName = instance;

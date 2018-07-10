@@ -1,9 +1,6 @@
 /*
- * Microsoft JDBC Driver for SQL Server
- * 
- * Copyright(c) Microsoft Corporation All rights reserved.
- * 
- * This program is made available under the terms of the MIT License. See the LICENSE file in the project root for more information.
+ * Microsoft JDBC Driver for SQL Server Copyright(c) Microsoft Corporation All rights reserved. This program is made
+ * available under the terms of the MIT License. See the LICENSE file in the project root for more information.
  */
 
 package com.microsoft.sqlserver.testframework;
@@ -25,6 +22,7 @@ import java.util.logging.Logger;
 
 import com.microsoft.sqlserver.testframework.Utils.DBBinaryStream;
 import com.microsoft.sqlserver.testframework.Utils.DBCharacterStream;
+
 
 /**
  * wrapper class for ResultSet
@@ -51,27 +49,23 @@ public class DBResultSet extends AbstractParentWrapper implements AutoCloseable 
     public static final int TYPE_DIRECT_FORWARDONLY = ResultSet.TYPE_FORWARD_ONLY + 1000;
 
     protected DBTable currentTable;
-    public int _currentrow = -1;       // The row this rowset is currently pointing to
+    public int _currentrow = -1; // The row this rowset is currently pointing to
 
     ResultSet resultSet = null;
     DBResultSetMetaData metaData;
 
-    DBResultSet(DBStatement dbstatement,
-            ResultSet internal) {
+    DBResultSet(DBStatement dbstatement, ResultSet internal) {
         super(dbstatement, internal, "resultSet");
         resultSet = internal;
     }
 
-    DBResultSet(DBStatement dbstatement,
-            ResultSet internal,
-            DBTable table) {
+    DBResultSet(DBStatement dbstatement, ResultSet internal, DBTable table) {
         super(dbstatement, internal, "resultSet");
         resultSet = internal;
         currentTable = table;
     }
 
-    DBResultSet(DBPreparedStatement dbpstmt,
-            ResultSet internal) {
+    DBResultSet(DBPreparedStatement dbpstmt, ResultSet internal) {
         super(dbpstmt, internal, "resultSet");
         resultSet = internal;
     }
@@ -201,8 +195,7 @@ public class DBResultSet extends AbstractParentWrapper implements AutoCloseable 
      * @throws SQLException
      * @throws Exception
      */
-    public void verifydata(int ordinal,
-            Class coercion) throws SQLException {
+    public void verifydata(int ordinal, Class coercion) throws SQLException {
         Object expectedData = currentTable.columns.get(ordinal).getRowValue(_currentrow);
 
         // getXXX - default mapping
@@ -221,26 +214,26 @@ public class DBResultSet extends AbstractParentWrapper implements AutoCloseable 
      * @param retrieved
      * @throws SQLException
      */
-    public void verifydata(int ordinal,
-            Class coercion,
-            Object expectedData,
-            Object retrieved) throws SQLException {
+    public void verifydata(int ordinal, Class coercion, Object expectedData, Object retrieved) throws SQLException {
         metaData = this.getMetaData();
         switch (metaData.getColumnType(ordinal + 1)) {
             case java.sql.Types.BIGINT:
                 assertTrue((((Long) expectedData).longValue() == ((Long) retrieved).longValue()),
-                        "Unexpected bigint value, expected: " + (Long) expectedData + " .Retrieved: " + (Long) retrieved);
+                        "Unexpected bigint value, expected: " + (Long) expectedData + " .Retrieved: "
+                                + (Long) retrieved);
                 break;
 
             case java.sql.Types.INTEGER:
-                assertTrue((((Integer) expectedData).intValue() == ((Integer) retrieved).intValue()), "Unexpected int value, expected : "
-                        + (Integer) expectedData + " ,received: " + (Integer) retrieved);
+                assertTrue((((Integer) expectedData).intValue() == ((Integer) retrieved).intValue()),
+                        "Unexpected int value, expected : " + (Integer) expectedData + " ,received: "
+                                + (Integer) retrieved);
                 break;
 
             case java.sql.Types.SMALLINT:
             case java.sql.Types.TINYINT:
-                assertTrue((((Short) expectedData).shortValue() == ((Short) retrieved).shortValue()), "Unexpected smallint/tinyint value, expected: "
-                        + " " + (Short) expectedData + " received: " + (Short) retrieved);
+                assertTrue((((Short) expectedData).shortValue() == ((Short) retrieved).shortValue()),
+                        "Unexpected smallint/tinyint value, expected: " + " " + (Short) expectedData + " received: "
+                                + (Short) retrieved);
                 break;
 
             case java.sql.Types.BIT:
@@ -248,19 +241,22 @@ public class DBResultSet extends AbstractParentWrapper implements AutoCloseable 
                     expectedData = true;
                 else
                     expectedData = false;
-                assertTrue((((Boolean) expectedData).booleanValue() == ((Boolean) retrieved).booleanValue()), "Unexpected bit value, expected: "
-                        + (Boolean) expectedData + " ,received: " + (Boolean) retrieved);
+                assertTrue((((Boolean) expectedData).booleanValue() == ((Boolean) retrieved).booleanValue()),
+                        "Unexpected bit value, expected: " + (Boolean) expectedData + " ,received: "
+                                + (Boolean) retrieved);
                 break;
 
             case java.sql.Types.DECIMAL:
             case java.sql.Types.NUMERIC:
-                assertTrue(0 == (((BigDecimal) expectedData).compareTo((BigDecimal) retrieved)), "Unexpected decimal/numeric/money/smallmoney value "
-                        + ",expected: " + (BigDecimal) expectedData + " received: " + (BigDecimal) retrieved);
+                assertTrue(0 == (((BigDecimal) expectedData).compareTo((BigDecimal) retrieved)),
+                        "Unexpected decimal/numeric/money/smallmoney value " + ",expected: " + (BigDecimal) expectedData
+                                + " received: " + (BigDecimal) retrieved);
                 break;
 
             case java.sql.Types.DOUBLE:
-                assertTrue((((Double) expectedData).doubleValue() == ((Double) retrieved).doubleValue()), "Unexpected float value, expected: "
-                        + (Double) expectedData + " received: " + (Double) retrieved);
+                assertTrue((((Double) expectedData).doubleValue() == ((Double) retrieved).doubleValue()),
+                        "Unexpected float value, expected: " + (Double) expectedData + " received: "
+                                + (Double) retrieved);
                 break;
 
             case java.sql.Types.REAL:
@@ -273,37 +269,42 @@ public class DBResultSet extends AbstractParentWrapper implements AutoCloseable 
 
             case java.sql.Types.VARCHAR:
             case java.sql.Types.NVARCHAR:
-                assertTrue((((String) expectedData).trim().equalsIgnoreCase(((String) retrieved).trim())), "Unexpected varchar/nvarchar value, "
-                        + "expected:  " + ((String) expectedData).trim() + " ,received: " + ((String) retrieved).trim());
+                assertTrue((((String) expectedData).trim().equalsIgnoreCase(((String) retrieved).trim())),
+                        "Unexpected varchar/nvarchar value, " + "expected:  " + ((String) expectedData).trim()
+                                + " ,received: " + ((String) retrieved).trim());
                 break;
             case java.sql.Types.CHAR:
             case java.sql.Types.NCHAR:
 
-                assertTrue((((String) expectedData).trim().equalsIgnoreCase(((String) retrieved).trim())), "Unexpected char/nchar value, "
-                        + "expected:  " + ((String) expectedData).trim() + " ,received: " + ((String) retrieved).trim());
+                assertTrue((((String) expectedData).trim().equalsIgnoreCase(((String) retrieved).trim())),
+                        "Unexpected char/nchar value, " + "expected:  " + ((String) expectedData).trim()
+                                + " ,received: " + ((String) retrieved).trim());
                 break;
 
             case java.sql.Types.TIMESTAMP:
                 if (metaData.getColumnTypeName(ordinal + 1).equalsIgnoreCase("datetime")) {
-                    assertTrue((((Timestamp) roundDatetimeValue(expectedData)).getTime() == (((Timestamp) retrieved).getTime())),
-                            "Unexpected datetime value, expected: " + ((Timestamp) roundDatetimeValue(expectedData)).getTime() + " , received: "
+                    assertTrue(
+                            (((Timestamp) roundDatetimeValue(expectedData))
+                                    .getTime() == (((Timestamp) retrieved).getTime())),
+                            "Unexpected datetime value, expected: "
+                                    + ((Timestamp) roundDatetimeValue(expectedData)).getTime() + " , received: "
                                     + (((Timestamp) retrieved).getTime()));
                     break;
-                }
-                else if (metaData.getColumnTypeName(ordinal + 1).equalsIgnoreCase("smalldatetime")) {
-                    assertTrue((((Timestamp) roundSmallDateTimeValue(expectedData)).getTime() == (((Timestamp) retrieved).getTime())),
-                            "Unexpected smalldatetime value, expected: " + ((Timestamp) roundSmallDateTimeValue(expectedData)).getTime()
-                                    + " ,received: " + (((Timestamp) retrieved).getTime()));
+                } else if (metaData.getColumnTypeName(ordinal + 1).equalsIgnoreCase("smalldatetime")) {
+                    assertTrue(
+                            (((Timestamp) roundSmallDateTimeValue(expectedData))
+                                    .getTime() == (((Timestamp) retrieved).getTime())),
+                            "Unexpected smalldatetime value, expected: "
+                                    + ((Timestamp) roundSmallDateTimeValue(expectedData)).getTime() + " ,received: "
+                                    + (((Timestamp) retrieved).getTime()));
+                    break;
+                } else {
+                    String retrievedTimestamp = retrieved.toString();
+                    String expectedTimestamp = expectedData.toString().substring(0, retrievedTimestamp.length());
+                    assertTrue(expectedTimestamp.equalsIgnoreCase(retrievedTimestamp), "Unexpected datetime2 value, "
+                            + "expected: " + expectedTimestamp + " ,received: " + retrievedTimestamp);
                     break;
                 }
-                else {
-                    String retrievedTimestamp = retrieved.toString();
-                    String expectedTimestamp = expectedData.toString().substring(0,retrievedTimestamp.length());
-                    assertTrue(expectedTimestamp.equalsIgnoreCase(retrievedTimestamp), "Unexpected datetime2 value, " + "expected: "
-                            + expectedTimestamp + " ,received: " + retrievedTimestamp);
-             break;
-                }
-
 
             case java.sql.Types.DATE:
                 assertTrue((("" + expectedData).equalsIgnoreCase("" + retrieved)),
@@ -312,7 +313,7 @@ public class DBResultSet extends AbstractParentWrapper implements AutoCloseable 
 
             case java.sql.Types.TIME:
                 String retrievedTime = retrieved.toString();
-                String expectedTime = expectedData.toString().substring(0,retrievedTime.length());
+                String expectedTime = expectedData.toString().substring(0, retrievedTime.length());
                 assertTrue(expectedTime.equalsIgnoreCase(retrievedTime),
                         "Unexpected time value, expected: " + expectedTime + " ,received: " + retrievedTime);
                 break;
@@ -344,38 +345,31 @@ public class DBResultSet extends AbstractParentWrapper implements AutoCloseable 
      * @return
      * @throws SQLException
      */
-    public Object getXXX(Object idx,
-            Class coercion) throws SQLException {
+    public Object getXXX(Object idx, Class coercion) throws SQLException {
         int intOrdinal = 0;
         String strOrdinal = "";
         boolean isInteger = false;
 
         if (idx == null) {
             strOrdinal = null;
-        }
-        else if (idx instanceof Integer) {
+        } else if (idx instanceof Integer) {
             isInteger = true;
             intOrdinal = (Integer) idx;
-        }
-        else {
+        } else {
             // Otherwise
             throw new SQLException("Unhandled ordinal type: " + idx.getClass());
         }
 
         if (coercion == Object.class) {
             return this.getObject(intOrdinal);
-        }
-        else if (coercion == DBBinaryStream.class) {
+        } else if (coercion == DBBinaryStream.class) {
             return isInteger ? this.getBinaryStream(intOrdinal) : this.getBinaryStream(strOrdinal);
-        }
-        else if (coercion == DBCharacterStream.class) {
+        } else if (coercion == DBCharacterStream.class) {
             return isInteger ? this.getCharacterStream(intOrdinal) : this.getCharacterStream(strOrdinal);
-        }
-        else {
+        } else {
             if (log.isLoggable(Level.FINE)) {
                 log.fine("coercion not supported! ");
-            }
-            else {
+            } else {
                 log.fine("coercion + " + coercion.toString() + " is not supported!");
             }
         }
@@ -449,8 +443,7 @@ public class DBResultSet extends AbstractParentWrapper implements AutoCloseable 
 
         if (value instanceof Calendar) {
             cal = (Calendar) value;
-        }
-        else {
+        } else {
             ts = Timestamp.valueOf((String) value);
             cal = Calendar.getInstance();
             cal.setTimeInMillis(ts.getTime());
@@ -458,7 +451,8 @@ public class DBResultSet extends AbstractParentWrapper implements AutoCloseable 
         }
 
         // round to the nearest minute
-        double seconds = cal.get(Calendar.SECOND) + (nanos == -1 ? ((double) cal.get(Calendar.MILLISECOND) / 1000) : ((double) nanos / 1000000000));
+        double seconds = cal.get(Calendar.SECOND)
+                + (nanos == -1 ? ((double) cal.get(Calendar.MILLISECOND) / 1000) : ((double) nanos / 1000000000));
         if (seconds > 29.998) {
             cal.set(Calendar.MINUTE, cal.get(Calendar.MINUTE) + 1);
         }
@@ -472,8 +466,7 @@ public class DBResultSet extends AbstractParentWrapper implements AutoCloseable 
         // return appropriate value
         if (value instanceof Calendar) {
             return cal;
-        }
-        else {
+        } else {
             ts.setTime(cal.getTimeInMillis());
             ts.setNanos(nanos);
             return ts;
@@ -483,7 +476,8 @@ public class DBResultSet extends AbstractParentWrapper implements AutoCloseable 
     private static Object roundDatetimeValue(Object value) {
         if (value == null)
             return null;
-        Timestamp ts = value instanceof Timestamp ? (Timestamp) value : new Timestamp(((Calendar) value).getTimeInMillis());
+        Timestamp ts = value instanceof Timestamp ? (Timestamp) value
+                                                  : new Timestamp(((Calendar) value).getTimeInMillis());
         int millis = ts.getNanos() / 1000000;
         int lastDigit = (int) (millis % 10);
         switch (lastDigit) {

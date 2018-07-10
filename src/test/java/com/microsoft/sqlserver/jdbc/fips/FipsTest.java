@@ -1,9 +1,6 @@
 /*
- * Microsoft JDBC Driver for SQL Server
- * 
- * Copyright(c) Microsoft Corporation All rights reserved.
- * 
- * This program is made available under the terms of the MIT License. See the LICENSE file in the project root for more information.
+ * Microsoft JDBC Driver for SQL Server Copyright(c) Microsoft Corporation All rights reserved. This program is made
+ * available under the terms of the MIT License. See the LICENSE file in the project root for more information.
  */
 package com.microsoft.sqlserver.jdbc.fips;
 
@@ -19,10 +16,10 @@ import org.junit.runner.RunWith;
 
 import com.microsoft.sqlserver.jdbc.SQLServerDataSource;
 import com.microsoft.sqlserver.jdbc.StringUtils;
+import com.microsoft.sqlserver.jdbc.TestResource;
 import com.microsoft.sqlserver.testframework.PrepUtil;
-import com.microsoft.sqlserver.testframework.Utils;
+import com.microsoft.sqlserver.testframework.Utils;;
 
-import com.microsoft.sqlserver.jdbc.TestResource;;
 
 /**
  * Test class for testing FIPS property settings.
@@ -51,10 +48,8 @@ public class FipsTest {
             props.setProperty("TrustServerCertificate", "true");
             Connection con = PrepUtil.getConnection(connectionString, props);
             Assertions.fail(TestResource.getResource("R_expectedExceptionNotThrown"));
-        }
-        catch (SQLException e) {
-            Assertions.assertTrue(
-                    e.getMessage().contains(TestResource.getResource("R_invalidFipsConfig")),
+        } catch (SQLException e) {
+            Assertions.assertTrue(e.getMessage().contains(TestResource.getResource("R_invalidFipsConfig")),
                     TestResource.getResource("R_invalidTrustCert"));
         }
     }
@@ -71,10 +66,8 @@ public class FipsTest {
             props.setProperty("encrypt", "false");
             Connection con = PrepUtil.getConnection(connectionString, props);
             Assertions.fail(TestResource.getResource("R_expectedExceptionNotThrown"));
-        }
-        catch (SQLException e) {
-            Assertions.assertTrue(
-                    e.getMessage().contains(TestResource.getResource("R_invalidFipsConfig")),
+        } catch (SQLException e) {
+            Assertions.assertTrue(e.getMessage().contains(TestResource.getResource("R_invalidFipsConfig")),
                     TestResource.getResource("R_invalidEncrypt"));
         }
     }
@@ -126,10 +119,8 @@ public class FipsTest {
             Connection con = ds.getConnection();
 
             Assertions.fail(TestResource.getResource("R_expectedExceptionNotThrown"));
-        }
-        catch (SQLException e) {
-            Assertions.assertTrue(
-                    e.getMessage().contains(TestResource.getResource("R_invalidFipsConfig")),
+        } catch (SQLException e) {
+            Assertions.assertTrue(e.getMessage().contains(TestResource.getResource("R_invalidFipsConfig")),
                     TestResource.getResource("R_invalidEncrypt"));
         }
     }
@@ -147,16 +138,15 @@ public class FipsTest {
             ds.setTrustServerCertificate(true);
             Connection con = ds.getConnection();
             Assertions.fail(TestResource.getResource("R_expectedExceptionNotThrown"));
-        }
-        catch (SQLException e) {
-            Assertions.assertTrue(
-                    e.getMessage().contains(TestResource.getResource("R_invalidFipsConfig")),
+        } catch (SQLException e) {
+            Assertions.assertTrue(e.getMessage().contains(TestResource.getResource("R_invalidFipsConfig")),
                     TestResource.getResource("R_invalidTrustCert"));
         }
     }
 
     /**
      * Setting appropriate data source properties including FIPS
+     * 
      * @param ds
      */
     private void setDataSourceProperties(SQLServerDataSource ds) {
@@ -202,7 +192,8 @@ public class FipsTest {
     /**
      * It will return String array. [dbServer,username,password,dbname/database]
      * 
-     * -ea -Dmssql_jdbc_test_connection_properties=jdbc:sqlserver://SQL-2K16-01.galaxy.ad;userName=sa;password=Moonshine4me;database=test;
+     * -ea
+     * -Dmssql_jdbc_test_connection_properties=jdbc:sqlserver://SQL-2K16-01.galaxy.ad;userName=sa;password=Moonshine4me;database=test;
      * -Djava.library.path=C:\Downloads\sqljdbc_6.0.7728.100_enu.tar\sqljdbc_6.0\enu\auth\x64
      * 
      * @param connectionProperty
@@ -222,33 +213,29 @@ public class FipsTest {
                 }
             }
             // Actually this is specifically did for Travis.
-            else if(strParam.startsWith("port")) {
+            else if (strParam.startsWith("port")) {
                 strParam = strParam.toLowerCase();
-                if(strParam.startsWith("portnumber")) {
+                if (strParam.startsWith("portnumber")) {
                     dataSoureParam[1] = strParam.replace("portnumber=", "");
                 } else {
                     dataSoureParam[1] = strParam.replace("port=", "");
                 }
             }
-            
+
             else if (strParam.startsWith("user")) {
                 strParam = strParam.toLowerCase();
                 if (strParam.startsWith("username")) {
                     dataSoureParam[2] = strParam.replace("username=", "");
-                }
-                else {
+                } else {
                     dataSoureParam[2] = strParam.replace("user=", "");
                 }
-            }
-            else if (strParam.startsWith("password")) {
+            } else if (strParam.startsWith("password")) {
                 dataSoureParam[3] = strParam.replace("password=", "");
-            }
-            else if (strParam.startsWith("database")) {
+            } else if (strParam.startsWith("database")) {
                 strParam = strParam.toLowerCase();
                 if (strParam.startsWith("databasename")) {
                     dataSoureParam[4] = strParam.replace("databasename=", "");
-                }
-                else {
+                } else {
                     dataSoureParam[4] = strParam.replace("database=", "");
                 }
             }

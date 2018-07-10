@@ -1,9 +1,6 @@
 /*
- * Microsoft JDBC Driver for SQL Server
- * 
- * Copyright(c) Microsoft Corporation All rights reserved.
- * 
- * This program is made available under the terms of the MIT License. See the LICENSE file in the project root for more information.
+ * Microsoft JDBC Driver for SQL Server Copyright(c) Microsoft Corporation All rights reserved. This program is made
+ * available under the terms of the MIT License. See the LICENSE file in the project root for more information.
  */
 package com.microsoft.sqlserver.jdbc.AlwaysEncrypted;
 
@@ -26,6 +23,7 @@ import com.microsoft.sqlserver.jdbc.SQLServerStatement;
 import com.microsoft.sqlserver.jdbc.TestResource;
 import com.microsoft.sqlserver.testframework.util.RandomData;
 import com.microsoft.sqlserver.testframework.util.Util;
+
 
 /**
  * Tests Decryption and encryption of values
@@ -411,12 +409,14 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
      */
     @Test
     public void testNumericSpecificSetterMaxValue() throws SQLException {
-        String[] numericValuesBoundaryPositive = {"true", "255", "32767", "2147483647", "9223372036854775807", "1.79E308", "1.123", "3.4E38",
-                "999999999999999999", "12345.12345", "999999999999999999", "567812.78", "214748.3647", "922337203685477.5807",
-                "999999999999999999999999.9999", "999999999999999999999999.9999"};
-        String[] numericValuesBoundaryPositive2 = {"true", "255", "32767", "2147483647", "9223372036854775807", "1.79E308", "1.123", "3.4E38",
-                "999999999999999999", "12345.12345", "999999999999999999", "567812.78", "214748.3647", "922337203685477.5807",
-                "999999999999999999999999.9999", "999999999999999999999999.9999"};
+        String[] numericValuesBoundaryPositive = {"true", "255", "32767", "2147483647", "9223372036854775807",
+                "1.79E308", "1.123", "3.4E38", "999999999999999999", "12345.12345", "999999999999999999", "567812.78",
+                "214748.3647", "922337203685477.5807", "999999999999999999999999.9999",
+                "999999999999999999999999.9999"};
+        String[] numericValuesBoundaryPositive2 = {"true", "255", "32767", "2147483647", "9223372036854775807",
+                "1.79E308", "1.123", "3.4E38", "999999999999999999", "12345.12345", "999999999999999999", "567812.78",
+                "214748.3647", "922337203685477.5807", "999999999999999999999999.9999",
+                "999999999999999999999999.9999"};
 
         dropTables(stmt);
         createNumericTable();
@@ -432,12 +432,14 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
      */
     @Test
     public void testNumericSpecificSetterMinValue() throws SQLException {
-        String[] numericValuesBoundaryNegtive = {"false", "0", "-32768", "-2147483648", "-9223372036854775808", "-1.79E308", "1.123", "-3.4E38",
-                "999999999999999999", "12345.12345", "999999999999999999", "567812.78", "-214748.3648", "-922337203685477.5808",
-                "999999999999999999999999.9999", "999999999999999999999999.9999"};
-        String[] numericValuesBoundaryNegtive2 = {"false", "0", "-32768", "-2147483648", "-9223372036854775808", "-1.79E308", "1.123", "-3.4E38",
-                "999999999999999999", "12345.12345", "999999999999999999", "567812.78", "-214748.3648", "-922337203685477.5808",
-                "999999999999999999999999.9999", "999999999999999999999999.9999"};
+        String[] numericValuesBoundaryNegtive = {"false", "0", "-32768", "-2147483648", "-9223372036854775808",
+                "-1.79E308", "1.123", "-3.4E38", "999999999999999999", "12345.12345", "999999999999999999", "567812.78",
+                "-214748.3648", "-922337203685477.5808", "999999999999999999999999.9999",
+                "999999999999999999999999.9999"};
+        String[] numericValuesBoundaryNegtive2 = {"false", "0", "-32768", "-2147483648", "-9223372036854775808",
+                "-1.79E308", "1.123", "-3.4E38", "999999999999999999", "12345.12345", "999999999999999999", "567812.78",
+                "-214748.3648", "-922337203685477.5808", "999999999999999999999999.9999",
+                "999999999999999999999999.9999"};
 
         dropTables(stmt);
         createNumericTable();
@@ -499,10 +501,12 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
      */
     @Test
     public void testNumericNormalization() throws SQLException {
-        String[] numericValuesNormalization = {"true", "1", "127", "100", "100", "1.123", "1.123", "1.123", "123456789123456789", "12345.12345",
-                "987654321123456789", "567812.78", "7812.7812", "7812.7812", "999999999999999999999999.9999", "999999999999999999999999.9999"};
-        String[] numericValuesNormalization2 = {"true", "1", "127", "100", "100", "1.123", "1.123", "1.123", "123456789123456789", "12345.12345",
-                "987654321123456789", "567812.78", "7812.7812", "7812.7812", "999999999999999999999999.9999", "999999999999999999999999.9999"};
+        String[] numericValuesNormalization = {"true", "1", "127", "100", "100", "1.123", "1.123", "1.123",
+                "123456789123456789", "12345.12345", "987654321123456789", "567812.78", "7812.7812", "7812.7812",
+                "999999999999999999999999.9999", "999999999999999999999999.9999"};
+        String[] numericValuesNormalization2 = {"true", "1", "127", "100", "100", "1.123", "1.123", "1.123",
+                "123456789123456789", "12345.12345", "987654321123456789", "567812.78", "7812.7812", "7812.7812",
+                "999999999999999999999999.9999", "999999999999999999999999.9999"};
         dropTables(stmt);
         createNumericTable();
         populateNumericNormalCase(numericValuesNormalization);
@@ -510,54 +514,53 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
         testNumeric(null, numericValuesNormalization2, false);
     }
 
-    private void testChar(SQLServerStatement stmt,
-            String[] values) throws SQLException {
+    private void testChar(SQLServerStatement stmt, String[] values) throws SQLException {
         String sql = "select * from " + charTable;
-        try(SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) Util.getPreparedStmt(con, sql, stmtColEncSetting)) {
-	        try(ResultSet rs = (stmt == null) ? pstmt.executeQuery() : stmt.executeQuery(sql)) {
-		        int numberOfColumns = rs.getMetaData().getColumnCount();
-		        while (rs.next()) {
-		            testGetString(rs, numberOfColumns, values);
-		            testGetObject(rs, numberOfColumns, values);
-		        }
-	        }
+        try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) Util.getPreparedStmt(con, sql,
+                stmtColEncSetting)) {
+            try (ResultSet rs = (stmt == null) ? pstmt.executeQuery() : stmt.executeQuery(sql)) {
+                int numberOfColumns = rs.getMetaData().getColumnCount();
+                while (rs.next()) {
+                    testGetString(rs, numberOfColumns, values);
+                    testGetObject(rs, numberOfColumns, values);
+                }
+            }
         }
     }
 
-    private void testBinary(SQLServerStatement stmt,
-            LinkedList<byte[]> values) throws SQLException {
+    private void testBinary(SQLServerStatement stmt, LinkedList<byte[]> values) throws SQLException {
         String sql = "select * from " + binaryTable;
-        try(SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) Util.getPreparedStmt(con, sql, stmtColEncSetting)) {
-	        try(ResultSet rs = (stmt == null) ? pstmt.executeQuery() : stmt.executeQuery(sql)) {
-		        int numberOfColumns = rs.getMetaData().getColumnCount();
-		        while (rs.next()) {
-		            testGetStringForBinary(rs, numberOfColumns, values);
-		            testGetBytes(rs, numberOfColumns, values);
-		            testGetObjectForBinary(rs, numberOfColumns, values);
-		        }
-	        }
+        try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) Util.getPreparedStmt(con, sql,
+                stmtColEncSetting)) {
+            try (ResultSet rs = (stmt == null) ? pstmt.executeQuery() : stmt.executeQuery(sql)) {
+                int numberOfColumns = rs.getMetaData().getColumnCount();
+                while (rs.next()) {
+                    testGetStringForBinary(rs, numberOfColumns, values);
+                    testGetBytes(rs, numberOfColumns, values);
+                    testGetObjectForBinary(rs, numberOfColumns, values);
+                }
+            }
         }
     }
 
-    private void testDate(SQLServerStatement stmt,
-            LinkedList<Object> values1) throws SQLException {
+    private void testDate(SQLServerStatement stmt, LinkedList<Object> values1) throws SQLException {
         String sql = "select * from " + dateTable;
-        try(SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) Util.getPreparedStmt(con, sql, stmtColEncSetting)) {
-	        try(ResultSet rs = (stmt == null) ? pstmt.executeQuery() : stmt.executeQuery(sql)) {
-		        int numberOfColumns = rs.getMetaData().getColumnCount();
-		        while (rs.next()) {
-		            // testGetStringForDate(rs, numberOfColumns, values1); //TODO: Disabling, since getString throws verification error for zero temporal
-		            // types
-		            testGetObjectForTemporal(rs, numberOfColumns, values1);
-		            testGetDate(rs, numberOfColumns, values1);
-		        }
-	        }
+        try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) Util.getPreparedStmt(con, sql,
+                stmtColEncSetting)) {
+            try (ResultSet rs = (stmt == null) ? pstmt.executeQuery() : stmt.executeQuery(sql)) {
+                int numberOfColumns = rs.getMetaData().getColumnCount();
+                while (rs.next()) {
+                    // testGetStringForDate(rs, numberOfColumns, values1); //TODO: Disabling, since getString throws
+                    // verification error for zero temporal
+                    // types
+                    testGetObjectForTemporal(rs, numberOfColumns, values1);
+                    testGetDate(rs, numberOfColumns, values1);
+                }
+            }
         }
     }
 
-    private void testGetObject(ResultSet rs,
-            int numberOfColumns,
-            String[] values) throws SQLException {
+    private void testGetObject(ResultSet rs, int numberOfColumns, String[] values) throws SQLException {
         int index = 0;
         for (int i = 1; i <= numberOfColumns; i = i + 3) {
             try {
@@ -565,26 +568,27 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
                 String objectValue2 = ("" + rs.getObject(i + 1)).trim();
                 String objectValue3 = ("" + rs.getObject(i + 2)).trim();
 
-                boolean matches = objectValue1.equalsIgnoreCase("" + values[index]) && objectValue2.equalsIgnoreCase("" + values[index])
+                boolean matches = objectValue1.equalsIgnoreCase("" + values[index])
+                        && objectValue2.equalsIgnoreCase("" + values[index])
                         && objectValue3.equalsIgnoreCase("" + values[index]);
 
                 if (("" + values[index]).length() >= 1000) {
-                    assertTrue(matches, TestResource.getResource("R_decryptionFailed") + "getObject(): " + i + ", " + (i + 1) + ", " + (i + 2)
-                            + ".\n" + TestResource.getResource("R_expectedValueAtIndex") + index);
+                    assertTrue(matches,
+                            TestResource.getResource("R_decryptionFailed") + "getObject(): " + i + ", " + (i + 1) + ", "
+                                    + (i + 2) + ".\n" + TestResource.getResource("R_expectedValueAtIndex") + index);
+                } else {
+                    assertTrue(matches,
+                            TestResource.getResource("R_decryptionFailed") + "getObject(): " + objectValue1 + ", "
+                                    + objectValue2 + ", " + objectValue3 + ".\n"
+                                    + TestResource.getResource("R_expectedValue") + values[index]);
                 }
-                else {
-                    assertTrue(matches, TestResource.getResource("R_decryptionFailed") + "getObject(): " + objectValue1 + ", " + objectValue2 + ", " + objectValue3
-                            + ".\n" + TestResource.getResource("R_expectedValue") + values[index]);
-                }
-            }
-            finally {
+            } finally {
                 index++;
             }
         }
     }
 
-    private void testGetObjectForTemporal(ResultSet rs,
-            int numberOfColumns,
+    private void testGetObjectForTemporal(ResultSet rs, int numberOfColumns,
             LinkedList<Object> values) throws SQLException {
         int index = 0;
         for (int i = 1; i <= numberOfColumns; i = i + 3) {
@@ -596,26 +600,24 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
                 Object expected = null;
                 if (rs.getMetaData().getColumnTypeName(i).equalsIgnoreCase("smalldatetime")) {
                     expected = Util.roundSmallDateTimeValue(values.get(index));
-                }
-                else if (rs.getMetaData().getColumnTypeName(i).equalsIgnoreCase("datetime")) {
+                } else if (rs.getMetaData().getColumnTypeName(i).equalsIgnoreCase("datetime")) {
                     expected = Util.roundDatetimeValue(values.get(index));
-                }
-                else {
+                } else {
                     expected = values.get(index);
                 }
                 assertTrue(
                         objectValue1.equalsIgnoreCase("" + expected) && objectValue2.equalsIgnoreCase("" + expected)
                                 && objectValue3.equalsIgnoreCase("" + expected),
-                        TestResource.getResource("R_decryptionFailed") + "getObject(): " + objectValue1 + ", " + objectValue2 + ", " + objectValue3 + ".\n" + TestResource.getResource("R_expectedValue") + expected);
-            }
-            finally {
+                        TestResource.getResource("R_decryptionFailed") + "getObject(): " + objectValue1 + ", "
+                                + objectValue2 + ", " + objectValue3 + ".\n"
+                                + TestResource.getResource("R_expectedValue") + expected);
+            } finally {
                 index++;
             }
         }
     }
 
-    private void testGetObjectForBinary(ResultSet rs,
-            int numberOfColumns,
+    private void testGetObjectForBinary(ResultSet rs, int numberOfColumns,
             LinkedList<byte[]> values) throws SQLException {
         int index = 0;
         for (int i = 1; i <= numberOfColumns; i = i + 3) {
@@ -632,20 +634,20 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
             try {
                 if (null != values.get(index)) {
                     for (int j = 0; j < expectedBytes.length; j++) {
-                        assertTrue(expectedBytes[j] == objectValue1[j] && expectedBytes[j] == objectValue2[j] && expectedBytes[j] == objectValue3[j],
-                                TestResource.getResource("R_decryptionFailed") + "getObject(): " + objectValue1 + ", " + objectValue2 + ", " + objectValue3 + ".\n");
+                        assertTrue(
+                                expectedBytes[j] == objectValue1[j] && expectedBytes[j] == objectValue2[j]
+                                        && expectedBytes[j] == objectValue3[j],
+                                TestResource.getResource("R_decryptionFailed") + "getObject(): " + objectValue1 + ", "
+                                        + objectValue2 + ", " + objectValue3 + ".\n");
                     }
                 }
-            }
-            finally {
+            } finally {
                 index++;
             }
         }
     }
 
-    private void testGetBigDecimal(ResultSet rs,
-            int numberOfColumns,
-            String[] values) throws SQLException {
+    private void testGetBigDecimal(ResultSet rs, int numberOfColumns, String[] values) throws SQLException {
 
         int index = 0;
         for (int i = 1; i <= numberOfColumns; i = i + 3) {
@@ -654,12 +656,13 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
             String decimalValue2 = "" + rs.getBigDecimal(i + 1);
             String decimalValue3 = "" + rs.getBigDecimal(i + 2);
 
-            if (decimalValue1.equalsIgnoreCase("0") && (values[index].equalsIgnoreCase("true") || values[index].equalsIgnoreCase("false"))) {
+            if (decimalValue1.equalsIgnoreCase("0")
+                    && (values[index].equalsIgnoreCase("true") || values[index].equalsIgnoreCase("false"))) {
                 decimalValue1 = "false";
                 decimalValue2 = "false";
                 decimalValue3 = "false";
-            }
-            else if (decimalValue1.equalsIgnoreCase("1") && (values[index].equalsIgnoreCase("true") || values[index].equalsIgnoreCase("false"))) {
+            } else if (decimalValue1.equalsIgnoreCase("1")
+                    && (values[index].equalsIgnoreCase("true") || values[index].equalsIgnoreCase("false"))) {
                 decimalValue1 = "true";
                 decimalValue2 = "true";
                 decimalValue3 = "true";
@@ -668,35 +671,32 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
             if (null != values[index]) {
                 if (values[index].equalsIgnoreCase("1.79E308")) {
                     values[index] = "1.79E+308";
-                }
-                else if (values[index].equalsIgnoreCase("3.4E38")) {
+                } else if (values[index].equalsIgnoreCase("3.4E38")) {
                     values[index] = "3.4E+38";
                 }
 
                 if (values[index].equalsIgnoreCase("-1.79E308")) {
                     values[index] = "-1.79E+308";
-                }
-                else if (values[index].equalsIgnoreCase("-3.4E38")) {
+                } else if (values[index].equalsIgnoreCase("-3.4E38")) {
                     values[index] = "-3.4E+38";
                 }
             }
 
             try {
                 assertTrue(
-                        decimalValue1.equalsIgnoreCase("" + values[index]) && decimalValue2.equalsIgnoreCase("" + values[index])
+                        decimalValue1.equalsIgnoreCase("" + values[index])
+                                && decimalValue2.equalsIgnoreCase("" + values[index])
                                 && decimalValue3.equalsIgnoreCase("" + values[index]),
-                        TestResource.getResource("R_decryptionFailed") + "getBigDecimal(): " + decimalValue1 + ", " + decimalValue2 + ", " + decimalValue3
-                                + ".\n" + TestResource.getResource("R_expectedValue") + values[index]);
-            }
-            finally {
+                        TestResource.getResource("R_decryptionFailed") + "getBigDecimal(): " + decimalValue1 + ", "
+                                + decimalValue2 + ", " + decimalValue3 + ".\n"
+                                + TestResource.getResource("R_expectedValue") + values[index]);
+            } finally {
                 index++;
             }
         }
     }
 
-    private void testGetString(ResultSet rs,
-            int numberOfColumns,
-            String[] values) throws SQLException {
+    private void testGetString(ResultSet rs, int numberOfColumns, String[] values) throws SQLException {
 
         int index = 0;
         for (int i = 1; i <= numberOfColumns; i = i + 3) {
@@ -704,31 +704,33 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
             String stringValue2 = ("" + rs.getString(i + 1)).trim();
             String stringValue3 = ("" + rs.getString(i + 2)).trim();
 
-            if (stringValue1.equalsIgnoreCase("0") && (values[index].equalsIgnoreCase("true") || values[index].equalsIgnoreCase("false"))) {
+            if (stringValue1.equalsIgnoreCase("0")
+                    && (values[index].equalsIgnoreCase("true") || values[index].equalsIgnoreCase("false"))) {
                 stringValue1 = "false";
                 stringValue2 = "false";
                 stringValue3 = "false";
-            }
-            else if (stringValue1.equalsIgnoreCase("1") && (values[index].equalsIgnoreCase("true") || values[index].equalsIgnoreCase("false"))) {
+            } else if (stringValue1.equalsIgnoreCase("1")
+                    && (values[index].equalsIgnoreCase("true") || values[index].equalsIgnoreCase("false"))) {
                 stringValue1 = "true";
                 stringValue2 = "true";
                 stringValue3 = "true";
             }
             try {
 
-                boolean matches = stringValue1.equalsIgnoreCase("" + values[index]) && stringValue2.equalsIgnoreCase("" + values[index])
+                boolean matches = stringValue1.equalsIgnoreCase("" + values[index])
+                        && stringValue2.equalsIgnoreCase("" + values[index])
                         && stringValue3.equalsIgnoreCase("" + values[index]);
 
                 if (("" + values[index]).length() >= 1000) {
-                    assertTrue(matches, TestResource.getResource("R_decryptionFailed") + "getString():" + i + ", " + (i + 1) + ", " + (i + 2)
-                            + ".\n" + TestResource.getResource("R_expectedValue") + index);
+                    assertTrue(matches, TestResource.getResource("R_decryptionFailed") + "getString():" + i + ", "
+                            + (i + 1) + ", " + (i + 2) + ".\n" + TestResource.getResource("R_expectedValue") + index);
+                } else {
+                    assertTrue(matches,
+                            TestResource.getResource("R_decryptionFailed") + "getString(): " + stringValue1 + ", "
+                                    + stringValue2 + ", " + stringValue3 + ".\n"
+                                    + TestResource.getResource("R_expectedValue") + values[index]);
                 }
-                else {
-                    assertTrue(matches, TestResource.getResource("R_decryptionFailed") + "getString(): " + stringValue1 + ", " + stringValue2 + ", " + stringValue3
-                            + ".\n" + TestResource.getResource("R_expectedValue") + values[index]);
-                }
-            }
-            finally {
+            } finally {
                 index++;
             }
         }
@@ -736,8 +738,7 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
 
     // not testing this for now.
     @SuppressWarnings("unused")
-    private void testGetStringForDate(ResultSet rs,
-            int numberOfColumns,
+    private void testGetStringForDate(ResultSet rs, int numberOfColumns,
             LinkedList<Object> values) throws SQLException {
 
         int index = 0;
@@ -749,46 +750,48 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
             try {
                 if (index == 3) {
                     assertTrue(
-                            stringValue1.contains("" + values.get(index)) && stringValue2.contains("" + values.get(index))
+                            stringValue1.contains("" + values.get(index))
+                                    && stringValue2.contains("" + values.get(index))
                                     && stringValue3.contains("" + values.get(index)),
-                            TestResource.getResource("R_decryptionFailed") + "getString(): " + stringValue1 + ", " + stringValue2 + ", " + stringValue3
-                                    + ".\n" + TestResource.getResource("R_expectedValue") + values.get(index));
-                }
-                else if (index == 4) // round value for datetime
+                            TestResource.getResource("R_decryptionFailed") + "getString(): " + stringValue1 + ", "
+                                    + stringValue2 + ", " + stringValue3 + ".\n"
+                                    + TestResource.getResource("R_expectedValue") + values.get(index));
+                } else if (index == 4) // round value for datetime
                 {
                     Object datetimeValue = "" + Util.roundDatetimeValue(values.get(index));
                     assertTrue(
-                            stringValue1.equalsIgnoreCase("" + datetimeValue) && stringValue2.equalsIgnoreCase("" + datetimeValue)
+                            stringValue1.equalsIgnoreCase("" + datetimeValue)
+                                    && stringValue2.equalsIgnoreCase("" + datetimeValue)
                                     && stringValue3.equalsIgnoreCase("" + datetimeValue),
-                            TestResource.getResource("R_decryptionFailed") + "getString(): " + stringValue1 + ", " + stringValue2 + ", " + stringValue3
-                                    + ".\n" + TestResource.getResource("R_expectedValue") + datetimeValue);
-                }
-                else if (index == 5) // round value for smalldatetime
+                            TestResource.getResource("R_decryptionFailed") + "getString(): " + stringValue1 + ", "
+                                    + stringValue2 + ", " + stringValue3 + ".\n"
+                                    + TestResource.getResource("R_expectedValue") + datetimeValue);
+                } else if (index == 5) // round value for smalldatetime
                 {
                     Object smalldatetimeValue = "" + Util.roundSmallDateTimeValue(values.get(index));
                     assertTrue(
-                            stringValue1.equalsIgnoreCase("" + smalldatetimeValue) && stringValue2.equalsIgnoreCase("" + smalldatetimeValue)
+                            stringValue1.equalsIgnoreCase("" + smalldatetimeValue)
+                                    && stringValue2.equalsIgnoreCase("" + smalldatetimeValue)
                                     && stringValue3.equalsIgnoreCase("" + smalldatetimeValue),
-                            TestResource.getResource("R_decryptionFailed") + "getString(): " + stringValue1 + ", " + stringValue2 + ", " + stringValue3
-                                    + ".\n" + TestResource.getResource("R_expectedValue") + smalldatetimeValue);
-                }
-                else {
+                            TestResource.getResource("R_decryptionFailed") + "getString(): " + stringValue1 + ", "
+                                    + stringValue2 + ", " + stringValue3 + ".\n"
+                                    + TestResource.getResource("R_expectedValue") + smalldatetimeValue);
+                } else {
                     assertTrue(
-                            stringValue1.contains("" + values.get(index)) && stringValue2.contains("" + values.get(index))
+                            stringValue1.contains("" + values.get(index))
+                                    && stringValue2.contains("" + values.get(index))
                                     && stringValue3.contains("" + values.get(index)),
-                            TestResource.getResource("R_decryptionFailed") + "getString(): " + stringValue1 + ", " + stringValue2 + ", " + stringValue3
-                                    + ".\n" + TestResource.getResource("R_expectedValue") + values.get(index));
+                            TestResource.getResource("R_decryptionFailed") + "getString(): " + stringValue1 + ", "
+                                    + stringValue2 + ", " + stringValue3 + ".\n"
+                                    + TestResource.getResource("R_expectedValue") + values.get(index));
                 }
-            }
-            finally {
+            } finally {
                 index++;
             }
         }
     }
 
-    private void testGetBytes(ResultSet rs,
-            int numberOfColumns,
-            LinkedList<byte[]> values) throws SQLException {
+    private void testGetBytes(ResultSet rs, int numberOfColumns, LinkedList<byte[]> values) throws SQLException {
         int index = 0;
         for (int i = 1; i <= numberOfColumns; i = i + 3) {
             byte[] b1 = rs.getBytes(i);
@@ -805,18 +808,17 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
                 if (null != values.get(index)) {
                     for (int j = 0; j < expectedBytes.length; j++) {
                         assertTrue(expectedBytes[j] == b1[j] && expectedBytes[j] == b2[j] && expectedBytes[j] == b3[j],
-                                TestResource.getResource("R_decryptionFailed") + "getObject(): " + b1 + ", " + b2 + ", " + b3 + ".\n");
+                                TestResource.getResource("R_decryptionFailed") + "getObject(): " + b1 + ", " + b2 + ", "
+                                        + b3 + ".\n");
                     }
                 }
-            }
-            finally {
+            } finally {
                 index++;
             }
         }
     }
 
-    private void testGetStringForBinary(ResultSet rs,
-            int numberOfColumns,
+    private void testGetStringForBinary(ResultSet rs, int numberOfColumns,
             LinkedList<byte[]> values) throws SQLException {
 
         int index = 0;
@@ -833,25 +835,24 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
                     expected.append(String.format("%02X", b));
                 }
                 expectedStr = "" + expected.toString();
-            }
-            else {
+            } else {
                 expectedStr = "null";
             }
 
             try {
-                assertTrue(stringValue1.startsWith(expectedStr) && stringValue2.startsWith(expectedStr) && stringValue3.startsWith(expectedStr),
-                        TestResource.getResource("R_decryptionFailed") + "getString(): " + stringValue1 + ", " + stringValue2 + ", " + stringValue3 + ".\n" + TestResource.getResource("R_expectedValue")
-                                + expectedStr);
-            }
-            finally {
+                assertTrue(
+                        stringValue1.startsWith(expectedStr) && stringValue2.startsWith(expectedStr)
+                                && stringValue3.startsWith(expectedStr),
+                        TestResource.getResource("R_decryptionFailed") + "getString(): " + stringValue1 + ", "
+                                + stringValue2 + ", " + stringValue3 + ".\n"
+                                + TestResource.getResource("R_expectedValue") + expectedStr);
+            } finally {
                 index++;
             }
         }
     }
 
-    private void testGetDate(ResultSet rs,
-            int numberOfColumns,
-            LinkedList<Object> values) throws SQLException {
+    private void testGetDate(ResultSet rs, int numberOfColumns, LinkedList<Object> values) throws SQLException {
         for (int i = 1; i <= numberOfColumns; i = i + 3) {
 
             if (rs instanceof SQLServerResultSet) {
@@ -910,9 +911,11 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
                 }
 
                 assertTrue(
-                        stringValue1.equalsIgnoreCase(expected) && stringValue2.equalsIgnoreCase(expected) && stringValue3.equalsIgnoreCase(expected),
-                        TestResource.getResource("R_decryptionFailed") + "testGetDate: " + stringValue1 + ", " + stringValue2 + ", " + stringValue3 + ".\n" + TestResource.getResource("R_expectedValue")
-                                + expected);
+                        stringValue1.equalsIgnoreCase(expected) && stringValue2.equalsIgnoreCase(expected)
+                                && stringValue3.equalsIgnoreCase(expected),
+                        TestResource.getResource("R_decryptionFailed") + "testGetDate: " + stringValue1 + ", "
+                                + stringValue2 + ", " + stringValue3 + ".\n"
+                                + TestResource.getResource("R_expectedValue") + expected);
             }
 
             else {
@@ -921,30 +924,30 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
         }
     }
 
-    private void testNumeric(Statement stmt,
-            String[] numericValues,
-            boolean isNull) throws SQLException {
+    private void testNumeric(Statement stmt, String[] numericValues, boolean isNull) throws SQLException {
         String sql = "select * from " + numericTable;
-        try(SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) Util.getPreparedStmt(con, sql, stmtColEncSetting)) {
-        	try(SQLServerResultSet rs = (stmt == null) ? (SQLServerResultSet) pstmt.executeQuery() : (SQLServerResultSet) stmt.executeQuery(sql)) {
-		        int numberOfColumns = rs.getMetaData().getColumnCount();
-		        while (rs.next()) {
-		            testGetString(rs, numberOfColumns, numericValues);
-		            testGetObject(rs, numberOfColumns, numericValues);
-		            testGetBigDecimal(rs, numberOfColumns, numericValues);
-		            if (!isNull)
-		                testWithSpecifiedtype(rs, numberOfColumns, numericValues);
-		            else {
-		                String[] nullNumericValues = {"false", "0", "0", "0", "0", "0.0", "0.0", "0.0", null, null, null, null, null, null, null, null};
-		                testWithSpecifiedtype(rs, numberOfColumns, nullNumericValues);
-		            }
-		        }
-        	}
+        try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) Util.getPreparedStmt(con, sql,
+                stmtColEncSetting)) {
+            try (SQLServerResultSet rs = (stmt == null) ? (SQLServerResultSet) pstmt.executeQuery()
+                                                        : (SQLServerResultSet) stmt.executeQuery(sql)) {
+                int numberOfColumns = rs.getMetaData().getColumnCount();
+                while (rs.next()) {
+                    testGetString(rs, numberOfColumns, numericValues);
+                    testGetObject(rs, numberOfColumns, numericValues);
+                    testGetBigDecimal(rs, numberOfColumns, numericValues);
+                    if (!isNull)
+                        testWithSpecifiedtype(rs, numberOfColumns, numericValues);
+                    else {
+                        String[] nullNumericValues = {"false", "0", "0", "0", "0", "0.0", "0.0", "0.0", null, null,
+                                null, null, null, null, null, null};
+                        testWithSpecifiedtype(rs, numberOfColumns, nullNumericValues);
+                    }
+                }
+            }
         }
     }
 
-    private void testWithSpecifiedtype(SQLServerResultSet rs,
-            int numberOfColumns,
+    private void testWithSpecifiedtype(SQLServerResultSet rs, int numberOfColumns,
             String[] values) throws SQLException {
 
         String value1, value2, value3, expectedValue = null;
@@ -1095,23 +1098,18 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
         index++;
     }
 
-    private void Compare(String expectedValue,
-            String value1,
-            String value2,
-            String value3) {
+    private void Compare(String expectedValue, String value1, String value2, String value3) {
 
         if (null != expectedValue) {
             if (expectedValue.equalsIgnoreCase("1.79E+308")) {
                 expectedValue = "1.79E308";
-            }
-            else if (expectedValue.equalsIgnoreCase("3.4E+38")) {
+            } else if (expectedValue.equalsIgnoreCase("3.4E+38")) {
                 expectedValue = "3.4E38";
             }
 
             if (expectedValue.equalsIgnoreCase("-1.79E+308")) {
                 expectedValue = "-1.79E308";
-            }
-            else if (expectedValue.equalsIgnoreCase("-3.4E+38")) {
+            } else if (expectedValue.equalsIgnoreCase("-3.4E+38")) {
                 expectedValue = "-3.4E38";
             }
         }
@@ -1119,7 +1117,8 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
         assertTrue(
                 value1.equalsIgnoreCase("" + expectedValue) && value2.equalsIgnoreCase("" + expectedValue)
                         && value3.equalsIgnoreCase("" + expectedValue),
-                TestResource.getResource("R_decryptionFailed") + "getBigDecimal(): " + value1 + ", " + value2+ ", " + value3 + ".\n" + TestResource.getResource("R_expectedValue"));
+                TestResource.getResource("R_decryptionFailed") + "getBigDecimal(): " + value1 + ", " + value2 + ", "
+                        + value3 + ".\n" + TestResource.getResource("R_expectedValue"));
     }
 
 }

@@ -1,9 +1,6 @@
 /*
- * Microsoft JDBC Driver for SQL Server
- * 
- * Copyright(c) 2016 Microsoft Corporation All rights reserved.
- * 
- * This program is made available under the terms of the MIT License. See the LICENSE file in the project root for more information.
+ * Microsoft JDBC Driver for SQL Server Copyright(c) 2016 Microsoft Corporation All rights reserved. This program is
+ * made available under the terms of the MIT License. See the LICENSE file in the project root for more information.
  */
 package com.microsoft.sqlserver.testframework;
 
@@ -13,9 +10,10 @@ import java.util.Properties;
 
 import com.microsoft.sqlserver.jdbc.SQLServerConnection;
 
+
 /**
- * Utility Class for Tests. This will contains methods like Create Table, Drop Table, Initialize connection, create statement etc. logger settings
- * etc.
+ * Utility Class for Tests. This will contains methods like Create Table, Drop Table, Initialize connection, create
+ * statement etc. logger settings etc.
  * 
  * TODO : We can delete PrepUtil & move getConnection method in {@link DBEngine}
  * 
@@ -50,7 +48,8 @@ public class PrepUtil {
      * @throws SQLException
      * @throws ClassNotFoundException
      */
-    public static SQLServerConnection getConnection(String connectionString) throws SQLException, ClassNotFoundException {
+    public static SQLServerConnection getConnection(
+            String connectionString) throws SQLException, ClassNotFoundException {
         return getConnection(connectionString, null);
     }
 

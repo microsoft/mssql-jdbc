@@ -1,9 +1,6 @@
 /*
- * Microsoft JDBC Driver for SQL Server
- * 
- * Copyright(c) Microsoft Corporation All rights reserved.
- * 
- * This program is made available under the terms of the MIT License. See the LICENSE file in the project root for more information.
+ * Microsoft JDBC Driver for SQL Server Copyright(c) Microsoft Corporation All rights reserved. This program is made
+ * available under the terms of the MIT License. See the LICENSE file in the project root for more information.
  */
 package com.microsoft.sqlserver.jdbc.parametermetadata;
 
@@ -26,6 +23,7 @@ import com.microsoft.sqlserver.jdbc.SQLServerConnection;
 import com.microsoft.sqlserver.testframework.AbstractTest;
 import com.microsoft.sqlserver.testframework.Utils;
 import com.microsoft.sqlserver.testframework.util.RandomUtil;
+
 
 @RunWith(JUnitPlatform.class)
 public class ParameterMetaDataWhiteSpaceTest extends AbstractTest {
@@ -103,7 +101,8 @@ public class ParameterMetaDataWhiteSpaceTest extends AbstractTest {
         testUpdateWithTwoParameters("update " + tableName + " set" + whiteSpace + "c1 = ? where c1 = ?");
         testUpdateWithTwoParameters("update " + tableName + " set c1 = ? where" + whiteSpace + "c1 = ?");
 
-        testInsertWithOneParameter("insert into " + tableName + "(c1) values (?)"); // no space between table name and column name
+        testInsertWithOneParameter("insert into " + tableName + "(c1) values (?)"); // no space between table name and
+                                                                                    // column name
         testInsertWithOneParameter("insert into" + whiteSpace + tableName + " (c1) values (?)");
     }
 

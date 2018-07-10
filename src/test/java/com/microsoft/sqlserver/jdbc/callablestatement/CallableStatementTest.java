@@ -10,8 +10,8 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Types;
-import java.util.UUID;
 import java.text.MessageFormat;
+import java.util.UUID;
 
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
@@ -24,6 +24,7 @@ import com.microsoft.sqlserver.jdbc.SQLServerDataSource;
 import com.microsoft.sqlserver.jdbc.TestResource;
 import com.microsoft.sqlserver.testframework.AbstractTest;
 import com.microsoft.sqlserver.testframework.Utils;
+
 
 /**
  * Test CallableStatement
@@ -68,7 +69,7 @@ public class CallableStatementTest extends AbstractTest {
     public void getStringGUIDTest() throws SQLException {
 
         String sql = "{call " + outputProcedureNameGUID + "(?)}";
-        
+
         try (SQLServerCallableStatement callableStatement = (SQLServerCallableStatement) connection.prepareCall(sql)) {
 
             UUID originalValue = UUID.randomUUID();
@@ -98,8 +99,8 @@ public class CallableStatementTest extends AbstractTest {
         ds.setSendStringParametersAsUnicode(true);
         String sql = "{? = call " + setNullProcedureName + " (?,?)}";
         try (Connection connection = ds.getConnection();
-        	 SQLServerCallableStatement cs = (SQLServerCallableStatement) connection.prepareCall(sql);
-        	 SQLServerCallableStatement cs2 = (SQLServerCallableStatement) connection.prepareCall(sql)){
+                SQLServerCallableStatement cs = (SQLServerCallableStatement) connection.prepareCall(sql);
+                SQLServerCallableStatement cs2 = (SQLServerCallableStatement) connection.prepareCall(sql)) {
 
             cs.registerOutParameter(1, Types.INTEGER);
             cs.setString(2, polishchar);
@@ -116,11 +117,10 @@ public class CallableStatementTest extends AbstractTest {
             cs2.execute();
 
             String actual = cs2.getString(3);
-            
+
             assertEquals(expected, actual);
         }
     }
-
 
     /**
      * recognize parameter names with and without leading '@'
@@ -131,7 +131,7 @@ public class CallableStatementTest extends AbstractTest {
     public void inputParamsTest() throws SQLException {
         String call = "{CALL " + inputParamsProcedureName + " (?,?)}";
         ResultSet rs = null;
-        
+
         // the historical way: no leading '@', parameter names respected (not positional)
         CallableStatement cs1 = connection.prepareCall(call);
         cs1.setString("p2", "world");
@@ -139,7 +139,7 @@ public class CallableStatementTest extends AbstractTest {
         rs = cs1.executeQuery();
         rs.next();
         assertEquals("helloworld", rs.getString(1));
-        
+
         // the "new" way: leading '@', parameter names still respected (not positional)
         CallableStatement cs2 = connection.prepareCall(call);
         cs2.setString("@p2", "world!");
@@ -147,7 +147,7 @@ public class CallableStatementTest extends AbstractTest {
         rs = cs2.executeQuery();
         rs.next();
         assertEquals("Hello world!", rs.getString(1));
-        
+
         // sanity check: unrecognized parameter name
         CallableStatement cs3 = connection.prepareCall(call);
         try {
@@ -164,7 +164,7 @@ public class CallableStatementTest extends AbstractTest {
         }
 
     }
-    
+
     /**
      * Cleanup after test
      * 
@@ -186,7 +186,8 @@ public class CallableStatementTest extends AbstractTest {
     }
 
     private static void createGUIDStoredProcedure(Statement stmt) throws SQLException {
-        String sql = "CREATE PROCEDURE " + outputProcedureNameGUID + "(@p1 uniqueidentifier OUTPUT) AS SELECT @p1 = c1 FROM " + tableNameGUID + ";";
+        String sql = "CREATE PROCEDURE " + outputProcedureNameGUID
+                + "(@p1 uniqueidentifier OUTPUT) AS SELECT @p1 = c1 FROM " + tableNameGUID + ";";
         stmt.execute(sql);
     }
 
@@ -196,19 +197,14 @@ public class CallableStatementTest extends AbstractTest {
     }
 
     private static void createSetNullPreocedure(Statement stmt) throws SQLException {
-        stmt.execute("create procedure " + setNullProcedureName + " (@p1 nvarchar(255), @p2 nvarchar(255) output) as select @p2=@p1 return 0");
+        stmt.execute("create procedure " + setNullProcedureName
+                + " (@p1 nvarchar(255), @p2 nvarchar(255) output) as select @p2=@p1 return 0");
     }
 
     private static void createInputParamsProcedure(Statement stmt) throws SQLException {
-        String sql = 
-                "CREATE PROCEDURE [dbo].[CallableStatementTest_inputParams_SP] " +
-                "    @p1 nvarchar(max) = N'parameter1', " +
-                "    @p2 nvarchar(max) = N'parameter2' " +
-                "AS " +
-                "BEGIN " +
-                "    SET NOCOUNT ON; " +
-                "    SELECT @p1 + @p2 AS result; " +
-                "END ";
+        String sql = "CREATE PROCEDURE [dbo].[CallableStatementTest_inputParams_SP] "
+                + "    @p1 nvarchar(max) = N'parameter1', " + "    @p2 nvarchar(max) = N'parameter2' " + "AS "
+                + "BEGIN " + "    SET NOCOUNT ON; " + "    SELECT @p1 + @p2 AS result; " + "END ";
         stmt.execute(sql);
     }
 }

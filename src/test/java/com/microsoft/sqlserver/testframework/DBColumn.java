@@ -1,9 +1,6 @@
 /*
- * Microsoft JDBC Driver for SQL Server
- * 
- * Copyright(c) Microsoft Corporation All rights reserved.
- * 
- * This program is made available under the terms of the MIT License. See the LICENSE file in the project root for more information.
+ * Microsoft JDBC Driver for SQL Server Copyright(c) Microsoft Corporation All rights reserved. This program is made
+ * available under the terms of the MIT License. See the LICENSE file in the project root for more information.
  */
 
 package com.microsoft.sqlserver.testframework;
@@ -13,6 +10,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import com.microsoft.sqlserver.testframework.sqlType.SqlType;
+
 
 /**
  * This class holds data for Column. Think about encrypted columns. <B>createCMK code should not add here.</B>
@@ -26,8 +24,7 @@ public class DBColumn {
     private SqlType sqlType;
     private List<Object> columnValues;
 
-    DBColumn(String columnName,
-            SqlType sqlType) {
+    DBColumn(String columnName, SqlType sqlType) {
         this.columnName = columnName;
         this.sqlType = sqlType;
     }
@@ -41,7 +38,7 @@ public class DBColumn {
 
     /**
      * @param columnName
-     *            the columnName to set
+     *        the columnName to set
      */
     void setColumnName(String columnName) {
         this.columnName = columnName;
@@ -75,7 +72,7 @@ public class DBColumn {
      * generate value for the column
      * 
      * @param rows
-     *            number of rows
+     *        number of rows
      */
     void populateValues(int rows) {
         columnValues = new ArrayList<>();

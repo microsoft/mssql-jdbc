@@ -1,19 +1,17 @@
 /*
- * Microsoft JDBC Driver for SQL Server
- * 
- * Copyright(c) Microsoft Corporation All rights reserved.
- * 
- * This program is made available under the terms of the MIT License. See the LICENSE file in the project root for more information.
+ * Microsoft JDBC Driver for SQL Server Copyright(c) Microsoft Corporation All rights reserved. This program is made
+ * available under the terms of the MIT License. See the LICENSE file in the project root for more information.
  */
 
 package com.microsoft.sqlserver.jdbc;
 
 import java.text.MessageFormat;
 
+
 /**
  * 
- * This class represents metadata for a column. It is used in the ISQLServerDataRecord interface to pass column metadata to the table-valued
- * parameter.
+ * This class represents metadata for a column. It is used in the ISQLServerDataRecord interface to pass column metadata
+ * to the table-valued parameter.
  * 
  */
 public class SQLServerMetaData {
@@ -27,19 +25,18 @@ public class SQLServerMetaData {
     SQLServerSortOrder sortOrder = SQLServerSortOrder.Unspecified;
     int sortOrdinal;
     private SQLCollation collation;
-    
+
     static final int defaultSortOrdinal = -1;
 
     /**
      * Creates a new SQLServerMetaData
      * 
      * @param columnName
-     *            the name of the column
+     *        the name of the column
      * @param sqlType
-     *            the SQL type of the column
+     *        the SQL type of the column
      */
-    public SQLServerMetaData(String columnName,
-            int sqlType) {
+    public SQLServerMetaData(String columnName, int sqlType) {
         this.columnName = columnName;
         this.javaSqlType = sqlType;
     }
@@ -48,18 +45,15 @@ public class SQLServerMetaData {
      * creates a new SQLServerMetaData
      * 
      * @param columnName
-     *            the name of the column
+     *        the name of the column
      * @param sqlType
-     *            the SQL type of the column
+     *        the SQL type of the column
      * @param precision
-     *            the precision of the column
+     *        the precision of the column
      * @param scale
-     *            the scale of the column
+     *        the scale of the column
      */
-    public SQLServerMetaData(String columnName,
-            int sqlType,
-            int precision,
-            int scale) {
+    public SQLServerMetaData(String columnName, int sqlType, int precision, int scale) {
         this.columnName = columnName;
         this.javaSqlType = sqlType;
         this.precision = precision;
@@ -70,32 +64,26 @@ public class SQLServerMetaData {
      * Creates a new SQLServerMetaData
      * 
      * @param columnName
-     *            the name of the column
+     *        the name of the column
      * @param sqlType
-     *            the sql type of the column
+     *        the sql type of the column
      * @param precision
-     *            the precision of the column
+     *        the precision of the column
      * @param scale
-     *            the scale of the column
+     *        the scale of the column
      * @param useServerDefault
-     *            specifies if this column should use the default server value; Default value is false.
+     *        specifies if this column should use the default server value; Default value is false.
      * @param isUniqueKey
-     *            indicates if the column in the table-valued parameter is unique; Default value is false.
+     *        indicates if the column in the table-valued parameter is unique; Default value is false.
      * @param sortOrder
-     *            indicates the sort order for a column; Default value is SQLServerSortOrder.Unspecified.
+     *        indicates the sort order for a column; Default value is SQLServerSortOrder.Unspecified.
      * @param sortOrdinal
-     *            specifies ordinal of the sort column; sortOrdinal starts from 0; Default value is -1.
+     *        specifies ordinal of the sort column; sortOrdinal starts from 0; Default value is -1.
      * @throws SQLServerException
-     *             when an error occurs
+     *         when an error occurs
      */
-    public SQLServerMetaData(String columnName,
-            int sqlType,
-            int precision,
-            int scale,
-            boolean useServerDefault,
-            boolean isUniqueKey,
-            SQLServerSortOrder sortOrder,
-            int sortOrdinal) throws SQLServerException {
+    public SQLServerMetaData(String columnName, int sqlType, int precision, int scale, boolean useServerDefault,
+            boolean isUniqueKey, SQLServerSortOrder sortOrder, int sortOrdinal) throws SQLServerException {
         this.columnName = columnName;
         this.javaSqlType = sqlType;
         this.precision = precision;
@@ -111,7 +99,7 @@ public class SQLServerMetaData {
      * Initializes a new instance of SQLServerMetaData from another SQLServerMetaData object.
      * 
      * @param sqlServerMetaData
-     *            the object passed to initialize a new instance of SQLServerMetaData
+     *        the object passed to initialize a new instance of SQLServerMetaData
      */
     public SQLServerMetaData(SQLServerMetaData sqlServerMetaData) {
         this.columnName = sqlServerMetaData.columnName;
@@ -187,7 +175,7 @@ public class SQLServerMetaData {
     public int getSortOrdinal() {
         return sortOrdinal;
     }
-    
+
     SQLCollation getCollation() {
         return this.collation;
     }

@@ -1,9 +1,6 @@
 /*
- * Microsoft JDBC Driver for SQL Server
- * 
- * Copyright(c) Microsoft Corporation All rights reserved.
- * 
- * This program is made available under the terms of the MIT License. See the LICENSE file in the project root for more information.
+ * Microsoft JDBC Driver for SQL Server Copyright(c) Microsoft Corporation All rights reserved. This program is made
+ * available under the terms of the MIT License. See the LICENSE file in the project root for more information.
  */
 package com.microsoft.sqlserver.jdbc.bulkCopy;
 
@@ -29,6 +26,7 @@ import com.microsoft.sqlserver.testframework.DBConnection;
 import com.microsoft.sqlserver.testframework.DBStatement;
 import com.microsoft.sqlserver.testframework.DBTable;
 import com.microsoft.sqlserver.testframework.sqlType.SqlType;
+
 
 /**
  * Test bulkcopy decimal sacle and precision
@@ -58,10 +56,7 @@ public class BulkCopyISQLServerBulkRecordTest extends AbstractTest {
             int precision;
             int scale;
 
-            ColumnMetadata(String name,
-                    int type,
-                    int precision,
-                    int scale) {
+            ColumnMetadata(String name, int type, int precision, int scale) {
                 columnName = name;
                 columnType = type;
                 this.precision = precision;
@@ -87,8 +82,8 @@ public class BulkCopyISQLServerBulkRecordTest extends AbstractTest {
                     // TODO: update the test to use correct precision once bulkCopy is fixed
                     precision = 50;
                 }
-                columnMetadata.put(i + 1,
-                        new ColumnMetadata(sqlType.getName(), sqlType.getJdbctype().getVendorTypeNumber(), precision, sqlType.getScale()));
+                columnMetadata.put(i + 1, new ColumnMetadata(sqlType.getName(),
+                        sqlType.getJdbctype().getVendorTypeNumber(), precision, sqlType.getScale()));
             }
 
             // add data
@@ -100,8 +95,7 @@ public class BulkCopyISQLServerBulkRecordTest extends AbstractTest {
                     SqlType sqlType = dstTable.getSqlType(j);
                     if (JDBCType.BIT == sqlType.getJdbctype()) {
                         CurrentRow[j] = ((0 == ThreadLocalRandom.current().nextInt(2)) ? Boolean.FALSE : Boolean.TRUE);
-                    }
-                    else {
+                    } else {
                         CurrentRow[j] = sqlType.createdata();
                     }
                 }
@@ -159,20 +153,13 @@ public class BulkCopyISQLServerBulkRecordTest extends AbstractTest {
         }
 
         @Override
-        public void addColumnMetadata(int positionInFile,
-                String name,
-                int jdbcType,
-                int precision,
-                int scale,
+        public void addColumnMetadata(int positionInFile, String name, int jdbcType, int precision, int scale,
                 DateTimeFormatter dateTimeFormatter) throws SQLServerException {
             // TODO Not Implemented
         }
 
         @Override
-        public void addColumnMetadata(int positionInFile,
-                String name,
-                int jdbcType,
-                int precision,
+        public void addColumnMetadata(int positionInFile, String name, int jdbcType, int precision,
                 int scale) throws SQLServerException {
             // TODO Not Implemented
         }

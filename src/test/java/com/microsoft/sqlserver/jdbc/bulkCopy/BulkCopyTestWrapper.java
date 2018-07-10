@@ -1,15 +1,13 @@
 /*
- * Microsoft JDBC Driver for SQL Server
- * 
- * Copyright(c) Microsoft Corporation All rights reserved.
- * 
- * This program is made available under the terms of the MIT License. See the LICENSE file in the project root for more information.
+ * Microsoft JDBC Driver for SQL Server Copyright(c) Microsoft Corporation All rights reserved. This program is made
+ * available under the terms of the MIT License. See the LICENSE file in the project root for more information.
  */
 package com.microsoft.sqlserver.jdbc.bulkCopy;
 
 import java.util.LinkedList;
 
 import com.microsoft.sqlserver.jdbc.SQLServerBulkCopyOptions;
+
 
 /**
  * Wrapper class that has all the data/values needed to execute BulkCopy test case
@@ -56,8 +54,8 @@ class BulkCopyTestWrapper {
     /**
      * 
      * @param isUsingConnection
-     *            <code>true</code> if connection object should be passed in BulkCopy constructor <code>false</code> if connection string is to be
-     *            passed to constructor
+     *        <code>true</code> if connection object should be passed in BulkCopy constructor <code>false</code> if
+     *        connection string is to be passed to constructor
      */
     public void setUsingConnection(boolean isUsingConnection) {
         this.isUsingConnection = isUsingConnection;
@@ -97,26 +95,22 @@ class BulkCopyTestWrapper {
         return isUsingColumnMapping;
     }
 
-    public void setColumnMapping(int sourceColOrdinal,
-            int destColOrdinal) {
+    public void setColumnMapping(int sourceColOrdinal, int destColOrdinal) {
         setUsingColumnMapping();
         cm.add(new ColumnMap(sourceColOrdinal, destColOrdinal));
     }
 
-    public void setColumnMapping(int sourceColOrdinal,
-            String destColName) {
+    public void setColumnMapping(int sourceColOrdinal, String destColName) {
         setUsingColumnMapping();
         cm.add(new ColumnMap(sourceColOrdinal, destColName));
     }
 
-    public void setColumnMapping(String sourceColName,
-            String destColName) {
+    public void setColumnMapping(String sourceColName, String destColName) {
         setUsingColumnMapping();
         cm.add(new ColumnMap(sourceColName, destColName));
     }
 
-    public void setColumnMapping(String sourceColName,
-            int destColOrdinal) {
+    public void setColumnMapping(String sourceColName, int destColOrdinal) {
         setUsingColumnMapping();
         cm.add(new ColumnMap(sourceColName, destColOrdinal));
     }
@@ -130,8 +124,7 @@ class BulkCopyTestWrapper {
         int destInt = -1;
         String destString = null;
 
-        ColumnMap(int src,
-                int dest) {
+        ColumnMap(int src, int dest) {
             this.sourceIsInt = true;
             this.destIsInt = true;
 
@@ -139,8 +132,7 @@ class BulkCopyTestWrapper {
             this.destInt = dest;
         }
 
-        ColumnMap(String src,
-                int dest) {
+        ColumnMap(String src, int dest) {
             this.sourceIsInt = false;
             this.destIsInt = true;
 
@@ -148,8 +140,7 @@ class BulkCopyTestWrapper {
             this.destInt = dest;
         }
 
-        ColumnMap(int src,
-                String dest) {
+        ColumnMap(int src, String dest) {
             this.sourceIsInt = true;
             this.destIsInt = false;
 
@@ -157,8 +148,7 @@ class BulkCopyTestWrapper {
             this.destString = dest;
         }
 
-        ColumnMap(String src,
-                String dest) {
+        ColumnMap(String src, String dest) {
             this.sourceIsInt = false;
             this.destIsInt = false;
 

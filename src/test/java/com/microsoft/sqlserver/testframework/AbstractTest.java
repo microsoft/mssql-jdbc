@@ -1,9 +1,6 @@
 /*
- * Microsoft JDBC Driver for SQL Server
- * 
- * Copyright(c) 2016 Microsoft Corporation All rights reserved.
- * 
- * This program is made available under the terms of the MIT License. See the LICENSE file in the project root for more information.
+ * Microsoft JDBC Driver for SQL Server Copyright(c) 2016 Microsoft Corporation All rights reserved. This program is
+ * made available under the terms of the MIT License. See the LICENSE file in the project root for more information.
  */
 
 package com.microsoft.sqlserver.testframework;
@@ -22,6 +19,7 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 
 import com.microsoft.sqlserver.jdbc.SQLServerConnection;
+
 
 /**
  * Think about following things:
@@ -86,8 +84,7 @@ public abstract class AbstractTest {
             Assertions.assertNotNull(connectionString, "Connection String should not be null");
             connection = PrepUtil.getConnection(connectionString, info);
 
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             throw e;
         }
     }
@@ -112,11 +109,9 @@ public abstract class AbstractTest {
             if (connection != null && !connection.isClosed()) {
                 connection.close();
             }
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             connection.close();
-        }
-        finally {
+        } finally {
             connection = null;
         }
     }
@@ -137,8 +132,7 @@ public abstract class AbstractTest {
      * @param key
      * @return Value
      */
-    public static String getConfiguredProperty(String key,
-            String defaultValue) {
+    public static String getConfiguredProperty(String key, String defaultValue) {
         return Utils.getConfiguredProperty(key, defaultValue);
     }
 
@@ -161,8 +155,7 @@ public abstract class AbstractTest {
             // handler = new FileHandler("Driver.log");
             if ("console".equalsIgnoreCase(loggingHandler)) {
                 handler = new ConsoleHandler();
-            }
-            else if ("file".equalsIgnoreCase(loggingHandler)) {
+            } else if ("file".equalsIgnoreCase(loggingHandler)) {
                 handler = new FileHandler("Driver.log");
                 System.out.println("Look for Driver.log file in your classpath for detail logs");
             }
@@ -173,11 +166,11 @@ public abstract class AbstractTest {
                 Logger.getLogger("").addHandler(handler);
             }
             // By default, Loggers also send their output to their parent logger.  
-            // Typically the root Logger is configured with a set of Handlers that essentially act as default handlers for all loggers. 
+            // Typically the root Logger is configured with a set of Handlers that essentially act as default handlers
+            // for all loggers. 
             Logger logger = Logger.getLogger("com.microsoft.sqlserver.jdbc");
             logger.setLevel(Level.FINEST);
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             System.err.println("Some how could not invoke logging: " + e.getMessage());
         }
     }

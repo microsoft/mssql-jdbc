@@ -1,21 +1,19 @@
 /*
- * Microsoft JDBC Driver for SQL Server
- * 
- * Copyright(c) Microsoft Corporation All rights reserved.
- * 
- * This program is made available under the terms of the MIT License. See the LICENSE file in the project root for more information.
+ * Microsoft JDBC Driver for SQL Server Copyright(c) Microsoft Corporation All rights reserved. This program is made
+ * available under the terms of the MIT License. See the LICENSE file in the project root for more information.
  */
 
 package com.microsoft.sqlserver.testframework.util;
 
 import java.util.UUID;
 
+
 /**
  * Utility Class
  */
 public class RandomUtil {
 
-    static int _maxIdentifier = 128;	// Max identifier allowed by SQL Server
+    static int _maxIdentifier = 128; // Max identifier allowed by SQL Server
 
     static public String getIdentifier(String prefix) {
         return getIdentifier(prefix, _maxIdentifier, true, false);
@@ -28,19 +26,16 @@ public class RandomUtil {
     /**
      * 
      * @param prefix
-     *            Prefix
+     *        Prefix
      * @param maxLength
-     *            max length
+     *        max length
      * @param unique
-     *            Includes UUID.
+     *        Includes UUID.
      * @param isDatabase
-     *            Do you want for db name.
+     *        Do you want for db name.
      * @return
      */
-    static public String getIdentifier(String prefix,
-            int maxLength,
-            boolean unique,
-            boolean isDatabase) {
+    static public String getIdentifier(String prefix, int maxLength, boolean unique, boolean isDatabase) {
         String identifier;
         StringBuilder sb = new StringBuilder();
         sb.append(prefix);
@@ -65,16 +60,14 @@ public class RandomUtil {
      * Get Identifier for DB Name.
      * 
      * @param prefix
-     *            Prefix
+     *        Prefix
      * @param maxLength
-     *            max length
+     *        max length
      * @param unique
-     *            Includes UUID.
+     *        Includes UUID.
      * @return
      */
-    public static String getIdentifierForDB(String prefix,
-            int maxLength,
-            boolean unique) {
+    public static String getIdentifierForDB(String prefix, int maxLength, boolean unique) {
         String identifier = getIdentifier(prefix, maxLength, unique, true);
         return removeInvalidDBChars(identifier);
     }
@@ -82,16 +75,14 @@ public class RandomUtil {
     /**
      * 
      * @param prefix
-     *            Prefix
+     *        Prefix
      * @param maxLength
-     *            max length
+     *        max length
      * @param isDatabase
-     *            Do you want for db name.
+     *        Do you want for db name.
      * @return
      */
-    public static String getUniqueIdentifier(String prefix,
-            int maxLength,
-            boolean isDatabase) {
+    public static String getUniqueIdentifier(String prefix, int maxLength, boolean isDatabase) {
         return getIdentifier(prefix, maxLength, true, isDatabase);
     }
 

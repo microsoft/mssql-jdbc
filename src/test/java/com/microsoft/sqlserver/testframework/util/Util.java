@@ -1,9 +1,6 @@
 /*
- * Microsoft JDBC Driver for SQL Server
- *
- * Copyright(c) Microsoft Corporation All rights reserved.
- *
- * This program is made available under the terms of the MIT License. See the LICENSE file in the project root for more information.
+ * Microsoft JDBC Driver for SQL Server Copyright(c) Microsoft Corporation All rights reserved. This program is made
+ * available under the terms of the MIT License. See the LICENSE file in the project root for more information.
  */
 
 package com.microsoft.sqlserver.testframework.util;
@@ -21,6 +18,7 @@ import com.microsoft.sqlserver.jdbc.SQLServerConnection;
 import com.microsoft.sqlserver.jdbc.SQLServerDatabaseMetaData;
 import com.microsoft.sqlserver.jdbc.SQLServerStatementColumnEncryptionSetting;
 
+
 /**
  * Utility class for testing
  */
@@ -30,22 +28,20 @@ public class Util {
      * Utility method for generating a prepared statement
      * 
      * @param connection
-     *            connection object
+     *        connection object
      * @param sql
-     *            SQL string
+     *        SQL string
      * @param stmtColEncSetting
-     *            SQLServerStatementColumnEncryptionSetting object
+     *        SQLServerStatementColumnEncryptionSetting object
      * @return
      */
-    public static PreparedStatement getPreparedStmt(Connection connection,
-            String sql,
+    public static PreparedStatement getPreparedStmt(Connection connection, String sql,
             SQLServerStatementColumnEncryptionSetting stmtColEncSetting) throws SQLException {
         if (null == stmtColEncSetting) {
             return ((SQLServerConnection) connection).prepareStatement(sql);
-        }
-        else {
-            return ((SQLServerConnection) connection).prepareStatement(sql, ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY,
-                    connection.getHoldability(), stmtColEncSetting);
+        } else {
+            return ((SQLServerConnection) connection).prepareStatement(sql, ResultSet.TYPE_FORWARD_ONLY,
+                    ResultSet.CONCUR_READ_ONLY, connection.getHoldability(), stmtColEncSetting);
         }
     }
 
@@ -53,11 +49,11 @@ public class Util {
      * Utility method for a statement
      * 
      * @param connection
-     *            connection object
+     *        connection object
      * @param sql
-     *            SQL string
+     *        SQL string
      * @param stmtColEncSetting
-     *            SQLServerStatementColumnEncryptionSetting object
+     *        SQLServerStatementColumnEncryptionSetting object
      * @return
      */
     public static Statement getStatement(Connection connection,
@@ -65,10 +61,9 @@ public class Util {
         // default getStatement assumes resultSet is type_forward_only and concur_read_only
         if (null == stmtColEncSetting) {
             return ((SQLServerConnection) connection).createStatement();
-        }
-        else {
-            return ((SQLServerConnection) connection).createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY,
-                    connection.getHoldability(), stmtColEncSetting);
+        } else {
+            return ((SQLServerConnection) connection).createStatement(ResultSet.TYPE_FORWARD_ONLY,
+                    ResultSet.CONCUR_READ_ONLY, connection.getHoldability(), stmtColEncSetting);
         }
     }
 
@@ -76,50 +71,50 @@ public class Util {
      * Utility method for a scrollable statement
      * 
      * @param connection
-     *            connection object
+     *        connection object
      * @return
      */
     public static Statement getScrollableStatement(Connection connection) throws SQLException {
-        return ((SQLServerConnection) connection).createStatement(ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_UPDATABLE);
+        return ((SQLServerConnection) connection).createStatement(ResultSet.TYPE_SCROLL_SENSITIVE,
+                ResultSet.CONCUR_UPDATABLE);
     }
 
     /**
      * Utility method for a scrollable statement
      * 
      * @param connection
-     *            connection object
+     *        connection object
      * @param stmtColEncSetting
-     *            SQLServerStatementColumnEncryptionSetting object
+     *        SQLServerStatementColumnEncryptionSetting object
      * @return
      */
     public static Statement getScrollableStatement(Connection connection,
             SQLServerStatementColumnEncryptionSetting stmtColEncSetting) throws SQLException {
-        return ((SQLServerConnection) connection).createStatement(ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.TYPE_SCROLL_SENSITIVE,
-                ResultSet.CONCUR_UPDATABLE, stmtColEncSetting);
+        return ((SQLServerConnection) connection).createStatement(ResultSet.TYPE_SCROLL_SENSITIVE,
+                ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_UPDATABLE, stmtColEncSetting);
     }
 
     /**
      * Utility method for a statement
      * 
      * @param connection
-     *            connection object
+     *        connection object
      * @param stmtColEncSetting
-     *            SQLServerStatementColumnEncryptionSetting object
+     *        SQLServerStatementColumnEncryptionSetting object
      * @param rsScrollSensitivity
      * @param rsConcurrence
      * @return
      */
     public static Statement getStatement(Connection connection,
-            SQLServerStatementColumnEncryptionSetting stmtColEncSetting,
-            int rsScrollSensitivity,
+            SQLServerStatementColumnEncryptionSetting stmtColEncSetting, int rsScrollSensitivity,
             int rsConcurrence) throws SQLException {
         // overloaded getStatement allows setting resultSet type
         if (null == stmtColEncSetting) {
-            return ((SQLServerConnection) connection).createStatement(rsScrollSensitivity, rsConcurrence, connection.getHoldability());
-        }
-        else {
-            return ((SQLServerConnection) connection).createStatement(rsScrollSensitivity, rsConcurrence, connection.getHoldability(),
-                    stmtColEncSetting);
+            return ((SQLServerConnection) connection).createStatement(rsScrollSensitivity, rsConcurrence,
+                    connection.getHoldability());
+        } else {
+            return ((SQLServerConnection) connection).createStatement(rsScrollSensitivity, rsConcurrence,
+                    connection.getHoldability(), stmtColEncSetting);
         }
     }
 
@@ -127,21 +122,19 @@ public class Util {
      * Utility method for a callable statement
      * 
      * @param connection
-     *            connection object
+     *        connection object
      * @param stmtColEncSetting
-     *            SQLServerStatementColumnEncryptionSetting object
+     *        SQLServerStatementColumnEncryptionSetting object
      * @param sql
      * @return
      */
-    public static CallableStatement getCallableStmt(Connection connection,
-            String sql,
+    public static CallableStatement getCallableStmt(Connection connection, String sql,
             SQLServerStatementColumnEncryptionSetting stmtColEncSetting) throws SQLException {
         if (null == stmtColEncSetting) {
             return ((SQLServerConnection) connection).prepareCall(sql);
-        }
-        else {
-            return ((SQLServerConnection) connection).prepareCall(sql, ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY,
-                    connection.getHoldability(), stmtColEncSetting);
+        } else {
+            return ((SQLServerConnection) connection).prepareCall(sql, ResultSet.TYPE_FORWARD_ONLY,
+                    ResultSet.CONCUR_READ_ONLY, connection.getHoldability(), stmtColEncSetting);
         }
     }
 
@@ -162,8 +155,7 @@ public class Util {
 
         if (value instanceof Calendar) {
             cal = (Calendar) value;
-        }
-        else {
+        } else {
             ts = (java.sql.Timestamp) value;
             cal = Calendar.getInstance();
             cal.setTimeInMillis(ts.getTime());
@@ -171,7 +163,8 @@ public class Util {
         }
 
         // round to the nearest minute
-        double seconds = cal.get(Calendar.SECOND) + (nanos == -1 ? ((double) cal.get(Calendar.MILLISECOND) / 1000) : ((double) nanos / 1000000000));
+        double seconds = cal.get(Calendar.SECOND)
+                + (nanos == -1 ? ((double) cal.get(Calendar.MILLISECOND) / 1000) : ((double) nanos / 1000000000));
         if (seconds > 29.998) {
             cal.set(Calendar.MINUTE, cal.get(Calendar.MINUTE) + 1);
         }
@@ -185,8 +178,7 @@ public class Util {
         // return appropriate value
         if (value instanceof Calendar) {
             return cal;
-        }
-        else {
+        } else {
             ts.setTime(cal.getTimeInMillis());
             ts.setNanos(nanos);
             return ts;
@@ -202,7 +194,8 @@ public class Util {
     public static Object roundDatetimeValue(Object value) {
         if (value == null)
             return null;
-        Timestamp ts = value instanceof Timestamp ? (Timestamp) value : new Timestamp(((Calendar) value).getTimeInMillis());
+        Timestamp ts = value instanceof Timestamp ? (Timestamp) value
+                                                  : new Timestamp(((Calendar) value).getTimeInMillis());
         int millis = ts.getNanos() / 1000000;
         int lastDigit = (int) (millis % 10);
         switch (lastDigit) {
@@ -257,31 +250,26 @@ public class Util {
      * @param Statement
      * @param Connection
      */
-    public static void close(ResultSet rs,
-            Statement stmt,
-            Connection con) {
+    public static void close(ResultSet rs, Statement stmt, Connection con) {
         if (rs != null) {
             try {
                 rs.close();
 
-            }
-            catch (SQLException e) {
+            } catch (SQLException e) {
                 System.out.println("The result set cannot be closed.");
             }
         }
         if (stmt != null) {
             try {
                 stmt.close();
-            }
-            catch (SQLException e) {
+            } catch (SQLException e) {
                 System.out.println("The statement cannot be closed.");
             }
         }
         if (con != null) {
             try {
                 con.close();
-            }
-            catch (SQLException e) {
+            } catch (SQLException e) {
                 System.out.println("The data source connection cannot be closed.");
             }
         }
@@ -318,8 +306,7 @@ public class Util {
     public static boolean serverSupportsDataClassification(Statement stmt) {
         try {
             stmt.execute("SELECT * FROM SYS.SENSITIVITY_CLASSIFICATIONS");
-        }
-        catch (SQLException e) {
+        } catch (SQLException e) {
             // Check for Error 208: Invalid Object Name
             if (e.getErrorCode() == 208) {
                 return false;
@@ -331,15 +318,14 @@ public class Util {
     /**
      * 
      * @param b
-     *            byte value
+     *        byte value
      * @param length
-     *            length of the array
+     *        length of the array
      * @return
      */
     final static char[] hexChars = {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F'};
 
-    public static String bytesToHexString(byte[] b,
-            int length) {
+    public static String bytesToHexString(byte[] b, int length) {
         StringBuilder sb = new StringBuilder(length * 2);
         for (int i = 0; i < length; i++) {
             int hexVal = b[i] & 0xFF;
@@ -353,7 +339,7 @@ public class Util {
      * conversion routine valid values 0-9 a-f A-F throws exception when failed to convert
      * 
      * @param value
-     *            charArray
+     *        charArray
      * @return
      * @throws SQLException
      */
@@ -361,14 +347,11 @@ public class Util {
         byte ret = 0;
         if (value >= 'A' && value <= 'F') {
             ret = (byte) (value - 'A' + 10);
-        }
-        else if (value >= 'a' && value <= 'f') {
+        } else if (value >= 'a' && value <= 'f') {
             ret = (byte) (value - 'a' + 10);
-        }
-        else if (value >= '0' && value <= '9') {
+        } else if (value >= '0' && value <= '9') {
             ret = (byte) (value - '0');
-        }
-        else {
+        } else {
             throw new IllegalArgumentException("The string  is not in a valid hex format. ");
         }
         return ret;
@@ -378,7 +361,7 @@ public class Util {
      * Converts a string to an array of bytes
      * 
      * @param hexV
-     *            a hexized string representation of bytes
+     *        a hexized string representation of bytes
      * @return
      * @throws SQLException
      */
