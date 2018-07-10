@@ -17,7 +17,7 @@ import java.sql.SQLException;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
@@ -466,8 +466,8 @@ public class bvtTest extends bvtTestSetup {
      * 
      * @throws SQLException
      */
-    @AfterAll
-    public static void terminate() throws SQLException {
+    @AfterEach
+    public void terminate() throws SQLException {
 
         try (DBConnection conn = new DBConnection(connectionString);
              DBStatement stmt = conn.createStatement()) {
