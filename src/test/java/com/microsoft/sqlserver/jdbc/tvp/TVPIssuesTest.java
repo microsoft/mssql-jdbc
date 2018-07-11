@@ -1,9 +1,6 @@
 /*
- * Microsoft JDBC Driver for SQL Server
- * 
- * Copyright(c) Microsoft Corporation All rights reserved.
- * 
- * This program is made available under the terms of the MIT License. See the LICENSE file in the project root for more information.
+ * Microsoft JDBC Driver for SQL Server Copyright(c) Microsoft Corporation All rights reserved. This program is made
+ * available under the terms of the MIT License. See the LICENSE file in the project root for more information.
  */
 package com.microsoft.sqlserver.jdbc.tvp;
 
@@ -26,10 +23,10 @@ import org.junit.runner.RunWith;
 import com.microsoft.sqlserver.jdbc.SQLServerCallableStatement;
 import com.microsoft.sqlserver.jdbc.SQLServerPreparedStatement;
 import com.microsoft.sqlserver.jdbc.SQLServerStatement;
+import com.microsoft.sqlserver.jdbc.TestResource;
 import com.microsoft.sqlserver.testframework.AbstractTest;
-import com.microsoft.sqlserver.testframework.Utils;
+import com.microsoft.sqlserver.testframework.Utils;;
 
-import com.microsoft.sqlserver.jdbc.TestResource;;
 
 @RunWith(JUnitPlatform.class)
 public class TVPIssuesTest extends AbstractTest {
@@ -81,20 +78,19 @@ public class TVPIssuesTest extends AbstractTest {
         try {
             Cstmt.setObject(1, rs);
             throw new Exception(TestResource.getResource("R_expectedExceptionNotThrown"));
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             if (e instanceof SQLException) {
-                assertTrue(e.getMessage().contains(TestResource.getResource("R_StoredProcedureNotFound")), TestResource.getResource("R_invalidErrorMessage") + e.toString());
-            }
-            else {
+                assertTrue(e.getMessage().contains(TestResource.getResource("R_StoredProcedureNotFound")),
+                        TestResource.getResource("R_invalidErrorMessage") + e.toString());
+            } else {
                 throw e;
             }
         }
     }
 
     /**
-     * Fix an issue: If column is time(x) and TVP is used (with either ResultSet, Stored Procedure or SQLServerDataTable). The milliseconds or
-     * nanoseconds are not copied into the destination table.
+     * Fix an issue: If column is time(x) and TVP is used (with either ResultSet, Stored Procedure or
+     * SQLServerDataTable). The milliseconds or nanoseconds are not copied into the destination table.
      * 
      * @throws Exception
      */
@@ -141,13 +137,13 @@ public class TVPIssuesTest extends AbstractTest {
 
         dropProcedure();
 
-        stmt.executeUpdate(
-                "IF EXISTS (SELECT * FROM sys.types WHERE is_table_type = 1 AND name = '" + tvp_varcharMax + "') " + " drop type " + tvp_varcharMax);
+        stmt.executeUpdate("IF EXISTS (SELECT * FROM sys.types WHERE is_table_type = 1 AND name = '" + tvp_varcharMax
+                + "') " + " drop type " + tvp_varcharMax);
         Utils.dropTableIfExists(srcTable_varcharMax, stmt);
         Utils.dropTableIfExists(desTable_varcharMax, stmt);
 
-        stmt.executeUpdate(
-                "IF EXISTS (SELECT * FROM sys.types WHERE is_table_type = 1 AND name = '" + tvp_time_6 + "') " + " drop type " + tvp_time_6);
+        stmt.executeUpdate("IF EXISTS (SELECT * FROM sys.types WHERE is_table_type = 1 AND name = '" + tvp_time_6
+                + "') " + " drop type " + tvp_time_6);
         Utils.dropTableIfExists(srcTable_time_6, stmt);
         Utils.dropTableIfExists(desTable_time_6, stmt);
 
@@ -198,8 +194,8 @@ public class TVPIssuesTest extends AbstractTest {
     }
 
     private static void createPreocedure() throws SQLException {
-        String sql = "CREATE PROCEDURE " + spName_varcharMax + " @InputData " + tvp_varcharMax + " READONLY " + " AS " + " BEGIN " + " INSERT INTO "
-                + desTable_varcharMax + " SELECT * FROM @InputData" + " END";
+        String sql = "CREATE PROCEDURE " + spName_varcharMax + " @InputData " + tvp_varcharMax + " READONLY " + " AS "
+                + " BEGIN " + " INSERT INTO " + desTable_varcharMax + " SELECT * FROM @InputData" + " END";
 
         stmt.execute(sql);
     }
@@ -207,13 +203,13 @@ public class TVPIssuesTest extends AbstractTest {
     @AfterAll
     public static void terminateVariation() throws SQLException {
         dropProcedure();
-        stmt.executeUpdate(
-                "IF EXISTS (SELECT * FROM sys.types WHERE is_table_type = 1 AND name = '" + tvp_varcharMax + "') " + " drop type " + tvp_varcharMax);
+        stmt.executeUpdate("IF EXISTS (SELECT * FROM sys.types WHERE is_table_type = 1 AND name = '" + tvp_varcharMax
+                + "') " + " drop type " + tvp_varcharMax);
         Utils.dropTableIfExists(srcTable_varcharMax, stmt);
         Utils.dropTableIfExists(desTable_varcharMax, stmt);
 
-        stmt.executeUpdate(
-                "IF EXISTS (SELECT * FROM sys.types WHERE is_table_type = 1 AND name = '" + tvp_time_6 + "') " + " drop type " + tvp_time_6);
+        stmt.executeUpdate("IF EXISTS (SELECT * FROM sys.types WHERE is_table_type = 1 AND name = '" + tvp_time_6
+                + "') " + " drop type " + tvp_time_6);
         Utils.dropTableIfExists(srcTable_time_6, stmt);
         Utils.dropTableIfExists(desTable_time_6, stmt);
 

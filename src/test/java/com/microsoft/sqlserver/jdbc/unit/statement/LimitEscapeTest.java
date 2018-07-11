@@ -1,9 +1,6 @@
 /*
- * Microsoft JDBC Driver for SQL Server
- * 
- * Copyright(c) Microsoft Corporation All rights reserved.
- * 
- * This program is made available under the terms of the MIT License. See the LICENSE file in the project root for more information.
+ * Microsoft JDBC Driver for SQL Server Copyright(c) Microsoft Corporation All rights reserved. This program is made
+ * available under the terms of the MIT License. See the LICENSE file in the project root for more information.
  */
 package com.microsoft.sqlserver.jdbc.unit.statement;
 
@@ -23,7 +20,6 @@ import java.sql.Statement;
 import java.util.Vector;
 import java.util.logging.Logger;
 
-import org.junit.Before;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
@@ -34,6 +30,7 @@ import org.junit.runner.RunWith;
 import com.microsoft.sqlserver.jdbc.TestResource;
 import com.microsoft.sqlserver.testframework.AbstractTest;
 import com.microsoft.sqlserver.testframework.Utils;
+
 
 /**
  * Testing with LimitEscape queries
@@ -62,29 +59,18 @@ public class LimitEscapeTest extends AbstractTest {
         String exceptionMsg = null;
 
         /*
-         * This is used to test different SQL queries. Each SQL query to test is an instance of this class, and is initiated using this constructor.
-         * This constructor sets the expected results from the query and also verifies the translation by comparing it with manual translation.
-         * 
+         * This is used to test different SQL queries. Each SQL query to test is an instance of this class, and is
+         * initiated using this constructor. This constructor sets the expected results from the query and also verifies
+         * the translation by comparing it with manual translation.
          * @param input The SQL query to test
-         * 
          * @param output The manual translation of the query to verify with
-         * 
          * @param rows The expected number of rows in ResultSet
-         * 
          * @param columns The expected number of columns in ResultSet
-         * 
          * @param ids The array of the expected id columns in the ResultSet
-         * 
          * @param intCols The array of the expected int columns of each row in the ResultSet
-         * 
          * @param stringCols The array of the expected String columns of each row in the ResultSet
          */
-        Query(String input,
-                String output,
-                int rows,
-                int columns,
-                int[] ids,
-                int[][] intCols,
+        Query(String input, String output, int rows, int columns, int[] ids, int[][] intCols,
                 String[][] stringCols) throws Exception {
             queryCount++;
 
@@ -121,7 +107,6 @@ public class LimitEscapeTest extends AbstractTest {
             Object innerInstance = ctor.newInstance();
             Method method = innerClass.getDeclaredMethod("translate", cArg);
 
-
             method.setAccessible(true);
             Object str = method.invoke(innerInstance, inputSql);
             assertEquals(str, outputSql, TestResource.getResource("R_syntaxMatchError") + ": " + queryID);
@@ -139,15 +124,14 @@ public class LimitEscapeTest extends AbstractTest {
         void execute(Connection conn) throws Exception {
             try {
                 executeSpecific(conn);
-            }
-            catch (Exception e) {
+            } catch (Exception e) {
                 if (null != exceptionMsg) {
                     // This query is to verify right exception is thrown for errors in syntax.
-                    assertTrue(e.getMessage().equalsIgnoreCase(exceptionMsg), TestResource.getResource("R_unexpectedExceptionContent") + e.getMessage());
+                    assertTrue(e.getMessage().equalsIgnoreCase(exceptionMsg),
+                            TestResource.getResource("R_unexpectedExceptionContent") + e.getMessage());
                     // Exception message matched. Return as there is no result to verify.
                     return;
-                }
-                else
+                } else
                     throw e;
             }
 
@@ -161,23 +145,28 @@ public class LimitEscapeTest extends AbstractTest {
 
             int rowCount = 0;
             while (resultSet.next()) {
-                // The int and string columns should be retrieved in order, for example cannot run a query that retrieves col2 but not col1
-                assertEquals(resultSet.getInt(1), idCols[rowCount], TestResource.getResource("R_valueNotMatch") + queryID + ", row: " + rowCount);
+                // The int and string columns should be retrieved in order, for example cannot run a query that
+                // retrieves col2 but not col1
+                assertEquals(resultSet.getInt(1), idCols[rowCount],
+                        TestResource.getResource("R_valueNotMatch") + queryID + ", row: " + rowCount);
                 for (int j = 0, colNumber = 1; null != intResultCols && j < intResultCols[rowCount].length; ++j) {
                     String colName = "col" + colNumber;
                     assertEquals(resultSet.getInt(colName), intResultCols[rowCount][j],
-                            TestResource.getResource("R_valueNotMatch") + queryID + ", row: " + rowCount + ", column: " + colName);
+                            TestResource.getResource("R_valueNotMatch") + queryID + ", row: " + rowCount + ", column: "
+                                    + colName);
                     colNumber++;
                 }
                 for (int j = 0, colNumber = 3; null != stringResultCols && j < stringResultCols[rowCount].length; ++j) {
                     String colName = "col" + colNumber;
                     assertEquals(resultSet.getString(colName), stringResultCols[rowCount][j],
-                            TestResource.getResource("R_valueNotMatch") + queryID + ", row: " + rowCount + ", column: " + colName);
+                            TestResource.getResource("R_valueNotMatch") + queryID + ", row: " + rowCount + ", column: "
+                                    + colName);
                     colNumber++;
                 }
                 rowCount++;
             }
-            assertEquals(rowCount, rows, TestResource.getResource("R_valueNotMatch") + "rowCount: " + rowCount + ", rows: " + rows);
+            assertEquals(rowCount, rows,
+                    TestResource.getResource("R_valueNotMatch") + "rowCount: " + rowCount + ", rows: " + rows);
             assertEquals(resultSet.getMetaData().getColumnCount(), columns, "Column Count does not match");
         }
     }
@@ -185,14 +174,8 @@ public class LimitEscapeTest extends AbstractTest {
     static class PreparedQuery extends Query {
         int placeholderCount = 0;
 
-        PreparedQuery(String input,
-                String output,
-                int rows,
-                int columns,
-                int[] ids,
-                int[][] intCols,
-                String[][] stringCols,
-                int placeholderCount) throws Exception {
+        PreparedQuery(String input, String output, int rows, int columns, int[] ids, int[][] intCols,
+                String[][] stringCols, int placeholderCount) throws Exception {
             super(input, output, rows, columns, ids, intCols, stringCols);
             this.placeholderCount = placeholderCount;
         }
@@ -207,14 +190,8 @@ public class LimitEscapeTest extends AbstractTest {
     }
 
     static class CallableQuery extends PreparedQuery {
-        CallableQuery(String input,
-                String output,
-                int rows,
-                int columns,
-                int[] ids,
-                int[][] intCols,
-                String[][] stringCols,
-                int placeholderCount) throws Exception {
+        CallableQuery(String input, String output, int rows, int columns, int[] ids, int[][] intCols,
+                String[][] stringCols, int placeholderCount) throws Exception {
             super(input, output, rows, columns, ids, intCols, stringCols, placeholderCount);
         }
 
@@ -229,38 +206,24 @@ public class LimitEscapeTest extends AbstractTest {
 
     public static void createAndPopulateTables(Connection conn) throws Exception {
         Statement stmt = conn.createStatement();
-        // Instead of table identifiers use some simple table names for this test only, as a lot of string manipulation is done
+        // Instead of table identifiers use some simple table names for this test only, as a lot of string manipulation
+        // is done
         // around table names.
         try {
             stmt.executeUpdate("drop table UnitStatement_LimitEscape_t1");
-        }
-        catch (Exception ex) {
-        }
-        ;
+        } catch (Exception ex) {} ;
         try {
             stmt.executeUpdate("drop table UnitStatement_LimitEscape_t2");
-        }
-        catch (Exception ex) {
-        }
-        ;
+        } catch (Exception ex) {} ;
         try {
             stmt.executeUpdate("drop table UnitStatement_LimitEscape_t3");
-        }
-        catch (Exception ex) {
-        }
-        ;
+        } catch (Exception ex) {} ;
         try {
             stmt.executeUpdate("drop table UnitStatement_LimitEscape_t4");
-        }
-        catch (Exception ex) {
-        }
-        ;
+        } catch (Exception ex) {} ;
         try {
             stmt.executeUpdate("drop procedure UnitStatement_LimitEscape_p1");
-        }
-        catch (Exception ex) {
-        }
-        ;
+        } catch (Exception ex) {} ;
         stmt.executeUpdate(
                 "create table UnitStatement_LimitEscape_t1 (col1 int, col2 int, col3 varchar(100), col4 varchar(100), id int identity(1,1) primary key)");
         stmt.executeUpdate(
@@ -284,6 +247,7 @@ public class LimitEscapeTest extends AbstractTest {
 
     /**
      * Initialize and verify queries
+     * 
      * @throws Exception
      */
     @Test
@@ -292,7 +256,8 @@ public class LimitEscapeTest extends AbstractTest {
         Query qry;
         // 1
         // Test whether queries without limit syntax works
-        qry = new Query("select TOP 1 * from UnitStatement_LimitEscape_t1", "select TOP 1 * from UnitStatement_LimitEscape_t1", 1, // # of rows
+        qry = new Query("select TOP 1 * from UnitStatement_LimitEscape_t1",
+                "select TOP 1 * from UnitStatement_LimitEscape_t1", 1, // # of rows
                 5, // # of columns
                 new int[] {1}, // id column values
                 new int[][] {{1, 1}}, // int column values
@@ -301,12 +266,14 @@ public class LimitEscapeTest extends AbstractTest {
 
         // 2
         // Test parentheses in limit syntax
-        qry = new Query("select * from UnitStatement_LimitEscape_t1 {limit ( (  (2)))}", "select TOP ( (  (2))) * from UnitStatement_LimitEscape_t1",
-                2, // # of rows
+        qry = new Query("select * from UnitStatement_LimitEscape_t1 {limit ( (  (2)))}",
+                "select TOP ( (  (2))) * from UnitStatement_LimitEscape_t1", 2, // # of rows
                 5, // # of columns
                 new int[] {1, 2}, // id column values
                 new int[][] {{1, 1}, {2, 2}}, // int column values
-                new String[][] {{"col3", "col4"}, {"row2 ' with ' quote", "row2 with limit  {limit 22} {limit ?}"}}); // string column values
+                new String[][] {{"col3", "col4"}, {"row2 ' with ' quote", "row2 with limit  {limit 22} {limit ?}"}}); // string
+                                                                                                                      // column
+                                                                                                                      // values
         qry.execute(conn);
 
         // 3
@@ -357,8 +324,10 @@ public class LimitEscapeTest extends AbstractTest {
 
         // 7
         // Test multiple parentheses in limit syntax and in subquery
-        qry = new Query("select id from (( (select * from UnitStatement_LimitEscape_t1 {limit 10})) ) t1 {limit ((1) )}",
-                "select TOP ((1) ) id from (( (select TOP 10 * from UnitStatement_LimitEscape_t1)) ) t1", 1, // # of rows
+        qry = new Query(
+                "select id from (( (select * from UnitStatement_LimitEscape_t1 {limit 10})) ) t1 {limit ((1) )}",
+                "select TOP ((1) ) id from (( (select TOP 10 * from UnitStatement_LimitEscape_t1)) ) t1", 1, // # of
+                                                                                                             // rows
                 1, // # of columns
                 new int[] {1}, // id column values
                 null, // int column values
@@ -408,7 +377,9 @@ public class LimitEscapeTest extends AbstractTest {
                 4, // # of columns
                 new int[] {1, 2}, // id column values
                 new int[][] {{1, 1}, {2, 2}}, // int column values
-                new String[][] {{"col3", "col4"}, {"row2 ' with ' quote", "row2 with limit  {limit 22} {limit ?}"}}); // string column values
+                new String[][] {{"col3", "col4"}, {"row2 ' with ' quote", "row2 with limit  {limit 22} {limit ?}"}}); // string
+                                                                                                                      // column
+                                                                                                                      // values
         qry.execute(conn);
 
         // 12
@@ -435,9 +406,10 @@ public class LimitEscapeTest extends AbstractTest {
 
         // 14
         // Test prepared statements with limit syntax
-        qry = new PreparedQuery("select * from UnitStatement_LimitEscape_t1 {limit (?)}", "select TOP (?) * from UnitStatement_LimitEscape_t1", 1, // #
-                                                                                                                                                   // of
-                                                                                                                                                   // rows
+        qry = new PreparedQuery("select * from UnitStatement_LimitEscape_t1 {limit (?)}",
+                "select TOP (?) * from UnitStatement_LimitEscape_t1", 1, // #
+                                                                         // of
+                                                                         // rows
                 5, // # of columns
                 new int[] {1}, // id column values
                 new int[][] {{1, 1}}, // int column values
@@ -446,9 +418,10 @@ public class LimitEscapeTest extends AbstractTest {
 
         // 15
         // Test prepared statements with limit syntax with multiple parentheses/spaces
-        qry = new PreparedQuery("select * from UnitStatement_LimitEscape_t1 {limit ?}", "select TOP (?) * from UnitStatement_LimitEscape_t1", 1, // #
-                                                                                                                                                 // of
-                                                                                                                                                 // rows
+        qry = new PreparedQuery("select * from UnitStatement_LimitEscape_t1 {limit ?}",
+                "select TOP (?) * from UnitStatement_LimitEscape_t1", 1, // #
+                                                                         // of
+                                                                         // rows
                 5, // # of columns
                 new int[] {1}, // id column values
                 new int[][] {{1, 1}}, // int column values
@@ -479,9 +452,10 @@ public class LimitEscapeTest extends AbstractTest {
         // Test callable statements with limit syntax in string literals
         qry = new CallableQuery(
                 "EXEC UnitStatement_LimitEscape_p1 @col3Value = 'row2 '' with '' quote', @col4Value = 'row2 with limit  {limit 22} {limit ?}'",
-                "EXEC UnitStatement_LimitEscape_p1 @col3Value = 'row2 '' with '' quote', @col4Value = 'row2 with limit  {limit 22} {limit ?}'", 1, // #
-                                                                                                                                                   // of
-                                                                                                                                                   // rows
+                "EXEC UnitStatement_LimitEscape_p1 @col3Value = 'row2 '' with '' quote', @col4Value = 'row2 with limit  {limit 22} {limit ?}'",
+                1, // #
+                   // of
+                   // rows
                 5, // # of columns
                 new int[] {2}, // id column values
                 new int[][] {{2, 2}}, // int column values
@@ -497,7 +471,9 @@ public class LimitEscapeTest extends AbstractTest {
                 5, // # of columns
                 new int[] {3}, // id column values
                 new int[][] {{3, 3}}, // int column values
-                new String[][] {{"row3 with subquery (select * from t1)", "row3 with subquery (select * from (select * from t1) {limit 4})"}}, 0);
+                new String[][] {{"row3 with subquery (select * from t1)",
+                        "row3 with subquery (select * from (select * from t1) {limit 4})"}},
+                0);
         qry.execute(conn);
 
         // 20
@@ -514,8 +490,10 @@ public class LimitEscapeTest extends AbstractTest {
 
         // 21
         // Test callable statement escape syntax with quotes/scalar functions/limit syntax in string literals
-        qry = new CallableQuery("{call UnitStatement_LimitEscape_p1 ('select * from t1 {limit 4} ''quotes'' (braces)', 'ucase(scalar function)')}",
-                "EXEC UnitStatement_LimitEscape_p1 'select * from t1 {limit 4} ''quotes'' (braces)', 'ucase(scalar function)'", 1, // # of rows
+        qry = new CallableQuery(
+                "{call UnitStatement_LimitEscape_p1 ('select * from t1 {limit 4} ''quotes'' (braces)', 'ucase(scalar function)')}",
+                "EXEC UnitStatement_LimitEscape_p1 'select * from t1 {limit 4} ''quotes'' (braces)', 'ucase(scalar function)'",
+                1, // # of rows
                 5, // # of columns
                 new int[] {4}, // id column values
                 new int[][] {{4, 4}}, // int column value
@@ -526,20 +504,25 @@ public class LimitEscapeTest extends AbstractTest {
         // Test callable statement escape syntax with openrowquery/openrowset/quotes in string literals
         qry = new CallableQuery(
                 "{call UnitStatement_LimitEscape_p1 ('openquery(''server'', ''query'')', 'openrowset(''server'',''connection string'',''query'')')}",
-                "EXEC UnitStatement_LimitEscape_p1 'openquery(''server'', ''query'')', 'openrowset(''server'',''connection string'',''query'')'", 1, // #
-                                                                                                                                                     // of
-                                                                                                                                                     // rows
+                "EXEC UnitStatement_LimitEscape_p1 'openquery(''server'', ''query'')', 'openrowset(''server'',''connection string'',''query'')'",
+                1, // #
+                   // of
+                   // rows
                 5, // # of columns
                 new int[] {5}, // id column values
                 new int[][] {{5, 5}}, // int column value
-                new String[][] {{"openquery('server', 'query')", "openrowset('server','connection string','query')"}}, 0);
+                new String[][] {{"openquery('server', 'query')", "openrowset('server','connection string','query')"}},
+                0);
         qry.execute(conn);
 
         // Do not execute this query as no lnked_server is setup. Only verify the translation for it.
         // 23
         // Test openquery syntax translation with limit syntax
-        qry = new Query("select * from openquery('linked_server', 'select * from UnitStatement_LimitEscape_t1 {limit 2}') {limit 1}",
-                "select TOP 1 * from openquery('linked_server', 'select TOP 2 * from UnitStatement_LimitEscape_t1')", 1, // # of rows
+        qry = new Query(
+                "select * from openquery('linked_server', 'select * from UnitStatement_LimitEscape_t1 {limit 2}') {limit 1}",
+                "select TOP 1 * from openquery('linked_server', 'select TOP 2 * from UnitStatement_LimitEscape_t1')", 1, // #
+                                                                                                                         // of
+                                                                                                                         // rows
                 5, // # of columns
                 new int[] {5}, // id column values
                 new int[][] {{5, 5}}, // int column value
@@ -571,8 +554,11 @@ public class LimitEscapeTest extends AbstractTest {
         // Do not execute this query as it is a batch query, needs to be handled differently.
         // Only test the syntax translation.
         // Test batch query.
-        qry = new Query("select * from UnitStatement_LimitEscape_t1 {limit 1}; select * from UnitStatement_LimitEscape_t1 {limit 4}",
-                "select TOP 1 * from UnitStatement_LimitEscape_t1; select TOP 4 * from UnitStatement_LimitEscape_t1", 0, // # of rows
+        qry = new Query(
+                "select * from UnitStatement_LimitEscape_t1 {limit 1}; select * from UnitStatement_LimitEscape_t1 {limit 4}",
+                "select TOP 1 * from UnitStatement_LimitEscape_t1; select TOP 4 * from UnitStatement_LimitEscape_t1", 0, // #
+                                                                                                                         // of
+                                                                                                                         // rows
                 5, // # of columns
                 null, // id column values
                 null, // int column values
@@ -615,8 +601,10 @@ public class LimitEscapeTest extends AbstractTest {
         qry.execute(conn);
 
         // 29
-        // Execute query, and verify exception for limit syntax error. The translator should leave the query unchanged as limit syntax is not correct.
-        qry = new Query("select * from UnitStatement_LimitEscape_t1 {limit1}", "select * from UnitStatement_LimitEscape_t1 {limit1}", 0, // # of rows
+        // Execute query, and verify exception for limit syntax error. The translator should leave the query unchanged
+        // as limit syntax is not correct.
+        qry = new Query("select * from UnitStatement_LimitEscape_t1 {limit1}",
+                "select * from UnitStatement_LimitEscape_t1 {limit1}", 0, // # of rows
                 0, // # of columns
                 null, // id column values
                 null, // int column values
@@ -626,9 +614,11 @@ public class LimitEscapeTest extends AbstractTest {
         qry.execute(conn);
 
         // 30
-        // Execute query, and verify exception for limit syntax error. The translator should leave the query unchanged as limit syntax is not correct.
-        qry = new Query("select * from UnitStatement_LimitEscape_t1 {limit(1}", "select * from UnitStatement_LimitEscape_t1 {limit(1}", 0, // # of
-                                                                                                                                           // rows
+        // Execute query, and verify exception for limit syntax error. The translator should leave the query unchanged
+        // as limit syntax is not correct.
+        qry = new Query("select * from UnitStatement_LimitEscape_t1 {limit(1}",
+                "select * from UnitStatement_LimitEscape_t1 {limit(1}", 0, // # of
+                                                                           // rows
                 0, // # of columns
                 null, // id column values
                 null, // int column values
@@ -638,7 +628,8 @@ public class LimitEscapeTest extends AbstractTest {
         qry.execute(conn);
 
         // 31
-        // Execute query, and verify exception for limit syntax error. The translator should leave the query unchanged as limit syntax is not correct.
+        // Execute query, and verify exception for limit syntax error. The translator should leave the query unchanged
+        // as limit syntax is not correct.
         qry = new Query("select * from UnitStatement_LimitEscape_t1 {limit 1 offset10}",
                 "select * from UnitStatement_LimitEscape_t1 {limit 1 offset10}", 0, // # of rows
                 0, // # of columns
@@ -650,7 +641,8 @@ public class LimitEscapeTest extends AbstractTest {
         qry.execute(conn);
 
         // 32
-        // Execute query, and verify exception for limit syntax error. The translator should leave the query unchanged as limit syntax is not correct.
+        // Execute query, and verify exception for limit syntax error. The translator should leave the query unchanged
+        // as limit syntax is not correct.
         qry = new Query("select * from UnitStatement_LimitEscape_t1 {limit1 offset 10}",
                 "select * from UnitStatement_LimitEscape_t1 {limit1 offset 10}", 0, // # of rows
                 0, // # of columns
@@ -662,7 +654,8 @@ public class LimitEscapeTest extends AbstractTest {
         qry.execute(conn);
 
         // 33
-        // Execute query, and verify exception for limit syntax error. The translator should leave the query unchanged as limit syntax is not correct.
+        // Execute query, and verify exception for limit syntax error. The translator should leave the query unchanged
+        // as limit syntax is not correct.
         qry = new Query("select * from UnitStatement_LimitEscape_t1 {limit1 offset10}",
                 "select * from UnitStatement_LimitEscape_t1 {limit1 offset10}", 0, // # of rows
                 0, // # of columns
@@ -674,7 +667,8 @@ public class LimitEscapeTest extends AbstractTest {
         qry.execute(conn);
 
         // 34
-        // Execute query, and verify exception for syntax error. The translator should leave the query unchanged as limit syntax is not correct.
+        // Execute query, and verify exception for syntax error. The translator should leave the query unchanged as
+        // limit syntax is not correct.
         qry = new Query("insert into UnitStatement_LimitEscape_t1(col3) values({limit 1})",
                 "insert into UnitStatement_LimitEscape_t1(col3) values({limit 1})", 0, // # of rows
                 0, // # of columns
@@ -686,10 +680,12 @@ public class LimitEscapeTest extends AbstractTest {
         qry.execute(conn);
 
         // 35
-        // Execute query, and verify exception for syntax error. The translator should leave the query unchanged as limit syntax is not correct.
-        qry = new Query("select * from UnitStatement_LimitEscape_t1 {limit {limit 5}}", "select TOP 5 * from UnitStatement_LimitEscape_t1 {limit}", 0, // #
-                                                                                                                                                       // of
-                                                                                                                                                       // rows
+        // Execute query, and verify exception for syntax error. The translator should leave the query unchanged as
+        // limit syntax is not correct.
+        qry = new Query("select * from UnitStatement_LimitEscape_t1 {limit {limit 5}}",
+                "select TOP 5 * from UnitStatement_LimitEscape_t1 {limit}", 0, // #
+                                                                               // of
+                                                                               // rows
                 0, // # of columns
                 null, // id column values
                 null, // int column values
@@ -699,7 +695,8 @@ public class LimitEscapeTest extends AbstractTest {
         qry.execute(conn);
 
         // 36
-        // Execute query, and verify exception for syntax error. The translator should leave the query unchanged as limit syntax is not correct.
+        // Execute query, and verify exception for syntax error. The translator should leave the query unchanged as
+        // limit syntax is not correct.
         qry = new Query("select * from UnitStatement_LimitEscape_t1 {limit 1} {limit 2}",
                 "select TOP 1 * from UnitStatement_LimitEscape_t1 {limit 2}", 0, // # of rows
                 0, // # of columns
@@ -715,11 +712,12 @@ public class LimitEscapeTest extends AbstractTest {
 
     /**
      * Verify offset Exception
+     * 
      * @throws Exception
      */
     @Test
     @DisplayName("verifyOffsetException")
-    public  void verifyOffsetException() throws Exception {
+    public void verifyOffsetException() throws Exception {
         offsetQuery.addElement("select * from UnitStatement_LimitEscape_t1 {limit 2 offset 1}");
         offsetQuery.addElement("select * from UnitStatement_LimitEscape_t1 {limit 2232 offset 1232}");
         offsetQuery.addElement("select * from UnitStatement_LimitEscape_t1 {limit (2) offset (1)}");
@@ -756,7 +754,7 @@ public class LimitEscapeTest extends AbstractTest {
         catch (InvocationTargetException e) {
             assertEquals(e.toString(), "java.lang.reflect.InvocationTargetException");
         }
-    } 
+    }
 
     /**
      * clean up
@@ -766,14 +764,14 @@ public class LimitEscapeTest extends AbstractTest {
         try {
             conn = DriverManager.getConnection(connectionString);
             createAndPopulateTables(conn);
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             fail(e.toString());
         }
     }
 
     /**
      * Clean up
+     * 
      * @throws Exception
      */
     @AfterAll
@@ -785,11 +783,9 @@ public class LimitEscapeTest extends AbstractTest {
             Utils.dropTableIfExists("UnitStatement_LimitEscape_t2", stmt);
             Utils.dropTableIfExists("UnitStatement_LimitEscape_t3", stmt);
             Utils.dropTableIfExists("UnitStatement_LimitEscape_t4", stmt);
-        }
-        catch (Exception ex) {
+        } catch (Exception ex) {
             fail(ex.toString());
-        }
-        finally {
+        } finally {
             stmt.close();
             conn.close();
         }

@@ -1,9 +1,6 @@
 /*
- * Microsoft JDBC Driver for SQL Server
- * 
- * Copyright(c) Microsoft Corporation All rights reserved.
- * 
- * This program is made available under the terms of the MIT License. See the LICENSE file in the project root for more information.
+ * Microsoft JDBC Driver for SQL Server Copyright(c) Microsoft Corporation All rights reserved. This program is made
+ * available under the terms of the MIT License. See the LICENSE file in the project root for more information.
  */
 
 package com.microsoft.sqlserver.testframework;
@@ -51,6 +48,7 @@ import com.microsoft.sqlserver.testframework.sqlType.SqlVarBinaryMax;
 import com.microsoft.sqlserver.testframework.sqlType.SqlVarChar;
 import com.microsoft.sqlserver.testframework.sqlType.SqlVarCharMax;
 
+
 /**
  * Generic Utility class which we can access by test classes.
  * 
@@ -77,14 +75,11 @@ public class Utils {
         if (null == serverTypeProperty) {
             // default to SQL Server
             serverType = SERVER_TYPE_SQL_SERVER;
-        }
-        else if (serverTypeProperty.equalsIgnoreCase(SERVER_TYPE_SQL_AZURE)) {
+        } else if (serverTypeProperty.equalsIgnoreCase(SERVER_TYPE_SQL_AZURE)) {
             serverType = SERVER_TYPE_SQL_AZURE;
-        }
-        else if (serverTypeProperty.equalsIgnoreCase(SERVER_TYPE_SQL_SERVER)) {
+        } else if (serverTypeProperty.equalsIgnoreCase(SERVER_TYPE_SQL_SERVER)) {
             serverType = SERVER_TYPE_SQL_SERVER;
-        }
-        else {
+        } else {
             if (log.isLoggable(Level.FINE)) {
                 log.fine("Server.type '" + serverTypeProperty + "' is not supported yet. Default to SQL Server");
             }
@@ -115,8 +110,7 @@ public class Utils {
      * @param key
      * @return Value
      */
-    public static String getConfiguredProperty(String key,
-            String defaultValue) {
+    public static String getConfiguredProperty(String key, String defaultValue) {
         String value = getConfiguredProperty(key);
 
         if (value == null) {
@@ -253,20 +247,19 @@ public class Utils {
             super(value);
         }
     }
-    
+
     /**
      * 
      * @return location of resource file
      */
     public static String getCurrentClassPath() {
         try {
-            String className = new Object() {
-            }.getClass().getEnclosingClass().getName();
-            String location = Class.forName(className).getProtectionDomain().getCodeSource().getLocation().getPath() + "/";
+            String className = new Object() {}.getClass().getEnclosingClass().getName();
+            String location = Class.forName(className).getProtectionDomain().getCodeSource().getLocation().getPath()
+                    + "/";
             URI uri = new URI(location.toString());
             return uri.getPath();
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             fail("Failed to get CSV file path. " + e.getMessage());
         }
         return null;
@@ -286,54 +279,53 @@ public class Utils {
         dropObjectIfExists(procName, "IsProcedure", stmt);
     }
 
-    public static void dropDatabaseIfExists(String databaseName,
-            java.sql.Statement stmt) throws SQLException {
-        stmt.executeUpdate("USE MASTER; IF EXISTS(SELECT * from sys.databases WHERE name='" + databaseName + "') DROP DATABASE [" + databaseName + "]");
+    public static void dropDatabaseIfExists(String databaseName, java.sql.Statement stmt) throws SQLException {
+        stmt.executeUpdate("USE MASTER; IF EXISTS(SELECT * from sys.databases WHERE name='" + databaseName
+                + "') DROP DATABASE [" + databaseName + "]");
     }
 
     /**
      * actually perform the "DROP TABLE / PROCEDURE"
      */
-    private static void dropObjectIfExists(String objectName, String objectProperty, java.sql.Statement stmt) throws SQLException {
+    private static void dropObjectIfExists(String objectName, String objectProperty,
+            java.sql.Statement stmt) throws SQLException {
         StringBuilder sb = new StringBuilder();
-        if (!objectName.startsWith("[")) { sb.append("["); }
+        if (!objectName.startsWith("[")) {
+            sb.append("[");
+        }
         sb.append(objectName);
-        if (!objectName.endsWith("]")) { sb.append("]"); }
+        if (!objectName.endsWith("]")) {
+            sb.append("]");
+        }
         String bracketedObjectName = sb.toString();
-        String sql = String.format(
-                "IF EXISTS " +
-                        "( " +
-                            "SELECT * from sys.objects " +
-                            "WHERE object_id = OBJECT_ID(N'%s') AND OBJECTPROPERTY(object_id, N'%s') = 1 " +
-                        ") " +
-                    "DROP %s %s ",
-                bracketedObjectName,
-                objectProperty,
-                "IsProcedure".equals(objectProperty)  ? "PROCEDURE" : "TABLE",
+        String sql = String.format("IF EXISTS " + "( " + "SELECT * from sys.objects "
+                + "WHERE object_id = OBJECT_ID(N'%s') AND OBJECTPROPERTY(object_id, N'%s') = 1 " + ") " + "DROP %s %s ",
+                bracketedObjectName, objectProperty, "IsProcedure".equals(objectProperty) ? "PROCEDURE" : "TABLE",
                 bracketedObjectName);
         stmt.executeUpdate(sql);
     }
 
-    public static boolean parseByte(byte[] expectedData,
-            byte[] retrieved) {
-        assertTrue(Arrays.equals(expectedData, Arrays.copyOf(retrieved, expectedData.length)), " unexpected BINARY value, expected");
+    public static boolean parseByte(byte[] expectedData, byte[] retrieved) {
+        assertTrue(Arrays.equals(expectedData, Arrays.copyOf(retrieved, expectedData.length)),
+                " unexpected BINARY value, expected");
         for (int i = expectedData.length; i < retrieved.length; i++) {
             assertTrue(0 == retrieved[i], "unexpected data BINARY");
         }
         return true;
     }
-    
-    public static boolean isJDBC43OrGreater(Connection connection) throws SQLException{
+
+    public static boolean isJDBC43OrGreater(Connection connection) throws SQLException {
         return getJDBCVersion(connection) >= 4.3F;
     }
 
     public static float getJDBCVersion(Connection connection) throws SQLException {
-        return Float.valueOf(connection.getMetaData().getJDBCMajorVersion() + "." + connection.getMetaData().getJDBCMinorVersion());
+        return Float.valueOf(
+                connection.getMetaData().getJDBCMajorVersion() + "." + connection.getMetaData().getJDBCMinorVersion());
     }
 
     public static boolean serverSupportsUTF8(Connection connection) throws SQLException {
-        try (Statement stmt = connection.createStatement();
-                ResultSet rs = stmt.executeQuery("SELECT name FROM sys.fn_helpcollations() WHERE name LIKE '%UTF8%'");) {
+        try (Statement stmt = connection.createStatement(); ResultSet rs = stmt
+                .executeQuery("SELECT name FROM sys.fn_helpcollations() WHERE name LIKE '%UTF8%'");) {
             return rs.isBeforeFirst();
         }
     }

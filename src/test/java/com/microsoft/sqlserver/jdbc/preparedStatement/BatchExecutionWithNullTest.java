@@ -1,9 +1,6 @@
 /*
- * Microsoft JDBC Driver for SQL Server
- * 
- * Copyright(c) Microsoft Corporation All rights reserved.
- * 
- * This program is made available under the terms of the MIT License. See the LICENSE file in the project root for more information.
+ * Microsoft JDBC Driver for SQL Server Copyright(c) Microsoft Corporation All rights reserved. This program is made
+ * available under the terms of the MIT License. See the LICENSE file in the project root for more information.
  */
 package com.microsoft.sqlserver.jdbc.preparedStatement;
 
@@ -31,6 +28,7 @@ import com.microsoft.sqlserver.testframework.AbstractTest;
 import com.microsoft.sqlserver.testframework.DBConnection;
 import com.microsoft.sqlserver.testframework.Utils;
 
+
 @RunWith(JUnitPlatform.class)
 public class BatchExecutionWithNullTest extends AbstractTest {
 
@@ -41,8 +39,8 @@ public class BatchExecutionWithNullTest extends AbstractTest {
     static ResultSet rs = null;
 
     /**
-     * Test with combination of setString and setNull which cause the "Violation of PRIMARY KEY constraint and internally "Could not find prepared
-     * statement with handle X" error.
+     * Test with combination of setString and setNull which cause the "Violation of PRIMARY KEY constraint and
+     * internally "Could not find prepared statement with handle X" error.
      * 
      * @throws SQLException
      */
@@ -120,7 +118,7 @@ public class BatchExecutionWithNullTest extends AbstractTest {
     @AfterAll
     public static void terminateVariation() throws SQLException {
         connection = DriverManager.getConnection(connectionString);
-        
+
         SQLServerStatement stmt = (SQLServerStatement) connection.createStatement();
         Utils.dropTableIfExists("esimple", stmt);
 

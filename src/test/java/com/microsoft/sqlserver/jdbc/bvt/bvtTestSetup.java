@@ -1,9 +1,6 @@
 /*
- * Microsoft JDBC Driver for SQL Server
- * 
- * Copyright(c) Microsoft Corporation All rights reserved.
- * 
- * This program is made available under the terms of the MIT License. See the LICENSE file in the project root for more information.
+ * Microsoft JDBC Driver for SQL Server Copyright(c) Microsoft Corporation All rights reserved. This program is made
+ * available under the terms of the MIT License. See the LICENSE file in the project root for more information.
  */
 package com.microsoft.sqlserver.jdbc.bvt;
 
@@ -18,6 +15,7 @@ import com.microsoft.sqlserver.testframework.DBConnection;
 import com.microsoft.sqlserver.testframework.DBStatement;
 import com.microsoft.sqlserver.testframework.DBTable;
 
+
 /**
  * 
  * Setting up the test
@@ -30,8 +28,7 @@ public class bvtTestSetup extends AbstractTest {
 
     @BeforeAll
     public static void init() throws SQLException {
-        try (DBConnection conn = new DBConnection(connectionString);
-             DBStatement stmt = conn.createStatement()) {
+        try (DBConnection conn = new DBConnection(connectionString); DBStatement stmt = conn.createStatement()) {
             // create tables
             table1 = new DBTable(true);
             stmt.createTable(table1);

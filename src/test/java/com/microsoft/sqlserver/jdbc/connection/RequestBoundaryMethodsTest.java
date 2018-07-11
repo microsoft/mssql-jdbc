@@ -1,9 +1,6 @@
 /*
- * Microsoft JDBC Driver for SQL Server
- *
- * Copyright(c) Microsoft Corporation All rights reserved.
- *
- * This program is made available under the terms of the MIT License. See the LICENSE file in the project root for more information.
+ * Microsoft JDBC Driver for SQL Server Copyright(c) Microsoft Corporation All rights reserved. This program is made
+ * available under the terms of the MIT License. See the LICENSE file in the project root for more information.
  */
 
 package com.microsoft.sqlserver.jdbc.connection;
@@ -30,6 +27,7 @@ import com.microsoft.sqlserver.testframework.AbstractTest;
 import com.microsoft.sqlserver.testframework.PrepUtil;
 import com.microsoft.sqlserver.testframework.Utils;
 import com.microsoft.sqlserver.testframework.util.RandomUtil;
+
 
 /**
  * A class for testing Request Boundary Methods.
@@ -76,47 +74,56 @@ public class RequestBoundaryMethodsTest extends AbstractTest {
                 con.createStatement().executeUpdate("CREATE DATABASE [" + sCatalog2 + "]");
 
                 // First set of values.
-                setConnectionFields(con, autoCommitMode1, transactionIsolationLevel1, networkTimeout1, holdability1, sendTimeAsDatetime1,
-                        statementPoolingCacheSize1, disableStatementPooling1, serverPreparedStatementDiscardThreshold1,
-                        enablePrepareOnFirstPreparedStatementCall1, sCatalog1, useBulkCopyForBatchInsert1);
+                setConnectionFields(con, autoCommitMode1, transactionIsolationLevel1, networkTimeout1, holdability1,
+                        sendTimeAsDatetime1, statementPoolingCacheSize1, disableStatementPooling1,
+                        serverPreparedStatementDiscardThreshold1, enablePrepareOnFirstPreparedStatementCall1, sCatalog1,
+                        useBulkCopyForBatchInsert1);
                 con.beginRequest();
                 // Call setters with the second set of values inside beginRequest()/endRequest() block.
-                setConnectionFields(con, autoCommitMode2, transactionIsolationLevel2, networkTimeout2, holdability2, sendTimeAsDatetime2,
-                        statementPoolingCacheSize2, disableStatementPooling2, serverPreparedStatementDiscardThreshold2,
-                        enablePrepareOnFirstPreparedStatementCall2, sCatalog2, useBulkCopyForBatchInsert2);
+                setConnectionFields(con, autoCommitMode2, transactionIsolationLevel2, networkTimeout2, holdability2,
+                        sendTimeAsDatetime2, statementPoolingCacheSize2, disableStatementPooling2,
+                        serverPreparedStatementDiscardThreshold2, enablePrepareOnFirstPreparedStatementCall2, sCatalog2,
+                        useBulkCopyForBatchInsert2);
                 con.endRequest();
                 // Test if endRequest() resets the SQLServerConnection properties back to the first set of values.
-                compareValuesAgainstConnection(con, autoCommitMode1, transactionIsolationLevel1, networkTimeout1, holdability1, sendTimeAsDatetime1,
-                        statementPoolingCacheSize1, disableStatementPooling1, serverPreparedStatementDiscardThreshold1,
-                        enablePrepareOnFirstPreparedStatementCall1, sCatalog1, useBulkCopyForBatchInsert1);
+                compareValuesAgainstConnection(con, autoCommitMode1, transactionIsolationLevel1, networkTimeout1,
+                        holdability1, sendTimeAsDatetime1, statementPoolingCacheSize1, disableStatementPooling1,
+                        serverPreparedStatementDiscardThreshold1, enablePrepareOnFirstPreparedStatementCall1, sCatalog1,
+                        useBulkCopyForBatchInsert1);
 
                 // Multiple calls to beginRequest() without an intervening call to endRequest() are no-op.
-                setConnectionFields(con, autoCommitMode2, transactionIsolationLevel2, networkTimeout2, holdability2, sendTimeAsDatetime2,
-                        statementPoolingCacheSize2, disableStatementPooling2, serverPreparedStatementDiscardThreshold2,
-                        enablePrepareOnFirstPreparedStatementCall2, sCatalog2, useBulkCopyForBatchInsert2);
+                setConnectionFields(con, autoCommitMode2, transactionIsolationLevel2, networkTimeout2, holdability2,
+                        sendTimeAsDatetime2, statementPoolingCacheSize2, disableStatementPooling2,
+                        serverPreparedStatementDiscardThreshold2, enablePrepareOnFirstPreparedStatementCall2, sCatalog2,
+                        useBulkCopyForBatchInsert2);
                 con.beginRequest();
-                setConnectionFields(con, autoCommitMode1, transactionIsolationLevel1, networkTimeout1, holdability1, sendTimeAsDatetime1,
-                        statementPoolingCacheSize1, disableStatementPooling1, serverPreparedStatementDiscardThreshold1,
-                        enablePrepareOnFirstPreparedStatementCall1, sCatalog1, useBulkCopyForBatchInsert1);
+                setConnectionFields(con, autoCommitMode1, transactionIsolationLevel1, networkTimeout1, holdability1,
+                        sendTimeAsDatetime1, statementPoolingCacheSize1, disableStatementPooling1,
+                        serverPreparedStatementDiscardThreshold1, enablePrepareOnFirstPreparedStatementCall1, sCatalog1,
+                        useBulkCopyForBatchInsert1);
                 con.beginRequest();
                 con.endRequest();
                 // Same values as before the first beginRequest()
-                compareValuesAgainstConnection(con, autoCommitMode2, transactionIsolationLevel2, networkTimeout2, holdability2, sendTimeAsDatetime2,
-                        statementPoolingCacheSize2, disableStatementPooling2, serverPreparedStatementDiscardThreshold2,
-                        enablePrepareOnFirstPreparedStatementCall2, sCatalog2, useBulkCopyForBatchInsert2);
+                compareValuesAgainstConnection(con, autoCommitMode2, transactionIsolationLevel2, networkTimeout2,
+                        holdability2, sendTimeAsDatetime2, statementPoolingCacheSize2, disableStatementPooling2,
+                        serverPreparedStatementDiscardThreshold2, enablePrepareOnFirstPreparedStatementCall2, sCatalog2,
+                        useBulkCopyForBatchInsert2);
 
                 // A call to endRequest() without an intervening call to beginRequest() is no-op.
-                setConnectionFields(con, autoCommitMode1, transactionIsolationLevel1, networkTimeout1, holdability1, sendTimeAsDatetime1,
-                        statementPoolingCacheSize1, disableStatementPooling1, serverPreparedStatementDiscardThreshold1,
-                        enablePrepareOnFirstPreparedStatementCall1, sCatalog1, useBulkCopyForBatchInsert1);
-                setConnectionFields(con, autoCommitMode2, transactionIsolationLevel2, networkTimeout2, holdability2, sendTimeAsDatetime2,
-                        statementPoolingCacheSize2, disableStatementPooling2, serverPreparedStatementDiscardThreshold2,
-                        enablePrepareOnFirstPreparedStatementCall2, sCatalog2, useBulkCopyForBatchInsert2);
+                setConnectionFields(con, autoCommitMode1, transactionIsolationLevel1, networkTimeout1, holdability1,
+                        sendTimeAsDatetime1, statementPoolingCacheSize1, disableStatementPooling1,
+                        serverPreparedStatementDiscardThreshold1, enablePrepareOnFirstPreparedStatementCall1, sCatalog1,
+                        useBulkCopyForBatchInsert1);
+                setConnectionFields(con, autoCommitMode2, transactionIsolationLevel2, networkTimeout2, holdability2,
+                        sendTimeAsDatetime2, statementPoolingCacheSize2, disableStatementPooling2,
+                        serverPreparedStatementDiscardThreshold2, enablePrepareOnFirstPreparedStatementCall2, sCatalog2,
+                        useBulkCopyForBatchInsert2);
                 con.endRequest();
                 // No change.
-                compareValuesAgainstConnection(con, autoCommitMode2, transactionIsolationLevel2, networkTimeout2, holdability2, sendTimeAsDatetime2,
-                        statementPoolingCacheSize2, disableStatementPooling2, serverPreparedStatementDiscardThreshold2,
-                        enablePrepareOnFirstPreparedStatementCall2, sCatalog2, useBulkCopyForBatchInsert2);
+                compareValuesAgainstConnection(con, autoCommitMode2, transactionIsolationLevel2, networkTimeout2,
+                        holdability2, sendTimeAsDatetime2, statementPoolingCacheSize2, disableStatementPooling2,
+                        serverPreparedStatementDiscardThreshold2, enablePrepareOnFirstPreparedStatementCall2, sCatalog2,
+                        useBulkCopyForBatchInsert2);
                 // drop the database
                 con.setCatalog("master");
                 Utils.dropDatabaseIfExists(sCatalog2, con.createStatement());
@@ -208,8 +215,10 @@ public class RequestBoundaryMethodsTest extends AbstractTest {
                 assertEquals(1, rs.getInt(1));
                 con.endRequest();
 
-                assertTrue(!stmt1.isClosed(), "Statement created outside of beginRequest()/endRequest() block should not be closed.");
-                assertTrue(stmt.isClosed(), "Statment created inside beginRequest()/endRequest() block should be closed after endRequest().");
+                assertTrue(!stmt1.isClosed(),
+                        "Statement created outside of beginRequest()/endRequest() block should not be closed.");
+                assertTrue(stmt.isClosed(),
+                        "Statment created inside beginRequest()/endRequest() block should be closed after endRequest().");
                 assertTrue(rs.isClosed(), "ResultSet should be closed after endRequest().");
                 stmt1.close();
 
@@ -239,8 +248,7 @@ public class RequestBoundaryMethodsTest extends AbstractTest {
                 assertTrue(cs.isClosed());
                 assertTrue(rs1.isClosed());
             }
-        }
-        finally {
+        } finally {
             if (null != stmt) {
                 stmt.close();
             }
@@ -280,8 +288,7 @@ public class RequestBoundaryMethodsTest extends AbstractTest {
                             sharedVariables.con.setNetworkTimeout(null, 100);
                             sharedVariables.con.setHoldability(ResultSet.CLOSE_CURSORS_AT_COMMIT);
                             latch.countDown();
-                        }
-                        catch (SQLException e) {
+                        } catch (SQLException e) {
                             e.printStackTrace();
                             Thread.currentThread().interrupt();
                         }
@@ -296,8 +303,7 @@ public class RequestBoundaryMethodsTest extends AbstractTest {
                             rs.next();
                             assertEquals(1, rs.getInt(1));
                             latch.countDown();
-                        }
-                        catch (SQLException e) {
+                        } catch (SQLException e) {
                             e.printStackTrace();
                             Thread.currentThread().interrupt();
                         }
@@ -312,8 +318,7 @@ public class RequestBoundaryMethodsTest extends AbstractTest {
                             rs.next();
                             assertEquals(1, rs.getInt(1));
                             latch.countDown();
-                        }
-                        catch (SQLException e) {
+                        } catch (SQLException e) {
                             e.printStackTrace();
                             Thread.currentThread().interrupt();
                         }
@@ -335,12 +340,10 @@ public class RequestBoundaryMethodsTest extends AbstractTest {
                 assertTrue(sharedVariables.stmt.isClosed());
                 assertTrue(sharedVariables.pstmt.isClosed());
             }
-        }
-        catch (InterruptedException e) {
+        } catch (InterruptedException e) {
             e.printStackTrace();
             Thread.currentThread().interrupt();
-        }
-        finally {
+        } finally {
             if (null != sharedVariables.stmt) {
                 sharedVariables.stmt.close();
             }
@@ -357,24 +360,16 @@ public class RequestBoundaryMethodsTest extends AbstractTest {
         SQLServerConnection connection = null;
         try {
             connection = PrepUtil.getConnection(getConfiguredProperty("mssql_jdbc_test_connection_properties"));
-        }
-        catch (ClassNotFoundException e) {
+        } catch (ClassNotFoundException e) {
             e.printStackTrace();
         }
         return connection;
     }
 
-    private void setConnectionFields(SQLServerConnection con,
-            boolean autoCommitMode,
-            int transactionIsolationLevel,
-            int networkTimeout,
-            int holdability,
-            boolean sendTimeAsDatetime,
-            int statementPoolingCacheSize,
-            boolean disableStatementPooling,
-            int serverPreparedStatementDiscardThreshold,
-            boolean enablePrepareOnFirstPreparedStatementCall,
-            String sCatalog,
+    private void setConnectionFields(SQLServerConnection con, boolean autoCommitMode, int transactionIsolationLevel,
+            int networkTimeout, int holdability, boolean sendTimeAsDatetime, int statementPoolingCacheSize,
+            boolean disableStatementPooling, int serverPreparedStatementDiscardThreshold,
+            boolean enablePrepareOnFirstPreparedStatementCall, String sCatalog,
             boolean useBulkCopyForBatchInsert) throws SQLException {
         con.setAutoCommit(autoCommitMode);
         con.setTransactionIsolation(transactionIsolationLevel);
@@ -389,32 +384,29 @@ public class RequestBoundaryMethodsTest extends AbstractTest {
         con.setUseBulkCopyForBatchInsert(useBulkCopyForBatchInsert);
     }
 
-    private void compareValuesAgainstConnection(SQLServerConnection con,
-            boolean autoCommitMode,
-            int transactionIsolationLevel,
-            int networkTimeout,
-            int holdability,
-            boolean sendTimeAsDatetime,
-            int statementPoolingCacheSize,
-            boolean disableStatementPooling,
-            int serverPreparedStatementDiscardThreshold,
-            boolean enablePrepareOnFirstPreparedStatementCall,
-            String sCatalog,
+    private void compareValuesAgainstConnection(SQLServerConnection con, boolean autoCommitMode,
+            int transactionIsolationLevel, int networkTimeout, int holdability, boolean sendTimeAsDatetime,
+            int statementPoolingCacheSize, boolean disableStatementPooling, int serverPreparedStatementDiscardThreshold,
+            boolean enablePrepareOnFirstPreparedStatementCall, String sCatalog,
             boolean useBulkCopyForBatchInsert) throws SQLException {
         final String description = " values do not match.";
         assertEquals(autoCommitMode, con.getAutoCommit(), "autoCommitmode" + description);
-        assertEquals(transactionIsolationLevel, con.getTransactionIsolation(), "transactionIsolationLevel" + description);
+        assertEquals(transactionIsolationLevel, con.getTransactionIsolation(),
+                "transactionIsolationLevel" + description);
         assertEquals(networkTimeout, con.getNetworkTimeout(), "networkTimeout" + description);
         assertEquals(holdability, con.getHoldability(), "holdability" + description);
         assertEquals(sendTimeAsDatetime, con.getSendTimeAsDatetime(), "sendTimeAsDatetime" + description);
-        assertEquals(statementPoolingCacheSize, con.getStatementPoolingCacheSize(), "statementPoolingCacheSize" + description);
-        assertEquals(disableStatementPooling, con.getDisableStatementPooling(), "disableStatementPooling" + description);
+        assertEquals(statementPoolingCacheSize, con.getStatementPoolingCacheSize(),
+                "statementPoolingCacheSize" + description);
+        assertEquals(disableStatementPooling, con.getDisableStatementPooling(),
+                "disableStatementPooling" + description);
         assertEquals(serverPreparedStatementDiscardThreshold, con.getServerPreparedStatementDiscardThreshold(),
                 "serverPreparedStatementDiscardThreshold" + description);
         assertEquals(enablePrepareOnFirstPreparedStatementCall, con.getEnablePrepareOnFirstPreparedStatementCall(),
                 "enablePrepareOnFirstPreparedStatementCall" + description);
         assertEquals(sCatalog, con.getCatalog(), "sCatalog" + description);
-        assertEquals(useBulkCopyForBatchInsert, con.getUseBulkCopyForBatchInsert(), "useBulkCopyForBatchInsert" + description);
+        assertEquals(useBulkCopyForBatchInsert, con.getUseBulkCopyForBatchInsert(),
+                "useBulkCopyForBatchInsert" + description);
     }
 
     private void generateWarning(SQLServerConnection con) throws SQLException {

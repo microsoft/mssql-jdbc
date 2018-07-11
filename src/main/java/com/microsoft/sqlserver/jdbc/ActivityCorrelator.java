@@ -1,9 +1,6 @@
 /*
- * Microsoft JDBC Driver for SQL Server
- * 
- * Copyright(c) Microsoft Corporation All rights reserved.
- * 
- * This program is made available under the terms of the MIT License. See the LICENSE file in the project root for more information.
+ * Microsoft JDBC Driver for SQL Server Copyright(c) Microsoft Corporation All rights reserved. This program is made
+ * available under the terms of the MIT License. See the LICENSE file in the project root for more information.
  */
 
 package com.microsoft.sqlserver.jdbc;
@@ -12,15 +9,16 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
+
 /**
  * ActivityCorrelator provides the APIs to access the ActivityId in TLS
  */
 final class ActivityCorrelator {
 
     private static Map<Long, ActivityId> ActivityIdTlsMap = new ConcurrentHashMap<Long, ActivityId>();
-    
+
     static void cleanupActivityId() {
-        //remove the ActivityId that belongs to this thread.
+        // remove the ActivityId that belongs to this thread.
         long uniqueThreadId = Thread.currentThread().getId();
 
         if (ActivityIdTlsMap.containsKey(uniqueThreadId)) {
@@ -32,12 +30,12 @@ final class ActivityCorrelator {
     static ActivityId getCurrent() {
         // get the value in TLS, not reference
         long uniqueThreadId = Thread.currentThread().getId();
-        
-        //Since the Id for each thread is unique, this assures that the below if statement is run only once per thread.
+
+        // Since the Id for each thread is unique, this assures that the below if statement is run only once per thread.
         if (!ActivityIdTlsMap.containsKey(uniqueThreadId)) {
             ActivityIdTlsMap.put(uniqueThreadId, new ActivityId());
         }
-        
+
         return ActivityIdTlsMap.get(uniqueThreadId);
     }
 
@@ -58,6 +56,7 @@ final class ActivityCorrelator {
         activityId.setSentFlag();
     }
 }
+
 
 class ActivityId {
     private final UUID Id;
@@ -82,8 +81,7 @@ class ActivityId {
         if (Sequence < 0xffffffffl) // to get to 32-bit unsigned
         {
             ++Sequence;
-        }
-        else {
+        } else {
             Sequence = 0;
         }
 

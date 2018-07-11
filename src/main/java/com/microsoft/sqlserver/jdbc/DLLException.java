@@ -1,14 +1,12 @@
 /*
- * Microsoft JDBC Driver for SQL Server
- * 
- * Copyright(c) Microsoft Corporation All rights reserved.
- * 
- * This program is made available under the terms of the MIT License. See the LICENSE file in the project root for more information.
+ * Microsoft JDBC Driver for SQL Server Copyright(c) Microsoft Corporation All rights reserved. This program is made
+ * available under the terms of the MIT License. See the LICENSE file in the project root for more information.
  */
 
 package com.microsoft.sqlserver.jdbc;
 
 import java.text.MessageFormat;
+
 
 /**
  * 
@@ -32,20 +30,14 @@ class DLLException extends Exception {
     private String param2 = "";
     private String param3 = "";
 
-    DLLException(String message,
-            int category,
-            int status,
-            int state) {
+    DLLException(String message, int category, int status, int state) {
         super(message);
         this.category = category;
         this.status = status;
         this.state = state;
     }
 
-    DLLException(String param1,
-            String param2,
-            String param3,
-            int errCode) {
+    DLLException(String param1, String param2, String param3, int errCode) {
         this.errCode = errCode;
         this.param1 = param1;
         this.param2 = param2;
@@ -80,10 +72,7 @@ class DLLException extends Exception {
         return this.param3;
     }
 
-    static void buildException(int errCode,
-            String param1,
-            String param2,
-            String param3) throws SQLServerException {
+    static void buildException(int errCode, String param1, String param2, String param3) throws SQLServerException {
 
         String errMessage = getErrMessage(errCode);
         MessageFormat form = new MessageFormat(SQLServerException.getErrString(errMessage));
@@ -93,25 +82,19 @@ class DLLException extends Exception {
         throw new SQLServerException(null, form.format(msgArgs), null, 0, false);
     }
 
-    private static String[] buildMsgParams(String errMessage,
-            String parameter1,
-            String parameter2,
-            String parameter3) {
+    private static String[] buildMsgParams(String errMessage, String parameter1, String parameter2, String parameter3) {
 
         String[] msgArgs = new String[3];
 
         if ("R_AECertLocBad".equalsIgnoreCase(errMessage)) {
             msgArgs[0] = parameter1;
             msgArgs[1] = parameter1 + "/" + parameter2 + "/" + parameter3;
-        }
-        else if ("R_AECertStoreBad".equalsIgnoreCase(errMessage)) {
+        } else if ("R_AECertStoreBad".equalsIgnoreCase(errMessage)) {
             msgArgs[0] = parameter2;
             msgArgs[1] = parameter1 + "/" + parameter2 + "/" + parameter3;
-        }
-        else if ("R_AECertHashEmpty".equalsIgnoreCase(errMessage)) {
+        } else if ("R_AECertHashEmpty".equalsIgnoreCase(errMessage)) {
             msgArgs[0] = parameter1 + "/" + parameter2 + "/" + parameter3;
-        }
-        else {
+        } else {
             msgArgs[0] = parameter1;
             msgArgs[1] = parameter2;
             msgArgs[2] = parameter3;

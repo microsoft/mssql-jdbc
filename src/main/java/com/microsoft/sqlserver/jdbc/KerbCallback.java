@@ -1,9 +1,6 @@
 /*
- * Microsoft JDBC Driver for SQL Server
- *
- * Copyright(c) Microsoft Corporation All rights reserved.
- *
- * This program is made available under the terms of the MIT License. See the LICENSE file in the project root for more information.
+ * Microsoft JDBC Driver for SQL Server Copyright(c) Microsoft Corporation All rights reserved. This program is made
+ * available under the terms of the MIT License. See the LICENSE file in the project root for more information.
  */
 
 package com.microsoft.sqlserver.jdbc;
@@ -18,6 +15,7 @@ import javax.security.auth.callback.NameCallback;
 import javax.security.auth.callback.PasswordCallback;
 import javax.security.auth.callback.UnsupportedCallbackException;
 
+
 public class KerbCallback implements CallbackHandler {
 
     private final SQLServerConnection con;
@@ -27,8 +25,7 @@ public class KerbCallback implements CallbackHandler {
         this.con = con;
     }
 
-    private static String getAnyOf(Callback callback,
-            Properties properties,
+    private static String getAnyOf(Callback callback, Properties properties,
             String... names) throws UnsupportedCallbackException {
         for (String name : names) {
             String val = properties.getProperty(name);
@@ -36,7 +33,8 @@ public class KerbCallback implements CallbackHandler {
                 return val;
             }
         }
-        throw new UnsupportedCallbackException(callback, "Cannot get any of properties: " + Arrays.toString(names) + " from con properties");
+        throw new UnsupportedCallbackException(callback,
+                "Cannot get any of properties: " + Arrays.toString(names) + " from con properties");
     }
 
     /**
@@ -52,10 +50,12 @@ public class KerbCallback implements CallbackHandler {
     public void handle(Callback[] callbacks) throws IOException, UnsupportedCallbackException {
         for (Callback callback : callbacks) {
             if (callback instanceof NameCallback) {
-                usernameRequested = getAnyOf(callback, con.activeConnectionProperties, "user", SQLServerDriverStringProperty.USER.name());
+                usernameRequested = getAnyOf(callback, con.activeConnectionProperties, "user",
+                        SQLServerDriverStringProperty.USER.name());
                 ((NameCallback) callback).setName(usernameRequested);
             } else if (callback instanceof PasswordCallback) {
-                String password = getAnyOf(callback, con.activeConnectionProperties, "password", SQLServerDriverStringProperty.PASSWORD.name());
+                String password = getAnyOf(callback, con.activeConnectionProperties, "password",
+                        SQLServerDriverStringProperty.PASSWORD.name());
                 ((PasswordCallback) callback).setPassword(password.toCharArray());
 
             } else {

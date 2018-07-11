@@ -1,9 +1,6 @@
 /*
- * Microsoft JDBC Driver for SQL Server
- * 
- * Copyright(c) Microsoft Corporation All rights reserved.
- * 
- * This program is made available under the terms of the MIT License. See the LICENSE file in the project root for more information.
+ * Microsoft JDBC Driver for SQL Server Copyright(c) Microsoft Corporation All rights reserved. This program is made
+ * available under the terms of the MIT License. See the LICENSE file in the project root for more information.
  */
 
 package com.microsoft.sqlserver.jdbc;
@@ -32,21 +29,22 @@ import java.util.Map;
 import java.util.Vector;
 import java.util.logging.Level;
 
-import com.microsoft.sqlserver.jdbc.SQLServerConnection.PreparedStatementHandle;
 import com.microsoft.sqlserver.jdbc.SQLServerConnection.CityHash128Key;
+import com.microsoft.sqlserver.jdbc.SQLServerConnection.PreparedStatementHandle;
+
 
 /**
- * SQLServerPreparedStatement provides JDBC prepared statement functionality. SQLServerPreparedStatement provides methods for the user to supply
- * parameters as any native Java type and many Java object types.
+ * SQLServerPreparedStatement provides JDBC prepared statement functionality. SQLServerPreparedStatement provides
+ * methods for the user to supply parameters as any native Java type and many Java object types.
  * <p>
- * SQLServerPreparedStatement prepares a statement using SQL Server's sp_prepexec and re-uses the returned statement handle for each subsequent
- * execution of the statement (typically using different parameters provided by the user)
+ * SQLServerPreparedStatement prepares a statement using SQL Server's sp_prepexec and re-uses the returned statement
+ * handle for each subsequent execution of the statement (typically using different parameters provided by the user)
  * <p>
- * SQLServerPreparedStatement supports batching whereby a set of prepared statements are executed in a single database round trip to improve runtime
- * performance.
+ * SQLServerPreparedStatement supports batching whereby a set of prepared statements are executed in a single database
+ * round trip to improve runtime performance.
  * <p>
- * The API javadoc for JDBC API methods that this class implements are not repeated here. Please see Sun's JDBC API interfaces javadoc for those
- * details.
+ * The API javadoc for JDBC API methods that this class implements are not repeated here. Please see Sun's JDBC API
+ * interfaces javadoc for those details.
  */
 
 public class SQLServerPreparedStatement extends SQLServerStatement implements ISQLServerPreparedStatement {
@@ -81,8 +79,9 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     private CityHash128Key sqlTextCacheKey;
 
     /**
-     * Array with parameter names generated in buildParamTypeDefinitions For mapping encryption information to parameters, as the second result set
-     * returned by sp_describe_parameter_encryption doesn't depend on order of input parameter
+     * Array with parameter names generated in buildParamTypeDefinitions For mapping encryption information to
+     * parameters, as the second result set returned by sp_describe_parameter_encryption doesn't depend on order of
+     * input parameter
      **/
     private ArrayList<String> parameterNames;
 
@@ -92,9 +91,9 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     /**
      * The number of OUT parameters to skip in the response to get to the first app-declared OUT parameter.
      *
-     * When executing prepared and callable statements and/or statements that produce cursored results, the first OUT parameters returned by the
-     * server contain the internal values like the prepared statement handle and the cursor ID and row count. This value indicates how many of those
-     * internal OUT parameters were in the response.
+     * When executing prepared and callable statements and/or statements that produce cursored results, the first OUT
+     * parameters returned by the server contain the internal values like the prepared statement handle and the cursor
+     * ID and row count. This value indicates how many of those internal OUT parameters were in the response.
      */
     int outParamIndexAdjustment;
 
@@ -110,30 +109,33 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     private void setPreparedStatementHandle(int handle) {
         this.prepStmtHandle = handle;
     }
-    
+
     /**
      * boolean value for deciding if the driver should use bulk copy API for batch inserts
      */
     private boolean useBulkCopyForBatchInsert;
-    
-    /** Gets the prepared statement's useBulkCopyForBatchInsert value.
+
+    /**
+     * Gets the prepared statement's useBulkCopyForBatchInsert value.
      * 
-     * @return 
-     *      Per the description.
-     * @throws SQLServerException when an error occurs
-    */
+     * @return Per the description.
+     * @throws SQLServerException
+     *         when an error occurs
+     */
     @SuppressWarnings("unused")
     private boolean getUseBulkCopyForBatchInsert() throws SQLServerException {
         checkClosed();
         return useBulkCopyForBatchInsert;
     }
-    
-    /** Sets the prepared statement's useBulkCopyForBatchInsert value.
+
+    /**
+     * Sets the prepared statement's useBulkCopyForBatchInsert value.
      * 
      * @param useBulkCopyForBatchInsert
-     *            the boolean value
-     * @throws SQLServerException when an error occurs
-    */
+     *        the boolean value
+     * @throws SQLServerException
+     *         when an error occurs
+     */
     @SuppressWarnings("unused")
     private void setUseBulkCopyForBatchInsert(boolean useBulkCopyForBatchInsert) throws SQLServerException {
         checkClosed();
@@ -179,7 +181,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     private boolean encryptionMetadataIsRetrieved = false;
 
     private String localUserSQL;
-    
+
     // Internal function used in tracing
     String getClassNameInternal() {
         return "SQLServerPreparedStatement";
@@ -189,22 +191,19 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
      * Create a new prepaed statement.
      * 
      * @param conn
-     *            the connection
+     *        the connection
      * @param sql
-     *            the user's sql
+     *        the user's sql
      * @param nRSType
-     *            the result set type
+     *        the result set type
      * @param nRSConcur
-     *            the result set concurrency
+     *        the result set concurrency
      * @param stmtColEncSetting
-     *            the statement column encryption setting
+     *        the statement column encryption setting
      * @throws SQLServerException
-     *             when an error occurs
+     *         when an error occurs
      */
-    SQLServerPreparedStatement(SQLServerConnection conn,
-            String sql,
-            int nRSType,
-            int nRSConcur,
+    SQLServerPreparedStatement(SQLServerConnection conn, String sql, int nRSType, int nRSConcur,
             SQLServerStatementColumnEncryptionSetting stmtColEncSetting) throws SQLServerException {
         super(conn, nRSType, nRSConcur, stmtColEncSetting);
 
@@ -225,8 +224,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
             if (null != connection && connection.isStatementPoolingEnabled()) {
                 isExecutedAtLeastOnce = true;
             }
-        }
-        else {
+        } else {
             parsedSQL = parseAndCacheSQL(sqlTextCacheKey, sql);
         }
 
@@ -251,9 +249,9 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         // on the server anyway.
         if (connection.isSessionUnAvailable()) {
             if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
-                loggerExternal.finer(this + ": Not closing PreparedHandle:" + prepStmtHandle + "; connection is already closed.");
-        }
-        else {
+                loggerExternal.finer(
+                        this + ": Not closing PreparedHandle:" + prepStmtHandle + "; connection is already closed.");
+        } else {
             isExecutedAtLeastOnce = false;
             final int handleToClose = prepStmtHandle;
 
@@ -261,11 +259,12 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
             if (resetPrepStmtHandle(false)) {
                 connection.returnCachedPreparedStatementHandle(cachedPreparedStatementHandle);
             }
-            // If no reference to a statement pool cache item is found handle unprepare actions through batching @ connection level.
+            // If no reference to a statement pool cache item is found handle unprepare actions through batching @
+            // connection level.
             else if (connection.isPreparedStatementUnprepareBatchingEnabled()) {
-                connection.enqueueUnprepareStatementHandle(connection.new PreparedStatementHandle(null, handleToClose, executedSqlDirectly, true));
-            }
-            else {
+                connection.enqueueUnprepareStatementHandle(
+                        connection.new PreparedStatementHandle(null, handleToClose, executedSqlDirectly, true));
+            } else {
                 // Non batched behavior (same as pre batch clean-up implementation)
                 if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
                     loggerExternal.finer(this + ": Closing PreparedHandle:" + handleToClose);
@@ -278,9 +277,10 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                     final boolean doExecute() throws SQLServerException {
                         TDSWriter tdsWriter = startRequest(TDS.PKT_RPC);
                         tdsWriter.writeShort((short) 0xFFFF); // procedure name length -> use ProcIDs
-                        tdsWriter.writeShort(executedSqlDirectly ? TDS.PROCID_SP_UNPREPARE : TDS.PROCID_SP_CURSORUNPREPARE);
-                        tdsWriter.writeByte((byte) 0);  // RPC procedure option 1
-                        tdsWriter.writeByte((byte) 0);  // RPC procedure option 2
+                        tdsWriter.writeShort(
+                                executedSqlDirectly ? TDS.PROCID_SP_UNPREPARE : TDS.PROCID_SP_CURSORUNPREPARE);
+                        tdsWriter.writeByte((byte) 0); // RPC procedure option 1
+                        tdsWriter.writeByte((byte) 0); // RPC procedure option 2
                         tdsWriter.writeRPCInt(null, handleToClose, false);
                         TDSParser.parse(startResponse(), getLogContext());
                         return true;
@@ -290,10 +290,10 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                 // Try to close the server cursor. Any failure is caught, logged, and ignored.
                 try {
                     executeCommand(new PreparedHandleClose());
-                }
-                catch (SQLServerException e) {
+                } catch (SQLServerException e) {
                     if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
-                        loggerExternal.log(Level.FINER, this + ": Error (ignored) closing PreparedHandle:" + handleToClose, e);
+                        loggerExternal.log(Level.FINER,
+                                this + ": Error (ignored) closing PreparedHandle:" + handleToClose, e);
                 }
 
                 if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
@@ -308,9 +308,10 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     /**
      * Closes this prepared statement.
      *
-     * Note that the public Statement.close() method performs all of the cleanup work through this internal method which cannot throw any exceptions.
-     * This is done deliberately to ensure that ALL of the object's client-side and server-side state is cleaned up as best as possible, even under
-     * conditions which would normally result in exceptions being thrown.
+     * Note that the public Statement.close() method performs all of the cleanup work through this internal method which
+     * cannot throw any exceptions. This is done deliberately to ensure that ALL of the object's client-side and
+     * server-side state is cleaned up as best as possible, even under conditions which would normally result in
+     * exceptions being thrown.
      */
     final void closeInternal() {
         super.closeInternal();
@@ -322,12 +323,11 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         try {
             if (null != internalStmt)
                 internalStmt.close();
-        }
-        catch (SQLServerException e) {
+        } catch (SQLServerException e) {
             if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
-                loggerExternal.finer("Ignored error closing internal statement: " + e.getErrorCode() + " " + e.getMessage());
-        }
-        finally {
+                loggerExternal
+                        .finer("Ignored error closing internal statement: " + e.getErrorCode() + " " + e.getMessage());
+        } finally {
             internalStmt = null;
         }
 
@@ -339,7 +339,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
      * Intialize the statement parameters.
      * 
      * @param nParams
-     *            Number of parameters to Intialize.
+     *        Number of parameters to Intialize.
      */
     final void initParams(int nParams) {
         inOutParam = new Parameter[nParams];
@@ -363,11 +363,10 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     }
 
     /**
-     * Determines whether the statement needs to be reprepared based on a change in any of the type definitions of any of the parameters due to
-     * changes in scale, length, etc., and, if so, sets the new type definition string.
+     * Determines whether the statement needs to be reprepared based on a change in any of the type definitions of any
+     * of the parameters due to changes in scale, length, etc., and, if so, sets the new type definition string.
      */
-    private boolean buildPreparedStrings(Parameter[] params,
-            boolean renewDefinition) throws SQLServerException {
+    private boolean buildPreparedStrings(Parameter[] params, boolean renewDefinition) throws SQLServerException {
         String newTypeDefinitions = buildParamTypeDefinitions(params, renewDefinition);
         if (null != preparedTypeDefinitions && newTypeDefinitions.equalsIgnoreCase(preparedTypeDefinitions))
             return false;
@@ -386,15 +385,14 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
      * Build the parameter type definitons for a JDBC prepared statement that will be used to prepare the statement.
      * 
      * @param params
-     *            the statement parameters
+     *        the statement parameters
      * @param renewDefinition
-     *            True if renewing parameter definition, False otherwise
+     *        True if renewing parameter definition, False otherwise
      * @throws SQLServerException
-     *             when an error occurs.
+     *         when an error occurs.
      * @return the required data type defintions.
      */
-    private String buildParamTypeDefinitions(Parameter[] params,
-            boolean renewDefinition) throws SQLServerException {
+    private String buildParamTypeDefinitions(Parameter[] params, boolean renewDefinition) throws SQLServerException {
         StringBuilder sb = new StringBuilder();
         int nCols = params.length;
         char cParamName[] = new char[10];
@@ -465,7 +463,8 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
         // this shouldn't happen, caller probably meant to call executeLargeUpdate
         if (updateCount < Integer.MIN_VALUE || updateCount > Integer.MAX_VALUE)
-            SQLServerException.makeFromDriverError(connection, this, SQLServerException.getErrString("R_updateCountOutofRange"), null, true);
+            SQLServerException.makeFromDriverError(connection, this,
+                    SQLServerException.getErrString("R_updateCountOutofRange"), null, true);
 
         loggerExternal.exiting(getClassNameLogging(), "executeUpdate", updateCount);
 
@@ -500,8 +499,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     private final class PrepStmtExecCmd extends TDSCommand {
         private final SQLServerPreparedStatement stmt;
 
-        PrepStmtExecCmd(SQLServerPreparedStatement stmt,
-                int executeMethod) {
+        PrepStmtExecCmd(SQLServerPreparedStatement stmt, int executeMethod) {
             super(stmt.toString() + " executeXXX", queryTimeout, cancelQueryTimeoutSeconds);
             this.stmt = stmt;
             stmt.executeMethod = executeMethod;
@@ -543,7 +541,8 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
             hasNewTypeDefinitions = buildPreparedStrings(inOutParam, false);
         }
 
-        if ((Util.shouldHonorAEForParameters(stmtColumnEncriptionSetting, connection)) && (0 < inOutParam.length) && !isInternalEncryptionQuery) {
+        if ((Util.shouldHonorAEForParameters(stmtColumnEncriptionSetting, connection)) && (0 < inOutParam.length)
+                && !isInternalEncryptionQuery) {
 
             // retrieve paramater encryption metadata if they are not retrieved yet
             if (!encryptionMetadataIsRetrieved) {
@@ -555,7 +554,8 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                 setMaxRowsAndMaxFieldSize();
             }
 
-            // fix an issue when inserting unicode into non-encrypted nchar column using setString() and AE is on on Connection
+            // fix an issue when inserting unicode into non-encrypted nchar column using setString() and AE is on on
+            // Connection
             hasNewTypeDefinitions = buildPreparedStrings(inOutParam, true);
         }
 
@@ -577,8 +577,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                 ensureExecuteResultsReader(command.startResponse(getIsResponseBufferingAdaptive()));
                 startResults();
                 getNextResult();
-            }
-            catch (SQLException e) {
+            } catch (SQLException e) {
                 if (retryBasedOnFailedReuseOfCachedHandle(e, attempt, needsPrepare, false))
                     continue;
                 else
@@ -588,32 +587,36 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         }
 
         if (EXECUTE_QUERY == executeMethod && null == resultSet) {
-            SQLServerException.makeFromDriverError(connection, this, SQLServerException.getErrString("R_noResultset"), null, true);
-        }
-        else if (EXECUTE_UPDATE == executeMethod && null != resultSet) {
-            SQLServerException.makeFromDriverError(connection, this, SQLServerException.getErrString("R_resultsetGeneratedForUpdate"), null, false);
+            SQLServerException.makeFromDriverError(connection, this, SQLServerException.getErrString("R_noResultset"),
+                    null, true);
+        } else if (EXECUTE_UPDATE == executeMethod && null != resultSet) {
+            SQLServerException.makeFromDriverError(connection, this,
+                    SQLServerException.getErrString("R_resultsetGeneratedForUpdate"), null, false);
         }
     }
 
-    /** Should the execution be retried because the re-used cached handle could not be re-used due to server side state changes? */
-    private boolean retryBasedOnFailedReuseOfCachedHandle(SQLException e,
-            int attempt,
-            boolean needsPrepare,
+    /**
+     * Should the execution be retried because the re-used cached handle could not be re-used due to server side state
+     * changes?
+     */
+    private boolean retryBasedOnFailedReuseOfCachedHandle(SQLException e, int attempt, boolean needsPrepare,
             boolean isBatch) {
         // Only retry based on these error codes and if statementPooling is enabled:
-        // 586: The prepared statement handle %d is not valid in this context. Please verify that current database, user default schema, and
+        // 586: The prepared statement handle %d is not valid in this context. Please verify that current database, user
+        // default schema, and
         // ANSI_NULLS and QUOTED_IDENTIFIER set options are not changed since the handle is prepared.
         // 8179: Could not find prepared statement with handle %d.
         if (needsPrepare && !isBatch)
             return false;
-        return 1 == attempt && (586 == e.getErrorCode() || 8179 == e.getErrorCode()) && connection.isStatementPoolingEnabled();
+        return 1 == attempt && (586 == e.getErrorCode() || 8179 == e.getErrorCode())
+                && connection.isStatementPoolingEnabled();
     }
 
     /**
      * Consume the OUT parameter for the statement object itself.
      *
-     * When a prepared statement handle is expected as the first OUT parameter from PreparedStatement or CallableStatement execution, then it gets
-     * consumed here.
+     * When a prepared statement handle is expected as the first OUT parameter from PreparedStatement or
+     * CallableStatement execution, then it gets consumed here.
      */
     boolean consumeExecOutParam(TDSReader tdsReader) throws SQLServerException {
         final class PrepStmtExecOutParamHandler extends StmtExecOutParamHandler {
@@ -627,7 +630,8 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                 // If a prepared statement handle is expected then consume it
                 // and continue processing.
                 expectPrepStmtHandle = false;
-                Parameter param = new Parameter(Util.shouldHonorAEForParameters(stmtColumnEncriptionSetting, connection));
+                Parameter param = new Parameter(
+                        Util.shouldHonorAEForParameters(stmtColumnEncriptionSetting, connection));
                 param.skipRetValStatus(tdsReader);
 
                 setPreparedStatementHandle(param.getInt(tdsReader));
@@ -635,7 +639,8 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                 // Cache the reference to the newly created handle, NOT for cursorable handles.
                 if (null == cachedPreparedStatementHandle && !isCursorable(executeMethod)) {
                     cachedPreparedStatementHandle = connection.registerCachedPreparedStatementHandle(
-                            new CityHash128Key(preparedSQL, preparedTypeDefinitions), prepStmtHandle, executedSqlDirectly);
+                            new CityHash128Key(preparedSQL, preparedTypeDefinitions), prepStmtHandle,
+                            executedSqlDirectly);
                 }
 
                 param.skipValue(tdsReader, true);
@@ -657,8 +662,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     /**
      * Send the statement parameters by RPC
      */
-    void sendParamsByRPC(TDSWriter tdsWriter,
-            Parameter[] params) throws SQLServerException {
+    void sendParamsByRPC(TDSWriter tdsWriter, Parameter[] params) throws SQLServerException {
         char cParamName[];
         for (int index = 0; index < params.length; index++) {
             if (JDBCType.TVP == params[index].getJdbcType()) {
@@ -673,8 +677,8 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
     private void buildServerCursorPrepExecParams(TDSWriter tdsWriter) throws SQLServerException {
         if (getStatementLogger().isLoggable(java.util.logging.Level.FINE))
-            getStatementLogger()
-                    .fine(toString() + ": calling sp_cursorprepexec: PreparedHandle:" + getPreparedStatementHandle() + ", SQL:" + preparedSQL);
+            getStatementLogger().fine(toString() + ": calling sp_cursorprepexec: PreparedHandle:"
+                    + getPreparedStatementHandle() + ", SQL:" + preparedSQL);
 
         expectPrepStmtHandle = true;
         executedSqlDirectly = false;
@@ -683,8 +687,8 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
         tdsWriter.writeShort((short) 0xFFFF); // procedure name length -> use ProcIDs
         tdsWriter.writeShort(TDS.PROCID_SP_CURSORPREPEXEC);
-        tdsWriter.writeByte((byte) 0);  // RPC procedure option 1
-        tdsWriter.writeByte((byte) 0);  // RPC procedure option 2
+        tdsWriter.writeByte((byte) 0); // RPC procedure option 1
+        tdsWriter.writeByte((byte) 0); // RPC procedure option 2
 
         // <prepared handle>
         // IN (reprepare): Old handle to unprepare before repreparing
@@ -704,8 +708,8 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         // <scrollopt> IN
         // Note: we must strip out SCROLLOPT_PARAMETERIZED_STMT if we don't
         // actually have any parameters.
-        tdsWriter.writeRPCInt(null, getResultSetScrollOpt() & ~((0 == preparedTypeDefinitions.length()) ? TDS.SCROLLOPT_PARAMETERIZED_STMT : 0),
-                false);
+        tdsWriter.writeRPCInt(null, getResultSetScrollOpt()
+                & ~((0 == preparedTypeDefinitions.length()) ? TDS.SCROLLOPT_PARAMETERIZED_STMT : 0), false);
 
         // <ccopt> IN
         tdsWriter.writeRPCInt(null, getResultSetCCOpt(), false);
@@ -716,7 +720,8 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
     private void buildPrepExecParams(TDSWriter tdsWriter) throws SQLServerException {
         if (getStatementLogger().isLoggable(java.util.logging.Level.FINE))
-            getStatementLogger().fine(toString() + ": calling sp_prepexec: PreparedHandle:" + getPreparedStatementHandle() + ", SQL:" + preparedSQL);
+            getStatementLogger().fine(toString() + ": calling sp_prepexec: PreparedHandle:"
+                    + getPreparedStatementHandle() + ", SQL:" + preparedSQL);
 
         expectPrepStmtHandle = true;
         executedSqlDirectly = true;
@@ -725,8 +730,8 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
         tdsWriter.writeShort((short) 0xFFFF); // procedure name length -> use ProcIDs
         tdsWriter.writeShort(TDS.PROCID_SP_PREPEXEC);
-        tdsWriter.writeByte((byte) 0);  // RPC procedure option 1
-        tdsWriter.writeByte((byte) 0);  // RPC procedure option 2
+        tdsWriter.writeByte((byte) 0); // RPC procedure option 1
+        tdsWriter.writeByte((byte) 0); // RPC procedure option 2
 
         // <prepared handle>
         // IN (reprepare): Old handle to unprepare before repreparing
@@ -752,8 +757,8 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
         tdsWriter.writeShort((short) 0xFFFF); // procedure name length -> use ProcIDs
         tdsWriter.writeShort(TDS.PROCID_SP_EXECUTESQL);
-        tdsWriter.writeByte((byte) 0);  // RPC procedure option 1
-        tdsWriter.writeByte((byte) 0);  // RPC procedure option 2
+        tdsWriter.writeByte((byte) 0); // RPC procedure option 1
+        tdsWriter.writeByte((byte) 0); // RPC procedure option 2
 
         // No handle used.
         resetPrepStmtHandle(false);
@@ -768,8 +773,8 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
     private void buildServerCursorExecParams(TDSWriter tdsWriter) throws SQLServerException {
         if (getStatementLogger().isLoggable(java.util.logging.Level.FINE))
-            getStatementLogger()
-                    .fine(toString() + ": calling sp_cursorexecute: PreparedHandle:" + getPreparedStatementHandle() + ", SQL:" + preparedSQL);
+            getStatementLogger().fine(toString() + ": calling sp_cursorexecute: PreparedHandle:"
+                    + getPreparedStatementHandle() + ", SQL:" + preparedSQL);
 
         expectPrepStmtHandle = false;
         executedSqlDirectly = false;
@@ -778,8 +783,8 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
         tdsWriter.writeShort((short) 0xFFFF); // procedure name length -> use ProcIDs
         tdsWriter.writeShort(TDS.PROCID_SP_CURSOREXECUTE);
-        tdsWriter.writeByte((byte) 0);  // RPC procedure option 1
-        tdsWriter.writeByte((byte) 0);  // RPC procedure option 2 */
+        tdsWriter.writeByte((byte) 0); // RPC procedure option 1
+        tdsWriter.writeByte((byte) 0); // RPC procedure option 2 */
 
         // <handle> IN
         assert hasPreparedStatementHandle();
@@ -800,7 +805,8 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
     private void buildExecParams(TDSWriter tdsWriter) throws SQLServerException {
         if (getStatementLogger().isLoggable(java.util.logging.Level.FINE))
-            getStatementLogger().fine(toString() + ": calling sp_execute: PreparedHandle:" + getPreparedStatementHandle() + ", SQL:" + preparedSQL);
+            getStatementLogger().fine(toString() + ": calling sp_execute: PreparedHandle:"
+                    + getPreparedStatementHandle() + ", SQL:" + preparedSQL);
 
         expectPrepStmtHandle = false;
         executedSqlDirectly = true;
@@ -809,8 +815,8 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
         tdsWriter.writeShort((short) 0xFFFF); // procedure name length -> use ProcIDs
         tdsWriter.writeShort(TDS.PROCID_SP_EXECUTE);
-        tdsWriter.writeByte((byte) 0);  // RPC procedure option 1
-        tdsWriter.writeByte((byte) 0);  // RPC procedure option 2 */
+        tdsWriter.writeByte((byte) 0); // RPC procedure option 1
+        tdsWriter.writeByte((byte) 0); // RPC procedure option 2 */
 
         // <handle> IN
         assert hasPreparedStatementHandle();
@@ -819,9 +825,9 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
     private void getParameterEncryptionMetadata(Parameter[] params) throws SQLServerException {
         /*
-         * The parameter list is created from the data types provided by the user for the parameters. the data types do not need to be the same as in
-         * the table definition. Also, when string is sent to an int field, the parameter is defined as nvarchar(<size of string>). Same for varchar
-         * datatypes, exact length is used.
+         * The parameter list is created from the data types provided by the user for the parameters. the data types do
+         * not need to be the same as in the table definition. Also, when string is sent to an int field, the parameter
+         * is defined as nvarchar(<size of string>). Same for varchar datatypes, exact length is used.
          */
         SQLServerResultSet rs = null;
         SQLServerCallableStatement stmt = null;
@@ -830,7 +836,8 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
         try {
             if (getStatementLogger().isLoggable(java.util.logging.Level.FINE)) {
-                getStatementLogger().fine("Calling stored procedure sp_describe_parameter_encryption to get parameter encryption information.");
+                getStatementLogger().fine(
+                        "Calling stored procedure sp_describe_parameter_encryption to get parameter encryption information.");
             }
 
             stmt = (SQLServerCallableStatement) connection.prepareCall("exec sp_describe_parameter_encryption ?,?");
@@ -838,13 +845,12 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
             stmt.setNString(1, preparedSQL);
             stmt.setNString(2, preparedTypeDefinitions);
             rs = (SQLServerResultSet) stmt.executeQueryInternal();
-        }
-        catch (SQLException e) {
+        } catch (SQLException e) {
             if (e instanceof SQLServerException) {
                 throw (SQLServerException) e;
-            }
-            else {
-                throw new SQLServerException(SQLServerException.getErrString("R_UnableRetrieveParameterMetadata"), null, 0, e);
+            } else {
+                throw new SQLServerException(SQLServerException.getErrString("R_UnableRetrieveParameterMetadata"), null,
+                        0, e);
             }
         }
 
@@ -862,12 +868,12 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                 if (!cekList.containsKey(currentOrdinal)) {
                     cekEntry = new CekTableEntry(currentOrdinal);
                     cekList.put(cekEntry.ordinal, cekEntry);
-                }
-                else {
+                } else {
                     cekEntry = cekList.get(currentOrdinal);
                 }
                 cekEntry.add(rs.getBytes(DescribeParameterEncryptionResultSet1.EncryptedKey.value()),
-                        rs.getInt(DescribeParameterEncryptionResultSet1.DbId.value()), rs.getInt(DescribeParameterEncryptionResultSet1.KeyId.value()),
+                        rs.getInt(DescribeParameterEncryptionResultSet1.DbId.value()),
+                        rs.getInt(DescribeParameterEncryptionResultSet1.KeyId.value()),
                         rs.getInt(DescribeParameterEncryptionResultSet1.KeyVersion.value()),
                         rs.getBytes(DescribeParameterEncryptionResultSet1.KeyMdVersion.value()),
                         rs.getString(DescribeParameterEncryptionResultSet1.KeyPath.value()),
@@ -877,19 +883,19 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
             if (getStatementLogger().isLoggable(java.util.logging.Level.FINE)) {
                 getStatementLogger().fine("Matadata of CEKs is retrieved.");
             }
-        }
-        catch (SQLException e) {
+        } catch (SQLException e) {
             if (e instanceof SQLServerException) {
                 throw (SQLServerException) e;
-            }
-            else {
-                throw new SQLServerException(SQLServerException.getErrString("R_UnableRetrieveParameterMetadata"), null, 0, e);
+            } else {
+                throw new SQLServerException(SQLServerException.getErrString("R_UnableRetrieveParameterMetadata"), null,
+                        0, e);
             }
         }
 
         // Process the second resultset.
         if (!stmt.getMoreResults()) {
-            throw new SQLServerException(this, SQLServerException.getErrString("R_UnexpectedDescribeParamFormat"), null, 0, false);
+            throw new SQLServerException(this, SQLServerException.getErrString("R_UnexpectedDescribeParamFormat"), null,
+                    0, false);
         }
 
         // Parameter count in the result set.
@@ -905,7 +911,8 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
                 // cekEntry will be null if none of the parameters are encrypted.
                 if ((null != cekEntry) && (cekList.size() < cekOrdinal)) {
-                    MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_InvalidEncryptionKeyOridnal"));
+                    MessageFormat form = new MessageFormat(
+                            SQLServerException.getErrString("R_InvalidEncryptionKeyOridnal"));
                     Object[] msgArgs = {cekOrdinal, cekEntry.getSize()};
                     throw new SQLServerException(this, form.format(msgArgs), null, 0, false);
                 }
@@ -913,12 +920,12 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                         .of((byte) rs.getInt(DescribeParameterEncryptionResultSet2.ColumnEncrytionType.value()));
                 if (SQLServerEncryptionType.PlainText != encType) {
                     params[paramIndex].cryptoMeta = new CryptoMetadata(cekEntry, (short) cekOrdinal,
-                            (byte) rs.getInt(DescribeParameterEncryptionResultSet2.ColumnEncryptionAlgorithm.value()), null, encType.value,
+                            (byte) rs.getInt(DescribeParameterEncryptionResultSet2.ColumnEncryptionAlgorithm.value()),
+                            null, encType.value,
                             (byte) rs.getInt(DescribeParameterEncryptionResultSet2.NormalizationRuleVersion.value()));
                     // Decrypt the symmetric key.(This will also validate and throw if needed).
                     SQLServerSecurityUtility.decryptSymmetricKey(params[paramIndex].cryptoMeta, connection);
-                }
-                else {
+                } else {
                     if (true == params[paramIndex].getForceEncryption()) {
                         MessageFormat form = new MessageFormat(
                                 SQLServerException.getErrString("R_ForceEncryptionTrue_HonorAETrue_UnencryptedColumn"));
@@ -930,19 +937,19 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
             if (getStatementLogger().isLoggable(java.util.logging.Level.FINE)) {
                 getStatementLogger().fine("Parameter encryption metadata is set.");
             }
-        }
-        catch (SQLException e) {
+        } catch (SQLException e) {
             if (e instanceof SQLServerException) {
                 throw (SQLServerException) e;
-            }
-            else {
-                throw new SQLServerException(SQLServerException.getErrString("R_UnableRetrieveParameterMetadata"), null, 0, e);
+            } else {
+                throw new SQLServerException(SQLServerException.getErrString("R_UnableRetrieveParameterMetadata"), null,
+                        0, e);
             }
         }
 
         if (paramCount != params.length) {
             // Encryption metadata wasn't sent by the server.
-            // We expect the metadata to be sent for all the parameters in the original sp_describe_parameter_encryption.
+            // We expect the metadata to be sent for all the parameters in the original
+            // sp_describe_parameter_encryption.
             // For parameters that don't need encryption, the encryption type is set to plaintext.
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_MissingParamEncryptionMetadata"));
             Object[] msgArgs = {userSQL};
@@ -959,17 +966,17 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     }
 
     /** Manage re-using cached handles */
-    private boolean reuseCachedHandle(boolean hasNewTypeDefinitions,
-            boolean discardCurrentCacheItem) {
+    private boolean reuseCachedHandle(boolean hasNewTypeDefinitions, boolean discardCurrentCacheItem) {
         // No re-use of caching for cursorable statements (statements that WILL use sp_cursor*)
         if (isCursorable(executeMethod))
             return false;
 
-        // If current cache items needs to be discarded or New type definitions found with existing cached handle reference then deregister cached
+        // If current cache items needs to be discarded or New type definitions found with existing cached handle
+        // reference then deregister cached
         // handle.
         if (discardCurrentCacheItem || hasNewTypeDefinitions) {
-            if (null != cachedPreparedStatementHandle
-                    && (discardCurrentCacheItem || (hasPreparedStatementHandle() && prepStmtHandle == cachedPreparedStatementHandle.getHandle()))) {
+            if (null != cachedPreparedStatementHandle && (discardCurrentCacheItem
+                    || (hasPreparedStatementHandle() && prepStmtHandle == cachedPreparedStatementHandle.getHandle()))) {
                 cachedPreparedStatementHandle.removeReference();
             }
 
@@ -982,9 +989,12 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
         // Check for new cache reference.
         if (null == cachedPreparedStatementHandle) {
-            PreparedStatementHandle cachedHandle = connection.getCachedPreparedStatementHandle(new CityHash128Key(preparedSQL, preparedTypeDefinitions));
-            // If handle was found then re-use, only if AE is not on and is not a batch query with new type definitions (We shouldn't reuse handle
-            // if it is batch query and has new type definition, or if it is on, make sure encryptionMetadataIsRetrieved is retrieved.
+            PreparedStatementHandle cachedHandle = connection
+                    .getCachedPreparedStatementHandle(new CityHash128Key(preparedSQL, preparedTypeDefinitions));
+            // If handle was found then re-use, only if AE is not on and is not a batch query with new type definitions
+            // (We shouldn't reuse handle
+            // if it is batch query and has new type definition, or if it is on, make sure encryptionMetadataIsRetrieved
+            // is retrieved.
             if (null != cachedHandle) {
                 if (!connection.isColumnEncryptionSettingEnabled()
                         || (connection.isColumnEncryptionSettingEnabled() && encryptionMetadataIsRetrieved)) {
@@ -999,9 +1009,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         return false;
     }
 
-    private boolean doPrepExec(TDSWriter tdsWriter,
-            Parameter[] params,
-            boolean hasNewTypeDefinitions,
+    private boolean doPrepExec(TDSWriter tdsWriter, Parameter[] params, boolean hasNewTypeDefinitions,
             boolean hasExistingTypeDefinitions) throws SQLServerException {
 
         boolean needsPrepare = (hasNewTypeDefinitions && hasExistingTypeDefinitions) || !hasPreparedStatementHandle();
@@ -1013,8 +1021,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                 buildServerCursorPrepExecParams(tdsWriter);
             else
                 buildServerCursorExecParams(tdsWriter);
-        }
-        else {
+        } else {
             // Move overhead of needing to do prepare & unprepare to only use cases that need more than one execution.
             // First execution, use sp_executesql, optimizing for asumption we will not re-use statement.
             if (needsPrepare && !connection.getEnablePrepareOnFirstPreparedStatementCall() && !isExecutedAtLeastOnce) {
@@ -1043,16 +1050,14 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
             // if the result is closed, cant get the metadata from it.
             if (resultSet != null)
                 resultSet.checkClosed();
-        }
-        catch (SQLServerException e) {
+        } catch (SQLServerException e) {
             rsclosed = true;
         }
         if (resultSet == null || rsclosed) {
             SQLServerResultSet emptyResultSet = (SQLServerResultSet) buildExecuteMetaData();
             if (null != emptyResultSet)
                 rsmd = emptyResultSet.getMetaData();
-        }
-        else if (resultSet != null) {
+        } else if (resultSet != null) {
             rsmd = resultSet.getMetaData();
         }
         loggerExternal.exiting(getClassNameLogging(), "getMetaData", rsmd);
@@ -1060,8 +1065,8 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     }
 
     /**
-     * Retreive meta data for the statement before executing it. This is called in cases where the driver needs the meta data prior to executing the
-     * statement.
+     * Retreive meta data for the statement before executing it. This is called in cases where the driver needs the meta
+     * data prior to executing the statement.
      * 
      * @throws SQLServerException
      * @return the result set containing the meta data
@@ -1074,8 +1079,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
             fmtSQL = replaceMarkerWithNull(fmtSQL);
             internalStmt = (SQLServerStatement) connection.createStatement();
             emptyResultSet = internalStmt.executeQueryInternal("set fmtonly on " + fmtSQL + "\nset fmtonly off");
-        }
-        catch (SQLException sqle) {
+        } catch (SQLException sqle) {
             if (false == sqle.getMessage().equals(SQLServerException.getErrString("R_noResultset"))) {
                 // if the error is not no resultset then throw a processings error.
                 MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_processingError"));
@@ -1093,10 +1097,10 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
      * Set the parameter value for a statement.
      *
      * @param index
-     *            The index of the parameter to set starting at 1.
+     *        The index of the parameter to set starting at 1.
      * @return A reference the to Parameter object created or referenced.
      * @exception SQLServerException
-     *                The index specified was outside the number of paramters for the statement.
+     *            The index specified was outside the number of paramters for the statement.
      */
     final Parameter setterGetParam(int index) throws SQLServerException {
         if (index < 1 || index > inOutParam.length) {
@@ -1108,64 +1112,45 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         return inOutParam[index - 1];
     }
 
-    final void setValue(int parameterIndex,
-            JDBCType jdbcType,
-            Object value,
-            JavaType javaType,
+    final void setValue(int parameterIndex, JDBCType jdbcType, Object value, JavaType javaType,
             String tvpName) throws SQLServerException {
-        setterGetParam(parameterIndex).setValue(jdbcType, value, javaType, null, null, null, null, connection, false, stmtColumnEncriptionSetting,
-                parameterIndex, userSQL, tvpName);
+        setterGetParam(parameterIndex).setValue(jdbcType, value, javaType, null, null, null, null, connection, false,
+                stmtColumnEncriptionSetting, parameterIndex, userSQL, tvpName);
     }
 
-    final void setValue(int parameterIndex,
-            JDBCType jdbcType,
-            Object value,
-            JavaType javaType,
+    final void setValue(int parameterIndex, JDBCType jdbcType, Object value, JavaType javaType,
             boolean forceEncrypt) throws SQLServerException {
-        setterGetParam(parameterIndex).setValue(jdbcType, value, javaType, null, null, null, null, connection, forceEncrypt,
-                stmtColumnEncriptionSetting, parameterIndex, userSQL, null);
+        setterGetParam(parameterIndex).setValue(jdbcType, value, javaType, null, null, null, null, connection,
+                forceEncrypt, stmtColumnEncriptionSetting, parameterIndex, userSQL, null);
     }
 
-    final void setValue(int parameterIndex,
-            JDBCType jdbcType,
-            Object value,
-            JavaType javaType,
-            Integer precision,
-            Integer scale,
+    final void setValue(int parameterIndex, JDBCType jdbcType, Object value, JavaType javaType, Integer precision,
+            Integer scale, boolean forceEncrypt) throws SQLServerException {
+        setterGetParam(parameterIndex).setValue(jdbcType, value, javaType, null, null, precision, scale, connection,
+                forceEncrypt, stmtColumnEncriptionSetting, parameterIndex, userSQL, null);
+    }
+
+    final void setValue(int parameterIndex, JDBCType jdbcType, Object value, JavaType javaType, Calendar cal,
             boolean forceEncrypt) throws SQLServerException {
-        setterGetParam(parameterIndex).setValue(jdbcType, value, javaType, null, null, precision, scale, connection, forceEncrypt,
-                stmtColumnEncriptionSetting, parameterIndex, userSQL, null);
+        setterGetParam(parameterIndex).setValue(jdbcType, value, javaType, null, cal, null, null, connection,
+                forceEncrypt, stmtColumnEncriptionSetting, parameterIndex, userSQL, null);
     }
 
-    final void setValue(int parameterIndex,
-            JDBCType jdbcType,
-            Object value,
-            JavaType javaType,
-            Calendar cal,
-            boolean forceEncrypt) throws SQLServerException {
-        setterGetParam(parameterIndex).setValue(jdbcType, value, javaType, null, cal, null, null, connection, forceEncrypt,
-                stmtColumnEncriptionSetting, parameterIndex, userSQL, null);
-    }
-
-    final void setStream(int parameterIndex,
-            StreamType streamType,
-            Object streamValue,
-            JavaType javaType,
+    final void setStream(int parameterIndex, StreamType streamType, Object streamValue, JavaType javaType,
             long length) throws SQLServerException {
-        setterGetParam(parameterIndex).setValue(streamType.getJDBCType(), streamValue, javaType, new StreamSetterArgs(streamType, length), null, null,
-                null, connection, false, stmtColumnEncriptionSetting, parameterIndex, userSQL, null);
+        setterGetParam(parameterIndex).setValue(streamType.getJDBCType(), streamValue, javaType,
+                new StreamSetterArgs(streamType, length), null, null, null, connection, false,
+                stmtColumnEncriptionSetting, parameterIndex, userSQL, null);
     }
 
-    final void setSQLXMLInternal(int parameterIndex,
-            SQLXML value) throws SQLServerException {
+    final void setSQLXMLInternal(int parameterIndex, SQLXML value) throws SQLServerException {
         setterGetParam(parameterIndex).setValue(JDBCType.SQLXML, value, JavaType.SQLXML,
-                new StreamSetterArgs(StreamType.SQLXML, DataTypes.UNKNOWN_STREAM_LENGTH), null, null, null, connection, false,
-                stmtColumnEncriptionSetting, parameterIndex, userSQL, null);
+                new StreamSetterArgs(StreamType.SQLXML, DataTypes.UNKNOWN_STREAM_LENGTH), null, null, null, connection,
+                false, stmtColumnEncriptionSetting, parameterIndex, userSQL, null);
     }
 
     @Override
-    public final void setAsciiStream(int parameterIndex,
-            InputStream x) throws SQLException {
+    public final void setAsciiStream(int parameterIndex, InputStream x) throws SQLException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setAsciiStream", new Object[] {parameterIndex, x});
         checkClosed();
@@ -1174,9 +1159,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     }
 
     @Override
-    public final void setAsciiStream(int n,
-            java.io.InputStream x,
-            int length) throws SQLServerException {
+    public final void setAsciiStream(int n, java.io.InputStream x, int length) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setAsciiStream", new Object[] {n, x, length});
         checkClosed();
@@ -1185,9 +1168,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     }
 
     @Override
-    public final void setAsciiStream(int parameterIndex,
-            InputStream x,
-            long length) throws SQLException {
+    public final void setAsciiStream(int parameterIndex, InputStream x, long length) throws SQLException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setAsciiStream", new Object[] {parameterIndex, x, length});
         checkClosed();
@@ -1196,8 +1177,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     }
 
     @Override
-    public final void setBigDecimal(int paramterIndex,
-            BigDecimal x) throws SQLServerException {
+    public final void setBigDecimal(int paramterIndex, BigDecimal x) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setBigDecimal", new Object[] {paramterIndex, x});
         checkClosed();
@@ -1206,33 +1186,29 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     }
 
     @Override
-    public final void setBigDecimal(int paramterIndex,
-            BigDecimal x,
-            int precision,
+    public final void setBigDecimal(int paramterIndex, BigDecimal x, int precision,
             int scale) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
-            loggerExternal.entering(getClassNameLogging(), "setBigDecimal", new Object[] {paramterIndex, x, precision, scale});
+            loggerExternal.entering(getClassNameLogging(), "setBigDecimal",
+                    new Object[] {paramterIndex, x, precision, scale});
         checkClosed();
         setValue(paramterIndex, JDBCType.DECIMAL, x, JavaType.BIGDECIMAL, precision, scale, false);
         loggerExternal.exiting(getClassNameLogging(), "setBigDecimal");
     }
 
     @Override
-    public final void setBigDecimal(int paramterIndex,
-            BigDecimal x,
-            int precision,
-            int scale,
+    public final void setBigDecimal(int paramterIndex, BigDecimal x, int precision, int scale,
             boolean forceEncrypt) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
-            loggerExternal.entering(getClassNameLogging(), "setBigDecimal", new Object[] {paramterIndex, x, precision, scale, forceEncrypt});
+            loggerExternal.entering(getClassNameLogging(), "setBigDecimal",
+                    new Object[] {paramterIndex, x, precision, scale, forceEncrypt});
         checkClosed();
         setValue(paramterIndex, JDBCType.DECIMAL, x, JavaType.BIGDECIMAL, precision, scale, forceEncrypt);
         loggerExternal.exiting(getClassNameLogging(), "setBigDecimal");
     }
 
     @Override
-    public final void setMoney(int n,
-            BigDecimal x) throws SQLServerException {
+    public final void setMoney(int n, BigDecimal x) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setMoney", new Object[] {n, x});
         checkClosed();
@@ -1241,9 +1217,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     }
 
     @Override
-    public final void setMoney(int n,
-            BigDecimal x,
-            boolean forceEncrypt) throws SQLServerException {
+    public final void setMoney(int n, BigDecimal x, boolean forceEncrypt) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setMoney", new Object[] {n, x, forceEncrypt});
         checkClosed();
@@ -1252,8 +1226,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     }
 
     @Override
-    public final void setSmallMoney(int n,
-            BigDecimal x) throws SQLServerException {
+    public final void setSmallMoney(int n, BigDecimal x) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setSmallMoney", new Object[] {n, x});
         checkClosed();
@@ -1262,9 +1235,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     }
 
     @Override
-    public final void setSmallMoney(int n,
-            BigDecimal x,
-            boolean forceEncrypt) throws SQLServerException {
+    public final void setSmallMoney(int n, BigDecimal x, boolean forceEncrypt) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setSmallMoney", new Object[] {n, x, forceEncrypt});
         checkClosed();
@@ -1273,8 +1244,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     }
 
     @Override
-    public final void setBinaryStream(int parameterIndex,
-            InputStream x) throws SQLException {
+    public final void setBinaryStream(int parameterIndex, InputStream x) throws SQLException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setBinaryStreaml", new Object[] {parameterIndex, x});
         checkClosed();
@@ -1283,9 +1253,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     }
 
     @Override
-    public final void setBinaryStream(int n,
-            java.io.InputStream x,
-            int length) throws SQLServerException {
+    public final void setBinaryStream(int n, java.io.InputStream x, int length) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setBinaryStream", new Object[] {n, x, length});
         checkClosed();
@@ -1294,9 +1262,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     }
 
     @Override
-    public final void setBinaryStream(int parameterIndex,
-            InputStream x,
-            long length) throws SQLException {
+    public final void setBinaryStream(int parameterIndex, InputStream x, long length) throws SQLException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setBinaryStream", new Object[] {parameterIndex, x, length});
         checkClosed();
@@ -1305,8 +1271,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     }
 
     @Override
-    public final void setBoolean(int n,
-            boolean x) throws SQLServerException {
+    public final void setBoolean(int n, boolean x) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setBoolean", new Object[] {n, x});
         checkClosed();
@@ -1315,9 +1280,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     }
 
     @Override
-    public final void setBoolean(int n,
-            boolean x,
-            boolean forceEncrypt) throws SQLServerException {
+    public final void setBoolean(int n, boolean x, boolean forceEncrypt) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setBoolean", new Object[] {n, x, forceEncrypt});
         checkClosed();
@@ -1326,8 +1289,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     }
 
     @Override
-    public final void setByte(int n,
-            byte x) throws SQLServerException {
+    public final void setByte(int n, byte x) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setByte", new Object[] {n, x});
         checkClosed();
@@ -1336,9 +1298,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     }
 
     @Override
-    public final void setByte(int n,
-            byte x,
-            boolean forceEncrypt) throws SQLServerException {
+    public final void setByte(int n, byte x, boolean forceEncrypt) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setByte", new Object[] {n, x, forceEncrypt});
         checkClosed();
@@ -1347,8 +1307,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     }
 
     @Override
-    public final void setBytes(int n,
-            byte x[]) throws SQLServerException {
+    public final void setBytes(int n, byte x[]) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setBytes", new Object[] {n, x});
         checkClosed();
@@ -1357,9 +1316,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     }
 
     @Override
-    public final void setBytes(int n,
-            byte x[],
-            boolean forceEncrypt) throws SQLServerException {
+    public final void setBytes(int n, byte x[], boolean forceEncrypt) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setBytes", new Object[] {n, x, forceEncrypt});
         checkClosed();
@@ -1368,8 +1325,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     }
 
     @Override
-    public final void setUniqueIdentifier(int index,
-            String guid) throws SQLServerException {
+    public final void setUniqueIdentifier(int index, String guid) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setUniqueIdentifier", new Object[] {index, guid});
         checkClosed();
@@ -1378,19 +1334,17 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     }
 
     @Override
-    public final void setUniqueIdentifier(int index,
-            String guid,
-            boolean forceEncrypt) throws SQLServerException {
+    public final void setUniqueIdentifier(int index, String guid, boolean forceEncrypt) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
-            loggerExternal.entering(getClassNameLogging(), "setUniqueIdentifier", new Object[] {index, guid, forceEncrypt});
+            loggerExternal.entering(getClassNameLogging(), "setUniqueIdentifier",
+                    new Object[] {index, guid, forceEncrypt});
         checkClosed();
         setValue(index, JDBCType.GUID, guid, JavaType.STRING, forceEncrypt);
         loggerExternal.exiting(getClassNameLogging(), "setUniqueIdentifier");
     }
 
     @Override
-    public final void setDouble(int n,
-            double x) throws SQLServerException {
+    public final void setDouble(int n, double x) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setDouble", new Object[] {n, x});
         checkClosed();
@@ -1399,9 +1353,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     }
 
     @Override
-    public final void setDouble(int n,
-            double x,
-            boolean forceEncrypt) throws SQLServerException {
+    public final void setDouble(int n, double x, boolean forceEncrypt) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setDouble", new Object[] {n, x, forceEncrypt});
         checkClosed();
@@ -1410,8 +1362,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     }
 
     @Override
-    public final void setFloat(int n,
-            float x) throws SQLServerException {
+    public final void setFloat(int n, float x) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setFloat", new Object[] {n, x});
         checkClosed();
@@ -1420,9 +1371,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     }
 
     @Override
-    public final void setFloat(int n,
-            float x,
-            boolean forceEncrypt) throws SQLServerException {
+    public final void setFloat(int n, float x, boolean forceEncrypt) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setFloat", new Object[] {n, x, forceEncrypt});
         checkClosed();
@@ -1431,8 +1380,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     }
 
     @Override
-    public final void setGeometry(int n,
-            Geometry x) throws SQLServerException {
+    public final void setGeometry(int n, Geometry x) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setGeometry", new Object[] {n, x});
         checkClosed();
@@ -1441,8 +1389,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     }
 
     @Override
-    public final void setGeography(int n,
-            Geography x) throws SQLServerException {
+    public final void setGeography(int n, Geography x) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setGeography", new Object[] {n, x});
         checkClosed();
@@ -1451,8 +1398,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     }
 
     @Override
-    public final void setInt(int n,
-            int value) throws SQLServerException {
+    public final void setInt(int n, int value) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setInt", new Object[] {n, value});
         checkClosed();
@@ -1461,9 +1407,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     }
 
     @Override
-    public final void setInt(int n,
-            int value,
-            boolean forceEncrypt) throws SQLServerException {
+    public final void setInt(int n, int value, boolean forceEncrypt) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setInt", new Object[] {n, value, forceEncrypt});
         checkClosed();
@@ -1472,8 +1416,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     }
 
     @Override
-    public final void setLong(int n,
-            long x) throws SQLServerException {
+    public final void setLong(int n, long x) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setLong", new Object[] {n, x});
         checkClosed();
@@ -1482,9 +1425,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     }
 
     @Override
-    public final void setLong(int n,
-            long x,
-            boolean forceEncrypt) throws SQLServerException {
+    public final void setLong(int n, long x, boolean forceEncrypt) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setLong", new Object[] {n, x, forceEncrypt});
         checkClosed();
@@ -1493,8 +1434,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     }
 
     @Override
-    public final void setNull(int index,
-            int jdbcType) throws SQLServerException {
+    public final void setNull(int index, int jdbcType) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setNull", new Object[] {index, jdbcType});
         checkClosed();
@@ -1502,9 +1442,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         loggerExternal.exiting(getClassNameLogging(), "setNull");
     }
 
-    final void setObjectNoType(int index,
-            Object obj,
-            boolean forceEncrypt) throws SQLServerException {
+    final void setObjectNoType(int index, Object obj, boolean forceEncrypt) throws SQLServerException {
         // Default to the JDBC type of the parameter, determined by a previous setter call or through registerOutParam.
         // This avoids repreparing unnecessarily for null values.
         Parameter param = setterGetParam(index);
@@ -1518,14 +1456,14 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                 targetJDBCType = JDBCType.CHAR;
 
             setObject(param, null, JavaType.OBJECT, targetJDBCType, null, null, forceEncrypt, index, null);
-        }
-        else {
+        } else {
             JavaType javaType = JavaType.of(obj);
             if (JavaType.TVP == javaType) {
-                tvpName = getTVPNameIfNull(index, null);   // will return null if called from preparedStatement
+                tvpName = getTVPNameIfNull(index, null); // will return null if called from preparedStatement
 
                 if ((null == tvpName) && (obj instanceof ResultSet)) {
-                    throw new SQLServerException(SQLServerException.getErrString("R_TVPnotWorkWithSetObjectResultSet"), null);
+                    throw new SQLServerException(SQLServerException.getErrString("R_TVPnotWorkWithSetObjectResultSet"),
+                            null);
                 }
             }
             targetJDBCType = javaType.getJDBCType(SSType.UNKNOWN, targetJDBCType);
@@ -1542,8 +1480,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     }
 
     @Override
-    public final void setObject(int index,
-            Object obj) throws SQLServerException {
+    public final void setObject(int index, Object obj) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setObject", new Object[] {index, obj});
         checkClosed();
@@ -1552,9 +1489,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     }
 
     @Override
-    public final void setObject(int n,
-            Object obj,
-            int jdbcType) throws SQLServerException {
+    public final void setObject(int n, Object obj, int jdbcType) throws SQLServerException {
         String tvpName = null;
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setObject", new Object[] {n, obj, jdbcType});
@@ -1566,12 +1501,11 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     }
 
     @Override
-    public final void setObject(int parameterIndex,
-            Object x,
-            int targetSqlType,
+    public final void setObject(int parameterIndex, Object x, int targetSqlType,
             int scaleOrLength) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
-            loggerExternal.entering(getClassNameLogging(), "setObject", new Object[] {parameterIndex, x, targetSqlType, scaleOrLength});
+            loggerExternal.entering(getClassNameLogging(), "setObject",
+                    new Object[] {parameterIndex, x, targetSqlType, scaleOrLength});
         checkClosed();
 
         // scaleOrLength - for java.sql.Types.DECIMAL, java.sql.Types.NUMERIC or temporal types,
@@ -1580,22 +1514,21 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         // For all other types, this value will be ignored.
 
         setObject(setterGetParam(parameterIndex), x, JavaType.of(x), JDBCType.of(targetSqlType),
-                (java.sql.Types.NUMERIC == targetSqlType || java.sql.Types.DECIMAL == targetSqlType || java.sql.Types.TIMESTAMP == targetSqlType
-                        || java.sql.Types.TIME == targetSqlType || microsoft.sql.Types.DATETIMEOFFSET == targetSqlType
-                        || InputStream.class.isInstance(x) || Reader.class.isInstance(x)) ? scaleOrLength : null,
+                (java.sql.Types.NUMERIC == targetSqlType || java.sql.Types.DECIMAL == targetSqlType
+                        || java.sql.Types.TIMESTAMP == targetSqlType || java.sql.Types.TIME == targetSqlType
+                        || microsoft.sql.Types.DATETIMEOFFSET == targetSqlType || InputStream.class.isInstance(x)
+                        || Reader.class.isInstance(x)) ? scaleOrLength : null,
                 null, false, parameterIndex, null);
 
         loggerExternal.exiting(getClassNameLogging(), "setObject");
     }
 
     @Override
-    public final void setObject(int parameterIndex,
-            Object x,
-            int targetSqlType,
-            Integer precision,
+    public final void setObject(int parameterIndex, Object x, int targetSqlType, Integer precision,
             int scale) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
-            loggerExternal.entering(getClassNameLogging(), "setObject", new Object[] {parameterIndex, x, targetSqlType, precision, scale});
+            loggerExternal.entering(getClassNameLogging(), "setObject",
+                    new Object[] {parameterIndex, x, targetSqlType, precision, scale});
         checkClosed();
 
         // scale - for java.sql.Types.DECIMAL or java.sql.Types.NUMERIC types,
@@ -1603,20 +1536,16 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         // InputStream and Reader, this is the length of the data in the stream or reader.
         // For all other types, this value will be ignored.
 
-        setObject(
-                setterGetParam(parameterIndex), x, JavaType.of(x), JDBCType.of(targetSqlType), (java.sql.Types.NUMERIC == targetSqlType
-                        || java.sql.Types.DECIMAL == targetSqlType || InputStream.class.isInstance(x) || Reader.class.isInstance(x)) ? scale : null,
+        setObject(setterGetParam(parameterIndex), x, JavaType.of(x), JDBCType.of(targetSqlType),
+                (java.sql.Types.NUMERIC == targetSqlType || java.sql.Types.DECIMAL == targetSqlType
+                        || InputStream.class.isInstance(x) || Reader.class.isInstance(x)) ? scale : null,
                 precision, false, parameterIndex, null);
 
         loggerExternal.exiting(getClassNameLogging(), "setObject");
     }
 
     @Override
-    public final void setObject(int parameterIndex,
-            Object x,
-            int targetSqlType,
-            Integer precision,
-            int scale,
+    public final void setObject(int parameterIndex, Object x, int targetSqlType, Integer precision, int scale,
             boolean forceEncrypt) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setObject",
@@ -1628,23 +1557,16 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         // InputStream and Reader, this is the length of the data in the stream or reader.
         // For all other types, this value will be ignored.
 
-        setObject(
-                setterGetParam(parameterIndex), x, JavaType.of(x), JDBCType.of(targetSqlType), (java.sql.Types.NUMERIC == targetSqlType
-                        || java.sql.Types.DECIMAL == targetSqlType || InputStream.class.isInstance(x) || Reader.class.isInstance(x)) ? scale : null,
+        setObject(setterGetParam(parameterIndex), x, JavaType.of(x), JDBCType.of(targetSqlType),
+                (java.sql.Types.NUMERIC == targetSqlType || java.sql.Types.DECIMAL == targetSqlType
+                        || InputStream.class.isInstance(x) || Reader.class.isInstance(x)) ? scale : null,
                 precision, forceEncrypt, parameterIndex, null);
 
         loggerExternal.exiting(getClassNameLogging(), "setObject");
     }
 
-    final void setObject(Parameter param,
-            Object obj,
-            JavaType javaType,
-            JDBCType jdbcType,
-            Integer scale,
-            Integer precision,
-            boolean forceEncrypt,
-            int parameterIndex,
-            String tvpName) throws SQLServerException {
+    final void setObject(Parameter param, Object obj, JavaType javaType, JDBCType jdbcType, Integer scale,
+            Integer precision, boolean forceEncrypt, int parameterIndex, String tvpName) throws SQLServerException {
         assert JDBCType.UNKNOWN != jdbcType;
 
         // For non-null values, infer the object's JDBC type from its Java type
@@ -1665,7 +1587,8 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                     break;
 
                 case INPUTSTREAM:
-                    streamSetterArgs = new StreamSetterArgs(jdbcType.isTextual() ? StreamType.CHARACTER : StreamType.BINARY,
+                    streamSetterArgs = new StreamSetterArgs(
+                            jdbcType.isTextual() ? StreamType.CHARACTER : StreamType.BINARY,
                             DataTypes.UNKNOWN_STREAM_LENGTH);
                     break;
 
@@ -1678,8 +1601,8 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
             }
 
             // typeInfo is set as null
-            param.setValue(jdbcType, obj, javaType, streamSetterArgs, null, precision, scale, connection, forceEncrypt, stmtColumnEncriptionSetting,
-                    parameterIndex, userSQL, tvpName);
+            param.setValue(jdbcType, obj, javaType, streamSetterArgs, null, precision, scale, connection, forceEncrypt,
+                    stmtColumnEncriptionSetting, parameterIndex, userSQL, tvpName);
         }
 
         // For null values, use the specified JDBC type directly, with the exception
@@ -1691,48 +1614,36 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                 jdbcType = JDBCType.BINARY;
 
             // typeInfo is set as null
-            param.setValue(jdbcType, null, JavaType.OBJECT, null, null, precision, scale, connection, false, stmtColumnEncriptionSetting,
-                    parameterIndex, userSQL, tvpName);
+            param.setValue(jdbcType, null, JavaType.OBJECT, null, null, precision, scale, connection, false,
+                    stmtColumnEncriptionSetting, parameterIndex, userSQL, tvpName);
         }
     }
 
     @Override
-    public final void setObject(int index,
-            Object obj,
-            SQLType jdbcType) throws SQLServerException {
+    public final void setObject(int index, Object obj, SQLType jdbcType) throws SQLServerException {
         setObject(index, obj, jdbcType.getVendorTypeNumber());
     }
 
     @Override
-    public final void setObject(int parameterIndex,
-            Object x,
-            SQLType targetSqlType,
+    public final void setObject(int parameterIndex, Object x, SQLType targetSqlType,
             int scaleOrLength) throws SQLServerException {
         setObject(parameterIndex, x, targetSqlType.getVendorTypeNumber(), scaleOrLength);
     }
 
     @Override
-    public final void setObject(int parameterIndex,
-            Object x,
-            SQLType targetSqlType,
-            Integer precision,
+    public final void setObject(int parameterIndex, Object x, SQLType targetSqlType, Integer precision,
             Integer scale) throws SQLServerException {
         setObject(parameterIndex, x, targetSqlType.getVendorTypeNumber(), precision, scale);
     }
 
     @Override
-    public final void setObject(int parameterIndex,
-            Object x,
-            SQLType targetSqlType,
-            Integer precision,
-            Integer scale,
+    public final void setObject(int parameterIndex, Object x, SQLType targetSqlType, Integer precision, Integer scale,
             boolean forceEncrypt) throws SQLServerException {
         setObject(parameterIndex, x, targetSqlType.getVendorTypeNumber(), precision, scale, forceEncrypt);
     }
 
     @Override
-    public final void setShort(int index,
-            short x) throws SQLServerException {
+    public final void setShort(int index, short x) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setShort", new Object[] {index, x});
         checkClosed();
@@ -1741,9 +1652,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     }
 
     @Override
-    public final void setShort(int index,
-            short x,
-            boolean forceEncrypt) throws SQLServerException {
+    public final void setShort(int index, short x, boolean forceEncrypt) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setShort", new Object[] {index, x, forceEncrypt});
         checkClosed();
@@ -1752,8 +1661,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     }
 
     @Override
-    public final void setString(int index,
-            String str) throws SQLServerException {
+    public final void setString(int index, String str) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setString", new Object[] {index, str});
         checkClosed();
@@ -1762,9 +1670,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     }
 
     @Override
-    public final void setString(int index,
-            String str,
-            boolean forceEncrypt) throws SQLServerException {
+    public final void setString(int index, String str, boolean forceEncrypt) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setString", new Object[] {index, str, forceEncrypt});
         checkClosed();
@@ -1773,8 +1679,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     }
 
     @Override
-    public final void setNString(int parameterIndex,
-            String value) throws SQLException {
+    public final void setNString(int parameterIndex, String value) throws SQLException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setNString", new Object[] {parameterIndex, value});
         checkClosed();
@@ -1783,19 +1688,17 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     }
 
     @Override
-    public final void setNString(int parameterIndex,
-            String value,
-            boolean forceEncrypt) throws SQLServerException {
+    public final void setNString(int parameterIndex, String value, boolean forceEncrypt) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
-            loggerExternal.entering(getClassNameLogging(), "setNString", new Object[] {parameterIndex, value, forceEncrypt});
+            loggerExternal.entering(getClassNameLogging(), "setNString",
+                    new Object[] {parameterIndex, value, forceEncrypt});
         checkClosed();
         setValue(parameterIndex, JDBCType.NVARCHAR, value, JavaType.STRING, forceEncrypt);
         loggerExternal.exiting(getClassNameLogging(), "setNString");
     }
 
     @Override
-    public final void setTime(int n,
-            java.sql.Time x) throws SQLServerException {
+    public final void setTime(int n, java.sql.Time x) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setTime", new Object[] {n, x});
         checkClosed();
@@ -1804,9 +1707,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     }
 
     @Override
-    public final void setTime(int n,
-            java.sql.Time x,
-            int scale) throws SQLServerException {
+    public final void setTime(int n, java.sql.Time x, int scale) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setTime", new Object[] {n, x, scale});
         checkClosed();
@@ -1815,10 +1716,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     }
 
     @Override
-    public final void setTime(int n,
-            java.sql.Time x,
-            int scale,
-            boolean forceEncrypt) throws SQLServerException {
+    public final void setTime(int n, java.sql.Time x, int scale, boolean forceEncrypt) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setTime", new Object[] {n, x, scale, forceEncrypt});
         checkClosed();
@@ -1827,8 +1725,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     }
 
     @Override
-    public final void setTimestamp(int n,
-            java.sql.Timestamp x) throws SQLServerException {
+    public final void setTimestamp(int n, java.sql.Timestamp x) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setTimestamp", new Object[] {n, x});
         checkClosed();
@@ -1837,9 +1734,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     }
 
     @Override
-    public final void setTimestamp(int n,
-            java.sql.Timestamp x,
-            int scale) throws SQLServerException {
+    public final void setTimestamp(int n, java.sql.Timestamp x, int scale) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setTimestamp", new Object[] {n, x, scale});
         checkClosed();
@@ -1848,9 +1743,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     }
 
     @Override
-    public final void setTimestamp(int n,
-            java.sql.Timestamp x,
-            int scale,
+    public final void setTimestamp(int n, java.sql.Timestamp x, int scale,
             boolean forceEncrypt) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setTimestamp", new Object[] {n, x, scale, forceEncrypt});
@@ -1860,8 +1753,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     }
 
     @Override
-    public final void setDateTimeOffset(int n,
-            microsoft.sql.DateTimeOffset x) throws SQLServerException {
+    public final void setDateTimeOffset(int n, microsoft.sql.DateTimeOffset x) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setDateTimeOffset", new Object[] {n, x});
         checkClosed();
@@ -1870,9 +1762,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     }
 
     @Override
-    public final void setDateTimeOffset(int n,
-            microsoft.sql.DateTimeOffset x,
-            int scale) throws SQLServerException {
+    public final void setDateTimeOffset(int n, microsoft.sql.DateTimeOffset x, int scale) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setDateTimeOffset", new Object[] {n, x, scale});
         checkClosed();
@@ -1881,20 +1771,18 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     }
 
     @Override
-    public final void setDateTimeOffset(int n,
-            microsoft.sql.DateTimeOffset x,
-            int scale,
+    public final void setDateTimeOffset(int n, microsoft.sql.DateTimeOffset x, int scale,
             boolean forceEncrypt) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
-            loggerExternal.entering(getClassNameLogging(), "setDateTimeOffset", new Object[] {n, x, scale, forceEncrypt});
+            loggerExternal.entering(getClassNameLogging(), "setDateTimeOffset",
+                    new Object[] {n, x, scale, forceEncrypt});
         checkClosed();
         setValue(n, JDBCType.DATETIMEOFFSET, x, JavaType.DATETIMEOFFSET, null, scale, forceEncrypt);
         loggerExternal.exiting(getClassNameLogging(), "setDateTimeOffset");
     }
 
     @Override
-    public final void setDate(int n,
-            java.sql.Date x) throws SQLServerException {
+    public final void setDate(int n, java.sql.Date x) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setDate", new Object[] {n, x});
         checkClosed();
@@ -1903,8 +1791,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     }
 
     @Override
-    public final void setDateTime(int n,
-            java.sql.Timestamp x) throws SQLServerException {
+    public final void setDateTime(int n, java.sql.Timestamp x) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setDateTime", new Object[] {n, x});
         checkClosed();
@@ -1913,9 +1800,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     }
 
     @Override
-    public final void setDateTime(int n,
-            java.sql.Timestamp x,
-            boolean forceEncrypt) throws SQLServerException {
+    public final void setDateTime(int n, java.sql.Timestamp x, boolean forceEncrypt) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setDateTime", new Object[] {n, x, forceEncrypt});
         checkClosed();
@@ -1924,8 +1809,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     }
 
     @Override
-    public final void setSmallDateTime(int n,
-            java.sql.Timestamp x) throws SQLServerException {
+    public final void setSmallDateTime(int n, java.sql.Timestamp x) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setSmallDateTime", new Object[] {n, x});
         checkClosed();
@@ -1934,9 +1818,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     }
 
     @Override
-    public final void setSmallDateTime(int n,
-            java.sql.Timestamp x,
-            boolean forceEncrypt) throws SQLServerException {
+    public final void setSmallDateTime(int n, java.sql.Timestamp x, boolean forceEncrypt) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setSmallDateTime", new Object[] {n, x, forceEncrypt});
         checkClosed();
@@ -1945,9 +1827,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     }
 
     @Override
-    public final void setStructured(int n,
-            String tvpName,
-            SQLServerDataTable tvpDataTable) throws SQLServerException {
+    public final void setStructured(int n, String tvpName, SQLServerDataTable tvpDataTable) throws SQLServerException {
         tvpName = getTVPNameIfNull(n, tvpName);
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setStructured", new Object[] {n, tvpName, tvpDataTable});
@@ -1957,9 +1837,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     }
 
     @Override
-    public final void setStructured(int n,
-            String tvpName,
-            ResultSet tvpResultSet) throws SQLServerException {
+    public final void setStructured(int n, String tvpName, ResultSet tvpResultSet) throws SQLServerException {
         tvpName = getTVPNameIfNull(n, tvpName);
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setStructured", new Object[] {n, tvpName, tvpResultSet});
@@ -1969,8 +1847,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     }
 
     @Override
-    public final void setStructured(int n,
-            String tvpName,
+    public final void setStructured(int n, String tvpName,
             ISQLServerDataRecord tvpBulkRecord) throws SQLServerException {
         tvpName = getTVPNameIfNull(n, tvpName);
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
@@ -1980,8 +1857,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         loggerExternal.exiting(getClassNameLogging(), "setStructured");
     }
 
-    String getTVPNameIfNull(int n,
-            String tvpName) throws SQLServerException {
+    String getTVPNameIfNull(int n, String tvpName) throws SQLServerException {
         if ((null == tvpName) || (0 == tvpName.length())) {
             // Check if the CallableStatement/PreparedStatement is a stored procedure call
             if (null != this.procedureName) {
@@ -1989,7 +1865,8 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                 pmd.isTVP = true;
 
                 if (!pmd.procedureIsFound) {
-                    MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_StoredProcedureNotFound"));
+                    MessageFormat form = new MessageFormat(
+                            SQLServerException.getErrString("R_StoredProcedureNotFound"));
                     Object[] msgArgs = {this.procedureName};
                     SQLServerException.makeFromDriverError(connection, pmd, form.format(msgArgs), null, false);
                 }
@@ -2000,13 +1877,12 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
                     if (null != tvpSchema) {
                         tvpName = "[" + tvpSchema + "].[" + tvpNameWithoutSchema + "]";
-                    }
-                    else {
+                    } else {
                         tvpName = tvpNameWithoutSchema;
                     }
-                }
-                catch (SQLException e) {
-                    throw new SQLServerException(SQLServerException.getErrString("R_metaDataErrorForParameter"), null, 0, e);
+                } catch (SQLException e) {
+                    throw new SQLServerException(SQLServerException.getErrString("R_metaDataErrorForParameter"), null,
+                            0, e);
                 }
             }
         }
@@ -2015,9 +1891,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
     @Deprecated
     @Override
-    public final void setUnicodeStream(int n,
-            java.io.InputStream x,
-            int length) throws SQLException {
+    public final void setUnicodeStream(int n, java.io.InputStream x, int length) throws SQLException {
         SQLServerException.throwNotSupportedException(connection, this);
     }
 
@@ -2054,11 +1928,11 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         }
         checkClosed();
         discardLastExecutionResults();
-        
+
         int updateCounts[];
-        
+
         localUserSQL = userSQL;
-        
+
         try {
             if (this.useBulkCopyForBatchInsert && connection.isAzureDW() && isInsert(localUserSQL)) {
                 // From the JDBC spec, section 9.1.4 - Making Batch Updates:
@@ -2074,11 +1948,12 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                 for (Parameter[] paramValues : batchParamValues) {
                     for (Parameter paramValue : paramValues) {
                         if (paramValue.isOutput()) {
-                            throw new BatchUpdateException(SQLServerException.getErrString("R_outParamsNotPermittedinBatch"), null, 0, null);
+                            throw new BatchUpdateException(
+                                    SQLServerException.getErrString("R_outParamsNotPermittedinBatch"), null, 0, null);
                         }
                     }
                 }
-                
+
                 if (batchParamValues == null) {
                     updateCounts = new int[0];
                     loggerExternal.exiting(getClassNameLogging(), "executeBatch", updateCounts);
@@ -2090,14 +1965,15 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                 ArrayList<String> valueList = parseUserSQLForValueListDW(false);
 
                 String destinationTableName = tableName;
-                SQLServerStatement stmt = (SQLServerStatement) connection.createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY,
-                        connection.getHoldability(), stmtColumnEncriptionSetting);
-                
-                // Get destination metadata
-                try (SQLServerResultSet rs = stmt
-                        .executeQueryInternal("sp_executesql N'SET FMTONLY ON SELECT * FROM " + destinationTableName + " '");) {
+                SQLServerStatement stmt = (SQLServerStatement) connection.createStatement(ResultSet.TYPE_FORWARD_ONLY,
+                        ResultSet.CONCUR_READ_ONLY, connection.getHoldability(), stmtColumnEncriptionSetting);
 
-                    SQLServerBulkBatchInsertRecord batchRecord = new SQLServerBulkBatchInsertRecord(batchParamValues, columnList, valueList, null);
+                // Get destination metadata
+                try (SQLServerResultSet rs = stmt.executeQueryInternal(
+                        "sp_executesql N'SET FMTONLY ON SELECT * FROM " + destinationTableName + " '");) {
+
+                    SQLServerBulkBatchInsertRecord batchRecord = new SQLServerBulkBatchInsertRecord(batchParamValues,
+                            columnList, valueList, null);
 
                     for (int i = 1; i <= rs.getColumnCount(); i++) {
                         Column c = rs.getColumn(i);
@@ -2106,8 +1982,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                         TypeInfo ti = c.getTypeInfo();
                         if (null != cryptoMetadata) {
                             jdbctype = cryptoMetadata.getBaseTypeInfo().getSSType().getJDBCType().getIntValue();
-                        }
-                        else {
+                        } else {
                             jdbctype = ti.getSSType().getJDBCType().getIntValue();
                         }
                         batchRecord.addColumnMetadata(i, c.getColumnName(), jdbctype, ti.getPrecision(), ti.getScale());
@@ -2127,18 +2002,15 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                     batchParamValues = null;
                     loggerExternal.exiting(getClassNameLogging(), "executeBatch", updateCounts);
                     return updateCounts;
-                }
-                finally {
+                } finally {
                     if (null != stmt)
                         stmt.close();
                 }
             }
-        }
-        catch (SQLException e) {
+        } catch (SQLException e) {
             // throw a BatchUpdateException with the given error message, and return null for the updateCounts.
             throw new BatchUpdateException(e.getMessage(), null, 0, null);
-        }
-        catch (IllegalArgumentException e) {
+        } catch (IllegalArgumentException e) {
             // If we fail with IllegalArgumentException, fall back to the original batch insert logic.
             if (getStatementLogger().isLoggable(java.util.logging.Level.FINE)) {
                 getStatementLogger().fine("Parsing user's Batch Insert SQL Query failed: " + e.toString());
@@ -2163,7 +2035,8 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                 for (Parameter[] paramValues : batchParamValues) {
                     for (Parameter paramValue : paramValues) {
                         if (paramValue.isOutput()) {
-                            throw new BatchUpdateException(SQLServerException.getErrString("R_outParamsNotPermittedinBatch"), null, 0, null);
+                            throw new BatchUpdateException(
+                                    SQLServerException.getErrString("R_outParamsNotPermittedinBatch"), null, 0, null);
                         }
                     }
                 }
@@ -2178,12 +2051,12 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
                 // Transform the SQLException into a BatchUpdateException with the update counts.
                 if (null != batchCommand.batchException) {
-                    throw new BatchUpdateException(batchCommand.batchException.getMessage(), batchCommand.batchException.getSQLState(),
-                            batchCommand.batchException.getErrorCode(), updateCounts);
+                    throw new BatchUpdateException(batchCommand.batchException.getMessage(),
+                            batchCommand.batchException.getSQLState(), batchCommand.batchException.getErrorCode(),
+                            updateCounts);
 
                 }
-            }
-            finally {
+            } finally {
                 batchParamValues = null;
             }
 
@@ -2201,9 +2074,9 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         discardLastExecutionResults();
 
         long updateCounts[];
-        
+
         localUserSQL = userSQL;
-        
+
         try {
             if (this.useBulkCopyForBatchInsert && connection.isAzureDW() && isInsert(localUserSQL)) {
                 // From the JDBC spec, section 9.1.4 - Making Batch Updates:
@@ -2219,11 +2092,12 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                 for (Parameter[] paramValues : batchParamValues) {
                     for (Parameter paramValue : paramValues) {
                         if (paramValue.isOutput()) {
-                            throw new BatchUpdateException(SQLServerException.getErrString("R_outParamsNotPermittedinBatch"), null, 0, null);
+                            throw new BatchUpdateException(
+                                    SQLServerException.getErrString("R_outParamsNotPermittedinBatch"), null, 0, null);
                         }
                     }
                 }
-                
+
                 if (batchParamValues == null) {
                     updateCounts = new long[0];
                     loggerExternal.exiting(getClassNameLogging(), "executeLargeBatch", updateCounts);
@@ -2235,14 +2109,15 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                 ArrayList<String> valueList = parseUserSQLForValueListDW(false);
 
                 String destinationTableName = tableName;
-                SQLServerStatement stmt = (SQLServerStatement) connection.createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY,
-                        connection.getHoldability(), stmtColumnEncriptionSetting);
-                
-                // Get destination metadata
-                try (SQLServerResultSet rs = stmt
-                        .executeQueryInternal("sp_executesql N'SET FMTONLY ON SELECT * FROM " + destinationTableName + " '");) {
+                SQLServerStatement stmt = (SQLServerStatement) connection.createStatement(ResultSet.TYPE_FORWARD_ONLY,
+                        ResultSet.CONCUR_READ_ONLY, connection.getHoldability(), stmtColumnEncriptionSetting);
 
-                    SQLServerBulkBatchInsertRecord batchRecord = new SQLServerBulkBatchInsertRecord(batchParamValues, columnList, valueList, null);
+                // Get destination metadata
+                try (SQLServerResultSet rs = stmt.executeQueryInternal(
+                        "sp_executesql N'SET FMTONLY ON SELECT * FROM " + destinationTableName + " '");) {
+
+                    SQLServerBulkBatchInsertRecord batchRecord = new SQLServerBulkBatchInsertRecord(batchParamValues,
+                            columnList, valueList, null);
 
                     for (int i = 1; i <= rs.getColumnCount(); i++) {
                         Column c = rs.getColumn(i);
@@ -2251,8 +2126,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                         TypeInfo ti = c.getTypeInfo();
                         if (null != cryptoMetadata) {
                             jdbctype = cryptoMetadata.getBaseTypeInfo().getSSType().getJDBCType().getIntValue();
-                        }
-                        else {
+                        } else {
                             jdbctype = ti.getSSType().getJDBCType().getIntValue();
                         }
                         batchRecord.addColumnMetadata(i, c.getColumnName(), jdbctype, ti.getPrecision(), ti.getScale());
@@ -2272,18 +2146,15 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                     batchParamValues = null;
                     loggerExternal.exiting(getClassNameLogging(), "executeLargeBatch", updateCounts);
                     return updateCounts;
-                }
-                finally {
+                } finally {
                     if (null != stmt)
                         stmt.close();
                 }
             }
-        }
-        catch (SQLException e) {
+        } catch (SQLException e) {
             // throw a BatchUpdateException with the given error message, and return null for the updateCounts.
             throw new BatchUpdateException(e.getMessage(), null, 0, null);
-        }
-        catch (IllegalArgumentException e) {
+        } catch (IllegalArgumentException e) {
             // If we fail with IllegalArgumentException, fall back to the original batch insert logic.
             if (getStatementLogger().isLoggable(java.util.logging.Level.FINE)) {
                 getStatementLogger().fine("Parsing user's Batch Insert SQL Query failed: " + e.toString());
@@ -2308,7 +2179,8 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                 for (Parameter[] paramValues : batchParamValues) {
                     for (Parameter paramValue : paramValues) {
                         if (paramValue.isOutput()) {
-                            throw new BatchUpdateException(SQLServerException.getErrString("R_outParamsNotPermittedinBatch"), null, 0, null);
+                            throw new BatchUpdateException(
+                                    SQLServerException.getErrString("R_outParamsNotPermittedinBatch"), null, 0, null);
                         }
                     }
                 }
@@ -2326,31 +2198,31 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                     DriverJDBCVersion.throwBatchUpdateException(batchCommand.batchException, updateCounts);
                 }
 
-            }
-            finally {
+            } finally {
                 batchParamValues = null;
             }
         loggerExternal.exiting(getClassNameLogging(), "executeLargeBatch", updateCounts);
         return updateCounts;
     }
-    
-    
-    private String parseUserSQLForTableNameDW(boolean hasInsertBeenFound, boolean hasIntoBeenFound, boolean hasTableBeenFound,
-            boolean isExpectingTableName) {
+
+    private String parseUserSQLForTableNameDW(boolean hasInsertBeenFound, boolean hasIntoBeenFound,
+            boolean hasTableBeenFound, boolean isExpectingTableName) {
         // As far as finding the table name goes, There are two cases:
         // Insert into <tableName> and Insert <tableName>
         // And there could be in-line comments (with /* and */) in between.
         // This method assumes the localUserSQL string starts with "insert".
         localUserSQL = localUserSQL.trim();
         if (checkAndRemoveComments()) {
-            return parseUserSQLForTableNameDW(hasInsertBeenFound, hasIntoBeenFound, hasTableBeenFound, isExpectingTableName);
+            return parseUserSQLForTableNameDW(hasInsertBeenFound, hasIntoBeenFound, hasTableBeenFound,
+                    isExpectingTableName);
         }
-        
+
         StringBuilder sb = new StringBuilder();
-        
-        // If table has been found and the next character is not a . at this point, we've finished parsing the table name.
+
+        // If table has been found and the next character is not a . at this point, we've finished parsing the table
+        // name.
         // This if statement is needed to handle the case where the user has something like:
-        // [dbo]     .   /* random comment */ [tableName]
+        // [dbo] . /* random comment */ [tableName]
         if (hasTableBeenFound && !isExpectingTableName) {
             if (localUserSQL.substring(0, 1).equalsIgnoreCase(".")) {
                 sb.append(".");
@@ -2360,85 +2232,88 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                 return "";
             }
         }
-        
+
         if (localUserSQL.substring(0, 6).equalsIgnoreCase("insert") && !hasInsertBeenFound) {
             localUserSQL = localUserSQL.substring(6);
             return parseUserSQLForTableNameDW(true, hasIntoBeenFound, hasTableBeenFound, isExpectingTableName);
         }
-        
+
         if (localUserSQL.substring(0, 4).equalsIgnoreCase("into") && !hasIntoBeenFound) {
             // is it really "into"?
             // if the "into" is followed by a blank space or /*, then yes.
-            if (Character.isWhitespace(localUserSQL.charAt(4)) ||
-                    (localUserSQL.charAt(4) == '/' && localUserSQL.charAt(5) == '*')) {
+            if (Character.isWhitespace(localUserSQL.charAt(4))
+                    || (localUserSQL.charAt(4) == '/' && localUserSQL.charAt(5) == '*')) {
                 localUserSQL = localUserSQL.substring(4);
                 return parseUserSQLForTableNameDW(hasInsertBeenFound, true, hasTableBeenFound, isExpectingTableName);
             }
-            
+
             // otherwise, we found the token that either contains the databasename.tablename or tablename.
-            // Recursively handle this, but into has been found. (or rather, it's absent in the query - the "into" keyword is optional)
+            // Recursively handle this, but into has been found. (or rather, it's absent in the query - the "into"
+            // keyword is optional)
             return parseUserSQLForTableNameDW(hasInsertBeenFound, true, hasTableBeenFound, isExpectingTableName);
         }
-        
+
         // At this point, the next token has to be the table name.
         // It could be encapsulated in [], "", or have a database name preceding the table name.
         // If it's encapsulated in [] or "", we need be more careful with parsing as anything could go into []/"".
         // For ] or ", they can be escaped by ]] or "", watch out for this too.
         if (localUserSQL.substring(0, 1).equalsIgnoreCase("[")) {
             int tempint = localUserSQL.indexOf("]", 1);
-            
+
             // keep checking if it's escaped
             while (localUserSQL.charAt(tempint + 1) == ']') {
                 tempint = localUserSQL.indexOf("]", tempint + 2);
             }
-            
+
             // we've found a ] that is actually trying to close the square bracket.
             // return tablename + potentially more that's part of the table name
             sb.append(localUserSQL.substring(0, tempint + 1));
             localUserSQL = localUserSQL.substring(tempint + 1);
             return sb.toString() + parseUserSQLForTableNameDW(true, true, true, false);
         }
-        
+
         // do the same for ""
         if (localUserSQL.substring(0, 1).equalsIgnoreCase("\"")) {
             int tempint = localUserSQL.indexOf("\"", 1);
-            
+
             // keep checking if it's escaped
             while (localUserSQL.charAt(tempint + 1) == '\"') {
                 tempint = localUserSQL.indexOf("\"", tempint + 2);
             }
-            
+
             // we've found a " that is actually trying to close the quote.
             // return tablename + potentially more that's part of the table name
             sb.append(localUserSQL.substring(0, tempint + 1));
             localUserSQL = localUserSQL.substring(tempint + 1);
             return sb.toString() + parseUserSQLForTableNameDW(true, true, true, false);
         }
-        
+
         // At this point, the next chunk of string is the table name, without starting with [ or ".
         while (localUserSQL.length() > 0) {
-            // Keep going until the end of the table name is signalled - either a ., whitespace, or comment is encountered
-            if (localUserSQL.charAt(0) == '.' || Character.isWhitespace(localUserSQL.charAt(0)) || checkAndRemoveComments()) {
+            // Keep going until the end of the table name is signalled - either a ., whitespace, or comment is
+            // encountered
+            if (localUserSQL.charAt(0) == '.' || Character.isWhitespace(localUserSQL.charAt(0))
+                    || checkAndRemoveComments()) {
                 return sb.toString() + parseUserSQLForTableNameDW(true, true, true, false);
             } else {
                 sb.append(localUserSQL.charAt(0));
                 localUserSQL = localUserSQL.substring(1);
             }
         }
-        
+
         // It shouldn't come here. If we did, something is wrong.
         throw new IllegalArgumentException("localUserSQL");
     }
-    
+
     private ArrayList<String> parseUserSQLForColumnListDW() {
         localUserSQL = localUserSQL.trim();
-        
+
         // ignore all comments
         if (checkAndRemoveComments()) {
             return parseUserSQLForColumnListDW();
         }
-        
-        //check if optional column list was provided
+
+        // check if optional column list was provided
         // Columns can have the form of c1, [c1] or "c1". It can escape ] or " by ]] or "".
         if (localUserSQL.substring(0, 1).equalsIgnoreCase("(")) {
             localUserSQL = localUserSQL.substring(1);
@@ -2449,47 +2324,47 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
     private ArrayList<String> parseUserSQLForColumnListDWHelper(ArrayList<String> listOfColumns) {
         localUserSQL = localUserSQL.trim();
-        
+
         // ignore all comments
         if (checkAndRemoveComments()) {
             return parseUserSQLForColumnListDWHelper(listOfColumns);
         }
-        
+
         if (localUserSQL.charAt(0) == ')') {
             localUserSQL = localUserSQL.substring(1);
             return listOfColumns;
         }
-        
+
         if (localUserSQL.charAt(0) == ',') {
             localUserSQL = localUserSQL.substring(1);
             return parseUserSQLForColumnListDWHelper(listOfColumns);
         }
-        
+
         if (localUserSQL.charAt(0) == '[') {
             int tempint = localUserSQL.indexOf("]", 1);
-            
+
             // keep checking if it's escaped
             while (localUserSQL.charAt(tempint + 1) == ']') {
                 localUserSQL = localUserSQL.substring(0, tempint) + localUserSQL.substring(tempint + 1);
                 tempint = localUserSQL.indexOf("]", tempint + 1);
             }
-            
+
             // we've found a ] that is actually trying to close the square bracket.
             String tempstr = localUserSQL.substring(1, tempint);
             localUserSQL = localUserSQL.substring(tempint + 1);
             listOfColumns.add(tempstr);
             return parseUserSQLForColumnListDWHelper(listOfColumns);
         }
-        
+
         if (localUserSQL.charAt(0) == '\"') {
             int tempint = localUserSQL.indexOf("\"", 1);
-            
+
             // keep checking if it's escaped
             while (localUserSQL.charAt(tempint + 1) == '\"') {
                 localUserSQL = localUserSQL.substring(0, tempint) + localUserSQL.substring(tempint + 1);
                 tempint = localUserSQL.indexOf("\"", tempint + 1);
             }
-            
+
             // we've found a " that is actually trying to close the quote.
             String tempstr = localUserSQL.substring(1, tempint);
             localUserSQL = localUserSQL.substring(tempint + 1);
@@ -2504,7 +2379,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                 localUserSQL = localUserSQL.substring(1);
                 listOfColumns.add(sb.toString());
                 return parseUserSQLForColumnListDWHelper(listOfColumns);
-            } else if (localUserSQL.charAt(0) == ')'){
+            } else if (localUserSQL.charAt(0) == ')') {
                 localUserSQL = localUserSQL.substring(1);
                 listOfColumns.add(sb.toString());
                 return listOfColumns;
@@ -2516,32 +2391,31 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                 localUserSQL = localUserSQL.trim();
             }
         }
-        
+
         // It shouldn't come here. If we did, something is wrong.
         throw new IllegalArgumentException("localUserSQL");
     }
-    
 
     private ArrayList<String> parseUserSQLForValueListDW(boolean hasValuesBeenFound) {
         localUserSQL = localUserSQL.trim();
-        
+
         // ignore all comments
         if (checkAndRemoveComments()) {
             return parseUserSQLForValueListDW(hasValuesBeenFound);
         }
-        
+
         if (!hasValuesBeenFound) {
             // look for keyword "VALUES"
             if (localUserSQL.substring(0, 6).equalsIgnoreCase("VALUES")) {
                 localUserSQL = localUserSQL.substring(6);
-                
+
                 localUserSQL = localUserSQL.trim();
-                
+
                 // ignore all comments
                 if (checkAndRemoveComments()) {
                     return parseUserSQLForValueListDW(true);
                 }
-                
+
                 if (localUserSQL.substring(0, 1).equalsIgnoreCase("(")) {
                     localUserSQL = localUserSQL.substring(1);
                     return parseUserSQLForValueListDWHelper(new ArrayList<String>());
@@ -2552,20 +2426,20 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
             if (checkAndRemoveComments()) {
                 return parseUserSQLForValueListDW(hasValuesBeenFound);
             }
-            
+
             if (localUserSQL.substring(0, 1).equalsIgnoreCase("(")) {
                 localUserSQL = localUserSQL.substring(1);
                 return parseUserSQLForValueListDWHelper(new ArrayList<String>());
             }
         }
-        
+
         // shouldn't come here, as the list of values is mandatory.
         throw new IllegalArgumentException("localUserSQL");
     }
 
     private ArrayList<String> parseUserSQLForValueListDWHelper(ArrayList<String> listOfValues) {
         localUserSQL = localUserSQL.trim();
-        
+
         // ignore all comments
         if (checkAndRemoveComments()) {
             return parseUserSQLForValueListDWHelper(listOfValues);
@@ -2575,21 +2449,21 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
             localUserSQL = localUserSQL.substring(1);
             return listOfValues;
         }
-        
+
         if (localUserSQL.charAt(0) == ',') {
             localUserSQL = localUserSQL.substring(1);
             return parseUserSQLForValueListDWHelper(listOfValues);
         }
-        
+
         if (localUserSQL.charAt(0) == '\'') {
             int tempint = localUserSQL.indexOf("\'", 1);
-            
+
             // keep checking if it's escaped
             while (localUserSQL.charAt(tempint + 1) == '\'') {
                 localUserSQL = localUserSQL.substring(0, tempint) + localUserSQL.substring(tempint + 1);
                 tempint = localUserSQL.indexOf("\'", tempint + 1);
             }
-            
+
             // we've found a ' that is actually trying to close the quote.
             // Include 's around the string as well, so we can distinguish '?' and ? later on.
             String tempstr = localUserSQL.substring(0, tempint + 1);
@@ -2597,7 +2471,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
             listOfValues.add(tempstr);
             return parseUserSQLForValueListDWHelper(listOfValues);
         }
-        
+
         // At this point, the next chunk of string is the value, without starting with ' (most likely a ?).
         StringBuilder sb = new StringBuilder();
         while (localUserSQL.length() > 0) {
@@ -2619,22 +2493,22 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                 localUserSQL = localUserSQL.trim();
             }
         }
-        
+
         // It shouldn't come here. If we did, something is wrong.
         throw new IllegalArgumentException("localUserSQL");
     }
-    
+
     private boolean checkAndRemoveComments() {
         if (null == localUserSQL || localUserSQL.length() < 2) {
             return false;
         }
-        
+
         if (localUserSQL.substring(0, 2).equalsIgnoreCase("/*")) {
             int temp = localUserSQL.indexOf("*/") + 2;
             localUserSQL = localUserSQL.substring(temp);
             return true;
         }
-        
+
         if (localUserSQL.substring(0, 2).equalsIgnoreCase("--")) {
             int temp = localUserSQL.indexOf("\n") + 2;
             localUserSQL = localUserSQL.substring(temp);
@@ -2678,7 +2552,8 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         Vector<CryptoMetadata> cryptoMetaBatch = new Vector<>();
 
         if (isSelect(userSQL)) {
-            SQLServerException.makeFromDriverError(connection, this, SQLServerException.getErrString("R_selectNotPermittedinBatch"), null, true);
+            SQLServerException.makeFromDriverError(connection, this,
+                    SQLServerException.getErrString("R_selectNotPermittedinBatch"), null, true);
         }
 
         // Make sure any previous maxRows limitation on the connection is removed.
@@ -2691,16 +2566,14 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         Parameter[] batchParam = new Parameter[inOutParam.length];
 
         /*
-         * TDSWriter tdsWriter = null; while (numBatchesExecuted < numBatches) { // Fill in the parameter values for this batch Parameter
-         * paramValues[] = batchParamValues.get(numBatchesPrepared); assert paramValues.length == batchParam.length; System.arraycopy(paramValues, 0,
-         * batchParam, 0, paramValues.length);
-         * 
-         * boolean hasExistingTypeDefinitions = preparedTypeDefinitions != null; boolean hasNewTypeDefinitions = buildPreparedStrings(batchParam,
-         * false);
-         * 
-         * // Get the encryption metadata for the first batch only. if ((0 == numBatchesExecuted) &&
-         * (Util.shouldHonorAEForParameters(stmtColumnEncriptionSetting, connection)) && (0 < batchParam.length) && !isInternalEncryptionQuery &&
-         * !encryptionMetadataIsRetrieved) { getParameterEncryptionMetadata(batchParam);
+         * TDSWriter tdsWriter = null; while (numBatchesExecuted < numBatches) { // Fill in the parameter values for
+         * this batch Parameter paramValues[] = batchParamValues.get(numBatchesPrepared); assert paramValues.length ==
+         * batchParam.length; System.arraycopy(paramValues, 0, batchParam, 0, paramValues.length); boolean
+         * hasExistingTypeDefinitions = preparedTypeDefinitions != null; boolean hasNewTypeDefinitions =
+         * buildPreparedStrings(batchParam, false); // Get the encryption metadata for the first batch only. if ((0 ==
+         * numBatchesExecuted) && (Util.shouldHonorAEForParameters(stmtColumnEncriptionSetting, connection)) && (0 <
+         * batchParam.length) && !isInternalEncryptionQuery && !encryptionMetadataIsRetrieved) {
+         * getParameterEncryptionMetadata(batchParam);
          */
 
         TDSWriter tdsWriter = null;
@@ -2714,14 +2587,16 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
             boolean hasNewTypeDefinitions = buildPreparedStrings(batchParam, false);
 
             // Get the encryption metadata for the first batch only.
-            if ((0 == numBatchesExecuted) && (Util.shouldHonorAEForParameters(stmtColumnEncriptionSetting, connection)) && (0 < batchParam.length)
-                    && !isInternalEncryptionQuery && !encryptionMetadataIsRetrieved) {
+            if ((0 == numBatchesExecuted) && (Util.shouldHonorAEForParameters(stmtColumnEncriptionSetting, connection))
+                    && (0 < batchParam.length) && !isInternalEncryptionQuery && !encryptionMetadataIsRetrieved) {
                 getParameterEncryptionMetadata(batchParam);
 
-                // fix an issue when inserting unicode into non-encrypted nchar column using setString() and AE is on on Connection
+                // fix an issue when inserting unicode into non-encrypted nchar column using setString() and AE is on on
+                // Connection
                 buildPreparedStrings(batchParam, true);
 
-                // Save the crypto metadata retrieved for the first batch. We will re-use these for the rest of the batches.
+                // Save the crypto metadata retrieved for the first batch. We will re-use these for the rest of the
+                // batches.
                 for (Parameter aBatchParam : batchParam) {
                     cryptoMetaBatch.add(aBatchParam.cryptoMeta);
                 }
@@ -2748,8 +2623,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                     if (numBatchesExecuted < numBatchesPrepared) {
                         // assert null != tdsWriter;
                         tdsWriter.writeByte((byte) nBatchStatementDelimiter);
-                    }
-                    else {
+                    } else {
                         resetForReexecute();
                         tdsWriter = batchCommand.startRequest(TDS.PKT_RPC);
                     }
@@ -2787,10 +2661,10 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                                 // translated into (or added to) a BatchUpdateException.
                                 if (null != resultSet) {
                                     SQLServerException.makeFromDriverError(connection, this,
-                                            SQLServerException.getErrString("R_resultsetGeneratedForUpdate"), null, false);
+                                            SQLServerException.getErrString("R_resultsetGeneratedForUpdate"), null,
+                                            false);
                                 }
-                            }
-                            catch (SQLServerException e) {
+                            } catch (SQLServerException e) {
                                 // If the failure was severe enough to close the connection or roll back a
                                 // manual transaction, then propagate the error up as a SQLServerException
                                 // now, rather than continue with the batch.
@@ -2815,7 +2689,8 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
                             // In batch execution, we have a special update count
                             // to indicate that no information was returned
-                            batchCommand.updateCounts[numBatchesExecuted] = (-1 == updateCount) ? Statement.SUCCESS_NO_INFO : updateCount;
+                            batchCommand.updateCounts[numBatchesExecuted] = (-1 == updateCount) ? Statement.SUCCESS_NO_INFO
+                                                                                                : updateCount;
                             processBatch();
 
                             numBatchesExecuted++;
@@ -2827,20 +2702,18 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                         // we successfully executed the previously prepared set.
                         assert numBatchesExecuted == numBatchesPrepared;
                     }
-                }
-                catch (SQLException e) {
-                    if (retryBasedOnFailedReuseOfCachedHandle(e, attempt, needsPrepare, true) && connection.isStatementPoolingEnabled()) {
+                } catch (SQLException e) {
+                    if (retryBasedOnFailedReuseOfCachedHandle(e, attempt, needsPrepare, true)
+                            && connection.isStatementPoolingEnabled()) {
                         // Reset number of batches prepared.
                         numBatchesPrepared = numBatchesExecuted;
                         continue;
-                    }
-                    else if (null != batchCommand.batchException) {
+                    } else if (null != batchCommand.batchException) {
                         // if batch exception occurred, loop out to throw the initial batchException
                         numBatchesExecuted = numBatchesPrepared;
                         attempt++;
                         continue;
-                    }
-                    else {
+                    } else {
                         throw e;
                     }
                 }
@@ -2850,8 +2723,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     }
 
     @Override
-    public final void setCharacterStream(int parameterIndex,
-            Reader reader) throws SQLException {
+    public final void setCharacterStream(int parameterIndex, Reader reader) throws SQLException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setCharacterStream", new Object[] {parameterIndex, reader});
         checkClosed();
@@ -2860,9 +2732,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     }
 
     @Override
-    public final void setCharacterStream(int n,
-            java.io.Reader reader,
-            int length) throws SQLServerException {
+    public final void setCharacterStream(int n, java.io.Reader reader, int length) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setCharacterStream", new Object[] {n, reader, length});
         checkClosed();
@@ -2871,19 +2741,17 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     }
 
     @Override
-    public final void setCharacterStream(int parameterIndex,
-            Reader reader,
-            long length) throws SQLException {
+    public final void setCharacterStream(int parameterIndex, Reader reader, long length) throws SQLException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
-            loggerExternal.entering(getClassNameLogging(), "setCharacterStream", new Object[] {parameterIndex, reader, length});
+            loggerExternal.entering(getClassNameLogging(), "setCharacterStream",
+                    new Object[] {parameterIndex, reader, length});
         checkClosed();
         setStream(parameterIndex, StreamType.CHARACTER, reader, JavaType.READER, length);
         loggerExternal.exiting(getClassNameLogging(), "setCharacterStream");
     }
 
     @Override
-    public final void setNCharacterStream(int parameterIndex,
-            Reader value) throws SQLException {
+    public final void setNCharacterStream(int parameterIndex, Reader value) throws SQLException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setNCharacterStream", new Object[] {parameterIndex, value});
         checkClosed();
@@ -2892,25 +2760,22 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     }
 
     @Override
-    public final void setNCharacterStream(int parameterIndex,
-            Reader value,
-            long length) throws SQLException {
+    public final void setNCharacterStream(int parameterIndex, Reader value, long length) throws SQLException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
-            loggerExternal.entering(getClassNameLogging(), "setNCharacterStream", new Object[] {parameterIndex, value, length});
+            loggerExternal.entering(getClassNameLogging(), "setNCharacterStream",
+                    new Object[] {parameterIndex, value, length});
         checkClosed();
         setStream(parameterIndex, StreamType.NCHARACTER, value, JavaType.READER, length);
         loggerExternal.exiting(getClassNameLogging(), "setNCharacterStream");
     }
 
     @Override
-    public final void setRef(int i,
-            java.sql.Ref x) throws SQLException {
+    public final void setRef(int i, java.sql.Ref x) throws SQLException {
         SQLServerException.throwNotSupportedException(connection, this);
     }
 
     @Override
-    public final void setBlob(int i,
-            java.sql.Blob x) throws SQLException {
+    public final void setBlob(int i, java.sql.Blob x) throws SQLException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setBlob", new Object[] {i, x});
         checkClosed();
@@ -2919,29 +2784,27 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     }
 
     @Override
-    public final void setBlob(int parameterIndex,
-            InputStream inputStream) throws SQLException {
+    public final void setBlob(int parameterIndex, InputStream inputStream) throws SQLException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setBlob", new Object[] {parameterIndex, inputStream});
         checkClosed();
-        setStream(parameterIndex, StreamType.BINARY, inputStream, JavaType.INPUTSTREAM, DataTypes.UNKNOWN_STREAM_LENGTH);
+        setStream(parameterIndex, StreamType.BINARY, inputStream, JavaType.INPUTSTREAM,
+                DataTypes.UNKNOWN_STREAM_LENGTH);
         loggerExternal.exiting(getClassNameLogging(), "setBlob");
     }
 
     @Override
-    public final void setBlob(int parameterIndex,
-            InputStream inputStream,
-            long length) throws SQLException {
+    public final void setBlob(int parameterIndex, InputStream inputStream, long length) throws SQLException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
-            loggerExternal.entering(getClassNameLogging(), "setBlob", new Object[] {parameterIndex, inputStream, length});
+            loggerExternal.entering(getClassNameLogging(), "setBlob",
+                    new Object[] {parameterIndex, inputStream, length});
         checkClosed();
         setStream(parameterIndex, StreamType.BINARY, inputStream, JavaType.INPUTSTREAM, length);
         loggerExternal.exiting(getClassNameLogging(), "setBlob");
     }
 
     @Override
-    public final void setClob(int parameterIndex,
-            java.sql.Clob clobValue) throws SQLException {
+    public final void setClob(int parameterIndex, java.sql.Clob clobValue) throws SQLException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setClob", new Object[] {parameterIndex, clobValue});
         checkClosed();
@@ -2950,8 +2813,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     }
 
     @Override
-    public final void setClob(int parameterIndex,
-            Reader reader) throws SQLException {
+    public final void setClob(int parameterIndex, Reader reader) throws SQLException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setClob", new Object[] {parameterIndex, reader});
         checkClosed();
@@ -2960,9 +2822,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     }
 
     @Override
-    public final void setClob(int parameterIndex,
-            Reader reader,
-            long length) throws SQLException {
+    public final void setClob(int parameterIndex, Reader reader, long length) throws SQLException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setClob", new Object[] {parameterIndex, reader, length});
         checkClosed();
@@ -2971,8 +2831,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     }
 
     @Override
-    public final void setNClob(int parameterIndex,
-            NClob value) throws SQLException {
+    public final void setNClob(int parameterIndex, NClob value) throws SQLException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setNClob", new Object[] {parameterIndex, value});
         checkClosed();
@@ -2981,8 +2840,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     }
 
     @Override
-    public final void setNClob(int parameterIndex,
-            Reader reader) throws SQLException {
+    public final void setNClob(int parameterIndex, Reader reader) throws SQLException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setNClob", new Object[] {parameterIndex, reader});
         checkClosed();
@@ -2991,9 +2849,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     }
 
     @Override
-    public final void setNClob(int parameterIndex,
-            Reader reader,
-            long length) throws SQLException {
+    public final void setNClob(int parameterIndex, Reader reader, long length) throws SQLException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setNClob", new Object[] {parameterIndex, reader, length});
         checkClosed();
@@ -3002,15 +2858,12 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     }
 
     @Override
-    public final void setArray(int i,
-            java.sql.Array x) throws SQLException {
+    public final void setArray(int i, java.sql.Array x) throws SQLException {
         SQLServerException.throwNotSupportedException(connection, this);
     }
 
     @Override
-    public final void setDate(int n,
-            java.sql.Date x,
-            java.util.Calendar cal) throws SQLServerException {
+    public final void setDate(int n, java.sql.Date x, java.util.Calendar cal) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setDate", new Object[] {n, x, cal});
         checkClosed();
@@ -3019,9 +2872,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     }
 
     @Override
-    public final void setDate(int n,
-            java.sql.Date x,
-            java.util.Calendar cal,
+    public final void setDate(int n, java.sql.Date x, java.util.Calendar cal,
             boolean forceEncrypt) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setDate", new Object[] {n, x, cal, forceEncrypt});
@@ -3031,9 +2882,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     }
 
     @Override
-    public final void setTime(int n,
-            java.sql.Time x,
-            java.util.Calendar cal) throws SQLServerException {
+    public final void setTime(int n, java.sql.Time x, java.util.Calendar cal) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setTime", new Object[] {n, x, cal});
         checkClosed();
@@ -3042,9 +2891,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     }
 
     @Override
-    public final void setTime(int n,
-            java.sql.Time x,
-            java.util.Calendar cal,
+    public final void setTime(int n, java.sql.Time x, java.util.Calendar cal,
             boolean forceEncrypt) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setTime", new Object[] {n, x, cal, forceEncrypt});
@@ -3054,9 +2901,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     }
 
     @Override
-    public final void setTimestamp(int n,
-            java.sql.Timestamp x,
-            java.util.Calendar cal) throws SQLServerException {
+    public final void setTimestamp(int n, java.sql.Timestamp x, java.util.Calendar cal) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setTimestamp", new Object[] {n, x, cal});
         checkClosed();
@@ -3065,9 +2910,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     }
 
     @Override
-    public final void setTimestamp(int n,
-            java.sql.Timestamp x,
-            java.util.Calendar cal,
+    public final void setTimestamp(int n, java.sql.Timestamp x, java.util.Calendar cal,
             boolean forceEncrypt) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setTimestamp", new Object[] {n, x, cal, forceEncrypt});
@@ -3077,17 +2920,16 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     }
 
     @Override
-    public final void setNull(int paramIndex,
-            int sqlType,
-            String typeName) throws SQLServerException {
+    public final void setNull(int paramIndex, int sqlType, String typeName) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setNull", new Object[] {paramIndex, sqlType, typeName});
         checkClosed();
         if (microsoft.sql.Types.STRUCTURED == sqlType) {
-            setObject(setterGetParam(paramIndex), null, JavaType.TVP, JDBCType.of(sqlType), null, null, false, paramIndex, typeName);
-        }
-        else {
-            setObject(setterGetParam(paramIndex), null, JavaType.OBJECT, JDBCType.of(sqlType), null, null, false, paramIndex, typeName);
+            setObject(setterGetParam(paramIndex), null, JavaType.TVP, JDBCType.of(sqlType), null, null, false,
+                    paramIndex, typeName);
+        } else {
+            setObject(setterGetParam(paramIndex), null, JavaType.OBJECT, JDBCType.of(sqlType), null, null, false,
+                    paramIndex, typeName);
         }
         loggerExternal.exiting(getClassNameLogging(), "setNull");
     }
@@ -3099,8 +2941,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
         if (!forceRefresh && null != pmd) {
             return pmd;
-        }
-        else {
+        } else {
             loggerExternal.entering(getClassNameLogging(), "getParameterMetaData");
             checkClosed();
             pmd = new SQLServerParameterMetaData(this, userSQL);
@@ -3118,20 +2959,17 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     }
 
     @Override
-    public final void setURL(int parameterIndex,
-            java.net.URL x) throws SQLException {
+    public final void setURL(int parameterIndex, java.net.URL x) throws SQLException {
         SQLServerException.throwNotSupportedException(connection, this);
     }
 
     @Override
-    public final void setRowId(int parameterIndex,
-            RowId x) throws SQLException {
+    public final void setRowId(int parameterIndex, RowId x) throws SQLException {
         SQLServerException.throwNotSupportedException(connection, this);
     }
 
     @Override
-    public final void setSQLXML(int parameterIndex,
-            SQLXML xmlObject) throws SQLException {
+    public final void setSQLXML(int parameterIndex, SQLXML xmlObject) throws SQLException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setSQLXML", new Object[] {parameterIndex, xmlObject});
         checkClosed();
@@ -3143,7 +2981,8 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     @Override
     public final int executeUpdate(String sql) throws SQLServerException {
         loggerExternal.entering(getClassNameLogging(), "executeUpdate", sql);
-        MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_cannotTakeArgumentsPreparedOrCallable"));
+        MessageFormat form = new MessageFormat(
+                SQLServerException.getErrString("R_cannotTakeArgumentsPreparedOrCallable"));
         Object[] msgArgs = {"executeUpdate()"};
         throw new SQLServerException(this, form.format(msgArgs), null, 0, false);
     }
@@ -3151,7 +2990,8 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     @Override
     public final boolean execute(String sql) throws SQLServerException {
         loggerExternal.entering(getClassNameLogging(), "execute", sql);
-        MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_cannotTakeArgumentsPreparedOrCallable"));
+        MessageFormat form = new MessageFormat(
+                SQLServerException.getErrString("R_cannotTakeArgumentsPreparedOrCallable"));
         Object[] msgArgs = {"execute()"};
         throw new SQLServerException(this, form.format(msgArgs), null, 0, false);
     }
@@ -3159,7 +2999,8 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     @Override
     public final java.sql.ResultSet executeQuery(String sql) throws SQLServerException {
         loggerExternal.entering(getClassNameLogging(), "executeQuery", sql);
-        MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_cannotTakeArgumentsPreparedOrCallable"));
+        MessageFormat form = new MessageFormat(
+                SQLServerException.getErrString("R_cannotTakeArgumentsPreparedOrCallable"));
         Object[] msgArgs = {"executeQuery()"};
         throw new SQLServerException(this, form.format(msgArgs), null, 0, false);
     }
@@ -3167,7 +3008,8 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     @Override
     public void addBatch(String sql) throws SQLServerException {
         loggerExternal.entering(getClassNameLogging(), "addBatch", sql);
-        MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_cannotTakeArgumentsPreparedOrCallable"));
+        MessageFormat form = new MessageFormat(
+                SQLServerException.getErrString("R_cannotTakeArgumentsPreparedOrCallable"));
         Object[] msgArgs = {"addBatch()"};
         throw new SQLServerException(this, form.format(msgArgs), null, 0, false);
     }

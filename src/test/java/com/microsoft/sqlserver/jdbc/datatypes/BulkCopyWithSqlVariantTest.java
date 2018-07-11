@@ -1,9 +1,6 @@
 /*
- * Microsoft JDBC Driver for SQL Server
- * 
- * Copyright(c) Microsoft Corporation All rights reserved.
- * 
- * This program is made available under the terms of the MIT License. See the LICENSE file in the project root for more information.
+ * Microsoft JDBC Driver for SQL Server Copyright(c) Microsoft Corporation All rights reserved. This program is made
+ * available under the terms of the MIT License. See the LICENSE file in the project root for more information.
  */
 package com.microsoft.sqlserver.jdbc.datatypes;
 
@@ -27,6 +24,7 @@ import com.microsoft.sqlserver.jdbc.SQLServerConnection;
 import com.microsoft.sqlserver.jdbc.SQLServerResultSet;
 import com.microsoft.sqlserver.testframework.AbstractTest;
 import com.microsoft.sqlserver.testframework.Utils;
+
 
 /**
  * Test Bulkcopy with sql_variant datatype, testing all underlying supported datatypes
@@ -215,7 +213,8 @@ public class BulkCopyWithSqlVariantTest extends AbstractTest {
         Utils.dropTableIfExists(tableName, stmt);
         Utils.dropTableIfExists(destTableName, stmt);
         stmt.executeUpdate("create table " + tableName + " (col1 sql_variant)");
-        stmt.executeUpdate("INSERT into " + tableName + "(col1) values (CAST (" + col1Value + " AS " + "smallmoney" + ") )");
+        stmt.executeUpdate(
+                "INSERT into " + tableName + "(col1) values (CAST (" + col1Value + " AS " + "smallmoney" + ") )");
         stmt.executeUpdate("create table " + destTableName + " (col1 sql_variant)");
 
         rs = (SQLServerResultSet) stmt.executeQuery("SELECT * FROM " + tableName);
@@ -269,8 +268,8 @@ public class BulkCopyWithSqlVariantTest extends AbstractTest {
         Utils.dropTableIfExists(tableName, stmt);
         Utils.dropTableIfExists(destTableName, stmt);
         stmt.executeUpdate("create table " + tableName + " (col1 sql_variant, col2 sql_variant)");
-        stmt.executeUpdate("INSERT into " + tableName + "(col1, col2) values (CAST ('" + col1Value + "' AS " + "date" + ")" + ",CAST (" + col2Value
-                + " AS " + "smallmoney" + ")   )");
+        stmt.executeUpdate("INSERT into " + tableName + "(col1, col2) values (CAST ('" + col1Value + "' AS " + "date"
+                + ")" + ",CAST (" + col2Value + " AS " + "smallmoney" + ")   )");
         stmt.executeUpdate("create table " + destTableName + " (col1 sql_variant, col2 sql_variant)");
 
         rs = (SQLServerResultSet) stmt.executeQuery("SELECT * FROM " + tableName);
@@ -306,7 +305,7 @@ public class BulkCopyWithSqlVariantTest extends AbstractTest {
 
         rs = (SQLServerResultSet) stmt.executeQuery("SELECT * FROM " + destTableName);
         while (rs.next()) {
-            assertEquals("" + rs.getString(1), "12:26:27.15");  // getTime does not work
+            assertEquals("" + rs.getString(1), "12:26:27.15"); // getTime does not work
         }
 
     }
@@ -606,7 +605,8 @@ public class BulkCopyWithSqlVariantTest extends AbstractTest {
         Utils.dropTableIfExists(tableName, stmt);
         Utils.dropTableIfExists(destTableName, stmt);
         stmt.executeUpdate("create table " + tableName + " (col1 sql_variant)");
-        stmt.executeUpdate("INSERT into " + tableName + "(col1) values (CAST (" + col1Value + " AS " + "time(2)" + ") )");
+        stmt.executeUpdate(
+                "INSERT into " + tableName + "(col1) values (CAST (" + col1Value + " AS " + "time(2)" + ") )");
         stmt.executeUpdate("create table " + destTableName + " (col1 sql_variant)");
 
         rs = (SQLServerResultSet) stmt.executeQuery("SELECT * FROM " + tableName);
@@ -670,8 +670,7 @@ public class BulkCopyWithSqlVariantTest extends AbstractTest {
         }
     }
 
-    private void beforeEachSetup(String colType,
-            Object colValue) throws SQLException {
+    private void beforeEachSetup(String colType, Object colValue) throws SQLException {
         Utils.dropTableIfExists(tableName, stmt);
         Utils.dropTableIfExists(destTableName, stmt);
         stmt.executeUpdate("create table " + tableName + " (col1 sql_variant)");

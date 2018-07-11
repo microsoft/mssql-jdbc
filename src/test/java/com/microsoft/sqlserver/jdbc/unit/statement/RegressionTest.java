@@ -1,21 +1,17 @@
 /*
- * Microsoft JDBC Driver for SQL Server
- * 
- * Copyright(c) Microsoft Corporation All rights reserved.
- * 
- * This program is made available under the terms of the MIT License. See the LICENSE file in the project root for more information.
+ * Microsoft JDBC Driver for SQL Server Copyright(c) Microsoft Corporation All rights reserved. This program is made
+ * available under the terms of the MIT License. See the LICENSE file in the project root for more information.
  */
 package com.microsoft.sqlserver.jdbc.unit.statement;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
+import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.JDBCType;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
-import java.sql.Connection;
-import java.sql.Statement;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Types;
@@ -31,6 +27,7 @@ import com.microsoft.sqlserver.jdbc.TestResource;
 import com.microsoft.sqlserver.testframework.AbstractTest;
 import com.microsoft.sqlserver.testframework.DBConnection;
 import com.microsoft.sqlserver.testframework.Utils;
+
 
 @RunWith(JUnitPlatform.class)
 public class RegressionTest extends AbstractTest {
@@ -67,27 +64,30 @@ public class RegressionTest extends AbstractTest {
 
         if (DBConnection.isSqlAzure(con)) {
             // On SQL Azure, 'SELECT INTO' is not supported. So do not use it.
-            storedProcString = "CREATE PROCEDURE " + procName + " @param varchar(3) AS SELECT col3 FROM " + tableName + " WHERE col2 = @param";
-        }
-        else {
+            storedProcString = "CREATE PROCEDURE " + procName + " @param varchar(3) AS SELECT col3 FROM " + tableName
+                    + " WHERE col2 = @param";
+        } else {
             // On SQL Server
-            storedProcString = "CREATE PROCEDURE " + procName + " @param varchar(3) AS SELECT col3 INTO #TMPTABLE FROM " + tableName
-                    + " WHERE col2 = @param SELECT col3 FROM #TMPTABLE";
+            storedProcString = "CREATE PROCEDURE " + procName + " @param varchar(3) AS SELECT col3 INTO #TMPTABLE FROM "
+                    + tableName + " WHERE col2 = @param SELECT col3 FROM #TMPTABLE";
         }
 
         stmt.executeUpdate(storedProcString);
 
         // execute stored proc via pstmt
-        pstmt = con.prepareStatement("EXEC " + procName + " ?", ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
+        pstmt = con.prepareStatement("EXEC " + procName + " ?", ResultSet.TYPE_SCROLL_INSENSITIVE,
+                ResultSet.CONCUR_READ_ONLY);
         pstmt.setString(1, col3Lookup);
 
         // should return 1 row
         rs = pstmt.executeQuery();
         rs.last();
-        assertEquals(rs.getRow(), numRowsInResult, TestResource.getResource("R_valueNotMatch") + rs.getRow() + ", " + numRowsInResult);
+        assertEquals(rs.getRow(), numRowsInResult,
+                TestResource.getResource("R_valueNotMatch") + rs.getRow() + ", " + numRowsInResult);
         rs.beforeFirst();
         while (rs.next()) {
-            assertEquals(rs.getString(1), col3Value, TestResource.getResource("R_valueNotMatch") + rs.getString(1) + ", " + col3Value);
+            assertEquals(rs.getString(1), col3Value,
+                    TestResource.getResource("R_valueNotMatch") + rs.getString(1) + ", " + col3Value);
         }
 
         if (null != stmt)
@@ -104,32 +104,34 @@ public class RegressionTest extends AbstractTest {
     @Test
     public void testSelectIntoUpdateCount() throws SQLException {
         SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(connectionString);
-        
+
         // Azure does not do SELECT INTO
         if (!DBConnection.isSqlAzure(con)) {
             final String tableName = "[#SourceTableForSelectInto]";
-            
+
             Statement stmt = con.createStatement();
-            stmt.executeUpdate("CREATE TABLE " + tableName + " (col1 int primary key, col2 varchar(3), col3 varchar(128))");
+            stmt.executeUpdate(
+                    "CREATE TABLE " + tableName + " (col1 int primary key, col2 varchar(3), col3 varchar(128))");
             stmt.executeUpdate("INSERT INTO " + tableName + " VALUES (1, 'CAN', 'Canada')");
             stmt.executeUpdate("INSERT INTO " + tableName + " VALUES (2, 'USA', 'United States of America')");
             stmt.executeUpdate("INSERT INTO " + tableName + " VALUES (3, 'JPN', 'Japan')");
 
             // expected values
             int numRowsToCopy = 2;
-    
-            PreparedStatement ps = con.prepareStatement("SELECT * INTO #TMPTABLE FROM " + tableName + " WHERE col1 <= ?");
+
+            PreparedStatement ps = con
+                    .prepareStatement("SELECT * INTO #TMPTABLE FROM " + tableName + " WHERE col1 <= ?");
             ps.setInt(1, numRowsToCopy);
             int updateCount = ps.executeUpdate();
             assertEquals(numRowsToCopy, updateCount, TestResource.getResource("R_incorrectUpdateCount"));
-            
+
             if (null != stmt)
                 stmt.close();
         }
         if (null != con)
             con.close();
     }
-   
+
     /**
      * Tests update query
      * 
@@ -137,13 +139,14 @@ public class RegressionTest extends AbstractTest {
      */
     @Test
     public void testUpdateQuery() throws SQLException {
-        assumeTrue("JDBC41".equals(Utils.getConfiguredProperty("JDBC_Version")), TestResource.getResource("R_incompatJDBC"));
+        assumeTrue("JDBC41".equals(Utils.getConfiguredProperty("JDBC_Version")),
+                TestResource.getResource("R_incompatJDBC"));
 
         SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(connectionString);
         String sql;
         SQLServerPreparedStatement pstmt = null;
         JDBCType[] targets = {JDBCType.INTEGER, JDBCType.SMALLINT};
-        int rows = 3;       
+        int rows = 3;
         final String tableName = "[updateQuery]";
 
         Statement stmt = con.createStatement();
@@ -154,9 +157,9 @@ public class RegressionTest extends AbstractTest {
          * populate table
          */
         sql = "insert into " + tableName + " values(" + "?,?" + ")";
-        pstmt =  (SQLServerPreparedStatement)con.prepareStatement(sql, ResultSet.TYPE_FORWARD_ONLY,
+        pstmt = (SQLServerPreparedStatement) con.prepareStatement(sql, ResultSet.TYPE_FORWARD_ONLY,
                 ResultSet.CONCUR_READ_ONLY, connection.getHoldability());
-        
+
         for (int i = 1; i <= rows; i++) {
             pstmt.setObject(1, i, JDBCType.INTEGER);
             pstmt.setObject(2, i, JDBCType.INTEGER);
@@ -168,20 +171,20 @@ public class RegressionTest extends AbstractTest {
          */
         sql = "update " + tableName + " SET c1= ? where PK =1";
         for (int i = 1; i <= rows; i++) {
-            pstmt = (SQLServerPreparedStatement)con.prepareStatement(sql, ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY);
+            pstmt = (SQLServerPreparedStatement) con.prepareStatement(sql, ResultSet.TYPE_FORWARD_ONLY,
+                    ResultSet.CONCUR_READ_ONLY);
             for (JDBCType target : targets) {
                 pstmt.setObject(1, 5 + i, target);
                 pstmt.executeUpdate();
             }
         }
-        
+
         /*
          * Verify
          */
-        ResultSet rs =  stmt.executeQuery("select * from " + tableName);
+        ResultSet rs = stmt.executeQuery("select * from " + tableName);
         rs.next();
         assertEquals(rs.getInt(1), 8, "Value mismatch");
-       
 
         if (null != stmt)
             stmt.close();
@@ -191,14 +194,15 @@ public class RegressionTest extends AbstractTest {
 
     private String xmlTableName = "try_SQLXML_Table";
 
-     /**
+    /**
      * Tests XML query
      * 
      * @throws SQLException
      */
     @Test
     public void testXmlQuery() throws SQLException {
-        assumeTrue("JDBC41".equals(Utils.getConfiguredProperty("JDBC_Version")), TestResource.getResource("R_incompatJDBC"));
+        assumeTrue("JDBC41".equals(Utils.getConfiguredProperty("JDBC_Version")),
+                TestResource.getResource("R_incompatJDBC"));
 
         Connection connection = DriverManager.getConnection(connectionString);
 
@@ -222,7 +226,7 @@ public class RegressionTest extends AbstractTest {
         pstmt = (SQLServerPreparedStatement) connection.prepareStatement(sql);
         pstmt.setObject(1, null);
         pstmt.setObject(2, null, Types.SQLXML);
-        pstmt.executeUpdate(); 
+        pstmt.executeUpdate();
     }
 
     private void dropTables(Statement stmt) throws SQLException {

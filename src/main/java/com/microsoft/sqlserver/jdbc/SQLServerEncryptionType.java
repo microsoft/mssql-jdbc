@@ -1,14 +1,12 @@
 /*
- * Microsoft JDBC Driver for SQL Server
- * 
- * Copyright(c) Microsoft Corporation All rights reserved.
- * 
- * This program is made available under the terms of the MIT License. See the LICENSE file in the project root for more information.
+ * Microsoft JDBC Driver for SQL Server Copyright(c) Microsoft Corporation All rights reserved. This program is made
+ * available under the terms of the MIT License. See the LICENSE file in the project root for more information.
  */
 
 package com.microsoft.sqlserver.jdbc;
 
 import java.text.MessageFormat;
+
 
 /**
  * 
@@ -16,9 +14,9 @@ import java.text.MessageFormat;
  *
  */
 enum SQLServerEncryptionType {
-    Deterministic   ((byte) 1),
-    Randomized      ((byte) 2),
-    PlainText       ((byte) 0);
+    Deterministic((byte) 1),
+    Randomized((byte) 2),
+    PlainText((byte) 0);
 
     final byte value;
 

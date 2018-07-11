@@ -1,9 +1,6 @@
 /*
- * Microsoft JDBC Driver for SQL Server
- * 
- * Copyright(c) Microsoft Corporation All rights reserved.
- * 
- * This program is made available under the terms of the MIT License. See the LICENSE file in the project root for more information.
+ * Microsoft JDBC Driver for SQL Server Copyright(c) Microsoft Corporation All rights reserved. This program is made
+ * available under the terms of the MIT License. See the LICENSE file in the project root for more information.
  */
 
 package com.microsoft.sqlserver.testframework;
@@ -16,6 +13,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 
 import com.microsoft.sqlserver.jdbc.SQLServerConnection;
+
 
 /*
  * Wrapper class for SQLServerConnection
@@ -49,11 +47,9 @@ public class DBConnection extends AbstractParentWrapper implements AutoCloseable
         try {
             connection = PrepUtil.getConnection(connectionString);
             setInternal(connection);
-        }
-        catch (SQLException ex) {
+        } catch (SQLException ex) {
             fail(ex.getMessage());
-        }
-        catch (ClassNotFoundException ex) {
+        } catch (ClassNotFoundException ex) {
             fail(ex.getMessage());
         }
     }
@@ -71,8 +67,7 @@ public class DBConnection extends AbstractParentWrapper implements AutoCloseable
         try {
             DBStatement dbstatement = new DBStatement(this);
             return dbstatement.createStatement();
-        }
-        catch (SQLException ex) {
+        } catch (SQLException ex) {
             fail(ex.getMessage());
         }
         return null;
@@ -85,8 +80,7 @@ public class DBConnection extends AbstractParentWrapper implements AutoCloseable
      * @return
      * @throws SQLException
      */
-    public DBStatement createStatement(int type,
-            int concurrency) throws SQLException {
+    public DBStatement createStatement(int type, int concurrency) throws SQLException {
         DBStatement dbstatement = new DBStatement(this);
         return dbstatement.createStatement(type, concurrency);
 
@@ -122,9 +116,7 @@ public class DBConnection extends AbstractParentWrapper implements AutoCloseable
      * @return
      * @throws SQLException
      */
-    public DBPreparedStatement prepareStatement(String query,
-            int type,
-            int concurrency) throws SQLException {
+    public DBPreparedStatement prepareStatement(String query, int type, int concurrency) throws SQLException {
         // Static for fast-forward, limited settings
         if ((type == ResultSet.TYPE_FORWARD_ONLY || type == ResultSet.TYPE_SCROLL_INSENSITIVE))
             concurrency = ResultSet.CONCUR_READ_ONLY;
@@ -140,8 +132,7 @@ public class DBConnection extends AbstractParentWrapper implements AutoCloseable
     public void close() {
         try {
             connection.close();
-        }
-        catch (SQLException ex) {
+        } catch (SQLException ex) {
             fail(ex.getMessage());
         }
     }
@@ -156,8 +147,7 @@ public class DBConnection extends AbstractParentWrapper implements AutoCloseable
         boolean current = false;
         try {
             current = connection.isClosed();
-        }
-        catch (SQLException ex) {
+        } catch (SQLException ex) {
             fail(ex.getMessage());
         }
         return current;
@@ -227,16 +217,13 @@ public class DBConnection extends AbstractParentWrapper implements AutoCloseable
                 int secondDot = version.indexOf('.', (firstDot + 1));
                 try {
                     serverversion = Double.parseDouble(version.substring((firstDot - 2), secondDot));
-                }
-                catch (NumberFormatException ex) {
+                } catch (NumberFormatException ex) {
                     // for CTP version parsed as P2.3) - 13 throws number format exception
                     serverversion = 16;
                 }
-            }
-            catch (Exception e) {
+            } catch (Exception e) {
                 throw new Exception("Unable to get dbms major version", e);
-            }
-            finally {
+            } finally {
                 rs.close();
                 stmt.close();
             }

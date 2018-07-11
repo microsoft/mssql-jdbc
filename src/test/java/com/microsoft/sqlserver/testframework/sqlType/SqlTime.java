@@ -1,9 +1,6 @@
 /*
- * Microsoft JDBC Driver for SQL Server
- * 
- * Copyright(c) Microsoft Corporation All rights reserved.
- * 
- * This program is made available under the terms of the MIT License. See the LICENSE file in the project root for more information.
+ * Microsoft JDBC Driver for SQL Server Copyright(c) Microsoft Corporation All rights reserved. This program is made
+ * available under the terms of the MIT License. See the LICENSE file in the project root for more information.
  */
 
 package com.microsoft.sqlserver.testframework.sqlType;
@@ -20,6 +17,7 @@ import java.time.format.ResolverStyle;
 import java.time.temporal.ChronoField;
 import java.util.concurrent.ThreadLocalRandom;
 
+
 public class SqlTime extends SqlDateTime {
 
     static SimpleDateFormat dateFormat = new SimpleDateFormat("HH:mm:ss.SSSSSSS");
@@ -32,22 +30,22 @@ public class SqlTime extends SqlDateTime {
         try {
             minvalue = new Time(dateFormat.parse((String) SqlTypeValue.TIME.minValue).getTime());
             maxvalue = new Time(dateFormat.parse((String) SqlTypeValue.TIME.maxValue).getTime());
-        }
-        catch (ParseException ex) {
+        } catch (ParseException ex) {
             fail(ex.getMessage());
         }
         this.scale = 7;
         this.variableLengthType = VariableLengthType.ScaleOnly;
         generateScale();
-        
-        formatter = new DateTimeFormatterBuilder().appendPattern(basePattern).appendFraction(ChronoField.NANO_OF_SECOND, 0, this.scale, true)
-                .toFormatter();
+
+        formatter = new DateTimeFormatterBuilder().appendPattern(basePattern)
+                .appendFraction(ChronoField.NANO_OF_SECOND, 0, this.scale, true).toFormatter();
         formatter = formatter.withResolverStyle(ResolverStyle.STRICT);
 
     }
 
     public Object createdata() {
-        Time temp = new Time(ThreadLocalRandom.current().nextLong(((Time) minvalue).getTime(), ((Time) maxvalue).getTime()));
+        Time temp = new Time(
+                ThreadLocalRandom.current().nextLong(((Time) minvalue).getTime(), ((Time) maxvalue).getTime()));
         String timeNano = temp.toString() + "." + generateRandomInt(this.scale);
         return timeNano;
 
@@ -56,6 +54,6 @@ public class SqlTime extends SqlDateTime {
         /*
          * converting string '20:53:44.9' to LocalTime results in 20:53:44.900, this extra scale causes failure
          */
-//        return LocalTime.parse(timeNano, formatter);
+        // return LocalTime.parse(timeNano, formatter);
     }
 }

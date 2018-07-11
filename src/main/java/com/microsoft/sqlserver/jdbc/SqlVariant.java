@@ -1,13 +1,11 @@
 /*
- * Microsoft JDBC Driver for SQL Server
- * 
- * Copyright(c) Microsoft Corporation All rights reserved.
- * 
- * This program is made available under the terms of the MIT License. See the LICENSE file in the project root for more information.
+ * Microsoft JDBC Driver for SQL Server Copyright(c) Microsoft Corporation All rights reserved. This program is made
+ * available under the terms of the MIT License. See the LICENSE file in the project root for more information.
  */
 package com.microsoft.sqlserver.jdbc;
 
 import java.text.MessageFormat;
+
 
 /**
  * This class holds information regarding the basetype of a sql_variant data.
@@ -71,14 +69,16 @@ enum sqlVariantProbBytes {
 
 }
 
+
 public class SqlVariant {
 
     private int baseType;
     private int precision;
     private int scale;
-    private int maxLength;  // for Character basetypes in sqlVariant
+    private int maxLength; // for Character basetypes in sqlVariant
     private SQLCollation collation; // for Character basetypes in sqlVariant
-    private boolean isBaseTypeTime = false;  // we need this when we need to read time as timestamp (for instance in bulkcopy)
+    private boolean isBaseTypeTime = false; // we need this when we need to read time as timestamp (for instance in
+                                            // bulkcopy)
     private JDBCType baseJDBCType;
 
     /**

@@ -1,9 +1,6 @@
 /*
- * Microsoft JDBC Driver for SQL Server
- * 
- * Copyright(c) Microsoft Corporation All rights reserved.
- * 
- * This program is made available under the terms of the MIT License. See the LICENSE file in the project root for more information.
+ * Microsoft JDBC Driver for SQL Server Copyright(c) Microsoft Corporation All rights reserved. This program is made
+ * available under the terms of the MIT License. See the LICENSE file in the project root for more information.
  */
 
 package com.microsoft.sqlserver.testframework.sqlType;
@@ -17,16 +14,17 @@ import com.microsoft.sqlserver.testframework.DBCoercions;
 import com.microsoft.sqlserver.testframework.DBConnection;
 import com.microsoft.sqlserver.testframework.DBItems;
 
+
 public abstract class SqlType extends DBItems {
     // TODO: add seed to generate random data -> will help to reproduce the
     // exact data for debugging
-    protected String name = null;       // type name for creating SQL query
+    protected String name = null; // type name for creating SQL query
     protected JDBCType jdbctype = JDBCType.NULL;
     protected int precision = 0;
     protected int scale = 0;
     protected Object minvalue = null;
     protected Object maxvalue = null;
-    protected Object nullvalue = null;  // Primitives have non-null defaults
+    protected Object nullvalue = null; // Primitives have non-null defaults
     protected VariableLengthType variableLengthType;
     protected Class type = null;
     protected BitSet flags = new BitSet();
@@ -59,23 +57,16 @@ public abstract class SqlType extends DBItems {
      * @param precision
      * @param scale
      * @param min
-     *            minimum allowed value for the SQL type
+     *        minimum allowed value for the SQL type
      * @param max
-     *            maximum allowed value for the SQL type
+     *        maximum allowed value for the SQL type
      * @param nullvalue
-     *            default null value for the SQL type
+     *        default null value for the SQL type
      * @param variableLengthType
-     *            {@link VariableLengthType}
+     *        {@link VariableLengthType}
      */
-    SqlType(String name,
-            JDBCType jdbctype,
-            int precision,
-            int scale,
-            Object min,
-            Object max,
-            Object nullvalue,
-            VariableLengthType variableLengthType,
-            Class type) {
+    SqlType(String name, JDBCType jdbctype, int precision, int scale, Object min, Object max, Object nullvalue,
+            VariableLengthType variableLengthType, Class type) {
         this.name = name;
         this.jdbctype = jdbctype;
         this.precision = precision;
@@ -94,8 +85,7 @@ public abstract class SqlType extends DBItems {
     public Object createdata() {
         try {
             return null;
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             // Make this easier to debug
             throw new Error("createdata failed: ", e);
         }
@@ -103,12 +93,12 @@ public abstract class SqlType extends DBItems {
 
     /**
      * create valid random value for the SQL type
+     * 
      * @param type
      * @param data
      * @return
      */
-    public Object createdata(Class type,
-            byte[] data) {
+    public Object createdata(Class type, byte[] data) {
         if (type == String.class)
             return new String(data);
         return data;
@@ -133,7 +123,7 @@ public abstract class SqlType extends DBItems {
     /**
      * 
      * @param jdbctype
-     *            set JDBCType of SqlType object
+     *        set JDBCType of SqlType object
      */
     public void setJdbctype(JDBCType jdbctype) {
         this.jdbctype = jdbctype;
@@ -150,7 +140,7 @@ public abstract class SqlType extends DBItems {
     /**
      * 
      * @param precision
-     *            set precision for SqlType
+     *        set precision for SqlType
      */
     public void setPrecision(int precision) {
         this.precision = precision;
@@ -167,7 +157,7 @@ public abstract class SqlType extends DBItems {
     /**
      * 
      * @param scale
-     *            set precision for SqlType
+     *        set precision for SqlType
      */
     public void setScale(int scale) {
         this.scale = scale;
@@ -221,7 +211,7 @@ public abstract class SqlType extends DBItems {
         int maxPrecision = this.precision;
         this.precision = ThreadLocalRandom.current().nextInt(minPrecision, maxPrecision + 1);
     }
-    
+
     /**
      * generates random precision for SQL types with scale
      */
@@ -230,7 +220,7 @@ public abstract class SqlType extends DBItems {
         int maxScale = this.scale;
         this.scale = ThreadLocalRandom.current().nextInt(minScale, maxScale + 1);
     }
-    
+
     /**
      * @return
      */
@@ -246,19 +236,19 @@ public abstract class SqlType extends DBItems {
      * @return
      * @throws Exception
      */
-    public boolean canConvert(Class target,
-            int flag,
-            DBConnection conn) throws Exception {
+    public boolean canConvert(Class target, int flag, DBConnection conn) throws Exception {
         double serverversion = conn.getServerVersion();
 
-        if (flag == DBCoercion.SET || flag == DBCoercion.SETOBJECT || flag == DBCoercion.UPDATE || flag == DBCoercion.UPDATEOBJECT
-                || flag == DBCoercion.REG) {
+        if (flag == DBCoercion.SET || flag == DBCoercion.SETOBJECT || flag == DBCoercion.UPDATE
+                || flag == DBCoercion.UPDATEOBJECT || flag == DBCoercion.REG) {
             // SQL 8 does not allow conversion from string to money
-            if (flag != DBCoercion.SETOBJECT && serverversion < 9.0 && this instanceof SqlMoney && target == String.class)
+            if (flag != DBCoercion.SETOBJECT && serverversion < 9.0 && this instanceof SqlMoney
+                    && target == String.class)
                 return false;
             if (flag == DBCoercion.SET || flag == DBCoercion.SETOBJECT) {
                 // setTemporal() on textual columns returns unverifiable format
-                if (this.isString() && (target == java.sql.Date.class || target == java.sql.Time.class || target == java.sql.Timestamp.class))
+                if (this.isString() && (target == java.sql.Date.class || target == java.sql.Time.class
+                        || target == java.sql.Timestamp.class))
                     return false;
             }
         }

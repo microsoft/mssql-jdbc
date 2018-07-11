@@ -1,9 +1,6 @@
 /*
- * Microsoft JDBC Driver for SQL Server
- * 
- * Copyright(c) Microsoft Corporation All rights reserved.
- * 
- * This program is made available under the terms of the MIT License. See the LICENSE file in the project root for more information.
+ * Microsoft JDBC Driver for SQL Server Copyright(c) Microsoft Corporation All rights reserved. This program is made
+ * available under the terms of the MIT License. See the LICENSE file in the project root for more information.
  */
 package com.microsoft.sqlserver.jdbc.unit;
 
@@ -25,6 +22,7 @@ import com.microsoft.sqlserver.jdbc.SQLServerSavepoint;
 import com.microsoft.sqlserver.jdbc.TestResource;
 import com.microsoft.sqlserver.testframework.AbstractTest;
 import com.microsoft.sqlserver.testframework.util.RandomUtil;
+
 
 /**
  * Unit test case for Creating SavePoint.
@@ -56,9 +54,7 @@ public class TestSavepoint extends AbstractTest {
         try {
             savePoint.getSavepointId();
             assertTrue(false, TestResource.getResource("R_expectedExceptionNotThrown"));
-        }
-        catch (SQLException e) {
-        }
+        } catch (SQLException e) {}
 
         connection.rollback();
     }
@@ -85,9 +81,7 @@ public class TestSavepoint extends AbstractTest {
             savePoint.getSavepointName();
             // Expecting Exception as trying to get SavePointname when we created savepoint without name
             assertTrue(false, TestResource.getResource("R_shouldThrowException"));
-        }
-        catch (SQLException e) {
-        }
+        } catch (SQLException e) {}
 
         assertTrue(savePoint.getSavepointId() != 0, form.format(msgArgs[1]));
         connection.rollback();
@@ -127,9 +121,7 @@ public class TestSavepoint extends AbstractTest {
             connection.setSavepoint(null);
             // Expecting Exception as can not set SetPoint when AutoCommit mode is set to true
             assertTrue(false, TestResource.getResource("R_shouldThrowException"));
-        }
-        catch (SQLException e) {
-        }
+        } catch (SQLException e) {}
 
     }
 

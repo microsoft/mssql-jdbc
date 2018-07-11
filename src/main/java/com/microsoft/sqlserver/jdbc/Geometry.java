@@ -1,9 +1,6 @@
 /*
- * Microsoft JDBC Driver for SQL Server
- * 
- * Copyright(c) Microsoft Corporation All rights reserved.
- * 
- * This program is made available under the terms of the MIT License. See the LICENSE file in the project root for more information.
+ * Microsoft JDBC Driver for SQL Server Copyright(c) Microsoft Corporation All rights reserved. This program is made
+ * available under the terms of the MIT License. See the LICENSE file in the project root for more information.
  */
 
 package com.microsoft.sqlserver.jdbc;
@@ -11,27 +8,26 @@ package com.microsoft.sqlserver.jdbc;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 
+
 public class Geometry extends SQLServerSpatialDatatype {
 
     /**
      * Private constructor used for creating a Geometry object from WKT and srid.
      * 
      * @param WellKnownText
-     *             Well-Known Text (WKT) provided by the user.
-     * @param srid 
-     *             Spatial Reference Identifier (SRID) provided by the user.
+     *        Well-Known Text (WKT) provided by the user.
+     * @param srid
+     *        Spatial Reference Identifier (SRID) provided by the user.
      * @throws SQLServerException
-     *             if an exception occurs
+     *         if an exception occurs
      */
-    private Geometry(String WellKnownText,
-            int srid) throws SQLServerException {
+    private Geometry(String WellKnownText, int srid) throws SQLServerException {
         this.wkt = WellKnownText;
         this.srid = srid;
 
         try {
             parseWKTForSerialization(this, currentWktPos, -1, false);
-        }
-        catch (StringIndexOutOfBoundsException e) {
+        } catch (StringIndexOutOfBoundsException e) {
             String strError = SQLServerException.getErrString("R_illegalWKT");
             throw new SQLServerException(strError, null, 0, null);
         }
@@ -43,10 +39,10 @@ public class Geometry extends SQLServerSpatialDatatype {
     /**
      * Private constructor used for creating a Geometry object from WKB.
      * 
-     * @param wkb 
-     *             Well-Known Binary (WKB) provided by the user.
+     * @param wkb
+     *        Well-Known Binary (WKB) provided by the user.
      * @throws SQLServerException
-     *             if an exception occurs
+     *         if an exception occurs
      */
     private Geometry(byte[] wkb) throws SQLServerException {
         this.wkb = wkb;
@@ -66,20 +62,18 @@ public class Geometry extends SQLServerSpatialDatatype {
     }
 
     /**
-     * Returns a Geometry instance from an Open Geospatial Consortium (OGC) Well-Known Text (WKT) representation augmented with any Z (elevation) and
-     * M (measure) values carried by the instance.
+     * Returns a Geometry instance from an Open Geospatial Consortium (OGC) Well-Known Text (WKT) representation
+     * augmented with any Z (elevation) and M (measure) values carried by the instance.
      * 
      * @param wkt
-     *            Well-Known Text (WKT) provided by the user.
+     *        Well-Known Text (WKT) provided by the user.
      * @param srid
-     *            Spatial Reference Identifier (SRID) provided by the user.
-     * @return Geometry
-     *            Geometry instance created from WKT and SRID
+     *        Spatial Reference Identifier (SRID) provided by the user.
+     * @return Geometry Geometry instance created from WKT and SRID
      * @throws SQLServerException
-     *             if an exception occurs
+     *         if an exception occurs
      */
-    public static Geometry STGeomFromText(String wkt,
-            int srid) throws SQLServerException {
+    public static Geometry STGeomFromText(String wkt, int srid) throws SQLServerException {
         return new Geometry(wkt, srid);
     }
 
@@ -87,11 +81,10 @@ public class Geometry extends SQLServerSpatialDatatype {
      * Returns a Geometry instance from an Open Geospatial Consortium (OGC) Well-Known Binary (WKB) representation.
      * 
      * @param wkb
-     *            Well-Known Binary (WKB) provided by the user.
-     * @return Geometry
-     *            Geometry instance created from WKB
+     *        Well-Known Binary (WKB) provided by the user.
+     * @return Geometry Geometry instance created from WKB
      * @throws SQLServerException
-     *             if an exception occurs
+     *         if an exception occurs
      */
     public static Geometry STGeomFromWKB(byte[] wkb) throws SQLServerException {
         return new Geometry(wkb);
@@ -101,25 +94,24 @@ public class Geometry extends SQLServerSpatialDatatype {
      * Returns a constructed Geometry from an internal SQL Server format for spatial data.
      * 
      * @param wkb
-     *            Well-Known Binary (WKB) provided by the user.
-     * @return Geometry
-     *            Geometry instance created from WKB
+     *        Well-Known Binary (WKB) provided by the user.
+     * @return Geometry Geometry instance created from WKB
      * @throws SQLServerException
-     *             if an exception occurs
+     *         if an exception occurs
      */
     public static Geometry deserialize(byte[] wkb) throws SQLServerException {
         return new Geometry(wkb);
     }
 
     /**
-     * Returns a Geometry instance from an Open Geospatial Consortium (OGC) Well-Known Text (WKT) representation. SRID is defaulted to 0.
+     * Returns a Geometry instance from an Open Geospatial Consortium (OGC) Well-Known Text (WKT) representation. SRID
+     * is defaulted to 0.
      * 
      * @param wkt
-     *            Well-Known Text (WKT) provided by the user.
-     * @return Geometry
-     *            Geometry instance created from WKT
+     *        Well-Known Text (WKT) provided by the user.
+     * @return Geometry Geometry instance created from WKT
      * @throws SQLServerException
-     *             if an exception occurs
+     *         if an exception occurs
      */
     public static Geometry parse(String wkt) throws SQLServerException {
         return new Geometry(wkt, 0);
@@ -129,30 +121,26 @@ public class Geometry extends SQLServerSpatialDatatype {
      * Constructs a Geometry instance that represents a Point instance from its X and Y values and an SRID.
      * 
      * @param x
-     *            x coordinate
+     *        x coordinate
      * @param y
-     *            y coordinate
+     *        y coordinate
      * @param srid
-     *            SRID
-     * @return Geometry
-     *            Geography instance
+     *        SRID
+     * @return Geometry Geography instance
      * @throws SQLServerException
-     *             if an exception occurs
+     *         if an exception occurs
      */
-    public static Geometry point(double x,
-            double y,
-            int srid) throws SQLServerException {
+    public static Geometry point(double x, double y, int srid) throws SQLServerException {
         return new Geometry("POINT (" + x + " " + y + ")", srid);
     }
 
     /**
-     * Returns the Open Geospatial Consortium (OGC) Well-Known Text (WKT) representation of a Geometry instance. This text will not contain any Z
-     * (elevation) or M (measure) values carried by the instance.
+     * Returns the Open Geospatial Consortium (OGC) Well-Known Text (WKT) representation of a Geometry instance. This
+     * text will not contain any Z (elevation) or M (measure) values carried by the instance.
      * 
-     * @return
-     *             the WKT representation without the Z and M values.
+     * @return the WKT representation without the Z and M values.
      * @throws SQLServerException
-     *             if an exception occurs
+     *         if an exception occurs
      */
     public String STAsText() throws SQLServerException {
         if (null == wktNoZM) {
@@ -170,8 +158,8 @@ public class Geometry extends SQLServerSpatialDatatype {
     }
 
     /**
-     * Returns the Open Geospatial Consortium (OGC) Well-Known Binary (WKB) representation of a Geometry instance. This value will not contain any Z
-     * or M values carried by the instance.
+     * Returns the Open Geospatial Consortium (OGC) Well-Known Binary (WKB) representation of a Geometry instance. This
+     * value will not contain any Z or M values carried by the instance.
      * 
      * @return byte array representation of the Geometry object.
      */
@@ -374,8 +362,7 @@ public class Geometry extends SQLServerSpatialDatatype {
 
         if (noZM) {
             wkbNoZM = buf.array();
-        }
-        else {
+        } else {
             wkb = buf.array();
 
         }

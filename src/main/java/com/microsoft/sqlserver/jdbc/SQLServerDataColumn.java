@@ -1,9 +1,6 @@
 /*
- * Microsoft JDBC Driver for SQL Server
- * 
- * Copyright(c) Microsoft Corporation All rights reserved.
- * 
- * This program is made available under the terms of the MIT License. See the LICENSE file in the project root for more information.
+ * Microsoft JDBC Driver for SQL Server Copyright(c) Microsoft Corporation All rights reserved. This program is made
+ * available under the terms of the MIT License. See the LICENSE file in the project root for more information.
  */
 
 package com.microsoft.sqlserver.jdbc;
@@ -22,12 +19,11 @@ public final class SQLServerDataColumn {
      * Initializes a new instance of SQLServerDataColumn with the column name and type.
      * 
      * @param columnName
-     *            the name of the column
+     *        the name of the column
      * @param sqlType
-     *            the type of the column
+     *        the type of the column
      */
-    public SQLServerDataColumn(String columnName,
-            int sqlType) {
+    public SQLServerDataColumn(String columnName, int sqlType) {
         this.columnName = columnName;
         this.javaSqlType = sqlType;
     }

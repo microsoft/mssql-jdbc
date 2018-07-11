@@ -1,9 +1,6 @@
 /*
- * Microsoft JDBC Driver for SQL Server
- * 
- * Copyright(c) Microsoft Corporation All rights reserved.
- * 
- * This program is made available under the terms of the MIT License. See the LICENSE file in the project root for more information.
+ * Microsoft JDBC Driver for SQL Server Copyright(c) Microsoft Corporation All rights reserved. This program is made
+ * available under the terms of the MIT License. See the LICENSE file in the project root for more information.
  */
 
 package com.microsoft.sqlserver.jdbc;
@@ -11,18 +8,14 @@ package com.microsoft.sqlserver.jdbc;
 import java.util.ArrayList;
 import java.util.List;
 
+
 /**
- * Represents a single encrypted value for a CEK. It contains the encrypted CEK,the store type, name,the key path and encryption algorithm.
+ * Represents a single encrypted value for a CEK. It contains the encrypted CEK,the store type, name,the key path and
+ * encryption algorithm.
  */
 class EncryptionKeyInfo {
-    EncryptionKeyInfo(byte[] encryptedKeyVal,
-            int dbId,
-            int keyId,
-            int keyVersion,
-            byte[] mdVersion,
-            String keyPathVal,
-            String keyStoreNameVal,
-            String algorithmNameVal) {
+    EncryptionKeyInfo(byte[] encryptedKeyVal, int dbId, int keyId, int keyVersion, byte[] mdVersion, String keyPathVal,
+            String keyStoreNameVal, String algorithmNameVal) {
         encryptedKey = encryptedKeyVal;
         databaseId = dbId;
         cekId = keyId;
@@ -44,12 +37,14 @@ class EncryptionKeyInfo {
     byte normalizationRuleVersion;
 }
 
+
 /**
- * Represents a unique CEK as an entry in the CekTable. A unique (plaintext is unique) CEK can have multiple encrypted CEKs when using multiple CMKs.
- * These encrypted CEKs are represented by a member ArrayList.
+ * Represents a unique CEK as an entry in the CekTable. A unique (plaintext is unique) CEK can have multiple encrypted
+ * CEKs when using multiple CMKs. These encrypted CEKs are represented by a member ArrayList.
  */
 class CekTableEntry {
-    static final private java.util.logging.Logger aeLogger = java.util.logging.Logger.getLogger("com.microsoft.sqlserver.jdbc.AE");
+    static final private java.util.logging.Logger aeLogger = java.util.logging.Logger
+            .getLogger("com.microsoft.sqlserver.jdbc.AE");
 
     List<EncryptionKeyInfo> columnEncryptionKeyValues;
     int ordinal;
@@ -95,14 +90,8 @@ class CekTableEntry {
         return columnEncryptionKeyValues.size();
     }
 
-    void add(byte[] encryptedKey,
-            int dbId,
-            int keyId,
-            int keyVersion,
-            byte[] mdVersion,
-            String keyPath,
-            String keyStoreName,
-            String algorithmName) {
+    void add(byte[] encryptedKey, int dbId, int keyId, int keyVersion, byte[] mdVersion, String keyPath,
+            String keyStoreName, String algorithmName) {
 
         assert null != columnEncryptionKeyValues : "columnEncryptionKeyValues should already be initialized.";
 
@@ -110,8 +99,8 @@ class CekTableEntry {
             aeLogger.fine("Retrieving CEK values");
         }
 
-        EncryptionKeyInfo encryptionKey = new EncryptionKeyInfo(encryptedKey, dbId, keyId, keyVersion, mdVersion, keyPath, keyStoreName,
-                algorithmName);
+        EncryptionKeyInfo encryptionKey = new EncryptionKeyInfo(encryptedKey, dbId, keyId, keyVersion, mdVersion,
+                keyPath, keyStoreName, algorithmName);
         columnEncryptionKeyValues.add(encryptionKey);
 
         if (0 == databaseId) {
@@ -119,8 +108,7 @@ class CekTableEntry {
             cekId = keyId;
             cekVersion = keyVersion;
             cekMdVersion = mdVersion;
-        }
-        else {
+        } else {
             assert (databaseId == dbId);
             assert (cekId == keyId);
             assert (cekVersion == keyVersion);
@@ -128,6 +116,7 @@ class CekTableEntry {
         }
     }
 }
+
 
 /**
  * Contains all CEKs, each row represents one unique CEK (represented by CekTableEntry).
@@ -147,19 +136,18 @@ class CekTable {
         return keyList[index];
     }
 
-    void setCekTableEntry(int index,
-            CekTableEntry entry) {
+    void setCekTableEntry(int index, CekTableEntry entry) {
         keyList[index] = entry;
     }
 }
 
+
 /**
  * Represents Encryption related information of the cipher data.
  */
-class CryptoMetadata
-{
-	TypeInfo baseTypeInfo;	
-	CekTableEntry cekTableEntry;
+class CryptoMetadata {
+    TypeInfo baseTypeInfo;
+    CekTableEntry cekTableEntry;
     byte cipherAlgorithmId;
     String cipherAlgorithmName;
     SQLServerEncryptionType encryptionType;
@@ -169,64 +157,60 @@ class CryptoMetadata
     short ordinal;
 
     CekTableEntry getCekTableEntry() {
-		return cekTableEntry;
-	}
-    
-	void setCekTableEntry(CekTableEntry cekTableEntryObj) {
-		cekTableEntry = cekTableEntryObj;
-	}
-	
+        return cekTableEntry;
+    }
+
+    void setCekTableEntry(CekTableEntry cekTableEntryObj) {
+        cekTableEntry = cekTableEntryObj;
+    }
+
     TypeInfo getBaseTypeInfo() {
-		return baseTypeInfo;
-	}
-    
-	void setBaseTypeInfo(TypeInfo baseTypeInfoObj) {
-		baseTypeInfo = baseTypeInfoObj;
-	}
-		
-	SQLServerEncryptionAlgorithm getEncryptionAlgorithm() {
-		return cipherAlgorithm;
-	}
-	
-	void setEncryptionAlgorithm(SQLServerEncryptionAlgorithm encryptionAlgorithmObj) {
-		cipherAlgorithm = encryptionAlgorithmObj;
-	}
-	
-	EncryptionKeyInfo getEncryptionKeyInfo() {
-		return encryptionKeyInfo;
-	}
-	
-	void setEncryptionKeyInfo(EncryptionKeyInfo encryptionKeyInfoObj) {
-		encryptionKeyInfo = encryptionKeyInfoObj;
-	}
+        return baseTypeInfo;
+    }
 
-	byte getEncryptionAlgorithmId() {
-		return cipherAlgorithmId;
-	}
+    void setBaseTypeInfo(TypeInfo baseTypeInfoObj) {
+        baseTypeInfo = baseTypeInfoObj;
+    }
 
-	String getEncryptionAlgorithmName() {
-		return cipherAlgorithmName;
-	}
+    SQLServerEncryptionAlgorithm getEncryptionAlgorithm() {
+        return cipherAlgorithm;
+    }
 
-	SQLServerEncryptionType getEncryptionType() {
-		return encryptionType;
-	}
-	
-	byte getNormalizationRuleVersion() {
-		return normalizationRuleVersion;
-	}
+    void setEncryptionAlgorithm(SQLServerEncryptionAlgorithm encryptionAlgorithmObj) {
+        cipherAlgorithm = encryptionAlgorithmObj;
+    }
 
-	short getOrdinal() {
-		return ordinal;
-	}
-	
-	CryptoMetadata(CekTableEntry cekTableEntryObj,
-                                short ordinalVal,
-                                byte cipherAlgorithmIdVal,
-                                String cipherAlgorithmNameVal,
-                                byte encryptionTypeVal,
-                                byte normalizationRuleVersionVal) throws SQLServerException
-   {
+    EncryptionKeyInfo getEncryptionKeyInfo() {
+        return encryptionKeyInfo;
+    }
+
+    void setEncryptionKeyInfo(EncryptionKeyInfo encryptionKeyInfoObj) {
+        encryptionKeyInfo = encryptionKeyInfoObj;
+    }
+
+    byte getEncryptionAlgorithmId() {
+        return cipherAlgorithmId;
+    }
+
+    String getEncryptionAlgorithmName() {
+        return cipherAlgorithmName;
+    }
+
+    SQLServerEncryptionType getEncryptionType() {
+        return encryptionType;
+    }
+
+    byte getNormalizationRuleVersion() {
+        return normalizationRuleVersion;
+    }
+
+    short getOrdinal() {
+        return ordinal;
+    }
+
+    CryptoMetadata(CekTableEntry cekTableEntryObj, short ordinalVal, byte cipherAlgorithmIdVal,
+            String cipherAlgorithmNameVal, byte encryptionTypeVal,
+            byte normalizationRuleVersionVal) throws SQLServerException {
         cekTableEntry = cekTableEntryObj;
         ordinal = ordinalVal;
         cipherAlgorithmId = cipherAlgorithmIdVal;
@@ -238,8 +222,9 @@ class CryptoMetadata
 
     boolean IsAlgorithmInitialized() {
         return null != cipherAlgorithm;
-    }	
+    }
 }
+
 
 // Fields in the first resultset of "sp_describe_parameter_encryption"
 // We expect the server to return the fields in the resultset in the same order as mentioned below.
@@ -260,6 +245,7 @@ enum DescribeParameterEncryptionResultSet1 {
         return ordinal() + 1;
     }
 }
+
 
 // Fields in the second resultset of "sp_describe_parameter_encryption"
 // We expect the server to return the fields in the resultset in the same order as mentioned below.
