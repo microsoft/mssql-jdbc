@@ -2579,11 +2579,11 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
                 break;
 
             case TIMEN:
-                bulkScale = variantType.getScale();
+                int timeBulkScale = variantType.getScale();
                 int timeHeaderLength = 0x08; // default
-                if (2 >= bulkScale) {
+                if (2 >= timeBulkScale) {
                     timeHeaderLength = 0x06;
-                } else if (4 >= bulkScale) {
+                } else if (4 >= timeBulkScale) {
                     timeHeaderLength = 0x07;
                 } else {
                     timeHeaderLength = 0x08;
@@ -2595,8 +2595,8 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
                                                                                                                  // header
                                                                                                                  // length
                 // defers
-                tdsWriter.writeByte((byte) bulkScale);
-                tdsWriter.writeTime((java.sql.Timestamp) colValue, bulkScale);
+                tdsWriter.writeByte((byte) timeBulkScale);
+                tdsWriter.writeTime((java.sql.Timestamp) colValue, timeBulkScale);
                 break;
 
             case DATETIME8:
