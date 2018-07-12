@@ -538,7 +538,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     private boolean sendTimeAsDatetime = SQLServerDriverBooleanProperty.SEND_TIME_AS_DATETIME.getDefaultValue();
 
     @Override
-    public synchronized final boolean getSendTimeAsDatetime() {
+    public final boolean getSendTimeAsDatetime() {
         return !isKatmaiOrLater() || sendTimeAsDatetime;
     }
 
@@ -3132,7 +3132,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
         setState(State.Closed);
 
-        if (null != tdsChannel)
+        if (null != tdsChannel && null != executor)
             executor.execute(() -> tdsChannel.close());
 
         loggerExternal.exiting(getClassNameLogging(), "abort");

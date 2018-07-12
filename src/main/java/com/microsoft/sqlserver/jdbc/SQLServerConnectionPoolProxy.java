@@ -509,7 +509,7 @@ class SQLServerConnectionPoolProxy implements ISQLServerConnection, java.io.Seri
     }
 
     @Override
-    public synchronized void setSendTimeAsDatetime(boolean sendTimeAsDateTimeValue) throws SQLServerException {
+    public void setSendTimeAsDatetime(boolean sendTimeAsDateTimeValue) throws SQLServerException {
         checkClosed();
         wrappedConnection.setSendTimeAsDatetime(sendTimeAsDateTimeValue);
     }
