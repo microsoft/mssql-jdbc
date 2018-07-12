@@ -361,7 +361,7 @@ public class RequestBoundaryMethodsTest extends AbstractTest {
     }
 
     /**
-     * This is not really a test. The purpose is to make the build fail if there are new public non-static methods in
+     * This is not really a test. The goal is to make the build fail if there are new public non-static methods in
      * SQLServerConnection and notify the developer to decide whether it needs to be handled by
      * beginRequest()/endRequest().
      *
@@ -375,7 +375,7 @@ public class RequestBoundaryMethodsTest extends AbstractTest {
         Method[] methods = SQLServerConnection.class.getDeclaredMethods();
         for (Method method : methods) {
             assertTrue(isVerfied(method),
-                    "This test is expected to fail if you are adding a new public non-static method to SQLServerConnection."
+                    "A failure is expected if you are adding a new public non-static method to SQLServerConnection."
                             + " See the test for instructions on how to fix the failure. ");
         }
     }
