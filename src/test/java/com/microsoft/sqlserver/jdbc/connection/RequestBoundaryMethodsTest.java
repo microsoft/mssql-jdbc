@@ -10,11 +10,15 @@ import static org.junit.Assert.assertNull;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.lang.reflect.Method;
+import java.lang.reflect.Modifier;
 import java.sql.CallableStatement;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.CountDownLatch;
 
 import org.junit.jupiter.api.Test;
@@ -356,6 +360,26 @@ public class RequestBoundaryMethodsTest extends AbstractTest {
         }
     }
 
+    /**
+     * This is not really a test. The purpose is to make the build fail if there are new public non-static methods in
+     * SQLServerConnection and notify the developer to decide whether it needs to be handled by
+     * beginRequest()/endRequest().
+     *
+     * To fix the failure, you first need to check if the new method can modify connection local state after connection
+     * has been created. (See beginRequestInternal()/endRequestInternal() in SQLServerConnection). If yes, make sure it
+     * is handled by beginRequest()/endRequest() and then add it to <code>verifiedMethodNames</code>. If not, just
+     * adding the new method's name to the same list of verified methods is enough.
+     */
+    @Test
+    public void testNewMethods() {
+        Method[] methods = SQLServerConnection.class.getDeclaredMethods();
+        for (Method method : methods) {
+            assertTrue(isVerfied(method),
+                    "This test is expected to fail if you are adding a new public non-static method to SQLServerConnection."
+                            + " See the test for instructions on how to fix the failure. ");
+        }
+    }
+
     private SQLServerConnection connect() throws SQLException {
         SQLServerConnection connection = null;
         try {
@@ -411,5 +435,57 @@ public class RequestBoundaryMethodsTest extends AbstractTest {
 
     private void generateWarning(SQLServerConnection con) throws SQLException {
         con.setClientInfo("name", "value");
+    }
+
+    private boolean isVerfied(Method method) {
+        return (!Modifier.isPublic(method.getModifiers()) || Modifier.isStatic(method.getModifiers())
+                || method.getName().startsWith("get") || getVerifiedMethodNames().contains(method.getName()));
+    }
+
+    private List<String> getVerifiedMethodNames() {
+        List<String> verifiedMethodNames = new ArrayList<String>();
+
+        verifiedMethodNames.add("toString");
+        verifiedMethodNames.add("setReadOnly");
+        verifiedMethodNames.add("close");
+        verifiedMethodNames.add("unwrap");
+        verifiedMethodNames.add("isReadOnly");
+        verifiedMethodNames.add("abort");
+        verifiedMethodNames.add("isValid");
+        verifiedMethodNames.add("setServerPreparedStatementDiscardThreshold");
+        verifiedMethodNames.add("setEnablePrepareOnFirstPreparedStatementCall");
+        verifiedMethodNames.add("isClosed");
+        verifiedMethodNames.add("setSendTimeAsDatetime");
+        verifiedMethodNames.add("setStatementPoolingCacheSize");
+        verifiedMethodNames.add("setDisableStatementPooling");
+        verifiedMethodNames.add("setTransactionIsolation");
+        verifiedMethodNames.add("setUseBulkCopyForBatchInsert");
+        verifiedMethodNames.add("commit");
+        verifiedMethodNames.add("clearWarnings");
+        verifiedMethodNames.add("prepareStatement");
+        verifiedMethodNames.add("prepareCall");
+        verifiedMethodNames.add("setCatalog");
+        verifiedMethodNames.add("setAutoCommit");
+        verifiedMethodNames.add("createStatement");
+        verifiedMethodNames.add("setClientInfo");
+        verifiedMethodNames.add("setNetworkTimeout");
+        verifiedMethodNames.add("setHoldability");
+        verifiedMethodNames.add("closeUnreferencedPreparedStatementHandles");
+        verifiedMethodNames.add("isStatementPoolingEnabled");
+        verifiedMethodNames.add("rollback");
+        verifiedMethodNames.add("releaseSavepoint");
+        verifiedMethodNames.add("createStruct");
+        verifiedMethodNames.add("createSQLXML");
+        verifiedMethodNames.add("setSchema");
+        verifiedMethodNames.add("createNClob");
+        verifiedMethodNames.add("nativeSQL");
+        verifiedMethodNames.add("setSavepoint");
+        verifiedMethodNames.add("createClob");
+        verifiedMethodNames.add("createBlob");
+        verifiedMethodNames.add("isWrapperFor");
+        verifiedMethodNames.add("setTypeMap");
+        verifiedMethodNames.add("createArrayOf");
+
+        return verifiedMethodNames;
     }
 }
