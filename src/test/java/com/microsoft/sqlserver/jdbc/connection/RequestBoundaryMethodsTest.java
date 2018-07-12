@@ -374,7 +374,7 @@ public class RequestBoundaryMethodsTest extends AbstractTest {
     public void testNewMethods() {
         Method[] methods = SQLServerConnection.class.getDeclaredMethods();
         for (Method method : methods) {
-            assertTrue(isVerfied(method),
+            assertTrue(isVerified(method),
                     "A failure is expected if you are adding a new public non-static method to SQLServerConnection."
                             + " See the test for instructions on how to fix the failure. ");
         }
@@ -437,7 +437,7 @@ public class RequestBoundaryMethodsTest extends AbstractTest {
         con.setClientInfo("name", "value");
     }
 
-    private boolean isVerfied(Method method) {
+    private boolean isVerified(Method method) {
         return (!Modifier.isPublic(method.getModifiers()) || Modifier.isStatic(method.getModifiers())
                 || method.getName().startsWith("get") || getVerifiedMethodNames().contains(method.getName()));
     }
