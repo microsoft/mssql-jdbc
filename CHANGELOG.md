@@ -3,6 +3,22 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](http://keepachangelog.com/) 
 
+## [7.0.0] Stable Release
+### Added
+- Added 'Automatic-Module-Name' manifest entry to resulting jre10 jars such that driver module 'com.microsoft.sqlserver.jdbc' will be accessible to JDK 10 customers [#732](https://github.com/Microsoft/mssql-jdbc/pull/732)
+- Added setUseBulkCopyForBatchInsert() to Request Boundary methods [#739](https://github.com/Microsoft/mssql-jdbc/pull/739)
+- Added new test for validation of supported public APIs in request boundary methods [#746](https://github.com/Microsoft/mssql-jdbc/pull/746)
+
+### Fixed Issues
+- Fixed policheck issue with 'Country' keyword [#745](https://github.com/Microsoft/mssql-jdbc/pull/745)
+- Fixed issues reported by static analysis tools (SonarQube, Fortify) [#747](https://github.com/Microsoft/mssql-jdbc/pull/747)
+
+### Changed
+- Changed Sha1HashKey to CityHash128Key for generating PreparedStatement handle and metadata cache keys [#717](https://github.com/Microsoft/mssql-jdbc/pull/717)
+- Changed order of logic for checking the condition for using Bulk Copy API [#736](https://github.com/Microsoft/mssql-jdbc/pull/736)
+- Changed collation name in UTF8SupportTest [#741](https://github.com/Microsoft/mssql-jdbc/pull/741)
+- Reformatted code and updated mssql-jdbc-formatter [#742](https://github.com/Microsoft/mssql-jdbc/pull/742)
+
 ## [6.5.4] Preview Release
 ### Added
 - Added new connection property "useBulkCopyForBatchInsert" to enable Bulk Copy API support for batch insert operation [#686](https://github.com/Microsoft/mssql-jdbc/pull/686)
