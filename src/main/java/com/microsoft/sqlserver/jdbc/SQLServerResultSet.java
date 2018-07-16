@@ -2373,6 +2373,16 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
             returnValue = getTime(columnIndex);
         } else if (type == java.sql.Timestamp.class) {
             returnValue = getTimestamp(columnIndex);
+        } else if (type == java.time.LocalDateTime.class) {
+            returnValue = null;
+            java.sql.Timestamp ts = getTimestamp(columnIndex,
+                    Calendar.getInstance(java.util.TimeZone.getTimeZone("UTC")));
+            if (ts != null) {
+                var dtf = java.time.format.DateTimeFormatter
+                        .ISO_LOCAL_DATE_TIME
+                        .withZone(java.time.ZoneId.of("UTC"));
+                returnValue = java.time.LocalDateTime.parse(dtf.format(ts.toInstant()));
+            }
         } else if (type == microsoft.sql.DateTimeOffset.class) {
             returnValue = getDateTimeOffset(columnIndex);
         } else if (type == UUID.class) {

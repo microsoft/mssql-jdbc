@@ -21,6 +21,8 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.SQLXML;
 import java.sql.Statement;
+import java.time.LocalDateTime;
+import java.util.TimeZone;
 import java.util.UUID;
 
 import org.junit.jupiter.api.Test;
@@ -236,6 +238,37 @@ public class ResultSetTest extends AbstractTest {
                 }
             } finally {
                 stmt.executeUpdate("drop table " + tableName);
+            }
+        }
+    }
+
+    /**
+     * Tests getObject(n, java.time.LocalDateTime.class).
+     * 
+     * @throws SQLException
+     */
+    @Test
+    public void testGetLocalDateTime() throws SQLException {
+        try (Connection con = DriverManager.getConnection(connectionString); Statement stmt = con.createStatement()) {
+            TimeZone prevTimeZone = TimeZone.getDefault();
+            TimeZone.setDefault(TimeZone.getTimeZone("America/Edmonton"));
+            
+            // a local date/time that does not actually exist because of Daylight Saving Time 
+            final String testValue = "2018-03-11T02:00:00.1234567";
+            
+            stmt.executeUpdate(
+                    "CREATE TABLE " + tableName + " (id INT PRIMARY KEY, dt2 DATETIME2)");
+            stmt.executeUpdate(
+                    "INSERT INTO " + tableName + " (id, dt2) VALUES (1, '" + testValue + "')");
+
+            try (ResultSet rs = stmt.executeQuery("SELECT dt2 FROM " + tableName + " WHERE id=1")) {
+                rs.next();
+                LocalDateTime actual = rs.getObject(1, LocalDateTime.class);
+                LocalDateTime expected = LocalDateTime.parse(testValue);
+                assertEquals(expected, actual);
+            } finally {
+                Utils.dropTableIfExists(tableName, stmt);
+                TimeZone.setDefault(prevTimeZone);
             }
         }
     }
