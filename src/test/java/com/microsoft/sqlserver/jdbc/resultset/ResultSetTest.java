@@ -248,7 +248,7 @@ public class ResultSetTest extends AbstractTest {
      * @throws SQLException
      */
     @Test
-    public void testGetLocalDateTime() throws SQLException {
+    public void testGetObjectAsLocalDateTime() throws SQLException {
         try (Connection con = DriverManager.getConnection(connectionString); Statement stmt = con.createStatement()) {
             TimeZone prevTimeZone = TimeZone.getDefault();
             TimeZone.setDefault(TimeZone.getTimeZone("America/Edmonton"));
