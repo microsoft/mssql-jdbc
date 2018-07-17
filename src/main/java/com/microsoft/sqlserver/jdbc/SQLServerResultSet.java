@@ -2378,10 +2378,8 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
             java.sql.Timestamp ts = getTimestamp(columnIndex,
                     Calendar.getInstance(java.util.TimeZone.getTimeZone("UTC")));
             if (ts != null) {
-                java.time.format.DateTimeFormatter dtf = java.time.format.DateTimeFormatter
-                        .ISO_LOCAL_DATE_TIME
-                        .withZone(java.time.ZoneId.of("UTC"));
-                returnValue = java.time.LocalDateTime.parse(dtf.format(ts.toInstant()));
+                returnValue = java.time.LocalDateTime.ofInstant(ts.toInstant(), 
+                        java.time.ZoneId.of("UTC"));
             }
         } else if (type == microsoft.sql.DateTimeOffset.class) {
             returnValue = getDateTimeOffset(columnIndex);
