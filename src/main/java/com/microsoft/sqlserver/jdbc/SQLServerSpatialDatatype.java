@@ -1662,14 +1662,30 @@ class Figure {
         this.pointOffset = pointOffset;
     }
 
+    /**
+     * Returns the figuresAttribute value.
+     * 
+     * @return byte figuresAttribute value.
+     */
     public byte getFiguresAttribute() {
         return figuresAttribute;
     }
 
+    /**
+     * Returns the pointOffset value.
+     * 
+     * @return int pointOffset value.
+     */
     public int getPointOffset() {
         return pointOffset;
     }
 
+    /**
+     * Sets the figuresAttribute value.
+     * 
+     * @param fa
+     *        figuresAttribute value.
+     */
     public void setFiguresAttribute(byte fa) {
         figuresAttribute = fa;
     }
@@ -1691,18 +1707,39 @@ class Shape {
         this.openGISType = openGISType;
     }
 
+    /**
+     * Returns the parentOffset value.
+     * 
+     * @return int parentOffset value.
+     */
     public int getParentOffset() {
         return parentOffset;
     }
 
+    /**
+     * Returns the figureOffset value.
+     * 
+     * @return int figureOffset value.
+     */
     public int getFigureOffset() {
         return figureOffset;
     }
 
+    /**
+     * Returns the openGISType value.
+     * 
+     * @return byte openGISType value.
+     */
     public byte getOpenGISType() {
         return openGISType;
     }
 
+    /**
+     * Sets the figureOffset value.
+     * 
+     * @param fo
+     *        figureOffset value.
+     */
     public void setFigureOffset(int fo) {
         figureOffset = fo;
     }
@@ -1721,6 +1758,11 @@ class Segment {
         this.segmentType = segmentType;
     }
 
+    /**
+     * Returns the segmentType value.
+     * 
+     * @return byte segmentType value.
+     */
     public byte getSegmentType() {
         return segmentType;
     }
@@ -1744,18 +1786,38 @@ class Point {
         this.m = m;
     }
 
+    /**
+     * Returns the x coordinate value.
+     * 
+     * @return double x coordinate value.
+     */
     public double getX() {
         return x;
     }
 
+    /**
+     * Returns the y coordinate value.
+     * 
+     * @return double y coordinate value.
+     */
     public double getY() {
         return y;
     }
 
+    /**
+     * Returns the z (elevation) value.
+     * 
+     * @return double z value.
+     */
     public double getZ() {
         return z;
     }
 
+    /**
+     * Returns the m (measure) value.
+     * 
+     * @return double m value.
+     */
     public double getM() {
         return m;
     }
