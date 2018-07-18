@@ -1,0 +1,622 @@
+
+C:\Users\peterb\Desktop\git clone\mssql-jdbc>FOR /L %A IN (1 1 10) DO (mvn -Dtest=bvtTest test ) 
+
+C:\Users\peterb\Desktop\git clone\mssql-jdbc>(mvn -Dtest=bvtTest test ) 
+[INFO] Scanning for projects...
+[INFO] 
+[INFO] ------------------------------------------------------------------------
+[INFO] Building Microsoft JDBC Driver for SQL Server 7.0.0-SNAPSHOT
+[INFO] ------------------------------------------------------------------------
+[INFO] 
+[INFO] --- jacoco-maven-plugin:0.8.1:prepare-agent (pre-test) @ mssql-jdbc ---
+[INFO] argLine set to "-javaagent:C:\\Users\\peterb\\.m2\\repository\\org\\jacoco\\org.jacoco.agent\\0.8.1\\org.jacoco.agent-0.8.1-runtime.jar=destfile=C:\\Users\\peterb\\Desktop\\git clone\\mssql-jdbc\\target\\jacoco.exec"
+[INFO] 
+[INFO] --- maven-resources-plugin:2.6:resources (default-resources) @ mssql-jdbc ---
+[INFO] Using 'UTF-8' encoding to copy filtered resources.
+[INFO] Copying 1 resource
+[INFO] 
+[INFO] --- maven-compiler-plugin:3.7.0:compile (default-compile) @ mssql-jdbc ---
+[INFO] Changes detected - recompiling the module!
+[INFO] Compiling 131 source files to C:\Users\peterb\Desktop\git clone\mssql-jdbc\target\classes
+[INFO] 
+[INFO] --- maven-bundle-plugin:3.5.0:manifest (bundle-manifest) @ mssql-jdbc ---
+[WARNING] Manifest com.microsoft.sqlserver:mssql-jdbc:jar:7.0.0-SNAPSHOT : Export com.microsoft.sqlserver.jdbc,  has 1,  private references [com.microsoft.sqlserver.jdbc.dataclassification], 
+[INFO] 
+[INFO] --- maven-resources-plugin:2.6:testResources (default-testResources) @ mssql-jdbc ---
+[INFO] Using 'UTF-8' encoding to copy filtered resources.
+[INFO] Copying 2 resources
+[INFO] skip non existing resourceDirectory C:\Users\peterb\Desktop\git clone\mssql-jdbc\AE_Certificates
+[INFO] 
+[INFO] --- maven-compiler-plugin:3.7.0:testCompile (default-testCompile) @ mssql-jdbc ---
+[INFO] Changes detected - recompiling the module!
+[INFO] Compiling 131 source files to C:\Users\peterb\Desktop\git clone\mssql-jdbc\target\test-classes
+[INFO] 
+[INFO] --- maven-surefire-plugin:2.22.0:test (default-test) @ mssql-jdbc ---
+[INFO] 
+[INFO] -------------------------------------------------------
+[INFO]  T E S T S
+[INFO] -------------------------------------------------------
+[INFO] Running com.microsoft.sqlserver.jdbc.bvt.bvtTest
+[INFO] Tests run: 19, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 1.578 s - in com.microsoft.sqlserver.jdbc.bvt.bvtTest
+[INFO] 
+[INFO] Results:
+[INFO] 
+[INFO] Tests run: 19, Failures: 0, Errors: 0, Skipped: 0
+[INFO] 
+[INFO] 
+[INFO] --- jacoco-maven-plugin:0.8.1:report (report) @ mssql-jdbc ---
+[INFO] Loading execution data file C:\Users\peterb\Desktop\git clone\mssql-jdbc\target\jacoco.exec
+[INFO] Analyzed bundle 'Microsoft JDBC Driver for SQL Server' with 346 classes
+[WARNING] Classes in bundle 'Microsoft JDBC Driver for SQL Server' do no match with execution data. For report generation the same class files must be used as at runtime.
+[WARNING] Execution data for class com/microsoft/sqlserver/jdbc/SQLServerPreparedStatement$PrepStmtBatchExecCmd does not match.
+[WARNING] Execution data for class com/microsoft/sqlserver/jdbc/SQLServerConnection$PreparedStatementHandle does not match.
+[WARNING] Execution data for class com/microsoft/sqlserver/jdbc/SQLServerConnection$1ConnectionCommand does not match.
+[WARNING] Execution data for class com/microsoft/sqlserver/jdbc/SQLServerPreparedStatement$1PreparedHandleClose does not match.
+[WARNING] Execution data for class com/microsoft/sqlserver/jdbc/SQLServerConnection$PreparedStatementCacheEvictionListener does not match.
+[WARNING] Execution data for class com/microsoft/sqlserver/jdbc/SQLServerPreparedStatement$1PrepStmtExecOutParamHandler does not match.
+[WARNING] Execution data for class com/microsoft/sqlserver/jdbc/SQLServerParameterMetaData does not match.
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD SUCCESS
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time: 23.469 s
+[INFO] Finished at: 2018-07-09T13:02:53-07:00
+[INFO] Final Memory: 33M/124M
+[INFO] ------------------------------------------------------------------------
+
+C:\Users\peterb\Desktop\git clone\mssql-jdbc>(mvn -Dtest=bvtTest test ) 
+[INFO] Scanning for projects...
+[INFO] 
+[INFO] ------------------------------------------------------------------------
+[INFO] Building Microsoft JDBC Driver for SQL Server 7.0.0-SNAPSHOT
+[INFO] ------------------------------------------------------------------------
+[INFO] 
+[INFO] --- jacoco-maven-plugin:0.8.1:prepare-agent (pre-test) @ mssql-jdbc ---
+[INFO] argLine set to "-javaagent:C:\\Users\\peterb\\.m2\\repository\\org\\jacoco\\org.jacoco.agent\\0.8.1\\org.jacoco.agent-0.8.1-runtime.jar=destfile=C:\\Users\\peterb\\Desktop\\git clone\\mssql-jdbc\\target\\jacoco.exec"
+[INFO] 
+[INFO] --- maven-resources-plugin:2.6:resources (default-resources) @ mssql-jdbc ---
+[INFO] Using 'UTF-8' encoding to copy filtered resources.
+[INFO] Copying 1 resource
+[INFO] 
+[INFO] --- maven-compiler-plugin:3.7.0:compile (default-compile) @ mssql-jdbc ---
+[INFO] Changes detected - recompiling the module!
+[INFO] Compiling 131 source files to C:\Users\peterb\Desktop\git clone\mssql-jdbc\target\classes
+[INFO] 
+[INFO] --- maven-bundle-plugin:3.5.0:manifest (bundle-manifest) @ mssql-jdbc ---
+[WARNING] Manifest com.microsoft.sqlserver:mssql-jdbc:jar:7.0.0-SNAPSHOT : Export com.microsoft.sqlserver.jdbc,  has 1,  private references [com.microsoft.sqlserver.jdbc.dataclassification], 
+[INFO] 
+[INFO] --- maven-resources-plugin:2.6:testResources (default-testResources) @ mssql-jdbc ---
+[INFO] Using 'UTF-8' encoding to copy filtered resources.
+[INFO] Copying 2 resources
+[INFO] skip non existing resourceDirectory C:\Users\peterb\Desktop\git clone\mssql-jdbc\AE_Certificates
+[INFO] 
+[INFO] --- maven-compiler-plugin:3.7.0:testCompile (default-testCompile) @ mssql-jdbc ---
+[INFO] Changes detected - recompiling the module!
+[INFO] Compiling 131 source files to C:\Users\peterb\Desktop\git clone\mssql-jdbc\target\test-classes
+[INFO] 
+[INFO] --- maven-surefire-plugin:2.22.0:test (default-test) @ mssql-jdbc ---
+[INFO] 
+[INFO] -------------------------------------------------------
+[INFO]  T E S T S
+[INFO] -------------------------------------------------------
+[INFO] Running com.microsoft.sqlserver.jdbc.bvt.bvtTest
+[INFO] Tests run: 19, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 1.713 s - in com.microsoft.sqlserver.jdbc.bvt.bvtTest
+[INFO] 
+[INFO] Results:
+[INFO] 
+[INFO] Tests run: 19, Failures: 0, Errors: 0, Skipped: 0
+[INFO] 
+[INFO] 
+[INFO] --- jacoco-maven-plugin:0.8.1:report (report) @ mssql-jdbc ---
+[INFO] Loading execution data file C:\Users\peterb\Desktop\git clone\mssql-jdbc\target\jacoco.exec
+[INFO] Analyzed bundle 'Microsoft JDBC Driver for SQL Server' with 346 classes
+[WARNING] Classes in bundle 'Microsoft JDBC Driver for SQL Server' do no match with execution data. For report generation the same class files must be used as at runtime.
+[WARNING] Execution data for class com/microsoft/sqlserver/jdbc/SQLServerPreparedStatement$PrepStmtBatchExecCmd does not match.
+[WARNING] Execution data for class com/microsoft/sqlserver/jdbc/SQLServerConnection$PreparedStatementHandle does not match.
+[WARNING] Execution data for class com/microsoft/sqlserver/jdbc/SQLServerConnection$1ConnectionCommand does not match.
+[WARNING] Execution data for class com/microsoft/sqlserver/jdbc/SQLServerPreparedStatement$1PreparedHandleClose does not match.
+[WARNING] Execution data for class com/microsoft/sqlserver/jdbc/SQLServerConnection$PreparedStatementCacheEvictionListener does not match.
+[WARNING] Execution data for class com/microsoft/sqlserver/jdbc/SQLServerPreparedStatement$1PrepStmtExecOutParamHandler does not match.
+[WARNING] Execution data for class com/microsoft/sqlserver/jdbc/SQLServerParameterMetaData does not match.
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD SUCCESS
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time: 22.596 s
+[INFO] Finished at: 2018-07-09T13:03:17-07:00
+[INFO] Final Memory: 33M/124M
+[INFO] ------------------------------------------------------------------------
+
+C:\Users\peterb\Desktop\git clone\mssql-jdbc>(mvn -Dtest=bvtTest test ) 
+[INFO] Scanning for projects...
+[INFO] 
+[INFO] ------------------------------------------------------------------------
+[INFO] Building Microsoft JDBC Driver for SQL Server 7.0.0-SNAPSHOT
+[INFO] ------------------------------------------------------------------------
+[INFO] 
+[INFO] --- jacoco-maven-plugin:0.8.1:prepare-agent (pre-test) @ mssql-jdbc ---
+[INFO] argLine set to "-javaagent:C:\\Users\\peterb\\.m2\\repository\\org\\jacoco\\org.jacoco.agent\\0.8.1\\org.jacoco.agent-0.8.1-runtime.jar=destfile=C:\\Users\\peterb\\Desktop\\git clone\\mssql-jdbc\\target\\jacoco.exec"
+[INFO] 
+[INFO] --- maven-resources-plugin:2.6:resources (default-resources) @ mssql-jdbc ---
+[INFO] Using 'UTF-8' encoding to copy filtered resources.
+[INFO] Copying 1 resource
+[INFO] 
+[INFO] --- maven-compiler-plugin:3.7.0:compile (default-compile) @ mssql-jdbc ---
+[INFO] Changes detected - recompiling the module!
+[INFO] Compiling 131 source files to C:\Users\peterb\Desktop\git clone\mssql-jdbc\target\classes
+[INFO] 
+[INFO] --- maven-bundle-plugin:3.5.0:manifest (bundle-manifest) @ mssql-jdbc ---
+[WARNING] Manifest com.microsoft.sqlserver:mssql-jdbc:jar:7.0.0-SNAPSHOT : Export com.microsoft.sqlserver.jdbc,  has 1,  private references [com.microsoft.sqlserver.jdbc.dataclassification], 
+[INFO] 
+[INFO] --- maven-resources-plugin:2.6:testResources (default-testResources) @ mssql-jdbc ---
+[INFO] Using 'UTF-8' encoding to copy filtered resources.
+[INFO] Copying 2 resources
+[INFO] skip non existing resourceDirectory C:\Users\peterb\Desktop\git clone\mssql-jdbc\AE_Certificates
+[INFO] 
+[INFO] --- maven-compiler-plugin:3.7.0:testCompile (default-testCompile) @ mssql-jdbc ---
+[INFO] Changes detected - recompiling the module!
+[INFO] Compiling 131 source files to C:\Users\peterb\Desktop\git clone\mssql-jdbc\target\test-classes
+[INFO] 
+[INFO] --- maven-surefire-plugin:2.22.0:test (default-test) @ mssql-jdbc ---
+[INFO] 
+[INFO] -------------------------------------------------------
+[INFO]  T E S T S
+[INFO] -------------------------------------------------------
+[INFO] Running com.microsoft.sqlserver.jdbc.bvt.bvtTest
+[INFO] Tests run: 19, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 1.451 s - in com.microsoft.sqlserver.jdbc.bvt.bvtTest
+[INFO] 
+[INFO] Results:
+[INFO] 
+[INFO] Tests run: 19, Failures: 0, Errors: 0, Skipped: 0
+[INFO] 
+[INFO] 
+[INFO] --- jacoco-maven-plugin:0.8.1:report (report) @ mssql-jdbc ---
+[INFO] Loading execution data file C:\Users\peterb\Desktop\git clone\mssql-jdbc\target\jacoco.exec
+[INFO] Analyzed bundle 'Microsoft JDBC Driver for SQL Server' with 346 classes
+[WARNING] Classes in bundle 'Microsoft JDBC Driver for SQL Server' do no match with execution data. For report generation the same class files must be used as at runtime.
+[WARNING] Execution data for class com/microsoft/sqlserver/jdbc/SQLServerPreparedStatement$PrepStmtBatchExecCmd does not match.
+[WARNING] Execution data for class com/microsoft/sqlserver/jdbc/SQLServerConnection$PreparedStatementHandle does not match.
+[WARNING] Execution data for class com/microsoft/sqlserver/jdbc/SQLServerConnection$1ConnectionCommand does not match.
+[WARNING] Execution data for class com/microsoft/sqlserver/jdbc/SQLServerPreparedStatement$1PreparedHandleClose does not match.
+[WARNING] Execution data for class com/microsoft/sqlserver/jdbc/SQLServerConnection$PreparedStatementCacheEvictionListener does not match.
+[WARNING] Execution data for class com/microsoft/sqlserver/jdbc/SQLServerPreparedStatement$1PrepStmtExecOutParamHandler does not match.
+[WARNING] Execution data for class com/microsoft/sqlserver/jdbc/SQLServerParameterMetaData does not match.
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD SUCCESS
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time: 22.882 s
+[INFO] Finished at: 2018-07-09T13:03:41-07:00
+[INFO] Final Memory: 33M/127M
+[INFO] ------------------------------------------------------------------------
+
+C:\Users\peterb\Desktop\git clone\mssql-jdbc>(mvn -Dtest=bvtTest test ) 
+[INFO] Scanning for projects...
+[INFO] 
+[INFO] ------------------------------------------------------------------------
+[INFO] Building Microsoft JDBC Driver for SQL Server 7.0.0-SNAPSHOT
+[INFO] ------------------------------------------------------------------------
+[INFO] 
+[INFO] --- jacoco-maven-plugin:0.8.1:prepare-agent (pre-test) @ mssql-jdbc ---
+[INFO] argLine set to "-javaagent:C:\\Users\\peterb\\.m2\\repository\\org\\jacoco\\org.jacoco.agent\\0.8.1\\org.jacoco.agent-0.8.1-runtime.jar=destfile=C:\\Users\\peterb\\Desktop\\git clone\\mssql-jdbc\\target\\jacoco.exec"
+[INFO] 
+[INFO] --- maven-resources-plugin:2.6:resources (default-resources) @ mssql-jdbc ---
+[INFO] Using 'UTF-8' encoding to copy filtered resources.
+[INFO] Copying 1 resource
+[INFO] 
+[INFO] --- maven-compiler-plugin:3.7.0:compile (default-compile) @ mssql-jdbc ---
+[INFO] Changes detected - recompiling the module!
+[INFO] Compiling 131 source files to C:\Users\peterb\Desktop\git clone\mssql-jdbc\target\classes
+[INFO] 
+[INFO] --- maven-bundle-plugin:3.5.0:manifest (bundle-manifest) @ mssql-jdbc ---
+[WARNING] Manifest com.microsoft.sqlserver:mssql-jdbc:jar:7.0.0-SNAPSHOT : Export com.microsoft.sqlserver.jdbc,  has 1,  private references [com.microsoft.sqlserver.jdbc.dataclassification], 
+[INFO] 
+[INFO] --- maven-resources-plugin:2.6:testResources (default-testResources) @ mssql-jdbc ---
+[INFO] Using 'UTF-8' encoding to copy filtered resources.
+[INFO] Copying 2 resources
+[INFO] skip non existing resourceDirectory C:\Users\peterb\Desktop\git clone\mssql-jdbc\AE_Certificates
+[INFO] 
+[INFO] --- maven-compiler-plugin:3.7.0:testCompile (default-testCompile) @ mssql-jdbc ---
+[INFO] Changes detected - recompiling the module!
+[INFO] Compiling 131 source files to C:\Users\peterb\Desktop\git clone\mssql-jdbc\target\test-classes
+[INFO] 
+[INFO] --- maven-surefire-plugin:2.22.0:test (default-test) @ mssql-jdbc ---
+[INFO] 
+[INFO] -------------------------------------------------------
+[INFO]  T E S T S
+[INFO] -------------------------------------------------------
+[INFO] Running com.microsoft.sqlserver.jdbc.bvt.bvtTest
+[INFO] Tests run: 19, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 1.46 s - in com.microsoft.sqlserver.jdbc.bvt.bvtTest
+[INFO] 
+[INFO] Results:
+[INFO] 
+[INFO] Tests run: 19, Failures: 0, Errors: 0, Skipped: 0
+[INFO] 
+[INFO] 
+[INFO] --- jacoco-maven-plugin:0.8.1:report (report) @ mssql-jdbc ---
+[INFO] Loading execution data file C:\Users\peterb\Desktop\git clone\mssql-jdbc\target\jacoco.exec
+[INFO] Analyzed bundle 'Microsoft JDBC Driver for SQL Server' with 346 classes
+[WARNING] Classes in bundle 'Microsoft JDBC Driver for SQL Server' do no match with execution data. For report generation the same class files must be used as at runtime.
+[WARNING] Execution data for class com/microsoft/sqlserver/jdbc/SQLServerPreparedStatement$PrepStmtBatchExecCmd does not match.
+[WARNING] Execution data for class com/microsoft/sqlserver/jdbc/SQLServerConnection$PreparedStatementHandle does not match.
+[WARNING] Execution data for class com/microsoft/sqlserver/jdbc/SQLServerConnection$1ConnectionCommand does not match.
+[WARNING] Execution data for class com/microsoft/sqlserver/jdbc/SQLServerPreparedStatement$1PreparedHandleClose does not match.
+[WARNING] Execution data for class com/microsoft/sqlserver/jdbc/SQLServerConnection$PreparedStatementCacheEvictionListener does not match.
+[WARNING] Execution data for class com/microsoft/sqlserver/jdbc/SQLServerPreparedStatement$1PrepStmtExecOutParamHandler does not match.
+[WARNING] Execution data for class com/microsoft/sqlserver/jdbc/SQLServerParameterMetaData does not match.
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD SUCCESS
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time: 20.871 s
+[INFO] Finished at: 2018-07-09T13:04:03-07:00
+[INFO] Final Memory: 33M/124M
+[INFO] ------------------------------------------------------------------------
+
+C:\Users\peterb\Desktop\git clone\mssql-jdbc>(mvn -Dtest=bvtTest test ) 
+[INFO] Scanning for projects...
+[INFO] 
+[INFO] ------------------------------------------------------------------------
+[INFO] Building Microsoft JDBC Driver for SQL Server 7.0.0-SNAPSHOT
+[INFO] ------------------------------------------------------------------------
+[INFO] 
+[INFO] --- jacoco-maven-plugin:0.8.1:prepare-agent (pre-test) @ mssql-jdbc ---
+[INFO] argLine set to "-javaagent:C:\\Users\\peterb\\.m2\\repository\\org\\jacoco\\org.jacoco.agent\\0.8.1\\org.jacoco.agent-0.8.1-runtime.jar=destfile=C:\\Users\\peterb\\Desktop\\git clone\\mssql-jdbc\\target\\jacoco.exec"
+[INFO] 
+[INFO] --- maven-resources-plugin:2.6:resources (default-resources) @ mssql-jdbc ---
+[INFO] Using 'UTF-8' encoding to copy filtered resources.
+[INFO] Copying 1 resource
+[INFO] 
+[INFO] --- maven-compiler-plugin:3.7.0:compile (default-compile) @ mssql-jdbc ---
+[INFO] Changes detected - recompiling the module!
+[INFO] Compiling 131 source files to C:\Users\peterb\Desktop\git clone\mssql-jdbc\target\classes
+[INFO] 
+[INFO] --- maven-bundle-plugin:3.5.0:manifest (bundle-manifest) @ mssql-jdbc ---
+[WARNING] Manifest com.microsoft.sqlserver:mssql-jdbc:jar:7.0.0-SNAPSHOT : Export com.microsoft.sqlserver.jdbc,  has 1,  private references [com.microsoft.sqlserver.jdbc.dataclassification], 
+[INFO] 
+[INFO] --- maven-resources-plugin:2.6:testResources (default-testResources) @ mssql-jdbc ---
+[INFO] Using 'UTF-8' encoding to copy filtered resources.
+[INFO] Copying 2 resources
+[INFO] skip non existing resourceDirectory C:\Users\peterb\Desktop\git clone\mssql-jdbc\AE_Certificates
+[INFO] 
+[INFO] --- maven-compiler-plugin:3.7.0:testCompile (default-testCompile) @ mssql-jdbc ---
+[INFO] Changes detected - recompiling the module!
+[INFO] Compiling 131 source files to C:\Users\peterb\Desktop\git clone\mssql-jdbc\target\test-classes
+[INFO] 
+[INFO] --- maven-surefire-plugin:2.22.0:test (default-test) @ mssql-jdbc ---
+[INFO] 
+[INFO] -------------------------------------------------------
+[INFO]  T E S T S
+[INFO] -------------------------------------------------------
+[INFO] Running com.microsoft.sqlserver.jdbc.bvt.bvtTest
+[INFO] Tests run: 19, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 1.648 s - in com.microsoft.sqlserver.jdbc.bvt.bvtTest
+[INFO] 
+[INFO] Results:
+[INFO] 
+[INFO] Tests run: 19, Failures: 0, Errors: 0, Skipped: 0
+[INFO] 
+[INFO] 
+[INFO] --- jacoco-maven-plugin:0.8.1:report (report) @ mssql-jdbc ---
+[INFO] Loading execution data file C:\Users\peterb\Desktop\git clone\mssql-jdbc\target\jacoco.exec
+[INFO] Analyzed bundle 'Microsoft JDBC Driver for SQL Server' with 346 classes
+[WARNING] Classes in bundle 'Microsoft JDBC Driver for SQL Server' do no match with execution data. For report generation the same class files must be used as at runtime.
+[WARNING] Execution data for class com/microsoft/sqlserver/jdbc/SQLServerPreparedStatement$PrepStmtBatchExecCmd does not match.
+[WARNING] Execution data for class com/microsoft/sqlserver/jdbc/SQLServerConnection$PreparedStatementHandle does not match.
+[WARNING] Execution data for class com/microsoft/sqlserver/jdbc/SQLServerConnection$1ConnectionCommand does not match.
+[WARNING] Execution data for class com/microsoft/sqlserver/jdbc/SQLServerPreparedStatement$1PreparedHandleClose does not match.
+[WARNING] Execution data for class com/microsoft/sqlserver/jdbc/SQLServerConnection$PreparedStatementCacheEvictionListener does not match.
+[WARNING] Execution data for class com/microsoft/sqlserver/jdbc/SQLServerPreparedStatement$1PrepStmtExecOutParamHandler does not match.
+[WARNING] Execution data for class com/microsoft/sqlserver/jdbc/SQLServerParameterMetaData does not match.
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD SUCCESS
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time: 22.466 s
+[INFO] Finished at: 2018-07-09T13:04:27-07:00
+[INFO] Final Memory: 33M/127M
+[INFO] ------------------------------------------------------------------------
+
+C:\Users\peterb\Desktop\git clone\mssql-jdbc>(mvn -Dtest=bvtTest test ) 
+[INFO] Scanning for projects...
+[INFO] 
+[INFO] ------------------------------------------------------------------------
+[INFO] Building Microsoft JDBC Driver for SQL Server 7.0.0-SNAPSHOT
+[INFO] ------------------------------------------------------------------------
+[INFO] 
+[INFO] --- jacoco-maven-plugin:0.8.1:prepare-agent (pre-test) @ mssql-jdbc ---
+[INFO] argLine set to "-javaagent:C:\\Users\\peterb\\.m2\\repository\\org\\jacoco\\org.jacoco.agent\\0.8.1\\org.jacoco.agent-0.8.1-runtime.jar=destfile=C:\\Users\\peterb\\Desktop\\git clone\\mssql-jdbc\\target\\jacoco.exec"
+[INFO] 
+[INFO] --- maven-resources-plugin:2.6:resources (default-resources) @ mssql-jdbc ---
+[INFO] Using 'UTF-8' encoding to copy filtered resources.
+[INFO] Copying 1 resource
+[INFO] 
+[INFO] --- maven-compiler-plugin:3.7.0:compile (default-compile) @ mssql-jdbc ---
+[INFO] Changes detected - recompiling the module!
+[INFO] Compiling 131 source files to C:\Users\peterb\Desktop\git clone\mssql-jdbc\target\classes
+[INFO] 
+[INFO] --- maven-bundle-plugin:3.5.0:manifest (bundle-manifest) @ mssql-jdbc ---
+[WARNING] Manifest com.microsoft.sqlserver:mssql-jdbc:jar:7.0.0-SNAPSHOT : Export com.microsoft.sqlserver.jdbc,  has 1,  private references [com.microsoft.sqlserver.jdbc.dataclassification], 
+[INFO] 
+[INFO] --- maven-resources-plugin:2.6:testResources (default-testResources) @ mssql-jdbc ---
+[INFO] Using 'UTF-8' encoding to copy filtered resources.
+[INFO] Copying 2 resources
+[INFO] skip non existing resourceDirectory C:\Users\peterb\Desktop\git clone\mssql-jdbc\AE_Certificates
+[INFO] 
+[INFO] --- maven-compiler-plugin:3.7.0:testCompile (default-testCompile) @ mssql-jdbc ---
+[INFO] Changes detected - recompiling the module!
+[INFO] Compiling 131 source files to C:\Users\peterb\Desktop\git clone\mssql-jdbc\target\test-classes
+[INFO] 
+[INFO] --- maven-surefire-plugin:2.22.0:test (default-test) @ mssql-jdbc ---
+[INFO] 
+[INFO] -------------------------------------------------------
+[INFO]  T E S T S
+[INFO] -------------------------------------------------------
+[INFO] Running com.microsoft.sqlserver.jdbc.bvt.bvtTest
+[INFO] Tests run: 19, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 1.486 s - in com.microsoft.sqlserver.jdbc.bvt.bvtTest
+[INFO] 
+[INFO] Results:
+[INFO] 
+[INFO] Tests run: 19, Failures: 0, Errors: 0, Skipped: 0
+[INFO] 
+[INFO] 
+[INFO] --- jacoco-maven-plugin:0.8.1:report (report) @ mssql-jdbc ---
+[INFO] Loading execution data file C:\Users\peterb\Desktop\git clone\mssql-jdbc\target\jacoco.exec
+[INFO] Analyzed bundle 'Microsoft JDBC Driver for SQL Server' with 346 classes
+[WARNING] Classes in bundle 'Microsoft JDBC Driver for SQL Server' do no match with execution data. For report generation the same class files must be used as at runtime.
+[WARNING] Execution data for class com/microsoft/sqlserver/jdbc/SQLServerPreparedStatement$PrepStmtBatchExecCmd does not match.
+[WARNING] Execution data for class com/microsoft/sqlserver/jdbc/SQLServerConnection$PreparedStatementHandle does not match.
+[WARNING] Execution data for class com/microsoft/sqlserver/jdbc/SQLServerConnection$1ConnectionCommand does not match.
+[WARNING] Execution data for class com/microsoft/sqlserver/jdbc/SQLServerPreparedStatement$1PreparedHandleClose does not match.
+[WARNING] Execution data for class com/microsoft/sqlserver/jdbc/SQLServerConnection$PreparedStatementCacheEvictionListener does not match.
+[WARNING] Execution data for class com/microsoft/sqlserver/jdbc/SQLServerPreparedStatement$1PrepStmtExecOutParamHandler does not match.
+[WARNING] Execution data for class com/microsoft/sqlserver/jdbc/SQLServerParameterMetaData does not match.
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD SUCCESS
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time: 21.442 s
+[INFO] Finished at: 2018-07-09T13:04:50-07:00
+[INFO] Final Memory: 33M/124M
+[INFO] ------------------------------------------------------------------------
+
+C:\Users\peterb\Desktop\git clone\mssql-jdbc>(mvn -Dtest=bvtTest test ) 
+[INFO] Scanning for projects...
+[INFO] 
+[INFO] ------------------------------------------------------------------------
+[INFO] Building Microsoft JDBC Driver for SQL Server 7.0.0-SNAPSHOT
+[INFO] ------------------------------------------------------------------------
+[INFO] 
+[INFO] --- jacoco-maven-plugin:0.8.1:prepare-agent (pre-test) @ mssql-jdbc ---
+[INFO] argLine set to "-javaagent:C:\\Users\\peterb\\.m2\\repository\\org\\jacoco\\org.jacoco.agent\\0.8.1\\org.jacoco.agent-0.8.1-runtime.jar=destfile=C:\\Users\\peterb\\Desktop\\git clone\\mssql-jdbc\\target\\jacoco.exec"
+[INFO] 
+[INFO] --- maven-resources-plugin:2.6:resources (default-resources) @ mssql-jdbc ---
+[INFO] Using 'UTF-8' encoding to copy filtered resources.
+[INFO] Copying 1 resource
+[INFO] 
+[INFO] --- maven-compiler-plugin:3.7.0:compile (default-compile) @ mssql-jdbc ---
+[INFO] Changes detected - recompiling the module!
+[INFO] Compiling 131 source files to C:\Users\peterb\Desktop\git clone\mssql-jdbc\target\classes
+[INFO] 
+[INFO] --- maven-bundle-plugin:3.5.0:manifest (bundle-manifest) @ mssql-jdbc ---
+[WARNING] Manifest com.microsoft.sqlserver:mssql-jdbc:jar:7.0.0-SNAPSHOT : Export com.microsoft.sqlserver.jdbc,  has 1,  private references [com.microsoft.sqlserver.jdbc.dataclassification], 
+[INFO] 
+[INFO] --- maven-resources-plugin:2.6:testResources (default-testResources) @ mssql-jdbc ---
+[INFO] Using 'UTF-8' encoding to copy filtered resources.
+[INFO] Copying 2 resources
+[INFO] skip non existing resourceDirectory C:\Users\peterb\Desktop\git clone\mssql-jdbc\AE_Certificates
+[INFO] 
+[INFO] --- maven-compiler-plugin:3.7.0:testCompile (default-testCompile) @ mssql-jdbc ---
+[INFO] Changes detected - recompiling the module!
+[INFO] Compiling 131 source files to C:\Users\peterb\Desktop\git clone\mssql-jdbc\target\test-classes
+[INFO] 
+[INFO] --- maven-surefire-plugin:2.22.0:test (default-test) @ mssql-jdbc ---
+[INFO] 
+[INFO] -------------------------------------------------------
+[INFO]  T E S T S
+[INFO] -------------------------------------------------------
+[INFO] Running com.microsoft.sqlserver.jdbc.bvt.bvtTest
+[INFO] Tests run: 19, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 1.619 s - in com.microsoft.sqlserver.jdbc.bvt.bvtTest
+[INFO] 
+[INFO] Results:
+[INFO] 
+[INFO] Tests run: 19, Failures: 0, Errors: 0, Skipped: 0
+[INFO] 
+[INFO] 
+[INFO] --- jacoco-maven-plugin:0.8.1:report (report) @ mssql-jdbc ---
+[INFO] Loading execution data file C:\Users\peterb\Desktop\git clone\mssql-jdbc\target\jacoco.exec
+[INFO] Analyzed bundle 'Microsoft JDBC Driver for SQL Server' with 346 classes
+[WARNING] Classes in bundle 'Microsoft JDBC Driver for SQL Server' do no match with execution data. For report generation the same class files must be used as at runtime.
+[WARNING] Execution data for class com/microsoft/sqlserver/jdbc/SQLServerPreparedStatement$PrepStmtBatchExecCmd does not match.
+[WARNING] Execution data for class com/microsoft/sqlserver/jdbc/SQLServerConnection$PreparedStatementHandle does not match.
+[WARNING] Execution data for class com/microsoft/sqlserver/jdbc/SQLServerConnection$1ConnectionCommand does not match.
+[WARNING] Execution data for class com/microsoft/sqlserver/jdbc/SQLServerPreparedStatement$1PreparedHandleClose does not match.
+[WARNING] Execution data for class com/microsoft/sqlserver/jdbc/SQLServerConnection$PreparedStatementCacheEvictionListener does not match.
+[WARNING] Execution data for class com/microsoft/sqlserver/jdbc/SQLServerPreparedStatement$1PrepStmtExecOutParamHandler does not match.
+[WARNING] Execution data for class com/microsoft/sqlserver/jdbc/SQLServerParameterMetaData does not match.
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD SUCCESS
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time: 21.745 s
+[INFO] Finished at: 2018-07-09T13:05:13-07:00
+[INFO] Final Memory: 33M/124M
+[INFO] ------------------------------------------------------------------------
+
+C:\Users\peterb\Desktop\git clone\mssql-jdbc>(mvn -Dtest=bvtTest test ) 
+[INFO] Scanning for projects...
+[INFO] 
+[INFO] ------------------------------------------------------------------------
+[INFO] Building Microsoft JDBC Driver for SQL Server 7.0.0-SNAPSHOT
+[INFO] ------------------------------------------------------------------------
+[INFO] 
+[INFO] --- jacoco-maven-plugin:0.8.1:prepare-agent (pre-test) @ mssql-jdbc ---
+[INFO] argLine set to "-javaagent:C:\\Users\\peterb\\.m2\\repository\\org\\jacoco\\org.jacoco.agent\\0.8.1\\org.jacoco.agent-0.8.1-runtime.jar=destfile=C:\\Users\\peterb\\Desktop\\git clone\\mssql-jdbc\\target\\jacoco.exec"
+[INFO] 
+[INFO] --- maven-resources-plugin:2.6:resources (default-resources) @ mssql-jdbc ---
+[INFO] Using 'UTF-8' encoding to copy filtered resources.
+[INFO] Copying 1 resource
+[INFO] 
+[INFO] --- maven-compiler-plugin:3.7.0:compile (default-compile) @ mssql-jdbc ---
+[INFO] Changes detected - recompiling the module!
+[INFO] Compiling 131 source files to C:\Users\peterb\Desktop\git clone\mssql-jdbc\target\classes
+[INFO] 
+[INFO] --- maven-bundle-plugin:3.5.0:manifest (bundle-manifest) @ mssql-jdbc ---
+[WARNING] Manifest com.microsoft.sqlserver:mssql-jdbc:jar:7.0.0-SNAPSHOT : Export com.microsoft.sqlserver.jdbc,  has 1,  private references [com.microsoft.sqlserver.jdbc.dataclassification], 
+[INFO] 
+[INFO] --- maven-resources-plugin:2.6:testResources (default-testResources) @ mssql-jdbc ---
+[INFO] Using 'UTF-8' encoding to copy filtered resources.
+[INFO] Copying 2 resources
+[INFO] skip non existing resourceDirectory C:\Users\peterb\Desktop\git clone\mssql-jdbc\AE_Certificates
+[INFO] 
+[INFO] --- maven-compiler-plugin:3.7.0:testCompile (default-testCompile) @ mssql-jdbc ---
+[INFO] Changes detected - recompiling the module!
+[INFO] Compiling 131 source files to C:\Users\peterb\Desktop\git clone\mssql-jdbc\target\test-classes
+[INFO] 
+[INFO] --- maven-surefire-plugin:2.22.0:test (default-test) @ mssql-jdbc ---
+[INFO] 
+[INFO] -------------------------------------------------------
+[INFO]  T E S T S
+[INFO] -------------------------------------------------------
+[INFO] Running com.microsoft.sqlserver.jdbc.bvt.bvtTest
+[INFO] Tests run: 19, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 1.782 s - in com.microsoft.sqlserver.jdbc.bvt.bvtTest
+[INFO] 
+[INFO] Results:
+[INFO] 
+[INFO] Tests run: 19, Failures: 0, Errors: 0, Skipped: 0
+[INFO] 
+[INFO] 
+[INFO] --- jacoco-maven-plugin:0.8.1:report (report) @ mssql-jdbc ---
+[INFO] Loading execution data file C:\Users\peterb\Desktop\git clone\mssql-jdbc\target\jacoco.exec
+[INFO] Analyzed bundle 'Microsoft JDBC Driver for SQL Server' with 346 classes
+[WARNING] Classes in bundle 'Microsoft JDBC Driver for SQL Server' do no match with execution data. For report generation the same class files must be used as at runtime.
+[WARNING] Execution data for class com/microsoft/sqlserver/jdbc/SQLServerPreparedStatement$PrepStmtBatchExecCmd does not match.
+[WARNING] Execution data for class com/microsoft/sqlserver/jdbc/SQLServerConnection$PreparedStatementHandle does not match.
+[WARNING] Execution data for class com/microsoft/sqlserver/jdbc/SQLServerConnection$1ConnectionCommand does not match.
+[WARNING] Execution data for class com/microsoft/sqlserver/jdbc/SQLServerPreparedStatement$1PreparedHandleClose does not match.
+[WARNING] Execution data for class com/microsoft/sqlserver/jdbc/SQLServerConnection$PreparedStatementCacheEvictionListener does not match.
+[WARNING] Execution data for class com/microsoft/sqlserver/jdbc/SQLServerPreparedStatement$1PrepStmtExecOutParamHandler does not match.
+[WARNING] Execution data for class com/microsoft/sqlserver/jdbc/SQLServerParameterMetaData does not match.
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD SUCCESS
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time: 22.312 s
+[INFO] Finished at: 2018-07-09T13:05:36-07:00
+[INFO] Final Memory: 33M/124M
+[INFO] ------------------------------------------------------------------------
+
+C:\Users\peterb\Desktop\git clone\mssql-jdbc>(mvn -Dtest=bvtTest test ) 
+[INFO] Scanning for projects...
+[INFO] 
+[INFO] ------------------------------------------------------------------------
+[INFO] Building Microsoft JDBC Driver for SQL Server 7.0.0-SNAPSHOT
+[INFO] ------------------------------------------------------------------------
+[INFO] 
+[INFO] --- jacoco-maven-plugin:0.8.1:prepare-agent (pre-test) @ mssql-jdbc ---
+[INFO] argLine set to "-javaagent:C:\\Users\\peterb\\.m2\\repository\\org\\jacoco\\org.jacoco.agent\\0.8.1\\org.jacoco.agent-0.8.1-runtime.jar=destfile=C:\\Users\\peterb\\Desktop\\git clone\\mssql-jdbc\\target\\jacoco.exec"
+[INFO] 
+[INFO] --- maven-resources-plugin:2.6:resources (default-resources) @ mssql-jdbc ---
+[INFO] Using 'UTF-8' encoding to copy filtered resources.
+[INFO] Copying 1 resource
+[INFO] 
+[INFO] --- maven-compiler-plugin:3.7.0:compile (default-compile) @ mssql-jdbc ---
+[INFO] Changes detected - recompiling the module!
+[INFO] Compiling 131 source files to C:\Users\peterb\Desktop\git clone\mssql-jdbc\target\classes
+[INFO] 
+[INFO] --- maven-bundle-plugin:3.5.0:manifest (bundle-manifest) @ mssql-jdbc ---
+[WARNING] Manifest com.microsoft.sqlserver:mssql-jdbc:jar:7.0.0-SNAPSHOT : Export com.microsoft.sqlserver.jdbc,  has 1,  private references [com.microsoft.sqlserver.jdbc.dataclassification], 
+[INFO] 
+[INFO] --- maven-resources-plugin:2.6:testResources (default-testResources) @ mssql-jdbc ---
+[INFO] Using 'UTF-8' encoding to copy filtered resources.
+[INFO] Copying 2 resources
+[INFO] skip non existing resourceDirectory C:\Users\peterb\Desktop\git clone\mssql-jdbc\AE_Certificates
+[INFO] 
+[INFO] --- maven-compiler-plugin:3.7.0:testCompile (default-testCompile) @ mssql-jdbc ---
+[INFO] Changes detected - recompiling the module!
+[INFO] Compiling 131 source files to C:\Users\peterb\Desktop\git clone\mssql-jdbc\target\test-classes
+[INFO] 
+[INFO] --- maven-surefire-plugin:2.22.0:test (default-test) @ mssql-jdbc ---
+[INFO] 
+[INFO] -------------------------------------------------------
+[INFO]  T E S T S
+[INFO] -------------------------------------------------------
+[INFO] Running com.microsoft.sqlserver.jdbc.bvt.bvtTest
+[INFO] Tests run: 19, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 1.605 s - in com.microsoft.sqlserver.jdbc.bvt.bvtTest
+[INFO] 
+[INFO] Results:
+[INFO] 
+[INFO] Tests run: 19, Failures: 0, Errors: 0, Skipped: 0
+[INFO] 
+[INFO] 
+[INFO] --- jacoco-maven-plugin:0.8.1:report (report) @ mssql-jdbc ---
+[INFO] Loading execution data file C:\Users\peterb\Desktop\git clone\mssql-jdbc\target\jacoco.exec
+[INFO] Analyzed bundle 'Microsoft JDBC Driver for SQL Server' with 346 classes
+[WARNING] Classes in bundle 'Microsoft JDBC Driver for SQL Server' do no match with execution data. For report generation the same class files must be used as at runtime.
+[WARNING] Execution data for class com/microsoft/sqlserver/jdbc/SQLServerPreparedStatement$PrepStmtBatchExecCmd does not match.
+[WARNING] Execution data for class com/microsoft/sqlserver/jdbc/SQLServerConnection$PreparedStatementHandle does not match.
+[WARNING] Execution data for class com/microsoft/sqlserver/jdbc/SQLServerConnection$1ConnectionCommand does not match.
+[WARNING] Execution data for class com/microsoft/sqlserver/jdbc/SQLServerPreparedStatement$1PreparedHandleClose does not match.
+[WARNING] Execution data for class com/microsoft/sqlserver/jdbc/SQLServerConnection$PreparedStatementCacheEvictionListener does not match.
+[WARNING] Execution data for class com/microsoft/sqlserver/jdbc/SQLServerPreparedStatement$1PrepStmtExecOutParamHandler does not match.
+[WARNING] Execution data for class com/microsoft/sqlserver/jdbc/SQLServerParameterMetaData does not match.
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD SUCCESS
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time: 22.673 s
+[INFO] Finished at: 2018-07-09T13:06:00-07:00
+[INFO] Final Memory: 33M/124M
+[INFO] ------------------------------------------------------------------------
+
+C:\Users\peterb\Desktop\git clone\mssql-jdbc>(mvn -Dtest=bvtTest test ) 
+[INFO] Scanning for projects...
+[INFO] 
+[INFO] ------------------------------------------------------------------------
+[INFO] Building Microsoft JDBC Driver for SQL Server 7.0.0-SNAPSHOT
+[INFO] ------------------------------------------------------------------------
+[INFO] 
+[INFO] --- jacoco-maven-plugin:0.8.1:prepare-agent (pre-test) @ mssql-jdbc ---
+[INFO] argLine set to "-javaagent:C:\\Users\\peterb\\.m2\\repository\\org\\jacoco\\org.jacoco.agent\\0.8.1\\org.jacoco.agent-0.8.1-runtime.jar=destfile=C:\\Users\\peterb\\Desktop\\git clone\\mssql-jdbc\\target\\jacoco.exec"
+[INFO] 
+[INFO] --- maven-resources-plugin:2.6:resources (default-resources) @ mssql-jdbc ---
+[INFO] Using 'UTF-8' encoding to copy filtered resources.
+[INFO] Copying 1 resource
+[INFO] 
+[INFO] --- maven-compiler-plugin:3.7.0:compile (default-compile) @ mssql-jdbc ---
+[INFO] Changes detected - recompiling the module!
+[INFO] Compiling 131 source files to C:\Users\peterb\Desktop\git clone\mssql-jdbc\target\classes
+[INFO] 
+[INFO] --- maven-bundle-plugin:3.5.0:manifest (bundle-manifest) @ mssql-jdbc ---
+[WARNING] Manifest com.microsoft.sqlserver:mssql-jdbc:jar:7.0.0-SNAPSHOT : Export com.microsoft.sqlserver.jdbc,  has 1,  private references [com.microsoft.sqlserver.jdbc.dataclassification], 
+[INFO] 
+[INFO] --- maven-resources-plugin:2.6:testResources (default-testResources) @ mssql-jdbc ---
+[INFO] Using 'UTF-8' encoding to copy filtered resources.
+[INFO] Copying 2 resources
+[INFO] skip non existing resourceDirectory C:\Users\peterb\Desktop\git clone\mssql-jdbc\AE_Certificates
+[INFO] 
+[INFO] --- maven-compiler-plugin:3.7.0:testCompile (default-testCompile) @ mssql-jdbc ---
+[INFO] Changes detected - recompiling the module!
+[INFO] Compiling 131 source files to C:\Users\peterb\Desktop\git clone\mssql-jdbc\target\test-classes
+[INFO] 
+[INFO] --- maven-surefire-plugin:2.22.0:test (default-test) @ mssql-jdbc ---
+[INFO] 
+[INFO] -------------------------------------------------------
+[INFO]  T E S T S
+[INFO] -------------------------------------------------------
+[INFO] Running com.microsoft.sqlserver.jdbc.bvt.bvtTest
+[INFO] Tests run: 19, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 1.863 s - in com.microsoft.sqlserver.jdbc.bvt.bvtTest
+[INFO] 
+[INFO] Results:
+[INFO] 
+[INFO] Tests run: 19, Failures: 0, Errors: 0, Skipped: 0
+[INFO] 
+[INFO] 
+[INFO] --- jacoco-maven-plugin:0.8.1:report (report) @ mssql-jdbc ---
+[INFO] Loading execution data file C:\Users\peterb\Desktop\git clone\mssql-jdbc\target\jacoco.exec
+[INFO] Analyzed bundle 'Microsoft JDBC Driver for SQL Server' with 346 classes
+[WARNING] Classes in bundle 'Microsoft JDBC Driver for SQL Server' do no match with execution data. For report generation the same class files must be used as at runtime.
+[WARNING] Execution data for class com/microsoft/sqlserver/jdbc/SQLServerPreparedStatement$PrepStmtBatchExecCmd does not match.
+[WARNING] Execution data for class com/microsoft/sqlserver/jdbc/SQLServerConnection$PreparedStatementHandle does not match.
+[WARNING] Execution data for class com/microsoft/sqlserver/jdbc/SQLServerConnection$1ConnectionCommand does not match.
+[WARNING] Execution data for class com/microsoft/sqlserver/jdbc/SQLServerPreparedStatement$1PreparedHandleClose does not match.
+[WARNING] Execution data for class com/microsoft/sqlserver/jdbc/SQLServerConnection$PreparedStatementCacheEvictionListener does not match.
+[WARNING] Execution data for class com/microsoft/sqlserver/jdbc/SQLServerPreparedStatement$1PrepStmtExecOutParamHandler does not match.
+[WARNING] Execution data for class com/microsoft/sqlserver/jdbc/SQLServerParameterMetaData does not match.
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD SUCCESS
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time: 23.182 s
+[INFO] Finished at: 2018-07-09T13:06:25-07:00
+[INFO] Final Memory: 33M/124M
+[INFO] ------------------------------------------------------------------------
