@@ -2373,13 +2373,24 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
             returnValue = getTime(columnIndex);
         } else if (type == java.sql.Timestamp.class) {
             returnValue = getTimestamp(columnIndex);
-        } else if (type == java.time.LocalDateTime.class) {
-            returnValue = null;
+        } else if (type == java.time.LocalDateTime.class 
+                || type == java.time.LocalDate.class 
+                || type == java.time.LocalTime.class) {
             java.sql.Timestamp ts = getTimestamp(columnIndex,
                     Calendar.getInstance(java.util.TimeZone.getTimeZone("UTC")));
-            if (ts != null) {
-                returnValue = java.time.LocalDateTime.ofInstant(ts.toInstant(), 
-                        java.time.ZoneId.of("UTC"));
+            if (ts == null) {
+                returnValue = null;
+            } else {
+                if (type == java.time.LocalDateTime.class) {
+                    returnValue = java.time.LocalDateTime.ofInstant(ts.toInstant(), 
+                            java.time.ZoneId.of("UTC"));
+                } else if (type == java.time.LocalDate.class) {
+                    returnValue = java.time.LocalDate.ofInstant(ts.toInstant(), 
+                            java.time.ZoneId.of("UTC"));
+                } else {
+                    returnValue = java.time.LocalTime.ofInstant(ts.toInstant(), 
+                            java.time.ZoneId.of("UTC"));
+                }
             }
         } else if (type == microsoft.sql.DateTimeOffset.class) {
             returnValue = getDateTimeOffset(columnIndex);

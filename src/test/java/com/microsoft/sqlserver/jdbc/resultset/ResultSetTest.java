@@ -21,7 +21,9 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.SQLXML;
 import java.sql.Statement;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.util.TimeZone;
 import java.util.UUID;
 
@@ -253,19 +255,30 @@ public class ResultSetTest extends AbstractTest {
             TimeZone prevTimeZone = TimeZone.getDefault();
             TimeZone.setDefault(TimeZone.getTimeZone("America/Edmonton"));
             
-            // a local date/time that does not actually exist because of Daylight Saving Time 
-            final String testValue = "2018-03-11T02:00:00.1234567";
+            // a local date/time that does not actually exist because of Daylight Saving Time
+            final String testValueDate = "2018-03-11";
+            final String testValueTime = "02:00:00.1234567";
+            final String testValueDateTime = testValueDate + "T" + testValueTime;
             
             stmt.executeUpdate(
                     "CREATE TABLE " + tableName + " (id INT PRIMARY KEY, dt2 DATETIME2)");
             stmt.executeUpdate(
-                    "INSERT INTO " + tableName + " (id, dt2) VALUES (1, '" + testValue + "')");
+                    "INSERT INTO " + tableName + " (id, dt2) VALUES (1, '" + testValueDateTime + "')");
 
             try (ResultSet rs = stmt.executeQuery("SELECT dt2 FROM " + tableName + " WHERE id=1")) {
                 rs.next();
-                LocalDateTime actual = rs.getObject(1, LocalDateTime.class);
-                LocalDateTime expected = LocalDateTime.parse(testValue);
-                assertEquals(expected, actual);
+                
+                LocalDateTime expectedLocalDateTime = LocalDateTime.parse(testValueDateTime);
+                LocalDateTime actualLocalDateTime = rs.getObject(1, LocalDateTime.class);
+                assertEquals(expectedLocalDateTime, actualLocalDateTime);
+                
+                LocalDate expectedLocalDate = LocalDate.parse(testValueDate);
+                LocalDate actualLocalDate = rs.getObject(1, LocalDate.class);
+                assertEquals(expectedLocalDate, actualLocalDate);
+                
+                LocalTime expectedLocalTime = LocalTime.parse(testValueTime);
+                LocalTime actualLocalTime = rs.getObject(1, LocalTime.class);
+                assertEquals(expectedLocalTime, actualLocalTime);
             } finally {
                 Utils.dropTableIfExists(tableName, stmt);
                 TimeZone.setDefault(prevTimeZone);
