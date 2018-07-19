@@ -11,6 +11,10 @@ import java.nio.ByteOrder;
 import java.text.MessageFormat;
 
 
+/**
+ * Geography datatype represents data in a round-earth coordinate system.
+ */
+
 public class Geography extends SQLServerSpatialDatatype {
 
     /**
@@ -58,7 +62,7 @@ public class Geography extends SQLServerSpatialDatatype {
             Object[] msgArgs = {JDBCType.VARBINARY};
             throw new SQLServerException(this, form.format(msgArgs), null, 0, false);
         }
-        
+
         WKTsb = new StringBuffer();
         WKTsbNoZM = new StringBuffer();
 
@@ -70,8 +74,8 @@ public class Geography extends SQLServerSpatialDatatype {
     }
 
     /**
-     * Returns a Geography instance from an Open Geospatial Consortium (OGC) Well-Known Text (WKT) representation
-     * augmented with any Z (elevation) and M (measure) values carried by the instance.
+     * Constructor for a Geography instance from an Open Geospatial Consortium (OGC) Well-Known Text (WKT)
+     * representation augmented with any Z (elevation) and M (measure) values carried by the instance.
      * 
      * @param wkt
      *        Well-Known Text (WKT) provided by the user.
@@ -86,7 +90,8 @@ public class Geography extends SQLServerSpatialDatatype {
     }
 
     /**
-     * Returns a Geography instance from an Open Geospatial Consortium (OGC) Well-Known Binary (WKB) representation.
+     * Constructor for a Geography instance from an Open Geospatial Consortium (OGC) Well-Known Binary (WKB)
+     * representation.
      * 
      * @param wkb
      *        Well-Known Binary (WKB) provided by the user.
@@ -99,7 +104,7 @@ public class Geography extends SQLServerSpatialDatatype {
     }
 
     /**
-     * Returns a constructed Geography from an internal SQL Server format for spatial data.
+     * Constructor for a Geography instance from an internal SQL Server format for spatial data.
      * 
      * @param wkb
      *        Well-Known Binary (WKB) provided by the user.
@@ -112,8 +117,8 @@ public class Geography extends SQLServerSpatialDatatype {
     }
 
     /**
-     * Returns a Geography instance from an Open Geospatial Consortium (OGC) Well-Known Text (WKT) representation. SRID
-     * is defaulted to 4326.
+     * Constructor for a Geography instance from an Open Geospatial Consortium (OGC) Well-Known Text (WKT)
+     * representation. SRID is defaulted to 4326.
      * 
      * @param wkt
      *        Well-Known Text (WKT) provided by the user.
@@ -126,7 +131,7 @@ public class Geography extends SQLServerSpatialDatatype {
     }
 
     /**
-     * Constructs a Geography instance that represents a Point instance from its X and Y values and an SRID.
+     * Constructor for a Geography instance that represents a Point instance from its X and Y values and an SRID.
      * 
      * @param x
      *        x coordinate
@@ -206,7 +211,7 @@ public class Geography extends SQLServerSpatialDatatype {
     }
 
     /**
-     * Returns the X coordinate value.
+     * Gets the X coordinate value.
      * 
      * @return double value that represents the X coordinate.
      */
@@ -218,7 +223,7 @@ public class Geography extends SQLServerSpatialDatatype {
     }
 
     /**
-     * Returns the Y coordinate value.
+     * Gets the Y coordinate value.
      * 
      * @return double value that represents the Y coordinate.
      */
@@ -230,7 +235,7 @@ public class Geography extends SQLServerSpatialDatatype {
     }
 
     /**
-     * Returns the M (measure) value of the object.
+     * Gets the M (measure) value of the object.
      * 
      * @return double value that represents the M value.
      */
@@ -242,7 +247,7 @@ public class Geography extends SQLServerSpatialDatatype {
     }
 
     /**
-     * Returns the Z (elevation) value of the object.
+     * Gets the Z (elevation) value of the object.
      * 
      * @return double value that represents the Z value.
      */
@@ -254,7 +259,7 @@ public class Geography extends SQLServerSpatialDatatype {
     }
 
     /**
-     * Returns the Spatial Reference Identifier (SRID) value.
+     * Gets the Spatial Reference Identifier (SRID) value.
      * 
      * @return int value of SRID.
      */

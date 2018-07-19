@@ -13,6 +13,10 @@ import java.util.List;
 import java.util.Locale;
 
 
+/**
+ * Abstract parent class for Spatial Datatypes that contains common functionalities.
+ */
+
 abstract class SQLServerSpatialDatatype {
 
     /** WKT = Well-Known-Text, WKB = Well-Knwon-Binary */
@@ -1663,7 +1667,7 @@ class Figure {
     }
 
     /**
-     * Returns the figuresAttribute value.
+     * Gets the figuresAttribute value.
      * 
      * @return byte figuresAttribute value.
      */
@@ -1672,7 +1676,7 @@ class Figure {
     }
 
     /**
-     * Returns the pointOffset value.
+     * Gets the pointOffset value.
      * 
      * @return int pointOffset value.
      */
@@ -1708,7 +1712,7 @@ class Shape {
     }
 
     /**
-     * Returns the parentOffset value.
+     * Gets the parentOffset value.
      * 
      * @return int parentOffset value.
      */
@@ -1717,7 +1721,7 @@ class Shape {
     }
 
     /**
-     * Returns the figureOffset value.
+     * Gets the figureOffset value.
      * 
      * @return int figureOffset value.
      */
@@ -1726,7 +1730,7 @@ class Shape {
     }
 
     /**
-     * Returns the openGISType value.
+     * Gets the openGISType value.
      * 
      * @return byte openGISType value.
      */
@@ -1759,7 +1763,7 @@ class Segment {
     }
 
     /**
-     * Returns the segmentType value.
+     * Gets the segmentType value.
      * 
      * @return byte segmentType value.
      */
@@ -1787,7 +1791,7 @@ class Point {
     }
 
     /**
-     * Returns the x coordinate value.
+     * Gets the x coordinate value.
      * 
      * @return double x coordinate value.
      */
@@ -1796,7 +1800,7 @@ class Point {
     }
 
     /**
-     * Returns the y coordinate value.
+     * Gets the y coordinate value.
      * 
      * @return double y coordinate value.
      */
@@ -1805,7 +1809,7 @@ class Point {
     }
 
     /**
-     * Returns the z (elevation) value.
+     * Gets the z (elevation) value.
      * 
      * @return double z value.
      */
@@ -1814,7 +1818,7 @@ class Point {
     }
 
     /**
-     * Returns the m (measure) value.
+     * Gets the m (measure) value.
      * 
      * @return double m value.
      */
