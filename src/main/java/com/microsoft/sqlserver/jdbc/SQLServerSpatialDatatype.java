@@ -6,6 +6,7 @@
 package com.microsoft.sqlserver.jdbc;
 
 import java.math.BigDecimal;
+import java.nio.BufferUnderflowException;
 import java.nio.ByteBuffer;
 import java.text.MessageFormat;
 import java.util.ArrayList;
@@ -98,7 +99,7 @@ abstract class SQLServerSpatialDatatype {
      * corresponding data structures.
      * 
      */
-    protected abstract void parseWkb();
+    protected abstract void parseWkb() throws SQLServerException;
 
     /**
      * Create the WKT representation of Geometry/Geography from the deserialized data.
@@ -1234,71 +1235,82 @@ abstract class SQLServerSpatialDatatype {
         isLargerThanHemisphere = (serializationProperties & isLargerThanHemisphereMask) != 0;
     }
 
-    protected void readNumberOfPoints() {
+    protected void readNumberOfPoints() throws SQLServerException {
         if (isSinglePoint) {
             numberOfPoints = 1;
         } else if (isSingleLineSegment) {
             numberOfPoints = 2;
         } else {
-            numberOfPoints = buffer.getInt();
+            numberOfPoints = readInt();
+            if (numberOfPoints <= 0) {
+                MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_ParsingError"));
+                Object[] msgArgs = {JDBCType.VARBINARY};
+                throw new SQLServerException(this, form.format(msgArgs), null, 0, false);
+            }
         }
     }
 
-    protected void readZvalues() {
+    protected void readZvalues() throws SQLServerException {
         zValues = new double[numberOfPoints];
         for (int i = 0; i < numberOfPoints; i++) {
-            zValues[i] = buffer.getDouble();
+            zValues[i] = readDouble();
         }
     }
 
-    protected void readMvalues() {
+    protected void readMvalues() throws SQLServerException {
         mValues = new double[numberOfPoints];
         for (int i = 0; i < numberOfPoints; i++) {
-            mValues[i] = buffer.getDouble();
+            mValues[i] = readDouble();
         }
     }
 
-    protected void readNumberOfFigures() {
-        numberOfFigures = buffer.getInt();
+    protected void readNumberOfFigures() throws SQLServerException {
+        numberOfFigures = readInt();
     }
 
-    protected void readFigures() {
+    protected void readFigures() throws SQLServerException {
         byte fa;
         int po;
         figures = new Figure[numberOfFigures];
         for (int i = 0; i < numberOfFigures; i++) {
-            fa = buffer.get();
-            po = buffer.getInt();
+            fa = readByte();
+            po = readInt();
             figures[i] = new Figure(fa, po);
         }
     }
 
-    protected void readNumberOfShapes() {
-        numberOfShapes = buffer.getInt();
+    protected void readNumberOfShapes() throws SQLServerException {
+        numberOfShapes = readInt();
     }
 
-    protected void readShapes() {
+    protected void readShapes() throws SQLServerException {
         int po;
         int fo;
         byte ogt;
         shapes = new Shape[numberOfShapes];
         for (int i = 0; i < numberOfShapes; i++) {
-            po = buffer.getInt();
-            fo = buffer.getInt();
-            ogt = buffer.get();
+            po = readInt();
+            fo = readInt();
+            ogt = readByte();
             shapes[i] = new Shape(po, fo, ogt);
         }
     }
 
-    protected void readNumberOfSegments() {
-        numberOfSegments = buffer.getInt();
+    protected void readNumberOfSegments() throws SQLServerException {
+        numberOfSegments = readInt();
     }
 
-    protected void readSegments() {
+    protected void readSegments() throws SQLServerException {
         byte st;
-        segments = new Segment[numberOfSegments];
+        try {
+            segments = new Segment[numberOfSegments];
+        } catch (NegativeArraySizeException | OutOfMemoryError e) {
+            MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_ParsingError"));
+            Object[] msgArgs = {JDBCType.VARBINARY};//should throw some kind of 'array size too large error here'
+            throw new SQLServerException(this, form.format(msgArgs), null, 0, false);
+        }
         for (int i = 0; i < numberOfSegments; i++) {
-            st = buffer.get();
+            st = readByte();
             segments[i] = new Segment(st);
         }
     }
@@ -1645,6 +1657,29 @@ abstract class SQLServerSpatialDatatype {
         while (currentWktPos < wkt.length() && Character.isWhitespace(wkt.charAt(currentWktPos))) {
             currentWktPos++;
         }
+    }
+    
+    private void checkBuffer(int i) throws SQLServerException {
+        if (buffer.remaining() < i) {
+            MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_ParsingError"));
+            Object[] msgArgs = {JDBCType.VARBINARY};//invalid buffer error message maybe?
+            throw new SQLServerException(this, form.format(msgArgs), null, 0, false);
+        }
+    }
+    
+    protected byte readByte() throws SQLServerException {
+        checkBuffer(1);
+        return buffer.get();
+    }
+    
+    protected int readInt() throws SQLServerException {
+        checkBuffer(4);
+        return buffer.getInt();
+    }
+    
+    protected double readDouble() throws SQLServerException {
+        checkBuffer(8);
+        return buffer.getDouble();
     }
 }
 
