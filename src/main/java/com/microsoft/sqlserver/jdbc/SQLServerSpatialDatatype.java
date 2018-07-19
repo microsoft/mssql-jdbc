@@ -1667,7 +1667,7 @@ class Figure {
     }
 
     /**
-     * Gets the figuresAttribute value.
+     * Returns the figuresAttribute value.
      * 
      * @return byte figuresAttribute value.
      */
@@ -1676,7 +1676,7 @@ class Figure {
     }
 
     /**
-     * Gets the pointOffset value.
+     * Returns the pointOffset value.
      * 
      * @return int pointOffset value.
      */
@@ -1712,7 +1712,7 @@ class Shape {
     }
 
     /**
-     * Gets the parentOffset value.
+     * Returns the parentOffset value.
      * 
      * @return int parentOffset value.
      */
@@ -1721,7 +1721,7 @@ class Shape {
     }
 
     /**
-     * Gets the figureOffset value.
+     * Returns the figureOffset value.
      * 
      * @return int figureOffset value.
      */
@@ -1730,7 +1730,7 @@ class Shape {
     }
 
     /**
-     * Gets the openGISType value.
+     * Returns the openGISType value.
      * 
      * @return byte openGISType value.
      */
@@ -1763,7 +1763,7 @@ class Segment {
     }
 
     /**
-     * Gets the segmentType value.
+     * Returns the segmentType value.
      * 
      * @return byte segmentType value.
      */
@@ -1791,7 +1791,7 @@ class Point {
     }
 
     /**
-     * Gets the x coordinate value.
+     * Returns the x coordinate value.
      * 
      * @return double x coordinate value.
      */
@@ -1800,7 +1800,7 @@ class Point {
     }
 
     /**
-     * Gets the y coordinate value.
+     * Returns the y coordinate value.
      * 
      * @return double y coordinate value.
      */
@@ -1809,7 +1809,7 @@ class Point {
     }
 
     /**
-     * Gets the z (elevation) value.
+     * Returns the z (elevation) value.
      * 
      * @return double z value.
      */
@@ -1818,7 +1818,7 @@ class Point {
     }
 
     /**
-     * Gets the m (measure) value.
+     * Returns the m (measure) value.
      * 
      * @return double m value.
      */

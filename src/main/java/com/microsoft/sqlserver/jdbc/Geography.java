@@ -211,7 +211,7 @@ public class Geography extends SQLServerSpatialDatatype {
     }
 
     /**
-     * Gets the X coordinate value.
+     * Returns the X coordinate value.
      * 
      * @return double value that represents the X coordinate.
      */
@@ -223,7 +223,7 @@ public class Geography extends SQLServerSpatialDatatype {
     }
 
     /**
-     * Gets the Y coordinate value.
+     * Returns the Y coordinate value.
      * 
      * @return double value that represents the Y coordinate.
      */
@@ -235,7 +235,7 @@ public class Geography extends SQLServerSpatialDatatype {
     }
 
     /**
-     * Gets the M (measure) value of the object.
+     * Returns the M (measure) value of the object.
      * 
      * @return double value that represents the M value.
      */
@@ -247,7 +247,7 @@ public class Geography extends SQLServerSpatialDatatype {
     }
 
     /**
-     * Gets the Z (elevation) value of the object.
+     * Returns the Z (elevation) value of the object.
      * 
      * @return double value that represents the Z value.
      */
@@ -259,7 +259,7 @@ public class Geography extends SQLServerSpatialDatatype {
     }
 
     /**
-     * Gets the Spatial Reference Identifier (SRID) value.
+     * Returns the Spatial Reference Identifier (SRID) value.
      * 
      * @return int value of SRID.
      */
