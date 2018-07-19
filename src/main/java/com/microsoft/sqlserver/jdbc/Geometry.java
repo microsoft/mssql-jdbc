@@ -369,10 +369,10 @@ public class Geometry extends SQLServerSpatialDatatype {
         return;
     }
 
-    protected void parseWkb() throws SQLServerException {
-        srid = readInt();
-        version = readByte();
-        serializationProperties = readByte();
+    protected void parseWkb() {
+        srid = buffer.getInt();
+        version = buffer.get();
+        serializationProperties = buffer.get();
 
         interpretSerializationPropBytes();
         readNumberOfPoints();
@@ -403,11 +403,11 @@ public class Geometry extends SQLServerSpatialDatatype {
         }
     }
 
-    private void readPoints() throws SQLServerException {
+    private void readPoints() {
         points = new double[2 * numberOfPoints];
         for (int i = 0; i < numberOfPoints; i++) {
-            points[2 * i] = readDouble();
-            points[2 * i + 1] = readDouble();
+            points[2 * i] = buffer.getDouble();
+            points[2 * i + 1] = buffer.getDouble();
         }
     }
 }

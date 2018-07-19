@@ -7,7 +7,6 @@ package com.microsoft.sqlserver.jdbc;
 
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
-import java.text.MessageFormat;
 
 
 public class Geography extends SQLServerSpatialDatatype {
@@ -369,10 +368,10 @@ public class Geography extends SQLServerSpatialDatatype {
         return;
     }
 
-    protected void parseWkb() throws SQLServerException {
-        srid = readInt();
-        version = readByte();
-        serializationProperties = readByte();
+    protected void parseWkb() {
+        srid = buffer.getInt();
+        version = buffer.get();
+        serializationProperties = buffer.get();
 
         interpretSerializationPropBytes();
         readNumberOfPoints();
@@ -403,17 +402,11 @@ public class Geography extends SQLServerSpatialDatatype {
         }
     }
 
-    private void readPoints() throws SQLServerException {
-        try {//if no limit of points is allowed, this should be an array of arrays
-            points = new double[2 * numberOfPoints];
-        } catch (NegativeArraySizeException | OutOfMemoryError e) {
-            MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_ParsingError"));
-            Object[] msgArgs = {JDBCType.VARBINARY};//should throw some kind of 'array size too large error here'
-            throw new SQLServerException(this, form.format(msgArgs), null, 0, false);
-        }
+    private void readPoints() {
+        points = new double[2 * numberOfPoints];
         for (int i = 0; i < numberOfPoints; i++) {
-            points[2 * i + 1] = readDouble();
-            points[2 * i] = readDouble();
+            points[2 * i + 1] = buffer.getDouble();
+            points[2 * i] = buffer.getDouble();
         }
     }
 }
