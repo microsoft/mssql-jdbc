@@ -6,6 +6,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
+import java.sql.BatchUpdateException;
 import java.sql.Connection;
 import java.sql.Date;
 import java.sql.DriverManager;
@@ -303,7 +304,8 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
         }
     }
 
-    @Test
+    // Non-parameterized queries are not supported anymore.
+    // @Test
     public void testAllFilledColumns() throws Exception {
         String valid = "INSERT INTO " + tableName + " values " + "(" + "1234, " + "false, " + "a, " + "null, "
                 + "null, " + "123.45, " + "b, " + "varc, " + "sadf, " + ")";
@@ -451,7 +453,7 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
     }
 
     @Test
-    public void testAlColumnsLargeBatch() throws Exception {
+    public void testAllColumnsLargeBatch() throws Exception {
         String valid = "INSERT INTO " + tableName + " values " + "(" + "?, " + "?, " + "?, " + "?, " + "?, " + "?, "
                 + "?, " + "?, " + "?, " + ")";
 
@@ -497,6 +499,96 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
             for (int i = 0; i < expected.length; i++) {
                 assertEquals(rs.getObject(i + 1).toString(), expected[i].toString());
             }
+        }
+    }
+
+    @Test
+    public void testIllegalNumberOfArgNoColumnList() throws Exception {
+        String invalid = "insert into " + tableName + " values (?, ?,? ,?) ";
+
+        try (Connection connection = DriverManager.getConnection(connectionString + ";useBulkCopyForBatchInsert=true;");
+                SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) connection.prepareStatement(invalid);
+                Statement stmt = (SQLServerStatement) connection.createStatement();) {
+            Field f1 = SQLServerConnection.class.getDeclaredField("isAzureDW");
+            f1.setAccessible(true);
+            f1.set(connection, true);
+
+            pstmt.setInt(1, 1);
+            pstmt.setInt(2, 1);
+            pstmt.setInt(3, 1);
+            pstmt.setInt(4, 1);
+            pstmt.addBatch();
+
+            pstmt.executeBatch();
+            throw new Exception("shouldn't come here.");
+        } catch (BatchUpdateException e) {
+            assertEquals(e.getMessage(), "Column name or number of supplied values does not match table definition.");
+        }
+
+        invalid = "insert into " + tableName + " (c1, c2, c3) values (?, ?,? ,?) ";
+
+        try (Connection connection = DriverManager.getConnection(connectionString + ";useBulkCopyForBatchInsert=true;");
+                SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) connection.prepareStatement(invalid);
+                Statement stmt = (SQLServerStatement) connection.createStatement();) {
+            Field f1 = SQLServerConnection.class.getDeclaredField("isAzureDW");
+            f1.setAccessible(true);
+            f1.set(connection, true);
+
+            pstmt.setInt(1, 1);
+            pstmt.setInt(2, 1);
+            pstmt.setInt(3, 1);
+            pstmt.setInt(4, 1);
+            pstmt.addBatch();
+
+            pstmt.executeBatch();
+            throw new Exception("shouldn't come here.");
+        } catch (BatchUpdateException e) {
+            assertEquals(e.getMessage(),
+                    "There are fewer columns in the INSERT statement than values specified in the VALUES clause. The number of values in the VALUES clause must match the number of columns specified in the INSERT statement.");
+        }
+    }
+
+    @Test
+    public void testNonParameterizedQuery() throws Exception {
+        String invalid = "insert into " + tableName + "values ((SELECT * from table where c1=?), ?,? ,?) ";
+
+        try (Connection connection = DriverManager.getConnection(connectionString + ";useBulkCopyForBatchInsert=true;");
+                SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) connection.prepareStatement(invalid);
+                Statement stmt = (SQLServerStatement) connection.createStatement();) {
+            Field f1 = SQLServerConnection.class.getDeclaredField("isAzureDW");
+            f1.setAccessible(true);
+            f1.set(connection, true);
+
+            pstmt.setInt(1, 1);
+            pstmt.setInt(2, 1);
+            pstmt.setInt(3, 1);
+            pstmt.setInt(4, 1);
+            pstmt.addBatch();
+
+            pstmt.executeBatch();
+            throw new Exception("shouldn't come here.");
+        } catch (BatchUpdateException e) {
+            assertEquals(e.getMessage(), "Incorrect syntax near '('.");
+        }
+
+        invalid = "insert into " + tableName + "values ('?', ?,? ,?) ";
+
+        try (Connection connection = DriverManager.getConnection(connectionString + ";useBulkCopyForBatchInsert=true;");
+                SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) connection.prepareStatement(invalid);
+                Statement stmt = (SQLServerStatement) connection.createStatement();) {
+            Field f1 = SQLServerConnection.class.getDeclaredField("isAzureDW");
+            f1.setAccessible(true);
+            f1.set(connection, true);
+
+            pstmt.setInt(1, 1);
+            pstmt.setInt(2, 1);
+            pstmt.setInt(3, 1);
+            pstmt.addBatch();
+
+            pstmt.executeBatch();
+            throw new Exception("shouldn't come here.");
+        } catch (BatchUpdateException e) {
+            assertEquals(e.getMessage(), "");
         }
     }
 

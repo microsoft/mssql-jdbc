@@ -1964,6 +1964,14 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                 ArrayList<String> columnList = parseUserSQLForColumnListDW();
                 ArrayList<String> valueList = parseUserSQLForValueListDW(false);
 
+                for (int i = 0; i < valueList.size(); i++) {
+                    if (!valueList.get(i).equals("?")) {
+                        // throw IllegalArgumentException and fallback to original logic for batch insert
+                        throw new IllegalArgumentException(
+                                "Only fully parameterized queries are allowed for using Bulk Copy API for batch insert at the moment.");
+                    }
+                }
+
                 String destinationTableName = tableName;
                 SQLServerStatement stmt = (SQLServerStatement) connection.createStatement(ResultSet.TYPE_FORWARD_ONLY,
                         ResultSet.CONCUR_READ_ONLY, connection.getHoldability(), stmtColumnEncriptionSetting);
@@ -1971,6 +1979,18 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                 // Get destination metadata
                 try (SQLServerResultSet rs = stmt.executeQueryInternal(
                         "sp_executesql N'SET FMTONLY ON SELECT * FROM " + destinationTableName + " '");) {
+
+                    if (null != columnList && columnList.size() > 0) {
+                        if (columnList.size() != valueList.size()) {
+                            throw new IllegalArgumentException(
+                                    "Number of provided columns does not match the table definition.");
+                        }
+                    } else {
+                        if (rs.getColumnCount() != valueList.size()) {
+                            throw new IllegalArgumentException(
+                                    "Number of provided columns does not match the table definition.");
+                        }
+                    }
 
                     SQLServerBulkBatchInsertRecord batchRecord = new SQLServerBulkBatchInsertRecord(batchParamValues,
                             columnList, valueList, null);
@@ -2108,6 +2128,14 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                 ArrayList<String> columnList = parseUserSQLForColumnListDW();
                 ArrayList<String> valueList = parseUserSQLForValueListDW(false);
 
+                for (int i = 0; i < valueList.size(); i++) {
+                    if (!valueList.get(i).equals("?")) {
+                        // throw IllegalArgumentException and fallback to original logic for batch insert
+                        throw new IllegalArgumentException(
+                                "Only fully parameterized queries are allowed for using Bulk Copy API for batch insert at the moment.");
+                    }
+                }
+
                 String destinationTableName = tableName;
                 SQLServerStatement stmt = (SQLServerStatement) connection.createStatement(ResultSet.TYPE_FORWARD_ONLY,
                         ResultSet.CONCUR_READ_ONLY, connection.getHoldability(), stmtColumnEncriptionSetting);
@@ -2115,6 +2143,18 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                 // Get destination metadata
                 try (SQLServerResultSet rs = stmt.executeQueryInternal(
                         "sp_executesql N'SET FMTONLY ON SELECT * FROM " + destinationTableName + " '");) {
+
+                    if (null != columnList && columnList.size() > 0) {
+                        if (columnList.size() != valueList.size()) {
+                            throw new IllegalArgumentException(
+                                    "Number of provided columns does not match the table definition.");
+                        }
+                    } else {
+                        if (rs.getColumnCount() != valueList.size()) {
+                            throw new IllegalArgumentException(
+                                    "Number of provided columns does not match the table definition.");
+                        }
+                    }
 
                     SQLServerBulkBatchInsertRecord batchRecord = new SQLServerBulkBatchInsertRecord(batchParamValues,
                             columnList, valueList, null);
