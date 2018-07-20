@@ -15,7 +15,9 @@ import javax.security.auth.callback.NameCallback;
 import javax.security.auth.callback.PasswordCallback;
 import javax.security.auth.callback.UnsupportedCallbackException;
 
-
+/**
+ * Provides implemention of the callback handler for Kerberos.
+ */
 public class KerbCallback implements CallbackHandler {
 
     private final SQLServerConnection con;

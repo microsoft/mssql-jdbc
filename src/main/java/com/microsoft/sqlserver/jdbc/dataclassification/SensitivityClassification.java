@@ -10,7 +10,7 @@ import java.util.List;
 
 
 /**
- * This class retrieves Sensitivity Classification data as recieved from SQL Server for the active resultSet
+ * Provides the functionlity to retrieve Sensitivity Classification data as received from SQL Server for the active resultSet
  */
 public class SensitivityClassification {
     private List<Label> labels;
@@ -22,7 +22,7 @@ public class SensitivityClassification {
     // The Count of the ColumnSensitivities property will be equal to the number
     // of output columns for the query result set.
     /**
-     * Constructor for <code>SensitivityClassification</code> Object
+     * Constructs a <code>SensitivityClassification</code> Object
      * 
      * @param labels
      *        Labels as received from SQL Server
@@ -39,7 +39,7 @@ public class SensitivityClassification {
     }
 
     /**
-     * Retrieves Labels for this <code>SensitivityClassification</code> Object
+     * Returns the labels for this <code>SensitivityClassification</code> Object
      * 
      * @return labels
      */
@@ -48,7 +48,7 @@ public class SensitivityClassification {
     }
 
     /**
-     * Retrieves Information Types for this <code>SensitivityClassification</code> Object
+     * Returns the information types for this <code>SensitivityClassification</code> Object
      * 
      * @return informationTypes
      */
@@ -57,7 +57,7 @@ public class SensitivityClassification {
     }
 
     /**
-     * Retrieves Column Sensitivity for this <code>SensitivityClassification</code> Object
+     * Returns the column sensitivity for this <code>SensitivityClassification</code> Object
      * 
      * @return columnSensitivities
      */

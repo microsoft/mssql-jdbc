@@ -14,7 +14,7 @@ import javax.sql.PooledConnection;
 
 
 /**
- * SQLServerConnectionPoolDataSource provides physical database connections for connection pool managers.
+ * Provides physical database connections for connection pool managers.
  * SQLServerConnectionPoolDataSource is typically used in Java Application Server environments that support built-in
  * connection pooling and require a ConnectionPoolDataSource to provide physical connections. For example, J2EE
  * application servers that provide JDBC 3.0 API spec connection pooling.

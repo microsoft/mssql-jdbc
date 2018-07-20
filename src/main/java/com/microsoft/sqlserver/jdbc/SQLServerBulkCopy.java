@@ -50,7 +50,7 @@ import microsoft.sql.DateTimeOffset;
 
 
 /**
- * Lets you efficiently bulk load a SQL Server table with data from another source. <br>
+ * Provides functionality to efficiently bulk load a SQL Server table with data from another source. <br>
  * <br>
  * Microsoft SQL Server includes a popular command-prompt utility named bcp for moving data from one table to another,
  * whether on a single server or between servers. The SQLServerBulkCopy class lets you write code solutions in Java that
@@ -315,8 +315,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
     private static final int sourceBulkRecordTemporalMaxPrecision = 50;
 
     /**
-     * Initializes a new instance of the SQLServerBulkCopy class using the specified open instance of
-     * SQLServerConnection.
+     * Constructs a SQLServerBulkCopy using the specified open instance of SQLServerConnection.
      * 
      * @param connection
      *        Open instance of Connection to destination server. Must be from the Microsoft JDBC driver for SQL Server.
@@ -349,7 +348,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
     }
 
     /**
-     * Initializes and opens a new instance of SQLServerConnection based on the supplied connectionString.
+     * Constructs a SQLServerBulkCopy based on the supplied connectionString.
      * 
      * @param connectionUrl
      *        Connection string for the destination server.
@@ -498,7 +497,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
     }
 
     /**
-     * Gets the name of the destination table on the server.
+     * Returns the name of the destination table on the server.
      * 
      * @return Destination table name.
      */
@@ -527,7 +526,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
     }
 
     /**
-     * Gets the current SQLServerBulkCopyOptions.
+     * Returns the current SQLServerBulkCopyOptions.
      * 
      * @return Current SQLServerBulkCopyOptions settings.
      */
@@ -1705,7 +1704,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
     }
 
     /*
-     * Retrieves the column metadata for the destination table (and saves it for later)
+     * Returns the column metadata for the destination table (and saves it for later)
      */
     private void getDestinationMetadata() throws SQLServerException {
         if (null == destinationTableName) {
@@ -1771,7 +1770,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
     }
 
     /*
-     * Retrieves the column metadata for the source (and saves it for later). Retrieving source metadata in
+     * Returns the column metadata for the source (and saves it for later). Retrieving source metadata in
      * BulkColumnMetaData object helps to access source metadata from the same place for both ResultSet and File.
      */
     private void getSourceMetadata() throws SQLServerException {

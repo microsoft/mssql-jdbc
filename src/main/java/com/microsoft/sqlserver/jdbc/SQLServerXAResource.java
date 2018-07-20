@@ -26,7 +26,6 @@ import javax.transaction.xa.Xid;
 /**
  * Transaction id implementation used to recover transactions.
  */
-
 final class XidImpl implements Xid {
     private final int formatId;
     private final byte gtrid[];
@@ -42,7 +41,7 @@ final class XidImpl implements Xid {
      */
 
     /**
-     * Create a new XID
+     * Constructs a XidImpl
      * 
      * @param formatId
      *        format id
@@ -71,7 +70,7 @@ final class XidImpl implements Xid {
     }
 
     /**
-     * Used for tracing
+     * Returns trace id used for tracing
      * 
      * @return traceID string
      */
@@ -103,7 +102,7 @@ final class XAReturnValue {
 
 
 /**
- * SQLServerXAResource provides an XAResource for XA distributed transaction management. XA transactions are implemented
+ * This class provides an XAResource for XA distributed transaction management. XA transactions are implemented
  * over SQL Server using Microsoft Distributed Transaction Manager (DTC). SQLServerXAResource makes calls to a SQL
  * Server extended dll called SQLServer_XA.dll which interfaces with DTC.
  * 

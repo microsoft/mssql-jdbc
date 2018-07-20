@@ -43,7 +43,7 @@ enum RowType {
 
 
 /**
- * Top-level JDBC ResultSet implementation
+ * Defines the Top-level JDBC ResultSet implementation.
  */
 public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializable {
 
@@ -188,7 +188,7 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
     // The CekTable retrieved from the COLMETADATA token for this resultset.
     private CekTable cekTable = null;
 
-    /* Gets the CekTable */
+    /* Returns the CekTable */
     CekTable getCekTable() {
         return cekTable;
     }
@@ -228,7 +228,7 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
     }
 
     /**
-     * Make a new result set
+     * Constructs a SQLServerResultSet
      * 
      * @param stmtIn
      *        the generating statement
@@ -434,7 +434,7 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
     private SQLServerException rowErrorException = null;
 
     /**
-     * Check if the result set is closed
+     * Checks if the result set is closed
      * 
      * @throws SQLServerException
      */
@@ -505,7 +505,7 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
     }
 
     /**
-     * Checks whether the result set has a current row.
+     * Returns if whether the result set has a current row.
      *
      * @return true if there is a current row
      * @return false if the result set is positioned before the first row or after the last row.
@@ -763,7 +763,7 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
     }
 
     /**
-     * Clear result set warnings
+     * Clears result set warnings
      * 
      * @throws SQLServerException
      *         when an error occurs
@@ -964,7 +964,7 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
     }
 
     /**
-     * Initially moves the cursor to the first row of this ResultSet object, with subsequent calls moving the cursor to
+     * Moves the cursor to the first row of this ResultSet object initially, then subsequent calls moves the cursor to
      * the second row, the third row, and so on.
      *
      * @return false when there are no more rows to read
@@ -1171,7 +1171,7 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
     }
 
     /**
-     * Retrieves whether the cursor is on the first row of this <code>ResultSet</code> object.
+     * Returns whether the cursor is on the first row of this <code>ResultSet</code> object.
      * 
      * This method should be called only on ResultSet objects that are scrollable: TYPE_SCROLL_SENSITIVE,
      * TYPE_SCROLL_INSENSITIVE, TYPE_SS_SCROLL_STATIC, TYPE_SS_SCROLL_KEYSET, TYPE_SS_SCROLL_DYNAMIC.
@@ -1218,7 +1218,7 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
     }
 
     /**
-     * Retrieves whether the cursor is on the last row of this <code>ResultSet</code> object. <strong>Note:</strong>
+     * Returns whether the cursor is on the last row of this <code>ResultSet</code> object. <strong>Note:</strong>
      * Calling the method <code>isLast</code> may be expensive because the JDBC driver might need to fetch ahead one row
      * in order to determine whether the current row is the last row in the result set.
      * 

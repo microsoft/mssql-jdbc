@@ -6,7 +6,7 @@
 package com.microsoft.sqlserver.jdbc;
 
 /**
- * This class represents a column of the in-memory data table represented by SQLServerDataTable.
+ * Represents a column of the in-memory data table represented by {@link SQLServerDataTable}.
  */
 public final class SQLServerDataColumn {
     String columnName;
@@ -16,7 +16,7 @@ public final class SQLServerDataColumn {
     int numberOfDigitsIntegerPart = 0;
 
     /**
-     * Initializes a new instance of SQLServerDataColumn with the column name and type.
+     * Constructs a SQLServerDataColumn with the column name and type.
      * 
      * @param columnName
      *        the name of the column
@@ -29,7 +29,7 @@ public final class SQLServerDataColumn {
     }
 
     /**
-     * Retrieves the column name.
+     * Returns the column name.
      * 
      * @return the name of the column.
      */
@@ -38,7 +38,7 @@ public final class SQLServerDataColumn {
     }
 
     /**
-     * Retrieves the column type.
+     * Returns the column type.
      * 
      * @return the column type.
      */

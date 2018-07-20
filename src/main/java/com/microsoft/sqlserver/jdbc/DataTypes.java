@@ -531,7 +531,7 @@ enum JavaType {
         return JavaType.OBJECT;
     }
 
-    // Retrieve JDBC to use with this Java type. By default we use the static JDBC type
+    // Returns the JDBC type to use with this Java type. By default we use the static JDBC type
     // associated with the Java type, ignoring the JDBC type specified by the application.
     // But this behavior is overridden for certain Java types, like InputStream, which
     // require the JDBC type to be specified externally to be able to distinguish between
@@ -677,7 +677,7 @@ enum JDBCType {
     }
 
     /**
-     * Gets the integer value of JDBCType
+     * Returns the integer value of JDBCType
      * 
      * @return integer representation of JDBCType
      */

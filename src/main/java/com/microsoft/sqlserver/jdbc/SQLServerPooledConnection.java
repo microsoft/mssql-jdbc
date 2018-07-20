@@ -18,7 +18,7 @@ import javax.sql.StatementEventListener;
 
 
 /**
- * SQLServerPooledConnection represents a database physical connection in a connection pool. If provides methods for the
+ * Represents a database physical connection in a connection pool. If provides methods for the
  * connection pool manager to manage the connection pool. Applications typically do not instantiate these connections
  * directly.
  */
@@ -57,7 +57,7 @@ public class SQLServerPooledConnection implements PooledConnection {
     }
 
     /**
-     * This is a helper function to provide an ID string suitable for tracing.
+     * Provides a helper function to provide an ID string suitable for tracing.
      * 
      * @return traceID String
      */
@@ -72,7 +72,7 @@ public class SQLServerPooledConnection implements PooledConnection {
     }
 
     /**
-     * Creates an object handle for the physical connection that this PooledConnection object represents.
+     * Returns an object handle for the physical connection that this PooledConnection object represents.
      * 
      * @throws SQLException
      *         when an error occurs

@@ -6,7 +6,7 @@
 package com.microsoft.sqlserver.jdbc;
 
 /**
- * This interface is implemented by {@link SQLServerStatement} class.
+ * Provides an interface to the {@link SQLServerStatement} class.
  */
 public interface ISQLServerStatement extends java.sql.Statement {
     /**
@@ -29,7 +29,7 @@ public interface ISQLServerStatement extends java.sql.Statement {
     public void setResponseBuffering(String value) throws SQLServerException;
 
     /**
-     * Retrieves the response buffering mode for this SQLServerStatement object.
+     * Returns the response buffering mode for this SQLServerStatement object.
      * 
      * @return A String that contains a lower-case full or adaptive.
      * @throws SQLServerException
@@ -38,7 +38,7 @@ public interface ISQLServerStatement extends java.sql.Statement {
     public String getResponseBuffering() throws SQLServerException;
 
     /**
-     * Retrieves the <code>cancelQueryTimeout</code> property set on this SQLServerStatement object.
+     * Returns the <code>cancelQueryTimeout</code> property set on this SQLServerStatement object.
      * 
      * @return cancelQueryTimeout Time duration in seconds.
      * @throws SQLServerException

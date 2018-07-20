@@ -20,7 +20,7 @@ import java.util.logging.Level;
 
 
 /**
- * SQLServerDatabaseMetaData provides JDBC database meta data.
+ * Provides the JDBC database meta data.
  *
  * The API javadoc for JDBC API methods that this class implements are not repeated here. Please see Sun's JDBC API
  * interfaces javadoc for those details.

@@ -359,7 +359,11 @@ enum SQLServerDriverBooleanProperty {
     }
 }
 
-
+/**
+ * 
+ * Provides methods to connect to a SQL Server database and to obtain information about the JDBC driver.
+ *
+ */
 public final class SQLServerDriver implements java.sql.Driver {
     static final String PRODUCT_NAME = "Microsoft JDBC Driver " + SQLJdbcVersion.major + "." + SQLJdbcVersion.minor
             + " for SQL Server";
@@ -624,7 +628,7 @@ public final class SQLServerDriver implements java.sql.Driver {
     }
 
     /**
-     * normalize the property names
+     * Returns the normalized the property names
      * 
      * @param name
      *        name to normalize
@@ -652,7 +656,7 @@ public final class SQLServerDriver implements java.sql.Driver {
     }
 
     /**
-     * get property-only names that do not work with connection string
+     * Returns the property-only names that do not work with connection string
      * 
      * @param name
      *        to normalize
@@ -674,7 +678,7 @@ public final class SQLServerDriver implements java.sql.Driver {
         return null;
     }
 
-    /* L0 */ public java.sql.Connection connect(String Url, Properties suppliedProperties) throws SQLServerException {
+    public java.sql.Connection connect(String Url, Properties suppliedProperties) throws SQLServerException {
         loggerExternal.entering(getClassNameLogging(), "connect", "Arguments not traced.");
         SQLServerConnection result = null;
 
@@ -713,7 +717,7 @@ public final class SQLServerDriver implements java.sql.Driver {
         return connectProperties;
     }
 
-    /* L0 */ public boolean acceptsURL(String url) throws SQLServerException {
+    public boolean acceptsURL(String url) throws SQLServerException {
         loggerExternal.entering(getClassNameLogging(), "acceptsURL", "Arguments not traced.");
 
         if (null == url) {
@@ -768,7 +772,7 @@ public final class SQLServerDriver implements java.sql.Driver {
         return parentLogger;
     }
 
-    /* L0 */ public boolean jdbcCompliant() {
+    public boolean jdbcCompliant() {
         loggerExternal.entering(getClassNameLogging(), "jdbcCompliant");
         loggerExternal.exiting(getClassNameLogging(), "jdbcCompliant", Boolean.TRUE);
         return true;

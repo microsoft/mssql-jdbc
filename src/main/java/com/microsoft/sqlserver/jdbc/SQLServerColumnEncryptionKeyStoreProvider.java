@@ -7,6 +7,7 @@ package com.microsoft.sqlserver.jdbc;
 
 /**
  * 
+ * Defines the abtract class for a SQL Server Column Encryption key store provider
  * Extend this class to implement a custom key store provider.
  *
  */

@@ -21,7 +21,7 @@ import org.ietf.jgss.GSSCredential;
 
 
 /**
- * This datasource lists properties specific for the SQLServerConnection class.
+ * Contains a list of properties specific for the {@link SQLServerConnection} class.
  */
 public class SQLServerDataSource
         implements ISQLServerDataSource, javax.sql.DataSource, java.io.Serializable, javax.naming.Referenceable {
@@ -57,7 +57,7 @@ public class SQLServerDataSource
     final private String traceID;
 
     /**
-     * Initializes a new instance of the SQLServerDataSource class.
+     * Constructs a SQLServerDataSource
      */
     public SQLServerDataSource() {
         connectionProps = new Properties();
@@ -125,7 +125,7 @@ public class SQLServerDataSource
         loggerExternal.exiting(getClassNameLogging(), "setLogWriter");
     }
 
-    // Retrieves the log writer for this DataSource.
+    // Returns the log writer for this DataSource.
     @Override
     public PrintWriter getLogWriter() {
         loggerExternal.entering(getClassNameLogging(), "getLogWriter");

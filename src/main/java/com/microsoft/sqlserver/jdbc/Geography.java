@@ -8,11 +8,13 @@ package com.microsoft.sqlserver.jdbc;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 
-
+/**
+ * Represents a Geography spatial data type.
+ */
 public class Geography extends SQLServerSpatialDatatype {
 
     /**
-     * Private constructor used for creating a Geography object from WKT and srid.
+     * Constructs a Geography object from WKT and srid.
      * 
      * @param WellKnownText
      *        Well-Known Text (WKT) provided by the user.
@@ -37,7 +39,7 @@ public class Geography extends SQLServerSpatialDatatype {
     }
 
     /**
-     * Private constructor used for creating a Geography object from WKB.
+     * Constructs a Geography object from WKB.
      * 
      * @param wkb
      *        Well-Known Binary (WKB) provided by the user.

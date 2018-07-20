@@ -10,8 +10,8 @@ import java.sql.ShardingKey;
 
 
 /**
- * SQLServerConnection43 extends {@link SQLServerConnection43} class and implements {@link ISQLServerConnection43} with
- * methods introduced in JDBC 4.3 Specifications. This class is used by the drdiver when initializing a class with 43
+ * Extends {@link SQLServerConnection43} class and implements {@link ISQLServerConnection43} with
+ * methods introduced in JDBC 4.3 Specifications. This class is used by the driver when initializing a class with 43
  * driver version
  */
 public class SQLServerConnection43 extends SQLServerConnection implements ISQLServerConnection43 {

@@ -52,7 +52,7 @@ import mssql.googlecode.concurrentlinkedhashmap.EvictionListener;
 
 
 /**
- * SQLServerConnection implements a JDBC connection to SQL Server. SQLServerConnections support JDBC connection pooling
+ * Provides implementation a JDBC connection to SQL Server. SQLServerConnections support JDBC connection pooling
  * and may be either physical JDBC connections or logical JDBC connections.
  * <p>
  * SQLServerConnection manages transaction control for all statements that were created from it. SQLServerConnection may
@@ -214,12 +214,12 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             return explicitlyDiscarded;
         }
 
-        /** Get the actual handle. */
+        /** Returns the actual handle. */
         int getHandle() {
             return handle;
         }
 
-        /** Get the cache key. */
+        /** Returns the cache key. */
         CityHash128Key getKey() {
             return key;
         }
@@ -495,7 +495,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     private int cancelQueryTimeoutSeconds;
 
     /**
-     * Retrieves the cancelTimeout in seconds
+     * Returns the cancelTimeout in seconds
      * 
      * @return
      */
@@ -515,7 +515,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     private boolean useBulkCopyForBatchInsert;
 
     /**
-     * Retrieves the useBulkCopyForBatchInsert value.
+     * Returns the useBulkCopyForBatchInsert value.
      * 
      * @return flag for using Bulk Copy API for batch insert operations.
      */
@@ -775,7 +775,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     }
 
     /**
-     * Retrieves the Trusted Master Key Paths.
+     * Returns the Trusted Master Key Paths.
      * 
      * @return columnEncryptionTrustedMasterKeyPaths.
      */
@@ -1065,7 +1065,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     }
 
     /**
-     * Check if a string property is enabled.
+     * Returns if a string property is enabled.
      * 
      * @param propName
      *        the string property name
@@ -2938,7 +2938,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     }
 
     /**
-     * Return the syntax to set the database calatog to use.
+     * Sets the syntax to set the database calatog to use.
      * 
      * @param sDB
      *        the new catalog
@@ -2953,7 +2953,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     }
 
     /**
-     * Return the syntax to set the database isolation level.
+     * Returns the syntax to set the database isolation level.
      * 
      * @return the required syntax
      */
@@ -2991,7 +2991,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     }
 
     /**
-     * Return the syntax to set the database commit mode.
+     * Returns the syntax to set the database commit mode.
      * 
      * @return the required syntax
      */

@@ -29,7 +29,7 @@ import com.microsoft.sqlserver.jdbc.SQLServerConnection.CityHash128Key;
 
 
 /**
- * SQLServerStatment provides the basic implementation of JDBC statement functionality. It also provides a number of
+ * Provides the basic implementation of JDBC statement functionality. It also provides a number of
  * base class implementation methods for the JDBC prepared statement and callable Statements. SQLServerStatement's basic
  * role is to execute SQL statements and return update counts and resultset rows to the user application.
  *
@@ -103,7 +103,7 @@ public class SQLServerStatement implements ISQLServerStatement {
     Parameter[] inOutParam; // Parameters for prepared stmts and stored procedures
 
     /**
-     * The statements connection.
+     * The statement's connection.
      */
     final SQLServerConnection connection;
 
@@ -346,7 +346,7 @@ public class SQLServerStatement implements ISQLServerStatement {
     }
 
     /**
-     * Indicates whether to request a server cursor when executing this statement.
+     * Returns whether to request a server cursor when executing this statement.
      *
      * Executing a statement with execute() or executeQuery() requests a server cursor in all scrollability and
      * updatability combinations except direct forward-only, read-only.
@@ -464,7 +464,7 @@ public class SQLServerStatement implements ISQLServerStatement {
     static final private java.util.logging.Logger stmtlogger = java.util.logging.Logger
             .getLogger("com.microsoft.sqlserver.jdbc.internals.SQLServerStatement");
 
-    /** The statement's id for logging info */
+    /** Returns the statement's id for logging info */
     @Override
     public String toString() {
         return traceID;
@@ -483,7 +483,7 @@ public class SQLServerStatement implements ISQLServerStatement {
     }
 
     /**
-     * The regular statement constructor
+     * Constructs a SQLServerStatement
      *
      * @param con
      *        The statements connections.
@@ -635,7 +635,7 @@ public class SQLServerStatement implements ISQLServerStatement {
     }
 
     /**
-     * Close the statement.
+     * Closes the statement.
      *
      * Note that the public close() method performs all of the cleanup work through this internal method which cannot
      * throw any exceptions. This is done deliberately to ensure that ALL of the object's client-side and server-side
@@ -933,7 +933,7 @@ public class SQLServerStatement implements ISQLServerStatement {
     }
 
     /**
-     * Reset the state to get the statement for reexecute callable statement overrides this.
+     * Resets the state to get the statement for reexecute callable statement overrides this.
      */
     final void resetForReexecute() throws SQLServerException {
         ensureExecuteResultsReader(null);
@@ -945,7 +945,7 @@ public class SQLServerStatement implements ISQLServerStatement {
     }
 
     /**
-     * Determine if the SQL is a SELECT.
+     * Determines if the SQL is a SELECT.
      * 
      * @param sql
      *        The statment SQL.
@@ -969,7 +969,7 @@ public class SQLServerStatement implements ISQLServerStatement {
      *        The statment SQL.
      * @return True if the statement is an insert.
      */
-    /* L0 */ final boolean isInsert(String sql) throws SQLServerException {
+     final boolean isInsert(String sql) throws SQLServerException {
         checkClosed();
         // Used to check just the first letter which would cause
         // "Set" commands to return true...
@@ -985,7 +985,7 @@ public class SQLServerStatement implements ISQLServerStatement {
     }
 
     /**
-     * Replace a JDBC parameter marker with the parameter's string value
+     * Replaces a JDBC parameter marker with the parameter's string value
      * 
      * @param str
      *        the parameter syntax
@@ -1004,7 +1004,7 @@ public class SQLServerStatement implements ISQLServerStatement {
     }
 
     /**
-     * Set a JDBC parameter to null. (Used only when processing LOB column sources.)
+     * Sets a JDBC parameter to null. (Used only when processing LOB column sources.)
      * 
      * @param sql
      *        the parameter syntax
@@ -1314,7 +1314,7 @@ public class SQLServerStatement implements ISQLServerStatement {
     }
 
     /**
-     * Check for more results in the TDS stream
+     * Returns more results in the TDS stream
      *
      * @return true if the next result is a ResultSet object; false if it is an integer (indicating that it is an update
      *         count or there are no more results).
@@ -1364,7 +1364,7 @@ public class SQLServerStatement implements ISQLServerStatement {
     }
 
     /**
-     * Get the next result in the TDS response token stream, which may be a result set, update count or exception.
+     * Returns the next result in the TDS response token stream, which may be a result set, update count or exception.
      *
      * @return true if another result (ResultSet or update count) was available; false if there were no more results.
      */
@@ -1646,7 +1646,7 @@ public class SQLServerStatement implements ISQLServerStatement {
     }
 
     /**
-     * Consume the OUT parameter for the statement object itself.
+     * Consumes the OUT parameter for the statement object itself.
      *
      * Normal Statement objects consume the server cursor OUT params when present. PreparedStatement and
      * CallableStatement objects override this method to consume the prepared statement handle as well.
@@ -1748,7 +1748,7 @@ public class SQLServerStatement implements ISQLServerStatement {
     }
 
     /**
-     * Send a batch of statements to the database.
+     * Sends a batch of statements to the database.
      */
     @Override
     public int[] executeBatch() throws SQLServerException, BatchUpdateException, SQLTimeoutException {
@@ -1902,7 +1902,7 @@ public class SQLServerStatement implements ISQLServerStatement {
     } // executeLargeBatch
 
     /**
-     * Return the statement's connection
+     * Returns the statement's connection
      * 
      * @throws SQLServerException
      *         when an error occurs
@@ -1921,15 +1921,6 @@ public class SQLServerStatement implements ISQLServerStatement {
     }
 
     /* ----------------- Server side cursor support -------------------------- */
-
-    /**
-     * Open a server side cursor.
-     *
-     * @param sql
-     *        The SQL query.
-     * @exception SQLServerException
-     *            The SQL query was invalid.
-     */
 
     final int getResultSetScrollOpt() {
         int scrollOpt = (null == inOutParam) ? 0 : TDS.SCROLLOPT_PARAMETERIZED_STMT;

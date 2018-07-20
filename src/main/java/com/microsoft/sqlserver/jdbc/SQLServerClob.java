@@ -30,9 +30,8 @@ import java.util.logging.Logger;
 
 
 /**
- * SQLServerClob represents a character LOB object and implements java.sql.Clob.
+ * Represents a character LOB object and implements java.sql.Clob.
  */
-
 public class SQLServerClob extends SQLServerClobBase implements Clob {
     /**
      * Always refresh SerialVersionUID when prompted
@@ -44,7 +43,7 @@ public class SQLServerClob extends SQLServerClobBase implements Clob {
     private static final Logger logger = Logger.getLogger("com.microsoft.sqlserver.jdbc.internals.SQLServerClob");
 
     /**
-     * Create a new CLOB
+     * Constructs a SQLServerClob
      *
      * @param connection
      *        the database connection this blob is implemented on
@@ -292,7 +291,7 @@ abstract class SQLServerClobBase extends SQLServerLob implements Serializable {
     }
 
     /**
-     * Retrieves the CLOB value designated by this Clob object as a java.io.Reader object (or as a stream of
+     * Returns the CLOB value designated by this Clob object as a java.io.Reader object (or as a stream of
      * characters).
      * 
      * @throws SQLException
@@ -331,7 +330,7 @@ abstract class SQLServerClobBase extends SQLServerLob implements Serializable {
     }
 
     /**
-     * Retrieves a copy of the specified substring in the CLOB value designated by this Clob object. The substring
+     * Returns a copy of the specified substring in the CLOB value designated by this Clob object. The substring
      * begins at position pos and has up to length consecutive characters.
      *
      * @param pos
@@ -377,7 +376,7 @@ abstract class SQLServerClobBase extends SQLServerLob implements Serializable {
     }
 
     /**
-     * Retrieves the number of characters in the CLOB value designated by this Clob object.
+     * Returns the number of characters in the CLOB value designated by this Clob object.
      * 
      * @throws SQLException
      *         when an error occurs
@@ -421,7 +420,7 @@ abstract class SQLServerClobBase extends SQLServerLob implements Serializable {
     }
 
     /**
-     * Retrieves the character position at which the specified Clob object searchstr appears in this Clob object. The
+     * Returns the character position at which the specified Clob object searchstr appears in this Clob object. The
      * search begins at position start.
      *
      * @param searchstr
@@ -449,7 +448,7 @@ abstract class SQLServerClobBase extends SQLServerLob implements Serializable {
     }
 
     /**
-     * Retrieves the character position at which the specified substring searchstr appears in the SQL CLOB value
+     * Returns the character position at which the specified substring searchstr appears in the SQL CLOB value
      * represented by this Clob object. The search begins at position start.
      *
      * @param searchstr
@@ -508,7 +507,7 @@ abstract class SQLServerClobBase extends SQLServerLob implements Serializable {
     }
 
     /**
-     * Retrieves a stream to be used to write Ascii characters to the CLOB value that this Clob object represents,
+     * Returns a stream to be used to write Ascii characters to the CLOB value that this Clob object represents,
      * starting at position pos.
      * 
      * @param pos
@@ -530,7 +529,7 @@ abstract class SQLServerClobBase extends SQLServerLob implements Serializable {
     }
 
     /**
-     * Retrieves a stream to be used to write a stream of Unicode characters to the CLOB value that this Clob object
+     * Returns a stream to be used to write a stream of Unicode characters to the CLOB value that this Clob object
      * represents, at position pos.
      * 
      * @param pos

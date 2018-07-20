@@ -12,7 +12,7 @@ import java.sql.SQLType;
 
 
 /**
- * This interface is implemented by {@link SQLServerPreparedStatement} class.
+ * Provides an interface to the {@link SQLServerPreparedStatement} class.
  */
 public interface ISQLServerPreparedStatement extends java.sql.PreparedStatement, ISQLServerStatement {
     /**
@@ -367,7 +367,6 @@ public interface ISQLServerPreparedStatement extends java.sql.PreparedStatement,
     public void setLong(int parameterIndex, long x, boolean forceEncrypt) throws SQLServerException;
 
     /**
-     * <p>
      * Sets the value of the designated parameter with the given object.
      *
      * <p>
@@ -400,7 +399,6 @@ public interface ISQLServerPreparedStatement extends java.sql.PreparedStatement,
             int scale) throws SQLServerException;
 
     /**
-     * <p>
      * Sets the value of the designated parameter with the given object.
      *
      * <p>
@@ -646,7 +644,7 @@ public interface ISQLServerPreparedStatement extends java.sql.PreparedStatement,
             boolean forceEncrypt) throws SQLServerException;
 
     /**
-     * Populates a table valued parameter with a data table
+     * Sets the data table to populates a table valued parameter
      * 
      * @param parameterIndex
      *        the first parameter is 1, the second is 2, ...
@@ -657,11 +655,10 @@ public interface ISQLServerPreparedStatement extends java.sql.PreparedStatement,
      * @throws SQLServerException
      *         when an error occurs
      */
-    public void setStructured(int parameterIndex, String tvpName,
-            SQLServerDataTable tvpDataTable) throws SQLServerException;
+    public void setStructured(int parameterIndex, String tvpName, SQLServerDataTable tvpDataTable) throws SQLServerException;
 
     /**
-     * Populates a table valued parameter with a data table
+     * Sets the result set to populate a table valued parameter
      * 
      * @param parameterIndex
      *        the first parameter is 1, the second is 2, ...
@@ -675,7 +672,7 @@ public interface ISQLServerPreparedStatement extends java.sql.PreparedStatement,
     public void setStructured(int parameterIndex, String tvpName, ResultSet tvpResultSet) throws SQLServerException;
 
     /**
-     * Populates a table valued parameter with a data table
+     * Sets the server bulk record to populate a table valued parameter
      * 
      * @param parameterIndex
      *        the first parameter is 1, the second is 2, ...

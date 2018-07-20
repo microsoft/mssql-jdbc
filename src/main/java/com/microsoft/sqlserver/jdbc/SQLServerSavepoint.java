@@ -9,7 +9,7 @@ import java.text.MessageFormat;
 
 
 /**
- * SQLServerSavepoint implements JDBC 3.0 savepoints. A savepoint is checkpoint to which a transaction can be rolled
+ * Provides an implementation of the JDBC 3.0 savepoints. A savepoint is checkpoint to which a transaction can be rolled
  * back. Savepoints are defined relative to a connection.
  * <p>
  * The API javadoc for JDBC API methods that this class implements are not repeated here. Please see Sun's JDBC API
@@ -22,7 +22,7 @@ public final class SQLServerSavepoint implements ISQLServerSavepoint {
     private final SQLServerConnection con;
 
     /**
-     * Create a new savepoint
+     * Constructs a SQLServerSavepoint
      * 
      * @param con
      *        the connection

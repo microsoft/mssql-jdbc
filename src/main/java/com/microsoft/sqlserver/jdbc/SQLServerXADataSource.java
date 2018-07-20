@@ -15,7 +15,7 @@ import javax.sql.XADataSource;
 
 
 /**
- * SQLServerXADataSource provides database connections for use in distributed (XA) transactions. SQLServerXADataSource
+ * Provides database connections for use in distributed (XA) transactions. SQLServerXADataSource
  * also supports connection pooling of physical connections.
  *
  * The XADataSource and XAConnection interfaces, which are defined in the package javax.sql, are implemented by
@@ -40,13 +40,12 @@ import javax.sql.XADataSource;
  * SQLServerXADataSource can be configured to integrate with Microsoft Distributed Transaction Coordinator (DTC) to
  * provide true, distributed transaction processing.
  */
-
 public final class SQLServerXADataSource extends SQLServerConnectionPoolDataSource implements XADataSource {
 
     static Logger xaLogger = Logger.getLogger("com.microsoft.sqlserver.jdbc.internals.XA");
 
     /**
-     * Obtain a physical database connection to particate in an XA transaction with the specified user and password.
+     * Returns a physical database connection to particate in an XA transaction with the specified user and password.
      * This API should only be called by XA connection pool implementations, not regular JDBC application code.
      *
      * @return A new XAConnection
@@ -79,7 +78,7 @@ public final class SQLServerXADataSource extends SQLServerConnectionPoolDataSour
     }
 
     /**
-     * Obtain a physical database connection to particate in an XA transaction. This API should only be called by XA
+     * Returns a physical database connection to particate in an XA transaction. This API should only be called by XA
      * connection pool implementations, not regular JDBC application code.
      *
      * @return A new XAConnection

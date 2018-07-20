@@ -218,7 +218,7 @@ final class SQLServerSQLXML implements java.sql.SQLXML {
     }
 
     /**
-     * Retrieves a stream that can be used to write to the SQLXML value that this SQLXML object represents The user has
+     * Sets a stream that can be used to write to the SQLXML value that this SQLXML object represents The user has
      * to write the BOM for binary streams.
      * 
      * @throws SQLException

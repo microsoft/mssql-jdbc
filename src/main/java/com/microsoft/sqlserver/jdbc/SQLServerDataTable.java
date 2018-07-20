@@ -19,6 +19,9 @@ import java.util.Set;
 import java.util.UUID;
 
 
+/**
+ * Represents the data table for SQL Server.
+ */
 public final class SQLServerDataTable {
 
     int rowCount = 0;
@@ -54,7 +57,7 @@ public final class SQLServerDataTable {
     }
 
     /**
-     * Retrieves an iterator on the rows of the data table.
+     * Returns an iterator on the rows of the data table.
      * 
      * @return an iterator on the rows of the data table.
      */
@@ -294,7 +297,7 @@ public final class SQLServerDataTable {
     }
 
     /**
-     * Retrieves <code>java.util.Map</code> object type of columnMetaData for all columns where column indexes are
+     * Returns the <code>java.util.Map</code> object type of columnMetaData for all columns where column indexes are
      * mapped with their respective {@link SQLServerDataColumn} Java object
      * 
      * @return Map
