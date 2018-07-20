@@ -1246,11 +1246,7 @@ abstract class SQLServerSpatialDatatype {
             numberOfPoints = 2;
         } else {
             numberOfPoints = buffer.getInt();
-            if (numberOfPoints < 0) {
-                MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_ParsingError"));
-                Object[] msgArgs = {JDBCType.VARBINARY};
-                throw new SQLServerException(this, form.format(msgArgs), null, 0, false);
-            }
+            checkNegSize(numberOfPoints);
         }
     }
 
@@ -1268,8 +1264,9 @@ abstract class SQLServerSpatialDatatype {
         }
     }
 
-    protected void readNumberOfFigures() {
+    protected void readNumberOfFigures() throws SQLServerException {
         numberOfFigures = buffer.getInt();
+        checkNegSize(numberOfFigures);
     }
 
     protected void readFigures() {
@@ -1283,8 +1280,9 @@ abstract class SQLServerSpatialDatatype {
         }
     }
 
-    protected void readNumberOfShapes() {
+    protected void readNumberOfShapes() throws SQLServerException {
         numberOfShapes = buffer.getInt();
+        checkNegSize(numberOfShapes);
     }
 
     protected void readShapes() {
@@ -1300,8 +1298,9 @@ abstract class SQLServerSpatialDatatype {
         }
     }
 
-    protected void readNumberOfSegments() {
+    protected void readNumberOfSegments() throws SQLServerException {
         numberOfSegments = buffer.getInt();
+        checkNegSize(numberOfSegments);
     }
 
     protected void readSegments() {
@@ -1654,6 +1653,14 @@ abstract class SQLServerSpatialDatatype {
     private void skipWhiteSpaces() {
         while (currentWktPos < wkt.length() && Character.isWhitespace(wkt.charAt(currentWktPos))) {
             currentWktPos++;
+        }
+    }
+    
+    private void checkNegSize(int num) throws SQLServerException {
+        if (num < 0) {
+            MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_ParsingError"));
+            Object[] msgArgs = {JDBCType.VARBINARY};
+            throw new SQLServerException(this, form.format(msgArgs), null, 0, false);
         }
     }
 }
