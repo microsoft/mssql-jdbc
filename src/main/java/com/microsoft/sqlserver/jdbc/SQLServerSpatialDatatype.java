@@ -260,6 +260,7 @@ abstract class SQLServerSpatialDatatype {
                 case "POINT":
                     if (startPos == 0 && nextToken.toUpperCase().equals("POINT")) {
                         isSinglePoint = true;
+                        internalType = InternalSpatialDatatype.POINT;
                     }
 
                     if (isGeoCollection) {
