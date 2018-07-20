@@ -103,7 +103,7 @@ abstract class SQLServerSpatialDatatype {
      * corresponding data structures.
      * 
      */
-    protected abstract void parseWkb();
+    protected abstract void parseWkb() throws SQLServerException;
 
     /**
      * Create the WKT representation of Geometry/Geography from the deserialized data.
@@ -1239,13 +1239,18 @@ abstract class SQLServerSpatialDatatype {
         isLargerThanHemisphere = (serializationProperties & isLargerThanHemisphereMask) != 0;
     }
 
-    protected void readNumberOfPoints() {
+    protected void readNumberOfPoints() throws SQLServerException {
         if (isSinglePoint) {
             numberOfPoints = 1;
         } else if (isSingleLineSegment) {
             numberOfPoints = 2;
         } else {
             numberOfPoints = buffer.getInt();
+            if (numberOfPoints < 0) {
+                MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_ParsingError"));
+                Object[] msgArgs = {JDBCType.VARBINARY};
+                throw new SQLServerException(this, form.format(msgArgs), null, 0, false);
+            }
         }
     }
 

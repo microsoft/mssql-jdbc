@@ -57,7 +57,7 @@ public class Geography extends SQLServerSpatialDatatype {
 
         try {
             parseWkb();
-        } catch (NegativeArraySizeException | BufferUnderflowException | OutOfMemoryError e) {
+        } catch (BufferUnderflowException e) {
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_ParsingError"));
             Object[] msgArgs = {JDBCType.VARBINARY};
             throw new SQLServerException(this, form.format(msgArgs), null, 0, false);
@@ -381,7 +381,7 @@ public class Geography extends SQLServerSpatialDatatype {
         return;
     }
 
-    protected void parseWkb() {
+    protected void parseWkb() throws SQLServerException {
         srid = buffer.getInt();
         version = buffer.get();
         serializationProperties = buffer.get();
