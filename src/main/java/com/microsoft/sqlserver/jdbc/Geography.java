@@ -216,8 +216,8 @@ public class Geography extends SQLServerSpatialDatatype {
      * @return double value that represents the X coordinate.
      */
     public Double getX() {
-        if (null != internalType && internalType == InternalSpatialDatatype.POINT && points.length == 2) {
-            return points[0];
+        if (null != internalType && internalType == InternalSpatialDatatype.POINT && xpoints.length == 1) {
+            return xpoints[0];
         }
         return null;
     }
@@ -228,8 +228,8 @@ public class Geography extends SQLServerSpatialDatatype {
      * @return double value that represents the Y coordinate.
      */
     public Double getY() {
-        if (null != internalType && internalType == InternalSpatialDatatype.POINT && points.length == 2) {
-            return points[1];
+        if (null != internalType && internalType == InternalSpatialDatatype.POINT && ypoints.length == 1) {
+            return ypoints[0];
         }
         return null;
     }
@@ -330,8 +330,8 @@ public class Geography extends SQLServerSpatialDatatype {
         }
 
         for (int i = 0; i < numberOfPoints; i++) {
-            buf.putDouble(points[2 * i + 1]);
-            buf.putDouble(points[2 * i]);
+            buf.putDouble(ypoints[i]);
+            buf.putDouble(xpoints[i]);
         }
 
         if (!noZM) {
@@ -416,10 +416,11 @@ public class Geography extends SQLServerSpatialDatatype {
     }
 
     private void readPoints() {
-        points = new double[2 * numberOfPoints];
+        xpoints = new double[numberOfPoints];
+        ypoints = new double[numberOfPoints];
         for (int i = 0; i < numberOfPoints; i++) {
-            points[2 * i + 1] = buffer.getDouble();
-            points[2 * i] = buffer.getDouble();
+            ypoints[i] = buffer.getDouble();
+            xpoints[i] = buffer.getDouble();
         }
     }
 }

@@ -884,17 +884,17 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest {
         ResultSetMetaData rsmd = rs.getMetaData();
         assertEquals(rsmd.getColumnType(1), -158);
     }
-    
+
     @Test
     public void testGetXGetY() throws SQLException {
         Geometry geom = Geometry.STGeomFromText("POINT (1 2 3 4)", 0);
         Geography geog = Geography.STGeomFromText("POINT (1 2 3 4)", 4326);
-        
+
         double x = geom.getX();
         double y = geom.getY();
         assertEquals(x, 1);
         assertEquals(y, 2);
-        
+
         x = geog.getX();
         y = geog.getY();
         assertEquals(x, 1);

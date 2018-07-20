@@ -42,7 +42,8 @@ abstract class SQLServerSpatialDatatype {
     protected int currentFigureIndex = 0;
     protected int currentSegmentIndex = 0;
     protected int currentShapeIndex = 0;
-    protected double points[];
+    protected double xpoints[];
+    protected double ypoints[];
     protected double zValues[];
     protected double mValues[];
     protected Figure figures[];
@@ -124,7 +125,7 @@ abstract class SQLServerSpatialDatatype {
      */
     protected void constructWKT(SQLServerSpatialDatatype sd, InternalSpatialDatatype isd, int pointIndexEnd,
             int figureIndexEnd, int segmentIndexEnd, int shapeIndexEnd) throws SQLServerException {
-        if (null == points || numberOfPoints == 0) {
+        if (null == xpoints || numberOfPoints == 0) {
             if (isd.getTypeCode() == 11) { // FULLGLOBE
                 if (sd instanceof Geometry) {
                     MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_illegalTypeForGeometry"));
@@ -338,22 +339,20 @@ abstract class SQLServerSpatialDatatype {
      * 
      */
     protected void constructPointWKT(int pointIndex) {
-        int firstPointIndex = pointIndex * 2;
-        int secondPointIndex = firstPointIndex + 1;
         int zValueIndex = pointIndex;
         int mValueIndex = pointIndex;
 
-        if (points[firstPointIndex] % 1 == 0) {
-            appendToWKTBuffers((int) points[firstPointIndex]);
+        if (xpoints[pointIndex] % 1 == 0) {
+            appendToWKTBuffers((int) xpoints[pointIndex]);
         } else {
-            appendToWKTBuffers(points[firstPointIndex]);
+            appendToWKTBuffers(xpoints[pointIndex]);
         }
         appendToWKTBuffers(" ");
 
-        if (points[secondPointIndex] % 1 == 0) {
-            appendToWKTBuffers((int) points[secondPointIndex]);
+        if (ypoints[pointIndex] % 1 == 0) {
+            appendToWKTBuffers((int) ypoints[pointIndex]);
         } else {
-            appendToWKTBuffers(points[secondPointIndex]);
+            appendToWKTBuffers(ypoints[pointIndex]);
         }
         appendToWKTBuffers(" ");
 
@@ -1052,11 +1051,12 @@ abstract class SQLServerSpatialDatatype {
      */
     protected void populateStructures() {
         if (pointList.size() > 0) {
-            points = new double[pointList.size() * 2];
+            xpoints = new double[pointList.size()];
+            ypoints = new double[pointList.size()];
 
             for (int i = 0; i < pointList.size(); i++) {
-                points[i * 2] = pointList.get(i).getX();
-                points[i * 2 + 1] = pointList.get(i).getY();
+                xpoints[i] = pointList.get(i).getX();
+                ypoints[i] = pointList.get(i).getY();
             }
 
             if (hasZvalues) {
