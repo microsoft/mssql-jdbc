@@ -8,13 +8,11 @@ package com.microsoft.sqlserver.jdbc;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 
-/**
- * Represents a Geometry spatial data type. 
- */
+
 public class Geometry extends SQLServerSpatialDatatype {
 
     /**
-     * Construct a Geometry object from WKT and srid.
+     * Private constructor used for creating a Geometry object from WKT and srid.
      * 
      * @param WellKnownText
      *        Well-Known Text (WKT) provided by the user.
@@ -39,7 +37,7 @@ public class Geometry extends SQLServerSpatialDatatype {
     }
 
     /**
-     * Constructs a Geometry object from WKB.
+     * Private constructor used for creating a Geometry object from WKB.
      * 
      * @param wkb
      *        Well-Known Binary (WKB) provided by the user.

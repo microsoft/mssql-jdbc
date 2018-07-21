@@ -262,8 +262,7 @@ public final class DateTimeOffset implements java.io.Serializable, java.lang.Com
         private Object readResolve() {
             java.sql.Timestamp timestamp = new java.sql.Timestamp(utcMillis);
             timestamp.setNanos(nanos);
-            r
-turn new DateTimeOffset(timestamp, minutesOffset);
+            return new DateTimeOffset(timestamp, minutesOffset);
         }
     }
 
