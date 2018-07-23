@@ -135,9 +135,9 @@ public class Geography extends SQLServerSpatialDatatype {
      * a Spatial Reference Identifier.
      * 
      * @param x
-     *        longitude
-     * @param y
      *        latitude
+     * @param y
+     *        longitude
      * @param srid
      *        Spatial Reference Identifier value
      * @return Geography Geography instance
