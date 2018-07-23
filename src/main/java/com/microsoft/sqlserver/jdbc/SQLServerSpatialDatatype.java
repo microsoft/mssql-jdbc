@@ -42,8 +42,8 @@ abstract class SQLServerSpatialDatatype {
     protected int currentFigureIndex = 0;
     protected int currentSegmentIndex = 0;
     protected int currentShapeIndex = 0;
-    protected double xpoints[];
-    protected double ypoints[];
+    protected double xValues[];
+    protected double yValues[];
     protected double zValues[];
     protected double mValues[];
     protected Figure figures[];
@@ -125,7 +125,7 @@ abstract class SQLServerSpatialDatatype {
      */
     protected void constructWKT(SQLServerSpatialDatatype sd, InternalSpatialDatatype isd, int pointIndexEnd,
             int figureIndexEnd, int segmentIndexEnd, int shapeIndexEnd) throws SQLServerException {
-        if (null == xpoints || numberOfPoints == 0) {
+        if (numberOfPoints == 0) {
             if (isd.getTypeCode() == 11) { // FULLGLOBE
                 if (sd instanceof Geometry) {
                     MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_illegalTypeForGeometry"));
@@ -339,36 +339,33 @@ abstract class SQLServerSpatialDatatype {
      * 
      */
     protected void constructPointWKT(int pointIndex) {
-        int zValueIndex = pointIndex;
-        int mValueIndex = pointIndex;
-
-        if (xpoints[pointIndex] % 1 == 0) {
-            appendToWKTBuffers((int) xpoints[pointIndex]);
+        if (xValues[pointIndex] % 1 == 0) {
+            appendToWKTBuffers((int) xValues[pointIndex]);
         } else {
-            appendToWKTBuffers(xpoints[pointIndex]);
+            appendToWKTBuffers(xValues[pointIndex]);
         }
         appendToWKTBuffers(" ");
 
-        if (ypoints[pointIndex] % 1 == 0) {
-            appendToWKTBuffers((int) ypoints[pointIndex]);
+        if (yValues[pointIndex] % 1 == 0) {
+            appendToWKTBuffers((int) yValues[pointIndex]);
         } else {
-            appendToWKTBuffers(ypoints[pointIndex]);
+            appendToWKTBuffers(yValues[pointIndex]);
         }
         appendToWKTBuffers(" ");
 
-        if (hasZvalues && !Double.isNaN(zValues[zValueIndex]) && !(zValues[zValueIndex] == 0)) {
-            if (zValues[zValueIndex] % 1 == 0) {
-                WKTsb.append((int) zValues[zValueIndex]);
+        if (hasZvalues && !Double.isNaN(zValues[pointIndex]) && !(zValues[pointIndex] == 0)) {
+            if (zValues[pointIndex] % 1 == 0) {
+                WKTsb.append((int) zValues[pointIndex]);
             } else {
-                WKTsb.append(zValues[zValueIndex]);
+                WKTsb.append(zValues[pointIndex]);
             }
             WKTsb.append(" ");
 
-            if (hasMvalues && !Double.isNaN(mValues[mValueIndex]) && !(mValues[mValueIndex] <= 0)) {
-                if (mValues[mValueIndex] % 1 == 0) {
-                    WKTsb.append((int) mValues[mValueIndex]);
+            if (hasMvalues && !Double.isNaN(mValues[pointIndex]) && !(mValues[pointIndex] <= 0)) {
+                if (mValues[pointIndex] % 1 == 0) {
+                    WKTsb.append((int) mValues[pointIndex]);
                 } else {
-                    WKTsb.append(mValues[mValueIndex]);
+                    WKTsb.append(mValues[pointIndex]);
                 }
                 WKTsb.append(" ");
             }
@@ -1051,12 +1048,12 @@ abstract class SQLServerSpatialDatatype {
      */
     protected void populateStructures() {
         if (pointList.size() > 0) {
-            xpoints = new double[pointList.size()];
-            ypoints = new double[pointList.size()];
+            xValues = new double[pointList.size()];
+            yValues = new double[pointList.size()];
 
             for (int i = 0; i < pointList.size(); i++) {
-                xpoints[i] = pointList.get(i).getX();
-                ypoints[i] = pointList.get(i).getY();
+                xValues[i] = pointList.get(i).getX();
+                yValues[i] = pointList.get(i).getY();
             }
 
             if (hasZvalues) {

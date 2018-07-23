@@ -18,7 +18,7 @@ import java.text.MessageFormat;
 public class Geography extends SQLServerSpatialDatatype {
 
     /**
-     * Private constructor used for creating a Geography object from WKT and srid.
+     * Private constructor used for creating a Geography object from WKT and Spatial Reference Identifier.
      * 
      * @param WellKnownText
      *        Well-Known Text (WKT) provided by the user.
@@ -118,7 +118,7 @@ public class Geography extends SQLServerSpatialDatatype {
 
     /**
      * Constructor for a Geography instance from an Open Geospatial Consortium (OGC) Well-Known Text (WKT)
-     * representation. SRID is defaulted to 4326.
+     * representation. Spatial Reference Identifier is defaulted to 4326.
      * 
      * @param wkt
      *        Well-Known Text (WKT) provided by the user.
@@ -131,14 +131,15 @@ public class Geography extends SQLServerSpatialDatatype {
     }
 
     /**
-     * Constructor for a Geography instance that represents a Point instance from its X and Y values and an SRID.
+     * Constructor for a Geography instance that represents a Point instance from its X and Y values and a Spatial
+     * Reference Identifier.
      * 
      * @param x
      *        x coordinate
      * @param y
      *        y coordinate
      * @param srid
-     *        SRID
+     *        Spatial Reference Identifier Spatial Reference Identifier value
      * @return Geography Geography instance
      * @throws SQLServerException
      *         if an exception occurs
@@ -215,9 +216,9 @@ public class Geography extends SQLServerSpatialDatatype {
      * 
      * @return double value that represents the X coordinate.
      */
-    public Double getX() {
-        if (null != internalType && internalType == InternalSpatialDatatype.POINT && xpoints.length == 1) {
-            return xpoints[0];
+    public Double getLatitude() {
+        if (null != internalType && internalType == InternalSpatialDatatype.POINT && xValues.length == 1) {
+            return xValues[0];
         }
         return null;
     }
@@ -227,9 +228,9 @@ public class Geography extends SQLServerSpatialDatatype {
      * 
      * @return double value that represents the Y coordinate.
      */
-    public Double getY() {
-        if (null != internalType && internalType == InternalSpatialDatatype.POINT && ypoints.length == 1) {
-            return ypoints[0];
+    public Double getLongitude() {
+        if (null != internalType && internalType == InternalSpatialDatatype.POINT && yValues.length == 1) {
+            return yValues[0];
         }
         return null;
     }
@@ -330,8 +331,8 @@ public class Geography extends SQLServerSpatialDatatype {
         }
 
         for (int i = 0; i < numberOfPoints; i++) {
-            buf.putDouble(ypoints[i]);
-            buf.putDouble(xpoints[i]);
+            buf.putDouble(yValues[i]);
+            buf.putDouble(xValues[i]);
         }
 
         if (!noZM) {
@@ -416,11 +417,11 @@ public class Geography extends SQLServerSpatialDatatype {
     }
 
     private void readPoints() {
-        xpoints = new double[numberOfPoints];
-        ypoints = new double[numberOfPoints];
+        xValues = new double[numberOfPoints];
+        yValues = new double[numberOfPoints];
         for (int i = 0; i < numberOfPoints; i++) {
-            ypoints[i] = buffer.getDouble();
-            xpoints[i] = buffer.getDouble();
+            yValues[i] = buffer.getDouble();
+            xValues[i] = buffer.getDouble();
         }
     }
 }

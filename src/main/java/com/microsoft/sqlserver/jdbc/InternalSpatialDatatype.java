@@ -5,7 +5,7 @@
 
 package com.microsoft.sqlserver.jdbc;
 
-public enum InternalSpatialDatatype {
+enum InternalSpatialDatatype {
     POINT((byte) 1, "POINT"),
     LINESTRING((byte) 2, "LINESTRING"),
     POLYGON((byte) 3, "POLYGON"),
@@ -27,15 +27,15 @@ public enum InternalSpatialDatatype {
         this.typeName = typeName;
     }
 
-    public byte getTypeCode() {
+    byte getTypeCode() {
         return this.typeCode;
     }
 
-    public String getTypeName() {
+    String getTypeName() {
         return this.typeName;
     }
 
-    public static InternalSpatialDatatype valueOf(byte typeCode) {
+    static InternalSpatialDatatype valueOf(byte typeCode) {
         for (InternalSpatialDatatype internalType : values()) {
             if (internalType.typeCode == typeCode) {
                 return internalType;

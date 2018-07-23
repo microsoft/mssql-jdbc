@@ -18,7 +18,7 @@ import java.text.MessageFormat;
 public class Geometry extends SQLServerSpatialDatatype {
 
     /**
-     * Private constructor used for creating a Geometry object from WKT and srid.
+     * Private constructor used for creating a Geometry object from WKT and Spatial Reference Identifier.
      * 
      * @param WellKnownText
      *        Well-Known Text (WKT) provided by the user.
@@ -118,7 +118,7 @@ public class Geometry extends SQLServerSpatialDatatype {
 
     /**
      * Constructor for a Geometry instance from an Open Geospatial Consortium (OGC) Well-Known Text (WKT)
-     * representation. SRID is defaulted to 0.
+     * representation. Spatial Reference Identifier is defaulted to 0.
      * 
      * @param wkt
      *        Well-Known Text (WKT) provided by the user.
@@ -131,14 +131,15 @@ public class Geometry extends SQLServerSpatialDatatype {
     }
 
     /**
-     * Constructor for a Geometry instance that represents a Point instance from its X and Y values and an SRID.
+     * Constructor for a Geometry instance that represents a Point instance from its X and Y values and an Spatial
+     * Reference Identifier.
      * 
      * @param x
      *        x coordinate
      * @param y
      *        y coordinate
      * @param srid
-     *        SRID
+     *        Spatial Reference Identifier value
      * @return Geometry Geography instance
      * @throws SQLServerException
      *         if an exception occurs
@@ -216,8 +217,8 @@ public class Geometry extends SQLServerSpatialDatatype {
      * @return double value that represents the X coordinate.
      */
     public Double getX() {
-        if (null != internalType && internalType == InternalSpatialDatatype.POINT && xpoints.length == 1) {
-            return xpoints[0];
+        if (null != internalType && internalType == InternalSpatialDatatype.POINT && xValues.length == 1) {
+            return xValues[0];
         }
         return null;
     }
@@ -228,8 +229,8 @@ public class Geometry extends SQLServerSpatialDatatype {
      * @return double value that represents the Y coordinate.
      */
     public Double getY() {
-        if (null != internalType && internalType == InternalSpatialDatatype.POINT && ypoints.length == 1) {
-            return ypoints[0];
+        if (null != internalType && internalType == InternalSpatialDatatype.POINT && yValues.length == 1) {
+            return yValues[0];
         }
         return null;
     }
@@ -330,8 +331,8 @@ public class Geometry extends SQLServerSpatialDatatype {
         }
 
         for (int i = 0; i < numberOfPoints; i++) {
-            buf.putDouble(xpoints[i]);
-            buf.putDouble(ypoints[i]);
+            buf.putDouble(xValues[i]);
+            buf.putDouble(yValues[i]);
         }
 
         if (!noZM) {
@@ -417,11 +418,11 @@ public class Geometry extends SQLServerSpatialDatatype {
     }
 
     private void readPoints() {
-        xpoints = new double[numberOfPoints];
-        ypoints = new double[numberOfPoints];
+        xValues = new double[numberOfPoints];
+        yValues = new double[numberOfPoints];
         for (int i = 0; i < numberOfPoints; i++) {
-            xpoints[i] = buffer.getDouble();
-            ypoints[i] = buffer.getDouble();
+            xValues[i] = buffer.getDouble();
+            yValues[i] = buffer.getDouble();
         }
     }
 }

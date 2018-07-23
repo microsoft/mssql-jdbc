@@ -895,8 +895,8 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest {
         assertEquals(x, 1);
         assertEquals(y, 2);
 
-        x = geog.getX();
-        y = geog.getY();
+        x = geog.getLatitude();
+        y = geog.getLongitude();
         assertEquals(x, 1);
         assertEquals(y, 2);
     }
