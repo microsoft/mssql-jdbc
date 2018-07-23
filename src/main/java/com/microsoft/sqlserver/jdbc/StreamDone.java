@@ -241,7 +241,6 @@ class StreamDone extends StreamPacket {
             case CMD_SELECTINTO:
 
                 // DDL
-                // Lifted from SQL Server 2005 Books Online at:
                 // http://msdn2.microsoft.com/en-us/library/ms180824.aspx
             case CMD_CNST_CREATE:
             case CMD_DENY:

@@ -21,7 +21,7 @@ import java.util.regex.Pattern;
 
 
 /**
- * Provides JDBC 3.0 meta data for prepared statement parameters.
+ * Provides meta data for prepared statement parameters.
  *
  * The API javadoc for JDBC API methods that this class implements are not repeated here. Please see Sun's JDBC API
  * interfaces javadoc for those details.
