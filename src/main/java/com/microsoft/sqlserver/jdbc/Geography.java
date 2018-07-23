@@ -8,7 +8,6 @@ package com.microsoft.sqlserver.jdbc;
 import java.nio.BufferUnderflowException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
-import java.text.MessageFormat;
 
 
 /**
@@ -28,14 +27,17 @@ public class Geography extends SQLServerSpatialDatatype {
      *         if an exception occurs
      */
     private Geography(String WellKnownText, int srid) throws SQLServerException {
+        if (null == WellKnownText || WellKnownText.length() <= 0) {
+            throwIllegalWKT();
+        }
+
         this.wkt = WellKnownText;
         this.srid = srid;
 
         try {
             parseWKTForSerialization(this, currentWktPos, -1, false);
         } catch (StringIndexOutOfBoundsException e) {
-            String strError = SQLServerException.getErrString("R_illegalWKT");
-            throw new SQLServerException(strError, null, 0, null);
+            throwIllegalWKT();
         }
 
         serializeToWkb(false, this);
@@ -51,6 +53,10 @@ public class Geography extends SQLServerSpatialDatatype {
      *         if an exception occurs
      */
     private Geography(byte[] wkb) throws SQLServerException {
+        if (null == wkb || wkb.length <= 0) {
+            throwIllegalWKB();
+        }
+
         this.wkb = wkb;
         buffer = ByteBuffer.wrap(wkb);
         buffer.order(ByteOrder.LITTLE_ENDIAN);
@@ -58,9 +64,7 @@ public class Geography extends SQLServerSpatialDatatype {
         try {
             parseWkb(this);
         } catch (BufferUnderflowException e) {
-            MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_ParsingError"));
-            Object[] msgArgs = {JDBCType.VARBINARY};
-            throw new SQLServerException(this, form.format(msgArgs), null, 0, false);
+            throwIllegalWKB();
         }
 
         WKTsb = new StringBuffer();

@@ -460,7 +460,7 @@ abstract class SQLServerSpatialDatatype {
 
         if (hasZvalues && !Double.isNaN(zValues[pointIndex]) && !(zValues[pointIndex] == 0)) {
             if (zValues[pointIndex] % 1 == 0) {
-                WKTsb.append((int) zValues[pointIndex]);
+                WKTsb.append((long) zValues[pointIndex]);
             } else {
                 WKTsb.append(zValues[pointIndex]);
             }
@@ -468,7 +468,7 @@ abstract class SQLServerSpatialDatatype {
 
             if (hasMvalues && !Double.isNaN(mValues[pointIndex]) && !(mValues[pointIndex] <= 0)) {
                 if (mValues[pointIndex] % 1 == 0) {
-                    WKTsb.append((int) mValues[pointIndex]);
+                    WKTsb.append((long) mValues[pointIndex]);
                 } else {
                     WKTsb.append(mValues[pointIndex]);
                 }
@@ -1463,6 +1463,17 @@ abstract class SQLServerSpatialDatatype {
             throw new SQLServerException(form.format(new Object[] {currentWktPos}), null, 0, null);
         }
         return false;
+    }
+
+    protected void throwIllegalWKT() throws SQLServerException {
+        String strError = SQLServerException.getErrString("R_illegalWKT");
+        throw new SQLServerException(strError, null, 0, null);
+    }
+
+    protected void throwIllegalWKB() throws SQLServerException {
+        MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_ParsingError"));
+        Object[] msgArgs = {JDBCType.VARBINARY};
+        throw new SQLServerException(this, form.format(msgArgs), null, 0, false);
     }
 
     private void incrementPointNumStartIfPointNotReused(int pointEndIndex) {
