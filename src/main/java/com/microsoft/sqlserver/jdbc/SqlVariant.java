@@ -70,7 +70,7 @@ enum sqlVariantProbBytes {
 }
 
 
-public class SqlVariant {
+class SqlVariant {
 
     private int baseType;
     private int precision;
