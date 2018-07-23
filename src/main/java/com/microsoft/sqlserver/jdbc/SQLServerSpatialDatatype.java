@@ -465,15 +465,18 @@ abstract class SQLServerSpatialDatatype {
                 WKTsb.append(zValues[pointIndex]);
             }
             WKTsb.append(" ");
+        } else if (hasMvalues && !Double.isNaN(mValues[pointIndex]) && !(mValues[pointIndex] <= 0)) {
+            // Handle the case where the user has POINT (1 2 NULL M) value.
+            WKTsb.append("NULL ");
+        }
 
-            if (hasMvalues && !Double.isNaN(mValues[pointIndex]) && !(mValues[pointIndex] <= 0)) {
-                if (mValues[pointIndex] % 1 == 0) {
-                    WKTsb.append((long) mValues[pointIndex]);
-                } else {
-                    WKTsb.append(mValues[pointIndex]);
-                }
-                WKTsb.append(" ");
+        if (hasMvalues && !Double.isNaN(mValues[pointIndex]) && !(mValues[pointIndex] <= 0)) {
+            if (mValues[pointIndex] % 1 == 0) {
+                WKTsb.append((long) mValues[pointIndex]);
+            } else {
+                WKTsb.append(mValues[pointIndex]);
             }
+            WKTsb.append(" ");
         }
 
         currentPointIndex++;
@@ -866,9 +869,23 @@ abstract class SQLServerSpatialDatatype {
 
             try {
                 coords[numOfCoordinates] = sign * new BigDecimal(wkt.substring(startPos, currentWktPos)).doubleValue();
+
+                if (numOfCoordinates == 2) {
+                    hasZvalues = true;
+                } else if (numOfCoordinates == 3) {
+                    hasMvalues = true;
+                }
             } catch (Exception e) { // modify to conversion exception
-                MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_illegalWKTposition"));
-                throw new SQLServerException(form.format(new Object[] {currentWktPos}), null, 0, null);
+                // handle NULL case
+                // the first check ensures that there is enough space for the wkt to have NULL
+                if (wkt.length() > currentWktPos + 3
+                        && wkt.substring(currentWktPos, currentWktPos + 4).equalsIgnoreCase("null")) {
+                    coords[numOfCoordinates] = Double.NaN;
+                    currentWktPos = currentWktPos + 4;
+                } else {
+                    MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_illegalWKTposition"));
+                    throw new SQLServerException(form.format(new Object[] {currentWktPos}), null, 0, null);
+                }
             }
 
             numOfCoordinates++;
@@ -895,13 +912,6 @@ abstract class SQLServerSpatialDatatype {
                 break;
             }
             skipWhiteSpaces();
-        }
-
-        if (numOfCoordinates == 4) {
-            hasZvalues = true;
-            hasMvalues = true;
-        } else if (numOfCoordinates == 3) {
-            hasZvalues = true;
         }
 
         pointList.add(new Point(coords[0], coords[1], coords[2], coords[3]));

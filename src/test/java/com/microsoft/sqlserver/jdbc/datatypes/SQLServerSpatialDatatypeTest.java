@@ -901,6 +901,69 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest {
         assertEquals(y, 2);
     }
 
+    @Test
+    public void testNull() throws SQLException {
+        if (isDenaliOrLater) {
+            beforeEachSetupSpatialDatatype();
+
+            String geoWKTPoint = "POINT(30 12.12312312 NULL 6)";
+            String geoWKTLineString = "LINESTRING(1 1 NULL NULL, 2 4 3 NULL, 3 9 NULL 332)";
+
+            String geoWKTPointExpected = "POINT(30 12.12312312 NULL 6)";
+            String geoWKTLineStringExpected = "LINESTRING(1 1, 2 4 3, 3 9 NULL 332)";
+
+            String s = "some string";
+            Double d = 31.34;
+            int i2 = 5;
+
+            List<String> geoWKTList = new ArrayList<String>();
+
+            geoWKTList.add(geoWKTPoint);
+            geoWKTList.add(geoWKTLineString);
+
+            List<String> geoWKTListExpected = new ArrayList<String>();
+
+            geoWKTListExpected.add(geoWKTPointExpected);
+            geoWKTListExpected.add(geoWKTLineStringExpected);
+
+            Geometry geomWKT;
+            Geography geogWKT;
+
+            pstmt = (SQLServerPreparedStatement) con
+                    .prepareStatement("insert into " + spatialDatatypeTableName + " values (?, ?, ?, ?, ?)");
+
+            geomWKT = Geometry.STGeomFromText(geoWKTPoint, 0);
+            geogWKT = Geography.STGeomFromText(geoWKTPoint, 4326);
+            pstmt.setGeometry(1, geomWKT);
+            pstmt.setGeography(2, geogWKT);
+            pstmt.setString(3, s);
+            pstmt.setDouble(4, d);
+            pstmt.setInt(5, i2);
+
+            pstmt.executeUpdate();
+
+            geomWKT = Geometry.STGeomFromText(geoWKTLineString, 0);
+            geogWKT = Geography.STGeomFromText(geoWKTLineString, 4326);
+            pstmt.setGeometry(1, geomWKT);
+            pstmt.setGeography(2, geogWKT);
+            pstmt.setString(3, s);
+            pstmt.setDouble(4, d);
+            pstmt.setInt(5, i2);
+
+            pstmt.executeUpdate();
+
+            rs = (SQLServerResultSet) stmt.executeQuery("select * from " + spatialDatatypeTableName);
+            for (int i = 0; i < geoWKTList.size(); i++) {
+                rs.next();
+                assertEquals(rs.getGeometry(1).asTextZM(), geoWKTListExpected.get(i));
+                assertEquals(rs.getGeography(2).asTextZM(), geoWKTListExpected.get(i));
+                assertEquals(rs.getString(3), s);
+                assertEquals((Double) rs.getDouble(4), d);
+                assertEquals(rs.getInt(5), i2);
+            }
+        }
+    }
+
     private void beforeEachSetup() throws SQLException {
         Utils.dropTableIfExists(geomTableName, stmt);
         Utils.dropTableIfExists(geogTableName, stmt);
