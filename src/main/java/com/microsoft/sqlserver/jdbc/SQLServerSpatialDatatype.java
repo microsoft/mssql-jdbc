@@ -7,6 +7,7 @@ package com.microsoft.sqlserver.jdbc;
 
 import java.math.BigDecimal;
 import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.List;
@@ -96,14 +97,118 @@ abstract class SQLServerSpatialDatatype {
      * @param noZM
      *        flag to indicate if Z and M coordinates should be included
      */
-    protected abstract void serializeToWkb(boolean noZM);
+
+    protected void serializeToWkb(boolean noZM, SQLServerSpatialDatatype type) {
+        ByteBuffer buf = ByteBuffer.allocate(determineWkbCapacity());
+        createSerializationProperties();
+
+        buf.order(ByteOrder.LITTLE_ENDIAN);
+        buf.putInt(srid);
+        buf.put(version);
+        buf.put(serializationProperties);
+
+        if (!isSinglePoint && !isSingleLineSegment) {
+            buf.putInt(numberOfPoints);
+        }
+
+        if (type instanceof Geometry) {
+            for (int i = 0; i < numberOfPoints; i++) {
+                buf.putDouble(xValues[i]);
+                buf.putDouble(yValues[i]);
+            }
+        } else { // Geography
+            for (int i = 0; i < numberOfPoints; i++) {
+                buf.putDouble(yValues[i]);
+                buf.putDouble(xValues[i]);
+            }
+        }
+
+        if (!noZM) {
+            if (hasZvalues) {
+                for (int i = 0; i < numberOfPoints; i++) {
+                    buf.putDouble(zValues[i]);
+                }
+            }
+
+            if (hasMvalues) {
+                for (int i = 0; i < numberOfPoints; i++) {
+                    buf.putDouble(mValues[i]);
+                }
+            }
+        }
+
+        if (isSinglePoint || isSingleLineSegment) {
+            wkb = buf.array();
+            return;
+        }
+
+        buf.putInt(numberOfFigures);
+        for (int i = 0; i < numberOfFigures; i++) {
+            buf.put(figures[i].getFiguresAttribute());
+            buf.putInt(figures[i].getPointOffset());
+        }
+
+        buf.putInt(numberOfShapes);
+        for (int i = 0; i < numberOfShapes; i++) {
+            buf.putInt(shapes[i].getParentOffset());
+            buf.putInt(shapes[i].getFigureOffset());
+            buf.put(shapes[i].getOpenGISType());
+        }
+
+        if (version == 2 && null != segments) {
+            buf.putInt(numberOfSegments);
+            for (int i = 0; i < numberOfSegments; i++) {
+                buf.put(segments[i].getSegmentType());
+            }
+        }
+
+        if (noZM) {
+            wkbNoZM = buf.array();
+        } else {
+            wkb = buf.array();
+
+        }
+        return;
+    }
 
     /**
      * Deserialize the buffer (that contains WKB representation of Geometry/Geography data), and stores it into multiple
      * corresponding data structures.
      * 
      */
-    protected abstract void parseWkb() throws SQLServerException;
+    protected void parseWkb(SQLServerSpatialDatatype type) throws SQLServerException {
+        srid = buffer.getInt();
+        version = buffer.get();
+        serializationProperties = buffer.get();
+
+        interpretSerializationPropBytes();
+        readNumberOfPoints();
+        readPoints(type);
+
+        if (hasZvalues) {
+            readZvalues();
+        }
+
+        if (hasMvalues) {
+            readMvalues();
+        }
+
+        if (!(isSinglePoint || isSingleLineSegment)) {
+            readNumberOfFigures();
+            readFigures();
+            readNumberOfShapes();
+            readShapes();
+        }
+
+        determineInternalType();
+
+        if (buffer.hasRemaining()) {
+            if (version == 2 && internalType.getTypeCode() != 8 && internalType.getTypeCode() != 11) {
+                readNumberOfSegments();
+                readSegments();
+            }
+        }
+    }
 
     /**
      * Create the WKT representation of Geometry/Geography from the deserialized data.
@@ -1652,12 +1757,29 @@ abstract class SQLServerSpatialDatatype {
             currentWktPos++;
         }
     }
-    
+
     private void checkNegSize(int num) throws SQLServerException {
         if (num < 0) {
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_ParsingError"));
             Object[] msgArgs = {JDBCType.VARBINARY};
             throw new SQLServerException(this, form.format(msgArgs), null, 0, false);
+        }
+    }
+
+    private void readPoints(SQLServerSpatialDatatype type) {
+        xValues = new double[numberOfPoints];
+        yValues = new double[numberOfPoints];
+
+        if (type instanceof Geometry) {
+            for (int i = 0; i < numberOfPoints; i++) {
+                xValues[i] = buffer.getDouble();
+                yValues[i] = buffer.getDouble();
+            }
+        } else { // Geography
+            for (int i = 0; i < numberOfPoints; i++) {
+                yValues[i] = buffer.getDouble();
+                xValues[i] = buffer.getDouble();
+            }
         }
     }
 }
