@@ -1781,9 +1781,7 @@ abstract class SQLServerSpatialDatatype {
 
     private void checkNegSize(int num) throws SQLServerException {
         if (num < 0) {
-            MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_ParsingError"));
-            Object[] msgArgs = {JDBCType.VARBINARY};
-            throw new SQLServerException(this, form.format(msgArgs), null, 0, false);
+            throwIllegalWKB();
         }
     }
 
