@@ -1,9 +1,6 @@
 /*
- * Microsoft JDBC Driver for SQL Server
- * 
- * Copyright(c) Microsoft Corporation All rights reserved.
- * 
- * This program is made available under the terms of the MIT License. See the LICENSE file in the project root for more information.
+ * Microsoft JDBC Driver for SQL Server Copyright(c) Microsoft Corporation All rights reserved. This program is made
+ * available under the terms of the MIT License. See the LICENSE file in the project root for more information.
  */
 package adaptive.src.main.java;
 
@@ -18,6 +15,7 @@ import java.sql.SQLException;
 import java.sql.Statement;
 
 import com.microsoft.sqlserver.jdbc.SQLServerStatement;
+
 
 public class readLargeData {
 
@@ -48,8 +46,8 @@ public class readLargeData {
             password = br.readLine();
 
             // Create a variable for the connection string.
-            String connectionUrl = "jdbc:sqlserver://" + serverName + ":" + portNumber + ";" + "databaseName=" + databaseName + ";username="
-                    + username + ";password=" + password + ";";
+            String connectionUrl = "jdbc:sqlserver://" + serverName + ":" + portNumber + ";" + "databaseName="
+                    + databaseName + ";username=" + username + ";password=" + password + ";";
 
             // Establish the connection.
             Class.forName("com.microsoft.sqlserver.jdbc.SQLServerDriver");
@@ -62,7 +60,8 @@ public class readLargeData {
             for (int i = 0; i < 4000; i++)
                 buffer.append((char) ('A'));
 
-            PreparedStatement pstmt = con.prepareStatement("UPDATE Document_JDBC_Sample " + "SET DocumentSummary = ? WHERE (DocumentID = 1)");
+            PreparedStatement pstmt = con.prepareStatement(
+                    "UPDATE Document_JDBC_Sample " + "SET DocumentSummary = ? WHERE (DocumentID = 1)");
 
             pstmt.setString(1, buffer.toString());
             pstmt.executeUpdate();
@@ -102,36 +101,30 @@ public class readLargeData {
         // Handle any errors that may have occurred.
         catch (Exception e) {
             e.printStackTrace();
-        }
-        finally {
+        } finally {
             if (rs != null)
                 try {
                     rs.close();
-                }
-                catch (Exception e) {
-                }
+                } catch (Exception e) {}
             if (stmt != null)
                 try {
                     stmt.close();
-                }
-                catch (Exception e) {
-                }
+                } catch (Exception e) {}
             if (con != null)
                 try {
                     con.close();
-                }
-                catch (Exception e) {
-                }
+                } catch (Exception e) {}
         }
     }
 
     private static void createTable(Connection con) throws SQLException {
         Statement stmt = con.createStatement();
 
-        stmt.execute("if exists (select * from sys.objects where name = 'Document_JDBC_Sample')" + "drop table Document_JDBC_Sample");
+        stmt.execute("if exists (select * from sys.objects where name = 'Document_JDBC_Sample')"
+                + "drop table Document_JDBC_Sample");
 
-        String sql = "CREATE TABLE Document_JDBC_Sample (" + "[DocumentID] [int] NOT NULL identity," + "[Title] [char](50) NOT NULL,"
-                + "[DocumentSummary] [varchar](max) NULL)";
+        String sql = "CREATE TABLE Document_JDBC_Sample (" + "[DocumentID] [int] NOT NULL identity,"
+                + "[Title] [char](50) NOT NULL," + "[DocumentSummary] [varchar](max) NULL)";
 
         stmt.execute(sql);
 

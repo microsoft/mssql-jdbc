@@ -1,9 +1,6 @@
 /*
- * Microsoft JDBC Driver for SQL Server
- * 
- * Copyright(c) Microsoft Corporation All rights reserved.
- * 
- * This program is made available under the terms of the MIT License. See the LICENSE file in the project root for more information.
+ * Microsoft JDBC Driver for SQL Server Copyright(c) Microsoft Corporation All rights reserved. This program is made
+ * available under the terms of the MIT License. See the LICENSE file in the project root for more information.
  */
 package datatypes.src.main.java;
 
@@ -27,6 +24,7 @@ import org.xml.sax.ContentHandler;
 import org.xml.sax.Locator;
 import org.xml.sax.SAXException;
 import org.xml.sax.XMLReader;
+
 
 public class sqlxmlExample {
 
@@ -57,8 +55,8 @@ public class sqlxmlExample {
             password = br.readLine();
 
             // Create a variable for the connection string.
-            String connectionUrl = "jdbc:sqlserver://" + serverName + ":" + portNumber + ";" + "databaseName=" + databaseName + ";username="
-                    + username + ";password=" + password + ";";
+            String connectionUrl = "jdbc:sqlserver://" + serverName + ":" + portNumber + ";" + "databaseName="
+                    + databaseName + ";username=" + username + ";password=" + password + ";";
 
             // Establish the connection.
             Class.forName("com.microsoft.sqlserver.jdbc.SQLServerDriver");
@@ -83,26 +81,19 @@ public class sqlxmlExample {
         // Handle any errors that may have occurred.
         catch (Exception e) {
             e.printStackTrace();
-        }
-        finally {
+        } finally {
             if (rs != null)
                 try {
                     rs.close();
-                }
-                catch (Exception e) {
-                }
+                } catch (Exception e) {}
             if (stmt != null)
                 try {
                     stmt.close();
-                }
-                catch (Exception e) {
-                }
+                } catch (Exception e) {}
             if (con != null)
                 try {
                     con.close();
-                }
-                catch (Exception e) {
-                }
+                } catch (Exception e) {}
         }
     }
 
@@ -130,8 +121,7 @@ public class sqlxmlExample {
             System.out.println("showGetters method: Parse an XML data in TestTable1 => ");
             xmlReader.parse(sxSource.getInputSource());
 
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             e.printStackTrace();
         }
     }
@@ -174,8 +164,7 @@ public class sqlxmlExample {
                 SQLXML xml = rs.getSQLXML("Col3");
                 System.out.println("XML column : " + xml.getString());
             }
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             e.printStackTrace();
         }
     }
@@ -209,7 +198,8 @@ public class sqlxmlExample {
             identity.transform(sxSource, sxResult);
 
             // Insert the destination SQLXML object into the database.
-            PreparedStatement psmt = con.prepareStatement("INSERT INTO TestTable2" + " (Col2, Col3, Col4, Col5) VALUES (?, ?, ?, ?)");
+            PreparedStatement psmt = con
+                    .prepareStatement("INSERT INTO TestTable2" + " (Col2, Col3, Col4, Col5) VALUES (?, ?, ?, ?)");
             psmt.setString(1, "A");
             psmt.setString(2, "Test data");
             psmt.setInt(3, 123);
@@ -229,8 +219,7 @@ public class sqlxmlExample {
                 SQLXML xml = rs.getSQLXML("Col5");
                 System.out.println("XML column : " + xml.getString());
             }
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             e.printStackTrace();
         }
     }
@@ -241,13 +230,16 @@ public class sqlxmlExample {
             Statement stmt = con.createStatement();
 
             // Drop the tables.
-            stmt.executeUpdate("if exists (select * from sys.objects where name = 'TestTable1')" + "drop table TestTable1");
+            stmt.executeUpdate(
+                    "if exists (select * from sys.objects where name = 'TestTable1')" + "drop table TestTable1");
 
-            stmt.executeUpdate("if exists (select * from sys.objects where name = 'TestTable2')" + "drop table TestTable2");
+            stmt.executeUpdate(
+                    "if exists (select * from sys.objects where name = 'TestTable2')" + "drop table TestTable2");
 
             // Create empty tables.
             stmt.execute("CREATE TABLE TestTable1 (Col1 int IDENTITY, Col2 char, Col3 xml)");
-            stmt.execute("CREATE TABLE TestTable2 (Col1 int IDENTITY, Col2 char, Col3 varchar(50), Col4 int, Col5 xml)");
+            stmt.execute(
+                    "CREATE TABLE TestTable2 (Col1 int IDENTITY, Col2 char, Col3 varchar(50), Col4 int, Col5 xml)");
 
             // Insert two rows to the TestTable1.
             String row1 = "<contact><name>Contact Name 1</name><phone>XXX-XXX-XXXX</phone></contact>";
@@ -256,31 +248,24 @@ public class sqlxmlExample {
             stmt.executeUpdate("insert into TestTable1" + " (Col2, Col3) values('A', '" + row1 + "')");
             stmt.executeUpdate("insert into TestTable1" + " (Col2, Col3) values('B', '" + row2 + "')");
 
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             e.printStackTrace();
         }
     }
 }
 
+
 class ExampleContentHandler implements ContentHandler {
 
-    public void startElement(String namespaceURI,
-            String localName,
-            String qName,
-            Attributes atts) throws SAXException {
+    public void startElement(String namespaceURI, String localName, String qName, Attributes atts) throws SAXException {
         System.out.println("startElement method: localName => " + localName);
     }
 
-    public void characters(char[] text,
-            int start,
-            int length) throws SAXException {
+    public void characters(char[] text, int start, int length) throws SAXException {
         System.out.println("characters method");
     }
 
-    public void endElement(String namespaceURI,
-            String localName,
-            String qName) throws SAXException {
+    public void endElement(String namespaceURI, String localName, String qName) throws SAXException {
         System.out.println("endElement method: localName => " + localName);
     }
 
@@ -296,8 +281,7 @@ class ExampleContentHandler implements ContentHandler {
         System.out.println("endDocument method");
     }
 
-    public void startPrefixMapping(String prefix,
-            String uri) throws SAXException {
+    public void startPrefixMapping(String prefix, String uri) throws SAXException {
         System.out.println("startPrefixMapping method: prefix => " + prefix);
     }
 
@@ -309,14 +293,11 @@ class ExampleContentHandler implements ContentHandler {
         System.out.println("skippedEntity method: name => " + name);
     }
 
-    public void ignorableWhitespace(char[] text,
-            int start,
-            int length) throws SAXException {
+    public void ignorableWhitespace(char[] text, int start, int length) throws SAXException {
         System.out.println("ignorableWhiteSpace method");
     }
 
-    public void processingInstruction(String target,
-            String data) throws SAXException {
+    public void processingInstruction(String target, String data) throws SAXException {
         System.out.println("processingInstruction method: target => " + target);
     }
 }

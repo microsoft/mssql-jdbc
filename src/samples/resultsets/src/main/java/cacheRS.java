@@ -1,9 +1,6 @@
 /*
- * Microsoft JDBC Driver for SQL Server
- * 
- * Copyright(c) Microsoft Corporation All rights reserved.
- * 
- * This program is made available under the terms of the MIT License. See the LICENSE file in the project root for more information.
+ * Microsoft JDBC Driver for SQL Server Copyright(c) Microsoft Corporation All rights reserved. This program is made
+ * available under the terms of the MIT License. See the LICENSE file in the project root for more information.
  */
 package resultsets.src.main.java;
 
@@ -16,6 +13,7 @@ import java.sql.SQLException;
 import java.sql.Statement;
 
 import com.microsoft.sqlserver.jdbc.SQLServerResultSet;
+
 
 public class cacheRS {
 
@@ -46,8 +44,8 @@ public class cacheRS {
             password = br.readLine();
 
             // Create a variable for the connection string.
-            String connectionUrl = "jdbc:sqlserver://" + serverName + ":" + portNumber + ";" + "databaseName=" + databaseName + ";username="
-                    + username + ";password=" + password + ";";
+            String connectionUrl = "jdbc:sqlserver://" + serverName + ":" + portNumber + ";" + "databaseName="
+                    + databaseName + ";username=" + username + ";password=" + password + ";";
 
             // Establish the connection.
             Class.forName("com.microsoft.sqlserver.jdbc.SQLServerDriver");
@@ -58,7 +56,8 @@ public class cacheRS {
             // Create and execute an SQL statement that returns a large
             // set of data and then display it.
             String SQL = "SELECT * FROM SalesOrderDetail_JDBC_Sample;";
-            stmt = con.createStatement(SQLServerResultSet.TYPE_SS_SERVER_CURSOR_FORWARD_ONLY, +SQLServerResultSet.CONCUR_READ_ONLY);
+            stmt = con.createStatement(SQLServerResultSet.TYPE_SS_SERVER_CURSOR_FORWARD_ONLY,
+                    +SQLServerResultSet.CONCUR_READ_ONLY);
 
             // Perform a fetch for every row in the result set.
             rs = stmt.executeQuery(SQL);
@@ -95,26 +94,19 @@ public class cacheRS {
             if (rs != null)
                 try {
                     rs.close();
-                }
-                catch (Exception e) {
-                }
+                } catch (Exception e) {}
             if (stmt != null)
                 try {
                     stmt.close();
-                }
-                catch (Exception e) {
-                }
+                } catch (Exception e) {}
             if (con != null)
                 try {
                     con.close();
-                }
-                catch (Exception e) {
-                }
+                } catch (Exception e) {}
         }
     }
 
-    private static void timerTest(int fetchSize,
-            ResultSet rs) {
+    private static void timerTest(int fetchSize, ResultSet rs) {
         try {
 
             // Declare the variables for tracking the row count and elapsed time.
@@ -139,8 +131,7 @@ public class cacheRS {
             System.out.println("TIME TO EXECUTE: " + runTime);
             System.out.println();
 
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             e.printStackTrace();
         }
     }
@@ -149,7 +140,8 @@ public class cacheRS {
 
         Statement stmt = con.createStatement();
 
-        stmt.execute("if exists (select * from sys.objects where name = 'SalesOrderDetail_JDBC_Sample')" + "drop table SalesOrderDetail_JDBC_Sample");
+        stmt.execute("if exists (select * from sys.objects where name = 'SalesOrderDetail_JDBC_Sample')"
+                + "drop table SalesOrderDetail_JDBC_Sample");
 
         String sql = "CREATE TABLE [SalesOrderDetail_JDBC_Sample](" + "[SalesOrderID] [int] NOT NULL,"
                 + "[SalesOrderDetailID] [int] IDENTITY(1,1) NOT NULL," + "[CarrierTrackingNumber] [nvarchar](25) NULL,"

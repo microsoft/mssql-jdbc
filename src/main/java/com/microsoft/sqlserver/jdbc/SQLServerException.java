@@ -186,8 +186,7 @@ public final class SQLServerException extends java.sql.SQLException {
      * @param bStack
      *        true to generate the stack trace
      */
-    SQLServerException(Object obj, String errText, String errState, StreamError streamError,
-            boolean bStack) {
+    SQLServerException(Object obj, String errText, String errState, StreamError streamError, boolean bStack) {
         super(errText, errState, streamError.getErrorNumber());
 
         // Log SQL error with info from StreamError.
@@ -248,8 +247,8 @@ public final class SQLServerException extends java.sql.SQLException {
      *        true to generate the stack trace
      * @throws SQLServerException
      */
-    static void makeFromDatabaseError(SQLServerConnection con, Object obj, String errText,
-            StreamError streamError, boolean bStack) throws SQLServerException {
+    static void makeFromDatabaseError(SQLServerConnection con, Object obj, String errText, StreamError streamError,
+            boolean bStack) throws SQLServerException {
         String state = generateStateCode(con, streamError.getErrorNumber(), streamError.getErrorState());
 
         SQLServerException theException = new SQLServerException(obj,

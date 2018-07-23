@@ -1,9 +1,6 @@
 /*
- * Microsoft JDBC Driver for SQL Server
- * 
- * Copyright(c) Microsoft Corporation All rights reserved.
- * 
- * This program is made available under the terms of the MIT License. See the LICENSE file in the project root for more information.
+ * Microsoft JDBC Driver for SQL Server Copyright(c) Microsoft Corporation All rights reserved. This program is made
+ * available under the terms of the MIT License. See the LICENSE file in the project root for more information.
  */
 package sparse.src.main.java;
 
@@ -24,6 +21,7 @@ import org.w3c.dom.Document;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 import org.xml.sax.InputSource;
+
 
 public class SparseColumns {
 
@@ -54,8 +52,8 @@ public class SparseColumns {
             password = br.readLine();
 
             // Create a variable for the connection string.
-            String connectionUrl = "jdbc:sqlserver://" + serverName + ":" + portNumber + ";" + "databaseName=" + databaseName + ";username="
-                    + username + ";password=" + password + ";";
+            String connectionUrl = "jdbc:sqlserver://" + serverName + ":" + portNumber + ";" + "databaseName="
+                    + databaseName + ";username=" + username + ";password=" + password + ";";
 
             // Establish the connection.
             Class.forName("com.microsoft.sqlserver.jdbc.SQLServerDriver");
@@ -113,46 +111,41 @@ public class SparseColumns {
                             for (int n = 0; n < sparseColumnList.getLength(); ++n) {
                                 Node sparseColumnNode = sparseColumnList.item(n);
                                 String columnName = sparseColumnNode.getNodeName();
-                                // Note that the column value is not in the sparseColumNode, it is the value of the first child of it
+                                // Note that the column value is not in the sparseColumNode, it is the value of the
+                                // first child of it
                                 Node sparseColumnValueNode = sparseColumnNode.getFirstChild();
                                 String columnValue = sparseColumnValueNode.getNodeValue();
 
                                 System.out.println("\t" + columnName + "\t: " + columnValue);
                             }
                         }
-                    }
-                    else { // Just print the name + value of non-sparse columns
+                    } else { // Just print the name + value of non-sparse columns
                         System.out.println(name + "\t: " + value);
                     }
                 }
                 System.out.println();// New line between rows
             }
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             e.printStackTrace();
-        }
-        finally {
+        } finally {
             if (rs != null) {
                 try {
                     rs.close();
-                }
-                catch (Exception e) {
+                } catch (Exception e) {
                     e.printStackTrace();
                 }
             }
             if (stmt != null) {
                 try {
                     stmt.close();
-                }
-                catch (Exception e) {
+                } catch (Exception e) {
                     e.printStackTrace();
                 }
             }
             if (con != null) {
                 try {
                     con.close();
-                }
-                catch (Exception e) {
+                } catch (Exception e) {
                     e.printStackTrace();
                 }
             }

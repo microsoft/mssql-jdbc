@@ -1,9 +1,6 @@
 /*
- * Microsoft JDBC Driver for SQL Server
- * 
- * Copyright(c) Microsoft Corporation All rights reserved.
- * 
- * This program is made available under the terms of the MIT License. See the LICENSE file in the project root for more information.
+ * Microsoft JDBC Driver for SQL Server Copyright(c) Microsoft Corporation All rights reserved. This program is made
+ * available under the terms of the MIT License. See the LICENSE file in the project root for more information.
  */
 package adaptive.src.main.java;
 
@@ -19,6 +16,7 @@ import java.sql.Statement;
 
 import com.microsoft.sqlserver.jdbc.SQLServerCallableStatement;
 import com.microsoft.sqlserver.jdbc.SQLServerDataSource;
+
 
 public class executeStoredProcedure {
 
@@ -66,7 +64,8 @@ public class executeStoredProcedure {
             for (int i = 0; i < 4000; i++)
                 buffer.append((char) ('A'));
 
-            PreparedStatement pstmt = con.prepareStatement("UPDATE Document_JDBC_Sample " + "SET DocumentSummary = ? WHERE (DocumentID = 1)");
+            PreparedStatement pstmt = con.prepareStatement(
+                    "UPDATE Document_JDBC_Sample " + "SET DocumentSummary = ? WHERE (DocumentID = 1)");
 
             pstmt.setString(1, buffer.toString());
             pstmt.executeUpdate();
@@ -118,26 +117,19 @@ public class executeStoredProcedure {
         // Handle any errors that may have occurred.
         catch (Exception e) {
             e.printStackTrace();
-        }
-        finally {
+        } finally {
             if (rs != null)
                 try {
                     rs.close();
-                }
-                catch (Exception e) {
-                }
+                } catch (Exception e) {}
             if (stmt != null)
                 try {
                     stmt.close();
-                }
-                catch (Exception e) {
-                }
+                } catch (Exception e) {}
             if (con != null)
                 try {
                     con.close();
-                }
-                catch (Exception e) {
-                }
+                } catch (Exception e) {}
         }
     }
 
@@ -150,8 +142,9 @@ public class executeStoredProcedure {
                 + "') and OBJECTPROPERTY(id, N'IsProcedure') = 1)" + " DROP PROCEDURE " + outputProcedure;
         stmt.execute(sql);
 
-        sql = "CREATE PROCEDURE " + outputProcedure + " @p0 int, @p1 int OUTPUT, @p2 char(50) OUTPUT, " + "@p3 varchar(max) OUTPUT " + " AS"
-                + " SELECT top 1 @p1=DocumentID, @p2=Title," + " @p3=DocumentSummary FROM Document_JDBC_Sample where DocumentID = @p0";
+        sql = "CREATE PROCEDURE " + outputProcedure + " @p0 int, @p1 int OUTPUT, @p2 char(50) OUTPUT, "
+                + "@p3 varchar(max) OUTPUT " + " AS" + " SELECT top 1 @p1=DocumentID, @p2=Title,"
+                + " @p3=DocumentSummary FROM Document_JDBC_Sample where DocumentID = @p0";
 
         stmt.execute(sql);
     }
@@ -159,10 +152,11 @@ public class executeStoredProcedure {
     private static void createTable(Connection con) throws SQLException {
         Statement stmt = con.createStatement();
 
-        stmt.execute("if exists (select * from sys.objects where name = 'Document_JDBC_Sample')" + "drop table Document_JDBC_Sample");
+        stmt.execute("if exists (select * from sys.objects where name = 'Document_JDBC_Sample')"
+                + "drop table Document_JDBC_Sample");
 
-        String sql = "CREATE TABLE Document_JDBC_Sample(" + "[DocumentID] [int] NOT NULL identity," + "[Title] [char](50) NOT NULL,"
-                + "[DocumentSummary] [varchar](max) NULL)";
+        String sql = "CREATE TABLE Document_JDBC_Sample(" + "[DocumentID] [int] NOT NULL identity,"
+                + "[Title] [char](50) NOT NULL," + "[DocumentSummary] [varchar](max) NULL)";
 
         stmt.execute(sql);
 

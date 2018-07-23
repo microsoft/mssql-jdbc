@@ -626,10 +626,9 @@ final class Parameter {
                          * generic type info can be used as before.
                          */
                         if (userProvidesScale) {
-                            param.typeDefinition = con.isKatmaiOrLater()
-                                                                         ? (SSType.DATETIME2.toString() + "(" + outScale
-                                                                                 + ")")
-                                                                         : (SSType.DATETIME.toString());
+                            param.typeDefinition = con
+                                    .isKatmaiOrLater() ? (SSType.DATETIME2.toString() + "(" + outScale + ")")
+                                                       : (SSType.DATETIME.toString());
                         } else {
                             param.typeDefinition = con.isKatmaiOrLater()
                                                                          ? (SSType.DATETIME2.toString() + "("

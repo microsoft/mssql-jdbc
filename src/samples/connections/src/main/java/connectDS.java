@@ -1,9 +1,6 @@
 /*
- * Microsoft JDBC Driver for SQL Server
- * 
- * Copyright(c) Microsoft Corporation All rights reserved.
- * 
- * This program is made available under the terms of the MIT License. See the LICENSE file in the project root for more information.
+ * Microsoft JDBC Driver for SQL Server Copyright(c) Microsoft Corporation All rights reserved. This program is made
+ * available under the terms of the MIT License. See the LICENSE file in the project root for more information.
  */
 package connections.src.main.java;
 
@@ -15,6 +12,7 @@ import java.sql.ResultSet;
 import java.sql.Statement;
 
 import com.microsoft.sqlserver.jdbc.SQLServerDataSource;
+
 
 public class connectDS {
 
@@ -77,21 +75,15 @@ public class connectDS {
             if (rs != null)
                 try {
                     rs.close();
-                }
-                catch (Exception e) {
-                }
+                } catch (Exception e) {}
             if (cstmt != null)
                 try {
                     cstmt.close();
-                }
-                catch (Exception e) {
-                }
+                } catch (Exception e) {}
             if (con != null)
                 try {
                     con.close();
-                }
-                catch (Exception e) {
-                }
+                } catch (Exception e) {}
         }
     }
 }

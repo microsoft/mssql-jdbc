@@ -1,9 +1,6 @@
 /*
- * Microsoft JDBC Driver for SQL Server
- * 
- * Copyright(c) Microsoft Corporation All rights reserved.
- * 
- * This program is made available under the terms of the MIT License. See the LICENSE file in the project root for more information.
+ * Microsoft JDBC Driver for SQL Server Copyright(c) Microsoft Corporation All rights reserved. This program is made
+ * available under the terms of the MIT License. See the LICENSE file in the project root for more information.
  */
 package resultsets.src.main.java;
 
@@ -14,6 +11,7 @@ import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+
 
 public class updateRS {
 
@@ -44,8 +42,8 @@ public class updateRS {
             password = br.readLine();
 
             // Create a variable for the connection string.
-            String connectionUrl = "jdbc:sqlserver://" + serverName + ":" + portNumber + ";" + "databaseName=" + databaseName + ";username="
-                    + username + ";password=" + password + ";";
+            String connectionUrl = "jdbc:sqlserver://" + serverName + ":" + portNumber + ";" + "databaseName="
+                    + databaseName + ";username=" + username + ";password=" + password + ";";
 
             // Establish the connection.
             Class.forName("com.microsoft.sqlserver.jdbc.SQLServerDriver");
@@ -98,45 +96,39 @@ public class updateRS {
             if (rs != null)
                 try {
                     rs.close();
-                }
-                catch (Exception e) {
-                }
+                } catch (Exception e) {}
             if (stmt != null)
                 try {
                     stmt.close();
-                }
-                catch (Exception e) {
-                }
+                } catch (Exception e) {}
             if (con != null)
                 try {
                     con.close();
-                }
-                catch (Exception e) {
-                }
+                } catch (Exception e) {}
         }
     }
 
     private static void createTable(Connection con) throws SQLException {
         Statement stmt = con.createStatement();
 
-        stmt.execute("if exists (select * from sys.objects where name = 'Department_JDBC_Sample')" + "drop table Department_JDBC_Sample");
+        stmt.execute("if exists (select * from sys.objects where name = 'Department_JDBC_Sample')"
+                + "drop table Department_JDBC_Sample");
 
-        String sql = "CREATE TABLE [Department_JDBC_Sample](" + "[DepartmentID] [smallint] IDENTITY(1,1) NOT NULL," + "[Name] [varchar](50) NOT NULL,"
-                + "[GroupName] [varchar](50) NOT NULL," + "[ModifiedDate] [datetime] NOT NULL,)";
+        String sql = "CREATE TABLE [Department_JDBC_Sample](" + "[DepartmentID] [smallint] IDENTITY(1,1) NOT NULL,"
+                + "[Name] [varchar](50) NOT NULL," + "[GroupName] [varchar](50) NOT NULL,"
+                + "[ModifiedDate] [datetime] NOT NULL,)";
 
         stmt.execute(sql);
     }
 
-    private static void displayRow(String title,
-            ResultSet rs) {
+    private static void displayRow(String title, ResultSet rs) {
         try {
             System.out.println(title);
             while (rs.next()) {
                 System.out.println(rs.getString("Name") + " : " + rs.getString("GroupName"));
                 System.out.println();
             }
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             e.printStackTrace();
         }
     }
