@@ -520,7 +520,7 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
             pstmt.addBatch();
 
             pstmt.executeBatch();
-            throw new Exception("shouldn't come here.");
+            throw new Exception("Test did not throw an exception when it was expected.");
         } catch (BatchUpdateException e) {
             assertEquals(e.getMessage(), "Column name or number of supplied values does not match table definition.");
         }
@@ -541,7 +541,7 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
             pstmt.addBatch();
 
             pstmt.executeBatch();
-            throw new Exception("shouldn't come here.");
+            throw new Exception("Test did not throw an exception when it was expected.");
         } catch (BatchUpdateException e) {
             assertEquals(e.getMessage(),
                     "There are fewer columns in the INSERT statement than values specified in the VALUES clause. The number of values in the VALUES clause must match the number of columns specified in the INSERT statement.");
@@ -566,7 +566,7 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
             pstmt.addBatch();
 
             pstmt.executeBatch();
-            throw new Exception("shouldn't come here.");
+            throw new Exception("Test did not throw an exception when it was expected.");
         } catch (BatchUpdateException e) {
             assertEquals(e.getMessage(), "Incorrect syntax near '('.");
         }
@@ -586,7 +586,7 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
             pstmt.addBatch();
 
             pstmt.executeBatch();
-            throw new Exception("shouldn't come here.");
+            throw new Exception("Test did not throw an exception when it was expected.");
         } catch (BatchUpdateException e) {
             assertEquals(e.getMessage(), "");
         }
