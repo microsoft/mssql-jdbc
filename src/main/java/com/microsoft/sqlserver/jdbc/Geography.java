@@ -131,15 +131,15 @@ public class Geography extends SQLServerSpatialDatatype {
     }
 
     /**
-     * Constructor for a Geography instance that represents a Point instance from its X and Y values and a Spatial
-     * Reference Identifier.
+     * Constructor for a Geography instance that represents a Point instance from its latitude and longitude values and
+     * a Spatial Reference Identifier.
      * 
      * @param x
-     *        x coordinate
+     *        longitude
      * @param y
-     *        y coordinate
+     *        latitude
      * @param srid
-     *        Spatial Reference Identifier Spatial Reference Identifier value
+     *        Spatial Reference Identifier value
      * @return Geography Geography instance
      * @throws SQLServerException
      *         if an exception occurs
@@ -212,9 +212,9 @@ public class Geography extends SQLServerSpatialDatatype {
     }
 
     /**
-     * Returns the X coordinate value.
+     * Returns the latitude value.
      * 
-     * @return double value that represents the X coordinate.
+     * @return double value that represents the latitude.
      */
     public Double getLatitude() {
         if (null != internalType && internalType == InternalSpatialDatatype.POINT && xValues.length == 1) {
@@ -224,9 +224,9 @@ public class Geography extends SQLServerSpatialDatatype {
     }
 
     /**
-     * Returns the Y coordinate value.
+     * Returns the longitude value.
      * 
-     * @return double value that represents the Y coordinate.
+     * @return double value that represents the longitude.
      */
     public Double getLongitude() {
         if (null != internalType && internalType == InternalSpatialDatatype.POINT && yValues.length == 1) {
