@@ -677,7 +677,7 @@ enum JDBCType {
     }
 
     /**
-     * Returns the integer value of JDBCType
+     * Returns the integer value of JDBCType.
      * 
      * @return integer representation of JDBCType
      */
@@ -916,7 +916,7 @@ enum JDBCType {
     }
 
     /**
-     * Identify numerically signed data types.
+     * Identifies numerically signed data types.
      * 
      * @return true if the type can be signed
      */
@@ -928,7 +928,7 @@ enum JDBCType {
     }
 
     /**
-     * Identify binary JDBC data types.
+     * Identifies binary JDBC data types.
      * 
      * @return true if the JDBC type is binary
      */
@@ -939,7 +939,7 @@ enum JDBCType {
     }
 
     /**
-     * Identify textual JDBC data types -- those types for which conversion from another type is simply a matter of
+     * Identifies textual JDBC data types -- those types for which conversion from another type is simply a matter of
      * representing that type as a string.
      *
      * Note: SQLXML does not qualify as a "textual" type in this context. That is, calling, for example,
@@ -955,7 +955,7 @@ enum JDBCType {
     }
 
     /**
-     * Return if datat types are supported by JDBC
+     * Returns if datat types are supported by JDBC.
      * 
      * @param jdbcType
      *        the JDBC type to check
@@ -993,7 +993,7 @@ enum JDBCType {
     }
 
     /*
-     * Used for verifying if a data type can be normalized for AE
+     * Used for verifying if a data type can be normalized for AE.
      */
     enum NormalizationAE {
         CHARACTER_NORMALIZED_TO(JDBCType.CHAR, EnumSet.of(SSType.CHAR, SSType.VARCHAR, SSType.VARCHARMAX)),
