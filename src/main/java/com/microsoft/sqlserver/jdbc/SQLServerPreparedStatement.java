@@ -1972,6 +1972,8 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                     }
                 }
 
+                checkAdditionalQuery();
+
                 String destinationTableName = tableName;
                 SQLServerStatement stmt = (SQLServerStatement) connection.createStatement(ResultSet.TYPE_FORWARD_ONLY,
                         ResultSet.CONCUR_READ_ONLY, connection.getHoldability(), stmtColumnEncriptionSetting);
@@ -2136,6 +2138,8 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                     }
                 }
 
+                checkAdditionalQuery();
+
                 String destinationTableName = tableName;
                 SQLServerStatement stmt = (SQLServerStatement) connection.createStatement(ResultSet.TYPE_FORWARD_ONLY,
                         ResultSet.CONCUR_READ_ONLY, connection.getHoldability(), stmtColumnEncriptionSetting);
@@ -2245,6 +2249,20 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         return updateCounts;
     }
 
+    private void checkAdditionalQuery() {
+        localUserSQL = localUserSQL.trim();
+        if (checkAndRemoveComments(true)) {
+            checkAdditionalQuery();
+        }
+
+        // At this point, if localUserSQL is not empty (after removing all whitespaces, semicolons and comments), we
+        // have a
+        // new query. reject this.
+        if (localUserSQL.length() > 0) {
+            throw new IllegalArgumentException("Multiple queries are not allowed.");
+        }
+    }
+
     private String parseUserSQLForTableNameDW(boolean hasInsertBeenFound, boolean hasIntoBeenFound,
             boolean hasTableBeenFound, boolean isExpectingTableName) {
         // As far as finding the table name goes, There are two cases:
@@ -2252,7 +2270,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         // And there could be in-line comments (with /* and */) in between.
         // This method assumes the localUserSQL string starts with "insert".
         localUserSQL = localUserSQL.trim();
-        if (checkAndRemoveComments()) {
+        if (checkAndRemoveComments(false)) {
             return parseUserSQLForTableNameDW(hasInsertBeenFound, hasIntoBeenFound, hasTableBeenFound,
                     isExpectingTableName);
         }
@@ -2333,7 +2351,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
             // Keep going until the end of the table name is signalled - either a ., whitespace, or comment is
             // encountered
             if (localUserSQL.charAt(0) == '.' || Character.isWhitespace(localUserSQL.charAt(0))
-                    || checkAndRemoveComments()) {
+                    || checkAndRemoveComments(false)) {
                 return sb.toString() + parseUserSQLForTableNameDW(true, true, true, false);
             } else {
                 sb.append(localUserSQL.charAt(0));
@@ -2349,7 +2367,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         localUserSQL = localUserSQL.trim();
 
         // ignore all comments
-        if (checkAndRemoveComments()) {
+        if (checkAndRemoveComments(false)) {
             return parseUserSQLForColumnListDW();
         }
 
@@ -2366,7 +2384,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         localUserSQL = localUserSQL.trim();
 
         // ignore all comments
-        if (checkAndRemoveComments()) {
+        if (checkAndRemoveComments(false)) {
             return parseUserSQLForColumnListDWHelper(listOfColumns);
         }
 
@@ -2423,7 +2441,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                 localUserSQL = localUserSQL.substring(1);
                 listOfColumns.add(sb.toString());
                 return listOfColumns;
-            } else if (checkAndRemoveComments()) {
+            } else if (checkAndRemoveComments(false)) {
                 localUserSQL = localUserSQL.trim();
             } else {
                 sb.append(localUserSQL.charAt(0));
@@ -2440,7 +2458,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         localUserSQL = localUserSQL.trim();
 
         // ignore all comments
-        if (checkAndRemoveComments()) {
+        if (checkAndRemoveComments(false)) {
             return parseUserSQLForValueListDW(hasValuesBeenFound);
         }
 
@@ -2452,7 +2470,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                 localUserSQL = localUserSQL.trim();
 
                 // ignore all comments
-                if (checkAndRemoveComments()) {
+                if (checkAndRemoveComments(false)) {
                     return parseUserSQLForValueListDW(true);
                 }
 
@@ -2463,7 +2481,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
             }
         } else {
             // ignore all comments
-            if (checkAndRemoveComments()) {
+            if (checkAndRemoveComments(false)) {
                 return parseUserSQLForValueListDW(hasValuesBeenFound);
             }
 
@@ -2481,7 +2499,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         localUserSQL = localUserSQL.trim();
 
         // ignore all comments
-        if (checkAndRemoveComments()) {
+        if (checkAndRemoveComments(false)) {
             return parseUserSQLForValueListDWHelper(listOfValues);
         }
 
@@ -2525,7 +2543,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                     listOfValues.add(sb.toString());
                     return listOfValues;
                 }
-            } else if (checkAndRemoveComments()) {
+            } else if (checkAndRemoveComments(false)) {
                 localUserSQL = localUserSQL.trim();
             } else {
                 sb.append(localUserSQL.charAt(0));
@@ -2538,7 +2556,12 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         throw new IllegalArgumentException("localUserSQL");
     }
 
-    private boolean checkAndRemoveComments() {
+    private boolean checkAndRemoveComments(boolean checkForSemicolon) {
+        if (checkForSemicolon && null != localUserSQL && localUserSQL.length() > 0 && localUserSQL.charAt(0) == ';') {
+            localUserSQL = localUserSQL.substring(1);
+            checkAndRemoveComments(true);
+        }
+
         if (null == localUserSQL || localUserSQL.length() < 2) {
             return false;
         }
@@ -2554,6 +2577,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
             localUserSQL = localUserSQL.substring(temp);
             return true;
         }
+
         return false;
     }
 
