@@ -166,9 +166,7 @@ abstract class SQLServerSpatialDatatype {
             wkbNoZM = buf.array();
         } else {
             wkb = buf.array();
-
         }
-        return;
     }
 
     /**

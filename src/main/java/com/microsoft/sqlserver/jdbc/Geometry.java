@@ -19,19 +19,19 @@ public class Geometry extends SQLServerSpatialDatatype {
     /**
      * Private constructor used for creating a Geometry object from WKT and Spatial Reference Identifier.
      * 
-     * @param WellKnownText
+     * @param wkt
      *        Well-Known Text (WKT) provided by the user.
      * @param srid
      *        Spatial Reference Identifier (SRID) provided by the user.
      * @throws SQLServerException
      *         if an exception occurs
      */
-    private Geometry(String WellKnownText, int srid) throws SQLServerException {
-        if (null == WellKnownText || WellKnownText.length() <= 0) {
+    private Geometry(String wkt, int srid) throws SQLServerException {
+        if (null == wkt || wkt.length() <= 0) {
             throwIllegalWKT();
         }
 
-        this.wkt = WellKnownText;
+        this.wkt = wkt;
         this.srid = srid;
 
         try {

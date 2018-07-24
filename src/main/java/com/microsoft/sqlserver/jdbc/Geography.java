@@ -19,19 +19,19 @@ public class Geography extends SQLServerSpatialDatatype {
     /**
      * Private constructor used for creating a Geography object from WKT and Spatial Reference Identifier.
      * 
-     * @param WellKnownText
+     * @param wkt
      *        Well-Known Text (WKT) provided by the user.
      * @param srid
      *        Spatial Reference Identifier (SRID) provided by the user.
      * @throws SQLServerException
      *         if an exception occurs
      */
-    private Geography(String WellKnownText, int srid) throws SQLServerException {
-        if (null == WellKnownText || WellKnownText.length() <= 0) {
+    private Geography(String wkt, int srid) throws SQLServerException {
+        if (null == wkt || wkt.length() <= 0) {
             throwIllegalWKT();
         }
 
-        this.wkt = WellKnownText;
+        this.wkt = wkt;
         this.srid = srid;
 
         try {
@@ -138,9 +138,9 @@ public class Geography extends SQLServerSpatialDatatype {
      * Constructor for a Geography instance that represents a Point instance from its latitude and longitude values and
      * a Spatial Reference Identifier.
      * 
-     * @param x
+     * @param lat
      *        latitude
-     * @param y
+     * @param lon
      *        longitude
      * @param srid
      *        Spatial Reference Identifier value
@@ -148,8 +148,8 @@ public class Geography extends SQLServerSpatialDatatype {
      * @throws SQLServerException
      *         if an exception occurs
      */
-    public static Geography point(double x, double y, int srid) throws SQLServerException {
-        return new Geography("POINT (" + x + " " + y + ")", srid);
+    public static Geography point(double lat, double lon, int srid) throws SQLServerException {
+        return new Geography("POINT (" + lat + " " + lon + ")", srid);
     }
 
     /**
