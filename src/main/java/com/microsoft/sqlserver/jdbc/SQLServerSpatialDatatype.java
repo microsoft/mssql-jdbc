@@ -97,7 +97,6 @@ abstract class SQLServerSpatialDatatype {
      * @param noZM
      *        flag to indicate if Z and M coordinates should be included
      */
-
     protected void serializeToWkb(boolean noZM, SQLServerSpatialDatatype type) {
         ByteBuffer buf = ByteBuffer.allocate(determineWkbCapacity());
         createSerializationProperties();
