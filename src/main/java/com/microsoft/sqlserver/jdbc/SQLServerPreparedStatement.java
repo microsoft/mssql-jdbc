@@ -2296,7 +2296,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
             return parseUserSQLForTableNameDW(true, hasIntoBeenFound, hasTableBeenFound, isExpectingTableName);
         }
 
-        if (!hasIntoBeenFound && checkSQLLength(4) && localUserSQL.substring(0, 4).equalsIgnoreCase("into")) {
+        if (!hasIntoBeenFound && checkSQLLength(6) && localUserSQL.substring(0, 4).equalsIgnoreCase("into")) {
             // is it really "into"?
             // if the "into" is followed by a blank space or /*, then yes.
             if (Character.isWhitespace(localUserSQL.charAt(4))
@@ -2318,8 +2318,13 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         if (checkSQLLength(1) && localUserSQL.substring(0, 1).equalsIgnoreCase("[")) {
             int tempint = localUserSQL.indexOf("]", 1);
 
+            // ] has not been found, this is wrong.
+            if (tempint < 0) {
+                throw new IllegalArgumentException("Invalid SQL Query.");
+            }
+            
             // keep checking if it's escaped
-            while (localUserSQL.charAt(tempint + 1) == ']') {
+            while (tempint >= 0 && checkSQLLength(tempint + 2) && localUserSQL.charAt(tempint + 1) == ']') {
                 tempint = localUserSQL.indexOf("]", tempint + 2);
             }
 
@@ -2334,8 +2339,13 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         if (checkSQLLength(1) && localUserSQL.substring(0, 1).equalsIgnoreCase("\"")) {
             int tempint = localUserSQL.indexOf("\"", 1);
 
+            // \" has not been found, this is wrong.
+            if (tempint < 0) {
+                throw new IllegalArgumentException("Invalid SQL Query.");
+            }
+            
             // keep checking if it's escaped
-            while (localUserSQL.charAt(tempint + 1) == '\"') {
+            while (tempint >= 0 && checkSQLLength(tempint + 2) && localUserSQL.charAt(tempint + 1) == '\"') {
                 tempint = localUserSQL.indexOf("\"", tempint + 2);
             }
 
@@ -2401,8 +2411,13 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         if (localUserSQL.charAt(0) == '[') {
             int tempint = localUserSQL.indexOf("]", 1);
 
+            // ] has not been found, this is wrong.
+            if (tempint < 0) {
+                throw new IllegalArgumentException("Invalid SQL Query.");
+            }
+            
             // keep checking if it's escaped
-            while (localUserSQL.charAt(tempint + 1) == ']') {
+            while (tempint >= 0 && checkSQLLength(tempint + 2) && localUserSQL.charAt(tempint + 1) == ']') {
                 localUserSQL = localUserSQL.substring(0, tempint) + localUserSQL.substring(tempint + 1);
                 tempint = localUserSQL.indexOf("]", tempint + 1);
             }
@@ -2417,8 +2432,13 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         if (localUserSQL.charAt(0) == '\"') {
             int tempint = localUserSQL.indexOf("\"", 1);
 
+            // \" has not been found, this is wrong.
+            if (tempint < 0) {
+                throw new IllegalArgumentException("Invalid SQL Query.");
+            }
+            
             // keep checking if it's escaped
-            while (localUserSQL.charAt(tempint + 1) == '\"') {
+            while (tempint >= 0 && checkSQLLength(tempint + 2) && localUserSQL.charAt(tempint + 1) == '\"') {
                 localUserSQL = localUserSQL.substring(0, tempint) + localUserSQL.substring(tempint + 1);
                 tempint = localUserSQL.indexOf("\"", tempint + 1);
             }
@@ -2474,7 +2494,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                     return parseUserSQLForValueListDW(true);
                 }
 
-                if (localUserSQL.substring(0, 1).equalsIgnoreCase("(")) {
+                if (checkSQLLength(1) && localUserSQL.substring(0, 1).equalsIgnoreCase("(")) {
                     localUserSQL = localUserSQL.substring(1);
                     return parseUserSQLForValueListDWHelper(new ArrayList<String>());
                 }
@@ -2516,8 +2536,13 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         if (localUserSQL.charAt(0) == '\'') {
             int tempint = localUserSQL.indexOf("\'", 1);
 
+            // \' has not been found, this is wrong.
+            if (tempint < 0) {
+                throw new IllegalArgumentException("Invalid SQL Query.");
+            }
+            
             // keep checking if it's escaped
-            while (localUserSQL.charAt(tempint + 1) == '\'') {
+            while (tempint >= 0 && checkSQLLength(tempint + 2) && localUserSQL.charAt(tempint + 1) == '\'') {
                 localUserSQL = localUserSQL.substring(0, tempint) + localUserSQL.substring(tempint + 1);
                 tempint = localUserSQL.indexOf("\'", tempint + 1);
             }
