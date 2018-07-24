@@ -10,8 +10,8 @@ import java.text.MessageFormat;
 
 /**
  * 
- * Represents metadata for a column. It is used in the ISQLServerDataRecord interface to pass column metadata
- * to the table-valued parameter.
+ * Represents metadata for a column. It is used in the ISQLServerDataRecord interface to pass column metadata to the
+ * table-valued parameter.
  * 
  */
 public class SQLServerMetaData {
@@ -29,7 +29,7 @@ public class SQLServerMetaData {
     static final int defaultSortOrdinal = -1;
 
     /**
-     * Constructs a SQLServerMetaData with the column name and SQL type
+     * Constructs a SQLServerMetaData with the column name and SQL type.
      * 
      * @param columnName
      *        the name of the column
@@ -42,7 +42,7 @@ public class SQLServerMetaData {
     }
 
     /**
-     * Constructs a SQLServerMetaData with the column name, SQL type, precision, and scale
+     * Constructs a SQLServerMetaData with the column name, SQL type, precision, and scale.
      * 
      * @param columnName
      *        the name of the column
@@ -61,7 +61,7 @@ public class SQLServerMetaData {
     }
 
     /**
-     * Constructs a SQLServerMetaData
+     * Constructs a SQLServerMetaData.
      * 
      * @param columnName
      *        the name of the column
@@ -114,6 +114,7 @@ public class SQLServerMetaData {
 
     /**
      * Returns the column name.
+     * 
      * @return column name
      */
     public String getColumName() {
@@ -122,6 +123,7 @@ public class SQLServerMetaData {
 
     /**
      * Returns the java sql type.
+     * 
      * @return java sql type
      */
     public int getSqlType() {
@@ -130,6 +132,7 @@ public class SQLServerMetaData {
 
     /**
      * Returns the precision of the type passed to the column.
+     * 
      * @return precision
      */
     public int getPrecision() {
@@ -138,6 +141,7 @@ public class SQLServerMetaData {
 
     /**
      * Returns the scale of the type passed to the column.
+     * 
      * @return scale
      */
     public int getScale() {
@@ -146,6 +150,7 @@ public class SQLServerMetaData {
 
     /**
      * Returns whether the column uses the default server value.
+     * 
      * @return whether the column uses the default server value.
      */
     public boolean useServerDefault() {
@@ -154,6 +159,7 @@ public class SQLServerMetaData {
 
     /**
      * Returns whether the column is unique.
+     * 
      * @return whether the column is unique.
      */
     public boolean isUniqueKey() {
@@ -162,6 +168,7 @@ public class SQLServerMetaData {
 
     /**
      * Returns the sort order.
+     * 
      * @return sort order
      */
     public SQLServerSortOrder getSortOrder() {
@@ -170,6 +177,7 @@ public class SQLServerMetaData {
 
     /**
      * Returns the sort ordinal.
+     * 
      * @return sort ordinal
      */
     public int getSortOrdinal() {
@@ -177,7 +185,8 @@ public class SQLServerMetaData {
     }
 
     /**
-     * Returns collation.
+     * Returns the collation.
+     * 
      * @return SQL collation
      */
     SQLCollation getCollation() {

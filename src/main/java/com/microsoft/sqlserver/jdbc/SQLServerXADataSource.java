@@ -15,8 +15,8 @@ import javax.sql.XADataSource;
 
 
 /**
- * Provides database connections for use in distributed (XA) transactions. SQLServerXADataSource
- * also supports connection pooling of physical connections.
+ * Provides database connections for use in distributed (XA) transactions. SQLServerXADataSource also supports
+ * connection pooling of physical connections.
  *
  * The XADataSource and XAConnection interfaces, which are defined in the package javax.sql, are implemented by
  * sqlserver. An XAConnection object is a pooled connection that can participate in a distributed transaction. More
@@ -114,9 +114,9 @@ public final class SQLServerXADataSource extends SQLServerConnectionPoolDataSour
         throw new java.io.InvalidObjectException("");
     }
 
-    // This is 90% duplicate from the SQLServerDataSource, the serialization proxy pattern does not lend itself to
-    // inheritance
-    // so the duplication is necessary
+    /**
+     * Implements java.io.Serializable the same way as {@link SQLServerDataSource}
+     */
     private static class SerializationProxy implements java.io.Serializable {
         private final Reference ref;
         private static final long serialVersionUID = 454661379842314126L;

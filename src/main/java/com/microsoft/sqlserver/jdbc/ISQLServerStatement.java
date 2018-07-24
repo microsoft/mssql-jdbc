@@ -47,8 +47,8 @@ public interface ISQLServerStatement extends java.sql.Statement {
     public int getCancelQueryTimeout() throws SQLServerException;
 
     /**
-     * Sets the cancelQueryTimeout property on this SQLServerStatement object to cancel <code>queryTimeout</code> set on
-     * <code>Connection</code> or <code>Statement</code> level.
+     * Sets the <code>cancelQueryTimeout</code> property on this SQLServerStatement object to cancel
+     * <code>queryTimeout</code> set on <code>Connection</code> or <code>Statement</code> level.
      * 
      * @param seconds
      *        Time duration in seconds.

@@ -43,7 +43,7 @@ public class SQLServerClob extends SQLServerClobBase implements Clob {
     private static final Logger logger = Logger.getLogger("com.microsoft.sqlserver.jdbc.internals.SQLServerClob");
 
     /**
-     * Constructs a SQLServerClob
+     * Constructs a SQLServerClob.
      *
      * @param connection
      *        the database connection this blob is implemented on
@@ -160,13 +160,11 @@ abstract class SQLServerClobBase extends SQLServerLob implements Serializable {
 
     private final TypeInfo typeInfo;
 
-    // Active streams which must be closed when the Clob/NClob is closed
-    //
-    // Initial size of the array is based on an assumption that a Clob/NClob
-    // object is
-    // typically used either for input or output, and then only once. The array
-    // size
-    // grows automatically if multiple streams are used.
+    /**
+     * Active streams which must be closed when the Clob/NClob is closed. Initial size of the array is based on an
+     * assumption that a Clob/NClob object is typically used either for input or output, and then only once. The array
+     * size grows automatically if multiple streams are used.
+     */
     private ArrayList<Closeable> activeStreams = new ArrayList<>(1);
 
     transient SQLServerConnection con;
@@ -197,7 +195,7 @@ abstract class SQLServerClobBase extends SQLServerLob implements Serializable {
     }
 
     /**
-     * Create a new CLOB from a String
+     * Constructs a new CLOB from a String.
      * 
      * @param connection
      *        SQLServerConnection
@@ -271,7 +269,7 @@ abstract class SQLServerClobBase extends SQLServerLob implements Serializable {
     }
 
     /**
-     * Materialize the CLOB as an ASCII stream.
+     * Returns the CLOB as an ASCII stream.
      * 
      * @throws SQLException
      *         when an error occurs
@@ -291,8 +289,7 @@ abstract class SQLServerClobBase extends SQLServerLob implements Serializable {
     }
 
     /**
-     * Returns the CLOB value designated by this Clob object as a java.io.Reader object (or as a stream of
-     * characters).
+     * Returns the CLOB value designated by this Clob object as a java.io.Reader object (or as a stream of characters).
      * 
      * @throws SQLException
      *         if there is an error accessing the CLOB value
@@ -330,8 +327,8 @@ abstract class SQLServerClobBase extends SQLServerLob implements Serializable {
     }
 
     /**
-     * Returns a copy of the specified substring in the CLOB value designated by this Clob object. The substring
-     * begins at position pos and has up to length consecutive characters.
+     * Returns a copy of the specified substring in the CLOB value designated by this Clob object. The substring begins
+     * at position pos and has up to length consecutive characters.
      *
      * @param pos
      *        - the first character of the substring to be extracted. The first character is at position 1.
@@ -392,7 +389,7 @@ abstract class SQLServerClobBase extends SQLServerLob implements Serializable {
     }
 
     /**
-     * Function for the result set to maintain clobs it has created
+     * Provides functionality for the result set to maintain clobs it has created.
      * 
      * @throws SQLException
      */
@@ -403,7 +400,7 @@ abstract class SQLServerClobBase extends SQLServerLob implements Serializable {
     }
 
     /**
-     * Converts the stream to String
+     * Converts the stream to String.
      * 
      * @throws SQLServerException
      */
@@ -667,16 +664,11 @@ abstract class SQLServerClobBase extends SQLServerLob implements Serializable {
 }
 
 
-// SQLServerClobWriter is a simple java.io.Writer interface implementing class
-// that
-// forwards all calls to SQLServerClob.setString. This class is returned to
-// caller by
-// SQLServerClob class when setCharacterStream is called.
-//
-// SQLServerClobWriter starts writing at postion streamPos and continues to
-// write
-// in a forward only manner. There is no reset with java.io.Writer.
-//
+/**
+ * Provides a simple java.io.Writer interface that forwards all calls to SQLServerClob.setString.\ This class is
+ * returned to caller by SQLServerClob class when setCharacterStream is called. SQLServerClobWriter starts writing at
+ * postion streamPos and continues to write in a forward only manner. There is no reset with java.io.Writer.
+ */
 final class SQLServerClobWriter extends java.io.Writer {
     private SQLServerClobBase parentClob = null;
     private long streamPos;
@@ -739,16 +731,11 @@ final class SQLServerClobWriter extends java.io.Writer {
 }
 
 
-// SQLServerClobAsciiOutputStream is a simple java.io.OutputStream interface
-// implementing class that
-// forwards all calls to SQLServerClob.setString. This class is returned to
-// caller by
-// SQLServerClob class when setAsciiStream is called.
-//
-// SQLServerClobAsciiOutputStream starts writing at character postion streamPos
-// and continues to write
-// in a forward only manner. Reset/mark are not supported.
-//
+/**
+ * Provides a simple java.io.OutputStream interface that forwards all calls to SQLServerClob.setString. This class is
+ * returned to caller by SQLServerClob class when setAsciiStream is called. SQLServerClobAsciiOutputStream starts
+ * writing at character postion streamPos and continues to write in a forward only manner. Reset/mark are not supported.
+ */
 final class SQLServerClobAsciiOutputStream extends java.io.OutputStream {
     private SQLServerClobBase parentClob = null;
     private long streamPos;

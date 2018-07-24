@@ -29,9 +29,10 @@ import com.microsoft.sqlserver.jdbc.SQLServerConnection.CityHash128Key;
 
 
 /**
- * Provides the basic implementation of JDBC statement functionality. It also provides a number of
- * base class implementation methods for the JDBC prepared statement and callable Statements. SQLServerStatement's basic
- * role is to execute SQL statements and return update counts and resultset rows to the user application.
+ * Provides an implementation of java.sql.Statement JDBC Interface to assist in creating Statements against SQL Server.
+ * It also provides a number of base class implementation methods for the JDBC prepared statement and callable
+ * Statements. SQLServerStatement's basic role is to execute SQL statements and return update counts and resultset rows
+ * to the user application.
  *
  * Documentation for specific public methods that are undocumented can be found under Sun's standard JDBC documentation
  * for class java.sql.Statement. Those methods are part of Sun's standard JDBC documentation and therefore their
@@ -48,7 +49,6 @@ import com.microsoft.sqlserver.jdbc.SQLServerConnection.CityHash128Key;
  * The API javadoc for JDBC API methods that this class implements are not repeated here. Please see Sun's JDBC API
  * interfaces javadoc for those details.
  */
-
 public class SQLServerStatement implements ISQLServerStatement {
     final static char LEFT_CURLY_BRACKET = 123;
     final static char RIGHT_CURLY_BRACKET = 125;
@@ -162,7 +162,7 @@ public class SQLServerStatement implements ISQLServerStatement {
     }
 
     /**
-     * ExecuteProperties encapsulates a subset of statement property values as they were set at execution time.
+     * Encapsulates a subset of statement property values as they were set at execution time.
      */
     final class ExecuteProperties {
         final private boolean wasResponseBufferingSet;
@@ -267,7 +267,7 @@ public class SQLServerStatement implements ISQLServerStatement {
     }
 
     /**
-     * decrement opened result set counter
+     * Decrement opened result set counter.
      */
     synchronized void decrResultSetCount() {
         resultSetCount--;
@@ -969,7 +969,7 @@ public class SQLServerStatement implements ISQLServerStatement {
      *        The statment SQL.
      * @return True if the statement is an insert.
      */
-     final boolean isInsert(String sql) throws SQLServerException {
+    final boolean isInsert(String sql) throws SQLServerException {
         checkClosed();
         // Used to check just the first letter which would cause
         // "Set" commands to return true...
@@ -1314,7 +1314,7 @@ public class SQLServerStatement implements ISQLServerStatement {
     }
 
     /**
-     * Returns more results in the TDS stream
+     * Returns more results in the TDS stream.
      *
      * @return true if the next result is a ResultSet object; false if it is an integer (indicating that it is an update
      *         count or there are no more results).
@@ -1902,7 +1902,7 @@ public class SQLServerStatement implements ISQLServerStatement {
     } // executeLargeBatch
 
     /**
-     * Returns the statement's connection
+     * Returns the statement's connection.
      * 
      * @throws SQLServerException
      *         when an error occurs
@@ -2331,7 +2331,7 @@ public class SQLServerStatement implements ISQLServerStatement {
 
 
 /**
- * Helper class that does some basic parsing work for SQL statements that are stored procedure calls.
+ * Provides a help class that does some basic parsing work for SQL statements that are stored procedure calls.
  *
  * - Determines whether the SQL uses JDBC call syntax ("{[? =] call procedure_name...}") or T-SQL EXECUTE syntax ("EXEC
  * [@p0 =] procedure_name..."). If JDBC call syntax is present, it gets rewritten as T-SQL EXECUTE syntax.
@@ -2435,9 +2435,9 @@ final class JDBCSyntaxTranslator {
             .compile("\\{\\s*[lL][iI][mM][iI][tT]\\s+(((\\(|\\s)*)(\\d*|\\?)((\\)|\\s)*))\\s*\\}");
 
     /**
-     * This function translates the LIMIT escape syntax, {LIMIT <row> [OFFSET <offset>]} SQL Server does not support
-     * LIMIT syntax, the LIMIT escape syntax is thus translated to use "TOP" syntax The OFFSET clause is not supported,
-     * and will throw an exception if used.
+     * Translates the LIMIT escape syntax, {LIMIT <row> [OFFSET <offset>]} SQL Server does not support LIMIT syntax, the
+     * LIMIT escape syntax is thus translated to use "TOP" syntax The OFFSET clause is not supported, and will throw an
+     * exception if used.
      * 
      * @param sql
      *        the SQL query
@@ -2453,7 +2453,6 @@ final class JDBCSyntaxTranslator {
      * @return the number of characters that have been translated
      * 
      */
-
     int translateLimit(StringBuffer sql, int indx, char endChar) throws SQLServerException {
         Matcher selectMatcher = selectPattern.matcher(sql);
         Matcher openQueryMatcher = openQueryPattern.matcher(sql);
@@ -2496,18 +2495,17 @@ final class JDBCSyntaxTranslator {
                     break;
                 case OFFSET:
                     // throw exception as OFFSET is not supported
-                    throw new SQLServerException(SQLServerException.getErrString("R_limitOffsetNotSupported"), null, // SQLState
-                                                                                                                     // is
-                                                                                                                     // null
-                                                                                                                     // as
-                                                                                                                     // this
-                                                                                                                     // error
-                                                                                                                     // is
-                                                                                                                     // generated
-                                                                                                                     // in
-                                                                                                                     // the
-                                                                                                                     // driver
-                            0, // Use 0 instead of DriverError.NOT_SET to use the correct constructor
+                    // SQLState is null as this error is generated in the driver
+                    throw new SQLServerException(SQLServerException.getErrString("R_limitOffsetNotSupported"), null, 0, // Use
+                                                                                                                        // 0
+                                                                                                                        // instead
+                                                                                                                        // of
+                                                                                                                        // DriverError.NOT_SET
+                                                                                                                        // to
+                                                                                                                        // use
+                                                                                                                        // the
+                                                                                                                        // correct
+                                                                                                                        // constructor
                             null);
                 case LIMIT:
                     // Check if the number of opening/closing parentheses surrounding the digits or "?" in LIMIT match
@@ -2524,17 +2522,8 @@ final class JDBCSyntaxTranslator {
                         closingParentheses++;
                     }
                     if (openingParentheses != closingParentheses) {
-                        throw new SQLServerException(SQLServerException.getErrString("R_limitEscapeSyntaxError"), null, // SQLState
-                                                                                                                        // is
-                                                                                                                        // null
-                                                                                                                        // as
-                                                                                                                        // this
-                                                                                                                        // error
-                                                                                                                        // is
-                                                                                                                        // generated
-                                                                                                                        // in
-                                                                                                                        // the
-                                                                                                                        // driver
+                        // SQLState is null as this error is generated in the driver
+                        throw new SQLServerException(SQLServerException.getErrString("R_limitEscapeSyntaxError"), null,
                                 0, // Use 0 instead of DriverError.NOT_SET to use the correct constructor
                                 null);
                     }

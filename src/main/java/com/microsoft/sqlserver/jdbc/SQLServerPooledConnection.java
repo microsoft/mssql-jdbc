@@ -18,9 +18,8 @@ import javax.sql.StatementEventListener;
 
 
 /**
- * Represents a database physical connection in a connection pool. If provides methods for the
- * connection pool manager to manage the connection pool. Applications typically do not instantiate these connections
- * directly.
+ * Represents a database physical connection in a connection pool. If provides methods for the connection pool manager
+ * to manage the connection pool. Applications typically do not instantiate these connections directly.
  */
 
 public class SQLServerPooledConnection implements PooledConnection {
@@ -121,11 +120,11 @@ public class SQLServerPooledConnection implements PooledConnection {
         }
     }
 
-    // Notify any interested parties (e.g. pooling managers) of a ConnectionEvent activity
-    // on the connection. Calling notifyEvent with null event will place the
-    // connection back in the pool. Calling notifyEvent with a non-null event is
-    // used to notify the pooling manager that the connection is bad and should be removed
-    // from the pool.
+    /**
+     * Notifies any interested parties (e.g. pooling managers) of a ConnectionEvent activity on the connection. Calling
+     * notifyEvent with null event will place the connection back in the pool. Calling notifyEvent with a non-null event
+     * is used to notify the pooling manager that the connection is bad and should be removed from the pool.
+     */
     void notifyEvent(SQLServerException e) {
         if (pcLogger.isLoggable(Level.FINER))
             pcLogger.finer(toString() + " Exception:" + e + safeCID());

@@ -37,7 +37,7 @@ public class SQLServerBulkCopyOptions {
     private int bulkCopyTimeout;
 
     /**
-     * Check constraints while data is being inserted.
+     * Checks constraints while data is being inserted.
      * 
      * Default: false - constraints are not checked
      */

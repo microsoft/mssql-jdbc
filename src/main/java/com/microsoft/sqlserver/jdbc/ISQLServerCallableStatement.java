@@ -12,7 +12,7 @@ import java.util.Calendar;
 
 
 /**
- * Provides an interface to the {@link SQLServerCallableStatement} class
+ * Provides an interface to the {@link SQLServerCallableStatement} class.
  */
 public interface ISQLServerCallableStatement extends java.sql.CallableStatement, ISQLServerPreparedStatement {
 
@@ -127,7 +127,7 @@ public interface ISQLServerCallableStatement extends java.sql.CallableStatement,
     public Timestamp getSmallDateTime(String name, Calendar cal) throws SQLServerException;
 
     /**
-     * Returns the DateTimeOffset value of parameter with index parameterIndex
+     * Returns the DateTimeOffset value of parameter with index parameterIndex.
      * 
      * @param parameterIndex
      *        the first parameter is 1, the second is 2, and so on
@@ -139,7 +139,7 @@ public interface ISQLServerCallableStatement extends java.sql.CallableStatement,
     public microsoft.sql.DateTimeOffset getDateTimeOffset(int parameterIndex) throws SQLServerException;
 
     /**
-     * Returns the DateTimeOffset value of parameter with name parameterName
+     * Returns the DateTimeOffset value of parameter with name parameterName.
      * 
      * @param parameterName
      *        the name of the parameter
@@ -478,7 +478,7 @@ public interface ISQLServerCallableStatement extends java.sql.CallableStatement,
             boolean forceEncrypt) throws SQLServerException;
 
     /**
-     * Sets parameter parameterName to DateTimeOffset x
+     * Sets parameter parameterName to DateTimeOffset value.
      * 
      * @param parameterName
      *        the name of the parameter
@@ -490,7 +490,7 @@ public interface ISQLServerCallableStatement extends java.sql.CallableStatement,
     public void setDateTimeOffset(String parameterName, microsoft.sql.DateTimeOffset value) throws SQLServerException;
 
     /**
-     * Sets parameter parameterName to DateTimeOffset x
+     * Sets parameter parameterName to DateTimeOffset value.
      * 
      * @param parameterName
      *        the name of the parameter
@@ -505,7 +505,7 @@ public interface ISQLServerCallableStatement extends java.sql.CallableStatement,
             int scale) throws SQLServerException;
 
     /**
-     * Sets parameter parameterName to DateTimeOffset x
+     * Sets parameter parameterName to DateTimeOffset value.
      * 
      * @param parameterName
      *        the name of the parameter

@@ -9,8 +9,8 @@ import java.time.format.DateTimeFormatter;
 
 
 /**
- * Provides an interface used to create classes that read in data from any source (such as a file)
- * and allows a SQLServerBulkCopy class to write the data to SQL Server tables.
+ * Provides an interface used to create classes that read in data from any source (such as a file) and allows a
+ * SQLServerBulkCopy class to write the data to SQL Server tables.
  * 
  * This interface is implemented by {@link SQLServerBulkCommon} Class
  */
@@ -162,7 +162,7 @@ public interface ISQLServerBulkRecord {
     public void setTimeWithTimezoneFormat(DateTimeFormatter dateTimeFormatter);
 
     /**
-     * Returns the <code>dateTimeFormatter</code> for the given column
+     * Returns the <code>dateTimeFormatter</code> for the given column.
      * 
      * @param column
      *        Column ordinal

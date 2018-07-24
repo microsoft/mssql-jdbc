@@ -33,8 +33,8 @@ import javax.crypto.NoSuchPaddingException;
 
 /**
  * 
- * Provides the implementation of the key store provider for Java Key Store. This class enables using certificates stored in the
- * Java keystore as column master keys.
+ * Provides the implementation of the key store provider for Java Key Store. This class enables using certificates
+ * stored in the Java keystore as column master keys.
  *
  */
 public class SQLServerColumnEncryptionJavaKeyStoreProvider extends SQLServerColumnEncryptionKeyStoreProvider {
@@ -264,7 +264,7 @@ public class SQLServerColumnEncryptionJavaKeyStoreProvider extends SQLServerColu
     }
 
     /**
-     * Encrypt plainText with the certificate provided
+     * Encrypt. plainText with the certificate provided.
      * 
      * @param plainText
      *        plain CEK to be encrypted

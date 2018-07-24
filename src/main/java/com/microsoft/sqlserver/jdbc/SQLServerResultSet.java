@@ -33,7 +33,7 @@ import com.microsoft.sqlserver.jdbc.dataclassification.SensitivityClassification
 
 
 /**
- * Indicates the type of the row received from the server
+ * Indicates the type of the row received from the server.
  */
 enum RowType {
     ROW,
@@ -228,7 +228,7 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
     }
 
     /**
-     * Constructs a SQLServerResultSet
+     * Constructs a SQLServerResultSet.
      * 
      * @param stmtIn
      *        the generating statement
@@ -505,7 +505,7 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
     }
 
     /**
-     * Returns if whether the result set has a current row.
+     * Returns whether the result set has a current row.
      *
      * @return true if there is a current row
      * @return false if the result set is positioned before the first row or after the last row.
@@ -592,7 +592,7 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
     }
 
     /**
-     * Close the result set.
+     * Closes the result set.
      *
      * Note that the public close() method performs all of the cleanup work through this internal method which cannot
      * throw any exceptions. This is done deliberately to ensure that ALL of the object's client-side and server-side
@@ -631,7 +631,7 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
     }
 
     /**
-     * Find a column index given a column name
+     * Finds a column index given a column name.
      * 
      * @param columnName
      *        the name of the column
@@ -714,7 +714,7 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
     }
 
     /**
-     * This function initializes null compressed columns only when the row type is NBCROW and if the
+     * Initializes null compressed columns only when the row type is NBCROW and if the
      * areNullCompressedColumnsInitialized is false. In all other cases this will be a no-op.
      * 
      * @throws SQLServerException
@@ -763,7 +763,7 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
     }
 
     /**
-     * Clears result set warnings
+     * Clears result set warnings.
      * 
      * @throws SQLServerException
      *         when an error occurs
@@ -950,7 +950,7 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
     }
 
     /**
-     * Update the current row's position if known.
+     * Updates the current row's position if known.
      *
      * If known, the current row is assumed to be at a valid position somewhere in the ResultSet. That is, the current
      * row is not before the first row or after the last row.
@@ -964,7 +964,7 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
     }
 
     /**
-     * Moves the cursor to the first row of this ResultSet object initially, then subsequent calls moves the cursor to
+     * Moves the cursor to the first row of this ResultSet object initially, then subsequent calls move the cursor to
      * the second row, the third row, and so on.
      *
      * @return false when there are no more rows to read
@@ -1072,6 +1072,8 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
     }
 
     /**
+     * Returns if the cursor is before the first row in this result set.
+     * 
      * @return true if the cursor is before the first row in this result set, returns false otherwise or if the result
      *         set contains no rows.
      */

@@ -10,7 +10,8 @@ import java.util.List;
 
 
 /**
- * Provides the functionlity to retrieve Sensitivity Classification data as received from SQL Server for the active resultSet
+ * Provides the functionlity to retrieve Sensitivity Classification data as received from SQL Server for the active
+ * resultSet
  */
 public class SensitivityClassification {
     private List<Label> labels;

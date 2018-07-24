@@ -488,7 +488,7 @@ public interface ISQLServerPreparedStatement extends java.sql.PreparedStatement,
     public void setNString(int parameterIndex, String value, boolean forceEncrypt) throws SQLServerException;
 
     /**
-     * Sets the designated parameter to the given <code>java.sql.Time</code> value
+     * Sets the designated parameter to the given <code>java.sql.Time</code> value.
      * 
      * @param parameterIndex
      *        the first parameter is 1, the second is 2, ...
@@ -502,7 +502,7 @@ public interface ISQLServerPreparedStatement extends java.sql.PreparedStatement,
     public void setTime(int parameterIndex, java.sql.Time x, int scale) throws SQLServerException;
 
     /**
-     * Sets the designated parameter to the given <code>java.sql.Time</code> value
+     * Sets the designated parameter to the given <code>java.sql.Time</code> value.
      * 
      * @param parameterIndex
      *        the first parameter is 1, the second is 2, ...
@@ -520,7 +520,7 @@ public interface ISQLServerPreparedStatement extends java.sql.PreparedStatement,
     public void setTime(int parameterIndex, java.sql.Time x, int scale, boolean forceEncrypt) throws SQLServerException;
 
     /**
-     * Sets the designated parameter to the given <code>java.sql.Timestamp</code> value
+     * Sets the designated parameter to the given <code>java.sql.Timestamp</code> value.
      * 
      * @param parameterIndex
      *        the first parameter is 1, the second is 2, ...
@@ -534,7 +534,7 @@ public interface ISQLServerPreparedStatement extends java.sql.PreparedStatement,
     public void setTimestamp(int parameterIndex, java.sql.Timestamp x, int scale) throws SQLServerException;
 
     /**
-     * Sets the designated parameter to the given <code>java.sql.Timestamp</code> value
+     * Sets the designated parameter to the given <code>java.sql.Timestamp</code> value.
      * 
      * @param parameterIndex
      *        the first parameter is 1, the second is 2, ...
@@ -553,7 +553,7 @@ public interface ISQLServerPreparedStatement extends java.sql.PreparedStatement,
             boolean forceEncrypt) throws SQLServerException;
 
     /**
-     * Sets the designated parameter to the given <code>microsoft.sql.DatetimeOffset</code> value
+     * Sets the designated parameter to the given <code>microsoft.sql.DatetimeOffset</code> value.
      * 
      * @param parameterIndex
      *        the first parameter is 1, the second is 2, ...
@@ -568,7 +568,7 @@ public interface ISQLServerPreparedStatement extends java.sql.PreparedStatement,
             int scale) throws SQLServerException;
 
     /**
-     * Sets the designated parameter to the given <code>microsoft.sql.DatetimeOffset</code> value
+     * Sets the designated parameter to the given <code>microsoft.sql.DatetimeOffset</code> value.
      * 
      * @param parameterIndex
      *        the first parameter is 1, the second is 2, ...
@@ -587,7 +587,7 @@ public interface ISQLServerPreparedStatement extends java.sql.PreparedStatement,
             boolean forceEncrypt) throws SQLServerException;
 
     /**
-     * Sets the designated parameter to the given <code>java.sql.Timestamp</code> value
+     * Sets the designated parameter to the given <code>java.sql.Timestamp</code> value.
      * 
      * @param parameterIndex
      *        the first parameter is 1, the second is 2, ...
@@ -599,7 +599,7 @@ public interface ISQLServerPreparedStatement extends java.sql.PreparedStatement,
     public void setDateTime(int parameterIndex, java.sql.Timestamp x) throws SQLServerException;
 
     /**
-     * Sets the designated parameter to the given <code>java.sql.Timestamp</code> value
+     * Sets the designated parameter to the given <code>java.sql.Timestamp</code> value.
      * 
      * @param parameterIndex
      *        the first parameter is 1, the second is 2, ...
@@ -615,7 +615,7 @@ public interface ISQLServerPreparedStatement extends java.sql.PreparedStatement,
     public void setDateTime(int parameterIndex, java.sql.Timestamp x, boolean forceEncrypt) throws SQLServerException;
 
     /**
-     * Sets the designated parameter to the given <code>java.sql.Timestamp</code> value
+     * Sets the designated parameter to the given <code>java.sql.Timestamp</code> value.
      * 
      * @param parameterIndex
      *        the first parameter is 1, the second is 2, ...
@@ -627,7 +627,7 @@ public interface ISQLServerPreparedStatement extends java.sql.PreparedStatement,
     public void setSmallDateTime(int parameterIndex, java.sql.Timestamp x) throws SQLServerException;
 
     /**
-     * Sets the designated parameter to the given <code>java.sql.Timestamp</code> value
+     * Sets the designated parameter to the given <code>java.sql.Timestamp</code> value.
      * 
      * @param parameterIndex
      *        the first parameter is 1, the second is 2, ...
@@ -644,7 +644,7 @@ public interface ISQLServerPreparedStatement extends java.sql.PreparedStatement,
             boolean forceEncrypt) throws SQLServerException;
 
     /**
-     * Sets the data table to populates a table valued parameter
+     * Sets the data table to populates a table valued parameter.
      * 
      * @param parameterIndex
      *        the first parameter is 1, the second is 2, ...
@@ -655,10 +655,11 @@ public interface ISQLServerPreparedStatement extends java.sql.PreparedStatement,
      * @throws SQLServerException
      *         when an error occurs
      */
-    public void setStructured(int parameterIndex, String tvpName, SQLServerDataTable tvpDataTable) throws SQLServerException;
+    public void setStructured(int parameterIndex, String tvpName,
+            SQLServerDataTable tvpDataTable) throws SQLServerException;
 
     /**
-     * Sets the result set to populate a table valued parameter
+     * Sets the result set to populate a table-valued parameter.
      * 
      * @param parameterIndex
      *        the first parameter is 1, the second is 2, ...
@@ -672,7 +673,7 @@ public interface ISQLServerPreparedStatement extends java.sql.PreparedStatement,
     public void setStructured(int parameterIndex, String tvpName, ResultSet tvpResultSet) throws SQLServerException;
 
     /**
-     * Sets the server bulk record to populate a table valued parameter
+     * Sets the server bulk record to populate a table valued parameter.
      * 
      * @param parameterIndex
      *        the first parameter is 1, the second is 2, ...

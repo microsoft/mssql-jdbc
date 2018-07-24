@@ -22,15 +22,14 @@ public final class SQLServerDataSourceObjectFactory implements ObjectFactory {
     // class with public constructor.
 
     /**
-     * Constructs a SQLServerDataSourceObjectFactory
+     * Constructs a SQLServerDataSourceObjectFactory.
      */
     public SQLServerDataSourceObjectFactory() {}
 
     /**
-     * Returns an reference to the SQLServerDataSource instance 
-     * getObjectInstance is a factory for rehydrating references to SQLServerDataSource and its child classes.
-     * Caller gets the reference by calling SQLServerDataSource.getReference.
-     * References are used by JNDI to persist and rehydrate objects.
+     * Returns an reference to the SQLServerDataSource instance getObjectInstance is a factory for rehydrating
+     * references to SQLServerDataSource and its child classes. Caller gets the reference by calling
+     * SQLServerDataSource.getReference. References are used by JNDI to persist and rehydrate objects.
      */
     public Object getObjectInstance(Object ref, Name name, Context c, Hashtable<?, ?> h) throws SQLServerException {
         // Create a new instance of a DataSource class from the given reference.

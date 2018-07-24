@@ -6,9 +6,7 @@
 package com.microsoft.sqlserver.jdbc;
 
 /**
- * 
  * Specifies the spatial data types values
- *
  */
 public enum InternalSpatialDatatype {
     POINT((byte) 1, "POINT"),

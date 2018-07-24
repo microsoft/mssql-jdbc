@@ -21,8 +21,8 @@ import java.util.Set;
 
 
 /**
- * Provides a  simple implementation of the ISQLServerBulkRecord interface that can be used to read in the basic Java data types
- * from an ArrayList of Parameters that were provided by pstmt/cstmt.
+ * Provides a simple implementation of the ISQLServerBulkRecord interface that can be used to read in the basic Java
+ * data types from an ArrayList of Parameters that were provided by pstmt/cstmt.
  */
 public class SQLServerBulkBatchInsertRecord extends SQLServerBulkCommon {
 

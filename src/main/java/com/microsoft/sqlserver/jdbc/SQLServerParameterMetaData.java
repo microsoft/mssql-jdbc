@@ -325,7 +325,7 @@ public final class SQLServerParameterMetaData implements ParameterMetaData {
     }
 
     /**
-     * Parses escaped strings properly e.g.[Table Name, ] using tokenizer
+     * Parses escaped strings properly e.g.[Table Name, ] using tokenizer/
      * 
      * @param st
      *        string tokenizer
@@ -894,7 +894,7 @@ public final class SQLServerParameterMetaData implements ParameterMetaData {
     }
 
     /**
-     * Verify a supplied parameter index is valid
+     * Returns if a supplied parameter index is valid.
      * 
      * @param param
      *        the param index

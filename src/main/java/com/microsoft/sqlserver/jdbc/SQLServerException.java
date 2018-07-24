@@ -89,7 +89,7 @@ public final class SQLServerException extends java.sql.SQLException {
     }
 
     /**
-     * Logs an exception to the driver log file
+     * Logs an exception to the driver log file.
      * 
      * @param o
      *        the io buffer that generated the exception
@@ -131,7 +131,7 @@ public final class SQLServerException extends java.sql.SQLException {
     }
 
     /**
-     * Make a new SQLException
+     * Construct a SQLServerException.
      * 
      * @param errText
      *        the exception message
@@ -168,7 +168,7 @@ public final class SQLServerException extends java.sql.SQLException {
     }
 
     /**
-     * Constructs a new SQLServerException
+     * Constructs a new SQLServerException.
      * 
      * @param obj
      *        the object
@@ -181,8 +181,7 @@ public final class SQLServerException extends java.sql.SQLException {
      * @param bStack
      *        true to generate the stack trace
      */
-    public SQLServerException(Object obj, String errText, String errState, StreamError streamError,
-            boolean bStack) {
+    public SQLServerException(Object obj, String errText, String errState, StreamError streamError, boolean bStack) {
         super(errText, errState, streamError.getErrorNumber());
 
         // Log SQL error with info from StreamError.
@@ -192,7 +191,7 @@ public final class SQLServerException extends java.sql.SQLException {
     }
 
     /**
-     * Builds a new SQL Exception from an error detected by the driver.
+     * Constructs a SQLServerException from an error detected by the driver.
      * 
      * @param con
      *        the connection
@@ -243,8 +242,8 @@ public final class SQLServerException extends java.sql.SQLException {
      *        true to generate the stack trace
      * @throws SQLServerException
      */
-    static void makeFromDatabaseError(SQLServerConnection con, Object obj, String errText,
-            StreamError streamError, boolean bStack) throws SQLServerException {
+    static void makeFromDatabaseError(SQLServerConnection con, Object obj, String errText, StreamError streamError,
+            boolean bStack) throws SQLServerException {
         String state = generateStateCode(con, streamError.getErrorNumber(), streamError.getErrorState());
 
         SQLServerException theException = new SQLServerException(obj,
@@ -306,7 +305,7 @@ public final class SQLServerException extends java.sql.SQLException {
     }
 
     /**
-     * Generates the JDBC state code based on the error number returned from the database
+     * Generates the JDBC state code based on the error number returned from the database.
      * 
      * @param con
      *        the connection
@@ -359,7 +358,7 @@ public final class SQLServerException extends java.sql.SQLException {
     }
 
     /**
-     * Appends ClientConnectionId to an error message if applicable
+     * Appends ClientConnectionId to an error message if applicable.
      * 
      * @param errMsg
      *        - the orginal error message.

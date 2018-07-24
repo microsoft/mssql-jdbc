@@ -81,14 +81,14 @@ public class SqlVariant {
     private JDBCType baseJDBCType;
 
     /**
-     * Constructs a SqlVariant
+     * Constructs a SqlVariant.
      */
     SqlVariant(int baseType) {
         this.baseType = baseType;
     }
 
     /**
-     * Returns if the basetype for variant is of time value
+     * Returns if the basetype for variant is of time value.
      * 
      * @return
      */
@@ -101,7 +101,7 @@ public class SqlVariant {
     }
 
     /**
-     * Sets the base type for sql-variant
+     * Sets the base type for sql-variant.
      * 
      * @param baseType
      */
@@ -110,7 +110,7 @@ public class SqlVariant {
     }
 
     /**
-     * Returns the base type for sql-variant
+     * Returns the base type for sql-variant.
      * 
      * @return
      */
@@ -119,7 +119,7 @@ public class SqlVariant {
     }
 
     /**
-     * Store the basetype as jdbc type
+     * Stores the basetype as JDBC type.
      * 
      * @param baseJDBCType
      */
@@ -128,7 +128,7 @@ public class SqlVariant {
     }
 
     /**
-     * Returns the base type as jdbc type
+     * Returns the base type as JDBC type.
      * 
      * @return
      */
@@ -137,7 +137,7 @@ public class SqlVariant {
     }
 
     /**
-     * Sets the scale if applicable
+     * Sets the scale if applicable.
      * 
      * @param scale
      */
@@ -146,7 +146,7 @@ public class SqlVariant {
     }
 
     /**
-     * Returns the scale
+     * Returns the scale.
      * 
      * @return
      */
@@ -155,7 +155,7 @@ public class SqlVariant {
     }
 
     /**
-     * Sets the precision if applicable
+     * Sets the precision if applicable.
      * 
      * @param precision
      */
@@ -164,7 +164,7 @@ public class SqlVariant {
     }
 
     /**
-     * Returns the precision
+     * Returns the precision.
      * 
      * @return
      */
@@ -173,7 +173,7 @@ public class SqlVariant {
     }
 
     /**
-     * Sets the collation if applicable
+     * Sets the collation if applicable.
      * 
      * @param collation
      */
@@ -182,7 +182,7 @@ public class SqlVariant {
     }
 
     /**
-     * Returns the collation
+     * Returns the collation.
      * 
      * @return
      */
@@ -191,7 +191,7 @@ public class SqlVariant {
     }
 
     /**
-     * Sets the maximum length
+     * Sets the maximum length.
      * 
      * @param maxLength
      */
@@ -200,7 +200,7 @@ public class SqlVariant {
     }
 
     /**
-     * Returns the maximum length
+     * Returns the maximum length.
      * 
      * @return
      */

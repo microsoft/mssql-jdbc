@@ -14,7 +14,7 @@ import java.sql.ResultSetMetaData;
 public interface ISQLServerResultSetMetaData extends ResultSetMetaData {
 
     /**
-     * Returns if the column is a SQLServer SparseColumnSet
+     * Returns if the column is a SQLServer SparseColumnSet.
      * 
      * @param column
      *        The column number

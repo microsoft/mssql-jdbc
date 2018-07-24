@@ -34,8 +34,8 @@ import com.microsoft.sqlserver.jdbc.SQLServerConnection.PreparedStatementHandle;
 
 
 /**
- * Provides JDBC prepared statement functionality. SQLServerPreparedStatement provides
- * methods for the user to supply parameters as any native Java type and many Java object types.
+ * Provides an implementation of java.sql.PreparedStatement interface that assists in preparing Statements for SQL
+ * Server.
  * <p>
  * SQLServerPreparedStatement prepares a statement using SQL Server's sp_prepexec and re-uses the returned statement
  * handle for each subsequent execution of the statement (typically using different parameters provided by the user)
@@ -187,7 +187,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     }
 
     /**
-     * Constructs a SQLServerPreparedStatement
+     * Constructs a SQLServerPreparedStatement.
      * 
      * @param conn
      *        the connection
@@ -595,8 +595,8 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     }
 
     /**
-     * Returns if the execution should be retried because the re-used cached handle could not be re-used due to server side state
-     * changes
+     * Returns if the execution should be retried because the re-used cached handle could not be re-used due to server
+     * side state changes.
      */
     private boolean retryBasedOnFailedReuseOfCachedHandle(SQLException e, int attempt, boolean needsPrepare,
             boolean isBatch) {
@@ -659,7 +659,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     }
 
     /**
-     * Sends the statement parameters by RPC
+     * Sends the statement parameters by RPC.
      */
     void sendParamsByRPC(TDSWriter tdsWriter, Parameter[] params) throws SQLServerException {
         char cParamName[];
@@ -964,7 +964,9 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         connection.resetCurrentCommand();
     }
 
-    /** Manage re-using cached handles */
+    /**
+     * Manages re-using cached handles.
+     */
     private boolean reuseCachedHandle(boolean hasNewTypeDefinitions, boolean discardCurrentCacheItem) {
         // No re-use of caching for cursorable statements (statements that WILL use sp_cursor*)
         if (isCursorable(executeMethod))
@@ -2976,7 +2978,6 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         loggerExternal.exiting(getClassNameLogging(), "setSQLXML");
     }
 
-    /* make sure we throw here */
     @Override
     public final int executeUpdate(String sql) throws SQLServerException {
         loggerExternal.entering(getClassNameLogging(), "executeUpdate", sql);

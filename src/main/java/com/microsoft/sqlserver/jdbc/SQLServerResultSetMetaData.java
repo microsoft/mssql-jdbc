@@ -10,9 +10,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 
 /**
- * Provides an implementation of the result set metadata to the SQL Server.
- * A ResultSetMetaData object can be used to obtain the meta data (types and type properties) of the columns in a
- * ResultSet.
+ * Provides an implementation of the result set metadata to the SQL Server. A ResultSetMetaData object can be used to
+ * obtain the meta data (types and type properties) of the columns in a ResultSet.
  *
  * The API javadoc for JDBC API methods that this class implements are not repeated here. Please see Sun's JDBC API
  * interfaces javadoc for those details.

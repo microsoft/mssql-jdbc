@@ -69,7 +69,7 @@ public final class SQLServerDataTable {
     }
 
     /**
-     * Adds meta data for the specified column
+     * Adds meta data for the specified column.
      * 
      * @param columnName
      *        the name of the column
@@ -85,7 +85,7 @@ public final class SQLServerDataTable {
     }
 
     /**
-     * Adds meta data for the specified column
+     * Adds meta data for the specified column.
      * 
      * @param column
      *        the name of the column
@@ -298,7 +298,7 @@ public final class SQLServerDataTable {
 
     /**
      * Returns the <code>java.util.Map</code> object type of columnMetaData for all columns where column indexes are
-     * mapped with their respective {@link SQLServerDataColumn} Java object
+     * mapped with their respective {@link SQLServerDataColumn} Java object.
      * 
      * @return Map
      */
@@ -307,7 +307,7 @@ public final class SQLServerDataTable {
     }
 
     /**
-     * Returns name of TVP type set by {@link #setTvpName(String)}
+     * Returns name of TVP type set by {@link #setTvpName(String)}.
      * 
      * @return tvpName
      */
@@ -316,7 +316,7 @@ public final class SQLServerDataTable {
     }
 
     /**
-     * Sets the TVP Name
+     * Sets the TVP Name.
      * 
      * @param tvpName
      *        the name of TVP

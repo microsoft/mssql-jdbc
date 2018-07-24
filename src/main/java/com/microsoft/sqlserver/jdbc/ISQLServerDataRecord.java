@@ -6,12 +6,12 @@
 package com.microsoft.sqlserver.jdbc;
 
 /**
- * Provides an interface to create classes that read in data from any source (such as a file) and allow a
- * structured type to be sent to SQL Server tables.
+ * Provides an interface to create classes that read in data from any source (such as a file) and allow a structured
+ * type to be sent to SQL Server tables.
  */
 public interface ISQLServerDataRecord {
     /**
-     * Returns the column meta data
+     * Returns the column meta data.
      * 
      * @param column
      *        the first column is 1, the second is 2, and so on

@@ -77,8 +77,8 @@ public interface ISQLServerResultSet extends java.sql.ResultSet {
     public Geography getGeography(String columnName) throws SQLServerException;
 
     /**
-     * Returns the value of the designated column in the current row of this ResultSet object as a String object in
-     * the Java programming language.
+     * Returns the value of the designated column in the current row of this ResultSet object as a String object in the
+     * Java programming language.
      * 
      * @param columnIndex
      *        the first column is 1, the second is 2, ...
@@ -89,8 +89,8 @@ public interface ISQLServerResultSet extends java.sql.ResultSet {
     public String getUniqueIdentifier(int columnIndex) throws SQLServerException;
 
     /**
-     * Returns the value of the designated column in the current row of this ResultSet object as a String object in
-     * the Java programming language.
+     * Returns the value of the designated column in the current row of this ResultSet object as a String object in the
+     * Java programming language.
      * 
      * @param columnLabel
      *        the name of the column
@@ -355,7 +355,7 @@ public interface ISQLServerResultSet extends java.sql.ResultSet {
      * must contain the number of bytes specified by scaleOrLength. If the second argument is a Reader then the reader
      * must contain the number of characters specified by scaleOrLength. If these conditions are not true the driver
      * will generate a SQLServerException when the statement is executed. The default implementation will throw
-     * SQLFeatureNotSupportedException
+     * SQLFeatureNotSupportedException.
      * 
      * @param columnName
      *        the label for the column specified with the SQL AS clause. If the SQL AS clause was not specified, then
@@ -1566,7 +1566,7 @@ public interface ISQLServerResultSet extends java.sql.ResultSet {
 
     /**
      * Returns the Data Classification information for the current ResultSet For SQL Servers that do not support Data
-     * Classification or results that do not fetch any classified columns, this data can be null
+     * Classification or results that do not fetch any classified columns, this data can be null.
      * 
      * @return SensitivityClassification
      */

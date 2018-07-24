@@ -215,8 +215,8 @@ public interface ISQLServerConnection extends java.sql.Connection {
             SQLServerStatementColumnEncryptionSetting stmtColEncSetting) throws SQLServerException;
 
     /**
-     * Sets the value of the sendTimeAsDatetime connection property. When true, java.sql.Time values will be sent
-     * to the server as SQL Serverdatetime values. When false, java.sql.Time values will be sent to the server as SQL
+     * Sets the value of the sendTimeAsDatetime connection property. When true, java.sql.Time values will be sent to the
+     * server as SQL Serverdatetime values. When false, java.sql.Time values will be sent to the server as SQL
      * Servertime values. sendTimeAsDatetime can also be modified programmatically with
      * SQLServerDataSource.setSendTimeAsDatetime. The default value for this property may change in a future release.
      * 
@@ -232,7 +232,7 @@ public interface ISQLServerConnection extends java.sql.Connection {
     public void setSendTimeAsDatetime(boolean sendTimeAsDateTimeValue) throws SQLServerException;
 
     /**
-     * Returns the value of the  sendTimeAsDatetime property.
+     * Returns the value of the sendTimeAsDatetime property.
      * 
      * @return boolean value of sendTimeAsDatetime
      * 

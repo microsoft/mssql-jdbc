@@ -62,12 +62,12 @@ import microsoft.sql.DateTimeOffset;
  */
 public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Serializable {
     /**
-     * 
+     * Update serialVersionUID when making changes to this file
      */
     private static final long serialVersionUID = 1989903904654306244L;
 
-    /*
-     * Class to represent the column mappings between the source and destination table
+    /**
+     * Represents the column mappings between the source and destination table
      */
     private class ColumnMapping {
         String sourceColumnName = null;
@@ -130,11 +130,11 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
 
     /**
      * Name of destination table on server. If destinationTable has not been set when WriteToServer is called, an
-     * Exception is thrown. destinationTable is a three-part name (<database>.<owningschema>.<name>). You can qualify
-     * the table name with its database and owning schema if you choose. However, if the table name uses an underscore
-     * ("_") or any other special characters, you must escape the name using surrounding brackets. For more information,
-     * see "Identifiers" in SQL Server Books Online. You can bulk-copy data to a temporary table by using a value such
-     * as tempdb..#table or tempdb.<owner>.#table for the destinationTable property.
+     * Exception is thrown. destinationTable is a three-part name {@code (<database>.<owningschema>.<name>)}. You can
+     * qualify the table name with its database and owning schema if you choose. However, if the table name uses an
+     * underscore ("_") or any other special characters, you must escape the name using surrounding brackets. For more
+     * information, see "Identifiers" in SQL Server Books Online. You can bulk-copy data to a temporary table by using a
+     * value such as {@code tempdb..#table or tempdb.<owner>.#table} for the destinationTable property.
      */
     private String destinationTableName;
 
@@ -1707,7 +1707,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
         }
     }
 
-    /*
+    /**
      * Returns the column metadata for the destination table (and saves it for later)
      */
     private void getDestinationMetadata() throws SQLServerException {
@@ -3016,8 +3016,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
     }
 
     /**
-     * this method is called against jdbc41, but it require jdbc42 to work
-     * therefore, we will throw exception.
+     * this method is called against jdbc41, but it require jdbc42 to work therefore, we will throw exception.
      */
     protected Object getTemporalObjectFromCSVWithFormatter(String valueStrUntrimmed, int srcJdbcType, int srcColOrdinal,
             DateTimeFormatter dateTimeFormatter) throws SQLServerException {

@@ -7,8 +7,8 @@ package com.microsoft.sqlserver.jdbc;
 
 /**
  * 
- * Defines the abtract class for a SQL Server Column Encryption key store provider
- * Extend this class to implement a custom key store provider.
+ * Defines the abtract class for a SQL Server Column Encryption key store provider Extend this class to implement a
+ * custom key store provider.
  *
  */
 public abstract class SQLServerColumnEncryptionKeyStoreProvider {
@@ -22,16 +22,15 @@ public abstract class SQLServerColumnEncryptionKeyStoreProvider {
     public abstract void setName(String name);
 
     /**
-     * Retrieves the name of this key store provider.
+     * Returns the name of this key store provider.
      * 
      * @return the name of this key store provider.
      */
     public abstract String getName();
 
     /**
-     * Base class method for decrypting the specified encrypted value of a column encryption key. The encrypted value is
-     * expected to be encrypted using the column master key with the specified key path and using the specified
-     * algorithm.
+     * Decrypts the specified encrypted value of a column encryption key. The encrypted value is expected to be
+     * encrypted using the column master key with the specified key path and using the specified algorithm.
      * 
      * @param masterKeyPath
      *        The column master key path.
@@ -47,8 +46,8 @@ public abstract class SQLServerColumnEncryptionKeyStoreProvider {
             byte[] encryptedColumnEncryptionKey) throws SQLServerException;
 
     /**
-     * Base class method for encrypting a column encryption key using the column master key with the specified key path
-     * and using the specified algorithm.
+     * Encrypts a column encryption key using the column master key with the specified key path and using the specified
+     * algorithm.
      * 
      * @param masterKeyPath
      *        The column master key path.
