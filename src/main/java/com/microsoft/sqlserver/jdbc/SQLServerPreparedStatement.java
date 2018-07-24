@@ -2032,10 +2032,10 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         } catch (SQLException e) {
             // throw a BatchUpdateException with the given error message, and return null for the updateCounts.
             throw new BatchUpdateException(e.getMessage(), null, 0, null);
-        } catch (IllegalArgumentException | StringIndexOutOfBoundsException e) {
+        } catch (IllegalArgumentException e) {
             // If we fail with IllegalArgumentException, fall back to the original batch insert logic.
             if (getStatementLogger().isLoggable(java.util.logging.Level.FINE)) {
-                getStatementLogger().fine("Parsing user's Batch Insert SQL Query failed: " + e.toString());
+                getStatementLogger().fine("Parsing user's Batch Insert SQL Query failed: " + e.getMessage());
                 getStatementLogger().fine("Falling back to the original implementation for Batch Insert.");
             }
         }
@@ -2198,10 +2198,10 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         } catch (SQLException e) {
             // throw a BatchUpdateException with the given error message, and return null for the updateCounts.
             throw new BatchUpdateException(e.getMessage(), null, 0, null);
-        } catch (IllegalArgumentException | StringIndexOutOfBoundsException e) {
+        } catch (IllegalArgumentException e) {
             // If we fail with IllegalArgumentException, fall back to the original batch insert logic.
             if (getStatementLogger().isLoggable(java.util.logging.Level.FINE)) {
-                getStatementLogger().fine("Parsing user's Batch Insert SQL Query failed: " + e.toString());
+                getStatementLogger().fine("Parsing user's Batch Insert SQL Query failed: " + e.getMessage());
                 getStatementLogger().fine("Falling back to the original implementation for Batch Insert.");
             }
         }
@@ -2282,7 +2282,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         // This if statement is needed to handle the case where the user has something like:
         // [dbo] . /* random comment */ [tableName]
         if (hasTableBeenFound && !isExpectingTableName) {
-            if (localUserSQL.substring(0, 1).equalsIgnoreCase(".")) {
+            if (checkSQLLength(1) && localUserSQL.substring(0, 1).equalsIgnoreCase(".")) {
                 sb.append(".");
                 localUserSQL = localUserSQL.substring(1);
                 return sb.toString() + parseUserSQLForTableNameDW(true, true, true, true);
@@ -2291,12 +2291,12 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
             }
         }
 
-        if (localUserSQL.substring(0, 6).equalsIgnoreCase("insert") && !hasInsertBeenFound) {
+        if (!hasInsertBeenFound && checkSQLLength(6) && localUserSQL.substring(0, 6).equalsIgnoreCase("insert")) {
             localUserSQL = localUserSQL.substring(6);
             return parseUserSQLForTableNameDW(true, hasIntoBeenFound, hasTableBeenFound, isExpectingTableName);
         }
 
-        if (localUserSQL.substring(0, 4).equalsIgnoreCase("into") && !hasIntoBeenFound) {
+        if (!hasIntoBeenFound && checkSQLLength(4) && localUserSQL.substring(0, 4).equalsIgnoreCase("into")) {
             // is it really "into"?
             // if the "into" is followed by a blank space or /*, then yes.
             if (Character.isWhitespace(localUserSQL.charAt(4))
@@ -2315,7 +2315,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         // It could be encapsulated in [], "", or have a database name preceding the table name.
         // If it's encapsulated in [] or "", we need be more careful with parsing as anything could go into []/"".
         // For ] or ", they can be escaped by ]] or "", watch out for this too.
-        if (localUserSQL.substring(0, 1).equalsIgnoreCase("[")) {
+        if (checkSQLLength(1) && localUserSQL.substring(0, 1).equalsIgnoreCase("[")) {
             int tempint = localUserSQL.indexOf("]", 1);
 
             // keep checking if it's escaped
@@ -2331,7 +2331,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         }
 
         // do the same for ""
-        if (localUserSQL.substring(0, 1).equalsIgnoreCase("\"")) {
+        if (checkSQLLength(1) && localUserSQL.substring(0, 1).equalsIgnoreCase("\"")) {
             int tempint = localUserSQL.indexOf("\"", 1);
 
             // keep checking if it's escaped
@@ -2360,7 +2360,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         }
 
         // It shouldn't come here. If we did, something is wrong.
-        throw new IllegalArgumentException("localUserSQL");
+        throw new IllegalArgumentException("Invalid SQL Query.");
     }
 
     private ArrayList<String> parseUserSQLForColumnListDW() {
@@ -2373,7 +2373,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
         // check if optional column list was provided
         // Columns can have the form of c1, [c1] or "c1". It can escape ] or " by ]] or "".
-        if (localUserSQL.substring(0, 1).equalsIgnoreCase("(")) {
+        if (checkSQLLength(1) && localUserSQL.substring(0, 1).equalsIgnoreCase("(")) {
             localUserSQL = localUserSQL.substring(1);
             return parseUserSQLForColumnListDWHelper(new ArrayList<String>());
         }
@@ -2388,7 +2388,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
             return parseUserSQLForColumnListDWHelper(listOfColumns);
         }
 
-        if (localUserSQL.charAt(0) == ')') {
+        if (checkSQLLength(1) && localUserSQL.charAt(0) == ')') {
             localUserSQL = localUserSQL.substring(1);
             return listOfColumns;
         }
@@ -2451,7 +2451,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         }
 
         // It shouldn't come here. If we did, something is wrong.
-        throw new IllegalArgumentException("localUserSQL");
+        throw new IllegalArgumentException("Invalid SQL Query.");
     }
 
     private ArrayList<String> parseUserSQLForValueListDW(boolean hasValuesBeenFound) {
@@ -2464,7 +2464,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
         if (!hasValuesBeenFound) {
             // look for keyword "VALUES"
-            if (localUserSQL.substring(0, 6).equalsIgnoreCase("VALUES")) {
+            if (checkSQLLength(6) && localUserSQL.substring(0, 6).equalsIgnoreCase("VALUES")) {
                 localUserSQL = localUserSQL.substring(6);
 
                 localUserSQL = localUserSQL.trim();
@@ -2485,14 +2485,14 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                 return parseUserSQLForValueListDW(hasValuesBeenFound);
             }
 
-            if (localUserSQL.substring(0, 1).equalsIgnoreCase("(")) {
+            if (checkSQLLength(1) && localUserSQL.substring(0, 1).equalsIgnoreCase("(")) {
                 localUserSQL = localUserSQL.substring(1);
                 return parseUserSQLForValueListDWHelper(new ArrayList<String>());
             }
         }
 
         // shouldn't come here, as the list of values is mandatory.
-        throw new IllegalArgumentException("localUserSQL");
+        throw new IllegalArgumentException("Invalid SQL Query.");
     }
 
     private ArrayList<String> parseUserSQLForValueListDWHelper(ArrayList<String> listOfValues) {
@@ -2503,7 +2503,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
             return parseUserSQLForValueListDWHelper(listOfValues);
         }
 
-        if (localUserSQL.charAt(0) == ')') {
+        if (checkSQLLength(1) && localUserSQL.charAt(0) == ')') {
             localUserSQL = localUserSQL.substring(1);
             return listOfValues;
         }
@@ -2553,7 +2553,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         }
 
         // It shouldn't come here. If we did, something is wrong.
-        throw new IllegalArgumentException("localUserSQL");
+        throw new IllegalArgumentException("Invalid SQL Query.");
     }
 
     private boolean checkAndRemoveComments(boolean checkForSemicolon) {
@@ -2579,6 +2579,13 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         }
 
         return false;
+    }
+
+    private boolean checkSQLLength(int length) {
+        if (null == localUserSQL || localUserSQL.length() < length) {
+            throw new IllegalArgumentException("Invalid SQL Query.");
+        }
+        return true;
     }
 
     private final class PrepStmtBatchExecCmd extends TDSCommand {

@@ -550,7 +550,7 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
 
     @Test
     public void testNonParameterizedQuery() throws Exception {
-        String invalid = "insert into " + tableName + "values ((SELECT * from table where c1=?), ?,? ,?) ";
+        String invalid = "insert into " + tableName + " values ((SELECT * from table where c1=?), ?,? ,?) ";
 
         try (Connection connection = DriverManager.getConnection(connectionString + ";useBulkCopyForBatchInsert=true;");
                 SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) connection.prepareStatement(invalid);
@@ -568,10 +568,10 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
             pstmt.executeBatch();
             throw new Exception("Test did not throw an exception when it was expected.");
         } catch (BatchUpdateException e) {
-            assertEquals(e.getMessage(), "Incorrect syntax near '('.");
+            assertEquals(e.getMessage(), "Incorrect syntax near the keyword 'table'.");
         }
 
-        invalid = "insert into " + tableName + "values ('?', ?,? ,?) ";
+        invalid = "insert into " + tableName + " values ('?', ?,? ,?) ";
 
         try (Connection connection = DriverManager.getConnection(connectionString + ";useBulkCopyForBatchInsert=true;");
                 SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) connection.prepareStatement(invalid);
@@ -588,7 +588,7 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
             pstmt.executeBatch();
             throw new Exception("Test did not throw an exception when it was expected.");
         } catch (BatchUpdateException e) {
-            assertEquals(e.getMessage(), "");
+            assertEquals(e.getMessage(), "Column name or number of supplied values does not match table definition.");
         }
     }
 
