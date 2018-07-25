@@ -2250,9 +2250,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     }
 
     private void checkAdditionalQuery() {
-        localUserSQL = localUserSQL.trim();
-        if (checkAndRemoveComments(true)) {
-            checkAdditionalQuery();
+        while (checkAndRemoveCommentsAndSpace(true)) {
         }
 
         // At this point, if localUserSQL is not empty (after removing all whitespaces, semicolons and comments), we
@@ -2269,10 +2267,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         // Insert into <tableName> and Insert <tableName>
         // And there could be in-line comments (with /* and */) in between.
         // This method assumes the localUserSQL string starts with "insert".
-        localUserSQL = localUserSQL.trim();
-        if (checkAndRemoveComments(false)) {
-            return parseUserSQLForTableNameDW(hasInsertBeenFound, hasIntoBeenFound, hasTableBeenFound,
-                    isExpectingTableName);
+        while (checkAndRemoveCommentsAndSpace(false)) {
         }
 
         StringBuilder sb = new StringBuilder();
@@ -2361,7 +2356,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
             // Keep going until the end of the table name is signalled - either a ., whitespace, or comment is
             // encountered
             if (localUserSQL.charAt(0) == '.' || Character.isWhitespace(localUserSQL.charAt(0))
-                    || checkAndRemoveComments(false)) {
+                    || checkAndRemoveCommentsAndSpace(false)) {
                 return sb.toString() + parseUserSQLForTableNameDW(true, true, true, false);
             } else {
                 sb.append(localUserSQL.charAt(0));
@@ -2374,11 +2369,8 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     }
 
     private ArrayList<String> parseUserSQLForColumnListDW() {
-        localUserSQL = localUserSQL.trim();
-
         // ignore all comments
-        if (checkAndRemoveComments(false)) {
-            return parseUserSQLForColumnListDW();
+        while (checkAndRemoveCommentsAndSpace(false)) {
         }
 
         // check if optional column list was provided
@@ -2391,98 +2383,103 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     }
 
     private ArrayList<String> parseUserSQLForColumnListDWHelper(ArrayList<String> listOfColumns) {
-        localUserSQL = localUserSQL.trim();
-
         // ignore all comments
-        if (checkAndRemoveComments(false)) {
-            return parseUserSQLForColumnListDWHelper(listOfColumns);
+        while (checkAndRemoveCommentsAndSpace(false)) {
         }
-
-        if (checkSQLLength(1) && localUserSQL.charAt(0) == ')') {
-            localUserSQL = localUserSQL.substring(1);
-            return listOfColumns;
-        }
-
-        if (localUserSQL.charAt(0) == ',') {
-            localUserSQL = localUserSQL.substring(1);
-            return parseUserSQLForColumnListDWHelper(listOfColumns);
-        }
-
-        if (localUserSQL.charAt(0) == '[') {
-            int tempint = localUserSQL.indexOf("]", 1);
-
-            // ] has not been found, this is wrong.
-            if (tempint < 0) {
-                throw new IllegalArgumentException("Invalid SQL Query.");
-            }
-            
-            // keep checking if it's escaped
-            while (tempint >= 0 && checkSQLLength(tempint + 2) && localUserSQL.charAt(tempint + 1) == ']') {
-                localUserSQL = localUserSQL.substring(0, tempint) + localUserSQL.substring(tempint + 1);
-                tempint = localUserSQL.indexOf("]", tempint + 1);
-            }
-
-            // we've found a ] that is actually trying to close the square bracket.
-            String tempstr = localUserSQL.substring(1, tempint);
-            localUserSQL = localUserSQL.substring(tempint + 1);
-            listOfColumns.add(tempstr);
-            return parseUserSQLForColumnListDWHelper(listOfColumns);
-        }
-
-        if (localUserSQL.charAt(0) == '\"') {
-            int tempint = localUserSQL.indexOf("\"", 1);
-
-            // \" has not been found, this is wrong.
-            if (tempint < 0) {
-                throw new IllegalArgumentException("Invalid SQL Query.");
-            }
-            
-            // keep checking if it's escaped
-            while (tempint >= 0 && checkSQLLength(tempint + 2) && localUserSQL.charAt(tempint + 1) == '\"') {
-                localUserSQL = localUserSQL.substring(0, tempint) + localUserSQL.substring(tempint + 1);
-                tempint = localUserSQL.indexOf("\"", tempint + 1);
-            }
-
-            // we've found a " that is actually trying to close the quote.
-            String tempstr = localUserSQL.substring(1, tempint);
-            localUserSQL = localUserSQL.substring(tempint + 1);
-            listOfColumns.add(tempstr);
-            return parseUserSQLForColumnListDWHelper(listOfColumns);
-        }
-
-        // At this point, the next chunk of string is the column name, without starting with [ or ".
+        
         StringBuilder sb = new StringBuilder();
         while (localUserSQL.length() > 0) {
-            if (checkAndRemoveComments(false)) {
-                continue;
+            while (checkAndRemoveCommentsAndSpace(false)) {
             }
+            
+            // exit condition
+            if (checkSQLLength(1) && localUserSQL.charAt(0) == ')') {
+                localUserSQL = localUserSQL.substring(1);
+                return listOfColumns;
+            }
+            
+            // ignore ,
+            // we've confirmed length is more than 0.
             if (localUserSQL.charAt(0) == ',') {
                 localUserSQL = localUserSQL.substring(1);
-                listOfColumns.add(sb.toString());
-                sb.setLength(0);
-            } else if (localUserSQL.charAt(0) == ')') {
-                localUserSQL = localUserSQL.substring(1);
-                listOfColumns.add(sb.toString());
-                return listOfColumns;
-            } else if (checkAndRemoveComments(false)) {
-                localUserSQL = localUserSQL.trim();
-            } else {
-                sb.append(localUserSQL.charAt(0));
-                localUserSQL = localUserSQL.substring(1);
-                localUserSQL = localUserSQL.trim();
+                while (checkAndRemoveCommentsAndSpace(false)) {
+                }
+            }
+            
+            // handle [] case
+            if (localUserSQL.charAt(0) == '[') {
+                int tempint = localUserSQL.indexOf("]", 1);
+
+                // ] has not been found, this is wrong.
+                if (tempint < 0) {
+                    throw new IllegalArgumentException("Invalid SQL Query.");
+                }
+                
+                // keep checking if it's escaped
+                while (tempint >= 0 && checkSQLLength(tempint + 2) && localUserSQL.charAt(tempint + 1) == ']') {
+                    localUserSQL = localUserSQL.substring(0, tempint) + localUserSQL.substring(tempint + 1);
+                    tempint = localUserSQL.indexOf("]", tempint + 1);
+                }
+
+                // we've found a ] that is actually trying to close the square bracket.
+                String tempstr = localUserSQL.substring(1, tempint);
+                localUserSQL = localUserSQL.substring(tempint + 1);
+                listOfColumns.add(tempstr);
+                continue; // proceed with the rest of the string
+            }
+            
+            // handle "" case
+            if (localUserSQL.charAt(0) == '\"') {
+                int tempint = localUserSQL.indexOf("\"", 1);
+
+                // \" has not been found, this is wrong.
+                if (tempint < 0) {
+                    throw new IllegalArgumentException("Invalid SQL Query.");
+                }
+                
+                // keep checking if it's escaped
+                while (tempint >= 0 && checkSQLLength(tempint + 2) && localUserSQL.charAt(tempint + 1) == '\"') {
+                    localUserSQL = localUserSQL.substring(0, tempint) + localUserSQL.substring(tempint + 1);
+                    tempint = localUserSQL.indexOf("\"", tempint + 1);
+                }
+
+                // we've found a " that is actually trying to close the quote.
+                String tempstr = localUserSQL.substring(1, tempint);
+                localUserSQL = localUserSQL.substring(tempint + 1);
+                listOfColumns.add(tempstr);
+                continue; // proceed with the rest of the string
+            }
+            
+            // At this point, the next chunk of string is the column name, without starting with [ or ".
+            while (localUserSQL.length() > 0) {
+                if (checkAndRemoveCommentsAndSpace(false)) {
+                    continue;
+                }
+                if (localUserSQL.charAt(0) == ',') {
+                    localUserSQL = localUserSQL.substring(1);
+                    listOfColumns.add(sb.toString());
+                    sb.setLength(0);
+                    break; // exit this while loop, but continue parsing.
+                } else if (localUserSQL.charAt(0) == ')') {
+                    localUserSQL = localUserSQL.substring(1);
+                    listOfColumns.add(sb.toString());
+                    return listOfColumns; // reached exit condition.
+                } else {
+                    sb.append(localUserSQL.charAt(0));
+                    localUserSQL = localUserSQL.substring(1);
+                    localUserSQL = localUserSQL.trim(); // add an entry.
+                }
             }
         }
-
+        
         // It shouldn't come here. If we did, something is wrong.
+        // most likely we couldn't hit the exit condition and just parsed until the end of the string.
         throw new IllegalArgumentException("Invalid SQL Query.");
     }
 
     private ArrayList<String> parseUserSQLForValueListDW(boolean hasValuesBeenFound) {
-        localUserSQL = localUserSQL.trim();
-
         // ignore all comments
-        if (checkAndRemoveComments(false)) {
-            return parseUserSQLForValueListDW(hasValuesBeenFound);
+        if (checkAndRemoveCommentsAndSpace(false)) {
         }
 
         if (!hasValuesBeenFound) {
@@ -2490,11 +2487,8 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
             if (checkSQLLength(6) && localUserSQL.substring(0, 6).equalsIgnoreCase("VALUES")) {
                 localUserSQL = localUserSQL.substring(6);
 
-                localUserSQL = localUserSQL.trim();
-
                 // ignore all comments
-                if (checkAndRemoveComments(false)) {
-                    return parseUserSQLForValueListDW(true);
+                while (checkAndRemoveCommentsAndSpace(false)) {
                 }
 
                 if (checkSQLLength(1) && localUserSQL.substring(0, 1).equalsIgnoreCase("(")) {
@@ -2504,8 +2498,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
             }
         } else {
             // ignore all comments
-            if (checkAndRemoveComments(false)) {
-                return parseUserSQLForValueListDW(hasValuesBeenFound);
+            while (checkAndRemoveCommentsAndSpace(false)) {
             }
 
             if (checkSQLLength(1) && localUserSQL.substring(0, 1).equalsIgnoreCase("(")) {
@@ -2519,49 +2512,14 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     }
 
     private ArrayList<String> parseUserSQLForValueListDWHelper(ArrayList<String> listOfValues) {
-        localUserSQL = localUserSQL.trim();
-
         // ignore all comments
-        if (checkAndRemoveComments(false)) {
-            return parseUserSQLForValueListDWHelper(listOfValues);
+        while (checkAndRemoveCommentsAndSpace(false)) {
         }
-
-        if (checkSQLLength(1) && localUserSQL.charAt(0) == ')') {
-            localUserSQL = localUserSQL.substring(1);
-            return listOfValues;
-        }
-
-        if (localUserSQL.charAt(0) == ',') {
-            localUserSQL = localUserSQL.substring(1);
-            return parseUserSQLForValueListDWHelper(listOfValues);
-        }
-
-        if (localUserSQL.charAt(0) == '\'') {
-            int tempint = localUserSQL.indexOf("\'", 1);
-
-            // \' has not been found, this is wrong.
-            if (tempint < 0) {
-                throw new IllegalArgumentException("Invalid SQL Query.");
-            }
-            
-            // keep checking if it's escaped
-            while (tempint >= 0 && checkSQLLength(tempint + 2) && localUserSQL.charAt(tempint + 1) == '\'') {
-                localUserSQL = localUserSQL.substring(0, tempint) + localUserSQL.substring(tempint + 1);
-                tempint = localUserSQL.indexOf("\'", tempint + 1);
-            }
-
-            // we've found a ' that is actually trying to close the quote.
-            // Include 's around the string as well, so we can distinguish '?' and ? later on.
-            String tempstr = localUserSQL.substring(0, tempint + 1);
-            localUserSQL = localUserSQL.substring(tempint + 1);
-            listOfValues.add(tempstr);
-            return parseUserSQLForValueListDWHelper(listOfValues);
-        }
-
+        
         // At this point, the next chunk of string is the value, without starting with ' (most likely a ?).
         StringBuilder sb = new StringBuilder();
         while (localUserSQL.length() > 0) {
-            if (checkAndRemoveComments(false)) {
+            if (checkAndRemoveCommentsAndSpace(false)) {
                 continue;
             }
             if (localUserSQL.charAt(0) == ',' || localUserSQL.charAt(0) == ')') {
@@ -2572,25 +2530,47 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                 } else {
                     localUserSQL = localUserSQL.substring(1);
                     listOfValues.add(sb.toString());
-                    return listOfValues;
+                    return listOfValues; // reached exit condition.
                 }
-            } else if (checkAndRemoveComments(false)) {
-                localUserSQL = localUserSQL.trim();
             } else {
                 sb.append(localUserSQL.charAt(0));
                 localUserSQL = localUserSQL.substring(1);
-                localUserSQL = localUserSQL.trim();
+                localUserSQL = localUserSQL.trim(); // add entry.
             }
         }
+
+        // Don't need this anymore since we removed support for non-parameterized query.
+//        if (localUserSQL.charAt(0) == '\'') {
+//            int tempint = localUserSQL.indexOf("\'", 1);
+//
+//            // \' has not been found, this is wrong.
+//            if (tempint < 0) {
+//                throw new IllegalArgumentException("Invalid SQL Query.");
+//            }
+//            
+//            // keep checking if it's escaped
+//            while (tempint >= 0 && checkSQLLength(tempint + 2) && localUserSQL.charAt(tempint + 1) == '\'') {
+//                localUserSQL = localUserSQL.substring(0, tempint) + localUserSQL.substring(tempint + 1);
+//                tempint = localUserSQL.indexOf("\'", tempint + 1);
+//            }
+//
+//            // we've found a ' that is actually trying to close the quote.
+//            // Include 's around the string as well, so we can distinguish '?' and ? later on.
+//            String tempstr = localUserSQL.substring(0, tempint + 1);
+//            localUserSQL = localUserSQL.substring(tempint + 1);
+//            listOfValues.add(tempstr);
+//            return parseUserSQLForValueListDWHelper(listOfValues);
+//        }
 
         // It shouldn't come here. If we did, something is wrong.
         throw new IllegalArgumentException("Invalid SQL Query.");
     }
 
-    private boolean checkAndRemoveComments(boolean checkForSemicolon) {
-        if (checkForSemicolon && null != localUserSQL && localUserSQL.length() > 0 && localUserSQL.charAt(0) == ';') {
+    private boolean checkAndRemoveCommentsAndSpace(boolean checkForSemicolon) {
+        localUserSQL = localUserSQL.trim();
+
+        while (checkForSemicolon && null != localUserSQL && localUserSQL.length() > 0 && localUserSQL.charAt(0) == ';') {
             localUserSQL = localUserSQL.substring(1);
-            checkAndRemoveComments(true);
         }
 
         if (null == localUserSQL || localUserSQL.length() < 2) {

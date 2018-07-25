@@ -166,7 +166,7 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
     @Test
     public void testAllcolumns() throws Exception {
         String valid = "INSERT INTO " + tableName + " values " + "(" + "?, " + "?, " + "?, " + "?, " + "?, " + "?, "
-                + "?, " + "?, " + "?, " + ")";
+                + "?, " + "?, " + "? " + ")";
 
         try (Connection connection = DriverManager.getConnection(connectionString + ";useBulkCopyForBatchInsert=true;");
                 SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) connection.prepareStatement(valid);
@@ -215,7 +215,7 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
 
     @Test
     public void testMixColumns() throws Exception {
-        String valid = "INSERT INTO " + tableName + " (c1, c3, c5, c8) values " + "(" + "?, " + "?, " + "?, " + "?, "
+        String valid = "INSERT INTO " + tableName + " (c1, c3, c5, c8) values " + "(" + "?, " + "?, " + "?, " + "? "
                 + ")";
 
         try (Connection connection = DriverManager.getConnection(connectionString + ";useBulkCopyForBatchInsert=true;");
@@ -263,7 +263,7 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
     @Test
     public void testNullOrEmptyColumns() throws Exception {
         String valid = "INSERT INTO " + tableName + " (c1, c2, c3, c4, c5, c6, c7) values " + "(" + "?, " + "?, "
-                + "?, " + "?, " + "?, " + "?, " + "?, " + ")";
+                + "?, " + "?, " + "?, " + "?, " + "? " + ")";
 
         try (Connection connection = DriverManager.getConnection(connectionString + ";useBulkCopyForBatchInsert=true;");
                 SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) connection.prepareStatement(valid);
@@ -455,7 +455,7 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
     @Test
     public void testAllColumnsLargeBatch() throws Exception {
         String valid = "INSERT INTO " + tableName + " values " + "(" + "?, " + "?, " + "?, " + "?, " + "?, " + "?, "
-                + "?, " + "?, " + "?, " + ")";
+                + "?, " + "?, " + "? " + ")";
 
         try (Connection connection = DriverManager.getConnection(connectionString + ";useBulkCopyForBatchInsert=true;");
                 SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) connection.prepareStatement(valid);
