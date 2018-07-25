@@ -14,11 +14,10 @@ import javax.sql.PooledConnection;
 
 
 /**
- * SQLServerConnectionPoolDataSource provides physical database connections for connection pool managers.
- * SQLServerConnectionPoolDataSource is typically used in Java Application Server environments that support built-in
- * connection pooling and require a ConnectionPoolDataSource to provide physical connections. For example, J2EE
- * application servers that provide JDBC 3.0 API spec connection pooling.
- *
+ * Provides physical database connections for connection pool managers. SQLServerConnectionPoolDataSource is typically
+ * used in Java Application Server environments that support built-in connection pooling and require a
+ * ConnectionPoolDataSource to provide physical connections. For example, J2EE application servers that provide JDBC 3.0
+ * API spec connection pooling.
  */
 public class SQLServerConnectionPoolDataSource extends SQLServerDataSource implements ConnectionPoolDataSource {
     // Get a new physical connection that the pool manager will issue logical connections from
@@ -65,9 +64,9 @@ public class SQLServerConnectionPoolDataSource extends SQLServerDataSource imple
         throw new java.io.InvalidObjectException("");
     }
 
-    // This is 90% duplicate from the SQLServerDataSource, the serialization proxy pattern does not lend itself to
-    // inheritance
-    // so the duplication is necessary
+    /**
+     * Implements java.io.Serializable the same way as {@link SQLServerDataSource}
+     */
     private static class SerializationProxy implements java.io.Serializable {
         private final Reference ref;
         private static final long serialVersionUID = 654661379842314126L;

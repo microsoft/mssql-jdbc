@@ -10,13 +10,12 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 
 /**
- * A ResultSetMetaData object can be used to obtain the meta data (types and type properties) of the columns in a
- * ResultSet.
+ * Provides an implementation of the result set metadata to the SQL Server. A ResultSetMetaData object can be used to
+ * obtain the meta data (types and type properties) of the columns in a ResultSet.
  *
  * The API javadoc for JDBC API methods that this class implements are not repeated here. Please see Sun's JDBC API
  * interfaces javadoc for those details.
  */
-
 public final class SQLServerResultSetMetaData implements ISQLServerResultSetMetaData {
     private SQLServerConnection con;
     private final SQLServerResultSet rs;
@@ -37,7 +36,7 @@ public final class SQLServerResultSetMetaData implements ISQLServerResultSetMeta
     }
 
     /**
-     * Create a new meta data object for the result set.
+     * Constructs a SQLServerResultSetMetaData meta data object for the result set.
      * 
      * @param con
      *        the connection

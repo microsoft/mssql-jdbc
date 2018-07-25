@@ -15,7 +15,7 @@ import javax.transaction.xa.XAResource;
 
 
 /**
- * SQLServerXAConnection provides JDBC connections that can participate in distributed (XA) transactions.
+ * Provides JDBC connections that can participate in distributed (XA) transactions.
  */
 public final class SQLServerXAConnection extends SQLServerPooledConnection implements XAConnection {
 

@@ -29,7 +29,7 @@ final class StreamColumns extends StreamPacket {
 
     private boolean shouldHonorAEForRead = false;
 
-    /* Gets the CekTable */
+    /* Returns the CekTable */
     CekTable getCekTable() {
         return cekTable;
     }

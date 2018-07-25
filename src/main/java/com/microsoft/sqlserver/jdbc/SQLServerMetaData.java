@@ -10,8 +10,8 @@ import java.text.MessageFormat;
 
 /**
  * 
- * This class represents metadata for a column. It is used in the ISQLServerDataRecord interface to pass column metadata
- * to the table-valued parameter.
+ * Represents metadata for a column. It is used in the ISQLServerDataRecord interface to pass column metadata to the
+ * table-valued parameter.
  * 
  */
 public class SQLServerMetaData {
@@ -29,7 +29,7 @@ public class SQLServerMetaData {
     static final int defaultSortOrdinal = -1;
 
     /**
-     * Creates a new SQLServerMetaData
+     * Constructs a SQLServerMetaData with the column name and SQL type.
      * 
      * @param columnName
      *        the name of the column
@@ -42,7 +42,7 @@ public class SQLServerMetaData {
     }
 
     /**
-     * creates a new SQLServerMetaData
+     * Constructs a SQLServerMetaData with the column name, SQL type, precision, and scale.
      * 
      * @param columnName
      *        the name of the column
@@ -61,7 +61,7 @@ public class SQLServerMetaData {
     }
 
     /**
-     * Creates a new SQLServerMetaData
+     * Constructs a SQLServerMetaData.
      * 
      * @param columnName
      *        the name of the column
@@ -96,7 +96,7 @@ public class SQLServerMetaData {
     }
 
     /**
-     * Initializes a new instance of SQLServerMetaData from another SQLServerMetaData object.
+     * Constructs a SQLServerMetaData from another SQLServerMetaData object.
      * 
      * @param sqlServerMetaData
      *        the object passed to initialize a new instance of SQLServerMetaData
@@ -113,69 +113,82 @@ public class SQLServerMetaData {
     }
 
     /**
+     * Returns the column name.
      * 
-     * @return Retrieves the column name.
+     * @return column name
      */
     public String getColumName() {
         return columnName;
     }
 
     /**
+     * Returns the java sql type.
      * 
-     * @return Retrieves the java sql type.
+     * @return java sql type
      */
     public int getSqlType() {
         return javaSqlType;
     }
 
     /**
+     * Returns the precision of the type passed to the column.
      * 
-     * @return retrieves the precision of the type passed to the column.
+     * @return precision
      */
     public int getPrecision() {
         return precision;
     }
 
     /**
+     * Returns the scale of the type passed to the column.
      * 
-     * @return retrieves the scale of the type passed to the column.
+     * @return scale
      */
     public int getScale() {
         return scale;
     }
 
     /**
+     * Returns whether the column uses the default server value.
      * 
-     * @return returns whether the column uses the default server value.
+     * @return whether the column uses the default server value.
      */
     public boolean useServerDefault() {
         return useServerDefault;
     }
 
     /**
+     * Returns whether the column is unique.
      * 
-     * @return retrieves the whether the column is unique.
+     * @return whether the column is unique.
      */
     public boolean isUniqueKey() {
         return isUniqueKey;
     }
 
     /**
+     * Returns the sort order.
      * 
-     * @return retrieves the sort order.
+     * @return sort order
      */
     public SQLServerSortOrder getSortOrder() {
         return sortOrder;
     }
 
     /**
+     * Returns the sort ordinal.
      * 
-     * @return retrieves the sort ordinal.
+     * @return sort ordinal
      */
     public int getSortOrdinal() {
         return sortOrdinal;
     }
 
+    /**
+     * Returns the collation.
+     * 
+     * @return SQL collation
+     */
     SQLCollation getCollation() {
         return this.collation;
     }

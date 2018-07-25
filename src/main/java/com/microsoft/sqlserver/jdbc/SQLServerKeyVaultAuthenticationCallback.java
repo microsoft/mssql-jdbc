@@ -5,10 +5,14 @@
 
 package com.microsoft.sqlserver.jdbc;
 
+/**
+ * Provides a callback delegate which is to be implemented by the client code
+ * 
+ */
 public interface SQLServerKeyVaultAuthenticationCallback {
 
     /**
-     * The authentication callback delegate which is to be implemented by the client code
+     * Returns the acesss token of the authentication request
      * 
      * @param authority
      *        - Identifier of the authority, a URL.

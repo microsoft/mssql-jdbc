@@ -12,7 +12,7 @@ import java.util.UUID;
 
 
 /**
- * This interface is implemented by {@link SQLServerConnection} and {@link SQLServerConnectionPoolProxy} Classes.
+ * Provides an interface to the {@link SQLServerConnection} and {@link SQLServerConnectionPoolProxy} classes.
  */
 public interface ISQLServerConnection extends java.sql.Connection {
 
@@ -21,7 +21,7 @@ public interface ISQLServerConnection extends java.sql.Connection {
     public final static int TRANSACTION_SNAPSHOT = 0x1000;
 
     /**
-     * Gets the connection ID of the most recent connection attempt, regardless of whether the attempt succeeded or
+     * Returns the connection ID of the most recent connection attempt, regardless of whether the attempt succeeded or
      * failed.
      * 
      * @return 16-byte GUID representing the connection ID of the most recent connection attempt. Or, NULL if there is a
@@ -215,8 +215,8 @@ public interface ISQLServerConnection extends java.sql.Connection {
             SQLServerStatementColumnEncryptionSetting stmtColEncSetting) throws SQLServerException;
 
     /**
-     * Modifies the setting of the sendTimeAsDatetime connection property. When true, java.sql.Time values will be sent
-     * to the server as SQL Serverdatetime values. When false, java.sql.Time values will be sent to the server as SQL
+     * Sets the value of the sendTimeAsDatetime connection property. When true, java.sql.Time values will be sent to the
+     * server as SQL Serverdatetime values. When false, java.sql.Time values will be sent to the server as SQL
      * Servertime values. sendTimeAsDatetime can also be modified programmatically with
      * SQLServerDataSource.setSendTimeAsDatetime. The default value for this property may change in a future release.
      * 
@@ -232,7 +232,7 @@ public interface ISQLServerConnection extends java.sql.Connection {
     public void setSendTimeAsDatetime(boolean sendTimeAsDateTimeValue) throws SQLServerException;
 
     /**
-     * Checks the sendTimeAsDatetime property.
+     * Returns the value of the sendTimeAsDatetime property.
      * 
      * @return boolean value of sendTimeAsDatetime
      * 
@@ -265,7 +265,7 @@ public interface ISQLServerConnection extends java.sql.Connection {
     public boolean getEnablePrepareOnFirstPreparedStatementCall();
 
     /**
-     * Specifies the behavior for a specific connection instance. If value is false the first execution will call
+     * Sets the behavior for a specific connection instance. If value is false the first execution will call
      * sp_executesql and not prepare a statement, once the second execution happens it will call sp_prepexec and
      * actually setup a prepared statement handle. Following executions will call sp_execute. This relieves the need for
      * sp_unprepare on prepared statement close if the statement is only executed once.
@@ -288,7 +288,7 @@ public interface ISQLServerConnection extends java.sql.Connection {
     public int getServerPreparedStatementDiscardThreshold();
 
     /**
-     * Specifies the behavior for a specific connection instance. This setting controls how many outstanding prepared
+     * Sets the behavior for a specific connection instance. This setting controls how many outstanding prepared
      * statement discard actions (sp_unprepare) can be outstanding per connection before a call to clean-up the
      * outstanding handles on the server is executed. If the setting is {@literal <=} 1 unprepare actions will be
      * executed immedietely on prepared statement close. If it is set to {@literal >} 1 these calls will be batched
@@ -300,7 +300,7 @@ public interface ISQLServerConnection extends java.sql.Connection {
     public void setServerPreparedStatementDiscardThreshold(int value);
 
     /**
-     * Specifies the size of the prepared statement cache for this connection. A value less than 1 means no cache.
+     * Sets the size of the prepared statement cache for this connection. A value less than 1 means no cache.
      * 
      * @param value
      *        The new cache size.
@@ -316,7 +316,7 @@ public interface ISQLServerConnection extends java.sql.Connection {
     public int getStatementPoolingCacheSize();
 
     /**
-     * Whether statement pooling is enabled or not for this connection.
+     * Returns whether statement pooling is enabled or not for this connection.
      * 
      * @return Returns the current setting per the description.
      */
@@ -330,7 +330,7 @@ public interface ISQLServerConnection extends java.sql.Connection {
     public int getStatementHandleCacheEntryCount();
 
     /**
-     * Disable/enable statement pooling.
+     * Sets the value to Disable/enable statement pooling.
      * 
      * @param value
      *        true to disable statement pooling, false to enable it.
@@ -338,7 +338,7 @@ public interface ISQLServerConnection extends java.sql.Connection {
     public void setDisableStatementPooling(boolean value);
 
     /**
-     * Determine whether statement pooling is disabled.
+     * Returns the value whether statement pooling is disabled.
      * 
      * @return true if statement pooling is disabled, false if it is enabled.
      */

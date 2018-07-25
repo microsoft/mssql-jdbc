@@ -6,12 +6,12 @@
 package com.microsoft.sqlserver.jdbc;
 
 /**
- * This interface can be used to create classes that read in data from any source (such as a file) and allow a
- * structured type to be sent to SQL Server tables.
+ * Provides an interface to create classes that read in data from any source (such as a file) and allow a structured
+ * type to be sent to SQL Server tables.
  */
 public interface ISQLServerDataRecord {
     /**
-     * Get the column meta data
+     * Returns the column meta data.
      * 
      * @param column
      *        the first column is 1, the second is 2, and so on
@@ -20,14 +20,14 @@ public interface ISQLServerDataRecord {
     public SQLServerMetaData getColumnMetaData(int column);
 
     /**
-     * Get the column count.
+     * Returns the column count.
      * 
      * @return Set of ordinals for the columns.
      */
     public int getColumnCount();
 
     /**
-     * Gets the data for the current row as an array of Objects.
+     * Returns the data for the current row as an array of Objects.
      * 
      * Each Object must match the Java language Type that is used to represent the indicated JDBC data type for the
      * given column. For more information, see 'Understanding the JDBC Driver Data Types' for the appropriate mappings.

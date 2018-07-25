@@ -6,17 +6,17 @@
 package com.microsoft.sqlserver.jdbc.dataclassification;
 
 /**
- * This class contains information about a Sensitivity Property as recieved from SQL Server for the active resultSet
+ * Represents the Data Classification Sensitivity Property as received from SQL Server for the active resultSet
  */
 public class SensitivityProperty {
     private Label label;
     private InformationType informationType;
 
     /**
-     * Constructor for Sensitivity Property class object
+     * Constructs a SensitivityProperty
      * 
      * @param label
-     *        Label as recieved from SQL Server for this SensitivityProperty
+     *        Label as received from SQL Server for this SensitivityProperty
      * @param informationType
      *        InformationType as recieved from SQL Server for this SensitivityProperty
      */
@@ -26,7 +26,7 @@ public class SensitivityProperty {
     }
 
     /**
-     * Retrieves Label data for this <code>SensitivityProperty</code> Object
+     * Returns the label data for this <code>SensitivityProperty</code> Object
      * 
      * @return label
      */
@@ -35,7 +35,7 @@ public class SensitivityProperty {
     }
 
     /**
-     * Retrieves InformationType data for this <code>SensitivityProperty</code> Object
+     * Returns the information type data for this <code>SensitivityProperty</code> Object
      * 
      * @return informationType
      */

@@ -55,7 +55,8 @@ public class DataClassificationTest extends AbstractTest {
         String createQuery = "CREATE TABLE " + tableName + " (" + "[Id] [int] IDENTITY(1,1) NOT NULL,"
                 + "[CompanyName] [nvarchar](40) NOT NULL," + "[ContactName] [nvarchar](50) NULL,"
                 + "[ContactTitle] [nvarchar](40) NULL," + "[City] [nvarchar](40) NULL,"
-                + "[CountryName] [nvarchar](40) NULL," + "[Phone] [nvarchar](30) MASKED WITH (FUNCTION = 'default()') NULL,"
+                + "[CountryName] [nvarchar](40) NULL,"
+                + "[Phone] [nvarchar](30) MASKED WITH (FUNCTION = 'default()') NULL,"
                 + "[Fax] [nvarchar](30) MASKED WITH (FUNCTION = 'default()') NULL)";
         stmt.execute(createQuery);
 

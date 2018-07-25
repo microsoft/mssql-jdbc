@@ -9,7 +9,7 @@ import java.sql.SQLException;
 
 
 /**
- * This interface is implemented by {@link SQLServerConnection43} class.
+ * Provides an interface to the {@link SQLServerConnection43} class.
  */
 public interface ISQLServerConnection43 extends ISQLServerConnection {
 

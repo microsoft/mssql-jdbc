@@ -10,7 +10,7 @@ import java.sql.SQLException;
 abstract class SQLServerLob {
 
     /**
-     * Function for the result set to maintain blobs it has created
+     * Provides functionality for the result set to maintain blobs it has created.
      * 
      * @throws SQLException
      */
