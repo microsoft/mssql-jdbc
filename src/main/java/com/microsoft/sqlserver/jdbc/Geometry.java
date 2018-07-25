@@ -34,11 +34,7 @@ public class Geometry extends SQLServerSpatialDatatype {
         this.wkt = wkt;
         this.srid = srid;
 
-        try {
-            parseWKTForSerialization(this, currentWktPos, -1, false);
-        } catch (StringIndexOutOfBoundsException e) {
-            throwIllegalWKT();
-        }
+        parseWKTForSerialization(this, currentWktPos, -1, false);
 
         serializeToWkb(false, this);
         isNull = false;
