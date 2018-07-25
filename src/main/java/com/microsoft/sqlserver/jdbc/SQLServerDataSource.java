@@ -533,6 +533,7 @@ public class SQLServerDataSource
      * https://msdn.microsoft.com/en-us/library/cc280459.aspx
      * 
      * @param serverSpn
+     *        service principal name
      */
     @Override
     public void setServerSpn(String serverSpn) {

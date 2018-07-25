@@ -3016,7 +3016,18 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
     }
 
     /**
-     * this method is called against jdbc41, but it require jdbc42 to work therefore, we will throw exception.
+     * Returns the temporal object from CSV
+     * This method is called against jdbc41, but it require jdbc42 to work therefore, we will throw exception.
+     * @param valueStrUntrimmed
+     *        valueStrUntrimmed
+     * @param srcJdbcType
+     *        srcJdbcType
+     * @param srcColOrdinal
+     *        srcColOrdinal
+     * @param dateTimeFormatter
+     *        dateTimeFormatter
+     * @return temporal object
+     * @throws SQLServerException if parsing error
      */
     protected Object getTemporalObjectFromCSVWithFormatter(String valueStrUntrimmed, int srcJdbcType, int srcColOrdinal,
             DateTimeFormatter dateTimeFormatter) throws SQLServerException {
