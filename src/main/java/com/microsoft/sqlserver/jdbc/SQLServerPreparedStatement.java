@@ -2453,10 +2453,13 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         // At this point, the next chunk of string is the column name, without starting with [ or ".
         StringBuilder sb = new StringBuilder();
         while (localUserSQL.length() > 0) {
+            if (checkAndRemoveComments(false)) {
+                continue;
+            }
             if (localUserSQL.charAt(0) == ',') {
                 localUserSQL = localUserSQL.substring(1);
                 listOfColumns.add(sb.toString());
-                return parseUserSQLForColumnListDWHelper(listOfColumns);
+                sb.setLength(0);
             } else if (localUserSQL.charAt(0) == ')') {
                 localUserSQL = localUserSQL.substring(1);
                 listOfColumns.add(sb.toString());
@@ -2558,11 +2561,14 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         // At this point, the next chunk of string is the value, without starting with ' (most likely a ?).
         StringBuilder sb = new StringBuilder();
         while (localUserSQL.length() > 0) {
+            if (checkAndRemoveComments(false)) {
+                continue;
+            }
             if (localUserSQL.charAt(0) == ',' || localUserSQL.charAt(0) == ')') {
                 if (localUserSQL.charAt(0) == ',') {
                     localUserSQL = localUserSQL.substring(1);
                     listOfValues.add(sb.toString());
-                    return parseUserSQLForValueListDWHelper(listOfValues);
+                    sb.setLength(0);
                 } else {
                     localUserSQL = localUserSQL.substring(1);
                     listOfValues.add(sb.toString());
