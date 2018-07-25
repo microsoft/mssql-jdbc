@@ -50,9 +50,8 @@ import org.xml.sax.XMLReader;
 
 
 /**
- * SQLServerSQLXML represents an XML object and implements a java.sql.SQLXML.
+ * Represents an XML object and implements a java.sql.SQLXML.
  */
-
 final class SQLServerSQLXML implements java.sql.SQLXML {
     // Connection that created this SQLXML only set when created for setting data
     private final SQLServerConnection con;
@@ -82,7 +81,11 @@ final class SQLServerSQLXML implements java.sql.SQLXML {
         return traceID;
     }
 
-    // Returns unique id for each instance.
+    /**
+     * Returns unique id for each instance.
+     * 
+     * @return
+     */
     private static int nextInstanceID() {
         return baseID.incrementAndGet();
     }
@@ -203,7 +206,7 @@ final class SQLServerSQLXML implements java.sql.SQLXML {
     }
 
     /**
-     * Return an input stream to read data from this SQLXML
+     * Returns an input stream to read data from this SQLXML.
      * 
      * @throws SQLException
      *         when an error occurs
@@ -218,8 +221,8 @@ final class SQLServerSQLXML implements java.sql.SQLXML {
     }
 
     /**
-     * Retrieves a stream that can be used to write to the SQLXML value that this SQLXML object represents The user has
-     * to write the BOM for binary streams.
+     * Sets a stream that can be used to write to the SQLXML value that this SQLXML object represents The user has to
+     * write the BOM for binary streams.
      * 
      * @throws SQLException
      *         when an error occurs
@@ -488,8 +491,9 @@ final class SQLServerSQLXML implements java.sql.SQLXML {
 }
 
 
-// We use this class to convert the byte information we have in the string to
-// an inputstream which is used when sending to the info to the server
+/**
+ * Converts the byte information in the string to an inputstream which is used when sending to the info to the server.
+ */
 final class ByteArrayOutputStreamToInputStream extends ByteArrayOutputStream {
     ByteArrayInputStream getInputStream() throws SQLServerException {
         ByteArrayInputStream is = new ByteArrayInputStream(buf, 0, count);
@@ -498,7 +502,10 @@ final class ByteArrayOutputStreamToInputStream extends ByteArrayOutputStream {
 }
 
 
-// Resolves External entities in an XML with inline DTDs to empty string
+/**
+ * Resolves External entities in an XML with inline DTDs to empty string.
+ *
+ */
 final class SQLServerEntityResolver implements EntityResolver {
     public InputSource resolveEntity(String publicId, String systemId) {
         return new InputSource(new StringReader(""));

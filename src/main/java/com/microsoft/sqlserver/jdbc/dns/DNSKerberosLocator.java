@@ -10,12 +10,15 @@ import javax.naming.NameNotFoundException;
 import javax.naming.NamingException;
 
 
+/**
+ * Represents a DNS Kerberos Locator
+ */
 public final class DNSKerberosLocator {
 
     private DNSKerberosLocator() {}
 
     /**
-     * Tells whether a realm is valid.
+     * Returns whether a realm is valid.
      *
      * @param realmName
      *        the realm to test

@@ -9,7 +9,7 @@ import java.util.ListResourceBundle;
 
 
 /**
- * A simple resource bundle containing the strings for localizing.
+ * Represents a simple resource bundle containing the strings for localizing.
  *
  */
 public final class SQLServerResource extends ListResourceBundle {

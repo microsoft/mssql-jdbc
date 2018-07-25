@@ -9,22 +9,22 @@ import java.time.format.DateTimeFormatter;
 
 
 /**
- * The ISQLServerBulkRecord interface can be used to create classes that read in data from any source (such as a file)
- * and allow a SQLServerBulkCopy class to write the data to SQL Server tables.
+ * Provides an interface used to create classes that read in data from any source (such as a file) and allows a
+ * SQLServerBulkCopy class to write the data to SQL Server tables.
  * 
  * This interface is implemented by {@link SQLServerBulkCommon} Class
  */
 public interface ISQLServerBulkRecord {
 
     /**
-     * Get the ordinals for each of the columns represented in this data record.
+     * Returns the ordinals for each of the columns represented in this data record.
      * 
      * @return Set of ordinals for the columns.
      */
     public java.util.Set<Integer> getColumnOrdinals();
 
     /**
-     * Get the name of the given column.
+     * Returns the name of the given column.
      * 
      * @param column
      *        Column ordinal
@@ -33,7 +33,7 @@ public interface ISQLServerBulkRecord {
     public String getColumnName(int column);
 
     /**
-     * Get the JDBC data type of the given column.
+     * Returns the JDBC data type of the given column.
      * 
      * @param column
      *        Column ordinal
@@ -42,7 +42,7 @@ public interface ISQLServerBulkRecord {
     public int getColumnType(int column);
 
     /**
-     * Get the precision for the given column.
+     * Returns the precision for the given column.
      * 
      * @param column
      *        Column ordinal
@@ -51,7 +51,7 @@ public interface ISQLServerBulkRecord {
     public int getPrecision(int column);
 
     /**
-     * Get the scale for the given column.
+     * Returns the scale for the given column.
      * 
      * @param column
      *        Column ordinal
@@ -60,7 +60,7 @@ public interface ISQLServerBulkRecord {
     public int getScale(int column);
 
     /**
-     * Indicates whether the column represents an identity column.
+     * Returns whether the column represents an identity column.
      * 
      * @param column
      *        Column ordinal
@@ -69,7 +69,7 @@ public interface ISQLServerBulkRecord {
     public boolean isAutoIncrement(int column);
 
     /**
-     * Gets the data for the current row as an array of Objects.
+     * Returns the data for the current row as an array of Objects.
      * 
      * Each Object must match the Java language Type that is used to represent the indicated JDBC data type for the
      * given column. For more information, see 'Understanding the JDBC Driver Data Types' for the appropriate mappings.
@@ -130,7 +130,7 @@ public interface ISQLServerBulkRecord {
             int scale) throws SQLServerException;
 
     /**
-     * Set the format for reading in dates from the file.
+     * Sets the format for reading in dates from the file.
      * 
      * @param dateTimeFormat
      *        format to parse data sent as java.sql.Types.TIMESTAMP_WITH_TIMEZONE
@@ -138,7 +138,7 @@ public interface ISQLServerBulkRecord {
     public void setTimestampWithTimezoneFormat(String dateTimeFormat);
 
     /**
-     * Set the format for reading in dates from the file.
+     * Sets the format for reading in dates from the file.
      * 
      * @param dateTimeFormatter
      *        format to parse data sent as java.sql.Types.TIMESTAMP_WITH_TIMEZONE
@@ -146,7 +146,7 @@ public interface ISQLServerBulkRecord {
     public void setTimestampWithTimezoneFormat(DateTimeFormatter dateTimeFormatter);
 
     /**
-     * Set the format for reading in dates from the file.
+     * Sets the format for reading in dates from the file.
      * 
      * @param timeFormat
      *        format to parse data sent as java.sql.Types.TIME_WITH_TIMEZONE
@@ -154,7 +154,7 @@ public interface ISQLServerBulkRecord {
     public void setTimeWithTimezoneFormat(String timeFormat);
 
     /**
-     * Set the format for reading in dates from the file.
+     * Sets the format for reading in dates from the file.
      * 
      * @param dateTimeFormatter
      *        format to parse data sent as java.sql.Types.TIME_WITH_TIMEZONE
@@ -162,7 +162,7 @@ public interface ISQLServerBulkRecord {
     public void setTimeWithTimezoneFormat(DateTimeFormatter dateTimeFormatter);
 
     /**
-     * Retreives <code>dateTimeFormatter</code> for the given column
+     * Returns the <code>dateTimeFormatter</code> for the given column.
      * 
      * @param column
      *        Column ordinal

@@ -9,7 +9,7 @@ import java.text.MessageFormat;
 
 
 /**
- * A collection of settings that control how an instance of SQLServerBulkCopy behaves. Used when constructing a
+ * Provides a collection of settings that control how an instance of SQLServerBulkCopy behaves. Used when constructing a
  * SQLServerBulkCopy instance to change how the writeToServer methods for that instance behave.
  */
 public class SQLServerBulkCopyOptions {
@@ -37,7 +37,7 @@ public class SQLServerBulkCopyOptions {
     private int bulkCopyTimeout;
 
     /**
-     * Check constraints while data is being inserted.
+     * Checks constraints while data is being inserted.
      * 
      * Default: false - constraints are not checked
      */
@@ -81,7 +81,7 @@ public class SQLServerBulkCopyOptions {
     private boolean allowEncryptedValueModifications;
 
     /**
-     * Initializes an instance of the SQLServerBulkCopySettings class using defaults for all of the settings.
+     * Constructs a SQLServerBulkCopySettings class using defaults for all of the settings.
      */
     public SQLServerBulkCopyOptions() {
         batchSize = 0;
@@ -96,7 +96,7 @@ public class SQLServerBulkCopyOptions {
     }
 
     /**
-     * Gets the number of rows in each batch. At the end of each batch, the rows in the batch are sent to the server.
+     * Returns the number of rows in each batch. At the end of each batch, the rows in the batch are sent to the server.
      * 
      * @return Number of rows in each batch.
      */
@@ -123,7 +123,7 @@ public class SQLServerBulkCopyOptions {
     }
 
     /**
-     * Gets the number of seconds for the operation to complete before it times out.
+     * Returns the number of seconds for the operation to complete before it times out.
      * 
      * @return Number of seconds before operation times out.
      */
@@ -150,7 +150,7 @@ public class SQLServerBulkCopyOptions {
     }
 
     /**
-     * Indicates whether or not to preserve any source identity values.
+     * Returns whether or not to preserve any source identity values.
      * 
      * @return True if source identity values are to be preserved; false if they are to be assigned by the destination.
      */
@@ -169,7 +169,7 @@ public class SQLServerBulkCopyOptions {
     }
 
     /**
-     * Indicates whether to preserve null values in the destination table regardless of the settings for default values,
+     * Returns whether to preserve null values in the destination table regardless of the settings for default values,
      * or if they should be replaced by default values (where applicable).
      * 
      * @return True if null values should be preserved; false if null values should be replaced by default values where
@@ -192,7 +192,7 @@ public class SQLServerBulkCopyOptions {
     }
 
     /**
-     * Indicates whether SQLServerBulkCopy should obtain a bulk update lock for the duration of the bulk copy operation.
+     * Returns whether SQLServerBulkCopy should obtain a bulk update lock for the duration of the bulk copy operation.
      * 
      * @return True to obtain row locks; false otherwise.
      */
@@ -211,7 +211,7 @@ public class SQLServerBulkCopyOptions {
     }
 
     /**
-     * Indicates whether each batch of the bulk-copy operation will occur within a transaction or not.
+     * Returns whether each batch of the bulk-copy operation will occur within a transaction or not.
      * 
      * @return True if the batch will occur within a transaction; false otherwise.
      */
@@ -230,7 +230,7 @@ public class SQLServerBulkCopyOptions {
     }
 
     /**
-     * Indicates whether constraints are to be checked while data is being inserted or not.
+     * Returns whether constraints are to be checked while data is being inserted or not.
      * 
      * @return True if constraints are to be checked; false otherwise.
      */
@@ -249,7 +249,7 @@ public class SQLServerBulkCopyOptions {
     }
 
     /**
-     * Indicates if the server should fire insert triggers for rows being inserted into the database.
+     * Returns if the server should fire insert triggers for rows being inserted into the database.
      * 
      * @return True triggers are enabled; false otherwise.
      */
@@ -268,7 +268,7 @@ public class SQLServerBulkCopyOptions {
     }
 
     /**
-     * Indicates if allowEncryptedValueModifications option is enabled or not
+     * Returns if allowEncryptedValueModifications option is enabled or not
      * 
      * @return True if allowEncryptedValueModification is set to true; false otherwise.
      */

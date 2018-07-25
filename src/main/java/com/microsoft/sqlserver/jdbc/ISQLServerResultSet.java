@@ -13,7 +13,7 @@ import com.microsoft.sqlserver.jdbc.dataclassification.SensitivityClassification
 
 
 /**
- * This interface is implemented by {@link SQLServerResultSet} class.
+ * Provides an interface to the {@link SQLServerResultSet} class.
  */
 public interface ISQLServerResultSet extends java.sql.ResultSet {
 
@@ -29,7 +29,7 @@ public interface ISQLServerResultSet extends java.sql.ResultSet {
     public static final int CONCUR_SS_OPTIMISTIC_CCVAL = 1010; // CONCUR_UPDATABLE + 2
 
     /**
-     * Retrieves the value of the designated column in the current row of this ResultSet object as a
+     * Returns the value of the designated column in the current row of this ResultSet object as a
      * com.microsoft.sqlserver.jdbc.Geometry object in the Java programming language.
      * 
      * @param columnIndex
@@ -41,7 +41,7 @@ public interface ISQLServerResultSet extends java.sql.ResultSet {
     public Geometry getGeometry(int columnIndex) throws SQLServerException;
 
     /**
-     * Retrieves the value of the designated column in the current row of this ResultSet object as a
+     * Returns the value of the designated column in the current row of this ResultSet object as a
      * com.microsoft.sqlserver.jdbc.Geometry object in the Java programming language.
      * 
      * @param columnName
@@ -53,7 +53,7 @@ public interface ISQLServerResultSet extends java.sql.ResultSet {
     public Geometry getGeometry(String columnName) throws SQLServerException;
 
     /**
-     * Retrieves the value of the designated column in the current row of this ResultSet object as a
+     * Returns the value of the designated column in the current row of this ResultSet object as a
      * com.microsoft.sqlserver.jdbc.Geography object in the Java programming language.
      * 
      * @param columnIndex
@@ -65,7 +65,7 @@ public interface ISQLServerResultSet extends java.sql.ResultSet {
     public Geography getGeography(int columnIndex) throws SQLServerException;
 
     /**
-     * Retrieves the value of the designated column in the current row of this ResultSet object as a
+     * Returns the value of the designated column in the current row of this ResultSet object as a
      * com.microsoft.sqlserver.jdbc.Geography object in the Java programming language.
      * 
      * @param columnName
@@ -77,8 +77,8 @@ public interface ISQLServerResultSet extends java.sql.ResultSet {
     public Geography getGeography(String columnName) throws SQLServerException;
 
     /**
-     * Retrieves the value of the designated column in the current row of this ResultSet object as a String object in
-     * the Java programming language.
+     * Returns the value of the designated column in the current row of this ResultSet object as a String object in the
+     * Java programming language.
      * 
      * @param columnIndex
      *        the first column is 1, the second is 2, ...
@@ -89,8 +89,8 @@ public interface ISQLServerResultSet extends java.sql.ResultSet {
     public String getUniqueIdentifier(int columnIndex) throws SQLServerException;
 
     /**
-     * Retrieves the value of the designated column in the current row of this ResultSet object as a String object in
-     * the Java programming language.
+     * Returns the value of the designated column in the current row of this ResultSet object as a String object in the
+     * Java programming language.
      * 
      * @param columnLabel
      *        the name of the column
@@ -101,7 +101,7 @@ public interface ISQLServerResultSet extends java.sql.ResultSet {
     public String getUniqueIdentifier(String columnLabel) throws SQLServerException;
 
     /**
-     * Retrieves the value of the designated column in the current row of this ResultSet object as a java.sql.Timestamp
+     * Returns the value of the designated column in the current row of this ResultSet object as a java.sql.Timestamp
      * object in the Java programming language.
      * 
      * @param columnIndex
@@ -113,7 +113,7 @@ public interface ISQLServerResultSet extends java.sql.ResultSet {
     public java.sql.Timestamp getDateTime(int columnIndex) throws SQLServerException;
 
     /**
-     * Retrieves the value of the designated column in the current row of this ResultSet object as a java.sql.Timestamp
+     * Returns the value of the designated column in the current row of this ResultSet object as a java.sql.Timestamp
      * object in the Java programming language.
      * 
      * @param columnName
@@ -125,7 +125,7 @@ public interface ISQLServerResultSet extends java.sql.ResultSet {
     public java.sql.Timestamp getDateTime(String columnName) throws SQLServerException;
 
     /**
-     * Retrieves the value of the designated column in the current row of this ResultSet object as a java.sql.Timestamp
+     * Returns the value of the designated column in the current row of this ResultSet object as a java.sql.Timestamp
      * object in the Java programming language. This method uses the given calendar to construct an appropriate
      * millisecond value for the timestamp if the underlying database does not store timezone information.
      * 
@@ -140,7 +140,7 @@ public interface ISQLServerResultSet extends java.sql.ResultSet {
     public java.sql.Timestamp getDateTime(int columnIndex, Calendar cal) throws SQLServerException;
 
     /**
-     * Retrieves the value of the designated column in the current row of this ResultSet object as a java.sql.Timestamp
+     * Returns the value of the designated column in the current row of this ResultSet object as a java.sql.Timestamp
      * object in the Java programming language. This method uses the given calendar to construct an appropriate
      * millisecond value for the timestamp if the underlying database does not store timezone information.
      * 
@@ -156,7 +156,7 @@ public interface ISQLServerResultSet extends java.sql.ResultSet {
     public java.sql.Timestamp getDateTime(String colName, Calendar cal) throws SQLServerException;
 
     /**
-     * Retrieves the value of the designated column in the current row of this ResultSet object as a java.sql.Timestamp
+     * Returns the value of the designated column in the current row of this ResultSet object as a java.sql.Timestamp
      * object in the Java programming language.
      * 
      * @param columnIndex
@@ -168,7 +168,7 @@ public interface ISQLServerResultSet extends java.sql.ResultSet {
     public java.sql.Timestamp getSmallDateTime(int columnIndex) throws SQLServerException;
 
     /**
-     * Retrieves the value of the designated column in the current row of this ResultSet object as a java.sql.Timestamp
+     * Returns the value of the designated column in the current row of this ResultSet object as a java.sql.Timestamp
      * object in the Java programming language.
      * 
      * @param columnName
@@ -180,7 +180,7 @@ public interface ISQLServerResultSet extends java.sql.ResultSet {
     public java.sql.Timestamp getSmallDateTime(String columnName) throws SQLServerException;
 
     /**
-     * Retrieves the value of the designated column in the current row of this ResultSet object as a java.sql.Timestamp
+     * Returns the value of the designated column in the current row of this ResultSet object as a java.sql.Timestamp
      * object in the Java programming language.
      * 
      * @param columnIndex
@@ -194,6 +194,8 @@ public interface ISQLServerResultSet extends java.sql.ResultSet {
     public java.sql.Timestamp getSmallDateTime(int columnIndex, Calendar cal) throws SQLServerException;
 
     /**
+     * Returns the value of the designated column in the current row of this ResultSet object as a java.sql.Timestamp
+     * object in the Java programming language.
      * 
      * @param colName
      *        The name of a column
@@ -206,7 +208,7 @@ public interface ISQLServerResultSet extends java.sql.ResultSet {
     public java.sql.Timestamp getSmallDateTime(String colName, Calendar cal) throws SQLServerException;
 
     /**
-     * Retrieves the value of the designated column as a microsoft.sql.DateTimeOffset object, given a zero-based column
+     * Returns the value of the designated column as a microsoft.sql.DateTimeOffset object, given a zero-based column
      * ordinal.
      * 
      * @param columnIndex
@@ -218,7 +220,7 @@ public interface ISQLServerResultSet extends java.sql.ResultSet {
     public microsoft.sql.DateTimeOffset getDateTimeOffset(int columnIndex) throws SQLServerException;
 
     /**
-     * Retrieves the value of the column specified as a microsoft.sql.DateTimeOffset object, given a column name.
+     * Returns the value of the column specified as a microsoft.sql.DateTimeOffset object, given a column name.
      * 
      * @param columnName
      *        The name of a column.
@@ -229,7 +231,7 @@ public interface ISQLServerResultSet extends java.sql.ResultSet {
     public microsoft.sql.DateTimeOffset getDateTimeOffset(String columnName) throws SQLServerException;
 
     /**
-     * Retrieves the value of the column specified as a java.math.BigDecimal object.
+     * Returns the value of the column specified as a java.math.BigDecimal object.
      * 
      * @param columnIndex
      *        The zero-based ordinal of a column.
@@ -240,7 +242,7 @@ public interface ISQLServerResultSet extends java.sql.ResultSet {
     public BigDecimal getMoney(int columnIndex) throws SQLServerException;
 
     /**
-     * Retrieves the value of the column specified as a java.math.BigDecimal object.
+     * Returns the value of the column specified as a java.math.BigDecimal object.
      * 
      * @param columnName
      *        is the name of a column.
@@ -251,7 +253,7 @@ public interface ISQLServerResultSet extends java.sql.ResultSet {
     public BigDecimal getMoney(String columnName) throws SQLServerException;
 
     /**
-     * Retrieves the value of the column specified as a java.math.BigDecimal object.
+     * Returns the value of the column specified as a java.math.BigDecimal object.
      * 
      * @param columnIndex
      *        The zero-based ordinal of a column.
@@ -262,7 +264,7 @@ public interface ISQLServerResultSet extends java.sql.ResultSet {
     public BigDecimal getSmallMoney(int columnIndex) throws SQLServerException;
 
     /**
-     * Retrieves the value of the column specified as a java.math.BigDecimal object.
+     * Returns the value of the column specified as a java.math.BigDecimal object.
      * 
      * @param columnName
      *        is the name of a column.
@@ -353,7 +355,7 @@ public interface ISQLServerResultSet extends java.sql.ResultSet {
      * must contain the number of bytes specified by scaleOrLength. If the second argument is a Reader then the reader
      * must contain the number of characters specified by scaleOrLength. If these conditions are not true the driver
      * will generate a SQLServerException when the statement is executed. The default implementation will throw
-     * SQLFeatureNotSupportedException
+     * SQLFeatureNotSupportedException.
      * 
      * @param columnName
      *        the label for the column specified with the SQL AS clause. If the SQL AS clause was not specified, then
@@ -1563,8 +1565,8 @@ public interface ISQLServerResultSet extends java.sql.ResultSet {
             boolean forceEncrypt) throws SQLServerException;
 
     /**
-     * Exposes Data Classification information for the current ResultSet For SQL Servers that do not support Data
-     * Classification or results that do not fetch any classified columns, this data can be null
+     * Returns the Data Classification information for the current ResultSet For SQL Servers that do not support Data
+     * Classification or results that do not fetch any classified columns, this data can be null.
      * 
      * @return SensitivityClassification
      */

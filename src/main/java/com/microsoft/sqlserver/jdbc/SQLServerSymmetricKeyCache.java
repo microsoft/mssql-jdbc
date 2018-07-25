@@ -79,7 +79,7 @@ final class SQLServerSymmetricKeyCache {
     }
 
     /**
-     * Retrieves key
+     * Returns key
      * 
      * @param keyInfo
      *        contains encryption meta data information

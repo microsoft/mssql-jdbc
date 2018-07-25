@@ -9,26 +9,26 @@ import java.sql.Savepoint;
 
 
 /**
- * This interface is implemented by {@link SQLServerSavepoint} class.
+ * Provides an interface to the {@link SQLServerSavepoint} class.
  */
 public interface ISQLServerSavepoint extends Savepoint {
 
     /**
-     * Get the savepoint name
+     * Returns the savepoint name
      * 
      * @return the name of savepoint
      */
     public String getSavepointName() throws SQLServerException;
 
     /**
-     * Get the savepoint label
+     * Returns the savepoint label
      * 
      * @return the label for Savepoint
      */
     public String getLabel();
 
     /**
-     * Checks if the savepoint label is null
+     * Returns if the savepoint label is null
      * 
      * @return true is the savepoint is named. Otherwise, false.
      */

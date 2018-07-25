@@ -17,7 +17,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 
 /**
- * SQLServerConnectionPoolProxy is a wrapper around SQLServerConnection object. When returning a connection object from
+ * Provides a wrapper around SQLServerConnection object. When returning a connection object from
  * PooledConnection.getConnection we return this proxy per SPEC.
  * <p>
  * This class's public functions need to be kept identical to the SQLServerConnection's.
@@ -25,7 +25,6 @@ import java.util.concurrent.atomic.AtomicInteger;
  * The API javadoc for JDBC API methods that this class implements are not repeated here. Please see Sun's JDBC API
  * interfaces javadoc for those details.
  */
-
 class SQLServerConnectionPoolProxy implements ISQLServerConnection, java.io.Serializable {
     /**
      * Always refresh SerialVersionUID when prompted
@@ -39,12 +38,13 @@ class SQLServerConnectionPoolProxy implements ISQLServerConnection, java.io.Seri
                                                                                 // dispenser
     final private String traceID;
 
-    // Permission targets
-    // currently only callAbort is implemented
+    /**
+     * Permission targets currently only callAbort is implemented
+     */
     private static final String callAbortPerm = "callAbort";
 
     /**
-     * Generate the next unique connection id.
+     * Generates the next unique connection id.
      * 
      * @return the next conn id
      */

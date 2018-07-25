@@ -6,7 +6,7 @@
 package com.microsoft.sqlserver.jdbc;
 
 /**
- * Utility class for Strings.
+ * Provides a utility class for Strings.
  * 
  * @since 6.1.2
  */
@@ -25,7 +25,7 @@ public class StringUtils {
     }
 
     /**
-     * Checks if String is null
+     * Returns if String is null
      * 
      * @param charSequence
      *        {@link CharSequence} Can provide null
@@ -37,7 +37,7 @@ public class StringUtils {
     }
 
     /**
-     * Check if String is numeric or not.
+     * Returns if String is numeric or not.
      * 
      * @param str
      *        {@link String}
@@ -48,7 +48,7 @@ public class StringUtils {
     }
 
     /**
-     * Check if string is integer or not
+     * Returns if string is integer or not
      * 
      * @param str
      *        {@link String}

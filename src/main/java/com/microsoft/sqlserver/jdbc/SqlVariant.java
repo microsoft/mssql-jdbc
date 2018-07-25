@@ -8,11 +8,6 @@ import java.text.MessageFormat;
 
 
 /**
- * This class holds information regarding the basetype of a sql_variant data.
- *
- */
-
-/**
  * Enum for valid probBytes for different TDSTypes
  *
  */
@@ -70,6 +65,10 @@ enum sqlVariantProbBytes {
 }
 
 
+/**
+ * Holds information regarding the basetype of a sql_variant data.
+ *
+ */
 public class SqlVariant {
 
     private int baseType;
@@ -82,14 +81,14 @@ public class SqlVariant {
     private JDBCType baseJDBCType;
 
     /**
-     * Constructor for sqlVariant
+     * Constructs a SqlVariant.
      */
     SqlVariant(int baseType) {
         this.baseType = baseType;
     }
 
     /**
-     * Check if the basetype for variant is of time value
+     * Returns if the basetype for variant is of time value.
      * 
      * @return
      */
@@ -102,7 +101,7 @@ public class SqlVariant {
     }
 
     /**
-     * store the base type for sql-variant
+     * Sets the base type for sql-variant.
      * 
      * @param baseType
      */
@@ -111,7 +110,7 @@ public class SqlVariant {
     }
 
     /**
-     * retrieves the base type for sql-variant
+     * Returns the base type for sql-variant.
      * 
      * @return
      */
@@ -120,7 +119,7 @@ public class SqlVariant {
     }
 
     /**
-     * Store the basetype as jdbc type
+     * Stores the basetype as JDBC type.
      * 
      * @param baseJDBCType
      */
@@ -129,7 +128,7 @@ public class SqlVariant {
     }
 
     /**
-     * retrieves the base type as jdbc type
+     * Returns the base type as JDBC type.
      * 
      * @return
      */
@@ -138,7 +137,7 @@ public class SqlVariant {
     }
 
     /**
-     * stores the scale if applicable
+     * Sets the scale if applicable.
      * 
      * @param scale
      */
@@ -147,7 +146,7 @@ public class SqlVariant {
     }
 
     /**
-     * retrieves the scale
+     * Returns the scale.
      * 
      * @return
      */
@@ -156,7 +155,7 @@ public class SqlVariant {
     }
 
     /**
-     * stores the precision if applicable
+     * Sets the precision if applicable.
      * 
      * @param precision
      */
@@ -165,7 +164,7 @@ public class SqlVariant {
     }
 
     /**
-     * retrieves the precision
+     * Returns the precision.
      * 
      * @return
      */
@@ -174,7 +173,7 @@ public class SqlVariant {
     }
 
     /**
-     * stores the collation if applicable
+     * Sets the collation if applicable.
      * 
      * @param collation
      */
@@ -183,7 +182,7 @@ public class SqlVariant {
     }
 
     /**
-     * Retrieves the collation
+     * Returns the collation.
      * 
      * @return
      */
@@ -192,7 +191,7 @@ public class SqlVariant {
     }
 
     /**
-     * stores the maximum length
+     * Sets the maximum length.
      * 
      * @param maxLength
      */
@@ -201,7 +200,7 @@ public class SqlVariant {
     }
 
     /**
-     * retrieves the maximum length
+     * Returns the maximum length.
      * 
      * @return
      */

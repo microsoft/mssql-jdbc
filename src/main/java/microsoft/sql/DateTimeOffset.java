@@ -11,7 +11,7 @@ import java.util.TimeZone;
 
 
 /**
- * A Java class for accessing values of the SQL Server DATETIMEOFFSET data type.
+ * Represents the SQL Server DATETIMEOFFSET data type.
  *
  * The DateTimeOffset class represents a java.sql.Timestamp, including fractional seconds, plus an integer representing
  * the number of minutes offset from GMT.
@@ -31,7 +31,7 @@ public final class DateTimeOffset implements java.io.Serializable, java.lang.Com
     private static final int HUNDRED_NANOS_PER_SECOND = 10000000;
 
     /**
-     * Constructs a DateTimeOffset instance.
+     * Constructs a DateTimeOffset.
      *
      * This method does not check that its arguments represent a timestamp value that falls within the range of values
      * acceptable to SQL Server for the DATETIMEOFFSET data type. That is, it is possible to create a DateTimeOffset
@@ -202,7 +202,7 @@ public final class DateTimeOffset implements java.io.Serializable, java.lang.Com
     }
 
     /**
-     * Gets this DateTimeOffset object's timestamp value.
+     * Returns this DateTimeOffset object's timestamp value.
      * <p>
      * The returned value represents an instant in time as the number of milliseconds since January 1, 1970, 00:00:00
      * GMT.
@@ -216,7 +216,7 @@ public final class DateTimeOffset implements java.io.Serializable, java.lang.Com
     }
 
     /**
-     * Gets this DateTimeOffset object's offset value.
+     * Returns this DateTimeOffset object's offset value.
      *
      * @return this DateTimeOffset object's minutes offset from GMT
      */

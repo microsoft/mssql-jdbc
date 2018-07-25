@@ -5,7 +5,10 @@
 
 package com.microsoft.sqlserver.jdbc;
 
-enum InternalSpatialDatatype {
+/**
+ * Specifies the spatial data types values
+ */
+public enum InternalSpatialDatatype {
     POINT((byte) 1, "POINT"),
     LINESTRING((byte) 2, "LINESTRING"),
     POLYGON((byte) 3, "POLYGON"),

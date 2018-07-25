@@ -50,7 +50,7 @@ import microsoft.sql.DateTimeOffset;
 
 
 /**
- * Lets you efficiently bulk load a SQL Server table with data from another source. <br>
+ * Provides functionality to efficiently bulk load a SQL Server table with data from another source. <br>
  * <br>
  * Microsoft SQL Server includes a popular command-prompt utility named bcp for moving data from one table to another,
  * whether on a single server or between servers. The SQLServerBulkCopy class lets you write code solutions in Java that
@@ -62,12 +62,12 @@ import microsoft.sql.DateTimeOffset;
  */
 public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Serializable {
     /**
-     * 
+     * Update serialVersionUID when making changes to this file
      */
     private static final long serialVersionUID = 1989903904654306244L;
 
-    /*
-     * Class to represent the column mappings between the source and destination table
+    /**
+     * Represents the column mappings between the source and destination table
      */
     private class ColumnMapping {
         String sourceColumnName = null;
@@ -96,72 +96,76 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
         }
     }
 
-    /*
+    /**
      * Class name for logging.
      */
     private static final String loggerClassName = "com.microsoft.sqlserver.jdbc.SQLServerBulkCopy";
 
     private static final int SQL_SERVER_2016_VERSION = 13;
 
-    /*
+    /**
      * Logger
      */
     private static final java.util.logging.Logger loggerExternal = java.util.logging.Logger.getLogger(loggerClassName);
 
-    /*
+    /**
      * Destination server connection.
      */
     private SQLServerConnection connection;
 
-    /*
+    /**
      * Options to control how the WriteToServer methods behave.
      */
     private SQLServerBulkCopyOptions copyOptions;
 
-    /*
+    /**
      * Mappings between columns in the data source and columns in the destination
      */
     private List<ColumnMapping> columnMappings;
 
-    /*
+    /**
      * Flag if SQLServerBulkCopy owns the connection and should close it when Close is called
      */
     private boolean ownsConnection;
 
-    /*
+    /**
      * Name of destination table on server. If destinationTable has not been set when WriteToServer is called, an
-     * Exception is thrown. destinationTable is a three-part name (<database>.<owningschema>.<name>). You can qualify
-     * the table name with its database and owning schema if you choose. However, if the table name uses an underscore
-     * ("_") or any other special characters, you must escape the name using surrounding brackets. For more information,
-     * see "Identifiers" in SQL Server Books Online. You can bulk-copy data to a temporary table by using a value such
-     * as tempdb..#table or tempdb.<owner>.#table for the destinationTable property.
+     * Exception is thrown. destinationTable is a three-part name {@code (<database>.<owningschema>.<name>)}. You can
+     * qualify the table name with its database and owning schema if you choose. However, if the table name uses an
+     * underscore ("_") or any other special characters, you must escape the name using surrounding brackets. For more
+     * information, see "Identifiers" in SQL Server Books Online. You can bulk-copy data to a temporary table by using a
+     * value such as {@code tempdb..#table or tempdb.<owner>.#table} for the destinationTable property.
      */
     private String destinationTableName;
 
-    /*
+    /**
      * Source data (from a Record). Is null unless the corresponding version of writeToServer is called.
      */
     private ISQLServerBulkRecord sourceBulkRecord;
 
-    /*
+    /**
      * Source data (from ResultSet). Is null unless the corresponding version of writeToServer is called.
      */
     private ResultSet sourceResultSet;
 
-    /*
+    /**
      * Metadata for the source table columns
      */
     private ResultSetMetaData sourceResultSetMetaData;
 
-    /* The CekTable for the destination table. */
+    /**
+     * The CekTable for the destination table.
+     */
     private CekTable destCekTable = null;
 
-    /* Statement level encryption setting needed for querying against encrypted columns. */
+    /**
+     * Statement level encryption setting needed for querying against encrypted columns.
+     */
     private SQLServerStatementColumnEncryptionSetting stmtColumnEncriptionSetting = SQLServerStatementColumnEncryptionSetting.UseConnectionSetting;
 
     private ResultSet destinationTableMetadata;
 
-    /*
+    /**
      * Metadata for the destination table columns
      */
     class BulkColumnMetaData {
@@ -222,27 +226,27 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
         }
     };
 
-    /*
+    /**
      * A map to store the metadata information for the destination table.
      */
     private Map<Integer, BulkColumnMetaData> destColumnMetadata;
 
-    /*
+    /**
      * A map to store the metadata information for the source table.
      */
     private Map<Integer, BulkColumnMetaData> srcColumnMetadata;
 
-    /*
+    /**
      * Variable to store destination column count.
      */
     private int destColumnCount;
 
-    /*
+    /**
      * Variable to store source column count.
      */
     private int srcColumnCount;
 
-    /*
+    /**
      * Timer for the bulk copy operation. The other timeout timers in the TDS layer only measure the response of the
      * first packet from SQL Server.
      */
@@ -315,8 +319,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
     private static final int sourceBulkRecordTemporalMaxPrecision = 50;
 
     /**
-     * Initializes a new instance of the SQLServerBulkCopy class using the specified open instance of
-     * SQLServerConnection.
+     * Constructs a SQLServerBulkCopy using the specified open instance of SQLServerConnection.
      * 
      * @param connection
      *        Open instance of Connection to destination server. Must be from the Microsoft JDBC driver for SQL Server.
@@ -349,7 +352,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
     }
 
     /**
-     * Initializes and opens a new instance of SQLServerConnection based on the supplied connectionString.
+     * Constructs a SQLServerBulkCopy based on the supplied connectionString.
      * 
      * @param connectionUrl
      *        Connection string for the destination server.
@@ -498,7 +501,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
     }
 
     /**
-     * Gets the name of the destination table on the server.
+     * Returns the name of the destination table on the server.
      * 
      * @return Destination table name.
      */
@@ -527,7 +530,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
     }
 
     /**
-     * Gets the current SQLServerBulkCopyOptions.
+     * Returns the current SQLServerBulkCopyOptions.
      * 
      * @return Current SQLServerBulkCopyOptions settings.
      */
@@ -664,7 +667,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
         loggerExternal.exiting(loggerClassName, "writeToServer");
     }
 
-    /*
+    /**
      * Initializes the defaults for member variables that require it.
      */
     private void initializeDefaults() {
@@ -730,7 +733,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
         connection.executeCommand(new InsertBulk());
     }
 
-    /*
+    /**
      * write ColumnData token in COLMETADATA header
      */
     private void writeColumnMetaDataColumnData(TDSWriter tdsWriter, int idx) throws SQLServerException {
@@ -751,13 +754,13 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
         userType[3] = (byte) 0x00;
         tdsWriter.writeBytes(userType);
 
-        /*
+        /**
          * Flags token - Bit flags in least significant bit order https://msdn.microsoft.com/en-us/library/dd357363.aspx
          * flags[0] = (byte) 0x05; flags[1] = (byte) 0x00;
          */
         int destColumnIndex = columnMappings.get(idx).destinationColumnOrdinal;
 
-        /*
+        /**
          * TYPE_INFO FIXEDLENTYPE Example INT: tdsWriter.writeByte((byte) 0x38);
          */
         srcColumnIndex = columnMappings.get(idx).sourceColumnOrdinal;
@@ -1120,7 +1123,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
         }
     }
 
-    /*
+    /**
      * Writes the CEK table needed for AE. Cek table (with 0 entries) will be present if AE was enabled and server
      * supports it! OR if encryption was disabled in connection options
      */
@@ -1148,7 +1151,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
         }
     }
 
-    /*
+    /**
      * <COLMETADATA> ... </COLMETADATA>
      */
     private void writeColumnMetaData(TDSWriter tdsWriter) throws SQLServerException {
@@ -1182,7 +1185,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
         }
     }
 
-    /*
+    /**
      * Helper method that throws a timeout exception if the cause of the exception was that the query was cancelled
      */
     private void checkForTimeoutException(SQLException e, BulkTimeoutTimer timeoutTimer) throws SQLServerException {
@@ -1198,7 +1201,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
         }
     }
 
-    /*
+    /**
      * Validates whether the source JDBC types are compatible with the destination table data types. We need to do this
      * only once for the whole bulk copy session.
      */
@@ -1625,7 +1628,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
         tdsWriter.writeInt(0);
     }
 
-    /*
+    /**
      * Helper method to throw a SQLServerExeption with the invalidArgument message and given argument.
      */
     private void throwInvalidArgument(String argument) throws SQLServerException {
@@ -1634,7 +1637,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
         SQLServerException.makeFromDriverError(null, null, form.format(msgArgs), null, false);
     }
 
-    /*
+    /**
      * Helper method to throw a SQLServerExeption with the errorConvertingValue message and given arguments.
      */
     private void throwInvalidJavaToJDBC(String javaClassName, int jdbcType) throws SQLServerException {
@@ -1642,7 +1645,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
         throw new SQLServerException(form.format(new Object[] {javaClassName, jdbcType}), null, 0, null);
     }
 
-    /*
+    /**
      * The bulk copy operation
      */
     private void writeToServer() throws SQLServerException {
@@ -1704,8 +1707,8 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
         }
     }
 
-    /*
-     * Retrieves the column metadata for the destination table (and saves it for later)
+    /**
+     * Returns the column metadata for the destination table (and saves it for later)
      */
     private void getDestinationMetadata() throws SQLServerException {
         if (null == destinationTableName) {
@@ -1770,8 +1773,8 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
         }
     }
 
-    /*
-     * Retrieves the column metadata for the source (and saves it for later). Retrieving source metadata in
+    /**
+     * Returns the column metadata for the source (and saves it for later). Retrieving source metadata in
      * BulkColumnMetaData object helps to access source metadata from the same place for both ResultSet and File.
      */
     private void getSourceMetadata() throws SQLServerException {
@@ -1813,7 +1816,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
         }
     }
 
-    /*
+    /**
      * Oracle 12c database returns precision = 0 for char/varchar data types.
      */
     private int validateSourcePrecision(int srcPrecision, int srcJdbcType, int destPrecision) {
@@ -1823,7 +1826,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
         return srcPrecision;
     }
 
-    /*
+    /**
      * Validates the column mappings
      */
     private void validateColumnMappings() throws SQLServerException {
@@ -2885,7 +2888,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
         }
     }
 
-    /*
+    /**
      * Reads the given column from the result set current row and writes the data to tdsWriter.
      */
     private void writeColumn(TDSWriter tdsWriter, int srcColOrdinal, int destColOrdinal,
@@ -3012,8 +3015,20 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
                 destColOrdinal, isStreaming, colValue);
     }
 
-    // this method is called against jdbc41, but it require jdbc42 to work
-    // therefore, we will throw exception.
+    /**
+     * Returns the temporal object from CSV
+     * This method is called against jdbc41, but it require jdbc42 to work therefore, we will throw exception.
+     * @param valueStrUntrimmed
+     *        valueStrUntrimmed
+     * @param srcJdbcType
+     *        srcJdbcType
+     * @param srcColOrdinal
+     *        srcColOrdinal
+     * @param dateTimeFormatter
+     *        dateTimeFormatter
+     * @return temporal object
+     * @throws SQLServerException if parsing error
+     */
     protected Object getTemporalObjectFromCSVWithFormatter(String valueStrUntrimmed, int srcJdbcType, int srcColOrdinal,
             DateTimeFormatter dateTimeFormatter) throws SQLServerException {
         try {
@@ -3494,7 +3509,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
         }
     }
 
-    /*
+    /**
      * Writes data for a batch of rows to the TDSWriter object. Writes the following part in the BulkLoadBCP stream
      * (https://msdn.microsoft.com/en-us/library/dd340549.aspx) <ROW> ... </ROW>
      */

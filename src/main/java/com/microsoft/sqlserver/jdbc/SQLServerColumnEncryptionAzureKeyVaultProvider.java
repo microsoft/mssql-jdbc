@@ -72,8 +72,8 @@ public class SQLServerColumnEncryptionAzureKeyVaultProvider extends SQLServerCol
     }
 
     /**
-     * Constructor that takes a callback function to authenticate to AAD. This is used by KeyVaultClient at runtime to
-     * authenticate to Azure Key Vault.
+     * Constructs a SQLServerColumnEncryptionAzureKeyVaultProvider with a callback function to authenticate to AAD and
+     * an executor service.. This is used by KeyVaultClient at runtime to authenticate to Azure Key Vault.
      * 
      * This constructor is present to maintain backwards compatibility with 6.0 version of the driver. Deprecated for
      * removal in next stable release.
@@ -94,8 +94,8 @@ public class SQLServerColumnEncryptionAzureKeyVaultProvider extends SQLServerCol
     }
 
     /**
-     * Constructor that takes a callback function to authenticate to AAD. This is used by KeyVaultClient at runtime to
-     * authenticate to Azure Key Vault.
+     * Constructs a SQLServerColumnEncryptionAzureKeyVaultProvider with a callback function to authenticate to AAD. This
+     * is used by KeyVaultClient at runtime to authenticate to Azure Key Vault.
      * 
      * @param authenticationCallback
      *        - Callback function used for authenticating to AAD.
@@ -117,8 +117,8 @@ public class SQLServerColumnEncryptionAzureKeyVaultProvider extends SQLServerCol
     }
 
     /**
-     * Constructor that authenticates to AAD. This is used by KeyVaultClient at runtime to authenticate to Azure Key
-     * Vault.
+     * Constructs a SQLServerColumnEncryptionAzureKeyVaultProvider with a client id and client key to authenticate to
+     * AAD. This is used by KeyVaultClient at runtime to authenticate to Azure Key Vault.
      * 
      * @param clientId
      *        Identifier of the client requesting the token.
@@ -133,8 +133,7 @@ public class SQLServerColumnEncryptionAzureKeyVaultProvider extends SQLServerCol
     }
 
     /**
-     * This function uses the asymmetric key specified by the key path and decrypts an encrypted CEK with RSA encryption
-     * algorithm.
+     * Decryptes an encrypted CEK with RSA encryption algorithm using the asymmetric key specified by the key path
      * 
      * @param masterKeyPath
      *        - Complete path of an asymmetric key in AKV
@@ -270,7 +269,7 @@ public class SQLServerColumnEncryptionAzureKeyVaultProvider extends SQLServerCol
     }
 
     /**
-     * This function uses the asymmetric key specified by the key path and encrypts CEK with RSA encryption algorithm.
+     * Encrypts CEK with RSA encryption algorithm using the asymmetric key specified by the key path.
      * 
      * @param masterKeyPath
      *        - Complete path of an asymmetric key in AKV
@@ -398,7 +397,7 @@ public class SQLServerColumnEncryptionAzureKeyVaultProvider extends SQLServerCol
     }
 
     /**
-     * This function validates that the encryption algorithm is RSA_OAEP and if it is not, then throws an exception
+     * Validates that the encryption algorithm is RSA_OAEP and if it is not, then throws an exception.
      * 
      * @param encryptionAlgorithm
      *        - Asymmetric key encryptio algorithm
@@ -460,7 +459,7 @@ public class SQLServerColumnEncryptionAzureKeyVaultProvider extends SQLServerCol
     }
 
     /**
-     * Encrypt the text using specified Azure Key Vault key.
+     * Encrypts the text using specified Azure Key Vault key.
      * 
      * @param masterKeyPath
      *        - Azure Key Vault key url.
@@ -485,7 +484,7 @@ public class SQLServerColumnEncryptionAzureKeyVaultProvider extends SQLServerCol
     }
 
     /**
-     * Encrypt the text using specified Azure Key Vault key.
+     * Encrypts the text using specified Azure Key Vault key.
      * 
      * @param masterKeyPath
      *        - Azure Key Vault key url.
@@ -554,7 +553,7 @@ public class SQLServerColumnEncryptionAzureKeyVaultProvider extends SQLServerCol
     }
 
     /**
-     * Gets the public Key size in bytes
+     * Returns the public Key size in bytes.
      * 
      * @param masterKeyPath
      *        - Azure Key Vault Key path
