@@ -1977,55 +1977,51 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                 String destinationTableName = tableName;
                 try (SQLServerStatement stmt = (SQLServerStatement) connection.createStatement(
                         ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY, connection.getHoldability(),
-                        stmtColumnEncriptionSetting)) {
-                    // Get destination metadata
-                    try (SQLServerResultSet rs = stmt.executeQueryInternal(
-                            "sp_executesql N'SET FMTONLY ON SELECT * FROM " + destinationTableName + " '");) {
-
-                        if (null != columnList && columnList.size() > 0) {
-                            if (columnList.size() != valueList.size()) {
-                                throw new IllegalArgumentException(
-                                        "Number of provided columns does not match the table definition.");
-                            }
-                        } else {
-                            if (rs.getColumnCount() != valueList.size()) {
-                                throw new IllegalArgumentException(
-                                        "Number of provided columns does not match the table definition.");
-                            }
+                        stmtColumnEncriptionSetting);
+                        SQLServerResultSet rs = stmt.executeQueryInternal(
+                                "sp_executesql N'SET FMTONLY ON SELECT * FROM " + destinationTableName + " '");) {
+                    if (null != columnList && columnList.size() > 0) {
+                        if (columnList.size() != valueList.size()) {
+                            throw new IllegalArgumentException(
+                                    "Number of provided columns does not match the table definition.");
                         }
-
-                        SQLServerBulkBatchInsertRecord batchRecord = new SQLServerBulkBatchInsertRecord(
-                                batchParamValues, columnList, valueList, null);
-
-                        for (int i = 1; i <= rs.getColumnCount(); i++) {
-                            Column c = rs.getColumn(i);
-                            CryptoMetadata cryptoMetadata = c.getCryptoMetadata();
-                            int jdbctype;
-                            TypeInfo ti = c.getTypeInfo();
-                            if (null != cryptoMetadata) {
-                                jdbctype = cryptoMetadata.getBaseTypeInfo().getSSType().getJDBCType().getIntValue();
-                            } else {
-                                jdbctype = ti.getSSType().getJDBCType().getIntValue();
-                            }
-                            batchRecord.addColumnMetadata(i, c.getColumnName(), jdbctype, ti.getPrecision(),
-                                    ti.getScale());
+                    } else {
+                        if (rs.getColumnCount() != valueList.size()) {
+                            throw new IllegalArgumentException(
+                                    "Number of provided columns does not match the table definition.");
                         }
-
-                        SQLServerBulkCopy bcOperation = new SQLServerBulkCopy(connection);
-                        bcOperation.setDestinationTableName(tableName);
-                        bcOperation.setStmtColumnEncriptionSetting(this.getStmtColumnEncriptionSetting());
-                        bcOperation.setDestinationTableMetadata(rs);
-                        bcOperation.writeToServer((ISQLServerBulkRecord) batchRecord);
-                        bcOperation.close();
-                        updateCounts = new int[batchParamValues.size()];
-                        for (int i = 0; i < batchParamValues.size(); ++i) {
-                            updateCounts[i] = 1;
-                        }
-
-                        batchParamValues = null;
-                        loggerExternal.exiting(getClassNameLogging(), "executeBatch", updateCounts);
-                        return updateCounts;
                     }
+
+                    SQLServerBulkBatchInsertRecord batchRecord = new SQLServerBulkBatchInsertRecord(batchParamValues,
+                            columnList, valueList, null);
+
+                    for (int i = 1; i <= rs.getColumnCount(); i++) {
+                        Column c = rs.getColumn(i);
+                        CryptoMetadata cryptoMetadata = c.getCryptoMetadata();
+                        int jdbctype;
+                        TypeInfo ti = c.getTypeInfo();
+                        if (null != cryptoMetadata) {
+                            jdbctype = cryptoMetadata.getBaseTypeInfo().getSSType().getJDBCType().getIntValue();
+                        } else {
+                            jdbctype = ti.getSSType().getJDBCType().getIntValue();
+                        }
+                        batchRecord.addColumnMetadata(i, c.getColumnName(), jdbctype, ti.getPrecision(), ti.getScale());
+                    }
+
+                    SQLServerBulkCopy bcOperation = new SQLServerBulkCopy(connection);
+                    bcOperation.setDestinationTableName(tableName);
+                    bcOperation.setStmtColumnEncriptionSetting(this.getStmtColumnEncriptionSetting());
+                    bcOperation.setDestinationTableMetadata(rs);
+                    bcOperation.writeToServer((ISQLServerBulkRecord) batchRecord);
+                    bcOperation.close();
+                    updateCounts = new int[batchParamValues.size()];
+                    for (int i = 0; i < batchParamValues.size(); ++i) {
+                        updateCounts[i] = 1;
+                    }
+
+                    batchParamValues = null;
+                    loggerExternal.exiting(getClassNameLogging(), "executeBatch", updateCounts);
+                    return updateCounts;
                 }
             }
         } catch (SQLException e) {
@@ -2143,55 +2139,51 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
                 try (SQLServerStatement stmt = (SQLServerStatement) connection.createStatement(
                         ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY, connection.getHoldability(),
-                        stmtColumnEncriptionSetting)) {
-                    // Get destination metadata
-                    try (SQLServerResultSet rs = stmt.executeQueryInternal(
-                            "sp_executesql N'SET FMTONLY ON SELECT * FROM " + destinationTableName + " '");) {
-
-                        if (null != columnList && columnList.size() > 0) {
-                            if (columnList.size() != valueList.size()) {
-                                throw new IllegalArgumentException(
-                                        "Number of provided columns does not match the table definition.");
-                            }
-                        } else {
-                            if (rs.getColumnCount() != valueList.size()) {
-                                throw new IllegalArgumentException(
-                                        "Number of provided columns does not match the table definition.");
-                            }
+                        stmtColumnEncriptionSetting);
+                        SQLServerResultSet rs = stmt.executeQueryInternal(
+                                "sp_executesql N'SET FMTONLY ON SELECT * FROM " + destinationTableName + " '");) {
+                    if (null != columnList && columnList.size() > 0) {
+                        if (columnList.size() != valueList.size()) {
+                            throw new IllegalArgumentException(
+                                    "Number of provided columns does not match the table definition.");
                         }
-
-                        SQLServerBulkBatchInsertRecord batchRecord = new SQLServerBulkBatchInsertRecord(
-                                batchParamValues, columnList, valueList, null);
-
-                        for (int i = 1; i <= rs.getColumnCount(); i++) {
-                            Column c = rs.getColumn(i);
-                            CryptoMetadata cryptoMetadata = c.getCryptoMetadata();
-                            int jdbctype;
-                            TypeInfo ti = c.getTypeInfo();
-                            if (null != cryptoMetadata) {
-                                jdbctype = cryptoMetadata.getBaseTypeInfo().getSSType().getJDBCType().getIntValue();
-                            } else {
-                                jdbctype = ti.getSSType().getJDBCType().getIntValue();
-                            }
-                            batchRecord.addColumnMetadata(i, c.getColumnName(), jdbctype, ti.getPrecision(),
-                                    ti.getScale());
+                    } else {
+                        if (rs.getColumnCount() != valueList.size()) {
+                            throw new IllegalArgumentException(
+                                    "Number of provided columns does not match the table definition.");
                         }
-
-                        SQLServerBulkCopy bcOperation = new SQLServerBulkCopy(connection);
-                        bcOperation.setDestinationTableName(tableName);
-                        bcOperation.setStmtColumnEncriptionSetting(this.getStmtColumnEncriptionSetting());
-                        bcOperation.setDestinationTableMetadata(rs);
-                        bcOperation.writeToServer((ISQLServerBulkRecord) batchRecord);
-                        bcOperation.close();
-                        updateCounts = new long[batchParamValues.size()];
-                        for (int i = 0; i < batchParamValues.size(); ++i) {
-                            updateCounts[i] = 1;
-                        }
-
-                        batchParamValues = null;
-                        loggerExternal.exiting(getClassNameLogging(), "executeLargeBatch", updateCounts);
-                        return updateCounts;
                     }
+
+                    SQLServerBulkBatchInsertRecord batchRecord = new SQLServerBulkBatchInsertRecord(batchParamValues,
+                            columnList, valueList, null);
+
+                    for (int i = 1; i <= rs.getColumnCount(); i++) {
+                        Column c = rs.getColumn(i);
+                        CryptoMetadata cryptoMetadata = c.getCryptoMetadata();
+                        int jdbctype;
+                        TypeInfo ti = c.getTypeInfo();
+                        if (null != cryptoMetadata) {
+                            jdbctype = cryptoMetadata.getBaseTypeInfo().getSSType().getJDBCType().getIntValue();
+                        } else {
+                            jdbctype = ti.getSSType().getJDBCType().getIntValue();
+                        }
+                        batchRecord.addColumnMetadata(i, c.getColumnName(), jdbctype, ti.getPrecision(), ti.getScale());
+                    }
+
+                    SQLServerBulkCopy bcOperation = new SQLServerBulkCopy(connection);
+                    bcOperation.setDestinationTableName(tableName);
+                    bcOperation.setStmtColumnEncriptionSetting(this.getStmtColumnEncriptionSetting());
+                    bcOperation.setDestinationTableMetadata(rs);
+                    bcOperation.writeToServer((ISQLServerBulkRecord) batchRecord);
+                    bcOperation.close();
+                    updateCounts = new long[batchParamValues.size()];
+                    for (int i = 0; i < batchParamValues.size(); ++i) {
+                        updateCounts[i] = 1;
+                    }
+
+                    batchParamValues = null;
+                    loggerExternal.exiting(getClassNameLogging(), "executeLargeBatch", updateCounts);
+                    return updateCounts;
                 }
             }
         } catch (SQLException e) {
