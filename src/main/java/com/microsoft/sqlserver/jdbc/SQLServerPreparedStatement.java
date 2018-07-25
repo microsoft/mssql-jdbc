@@ -1975,58 +1975,57 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                 checkAdditionalQuery();
 
                 String destinationTableName = tableName;
-                SQLServerStatement stmt = (SQLServerStatement) connection.createStatement(ResultSet.TYPE_FORWARD_ONLY,
-                        ResultSet.CONCUR_READ_ONLY, connection.getHoldability(), stmtColumnEncriptionSetting);
+                try (SQLServerStatement stmt = (SQLServerStatement) connection.createStatement(
+                        ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY, connection.getHoldability(),
+                        stmtColumnEncriptionSetting)) {
+                    // Get destination metadata
+                    try (SQLServerResultSet rs = stmt.executeQueryInternal(
+                            "sp_executesql N'SET FMTONLY ON SELECT * FROM " + destinationTableName + " '");) {
 
-                // Get destination metadata
-                try (SQLServerResultSet rs = stmt.executeQueryInternal(
-                        "sp_executesql N'SET FMTONLY ON SELECT * FROM " + destinationTableName + " '");) {
-
-                    if (null != columnList && columnList.size() > 0) {
-                        if (columnList.size() != valueList.size()) {
-                            throw new IllegalArgumentException(
-                                    "Number of provided columns does not match the table definition.");
-                        }
-                    } else {
-                        if (rs.getColumnCount() != valueList.size()) {
-                            throw new IllegalArgumentException(
-                                    "Number of provided columns does not match the table definition.");
-                        }
-                    }
-
-                    SQLServerBulkBatchInsertRecord batchRecord = new SQLServerBulkBatchInsertRecord(batchParamValues,
-                            columnList, valueList, null);
-
-                    for (int i = 1; i <= rs.getColumnCount(); i++) {
-                        Column c = rs.getColumn(i);
-                        CryptoMetadata cryptoMetadata = c.getCryptoMetadata();
-                        int jdbctype;
-                        TypeInfo ti = c.getTypeInfo();
-                        if (null != cryptoMetadata) {
-                            jdbctype = cryptoMetadata.getBaseTypeInfo().getSSType().getJDBCType().getIntValue();
+                        if (null != columnList && columnList.size() > 0) {
+                            if (columnList.size() != valueList.size()) {
+                                throw new IllegalArgumentException(
+                                        "Number of provided columns does not match the table definition.");
+                            }
                         } else {
-                            jdbctype = ti.getSSType().getJDBCType().getIntValue();
+                            if (rs.getColumnCount() != valueList.size()) {
+                                throw new IllegalArgumentException(
+                                        "Number of provided columns does not match the table definition.");
+                            }
                         }
-                        batchRecord.addColumnMetadata(i, c.getColumnName(), jdbctype, ti.getPrecision(), ti.getScale());
-                    }
 
-                    SQLServerBulkCopy bcOperation = new SQLServerBulkCopy(connection);
-                    bcOperation.setDestinationTableName(tableName);
-                    bcOperation.setStmtColumnEncriptionSetting(this.getStmtColumnEncriptionSetting());
-                    bcOperation.setDestinationTableMetadata(rs);
-                    bcOperation.writeToServer((ISQLServerBulkRecord) batchRecord);
-                    bcOperation.close();
-                    updateCounts = new int[batchParamValues.size()];
-                    for (int i = 0; i < batchParamValues.size(); ++i) {
-                        updateCounts[i] = 1;
-                    }
+                        SQLServerBulkBatchInsertRecord batchRecord = new SQLServerBulkBatchInsertRecord(
+                                batchParamValues, columnList, valueList, null);
 
-                    batchParamValues = null;
-                    loggerExternal.exiting(getClassNameLogging(), "executeBatch", updateCounts);
-                    return updateCounts;
-                } finally {
-                    if (null != stmt)
-                        stmt.close();
+                        for (int i = 1; i <= rs.getColumnCount(); i++) {
+                            Column c = rs.getColumn(i);
+                            CryptoMetadata cryptoMetadata = c.getCryptoMetadata();
+                            int jdbctype;
+                            TypeInfo ti = c.getTypeInfo();
+                            if (null != cryptoMetadata) {
+                                jdbctype = cryptoMetadata.getBaseTypeInfo().getSSType().getJDBCType().getIntValue();
+                            } else {
+                                jdbctype = ti.getSSType().getJDBCType().getIntValue();
+                            }
+                            batchRecord.addColumnMetadata(i, c.getColumnName(), jdbctype, ti.getPrecision(),
+                                    ti.getScale());
+                        }
+
+                        SQLServerBulkCopy bcOperation = new SQLServerBulkCopy(connection);
+                        bcOperation.setDestinationTableName(tableName);
+                        bcOperation.setStmtColumnEncriptionSetting(this.getStmtColumnEncriptionSetting());
+                        bcOperation.setDestinationTableMetadata(rs);
+                        bcOperation.writeToServer((ISQLServerBulkRecord) batchRecord);
+                        bcOperation.close();
+                        updateCounts = new int[batchParamValues.size()];
+                        for (int i = 0; i < batchParamValues.size(); ++i) {
+                            updateCounts[i] = 1;
+                        }
+
+                        batchParamValues = null;
+                        loggerExternal.exiting(getClassNameLogging(), "executeBatch", updateCounts);
+                        return updateCounts;
+                    }
                 }
             }
         } catch (SQLException e) {
@@ -2141,58 +2140,58 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                 checkAdditionalQuery();
 
                 String destinationTableName = tableName;
-                SQLServerStatement stmt = (SQLServerStatement) connection.createStatement(ResultSet.TYPE_FORWARD_ONLY,
-                        ResultSet.CONCUR_READ_ONLY, connection.getHoldability(), stmtColumnEncriptionSetting);
 
-                // Get destination metadata
-                try (SQLServerResultSet rs = stmt.executeQueryInternal(
-                        "sp_executesql N'SET FMTONLY ON SELECT * FROM " + destinationTableName + " '");) {
+                try (SQLServerStatement stmt = (SQLServerStatement) connection.createStatement(
+                        ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY, connection.getHoldability(),
+                        stmtColumnEncriptionSetting)) {
+                    // Get destination metadata
+                    try (SQLServerResultSet rs = stmt.executeQueryInternal(
+                            "sp_executesql N'SET FMTONLY ON SELECT * FROM " + destinationTableName + " '");) {
 
-                    if (null != columnList && columnList.size() > 0) {
-                        if (columnList.size() != valueList.size()) {
-                            throw new IllegalArgumentException(
-                                    "Number of provided columns does not match the table definition.");
-                        }
-                    } else {
-                        if (rs.getColumnCount() != valueList.size()) {
-                            throw new IllegalArgumentException(
-                                    "Number of provided columns does not match the table definition.");
-                        }
-                    }
-
-                    SQLServerBulkBatchInsertRecord batchRecord = new SQLServerBulkBatchInsertRecord(batchParamValues,
-                            columnList, valueList, null);
-
-                    for (int i = 1; i <= rs.getColumnCount(); i++) {
-                        Column c = rs.getColumn(i);
-                        CryptoMetadata cryptoMetadata = c.getCryptoMetadata();
-                        int jdbctype;
-                        TypeInfo ti = c.getTypeInfo();
-                        if (null != cryptoMetadata) {
-                            jdbctype = cryptoMetadata.getBaseTypeInfo().getSSType().getJDBCType().getIntValue();
+                        if (null != columnList && columnList.size() > 0) {
+                            if (columnList.size() != valueList.size()) {
+                                throw new IllegalArgumentException(
+                                        "Number of provided columns does not match the table definition.");
+                            }
                         } else {
-                            jdbctype = ti.getSSType().getJDBCType().getIntValue();
+                            if (rs.getColumnCount() != valueList.size()) {
+                                throw new IllegalArgumentException(
+                                        "Number of provided columns does not match the table definition.");
+                            }
                         }
-                        batchRecord.addColumnMetadata(i, c.getColumnName(), jdbctype, ti.getPrecision(), ti.getScale());
-                    }
 
-                    SQLServerBulkCopy bcOperation = new SQLServerBulkCopy(connection);
-                    bcOperation.setDestinationTableName(tableName);
-                    bcOperation.setStmtColumnEncriptionSetting(this.getStmtColumnEncriptionSetting());
-                    bcOperation.setDestinationTableMetadata(rs);
-                    bcOperation.writeToServer((ISQLServerBulkRecord) batchRecord);
-                    bcOperation.close();
-                    updateCounts = new long[batchParamValues.size()];
-                    for (int i = 0; i < batchParamValues.size(); ++i) {
-                        updateCounts[i] = 1;
-                    }
+                        SQLServerBulkBatchInsertRecord batchRecord = new SQLServerBulkBatchInsertRecord(
+                                batchParamValues, columnList, valueList, null);
 
-                    batchParamValues = null;
-                    loggerExternal.exiting(getClassNameLogging(), "executeLargeBatch", updateCounts);
-                    return updateCounts;
-                } finally {
-                    if (null != stmt)
-                        stmt.close();
+                        for (int i = 1; i <= rs.getColumnCount(); i++) {
+                            Column c = rs.getColumn(i);
+                            CryptoMetadata cryptoMetadata = c.getCryptoMetadata();
+                            int jdbctype;
+                            TypeInfo ti = c.getTypeInfo();
+                            if (null != cryptoMetadata) {
+                                jdbctype = cryptoMetadata.getBaseTypeInfo().getSSType().getJDBCType().getIntValue();
+                            } else {
+                                jdbctype = ti.getSSType().getJDBCType().getIntValue();
+                            }
+                            batchRecord.addColumnMetadata(i, c.getColumnName(), jdbctype, ti.getPrecision(),
+                                    ti.getScale());
+                        }
+
+                        SQLServerBulkCopy bcOperation = new SQLServerBulkCopy(connection);
+                        bcOperation.setDestinationTableName(tableName);
+                        bcOperation.setStmtColumnEncriptionSetting(this.getStmtColumnEncriptionSetting());
+                        bcOperation.setDestinationTableMetadata(rs);
+                        bcOperation.writeToServer((ISQLServerBulkRecord) batchRecord);
+                        bcOperation.close();
+                        updateCounts = new long[batchParamValues.size()];
+                        for (int i = 0; i < batchParamValues.size(); ++i) {
+                            updateCounts[i] = 1;
+                        }
+
+                        batchParamValues = null;
+                        loggerExternal.exiting(getClassNameLogging(), "executeLargeBatch", updateCounts);
+                        return updateCounts;
+                    }
                 }
             }
         } catch (SQLException e) {
@@ -2250,8 +2249,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     }
 
     private void checkAdditionalQuery() {
-        while (checkAndRemoveCommentsAndSpace(true)) {
-        }
+        while (checkAndRemoveCommentsAndSpace(true)) {}
 
         // At this point, if localUserSQL is not empty (after removing all whitespaces, semicolons and comments), we
         // have a
@@ -2267,8 +2265,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         // Insert into <tableName> and Insert <tableName>
         // And there could be in-line comments (with /* and */) in between.
         // This method assumes the localUserSQL string starts with "insert".
-        while (checkAndRemoveCommentsAndSpace(false)) {
-        }
+        while (checkAndRemoveCommentsAndSpace(false)) {}
 
         StringBuilder sb = new StringBuilder();
 
@@ -2317,7 +2314,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
             if (tempint < 0) {
                 throw new IllegalArgumentException("Invalid SQL Query.");
             }
-            
+
             // keep checking if it's escaped
             while (tempint >= 0 && checkSQLLength(tempint + 2) && localUserSQL.charAt(tempint + 1) == ']') {
                 tempint = localUserSQL.indexOf("]", tempint + 2);
@@ -2338,7 +2335,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
             if (tempint < 0) {
                 throw new IllegalArgumentException("Invalid SQL Query.");
             }
-            
+
             // keep checking if it's escaped
             while (tempint >= 0 && checkSQLLength(tempint + 2) && localUserSQL.charAt(tempint + 1) == '\"') {
                 tempint = localUserSQL.indexOf("\"", tempint + 2);
@@ -2370,8 +2367,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
     private ArrayList<String> parseUserSQLForColumnListDW() {
         // ignore all comments
-        while (checkAndRemoveCommentsAndSpace(false)) {
-        }
+        while (checkAndRemoveCommentsAndSpace(false)) {}
 
         // check if optional column list was provided
         // Columns can have the form of c1, [c1] or "c1". It can escape ] or " by ]] or "".
@@ -2384,28 +2380,25 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
     private ArrayList<String> parseUserSQLForColumnListDWHelper(ArrayList<String> listOfColumns) {
         // ignore all comments
-        while (checkAndRemoveCommentsAndSpace(false)) {
-        }
-        
+        while (checkAndRemoveCommentsAndSpace(false)) {}
+
         StringBuilder sb = new StringBuilder();
         while (localUserSQL.length() > 0) {
-            while (checkAndRemoveCommentsAndSpace(false)) {
-            }
-            
+            while (checkAndRemoveCommentsAndSpace(false)) {}
+
             // exit condition
             if (checkSQLLength(1) && localUserSQL.charAt(0) == ')') {
                 localUserSQL = localUserSQL.substring(1);
                 return listOfColumns;
             }
-            
+
             // ignore ,
             // we've confirmed length is more than 0.
             if (localUserSQL.charAt(0) == ',') {
                 localUserSQL = localUserSQL.substring(1);
-                while (checkAndRemoveCommentsAndSpace(false)) {
-                }
+                while (checkAndRemoveCommentsAndSpace(false)) {}
             }
-            
+
             // handle [] case
             if (localUserSQL.charAt(0) == '[') {
                 int tempint = localUserSQL.indexOf("]", 1);
@@ -2414,7 +2407,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                 if (tempint < 0) {
                     throw new IllegalArgumentException("Invalid SQL Query.");
                 }
-                
+
                 // keep checking if it's escaped
                 while (tempint >= 0 && checkSQLLength(tempint + 2) && localUserSQL.charAt(tempint + 1) == ']') {
                     localUserSQL = localUserSQL.substring(0, tempint) + localUserSQL.substring(tempint + 1);
@@ -2427,7 +2420,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                 listOfColumns.add(tempstr);
                 continue; // proceed with the rest of the string
             }
-            
+
             // handle "" case
             if (localUserSQL.charAt(0) == '\"') {
                 int tempint = localUserSQL.indexOf("\"", 1);
@@ -2436,7 +2429,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                 if (tempint < 0) {
                     throw new IllegalArgumentException("Invalid SQL Query.");
                 }
-                
+
                 // keep checking if it's escaped
                 while (tempint >= 0 && checkSQLLength(tempint + 2) && localUserSQL.charAt(tempint + 1) == '\"') {
                     localUserSQL = localUserSQL.substring(0, tempint) + localUserSQL.substring(tempint + 1);
@@ -2449,7 +2442,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                 listOfColumns.add(tempstr);
                 continue; // proceed with the rest of the string
             }
-            
+
             // At this point, the next chunk of string is the column name, without starting with [ or ".
             while (localUserSQL.length() > 0) {
                 if (checkAndRemoveCommentsAndSpace(false)) {
@@ -2471,7 +2464,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                 }
             }
         }
-        
+
         // It shouldn't come here. If we did, something is wrong.
         // most likely we couldn't hit the exit condition and just parsed until the end of the string.
         throw new IllegalArgumentException("Invalid SQL Query.");
@@ -2479,8 +2472,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
     private ArrayList<String> parseUserSQLForValueListDW(boolean hasValuesBeenFound) {
         // ignore all comments
-        if (checkAndRemoveCommentsAndSpace(false)) {
-        }
+        if (checkAndRemoveCommentsAndSpace(false)) {}
 
         if (!hasValuesBeenFound) {
             // look for keyword "VALUES"
@@ -2488,8 +2480,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                 localUserSQL = localUserSQL.substring(6);
 
                 // ignore all comments
-                while (checkAndRemoveCommentsAndSpace(false)) {
-                }
+                while (checkAndRemoveCommentsAndSpace(false)) {}
 
                 if (checkSQLLength(1) && localUserSQL.substring(0, 1).equalsIgnoreCase("(")) {
                     localUserSQL = localUserSQL.substring(1);
@@ -2498,8 +2489,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
             }
         } else {
             // ignore all comments
-            while (checkAndRemoveCommentsAndSpace(false)) {
-            }
+            while (checkAndRemoveCommentsAndSpace(false)) {}
 
             if (checkSQLLength(1) && localUserSQL.substring(0, 1).equalsIgnoreCase("(")) {
                 localUserSQL = localUserSQL.substring(1);
@@ -2513,9 +2503,8 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
     private ArrayList<String> parseUserSQLForValueListDWHelper(ArrayList<String> listOfValues) {
         // ignore all comments
-        while (checkAndRemoveCommentsAndSpace(false)) {
-        }
-        
+        while (checkAndRemoveCommentsAndSpace(false)) {}
+
         // At this point, the next chunk of string is the value, without starting with ' (most likely a ?).
         StringBuilder sb = new StringBuilder();
         while (localUserSQL.length() > 0) {
@@ -2540,27 +2529,27 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         }
 
         // Don't need this anymore since we removed support for non-parameterized query.
-//        if (localUserSQL.charAt(0) == '\'') {
-//            int tempint = localUserSQL.indexOf("\'", 1);
-//
-//            // \' has not been found, this is wrong.
-//            if (tempint < 0) {
-//                throw new IllegalArgumentException("Invalid SQL Query.");
-//            }
-//            
-//            // keep checking if it's escaped
-//            while (tempint >= 0 && checkSQLLength(tempint + 2) && localUserSQL.charAt(tempint + 1) == '\'') {
-//                localUserSQL = localUserSQL.substring(0, tempint) + localUserSQL.substring(tempint + 1);
-//                tempint = localUserSQL.indexOf("\'", tempint + 1);
-//            }
-//
-//            // we've found a ' that is actually trying to close the quote.
-//            // Include 's around the string as well, so we can distinguish '?' and ? later on.
-//            String tempstr = localUserSQL.substring(0, tempint + 1);
-//            localUserSQL = localUserSQL.substring(tempint + 1);
-//            listOfValues.add(tempstr);
-//            return parseUserSQLForValueListDWHelper(listOfValues);
-//        }
+        // if (localUserSQL.charAt(0) == '\'') {
+        // int tempint = localUserSQL.indexOf("\'", 1);
+        //
+        // // \' has not been found, this is wrong.
+        // if (tempint < 0) {
+        // throw new IllegalArgumentException("Invalid SQL Query.");
+        // }
+        //
+        // // keep checking if it's escaped
+        // while (tempint >= 0 && checkSQLLength(tempint + 2) && localUserSQL.charAt(tempint + 1) == '\'') {
+        // localUserSQL = localUserSQL.substring(0, tempint) + localUserSQL.substring(tempint + 1);
+        // tempint = localUserSQL.indexOf("\'", tempint + 1);
+        // }
+        //
+        // // we've found a ' that is actually trying to close the quote.
+        // // Include 's around the string as well, so we can distinguish '?' and ? later on.
+        // String tempstr = localUserSQL.substring(0, tempint + 1);
+        // localUserSQL = localUserSQL.substring(tempint + 1);
+        // listOfValues.add(tempstr);
+        // return parseUserSQLForValueListDWHelper(listOfValues);
+        // }
 
         // It shouldn't come here. If we did, something is wrong.
         throw new IllegalArgumentException("Invalid SQL Query.");
@@ -2569,7 +2558,8 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     private boolean checkAndRemoveCommentsAndSpace(boolean checkForSemicolon) {
         localUserSQL = localUserSQL.trim();
 
-        while (checkForSemicolon && null != localUserSQL && localUserSQL.length() > 0 && localUserSQL.charAt(0) == ';') {
+        while (checkForSemicolon && null != localUserSQL && localUserSQL.length() > 0
+                && localUserSQL.charAt(0) == ';') {
             localUserSQL = localUserSQL.substring(1);
         }
 
