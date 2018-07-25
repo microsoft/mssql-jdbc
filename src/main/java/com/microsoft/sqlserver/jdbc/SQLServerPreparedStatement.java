@@ -335,10 +335,10 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     }
 
     /**
-     * Intializes the statement parameters.
+     * Initializes the statement parameters.
      * 
      * @param nParams
-     *        Number of parameters to Intialize.
+     *        Number of parameters to initialize.
      */
     final void initParams(int nParams) {
         inOutParam = new Parameter[nParams];

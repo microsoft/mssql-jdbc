@@ -117,7 +117,7 @@ public interface ISQLServerDataSource extends javax.sql.CommonDataSource {
     public boolean getEncrypt();
 
     /**
-     * Sets the value to enable/disable Transparent Netowrk IP Resolution (TNIR) Beginning in version 6.0 of the
+     * Sets the value to enable/disable Transparent Netowrk IP Resolution (TNIR). Beginning in version 6.0 of the
      * Microsoft JDBC Driver for SQL Server, a new connection property transparentNetworkIPResolution (TNIR) is added
      * for transparent connection to Always On availability groups or to a server which has multiple IP addresses
      * associated. When transparentNetworkIPResolution is true, the driver attempts to connect to the first IP address

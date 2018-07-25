@@ -2331,7 +2331,7 @@ public class SQLServerStatement implements ISQLServerStatement {
 
 
 /**
- * Provides a help class that does some basic parsing work for SQL statements that are stored procedure calls.
+ * Provides a helper class that does some basic parsing work for SQL statements that are stored procedure calls.
  *
  * - Determines whether the SQL uses JDBC call syntax ("{[? =] call procedure_name...}") or T-SQL EXECUTE syntax ("EXEC
  * [@p0 =] procedure_name..."). If JDBC call syntax is present, it gets rewritten as T-SQL EXECUTE syntax.
