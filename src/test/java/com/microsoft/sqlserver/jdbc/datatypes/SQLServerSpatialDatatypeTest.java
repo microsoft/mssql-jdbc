@@ -345,7 +345,9 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest {
         try {
             testWkt(geoWKT);
         } catch (SQLServerException e) {
-            assertEquals(e.getMessage(), TestResource.getResource("R_illegalCharWkt"));
+            MessageFormat form = new MessageFormat(TestResource.getResource("R_illegalCharWktPosition"));
+            Object[] msgArgs1 = {"90"};
+            assertEquals(e.getMessage(), form.format(msgArgs1));
         }
 
         // Not enough closing and opening bracket case
