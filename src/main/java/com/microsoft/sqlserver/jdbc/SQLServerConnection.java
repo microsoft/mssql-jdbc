@@ -329,7 +329,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     }
 
     /**
-     * Eencapsulates the data to be sent to the server as part of Federated Authentication Feature Extension.
+     * Encapsulates the data to be sent to the server as part of Federated Authentication Feature Extension.
      */
     class FederatedAuthenticationFeatureExtensionData {
         boolean fedAuthRequiredPreLoginResponse;

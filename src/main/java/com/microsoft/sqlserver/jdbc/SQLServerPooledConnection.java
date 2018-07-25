@@ -18,7 +18,7 @@ import javax.sql.StatementEventListener;
 
 
 /**
- * Represents a database physical connection in a connection pool. If provides methods for the connection pool manager
+ * Represents a physical database connection in a connection pool. If provides methods for the connection pool manager
  * to manage the connection pool. Applications typically do not instantiate these connections directly.
  */
 

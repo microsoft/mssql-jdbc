@@ -264,7 +264,7 @@ public class SQLServerColumnEncryptionJavaKeyStoreProvider extends SQLServerColu
     }
 
     /**
-     * Encrypt. plainText with the certificate provided.
+     * Encrypt plainText with the certificate provided.
      * 
      * @param plainText
      *        plain CEK to be encrypted
