@@ -24,6 +24,8 @@ import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
 import org.opentest4j.TestAbortedException;
 
+import com.microsoft.sqlserver.jdbc.Geography;
+import com.microsoft.sqlserver.jdbc.Geometry;
 import com.microsoft.sqlserver.jdbc.SQLServerConnection;
 import com.microsoft.sqlserver.jdbc.SQLServerPreparedStatement;
 import com.microsoft.sqlserver.jdbc.SQLServerStatement;
@@ -36,6 +38,7 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
 
     static long UUID = System.currentTimeMillis();;
     static String tableName = "BulkCopyParseTest" + UUID;
+    static String unsupportedTableName = "BulkCopyUnsupportedTable" + UUID;
     static String squareBracketTableName = "[peter]]]]test" + UUID + "]";
     static String doubleQuoteTableName = "\"peter\"\"\"\"test" + UUID + "\"";
 
@@ -147,20 +150,20 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
                 assertEquals(columnList.get(i), columnListExpected.get(i));
             }
             // don't check valuelist
-//
-//            method = pstmt.getClass().getDeclaredMethod("parseUserSQLForValueListDW", boolean.class);
-//            method.setAccessible(true);
-//
-//            ArrayList<String> valueList = (ArrayList<String>) method.invoke(pstmt, false);
-//            ArrayList<String> valueListExpected = new ArrayList<String>();
-//            valueListExpected.add("1");
-//            valueListExpected.add("2");
-//            valueListExpected.add("'?'");
-//            valueListExpected.add("?");
-//
-//            for (int i = 0; i < valueListExpected.size(); i++) {
-//                assertEquals(valueList.get(i), valueListExpected.get(i));
-//            }
+            //
+            // method = pstmt.getClass().getDeclaredMethod("parseUserSQLForValueListDW", boolean.class);
+            // method.setAccessible(true);
+            //
+            // ArrayList<String> valueList = (ArrayList<String>) method.invoke(pstmt, false);
+            // ArrayList<String> valueListExpected = new ArrayList<String>();
+            // valueListExpected.add("1");
+            // valueListExpected.add("2");
+            // valueListExpected.add("'?'");
+            // valueListExpected.add("?");
+            //
+            // for (int i = 0; i < valueListExpected.size(); i++) {
+            // assertEquals(valueList.get(i), valueListExpected.get(i));
+            // }
         }
     }
 
@@ -593,6 +596,44 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
         }
     }
 
+    @Test
+    public void testNonSupportedColumns() throws Exception {
+        String valid = "insert into " + unsupportedTableName + " values (?, ?, ?, ?)";
+
+        try (Connection connection = DriverManager.getConnection(connectionString + ";useBulkCopyForBatchInsert=true;");
+                SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) connection.prepareStatement(valid);
+                Statement stmt = (SQLServerStatement) connection.createStatement();) {
+            Field f1 = SQLServerConnection.class.getDeclaredField("isAzureDW");
+            f1.setAccessible(true);
+            f1.set(connection, true);
+
+            Utils.dropTableIfExists(unsupportedTableName, stmt);
+
+            String createTable = "create table " + unsupportedTableName
+                    + " (c1 geometry, c2 geography, c3 datetime, c4 smalldatetime)";
+            stmt.execute(createTable);
+
+            Timestamp myTimestamp = new Timestamp(11455000L);
+            Geometry g1 = Geometry.STGeomFromText("POINT(1 2 3 4)", 0);
+            Geography g2 = Geography.STGeomFromText("POINT(1 2 3 4)", 4326);
+
+            pstmt.setGeometry(1, g1);
+            pstmt.setGeography(2, g2);
+            pstmt.setDateTime(3, myTimestamp);
+            pstmt.setSmallDateTime(4, myTimestamp);
+            pstmt.addBatch();
+
+            pstmt.executeBatch();
+
+            ResultSet rs = stmt.executeQuery("SELECT * FROM " + unsupportedTableName);
+            rs.next();
+            assertEquals(Geometry.STGeomFromWKB((byte[]) rs.getObject(1)).toString(), g1.toString());
+            assertEquals(Geography.STGeomFromWKB((byte[]) rs.getObject(2)).toString(), g2.toString());
+            assertEquals(rs.getObject(3), myTimestamp);
+            assertEquals(rs.getObject(4).toString(), "1969-12-31 19:11:00.0");
+        }
+    }
+
     @BeforeEach
     public void testSetup() throws TestAbortedException, Exception {
         try (Connection connection = DriverManager
@@ -615,6 +656,7 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
                 Utils.dropTableIfExists(tableName, stmt);
                 Utils.dropTableIfExists(squareBracketTableName, stmt);
                 Utils.dropTableIfExists(doubleQuoteTableName, stmt);
+                Utils.dropTableIfExists(unsupportedTableName, stmt);
             }
         }
     }

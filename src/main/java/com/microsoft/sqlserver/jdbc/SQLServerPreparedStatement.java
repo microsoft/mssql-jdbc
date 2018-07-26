@@ -1991,6 +1991,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                         CryptoMetadata cryptoMetadata = c.getCryptoMetadata();
                         int jdbctype;
                         TypeInfo ti = c.getTypeInfo();
+                        checkValidColumns(ti);
                         if (null != cryptoMetadata) {
                             jdbctype = cryptoMetadata.getBaseTypeInfo().getSSType().getJDBCType().getIntValue();
                         } else {
@@ -2016,11 +2017,8 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                 }
             }
         } catch (SQLException e) {
-            // If we fail with SQLException, notify the user accordingly and fallback.
-            if (getStatementLogger().isLoggable(java.util.logging.Level.FINE)) {
-                getStatementLogger().fine("Executing user's Batch Insert SQL Query failed: " + e.getMessage());
-                getStatementLogger().fine("Falling back to the original implementation for Batch Insert.");
-            }
+            // throw a BatchUpdateException with the given error message, and return null for the updateCounts.
+            throw new BatchUpdateException(e.getMessage(), null, 0, null);
         } catch (IllegalArgumentException e) {
             // If we fail with IllegalArgumentException, fall back to the original batch insert logic.
             if (getStatementLogger().isLoggable(java.util.logging.Level.FINE)) {
@@ -2146,6 +2144,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                         CryptoMetadata cryptoMetadata = c.getCryptoMetadata();
                         int jdbctype;
                         TypeInfo ti = c.getTypeInfo();
+                        checkValidColumns(ti);
                         if (null != cryptoMetadata) {
                             jdbctype = cryptoMetadata.getBaseTypeInfo().getSSType().getJDBCType().getIntValue();
                         } else {
@@ -2171,11 +2170,8 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                 }
             }
         } catch (SQLException e) {
-            // If we fail with SQLException, notify the user accordingly and fallback.
-            if (getStatementLogger().isLoggable(java.util.logging.Level.FINE)) {
-                getStatementLogger().fine("Executing user's Batch Insert SQL Query failed: " + e.getMessage());
-                getStatementLogger().fine("Falling back to the original implementation for Batch Insert.");
-            }
+            // throw a BatchUpdateException with the given error message, and return null for the updateCounts.
+            throw new BatchUpdateException(e.getMessage(), null, 0, null);
         } catch (IllegalArgumentException e) {
             // If we fail with IllegalArgumentException, fall back to the original batch insert logic.
             if (getStatementLogger().isLoggable(java.util.logging.Level.FINE)) {
@@ -2225,6 +2221,53 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
             }
         loggerExternal.exiting(getClassNameLogging(), "executeLargeBatch", updateCounts);
         return updateCounts;
+    }
+
+    private void checkValidColumns(TypeInfo ti) throws SQLServerException {
+        int jdbctype = ti.getSSType().getJDBCType().getIntValue();
+        // currently, we do not support: geometry, geography, datetime and smalldatetime
+        switch (jdbctype) {
+            case java.sql.Types.INTEGER:
+            case java.sql.Types.SMALLINT:
+            case java.sql.Types.BIGINT:
+            case java.sql.Types.BIT:
+            case java.sql.Types.TINYINT:
+            case java.sql.Types.DOUBLE:
+            case java.sql.Types.REAL:
+            case microsoft.sql.Types.MONEY:
+            case microsoft.sql.Types.SMALLMONEY:
+            case java.sql.Types.DECIMAL:
+            case java.sql.Types.NUMERIC:
+            case microsoft.sql.Types.GUID:
+            case java.sql.Types.CHAR:
+            case java.sql.Types.NCHAR:
+            case java.sql.Types.LONGVARCHAR:
+            case java.sql.Types.VARCHAR:
+            case java.sql.Types.LONGNVARCHAR:
+            case java.sql.Types.NVARCHAR:
+            case java.sql.Types.BINARY:
+            case java.sql.Types.LONGVARBINARY:
+            case java.sql.Types.VARBINARY:
+                // Spatial datatypes fall under Varbinary, check if the UDT is geometry/geography.
+                String typeName = ti.getSSTypeName();
+                if (typeName.equalsIgnoreCase("geometry") || typeName.equalsIgnoreCase("geography")) {
+                    MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_BulkTypeNotSupported"));
+                    throw new IllegalArgumentException(form.format(new Object[] {typeName}));
+                }
+            case java.sql.Types.TIMESTAMP:
+            case java.sql.Types.DATE:
+            case java.sql.Types.TIME:
+            case 2013: // java.sql.Types.TIME_WITH_TIMEZONE
+            case 2014: // java.sql.Types.TIMESTAMP_WITH_TIMEZONE
+            case microsoft.sql.Types.DATETIMEOFFSET:
+            case microsoft.sql.Types.SQL_VARIANT:
+                return;
+            default: {
+                MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_BulkTypeNotSupported"));
+                String unsupportedDataType = JDBCType.of(jdbctype).toString();
+                throw new IllegalArgumentException(form.format(new Object[] {unsupportedDataType}));
+            }
+        }
     }
 
     private void checkAdditionalQuery() {
