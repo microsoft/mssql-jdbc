@@ -447,12 +447,12 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest {
             beforeEachSetup();
 
             String geoWKTPoint = "POINT(30 12.12312312 5 6)";
-            String geoWKTLineString = "LINESTRING(1 1, 2 4 3, 3 9 123 332)";
+            String geoWKTLineString = "LINESTRING(1 1 0 0, 2 4 3 0, 3 9 123 332)";
             String geoWKTCircularString = "CIRCULARSTRING(1 1, 2 4, 3 9)";
             String geoWKTCompoundCurve = "COMPOUNDCURVE((1 1, 1 3), (1 3, 3 3), (3 3, 3 1), (3 1, 1 1))";
             String geoWKTCurvePolygon = "CURVEPOLYGON(CIRCULARSTRING(2 4, 4 2, 6 4, 4 6, 2 4))";
             String geoWKTPolygon = "POLYGON((0 0, 0 3, 3 3, 3 0, 0 0), (1 1, 1 2, 2 1, 1 1))";
-            String geoWKTMultiPoint = "MULTIPOINT((2 3), (7 8 9.5))";
+            String geoWKTMultiPoint = "MULTIPOINT((2 3), (7 8 9.5 4))";
             String geoWKTMultiLineString = "MULTILINESTRING((0 2, 1 1), (1 0, 1 1))";
             String geoWKTMultiPolygon = "MULTIPOLYGON(((0 0, 0 3, 3 3, 3 0, 0 0), (1 1, 1 2, 2 1, 1 1)), ((9 9, 9 10, 10 9, 9 9)))";
             String geoWKTGeometryCollection = "GEOMETRYCOLLECTION(POLYGON((0 0 2, 1 10 3, 1 0 4, 0 0 2)), POINT(3 3 1 2.5), LINESTRING(1 0, 0 1, -1 0), GEOMETRYCOLLECTION(GEOMETRYCOLLECTION(POINT(1 2 3 4))), GEOMETRYCOLLECTION(GEOMETRYCOLLECTION EMPTY), CURVEPOLYGON((0 0, 0 0, 0 0, 0 0), CIRCULARSTRING(1 3, 3 5, 4 7, 7 3, 1 3), COMPOUNDCURVE((0 -23.43778, 0 23.43778), CIRCULARSTRING(0 23.43778, -45 -23.43778, 0 -23.43778)), COMPOUNDCURVE((0 -23.43778, 7 7, 0 23.43778), CIRCULARSTRING(0 23.43778, 8 8, 8 8, -45 23.43778, -90 23.43778), (-90 23.43778, -90 -23.43778), CIRCULARSTRING(-90 -23.43778, -45 -23.43778, 0 -23.43778))))";
@@ -590,7 +590,7 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest {
         if (isDenaliOrLater) {
             beforeEachSetupSpatialDatatype();
 
-            String geoWKTPoint = "POINT(30 12.12312312 5 6)";
+            String geoWKTPoint = "POINT(30 12.12312312 0)";
             String geoWKTLineString = "LINESTRING(1 1, 2 4 3, 3 9 123 332)";
             String geoWKTCircularString = "CIRCULARSTRING(1 1, 2 4, 3 9)";
             String geoWKTCompoundCurve = "COMPOUNDCURVE((1 1, 1 3), (1 3, 3 3), (3 3, 3 1), (3 1, 1 1))";
@@ -927,10 +927,10 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest {
             beforeEachSetupSpatialDatatype();
 
             String geoWKTPoint = "POINT(30 12.12312312 NULL 6)";
-            String geoWKTLineString = "LINESTRING(1 1 NULL NULL, 2 4 3 NULL, 3 9 NULL 332)";
+            String geoWKTLineString = "LINESTRING(1 1 NULL NULL, 2 4 0 42, 3 9 NULL 332)";
 
             String geoWKTPointExpected = "POINT(30 12.12312312 NULL 6)";
-            String geoWKTLineStringExpected = "LINESTRING(1 1, 2 4 3, 3 9 NULL 332)";
+            String geoWKTLineStringExpected = "LINESTRING(1 1, 2 4 0 42, 3 9 NULL 332)";
 
             String s = "some string";
             Double d = 31.34;

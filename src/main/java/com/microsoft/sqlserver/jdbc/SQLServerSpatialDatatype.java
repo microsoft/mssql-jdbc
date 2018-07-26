@@ -451,19 +451,19 @@ abstract class SQLServerSpatialDatatype {
         }
         appendToWKTBuffers(" ");
 
-        if (hasZvalues && !Double.isNaN(zValues[pointIndex]) && !(zValues[pointIndex] == 0)) {
+        if (hasZvalues && !Double.isNaN(zValues[pointIndex])) {
             if (zValues[pointIndex] % 1 == 0) {
                 WKTsb.append((long) zValues[pointIndex]);
             } else {
                 WKTsb.append(zValues[pointIndex]);
             }
             WKTsb.append(" ");
-        } else if (hasMvalues && !Double.isNaN(mValues[pointIndex]) && !(mValues[pointIndex] <= 0)) {
+        } else if (hasMvalues && !Double.isNaN(mValues[pointIndex])) {
             // Handle the case where the user has POINT (1 2 NULL M) value.
             WKTsb.append("NULL ");
         }
 
-        if (hasMvalues && !Double.isNaN(mValues[pointIndex]) && !(mValues[pointIndex] <= 0)) {
+        if (hasMvalues && !Double.isNaN(mValues[pointIndex])) {
             if (mValues[pointIndex] % 1 == 0) {
                 WKTsb.append((long) mValues[pointIndex]);
             } else {
@@ -840,6 +840,9 @@ abstract class SQLServerSpatialDatatype {
         int numOfCoordinates = 0;
         double sign;
         double coords[] = new double[4];
+        for (int i = 0; i < coords.length; i++) {
+            coords[i] = Double.NaN;
+        }
 
         while (numOfCoordinates < 4) {
             sign = 1;
