@@ -598,7 +598,7 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
                     + " (c1 geometry, c2 geography, c3 datetime, c4 smalldatetime)";
             stmt.execute(createTable);
 
-            Timestamp myTimestamp = new Timestamp(11455000L);
+            Timestamp myTimestamp = new Timestamp(1200000L);
             Geometry g1 = Geometry.STGeomFromText("POINT(1 2 3 4)", 0);
             Geography g2 = Geography.STGeomFromText("POINT(1 2 3 4)", 4326);
 
@@ -615,7 +615,7 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
             assertEquals(Geometry.STGeomFromWKB((byte[]) rs.getObject(1)).toString(), g1.toString());
             assertEquals(Geography.STGeomFromWKB((byte[]) rs.getObject(2)).toString(), g2.toString());
             assertEquals(rs.getObject(3), myTimestamp);
-            assertEquals(rs.getObject(4).toString(), "1969-12-31 19:11:00.0");
+            assertEquals(rs.getObject(4), myTimestamp);
         }
     }
 
