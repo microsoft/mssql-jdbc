@@ -281,8 +281,7 @@ abstract class SQLServerSpatialDatatype {
                 constructCurvepolygonWKT(currentFigureIndex, figureIndexEnd, currentSegmentIndex, segmentIndexEnd);
                 break;
             default:
-                MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_illegalWKTposition"));
-                throw new SQLServerException(form.format(new Object[] {currentWktPos}), null, 0, null);
+                throwIllegalWKTPosition();
         }
 
         appendToWKTBuffers(")");
@@ -324,8 +323,7 @@ abstract class SQLServerSpatialDatatype {
             try {
                 isd = InternalSpatialDatatype.valueOf(nextToken);
             } catch (Exception e) {
-                MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_illegalWKTposition"));
-                throw new SQLServerException(form.format(new Object[] {currentWktPos}), null, 0, null);
+                throwIllegalWKTPosition();
             }
             byte fa = 0;
 
@@ -342,8 +340,7 @@ abstract class SQLServerSpatialDatatype {
                 }
 
                 if (startPos != 0) {
-                    MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_illegalWKTposition"));
-                    throw new SQLServerException(form.format(new Object[] {currentWktPos}), null, 0, null);
+                    throwIllegalWKTPosition();
                 }
 
                 shapeList.add(new Shape(parentShapeIndex, -1, isd.getTypeCode()));
@@ -423,8 +420,7 @@ abstract class SQLServerSpatialDatatype {
 
                     break;
                 default:
-                    MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_illegalWKTposition"));
-                    throw new SQLServerException(form.format(new Object[] {currentWktPos}), null, 0, null);
+                    throwIllegalWKTPosition();
             }
             readCloseBracket();
         }
@@ -880,8 +876,7 @@ abstract class SQLServerSpatialDatatype {
                     coords[numOfCoordinates] = Double.NaN;
                     currentWktPos = currentWktPos + 4;
                 } else {
-                    MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_illegalWKTposition"));
-                    throw new SQLServerException(form.format(new Object[] {currentWktPos}), null, 0, null);
+                    throwIllegalWKTPosition();
                 }
             }
 
@@ -892,17 +887,16 @@ abstract class SQLServerSpatialDatatype {
             // After skipping white space after the 4th coordinate has been read, the next
             // character has to be either a , or ), or the WKT is invalid.
             if (numOfCoordinates == 4) {
-                if (checkSQLLength(currentWktPos + 1) && wkt.charAt(currentWktPos) != ',' && wkt.charAt(currentWktPos) != ')') {
-                    MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_illegalWKTposition"));
-                    throw new SQLServerException(form.format(new Object[] {currentWktPos}), null, 0, null);
+                if (checkSQLLength(currentWktPos + 1) && wkt.charAt(currentWktPos) != ','
+                        && wkt.charAt(currentWktPos) != ')') {
+                    throwIllegalWKTPosition();
                 }
             }
 
             if (checkSQLLength(currentWktPos + 1) && wkt.charAt(currentWktPos) == ',') {
                 // need at least 2 coordinates
                 if (numOfCoordinates == 1) {
-                    MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_illegalWKTposition"));
-                    throw new SQLServerException(form.format(new Object[] {currentWktPos}), null, 0, null);
+                    throwIllegalWKTPosition();
                 }
                 currentWktPos++;
                 skipWhiteSpaces();
@@ -981,8 +975,7 @@ abstract class SQLServerSpatialDatatype {
             } else if (wkt.charAt(currentWktPos) == ')') { // about to exit while loop
                 continue;
             } else { // unexpected input
-                MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_illegalWKTposition"));
-                throw new SQLServerException(form.format(new Object[] {currentWktPos}), null, 0, null);
+                throwIllegalWKTPosition();
             }
         }
     }
@@ -1012,8 +1005,7 @@ abstract class SQLServerSpatialDatatype {
                 readLineWkt();
                 readCloseBracket();
             } else {
-                MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_illegalWKTposition"));
-                throw new SQLServerException(form.format(new Object[] {currentWktPos}), null, 0, null);
+                throwIllegalWKTPosition();
             }
 
             if (checkSQLLength(currentWktPos + 1) && wkt.charAt(currentWktPos) == ',') { // more polygons to follow
@@ -1021,8 +1013,7 @@ abstract class SQLServerSpatialDatatype {
             } else if (wkt.charAt(currentWktPos) == ')') { // about to exit while loop
                 continue;
             } else { // unexpected input
-                MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_illegalWKTposition"));
-                throw new SQLServerException(form.format(new Object[] {currentWktPos}), null, 0, null);
+                throwIllegalWKTPosition();
             }
         }
     }
@@ -1053,8 +1044,7 @@ abstract class SQLServerSpatialDatatype {
             } else if (wkt.charAt(currentWktPos) == ')') { // about to exit while loop
                 continue;
             } else { // unexpected input
-                MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_illegalWKTposition"));
-                throw new SQLServerException(form.format(new Object[] {currentWktPos}), null, 0, null);
+                throwIllegalWKTPosition();
             }
         }
     }
@@ -1119,8 +1109,7 @@ abstract class SQLServerSpatialDatatype {
                 readSegmentWkt(SEGMENT_FIRST_LINE, isFirstIteration);
                 readCloseBracket();
             } else {
-                MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_illegalWKTposition"));
-                throw new SQLServerException(form.format(new Object[] {currentWktPos}), null, 0, null);
+                throwIllegalWKTPosition();
             }
 
             isFirstIteration = false;
@@ -1130,8 +1119,7 @@ abstract class SQLServerSpatialDatatype {
             } else if (wkt.charAt(currentWktPos) == ')') { // about to exit while loop
                 continue;
             } else { // unexpected input
-                MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_illegalWKTposition"));
-                throw new SQLServerException(form.format(new Object[] {currentWktPos}), null, 0, null);
+                throwIllegalWKTPosition();
             }
         }
     }
@@ -1237,8 +1225,7 @@ abstract class SQLServerSpatialDatatype {
             currentWktPos++;
             skipWhiteSpaces();
         } else {
-            MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_illegalWKTposition"));
-            throw new SQLServerException(form.format(new Object[] {currentWktPos}), null, 0, null);
+            throwIllegalWKTPosition();
         }
     }
 
@@ -1248,8 +1235,7 @@ abstract class SQLServerSpatialDatatype {
             currentWktPos++;
             skipWhiteSpaces();
         } else {
-            MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_illegalWKTposition"));
-            throw new SQLServerException(form.format(new Object[] {currentWktPos}), null, 0, null);
+            throwIllegalWKTPosition();
         }
     }
 
@@ -1466,8 +1452,7 @@ abstract class SQLServerSpatialDatatype {
         }
 
         if (!potentialEmptyKeyword.equals("")) {
-            MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_illegalWKTposition"));
-            throw new SQLServerException(form.format(new Object[] {currentWktPos}), null, 0, null);
+            throwIllegalWKTPosition();
         }
         return false;
     }
@@ -1765,8 +1750,7 @@ abstract class SQLServerSpatialDatatype {
             currentWktPos++;
             skipWhiteSpaces();
         } else {
-            MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_illegalWKTposition"));
-            throw new SQLServerException(form.format(new Object[] {currentWktPos}), null, 0, null);
+            throwIllegalWKTPosition();
         }
     }
 
@@ -1798,30 +1782,35 @@ abstract class SQLServerSpatialDatatype {
             }
         }
     }
+
     private void checkBuffer(int i) throws SQLServerException {
         if (buffer.remaining() < i) {
             throwIllegalWKB();
         }
     }
-    
+
     private boolean checkSQLLength(int length) throws SQLServerException {
         if (null == wkt || wkt.length() < length) {
-            MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_illegalWKTposition"));
-            throw new SQLServerException(form.format(new Object[] {currentWktPos}), null, 0, null);
+            throwIllegalWKTPosition();
         }
         return true;
     }
-    
+
+    private void throwIllegalWKTPosition() throws SQLServerException {
+        MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_illegalWKTposition"));
+        throw new SQLServerException(form.format(new Object[] {currentWktPos}), null, 0, null);
+    }
+
     protected byte readByte() throws SQLServerException {
         checkBuffer(1);
         return buffer.get();
     }
-    
+
     protected int readInt() throws SQLServerException {
         checkBuffer(4);
         return buffer.getInt();
     }
-    
+
     protected double readDouble() throws SQLServerException {
         checkBuffer(8);
         return buffer.getDouble();
