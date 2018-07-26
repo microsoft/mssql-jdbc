@@ -2016,8 +2016,11 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                 }
             }
         } catch (SQLException e) {
-            // throw a BatchUpdateException with the given error message, and return null for the updateCounts.
-            throw new BatchUpdateException(e.getMessage(), null, 0, null);
+            // If we fail with SQLException, notify the user accordingly and fallback.
+            if (getStatementLogger().isLoggable(java.util.logging.Level.FINE)) {
+                getStatementLogger().fine("Executing user's Batch Insert SQL Query failed: " + e.getMessage());
+                getStatementLogger().fine("Falling back to the original implementation for Batch Insert.");
+            }
         } catch (IllegalArgumentException e) {
             // If we fail with IllegalArgumentException, fall back to the original batch insert logic.
             if (getStatementLogger().isLoggable(java.util.logging.Level.FINE)) {
@@ -2168,8 +2171,11 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                 }
             }
         } catch (SQLException e) {
-            // throw a BatchUpdateException with the given error message, and return null for the updateCounts.
-            throw new BatchUpdateException(e.getMessage(), null, 0, null);
+            // If we fail with SQLException, notify the user accordingly and fallback.
+            if (getStatementLogger().isLoggable(java.util.logging.Level.FINE)) {
+                getStatementLogger().fine("Executing user's Batch Insert SQL Query failed: " + e.getMessage());
+                getStatementLogger().fine("Falling back to the original implementation for Batch Insert.");
+            }
         } catch (IllegalArgumentException e) {
             // If we fail with IllegalArgumentException, fall back to the original batch insert logic.
             if (getStatementLogger().isLoggable(java.util.logging.Level.FINE)) {
