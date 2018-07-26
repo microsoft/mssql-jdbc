@@ -29,9 +29,10 @@ import com.microsoft.sqlserver.jdbc.SQLServerConnection.CityHash128Key;
 
 
 /**
- * SQLServerStatment provides the basic implementation of JDBC statement functionality. It also provides a number of
- * base class implementation methods for the JDBC prepared statement and callable Statements. SQLServerStatement's basic
- * role is to execute SQL statements and return update counts and resultset rows to the user application.
+ * Provides an implementation of java.sql.Statement JDBC Interface to assist in creating Statements against SQL Server.
+ * It also provides a number of base class implementation methods for the JDBC prepared statement and callable
+ * Statements. SQLServerStatement's basic role is to execute SQL statements and return update counts and resultset rows
+ * to the user application.
  *
  * Documentation for specific public methods that are undocumented can be found under Sun's standard JDBC documentation
  * for class java.sql.Statement. Those methods are part of Sun's standard JDBC documentation and therefore their
@@ -48,7 +49,6 @@ import com.microsoft.sqlserver.jdbc.SQLServerConnection.CityHash128Key;
  * The API javadoc for JDBC API methods that this class implements are not repeated here. Please see Sun's JDBC API
  * interfaces javadoc for those details.
  */
-
 public class SQLServerStatement implements ISQLServerStatement {
     final static char LEFT_CURLY_BRACKET = 123;
     final static char RIGHT_CURLY_BRACKET = 125;
@@ -103,7 +103,7 @@ public class SQLServerStatement implements ISQLServerStatement {
     Parameter[] inOutParam; // Parameters for prepared stmts and stored procedures
 
     /**
-     * The statements connection.
+     * The statement's connection.
      */
     final SQLServerConnection connection;
 
@@ -162,7 +162,7 @@ public class SQLServerStatement implements ISQLServerStatement {
     }
 
     /**
-     * ExecuteProperties encapsulates a subset of statement property values as they were set at execution time.
+     * Encapsulates a subset of statement property values as they were set at execution time.
      */
     final class ExecuteProperties {
         final private boolean wasResponseBufferingSet;
@@ -267,7 +267,7 @@ public class SQLServerStatement implements ISQLServerStatement {
     }
 
     /**
-     * decrement opened result set counter
+     * Decrement opened result set counter.
      */
     synchronized void decrResultSetCount() {
         resultSetCount--;
@@ -346,7 +346,7 @@ public class SQLServerStatement implements ISQLServerStatement {
     }
 
     /**
-     * Indicates whether to request a server cursor when executing this statement.
+     * Returns whether to request a server cursor when executing this statement.
      *
      * Executing a statement with execute() or executeQuery() requests a server cursor in all scrollability and
      * updatability combinations except direct forward-only, read-only.
@@ -464,7 +464,7 @@ public class SQLServerStatement implements ISQLServerStatement {
     static final private java.util.logging.Logger stmtlogger = java.util.logging.Logger
             .getLogger("com.microsoft.sqlserver.jdbc.internals.SQLServerStatement");
 
-    /** The statement's id for logging info */
+    /** Returns the statement's id for logging info */
     @Override
     public String toString() {
         return traceID;
@@ -483,7 +483,7 @@ public class SQLServerStatement implements ISQLServerStatement {
     }
 
     /**
-     * The regular statement constructor
+     * Constructs a SQLServerStatement
      *
      * @param con
      *        The statements connections.
@@ -635,7 +635,7 @@ public class SQLServerStatement implements ISQLServerStatement {
     }
 
     /**
-     * Close the statement.
+     * Closes the statement.
      *
      * Note that the public close() method performs all of the cleanup work through this internal method which cannot
      * throw any exceptions. This is done deliberately to ensure that ALL of the object's client-side and server-side
@@ -933,7 +933,7 @@ public class SQLServerStatement implements ISQLServerStatement {
     }
 
     /**
-     * Reset the state to get the statement for reexecute callable statement overrides this.
+     * Resets the state to get the statement for reexecute callable statement overrides this.
      */
     final void resetForReexecute() throws SQLServerException {
         ensureExecuteResultsReader(null);
@@ -945,7 +945,7 @@ public class SQLServerStatement implements ISQLServerStatement {
     }
 
     /**
-     * Determine if the SQL is a SELECT.
+     * Determines if the SQL is a SELECT.
      * 
      * @param sql
      *        The statment SQL.
@@ -969,7 +969,7 @@ public class SQLServerStatement implements ISQLServerStatement {
      *        The statment SQL.
      * @return True if the statement is an insert.
      */
-    /* L0 */ final boolean isInsert(String sql) throws SQLServerException {
+    final boolean isInsert(String sql) throws SQLServerException {
         checkClosed();
         // Used to check just the first letter which would cause
         // "Set" commands to return true...
@@ -985,7 +985,7 @@ public class SQLServerStatement implements ISQLServerStatement {
     }
 
     /**
-     * Replace a JDBC parameter marker with the parameter's string value
+     * Replaces a JDBC parameter marker with the parameter's string value
      * 
      * @param str
      *        the parameter syntax
@@ -1004,7 +1004,7 @@ public class SQLServerStatement implements ISQLServerStatement {
     }
 
     /**
-     * Set a JDBC parameter to null. (Used only when processing LOB column sources.)
+     * Sets a JDBC parameter to null. (Used only when processing LOB column sources.)
      * 
      * @param sql
      *        the parameter syntax
@@ -1314,7 +1314,7 @@ public class SQLServerStatement implements ISQLServerStatement {
     }
 
     /**
-     * Check for more results in the TDS stream
+     * Returns more results in the TDS stream.
      *
      * @return true if the next result is a ResultSet object; false if it is an integer (indicating that it is an update
      *         count or there are no more results).
@@ -1364,7 +1364,7 @@ public class SQLServerStatement implements ISQLServerStatement {
     }
 
     /**
-     * Get the next result in the TDS response token stream, which may be a result set, update count or exception.
+     * Returns the next result in the TDS response token stream, which may be a result set, update count or exception.
      *
      * @return true if another result (ResultSet or update count) was available; false if there were no more results.
      */
@@ -1646,7 +1646,7 @@ public class SQLServerStatement implements ISQLServerStatement {
     }
 
     /**
-     * Consume the OUT parameter for the statement object itself.
+     * Consumes the OUT parameter for the statement object itself.
      *
      * Normal Statement objects consume the server cursor OUT params when present. PreparedStatement and
      * CallableStatement objects override this method to consume the prepared statement handle as well.
@@ -1748,7 +1748,7 @@ public class SQLServerStatement implements ISQLServerStatement {
     }
 
     /**
-     * Send a batch of statements to the database.
+     * Sends a batch of statements to the database.
      */
     @Override
     public int[] executeBatch() throws SQLServerException, BatchUpdateException, SQLTimeoutException {
@@ -1902,7 +1902,7 @@ public class SQLServerStatement implements ISQLServerStatement {
     } // executeLargeBatch
 
     /**
-     * Return the statement's connection
+     * Returns the statement's connection.
      * 
      * @throws SQLServerException
      *         when an error occurs
@@ -1921,15 +1921,6 @@ public class SQLServerStatement implements ISQLServerStatement {
     }
 
     /* ----------------- Server side cursor support -------------------------- */
-
-    /**
-     * Open a server side cursor.
-     *
-     * @param sql
-     *        The SQL query.
-     * @exception SQLServerException
-     *            The SQL query was invalid.
-     */
 
     final int getResultSetScrollOpt() {
         int scrollOpt = (null == inOutParam) ? 0 : TDS.SCROLLOPT_PARAMETERIZED_STMT;
@@ -2340,7 +2331,7 @@ public class SQLServerStatement implements ISQLServerStatement {
 
 
 /**
- * Helper class that does some basic parsing work for SQL statements that are stored procedure calls.
+ * Provides a helper class that does some basic parsing work for SQL statements that are stored procedure calls.
  *
  * - Determines whether the SQL uses JDBC call syntax ("{[? =] call procedure_name...}") or T-SQL EXECUTE syntax ("EXEC
  * [@p0 =] procedure_name..."). If JDBC call syntax is present, it gets rewritten as T-SQL EXECUTE syntax.
@@ -2444,9 +2435,9 @@ final class JDBCSyntaxTranslator {
             .compile("\\{\\s*[lL][iI][mM][iI][tT]\\s+(((\\(|\\s)*)(\\d*|\\?)((\\)|\\s)*))\\s*\\}");
 
     /**
-     * This function translates the LIMIT escape syntax, {LIMIT <row> [OFFSET <offset>]} SQL Server does not support
-     * LIMIT syntax, the LIMIT escape syntax is thus translated to use "TOP" syntax The OFFSET clause is not supported,
-     * and will throw an exception if used.
+     * Translates the LIMIT escape syntax, {LIMIT <row> [OFFSET <offset>]} SQL Server does not support LIMIT syntax, the
+     * LIMIT escape syntax is thus translated to use "TOP" syntax The OFFSET clause is not supported, and will throw an
+     * exception if used.
      * 
      * @param sql
      *        the SQL query
@@ -2462,7 +2453,6 @@ final class JDBCSyntaxTranslator {
      * @return the number of characters that have been translated
      * 
      */
-
     int translateLimit(StringBuffer sql, int indx, char endChar) throws SQLServerException {
         Matcher selectMatcher = selectPattern.matcher(sql);
         Matcher openQueryMatcher = openQueryPattern.matcher(sql);
@@ -2505,18 +2495,17 @@ final class JDBCSyntaxTranslator {
                     break;
                 case OFFSET:
                     // throw exception as OFFSET is not supported
-                    throw new SQLServerException(SQLServerException.getErrString("R_limitOffsetNotSupported"), null, // SQLState
-                                                                                                                     // is
-                                                                                                                     // null
-                                                                                                                     // as
-                                                                                                                     // this
-                                                                                                                     // error
-                                                                                                                     // is
-                                                                                                                     // generated
-                                                                                                                     // in
-                                                                                                                     // the
-                                                                                                                     // driver
-                            0, // Use 0 instead of DriverError.NOT_SET to use the correct constructor
+                    // SQLState is null as this error is generated in the driver
+                    throw new SQLServerException(SQLServerException.getErrString("R_limitOffsetNotSupported"), null, 0, // Use
+                                                                                                                        // 0
+                                                                                                                        // instead
+                                                                                                                        // of
+                                                                                                                        // DriverError.NOT_SET
+                                                                                                                        // to
+                                                                                                                        // use
+                                                                                                                        // the
+                                                                                                                        // correct
+                                                                                                                        // constructor
                             null);
                 case LIMIT:
                     // Check if the number of opening/closing parentheses surrounding the digits or "?" in LIMIT match
@@ -2533,17 +2522,8 @@ final class JDBCSyntaxTranslator {
                         closingParentheses++;
                     }
                     if (openingParentheses != closingParentheses) {
-                        throw new SQLServerException(SQLServerException.getErrString("R_limitEscapeSyntaxError"), null, // SQLState
-                                                                                                                        // is
-                                                                                                                        // null
-                                                                                                                        // as
-                                                                                                                        // this
-                                                                                                                        // error
-                                                                                                                        // is
-                                                                                                                        // generated
-                                                                                                                        // in
-                                                                                                                        // the
-                                                                                                                        // driver
+                        // SQLState is null as this error is generated in the driver
+                        throw new SQLServerException(SQLServerException.getErrString("R_limitEscapeSyntaxError"), null,
                                 0, // Use 0 instead of DriverError.NOT_SET to use the correct constructor
                                 null);
                     }

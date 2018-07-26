@@ -9,12 +9,12 @@ import java.sql.ResultSetMetaData;
 
 
 /**
- * This interface is implemented by {@link SQLServerResultSetMetaData} class.
+ * Provides an interface to the{@link SQLServerResultSetMetaData} class.
  */
 public interface ISQLServerResultSetMetaData extends ResultSetMetaData {
 
     /**
-     * Returns true if the column is a SQLServer SparseColumnSet
+     * Returns if the column is a SQLServer SparseColumnSet.
      * 
      * @param column
      *        The column number

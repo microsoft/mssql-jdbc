@@ -25,8 +25,8 @@ import java.util.Set;
 
 
 /**
- * A simple implementation of the ISQLServerBulkRecord interface that can be used to read in the basic Java data types
- * from a delimited file where each line represents a row of data.
+ * Provides a simple implementation of the ISQLServerBulkRecord interface that can be used to read in the basic Java
+ * data types from a delimited file where each line represents a row of data.
  */
 public class SQLServerBulkCSVFileRecord extends SQLServerBulkCommon implements java.lang.AutoCloseable {
     /*
@@ -57,7 +57,7 @@ public class SQLServerBulkCSVFileRecord extends SQLServerBulkCommon implements j
     private static final java.util.logging.Logger loggerExternal = java.util.logging.Logger.getLogger(loggerClassName);
 
     /**
-     * Creates a simple reader to parse data from a delimited file with the given encoding.
+     * Constructs a simple reader to parse data from a delimited file with the given encoding.
      * 
      * @param fileToParse
      *        File to parse data from
@@ -111,7 +111,7 @@ public class SQLServerBulkCSVFileRecord extends SQLServerBulkCommon implements j
     }
 
     /**
-     * Creates a simple reader to parse data from a delimited file with the given encoding.
+     * Constructs a SQLServerBulkCSVFileRecord to parse data from a delimited file with the given encoding.
      * 
      * @param fileToParse
      *        InputStream to parse data from
@@ -162,7 +162,7 @@ public class SQLServerBulkCSVFileRecord extends SQLServerBulkCommon implements j
     }
 
     /**
-     * Creates a simple reader to parse data from a CSV file with the given encoding.
+     * Constructs a SQLServerBulkCSVFileRecord to parse data from a CSV file with the given encoding.
      * 
      * @param fileToParse
      *        File to parse data from
@@ -179,7 +179,7 @@ public class SQLServerBulkCSVFileRecord extends SQLServerBulkCommon implements j
     }
 
     /**
-     * Creates a simple reader to parse data from a CSV file with the default encoding.
+     * Constructs a SQLServerBulkCSVFileRecord to parse data from a CSV file with the default encoding.
      * 
      * @param fileToParse
      *        File to parse data from

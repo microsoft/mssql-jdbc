@@ -25,8 +25,8 @@ import java.util.Locale;
 
 
 /**
- * The implementation of the key store provider for the Windows Certificate Store. This class enables using keys stored
- * in the Windows Certificate Store as column master keys.
+ * Provides the implementation of the key store provider for the Windows Certificate Store. This class enables using
+ * keys stored in the Windows Certificate Store as column master keys.
  *
  */
 public final class SQLServerColumnEncryptionCertificateStoreProvider extends SQLServerColumnEncryptionKeyStoreProvider {
@@ -50,6 +50,9 @@ public final class SQLServerColumnEncryptionCertificateStoreProvider extends SQL
     }
     private Path keyStoreDirectoryPath = null;
 
+    /**
+     * Constructs a SQLServerColumnEncryptionCertificateStoreProvider.
+     */
     public SQLServerColumnEncryptionCertificateStoreProvider() {
         windowsCertificateStoreLogger.entering(SQLServerColumnEncryptionCertificateStoreProvider.class.getName(),
                 "SQLServerColumnEncryptionCertificateStoreProvider");

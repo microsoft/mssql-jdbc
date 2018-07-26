@@ -30,7 +30,7 @@ import java.util.UUID;
 
 
 /**
- * CallableStatement implements JDBC callable statements. CallableStatement allows the caller to specify the procedure
+ * Provides implementation of JDBC callable statements. CallableStatement allows the caller to specify the procedure
  * name to call along with input parameter value and output parameter types. Callable statement also allows the return
  * of a return status with the ? = call( ?, ..) JDBC syntax
  * <p>

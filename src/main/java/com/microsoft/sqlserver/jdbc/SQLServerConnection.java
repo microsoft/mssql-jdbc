@@ -52,8 +52,9 @@ import mssql.googlecode.concurrentlinkedhashmap.EvictionListener;
 
 
 /**
- * SQLServerConnection implements a JDBC connection to SQL Server. SQLServerConnections support JDBC connection pooling
- * and may be either physical JDBC connections or logical JDBC connections.
+ * Provides an implementation java.sql.connection interface that assists creating a JDBC connection to SQL Server.
+ * SQLServerConnections support JDBC connection pooling and may be either physical JDBC connections or logical JDBC
+ * connections.
  * <p>
  * SQLServerConnection manages transaction control for all statements that were created from it. SQLServerConnection may
  * participate in XA distributed transactions managed via an XAResource adapter.
@@ -72,12 +73,11 @@ import mssql.googlecode.concurrentlinkedhashmap.EvictionListener;
  * <p>
  * The API javadoc for JDBC API methods that this class implements are not repeated here. Please see Sun's JDBC API
  * interfaces javadoc for those details.
+ *
+ * NOTE: All the public functions in this class also need to be defined in SQLServerConnectionPoolProxy Declare all new
+ * custom (non-static) Public APIs in ISQLServerConnection interface such that they can also be implemented by
+ * SQLServerConnectionPoolProxy
  */
-
-// NOTE: All the public functions in this class also need to be defined in SQLServerConnectionPoolProxy
-// Declare all new custom (non-static) Public APIs in ISQLServerConnection interface such that they can also be
-// implemented by
-// SQLServerConnectionPoolProxy
 public class SQLServerConnection implements ISQLServerConnection, java.io.Serializable {
 
     /**
@@ -99,17 +99,12 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     /**
      * The default for if prepared statements should execute sp_executesql before following the prepare, unprepare
      * pattern.
+     * 
+     * Used to set the initial default, can be changed later. false == use sp_executesql -> sp_prepexec -> sp_execute ->
+     * batched -> sp_unprepare pattern, true == skip sp_executesql part of pattern.
      */
-    static final boolean DEFAULT_ENABLE_PREPARE_ON_FIRST_PREPARED_STATEMENT_CALL = false; // Used to set the initial
-                                                                                          // default, can be changed
-                                                                                          // later.
-                                                                                          // false == use sp_executesql
-                                                                                          // -> sp_prepexec ->
-                                                                                          // sp_execute
-                                                                                          // -> batched -> sp_unprepare
-                                                                                          // pattern, true == skip
-                                                                                          // sp_executesql part of
-                                                                                          // pattern.
+    static final boolean DEFAULT_ENABLE_PREPARE_ON_FIRST_PREPARED_STATEMENT_CALL = false;
+
     private Boolean enablePrepareOnFirstPreparedStatementCall = null; // Current limit for this particular connection.
 
     // Handle the actual queue of discarded prepared statements.
@@ -174,7 +169,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     }
 
     /**
-     * Used to keep track of an individual prepared statement handle.
+     * Keeps track of an individual prepared statement handle.
      */
     class PreparedStatementHandle {
         private int handle = 0;
@@ -214,12 +209,12 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             return explicitlyDiscarded;
         }
 
-        /** Get the actual handle. */
+        /** Returns the actual handle. */
         int getHandle() {
             return handle;
         }
 
-        /** Get the cache key. */
+        /** Returns the cache key. */
         CityHash128Key getKey() {
             return key;
         }
@@ -229,7 +224,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         }
 
         /**
-         * Make sure handle cannot be re-used.
+         * Makes sure handle cannot be re-used.
          * 
          * @return false: Handle could not be discarded, it is in use. true: Handle was successfully put on path for
          *         discarding.
@@ -275,12 +270,12 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 .maximumWeightedCapacity(PARSED_SQL_CACHE_SIZE).build();
     }
 
-    /** Get prepared statement cache entry if exists, if not parse and create a new one */
+    /** Returns prepared statement cache entry if exists, if not parse and create a new one */
     static ParsedSQLCacheItem getCachedParsedSQL(CityHash128Key key) {
         return parsedSQLCache.get(key);
     }
 
-    /** Parse and create a information about parsed SQL text */
+    /** Parses and create a information about parsed SQL text */
     static ParsedSQLCacheItem parseAndCacheSQL(CityHash128Key key, String sql) throws SQLServerException {
         JDBCSyntaxTranslator translator = new JDBCSyntaxTranslator();
 
@@ -311,7 +306,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     private boolean disableStatementPooling = true;
 
     /**
-     * Locate statement parameters.
+     * Locates statement parameters.
      * 
      * @param sql
      *        SQL text to parse for positions of parameters to intialize.
@@ -334,7 +329,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     }
 
     /**
-     * Struct encapsulating the data to be sent to the server as part of Federated Authentication Feature Extension.
+     * Encapsulates the data to be sent to the server as part of Federated Authentication Feature Extension.
      */
     class FederatedAuthenticationFeatureExtensionData {
         boolean fedAuthRequiredPreLoginResponse;
@@ -391,7 +386,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     }
 
     /**
-     * denotes the state of the SqlServerConnection
+     * Denotes the state of the SqlServerConnection.
      */
     private enum State {
         Initialized, // default value on calling SQLServerConnection constructor
@@ -490,12 +485,12 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     }
 
     /**
-     * timeout value for canceling the query timeout
+     * Timeout value for canceling the query timeout.
      */
     private int cancelQueryTimeoutSeconds;
 
     /**
-     * Retrieves the cancelTimeout in seconds
+     * Returns the cancelTimeout in seconds.
      * 
      * @return
      */
@@ -510,12 +505,12 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     }
 
     /**
-     * boolean value for deciding if the driver should use bulk copy API for batch inserts
+     * boolean value for deciding if the driver should use bulk copy API for batch inserts.
      */
     private boolean useBulkCopyForBatchInsert;
 
     /**
-     * Retrieves the useBulkCopyForBatchInsert value.
+     * Returns the useBulkCopyForBatchInsert value.
      * 
      * @return flag for using Bulk Copy API for batch insert operations.
      */
@@ -775,7 +770,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     }
 
     /**
-     * Retrieves the Trusted Master Key Paths.
+     * Returns the Trusted Master Key Paths.
      * 
      * @return columnEncryptionTrustedMasterKeyPaths.
      */
@@ -1001,9 +996,9 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     }
 
     /*
-     * This function is used by the functions that return a connection object to outside world. E.g. stmt.getConnection,
-     * these functions should return the proxy not the actual physical connection when the physical connection is pooled
-     * and the user should be accessing the connection functions via the proxy object.
+     * Provides functionality to return a connection object to outside world. E.g. stmt.getConnection, these functions
+     * should return the proxy not the actual physical connection when the physical connection is pooled and the user
+     * should be accessing the connection functions via the proxy object.
      */
     final Connection getConnection() {
         if (null != proxy)
@@ -1018,7 +1013,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     }
 
     /**
-     * Generate the next unique connection id.
+     * Generates the next unique connection id.
      * 
      * @return the next conn id
      */
@@ -1035,7 +1030,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     }
 
     /**
-     * This is a helper function to provide an ID string suitable for tracing.
+     * Provides a helper function to return an ID string suitable for tracing.
      */
     @Override
     public String toString() {
@@ -1046,7 +1041,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     }
 
     /**
-     * Check if the connection is closed Create a new connection if it's a fedauth connection and the access token is
+     * Checks if the connection is closed Create a new connection if it's a fedauth connection and the access token is
      * going to expire.
      * 
      * @throws SQLServerException
@@ -1065,7 +1060,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     }
 
     /**
-     * Check if a string property is enabled.
+     * Returns if a string property is enabled.
      * 
      * @param propName
      *        the string property name
@@ -1136,13 +1131,9 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                         // We do not need to check for exceptions here, as the connection properties are already
                         // verified during the first try. Also, we would like to do this calculation
                         // only for the TLS 1.2 exception case.
-                        loginTimeoutSeconds = SQLServerDriverIntProperty.LOGIN_TIMEOUT.getDefaultValue(); // if the user
-                                                                                                          // does not
-                                                                                                          // specify a
-                                                                                                          // default
-                                                                                                          // timeout,
-                                                                                                          // default is
-                                                                                                          // 15 per spec
+                        // if the user does not specify a default timeout, default is 15 per spec
+                        loginTimeoutSeconds = SQLServerDriverIntProperty.LOGIN_TIMEOUT.getDefaultValue();
+
                         String sPropValue = propsIn.getProperty(SQLServerDriverIntProperty.LOGIN_TIMEOUT.toString());
                         if (null != sPropValue && sPropValue.length() > 0) {
                             int sPropValueInt = Integer.parseInt(sPropValue);
@@ -1279,11 +1270,8 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             sPropValue = activeConnectionProperties.getProperty(sPropKey);
             ValidateMaxSQLLoginName(sPropKey, sPropValue);
 
-            int loginTimeoutSeconds = SQLServerDriverIntProperty.LOGIN_TIMEOUT.getDefaultValue(); // if the user does
-                                                                                                  // not specify a
-                                                                                                  // default timeout,
-                                                                                                  // default is 15 per
-                                                                                                  // spec
+            // if the user does not specify a default timeout, default is 15 per spec
+            int loginTimeoutSeconds = SQLServerDriverIntProperty.LOGIN_TIMEOUT.getDefaultValue();
             sPropValue = activeConnectionProperties.getProperty(SQLServerDriverIntProperty.LOGIN_TIMEOUT.toString());
             if (null != sPropValue && sPropValue.length() > 0) {
                 try {
@@ -1938,12 +1926,11 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
     }
 
-    // This function is used by non failover and failover cases. Even when we make a standard connection the server can
-    // provide us with its
-    // FO partner.
-    // If no FO information is available a standard connection is made.
-    // If the server returns a failover upon connection, we shall store the FO in our cache.
-    //
+    /**
+     * This function is used by non failover and failover cases. Even when we make a standard connection the server can
+     * provide us with its FO partner. If no FO information is available a standard connection is made. If the server
+     * returns a failover upon connection, we shall store the FO in our cache.
+     */
     private void login(String primary, String primaryInstanceName, int primaryPortNumber, String mirror,
             FailoverInfo foActual, int timeout, long timerStart) throws SQLServerException {
         // standardLogin would be false only for db mirroring scenarios. It would be true
@@ -2409,7 +2396,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     }
 
     /**
-     * Negotiates prelogin information with the server
+     * Negotiates prelogin information with the server.
      */
     void Prelogin(String serverName, int portNumber) throws SQLServerException {
         // Build a TDS Pre-Login packet to send to the server.
@@ -2938,7 +2925,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     }
 
     /**
-     * Return the syntax to set the database calatog to use.
+     * Sets the syntax to set the database calatog to use.
      * 
      * @param sDB
      *        the new catalog
@@ -2953,7 +2940,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     }
 
     /**
-     * Return the syntax to set the database isolation level.
+     * Returns the syntax to set the database isolation level.
      * 
      * @return the required syntax
      */
@@ -2991,7 +2978,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     }
 
     /**
-     * Return the syntax to set the database commit mode.
+     * Returns the syntax to set the database commit mode.
      * 
      * @return the required syntax
      */
@@ -3431,15 +3418,11 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         return len;
     }
 
+    // if false just calculates the length
+
     int writeFedAuthFeatureRequest(boolean write, TDSWriter tdsWriter,
-            FederatedAuthenticationFeatureExtensionData fedAuthFeatureExtensionData) throws SQLServerException { /*
-                                                                                                                  * if
-                                                                                                                  * false
-                                                                                                                  * just
-                                                                                                                  * calculates
-                                                                                                                  * the
-                                                                                                                  * length
-                                                                                                                  */
+            FederatedAuthenticationFeatureExtensionData fedAuthFeatureExtensionData) throws SQLServerException {
+
         assert (fedAuthFeatureExtensionData.libraryType == TDS.TDS_FEDAUTH_LIBRARY_ADAL
                 || fedAuthFeatureExtensionData.libraryType == TDS.TDS_FEDAUTH_LIBRARY_SECURITYTOKEN);
 
@@ -3452,10 +3435,9 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 break;
             case TDS.TDS_FEDAUTH_LIBRARY_SECURITYTOKEN:
                 assert null != fedAuthFeatureExtensionData.accessToken;
-                dataLen = 1 + 4 + fedAuthFeatureExtensionData.accessToken.length; // length of feature data = 1 byte for
-                                                                                  // library and echo, security
-                                                                                  // token length and sizeof(int) for
-                                                                                  // token lengh itself
+                // length of feature data = 1 byte for library and echo,
+                // security token length and sizeof(int) for token length itself
+                dataLen = 1 + 4 + fedAuthFeatureExtensionData.accessToken.length;
                 break;
             default:
                 assert (false); // Unrecognized library type for fedauth feature extension request"
@@ -5471,7 +5453,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     }
 
     /**
-     * Replace JDBC syntax parameter markets '?' with SQL Server paramter markers @p1, @p2 etc...
+     * Replaces JDBC syntax parameter markets '?' with SQL Server paramter markers @p1, @p2 etc...
      * 
      * @param sql
      *        the user's SQL
@@ -5515,7 +5497,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     }
 
     /**
-     * Make a SQL Server style parameter name.
+     * Makes a SQL Server style parameter name.
      * 
      * @param nParam
      *        the parameter number
@@ -5549,11 +5531,12 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         }
     }
 
-    // Notify any interested parties (e.g. pooling managers) of a ConnectionEvent activity
-    // on the connection. Calling notifyPooledConnection with null event will place this
-    // connection back in the pool. Calling notifyPooledConnection with a non-null event is
-    // used to notify the pooling manager that the connection is bad and should be removed
-    // from the pool.
+    /**
+     * Notify any interested parties (e.g. pooling managers) of a ConnectionEvent activity on the connection. Calling
+     * notifyPooledConnection with null event will place this connection back in the pool. Calling
+     * notifyPooledConnection with a non-null event is used to notify the pooling manager that the connection is bad and
+     * should be removed from the pool.
+     */
     void notifyPooledConnection(SQLServerException e) {
         synchronized (this) {
             if (null != pooledConnectionParent) {
@@ -5571,7 +5554,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     }
 
     /**
-     * Determine the listening port of a named SQL Server instance.
+     * Determines the listening port of a named SQL Server instance.
      * 
      * @param server
      *        the server name
@@ -5695,16 +5678,19 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         return nNextSavePointId;
     }
 
-    // Returns this connection's SQLServerConnectionSecurityManager class to caller.
-    // Used by SQLServerPooledConnection to verify security when passing out Connection objects.
+    /**
+     * Returns this connection's SQLServerConnectionSecurityManager class to caller. Used by SQLServerPooledConnection
+     * to verify security when passing out Connection objects.
+     */
     void doSecurityCheck() {
         assert null != currentConnectPlaceHolder;
         currentConnectPlaceHolder.doSecurityCheck();
     }
 
-    // ColumnEncryptionKeyCache sets time-to-live for column encryption key entries in
-    // the column encryption key cache for the Always Encrypted feature. The default value is 2 hours.
-    // This variable holds the value in seconds.
+    /**
+     * Sets time-to-live for column encryption key entries in the column encryption key cache for the Always Encrypted
+     * feature. The default value is 2 hours. This variable holds the value in seconds.
+     */
     private static long columnEncryptionKeyCacheTtl = TimeUnit.SECONDS.convert(2, TimeUnit.HOURS);
 
     /**
@@ -5733,7 +5719,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     }
 
     /**
-     * Enqueue a discarded prepared statement handle to be clean-up on the server.
+     * Enqueues a discarded prepared statement handle to be clean-up on the server.
      * 
      * @param statementHandle
      *        The prepared statement handle that should be scheduled for unprepare.
@@ -5762,7 +5748,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     }
 
     /**
-     * Remove references to outstanding un-prepare requests. Should be run when connection is closed.
+     * Removes references to outstanding un-prepare requests. Should be run when connection is closed.
      */
     private final void cleanupPreparedStatementDiscardActions() {
         discardedPreparedStatementHandles.clear();
@@ -5800,7 +5786,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     }
 
     /**
-     * Cleans-up discarded prepared statement handles on the server using batched un-prepare actions if the batching
+     * Cleans up discarded prepared statement handles on the server using batched un-prepare actions if the batching
      * threshold has been reached.
      * 
      * @param force
@@ -5900,7 +5886,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     }
 
     /**
-     * Internal method to prepare the cache handle
+     * Prepares the cache handle.
      * 
      * @param value
      */
@@ -5913,7 +5899,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 .maximumWeightedCapacity(getStatementPoolingCacheSize()).build();
     }
 
-    /** Get a parameter metadata cache entry if statement pooling is enabled */
+    /** Returns a parameter metadata cache entry if statement pooling is enabled */
     final SQLServerParameterMetaData getCachedParameterMetadata(CityHash128Key key) {
         if (!isStatementPoolingEnabled())
             return null;
@@ -5921,7 +5907,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         return parameterMetadataCache.get(key);
     }
 
-    /** Register a parameter metadata cache entry if statement pooling is enabled */
+    /** Registers a parameter metadata cache entry if statement pooling is enabled */
     final void registerCachedParameterMetadata(CityHash128Key key, SQLServerParameterMetaData pmd) {
         if (!isStatementPoolingEnabled() || null == pmd)
             return;
@@ -5929,7 +5915,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         parameterMetadataCache.put(key, pmd);
     }
 
-    /** Get or create prepared statement handle cache entry if statement pooling is enabled */
+    /** Gets or creates prepared statement handle cache entry if statement pooling is enabled */
     final PreparedStatementHandle getCachedPreparedStatementHandle(CityHash128Key key) {
         if (!isStatementPoolingEnabled())
             return null;
@@ -5937,7 +5923,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         return preparedStatementHandleCache.get(key);
     }
 
-    /** Get or create prepared statement handle cache entry if statement pooling is enabled */
+    /** Gets or creates prepared statement handle cache entry if statement pooling is enabled */
     final PreparedStatementHandle registerCachedPreparedStatementHandle(CityHash128Key key, int handle,
             boolean isDirectSql) {
         if (!isStatementPoolingEnabled() || null == key)
@@ -5948,7 +5934,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         return cacheItem;
     }
 
-    /** Return prepared statement handle cache entry so it can be un-prepared. */
+    /** Returns prepared statement handle cache entry so it can be un-prepared. */
     final void returnCachedPreparedStatementHandle(PreparedStatementHandle handle) {
         handle.removeReference();
 
@@ -5956,7 +5942,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             enqueueUnprepareStatementHandle(handle);
     }
 
-    /** Force eviction of prepared statement handle cache entry. */
+    /** Forces eviction of prepared statement handle cache entry. */
     final void evictCachedPreparedStatementHandle(PreparedStatementHandle handle) {
         if (null == handle || null == handle.getKey())
             return;
@@ -5964,7 +5950,9 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         preparedStatementHandleCache.remove(handle.getKey());
     }
 
-    // Handle closing handles when removed from cache.
+    /*
+     * Handles closing handles when removed from cache.
+     */
     final class PreparedStatementCacheEvictionListener
             implements EvictionListener<CityHash128Key, PreparedStatementHandle> {
         public void onEviction(CityHash128Key key, PreparedStatementHandle handle) {
@@ -6009,6 +5997,8 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     }
 
     /**
+     * Adds statement to openStatements
+     * 
      * @param st
      *        Statement to add to openStatements
      */
@@ -6019,6 +6009,8 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     }
 
     /**
+     * Removes state from openStatements
+     * 
      * @param st
      *        Statement to remove from openStatements
      */
@@ -6030,7 +6022,10 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 }
 
 
-// Helper class for security manager functions used by SQLServerConnection class.
+/**
+ * Provides Helper class for security manager functions used by SQLServerConnection class.
+ * 
+ */
 final class SQLServerConnectionSecurityManager {
     static final String dllName = "sqljdbc_auth.dll";
     String serverName;
@@ -6042,8 +6037,8 @@ final class SQLServerConnectionSecurityManager {
     }
 
     /**
-     * checkConnect will throws a SecurityException if the calling thread is not allowed to open a socket connection to
-     * the specified serverName and portNumber.
+     * Throws a SecurityException if the calling thread is not allowed to open a socket connection to the specified
+     * serverName and portNumber.
      * 
      * @throws SecurityException
      *         when an error occurs

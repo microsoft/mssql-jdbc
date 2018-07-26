@@ -18,9 +18,8 @@ import java.util.logging.Logger;
 
 
 /**
- * SQLServerBlob represents a binary LOB object and implements a java.sql.Blob.
+ * Represents a binary LOB object and implements a java.sql.Blob.
  */
-
 public final class SQLServerBlob extends SQLServerLob implements java.sql.Blob, java.io.Serializable {
     /**
      * Always refresh SerialVersionUID when prompted

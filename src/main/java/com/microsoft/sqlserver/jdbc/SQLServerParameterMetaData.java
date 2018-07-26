@@ -21,7 +21,7 @@ import java.util.regex.Pattern;
 
 
 /**
- * SQLServerParameterMetaData provides JDBC 3.0 meta data for prepared statement parameters.
+ * Provides meta data for prepared statement parameters.
  *
  * The API javadoc for JDBC API methods that this class implements are not repeated here. Please see Sun's JDBC API
  * interfaces javadoc for those details.
@@ -60,7 +60,7 @@ public final class SQLServerParameterMetaData implements ParameterMetaData {
     }
 
     /**
-     * This is a helper function to provide an ID string suitable for tracing.
+     * Provides a helper function to provide an ID string suitable for tracing.
      * 
      * @return traceID string
      */
@@ -70,7 +70,7 @@ public final class SQLServerParameterMetaData implements ParameterMetaData {
     }
 
     /**
-     * Parse the columns in a column set.
+     * Parses the columns in a column set.
      * 
      * @param columnSet
      *        the list of columns
@@ -131,7 +131,7 @@ public final class SQLServerParameterMetaData implements ParameterMetaData {
     }
 
     /**
-     * Parse the column set in an insert syntax.
+     * Parses the column set in an insert syntax.
      * 
      * @param sql
      *        the sql syntax
@@ -203,7 +203,7 @@ public final class SQLServerParameterMetaData implements ParameterMetaData {
     Map<Integer, QueryMeta> queryMetaMap = null;
 
     /*
-     * Parse query metadata.
+     * Parses query metadata.
      */
     private void parseQueryMeta(ResultSet rsQueryMeta) throws SQLServerException {
         Pattern datatypePattern = Pattern.compile("(.*)\\((.*)(\\)|,(.*)\\))");
@@ -325,7 +325,7 @@ public final class SQLServerParameterMetaData implements ParameterMetaData {
     }
 
     /**
-     * Escape parser, using the tokenizer tokenizes escaped strings properly e.g.[Table Name, ]
+     * Parses escaped strings properly e.g.[Table Name, ] using tokenizer.
      * 
      * @param st
      *        string tokenizer
@@ -372,7 +372,7 @@ public final class SQLServerParameterMetaData implements ParameterMetaData {
     }
 
     /**
-     * Parse a SQL syntax.
+     * Parses a SQL syntax.
      * 
      * @param sql
      *        String
@@ -427,7 +427,7 @@ public final class SQLServerParameterMetaData implements ParameterMetaData {
     }
 
     /**
-     * Parse a SQL syntax.
+     * Parses a SQL syntax.
      * 
      * @param sql
      *        the syntax
@@ -534,7 +534,7 @@ public final class SQLServerParameterMetaData implements ParameterMetaData {
     }
 
     /**
-     * Create new parameter meta data.
+     * Construct a SQLServerParameterMetaData parameter meta data.
      * 
      * @param st
      *        the prepared statement
@@ -894,7 +894,7 @@ public final class SQLServerParameterMetaData implements ParameterMetaData {
     }
 
     /**
-     * Verify a supplied parameter index is valid
+     * Returns if a supplied parameter index is valid.
      * 
      * @param param
      *        the param index

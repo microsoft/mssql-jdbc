@@ -12,7 +12,7 @@ import java.util.Calendar;
 
 
 /**
- * This interface is implemented by {@link SQLServerCallableStatement} Class.
+ * Provides an interface to the {@link SQLServerCallableStatement} class.
  */
 public interface ISQLServerCallableStatement extends java.sql.CallableStatement, ISQLServerPreparedStatement {
 
@@ -20,7 +20,7 @@ public interface ISQLServerCallableStatement extends java.sql.CallableStatement,
     public BigDecimal getBigDecimal(String parameterName, int scale) throws SQLServerException;
 
     /**
-     * Retrieves the value of the designated column in the current row of this ResultSet object as a java.sql.Timestamp
+     * Returns the value of the designated column in the current row of this ResultSet object as a java.sql.Timestamp
      * object in the Java programming language.
      * 
      * @param index
@@ -32,7 +32,7 @@ public interface ISQLServerCallableStatement extends java.sql.CallableStatement,
     public Timestamp getDateTime(int index) throws SQLServerException;
 
     /**
-     * Retrieves the value of the designated column in the current row of this ResultSet object as a java.sql.Timestamp
+     * Returns the value of the designated column in the current row of this ResultSet object as a java.sql.Timestamp
      * object in the Java programming language.
      * 
      * @param parameterName
@@ -45,7 +45,7 @@ public interface ISQLServerCallableStatement extends java.sql.CallableStatement,
     public Timestamp getDateTime(String parameterName) throws SQLServerException;
 
     /**
-     * Retrieves the value of the designated column in the current row of this ResultSet object as a java.sql.Timestamp
+     * Returns the value of the designated column in the current row of this ResultSet object as a java.sql.Timestamp
      * object in the Java programming language. This method uses the given calendar to construct an appropriate
      * millisecond value for the timestamp if the underlying database does not store timezone information.
      * 
@@ -60,7 +60,7 @@ public interface ISQLServerCallableStatement extends java.sql.CallableStatement,
     public Timestamp getDateTime(int index, Calendar cal) throws SQLServerException;
 
     /**
-     * Retrieves the value of the designated column in the current row of this ResultSet object as a java.sql.Timestamp
+     * Returns the value of the designated column in the current row of this ResultSet object as a java.sql.Timestamp
      * object in the Java programming language. This method uses the given calendar to construct an appropriate
      * millisecond value for the timestamp if the underlying database does not store timezone information.
      * 
@@ -75,7 +75,7 @@ public interface ISQLServerCallableStatement extends java.sql.CallableStatement,
     public Timestamp getDateTime(String name, Calendar cal) throws SQLServerException;
 
     /**
-     * Retrieves the value of the designated column in the current row of this ResultSet object as a java.sql.Timestamp
+     * Returns the value of the designated column in the current row of this ResultSet object as a java.sql.Timestamp
      * object in the Java programming language.
      * 
      * @param index
@@ -87,7 +87,7 @@ public interface ISQLServerCallableStatement extends java.sql.CallableStatement,
     public Timestamp getSmallDateTime(int index) throws SQLServerException;
 
     /**
-     * Retrieves the value of the designated column in the current row of this ResultSet object as a java.sql.Timestamp
+     * Returns the value of the designated column in the current row of this ResultSet object as a java.sql.Timestamp
      * object in the Java programming language.
      * 
      * @param parameterName
@@ -99,7 +99,7 @@ public interface ISQLServerCallableStatement extends java.sql.CallableStatement,
     public Timestamp getSmallDateTime(String parameterName) throws SQLServerException;
 
     /**
-     * Retrieves the value of the designated column in the current row of this ResultSet object as a java.sql.Timestamp
+     * Returns the value of the designated column in the current row of this ResultSet object as a java.sql.Timestamp
      * object in the Java programming language.
      * 
      * @param index
@@ -113,7 +113,7 @@ public interface ISQLServerCallableStatement extends java.sql.CallableStatement,
     public Timestamp getSmallDateTime(int index, Calendar cal) throws SQLServerException;
 
     /**
-     * Retrieves the value of the designated column in the current row of this ResultSet object as a java.sql.Timestamp
+     * Returns the value of the designated column in the current row of this ResultSet object as a java.sql.Timestamp
      * object in the Java programming language.
      * 
      * @param name
@@ -127,7 +127,7 @@ public interface ISQLServerCallableStatement extends java.sql.CallableStatement,
     public Timestamp getSmallDateTime(String name, Calendar cal) throws SQLServerException;
 
     /**
-     * Gets the DateTimeOffset value of parameter with index parameterIndex
+     * Returns the DateTimeOffset value of parameter with index parameterIndex.
      * 
      * @param parameterIndex
      *        the first parameter is 1, the second is 2, and so on
@@ -139,7 +139,7 @@ public interface ISQLServerCallableStatement extends java.sql.CallableStatement,
     public microsoft.sql.DateTimeOffset getDateTimeOffset(int parameterIndex) throws SQLServerException;
 
     /**
-     * Gets the DateTimeOffset value of parameter with name parameterName
+     * Returns the DateTimeOffset value of parameter with name parameterName.
      * 
      * @param parameterName
      *        the name of the parameter
@@ -151,7 +151,7 @@ public interface ISQLServerCallableStatement extends java.sql.CallableStatement,
     public microsoft.sql.DateTimeOffset getDateTimeOffset(String parameterName) throws SQLServerException;
 
     /**
-     * Retrieves the value of the designated column in the current row of this <code>ResultSet</code> object as a stream
+     * Returns the value of the designated column in the current row of this <code>ResultSet</code> object as a stream
      * of ASCII characters. The value can then be read in chunks from the stream. This method is particularly suitable
      * for retrieving large <code>LONGVARCHAR</code> values. The JDBC driver will do any necessary conversion from the
      * database format into ASCII.
@@ -172,7 +172,7 @@ public interface ISQLServerCallableStatement extends java.sql.CallableStatement,
     public java.io.InputStream getAsciiStream(int parameterIndex) throws SQLServerException;
 
     /**
-     * Retrieves the value of the designated column in the current row of this <code>ResultSet</code> object as a stream
+     * Returns the value of the designated column in the current row of this <code>ResultSet</code> object as a stream
      * of ASCII characters. The value can then be read in chunks from the stream. This method is particularly suitable
      * for retrieving large <code>LONGVARCHAR</code> values. The JDBC driver will do any necessary conversion from the
      * database format into ASCII.
@@ -193,7 +193,7 @@ public interface ISQLServerCallableStatement extends java.sql.CallableStatement,
     public java.io.InputStream getAsciiStream(String parameterName) throws SQLServerException;
 
     /**
-     * Retrieves the value of the column specified as a java.math.BigDecimal object.
+     * Returns the value of the column specified as a java.math.BigDecimal object.
      * 
      * @param parameterIndex
      *        The zero-based ordinal of a column.
@@ -204,7 +204,7 @@ public interface ISQLServerCallableStatement extends java.sql.CallableStatement,
     public BigDecimal getMoney(int parameterIndex) throws SQLServerException;
 
     /**
-     * Retrieves the value of the column specified as a java.math.BigDecimal object.
+     * Returns the value of the column specified as a java.math.BigDecimal object.
      * 
      * @param parameterName
      *        The name of a column.
@@ -215,7 +215,7 @@ public interface ISQLServerCallableStatement extends java.sql.CallableStatement,
     public BigDecimal getMoney(String parameterName) throws SQLServerException;
 
     /**
-     * Retrieves the value of the column specified as a java.math.BigDecimal object.
+     * Returns the value of the column specified as a java.math.BigDecimal object.
      * 
      * @param parameterIndex
      *        The zero-based ordinal of a column.
@@ -226,7 +226,7 @@ public interface ISQLServerCallableStatement extends java.sql.CallableStatement,
     public BigDecimal getSmallMoney(int parameterIndex) throws SQLServerException;
 
     /**
-     * Retrieves the value of the column specified as a java.math.BigDecimal object.
+     * Returns the value of the column specified as a java.math.BigDecimal object.
      * 
      * @param parameterName
      *        The name of a column.
@@ -237,7 +237,7 @@ public interface ISQLServerCallableStatement extends java.sql.CallableStatement,
     public BigDecimal getSmallMoney(String parameterName) throws SQLServerException;
 
     /**
-     * Retrieves the value of the designated column in the current row of this <code>ResultSet</code> object as a stream
+     * Returns the value of the designated column in the current row of this <code>ResultSet</code> object as a stream
      * of uninterpreted bytes. The value can then be read in chunks from the stream. This method is particularly
      * suitable for retrieving large <code>LONGVARBINARY</code> values.
      *
@@ -257,7 +257,7 @@ public interface ISQLServerCallableStatement extends java.sql.CallableStatement,
     public java.io.InputStream getBinaryStream(int parameterIndex) throws SQLServerException;
 
     /**
-     * Retrieves the value of the designated column in the current row of this <code>ResultSet</code> object as a stream
+     * Returns the value of the designated column in the current row of this <code>ResultSet</code> object as a stream
      * of uninterpreted <code>byte</code>s. The value can then be read in chunks from the stream. This method is
      * particularly suitable for retrieving large <code>LONGVARBINARY</code> values.
      *
@@ -478,7 +478,7 @@ public interface ISQLServerCallableStatement extends java.sql.CallableStatement,
             boolean forceEncrypt) throws SQLServerException;
 
     /**
-     * Sets parameter parameterName to DateTimeOffset x
+     * Sets parameter parameterName to DateTimeOffset value.
      * 
      * @param parameterName
      *        the name of the parameter
@@ -490,7 +490,7 @@ public interface ISQLServerCallableStatement extends java.sql.CallableStatement,
     public void setDateTimeOffset(String parameterName, microsoft.sql.DateTimeOffset value) throws SQLServerException;
 
     /**
-     * Sets parameter parameterName to DateTimeOffset x
+     * Sets parameter parameterName to DateTimeOffset value.
      * 
      * @param parameterName
      *        the name of the parameter
@@ -505,7 +505,7 @@ public interface ISQLServerCallableStatement extends java.sql.CallableStatement,
             int scale) throws SQLServerException;
 
     /**
-     * Sets parameter parameterName to DateTimeOffset x
+     * Sets parameter parameterName to DateTimeOffset value.
      * 
      * @param parameterName
      *        the name of the parameter

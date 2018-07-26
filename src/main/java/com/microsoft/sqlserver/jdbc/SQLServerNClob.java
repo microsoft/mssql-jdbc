@@ -17,9 +17,8 @@ import java.util.logging.Logger;
 
 
 /**
- * SQLServerNClob represents a National Character Set LOB object and implements java.sql.NClob.
+ * Represents a National Character Set LOB object and implements java.sql.NClob.
  */
-
 public final class SQLServerNClob extends SQLServerClobBase implements NClob {
 
     /**
