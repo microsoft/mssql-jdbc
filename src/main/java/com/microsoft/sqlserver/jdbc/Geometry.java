@@ -57,11 +57,7 @@ public class Geometry extends SQLServerSpatialDatatype {
         buffer = ByteBuffer.wrap(wkb);
         buffer.order(ByteOrder.LITTLE_ENDIAN);
 
-        try {
-            parseWkb(this);
-        } catch (BufferUnderflowException e) {
-            throwIllegalWKB();
-        }
+        parseWkb(this);
 
         WKTsb = new StringBuffer();
         WKTsbNoZM = new StringBuffer();
