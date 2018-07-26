@@ -149,21 +149,6 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
             for (int i = 0; i < columnListExpected.size(); i++) {
                 assertEquals(columnList.get(i), columnListExpected.get(i));
             }
-            // don't check valuelist
-            //
-            // method = pstmt.getClass().getDeclaredMethod("parseUserSQLForValueListDW", boolean.class);
-            // method.setAccessible(true);
-            //
-            // ArrayList<String> valueList = (ArrayList<String>) method.invoke(pstmt, false);
-            // ArrayList<String> valueListExpected = new ArrayList<String>();
-            // valueListExpected.add("1");
-            // valueListExpected.add("2");
-            // valueListExpected.add("'?'");
-            // valueListExpected.add("?");
-            //
-            // for (int i = 0; i < valueListExpected.size(); i++) {
-            // assertEquals(valueList.get(i), valueListExpected.get(i));
-            // }
         }
     }
 
