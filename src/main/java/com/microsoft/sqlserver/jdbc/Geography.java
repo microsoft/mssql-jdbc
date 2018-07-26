@@ -5,7 +5,6 @@
 
 package com.microsoft.sqlserver.jdbc;
 
-import java.nio.BufferUnderflowException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 
