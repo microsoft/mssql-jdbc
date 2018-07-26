@@ -12,7 +12,7 @@ import javax.security.auth.login.Configuration;
 
 
 /**
- * This class overrides JAAS Configuration and always provide a configuration is not defined for default configuration.
+ * Overrides JAAS Configuration and always provide a configuration is not defined for default configuration.
  */
 public class JaasConfiguration extends Configuration {
 

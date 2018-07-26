@@ -10,13 +10,13 @@ import java.util.List;
 
 
 /**
- * This class is used to retrieve Sensitivity Information for columns as configured in Database.
+ * Represents the Data Classification Sensitivity Information for columns as configured in Database.
  */
 public class ColumnSensitivity {
     private List<SensitivityProperty> sensitivityProperties;
 
     /**
-     * Constructor for ColumnSensitivity
+     * Constructs a ColumnSensitivity
      * 
      * @param sensitivityProperties
      *        List of sensitivity properties as received from SQL Server
@@ -26,7 +26,7 @@ public class ColumnSensitivity {
     }
 
     /**
-     * Retrieves list of sensitivity properties as received from Server for this <code>ColumnSensitivity</code>
+     * Returns the list of sensitivity properties as received from Server for this <code>ColumnSensitivity</code>
      * information
      * 
      * @return sensitivityProperties for this Class Object

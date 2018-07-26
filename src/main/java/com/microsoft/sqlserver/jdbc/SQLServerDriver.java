@@ -21,10 +21,9 @@ import org.ietf.jgss.GSSCredential;
 
 
 /**
- * SQLServerDriver implements the java.sql.Driver for SQLServerConnect.
+ * Implements the java.sql.Driver for SQLServerConnect.
  *
  */
-
 final class SQLServerDriverPropertyInfo {
     private final String name;
 
@@ -195,12 +194,16 @@ enum ApplicationIntent {
     // the value of the enum
     private final String value;
 
-    // constructor that sets the string value of the enum
+    /**
+     * Constructs a ApplicationIntent that sets the string value of the enum.
+     */
     private ApplicationIntent(String value) {
         this.value = value;
     }
 
-    // returns the string value of enum
+    /**
+     * Returns the string value of enum.
+     */
     public String toString() {
         return value;
     }
@@ -236,7 +239,7 @@ enum SQLServerDriverObjectProperty {
     }
 
     /**
-     * returning string due to structure of DRIVER_PROPERTIES_PROPERTY_ONLY
+     * Returns string due to structure of DRIVER_PROPERTIES_PROPERTY_ONLY.
      * 
      * @return
      */
@@ -360,6 +363,9 @@ enum SQLServerDriverBooleanProperty {
 }
 
 
+/**
+ * Provides methods to connect to a SQL Server database and to obtain information about the JDBC driver.
+ */
 public final class SQLServerDriver implements java.sql.Driver {
     static final String PRODUCT_NAME = "Microsoft JDBC Driver " + SQLJdbcVersion.major + "." + SQLJdbcVersion.minor
             + " for SQL Server";
@@ -500,8 +506,9 @@ public final class SQLServerDriver implements java.sql.Driver {
                     Boolean.toString(SQLServerDriverBooleanProperty.USE_BULK_COPY_FOR_BATCH_INSERT.getDefaultValue()),
                     false, TRUE_FALSE),};
 
-    // Properties that can only be set by using Properties.
-    // Cannot set in connection string
+    /**
+     * Properties that can only be set by using Properties. Cannot set in connection string
+     */
     private static final SQLServerDriverPropertyInfo[] DRIVER_PROPERTIES_PROPERTY_ONLY = {
             // default required available choices
             // property name value property (if appropriate)
@@ -558,8 +565,10 @@ public final class SQLServerDriver implements java.sql.Driver {
         loggingClassName = "com.microsoft.sqlserver.jdbc." + "SQLServerDriver:" + instanceID;
     }
 
-    // Helper function used to fixup the case sensitivity, synonyms and remove unknown tokens from the
-    // properties
+    /**
+     * Provides Helper function used to fix the case sensitivity, synonyms and remove unknown tokens from the
+     * properties.
+     */
     static Properties fixupProperties(Properties props) throws SQLServerException {
         // assert props !=null
         Properties fixedup = new Properties();
@@ -590,9 +599,11 @@ public final class SQLServerDriver implements java.sql.Driver {
         return fixedup;
     }
 
-    // Helper function used to merge together the property set extracted from the url and the
-    // user supplied property set passed in by the caller. This function is used by both SQLServerDriver.connect
-    // and SQLServerDataSource.getConnectionInternal to centralize this property merging code.
+    /**
+     * Provides Helper function used to merge together the property set extracted from the url and the user supplied
+     * property set passed in by the caller. This function is used by both SQLServerDriver.connect and
+     * SQLServerDataSource.getConnectionInternal to centralize this property merging code.
+     */
     static Properties mergeURLAndSuppliedProperties(Properties urlProps,
             Properties suppliedProperties) throws SQLServerException {
         if (null == suppliedProperties)
@@ -624,7 +635,7 @@ public final class SQLServerDriver implements java.sql.Driver {
     }
 
     /**
-     * normalize the property names
+     * Returns the normalized the property names.
      * 
      * @param name
      *        name to normalize
@@ -652,7 +663,7 @@ public final class SQLServerDriver implements java.sql.Driver {
     }
 
     /**
-     * get property-only names that do not work with connection string
+     * Returns the property-only names that do not work with connection string.
      * 
      * @param name
      *        to normalize
@@ -674,7 +685,7 @@ public final class SQLServerDriver implements java.sql.Driver {
         return null;
     }
 
-    /* L0 */ public java.sql.Connection connect(String Url, Properties suppliedProperties) throws SQLServerException {
+    public java.sql.Connection connect(String Url, Properties suppliedProperties) throws SQLServerException {
         loggerExternal.entering(getClassNameLogging(), "connect", "Arguments not traced.");
         SQLServerConnection result = null;
 
@@ -713,7 +724,7 @@ public final class SQLServerDriver implements java.sql.Driver {
         return connectProperties;
     }
 
-    /* L0 */ public boolean acceptsURL(String url) throws SQLServerException {
+    public boolean acceptsURL(String url) throws SQLServerException {
         loggerExternal.entering(getClassNameLogging(), "acceptsURL", "Arguments not traced.");
 
         if (null == url) {
@@ -768,7 +779,7 @@ public final class SQLServerDriver implements java.sql.Driver {
         return parentLogger;
     }
 
-    /* L0 */ public boolean jdbcCompliant() {
+    public boolean jdbcCompliant() {
         loggerExternal.entering(getClassNameLogging(), "jdbcCompliant");
         loggerExternal.exiting(getClassNameLogging(), "jdbcCompliant", Boolean.TRUE);
         return true;

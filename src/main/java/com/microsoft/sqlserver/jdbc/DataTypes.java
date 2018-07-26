@@ -531,11 +531,11 @@ enum JavaType {
         return JavaType.OBJECT;
     }
 
-    // Retrieve JDBC to use with this Java type. By default we use the static JDBC type
-    // associated with the Java type, ignoring the JDBC type specified by the application.
-    // But this behavior is overridden for certain Java types, like InputStream, which
-    // require the JDBC type to be specified externally to be able to distinguish between
-    // ASCII and binary streams.
+    /**
+     * Returns the JDBC type to use with this Java type. We use the static JDBC type associated with the Java type by
+     * default, ignoring the JDBC type specified by the application. This behavior is overridden for certain Java types,
+     * such as InputStream, which requires the JDBC type to be specified externally in order to distinguish between.
+     */
     JDBCType getJDBCType(SSType ssType, JDBCType jdbcTypeFromApp) {
         return jdbcTypeFromJavaType;
     }
@@ -677,7 +677,7 @@ enum JDBCType {
     }
 
     /**
-     * Gets the integer value of JDBCType
+     * Returns the integer value of JDBCType.
      * 
      * @return integer representation of JDBCType
      */
@@ -916,7 +916,7 @@ enum JDBCType {
     }
 
     /**
-     * Identify numerically signed data types.
+     * Identifies numerically signed data types.
      * 
      * @return true if the type can be signed
      */
@@ -928,7 +928,7 @@ enum JDBCType {
     }
 
     /**
-     * Identify binary JDBC data types.
+     * Identifies binary JDBC data types.
      * 
      * @return true if the JDBC type is binary
      */
@@ -939,7 +939,7 @@ enum JDBCType {
     }
 
     /**
-     * Identify textual JDBC data types -- those types for which conversion from another type is simply a matter of
+     * Identifies textual JDBC data types -- those types for which conversion from another type is simply a matter of
      * representing that type as a string.
      *
      * Note: SQLXML does not qualify as a "textual" type in this context. That is, calling, for example,
@@ -955,7 +955,7 @@ enum JDBCType {
     }
 
     /**
-     * Identify unsupported JDBC data types.
+     * Returns if datat types are supported by JDBC.
      * 
      * @param jdbcType
      *        the JDBC type to check
@@ -993,7 +993,7 @@ enum JDBCType {
     }
 
     /*
-     * Used for verifying if a data type can be normalized for AE
+     * Used for verifying if a data type can be normalized for AE.
      */
     enum NormalizationAE {
         CHARACTER_NORMALIZED_TO(JDBCType.CHAR, EnumSet.of(SSType.CHAR, SSType.VARCHAR, SSType.VARCHARMAX)),
@@ -1093,51 +1093,53 @@ final class DataTypes {
         SQLServerException.makeFromDriverError(null, null, form.format(msgArgs), null, true);
     }
 
-    // Max length in Unicode characters allowed by the "short" NVARCHAR type.
-    // Values longer than this must use NVARCHAR(max) (Yukon or later) or NTEXT (Shiloh)
+    /**
+     * Max length in Unicode characters allowed by the "short" NVARCHAR type. Values longer than this must use
+     * NVARCHAR(max) (Yukon or later) or NTEXT (Shiloh)
+     */
     final static int SHORT_VARTYPE_MAX_CHARS = 4000;
 
-    // Max length in bytes allowed by the "short" VARBINARY/VARCHAR types.
-    // Values longer than this must use VARBINARY(max)/VARCHAR(max) (Yukon or later) or IMAGE/TEXT (Shiloh)
+    /**
+     * Max length in bytes allowed by the "short" VARBINARY/VARCHAR types. Values longer than this must use
+     * VARBINARY(max)/VARCHAR(max) (Yukon or later) or IMAGE/TEXT (Shiloh)
+     */
     final static int SHORT_VARTYPE_MAX_BYTES = 8000;
 
-    // A type with unlimited max size, known as varchar(max), varbinary(max) and nvarchar(max),
-    // which has a max size of 0xFFFF, defined by PARTLENTYPE.
+    /**
+     * A type with unlimited max size, known as varchar(max), varbinary(max) and nvarchar(max), which has a max size of
+     * 0xFFFF, defined by PARTLENTYPE.
+     */
     final static int SQL_USHORTVARMAXLEN = 65535; // 0xFFFF
 
-    // From SQL Server 2005 Books Online : ntext, text, and image (Transact-SQL)
-    // http://msdn.microsoft.com/en-us/library/ms187993.aspx
-    //
-    // image
-    // "... through 2^31 - 1 (2,147,483,687) bytes."
-    //
-    // text
-    // "... maximum length of 2^31 - 1 (2,147,483,687) characters."
-    //
-    // ntext
-    // "... maximum length of 2^30 - 1 (1,073,741,823) characters."
+    /**
+     * From SQL Server 2005 Books Online : ntext, text, and image (Transact-SQL)
+     * http://msdn.microsoft.com/en-us/library/ms187993.aspx
+     * 
+     * image "... through 2^31 - 1 (2,147,483,687) bytes."
+     * 
+     * text "... maximum length of 2^31 - 1 (2,147,483,687) characters."
+     * 
+     * ntext "... maximum length of 2^30 - 1 (1,073,741,823) characters."
+     */
     final static int NTEXT_MAX_CHARS = 0x3FFFFFFF;
     final static int IMAGE_TEXT_MAX_BYTES = 0x7FFFFFFF;
 
-    // From SQL Server 2005 Books Online : Transact-SQL Data Types
-    // http://msdn.microsoft.com/en-us/library/ms179910.aspx
-    //
-    // varbinary(max)
-    // "max indicates that the maximum storage size is 2^31 - 1 bytes. The storage size is the actual
-    // length of the data entered + 2 bytes."
-    //
-    // varchar(max)
-    // "max indicates that the maximum storage size is 2^31 - 1 bytes. The storage size is the actual
-    // length of the data entered + 2 bytes."
-    //
-    // nvarchar(max)
-    // "max indicates that the maximum storage size is 2^31 - 1 bytes. The storage size, in bytes,
-    // is two times the number of characters entered + 2 bytes."
-    //
-    // Normally, that would mean that the maximum length of nvarchar(max) data is 0x3FFFFFFE characters
-    // and that the maximum length of varchar(max) or varbinary(max) data is 0x3FFFFFFD bytes. However...
-    // Despite the documentation, SQL Server returns 2^30 - 1 and 2^31 - 1 respectively as the PRECISION
-    // of these types, so use that instead.
+    /**
+     * Transact-SQL Data Types: http://msdn.microsoft.com/en-us/library/ms179910.aspx
+     * 
+     * varbinary(max) "max indicates that the maximum storage size is 2^31 - 1 bytes. The storage size is the actual
+     * length of the data entered + 2 bytes."
+     * 
+     * varchar(max) "max indicates that the maximum storage size is 2^31 - 1 bytes. The storage size is the actual
+     * length of the data entered + 2 bytes."
+     * 
+     * nvarchar(max) "max indicates that the maximum storage size is 2^31 - 1 bytes. The storage size, in bytes, is two
+     * times the number of characters entered + 2 bytes."
+     * 
+     * Normally, that would mean that the maximum length of nvarchar(max) data is 0x3FFFFFFE characters and that the
+     * maximum length of varchar(max) or varbinary(max) data is 0x3FFFFFFD bytes. However... Despite the documentation,
+     * SQL Server returns 2^30 - 1 and 2^31 - 1 respectively as the PRECISION of these types, so use that instead.
+     */
     final static int MAX_VARTYPE_MAX_CHARS = 0x3FFFFFFF;
     final static int MAX_VARTYPE_MAX_BYTES = 0x7FFFFFFF;
 
