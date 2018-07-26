@@ -9,7 +9,7 @@ import java.util.regex.Pattern;
 
 
 /**
- * Describe an DNS SRV Record.
+ * Represents a DNS SRV Record.
  */
 public class DNSRecordSRV implements Comparable<DNSRecordSRV> {
 
@@ -18,7 +18,7 @@ public class DNSRecordSRV implements Comparable<DNSRecordSRV> {
     private final int priority;
 
     /**
-     * Parse a DNS SRC Record from a DNS String record.
+     * Parses a DNS SRC Record from a DNS String record.
      *
      * @param record
      *        the record to parse
@@ -54,7 +54,7 @@ public class DNSRecordSRV implements Comparable<DNSRecordSRV> {
     }
 
     /**
-     * Constructor.
+     * Constructs a DNSRecordSRV.
      *
      * @param priority
      *        is lowest
@@ -130,7 +130,7 @@ public class DNSRecordSRV implements Comparable<DNSRecordSRV> {
     }
 
     /**
-     * Get the priority of DNS SRV record.
+     * Returns the priority of DNS SRV record.
      * 
      * @return a positive priority, where lowest values have to be considered first.
      */
@@ -139,7 +139,7 @@ public class DNSRecordSRV implements Comparable<DNSRecordSRV> {
     }
 
     /**
-     * Get the weight of DNS record from 0 to 65535.
+     * Returns the weight of DNS record from 0 to 65535.
      * 
      * @return The weight, higher value means higher probability of selecting the given record for a given priority.
      */
@@ -148,7 +148,7 @@ public class DNSRecordSRV implements Comparable<DNSRecordSRV> {
     }
 
     /**
-     * IP port of record.
+     * Returns the IP port of record.
      * 
      * @return a value from 1 to 65535.
      */
@@ -157,7 +157,7 @@ public class DNSRecordSRV implements Comparable<DNSRecordSRV> {
     }
 
     /**
-     * The DNS server name.
+     * Returns the DNS server name.
      * 
      * @return a not null server name.
      */

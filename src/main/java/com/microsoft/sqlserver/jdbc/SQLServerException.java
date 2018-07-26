@@ -11,12 +11,6 @@ import java.util.UUID;
 import java.util.logging.Level;
 
 
-/**
- * SQLServerException is thrown from any point in the driver that throws a java.sql.SQLException. SQLServerException
- * handles both SQL 92 and XOPEN state codes. They are switchable via a user specified connection property.
- * SQLServerExceptions are written to any open log files the user has specified.
- */
-
 enum SQLState {
     STATEMENT_CANCELED("HY008"),
     DATA_EXCEPTION_NOT_SPECIFIC("22000"),
@@ -51,6 +45,11 @@ enum DriverError {
 }
 
 
+/**
+ * Represents the exception thrown from any point in the driver that throws a java.sql.SQLException. SQLServerException
+ * handles both SQL 92 and XOPEN state codes. They are switchable via a user specified connection property.
+ * SQLServerExceptions are written to any open log files the user has specified.
+ */
 public final class SQLServerException extends java.sql.SQLException {
     /**
      * Always update serialVersionUID when prompted
@@ -94,7 +93,7 @@ public final class SQLServerException extends java.sql.SQLException {
     }
 
     /**
-     * Log an exception to the driver log file
+     * Logs an exception to the driver log file.
      * 
      * @param o
      *        the io buffer that generated the exception
@@ -136,7 +135,7 @@ public final class SQLServerException extends java.sql.SQLException {
     }
 
     /**
-     * Make a new SQLException
+     * Construct a SQLServerException.
      * 
      * @param errText
      *        the exception message
@@ -173,7 +172,7 @@ public final class SQLServerException extends java.sql.SQLException {
     }
 
     /**
-     * Make a new SQLException
+     * Constructs a new SQLServerException.
      * 
      * @param obj
      *        the object
@@ -196,7 +195,7 @@ public final class SQLServerException extends java.sql.SQLException {
     }
 
     /**
-     * Build a new SQL Exception from an error detected by the driver.
+     * Constructs a SQLServerException from an error detected by the driver.
      * 
      * @param con
      *        the connection
@@ -235,7 +234,7 @@ public final class SQLServerException extends java.sql.SQLException {
     }
 
     /**
-     * Build a new SQL Exception from a streamError detected by the driver.
+     * Builds a new SQL Exception from a streamError detected by the driver.
      * 
      * @param con
      *        the connection
@@ -281,7 +280,7 @@ public final class SQLServerException extends java.sql.SQLException {
     }
 
     /**
-     * Map XOPEN states.
+     * Maps XOPEN states.
      * 
      * @param state
      *        the state
@@ -310,7 +309,7 @@ public final class SQLServerException extends java.sql.SQLException {
     }
 
     /**
-     * Generate the JDBC state code based on the error number returned from the database
+     * Generates the JDBC state code based on the error number returned from the database.
      * 
      * @param con
      *        the connection
@@ -363,7 +362,7 @@ public final class SQLServerException extends java.sql.SQLException {
     }
 
     /**
-     * Append ClientConnectionId to an error message if applicable
+     * Appends ClientConnectionId to an error message if applicable.
      * 
      * @param errMsg
      *        - the orginal error message.

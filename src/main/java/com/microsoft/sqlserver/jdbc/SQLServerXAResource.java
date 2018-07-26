@@ -24,9 +24,8 @@ import javax.transaction.xa.Xid;
 
 
 /**
- * Transaction id implementation used to recover transactions.
+ * Impelments Transaction id used to recover transactions.
  */
-
 final class XidImpl implements Xid {
     private final int formatId;
     private final byte gtrid[];
@@ -42,7 +41,7 @@ final class XidImpl implements Xid {
      */
 
     /**
-     * Create a new XID
+     * Constructs a XidImpl.
      * 
      * @param formatId
      *        format id
@@ -71,7 +70,7 @@ final class XidImpl implements Xid {
     }
 
     /**
-     * Used for tracing
+     * Returns trace id used for tracing.
      * 
      * @return traceID string
      */
@@ -103,9 +102,9 @@ final class XAReturnValue {
 
 
 /**
- * SQLServerXAResource provides an XAResource for XA distributed transaction management. XA transactions are implemented
- * over SQL Server using Microsoft Distributed Transaction Manager (DTC). SQLServerXAResource makes calls to a SQL
- * Server extended dll called SQLServer_XA.dll which interfaces with DTC.
+ * Provides an XAResource for XA distributed transaction management. XA transactions are implemented over SQL Server
+ * using Microsoft Distributed Transaction Manager (DTC). SQLServerXAResource makes calls to a SQL Server extended dll
+ * called SQLServer_XA.dll which interfaces with DTC.
  * 
  * XA calls received by SQLServerXAResource (XA_START, XA_END, XA_PREPARE etc) are mapped to the corresponding calls to
  * DTC functions.
@@ -113,7 +112,6 @@ final class XAReturnValue {
  * SQLServerXAResource may also be configured not to use DTC. In this case distributed transactions are simply
  * implemented as local transactions.
  */
-
 public final class SQLServerXAResource implements javax.transaction.xa.XAResource {
     /*
      * In the Java transaction API doc a 'resource manager' appears to be (for JDBC) a 'particular DBMS server that

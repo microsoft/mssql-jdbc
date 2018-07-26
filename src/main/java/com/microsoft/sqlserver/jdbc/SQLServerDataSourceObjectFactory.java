@@ -14,22 +14,23 @@ import javax.naming.spi.ObjectFactory;
 
 
 /**
- * SQLServerDataSourceObjectFactory is an object factory to materialize datasources from JNDI.
+ * Defines an object factory to materialize datasources from JNDI.
  */
-
 public final class SQLServerDataSourceObjectFactory implements ObjectFactory {
 
     // NOTE: Per ObjectFactory spec, the ObjectFactory class requires a public
     // class with public constructor.
 
     /**
-     * Initializes a new instance of the SQLServerDataSourceObjectFactory class.
+     * Constructs a SQLServerDataSourceObjectFactory.
      */
     public SQLServerDataSourceObjectFactory() {}
 
-    // getObjectInstance is a factory for rehydrating references to SQLServerDataSource and its child classes.
-    // Caller gets the reference by calling SQLServerDataSource.getReference.
-    // References are used by JNDI to persist and rehydrate objects.
+    /**
+     * Returns an reference to the SQLServerDataSource instance getObjectInstance is a factory for rehydrating
+     * references to SQLServerDataSource and its child classes. Caller gets the reference by calling
+     * SQLServerDataSource.getReference. References are used by JNDI to persist and rehydrate objects.
+     */
     public Object getObjectInstance(Object ref, Name name, Context c, Hashtable<?, ?> h) throws SQLServerException {
         // Create a new instance of a DataSource class from the given reference.
         try {

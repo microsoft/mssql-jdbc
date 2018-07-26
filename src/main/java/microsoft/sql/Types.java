@@ -6,8 +6,7 @@
 package microsoft.sql;
 
 /**
- * The class that defines the constants that are used to identify the SQL types that are specific to Microsoft SQL
- * Server.
+ * Defines the constants that are used to identify the SQL types that are specific to Microsoft SQL Server.
  *
  * This class is never instantiated.
  */

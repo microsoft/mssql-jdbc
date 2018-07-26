@@ -18,6 +18,9 @@ import javax.naming.directory.DirContext;
 import javax.naming.directory.InitialDirContext;
 
 
+/**
+ * Provides utility functions for the DNS package
+ */
 public class DNSUtilities {
 
     private final static Logger LOG = Logger.getLogger(DNSUtilities.class.getName());
@@ -25,7 +28,7 @@ public class DNSUtilities {
     private static final Level DNS_ERR_LOG_LEVEL = Level.FINE;
 
     /**
-     * Find all SRV Record using DNS.
+     * Finds all SRV Record using DNS.
      *
      * @param dnsSrvRecordToFind
      *        the DNS record, for instance: _ldap._tcp.dc._msdcs.DOMAIN.COM to find all LDAP servers in DOMAIN.COM

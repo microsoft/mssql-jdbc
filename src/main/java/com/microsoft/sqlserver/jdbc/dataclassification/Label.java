@@ -6,14 +6,14 @@
 package com.microsoft.sqlserver.jdbc.dataclassification;
 
 /**
- * This class retrieves Labels as recieved from SQL Server for the active resultSet
+ * Represents the Data Classification Labels as received from SQL Server for the active resultSet
  */
 public class Label {
     private String name;
     private String id;
 
     /**
-     * Constructor for Label
+     * Constructs a Label
      * 
      * @param name
      *        Name of Label
@@ -26,7 +26,7 @@ public class Label {
     }
 
     /**
-     * Retrieves Name of this <code>InformationType</code> Object
+     * Returns the name of this <code>InformationType</code> Object
      * 
      * @return Name of Information Type
      */
@@ -35,7 +35,7 @@ public class Label {
     }
 
     /**
-     * Retrieves ID for this <code>InformationType</code> object
+     * Returns the ID for this <code>InformationType</code> object
      * 
      * @return ID of Information Type
      */

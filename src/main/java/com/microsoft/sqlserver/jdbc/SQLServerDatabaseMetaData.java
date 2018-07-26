@@ -20,7 +20,7 @@ import java.util.logging.Level;
 
 
 /**
- * SQLServerDatabaseMetaData provides JDBC database meta data.
+ * Provides the JDBC database meta data.
  *
  * The API javadoc for JDBC API methods that this class implements are not repeated here. Please see Sun's JDBC API
  * interfaces javadoc for those details.
@@ -101,7 +101,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
     }
 
     /**
-     * This is a helper function to provide an ID string suitable for tracing.
+     * Provides a helper function to provide an ID string suitable for tracing.
      * 
      * @return traceID string
      */
@@ -110,7 +110,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
     }
 
     /**
-     * Create new database meta data
+     * Constructs a SQLServerDatabaseMetaData database meta data
      * 
      * @param con
      *        the connection
@@ -233,8 +233,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
     private static final String IS_AUTOINCREMENT = "IS_AUTOINCREMENT";
 
     /**
-     * Make a simple query execute and return the result from it. This is to be used only for internal queries without
-     * any user input.
+     * Returns the result from a simple query. This is to be used only for internal queries without any user input.
      * 
      * @param catalog
      *        catalog the query to be made in
@@ -259,8 +258,8 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
         return rs;
     }
 
-    /*
-     * Note we pool the handles per object.
+    /**
+     * Returns the CallableStatement handle. Note we pool the handles per object.
      */
     private CallableStatement getCallableStatementHandle(CallableHandles request,
             String catalog) throws SQLServerException {
@@ -278,7 +277,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
     }
 
     /**
-     * Make the stored procedure call and return the result from it.
+     * Returns the result from the stored procedure call.
      * 
      * @param catalog
      *        catalog the query to be made in
@@ -325,7 +324,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
     }
 
     /**
-     * Switch database catalogs.
+     * Switches the database catalogs.
      * 
      * @param catalog
      *        the new catalog
@@ -513,7 +512,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
     /**
      * Accepts a SQL identifier (such as a column name or table name) and escapes the identifier so sql 92 wild card
      * characters can be escaped properly to be passed to functions like sp_columns or sp_tables. Assumes that the
-     * incoming identifier is unescaped.
+     * incoming identifier is un-escaped.
      * 
      * @inID input identifier to escape.
      * @return the escaped value.
@@ -2316,8 +2315,10 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
 }
 
 
-// Filter to convert DATA_TYPE column values from the ODBC types
-// returned by SQL Server to their equivalent JDBC types.
+/**
+ * Provides filter to convert DATA_TYPE column values from the ODBC types returned by SQL Server to their equivalent
+ * JDBC types.
+ */
 final class DataTypeFilter extends IntColumnFilter {
     private static final int ODBC_SQL_GUID = -11;
     private static final int ODBC_SQL_WCHAR = -8;
@@ -2365,9 +2366,9 @@ class ZeroFixupFilter extends IntColumnFilter {
 }
 
 
-// abstract class converts one value to another solely based on the column
-// integer value
-// apply to integer columns only
+/**
+ * Converts one value to another solely based on the column integer value. Apply to integer columns only
+ */
 abstract class IntColumnFilter extends ColumnFilter {
     abstract int oneValueToAnother(int value);
 
@@ -2401,9 +2402,10 @@ abstract class IntColumnFilter extends ColumnFilter {
 }
 
 
-// Filter to convert int identity column values from 0,1 to YES, NO
-// There is a mismatch between what the stored proc returns and what the
-// JDBC spec expects.
+/**
+ * Provides filter to convert int identity column values from 0,1 to YES, NO There is a mismatch between what the stored
+ * proc returns and what the JDBC spec expects.
+ */
 class IntColumnIdentityFilter extends ColumnFilter {
     private static String zeroOneToYesNo(int i) {
         return 0 == i ? "NO" : "YES";
@@ -2444,5 +2446,4 @@ class IntColumnIdentityFilter extends ColumnFilter {
                 return value;
         }
     }
-
 }

@@ -21,7 +21,7 @@ import org.ietf.jgss.GSSCredential;
 
 
 /**
- * This datasource lists properties specific for the SQLServerConnection class.
+ * Contains a list of properties specific for the {@link SQLServerConnection} class.
  */
 public class SQLServerDataSource
         implements ISQLServerDataSource, javax.sql.DataSource, java.io.Serializable, javax.naming.Referenceable {
@@ -57,7 +57,7 @@ public class SQLServerDataSource
     final private String traceID;
 
     /**
-     * Initializes a new instance of the SQLServerDataSource class.
+     * Constructs a SQLServerDataSource.
      */
     public SQLServerDataSource() {
         connectionProps = new Properties();
@@ -97,8 +97,10 @@ public class SQLServerDataSource
         return con;
     }
 
-    // Sets the maximum time in seconds that this data source will wait while
-    // attempting to connect to a database. Note default value is 0.
+    /**
+     * Sets the maximum time in seconds that this data source will wait while attempting to connect to a database. Note
+     * default value is 0.
+     */
     @Override
     public void setLoginTimeout(int loginTimeout) {
         setIntProperty(connectionProps, SQLServerDriverIntProperty.LOGIN_TIMEOUT.toString(), loginTimeout);
@@ -113,9 +115,10 @@ public class SQLServerDataSource
         return (logintimeout == 0) ? defaultTimeOut : logintimeout;
     }
 
-    // Sets the log writer for this DataSource.
-    // Currently we just hold onto this logWriter and pass it back to callers,
-    // nothing else.
+    /**
+     * Sets the log writer for this DataSource. Currently we just hold onto this logWriter and pass it back to callers,
+     * nothing else.
+     */
     private transient PrintWriter logWriter;
 
     @Override
@@ -125,7 +128,9 @@ public class SQLServerDataSource
         loggerExternal.exiting(getClassNameLogging(), "setLogWriter");
     }
 
-    // Retrieves the log writer for this DataSource.
+    /**
+     * Returns the log writer for this DataSource.
+     */
     @Override
     public PrintWriter getLogWriter() {
         loggerExternal.entering(getClassNameLogging(), "getLogWriter");
@@ -140,9 +145,9 @@ public class SQLServerDataSource
 
     // Core Connection property setters/getters.
 
-    // applicationName is used to identify the specific application in various
-    // SQL Server
-    // profiling and logging tools.
+    /**
+     * Sets the specific application in various SQL Server profiling and logging tools.
+     */
     @Override
     public void setApplicationName(String applicationName) {
         setStringProperty(connectionProps, SQLServerDriverStringProperty.APPLICATION_NAME.toString(), applicationName);
@@ -154,9 +159,12 @@ public class SQLServerDataSource
                 SQLServerDriverStringProperty.APPLICATION_NAME.getDefaultValue());
     }
 
-    // databaseName is the name of the database to connect to. If databaseName
-    // is not set,
-    // getDatabaseName returns the default value of null.
+    /**
+     * Sets the the database to connect to.
+     * 
+     * @param databaseName
+     *        if not set, returns the default value of null.
+     */
     @Override
     public void setDatabaseName(String databaseName) {
         setStringProperty(connectionProps, SQLServerDriverStringProperty.DATABASE_NAME.toString(), databaseName);
@@ -167,9 +175,12 @@ public class SQLServerDataSource
         return getStringProperty(connectionProps, SQLServerDriverStringProperty.DATABASE_NAME.toString(), null);
     }
 
-    // instanceName is the SQL Server instance name to connect to.
-    // If instanceName is not set, getInstanceName returns the default value of
-    // null.
+    /**
+     * Sets the the SQL Server instance name to connect to.
+     * 
+     * @param instanceName
+     *        if not set, returns the default value of null.
+     */
     @Override
     public void setInstanceName(String instanceName) {
         setStringProperty(connectionProps, SQLServerDriverStringProperty.INSTANCE_NAME.toString(), instanceName);
@@ -224,13 +235,11 @@ public class SQLServerDataSource
         return getStringProperty(connectionProps, SQLServerDriverStringProperty.ACCESS_TOKEN.toString(), null);
     }
 
-    // If lastUpdateCount is set to true, the driver will return only the last
-    // update
-    // count from all the update counts returned by a batch. The default of
-    // false will
-    // return all update counts. If lastUpdateCount is not set,
-    // getLastUpdateCount
-    // returns the default value of false.
+    /**
+     * Sets the Column Encryption setting. If lastUpdateCount is set to true, the driver will return only the last
+     * update count from all the update counts returned by a batch. The default of false will return all update counts.
+     * If lastUpdateCount is not set, getLastUpdateCount returns the default value of false.
+     */
     @Override
     public void setColumnEncryptionSetting(String columnEncryptionSetting) {
         setStringProperty(connectionProps, SQLServerDriverStringProperty.COLUMN_ENCRYPTION.toString(),
@@ -360,14 +369,14 @@ public class SQLServerDataSource
                 null);
     }
 
-    // lockTimeout is the number of milliseconds to wait before the database
-    // reports
-    // a lock timeout. The default value of -1 means wait forever. If specified,
-    // this value will be the default for all statements on the connection. Note
-    // a
-    // value of 0 means no wait. If lockTimeout is not set, getLockTimeout
-    // returns
-    // the default of -1.
+    /**
+     * Sets the lock timeout value.
+     * 
+     * @param lockTimeout
+     *        the number of milliseconds to wait before the database reports a lock timeout. The default value of -1
+     *        means wait forever. If specified, this value will be the default for all statements on the connection.
+     *        Note a value of 0 means no wait. If lockTimeout is not set, getLockTimeout returns the default of -1.
+     */
     @Override
     public void setLockTimeout(int lockTimeout) {
         setIntProperty(connectionProps, SQLServerDriverIntProperty.LOCK_TIMEOUT.toString(), lockTimeout);
@@ -379,12 +388,13 @@ public class SQLServerDataSource
                 SQLServerDriverIntProperty.LOCK_TIMEOUT.getDefaultValue());
     }
 
-    // setPassword sets the password that will be used when connecting to SQL
-    // Server.
-    // Note getPassword is deliberately declared non-public for security
-    // reasons.
-    // If the password is not set, getPassword returns the default value of
-    // null.
+    /**
+     * Sets the password that will be used when connecting to SQL Server.
+     * 
+     * @param password
+     *        Note getPassword is deliberately declared non-public for security reasons. If the password is not set,
+     *        getPassword returns the default value of null.
+     */
     @Override
     public void setPassword(String password) {
         setStringProperty(connectionProps, SQLServerDriverStringProperty.PASSWORD.toString(), password);
@@ -394,13 +404,14 @@ public class SQLServerDataSource
         return getStringProperty(connectionProps, SQLServerDriverStringProperty.PASSWORD.toString(), null);
     }
 
-    // portNumber is the TCP-IP port number used when opening a socket
-    // connection
-    // to SQL Server. If portNumber is not set, getPortNumber returns the
-    // default
-    // of 1433. Note as mentioned above, setPortNumber does not do any range
-    // checking on the port value passed in, invalid port numbers like 99999 can
-    // be passed in without triggering any error.
+    /**
+     * Sets the TCP-IP port number used when opening a socket connection to SQL Server.
+     * 
+     * @param portNumber
+     *        if not set, getPortNumber returns the default of 1433. Note as mentioned above, setPortNumber does not do
+     *        any range checking on the port value passed in,\ invalid port numbers like 99999 can be passed in without
+     *        triggering any error.
+     */
     @Override
     public void setPortNumber(int portNumber) {
         setIntProperty(connectionProps, SQLServerDriverIntProperty.PORT_NUMBER.toString(), portNumber);
@@ -412,14 +423,16 @@ public class SQLServerDataSource
                 SQLServerDriverIntProperty.PORT_NUMBER.getDefaultValue());
     }
 
-    // selectMethod is the default cursor type used for the result set. This
-    // property is useful when you are dealing with large result sets and don't
-    // want to store the whole result set in memory on the client side. By
-    // setting
-    // the property to "cursor" you will be able to create a server side cursor
-    // that
-    // can fetch smaller chunks of data at a time. If selectMethod is not set,
-    // getSelectMethod returns the default value of "direct".
+    /**
+     * Sets the default cursor type used for the result set.
+     * 
+     * @param selectMethod
+     *        This(non-Javadoc) @see com.microsoft.sqlserver.jdbc.ISQLServerDataSource#setSelectMethod(java.lang.String)
+     *        property is useful when you are dealing with large result sets and do not want to store the whole result
+     *        set in memory on the client side. By setting the property to "cursor" you will be able to create a server
+     *        side cursor that can fetch smaller chunks of data at a time. If selectMethod is not set, getSelectMethod
+     *        returns the default value of "direct".
+     */
     @Override
     public void setSelectMethod(String selectMethod) {
         setStringProperty(connectionProps, SQLServerDriverStringProperty.SELECT_METHOD.toString(), selectMethod);
@@ -466,14 +479,14 @@ public class SQLServerDataSource
                 SQLServerDriverBooleanProperty.SEND_TIME_AS_DATETIME.getDefaultValue());
     }
 
-    // If sendStringParametersAsUnicode is set to true (which is the default),
-    // string parameters are sent to the server in UNICODE format. If
-    // sendStringParametersAsUnicode
-    // is set to false, string parameters are sent to the server in the native
-    // TDS collation
-    // format of the database, not in UNICODE. If sendStringParametersAsUnicode
-    // is not set,
-    // getSendStringParametersAsUnicode returns the default of true.
+    /**
+     * Sets whether string parameters are sent to the server in UNICODE format.
+     * 
+     * @param sendStringParametersAsUnicode
+     *        if true (default), string parameters are sent to the server in UNICODE format. if false, string parameters
+     *        are sent to the server in the native TDS collation format of the database, not in UNICODE. if set, returns
+     *        the default of true.
+     */
     @Override
     public void setSendStringParametersAsUnicode(boolean sendStringParametersAsUnicode) {
         setBooleanProperty(connectionProps, SQLServerDriverBooleanProperty.SEND_STRING_PARAMETERS_AS_UNICODE.toString(),
@@ -499,9 +512,12 @@ public class SQLServerDataSource
                 SQLServerDriverBooleanProperty.SERVER_NAME_AS_ACE.getDefaultValue());
     }
 
-    // serverName is the host name of the target SQL Server. If serverName is
-    // not set,
-    // getServerName returns the default value of null is returned.
+    /**
+     * Sets the host name of the target SQL Server.
+     * 
+     * @param serverName
+     *        if not set, returns the default value of null is returned.
+     */
     @Override
     public void setServerName(String serverName) {
         setStringProperty(connectionProps, SQLServerDriverStringProperty.SERVER_NAME.toString(), serverName);
@@ -512,8 +528,13 @@ public class SQLServerDataSource
         return getStringProperty(connectionProps, SQLServerDriverStringProperty.SERVER_NAME.toString(), null);
     }
 
-    // Specify an Service Principal Name (SPN) of the target SQL Server.
-    // https://msdn.microsoft.com/en-us/library/cc280459.aspx
+    /**
+     * Sets the Service Principal Name (SPN) of the target SQL Server.
+     * https://msdn.microsoft.com/en-us/library/cc280459.aspx
+     * 
+     * @param serverSpn
+     *        service principal name
+     */
     @Override
     public void setServerSpn(String serverSpn) {
         setStringProperty(connectionProps, SQLServerDriverStringProperty.SERVER_SPN.toString(), serverSpn);
@@ -524,9 +545,12 @@ public class SQLServerDataSource
         return getStringProperty(connectionProps, SQLServerDriverStringProperty.SERVER_SPN.toString(), null);
     }
 
-    // serverName is the host name of the target SQL Server. If serverName is
-    // not set,
-    // getServerName returns the default value of null is returned.
+    /**
+     * Sets the fail over partner of the target SQL Server.
+     * 
+     * @param serverName
+     *        if not set, returns the default value of null.
+     */
     @Override
     public void setFailoverPartner(String serverName) {
         setStringProperty(connectionProps, SQLServerDriverStringProperty.FAILOVER_PARTNER.toString(), serverName);
@@ -549,9 +573,12 @@ public class SQLServerDataSource
                 SQLServerDriverBooleanProperty.MULTI_SUBNET_FAILOVER.getDefaultValue());
     }
 
-    // setUser set's the user name that will be used when connecting to SQL
-    // Server.
-    // If user is not set, getUser returns the default value of null.
+    /**
+     * Sets the user name that will be used when connecting to SQL Server.
+     * 
+     * @param user
+     *        if not set, returns the default value of null.
+     */
     @Override
     public void setUser(String user) {
         setStringProperty(connectionProps, SQLServerDriverStringProperty.USER.toString(), user);
@@ -562,12 +589,14 @@ public class SQLServerDataSource
         return getStringProperty(connectionProps, SQLServerDriverStringProperty.USER.toString(), null);
     }
 
-    // workstationID is the name of the client machine (or client workstation).
-    // workstationID is the host name of the client in other words. If
-    // workstationID
-    // is not set, the default value is constructed by calling
-    // InetAddress.getLocalHost().getHostName()
-    // or if getHostName() returns blank then getHostAddress().toString().
+    /**
+     * Sets the name of the client machine (or client workstation).
+     * 
+     * @param workstationID
+     *        host name of the client. if not set, the default value is constructed by calling
+     *        InetAddress.getLocalHost().getHostName() or if getHostName() returns blank then
+     *        getHostAddress().toString().
+     */
     @Override
     public void setWorkstationID(String workstationID) {
         setStringProperty(connectionProps, SQLServerDriverStringProperty.WORKSTATION_ID.toString(), workstationID);
@@ -587,13 +616,13 @@ public class SQLServerDataSource
         return getWSID;
     }
 
-    // If xopenStates is set to true, the driver will convert SQL states to
-    // XOPEN
-    // compliant states. The default is false which causes the driver to
-    // generate SQL 99
-    // state codes. If xopenStates is not set, getXopenStates returns the
-    // default value
-    // of false.
+    /**
+     * Sets whether the driver will convert SQL states to XOPEN compliant states.
+     * 
+     * @param xopenStates
+     *        if true, the driver will convert SQL states to XOPEN compliant states. The default is false which causes
+     *        the driver to generate SQL 99 state codes. If not set, getXopenStates returns the default value of false.
+     */
     @Override
     public void setXopenStates(boolean xopenStates) {
         setBooleanProperty(connectionProps, SQLServerDriverBooleanProperty.XOPEN_STATES.toString(), xopenStates);
@@ -652,26 +681,19 @@ public class SQLServerDataSource
                 SQLServerDriverStringProperty.TRUST_MANAGER_CONSTRUCTOR_ARG.getDefaultValue());
     }
 
-    // The URL property is exposed for backwards compatibility reasons. Also,
-    // several
-    // Java Application servers expect a setURL function on the DataSource and
-    // set it
-    // by default (JBoss and WebLogic).
-
-    // Note for security reasons we do not recommend that customers include the
-    // password
-    // in the url supplied to setURL. The reason for this is third-party Java
-    // Application
-    // Servers will very often display the value set to URL property in their
-    // DataSource
-    // configuration GUI. We recommend instead that clients use the setPassword
-    // method
-    // to set the password value. The Java Application Servers will not display
-    // a password
-    // that is set on the DataSource in the configuration GUI.
-
-    // Note if setURL is not called, getURL returns the default value of
-    // "jdbc:sqlserver://".
+    /**
+     * Sets the datasource URL.
+     * 
+     * @param url
+     *        The URL property is exposed for backwards compatibility reasons. Also, several Java Application servers
+     *        expect a setURL function on the DataSource and set it by default (JBoss and WebLogic) Note for security
+     *        reasons we do not recommend that customers include the password in the url supplied to setURL. The reason
+     *        for this is third-party Java Application Servers will very often display the value set to URL property in
+     *        their DataSource configuration GUI. We recommend instead that clients use the setPassword method to set
+     *        the password value. The Java Application Servers will not display a password that is set on the DataSource
+     *        in the configuration GUI. Note if setURL is not called, getURL returns the default value of
+     *        "jdbc:sqlserver://".
+     */
     @Override
     public void setURL(String url) {
         loggerExternal.entering(getClassNameLogging(), "setURL", url);
@@ -691,9 +713,10 @@ public class SQLServerDataSource
         return url;
     }
 
-    // DataSource specific property setters/getters.
-    // Per JDBC specification 16.1.1 "...the only property that all DataSource
-    // implementations are required to support is the description property".
+    /**
+     * Sets the DataSource description. Per JDBC specification 16.1.1 "...the only property that all DataSource
+     * implementations are required to support is the description property".
+     */
     @Override
     public void setDescription(String description) {
         loggerExternal.entering(getClassNameLogging(), "setDescription", description);
@@ -701,6 +724,9 @@ public class SQLServerDataSource
         loggerExternal.exiting(getClassNameLogging(), "setDescription");
     }
 
+    /**
+     * Returns the DataSource description
+     */
     @Override
     public String getDescription() {
         loggerExternal.entering(getClassNameLogging(), "getDescription");
@@ -708,10 +734,14 @@ public class SQLServerDataSource
         return dataSourceDescription;
     }
 
-    // packetSize is the size (in bytes) to use for the TCP/IP send and receive
-    // buffer. It is also the value used for the TDS packet size (SQL Server
-    // Network Packet Size). Validity of the value is checked at connect time.
-    // If no value is set for this property, its default value is 4KB.
+    /**
+     * Sets the packet size.
+     * 
+     * @param packetSize
+     *        the size (in bytes) to use for the TCP/IP send and receive buffer. It is also the value used for the TDS
+     *        packet size (SQL Server Network Packet Size). Validity of the value is checked at connect time. If no
+     *        value is set for this property, its default value is 4KB.
+     */
     @Override
     public void setPacketSize(int packetSize) {
         setIntProperty(connectionProps, SQLServerDriverIntProperty.PACKET_SIZE.toString(), packetSize);
@@ -836,31 +866,15 @@ public class SQLServerDataSource
                 SQLServerDriverStringProperty.JAAS_CONFIG_NAME.getDefaultValue());
     }
 
-    // responseBuffering controls the driver's buffering of responses from SQL
-    // Server.
-    // Possible values are:
-    //
-    // "full" - Fully buffer the response at execution time.
-    // Advantages:
-    // 100% back compat with v1.1 driver
-    // Maximizes concurrency on the server
-    // Disadvantages:
-    // Consumes more client-side memory
-    // Client scalability limits with large responses
-    // More execute latency
-    //
-    // "adaptive" - Data Pipe adaptive buffering
-    // Advantages:
-    // Buffers only when necessary, only as much as necessary
-    // Enables handling very large responses, values
-    // Disadvantages
-    // Reduced concurrency on the server
-    // Internal functions for setting/getting property values.
-
-    // Set a string property value.
-    // Caller will always supply a non-null props and propKey.
-    // Caller may supply a null propValue, in this case no property value is
-    // set.
+    /**
+     * Sets a property string value.
+     * 
+     * @param props
+     * @param propKey
+     * @param propValue
+     *        Caller will always supply a non-null props and propKey. Caller may supply a null propValue, in this case
+     *        no property value is set.
+     */
     private void setStringProperty(Properties props, String propKey, String propValue) {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER) && !propKey.contains("password")
                 && !propKey.contains("Password")) {
@@ -872,9 +886,15 @@ public class SQLServerDataSource
         loggerExternal.exiting(getClassNameLogging(), "set" + propKey);
     }
 
-    // Reads property value in String format.
-    // Caller will always supply a non-null props and propKey.
-    // Returns null if the specific property value is not set.
+    /**
+     * Returns a property value in String format.
+     * 
+     * @param props
+     * @param propKey
+     * @param defaultValue
+     * @return Caller will always supply a non-null props and propKey. Returns null if the specific property value is
+     *         not set.
+     */
     private String getStringProperty(Properties props, String propKey, String defaultValue) {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "get" + propKey);
@@ -887,8 +907,14 @@ public class SQLServerDataSource
         return propValue;
     }
 
-    // Set an integer property value.
-    // Caller will always supply a non-null props and propKey.
+    /**
+     * Sets an integer property value.
+     * 
+     * @param props
+     * @param propKey
+     * @param propValue
+     *        Caller will always supply a non-null props and propKey.
+     */
     private void setIntProperty(Properties props, String propKey, int propValue) {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "set" + propKey, propValue);
@@ -896,9 +922,10 @@ public class SQLServerDataSource
         loggerExternal.exiting(getClassNameLogging(), "set" + propKey);
     }
 
-    // Reads a property value in int format.
-    // Caller will always supply a non-null props and propKey.
-    // Returns defaultValue if the specific property value is not set.
+    /**
+     * Returns a property value in int format. Caller will always supply a non-null props and propKey. Returns
+     * defaultValue if the specific property value is not set.
+     */
     private int getIntProperty(Properties props, String propKey, int defaultValue) {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "get" + propKey);
@@ -918,8 +945,9 @@ public class SQLServerDataSource
         return value;
     }
 
-    // Set a boolean property value.
-    // Caller will always supply a non-null props and propKey.
+    /**
+     * Set a boolean property value. Caller will always supply a non-null props and propKey.
+     */
     private void setBooleanProperty(Properties props, String propKey, boolean propValue) {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "set" + propKey, propValue);
@@ -927,9 +955,10 @@ public class SQLServerDataSource
         loggerExternal.exiting(getClassNameLogging(), "set" + propKey);
     }
 
-    // Reads a property value in boolean format.
-    // Caller will always supply a non-null props and propKey.
-    // Returns defaultValue if the specific property value is not set.
+    /**
+     * Returns a property value in boolean format. Caller will always supply a non-null props and propKey. Returns
+     * defaultValue if the specific property value is not set.
+     */
     private boolean getBooleanProperty(Properties props, String propKey, boolean defaultValue) {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "get" + propKey);
@@ -966,17 +995,12 @@ public class SQLServerDataSource
         return propValue;
     }
 
-    // Returns a SQLServerConnection given username, password, and
-    // pooledConnection.
-    // Note that the DataSource properties set to connectionProps are used when
-    // creating
-    // the connection.
-
-    // Both username and password can be null.
-
-    // If pooledConnection is not null, then connection returned is attached to
-    // the pooledConnection
-    // and participates in connection pooling.
+    /**
+     * Returns a SQLServerConnection given username, password, and pooledConnection. Note that the DataSource properties
+     * set to connectionProps are used when creating the connection. Both username and password can be null. If
+     * pooledConnection is not null, then connection returned is attached to the pooledConnection and participates in
+     * connection pooling.
+     */
     SQLServerConnection getConnectionInternal(String username, String password,
             SQLServerPooledConnection pooledConnection) throws SQLServerException {
         Properties userSuppliedProps;
@@ -1087,10 +1111,12 @@ public class SQLServerDataSource
         return ref;
     }
 
-    // Initialize this datasource from properties found inside the reference
-    // ref.
-    // Called by SQLServerDataSourceObjectFactory to initialize new DataSource
-    // instance.
+    /**
+     * Initializes the datasource from properties found inside the reference
+     * 
+     * @param ref
+     *        Called by SQLServerDataSourceObjectFactory to initialize new DataSource instance.
+     */
     void initializeFromReference(javax.naming.Reference ref) {
         // Enumerate all the StringRefAddr objects in the Reference and assign
         // properties appropriately.

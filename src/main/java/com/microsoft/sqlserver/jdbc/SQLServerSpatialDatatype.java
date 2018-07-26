@@ -94,14 +94,14 @@ abstract class SQLServerSpatialDatatype {
     protected abstract void serializeToWkb(boolean noZM);
 
     /**
-     * Deserialize the buffer (that contains WKB representation of Geometry/Geography data), and stores it into multiple
-     * corresponding data structures.
+     * Deserializes the buffer (that contains WKB representation of Geometry/Geography data), and stores it into
+     * multiple corresponding data structures.
      * 
      */
     protected abstract void parseWkb();
 
     /**
-     * Create the WKT representation of Geometry/Geography from the deserialized data.
+     * Constructs the WKT representation of Geometry/Geography from the deserialized data.
      * 
      * @param sd
      *        the Geometry/Geography instance.
@@ -875,7 +875,7 @@ abstract class SQLServerSpatialDatatype {
     }
 
     /**
-     * Reads a CurvePolygon WKT
+     * Reads a CurvePolygon WKT.
      * 
      * @throws SQLServerException
      *         if an exception occurs
@@ -915,7 +915,7 @@ abstract class SQLServerSpatialDatatype {
     }
 
     /**
-     * Reads a MultiPolygon WKT
+     * Reads a MultiPolygon WKT.
      * 
      * @param thisShapeIndex
      *        shape index of current shape
@@ -947,7 +947,7 @@ abstract class SQLServerSpatialDatatype {
     }
 
     /**
-     * Reads a Segment WKT
+     * Reads a Segment WKT.
      * 
      * @param segmentType
      *        segment type
@@ -987,7 +987,7 @@ abstract class SQLServerSpatialDatatype {
     }
 
     /**
-     * Reads a CompoundCurve WKT
+     * Reads a CompoundCurve WKT.
      * 
      * @param isFirstIteration
      *        flag that indicates if this is the first iteration from the loop outside
@@ -1043,7 +1043,7 @@ abstract class SQLServerSpatialDatatype {
     }
 
     /**
-     * Populates the various data structures contained within the Geometry/Geography instace.
+     * Populates the various data structures contained within the Geometry/Geography instance.
      */
     protected void populateStructures() {
         if (pointList.size() > 0) {
@@ -1650,7 +1650,7 @@ abstract class SQLServerSpatialDatatype {
 
 
 /**
- * Class to hold and represent the internal makings of a Figure.
+ * Represents the internal makings of a Figure.
  *
  */
 class Figure {
@@ -1677,7 +1677,7 @@ class Figure {
 
 
 /**
- * Class to hold and represent the internal makings of a Shape.
+ * Represents the internal makings of a Shape.
  *
  */
 class Shape {
@@ -1711,7 +1711,7 @@ class Shape {
 
 
 /**
- * Class to hold and represent the internal makings of a Segment.
+ * Represents the internal makings of a Segment.
  *
  */
 class Segment {
@@ -1728,7 +1728,7 @@ class Segment {
 
 
 /**
- * Class to hold and represent the internal makings of a Point.
+ * Represents the internal makings of a Point.
  *
  */
 class Point {

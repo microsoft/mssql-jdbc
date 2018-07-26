@@ -6,14 +6,14 @@
 package com.microsoft.sqlserver.jdbc.dataclassification;
 
 /**
- * This class retrieves Information Types as recieved from SQL Server for the active resultSet
+ * Represents the Data Classification Information Types as received from SQL Server for the active resultSet
  */
 public class InformationType {
     private String name;
     private String id;
 
     /**
-     * Constructor for Information Type
+     * Constructs a InformationType
      * 
      * @param name
      *        Name of Information Type
@@ -26,7 +26,7 @@ public class InformationType {
     }
 
     /**
-     * Retrieves Name of this <code>InformationType</code> Object
+     * Returns the name of this <code>InformationType</code> Object
      * 
      * @return Name of Information Type
      */
@@ -35,7 +35,7 @@ public class InformationType {
     }
 
     /**
-     * Retrieves ID for this <code>InformationType</code> object
+     * Returns the ID for this <code>InformationType</code> object
      * 
      * @return ID of Information Type
      */
