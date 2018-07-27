@@ -2375,8 +2375,10 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
             // Keep going until the end of the table name is signalled - either a ., whitespace, ; or comment is
             // encountered.
             if (localUserSQL.charAt(0) == '.' || Character.isWhitespace(localUserSQL.charAt(0))
-                    || checkAndRemoveCommentsAndSpace(false) || localUserSQL.charAt(0) == ';') {
+                    || checkAndRemoveCommentsAndSpace(false)) {
                 return sb.toString() + parseUserSQLForTableNameDW(true, true, true, false);
+            } else if (localUserSQL.charAt(0) == ';') {
+                throw new IllegalArgumentException("End of query detected before VALUES have been found.");
             } else {
                 sb.append(localUserSQL.charAt(0));
                 localUserSQL = localUserSQL.substring(1);
