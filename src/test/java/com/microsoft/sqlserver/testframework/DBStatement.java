@@ -78,7 +78,7 @@ public class DBStatement extends AbstractParentWrapper implements AutoCloseable 
      * @throws SQLException
      */
     public DBResultSet selectAll(DBTable table) throws SQLException {
-        String sql = "SELECT * FROM " + table.getEscapedTableName();
+        String sql = "SELECT * FROM " + table.getEscapedTableName() + " ORDER BY " + table.getEscapedColumnName(0);
         ResultSet rs = statement.executeQuery(sql);
         dbresultSet = new DBResultSet(this, rs, table);
         return dbresultSet;
