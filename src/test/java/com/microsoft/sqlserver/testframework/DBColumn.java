@@ -35,6 +35,13 @@ public class DBColumn {
     public String getColumnName() {
         return columnName;
     }
+    
+    /**
+     * @return Escaped "columnName"
+     */
+    public String getEscapedColumnName() {
+        return "[" + columnName + "]";
+    }
 
     /**
      * @param columnName
@@ -88,6 +95,12 @@ public class DBColumn {
     Object getRowValue(int row) {
         // handle exceptions
         return columnValues.get(row);
+    }
+
+    public void populateRowId(int totalRows) {
+        columnValues = new ArrayList<>();
+        for (int i = 0; i < totalRows; i++)
+            columnValues.add(i+1);
     }
 
 }
