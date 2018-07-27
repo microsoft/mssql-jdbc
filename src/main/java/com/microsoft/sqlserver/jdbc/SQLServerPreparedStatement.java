@@ -2372,10 +2372,10 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
         // At this point, the next chunk of string is the table name, without starting with [ or ".
         while (localUserSQL.length() > 0) {
-            // Keep going until the end of the table name is signalled - either a ., whitespace, or comment is
-            // encountered
+            // Keep going until the end of the table name is signalled - either a ., whitespace, ; or comment is
+            // encountered.
             if (localUserSQL.charAt(0) == '.' || Character.isWhitespace(localUserSQL.charAt(0))
-                    || checkAndRemoveCommentsAndSpace(false)) {
+                    || checkAndRemoveCommentsAndSpace(false) || localUserSQL.charAt(0) == ';') {
                 return sb.toString() + parseUserSQLForTableNameDW(true, true, true, false);
             } else {
                 sb.append(localUserSQL.charAt(0));
