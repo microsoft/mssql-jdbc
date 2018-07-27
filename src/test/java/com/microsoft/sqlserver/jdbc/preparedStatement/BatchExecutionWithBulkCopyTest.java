@@ -75,7 +75,7 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
                     boolean.class, boolean.class, boolean.class);
             method.setAccessible(true);
 
-            assertEquals((String) method.invoke(pstmt, false, false, false, false), "PeterTable");
+            assertEquals("PeterTable", (String) method.invoke(pstmt, false, false, false, false));
         }
     }
 
@@ -94,7 +94,7 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
                     boolean.class, boolean.class, boolean.class);
             method.setAccessible(true);
 
-            assertEquals((String) method.invoke(pstmt, false, false, false, false), "[Peter[]]Table]");
+            assertEquals("[Peter[]]Table]", (String) method.invoke(pstmt, false, false, false, false));
         }
     }
 
@@ -113,7 +113,7 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
                     boolean.class, boolean.class, boolean.class);
             method.setAccessible(true);
 
-            assertEquals((String) method.invoke(pstmt, false, false, false, false), "\"Peter\"\"\"\"Table\"");
+            assertEquals("\"Peter\"\"\"\"Table\"", (String) method.invoke(pstmt, false, false, false, false));
         }
     }
 
@@ -147,7 +147,7 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
             columnListExpected.add("c4");
 
             for (int i = 0; i < columnListExpected.size(); i++) {
-                assertEquals(columnList.get(i), columnListExpected.get(i));
+                assertEquals(columnListExpected.get(i), columnList.get(i));
             }
         }
     }
@@ -197,7 +197,7 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
 
             rs.next();
             for (int i = 0; i < expected.length; i++) {
-                assertEquals(rs.getObject(i + 1).toString(), expected[i].toString());
+                assertEquals(expected[i].toString(), rs.getObject(i + 1).toString());
             }
         }
     }
@@ -243,7 +243,7 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
             rs.next();
             for (int i = 0; i < expected.length; i++) {
                 if (null != rs.getObject(i + 1)) {
-                    assertEquals(rs.getObject(i + 1).toString(), expected[i].toString());
+                    assertEquals(expected[i].toString(), rs.getObject(i + 1).toString());
                 }
             }
         }
@@ -287,7 +287,7 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
             rs.next();
             for (int i = 0; i < expected.length; i++) {
                 if (null != rs.getObject(i + 1)) {
-                    assertEquals(rs.getObject(i + 1), expected[i]);
+                    assertEquals(expected[i], rs.getObject(i + 1));
                 }
             }
         }
@@ -326,7 +326,7 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
 
             rs.next();
             for (int i = 0; i < expected.length; i++) {
-                assertEquals(rs.getObject(i + 1), expected[i]);
+                assertEquals(expected[i], rs.getObject(i + 1));
             }
         }
     }
@@ -354,7 +354,7 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
             ResultSet rs = stmt.executeQuery("SELECT * FROM " + squareBracketTableName);
             rs.next();
 
-            assertEquals(rs.getObject(1), 1);
+            assertEquals(1, rs.getObject(1));
         }
     }
 
@@ -381,7 +381,7 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
             ResultSet rs = stmt.executeQuery("SELECT * FROM " + doubleQuoteTableName);
             rs.next();
 
-            assertEquals(rs.getObject(1), 1);
+            assertEquals(1, rs.getObject(1));
         }
     }
 
@@ -410,7 +410,7 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
             ResultSet rs = stmt.executeQuery("SELECT * FROM " + schemaTableName);
             rs.next();
 
-            assertEquals(rs.getObject(1), 1);
+            assertEquals(1, rs.getObject(1));
         }
     }
 
@@ -437,7 +437,7 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
             ResultSet rs = stmt.executeQuery("SELECT * FROM " + squareBracketTableName);
             rs.next();
 
-            assertEquals(rs.getObject(1), 1);
+            assertEquals(1, rs.getObject(1));
         }
     }
 
@@ -486,7 +486,7 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
 
             rs.next();
             for (int i = 0; i < expected.length; i++) {
-                assertEquals(rs.getObject(i + 1).toString(), expected[i].toString());
+                assertEquals(expected[i].toString(), rs.getObject(i + 1).toString());
             }
         }
     }
@@ -511,7 +511,7 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
             pstmt.executeBatch();
             throw new Exception("Test did not throw an exception when it was expected.");
         } catch (BatchUpdateException e) {
-            assertEquals(e.getMessage(), "Column name or number of supplied values does not match table definition.");
+            assertEquals("Column name or number of supplied values does not match table definition.", e.getMessage());
         }
 
         invalid = "insert into " + tableName + " (c1, c2, c3) values (?, ?,? ,?) ";
@@ -532,8 +532,7 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
             pstmt.executeBatch();
             throw new Exception("Test did not throw an exception when it was expected.");
         } catch (BatchUpdateException e) {
-            assertEquals(e.getMessage(),
-                    "There are fewer columns in the INSERT statement than values specified in the VALUES clause. The number of values in the VALUES clause must match the number of columns specified in the INSERT statement.");
+            assertEquals("There are fewer columns in the INSERT statement than values specified in the VALUES clause. The number of values in the VALUES clause must match the number of columns specified in the INSERT statement.", e.getMessage());
         }
     }
 
@@ -557,7 +556,7 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
             pstmt.executeBatch();
             throw new Exception("Test did not throw an exception when it was expected.");
         } catch (BatchUpdateException e) {
-            assertEquals(e.getMessage(), "Incorrect syntax near the keyword 'table'.");
+            assertEquals("Incorrect syntax near the keyword 'table'.", e.getMessage());
         }
 
         invalid = "insert into " + tableName + " values ('?', ?,? ,?) ";
@@ -577,7 +576,7 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
             pstmt.executeBatch();
             throw new Exception("Test did not throw an exception when it was expected.");
         } catch (BatchUpdateException e) {
-            assertEquals(e.getMessage(), "Column name or number of supplied values does not match table definition.");
+            assertEquals("Column name or number of supplied values does not match table definition.", e.getMessage());
         }
     }
 
@@ -612,10 +611,10 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
 
             ResultSet rs = stmt.executeQuery("SELECT * FROM " + unsupportedTableName);
             rs.next();
-            assertEquals(Geometry.STGeomFromWKB((byte[]) rs.getObject(1)).toString(), g1.toString());
-            assertEquals(Geography.STGeomFromWKB((byte[]) rs.getObject(2)).toString(), g2.toString());
-            assertEquals(rs.getObject(3), myTimestamp);
-            assertEquals(rs.getObject(4), myTimestamp);
+            assertEquals(g1.toString(), Geometry.STGeomFromWKB((byte[]) rs.getObject(1)).toString());
+            assertEquals(g2.toString(), Geography.STGeomFromWKB((byte[]) rs.getObject(2)).toString());
+            assertEquals(myTimestamp, rs.getObject(3));
+            assertEquals(myTimestamp, rs.getObject(4));
         }
     }
 
