@@ -287,11 +287,6 @@ public class DBTable extends AbstractSQLGenerator {
             // insert data
             for (int i = 0; i < totalRows; i++) {
                 for (int colNum = 0; colNum < totalColumns; colNum++) {
-                    //Set RowId
-                    if(colNum==0) {
-                        ((PreparedStatement) dbPStmt.product()).setInt(0, i+1);
-                    }
-                    
                     if (passDataAsHex(colNum)) {
                         ((PreparedStatement) dbPStmt.product()).setBytes(colNum + 1,
                                 ((byte[]) (getColumn(colNum).getRowValue(i))));

@@ -97,6 +97,10 @@ public class DBColumn {
         return columnValues.get(row);
     }
 
+    /**
+     * Updates rowIndexes to all rows
+     * @param totalRows number of rows
+     */
     public void populateRowId(int totalRows) {
         columnValues = new ArrayList<>();
         for (int i = 0; i < totalRows; i++)
