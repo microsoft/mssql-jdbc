@@ -2596,12 +2596,20 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
         if (localUserSQL.substring(0, 2).equalsIgnoreCase("/*")) {
             int temp = localUserSQL.indexOf("*/") + 2;
+            if (temp < 0) {
+                localUserSQL = "";
+                return false;
+            }
             localUserSQL = localUserSQL.substring(temp);
             return true;
         }
 
         if (localUserSQL.substring(0, 2).equalsIgnoreCase("--")) {
             int temp = localUserSQL.indexOf("\n") + 1;
+            if (temp < 0) {
+                localUserSQL = "";
+                return false;
+            }
             localUserSQL = localUserSQL.substring(temp);
             return true;
         }
