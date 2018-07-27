@@ -6,8 +6,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/)
 ## [7.0.0] Stable Release
 ### Added
 - Added 'Automatic-Module-Name' manifest entry to jre10 Jar, allowing JDK 10 users to access driver module 'com.microsoft.sqlserver.jdbc' [#732](https://github.com/Microsoft/mssql-jdbc/pull/732)
-- Added setUseBulkCopyForBatchInsert() to Request Boundary methods [#739](https://github.com/Microsoft/mssql-jdbc/pull/739)
-- Added new test for validation of supported public APIs in request boundary methods [#746](https://github.com/Microsoft/mssql-jdbc/pull/746)
+- Added setUseBulkCopyForBatchInsert() to request boundary declaration APIs [#739](https://github.com/Microsoft/mssql-jdbc/pull/739)
+- Added new test for validation of supported public APIs in request boundary declaration APIs [#746](https://github.com/Microsoft/mssql-jdbc/pull/746)
 
 ### Fixed Issues
 - Fixed policheck issue with 'Country' keyword [#745](https://github.com/Microsoft/mssql-jdbc/pull/745)
