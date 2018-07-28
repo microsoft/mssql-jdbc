@@ -78,7 +78,7 @@ We're now on the Maven Central Repository. Add the following to your POM file to
 <dependency>
 	<groupId>com.microsoft.sqlserver</groupId>
 	<artifactId>mssql-jdbc</artifactId>
-	<version>6.4.0.jre9</version>
+	<version>7.0.0.jre10</version>
 </dependency>
 ```
 The driver can be downloaded from the [Microsoft Download Center](https://go.microsoft.com/fwlink/?linkid=868287).
@@ -91,7 +91,8 @@ To get the latest preview version of the driver, add the following to your POM f
 	<version>6.5.4.jre10-preview</version>
 </dependency>
 ```
-
+### Using driver as Java Module
+Starting from version 7.0.0, the driver Jars (jre10 and above) will expose 'Automatic-Module' as **'com.microsoft.sqlserver.jdbc'**. The supporting Jar can now be added to ModulePath to access this module.
 
 
 ## Dependencies
@@ -118,7 +119,7 @@ Projects that require either of the two features need to explicitly declare the 
 <dependency>
 	<groupId>com.microsoft.sqlserver</groupId>
 	<artifactId>mssql-jdbc</artifactId>
-	<version>6.5.4.jre10-preview</version>
+	<version>7.0.0.jre10</version>
 	<scope>compile</scope>
 </dependency>
 
@@ -134,7 +135,7 @@ Projects that require either of the two features need to explicitly declare the 
 <dependency>
 	<groupId>com.microsoft.sqlserver</groupId>
 	<artifactId>mssql-jdbc</artifactId>
-	<version>6.5.4.jre10-preview</version>
+	<version>7.0.0.jre10</version>
 	<scope>compile</scope>
 </dependency>
 

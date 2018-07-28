@@ -6,6 +6,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
+import java.sql.BatchUpdateException;
 import java.sql.Connection;
 import java.sql.Date;
 import java.sql.DriverManager;
@@ -23,6 +24,8 @@ import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
 import org.opentest4j.TestAbortedException;
 
+import com.microsoft.sqlserver.jdbc.Geography;
+import com.microsoft.sqlserver.jdbc.Geometry;
 import com.microsoft.sqlserver.jdbc.SQLServerConnection;
 import com.microsoft.sqlserver.jdbc.SQLServerPreparedStatement;
 import com.microsoft.sqlserver.jdbc.SQLServerStatement;
@@ -35,6 +38,7 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
 
     static long UUID = System.currentTimeMillis();;
     static String tableName = "BulkCopyParseTest" + UUID;
+    static String unsupportedTableName = "BulkCopyUnsupportedTable" + UUID;
     static String squareBracketTableName = "[peter]]]]test" + UUID + "]";
     static String doubleQuoteTableName = "\"peter\"\"\"\"test" + UUID + "\"";
 
@@ -71,7 +75,7 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
                     boolean.class, boolean.class, boolean.class);
             method.setAccessible(true);
 
-            assertEquals((String) method.invoke(pstmt, false, false, false, false), "PeterTable");
+            assertEquals("PeterTable", (String) method.invoke(pstmt, false, false, false, false));
         }
     }
 
@@ -90,7 +94,7 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
                     boolean.class, boolean.class, boolean.class);
             method.setAccessible(true);
 
-            assertEquals((String) method.invoke(pstmt, false, false, false, false), "[Peter[]]Table]");
+            assertEquals("[Peter[]]Table]", (String) method.invoke(pstmt, false, false, false, false));
         }
     }
 
@@ -109,7 +113,7 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
                     boolean.class, boolean.class, boolean.class);
             method.setAccessible(true);
 
-            assertEquals((String) method.invoke(pstmt, false, false, false, false), "\"Peter\"\"\"\"Table\"");
+            assertEquals("\"Peter\"\"\"\"Table\"", (String) method.invoke(pstmt, false, false, false, false));
         }
     }
 
@@ -143,21 +147,7 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
             columnListExpected.add("c4");
 
             for (int i = 0; i < columnListExpected.size(); i++) {
-                assertEquals(columnList.get(i), columnListExpected.get(i));
-            }
-
-            method = pstmt.getClass().getDeclaredMethod("parseUserSQLForValueListDW", boolean.class);
-            method.setAccessible(true);
-
-            ArrayList<String> valueList = (ArrayList<String>) method.invoke(pstmt, false);
-            ArrayList<String> valueListExpected = new ArrayList<String>();
-            valueListExpected.add("1");
-            valueListExpected.add("2");
-            valueListExpected.add("'?'");
-            valueListExpected.add("?");
-
-            for (int i = 0; i < valueListExpected.size(); i++) {
-                assertEquals(valueList.get(i), valueListExpected.get(i));
+                assertEquals(columnListExpected.get(i), columnList.get(i));
             }
         }
     }
@@ -165,7 +155,7 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
     @Test
     public void testAllcolumns() throws Exception {
         String valid = "INSERT INTO " + tableName + " values " + "(" + "?, " + "?, " + "?, " + "?, " + "?, " + "?, "
-                + "?, " + "?, " + "?, " + ")";
+                + "?, " + "?, " + "? " + ")";
 
         try (Connection connection = DriverManager.getConnection(connectionString + ";useBulkCopyForBatchInsert=true;");
                 SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) connection.prepareStatement(valid);
@@ -207,14 +197,14 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
 
             rs.next();
             for (int i = 0; i < expected.length; i++) {
-                assertEquals(rs.getObject(i + 1).toString(), expected[i].toString());
+                assertEquals(expected[i].toString(), rs.getObject(i + 1).toString());
             }
         }
     }
 
     @Test
     public void testMixColumns() throws Exception {
-        String valid = "INSERT INTO " + tableName + " (c1, c3, c5, c8) values " + "(" + "?, " + "?, " + "?, " + "?, "
+        String valid = "INSERT INTO " + tableName + " (c1, c3, c5, c8) values " + "(" + "?, " + "?, " + "?, " + "? "
                 + ")";
 
         try (Connection connection = DriverManager.getConnection(connectionString + ";useBulkCopyForBatchInsert=true;");
@@ -253,7 +243,7 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
             rs.next();
             for (int i = 0; i < expected.length; i++) {
                 if (null != rs.getObject(i + 1)) {
-                    assertEquals(rs.getObject(i + 1).toString(), expected[i].toString());
+                    assertEquals(expected[i].toString(), rs.getObject(i + 1).toString());
                 }
             }
         }
@@ -262,7 +252,7 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
     @Test
     public void testNullOrEmptyColumns() throws Exception {
         String valid = "INSERT INTO " + tableName + " (c1, c2, c3, c4, c5, c6, c7) values " + "(" + "?, " + "?, "
-                + "?, " + "?, " + "?, " + "?, " + "?, " + ")";
+                + "?, " + "?, " + "?, " + "?, " + "? " + ")";
 
         try (Connection connection = DriverManager.getConnection(connectionString + ";useBulkCopyForBatchInsert=true;");
                 SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) connection.prepareStatement(valid);
@@ -297,13 +287,14 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
             rs.next();
             for (int i = 0; i < expected.length; i++) {
                 if (null != rs.getObject(i + 1)) {
-                    assertEquals(rs.getObject(i + 1), expected[i]);
+                    assertEquals(expected[i], rs.getObject(i + 1));
                 }
             }
         }
     }
 
-    @Test
+    // Non-parameterized queries are not supported anymore.
+    // @Test
     public void testAllFilledColumns() throws Exception {
         String valid = "INSERT INTO " + tableName + " values " + "(" + "1234, " + "false, " + "a, " + "null, "
                 + "null, " + "123.45, " + "b, " + "varc, " + "sadf, " + ")";
@@ -335,7 +326,7 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
 
             rs.next();
             for (int i = 0; i < expected.length; i++) {
-                assertEquals(rs.getObject(i + 1), expected[i]);
+                assertEquals(expected[i], rs.getObject(i + 1));
             }
         }
     }
@@ -363,7 +354,7 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
             ResultSet rs = stmt.executeQuery("SELECT * FROM " + squareBracketTableName);
             rs.next();
 
-            assertEquals(rs.getObject(1), 1);
+            assertEquals(1, rs.getObject(1));
         }
     }
 
@@ -390,7 +381,7 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
             ResultSet rs = stmt.executeQuery("SELECT * FROM " + doubleQuoteTableName);
             rs.next();
 
-            assertEquals(rs.getObject(1), 1);
+            assertEquals(1, rs.getObject(1));
         }
     }
 
@@ -419,7 +410,7 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
             ResultSet rs = stmt.executeQuery("SELECT * FROM " + schemaTableName);
             rs.next();
 
-            assertEquals(rs.getObject(1), 1);
+            assertEquals(1, rs.getObject(1));
         }
     }
 
@@ -446,14 +437,14 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
             ResultSet rs = stmt.executeQuery("SELECT * FROM " + squareBracketTableName);
             rs.next();
 
-            assertEquals(rs.getObject(1), 1);
+            assertEquals(1, rs.getObject(1));
         }
     }
 
     @Test
-    public void testAlColumnsLargeBatch() throws Exception {
+    public void testAllColumnsLargeBatch() throws Exception {
         String valid = "INSERT INTO " + tableName + " values " + "(" + "?, " + "?, " + "?, " + "?, " + "?, " + "?, "
-                + "?, " + "?, " + "?, " + ")";
+                + "?, " + "?, " + "? " + ")";
 
         try (Connection connection = DriverManager.getConnection(connectionString + ";useBulkCopyForBatchInsert=true;");
                 SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) connection.prepareStatement(valid);
@@ -495,8 +486,137 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
 
             rs.next();
             for (int i = 0; i < expected.length; i++) {
-                assertEquals(rs.getObject(i + 1).toString(), expected[i].toString());
+                assertEquals(expected[i].toString(), rs.getObject(i + 1).toString());
             }
+        }
+    }
+
+    @Test
+    public void testIllegalNumberOfArgNoColumnList() throws Exception {
+        String invalid = "insert into " + tableName + " values (?, ?,? ,?) ";
+
+        try (Connection connection = DriverManager.getConnection(connectionString + ";useBulkCopyForBatchInsert=true;");
+                SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) connection.prepareStatement(invalid);
+                Statement stmt = (SQLServerStatement) connection.createStatement();) {
+            Field f1 = SQLServerConnection.class.getDeclaredField("isAzureDW");
+            f1.setAccessible(true);
+            f1.set(connection, true);
+
+            pstmt.setInt(1, 1);
+            pstmt.setInt(2, 1);
+            pstmt.setInt(3, 1);
+            pstmt.setInt(4, 1);
+            pstmt.addBatch();
+
+            pstmt.executeBatch();
+            throw new Exception("Test did not throw an exception when it was expected.");
+        } catch (BatchUpdateException e) {
+            assertEquals("Column name or number of supplied values does not match table definition.", e.getMessage());
+        }
+
+        invalid = "insert into " + tableName + " (c1, c2, c3) values (?, ?,? ,?) ";
+
+        try (Connection connection = DriverManager.getConnection(connectionString + ";useBulkCopyForBatchInsert=true;");
+                SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) connection.prepareStatement(invalid);
+                Statement stmt = (SQLServerStatement) connection.createStatement();) {
+            Field f1 = SQLServerConnection.class.getDeclaredField("isAzureDW");
+            f1.setAccessible(true);
+            f1.set(connection, true);
+
+            pstmt.setInt(1, 1);
+            pstmt.setInt(2, 1);
+            pstmt.setInt(3, 1);
+            pstmt.setInt(4, 1);
+            pstmt.addBatch();
+
+            pstmt.executeBatch();
+            throw new Exception("Test did not throw an exception when it was expected.");
+        } catch (BatchUpdateException e) {
+            assertEquals(
+                    "There are fewer columns in the INSERT statement than values specified in the VALUES clause. The number of values in the VALUES clause must match the number of columns specified in the INSERT statement.",
+                    e.getMessage());
+        }
+    }
+
+    @Test
+    public void testNonParameterizedQuery() throws Exception {
+        String invalid = "insert into " + tableName + " values ((SELECT * from table where c1=?), ?,? ,?) ";
+
+        try (Connection connection = DriverManager.getConnection(connectionString + ";useBulkCopyForBatchInsert=true;");
+                SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) connection.prepareStatement(invalid);
+                Statement stmt = (SQLServerStatement) connection.createStatement();) {
+            Field f1 = SQLServerConnection.class.getDeclaredField("isAzureDW");
+            f1.setAccessible(true);
+            f1.set(connection, true);
+
+            pstmt.setInt(1, 1);
+            pstmt.setInt(2, 1);
+            pstmt.setInt(3, 1);
+            pstmt.setInt(4, 1);
+            pstmt.addBatch();
+
+            pstmt.executeBatch();
+            throw new Exception("Test did not throw an exception when it was expected.");
+        } catch (BatchUpdateException e) {
+            assertEquals("Incorrect syntax near the keyword 'table'.", e.getMessage());
+        }
+
+        invalid = "insert into " + tableName + " values ('?', ?,? ,?) ";
+
+        try (Connection connection = DriverManager.getConnection(connectionString + ";useBulkCopyForBatchInsert=true;");
+                SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) connection.prepareStatement(invalid);
+                Statement stmt = (SQLServerStatement) connection.createStatement();) {
+            Field f1 = SQLServerConnection.class.getDeclaredField("isAzureDW");
+            f1.setAccessible(true);
+            f1.set(connection, true);
+
+            pstmt.setInt(1, 1);
+            pstmt.setInt(2, 1);
+            pstmt.setInt(3, 1);
+            pstmt.addBatch();
+
+            pstmt.executeBatch();
+            throw new Exception("Test did not throw an exception when it was expected.");
+        } catch (BatchUpdateException e) {
+            assertEquals("Column name or number of supplied values does not match table definition.", e.getMessage());
+        }
+    }
+
+    @Test
+    public void testNonSupportedColumns() throws Exception {
+        String valid = "insert into " + unsupportedTableName + " values (?, ?, ?, ?)";
+
+        try (Connection connection = DriverManager.getConnection(connectionString + ";useBulkCopyForBatchInsert=true;");
+                SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) connection.prepareStatement(valid);
+                Statement stmt = (SQLServerStatement) connection.createStatement();) {
+            Field f1 = SQLServerConnection.class.getDeclaredField("isAzureDW");
+            f1.setAccessible(true);
+            f1.set(connection, true);
+
+            Utils.dropTableIfExists(unsupportedTableName, stmt);
+
+            String createTable = "create table " + unsupportedTableName
+                    + " (c1 geometry, c2 geography, c3 datetime, c4 smalldatetime)";
+            stmt.execute(createTable);
+
+            Timestamp myTimestamp = new Timestamp(1200000L);
+            Geometry g1 = Geometry.STGeomFromText("POINT(1 2 3 4)", 0);
+            Geography g2 = Geography.STGeomFromText("POINT(1 2 3 4)", 4326);
+
+            pstmt.setGeometry(1, g1);
+            pstmt.setGeography(2, g2);
+            pstmt.setDateTime(3, myTimestamp);
+            pstmt.setSmallDateTime(4, myTimestamp);
+            pstmt.addBatch();
+
+            pstmt.executeBatch();
+
+            ResultSet rs = stmt.executeQuery("SELECT * FROM " + unsupportedTableName);
+            rs.next();
+            assertEquals(g1.toString(), Geometry.STGeomFromWKB((byte[]) rs.getObject(1)).toString());
+            assertEquals(g2.toString(), Geography.STGeomFromWKB((byte[]) rs.getObject(2)).toString());
+            assertEquals(myTimestamp, rs.getObject(3));
+            assertEquals(myTimestamp, rs.getObject(4));
         }
     }
 
@@ -522,6 +642,7 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
                 Utils.dropTableIfExists(tableName, stmt);
                 Utils.dropTableIfExists(squareBracketTableName, stmt);
                 Utils.dropTableIfExists(doubleQuoteTableName, stmt);
+                Utils.dropTableIfExists(unsupportedTableName, stmt);
             }
         }
     }
