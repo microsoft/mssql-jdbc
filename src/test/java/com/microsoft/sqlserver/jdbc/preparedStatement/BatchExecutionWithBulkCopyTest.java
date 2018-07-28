@@ -64,7 +64,7 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
     public void testComments() throws Exception {
         try (Connection connection = DriverManager.getConnection(connectionString + ";useBulkCopyForBatchInsert=true;");
                 PreparedStatement pstmt = (SQLServerPreparedStatement) connection.prepareStatement("");) {
-            String valid = "/* rando comment *//* rando comment */ INSERT /* rando comment */ INTO /* rando comment *//*rando comment*/ PeterTable /*rando comment */"
+            String valid = "/* rando comment *//* rando comment */ INSERT /* rando comment */ INTO /* rando comment *//*rando comment*/ dbo . \"db\". [schema]. PeterTable /*rando comment */"
                     + " /* rando comment */values/* rando comment */ (1, 2)";
 
             Field f1 = pstmt.getClass().getDeclaredField("localUserSQL");
@@ -75,7 +75,7 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
                     boolean.class, boolean.class, boolean.class);
             method.setAccessible(true);
 
-            assertEquals("PeterTable", (String) method.invoke(pstmt, false, false, false, false));
+            assertEquals("[dbo].\"db\".[schema].[PeterTable]", (String) method.invoke(pstmt, false, false, false, false));
         }
     }
 
@@ -532,7 +532,9 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
             pstmt.executeBatch();
             throw new Exception("Test did not throw an exception when it was expected.");
         } catch (BatchUpdateException e) {
-            assertEquals("There are fewer columns in the INSERT statement than values specified in the VALUES clause. The number of values in the VALUES clause must match the number of columns specified in the INSERT statement.", e.getMessage());
+            assertEquals(
+                    "There are fewer columns in the INSERT statement than values specified in the VALUES clause. The number of values in the VALUES clause must match the number of columns specified in the INSERT statement.",
+                    e.getMessage());
         }
     }
 

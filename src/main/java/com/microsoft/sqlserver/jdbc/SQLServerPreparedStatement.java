@@ -2376,7 +2376,8 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
             // encountered.
             if (localUserSQL.charAt(0) == '.' || Character.isWhitespace(localUserSQL.charAt(0))
                     || checkAndRemoveCommentsAndSpace(false)) {
-                return sb.toString() + parseUserSQLForTableNameDW(true, true, true, false);
+                // escape the literal, regardless of if it's a database, schema or table.
+                return "[" + sb.toString() + "]" + parseUserSQLForTableNameDW(true, true, true, false);
             } else if (localUserSQL.charAt(0) == ';') {
                 throw new IllegalArgumentException("End of query detected before VALUES have been found.");
             } else {
