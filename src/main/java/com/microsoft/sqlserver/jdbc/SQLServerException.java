@@ -51,6 +51,10 @@ enum DriverError {
  * SQLServerExceptions are written to any open log files the user has specified.
  */
 public final class SQLServerException extends java.sql.SQLException {
+    /**
+     * Always update serialVersionUID when prompted
+     */
+    private static final long serialVersionUID = -2195310557661496761L;
     static final String EXCEPTION_XOPEN_CONNECTION_CANT_ESTABLISH = "08001";
     static final String EXCEPTION_XOPEN_CONNECTION_DOES_NOT_EXIST = "08003";
     static final String EXCEPTION_XOPEN_CONNECTION_FAILURE = "08006"; // After connection was connected OK
@@ -142,11 +146,11 @@ public final class SQLServerException extends java.sql.SQLException {
      * @param cause
      *        The exception that caused this exception
      */
-    public SQLServerException(String errText, SQLState sqlState, DriverError driverError, Throwable cause) {
+    SQLServerException(String errText, SQLState sqlState, DriverError driverError, Throwable cause) {
         this(errText, sqlState.getSQLStateCode(), driverError.getErrorCode(), cause);
     }
 
-    public SQLServerException(String errText, String errState, int errNum, Throwable cause) {
+    SQLServerException(String errText, String errState, int errNum, Throwable cause) {
         super(errText, errState, errNum);
         initCause(cause);
         logException(null, errText, true);
@@ -154,14 +158,14 @@ public final class SQLServerException extends java.sql.SQLException {
                                                            // ActivityId later.
     }
 
-    public SQLServerException(String errText, Throwable cause) {
+    SQLServerException(String errText, Throwable cause) {
         super(errText);
         initCause(cause);
         logException(null, errText, true);
         ActivityCorrelator.setCurrentActivityIdSentFlag();
     }
 
-    public SQLServerException(Object obj, String errText, String errState, int errNum, boolean bStack) {
+    SQLServerException(Object obj, String errText, String errState, int errNum, boolean bStack) {
         super(errText, errState, errNum);
         logException(obj, errText, bStack);
         ActivityCorrelator.setCurrentActivityIdSentFlag();
@@ -181,7 +185,7 @@ public final class SQLServerException extends java.sql.SQLException {
      * @param bStack
      *        true to generate the stack trace
      */
-    public SQLServerException(Object obj, String errText, String errState, StreamError streamError, boolean bStack) {
+    SQLServerException(Object obj, String errText, String errState, StreamError streamError, boolean bStack) {
         super(errText, errState, streamError.getErrorNumber());
 
         // Log SQL error with info from StreamError.

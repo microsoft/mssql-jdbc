@@ -1,9 +1,6 @@
 /*
- * Microsoft JDBC Driver for SQL Server
- * 
- * Copyright(c) Microsoft Corporation All rights reserved.
- * 
- * This program is made available under the terms of the MIT License. See the LICENSE file in the project root for more information.
+ * Microsoft JDBC Driver for SQL Server Copyright(c) Microsoft Corporation All rights reserved. This program is made
+ * available under the terms of the MIT License. See the LICENSE file in the project root for more information.
  */
 package azureactivedirectoryauthentication.src.main.java;
 
@@ -15,6 +12,7 @@ import java.sql.ResultSet;
 import java.sql.Statement;
 
 import com.microsoft.sqlserver.jdbc.SQLServerDataSource;
+
 
 public class AzureActiveDirectoryAuthentication {
 
@@ -48,9 +46,9 @@ public class AzureActiveDirectoryAuthentication {
             username = br.readLine();
             System.out.print("Enter password: ");
             password = br.readLine();
-            System.out.print("Enter authentication: ");		// e.g. ActiveDirectoryPassword
+            System.out.print("Enter authentication: "); // e.g. ActiveDirectoryPassword
             authentication = br.readLine();
-            System.out.print("Enter host name in certificate: ");	// e.g. *.database.windows.net
+            System.out.print("Enter host name in certificate: "); // e.g. *.database.windows.net
             hostNameInCertificate = br.readLine();
 
             // Establish the connection.
@@ -87,21 +85,15 @@ public class AzureActiveDirectoryAuthentication {
             if (rs != null)
                 try {
                     rs.close();
-                }
-                catch (Exception e) {
-                }
+                } catch (Exception e) {}
             if (cstmt != null)
                 try {
                     cstmt.close();
-                }
-                catch (Exception e) {
-                }
+                } catch (Exception e) {}
             if (con != null)
                 try {
                     con.close();
-                }
-                catch (Exception e) {
-                }
+                } catch (Exception e) {}
         }
     }
 }

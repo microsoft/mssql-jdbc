@@ -2020,8 +2020,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         } catch (SQLException e) {
             // throw a BatchUpdateException with the given error message, and return null for the updateCounts.
             throw new BatchUpdateException(e.getMessage(), null, 0, null);
-        }
-        catch (IllegalArgumentException e) {
+        } catch (IllegalArgumentException e) {
             // If we fail with IllegalArgumentException, fall back to the original batch insert logic.
             if (getStatementLogger().isLoggable(java.util.logging.Level.FINE)) {
                 getStatementLogger().fine("Parsing user's Batch Insert SQL Query failed: " + e.getMessage());
@@ -2174,8 +2173,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         } catch (SQLException e) {
             // throw a BatchUpdateException with the given error message, and return null for the updateCounts.
             throw new BatchUpdateException(e.getMessage(), null, 0, null);
-        }
-        catch (IllegalArgumentException e) {
+        } catch (IllegalArgumentException e) {
             // If we fail with IllegalArgumentException, fall back to the original batch insert logic.
             if (getStatementLogger().isLoggable(java.util.logging.Level.FINE)) {
                 getStatementLogger().fine("Parsing user's Batch Insert SQL Query failed: " + e.getMessage());

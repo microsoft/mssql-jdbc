@@ -532,7 +532,9 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
             pstmt.executeBatch();
             throw new Exception("Test did not throw an exception when it was expected.");
         } catch (BatchUpdateException e) {
-            assertEquals("There are fewer columns in the INSERT statement than values specified in the VALUES clause. The number of values in the VALUES clause must match the number of columns specified in the INSERT statement.", e.getMessage());
+            assertEquals(
+                    "There are fewer columns in the INSERT statement than values specified in the VALUES clause. The number of values in the VALUES clause must match the number of columns specified in the INSERT statement.",
+                    e.getMessage());
         }
     }
 

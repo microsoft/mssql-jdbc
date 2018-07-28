@@ -20,20 +20,19 @@ import org.ietf.jgss.Oid;
 
 import com.sun.security.jgss.ExtendedGSSCredential;
 
+
 /**
  *
  * Sample of constrained delegation connection.
  *
- * An intermediate service is necessary to impersonate the client. This service needs to be configured with the
- * options:
- *      "Trust this user for delegation to specified services only"
- *      "Use any authentication protocol"
+ * An intermediate service is necessary to impersonate the client. This service needs to be configured with the options:
+ * "Trust this user for delegation to specified services only" "Use any authentication protocol"
  *
  */
 public class ConstrainedSample {
 
     // Connection properties
-    private static final String DRIVER_CLASS_NAME ="com.microsoft.sqlserver.jdbc.SQLServerDriver";
+    private static final String DRIVER_CLASS_NAME = "com.microsoft.sqlserver.jdbc.SQLServerDriver";
     private static final String CONNECTION_URI = "jdbc:sqlserver:// URI of the SQLServer";
 
     private static final String TARGET_USER_NAME = "User to be impersonated";
@@ -82,7 +81,8 @@ public class ConstrainedSample {
      * Authenticate the intermediate server that is going to impersonate the client
      *
      * @return a subject for the intermediate server with the keytab credentials
-     * @throws PrivilegedActionException in case of failure
+     * @throws PrivilegedActionException
+     *         in case of failure
      */
     private static Subject doInitialLogin() throws PrivilegedActionException {
         serviceSubject = new Subject();
@@ -131,7 +131,8 @@ public class ConstrainedSample {
      * Generate the impersonated user credentials thanks to the S4U2self mechanism
      *
      * @return the client impersonated GSSCredential
-     * @throws PrivilegedActionException in case of failure
+     * @throws PrivilegedActionException
+     *         in case of failure
      */
     private static GSSCredential impersonate() throws PrivilegedActionException {
         return Subject.doAs(serviceSubject, (PrivilegedExceptionAction<GSSCredential>) () -> {
@@ -147,12 +148,14 @@ public class ConstrainedSample {
     /**
      * Obtains a connection using an impersonated credential
      *
-     * @param impersonatedUserCredential impersonated user credentials
+     * @param impersonatedUserCredential
+     *        impersonated user credentials
      * @return a connection to the SQL Server opened using the given impersonated credential
-     * @throws PrivilegedActionException in case of failure
+     * @throws PrivilegedActionException
+     *         in case of failure
      */
-    private static Connection createConnection(final GSSCredential impersonatedUserCredential)
-            throws PrivilegedActionException {
+    private static Connection createConnection(
+            final GSSCredential impersonatedUserCredential) throws PrivilegedActionException {
 
         return Subject.doAs(new Subject(), (PrivilegedExceptionAction<Connection>) () -> {
             driverProperties.put("gsscredential", impersonatedUserCredential);
