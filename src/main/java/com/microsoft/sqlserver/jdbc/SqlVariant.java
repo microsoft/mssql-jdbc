@@ -64,6 +64,7 @@ enum sqlVariantProbBytes {
 
 }
 
+
 /**
  * Holds information regarding the basetype of a sql_variant data.
  *
