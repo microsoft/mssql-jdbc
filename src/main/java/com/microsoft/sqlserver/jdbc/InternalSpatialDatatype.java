@@ -30,15 +30,15 @@ public enum InternalSpatialDatatype {
         this.typeName = typeName;
     }
 
-    public byte getTypeCode() {
+    byte getTypeCode() {
         return this.typeCode;
     }
 
-    public String getTypeName() {
+    String getTypeName() {
         return this.typeName;
     }
 
-    public static InternalSpatialDatatype valueOf(byte typeCode) {
+    static InternalSpatialDatatype valueOf(byte typeCode) {
         for (InternalSpatialDatatype internalType : values()) {
             if (internalType.typeCode == typeCode) {
                 return internalType;

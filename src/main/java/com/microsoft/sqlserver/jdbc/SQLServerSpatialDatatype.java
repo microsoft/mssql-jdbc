@@ -7,11 +7,16 @@ package com.microsoft.sqlserver.jdbc;
 
 import java.math.BigDecimal;
 import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 
+
+/**
+ * Abstract parent class for Spatial Datatypes that contains common functionalities.
+ */
 
 abstract class SQLServerSpatialDatatype {
 
@@ -38,7 +43,8 @@ abstract class SQLServerSpatialDatatype {
     protected int currentFigureIndex = 0;
     protected int currentSegmentIndex = 0;
     protected int currentShapeIndex = 0;
-    protected double points[];
+    protected double xValues[];
+    protected double yValues[];
     protected double zValues[];
     protected double mValues[];
     protected Figure figures[];
@@ -91,14 +97,115 @@ abstract class SQLServerSpatialDatatype {
      * @param noZM
      *        flag to indicate if Z and M coordinates should be included
      */
-    protected abstract void serializeToWkb(boolean noZM);
+    protected void serializeToWkb(boolean noZM, SQLServerSpatialDatatype type) {
+        ByteBuffer buf = ByteBuffer.allocate(determineWkbCapacity());
+        createSerializationProperties();
+
+        buf.order(ByteOrder.LITTLE_ENDIAN);
+        buf.putInt(srid);
+        buf.put(version);
+        buf.put(serializationProperties);
+
+        if (!isSinglePoint && !isSingleLineSegment) {
+            buf.putInt(numberOfPoints);
+        }
+
+        if (type instanceof Geometry) {
+            for (int i = 0; i < numberOfPoints; i++) {
+                buf.putDouble(xValues[i]);
+                buf.putDouble(yValues[i]);
+            }
+        } else { // Geography
+            for (int i = 0; i < numberOfPoints; i++) {
+                buf.putDouble(yValues[i]);
+                buf.putDouble(xValues[i]);
+            }
+        }
+
+        if (!noZM) {
+            if (hasZvalues) {
+                for (int i = 0; i < numberOfPoints; i++) {
+                    buf.putDouble(zValues[i]);
+                }
+            }
+
+            if (hasMvalues) {
+                for (int i = 0; i < numberOfPoints; i++) {
+                    buf.putDouble(mValues[i]);
+                }
+            }
+        }
+
+        if (isSinglePoint || isSingleLineSegment) {
+            wkb = buf.array();
+            return;
+        }
+
+        buf.putInt(numberOfFigures);
+        for (int i = 0; i < numberOfFigures; i++) {
+            buf.put(figures[i].getFiguresAttribute());
+            buf.putInt(figures[i].getPointOffset());
+        }
+
+        buf.putInt(numberOfShapes);
+        for (int i = 0; i < numberOfShapes; i++) {
+            buf.putInt(shapes[i].getParentOffset());
+            buf.putInt(shapes[i].getFigureOffset());
+            buf.put(shapes[i].getOpenGISType());
+        }
+
+        if (version == 2 && null != segments) {
+            buf.putInt(numberOfSegments);
+            for (int i = 0; i < numberOfSegments; i++) {
+                buf.put(segments[i].getSegmentType());
+            }
+        }
+
+        if (noZM) {
+            wkbNoZM = buf.array();
+        } else {
+            wkb = buf.array();
+        }
+    }
 
     /**
      * Deserializes the buffer (that contains WKB representation of Geometry/Geography data), and stores it into
      * multiple corresponding data structures.
      * 
      */
-    protected abstract void parseWkb();
+    protected void parseWkb(SQLServerSpatialDatatype type) throws SQLServerException {
+        srid = readInt();
+        version = readByte();
+        serializationProperties = readByte();
+
+        interpretSerializationPropBytes();
+        readNumberOfPoints();
+        readPoints(type);
+
+        if (hasZvalues) {
+            readZvalues();
+        }
+
+        if (hasMvalues) {
+            readMvalues();
+        }
+
+        if (!(isSinglePoint || isSingleLineSegment)) {
+            readNumberOfFigures();
+            readFigures();
+            readNumberOfShapes();
+            readShapes();
+        }
+
+        determineInternalType();
+
+        if (buffer.hasRemaining()) {
+            if (version == 2 && internalType.getTypeCode() != 8 && internalType.getTypeCode() != 11) {
+                readNumberOfSegments();
+                readSegments();
+            }
+        }
+    }
 
     /**
      * Constructs the WKT representation of Geometry/Geography from the deserialized data.
@@ -120,7 +227,7 @@ abstract class SQLServerSpatialDatatype {
      */
     protected void constructWKT(SQLServerSpatialDatatype sd, InternalSpatialDatatype isd, int pointIndexEnd,
             int figureIndexEnd, int segmentIndexEnd, int shapeIndexEnd) throws SQLServerException {
-        if (null == points || numberOfPoints == 0) {
+        if (numberOfPoints == 0) {
             if (isd.getTypeCode() == 11) { // FULLGLOBE
                 if (sd instanceof Geometry) {
                     MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_illegalTypeForGeometry"));
@@ -174,8 +281,7 @@ abstract class SQLServerSpatialDatatype {
                 constructCurvepolygonWKT(currentFigureIndex, figureIndexEnd, currentSegmentIndex, segmentIndexEnd);
                 break;
             default:
-                MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_illegalWKTposition"));
-                throw new SQLServerException(form.format(new Object[] {currentWktPos}), null, 0, null);
+                throwIllegalWKTPosition();
         }
 
         appendToWKTBuffers(")");
@@ -217,8 +323,7 @@ abstract class SQLServerSpatialDatatype {
             try {
                 isd = InternalSpatialDatatype.valueOf(nextToken);
             } catch (Exception e) {
-                MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_illegalWKTposition"));
-                throw new SQLServerException(form.format(new Object[] {currentWktPos}), null, 0, null);
+                throwIllegalWKTPosition();
             }
             byte fa = 0;
 
@@ -235,8 +340,7 @@ abstract class SQLServerSpatialDatatype {
                 }
 
                 if (startPos != 0) {
-                    MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_illegalWKTposition"));
-                    throw new SQLServerException(form.format(new Object[] {currentWktPos}), null, 0, null);
+                    throwIllegalWKTPosition();
                 }
 
                 shapeList.add(new Shape(parentShapeIndex, -1, isd.getTypeCode()));
@@ -256,6 +360,7 @@ abstract class SQLServerSpatialDatatype {
                 case "POINT":
                     if (startPos == 0 && nextToken.toUpperCase().equals("POINT")) {
                         isSinglePoint = true;
+                        internalType = InternalSpatialDatatype.POINT;
                     }
 
                     if (isGeoCollection) {
@@ -315,8 +420,7 @@ abstract class SQLServerSpatialDatatype {
 
                     break;
                 default:
-                    MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_illegalWKTposition"));
-                    throw new SQLServerException(form.format(new Object[] {currentWktPos}), null, 0, null);
+                    throwIllegalWKTPosition();
             }
             readCloseBracket();
         }
@@ -333,41 +437,39 @@ abstract class SQLServerSpatialDatatype {
      * 
      */
     protected void constructPointWKT(int pointIndex) {
-        int firstPointIndex = pointIndex * 2;
-        int secondPointIndex = firstPointIndex + 1;
-        int zValueIndex = pointIndex;
-        int mValueIndex = pointIndex;
-
-        if (points[firstPointIndex] % 1 == 0) {
-            appendToWKTBuffers((int) points[firstPointIndex]);
+        if (xValues[pointIndex] % 1 == 0) {
+            appendToWKTBuffers((int) xValues[pointIndex]);
         } else {
-            appendToWKTBuffers(points[firstPointIndex]);
+            appendToWKTBuffers(xValues[pointIndex]);
         }
         appendToWKTBuffers(" ");
 
-        if (points[secondPointIndex] % 1 == 0) {
-            appendToWKTBuffers((int) points[secondPointIndex]);
+        if (yValues[pointIndex] % 1 == 0) {
+            appendToWKTBuffers((int) yValues[pointIndex]);
         } else {
-            appendToWKTBuffers(points[secondPointIndex]);
+            appendToWKTBuffers(yValues[pointIndex]);
         }
         appendToWKTBuffers(" ");
 
-        if (hasZvalues && !Double.isNaN(zValues[zValueIndex]) && !(zValues[zValueIndex] == 0)) {
-            if (zValues[zValueIndex] % 1 == 0) {
-                WKTsb.append((int) zValues[zValueIndex]);
+        if (hasZvalues && !Double.isNaN(zValues[pointIndex])) {
+            if (zValues[pointIndex] % 1 == 0) {
+                WKTsb.append((long) zValues[pointIndex]);
             } else {
-                WKTsb.append(zValues[zValueIndex]);
+                WKTsb.append(zValues[pointIndex]);
             }
             WKTsb.append(" ");
+        } else if (hasMvalues && !Double.isNaN(mValues[pointIndex])) {
+            // Handle the case where the user has POINT (1 2 NULL M) value.
+            WKTsb.append("NULL ");
+        }
 
-            if (hasMvalues && !Double.isNaN(mValues[mValueIndex]) && !(mValues[mValueIndex] <= 0)) {
-                if (mValues[mValueIndex] % 1 == 0) {
-                    WKTsb.append((int) mValues[mValueIndex]);
-                } else {
-                    WKTsb.append(mValues[mValueIndex]);
-                }
-                WKTsb.append(" ");
+        if (hasMvalues && !Double.isNaN(mValues[pointIndex])) {
+            if (mValues[pointIndex] % 1 == 0) {
+                WKTsb.append((long) mValues[pointIndex]);
+            } else {
+                WKTsb.append(mValues[pointIndex]);
             }
+            WKTsb.append(" ");
         }
 
         currentPointIndex++;
@@ -738,6 +840,9 @@ abstract class SQLServerSpatialDatatype {
         int numOfCoordinates = 0;
         double sign;
         double coords[] = new double[4];
+        for (int i = 0; i < coords.length; i++) {
+            coords[i] = Double.NaN;
+        }
 
         while (numOfCoordinates < 4) {
             sign = 1;
@@ -760,9 +865,22 @@ abstract class SQLServerSpatialDatatype {
 
             try {
                 coords[numOfCoordinates] = sign * new BigDecimal(wkt.substring(startPos, currentWktPos)).doubleValue();
+
+                if (numOfCoordinates == 2) {
+                    hasZvalues = true;
+                } else if (numOfCoordinates == 3) {
+                    hasMvalues = true;
+                }
             } catch (Exception e) { // modify to conversion exception
-                MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_illegalWKTposition"));
-                throw new SQLServerException(form.format(new Object[] {currentWktPos}), null, 0, null);
+                // handle NULL case
+                // the first check ensures that there is enough space for the wkt to have NULL
+                if (wkt.length() > currentWktPos + 3
+                        && wkt.substring(currentWktPos, currentWktPos + 4).equalsIgnoreCase("null")) {
+                    coords[numOfCoordinates] = Double.NaN;
+                    currentWktPos = currentWktPos + 4;
+                } else {
+                    throwIllegalWKTPosition();
+                }
             }
 
             numOfCoordinates++;
@@ -772,30 +890,22 @@ abstract class SQLServerSpatialDatatype {
             // After skipping white space after the 4th coordinate has been read, the next
             // character has to be either a , or ), or the WKT is invalid.
             if (numOfCoordinates == 4) {
-                if (wkt.charAt(currentWktPos) != ',' && wkt.charAt(currentWktPos) != ')') {
-                    MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_illegalWKTposition"));
-                    throw new SQLServerException(form.format(new Object[] {currentWktPos}), null, 0, null);
+                if (checkSQLLength(currentWktPos + 1) && wkt.charAt(currentWktPos) != ','
+                        && wkt.charAt(currentWktPos) != ')') {
+                    throwIllegalWKTPosition();
                 }
             }
 
-            if (wkt.charAt(currentWktPos) == ',') {
+            if (checkSQLLength(currentWktPos + 1) && wkt.charAt(currentWktPos) == ',') {
                 // need at least 2 coordinates
                 if (numOfCoordinates == 1) {
-                    MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_illegalWKTposition"));
-                    throw new SQLServerException(form.format(new Object[] {currentWktPos}), null, 0, null);
+                    throwIllegalWKTPosition();
                 }
                 currentWktPos++;
                 skipWhiteSpaces();
                 break;
             }
             skipWhiteSpaces();
-        }
-
-        if (numOfCoordinates == 4) {
-            hasZvalues = true;
-            hasMvalues = true;
-        } else if (numOfCoordinates == 3) {
-            hasZvalues = true;
         }
 
         pointList.add(new Point(coords[0], coords[1], coords[2], coords[3]));
@@ -863,13 +973,12 @@ abstract class SQLServerSpatialDatatype {
 
             skipWhiteSpaces();
 
-            if (wkt.charAt(currentWktPos) == ',') { // more rings to follow
+            if (checkSQLLength(currentWktPos + 1) && wkt.charAt(currentWktPos) == ',') { // more rings to follow
                 readComma();
             } else if (wkt.charAt(currentWktPos) == ')') { // about to exit while loop
                 continue;
             } else { // unexpected input
-                MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_illegalWKTposition"));
-                throw new SQLServerException(form.format(new Object[] {currentWktPos}), null, 0, null);
+                throwIllegalWKTPosition();
             }
         }
     }
@@ -899,17 +1008,15 @@ abstract class SQLServerSpatialDatatype {
                 readLineWkt();
                 readCloseBracket();
             } else {
-                MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_illegalWKTposition"));
-                throw new SQLServerException(form.format(new Object[] {currentWktPos}), null, 0, null);
+                throwIllegalWKTPosition();
             }
 
-            if (wkt.charAt(currentWktPos) == ',') { // more polygons to follow
+            if (checkSQLLength(currentWktPos + 1) && wkt.charAt(currentWktPos) == ',') { // more polygons to follow
                 readComma();
             } else if (wkt.charAt(currentWktPos) == ')') { // about to exit while loop
                 continue;
             } else { // unexpected input
-                MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_illegalWKTposition"));
-                throw new SQLServerException(form.format(new Object[] {currentWktPos}), null, 0, null);
+                throwIllegalWKTPosition();
             }
         }
     }
@@ -935,13 +1042,12 @@ abstract class SQLServerSpatialDatatype {
             readShapeWkt(thisShapeIndex, nextToken);
             readCloseBracket();
 
-            if (wkt.charAt(currentWktPos) == ',') { // more polygons to follow
+            if (checkSQLLength(currentWktPos + 1) && wkt.charAt(currentWktPos) == ',') { // more polygons to follow
                 readComma();
             } else if (wkt.charAt(currentWktPos) == ')') { // about to exit while loop
                 continue;
             } else { // unexpected input
-                MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_illegalWKTposition"));
-                throw new SQLServerException(form.format(new Object[] {currentWktPos}), null, 0, null);
+                throwIllegalWKTPosition();
             }
         }
     }
@@ -1006,19 +1112,17 @@ abstract class SQLServerSpatialDatatype {
                 readSegmentWkt(SEGMENT_FIRST_LINE, isFirstIteration);
                 readCloseBracket();
             } else {
-                MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_illegalWKTposition"));
-                throw new SQLServerException(form.format(new Object[] {currentWktPos}), null, 0, null);
+                throwIllegalWKTPosition();
             }
 
             isFirstIteration = false;
 
-            if (wkt.charAt(currentWktPos) == ',') { // more polygons to follow
+            if (checkSQLLength(currentWktPos + 1) && wkt.charAt(currentWktPos) == ',') { // more polygons to follow
                 readComma();
             } else if (wkt.charAt(currentWktPos) == ')') { // about to exit while loop
                 continue;
             } else { // unexpected input
-                MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_illegalWKTposition"));
-                throw new SQLServerException(form.format(new Object[] {currentWktPos}), null, 0, null);
+                throwIllegalWKTPosition();
             }
         }
     }
@@ -1047,11 +1151,12 @@ abstract class SQLServerSpatialDatatype {
      */
     protected void populateStructures() {
         if (pointList.size() > 0) {
-            points = new double[pointList.size() * 2];
+            xValues = new double[pointList.size()];
+            yValues = new double[pointList.size()];
 
             for (int i = 0; i < pointList.size(); i++) {
-                points[i * 2] = pointList.get(i).getX();
-                points[i * 2 + 1] = pointList.get(i).getY();
+                xValues[i] = pointList.get(i).getX();
+                yValues[i] = pointList.get(i).getY();
             }
 
             if (hasZvalues) {
@@ -1123,8 +1228,7 @@ abstract class SQLServerSpatialDatatype {
             currentWktPos++;
             skipWhiteSpaces();
         } else {
-            MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_illegalWKTposition"));
-            throw new SQLServerException(form.format(new Object[] {currentWktPos}), null, 0, null);
+            throwIllegalWKTPosition();
         }
     }
 
@@ -1134,8 +1238,7 @@ abstract class SQLServerSpatialDatatype {
             currentWktPos++;
             skipWhiteSpaces();
         } else {
-            MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_illegalWKTposition"));
-            throw new SQLServerException(form.format(new Object[] {currentWktPos}), null, 0, null);
+            throwIllegalWKTPosition();
         }
     }
 
@@ -1234,71 +1337,75 @@ abstract class SQLServerSpatialDatatype {
         isLargerThanHemisphere = (serializationProperties & isLargerThanHemisphereMask) != 0;
     }
 
-    protected void readNumberOfPoints() {
+    protected void readNumberOfPoints() throws SQLServerException {
         if (isSinglePoint) {
             numberOfPoints = 1;
         } else if (isSingleLineSegment) {
             numberOfPoints = 2;
         } else {
-            numberOfPoints = buffer.getInt();
+            numberOfPoints = readInt();
+            checkNegSize(numberOfPoints);
         }
     }
 
-    protected void readZvalues() {
+    protected void readZvalues() throws SQLServerException {
         zValues = new double[numberOfPoints];
         for (int i = 0; i < numberOfPoints; i++) {
-            zValues[i] = buffer.getDouble();
+            zValues[i] = readDouble();
         }
     }
 
-    protected void readMvalues() {
+    protected void readMvalues() throws SQLServerException {
         mValues = new double[numberOfPoints];
         for (int i = 0; i < numberOfPoints; i++) {
-            mValues[i] = buffer.getDouble();
+            mValues[i] = readDouble();
         }
     }
 
-    protected void readNumberOfFigures() {
-        numberOfFigures = buffer.getInt();
+    protected void readNumberOfFigures() throws SQLServerException {
+        numberOfFigures = readInt();
+        checkNegSize(numberOfFigures);
     }
 
-    protected void readFigures() {
+    protected void readFigures() throws SQLServerException {
         byte fa;
         int po;
         figures = new Figure[numberOfFigures];
         for (int i = 0; i < numberOfFigures; i++) {
-            fa = buffer.get();
-            po = buffer.getInt();
+            fa = readByte();
+            po = readInt();
             figures[i] = new Figure(fa, po);
         }
     }
 
-    protected void readNumberOfShapes() {
-        numberOfShapes = buffer.getInt();
+    protected void readNumberOfShapes() throws SQLServerException {
+        numberOfShapes = readInt();
+        checkNegSize(numberOfShapes);
     }
 
-    protected void readShapes() {
+    protected void readShapes() throws SQLServerException {
         int po;
         int fo;
         byte ogt;
         shapes = new Shape[numberOfShapes];
         for (int i = 0; i < numberOfShapes; i++) {
-            po = buffer.getInt();
-            fo = buffer.getInt();
-            ogt = buffer.get();
+            po = readInt();
+            fo = readInt();
+            ogt = readByte();
             shapes[i] = new Shape(po, fo, ogt);
         }
     }
 
-    protected void readNumberOfSegments() {
-        numberOfSegments = buffer.getInt();
+    protected void readNumberOfSegments() throws SQLServerException {
+        numberOfSegments = readInt();
+        checkNegSize(numberOfSegments);
     }
 
-    protected void readSegments() {
+    protected void readSegments() throws SQLServerException {
         byte st;
         segments = new Segment[numberOfSegments];
         for (int i = 0; i < numberOfSegments; i++) {
-            st = buffer.get();
+            st = readByte();
             segments[i] = new Segment(st);
         }
     }
@@ -1348,10 +1455,20 @@ abstract class SQLServerSpatialDatatype {
         }
 
         if (!potentialEmptyKeyword.equals("")) {
-            MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_illegalWKTposition"));
-            throw new SQLServerException(form.format(new Object[] {currentWktPos}), null, 0, null);
+            throwIllegalWKTPosition();
         }
         return false;
+    }
+
+    protected void throwIllegalWKT() throws SQLServerException {
+        String strError = SQLServerException.getErrString("R_illegalWKT");
+        throw new SQLServerException(strError, null, 0, null);
+    }
+
+    protected void throwIllegalWKB() throws SQLServerException {
+        MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_ParsingError"));
+        Object[] msgArgs = {JDBCType.VARBINARY};
+        throw new SQLServerException(this, form.format(msgArgs), null, 0, false);
     }
 
     private void incrementPointNumStartIfPointNotReused(int pointEndIndex) {
@@ -1636,8 +1753,7 @@ abstract class SQLServerSpatialDatatype {
             currentWktPos++;
             skipWhiteSpaces();
         } else {
-            MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_illegalWKTposition"));
-            throw new SQLServerException(form.format(new Object[] {currentWktPos}), null, 0, null);
+            throwIllegalWKTPosition();
         }
     }
 
@@ -1645,6 +1761,62 @@ abstract class SQLServerSpatialDatatype {
         while (currentWktPos < wkt.length() && Character.isWhitespace(wkt.charAt(currentWktPos))) {
             currentWktPos++;
         }
+    }
+
+    private void checkNegSize(int num) throws SQLServerException {
+        if (num < 0) {
+            throwIllegalWKB();
+        }
+    }
+
+    private void readPoints(SQLServerSpatialDatatype type) throws SQLServerException {
+        xValues = new double[numberOfPoints];
+        yValues = new double[numberOfPoints];
+
+        if (type instanceof Geometry) {
+            for (int i = 0; i < numberOfPoints; i++) {
+                xValues[i] = readDouble();
+                yValues[i] = readDouble();
+            }
+        } else { // Geography
+            for (int i = 0; i < numberOfPoints; i++) {
+                yValues[i] = readDouble();
+                xValues[i] = readDouble();
+            }
+        }
+    }
+
+    private void checkBuffer(int i) throws SQLServerException {
+        if (buffer.remaining() < i) {
+            throwIllegalWKB();
+        }
+    }
+
+    private boolean checkSQLLength(int length) throws SQLServerException {
+        if (null == wkt || wkt.length() < length) {
+            throwIllegalWKTPosition();
+        }
+        return true;
+    }
+
+    private void throwIllegalWKTPosition() throws SQLServerException {
+        MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_illegalWKTposition"));
+        throw new SQLServerException(form.format(new Object[] {currentWktPos}), null, 0, null);
+    }
+
+    protected byte readByte() throws SQLServerException {
+        checkBuffer(1);
+        return buffer.get();
+    }
+
+    protected int readInt() throws SQLServerException {
+        checkBuffer(4);
+        return buffer.getInt();
+    }
+
+    protected double readDouble() throws SQLServerException {
+        checkBuffer(8);
+        return buffer.getDouble();
     }
 }
 
@@ -1662,14 +1834,30 @@ class Figure {
         this.pointOffset = pointOffset;
     }
 
+    /**
+     * Returns the figuresAttribute value.
+     * 
+     * @return byte figuresAttribute value.
+     */
     public byte getFiguresAttribute() {
         return figuresAttribute;
     }
 
+    /**
+     * Returns the pointOffset value.
+     * 
+     * @return int pointOffset value.
+     */
     public int getPointOffset() {
         return pointOffset;
     }
 
+    /**
+     * Sets the figuresAttribute value.
+     * 
+     * @param fa
+     *        figuresAttribute value.
+     */
     public void setFiguresAttribute(byte fa) {
         figuresAttribute = fa;
     }
@@ -1691,18 +1879,39 @@ class Shape {
         this.openGISType = openGISType;
     }
 
+    /**
+     * Returns the parentOffset value.
+     * 
+     * @return int parentOffset value.
+     */
     public int getParentOffset() {
         return parentOffset;
     }
 
+    /**
+     * Returns the figureOffset value.
+     * 
+     * @return int figureOffset value.
+     */
     public int getFigureOffset() {
         return figureOffset;
     }
 
+    /**
+     * Returns the openGISType value.
+     * 
+     * @return byte openGISType value.
+     */
     public byte getOpenGISType() {
         return openGISType;
     }
 
+    /**
+     * Sets the figureOffset value.
+     * 
+     * @param fo
+     *        figureOffset value.
+     */
     public void setFigureOffset(int fo) {
         figureOffset = fo;
     }
@@ -1721,6 +1930,11 @@ class Segment {
         this.segmentType = segmentType;
     }
 
+    /**
+     * Returns the segmentType value.
+     * 
+     * @return byte segmentType value.
+     */
     public byte getSegmentType() {
         return segmentType;
     }
@@ -1744,18 +1958,38 @@ class Point {
         this.m = m;
     }
 
+    /**
+     * Returns the x coordinate value.
+     * 
+     * @return double x coordinate value.
+     */
     public double getX() {
         return x;
     }
 
+    /**
+     * Returns the y coordinate value.
+     * 
+     * @return double y coordinate value.
+     */
     public double getY() {
         return y;
     }
 
+    /**
+     * Returns the z (elevation) value.
+     * 
+     * @return double z value.
+     */
     public double getZ() {
         return z;
     }
 
+    /**
+     * Returns the m (measure) value.
+     * 
+     * @return double m value.
+     */
     public double getM() {
         return m;
     }
