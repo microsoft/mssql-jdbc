@@ -10,7 +10,7 @@
 
 apply plugin: 'java'
 
-version = '7.0.0-SNAPSHOT'
+version = '7.0.0'
 def jreVersion = ""
 def testOutputDir = file("build/classes/java/test")
 def archivesBaseName = 'mssql-jdbc'
@@ -29,7 +29,11 @@ if (!hasProperty('buildProfile') || (hasProperty('buildProfile') && buildProfile
 	
 	jreVersion = "jre10"
 	excludedFile = 'com/microsoft/sqlserver/jdbc/SQLServerJdbc42.java'
-	
+	jar {
+		manifest {
+			attributes 'Automatic-Module-Name': 'com.microsoft.sqlserver.jdbc'
+		}
+	}
 	sourceCompatibility = 10
 	targetCompatibility = 10
 }
