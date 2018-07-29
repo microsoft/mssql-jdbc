@@ -12,14 +12,12 @@ import java.sql.ResultSet;
 import java.sql.Statement;
 
 
-public class connectURL {
+/**
+ * Sample application that demonstrates how to establish connection using a Connection String.
+ */
+public class ConnectURL {
 
     public static void main(String[] args) {
-
-        // Declare the JDBC objects.
-        Connection con = null;
-        Statement stmt = null;
-        ResultSet rs = null;
 
         String serverName = null;
         String portNumber = null;
@@ -27,7 +25,7 @@ public class connectURL {
         String username = null;
         String password = null;
 
-        try (BufferedReader br = new BufferedReader(new InputStreamReader(System.in))) {
+        try (InputStreamReader in = new InputStreamReader(System.in); BufferedReader br = new BufferedReader(in)) {
 
             System.out.print("Enter server name: ");
             serverName = br.readLine();
@@ -45,41 +43,26 @@ public class connectURL {
                     + databaseName + ";username=" + username + ";password=" + password + ";";
 
             // Establish the connection.
-            Class.forName("com.microsoft.sqlserver.jdbc.SQLServerDriver");
-            con = DriverManager.getConnection(connectionUrl);
+            try (Connection con = DriverManager.getConnection(connectionUrl); Statement stmt = con.createStatement()) {
 
-            System.out.println();
-            System.out.println("Connection established successfully.");
+                System.out.println();
+                System.out.println("Connection established successfully.");
 
-            // Create and execute an SQL statement that returns user name.
-            String SQL = "SELECT SUSER_SNAME()";
-            stmt = con.createStatement();
-            rs = stmt.executeQuery(SQL);
+                // Create and execute an SQL statement that returns user name.
+                String SQL = "SELECT SUSER_SNAME()";
+                try (ResultSet rs = stmt.executeQuery(SQL)) {
 
-            // Iterate through the data in the result set and display it.
-            while (rs.next()) {
-                System.out.println("user name: " + rs.getString(1));
+                    // Iterate through the data in the result set and display it.
+                    while (rs.next()) {
+                        System.out.println("user name: " + rs.getString(1));
+                    }
+                }
             }
         }
 
         // Handle any errors that may have occurred.
         catch (Exception e) {
             e.printStackTrace();
-        }
-
-        finally {
-            if (rs != null)
-                try {
-                    rs.close();
-                } catch (Exception e) {}
-            if (stmt != null)
-                try {
-                    stmt.close();
-                } catch (Exception e) {}
-            if (con != null)
-                try {
-                    con.close();
-                } catch (Exception e) {}
         }
     }
 }
