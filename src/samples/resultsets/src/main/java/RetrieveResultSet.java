@@ -12,15 +12,13 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 
-
-public class retrieveRS {
+/**
+ * Sample application that demonstrates how to use a result set to retrieve a set of
+ * data from a SQL Server database.
+ */
+public class RetrieveResultSet {
 
     public static void main(String[] args) {
-
-        // Declare the JDBC objects.
-        Connection con = null;
-        Statement stmt = null;
-        ResultSet rs = null;
 
         String serverName = null;
         String portNumber = null;
@@ -28,7 +26,7 @@ public class retrieveRS {
         String username = null;
         String password = null;
 
-        try (BufferedReader br = new BufferedReader(new InputStreamReader(System.in))) {
+        try (InputStreamReader in = new InputStreamReader(System.in); BufferedReader br = new BufferedReader(in)) {
 
             System.out.print("Enter server name: ");
             serverName = br.readLine();
@@ -40,49 +38,32 @@ public class retrieveRS {
             username = br.readLine();
             System.out.print("Enter password: ");
             password = br.readLine();
+            System.out.println();
 
             // Create a variable for the connection string.
             String connectionUrl = "jdbc:sqlserver://" + serverName + ":" + portNumber + ";" + "databaseName="
                     + databaseName + ";username=" + username + ";password=" + password + ";";
 
             // Establish the connection.
-            Class.forName("com.microsoft.sqlserver.jdbc.SQLServerDriver");
-            con = DriverManager.getConnection(connectionUrl);
+            try (Connection con = DriverManager.getConnection(connectionUrl); Statement stmt = con.createStatement();) {
+                createTable(stmt);
 
-            createTable(con);
-
-            // Create and execute an SQL statement that returns a
-            // set of data and then display it.
-            String SQL = "SELECT * FROM Product_JDBC_Sample;";
-            stmt = con.createStatement();
-            rs = stmt.executeQuery(SQL);
-            displayRow("PRODUCTS", rs);
+                // Create and execute an SQL statement that returns a
+                // set of data and then display it.
+                String SQL = "SELECT * FROM Product_JDBC_Sample;";
+                try (ResultSet rs = stmt.executeQuery(SQL)) {
+                    displayRow("PRODUCTS", rs);
+                }
+            }
         }
 
         // Handle any errors that may have occurred.
         catch (Exception e) {
             e.printStackTrace();
         }
-
-        finally {
-            if (rs != null)
-                try {
-                    rs.close();
-                } catch (Exception e) {}
-            if (stmt != null)
-                try {
-                    stmt.close();
-                } catch (Exception e) {}
-            if (con != null)
-                try {
-                    con.close();
-                } catch (Exception e) {}
-        }
     }
 
-    private static void createTable(Connection con) throws SQLException {
-        Statement stmt = con.createStatement();
-
+    private static void createTable(Statement stmt) throws SQLException {
         stmt.execute("if exists (select * from sys.objects where name = 'Product_JDBC_Sample')"
                 + "drop table Product_JDBC_Sample");
 

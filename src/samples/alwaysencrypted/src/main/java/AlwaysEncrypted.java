@@ -5,7 +5,6 @@
 package alwaysencrypted.src.main.java;
 
 import java.io.BufferedReader;
-import java.io.IOException;
 import java.io.InputStreamReader;
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -18,8 +17,8 @@ import com.microsoft.sqlserver.jdbc.SQLServerException;
 
 
 /**
- * This program demonstrates how to create Column Master Key (CMK) and Column Encryption Key (CEK) CMK is created first
- * and then it is used to create CEK
+ * Sample application to demonstrate how to create Column Master Key and Column Encryption Key for use 
+ * with the Java Key Store for Always Encrypted feature.
  */
 public class AlwaysEncrypted {
     // Alias of the key stored in the keystore.
@@ -43,14 +42,15 @@ public class AlwaysEncrypted {
      */
     private static String algorithm = "RSA_OAEP";
 
-    private static String serverName = null;
-    private static String portNumber = null;
-    private static String databaseName = null;
-    private static String username = null;
-    private static String password = null;
-
     public static void main(String[] args) {
-        try (BufferedReader br = new BufferedReader(new InputStreamReader(System.in))) {
+
+        String serverName = null;
+        String portNumber = null;
+        String databaseName = null;
+        String username = null;
+        String password = null;
+
+        try (InputStreamReader in = new InputStreamReader(System.in); BufferedReader br = new BufferedReader(in)) {
             System.out.print("Enter server name: ");
             serverName = br.readLine();
             System.out.print("Enter port number: ");
@@ -62,34 +62,29 @@ public class AlwaysEncrypted {
             System.out.print("Enter password: ");
             password = br.readLine();
 
-            System.out.print("Enter the location of the keystore: "); // e.g. C:\\Dev\\Always Encrypted\\keystore.jks
+            System.out.print("Enter the location of the keystore: ");
+            // e.g. C:\\Dev\\Always Encrypted\\keystore.jks
             keyStoreLocation = br.readLine();
 
-            System.out.print("Enter the alias of the key stored in the keystore: "); // e.g.
-                                                                                     // lp-e796acea-c3bd-4a27-b657-2bb71e3517d1
+            System.out.print("Enter the alias of the key stored in the keystore: ");
+            // e.g. lp-e796acea-c3bd-4a27-b657-2bb71e3517d1
             keyAlias = br.readLine();
 
             System.out.print("Enter the password of the keystore and the key: ");
+            // <Secret of key Store>
             keyStoreSecret = br.readLine().toCharArray();
-        } catch (IOException e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
-        }
 
-        String connectionString = GetConnectionString();
-        try {
-            // Note: if you are not using try-with-resources statements (as here),
-            // you must remember to call close() on any Connection, Statement,
-            // ResultSet objects that you create.
+            String connectionUrl = "jdbc:sqlserver://" + serverName + ":" + portNumber + ";" + "databaseName="
+                    + databaseName + ";username=" + username + ";password=" + password + ";";
 
             // Open a connection to the database.
-            Class.forName("com.microsoft.sqlserver.jdbc.SQLServerDriver");
-            try (Connection sourceConnection = DriverManager.getConnection(connectionString)) {
+            try (Connection connection = DriverManager.getConnection(connectionUrl);
+                    Statement stmt = connection.createStatement()) {
                 // Instantiate the Java Key Store provider.
                 SQLServerColumnEncryptionKeyStoreProvider storeProvider = new SQLServerColumnEncryptionJavaKeyStoreProvider(
                         keyStoreLocation, keyStoreSecret);
 
-                dropKeys(sourceConnection);
+                dropKeys(stmt);
 
                 System.out.println();
 
@@ -101,10 +96,8 @@ public class AlwaysEncrypted {
                         + " KEY_STORE_PROVIDER_NAME = '" + storeProvider.getName() + "' , KEY_PATH =  '" + keyAlias
                         + "' ) ";
 
-                try (Statement cmkStatement = sourceConnection.createStatement()) {
-                    cmkStatement.executeUpdate(createCMKSQL);
-                    System.out.println("Column Master Key created with name : " + columnMasterKeyName);
-                }
+                stmt.executeUpdate(createCMKSQL);
+                System.out.println("Column Master Key created with name : " + columnMasterKeyName);
 
                 byte[] encryptedCEK = getEncryptedCEK(storeProvider);
 
@@ -117,10 +110,8 @@ public class AlwaysEncrypted {
                         + " COLUMN_MASTER_KEY = " + columnMasterKeyName + " , ALGORITHM =  '" + algorithm
                         + "' , ENCRYPTED_VALUE =  0x" + bytesToHexString(encryptedCEK, encryptedCEK.length) + " ) ";
 
-                try (Statement cekStatement = sourceConnection.createStatement()) {
-                    cekStatement.executeUpdate(createCEKSQL);
-                    System.out.println("CEK created with name : " + columnEncryptionKey);
-                }
+                stmt.executeUpdate(createCEKSQL);
+                System.out.println("CEK created with name : " + columnEncryptionKey);
             }
         } catch (Exception e) {
             // Handle any errors that may have occurred.
@@ -148,16 +139,6 @@ public class AlwaysEncrypted {
         return sb.toString();
     }
 
-    // To avoid storing the sourceConnection String in your code,
-    // you can retrieve it from a configuration file.
-    private static String GetConnectionString() {
-        // Create a variable for the connection string.
-        String connectionUrl = "jdbc:sqlserver://" + serverName + ":" + portNumber + ";" + "databaseName="
-                + databaseName + ";username=" + username + ";password=" + password + ";";
-
-        return connectionUrl;
-    }
-
     private static byte[] getEncryptedCEK(
             SQLServerColumnEncryptionKeyStoreProvider storeProvider) throws SQLServerException {
         /**
@@ -176,13 +157,13 @@ public class AlwaysEncrypted {
         return encryptedCEK;
     }
 
-    private static void dropKeys(Connection sourceConnection) throws SQLException {
+    private static void dropKeys(Statement stmt) throws SQLException {
         String cekSql = " if exists (SELECT name from sys.column_encryption_keys where name='" + columnEncryptionKey
                 + "')" + " begin" + " drop column encryption key " + columnEncryptionKey + " end";
-        sourceConnection.createStatement().execute(cekSql);
+        stmt.execute(cekSql);
 
         cekSql = " if exists (SELECT name from sys.column_master_keys where name='" + columnMasterKeyName + "')"
                 + " begin" + " drop column master key " + columnMasterKeyName + " end";
-        sourceConnection.createStatement().execute(cekSql);
+        stmt.execute(cekSql);
     }
 }
