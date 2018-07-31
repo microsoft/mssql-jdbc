@@ -17,7 +17,8 @@ import com.microsoft.sqlserver.jdbc.SQLServerStatement;
 
 
 /**
- * Sample application that demonstrates how to update large data in SQL Server by using Adaptive Buffering
+ * Sample application to demonstrate how to update the large data in a database. 
+ * It also demonstrates how to set the adaptive buffering mode explicitly for updatable result sets.
  */
 public class UpdateLargeData {
 

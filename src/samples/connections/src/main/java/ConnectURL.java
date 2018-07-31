@@ -13,7 +13,8 @@ import java.sql.Statement;
 
 
 /**
- * Sample application that demonstrates how to establish connection using a Connection String.
+ * Sample application that demonstrates how to connect to a SQL Server database by using a connection URL. 
+ * It also demonstrates how to retrieve data from a SQL Server database by using an SQL statement.
  */
 public class ConnectURL {
 

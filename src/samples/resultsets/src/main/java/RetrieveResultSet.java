@@ -13,7 +13,8 @@ import java.sql.SQLException;
 import java.sql.Statement;
 
 /**
- * Sample application to demonstrate how to fetch data in Result Set object from SQL Server
+ * Sample application that demonstrates how to use a result set to retrieve a set of
+ * data from a SQL Server database.
  */
 public class RetrieveResultSet {
 

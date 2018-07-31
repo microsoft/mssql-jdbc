@@ -15,7 +15,11 @@ import java.sql.SQLException;
 import com.microsoft.sqlserver.jdbc.SQLServerStatement;
 
 /**
- * Sample to demonstrate how to read large data from SQL Server by making use of Adaptive Buffering
+ * Sample application to demonstrate how to read the large data from a database and 
+ * how to get the adaptive buffering mode. 
+ * 
+ * It also demonstrates how to retrieve a large single-column value from a SQL Server 
+ * database by using the getCharacterStream method.
  */
 public class ReadLargeData {
 

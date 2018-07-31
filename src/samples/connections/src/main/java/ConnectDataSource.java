@@ -13,7 +13,8 @@ import java.sql.Statement;
 import com.microsoft.sqlserver.jdbc.SQLServerDataSource;
 
 /**
- * Sample application that demonstrates how to establish connection using a datasource.
+ * Sample application that demonstrates how to connect to a SQL Server database by 
+ * using a data source object.
  */
 public class ConnectDataSource {
 

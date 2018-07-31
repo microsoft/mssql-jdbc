@@ -28,7 +28,8 @@ import org.xml.sax.SAXException;
 import org.xml.sax.XMLReader;
 
 /**
- * Sample to demonstrates how to use SQLXML datatype with JDBC Driver
+ * Sample application that demonstrates how to store XML data in a relational database, 
+ * how to retrieve XML data from a database, and how to parse XML data with the SQLXML Java data type.
  */
 public class SqlXmlDataType {
 

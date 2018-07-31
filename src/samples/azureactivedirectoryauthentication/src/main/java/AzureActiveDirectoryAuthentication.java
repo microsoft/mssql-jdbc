@@ -27,7 +27,7 @@ import com.microsoft.sqlserver.jdbc.SQLServerDataSource;
  * 
  * 2. Place sqljdbc_auth.dll in the same directory as the pom.xml file. (Only applicable for Windows OS)
  * 
- * For testing 'ActiveDirectoryPassword' Authentication, none of the above setup is not required.
+ * For testing 'ActiveDirectoryPassword' Authentication, none of the above setup is required.
  * 
  */
 public class AzureActiveDirectoryAuthentication {

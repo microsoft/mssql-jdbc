@@ -16,7 +16,8 @@ import com.microsoft.sqlserver.jdbc.SQLServerCallableStatement;
 import com.microsoft.sqlserver.jdbc.SQLServerDataSource;
 
 /**
- * Sample application to demonstrate how to execute Stored Procedures on SQL Server from Java Application using JDBC Driver
+ * Sample application to demonstrate how to retrieve a large OUT parameter from 
+ * a stored procedure and how to get the adaptive buffering mode.
  */
 public class ExecuteStoredProcedures {
 

@@ -23,7 +23,8 @@ import org.w3c.dom.NodeList;
 import org.xml.sax.InputSource;
 
 /**
- * Sample application that demonstrates how to work with Sparse column in SQL Server with JDBC Driver
+ * Sample application that demonstrates how to detect column sets. It also shows a technique for 
+ * parsing a column set's XML output, to get the data from the sparse columns.
  */
 public class SparseColumns {
 

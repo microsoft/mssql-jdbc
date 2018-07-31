@@ -13,7 +13,8 @@ import java.sql.SQLException;
 import java.sql.Statement;
 
 /**
- * Sample application to demonstate how to update fetched data and process in SQL Server using JDBC Driver
+ * Sample application that demonstrates how to use an updateable result set to insert,
+ * update, and delete a row of data in a SQL Server database.
  */
 public class UpdateResultSet {
 

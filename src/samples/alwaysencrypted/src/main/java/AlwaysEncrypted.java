@@ -17,9 +17,8 @@ import com.microsoft.sqlserver.jdbc.SQLServerException;
 
 
 /**
- * Sample application to demonstrate how to create Column Master Key (CMK) and Column Encryption Key (CEK).
- * 
- * CMK is created first and then it is used to create CEK
+ * Sample application to demonstrate how to create Column Master Key and Column Encryption Key for use 
+ * with the Java Key Store for Always Encrypted feature.
  */
 public class AlwaysEncrypted {
     // Alias of the key stored in the keystore.

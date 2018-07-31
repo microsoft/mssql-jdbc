@@ -16,7 +16,11 @@ import java.util.ArrayList;
 import com.microsoft.sqlserver.jdbc.SQLServerResultSet;
 
 /**
- * Sample application to demonstrate how to retrieve data in ResultSet with different cache/fetch size.
+ * Sample application that demonstrates how to use a result set to retrieve a large set
+ * of data from a SQL Server database.
+ * 
+ * In addition, it demonstrates how to control the amount of data that is fetched
+ * from the database and cached on the client.
  */
 public class CacheResultSet {
 
