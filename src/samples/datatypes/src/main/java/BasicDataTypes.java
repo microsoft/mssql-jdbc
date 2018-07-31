@@ -21,7 +21,8 @@ import com.microsoft.sqlserver.jdbc.SQLServerResultSet;
 import microsoft.sql.DateTimeOffset;
 
 /**
- * Sample to demonstrate usage of Basic Datatypes in SQL Server with JDBC Driver
+ * Sample application that demonstrates how to use result set getter methods to retrieve
+ * basic SQL Server data type values, and how to use result set update methods to update those values.
  */
 public class BasicDataTypes {
 
@@ -133,11 +134,11 @@ public class BasicDataTypes {
             pstmt.setObject(4, false);
             pstmt.setObject(5, 12.34);
             pstmt.setObject(6, 56.78);
-            pstmt.setObject(7, new Date(1453500034839L));
-            pstmt.setObject(8, new Date(1453500034839L));
-            pstmt.setObject(9, new Date(1453500034839L));
-            pstmt.setObject(10, new Date(1453500034839L));
-            pstmt.setObject(11, new Date(1453500034839L));
+            pstmt.setObject(7, new java.util.Date(1453500034839L));
+            pstmt.setObject(8, new java.util.Date(1453500034839L));
+            pstmt.setObject(9, new java.util.Date(1453500034839L));
+            pstmt.setObject(10, new java.util.Date(1453500034839L));
+            pstmt.setObject(11, new java.util.Date(1453500034839L));
             pstmt.execute();
         }
     }

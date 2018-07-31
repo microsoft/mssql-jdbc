@@ -7,13 +7,24 @@ package datatypes.src.main.java;
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.sql.Connection;
-import java.sql.DriverManager;
+import java.sql.SQLException;
 import java.sql.Statement;
+import com.microsoft.sqlserver.jdbc.Geography;
+import com.microsoft.sqlserver.jdbc.Geometry;
+import com.microsoft.sqlserver.jdbc.SQLServerDataSource;
+import com.microsoft.sqlserver.jdbc.SQLServerPreparedStatement;
+import com.microsoft.sqlserver.jdbc.SQLServerResultSet;
 
 /**
- * Sample to demonstrate how to use Spatial Datatypes 'Geography' and 'Geometry' in SQL Server with JDBC Driver
+ * Sample application that demonstrates how to use prepared statement setter methods to
+ * set values for SQL Server Spatial Datatypes 'Geography' and 'Geometry'.
+ * 
+ * It also demonstrates how to use result set getter methods to read and parse SQL Server 
+ * Spatial data type values.
  */
 public class SpatialDataTypes {
+
+    private static String tableName = "SpatialDataTypesTable_JDBC_Sample";
 
     public static void main(String[] args) {
 
@@ -35,16 +46,45 @@ public class SpatialDataTypes {
             System.out.print("Enter password: ");
             password = br.readLine();
 
-            // Create a variable for the connection string.
-            String connectionUrl = "jdbc:sqlserver://" + serverName + ":" + portNumber + ";" + "databaseName="
-                    + databaseName + ";username=" + username + ";password=" + password + ";";
+            // Establish the connection.
+            SQLServerDataSource ds = new SQLServerDataSource();
+            ds.setServerName(serverName);
+            ds.setPortNumber(Integer.parseInt(portNumber));
+            ds.setDatabaseName(databaseName);
+            ds.setUser(username);
+            ds.setPassword(password);
 
             // Establish the connection.
-            try (Connection con = DriverManager.getConnection(connectionUrl); Statement stmt = con.createStatement()) {
+            try (Connection con = ds.getConnection(); Statement stmt = con.createStatement();) {
+                dropAndCreateTable(stmt);
+                
                 // TODO: Implement Sample code
+                String geoWKT = "POINT(3 40 5 6)";
+                Geometry geomWKT = Geometry.STGeomFromText(geoWKT, 0);
+                Geography geogWKT = Geography.STGeomFromText(geoWKT, 4326);
+                
+                try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) con
+                        .prepareStatement("insert into " + tableName + " values (?, ?)");) {
+                    pstmt.setGeometry(1, geomWKT);
+                    pstmt.setGeography(2, geogWKT);
+                    pstmt.execute();
+
+                    SQLServerResultSet rs = (SQLServerResultSet) stmt.executeQuery("select * from " + tableName);
+                    rs.next();
+                    
+                    System.out.println("Geometry data: " + rs.getGeometry(1));
+                    System.out.println("Geography data: " + rs.getGeography(2));
+                }
+
             }
         } catch (Exception e) {
             e.printStackTrace();
         }
+    }
+    
+    private static void dropAndCreateTable(Statement stmt) throws SQLException {
+        stmt.executeUpdate("if object_id('" + tableName + "','U') is not null" + " drop table " + tableName);
+
+        stmt.executeUpdate("Create table " + tableName + " (c1 geometry, c2 geography)");
     }
 }
