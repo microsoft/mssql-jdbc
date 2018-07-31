@@ -53,16 +53,16 @@ public class UpdateLargeData {
 
                 createTable(stmt);
 
-                // Since the summaries could be large, we should make sure that
-                // the driver reads them incrementally from a database,
-                // even though a server cursor is used for the updatable result sets.
-
-                // The recommended way to access the Microsoft JDBC Driver for SQL Server
-                // specific methods is to use the JDBC 4.0 Wrapper functionality.
-                // The following code statement demonstrates how to use the
-                // Statement.isWrapperFor and Statement.unwrap methods
-                // to access the driver specific response buffering methods.
-
+                /* Since the summaries could be large, we should make sure that
+                 * the driver reads them incrementally from a database,
+                 * even though a server cursor is used for the updatable result sets.
+                 * 
+                 * The recommended way to access the Microsoft JDBC Driver for SQL Server
+                 * specific methods is to use the JDBC 4.0 Wrapper functionality.
+                 * The following code statement demonstrates how to use the
+                 * Statement.isWrapperFor and Statement.unwrap methods
+                 * to access the driver specific response buffering methods.
+                 */
                 if (stmt.isWrapperFor(com.microsoft.sqlserver.jdbc.SQLServerStatement.class)) {
                     SQLServerStatement SQLstmt = stmt.unwrap(com.microsoft.sqlserver.jdbc.SQLServerStatement.class);
 
