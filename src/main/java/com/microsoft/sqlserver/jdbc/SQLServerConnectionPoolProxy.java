@@ -1,9 +1,6 @@
 /*
- * Microsoft JDBC Driver for SQL Server
- * 
- * Copyright(c) Microsoft Corporation All rights reserved.
- * 
- * This program is made available under the terms of the MIT License. See the LICENSE file in the project root for more information.
+ * Microsoft JDBC Driver for SQL Server Copyright(c) Microsoft Corporation All rights reserved. This program is made
+ * available under the terms of the MIT License. See the LICENSE file in the project root for more information.
  */
 
 package com.microsoft.sqlserver.jdbc;
@@ -18,16 +15,16 @@ import java.text.MessageFormat;
 import java.util.concurrent.Executor;
 import java.util.concurrent.atomic.AtomicInteger;
 
+
 /**
- * SQLServerConnectionPoolProxy is a wrapper around SQLServerConnection object. When returning a connection object from PooledConnection.getConnection
- * we return this proxy per SPEC.
+ * Provides a wrapper around SQLServerConnection object. When returning a connection object from
+ * PooledConnection.getConnection we return this proxy per SPEC.
  * <p>
  * This class's public functions need to be kept identical to the SQLServerConnection's.
  * <p>
- * The API javadoc for JDBC API methods that this class implements are not repeated here. Please see Sun's JDBC API interfaces javadoc for those
- * details.
+ * The API javadoc for JDBC API methods that this class implements are not repeated here. Please see Sun's JDBC API
+ * interfaces javadoc for those details.
  */
-
 class SQLServerConnectionPoolProxy implements ISQLServerConnection, java.io.Serializable {
     /**
      * Always refresh SerialVersionUID when prompted
@@ -41,12 +38,13 @@ class SQLServerConnectionPoolProxy implements ISQLServerConnection, java.io.Seri
                                                                                 // dispenser
     final private String traceID;
 
-    // Permission targets
-    // currently only callAbort is implemented
+    /**
+     * Permission targets currently only callAbort is implemented
+     */
     private static final String callAbortPerm = "callAbort";
 
     /**
-     * Generate the next unique connection id.
+     * Generates the next unique connection id.
      * 
      * @return the next conn id
      */
@@ -69,7 +67,8 @@ class SQLServerConnectionPoolProxy implements ISQLServerConnection, java.io.Seri
 
     void checkClosed() throws SQLServerException {
         if (!bIsOpen) {
-            SQLServerException.makeFromDriverError(null, null, SQLServerException.getErrString("R_connectionIsClosed"), null, false);
+            SQLServerException.makeFromDriverError(null, null, SQLServerException.getErrString("R_connectionIsClosed"),
+                    null, false);
         }
     }
 
@@ -138,8 +137,7 @@ class SQLServerConnectionPoolProxy implements ISQLServerConnection, java.io.Seri
             try {
                 java.sql.SQLPermission perm = new java.sql.SQLPermission(callAbortPerm);
                 secMgr.checkPermission(perm);
-            }
-            catch (SecurityException ex) {
+            } catch (SecurityException ex) {
                 MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_permissionDenied"));
                 Object[] msgArgs = {callAbortPerm};
                 throw new SQLServerException(form.format(msgArgs), null, 0, ex);
@@ -155,8 +153,7 @@ class SQLServerConnectionPoolProxy implements ISQLServerConnection, java.io.Seri
                 try {
                     wrappedConnection.poolCloseEventNotify();
                     wrappedConnection = null;
-                }
-                catch (SQLException e) {
+                } catch (SQLException e) {
                     throw new RuntimeException(e);
                 }
             }
@@ -242,24 +239,20 @@ class SQLServerConnectionPoolProxy implements ISQLServerConnection, java.io.Seri
     // --------------------------JDBC 2.0-----------------------------
 
     @Override
-    public Statement createStatement(int resultSetType,
-            int resultSetConcurrency) throws SQLException {
+    public Statement createStatement(int resultSetType, int resultSetConcurrency) throws SQLException {
         checkClosed();
         return wrappedConnection.createStatement(resultSetType, resultSetConcurrency);
     }
 
     @Override
-    public PreparedStatement prepareStatement(String sSql,
-            int resultSetType,
+    public PreparedStatement prepareStatement(String sSql, int resultSetType,
             int resultSetConcurrency) throws SQLException {
         checkClosed();
         return wrappedConnection.prepareStatement(sSql, resultSetType, resultSetConcurrency);
     }
 
     @Override
-    public CallableStatement prepareCall(String sql,
-            int resultSetType,
-            int resultSetConcurrency) throws SQLException {
+    public CallableStatement prepareCall(String sql, int resultSetType, int resultSetConcurrency) throws SQLException {
         checkClosed();
         return wrappedConnection.prepareCall(sql, resultSetType, resultSetConcurrency);
     }
@@ -277,55 +270,40 @@ class SQLServerConnectionPoolProxy implements ISQLServerConnection, java.io.Seri
     }
 
     @Override
-    public Statement createStatement(int nType,
-            int nConcur,
-            int nHold) throws SQLServerException {
+    public Statement createStatement(int nType, int nConcur, int nHold) throws SQLServerException {
         checkClosed();
         return wrappedConnection.createStatement(nType, nConcur, nHold);
     }
 
     @Override
-    public Statement createStatement(int nType,
-            int nConcur,
-            int nHold,
+    public Statement createStatement(int nType, int nConcur, int nHold,
             SQLServerStatementColumnEncryptionSetting stmtColEncSetting) throws SQLServerException {
         checkClosed();
         return wrappedConnection.createStatement(nType, nConcur, nHold, stmtColEncSetting);
     }
 
     @Override
-    public PreparedStatement prepareStatement(java.lang.String sql,
-            int nType,
-            int nConcur,
+    public PreparedStatement prepareStatement(java.lang.String sql, int nType, int nConcur,
             int nHold) throws SQLServerException {
         checkClosed();
         return wrappedConnection.prepareStatement(sql, nType, nConcur, nHold);
     }
 
     @Override
-    public PreparedStatement prepareStatement(String sql,
-            int nType,
-            int nConcur,
-            int nHold,
+    public PreparedStatement prepareStatement(String sql, int nType, int nConcur, int nHold,
             SQLServerStatementColumnEncryptionSetting stmtColEncSetting) throws SQLServerException {
         checkClosed();
         return wrappedConnection.prepareStatement(sql, nType, nConcur, nHold, stmtColEncSetting);
     }
 
     @Override
-    public CallableStatement prepareCall(String sql,
-            int nType,
-            int nConcur,
-            int nHold) throws SQLServerException {
+    public CallableStatement prepareCall(String sql, int nType, int nConcur, int nHold) throws SQLServerException {
         checkClosed();
         return wrappedConnection.prepareCall(sql, nType, nConcur, nHold);
     }
 
     @Override
-    public CallableStatement prepareCall(String sql,
-            int nType,
-            int nConcur,
-            int nHold,
+    public CallableStatement prepareCall(String sql, int nType, int nConcur, int nHold,
             SQLServerStatementColumnEncryptionSetting stmtColEncSetiing) throws SQLServerException {
         checkClosed();
         return wrappedConnection.prepareCall(sql, nType, nConcur, nHold, stmtColEncSetiing);
@@ -334,45 +312,39 @@ class SQLServerConnectionPoolProxy implements ISQLServerConnection, java.io.Seri
     /* JDBC 3.0 Auto generated keys */
 
     @Override
-    public PreparedStatement prepareStatement(String sql,
-            int flag) throws SQLServerException {
+    public PreparedStatement prepareStatement(String sql, int flag) throws SQLServerException {
         checkClosed();
         return wrappedConnection.prepareStatement(sql, flag);
     }
 
     @Override
-    public PreparedStatement prepareStatement(String sql,
-            int flag,
+    public PreparedStatement prepareStatement(String sql, int flag,
             SQLServerStatementColumnEncryptionSetting stmtColEncSetting) throws SQLServerException {
         checkClosed();
         return wrappedConnection.prepareStatement(sql, flag, stmtColEncSetting);
     }
 
     @Override
-    public PreparedStatement prepareStatement(String sql,
-            int[] columnIndexes) throws SQLServerException {
+    public PreparedStatement prepareStatement(String sql, int[] columnIndexes) throws SQLServerException {
         checkClosed();
         return wrappedConnection.prepareStatement(sql, columnIndexes);
     }
 
     @Override
-    public PreparedStatement prepareStatement(String sql,
-            int[] columnIndexes,
+    public PreparedStatement prepareStatement(String sql, int[] columnIndexes,
             SQLServerStatementColumnEncryptionSetting stmtColEncSetting) throws SQLServerException {
         checkClosed();
         return wrappedConnection.prepareStatement(sql, columnIndexes, stmtColEncSetting);
     }
 
     @Override
-    public PreparedStatement prepareStatement(String sql,
-            String[] columnNames) throws SQLServerException {
+    public PreparedStatement prepareStatement(String sql, String[] columnNames) throws SQLServerException {
         checkClosed();
         return wrappedConnection.prepareStatement(sql, columnNames);
     }
 
     @Override
-    public PreparedStatement prepareStatement(String sql,
-            String[] columnNames,
+    public PreparedStatement prepareStatement(String sql, String[] columnNames,
             SQLServerStatementColumnEncryptionSetting stmtColEncSetting) throws SQLServerException {
         checkClosed();
         return wrappedConnection.prepareStatement(sql, columnNames, stmtColEncSetting);
@@ -423,8 +395,7 @@ class SQLServerConnectionPoolProxy implements ISQLServerConnection, java.io.Seri
     }
 
     @Override
-    public void setNetworkTimeout(Executor executor,
-            int timeout) throws SQLException {
+    public void setNetworkTimeout(Executor executor, int timeout) throws SQLException {
         checkClosed();
         wrappedConnection.setNetworkTimeout(executor, timeout);
     }
@@ -442,8 +413,7 @@ class SQLServerConnectionPoolProxy implements ISQLServerConnection, java.io.Seri
     }
 
     @Override
-    public java.sql.Array createArrayOf(String typeName,
-            Object[] elements) throws SQLException {
+    public java.sql.Array createArrayOf(String typeName, Object[] elements) throws SQLException {
         checkClosed();
         return wrappedConnection.createArrayOf(typeName, elements);
     }
@@ -473,8 +443,7 @@ class SQLServerConnectionPoolProxy implements ISQLServerConnection, java.io.Seri
     }
 
     @Override
-    public java.sql.Struct createStruct(String typeName,
-            Object[] attributes) throws SQLException {
+    public java.sql.Struct createStruct(String typeName, Object[] attributes) throws SQLException {
         checkClosed();
         return wrappedConnection.createStruct(typeName, attributes);
     }
@@ -499,8 +468,7 @@ class SQLServerConnectionPoolProxy implements ISQLServerConnection, java.io.Seri
     }
 
     @Override
-    public void setClientInfo(String name,
-            String value) throws SQLClientInfoException {
+    public void setClientInfo(String name, String value) throws SQLClientInfoException {
         // No checkClosed() call since we can only throw SQLClientInfoException
         // from here
         wrappedConnection.setClientInfo(name, value);
@@ -526,8 +494,7 @@ class SQLServerConnectionPoolProxy implements ISQLServerConnection, java.io.Seri
         T t;
         try {
             t = iface.cast(this);
-        }
-        catch (ClassCastException e) {
+        } catch (ClassCastException e) {
             SQLServerException newe = new SQLServerException(e.getMessage(), e);
             throw newe;
         }
@@ -542,7 +509,7 @@ class SQLServerConnectionPoolProxy implements ISQLServerConnection, java.io.Seri
     }
 
     @Override
-    public synchronized void setSendTimeAsDatetime(boolean sendTimeAsDateTimeValue) throws SQLServerException {
+    public void setSendTimeAsDatetime(boolean sendTimeAsDateTimeValue) throws SQLServerException {
         checkClosed();
         wrappedConnection.setSendTimeAsDatetime(sendTimeAsDateTimeValue);
     }

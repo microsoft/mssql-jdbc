@@ -1,9 +1,6 @@
 /*
- * Microsoft JDBC Driver for SQL Server
- * 
- * Copyright(c) Microsoft Corporation All rights reserved.
- * 
- * This program is made available under the terms of the MIT License. See the LICENSE file in the project root for more information.
+ * Microsoft JDBC Driver for SQL Server Copyright(c) Microsoft Corporation All rights reserved. This program is made
+ * available under the terms of the MIT License. See the LICENSE file in the project root for more information.
  */
 
 package com.microsoft.sqlserver.jdbc;
@@ -24,12 +21,12 @@ import java.time.OffsetTime;
 import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
 import java.util.Map.Entry;
-
 import java.util.Set;
 
+
 /**
- * A simple implementation of the ISQLServerBulkRecord interface that can be used to read in the basic Java data types from a delimited file where
- * each line represents a row of data.
+ * Provides a simple implementation of the ISQLServerBulkRecord interface that can be used to read in the basic Java
+ * data types from a delimited file where each line represents a row of data.
  */
 public class SQLServerBulkCSVFileRecord extends SQLServerBulkCommon implements java.lang.AutoCloseable {
     /*
@@ -60,30 +57,27 @@ public class SQLServerBulkCSVFileRecord extends SQLServerBulkCommon implements j
     private static final java.util.logging.Logger loggerExternal = java.util.logging.Logger.getLogger(loggerClassName);
 
     /**
-     * Creates a simple reader to parse data from a delimited file with the given encoding.
+     * Constructs a simple reader to parse data from a delimited file with the given encoding.
      * 
      * @param fileToParse
-     *            File to parse data from
+     *        File to parse data from
      * @param encoding
-     *            Charset encoding to use for reading the file, or NULL for the default encoding.
+     *        Charset encoding to use for reading the file, or NULL for the default encoding.
      * @param delimiter
-     *            Delimiter to used to separate each column
+     *        Delimiter to used to separate each column
      * @param firstLineIsColumnNames
-     *            True if the first line of the file should be parsed as column names; false otherwise
+     *        True if the first line of the file should be parsed as column names; false otherwise
      * @throws SQLServerException
-     *             If the arguments are invalid, there are any errors in reading the file, or the file is empty
+     *         If the arguments are invalid, there are any errors in reading the file, or the file is empty
      */
-    public SQLServerBulkCSVFileRecord(String fileToParse,
-            String encoding,
-            String delimiter,
+    public SQLServerBulkCSVFileRecord(String fileToParse, String encoding, String delimiter,
             boolean firstLineIsColumnNames) throws SQLServerException {
         loggerExternal.entering(loggerClassName, "SQLServerBulkCSVFileRecord",
                 new Object[] {fileToParse, encoding, delimiter, firstLineIsColumnNames});
 
         if (null == fileToParse) {
             throwInvalidArgument("fileToParse");
-        }
-        else if (null == delimiter) {
+        } else if (null == delimiter) {
             throwInvalidArgument("delimiter");
         }
 
@@ -93,8 +87,7 @@ public class SQLServerBulkCSVFileRecord extends SQLServerBulkCommon implements j
             fis = new FileInputStream(fileToParse);
             if (null == encoding || 0 == encoding.length()) {
                 sr = new InputStreamReader(fis);
-            }
-            else {
+            } else {
                 sr = new InputStreamReader(fis, encoding);
             }
 
@@ -106,12 +99,10 @@ public class SQLServerBulkCSVFileRecord extends SQLServerBulkCommon implements j
                     columnNames = currentLine.split(delimiter, -1);
                 }
             }
-        }
-        catch (UnsupportedEncodingException unsupportedEncoding) {
+        } catch (UnsupportedEncodingException unsupportedEncoding) {
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_unsupportedEncoding"));
             throw new SQLServerException(form.format(new Object[] {encoding}), null, 0, unsupportedEncoding);
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             throw new SQLServerException(null, e.getMessage(), null, 0, false);
         }
         columnMetadata = new HashMap<>();
@@ -120,30 +111,27 @@ public class SQLServerBulkCSVFileRecord extends SQLServerBulkCommon implements j
     }
 
     /**
-     * Creates a simple reader to parse data from a delimited file with the given encoding.
+     * Constructs a SQLServerBulkCSVFileRecord to parse data from a delimited file with the given encoding.
      * 
      * @param fileToParse
-     *            InputStream to parse data from
+     *        InputStream to parse data from
      * @param encoding
-     *            Charset encoding to use for reading the file, or NULL for the default encoding.
+     *        Charset encoding to use for reading the file, or NULL for the default encoding.
      * @param delimiter
-     *            Delimiter to used to separate each column
+     *        Delimiter to used to separate each column
      * @param firstLineIsColumnNames
-     *            True if the first line of the file should be parsed as column names; false otherwise
+     *        True if the first line of the file should be parsed as column names; false otherwise
      * @throws SQLServerException
-     *             If the arguments are invalid, there are any errors in reading the file, or the file is empty
+     *         If the arguments are invalid, there are any errors in reading the file, or the file is empty
      */
-    public SQLServerBulkCSVFileRecord(InputStream fileToParse,
-            String encoding,
-            String delimiter,
+    public SQLServerBulkCSVFileRecord(InputStream fileToParse, String encoding, String delimiter,
             boolean firstLineIsColumnNames) throws SQLServerException {
         loggerExternal.entering(loggerClassName, "SQLServerBulkCSVFileRecord",
                 new Object[] {fileToParse, encoding, delimiter, firstLineIsColumnNames});
 
         if (null == fileToParse) {
             throwInvalidArgument("fileToParse");
-        }
-        else if (null == delimiter) {
+        } else if (null == delimiter) {
             throwInvalidArgument("delimiter");
         }
 
@@ -151,8 +139,7 @@ public class SQLServerBulkCSVFileRecord extends SQLServerBulkCommon implements j
         try {
             if (null == encoding || 0 == encoding.length()) {
                 sr = new InputStreamReader(fileToParse);
-            }
-            else {
+            } else {
                 sr = new InputStreamReader(fileToParse, encoding);
             }
             fileReader = new BufferedReader(sr);
@@ -163,12 +150,10 @@ public class SQLServerBulkCSVFileRecord extends SQLServerBulkCommon implements j
                     columnNames = currentLine.split(delimiter, -1);
                 }
             }
-        }
-        catch (UnsupportedEncodingException unsupportedEncoding) {
+        } catch (UnsupportedEncodingException unsupportedEncoding) {
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_unsupportedEncoding"));
             throw new SQLServerException(form.format(new Object[] {encoding}), null, 0, unsupportedEncoding);
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             throw new SQLServerException(null, e.getMessage(), null, 0, false);
         }
         columnMetadata = new HashMap<>();
@@ -177,35 +162,33 @@ public class SQLServerBulkCSVFileRecord extends SQLServerBulkCommon implements j
     }
 
     /**
-     * Creates a simple reader to parse data from a CSV file with the given encoding.
+     * Constructs a SQLServerBulkCSVFileRecord to parse data from a CSV file with the given encoding.
      * 
      * @param fileToParse
-     *            File to parse data from
+     *        File to parse data from
      * @param encoding
-     *            Charset encoding to use for reading the file.
+     *        Charset encoding to use for reading the file.
      * @param firstLineIsColumnNames
-     *            True if the first line of the file should be parsed as column names; false otherwise
+     *        True if the first line of the file should be parsed as column names; false otherwise
      * @throws SQLServerException
-     *             If the arguments are invalid, there are any errors in reading the file, or the file is empty
+     *         If the arguments are invalid, there are any errors in reading the file, or the file is empty
      */
-    public SQLServerBulkCSVFileRecord(String fileToParse,
-            String encoding,
+    public SQLServerBulkCSVFileRecord(String fileToParse, String encoding,
             boolean firstLineIsColumnNames) throws SQLServerException {
         this(fileToParse, encoding, ",", firstLineIsColumnNames);
     }
 
     /**
-     * Creates a simple reader to parse data from a CSV file with the default encoding.
+     * Constructs a SQLServerBulkCSVFileRecord to parse data from a CSV file with the default encoding.
      * 
      * @param fileToParse
-     *            File to parse data from
+     *        File to parse data from
      * @param firstLineIsColumnNames
-     *            True if the first line of the file should be parsed as column names; false otherwise
+     *        True if the first line of the file should be parsed as column names; false otherwise
      * @throws SQLServerException
-     *             If the arguments are invalid, there are any errors in reading the file, or the file is empty
+     *         If the arguments are invalid, there are any errors in reading the file, or the file is empty
      */
-    public SQLServerBulkCSVFileRecord(String fileToParse,
-            boolean firstLineIsColumnNames) throws SQLServerException {
+    public SQLServerBulkCSVFileRecord(String fileToParse, boolean firstLineIsColumnNames) throws SQLServerException {
         this(fileToParse, null, ",", firstLineIsColumnNames);
     }
 
@@ -213,7 +196,7 @@ public class SQLServerBulkCSVFileRecord extends SQLServerBulkCommon implements j
      * Releases any resources associated with the file reader.
      * 
      * @throws SQLServerException
-     *             when an error occurs
+     *         when an error occurs
      */
     public void close() throws SQLServerException {
         loggerExternal.entering(loggerClassName, "close");
@@ -222,21 +205,15 @@ public class SQLServerBulkCSVFileRecord extends SQLServerBulkCommon implements j
         if (fileReader != null)
             try {
                 fileReader.close();
-            }
-            catch (Exception e) {
-            }
+            } catch (Exception e) {}
         if (sr != null)
             try {
                 sr.close();
-            }
-            catch (Exception e) {
-            }
+            } catch (Exception e) {}
         if (fis != null)
             try {
                 fis.close();
-            }
-            catch (Exception e) {
-            }
+            } catch (Exception e) {}
 
         loggerExternal.exiting(loggerClassName, "close");
     }
@@ -299,14 +276,16 @@ public class SQLServerBulkCSVFileRecord extends SQLServerBulkCommon implements j
                 if (data.length < pair.getKey() - 1) {
                     MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidColumn"));
                     Object[] msgArgs = {pair.getKey()};
-                    throw new SQLServerException(form.format(msgArgs), SQLState.COL_NOT_FOUND, DriverError.NOT_SET, null);
+                    throw new SQLServerException(form.format(msgArgs), SQLState.COL_NOT_FOUND, DriverError.NOT_SET,
+                            null);
                 }
 
                 // Source header has more columns than current line read
                 if (columnNames != null && (columnNames.length > data.length)) {
                     MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_DataSchemaMismatch"));
                     Object[] msgArgs = {};
-                    throw new SQLServerException(form.format(msgArgs), SQLState.COL_NOT_FOUND, DriverError.NOT_SET, null);
+                    throw new SQLServerException(form.format(msgArgs), SQLState.COL_NOT_FOUND, DriverError.NOT_SET,
+                            null);
                 }
 
                 try {
@@ -317,15 +296,16 @@ public class SQLServerBulkCSVFileRecord extends SQLServerBulkCommon implements j
 
                     switch (cm.columnType) {
                         /*
-                         * Both BCP and BULK INSERT considers double quotes as part of the data and throws error if any data (say "10") is to be
-                         * inserted into an numeric column. Our implementation does the same.
+                         * Both BCP and BULK INSERT considers double quotes as part of the data and throws error if any
+                         * data (say "10") is to be inserted into an numeric column. Our implementation does the same.
                          */
                         case Types.INTEGER: {
                             // Formatter to remove the decimal part as SQL
                             // Server floors the decimal in integer types
                             DecimalFormat decimalFormatter = new DecimalFormat("#");
                             decimalFormatter.setRoundingMode(RoundingMode.DOWN);
-                            String formatedfInput = decimalFormatter.format(Double.parseDouble(data[pair.getKey() - 1]));
+                            String formatedfInput = decimalFormatter
+                                    .format(Double.parseDouble(data[pair.getKey() - 1]));
                             dataRow[pair.getKey() - 1] = Integer.valueOf(formatedfInput);
                             break;
                         }
@@ -336,7 +316,8 @@ public class SQLServerBulkCSVFileRecord extends SQLServerBulkCommon implements j
                             // Server floors the decimal in integer types
                             DecimalFormat decimalFormatter = new DecimalFormat("#");
                             decimalFormatter.setRoundingMode(RoundingMode.DOWN);
-                            String formatedfInput = decimalFormatter.format(Double.parseDouble(data[pair.getKey() - 1]));
+                            String formatedfInput = decimalFormatter
+                                    .format(Double.parseDouble(data[pair.getKey() - 1]));
                             dataRow[pair.getKey() - 1] = Short.valueOf(formatedfInput);
                             break;
                         }
@@ -345,11 +326,12 @@ public class SQLServerBulkCSVFileRecord extends SQLServerBulkCommon implements j
                             BigDecimal bd = new BigDecimal(data[pair.getKey() - 1].trim());
                             try {
                                 dataRow[pair.getKey() - 1] = bd.setScale(0, RoundingMode.DOWN).longValueExact();
-                            }
-                            catch (ArithmeticException ex) {
+                            } catch (ArithmeticException ex) {
                                 String value = "'" + data[pair.getKey() - 1] + "'";
-                                MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_errorConvertingValue"));
-                                throw new SQLServerException(form.format(new Object[] {value, JDBCType.of(cm.columnType)}), null, 0, ex);
+                                MessageFormat form = new MessageFormat(
+                                        SQLServerException.getErrString("R_errorConvertingValue"));
+                                throw new SQLServerException(
+                                        form.format(new Object[] {value, JDBCType.of(cm.columnType)}), null, 0, ex);
                             }
                             break;
                         }
@@ -366,9 +348,10 @@ public class SQLServerBulkCSVFileRecord extends SQLServerBulkCommon implements j
                             // Any non-zero value (integer/double) => 1, 0/0.0
                             // => 0
                             try {
-                                dataRow[pair.getKey() - 1] = (0 == Double.parseDouble(data[pair.getKey() - 1])) ? Boolean.FALSE : Boolean.TRUE;
-                            }
-                            catch (NumberFormatException e) {
+                                dataRow[pair.getKey()
+                                        - 1] = (0 == Double.parseDouble(data[pair.getKey() - 1])) ? Boolean.FALSE
+                                                                                                  : Boolean.TRUE;
+                            } catch (NumberFormatException e) {
                                 dataRow[pair.getKey() - 1] = Boolean.parseBoolean(data[pair.getKey() - 1]);
                             }
                             break;
@@ -389,18 +372,19 @@ public class SQLServerBulkCSVFileRecord extends SQLServerBulkCommon implements j
                         case Types.LONGVARBINARY:
                         case Types.BLOB: {
                             /*
-                             * For binary data, the value in file may or may not have the '0x' prefix. We will try to match our implementation with
-                             * 'BULK INSERT' except that we will allow 0x prefix whereas 'BULK INSERT' command does not allow 0x prefix. A BULK INSERT
-                             * example: A sample csv file containing data for 2 binary columns and 1 row: 61,62 Table definition: create table t1(c1
-                             * varbinary(10), c2 varbinary(10)) BULK INSERT command: bulk insert t1 from 'C:\in.csv'
-                             * with(DATAFILETYPE='char',firstrow=1, FIELDTERMINATOR=',') select * from t1 shows 1 row with columns: 0x61, 0x62
+                             * For binary data, the value in file may or may not have the '0x' prefix. We will try to
+                             * match our implementation with 'BULK INSERT' except that we will allow 0x prefix whereas
+                             * 'BULK INSERT' command does not allow 0x prefix. A BULK INSERT example: A sample csv file
+                             * containing data for 2 binary columns and 1 row: 61,62 Table definition: create table
+                             * t1(c1 varbinary(10), c2 varbinary(10)) BULK INSERT command: bulk insert t1 from
+                             * 'C:\in.csv' with(DATAFILETYPE='char',firstrow=1, FIELDTERMINATOR=',') select * from t1
+                             * shows 1 row with columns: 0x61, 0x62
                              */
                             // Strip off 0x if present.
                             String binData = data[pair.getKey() - 1].trim();
                             if (binData.startsWith("0x") || binData.startsWith("0X")) {
                                 dataRow[pair.getKey() - 1] = binData.substring(2);
-                            }
-                            else {
+                            } else {
                                 dataRow[pair.getKey() - 1] = binData;
                             }
                             break;
@@ -426,7 +410,8 @@ public class SQLServerBulkCSVFileRecord extends SQLServerBulkCommon implements j
 
                             // The per-column DateTimeFormatter gets priority.
                             if (null != cm.dateTimeFormatter)
-                                offsetDateTimeValue = OffsetDateTime.parse(data[pair.getKey() - 1], cm.dateTimeFormatter);
+                                offsetDateTimeValue = OffsetDateTime.parse(data[pair.getKey() - 1],
+                                        cm.dateTimeFormatter);
                             else if (dateTimeFormatter != null)
                                 offsetDateTimeValue = OffsetDateTime.parse(data[pair.getKey() - 1], dateTimeFormatter);
                             else
@@ -452,28 +437,29 @@ public class SQLServerBulkCSVFileRecord extends SQLServerBulkCommon implements j
                         default: {
                             // The string is copied as is.
                             /*
-                             * Handling double quotes: Both BCP (without a format file) and BULK INSERT behaves the same way for double quotes. They
-                             * treat double quotes as part of the data. For a CSV file as follows, data is inserted as is: ""abc"" "abc" abc a"b"c
-                             * a""b""c Excel on the other hand, shows data as follows. It strips off beginning and ending quotes, and sometimes quotes
-                             * get messed up. When the same CSV is saved from Excel again, Excel adds additional quotes. abc"" abc abc a"b"c a""b""c
-                             * In our implementation we will match the behavior with BCP and BULK INSERT. BCP command: bcp table1 in in.csv -c -t , -r
-                             * 0x0A -S localhost -U sa -P <pwd> BULK INSERT command: bulk insert table1 from 'in.csv' with (FIELDTERMINATOR=',')
-                             * 
-                             * Handling delimiters in data: Excel allows comma in data when data is surrounded with quotes. For example,
-                             * "Hello, world" is treated as one cell. BCP and BULK INSERT deos not allow field terminators in data:
-                             * https://technet.microsoft.com/en-us/library/ aa196735%28v=sql.80%29.aspx?f=255&MSPPError=- 2147217396
+                             * Handling double quotes: Both BCP (without a format file) and BULK INSERT behaves the same
+                             * way for double quotes. They treat double quotes as part of the data. For a CSV file as
+                             * follows, data is inserted as is: ""abc"" "abc" abc a"b"c a""b""c Excel on the other hand,
+                             * shows data as follows. It strips off beginning and ending quotes, and sometimes quotes
+                             * get messed up. When the same CSV is saved from Excel again, Excel adds additional quotes.
+                             * abc"" abc abc a"b"c a""b""c In our implementation we will match the behavior with BCP and
+                             * BULK INSERT. BCP command: bcp table1 in in.csv -c -t , -r 0x0A -S localhost -U sa -P
+                             * <pwd> BULK INSERT command: bulk insert table1 from 'in.csv' with (FIELDTERMINATOR=',')
+                             * Handling delimiters in data: Excel allows comma in data when data is surrounded with
+                             * quotes. For example, "Hello, world" is treated as one cell. BCP and BULK INSERT deos not
+                             * allow field terminators in data: https://technet.microsoft.com/en-us/library/
+                             * aa196735%28v=sql.80%29.aspx?f=255&MSPPError=- 2147217396
                              */
                             dataRow[pair.getKey() - 1] = data[pair.getKey() - 1];
                             break;
                         }
                     }
-                }
-                catch (IllegalArgumentException e) {
+                } catch (IllegalArgumentException e) {
                     String value = "'" + data[pair.getKey() - 1] + "'";
                     MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_errorConvertingValue"));
-                    throw new SQLServerException(form.format(new Object[] {value, JDBCType.of(cm.columnType)}), null, 0, e);
-                }
-                catch (ArrayIndexOutOfBoundsException e) {
+                    throw new SQLServerException(form.format(new Object[] {value, JDBCType.of(cm.columnType)}), null, 0,
+                            e);
+                } catch (ArrayIndexOutOfBoundsException e) {
                     throw new SQLServerException(SQLServerException.getErrString("R_DataSchemaMismatch"), e);
                 }
 
@@ -483,13 +469,10 @@ public class SQLServerBulkCSVFileRecord extends SQLServerBulkCommon implements j
     }
 
     @Override
-    void addColumnMetadataInternal(int positionInSource,
-            String name,
-            int jdbcType,
-            int precision,
-            int scale,
+    void addColumnMetadataInternal(int positionInSource, String name, int jdbcType, int precision, int scale,
             DateTimeFormatter dateTimeFormatter) throws SQLServerException {
-        loggerExternal.entering(loggerClassName, "addColumnMetadata", new Object[] {positionInSource, name, jdbcType, precision, scale});
+        loggerExternal.entering(loggerClassName, "addColumnMetadata",
+                new Object[] {positionInSource, name, jdbcType, precision, scale});
 
         String colName = "";
 
@@ -513,36 +496,41 @@ public class SQLServerBulkCSVFileRecord extends SQLServerBulkCommon implements j
         checkDuplicateColumnName(positionInSource, name);
         switch (jdbcType) {
             /*
-             * SQL Server supports numerous string literal formats for temporal types, hence sending them as varchar with approximate
-             * precision(length) needed to send supported string literals. string literal formats supported by temporal types are available in MSDN
-             * page on data types.
+             * SQL Server supports numerous string literal formats for temporal types, hence sending them as varchar
+             * with approximate precision(length) needed to send supported string literals. string literal formats
+             * supported by temporal types are available in MSDN page on data types.
              */
             case java.sql.Types.DATE:
             case java.sql.Types.TIME:
             case java.sql.Types.TIMESTAMP:
             case microsoft.sql.Types.DATETIMEOFFSET:
-                columnMetadata.put(positionInSource, new ColumnMetadata(colName, jdbcType, 50, scale, dateTimeFormatter));
+                columnMetadata.put(positionInSource,
+                        new ColumnMetadata(colName, jdbcType, 50, scale, dateTimeFormatter));
                 break;
 
             // Redirect SQLXML as LONGNVARCHAR
             // SQLXML is not valid type in TDS
             case java.sql.Types.SQLXML:
-                columnMetadata.put(positionInSource, new ColumnMetadata(colName, java.sql.Types.LONGNVARCHAR, precision, scale, dateTimeFormatter));
+                columnMetadata.put(positionInSource,
+                        new ColumnMetadata(colName, java.sql.Types.LONGNVARCHAR, precision, scale, dateTimeFormatter));
                 break;
 
             // Redirecting Float as Double based on data type mapping
             // https://msdn.microsoft.com/en-us/library/ms378878%28v=sql.110%29.aspx
             case java.sql.Types.FLOAT:
-                columnMetadata.put(positionInSource, new ColumnMetadata(colName, java.sql.Types.DOUBLE, precision, scale, dateTimeFormatter));
+                columnMetadata.put(positionInSource,
+                        new ColumnMetadata(colName, java.sql.Types.DOUBLE, precision, scale, dateTimeFormatter));
                 break;
 
             // redirecting BOOLEAN as BIT
             case java.sql.Types.BOOLEAN:
-                columnMetadata.put(positionInSource, new ColumnMetadata(colName, java.sql.Types.BIT, precision, scale, dateTimeFormatter));
+                columnMetadata.put(positionInSource,
+                        new ColumnMetadata(colName, java.sql.Types.BIT, precision, scale, dateTimeFormatter));
                 break;
 
             default:
-                columnMetadata.put(positionInSource, new ColumnMetadata(colName, jdbcType, precision, scale, dateTimeFormatter));
+                columnMetadata.put(positionInSource,
+                        new ColumnMetadata(colName, jdbcType, precision, scale, dateTimeFormatter));
         }
 
         loggerExternal.exiting(loggerClassName, "addColumnMetadata");
@@ -588,8 +576,7 @@ public class SQLServerBulkCSVFileRecord extends SQLServerBulkCommon implements j
     public boolean next() throws SQLServerException {
         try {
             currentLine = fileReader.readLine();
-        }
-        catch (IOException e) {
+        } catch (IOException e) {
             throw new SQLServerException(e.getMessage(), null, 0, e);
         }
         return (null != currentLine);

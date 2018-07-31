@@ -1,9 +1,6 @@
 /*
- * Microsoft JDBC Driver for SQL Server
- * 
- * Copyright(c) Microsoft Corporation All rights reserved.
- * 
- * This program is made available under the terms of the MIT License. See the LICENSE file in the project root for more information.
+ * Microsoft JDBC Driver for SQL Server Copyright(c) Microsoft Corporation All rights reserved. This program is made
+ * available under the terms of the MIT License. See the LICENSE file in the project root for more information.
  */
 
 package com.microsoft.sqlserver.jdbc;
@@ -31,8 +28,7 @@ final class StreamTabName extends StreamPacket {
         tdsReader.skip(tokenLength);
     }
 
-    void applyTo(Column[] columns,
-            int numTables) throws SQLServerException {
+    void applyTo(Column[] columns, int numTables) throws SQLServerException {
         TDSReaderMark currentMark = tdsReader.mark();
         tdsReader.reset(tableNamesMark);
 

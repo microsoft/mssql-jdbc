@@ -1,9 +1,6 @@
 /*
- * Microsoft JDBC Driver for SQL Server
- *
- * Copyright(c) Microsoft Corporation All rights reserved.
- *
- * This program is made available under the terms of the MIT License. See the LICENSE file in the project root for more information.
+ * Microsoft JDBC Driver for SQL Server Copyright(c) Microsoft Corporation All rights reserved. This program is made
+ * available under the terms of the MIT License. See the LICENSE file in the project root for more information.
  */
 
 package com.microsoft.sqlserver.testframework.util;
@@ -19,6 +16,7 @@ import java.util.Random;
 
 import microsoft.sql.DateTimeOffset;
 
+
 /**
  * Utility class for generating random data for testing
  */
@@ -27,7 +25,8 @@ public class RandomData {
     private static Random r = new Random();
 
     public static boolean returnNull = (0 == r.nextInt(5)); // 20% chance of return null
-    public static boolean returnFullLength = (0 == r.nextInt(2)); // 50% chance of return full length for char/nchar and binary types
+    public static boolean returnFullLength = (0 == r.nextInt(2)); // 50% chance of return full length for char/nchar and
+                                                                  // binary types
     public static boolean returnMinMax = (0 == r.nextInt(5)); // 20% chance of return Min/Max value
     public static boolean returnZero = (0 == r.nextInt(10)); // 10% chance of return zero
 
@@ -75,8 +74,7 @@ public class RandomData {
         if (returnMinMax) {
             if (r.nextBoolean()) {
                 return 2147483647;
-            }
-            else {
+            } else {
                 return -2147483648;
             }
         }
@@ -105,8 +103,7 @@ public class RandomData {
         if (returnMinMax) {
             if (r.nextBoolean()) {
                 return 9223372036854775807L;
-            }
-            else {
+            } else {
                 return -9223372036854775808L;
             }
         }
@@ -126,8 +123,7 @@ public class RandomData {
 
         if (null != value) {
             return value.shortValue();
-        }
-        else {
+        } else {
             return null;
         }
     }
@@ -143,8 +139,7 @@ public class RandomData {
 
         if (null != value) {
             return value.shortValue();
-        }
-        else {
+        } else {
             return null;
         }
     }
@@ -157,9 +152,7 @@ public class RandomData {
      * @param nullable
      * @return
      */
-    public static BigDecimal generateDecimalNumeric(int precision,
-            int scale,
-            boolean nullable) {
+    public static BigDecimal generateDecimalNumeric(int precision, int scale, boolean nullable) {
 
         if (nullable) {
             if (returnNull) {
@@ -177,15 +170,16 @@ public class RandomData {
             if (r.nextBoolean()) {
                 n = BigInteger.TEN.pow(precision);
                 if (scale > 0)
-                    return new BigDecimal(n, scale).subtract(new BigDecimal("" + Math.pow(10, -scale)).setScale(scale, RoundingMode.HALF_UP))
+                    return new BigDecimal(n, scale)
+                            .subtract(new BigDecimal("" + Math.pow(10, -scale)).setScale(scale, RoundingMode.HALF_UP))
                             .negate();
                 else
                     return new BigDecimal(n, scale).subtract(new BigDecimal("1")).negate();
-            }
-            else {
+            } else {
                 n = BigInteger.TEN.pow(precision);
                 if (scale > 0)
-                    return new BigDecimal(n, scale).subtract(new BigDecimal("" + Math.pow(10, -scale)).setScale(scale, RoundingMode.HALF_UP))
+                    return new BigDecimal(n, scale)
+                            .subtract(new BigDecimal("" + Math.pow(10, -scale)).setScale(scale, RoundingMode.HALF_UP))
                             .negate();
                 else
                     return new BigDecimal(n, scale).subtract(new BigDecimal("1")).negate();
@@ -212,8 +206,7 @@ public class RandomData {
 
         if (null != doubleValue) {
             return doubleValue.floatValue();
-        }
-        else {
+        } else {
             return null;
         }
     }
@@ -222,12 +215,11 @@ public class RandomData {
      * Utility method for generating a random double.
      * 
      * @param n
-     *            integer
+     *        integer
      * @param nullable
      * @return
      */
-    public static Double generateFloat(Integer n,
-            boolean nullable) {
+    public static Double generateFloat(Integer n, boolean nullable) {
         if (nullable) {
             if (returnNull) {
                 return null;
@@ -243,11 +235,9 @@ public class RandomData {
         // https://msdn.microsoft.com/en-us/library/ms173773.aspx
         if (null == n) {
             n = 53;
-        }
-        else if (25 <= n && 53 >= n) {
+        } else if (25 <= n && 53 >= n) {
             n = 53;
-        }
-        else {
+        } else {
             n = 24;
         }
 
@@ -256,34 +246,27 @@ public class RandomData {
                 if (r.nextBoolean()) {
                     if (r.nextBoolean()) {
                         return Double.valueOf("1.79E+308");
-                    }
-                    else {
+                    } else {
                         return Double.valueOf("2.23E-308");
                     }
-                }
-                else {
+                } else {
                     if (r.nextBoolean()) {
                         return Double.valueOf("-2.23E-308");
-                    }
-                    else {
+                    } else {
                         return Double.valueOf("-1.79E+308");
                     }
                 }
-            }
-            else {
+            } else {
                 if (r.nextBoolean()) {
                     if (r.nextBoolean()) {
                         return Double.valueOf("3.40E+38");
-                    }
-                    else {
+                    } else {
                         return Double.valueOf("1.18E-38");
                     }
-                }
-                else {
+                } else {
                     if (r.nextBoolean()) {
                         return Double.valueOf("-1.18E-38");
-                    }
-                    else {
+                    } else {
                         return Double.valueOf("-3.40E+38");
                     }
                 }
@@ -339,17 +322,13 @@ public class RandomData {
      * @param encrypted
      * @return
      */
-    public static String generateCharTypes(String columnLength,
-            boolean nullable,
-            boolean encrypted) {
+    public static String generateCharTypes(String columnLength, boolean nullable, boolean encrypted) {
         String charSet = normalCharSet;
 
         return buildCharOrNChar(columnLength, nullable, encrypted, charSet, 8001);
     }
 
-    public static String generateNCharTypes(String columnLength,
-            boolean nullable,
-            boolean encrypted) {
+    public static String generateNCharTypes(String columnLength, boolean nullable, boolean encrypted) {
         String charSet = specicalCharSet + normalCharSet + unicodeCharSet;
 
         return buildCharOrNChar(columnLength, nullable, encrypted, charSet, 4001);
@@ -363,9 +342,7 @@ public class RandomData {
      * @param encrypted
      * @return
      */
-    public static byte[] generateBinaryTypes(String columnLength,
-            boolean nullable,
-            boolean encrypted) {
+    public static byte[] generateBinaryTypes(String columnLength, boolean nullable, boolean encrypted) {
         int maxBound = 8001;
 
         if (nullable) {
@@ -388,23 +365,20 @@ public class RandomData {
                 byte[] bytes = new byte[length];
                 r.nextBytes(bytes);
                 return bytes;
-            }
-            else {
+            } else {
                 length = r.nextInt(maxBound - minimumLength) + minimumLength;
                 byte[] bytes = new byte[length];
                 r.nextBytes(bytes);
                 return bytes;
             }
-        }
-        else {
+        } else {
             int columnLengthInt = Integer.parseInt(columnLength);
             if (returnFullLength) {
                 length = columnLengthInt;
                 byte[] bytes = new byte[length];
                 r.nextBytes(bytes);
                 return bytes;
-            }
-            else {
+            } else {
                 length = r.nextInt(columnLengthInt - minimumLength) + minimumLength;
                 byte[] bytes = new byte[length];
                 r.nextBytes(bytes);
@@ -432,8 +406,7 @@ public class RandomData {
         if (returnMinMax) {
             if (r.nextBoolean()) {
                 return new Date(max);
-            }
-            else {
+            } else {
                 return new Date(min);
             }
         }
@@ -466,8 +439,7 @@ public class RandomData {
      * @param nullable
      * @return
      */
-    public static DateTimeOffset generateDatetimeoffset(Integer precision,
-            boolean nullable) {
+    public static DateTimeOffset generateDatetimeoffset(Integer precision, boolean nullable) {
         if (null == precision) {
             precision = 7;
         }
@@ -487,8 +459,7 @@ public class RandomData {
         if (returnMinMax) {
             if (r.nextBoolean()) {
                 return maxDTS;
-            }
-            else {
+            } else {
                 // return minDTS;
                 return calculateDateTimeOffsetMinMax("min", precision, "0001-01-01 00:00:00.0000000");
             }
@@ -522,8 +493,7 @@ public class RandomData {
      * @param nullable
      * @return
      */
-    public static Timestamp generateDatetime2(Integer precision,
-            boolean nullable) {
+    public static Timestamp generateDatetime2(Integer precision, boolean nullable) {
         if (null == precision) {
             precision = 7;
         }
@@ -542,14 +512,14 @@ public class RandomData {
                 int precisionDigits = buildPrecision(precision, "9");
                 ts.setNanos(precisionDigits);
                 return ts;
-            }
-            else {
+            } else {
                 ts.setNanos(0);
                 return ts;
             }
         }
 
-        int precisionDigits = buildPrecision(precision, numberCharSet2); // not to use 0 in the random data for now. E.g creates 9040330 and when set
+        int precisionDigits = buildPrecision(precision, numberCharSet2); // not to use 0 in the random data for now. E.g
+                                                                         // creates 9040330 and when set
                                                                          // it is 904033.
         ts.setNanos(precisionDigits);
         return ts;
@@ -562,8 +532,7 @@ public class RandomData {
      * @param nullable
      * @return
      */
-    public static Time generateTime(Integer precision,
-            boolean nullable) {
+    public static Time generateTime(Integer precision, boolean nullable) {
         if (null == precision) {
             precision = 7;
         }
@@ -582,8 +551,7 @@ public class RandomData {
                 int precisionDigits = buildPrecision(precision, "9");
                 ts.setNanos(precisionDigits);
                 return new Time(ts.getTime());
-            }
-            else {
+            } else {
                 ts.setNanos(0);
                 return new Time(ts.getTime());
             }
@@ -594,14 +562,12 @@ public class RandomData {
         return new Time(ts.getTime());
     }
 
-    private static int buildPrecision(int precision,
-            String charSet) {
+    private static int buildPrecision(int precision, String charSet) {
         String stringValue = calculatePrecisionDigits(precision, charSet);
         return Integer.parseInt(stringValue);
     }
 
-    private static String calculatePrecisionDigits(int precision,
-            String charSet) {
+    private static String calculatePrecisionDigits(int precision, String charSet) {
         // setNanos(999999900) gives 00:00:00.9999999
         // so, this value has to be 9 digits
         StringBuffer sb = new StringBuffer();
@@ -617,9 +583,7 @@ public class RandomData {
         return sb.toString();
     }
 
-    private static Timestamp generateTimestamp(boolean nullable,
-            long max,
-            long min) {
+    private static Timestamp generateTimestamp(boolean nullable, long max, long min) {
         if (nullable) {
             if (returnNull) {
                 return null;
@@ -629,8 +593,7 @@ public class RandomData {
         if (returnMinMax) {
             if (r.nextBoolean()) {
                 return new Timestamp(max);
-            }
-            else {
+            } else {
                 return new Timestamp(min);
             }
         }
@@ -644,11 +607,8 @@ public class RandomData {
         }
     }
 
-    private static BigDecimal generateMoneyOrSmallMoney(boolean nullable,
-            BigDecimal max,
-            BigDecimal min,
-            float multiplier,
-            String charSet) {
+    private static BigDecimal generateMoneyOrSmallMoney(boolean nullable, BigDecimal max, BigDecimal min,
+            float multiplier, String charSet) {
         if (nullable) {
             if (returnNull) {
                 return null;
@@ -662,8 +622,7 @@ public class RandomData {
         if (returnMinMax) {
             if (r.nextBoolean()) {
                 return max;
-            }
-            else {
+            } else {
                 return min;
             }
         }
@@ -679,14 +638,11 @@ public class RandomData {
         return new BigDecimal(intPart + "." + sb.toString());
     }
 
-    private static DateTimeOffset calculateDateTimeOffsetMinMax(String maxOrMin,
-            Integer precision,
-            String tsMinMax) {
+    private static DateTimeOffset calculateDateTimeOffsetMinMax(String maxOrMin, Integer precision, String tsMinMax) {
         int providedTimeZoneInMinutes;
         if (maxOrMin.toLowerCase().equals("max")) {
             providedTimeZoneInMinutes = 840;
-        }
-        else {
+        } else {
             providedTimeZoneInMinutes = -840;
         }
 
@@ -706,9 +662,7 @@ public class RandomData {
         return microsoft.sql.DateTimeOffset.valueOf(tsMax, providedTimeZoneInMinutes);
     }
 
-    private static Integer pickInt(boolean nullable,
-            int max,
-            int min) {
+    private static Integer pickInt(boolean nullable, int max, int min) {
         if (nullable) {
             if (returnNull) {
                 return null;
@@ -722,8 +676,7 @@ public class RandomData {
         if (returnMinMax) {
             if (r.nextBoolean()) {
                 return max;
-            }
-            else {
+            } else {
                 return min;
             }
         }
@@ -731,10 +684,7 @@ public class RandomData {
         return (int) r.nextInt(max - min) + min;
     }
 
-    private static String buildCharOrNChar(String columnLength,
-            boolean nullable,
-            boolean encrypted,
-            String charSet,
+    private static String buildCharOrNChar(String columnLength, boolean nullable, boolean encrypted, String charSet,
             int maxBound) {
 
         if (nullable) {
@@ -755,27 +705,23 @@ public class RandomData {
             if (r.nextBoolean()) {
                 length = r.nextInt(100000) + maxBound;
                 return buildRandomString(length, charSet);
-            }
-            else {
+            } else {
                 length = r.nextInt(maxBound - minimumLength) + minimumLength;
                 return buildRandomString(length, charSet);
             }
-        }
-        else {
+        } else {
             int columnLengthInt = Integer.parseInt(columnLength);
             if (returnFullLength) {
                 length = columnLengthInt;
                 return buildRandomString(length, charSet);
-            }
-            else {
+            } else {
                 length = r.nextInt(columnLengthInt - minimumLength) + minimumLength;
                 return buildRandomString(length, charSet);
             }
         }
     }
 
-    private static String buildRandomString(int length,
-            String charSet) {
+    private static String buildRandomString(int length, String charSet) {
         StringBuffer sb = new StringBuffer();
         for (int i = 0; i < length; i++) {
             char c = pickRandomChar(charSet);
@@ -792,14 +738,11 @@ public class RandomData {
         return charSet.charAt(randomIndex);
     }
 
-    private static BigInteger newRandomBigInteger(BigInteger n,
-            Random rnd,
-            int precision) {
+    private static BigInteger newRandomBigInteger(BigInteger n, Random rnd, int precision) {
         BigInteger r;
         do {
             r = new BigInteger(n.bitLength(), rnd);
-        }
-        while (r.toString().length() != precision);
+        } while (r.toString().length() != precision);
 
         return r;
     }

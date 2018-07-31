@@ -1,9 +1,6 @@
 /*
- * Microsoft JDBC Driver for SQL Server
- * 
- * Copyright(c) Microsoft Corporation All rights reserved.
- * 
- * This program is made available under the terms of the MIT License. See the LICENSE file in the project root for more information.
+ * Microsoft JDBC Driver for SQL Server Copyright(c) Microsoft Corporation All rights reserved. This program is made
+ * available under the terms of the MIT License. See the LICENSE file in the project root for more information.
  */
 package com.microsoft.sqlserver.jdbc.datatypes;
 
@@ -33,6 +30,7 @@ import com.microsoft.sqlserver.jdbc.SQLServerStatement;
 import com.microsoft.sqlserver.testframework.AbstractTest;
 import com.microsoft.sqlserver.testframework.DBConnection;
 import com.microsoft.sqlserver.testframework.Utils;
+
 
 @RunWith(JUnitPlatform.class)
 public class DateAndTimeTypeTest extends AbstractTest {
@@ -105,7 +103,7 @@ public class DateAndTimeTypeTest extends AbstractTest {
         tvp.addRow(DATE_TO_TEST);
         String sPrepStmt = "select * from dateandtime where my_date IN (select * from ?)";
         pstmt = connection.prepareStatement(sPrepStmt);
-        ((SQLServerPreparedStatement)pstmt).setStructured(1, "dateTVP", tvp);
+        ((SQLServerPreparedStatement) pstmt).setStructured(1, "dateTVP", tvp);
 
         rs = pstmt.executeQuery();
         rs.next();
@@ -124,7 +122,7 @@ public class DateAndTimeTypeTest extends AbstractTest {
         tvp.addRow(TIMESTAMP_TO_TEST);
         String sPrepStmt = "select * from dateandtime where my_timestamp IN (select * from ?)";
         pstmt = connection.prepareStatement(sPrepStmt);
-        ((SQLServerPreparedStatement)pstmt).setStructured(1, "timestampTVP", tvp);
+        ((SQLServerPreparedStatement) pstmt).setStructured(1, "timestampTVP", tvp);
 
         rs = pstmt.executeQuery();
         rs.next();
@@ -143,7 +141,7 @@ public class DateAndTimeTypeTest extends AbstractTest {
         tvp.addRow(TIME_TO_TEST);
         String sPrepStmt = "select * from dateandtime where my_time IN (select * from ?)";
         pstmt = connection.prepareStatement(sPrepStmt);
-        ((SQLServerPreparedStatement)pstmt).setStructured(1, "timeTVP", tvp);
+        ((SQLServerPreparedStatement) pstmt).setStructured(1, "timeTVP", tvp);
 
         rs = pstmt.executeQuery();
         rs.next();
@@ -151,17 +149,18 @@ public class DateAndTimeTypeTest extends AbstractTest {
         rs.close();
         pstmt.close();
     }
+
     private void createTVPs(String tvpName, String tvpType) throws SQLException {
-      stmt.executeUpdate("IF EXISTS (SELECT * FROM sys.types WHERE is_table_type = 1 AND name = '" + tvpName + "') " + " drop type " + tvpName);
-      String TVPCreateCmd = "CREATE TYPE " + tvpName + " as table (c1 " + tvpType + " null)";
-      stmt.executeUpdate(TVPCreateCmd);
+        stmt.executeUpdate("IF EXISTS (SELECT * FROM sys.types WHERE is_table_type = 1 AND name = '" + tvpName + "') "
+                + " drop type " + tvpName);
+        String TVPCreateCmd = "CREATE TYPE " + tvpName + " as table (c1 " + tvpType + " null)";
+        stmt.executeUpdate(TVPCreateCmd);
     }
 
     @BeforeEach
     public void testSetup() throws TestAbortedException, Exception {
         try (DBConnection dbc = new DBConnection(connectionString)) {
-            assumeTrue(9 <= dbc.getServerVersion(),
-                    "Aborting test case as SQL Server version does not support TIME");
+            assumeTrue(9 <= dbc.getServerVersion(), "Aborting test case as SQL Server version does not support TIME");
         }
         // To get TIME & setTime working on Servers >= 2008, we must add 'sendTimeAsDatetime=false'
         // by default to the connection. See issue https://github.com/Microsoft/mssql-jdbc/issues/559
@@ -175,9 +174,9 @@ public class DateAndTimeTypeTest extends AbstractTest {
         String sPrepStmt = "insert into dateandtime (id, my_date, my_time, my_timestamp) values (?, ?, ?, ?)";
         pstmt = connection.prepareStatement(sPrepStmt);
         pstmt.setInt(1, 42);
-        pstmt.setDate(2, DATE_TO_TEST); 
+        pstmt.setDate(2, DATE_TO_TEST);
         pstmt.setTime(3, TIME_TO_TEST);
-        pstmt.setTimestamp(4, TIMESTAMP_TO_TEST); 
+        pstmt.setTimestamp(4, TIMESTAMP_TO_TEST);
         pstmt.execute();
         pstmt.close();
         createTVPs("dateTVP", "date");

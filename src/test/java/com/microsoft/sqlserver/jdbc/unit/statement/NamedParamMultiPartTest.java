@@ -1,14 +1,10 @@
 /*
- * Microsoft JDBC Driver for SQL Server
- * 
- * Copyright(c) Microsoft Corporation All rights reserved.
- * 
- * This program is made available under the terms of the MIT License. See the LICENSE file in the project root for more information.
+ * Microsoft JDBC Driver for SQL Server Copyright(c) Microsoft Corporation All rights reserved. This program is made
+ * available under the terms of the MIT License. See the LICENSE file in the project root for more information.
  */
 package com.microsoft.sqlserver.jdbc.unit.statement;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.fail;
 
 import java.sql.CallableStatement;
 import java.sql.Connection;
@@ -26,6 +22,7 @@ import org.junit.runner.RunWith;
 import com.microsoft.sqlserver.jdbc.TestResource;
 import com.microsoft.sqlserver.testframework.AbstractTest;
 import com.microsoft.sqlserver.testframework.Utils;
+
 
 /**
  * Multipart parameters
@@ -47,7 +44,8 @@ public class NamedParamMultiPartTest extends AbstractTest {
         connection = DriverManager.getConnection(connectionString);
         try (Statement statement = connection.createStatement()) {
             Utils.dropProcedureIfExists("mystoredproc", statement);
-            statement.executeUpdate("CREATE PROCEDURE [mystoredproc] (@p_out varchar(255) OUTPUT) AS set @p_out =  '" + dataPut + "'");
+            statement.executeUpdate(
+                    "CREATE PROCEDURE [mystoredproc] (@p_out varchar(255) OUTPUT) AS set @p_out =  '" + dataPut + "'");
         }
     }
 
@@ -153,8 +151,7 @@ public class NamedParamMultiPartTest extends AbstractTest {
     public static void afterAll() throws SQLException {
         try (Statement stmt = connection.createStatement()) {
             Utils.dropProcedureIfExists("mystoredproc", stmt);
-        }
-        finally {
+        } finally {
             if (connection != null) {
                 connection.close();
             }

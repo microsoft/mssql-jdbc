@@ -1,9 +1,6 @@
 /*
- * Microsoft JDBC Driver for SQL Server
- * 
- * Copyright(c) Microsoft Corporation All rights reserved.
- * 
- * This program is made available under the terms of the MIT License. See the LICENSE file in the project root for more information.
+ * Microsoft JDBC Driver for SQL Server Copyright(c) Microsoft Corporation All rights reserved. This program is made
+ * available under the terms of the MIT License. See the LICENSE file in the project root for more information.
  */
 package com.microsoft.sqlserver.jdbc.bulkCopy;
 
@@ -19,6 +16,7 @@ import org.junit.runner.RunWith;
 
 import com.microsoft.sqlserver.jdbc.SQLServerBulkCopyOptions;
 
+
 /**
  * Test the timeout in SQLServerBulkCopyOptions. Source table is created with large row count so skip data validation.
  */
@@ -27,7 +25,8 @@ import com.microsoft.sqlserver.jdbc.SQLServerBulkCopyOptions;
 public class BulkCopyTimeoutTest extends BulkCopyTestSetUp {
 
     /**
-     * TODO: add support for small timeout value once test framework has support to add more than 10K rows, to check for Timeout Exception
+     * TODO: add support for small timeout value once test framework has support to add more than 10K rows, to check for
+     * Timeout Exception
      */
 
     /**
@@ -37,7 +36,7 @@ public class BulkCopyTimeoutTest extends BulkCopyTestSetUp {
      */
     @Test
     @DisplayName("BulkCopy:test zero timeout")
-    void testZeroTimeOut() throws SQLException {
+    public void testZeroTimeOut() throws SQLException {
         testBulkCopyWithTimeout(0);
     }
 
@@ -48,7 +47,7 @@ public class BulkCopyTimeoutTest extends BulkCopyTestSetUp {
      */
     @Test
     @DisplayName("BulkCopy:test negative timeout")
-    void testNegativeTimeOut() throws SQLException {
+    public void testNegativeTimeOut() throws SQLException {
         assertThrows(SQLException.class, new org.junit.jupiter.api.function.Executable() {
             @Override
             public void execute() throws SQLException {
@@ -56,9 +55,9 @@ public class BulkCopyTimeoutTest extends BulkCopyTestSetUp {
             }
         });
     }
-    
+
     private void testBulkCopyWithTimeout(int timeout) throws SQLException {
-    	BulkCopyTestWrapper bulkWrapper = new BulkCopyTestWrapper(connectionString);
+        BulkCopyTestWrapper bulkWrapper = new BulkCopyTestWrapper(connectionString);
         bulkWrapper.setUsingConnection((0 == ThreadLocalRandom.current().nextInt(2)) ? true : false);
         SQLServerBulkCopyOptions option = new SQLServerBulkCopyOptions();
         option.setBulkCopyTimeout(timeout);

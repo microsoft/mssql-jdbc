@@ -1,9 +1,6 @@
 /*
- * Microsoft JDBC Driver for SQL Server
- * 
- * Copyright(c) Microsoft Corporation All rights reserved.
- * 
- * This program is made available under the terms of the MIT License. See the LICENSE file in the project root for more information.
+ * Microsoft JDBC Driver for SQL Server Copyright(c) Microsoft Corporation All rights reserved. This program is made
+ * available under the terms of the MIT License. See the LICENSE file in the project root for more information.
  */
 package com.microsoft.sqlserver.jdbc.databasemetadata;
 
@@ -26,10 +23,10 @@ import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.text.MessageFormat;
 import java.util.UUID;
 import java.util.jar.Attributes;
 import java.util.jar.Manifest;
-import java.text.MessageFormat;
 
 import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
@@ -40,6 +37,7 @@ import com.microsoft.sqlserver.jdbc.StringUtils;
 import com.microsoft.sqlserver.jdbc.TestResource;
 import com.microsoft.sqlserver.testframework.AbstractTest;
 import com.microsoft.sqlserver.testframework.Utils;
+
 
 /**
  * Test class for testing DatabaseMetaData.
@@ -62,15 +60,17 @@ public class DatabaseMetaDataTest extends AbstractTest {
     }
 
     /**
-     * Testing if driver version is matching with manifest file or not. Will be useful while releasing preview / RTW release.
+     * Testing if driver version is matching with manifest file or not. Will be useful while releasing preview / RTW
+     * release.
      * 
-     * //TODO: OSGI: Test for capability 1.7 for JDK 1.7 and 1.8 for 1.8 //Require-Capability: osgi.ee;filter:="(&(osgi.ee=JavaSE)(version=1.8))" //String
-     * capability = attributes.getValue("Require-Capability");  
+     * //TODO: OSGI: Test for capability 1.7 for JDK 1.7 and 1.8 for 1.8 //Require-Capability:
+     * osgi.ee;filter:="(&(osgi.ee=JavaSE)(version=1.8))" //String capability =
+     * attributes.getValue("Require-Capability");
      * 
      * @throws SQLException
-     *             SQL Exception
+     *         SQL Exception
      * @throws IOException
-     *             IOExcption
+     *         IOExcption
      */
     @Test
     public void testDriverVersion() throws SQLException, IOException {
@@ -104,12 +104,9 @@ public class DatabaseMetaDataTest extends AbstractTest {
         int intDriverVersion = Integer.valueOf(driverVersion);
 
         if (isSnapshot) {
-            assertTrue(intDriverVersion < intBuildVersion,
-                    TestResource.getResource("R_buildVersionError"));
-        }
-        else {
-            assertTrue(intDriverVersion == intBuildVersion,
-                    TestResource.getResource("R_buildVersionError"));
+            assertTrue(intDriverVersion < intBuildVersion, TestResource.getResource("R_buildVersionError"));
+        } else {
+            assertTrue(intDriverVersion == intBuildVersion, TestResource.getResource("R_buildVersionError"));
         }
 
     }
@@ -147,8 +144,7 @@ public class DatabaseMetaDataTest extends AbstractTest {
             startIndex = connectionString.indexOf("username=");
             endIndex = connectionString.indexOf(";", startIndex);
             startIndex = startIndex + "username=".length();
-        }
-        else if (connectionString.contains("user")) {
+        } else if (connectionString.contains("user")) {
             startIndex = connectionString.indexOf("user=");
             endIndex = connectionString.indexOf(";", startIndex);
             startIndex = startIndex + "user=".length();
@@ -159,12 +155,12 @@ public class DatabaseMetaDataTest extends AbstractTest {
 
         assertNotNull(userName, TestResource.getResource("R_userNameNull"));
 
-        assertTrue(userName.equalsIgnoreCase(userFromConnectionString),
-                TestResource.getResource("R_userNameNotMatch"));
+        assertTrue(userName.equalsIgnoreCase(userFromConnectionString), TestResource.getResource("R_userNameNotMatch"));
     }
 
     /**
      * Testing of {@link SQLServerDatabaseMetaData#getSchemas()}
+     * 
      * @throws SQLException
      */
     @Test
@@ -179,9 +175,10 @@ public class DatabaseMetaDataTest extends AbstractTest {
             assertTrue(!StringUtils.isEmpty(rs.getString(1)), form.format(msgArgs));
         }
     }
-    
+
     /**
-     * Tests that the catalog parameter containing - is escaped by {@link SQLServerDatabaseMetaData#getSchemas(String catalog, String schemaPattern)}.
+     * Tests that the catalog parameter containing - is escaped by
+     * {@link SQLServerDatabaseMetaData#getSchemas(String catalog, String schemaPattern)}.
      * 
      * @throws SQLException
      */
@@ -192,7 +189,8 @@ public class DatabaseMetaDataTest extends AbstractTest {
         String testSchema = "some-schema" + id;
 
         try (Statement stmt = connection.createStatement()) {
-            try (Connection dashConn = DriverManager.getConnection(connectionString); Statement dashStatement = dashConn.createStatement()) {
+            try (Connection dashConn = DriverManager.getConnection(connectionString);
+                    Statement dashStatement = dashConn.createStatement()) {
 
                 Utils.dropDatabaseIfExists(testCatalog, stmt);
                 stmt.execute(String.format("CREATE DATABASE [%s]", testCatalog));
@@ -216,8 +214,7 @@ public class DatabaseMetaDataTest extends AbstractTest {
                     if (schemaName.equals(testSchema)) {
                         hasDashCatalogSchema = true;
                         assertEquals(catalogName, testCatalog);
-                    }
-                    else {
+                    } else {
                         assertNull(catalogName);
                     }
                 }
@@ -227,15 +224,15 @@ public class DatabaseMetaDataTest extends AbstractTest {
 
                 MessageFormat dashCatalogFormat = new MessageFormat(TestResource.getResource("R_atLeastOneFound"));
                 assertTrue(hasDashCatalogSchema, dashCatalogFormat.format(new Object[] {testSchema}));
-            }
-            finally {
+            } finally {
                 Utils.dropDatabaseIfExists(testCatalog, stmt);
             }
         }
     }
 
     /**
-     * Tests that the catalog parameter containing - is escaped by {@link SQLServerDatabaseMetaData#getSchemas(String catalog, String schemaPattern)}.
+     * Tests that the catalog parameter containing - is escaped by
+     * {@link SQLServerDatabaseMetaData#getSchemas(String catalog, String schemaPattern)}.
      * 
      * @throws SQLException
      */
@@ -246,7 +243,8 @@ public class DatabaseMetaDataTest extends AbstractTest {
         String testSchema = "some-schema" + id;
 
         try (Statement stmt = connection.createStatement()) {
-            try (Connection dashConn = DriverManager.getConnection(connectionString); Statement dashStatement = dashConn.createStatement()) {
+            try (Connection dashConn = DriverManager.getConnection(connectionString);
+                    Statement dashStatement = dashConn.createStatement()) {
 
                 Utils.dropDatabaseIfExists(testCatalog, stmt);
                 stmt.execute(String.format("CREATE DATABASE [%s]", testCatalog));
@@ -274,8 +272,7 @@ public class DatabaseMetaDataTest extends AbstractTest {
 
                 MessageFormat atLeastOneFoundFormat = new MessageFormat(TestResource.getResource("R_atLeastOneFound"));
                 assertTrue(hasResults, atLeastOneFoundFormat.format(schemaMsgArgs));
-            }
-            finally {
+            } finally {
                 Utils.dropDatabaseIfExists(testCatalog, stmt);
             }
         }
@@ -289,16 +286,16 @@ public class DatabaseMetaDataTest extends AbstractTest {
     @Test
     public void testDBTables() throws SQLException {
         DatabaseMetaData databaseMetaData = connection.getMetaData();
-        
+
         ResultSet rsCatalog = databaseMetaData.getCatalogs();
-        
+
         MessageFormat form1 = new MessageFormat(TestResource.getResource("R_atLeastOneFound"));
         Object[] msgArgs1 = {"catalog"};
         assertTrue(rsCatalog.next(), form1.format(msgArgs1));
-        
+
         String[] types = {"TABLE"};
         ResultSet rs = databaseMetaData.getTables(rsCatalog.getString("TABLE_CAT"), null, "%", types);
-        
+
         MessageFormat form2 = new MessageFormat(TestResource.getResource("R_nameEmpty"));
         Object[] msgArgs2 = {"Table"};
         while (rs.next()) {
@@ -307,12 +304,14 @@ public class DatabaseMetaDataTest extends AbstractTest {
     }
 
     /**
-     * Testing DB Columns.<p>
+     * Testing DB Columns.
+     * <p>
      * We can Improve this test scenario by following way.
      * <ul>
-     *  <li> Create table with appropriate column size, data types,auto increment, NULLABLE etc.  
-     *  <li> Then get databasemetatadata.getColumns to see if there is any mismatch.
+     * <li>Create table with appropriate column size, data types,auto increment, NULLABLE etc.
+     * <li>Then get databasemetatadata.getColumns to see if there is any mismatch.
      * </ul>
+     * 
      * @throws SQLException
      */
     @Test
@@ -320,17 +319,18 @@ public class DatabaseMetaDataTest extends AbstractTest {
         DatabaseMetaData databaseMetaData = connection.getMetaData();
         String[] types = {"TABLE"};
         ResultSet rs = databaseMetaData.getTables(null, null, "%", types);
-        
-        //Fetch one table
+
+        // Fetch one table
         MessageFormat form1 = new MessageFormat(TestResource.getResource("R_atLeastOneFound"));
         Object[] msgArgs1 = {"table"};
         assertTrue(rs.next(), form1.format(msgArgs1));
-        
-        //Go through all columns.
+
+        // Go through all columns.
         ResultSet rs1 = databaseMetaData.getColumns(null, null, rs.getString("TABLE_NAME"), "%");
-        
+
         MessageFormat form2 = new MessageFormat(TestResource.getResource("R_nameEmpty"));
-        Object[][] msgArgs2 = {{"Category"}, {"SCHEMA"}, {"Table"}, {"COLUMN"}, {"Data Type"}, {"Type"}, {"Column Size"}, {"Nullable value"}, {"IS_NULLABLE"}, {"IS_AUTOINCREMENT"}};
+        Object[][] msgArgs2 = {{"Category"}, {"SCHEMA"}, {"Table"}, {"COLUMN"}, {"Data Type"}, {"Type"},
+                {"Column Size"}, {"Nullable value"}, {"IS_NULLABLE"}, {"IS_AUTOINCREMENT"}};
         while (rs1.next()) {
             assertTrue(!StringUtils.isEmpty(rs1.getString("TABLE_CAT")), form2.format(msgArgs2[0]));
             assertTrue(!StringUtils.isEmpty(rs1.getString("TABLE_SCHEM")), form2.format(msgArgs2[1]));
@@ -344,13 +344,14 @@ public class DatabaseMetaDataTest extends AbstractTest {
             assertTrue(!StringUtils.isEmpty(rs1.getString("IS_AUTOINCREMENT")), form2.format(msgArgs2[9])); // 22
         }
     }
-    
+
     /**
-     * We can improve this test case by following manner: 
+     * We can improve this test case by following manner:
      * <ul>
-     * <li> We can check if PRIVILEGE is in between CRUD / REFERENCES / SELECT / INSERT etc.
-     * <li> IS_GRANTABLE can have only 2 values YES / NO
+     * <li>We can check if PRIVILEGE is in between CRUD / REFERENCES / SELECT / INSERT etc.
+     * <li>IS_GRANTABLE can have only 2 values YES / NO
      * </ul>
+     * 
      * @throws SQLException
      */
     @Test
@@ -358,18 +359,19 @@ public class DatabaseMetaDataTest extends AbstractTest {
         DatabaseMetaData databaseMetaData = connection.getMetaData();
         String[] types = {"TABLE"};
         ResultSet rsTables = databaseMetaData.getTables(null, null, "%", types);
-        
-        //Fetch one table
+
+        // Fetch one table
         MessageFormat form1 = new MessageFormat(TestResource.getResource("R_atLeastOneFound"));
         Object[] msgArgs1 = {"table"};
         assertTrue(rsTables.next(), form1.format(msgArgs1));
-        
-        //Go through all columns.
+
+        // Go through all columns.
         ResultSet rs1 = databaseMetaData.getColumnPrivileges(null, null, rsTables.getString("TABLE_NAME"), "%");
-        
+
         MessageFormat form2 = new MessageFormat(TestResource.getResource("R_nameEmpty"));
-        Object[][] msgArgs2 = {{"Category"}, {"SCHEMA"}, {"Table"}, {"COLUMN"}, {"GRANTOR"}, {"GRANTEE"}, {"PRIVILEGE"}, {"IS_GRANTABLE"}};
-        while(rs1.next()) {
+        Object[][] msgArgs2 = {{"Category"}, {"SCHEMA"}, {"Table"}, {"COLUMN"}, {"GRANTOR"}, {"GRANTEE"}, {"PRIVILEGE"},
+                {"IS_GRANTABLE"}};
+        while (rs1.next()) {
             assertTrue(!StringUtils.isEmpty(rs1.getString("TABLE_CAT")), form2.format(msgArgs2[0]));
             assertTrue(!StringUtils.isEmpty(rs1.getString("TABLE_SCHEM")), form2.format(msgArgs2[1]));
             assertTrue(!StringUtils.isEmpty(rs1.getString("TABLE_NAME")), form2.format(msgArgs2[2]));
@@ -380,36 +382,39 @@ public class DatabaseMetaDataTest extends AbstractTest {
             assertTrue(!StringUtils.isEmpty(rs1.getString("IS_GRANTABLE")), form2.format(msgArgs2[7]));
         }
     }
-    
+
     /**
-     * TODO: Check JDBC Specs: Can we have any tables/functions without category? 
+     * TODO: Check JDBC Specs: Can we have any tables/functions without category?
      * 
      * Testing {@link SQLServerDatabaseMetaData#getFunctions(String, String, String)} with sending wrong category.
+     * 
      * @throws SQLException
      */
     @Test
     public void testGetFunctionsWithWrongParams() throws SQLException {
         try {
-        DatabaseMetaData databaseMetaData = connection.getMetaData();
-        databaseMetaData.getFunctions("", null, "xp_%");
-        assertTrue(false, TestResource.getResource("R_noSchemaShouldFail"));
-        } catch(Exception ae) {
-            
+            DatabaseMetaData databaseMetaData = connection.getMetaData();
+            databaseMetaData.getFunctions("", null, "xp_%");
+            assertTrue(false, TestResource.getResource("R_noSchemaShouldFail"));
+        } catch (Exception ae) {
+
         }
     }
-    
+
     /**
      * Test {@link SQLServerDatabaseMetaData#getFunctions(String, String, String)}
+     * 
      * @throws SQLException
      */
     @Test
     public void testGetFunctions() throws SQLException {
         DatabaseMetaData databaseMetaData = connection.getMetaData();
         ResultSet rs = databaseMetaData.getFunctions(null, null, "xp_%");
-        
+
         MessageFormat form = new MessageFormat(TestResource.getResource("R_nameNull"));
-        Object[][] msgArgs = {{"FUNCTION_CAT"}, {"FUNCTION_SCHEM"}, {"FUNCTION_NAME"}, {"NUM_INPUT_PARAMS"}, {"NUM_OUPUT_PARAMS"}, {"NUM_RESULT_SETS"}, {"FUNCTION_TYPE"}};
-        while(rs.next()) {
+        Object[][] msgArgs = {{"FUNCTION_CAT"}, {"FUNCTION_SCHEM"}, {"FUNCTION_NAME"}, {"NUM_INPUT_PARAMS"},
+                {"NUM_OUPUT_PARAMS"}, {"NUM_RESULT_SETS"}, {"FUNCTION_TYPE"}};
+        while (rs.next()) {
             assertTrue(!StringUtils.isEmpty(rs.getString("FUNCTION_CAT")), form.format(msgArgs[0]));
             assertTrue(!StringUtils.isEmpty(rs.getString("FUNCTION_SCHEM")), form.format(msgArgs[1]));
             assertTrue(!StringUtils.isEmpty(rs.getString("FUNCTION_NAME")), form.format(msgArgs[2]));
@@ -420,27 +425,29 @@ public class DatabaseMetaDataTest extends AbstractTest {
         }
         rs.close();
     }
-    
+
     /**
      * Te
+     * 
      * @throws SQLException
      */
     @Test
-    public void testGetFunctionColumns()  throws SQLException{
+    public void testGetFunctionColumns() throws SQLException {
         DatabaseMetaData databaseMetaData = connection.getMetaData();
         ResultSet rsFunctions = databaseMetaData.getFunctions(null, null, "%");
-        
-        //Fetch one Function
+
+        // Fetch one Function
         MessageFormat form1 = new MessageFormat(TestResource.getResource("R_atLeastOneFound"));
         Object[] msgArgs1 = {"function"};
         assertTrue(rsFunctions.next(), form1.format(msgArgs1));
-        
-        //Go through all columns.
+
+        // Go through all columns.
         ResultSet rs = databaseMetaData.getFunctionColumns(null, null, rsFunctions.getString("FUNCTION_NAME"), "%");
-        
+
         MessageFormat form2 = new MessageFormat(TestResource.getResource("R_nameNull"));
-        Object[][] msgArgs2 = {{"FUNCTION_CAT"}, {"FUNCTION_SCHEM"}, {"FUNCTION_NAME"}, {"COLUMN_NAME"}, {"COLUMN_TYPE"}, {"DATA_TYPE"}, {"TYPE_NAME"}, {"NULLABLE"}, {"IS_NULLABLE"}};
-        while(rs.next()) {
+        Object[][] msgArgs2 = {{"FUNCTION_CAT"}, {"FUNCTION_SCHEM"}, {"FUNCTION_NAME"}, {"COLUMN_NAME"},
+                {"COLUMN_TYPE"}, {"DATA_TYPE"}, {"TYPE_NAME"}, {"NULLABLE"}, {"IS_NULLABLE"}};
+        while (rs.next()) {
             assertTrue(!StringUtils.isEmpty(rs.getString("FUNCTION_CAT")), form2.format(msgArgs2[0]));
             assertTrue(!StringUtils.isEmpty(rs.getString("FUNCTION_SCHEM")), form2.format(msgArgs2[1]));
             assertTrue(!StringUtils.isEmpty(rs.getString("FUNCTION_NAME")), form2.format(msgArgs2[2]));
@@ -448,10 +455,10 @@ public class DatabaseMetaDataTest extends AbstractTest {
             assertTrue(!StringUtils.isEmpty(rs.getString("COLUMN_TYPE")), form2.format(msgArgs2[4]));
             assertTrue(!StringUtils.isEmpty(rs.getString("DATA_TYPE")), form2.format(msgArgs2[5]));
             assertTrue(!StringUtils.isEmpty(rs.getString("TYPE_NAME")), form2.format(msgArgs2[6]));
-            assertTrue(!StringUtils.isEmpty(rs.getString("NULLABLE")), form2.format(msgArgs2[7])); //12
-            assertTrue(!StringUtils.isEmpty(rs.getString("IS_NULLABLE")), form2.format(msgArgs2[8])); //19
+            assertTrue(!StringUtils.isEmpty(rs.getString("NULLABLE")), form2.format(msgArgs2[7])); // 12
+            assertTrue(!StringUtils.isEmpty(rs.getString("IS_NULLABLE")), form2.format(msgArgs2[8])); // 19
         }
-        
+
     }
-    
+
 }

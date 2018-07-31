@@ -3,6 +3,26 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](http://keepachangelog.com/) 
 
+## [7.0.0] Stable Release
+### Added
+- Added 'Automatic-Module-Name' manifest entry to jre10 Jar, allowing JDK 10 users to access driver module 'com.microsoft.sqlserver.jdbc' [#732](https://github.com/Microsoft/mssql-jdbc/pull/732)
+- Added setUseBulkCopyForBatchInsert() to request boundary declaration APIs [#739](https://github.com/Microsoft/mssql-jdbc/pull/739)
+- Added new test for validation of supported public APIs in request boundary declaration APIs [#746](https://github.com/Microsoft/mssql-jdbc/pull/746)
+
+### Fixed Issues
+- Fixed policheck issue with 'Country' keyword [#745](https://github.com/Microsoft/mssql-jdbc/pull/745)
+- Fixed issues reported by static analysis tools (SonarQube, Fortify) [#747](https://github.com/Microsoft/mssql-jdbc/pull/747)
+
+### Changed
+- Reformatted code and updated mssql-jdbc-formatter [#742](https://github.com/Microsoft/mssql-jdbc/pull/742)
+- Changed Sha1HashKey to CityHash128Key for generating PreparedStatement handle and metadata cache keys [#717](https://github.com/Microsoft/mssql-jdbc/pull/717)
+- Changed order of logic for checking the condition for using Bulk Copy API [#736](https://github.com/Microsoft/mssql-jdbc/pull/736)
+- Changed collation name in UTF8SupportTest [#741](https://github.com/Microsoft/mssql-jdbc/pull/741)
+- Changed scope of unwanted Public APIs [#757](https://github.com/Microsoft/mssql-jdbc/pull/757)
+- Changed behavior of Bulk Copy API for batch inserts to disallow non-parameterized queries [#756](https://github.com/Microsoft/mssql-jdbc/pull/756)
+- Changed APIs and JavaDocs for Spatial Datatypes [#752](https://github.com/Microsoft/mssql-jdbc/pull/752)
+- Improved Javadoc comments in driver [#754](https://github.com/Microsoft/mssql-jdbc/pull/754), [#760](https://github.com/Microsoft/mssql-jdbc/pull/760)
+
 ## [6.5.4] Preview Release
 ### Added
 - Added new connection property "useBulkCopyForBatchInsert" to enable Bulk Copy API support for batch insert operation [#686](https://github.com/Microsoft/mssql-jdbc/pull/686)

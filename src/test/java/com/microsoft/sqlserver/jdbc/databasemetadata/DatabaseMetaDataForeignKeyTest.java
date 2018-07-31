@@ -1,9 +1,6 @@
 /*
- * Microsoft JDBC Driver for SQL Server
- * 
- * Copyright(c) Microsoft Corporation All rights reserved.
- * 
- * This program is made available under the terms of the MIT License. See the LICENSE file in the project root for more information.
+ * Microsoft JDBC Driver for SQL Server Copyright(c) Microsoft Corporation All rights reserved. This program is made
+ * available under the terms of the MIT License. See the LICENSE file in the project root for more information.
  */
 package com.microsoft.sqlserver.jdbc.databasemetadata;
 
@@ -29,6 +26,7 @@ import com.microsoft.sqlserver.jdbc.TestResource;
 import com.microsoft.sqlserver.testframework.AbstractTest;
 import com.microsoft.sqlserver.testframework.Utils;
 
+
 /**
  * Test class for testing DatabaseMetaData with foreign keys.
  */
@@ -42,43 +40,48 @@ public class DatabaseMetaDataForeignKeyTest extends AbstractTest {
     private static String table3 = "DatabaseMetaDataForeignKeyTest_table_3";
     private static String table4 = "DatabaseMetaDataForeignKeyTest_table_4";
     private static String table5 = "DatabaseMetaDataForeignKeyTest_table_5";
-    
+
     private static String schema = null;
     private static String catalog = null;
-    
+
     @BeforeAll
-    private static void setupVariation() throws SQLException {
+    public static void setupVariation() throws SQLException {
         conn = (SQLServerConnection) DriverManager.getConnection(connectionString);
         SQLServerStatement stmt = (SQLServerStatement) conn.createStatement();
 
         catalog = conn.getCatalog();
         schema = conn.getSchema();
 
-        connection.createStatement().executeUpdate("if object_id('" + table1 + "','U') is not null drop table " + table1);
+        connection.createStatement()
+                .executeUpdate("if object_id('" + table1 + "','U') is not null drop table " + table1);
 
-        connection.createStatement().executeUpdate("if object_id('" + table2 + "','U') is not null drop table " + table2);
+        connection.createStatement()
+                .executeUpdate("if object_id('" + table2 + "','U') is not null drop table " + table2);
         stmt.execute("Create table " + table2 + " (c21 int NOT NULL PRIMARY KEY)");
 
-        connection.createStatement().executeUpdate("if object_id('" + table3 + "','U') is not null drop table " + table3);
+        connection.createStatement()
+                .executeUpdate("if object_id('" + table3 + "','U') is not null drop table " + table3);
         stmt.execute("Create table " + table3 + " (c31 int NOT NULL PRIMARY KEY)");
 
-        connection.createStatement().executeUpdate("if object_id('" + table4 + "','U') is not null drop table " + table4);
+        connection.createStatement()
+                .executeUpdate("if object_id('" + table4 + "','U') is not null drop table " + table4);
         stmt.execute("Create table " + table4 + " (c41 int NOT NULL PRIMARY KEY)");
 
-        connection.createStatement().executeUpdate("if object_id('" + table5 + "','U') is not null drop table " + table5);
+        connection.createStatement()
+                .executeUpdate("if object_id('" + table5 + "','U') is not null drop table " + table5);
         stmt.execute("Create table " + table5 + " (c51 int NOT NULL PRIMARY KEY)");
 
-        connection.createStatement().executeUpdate("if object_id('" + table1 + "','U') is not null drop table " + table1);
-        stmt.execute("Create table " + table1 + " (c11 int primary key," 
-                + " c12 int FOREIGN KEY REFERENCES " + table2 + "(c21) ON DELETE no action ON UPDATE set default," 
-                + " c13 int FOREIGN KEY REFERENCES " + table3 + "(c31) ON DELETE cascade ON UPDATE set null," 
-                + " c14 int FOREIGN KEY REFERENCES " + table4 + "(c41) ON DELETE set null ON UPDATE cascade," 
-                + " c15 int FOREIGN KEY REFERENCES " + table5 + "(c51) ON DELETE set default ON UPDATE no action," 
-                + ")");
+        connection.createStatement()
+                .executeUpdate("if object_id('" + table1 + "','U') is not null drop table " + table1);
+        stmt.execute("Create table " + table1 + " (c11 int primary key," + " c12 int FOREIGN KEY REFERENCES " + table2
+                + "(c21) ON DELETE no action ON UPDATE set default," + " c13 int FOREIGN KEY REFERENCES " + table3
+                + "(c31) ON DELETE cascade ON UPDATE set null," + " c14 int FOREIGN KEY REFERENCES " + table4
+                + "(c41) ON DELETE set null ON UPDATE cascade," + " c15 int FOREIGN KEY REFERENCES " + table5
+                + "(c51) ON DELETE set default ON UPDATE no action," + ")");
     }
 
     @AfterAll
-    private static void terminateVariation() throws SQLException {
+    public static void terminateVariation() throws SQLException {
         conn = (SQLServerConnection) DriverManager.getConnection(connectionString);
         stmt = (SQLServerStatement) conn.createStatement();
 
@@ -93,7 +96,7 @@ public class DatabaseMetaDataForeignKeyTest extends AbstractTest {
      * test getImportedKeys() methods
      * 
      * @throws SQLException
-     * @throws SQLTimeoutException 
+     * @throws SQLTimeoutException
      */
     @Test
     public void testGetImportedKeys() throws SQLException {
@@ -111,8 +114,7 @@ public class DatabaseMetaDataForeignKeyTest extends AbstractTest {
         try {
             dmd.getImportedKeys("", schema, table1);
             fail(TestResource.getResource("R_expectedExceptionNotThrown"));
-        }
-        catch (SQLException e) {
+        } catch (SQLException e) {
             assertTrue(e.getMessage().startsWith(TestResource.getResource("R_dbNameIsCurrentDB")));
         }
     }
@@ -120,48 +122,44 @@ public class DatabaseMetaDataForeignKeyTest extends AbstractTest {
     private void validateGetImportedKeysResults(SQLServerResultSet rs) throws SQLException {
         int expectedRowCount = 4;
         int rowCount = 0;
-        
+
         rs.next();
         assertEquals(4, rs.getInt("UPDATE_RULE"));
         assertEquals(3, rs.getInt("DELETE_RULE"));
         rowCount++;
-        
+
         rs.next();
         assertEquals(2, rs.getInt("UPDATE_RULE"));
         assertEquals(0, rs.getInt("DELETE_RULE"));
         rowCount++;
-        
+
         rs.next();
         assertEquals(0, rs.getInt("UPDATE_RULE"));
         assertEquals(2, rs.getInt("DELETE_RULE"));
         rowCount++;
-        
+
         rs.next();
         assertEquals(3, rs.getInt("UPDATE_RULE"));
         assertEquals(4, rs.getInt("DELETE_RULE"));
         rowCount++;
 
-        if(expectedRowCount != rowCount) {
+        if (expectedRowCount != rowCount) {
             assertEquals(expectedRowCount, rowCount, TestResource.getResource("R_numKeysIncorrect"));
         }
     }
-    
+
     /**
      * test getExportedKeys() methods
      * 
      * @throws SQLException
-     * @throws SQLTimeoutException 
+     * @throws SQLTimeoutException
      */
     @Test
     public void testGetExportedKeys() throws SQLException {
         String[] tableNames = {table2, table3, table4, table5};
         int[][] values = {
                 // expected UPDATE_RULE, expected DELETE_RULE
-                {4, 3}, 
-                {2, 0}, 
-                {0, 2}, 
-                {3, 4}
-                };
+                {4, 3}, {2, 0}, {0, 2}, {3, 4}};
 
         SQLServerDatabaseMetaData dmd = (SQLServerDatabaseMetaData) connection.getMetaData();
 
@@ -185,18 +183,17 @@ public class DatabaseMetaDataForeignKeyTest extends AbstractTest {
             try {
                 dmd.getExportedKeys("", schema, pkTable);
                 fail(TestResource.getResource("R_expectedExceptionNotThrown"));
-            }
-            catch (SQLException e) {
+            } catch (SQLException e) {
                 assertTrue(e.getMessage().startsWith(TestResource.getResource("R_dbNameIsCurrentDB")));
             }
         }
     }
-    
+
     /**
      * test getCrossReference() methods
      * 
      * @throws SQLException
-     * @throws SQLTimeoutException 
+     * @throws SQLTimeoutException
      */
     @Test
     public void testGetCrossReference() throws SQLException {
@@ -204,27 +201,26 @@ public class DatabaseMetaDataForeignKeyTest extends AbstractTest {
         String[] tableNames = {table2, table3, table4, table5};
         int[][] values = {
                 // expected UPDATE_RULE, expected DELETE_RULE
-                {4, 3}, 
-                {2, 0}, 
-                {0, 2}, 
-                {3, 4}
-                };
+                {4, 3}, {2, 0}, {0, 2}, {3, 4}};
 
         SQLServerDatabaseMetaData dmd = (SQLServerDatabaseMetaData) connection.getMetaData();
 
         for (int i = 0; i < tableNames.length; i++) {
             String pkTable = tableNames[i];
-            SQLServerResultSet rs1 = (SQLServerResultSet) dmd.getCrossReference(null, null, pkTable, null, null, fkTable);
+            SQLServerResultSet rs1 = (SQLServerResultSet) dmd.getCrossReference(null, null, pkTable, null, null,
+                    fkTable);
             rs1.next();
             assertEquals(values[i][0], rs1.getInt("UPDATE_RULE"));
             assertEquals(values[i][1], rs1.getInt("DELETE_RULE"));
 
-            SQLServerResultSet rs2 = (SQLServerResultSet) dmd.getCrossReference(catalog, schema, pkTable, catalog, schema, fkTable);
+            SQLServerResultSet rs2 = (SQLServerResultSet) dmd.getCrossReference(catalog, schema, pkTable, catalog,
+                    schema, fkTable);
             rs2.next();
             assertEquals(values[i][0], rs2.getInt("UPDATE_RULE"));
             assertEquals(values[i][1], rs2.getInt("DELETE_RULE"));
 
-            SQLServerResultSet rs3 = (SQLServerResultSet) dmd.getCrossReference(catalog, "", pkTable, catalog, "", fkTable);
+            SQLServerResultSet rs3 = (SQLServerResultSet) dmd.getCrossReference(catalog, "", pkTable, catalog, "",
+                    fkTable);
             rs3.next();
             assertEquals(values[i][0], rs3.getInt("UPDATE_RULE"));
             assertEquals(values[i][1], rs3.getInt("DELETE_RULE"));
@@ -232,8 +228,7 @@ public class DatabaseMetaDataForeignKeyTest extends AbstractTest {
             try {
                 dmd.getCrossReference("", schema, pkTable, "", schema, fkTable);
                 fail(TestResource.getResource("R_expectedExceptionNotThrown"));
-            }
-            catch (SQLException e) {
+            } catch (SQLException e) {
                 assertEquals(TestResource.getResource("R_dbNameIsCurrentDB"), e.getMessage());
             }
         }

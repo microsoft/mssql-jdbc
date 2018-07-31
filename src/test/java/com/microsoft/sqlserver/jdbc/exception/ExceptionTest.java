@@ -1,9 +1,6 @@
 /*
- * Microsoft JDBC Driver for SQL Server
- * 
- * Copyright(c) Microsoft Corporation All rights reserved.
- * 
- * This program is made available under the terms of the MIT License. See the LICENSE file in the project root for more information.
+ * Microsoft JDBC Driver for SQL Server Copyright(c) Microsoft Corporation All rights reserved. This program is made
+ * available under the terms of the MIT License. See the LICENSE file in the project root for more information.
  */
 package com.microsoft.sqlserver.jdbc.exception;
 
@@ -25,6 +22,7 @@ import com.microsoft.sqlserver.jdbc.TestResource;
 import com.microsoft.sqlserver.testframework.AbstractTest;
 import com.microsoft.sqlserver.testframework.Utils;
 
+
 @RunWith(JUnitPlatform.class)
 public class ExceptionTest extends AbstractTest {
     static String inputFile = "BulkCopyCSVTestInput.csv";
@@ -39,9 +37,9 @@ public class ExceptionTest extends AbstractTest {
         String filePath = Utils.getCurrentClassPath();
 
         try {
-            SQLServerBulkCSVFileRecord scvFileRecord = new SQLServerBulkCSVFileRecord(filePath + inputFile, "invalid_encoding", true);
-        }
-        catch (Exception e) {
+            SQLServerBulkCSVFileRecord scvFileRecord = new SQLServerBulkCSVFileRecord(filePath + inputFile,
+                    "invalid_encoding", true);
+        } catch (Exception e) {
             if (!(e instanceof SQLException)) {
                 throw e;
             }
@@ -67,17 +65,17 @@ public class ExceptionTest extends AbstractTest {
         SQLServerConnection conn = null;
         try {
             conn = (SQLServerConnection) DriverManager.getConnection(connectionString);
-            
+
             Utils.dropProcedureIfExists(waitForDelaySPName, conn.createStatement());
             createWaitForDelayPreocedure(conn);
 
-            conn = (SQLServerConnection) DriverManager.getConnection(connectionString + ";socketTimeout=" + (waitForDelaySeconds * 1000 / 2) + ";");
+            conn = (SQLServerConnection) DriverManager
+                    .getConnection(connectionString + ";socketTimeout=" + (waitForDelaySeconds * 1000 / 2) + ";");
 
             try {
                 conn.createStatement().execute("exec " + waitForDelaySPName);
                 throw new Exception(TestResource.getResource("R_expectedExceptionNotThrown"));
-            }
-            catch (Exception e) {
+            } catch (Exception e) {
                 if (!(e instanceof SQLException)) {
                     throw e;
                 }
@@ -87,8 +85,7 @@ public class ExceptionTest extends AbstractTest {
                 Object[] msgArgs = {"SocketTimeoutException"};
                 assertTrue(e.getCause() instanceof SocketTimeoutException, form.format(msgArgs));
             }
-        }
-        finally {
+        } finally {
             if (null != conn) {
                 conn.close();
             }
@@ -96,7 +93,8 @@ public class ExceptionTest extends AbstractTest {
     }
 
     private void createWaitForDelayPreocedure(SQLServerConnection conn) throws SQLException {
-        String sql = "CREATE PROCEDURE " + waitForDelaySPName + " AS" + " BEGIN" + " WAITFOR DELAY '00:00:" + waitForDelaySeconds + "';" + " END";
+        String sql = "CREATE PROCEDURE " + waitForDelaySPName + " AS" + " BEGIN" + " WAITFOR DELAY '00:00:"
+                + waitForDelaySeconds + "';" + " END";
         conn.createStatement().execute(sql);
     }
 }

@@ -1,9 +1,6 @@
 /*
- * Microsoft JDBC Driver for SQL Server
- * 
- * Copyright(c) Microsoft Corporation All rights reserved.
- * 
- * This program is made available under the terms of the MIT License. See the LICENSE file in the project root for more information.
+ * Microsoft JDBC Driver for SQL Server Copyright(c) Microsoft Corporation All rights reserved. This program is made
+ * available under the terms of the MIT License. See the LICENSE file in the project root for more information.
  */
 
 package com.microsoft.sqlserver.jdbc;
@@ -36,6 +33,7 @@ import org.ietf.jgss.GSSName;
 import org.ietf.jgss.Oid;
 
 import com.microsoft.sqlserver.jdbc.dns.DNSKerberosLocator;
+
 
 /**
  * KerbAuthentication for int auth.
@@ -70,14 +68,15 @@ final class KerbAuthentication extends SSPIAuthentication {
             GSSName remotePeerName = manager.createName(spn, null);
 
             if (null != peerCredentials) {
-                peerContext = manager.createContext(remotePeerName, kerberos, peerCredentials, GSSContext.DEFAULT_LIFETIME);
+                peerContext = manager.createContext(remotePeerName, kerberos, peerCredentials,
+                        GSSContext.DEFAULT_LIFETIME);
                 peerContext.requestCredDeleg(false);
                 peerContext.requestMutualAuth(true);
                 peerContext.requestInteg(true);
-            }
-            else {
-                String configName = con.activeConnectionProperties.getProperty(SQLServerDriverStringProperty.JAAS_CONFIG_NAME.toString(),
-                                                                               SQLServerDriverStringProperty.JAAS_CONFIG_NAME.getDefaultValue());
+            } else {
+                String configName = con.activeConnectionProperties.getProperty(
+                        SQLServerDriverStringProperty.JAAS_CONFIG_NAME.toString(),
+                        SQLServerDriverStringProperty.JAAS_CONFIG_NAME.getDefaultValue());
                 Subject currentSubject;
                 KerbCallback callback = new KerbCallback(con);
                 try {
@@ -89,24 +88,27 @@ final class KerbAuthentication extends SSPIAuthentication {
                         // per documentation LoginContext will instantiate a new subject.
                         currentSubject = lc.getSubject();
                     }
-                }
-                catch (LoginException le) {
+                } catch (LoginException le) {
                     if (authLogger.isLoggable(Level.FINE)) {
-                        authLogger.fine(toString() + "Failed to login using Kerberos due to " + le.getClass().getName() + ":" + le.getMessage());
+                        authLogger.fine(toString() + "Failed to login using Kerberos due to " + le.getClass().getName()
+                                + ":" + le.getMessage());
                     }
                     try {
                         // Not very clean since it raises an Exception, but we are sure we are cleaning well everything
-                        con.terminate(SQLServerException.DRIVER_ERROR_NONE, SQLServerException.getErrString("R_integratedAuthenticationFailed"), le);
+                        con.terminate(SQLServerException.DRIVER_ERROR_NONE,
+                                SQLServerException.getErrString("R_integratedAuthenticationFailed"), le);
                     } catch (SQLServerException alwaysTriggered) {
-                        String message =  MessageFormat.format(SQLServerException.getErrString("R_kerberosLoginFailed"),
-                                                               alwaysTriggered.getMessage(), le.getClass().getName(), le.getMessage());
+                        String message = MessageFormat.format(SQLServerException.getErrString("R_kerberosLoginFailed"),
+                                alwaysTriggered.getMessage(), le.getClass().getName(), le.getMessage());
                         if (callback.getUsernameRequested() != null) {
-                            message = MessageFormat.format(SQLServerException.getErrString("R_kerberosLoginFailedForUsername"),
-                                                           callback.getUsernameRequested(), message);
+                            message = MessageFormat.format(
+                                    SQLServerException.getErrString("R_kerberosLoginFailedForUsername"),
+                                    callback.getUsernameRequested(), message);
                         }
                         // By throwing Exception with LOGON_FAILED -> we avoid looping for connection
                         // In this case, authentication will never work anyway -> fail fast
-                        throw new SQLServerException(message, alwaysTriggered.getSQLState(), SQLServerException.LOGON_FAILED, le);
+                        throw new SQLServerException(message, alwaysTriggered.getSQLState(),
+                                SQLServerException.LOGON_FAILED, le);
                     }
                     return;
                 }
@@ -118,8 +120,9 @@ final class KerbAuthentication extends SSPIAuthentication {
                 if (authLogger.isLoggable(Level.FINER)) {
                     authLogger.finer(toString() + " creating security context");
                 }
-                
-                peerContext = manager.createContext(remotePeerName, kerberos, peerCredentials, GSSContext.DEFAULT_LIFETIME);
+
+                peerContext = manager.createContext(remotePeerName, kerberos, peerCredentials,
+                        GSSContext.DEFAULT_LIFETIME);
                 // The following flags should be inline with our native implementation.
                 peerContext.requestCredDeleg(true);
                 peerContext.requestMutualAuth(true);
@@ -129,18 +132,18 @@ final class KerbAuthentication extends SSPIAuthentication {
 
         catch (GSSException ge) {
             authLogger.finer(toString() + "initAuthInit failed GSSException:-" + ge);
-            con.terminate(SQLServerException.DRIVER_ERROR_NONE, SQLServerException.getErrString("R_integratedAuthenticationFailed"), ge);
-        }
-        catch (PrivilegedActionException ge) {
+            con.terminate(SQLServerException.DRIVER_ERROR_NONE,
+                    SQLServerException.getErrString("R_integratedAuthenticationFailed"), ge);
+        } catch (PrivilegedActionException ge) {
             authLogger.finer(toString() + "initAuthInit failed privileged exception:-" + ge);
-            con.terminate(SQLServerException.DRIVER_ERROR_NONE, SQLServerException.getErrString("R_integratedAuthenticationFailed"), ge);
+            con.terminate(SQLServerException.DRIVER_ERROR_NONE,
+                    SQLServerException.getErrString("R_integratedAuthenticationFailed"), ge);
         }
 
     }
 
     // We have to do a privileged action to create the credential of the user in the current context
-    private static GSSCredential getClientCredential(final Subject subject,
-            final GSSManager MANAGER,
+    private static GSSCredential getClientCredential(final Subject subject, final GSSManager MANAGER,
             final Oid kerboid) throws PrivilegedActionException {
         final PrivilegedExceptionAction<GSSCredential> action = new PrivilegedExceptionAction<GSSCredential>() {
             public GSSCredential run() throws GSSException {
@@ -149,14 +152,13 @@ final class KerbAuthentication extends SSPIAuthentication {
             }
         };
         // TO support java 5, 6 we have to do this
-        // The signature for Java 5 returns an object 6 returns GSSCredential, immediate casting throws 
+        // The signature for Java 5 returns an object 6 returns GSSCredential, immediate casting throws
         // warning in Java 6.
         Object credential = Subject.doAs(subject, action);
         return (GSSCredential) credential;
     }
 
-    private byte[] intAuthHandShake(byte[] pin,
-            boolean[] done) throws SQLServerException {
+    private byte[] intAuthHandShake(byte[] pin, boolean[] done) throws SQLServerException {
         try {
             if (authLogger.isLoggable(Level.FINER)) {
                 authLogger.finer(toString() + " Sending token to server over secure context");
@@ -167,26 +169,25 @@ final class KerbAuthentication extends SSPIAuthentication {
                 done[0] = true;
                 if (authLogger.isLoggable(Level.FINER))
                     authLogger.finer(toString() + "Authentication done.");
-            }
-            else if (null == byteToken) {
+            } else if (null == byteToken) {
                 // The documentation is not clear on when this can happen but it does say this could happen
                 if (authLogger.isLoggable(Level.INFO)) {
                     authLogger.info(toString() + "byteToken is null in initSecContext.");
                 }
-                con.terminate(SQLServerException.DRIVER_ERROR_NONE, SQLServerException.getErrString("R_integratedAuthenticationFailed"));
+                con.terminate(SQLServerException.DRIVER_ERROR_NONE,
+                        SQLServerException.getErrString("R_integratedAuthenticationFailed"));
             }
             return byteToken;
-        }
-        catch (GSSException ge) {
+        } catch (GSSException ge) {
             authLogger.finer(toString() + "initSecContext Failed :-" + ge);
-            con.terminate(SQLServerException.DRIVER_ERROR_NONE, SQLServerException.getErrString("R_integratedAuthenticationFailed"), ge);
+            con.terminate(SQLServerException.DRIVER_ERROR_NONE,
+                    SQLServerException.getErrString("R_integratedAuthenticationFailed"), ge);
         }
         // keep the compiler happy
         return null;
     }
 
-    private String makeSpn(String server,
-            int port) throws SQLServerException {
+    private String makeSpn(String server, int port) throws SQLServerException {
         if (authLogger.isLoggable(Level.FINER)) {
             authLogger.finer(toString() + " Server: " + server + " port: " + port);
         }
@@ -195,8 +196,7 @@ final class KerbAuthentication extends SSPIAuthentication {
         // FQDN must be provided
         if (con.serverNameAsACE()) {
             spn.append(IDN.toASCII(server));
-        }
-        else {
+        } else {
             spn.append(server);
         }
         spn.append(":");
@@ -209,37 +209,35 @@ final class KerbAuthentication extends SSPIAuthentication {
     }
 
     // Package visible members below.
-    KerbAuthentication(SQLServerConnection con,
-            String address,
-            int port) throws SQLServerException {
+    KerbAuthentication(SQLServerConnection con, String address, int port) throws SQLServerException {
         this.con = con;
         // Get user provided SPN string; if not provided then build the generic one
-        String userSuppliedServerSpn = con.activeConnectionProperties.getProperty(SQLServerDriverStringProperty.SERVER_SPN.toString());
+        String userSuppliedServerSpn = con.activeConnectionProperties
+                .getProperty(SQLServerDriverStringProperty.SERVER_SPN.toString());
 
         String spn;
         if (null != userSuppliedServerSpn) {
             // serverNameAsACE is true, translate the user supplied serverSPN to ASCII
             if (con.serverNameAsACE()) {
                 int slashPos = userSuppliedServerSpn.indexOf("/");
-                spn = userSuppliedServerSpn.substring(0, slashPos + 1) + IDN.toASCII(userSuppliedServerSpn.substring(slashPos + 1));
-            }
-            else {
+                spn = userSuppliedServerSpn.substring(0, slashPos + 1)
+                        + IDN.toASCII(userSuppliedServerSpn.substring(slashPos + 1));
+            } else {
                 spn = userSuppliedServerSpn;
             }
-        }
-        else {
+        } else {
             spn = makeSpn(address, port);
         }
         this.spn = enrichSpnWithRealm(spn, null == userSuppliedServerSpn);
-        if (!this.spn.equals(spn) && authLogger.isLoggable(Level.FINER)){
+        if (!this.spn.equals(spn) && authLogger.isLoggable(Level.FINER)) {
             authLogger.finer(toString() + "SPN enriched: " + spn + " := " + this.spn);
         }
-	}
+    }
 
-    private static final Pattern SPN_PATTERN = Pattern.compile("MSSQLSvc/(.*):([^:@]+)(@.+)?", Pattern.CASE_INSENSITIVE);
+    private static final Pattern SPN_PATTERN = Pattern.compile("MSSQLSvc/(.*):([^:@]+)(@.+)?",
+            Pattern.CASE_INSENSITIVE);
 
-    private String enrichSpnWithRealm(String spn,
-            boolean allowHostnameCanonicalization) {
+    private String enrichSpnWithRealm(String spn, boolean allowHostnameCanonicalization) {
         if (spn == null) {
             return spn;
         }
@@ -263,15 +261,13 @@ final class KerbAuthentication extends SSPIAuthentication {
                 // Since we have a match, our hostname is the correct one (for instance of server
                 // name was an IP), so we override dnsName as well
                 dnsName = canonicalHostName;
-            }
-            catch (UnknownHostException cannotCanonicalize) {
+            } catch (UnknownHostException cannotCanonicalize) {
                 // ignored, but we are in a bad shape
             }
         }
         if (realm == null) {
             return spn;
-        }
-        else {
+        } else {
             StringBuilder sb = new StringBuilder("MSSQLSvc/");
             sb.append(dnsName).append(":").append(portOrInstance).append("@").append(realm.toUpperCase(Locale.ENGLISH));
             return sb.toString();
@@ -284,7 +280,7 @@ final class KerbAuthentication extends SSPIAuthentication {
      * Find a suitable way of validating a REALM for given JVM.
      *
      * @param hostnameToTest
-     *            an example hostname we are gonna use to test our realm validator.
+     *        an example hostname we are gonna use to test our realm validator.
      * @return a not null realm Validator.
      */
     static RealmValidator getRealmValidator(String hostnameToTest) {
@@ -304,8 +300,7 @@ final class KerbAuthentication extends SSPIAuthentication {
                     try {
                         Object ret = getKDCList.invoke(instance, realm);
                         return ret != null;
-                    }
-                    catch (Exception err) {
+                    } catch (Exception err) {
                         return false;
                     }
                 }
@@ -319,9 +314,9 @@ final class KerbAuthentication extends SSPIAuthentication {
                 authLogger.fine("Kerberos Realm Validator: Using Built-in Oracle Realm Validation method.");
                 return oracleRealmValidator;
             }
-            authLogger.fine("Kerberos Realm Validator: Detected buggy Oracle Realm Validator, using DNSKerberosLocator.");
-        }
-        catch (ReflectiveOperationException notTheRightJVMException) {
+            authLogger
+                    .fine("Kerberos Realm Validator: Detected buggy Oracle Realm Validator, using DNSKerberosLocator.");
+        } catch (ReflectiveOperationException notTheRightJVMException) {
             // Ignored, we simply are not using the right JVM
             authLogger.fine("Kerberos Realm Validator: No Oracle Realm Validator Available, using DNSKerberosLocator.");
         }
@@ -331,8 +326,7 @@ final class KerbAuthentication extends SSPIAuthentication {
             public boolean isRealmValid(String realm) {
                 try {
                     return DNSKerberosLocator.isRealmValid(realm);
-                }
-                catch (NamingException err) {
+                } catch (NamingException err) {
                     return false;
                 }
             }
@@ -344,13 +338,12 @@ final class KerbAuthentication extends SSPIAuthentication {
      * Try to find a REALM in the different parts of a host name.
      *
      * @param realmValidator
-     *            a function that return true if REALM is valid and exists
+     *        a function that return true if REALM is valid and exists
      * @param hostname
-     *            the name we are looking a REALM for
+     *        the name we are looking a REALM for
      * @return the realm if found, null otherwise
      */
-    private String findRealmFromHostname(RealmValidator realmValidator,
-            String hostname) {
+    private String findRealmFromHostname(RealmValidator realmValidator, String hostname) {
         if (hostname == null) {
             return null;
         }
@@ -386,17 +379,14 @@ final class KerbAuthentication extends SSPIAuthentication {
      * @param ImpersonatedUserCred
      * @throws SQLServerException
      */
-    KerbAuthentication(SQLServerConnection con,
-            String address,
-            int port,
-            GSSCredential ImpersonatedUserCred, Boolean isUserCreated) throws SQLServerException {
+    KerbAuthentication(SQLServerConnection con, String address, int port, GSSCredential ImpersonatedUserCred,
+            Boolean isUserCreated) throws SQLServerException {
         this(con, address, port);
         peerCredentials = ImpersonatedUserCred;
         this.isUserCreatedCredential = (isUserCreated == null ? false : isUserCreated);
     }
 
-    byte[] GenerateClientContext(byte[] pin,
-            boolean[] done) throws SQLServerException {
+    byte[] GenerateClientContext(byte[] pin, boolean[] done) throws SQLServerException {
         if (null == peerContext) {
             intAuthInit();
         }
@@ -414,14 +404,14 @@ final class KerbAuthentication extends SSPIAuthentication {
                 peerContext.dispose();
             if (null != lc)
                 lc.logout();
-        }
-        catch (LoginException e) {
-            // yes we are eating exceptions here but this should not fail in the normal circumstances and we do not want to eat previous
+        } catch (LoginException e) {
+            // yes we are eating exceptions here but this should not fail in the normal circumstances and we do not want
+            // to eat previous
             // login errors if caused before which is more useful to the user than the cleanup errors.
             authLogger.fine(toString() + " Release of the credentials failed LoginException: " + e);
-        }
-        catch (GSSException e) {
-            // yes we are eating exceptions here but this should not fail in the normal circumstances and we do not want to eat previous
+        } catch (GSSException e) {
+            // yes we are eating exceptions here but this should not fail in the normal circumstances and we do not want
+            // to eat previous
             // login errors if caused before which is more useful to the user than the cleanup errors.
             authLogger.fine(toString() + " Release of the credentials failed GSSException: " + e);
         }

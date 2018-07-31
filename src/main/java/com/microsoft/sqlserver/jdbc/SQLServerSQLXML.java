@@ -1,9 +1,6 @@
 /*
- * Microsoft JDBC Driver for SQL Server
- * 
- * Copyright(c) Microsoft Corporation All rights reserved.
- * 
- * This program is made available under the terms of the MIT License. See the LICENSE file in the project root for more information.
+ * Microsoft JDBC Driver for SQL Server Copyright(c) Microsoft Corporation All rights reserved. This program is made
+ * available under the terms of the MIT License. See the LICENSE file in the project root for more information.
  */
 
 package com.microsoft.sqlserver.jdbc;
@@ -50,10 +47,11 @@ import org.xml.sax.EntityResolver;
 import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
 import org.xml.sax.XMLReader;
-/**
- * SQLServerSQLXML represents an XML object and implements a java.sql.SQLXML.
- */
 
+
+/**
+ * Represents an XML object and implements a java.sql.SQLXML.
+ */
 final class SQLServerSQLXML implements java.sql.SQLXML {
     // Connection that created this SQLXML only set when created for setting data
     private final SQLServerConnection con;
@@ -75,14 +73,19 @@ final class SQLServerSQLXML implements java.sql.SQLXML {
     private String strValue;
     // End of setter values
 
-    static private final AtomicInteger baseID = new AtomicInteger(0);	// Unique id generator for each instance (used for logging).
+    static private final AtomicInteger baseID = new AtomicInteger(0); // Unique id generator for each instance (used for
+                                                                      // logging).
     final private String traceID;
 
     final public String toString() {
         return traceID;
     }
 
-    // Returns unique id for each instance.
+    /**
+     * Returns unique id for each instance.
+     * 
+     * @return
+     */
     private static int nextInstanceID() {
         return baseID.incrementAndGet();
     }
@@ -92,18 +95,19 @@ final class SQLServerSQLXML implements java.sql.SQLXML {
     // possible optimization transform DOM straight to tds
     InputStream getValue() throws SQLServerException {
         checkClosed();
-        // the user should have called one of the setter methods, the setter methods "use" the object and write some value.
+        // the user should have called one of the setter methods, the setter methods "use" the object and write some
+        // value.
         // Note just calling one of the setters is enough.
         if (!isUsed)
-            SQLServerException.makeFromDriverError(con, null, SQLServerException.getErrString("R_noDataXML"), null, true);
+            SQLServerException.makeFromDriverError(con, null, SQLServerException.getErrString("R_noDataXML"), null,
+                    true);
         assert null == contents;
         ByteArrayInputStream o = null;
         if (null != outputStreamValue) {
             o = outputStreamValue.getInputStream();
             assert null == docValue;
             assert null == strValue;
-        }
-        else if (null != docValue) {
+        } else if (null != docValue) {
             assert null == outputStreamValue;
             assert null == strValue;
             ByteArrayOutputStreamToInputStream strm = new ByteArrayOutputStreamToInputStream();
@@ -112,15 +116,13 @@ final class SQLServerSQLXML implements java.sql.SQLXML {
             try {
                 factory = TransformerFactory.newInstance();
                 factory.newTransformer().transform(new DOMSource(docValue), new StreamResult(strm));
-            }
-            catch (javax.xml.transform.TransformerException e) {
+            } catch (javax.xml.transform.TransformerException e) {
                 MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_noParserSupport"));
                 Object[] msgArgs = {e.toString()};
                 SQLServerException.makeFromDriverError(con, null, form.format(msgArgs), null, true);
             }
             o = strm.getInputStream();
-        }
-        else {
+        } else {
             assert null == outputStreamValue;
             assert null == docValue;
             assert null != strValue;
@@ -143,9 +145,7 @@ final class SQLServerSQLXML implements java.sql.SQLXML {
         typeInfo = null;
     }
 
-    SQLServerSQLXML(InputStream stream,
-            InputStreamGetterArgs getterArgs,
-            TypeInfo typeInfo) throws SQLServerException {
+    SQLServerSQLXML(InputStream stream, InputStreamGetterArgs getterArgs, TypeInfo typeInfo) throws SQLServerException {
         traceID = " SQLServerSQLXML:" + nextInstanceID();
         contents = (PLPXMLInputStream) stream;
         this.con = null;
@@ -158,7 +158,7 @@ final class SQLServerSQLXML implements java.sql.SQLXML {
     InputStream getStream() {
         return contents;
     }
-    
+
     @Override
     public void free() throws SQLException {
         if (!isFreed) {
@@ -166,8 +166,7 @@ final class SQLServerSQLXML implements java.sql.SQLXML {
             if (null != contents) {
                 try {
                     contents.close();
-                }
-                catch (IOException e) {
+                } catch (IOException e) {
                     SQLServerException.makeFromDriverError(null, null, e.getMessage(), null, true);
                 }
             }
@@ -183,13 +182,14 @@ final class SQLServerSQLXML implements java.sql.SQLXML {
 
     private void checkReadXML() throws SQLException {
         if (null == contents)
-            SQLServerException.makeFromDriverError(con, null, SQLServerException.getErrString("R_writeOnlyXML"), null, true);
+            SQLServerException.makeFromDriverError(con, null, SQLServerException.getErrString("R_writeOnlyXML"), null,
+                    true);
         if (isUsed)
-            SQLServerException.makeFromDriverError(con, null, SQLServerException.getErrString("R_dataHasBeenReadXML"), null, true);
+            SQLServerException.makeFromDriverError(con, null, SQLServerException.getErrString("R_dataHasBeenReadXML"),
+                    null, true);
         try {
             contents.checkClosed();
-        }
-        catch (IOException e) {
+        } catch (IOException e) {
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_isFreed"));
             SQLServerException.makeFromDriverError(con, null, form.format(new Object[] {"SQLXML"}), null, true);
         }
@@ -197,17 +197,19 @@ final class SQLServerSQLXML implements java.sql.SQLXML {
 
     void checkWriteXML() throws SQLException {
         if (null != contents)
-            SQLServerException.makeFromDriverError(con, null, SQLServerException.getErrString("R_readOnlyXML"), null, true);
+            SQLServerException.makeFromDriverError(con, null, SQLServerException.getErrString("R_readOnlyXML"), null,
+                    true);
         if (isUsed)
-            SQLServerException.makeFromDriverError(con, null, SQLServerException.getErrString("R_dataHasBeenSetXML"), null, true);
+            SQLServerException.makeFromDriverError(con, null, SQLServerException.getErrString("R_dataHasBeenSetXML"),
+                    null, true);
 
     }
 
     /**
-     * Return an input stream to read data from this SQLXML
+     * Returns an input stream to read data from this SQLXML.
      * 
      * @throws SQLException
-     *             when an error occurs
+     *         when an error occurs
      * @return the input stream to that contains the SQLXML data
      */
     @Override
@@ -219,11 +221,11 @@ final class SQLServerSQLXML implements java.sql.SQLXML {
     }
 
     /**
-     * Retrieves a stream that can be used to write to the SQLXML value that this SQLXML object represents The user has to write the BOM for binary
-     * streams.
+     * Sets a stream that can be used to write to the SQLXML value that this SQLXML object represents The user has to
+     * write the BOM for binary streams.
      * 
      * @throws SQLException
-     *             when an error occurs
+     *         when an error occurs
      * @return OutputStream
      */
     @Override
@@ -250,15 +252,15 @@ final class SQLServerSQLXML implements java.sql.SQLXML {
         checkReadXML();
         isUsed = true;
         StreamType type = StreamType.CHARACTER;
-        InputStreamGetterArgs newArgs = new InputStreamGetterArgs(type, getterArgs.isAdaptive, getterArgs.isStreaming, getterArgs.logContext);
+        InputStreamGetterArgs newArgs = new InputStreamGetterArgs(type, getterArgs.isAdaptive, getterArgs.isStreaming,
+                getterArgs.logContext);
         // Skip the BOM bytes from the plpinputstream we do not need it for the conversion
         assert null != contents;
         // Read two bytes to eat BOM
         try {
             contents.read();
             contents.read();
-        }
-        catch (IOException e) {
+        } catch (IOException e) {
             SQLServerException.makeFromDriverError(null, null, e.getMessage(), null, true);
         }
 
@@ -276,8 +278,7 @@ final class SQLServerSQLXML implements java.sql.SQLXML {
         try {
             contents.read();
             contents.read();
-        }
-        catch (IOException e) {
+        } catch (IOException e) {
             SQLServerException.makeFromDriverError(null, null, e.getMessage(), null, true);
         }
 
@@ -291,7 +292,8 @@ final class SQLServerSQLXML implements java.sql.SQLXML {
         checkWriteXML();
         isUsed = true;
         if (null == value)
-            SQLServerException.makeFromDriverError(con, null, SQLServerException.getErrString("R_cantSetNull"), null, true);
+            SQLServerException.makeFromDriverError(con, null, SQLServerException.getErrString("R_cantSetNull"), null,
+                    true);
         strValue = value;
     }
     // Support the following DOMSource, SAXSource, StAX and Stream. Also, null means default which is stream source
@@ -306,8 +308,7 @@ final class SQLServerSQLXML implements java.sql.SQLXML {
             @SuppressWarnings("unchecked")
             T src = (T) getSourceInternal(StreamSource.class);
             return src;
-        }
-        else
+        } else
             return getSourceInternal(iface);
     }
 
@@ -316,19 +317,16 @@ final class SQLServerSQLXML implements java.sql.SQLXML {
         T src = null;
         if (DOMSource.class == iface) {
             src = iface.cast(getDOMSource());
-        }
-        else if (SAXSource.class == iface) {
+        } else if (SAXSource.class == iface) {
             src = iface.cast(getSAXSource());
-        }
-        else if (StAXSource.class == iface) {
+        } else if (StAXSource.class == iface) {
             src = iface.cast(getStAXSource());
-        }
-        else if (StreamSource.class == iface) {
+        } else if (StreamSource.class == iface) {
             src = iface.cast(new StreamSource(contents));
-        }
-        else
+        } else
             // Do not support this type
-            SQLServerException.makeFromDriverError(con, null, SQLServerException.getErrString("R_notSupported"), null, true);
+            SQLServerException.makeFromDriverError(con, null, SQLServerException.getErrString("R_notSupported"), null,
+                    true);
         return src;
     }
 
@@ -342,8 +340,7 @@ final class SQLServerSQLXML implements java.sql.SQLXML {
             @SuppressWarnings("unchecked")
             T result = (T) setResultInternal(StreamResult.class);
             return result;
-        }
-        else
+        } else
             return setResultInternal(resultClass);
 
     }
@@ -353,19 +350,16 @@ final class SQLServerSQLXML implements java.sql.SQLXML {
         T result = null;
         if (DOMResult.class == resultClass) {
             result = resultClass.cast(getDOMResult());
-        }
-        else if (SAXResult.class == resultClass) {
+        } else if (SAXResult.class == resultClass) {
             result = resultClass.cast(getSAXResult());
-        }
-        else if (StAXResult.class == resultClass) {
+        } else if (StAXResult.class == resultClass) {
             result = resultClass.cast(getStAXResult());
-        }
-        else if (StreamResult.class == resultClass) {
+        } else if (StreamResult.class == resultClass) {
             outputStreamValue = new ByteArrayOutputStreamToInputStream();
             result = resultClass.cast(new StreamResult(outputStreamValue));
-        }
-        else
-            SQLServerException.makeFromDriverError(con, null, SQLServerException.getErrString("R_notSupported"), null, true);
+        } else
+            SQLServerException.makeFromDriverError(con, null, SQLServerException.getErrString("R_notSupported"), null,
+                    true);
         return result;
     }
 
@@ -388,8 +382,7 @@ final class SQLServerSQLXML implements java.sql.SQLXML {
             builder.setEntityResolver(new SQLServerEntityResolver());
             try {
                 document = builder.parse(contents);
-            }
-            catch (IOException e) {
+            } catch (IOException e) {
                 MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_errorReadingStream"));
                 Object[] msgArgs = {e.toString()};
                 SQLServerException.makeFromDriverError(null, null, form.format(msgArgs), "", true);
@@ -397,13 +390,11 @@ final class SQLServerSQLXML implements java.sql.SQLXML {
             DOMSource inputSource = new DOMSource(document);
             return inputSource;
 
-        }
-        catch (ParserConfigurationException e) {
+        } catch (ParserConfigurationException e) {
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_noParserSupport"));
             Object[] msgArgs = {e.toString()};
             SQLServerException.makeFromDriverError(con, null, form.format(msgArgs), null, true);
-        }
-        catch (SAXException e) {
+        } catch (SAXException e) {
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_failedToParseXML"));
             Object[] msgArgs = {e.toString()};
             SQLServerException.makeFromDriverError(con, null, form.format(msgArgs), null, true);
@@ -420,8 +411,7 @@ final class SQLServerSQLXML implements java.sql.SQLXML {
             SAXSource saxSource = new SAXSource(reader, src);
             return saxSource;
 
-        }
-        catch (SAXException | ParserConfigurationException e) {
+        } catch (SAXException | ParserConfigurationException e) {
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_failedToParseXML"));
             Object[] msgArgs = {e.toString()};
             SQLServerException.makeFromDriverError(con, null, form.format(msgArgs), null, true);
@@ -436,8 +426,7 @@ final class SQLServerSQLXML implements java.sql.SQLXML {
             StAXSource result = new StAXSource(r);
             return result;
 
-        }
-        catch (XMLStreamException e) {
+        } catch (XMLStreamException e) {
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_noParserSupport"));
             Object[] msgArgs = {e.toString()};
             SQLServerException.makeFromDriverError(con, null, form.format(msgArgs), null, true);
@@ -453,8 +442,7 @@ final class SQLServerSQLXML implements java.sql.SQLXML {
             StAXResult result = new StAXResult(r);
             return result;
 
-        }
-        catch (XMLStreamException e) {
+        } catch (XMLStreamException e) {
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_noParserSupport"));
             Object[] msgArgs = {e.toString()};
             SQLServerException.makeFromDriverError(con, null, form.format(msgArgs), null, true);
@@ -467,13 +455,11 @@ final class SQLServerSQLXML implements java.sql.SQLXML {
         try {
             SAXTransformerFactory stf = (SAXTransformerFactory) TransformerFactory.newInstance();
             handler = stf.newTransformerHandler();
-        }
-        catch (TransformerConfigurationException e) {
+        } catch (TransformerConfigurationException e) {
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_noParserSupport"));
             Object[] msgArgs = {e.toString()};
             SQLServerException.makeFromDriverError(con, null, form.format(msgArgs), null, true);
-        }
-        catch (ClassCastException e) {
+        } catch (ClassCastException e) {
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_noParserSupport"));
             Object[] msgArgs = {e.toString()};
             SQLServerException.makeFromDriverError(con, null, form.format(msgArgs), null, true);
@@ -494,8 +480,7 @@ final class SQLServerSQLXML implements java.sql.SQLXML {
             DOMResult result = new DOMResult(docValue);
             return result;
 
-        }
-        catch (ParserConfigurationException e) {
+        } catch (ParserConfigurationException e) {
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_noParserSupport"));
             Object[] msgArgs = {e.toString()};
             SQLServerException.makeFromDriverError(con, null, form.format(msgArgs), null, true);
@@ -505,8 +490,10 @@ final class SQLServerSQLXML implements java.sql.SQLXML {
 
 }
 
-// We use this class to convert the byte information we have in the string to
-// an inputstream which is used when sending to the info to the server
+
+/**
+ * Converts the byte information in the string to an inputstream which is used when sending to the info to the server.
+ */
 final class ByteArrayOutputStreamToInputStream extends ByteArrayOutputStream {
     ByteArrayInputStream getInputStream() throws SQLServerException {
         ByteArrayInputStream is = new ByteArrayInputStream(buf, 0, count);
@@ -514,10 +501,13 @@ final class ByteArrayOutputStreamToInputStream extends ByteArrayOutputStream {
     }
 }
 
-// Resolves External entities in an XML with inline DTDs to empty string
+
+/**
+ * Resolves External entities in an XML with inline DTDs to empty string.
+ *
+ */
 final class SQLServerEntityResolver implements EntityResolver {
-    public InputSource resolveEntity(String publicId,
-            String systemId) {
+    public InputSource resolveEntity(String publicId, String systemId) {
         return new InputSource(new StringReader(""));
     }
 }

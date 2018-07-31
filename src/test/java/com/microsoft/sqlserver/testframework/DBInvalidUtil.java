@@ -1,9 +1,6 @@
 /*
- * Microsoft JDBC Driver for SQL Server
- * 
- * Copyright(c) Microsoft Corporation All rights reserved.
- * 
- * This program is made available under the terms of the MIT License. See the LICENSE file in the project root for more information.
+ * Microsoft JDBC Driver for SQL Server Copyright(c) Microsoft Corporation All rights reserved. This program is made
+ * available under the terms of the MIT License. See the LICENSE file in the project root for more information.
  */
 
 package com.microsoft.sqlserver.testframework;
@@ -24,6 +21,7 @@ import java.util.logging.Logger;
 import com.microsoft.sqlserver.testframework.Utils.DBBinaryStream;
 import com.microsoft.sqlserver.testframework.Utils.DBCharacterStream;
 
+
 /**
  * Prepared invalid stream types
  */
@@ -32,7 +30,8 @@ public class DBInvalidUtil {
 
     /**
      * 
-     * InvalidClob : stream with invalid behavior 1) getCharacterStream returns InvalidCharacterStream 2) length returns invalid lengths
+     * InvalidClob : stream with invalid behavior 1) getCharacterStream returns InvalidCharacterStream 2) length returns
+     * invalid lengths
      *
      */
     public class InvalidClob implements Clob {
@@ -51,8 +50,7 @@ public class DBInvalidUtil {
          * @param expected
          * @param returnValid
          */
-        public InvalidClob(Object expected,
-                boolean returnValid) {
+        public InvalidClob(Object expected, boolean returnValid) {
             this.expected = expected;
             actualLength = this.value().length();
             this.returnValid = returnValid;
@@ -103,8 +101,7 @@ public class DBInvalidUtil {
         }
 
         @Override
-        public String getSubString(long pos,
-                int length) throws SQLException {
+        public String getSubString(long pos, int length) throws SQLException {
             assertTrue(false, "Not implemented");
             return null;
         }
@@ -116,31 +113,25 @@ public class DBInvalidUtil {
         }
 
         @Override
-        public long position(String searchstr,
-                long start) throws SQLException {
+        public long position(String searchstr, long start) throws SQLException {
             assertTrue(false, "Not implemented");
             return 0;
         }
 
         @Override
-        public long position(Clob searchstr,
-                long start) throws SQLException {
+        public long position(Clob searchstr, long start) throws SQLException {
             assertTrue(false, "Not implemented");
             return 0;
         }
 
         @Override
-        public int setString(long pos,
-                String str) throws SQLException {
+        public int setString(long pos, String str) throws SQLException {
             assertTrue(false, "Not implemented");
             return 0;
         }
 
         @Override
-        public int setString(long pos,
-                String str,
-                int offset,
-                int len) throws SQLException {
+        public int setString(long pos, String str, int offset, int len) throws SQLException {
             assertTrue(false, "Not implemented");
             return 0;
         }
@@ -170,8 +161,7 @@ public class DBInvalidUtil {
         }
 
         @Override
-        public Reader getCharacterStream(long pos,
-                long length) throws SQLException {
+        public Reader getCharacterStream(long pos, long length) throws SQLException {
             assertTrue(false, "Not implemented");
             return null;
         }
@@ -179,25 +169,23 @@ public class DBInvalidUtil {
 
     /**
      * 
-     * invalidCharacterStream : stream with invalid behavior 1) Read can throw IOException 2) Read can return data length > or < than actual
+     * invalidCharacterStream : stream with invalid behavior 1) Read can throw IOException 2) Read can return data
+     * length > or < than actual
      */
     public class InvalidCharacterStream extends DBCharacterStream {
         final int diff = 5;
 
-        private boolean returnValid = false;   // Perfom invalid actions at most once
+        private boolean returnValid = false; // Perfom invalid actions at most once
         public boolean threwException = false;
         public static final String IOExceptionMsg = "invalidCharacterStream.read() throws IOException";
 
         // Constructor
-        public InvalidCharacterStream(String value,
-                boolean returnValid) {
+        public InvalidCharacterStream(String value, boolean returnValid) {
             super(value);
             this.returnValid = returnValid;
         }
 
-        public int read(char[] cbuf,
-                int off,
-                int len) throws IOException {
+        public int read(char[] cbuf, int off, int len) throws IOException {
             int ret = super.read(cbuf, off, len);
             int actual = ret;
             if (!returnValid) {
@@ -230,7 +218,8 @@ public class DBInvalidUtil {
     }
 
     /**
-     * InvalidBlob : stream with invalid behavior 1) getBinaryStream returns InvalidBinaryStream 2) Length returns invalid lengths
+     * InvalidBlob : stream with invalid behavior 1) getBinaryStream returns InvalidBinaryStream 2) Length returns
+     * invalid lengths
      */
     public class InvalidBlob implements Blob {
         final int diff = 5;
@@ -243,8 +232,7 @@ public class DBInvalidUtil {
         private InvalidBinaryStream stream = null; // keep a handle on any stream
 
         // Constructor
-        public InvalidBlob(Object expected,
-                boolean returnValid) {
+        public InvalidBlob(Object expected, boolean returnValid) {
             this.expected = expected;
             actualLength = this.value().length;
             this.returnValid = returnValid;
@@ -294,38 +282,31 @@ public class DBInvalidUtil {
         }
 
         @Override
-        public byte[] getBytes(long pos,
-                int length) throws SQLException {
+        public byte[] getBytes(long pos, int length) throws SQLException {
             // TODO Auto-generated method stub
             return null;
         }
 
         @Override
-        public long position(byte[] pattern,
-                long start) throws SQLException {
+        public long position(byte[] pattern, long start) throws SQLException {
             assertTrue(false, "Not implemented");
             return 0;
         }
 
         @Override
-        public long position(Blob pattern,
-                long start) throws SQLException {
+        public long position(Blob pattern, long start) throws SQLException {
             assertTrue(false, "Not implemented");
             return 0;
         }
 
         @Override
-        public int setBytes(long pos,
-                byte[] bytes) throws SQLException {
+        public int setBytes(long pos, byte[] bytes) throws SQLException {
             assertTrue(false, "Not implemented");
             return 0;
         }
 
         @Override
-        public int setBytes(long pos,
-                byte[] bytes,
-                int offset,
-                int len) throws SQLException {
+        public int setBytes(long pos, byte[] bytes, int offset, int len) throws SQLException {
             assertTrue(false, "Not implemented");
             return 0;
         }
@@ -348,8 +329,7 @@ public class DBInvalidUtil {
         }
 
         @Override
-        public InputStream getBinaryStream(long pos,
-                long length) throws SQLException {
+        public InputStream getBinaryStream(long pos, long length) throws SQLException {
             assertTrue(false, "Not implemented");
             return null;
         }
@@ -362,7 +342,7 @@ public class DBInvalidUtil {
      */
     public class InvalidBinaryStream extends DBBinaryStream {
         final int diff = 5;
-        private boolean _returnValid = false;   // Perfom invalid actions at most once
+        private boolean _returnValid = false; // Perfom invalid actions at most once
 
         /**
          * Constructor
@@ -370,16 +350,13 @@ public class DBInvalidUtil {
          * @param value
          * @param returnValid
          */
-        public InvalidBinaryStream(byte[] value,
-                boolean returnValid) {
+        public InvalidBinaryStream(byte[] value, boolean returnValid) {
             super(value);
             _returnValid = returnValid;
         }
 
         @Override
-        public int read(byte[] bytes,
-                int off,
-                int len) {
+        public int read(byte[] bytes, int off, int len) {
             int ret = super.read(bytes, off, len);
             int actual = ret;
             if (!_returnValid) {

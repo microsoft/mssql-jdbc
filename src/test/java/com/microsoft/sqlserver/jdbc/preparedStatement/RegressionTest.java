@@ -1,9 +1,6 @@
 /*
- * Microsoft JDBC Driver for SQL Server
- * 
- * Copyright(c) Microsoft Corporation All rights reserved.
- * 
- * This program is made available under the terms of the MIT License. See the LICENSE file in the project root for more information.
+ * Microsoft JDBC Driver for SQL Server Copyright(c) Microsoft Corporation All rights reserved. This program is made
+ * available under the terms of the MIT License. See the LICENSE file in the project root for more information.
  */
 package com.microsoft.sqlserver.jdbc.preparedStatement;
 
@@ -26,9 +23,10 @@ import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
 
 import com.microsoft.sqlserver.jdbc.SQLServerConnection;
+import com.microsoft.sqlserver.jdbc.TestResource;
 import com.microsoft.sqlserver.testframework.AbstractTest;
 import com.microsoft.sqlserver.testframework.Utils;
-import com.microsoft.sqlserver.jdbc.TestResource;
+
 
 /**
  * Tests with sql queries using preparedStatement without parameters
@@ -70,9 +68,9 @@ public class RegressionTest extends AbstractTest {
             pstmt2 = con.prepareStatement("drop view x");
             pstmt1.execute();
             pstmt2.execute();
-        }
-        catch (SQLException e) {
-            fail(TestResource.getResource("R_createDropViewFailed") + TestResource.getResource("R_errorMessage") + e.getMessage());
+        } catch (SQLException e) {
+            fail(TestResource.getResource("R_createDropViewFailed") + TestResource.getResource("R_errorMessage")
+                    + e.getMessage());
         }
 
         finally {
@@ -97,9 +95,9 @@ public class RegressionTest extends AbstractTest {
             pstmt2 = con.prepareStatement("drop schema x");
             pstmt1.execute();
             pstmt2.execute();
-        }
-        catch (SQLException e) {
-            fail(TestResource.getResource("R_createDropSchemaFailed") + TestResource.getResource("R_errorMessage") + e.getMessage());
+        } catch (SQLException e) {
+            fail(TestResource.getResource("R_createDropSchemaFailed") + TestResource.getResource("R_errorMessage")
+                    + e.getMessage());
         }
 
         finally {
@@ -124,9 +122,9 @@ public class RegressionTest extends AbstractTest {
             pstmt2 = con.prepareStatement("drop table x");
             pstmt1.execute();
             pstmt2.execute();
-        }
-        catch (SQLException e) {
-            fail(TestResource.getResource("R_createDropTableFailed") + TestResource.getResource("R_errorMessage") + e.getMessage());
+        } catch (SQLException e) {
+            fail(TestResource.getResource("R_createDropTableFailed") + TestResource.getResource("R_errorMessage")
+                    + e.getMessage());
         }
 
         finally {
@@ -153,9 +151,9 @@ public class RegressionTest extends AbstractTest {
             pstmt1.execute();
             pstmt2.execute();
             pstmt3.execute();
-        }
-        catch (SQLException e) {
-            fail(TestResource.getResource("R_createDropAlterTableFailed") + TestResource.getResource("R_errorMessage") + e.getMessage());
+        } catch (SQLException e) {
+            fail(TestResource.getResource("R_createDropAlterTableFailed") + TestResource.getResource("R_errorMessage")
+                    + e.getMessage());
         }
 
         finally {
@@ -187,9 +185,9 @@ public class RegressionTest extends AbstractTest {
             pstmt2.execute();
             pstmt3.execute();
             pstmt4.execute();
-        }
-        catch (SQLException e) {
-            fail(TestResource.getResource("R_grantFailed") + TestResource.getResource("R_errorMessage") + e.getMessage());
+        } catch (SQLException e) {
+            fail(TestResource.getResource("R_grantFailed") + TestResource.getResource("R_errorMessage")
+                    + e.getMessage());
         }
 
         finally {
@@ -217,12 +215,12 @@ public class RegressionTest extends AbstractTest {
     public void batchWithLargeStringTest() throws Exception {
         batchWithLargeStringTestInternal("BatchInsert");
     }
-    
+
     @Test
     public void batchWithLargeStringTestUseBulkCopyAPI() throws Exception {
         batchWithLargeStringTestInternal("BulkCopy");
     }
-    
+
     private void batchWithLargeStringTestInternal(String mode) throws Exception {
         try (Connection con = DriverManager.getConnection(connectionString);) {
             if (mode.equalsIgnoreCase("bulkcopy")) {
@@ -242,12 +240,10 @@ public class RegressionTest extends AbstractTest {
                 stmt.execute("if object_id('TEST_TABLE', 'U') is not null\ndrop table TEST_TABLE;");
                 if (createPrimaryKey) {
                     stmt.execute("create table TEST_TABLE ( ID int, DATA nvarchar(max), primary key (ID) );");
-                }
-                else {
+                } else {
                     stmt.execute("create table TEST_TABLE ( ID int, DATA nvarchar(max) );");
                 }
-            }
-            catch (Exception e) {
+            } catch (Exception e) {
                 fail(e.toString());
             }
 
@@ -290,8 +286,7 @@ public class RegressionTest extends AbstractTest {
                 pstmt.addBatch();
 
                 pstmt.executeBatch();
-            }
-            catch (Exception e) {
+            } catch (Exception e) {
                 fail(e.toString());
             }
             con.commit();
@@ -308,18 +303,17 @@ public class RegressionTest extends AbstractTest {
                         id = rs.getInt(1);
                         String data = rs.getNString(2);
                         if (selectedValues.containsKey(id)) {
-                            fail("Found duplicate id: " + id + " ,actual values is : " + values[i++] + " data is: " + data);
+                            fail("Found duplicate id: " + id + " ,actual values is : " + values[i++] + " data is: "
+                                    + data);
                         }
                         selectedValues.put(id, data);
                     }
-                }
-                finally {
+                } finally {
                     if (null != rs) {
                         rs.close();
                     }
                 }
-            }
-            finally {
+            } finally {
                 Utils.dropTableIfExists("TEST_TABLE", stmt);
                 if (null != pstmt) {
                     pstmt.close();
@@ -330,7 +324,7 @@ public class RegressionTest extends AbstractTest {
             }
         }
     }
-    
+
     /**
      * Test with large string and tests with more batch queries
      * 
@@ -350,12 +344,10 @@ public class RegressionTest extends AbstractTest {
             stmt.execute("if object_id('testTable', 'U') is not null\ndrop table testTable;");
             if (createPrimaryKey) {
                 stmt.execute("create table testTable ( ID int, DATA nvarchar(max), primary key (ID) );");
-            }
-            else {
+            } else {
                 stmt.execute("create table testTable ( ID int, DATA nvarchar(max) );");
             }
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             fail(e.toString());
         }
         con.commit();
@@ -417,8 +409,7 @@ public class RegressionTest extends AbstractTest {
 
         catch (Exception e) {
             fail(e.toString());
-        }
-        finally {
+        } finally {
             Utils.dropTableIfExists("testTable", stmt);
             if (null != stmt) {
                 stmt.close();
@@ -455,7 +446,7 @@ public class RegressionTest extends AbstractTest {
         Field f1 = SQLServerConnection.class.getDeclaredField("isAzureDW");
         f1.setAccessible(true);
         f1.set(con, true);
-        
+
         con.setUseBulkCopyForBatchInsert(true);
     }
 }

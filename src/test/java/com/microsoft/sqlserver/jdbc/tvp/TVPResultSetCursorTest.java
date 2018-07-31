@@ -1,9 +1,6 @@
 /*
- * Microsoft JDBC Driver for SQL Server
- * 
- * Copyright(c) Microsoft Corporation All rights reserved.
- * 
- * This program is made available under the terms of the MIT License. See the LICENSE file in the project root for more information.
+ * Microsoft JDBC Driver for SQL Server Copyright(c) Microsoft Corporation All rights reserved. This program is made
+ * available under the terms of the MIT License. See the LICENSE file in the project root for more information.
  */
 package com.microsoft.sqlserver.jdbc.tvp;
 
@@ -31,19 +28,23 @@ import com.microsoft.sqlserver.jdbc.TestResource;
 import com.microsoft.sqlserver.testframework.AbstractTest;
 import com.microsoft.sqlserver.testframework.Utils;
 
+
 @RunWith(JUnitPlatform.class)
 public class TVPResultSetCursorTest extends AbstractTest {
 
     private static Connection conn = null;
     static Statement stmt = null;
 
-    static BigDecimal[] expectedBigDecimals = {new BigDecimal("12345.12345"), new BigDecimal("125.123"), new BigDecimal("45.12345")};
+    static BigDecimal[] expectedBigDecimals = {new BigDecimal("12345.12345"), new BigDecimal("125.123"),
+            new BigDecimal("45.12345")};
     static String[] expectedBigDecimalStrings = {"12345.12345", "125.12300", "45.12345"};
 
     static String[] expectedStrings = {"hello", "world", "!!!"};
 
-    static Timestamp[] expectedTimestamps = {new Timestamp(1433338533461L), new Timestamp(14917485583999L), new Timestamp(1491123533000L)};
-    static String[] expectedTimestampStrings = {"2015-06-03 13:35:33.4610000", "2442-09-19 01:59:43.9990000", "2017-04-02 08:58:53.0000000"};
+    static Timestamp[] expectedTimestamps = {new Timestamp(1433338533461L), new Timestamp(14917485583999L),
+            new Timestamp(1491123533000L)};
+    static String[] expectedTimestampStrings = {"2015-06-03 13:35:33.4610000", "2442-09-19 01:59:43.9990000",
+            "2017-04-02 08:58:53.0000000"};
 
     private static String tvpName = "TVPResultSetCursorTest_TVP";
     private static String procedureName = "TVPResultSetCursorTest_SP";
@@ -63,8 +64,7 @@ public class TVPResultSetCursorTest extends AbstractTest {
         serverCursorsTest(ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_UPDATABLE);
     }
 
-    private void serverCursorsTest(int resultSetType,
-            int resultSetConcurrency) throws SQLException {
+    private void serverCursorsTest(int resultSetType, int resultSetConcurrency) throws SQLException {
         conn = DriverManager.getConnection(connectionString);
         stmt = conn.createStatement();
 
@@ -76,9 +76,11 @@ public class TVPResultSetCursorTest extends AbstractTest {
 
         populateSourceTable();
 
-        ResultSet rs = conn.createStatement(resultSetType, resultSetConcurrency).executeQuery("select * from " + srcTable);
+        ResultSet rs = conn.createStatement(resultSetType, resultSetConcurrency)
+                .executeQuery("select * from " + srcTable);
 
-        SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) conn.prepareStatement("INSERT INTO " + desTable + " select * from ? ;");
+        SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) conn
+                .prepareStatement("INSERT INTO " + desTable + " select * from ? ;");
         pstmt.setStructured(1, tvpName, rs);
         pstmt.execute();
 
@@ -93,7 +95,8 @@ public class TVPResultSetCursorTest extends AbstractTest {
     }
 
     /**
-     * Test a previous failure when setting SelectMethod to cursor and using the same connection to create TVP and result set.
+     * Test a previous failure when setting SelectMethod to cursor and using the same connection to create TVP and
+     * result set.
      * 
      * @throws SQLException
      */
@@ -115,7 +118,8 @@ public class TVPResultSetCursorTest extends AbstractTest {
 
         ResultSet rs = conn.createStatement().executeQuery("select * from " + srcTable);
 
-        SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) conn.prepareStatement("INSERT INTO " + desTable + " select * from ? ;");
+        SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) conn
+                .prepareStatement("INSERT INTO " + desTable + " select * from ? ;");
         pstmt.setStructured(1, tvpName, rs);
         pstmt.execute();
 
@@ -130,7 +134,8 @@ public class TVPResultSetCursorTest extends AbstractTest {
     }
 
     /**
-     * Test a previous failure when setting SelectMethod to cursor and using the same connection to create TVP, SP and result set.
+     * Test a previous failure when setting SelectMethod to cursor and using the same connection to create TVP, SP and
+     * result set.
      * 
      * @throws SQLException
      */
@@ -162,8 +167,7 @@ public class TVPResultSetCursorTest extends AbstractTest {
             pstmt.execute();
 
             verifyDestinationTableData(expectedBigDecimals.length);
-        }
-        finally {
+        } finally {
             if (null != pstmt) {
                 pstmt.close();
             }
@@ -198,18 +202,17 @@ public class TVPResultSetCursorTest extends AbstractTest {
 
         ResultSet rs = conn.createStatement().executeQuery("select * from " + srcTable);
 
-        SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) conn.prepareStatement("INSERT INTO " + desTable + " select * from ? ;");
+        SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) conn
+                .prepareStatement("INSERT INTO " + desTable + " select * from ? ;");
         pstmt.setStructured(1, "invalid" + tvpName, rs);
 
         try {
             pstmt.execute();
-        }
-        catch (SQLException e) {
+        } catch (SQLException e) {
             if (!e.getMessage().contains(TestResource.getResource("R_dataTypeNotFound"))) {
                 throw e;
             }
-        }
-        finally {
+        } finally {
             if (null != pstmt) {
                 pstmt.close();
             }
@@ -250,13 +253,11 @@ public class TVPResultSetCursorTest extends AbstractTest {
 
         try {
             pstmt.execute();
-        }
-        catch (SQLException e) {
+        } catch (SQLException e) {
             if (!e.getMessage().contains(TestResource.getResource("R_StoredProcedureNotFound"))) {
                 throw e;
             }
-        }
-        finally {
+        } finally {
 
             if (null != pstmt) {
                 pstmt.close();
@@ -288,9 +289,11 @@ public class TVPResultSetCursorTest extends AbstractTest {
 
         populateSourceTable();
 
-        ResultSet rs = conn.createStatement(ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_UPDATABLE).executeQuery("select * from " + srcTable);
+        ResultSet rs = conn.createStatement(ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_UPDATABLE)
+                .executeQuery("select * from " + srcTable);
 
-        SQLServerPreparedStatement pstmt1 = (SQLServerPreparedStatement) conn.prepareStatement("INSERT INTO " + desTable + " select * from ? ;");
+        SQLServerPreparedStatement pstmt1 = (SQLServerPreparedStatement) conn
+                .prepareStatement("INSERT INTO " + desTable + " select * from ? ;");
         pstmt1.setStructured(1, tvpName, rs);
         pstmt1.execute();
         verifyDestinationTableData(expectedBigDecimals.length);
@@ -302,7 +305,8 @@ public class TVPResultSetCursorTest extends AbstractTest {
         verifyDestinationTableData(expectedBigDecimals.length * 2);
 
         rs.beforeFirst();
-        SQLServerPreparedStatement pstmt2 = (SQLServerPreparedStatement) conn.prepareStatement("INSERT INTO " + desTable + " select * from ? ;");
+        SQLServerPreparedStatement pstmt2 = (SQLServerPreparedStatement) conn
+                .prepareStatement("INSERT INTO " + desTable + " select * from ? ;");
         pstmt2.setStructured(1, tvpName, rs);
         pstmt2.execute();
         verifyDestinationTableData(expectedBigDecimals.length * 3);
@@ -319,7 +323,8 @@ public class TVPResultSetCursorTest extends AbstractTest {
         }
         verifyDestinationTableData(expectedBigDecimals.length * 4);
 
-        ResultSet rs2 = conn.createStatement(ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_UPDATABLE).executeQuery("select * from " + srcTable);
+        ResultSet rs2 = conn.createStatement(ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_UPDATABLE)
+                .executeQuery("select * from " + srcTable);
 
         pstmt1 = (SQLServerPreparedStatement) conn.prepareStatement("INSERT INTO " + desTable + " select * from ? ;");
         pstmt1.setStructured(1, tvpName, rs2);
@@ -347,14 +352,14 @@ public class TVPResultSetCursorTest extends AbstractTest {
 
         int i = 0;
         while (rs.next()) {
-            assertTrue(rs.getString(1).equals(expectedBigDecimalStrings[i % expectedArrayLength]),
-                    "Expected Value:" + expectedBigDecimalStrings[i % expectedArrayLength] + ", Actual Value: " + rs.getString(1));
-            assertTrue(rs.getString(2).trim().equals(expectedStrings[i % expectedArrayLength]),
-                    "Expected Value:" + expectedStrings[i % expectedArrayLength] + ", Actual Value: " + rs.getString(2));
-            assertTrue(rs.getString(3).equals(expectedTimestampStrings[i % expectedArrayLength]),
-                    "Expected Value:" + expectedTimestampStrings[i % expectedArrayLength] + ", Actual Value: " + rs.getString(3));
-            assertTrue(rs.getString(4).trim().equals(expectedStrings[i % expectedArrayLength]),
-                    "Expected Value:" + expectedStrings[i % expectedArrayLength] + ", Actual Value: " + rs.getString(4));
+            assertTrue(rs.getString(1).equals(expectedBigDecimalStrings[i % expectedArrayLength]), "Expected Value:"
+                    + expectedBigDecimalStrings[i % expectedArrayLength] + ", Actual Value: " + rs.getString(1));
+            assertTrue(rs.getString(2).trim().equals(expectedStrings[i % expectedArrayLength]), "Expected Value:"
+                    + expectedStrings[i % expectedArrayLength] + ", Actual Value: " + rs.getString(2));
+            assertTrue(rs.getString(3).equals(expectedTimestampStrings[i % expectedArrayLength]), "Expected Value:"
+                    + expectedTimestampStrings[i % expectedArrayLength] + ", Actual Value: " + rs.getString(3));
+            assertTrue(rs.getString(4).trim().equals(expectedStrings[i % expectedArrayLength]), "Expected Value:"
+                    + expectedStrings[i % expectedArrayLength] + ", Actual Value: " + rs.getString(4));
             i++;
         }
 
@@ -383,10 +388,12 @@ public class TVPResultSetCursorTest extends AbstractTest {
     }
 
     private static void createTables() throws SQLException {
-        String sql = "create table " + srcTable + " (c1 decimal(10,5) null, c2 nchar(50) null, c3 datetime2(7) null, c4 char(7000));";
+        String sql = "create table " + srcTable
+                + " (c1 decimal(10,5) null, c2 nchar(50) null, c3 datetime2(7) null, c4 char(7000));";
         stmt.execute(sql);
 
-        sql = "create table " + desTable + " (c1 decimal(10,5) null, c2 nchar(50) null, c3 datetime2(7) null, c4 char(7000));";
+        sql = "create table " + desTable
+                + " (c1 decimal(10,5) null, c2 nchar(50) null, c3 datetime2(7) null, c4 char(7000));";
         stmt.execute(sql);
     }
 
@@ -397,7 +404,8 @@ public class TVPResultSetCursorTest extends AbstractTest {
     }
 
     private static void dropTVPS() throws SQLException {
-        stmt.execute("IF EXISTS (SELECT * FROM sys.types WHERE is_table_type = 1 AND name = '" + tvpName + "') " + " drop type " + tvpName);
+        stmt.execute("IF EXISTS (SELECT * FROM sys.types WHERE is_table_type = 1 AND name = '" + tvpName + "') "
+                + " drop type " + tvpName);
     }
 
     private static void dropProcedure() throws SQLException {
@@ -405,14 +413,14 @@ public class TVPResultSetCursorTest extends AbstractTest {
     }
 
     private static void createPreocedure() throws SQLException {
-        String sql = "CREATE PROCEDURE " + procedureName + " @InputData " + tvpName + " READONLY " + " AS " + " BEGIN " + " INSERT INTO " + desTable
-                + " SELECT * FROM @InputData" + " END";
+        String sql = "CREATE PROCEDURE " + procedureName + " @InputData " + tvpName + " READONLY " + " AS " + " BEGIN "
+                + " INSERT INTO " + desTable + " SELECT * FROM @InputData" + " END";
 
         stmt.execute(sql);
     }
 
     @AfterEach
-    private void terminateVariation() throws SQLException {
+    public void terminateVariation() throws SQLException {
         if (null != conn) {
             conn.close();
         }

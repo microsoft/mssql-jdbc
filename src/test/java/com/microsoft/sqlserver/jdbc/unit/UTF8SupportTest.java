@@ -1,9 +1,6 @@
 /*
- * Microsoft JDBC Driver for SQL Server
- * 
- * Copyright(c) Microsoft Corporation All rights reserved.
- * 
- * This program is made available under the terms of the MIT License. See the LICENSE file in the project root for more information.
+ * Microsoft JDBC Driver for SQL Server Copyright(c) Microsoft Corporation All rights reserved. This program is made
+ * available under the terms of the MIT License. See the LICENSE file in the project root for more information.
  */
 
 package com.microsoft.sqlserver.jdbc.unit;
@@ -30,6 +27,7 @@ import com.microsoft.sqlserver.testframework.AbstractTest;
 import com.microsoft.sqlserver.testframework.PrepUtil;
 import com.microsoft.sqlserver.testframework.Utils;
 import com.microsoft.sqlserver.testframework.util.RandomUtil;
+
 
 /**
  * A class for testing the UTF8 support changes.
@@ -128,7 +126,8 @@ public class UTF8SupportTest extends AbstractTest {
 
     private static void createDatabaseWithUTF8Collation() throws SQLException {
         try (Statement stmt = connection.createStatement();) {
-            stmt.executeUpdate("CREATE DATABASE " + AbstractSQLGenerator.escapeIdentifier(databaseName) + " COLLATE Cyrillic_General_100_CS_AS_UTF8");
+            stmt.executeUpdate("CREATE DATABASE " + AbstractSQLGenerator.escapeIdentifier(databaseName)
+                    + " COLLATE Cyrillic_General_100_CS_AS_SC_UTF8");
         }
     }
 

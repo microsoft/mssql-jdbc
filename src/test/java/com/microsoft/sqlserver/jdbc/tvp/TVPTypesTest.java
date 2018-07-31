@@ -1,9 +1,6 @@
 /*
- * Microsoft JDBC Driver for SQL Server
- * 
- * Copyright(c) Microsoft Corporation All rights reserved.
- * 
- * This program is made available under the terms of the MIT License. See the LICENSE file in the project root for more information.
+ * Microsoft JDBC Driver for SQL Server Copyright(c) Microsoft Corporation All rights reserved. This program is made
+ * available under the terms of the MIT License. See the LICENSE file in the project root for more information.
  */
 package com.microsoft.sqlserver.jdbc.tvp;
 
@@ -29,6 +26,7 @@ import com.microsoft.sqlserver.jdbc.SQLServerDataTable;
 import com.microsoft.sqlserver.jdbc.SQLServerPreparedStatement;
 import com.microsoft.sqlserver.jdbc.SQLServerResultSet;
 import com.microsoft.sqlserver.testframework.AbstractTest;
+
 
 @RunWith(JUnitPlatform.class)
 public class TVPTypesTest extends AbstractTest {
@@ -447,7 +445,7 @@ public class TVPTypesTest extends AbstractTest {
             P_C_statement.close();
         }
     }
-    
+
     /**
      * Test a datetime support
      * 
@@ -478,7 +476,7 @@ public class TVPTypesTest extends AbstractTest {
             pstmt.close();
         }
     }
-    
+
     /**
      * Test a smalldatetime support
      * 
@@ -510,9 +508,9 @@ public class TVPTypesTest extends AbstractTest {
             pstmt.close();
         }
     }
-    
+
     @BeforeEach
-    private void testSetup() throws SQLException {
+    public void testSetup() throws SQLException {
         conn = DriverManager.getConnection(connectionString);
         stmt = conn.createStatement();
 
@@ -531,8 +529,8 @@ public class TVPTypesTest extends AbstractTest {
     }
 
     private static void dropProcedure() throws SQLException {
-        String sql = " IF EXISTS (select * from sysobjects where id = object_id(N'" + procedureName + "') and OBJECTPROPERTY(id, N'IsProcedure') = 1)"
-                + " DROP PROCEDURE " + procedureName;
+        String sql = " IF EXISTS (select * from sysobjects where id = object_id(N'" + procedureName
+                + "') and OBJECTPROPERTY(id, N'IsProcedure') = 1)" + " DROP PROCEDURE " + procedureName;
         stmt.execute(sql);
     }
 
@@ -541,12 +539,13 @@ public class TVPTypesTest extends AbstractTest {
     }
 
     private static void dropTVPS() throws SQLException {
-        stmt.executeUpdate("IF EXISTS (SELECT * FROM sys.types WHERE is_table_type = 1 AND name = '" + tvpName + "') " + " drop type " + tvpName);
+        stmt.executeUpdate("IF EXISTS (SELECT * FROM sys.types WHERE is_table_type = 1 AND name = '" + tvpName + "') "
+                + " drop type " + tvpName);
     }
 
     private static void createPreocedure() throws SQLException {
-        String sql = "CREATE PROCEDURE " + procedureName + " @InputData " + tvpName + " READONLY " + " AS " + " BEGIN " + " INSERT INTO " + table
-                + " SELECT * FROM @InputData" + " END";
+        String sql = "CREATE PROCEDURE " + procedureName + " @InputData " + tvpName + " READONLY " + " AS " + " BEGIN "
+                + " INSERT INTO " + table + " SELECT * FROM @InputData" + " END";
 
         stmt.execute(sql);
     }
@@ -561,9 +560,9 @@ public class TVPTypesTest extends AbstractTest {
         stmt.executeUpdate(TVPCreateCmd);
     }
 
-    private boolean parseByte(byte[] expectedData,
-            byte[] retrieved) {
-        assertTrue(Arrays.equals(expectedData, Arrays.copyOf(retrieved, expectedData.length)), " unexpected BINARY value, expected");
+    private boolean parseByte(byte[] expectedData, byte[] retrieved) {
+        assertTrue(Arrays.equals(expectedData, Arrays.copyOf(retrieved, expectedData.length)),
+                " unexpected BINARY value, expected");
         for (int i = expectedData.length; i < retrieved.length; i++) {
             assertTrue(0 == retrieved[i], "unexpected data BINARY");
         }
@@ -571,7 +570,7 @@ public class TVPTypesTest extends AbstractTest {
     }
 
     @AfterEach
-    private void terminateVariation() throws SQLException {
+    public void terminateVariation() throws SQLException {
         if (null != conn) {
             conn.close();
         }
@@ -585,5 +584,4 @@ public class TVPTypesTest extends AbstractTest {
             tvp.clear();
         }
     }
-
 }

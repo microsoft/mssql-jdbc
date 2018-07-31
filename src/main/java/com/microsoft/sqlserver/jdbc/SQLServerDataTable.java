@@ -1,9 +1,6 @@
 /*
- * Microsoft JDBC Driver for SQL Server
- * 
- * Copyright(c) Microsoft Corporation All rights reserved.
- * 
- * This program is made available under the terms of the MIT License. See the LICENSE file in the project root for more information.
+ * Microsoft JDBC Driver for SQL Server Copyright(c) Microsoft Corporation All rights reserved. This program is made
+ * available under the terms of the MIT License. See the LICENSE file in the project root for more information.
  */
 
 package com.microsoft.sqlserver.jdbc;
@@ -21,6 +18,10 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.UUID;
 
+
+/**
+ * Represents the data table for SQL Server.
+ */
 public final class SQLServerDataTable {
 
     int rowCount = 0;
@@ -32,10 +33,11 @@ public final class SQLServerDataTable {
     private String tvpName = null;
 
     /**
-     * The constant in the Java programming language, sometimes referred to as a type code, that identifies the type TVP.
+     * The constant in the Java programming language, sometimes referred to as a type code, that identifies the type
+     * TVP.
      * 
      * @throws SQLServerException
-     *             when an error occurs
+     *         when an error occurs
      */
     // Name used in CREATE TYPE
     public SQLServerDataTable() throws SQLServerException {
@@ -55,7 +57,7 @@ public final class SQLServerDataTable {
     }
 
     /**
-     * Retrieves an iterator on the rows of the data table.
+     * Returns an iterator on the rows of the data table.
      * 
      * @return an iterator on the rows of the data table.
      */
@@ -67,29 +69,28 @@ public final class SQLServerDataTable {
     }
 
     /**
-     * Adds meta data for the specified column
+     * Adds meta data for the specified column.
      * 
      * @param columnName
-     *            the name of the column
+     *        the name of the column
      * @param sqlType
-     *            the sql type of the column
+     *        the sql type of the column
      * @throws SQLServerException
-     *             when an error occurs
+     *         when an error occurs
      */
-    public synchronized void addColumnMetadata(String columnName,
-            int sqlType) throws SQLServerException {
+    public synchronized void addColumnMetadata(String columnName, int sqlType) throws SQLServerException {
         // column names must be unique
         Util.checkDuplicateColumnName(columnName, columnNames);
         columnMetadata.put(columnCount++, new SQLServerDataColumn(columnName, sqlType));
     }
 
     /**
-     * Adds meta data for the specified column
+     * Adds meta data for the specified column.
      * 
      * @param column
-     *            the name of the column
+     *        the name of the column
      * @throws SQLServerException
-     *             when an error occurs
+     *         when an error occurs
      */
     public synchronized void addColumnMetadata(SQLServerDataColumn column) throws SQLServerException {
         // column names must be unique
@@ -101,16 +102,17 @@ public final class SQLServerDataTable {
      * Adds one row of data to the data table.
      * 
      * @param values
-     *            values to be added in one row of data to the data table.
+     *        values to be added in one row of data to the data table.
      * @throws SQLServerException
-     *             when an error occurs
+     *         when an error occurs
      */
     public synchronized void addRow(Object... values) throws SQLServerException {
         try {
             int columnCount = columnMetadata.size();
 
             if ((null != values) && values.length > columnCount) {
-                MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_moreDataInRowThanColumnInTVP"));
+                MessageFormat form = new MessageFormat(
+                        SQLServerException.getErrString("R_moreDataInRowThanColumnInTVP"));
                 Object[] msgArgs = {};
                 throw new SQLServerException(null, form.format(msgArgs), null, 0, false);
             }
@@ -129,11 +131,9 @@ public final class SQLServerDataTable {
                 internalAddrow(jdbcType, val, rowValues, pair);
             }
             rows.put(rowCount++, rowValues);
-        }
-        catch (NumberFormatException e) {
+        } catch (NumberFormatException e) {
             throw new SQLServerException(SQLServerException.getErrString("R_TVPInvalidColumnValue"), e);
-        }
-        catch (ClassCastException e) {
+        } catch (ClassCastException e) {
             throw new SQLServerException(SQLServerException.getErrString("R_TVPInvalidColumnValue"), e);
         }
 
@@ -143,19 +143,17 @@ public final class SQLServerDataTable {
      * Adding rows one row of data to data table.
      * 
      * @param jdbcType
-     *            The jdbcType
+     *        The jdbcType
      * @param val
-     *            The data value
+     *        The data value
      * @param rowValues
-     *            Row of data
+     *        Row of data
      * @param pair
-     *            pair to be added to data table
+     *        pair to be added to data table
      * @throws SQLServerException
-     *             when an error occurs
+     *         when an error occurs
      */
-    private void internalAddrow(JDBCType jdbcType,
-            Object val,
-            Object[] rowValues,
+    private void internalAddrow(JDBCType jdbcType, Object val, Object[] rowValues,
             Map.Entry<Integer, SQLServerDataColumn> pair) throws SQLServerException {
 
         SQLServerDataColumn currentColumnMetadata = pair.getValue();
@@ -205,7 +203,8 @@ public final class SQLServerDataTable {
                     }
 
                     if (isColumnMetadataUpdated) {
-                        currentColumnMetadata.precision = currentColumnMetadata.scale + currentColumnMetadata.numberOfDigitsIntegerPart;
+                        currentColumnMetadata.precision = currentColumnMetadata.scale
+                                + currentColumnMetadata.numberOfDigitsIntegerPart;
                         columnMetadata.put(pair.getKey(), currentColumnMetadata);
                     }
                 }
@@ -230,7 +229,8 @@ public final class SQLServerDataTable {
             case DATETIME:
             case SMALLDATETIME:
                 // Sending temporal types as string. Error from database is thrown if parsing fails
-                // no need to send precision for temporal types, string literal will never exceed DataTypes.SHORT_VARTYPE_MAX_BYTES
+                // no need to send precision for temporal types, string literal will never exceed
+                // DataTypes.SHORT_VARTYPE_MAX_BYTES
 
                 if (null == val)
                     rowValues[pair.getKey()] = null;
@@ -282,7 +282,8 @@ public final class SQLServerDataTable {
             case SQL_VARIANT:
                 JDBCType internalJDBCType;
                 if (null == val) { // TODO:Check this later
-                    throw new SQLServerException(SQLServerException.getErrString("R_invalidValueForTVPWithSQLVariant"), null);
+                    throw new SQLServerException(SQLServerException.getErrString("R_invalidValueForTVPWithSQLVariant"),
+                            null);
                 }
                 JavaType javaType = JavaType.of(val);
                 internalJDBCType = javaType.getJDBCType(SSType.UNKNOWN, jdbcType);
@@ -296,8 +297,8 @@ public final class SQLServerDataTable {
     }
 
     /**
-     * Retrieves <code>java.util.Map</code> object type of columnMetaData for all columns where column indexes are mapped with their
-     * respective {@link SQLServerDataColumn} Java object
+     * Returns the <code>java.util.Map</code> object type of columnMetaData for all columns where column indexes are
+     * mapped with their respective {@link SQLServerDataColumn} Java object.
      * 
      * @return Map
      */
@@ -306,7 +307,7 @@ public final class SQLServerDataTable {
     }
 
     /**
-     * Returns name of TVP type set by {@link #setTvpName(String)}
+     * Returns name of TVP type set by {@link #setTvpName(String)}.
      * 
      * @return tvpName
      */
@@ -315,10 +316,10 @@ public final class SQLServerDataTable {
     }
 
     /**
-     * Sets the TVP Name
+     * Sets the TVP Name.
      * 
      * @param tvpName
-     *            the name of TVP
+     *        the name of TVP
      */
     public void setTvpName(String tvpName) {
         this.tvpName = tvpName;

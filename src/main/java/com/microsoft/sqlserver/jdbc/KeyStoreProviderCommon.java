@@ -1,9 +1,6 @@
 /*
- * Microsoft JDBC Driver for SQL Server
- * 
- * Copyright(c) Microsoft Corporation All rights reserved.
- * 
- * This program is made available under the terms of the MIT License. See the LICENSE file in the project root for more information.
+ * Microsoft JDBC Driver for SQL Server Copyright(c) Microsoft Corporation All rights reserved. This program is made
+ * available under the terms of the MIT License. See the LICENSE file in the project root for more information.
  */
 
 package com.microsoft.sqlserver.jdbc;
@@ -23,6 +20,7 @@ import javax.crypto.Cipher;
 import javax.crypto.IllegalBlockSizeException;
 import javax.crypto.NoSuchPaddingException;
 
+
 /**
  * 
  * This class holds information about the certificate
@@ -32,20 +30,19 @@ class CertificateDetails {
     X509Certificate certificate;
     Key privateKey;
 
-    CertificateDetails(X509Certificate certificate,
-            Key privateKey) {
+    CertificateDetails(X509Certificate certificate, Key privateKey) {
         this.certificate = certificate;
         this.privateKey = privateKey;
     }
 }
+
 
 class KeyStoreProviderCommon {
 
     static final String rsaEncryptionAlgorithmWithOAEP = "RSA_OAEP";
     static byte[] version = new byte[] {0x01};
 
-    static void validateEncryptionAlgorithm(String encryptionAlgorithm,
-            boolean isEncrypt) throws SQLServerException {
+    static void validateEncryptionAlgorithm(String encryptionAlgorithm, boolean isEncrypt) throws SQLServerException {
         String errString = isEncrypt ? "R_NullKeyEncryptionAlgorithm" : "R_NullKeyEncryptionAlgorithmInternal";
         if (null == encryptionAlgorithm) {
 
@@ -65,22 +62,22 @@ class KeyStoreProviderCommon {
 
     static void validateNonEmptyMasterKeyPath(String masterKeyPath) throws SQLServerException {
         if (null == masterKeyPath || masterKeyPath.trim().length() == 0) {
-            throw new SQLServerException(null, SQLServerException.getErrString("R_InvalidMasterKeyDetails"), null, 0, false);
+            throw new SQLServerException(null, SQLServerException.getErrString("R_InvalidMasterKeyDetails"), null, 0,
+                    false);
         }
     }
 
-    static byte[] decryptColumnEncryptionKey(String masterKeyPath,
-            String encryptionAlgorithm,
-            byte[] encryptedColumnEncryptionKey,
-            CertificateDetails certificateDetails) throws SQLServerException {
+    static byte[] decryptColumnEncryptionKey(String masterKeyPath, String encryptionAlgorithm,
+            byte[] encryptedColumnEncryptionKey, CertificateDetails certificateDetails) throws SQLServerException {
         if (null == encryptedColumnEncryptionKey) {
 
-            throw new SQLServerException(null, SQLServerException.getErrString("R_NullEncryptedColumnEncryptionKey"), null, 0, false);
+            throw new SQLServerException(null, SQLServerException.getErrString("R_NullEncryptedColumnEncryptionKey"),
+                    null, 0, false);
 
-        }
-        else if (0 == encryptedColumnEncryptionKey.length) {
+        } else if (0 == encryptedColumnEncryptionKey.length) {
 
-            throw new SQLServerException(null, SQLServerException.getErrString("R_EmptyEncryptedColumnEncryptionKey"), null, 0, false);
+            throw new SQLServerException(null, SQLServerException.getErrString("R_EmptyEncryptedColumnEncryptionKey"),
+                    null, 0, false);
 
         }
 
@@ -109,7 +106,8 @@ class KeyStoreProviderCommon {
 
         byte[] hash = new byte[encryptedColumnEncryptionKey.length - signature.length];
 
-        System.arraycopy(encryptedColumnEncryptionKey, 0, hash, 0, encryptedColumnEncryptionKey.length - signature.length);
+        System.arraycopy(encryptedColumnEncryptionKey, 0, hash, 0,
+                encryptedColumnEncryptionKey.length - signature.length);
 
         if (!verifyRSASignature(hash, signature, certificateDetails.certificate, masterKeyPath)) {
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_InvalidCertificateSignature"));
@@ -130,8 +128,8 @@ class KeyStoreProviderCommon {
             rsa.init(Cipher.DECRYPT_MODE, certificateDetails.privateKey);
             rsa.update(cipherText);
             plainCEK = rsa.doFinal();
-        }
-        catch (InvalidKeyException | NoSuchAlgorithmException | NoSuchPaddingException | IllegalBlockSizeException | BadPaddingException e) {
+        } catch (InvalidKeyException | NoSuchAlgorithmException | NoSuchPaddingException | IllegalBlockSizeException
+                | BadPaddingException e) {
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_CEKDecryptionFailed"));
             Object[] msgArgs = {e.getMessage()};
             throw new SQLServerException(form.format(msgArgs), e);
@@ -141,9 +139,7 @@ class KeyStoreProviderCommon {
 
     }
 
-    private static boolean verifyRSASignature(byte[] hash,
-            byte[] signature,
-            X509Certificate certificate,
+    private static boolean verifyRSASignature(byte[] hash, byte[] signature, X509Certificate certificate,
             String masterKeyPath) throws SQLServerException {
         Signature signVerify;
         boolean verificationSucess = false;
@@ -152,8 +148,7 @@ class KeyStoreProviderCommon {
             signVerify.initVerify(certificate.getPublicKey());
             signVerify.update(hash);
             verificationSucess = signVerify.verify(signature);
-        }
-        catch (InvalidKeyException | NoSuchAlgorithmException | SignatureException e) {
+        } catch (InvalidKeyException | NoSuchAlgorithmException | SignatureException e) {
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_InvalidCertificateSignature"));
             Object[] msgArgs = {masterKeyPath};
             throw new SQLServerException(form.format(msgArgs), e);
@@ -163,12 +158,12 @@ class KeyStoreProviderCommon {
 
     }
 
-    private static short convertTwoBytesToShort(byte[] input,
-            int index) throws SQLServerException {
+    private static short convertTwoBytesToShort(byte[] input, int index) throws SQLServerException {
 
         short shortVal;
         if (index + 1 >= input.length) {
-            throw new SQLServerException(null, SQLServerException.getErrString("R_ByteToShortConversion"), null, 0, false);
+            throw new SQLServerException(null, SQLServerException.getErrString("R_ByteToShortConversion"), null, 0,
+                    false);
         }
         ByteBuffer byteBuffer = ByteBuffer.allocate(2);
         byteBuffer.order(ByteOrder.LITTLE_ENDIAN);

@@ -1,3 +1,7 @@
+/*
+ * Microsoft JDBC Driver for SQL Server Copyright(c) Microsoft Corporation All rights reserved. This program is made
+ * available under the terms of the MIT License. See the LICENSE file in the project root for more information.
+ */
 package constrained.src.main.java;
 
 import java.security.PrivilegedActionException;
@@ -18,32 +22,32 @@ import org.ietf.jgss.GSSManager;
 import org.ietf.jgss.GSSName;
 import org.ietf.jgss.Oid;
 
+import com.sun.security.auth.module.Krb5LoginModule;
 import com.sun.security.jgss.ExtendedGSSCredential;
+
 
 /**
  *
  * Sample of constrained delegation connection.
  *
- * An intermediate service is necessary to impersonate the client. This service needs to be configured with the
- * options:
- *      "Trust this user for delegation to specified services only"
- *      "Use any authentication protocol"
+ * An intermediate service is necessary to impersonate the client. This service needs to be configured with the options:
+ * "Trust this user for delegation to specified services only" "Use any authentication protocol"
  *
  */
-public class ConstrainedSample {
+public class ConstrainedDelegation {
 
     // Connection properties
-    private static final String DRIVER_CLASS_NAME ="com.microsoft.sqlserver.jdbc.SQLServerDriver";
-    private static final String CONNECTION_URI = "jdbc:sqlserver:// URI of the SQLServer";
+    private static final String CONNECTION_URI = "jdbc:sqlserver://<server>:<port>";
 
     private static final String TARGET_USER_NAME = "User to be impersonated";
 
     // Impersonation service properties
     private static final String SERVICE_PRINCIPAL = "SPN";
-    private static final String KEYTAB_ROUTE = "Route to the keytab file";
+    private static final String KEYTAB_ROUTE = "<Route to Keytab file>";
 
     private static final Properties driverProperties;
     private static Oid krb5Oid;
+    private static final String KERBEROS_OID = "1.2.840.113554.1.2.2";
 
     private static Subject serviceSubject;
 
@@ -54,7 +58,7 @@ public class ConstrainedSample {
         driverProperties.setProperty("authenticationScheme", "JavaKerberos");
 
         try {
-            krb5Oid = new Oid("1.2.840.113554.1.2.2");
+            krb5Oid = new Oid(KERBEROS_OID);
         } catch (GSSException e) {
             System.out.println("Error creating Oid: " + e);
             System.exit(-1);
@@ -62,8 +66,6 @@ public class ConstrainedSample {
     }
 
     public static void main(String... args) throws Exception {
-
-        Class.forName(DRIVER_CLASS_NAME).getConstructor().newInstance();
         System.out.println("Service subject: " + doInitialLogin());
 
         // Get impersonated user credentials thanks S4U2self mechanism
@@ -74,7 +76,6 @@ public class ConstrainedSample {
         try (Connection con = createConnection(impersonatedUserCreds)) {
             System.out.println("Connection succesfully: " + con);
         }
-
     }
 
     /**
@@ -82,15 +83,15 @@ public class ConstrainedSample {
      * Authenticate the intermediate server that is going to impersonate the client
      *
      * @return a subject for the intermediate server with the keytab credentials
-     * @throws PrivilegedActionException in case of failure
+     * @throws PrivilegedActionException
+     *         in case of failure
      */
     private static Subject doInitialLogin() throws PrivilegedActionException {
         serviceSubject = new Subject();
 
         LoginModule krb5Module;
         try {
-            krb5Module = (LoginModule) Class.forName("com.sun.security.auth.module.Krb5LoginModule").getConstructor()
-                    .newInstance();
+            krb5Module = (LoginModule) new Krb5LoginModule();
         } catch (Exception e) {
             System.out.print("Error loading Krb5LoginModule module: " + e);
             throw new PrivilegedActionException(e);
@@ -113,6 +114,7 @@ public class ConstrainedSample {
         try {
             krb5Module.login();
             krb5Module.commit();
+            krb5Module.logout();
         } catch (LoginException e) {
             System.out.print("Error authenticating with Kerberos: " + e);
             try {
@@ -123,7 +125,6 @@ public class ConstrainedSample {
             }
             throw new PrivilegedActionException(e);
         }
-
         return serviceSubject;
     }
 
@@ -131,7 +132,8 @@ public class ConstrainedSample {
      * Generate the impersonated user credentials thanks to the S4U2self mechanism
      *
      * @return the client impersonated GSSCredential
-     * @throws PrivilegedActionException in case of failure
+     * @throws PrivilegedActionException
+     *         in case of failure
      */
     private static GSSCredential impersonate() throws PrivilegedActionException {
         return Subject.doAs(serviceSubject, (PrivilegedExceptionAction<GSSCredential>) () -> {
@@ -147,12 +149,14 @@ public class ConstrainedSample {
     /**
      * Obtains a connection using an impersonated credential
      *
-     * @param impersonatedUserCredential impersonated user credentials
+     * @param impersonatedUserCredential
+     *        impersonated user credentials
      * @return a connection to the SQL Server opened using the given impersonated credential
-     * @throws PrivilegedActionException in case of failure
+     * @throws PrivilegedActionException
+     *         in case of failure
      */
-    private static Connection createConnection(final GSSCredential impersonatedUserCredential)
-            throws PrivilegedActionException {
+    private static Connection createConnection(
+            final GSSCredential impersonatedUserCredential) throws PrivilegedActionException {
 
         return Subject.doAs(new Subject(), (PrivilegedExceptionAction<Connection>) () -> {
             driverProperties.put("gsscredential", impersonatedUserCredential);

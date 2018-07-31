@@ -1,9 +1,6 @@
 /*
- * Microsoft JDBC Driver for SQL Server
- * 
- * Copyright(c) Microsoft Corporation All rights reserved.
- * 
- * This program is made available under the terms of the MIT License. See the LICENSE file in the project root for more information.
+ * Microsoft JDBC Driver for SQL Server Copyright(c) Microsoft Corporation All rights reserved. This program is made
+ * available under the terms of the MIT License. See the LICENSE file in the project root for more information.
  */
 package com.microsoft.sqlserver.jdbc.unit.statement;
 
@@ -33,6 +30,7 @@ import com.microsoft.sqlserver.testframework.AbstractTest;
 import com.microsoft.sqlserver.testframework.DBConnection;
 import com.microsoft.sqlserver.testframework.Utils;
 
+
 /**
  * Tests batch execution with AE On connection
  *
@@ -47,8 +45,9 @@ public class BatchExecutionTest extends AbstractTest {
     static ResultSet rs = null;
 
     /**
-     * testAddBatch1 and testExecutionBatch one looks similar except for the parameters being passed for select query. 
+     * testAddBatch1 and testExecutionBatch one looks similar except for the parameters being passed for select query.
      * TODO: we should look and simply the test later by parameterized values
+     * 
      * @throws Exception
      */
     @Test
@@ -60,8 +59,8 @@ public class BatchExecutionTest extends AbstractTest {
     }
 
     /**
-     * Get a PreparedStatement object and call the addBatch() method with 3 SQL statements and call the executeBatch() method and it should return
-     * array of Integer values of length 3
+     * Get a PreparedStatement object and call the addBatch() method with 3 SQL statements and call the executeBatch()
+     * method and it should return array of Integer values of length 3
      */
     public void testAddBatch1() {
         testAddBatch1Internal("BatchInsert");
@@ -72,28 +71,29 @@ public class BatchExecutionTest extends AbstractTest {
     }
 
     /**
-     * Get a PreparedStatement object and call the addBatch() method with a 3 valid SQL statements and call the executeBatch() method It should return
-     * an array of Integer values of length 3.
+     * Get a PreparedStatement object and call the addBatch() method with a 3 valid SQL statements and call the
+     * executeBatch() method It should return an array of Integer values of length 3.
      */
     public void testExecuteBatch1() {
         testExecuteBatch1Internal("BatchInsert");
     }
-    
+
     public void testExecuteBatch1UseBulkCopyAPI() {
         testExecuteBatch1Internal("BulkCopy");
     }
-    
+
     private void testExecuteBatch1Internal(String mode) {
         int i = 0;
         int retValue[] = {0, 0, 0};
         int updateCountlen = 0;
-        try (Connection connection = DriverManager.getConnection(connectionString + ";columnEncryptionSetting=Enabled;");){
+        try (Connection connection = DriverManager
+                .getConnection(connectionString + ";columnEncryptionSetting=Enabled;");) {
             String sPrepStmt = "update ctstable2 set PRICE=PRICE*20 where TYPE_ID=?";
 
             if (mode.equalsIgnoreCase("bulkcopy")) {
                 modifyConnectionForBulkCopyAPI((SQLServerConnection) connection);
             }
-            
+
             pstmt = connection.prepareStatement(sPrepStmt);
             pstmt.setInt(1, 1);
             pstmt.addBatch();
@@ -107,7 +107,8 @@ public class BatchExecutionTest extends AbstractTest {
             int[] updateCount = pstmt.executeBatch();
             updateCountlen = updateCount.length;
 
-            assertTrue(updateCountlen == 3, TestResource.getResource("R_executeBatchFailed") + ": " + TestResource.getResource("R_incorrectUpdateCount"));
+            assertTrue(updateCountlen == 3, TestResource.getResource("R_executeBatchFailed") + ": "
+                    + TestResource.getResource("R_incorrectUpdateCount"));
 
             String sPrepStmt1 = "select count(*) from ctstable2 where TYPE_ID=?";
 
@@ -124,11 +125,11 @@ public class BatchExecutionTest extends AbstractTest {
 
             for (int j = 0; j < updateCount.length; j++) {
                 if (updateCount[j] != retValue[j] && updateCount[j] != Statement.SUCCESS_NO_INFO) {
-                    fail(TestResource.getResource("R_executeBatchFailed") + ": " + TestResource.getResource("R_incorrectUpdateCount"));
+                    fail(TestResource.getResource("R_executeBatchFailed") + ": "
+                            + TestResource.getResource("R_incorrectUpdateCount"));
                 }
             }
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             fail(TestResource.getResource("R_executeBatchFailed") + ": " + e.getMessage());
         }
     }
@@ -154,17 +155,18 @@ public class BatchExecutionTest extends AbstractTest {
         stmt.execute(sqlin1);
 
     }
-    
+
     private void testAddBatch1Internal(String mode) {
         int i = 0;
         int retValue[] = {0, 0, 0};
-        try (Connection connection = DriverManager.getConnection(connectionString + ";columnEncryptionSetting=Enabled;");){
+        try (Connection connection = DriverManager
+                .getConnection(connectionString + ";columnEncryptionSetting=Enabled;");) {
             String sPrepStmt = "update ctstable2 set PRICE=PRICE*20 where TYPE_ID=?";
-            
+
             if (mode.equalsIgnoreCase("bulkcopy")) {
                 modifyConnectionForBulkCopyAPI((SQLServerConnection) connection);
             }
-            
+
             pstmt = connection.prepareStatement(sPrepStmt);
             pstmt.setInt(1, 2);
             pstmt.addBatch();
@@ -178,7 +180,8 @@ public class BatchExecutionTest extends AbstractTest {
             int[] updateCount = pstmt.executeBatch();
             int updateCountlen = updateCount.length;
 
-            assertTrue(updateCountlen == 3, TestResource.getResource("R_addBatchFailed") + ": " + TestResource.getResource("R_incorrectUpdateCount"));
+            assertTrue(updateCountlen == 3, TestResource.getResource("R_addBatchFailed") + ": "
+                    + TestResource.getResource("R_incorrectUpdateCount"));
 
             String sPrepStmt1 = "select count(*) from ctstable2 where TYPE_ID=?";
 
@@ -200,17 +203,16 @@ public class BatchExecutionTest extends AbstractTest {
                     fail(TestResource.getResource("R_incorrectUpdateCount"));
                 }
             }
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             fail(TestResource.getResource("R_addBatchFailed") + ": " + e.getMessage());
         }
     }
-    
+
     private void modifyConnectionForBulkCopyAPI(SQLServerConnection con) throws Exception {
         Field f1 = SQLServerConnection.class.getDeclaredField("isAzureDW");
         f1.setAccessible(true);
         f1.set(con, true);
-        
+
         con.setUseBulkCopyForBatchInsert(true);
     }
 

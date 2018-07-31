@@ -1,9 +1,6 @@
 /*
- * Microsoft JDBC Driver for SQL Server
- * 
- * Copyright(c) Microsoft Corporation All rights reserved.
- * 
- * This program is made available under the terms of the MIT License. See the LICENSE file in the project root for more information.
+ * Microsoft JDBC Driver for SQL Server Copyright(c) Microsoft Corporation All rights reserved. This program is made
+ * available under the terms of the MIT License. See the LICENSE file in the project root for more information.
  */
 
 package com.microsoft.sqlserver.jdbc;
@@ -19,10 +16,10 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-/**
- * SQLServerBlob represents a binary LOB object and implements a java.sql.Blob.
- */
 
+/**
+ * Represents a binary LOB object and implements a java.sql.Blob.
+ */
 public final class SQLServerBlob extends SQLServerLob implements java.sql.Blob, java.io.Serializable {
     /**
      * Always refresh SerialVersionUID when prompted
@@ -63,14 +60,13 @@ public final class SQLServerBlob extends SQLServerLob implements java.sql.Blob, 
      * Create a new BLOB
      *
      * @param connection
-     *            the database connection this blob is implemented on
+     *        the database connection this blob is implemented on
      * @param data
-     *            the BLOB's data
+     *        the BLOB's data
      * @deprecated Use {@link SQLServerConnection#createBlob()} instead.
      */
     @Deprecated
-    public SQLServerBlob(SQLServerConnection connection,
-            byte data[]) {
+    public SQLServerBlob(SQLServerConnection connection, byte data[]) {
         traceID = " SQLServerBlob:" + nextInstanceID();
         con = connection;
 
@@ -114,9 +110,9 @@ public final class SQLServerBlob extends SQLServerLob implements java.sql.Blob, 
                 for (Closeable stream : activeStreams) {
                     try {
                         stream.close();
-                    }
-                    catch (IOException ioException) {
-                        logger.fine(toString() + " ignored IOException closing stream " + stream + ": " + ioException.getMessage());
+                    } catch (IOException ioException) {
+                        logger.fine(toString() + " ignored IOException closing stream " + stream + ": "
+                                + ioException.getMessage());
                     }
                 }
                 activeStreams = null;
@@ -145,29 +141,26 @@ public final class SQLServerBlob extends SQLServerLob implements java.sql.Blob, 
             InputStream stream = (InputStream) activeStreams.get(0);
             try {
                 stream.reset();
-            }
-            catch (IOException e) {
+            } catch (IOException e) {
                 throw new SQLServerException(e.getMessage(), null, 0, e);
             }
             return (InputStream) activeStreams.get(0);
-        }
-        else {
+        } else {
             if (value == null) {
-                throw new SQLServerException("Unexpected Error: blob value is null while all streams are closed.", null);
+                throw new SQLServerException("Unexpected Error: blob value is null while all streams are closed.",
+                        null);
             }
             return getBinaryStreamInternal(0, value.length);
         }
     }
 
     @Override
-    public InputStream getBinaryStream(long pos,
-            long length) throws SQLException {
+    public InputStream getBinaryStream(long pos, long length) throws SQLException {
         SQLServerException.throwFeatureNotSupportedException();
         return null;
     }
 
-    private InputStream getBinaryStreamInternal(int pos,
-            int length) {
+    private InputStream getBinaryStreamInternal(int pos, int length) {
         assert null != value;
         assert pos >= 0;
         assert 0 <= length && length <= value.length - pos;
@@ -179,8 +172,7 @@ public final class SQLServerBlob extends SQLServerLob implements java.sql.Blob, 
     }
 
     @Override
-    public byte[] getBytes(long pos,
-            int length) throws SQLException {
+    public byte[] getBytes(long pos, int length) throws SQLException {
         checkClosed();
 
         getBytesFromStream();
@@ -239,8 +231,7 @@ public final class SQLServerBlob extends SQLServerLob implements java.sql.Blob, 
             BaseInputStream stream = (BaseInputStream) activeStreams.get(0);
             try {
                 stream.reset();
-            }
-            catch (IOException e) {
+            } catch (IOException e) {
                 throw new SQLServerException(e.getMessage(), null, 0, e);
             }
             value = stream.getBytes();
@@ -248,8 +239,7 @@ public final class SQLServerBlob extends SQLServerLob implements java.sql.Blob, 
     }
 
     @Override
-    public long position(java.sql.Blob pattern,
-            long start) throws SQLException {
+    public long position(java.sql.Blob pattern, long start) throws SQLException {
         checkClosed();
 
         getBytesFromStream();
@@ -266,8 +256,7 @@ public final class SQLServerBlob extends SQLServerLob implements java.sql.Blob, 
     }
 
     @Override
-    public long position(byte[] bPattern,
-            long start) throws SQLException {
+    public long position(byte[] bPattern, long start) throws SQLException {
         checkClosed();
         getBytesFromStream();
         if (start < 1) {
@@ -334,27 +323,25 @@ public final class SQLServerBlob extends SQLServerLob implements java.sql.Blob, 
     }
 
     @Override
-    public int setBytes(long pos,
-            byte[] bytes) throws SQLException {
+    public int setBytes(long pos, byte[] bytes) throws SQLException {
         checkClosed();
 
         getBytesFromStream();
         if (null == bytes)
-            SQLServerException.makeFromDriverError(con, null, SQLServerException.getErrString("R_cantSetNull"), null, true);
+            SQLServerException.makeFromDriverError(con, null, SQLServerException.getErrString("R_cantSetNull"), null,
+                    true);
 
         return setBytes(pos, bytes, 0, bytes.length);
     }
 
     @Override
-    public int setBytes(long pos,
-            byte[] bytes,
-            int offset,
-            int len) throws SQLException {
+    public int setBytes(long pos, byte[] bytes, int offset, int len) throws SQLException {
         checkClosed();
         getBytesFromStream();
 
         if (null == bytes)
-            SQLServerException.makeFromDriverError(con, null, SQLServerException.getErrString("R_cantSetNull"), null, true);
+            SQLServerException.makeFromDriverError(con, null, SQLServerException.getErrString("R_cantSetNull"), null,
+                    true);
 
         // Offset must be within incoming bytes boundary.
         if (offset < 0 || offset > bytes.length) {
@@ -396,8 +383,7 @@ public final class SQLServerBlob extends SQLServerLob implements java.sql.Blob, 
             // Copy rest of data.
             System.arraycopy(bytes, offset, combinedValue, (int) pos, len);
             value = combinedValue;
-        }
-        else {
+        } else {
             // Overwrite internal to value case.
             System.arraycopy(bytes, offset, value, (int) pos, len);
         }
@@ -406,18 +392,19 @@ public final class SQLServerBlob extends SQLServerLob implements java.sql.Blob, 
     }
 }
 
+
 /**
- * SQLServerBlobOutputStream is a simple java.io.OutputStream interface implementing class that forwards all calls to SQLServerBlob.setBytes. This
- * class is returned to caller by SQLServerBlob class when setBinaryStream is called.
+ * SQLServerBlobOutputStream is a simple java.io.OutputStream interface implementing class that forwards all calls to
+ * SQLServerBlob.setBytes. This class is returned to caller by SQLServerBlob class when setBinaryStream is called.
  * <p>
- * SQLServerBlobOutputStream starts writing at postion startPos and continues to write in a forward only manner. Reset/mark are not supported.
+ * SQLServerBlobOutputStream starts writing at postion startPos and continues to write in a forward only manner.
+ * Reset/mark are not supported.
  */
 final class SQLServerBlobOutputStream extends java.io.OutputStream {
     private SQLServerBlob parentBlob = null;
     private long currentPos;
 
-    SQLServerBlobOutputStream(SQLServerBlob parentBlob,
-            long startPos) {
+    SQLServerBlobOutputStream(SQLServerBlob parentBlob, long startPos) {
         this.parentBlob = parentBlob;
         this.currentPos = startPos;
     }
@@ -430,17 +417,14 @@ final class SQLServerBlobOutputStream extends java.io.OutputStream {
     }
 
     @Override
-    public void write(byte[] b,
-            int off,
-            int len) throws IOException {
+    public void write(byte[] b, int off, int len) throws IOException {
         try {
             // Call parent's setBytes and update position.
             // setBytes can throw a SQLServerException, we translate
             // this to an IOException here.
             int bytesWritten = parentBlob.setBytes(currentPos, b, off, len);
             currentPos += bytesWritten;
-        }
-        catch (SQLException ex) {
+        } catch (SQLException ex) {
             throw new IOException(ex.getMessage());
         }
     }

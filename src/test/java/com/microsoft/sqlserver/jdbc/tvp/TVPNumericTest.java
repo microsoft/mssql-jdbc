@@ -1,9 +1,6 @@
 /*
- * Microsoft JDBC Driver for SQL Server
- * 
- * Copyright(c) Microsoft Corporation All rights reserved.
- * 
- * This program is made available under the terms of the MIT License. See the LICENSE file in the project root for more information.
+ * Microsoft JDBC Driver for SQL Server Copyright(c) Microsoft Corporation All rights reserved. This program is made
+ * available under the terms of the MIT License. See the LICENSE file in the project root for more information.
  */
 package com.microsoft.sqlserver.jdbc.tvp;
 
@@ -23,6 +20,7 @@ import com.microsoft.sqlserver.testframework.DBConnection;
 import com.microsoft.sqlserver.testframework.DBResultSet;
 import com.microsoft.sqlserver.testframework.DBStatement;
 
+
 @RunWith(JUnitPlatform.class)
 public class TVPNumericTest extends AbstractTest {
 
@@ -41,7 +39,7 @@ public class TVPNumericTest extends AbstractTest {
      * Test a previous failure regarding to numeric precision. Issue #211
      * 
      * @throws SQLException
-     * @throws SQLTimeoutException 
+     * @throws SQLTimeoutException
      */
     @Test
     public void testNumericPresicionIssue211() throws SQLException {
@@ -63,7 +61,7 @@ public class TVPNumericTest extends AbstractTest {
     }
 
     @BeforeEach
-    private void testSetup() throws SQLException {
+    public void testSetup() throws SQLException {
         conn = new DBConnection(connectionString);
         stmt = conn.createStatement();
 
@@ -77,8 +75,8 @@ public class TVPNumericTest extends AbstractTest {
     }
 
     private void dropProcedure() throws SQLException {
-        String sql = " IF EXISTS (select * from sysobjects where id = object_id(N'" + procedureName + "') and OBJECTPROPERTY(id, N'IsProcedure') = 1)"
-                + " DROP PROCEDURE " + procedureName;
+        String sql = " IF EXISTS (select * from sysobjects where id = object_id(N'" + procedureName
+                + "') and OBJECTPROPERTY(id, N'IsProcedure') = 1)" + " DROP PROCEDURE " + procedureName;
         stmt.execute(sql);
     }
 
@@ -87,12 +85,13 @@ public class TVPNumericTest extends AbstractTest {
     }
 
     private static void dropTVPS() throws SQLException {
-        stmt.executeUpdate("IF EXISTS (SELECT * FROM sys.types WHERE is_table_type = 1 AND name = '" + tvpName + "') " + " drop type " + tvpName);
+        stmt.executeUpdate("IF EXISTS (SELECT * FROM sys.types WHERE is_table_type = 1 AND name = '" + tvpName + "') "
+                + " drop type " + tvpName);
     }
 
     private static void createPreocedure() throws SQLException {
-        String sql = "CREATE PROCEDURE " + procedureName + " @InputData " + tvpName + " READONLY " + " AS " + " BEGIN " + " INSERT INTO " + charTable
-                + " SELECT * FROM @InputData" + " END";
+        String sql = "CREATE PROCEDURE " + procedureName + " @InputData " + tvpName + " READONLY " + " AS " + " BEGIN "
+                + " INSERT INTO " + charTable + " SELECT * FROM @InputData" + " END";
 
         stmt.execute(sql);
     }
@@ -108,7 +107,7 @@ public class TVPNumericTest extends AbstractTest {
     }
 
     @AfterEach
-    private void terminateVariation() throws SQLException {
+    public void terminateVariation() throws SQLException {
         if (null != conn) {
             conn.close();
         }

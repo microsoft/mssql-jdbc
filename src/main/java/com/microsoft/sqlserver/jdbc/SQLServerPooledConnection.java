@@ -1,9 +1,6 @@
 /*
- * Microsoft JDBC Driver for SQL Server
- * 
- * Copyright(c) Microsoft Corporation All rights reserved.
- * 
- * This program is made available under the terms of the MIT License. See the LICENSE file in the project root for more information.
+ * Microsoft JDBC Driver for SQL Server Copyright(c) Microsoft Corporation All rights reserved. This program is made
+ * available under the terms of the MIT License. See the LICENSE file in the project root for more information.
  */
 
 package com.microsoft.sqlserver.jdbc;
@@ -19,9 +16,10 @@ import javax.sql.ConnectionEventListener;
 import javax.sql.PooledConnection;
 import javax.sql.StatementEventListener;
 
+
 /**
- * SQLServerPooledConnection represents a database physical connection in a connection pool. If provides methods for the connection pool manager to
- * manage the connection pool. Applications typically do not instantiate these connections directly.
+ * Represents a physical database connection in a connection pool. If provides methods for the connection pool manager
+ * to manage the connection pool. Applications typically do not instantiate these connections directly.
  */
 
 public class SQLServerPooledConnection implements PooledConnection {
@@ -31,13 +29,12 @@ public class SQLServerPooledConnection implements PooledConnection {
     private SQLServerConnectionPoolProxy lastProxyConnection;
     private String factoryUser, factoryPassword;
     private java.util.logging.Logger pcLogger;
-    static private final AtomicInteger basePooledConnectionID = new AtomicInteger(0);	// Unique id generator for each PooledConnection instance
-                                                                                     	// (used for logging).
+    static private final AtomicInteger basePooledConnectionID = new AtomicInteger(0); // Unique id generator for each
+                                                                                      // PooledConnection instance
+                                                                                      // (used for logging).
     private final String traceID;
 
-    SQLServerPooledConnection(SQLServerDataSource ds,
-            String user,
-            String password) throws SQLException {
+    SQLServerPooledConnection(SQLServerDataSource ds, String user, String password) throws SQLException {
         listeners = new Vector<>();
         // Piggyback SQLServerDataSource logger for now.
         pcLogger = SQLServerDataSource.dsLogger;
@@ -59,7 +56,7 @@ public class SQLServerPooledConnection implements PooledConnection {
     }
 
     /**
-     * This is a helper function to provide an ID string suitable for tracing.
+     * Provides a helper function to provide an ID string suitable for tracing.
      * 
      * @return traceID String
      */
@@ -74,10 +71,10 @@ public class SQLServerPooledConnection implements PooledConnection {
     }
 
     /**
-     * Creates an object handle for the physical connection that this PooledConnection object represents.
+     * Returns an object handle for the physical connection that this PooledConnection object represents.
      * 
      * @throws SQLException
-     *             when an error occurs
+     *         when an error occurs
      * @return a Connection object that is a handle to this PooledConnection object
      */
     @Override
@@ -87,7 +84,8 @@ public class SQLServerPooledConnection implements PooledConnection {
         synchronized (this) {
             // If physical connection is closed, throw exception per spec, this PooledConnection is dead.
             if (physicalConnection == null) {
-                SQLServerException.makeFromDriverError(null, this, SQLServerException.getErrString("R_physicalConnectionIsClosed"), "", true);
+                SQLServerException.makeFromDriverError(null, this,
+                        SQLServerException.getErrString("R_physicalConnectionIsClosed"), "", true);
             }
 
             // Check with security manager to insure caller has rights to connect.
@@ -108,7 +106,8 @@ public class SQLServerPooledConnection implements PooledConnection {
                 // if there was a last proxy connection send reset
                 physicalConnection.resetPooledConnection();
                 if (pcLogger.isLoggable(Level.FINE) && !lastProxyConnection.isClosed())
-                    pcLogger.fine(toString() + "proxy " + lastProxyConnection.toString() + " is not closed before getting the connection.");
+                    pcLogger.fine(toString() + "proxy " + lastProxyConnection.toString()
+                            + " is not closed before getting the connection.");
                 // use internal close so there wont be an event due to us closing the connection, if not closed already.
                 lastProxyConnection.internalClose();
             }
@@ -121,11 +120,11 @@ public class SQLServerPooledConnection implements PooledConnection {
         }
     }
 
-    // Notify any interested parties (e.g. pooling managers) of a ConnectionEvent activity
-    // on the connection. Calling notifyEvent with null event will place the
-    // connection back in the pool. Calling notifyEvent with a non-null event is
-    // used to notify the pooling manager that the connection is bad and should be removed
-    // from the pool.
+    /**
+     * Notifies any interested parties (e.g. pooling managers) of a ConnectionEvent activity on the connection. Calling
+     * notifyEvent with null event will place the connection back in the pool. Calling notifyEvent with a non-null event
+     * is used to notify the pooling manager that the connection is bad and should be removed from the pool.
+     */
     void notifyEvent(SQLServerException e) {
         if (pcLogger.isLoggable(Level.FINER))
             pcLogger.finer(toString() + " Exception:" + e + safeCID());
@@ -153,8 +152,7 @@ public class SQLServerPooledConnection implements PooledConnection {
                     if (pcLogger.isLoggable(Level.FINER))
                         pcLogger.finer(toString() + " notifyEvent:connectionClosed " + safeCID());
                     listener.connectionClosed(ev);
-                }
-                else {
+                } else {
                     if (pcLogger.isLoggable(Level.FINER))
                         pcLogger.finer(toString() + " notifyEvent:connectionErrorOccurred " + safeCID());
                     listener.connectionErrorOccurred(ev);

@@ -1,15 +1,13 @@
 /*
- * Microsoft JDBC Driver for SQL Server
- * 
- * Copyright(c) Microsoft Corporation All rights reserved.
- * 
- * This program is made available under the terms of the MIT License. See the LICENSE file in the project root for more information.
+ * Microsoft JDBC Driver for SQL Server Copyright(c) Microsoft Corporation All rights reserved. This program is made
+ * available under the terms of the MIT License. See the LICENSE file in the project root for more information.
  */
 
 package com.microsoft.sqlserver.jdbc;
 
 import java.text.MessageFormat;
 import java.util.Calendar;
+
 
 /**
  * Column represents a database column definition (meta data) within a result set.
@@ -18,16 +16,16 @@ import java.util.Calendar;
 final class Column {
     private TypeInfo typeInfo;
     private CryptoMetadata cryptoMetadata;
-    private SqlVariant internalVariant;   
-    
-    final void setInternalVariant(SqlVariant type){
+    private SqlVariant internalVariant;
+
+    final void setInternalVariant(SqlVariant type) {
         this.internalVariant = type;
     }
-    
-    final SqlVariant getInternalVariant(){
+
+    final SqlVariant getInternalVariant() {
         return this.internalVariant;
     }
-    
+
     final TypeInfo getTypeInfo() {
         return typeInfo;
     }
@@ -117,18 +115,15 @@ final class Column {
      * Create a new column
      * 
      * @param typeInfo
-     *            the column TYPE_INFO
+     *        the column TYPE_INFO
      * @param columnName
-     *            the column name
+     *        the column name
      * @param tableName
-     *            the column's table name
+     *        the column's table name
      * @param cryptoMeta
-     *            the column's crypto metadata
+     *        the column's crypto metadata
      */
-    Column(TypeInfo typeInfo,
-            String columnName,
-            SQLIdentifier tableName,
-            CryptoMetadata cryptoMeta) {
+    Column(TypeInfo typeInfo, String columnName, SQLIdentifier tableName, CryptoMetadata cryptoMeta) {
         this.typeInfo = typeInfo;
         this.columnName = columnName;
         this.baseColumnName = columnName;
@@ -150,11 +145,10 @@ final class Column {
     /**
      * Skip this column.
      *
-     * The column's value may or may not already be marked. If this column's value has not yet been marked, this function assumes that the value is
-     * located at the current position in the response.
+     * The column's value may or may not already be marked. If this column's value has not yet been marked, this
+     * function assumes that the value is located at the current position in the response.
      */
-    final void skipValue(TDSReader tdsReader,
-            boolean isDiscard) throws SQLServerException {
+    final void skipValue(TDSReader tdsReader, boolean isDiscard) throws SQLServerException {
         getterDTV.skipValue(typeInfo, tdsReader, isDiscard);
     }
 
@@ -179,8 +173,8 @@ final class Column {
     }
 
     /**
-     * Returns true if the column value is initialized to some value by reading the stream from server i.e. it returns true, if impl of getterDTV is
-     * not set to null
+     * Returns true if the column value is initialized to some value by reading the stream from server i.e. it returns
+     * true, if impl of getterDTV is not set to null
      */
     final boolean isInitialized() {
         return getterDTV.isInitialized();
@@ -191,11 +185,10 @@ final class Column {
      *
      * If the column has not yet been read from the response then this method reads it.
      */
-    Object getValue(JDBCType jdbcType,
-            InputStreamGetterArgs getterArgs,
-            Calendar cal,
+    Object getValue(JDBCType jdbcType, InputStreamGetterArgs getterArgs, Calendar cal,
             TDSReader tdsReader) throws SQLServerException {
-        Object value = getterDTV.getValue(jdbcType, typeInfo.getScale(), getterArgs, cal, typeInfo, cryptoMetadata, tdsReader);
+        Object value = getterDTV.getValue(jdbcType, typeInfo.getScale(), getterArgs, cal, typeInfo, cryptoMetadata,
+                tdsReader);
         setInternalVariant(getterDTV.getInternalVariant());
         return (null != filter) ? filter.apply(value, jdbcType) : value;
     }
@@ -204,17 +197,10 @@ final class Column {
         return (Integer) getValue(JDBCType.INTEGER, null, null, tdsReader);
     }
 
-    void updateValue(JDBCType jdbcType,
-            Object value,
-            JavaType javaType,
-            StreamSetterArgs streamSetterArgs,
-            Calendar cal,
-            Integer scale,
-            SQLServerConnection con,
-            SQLServerStatementColumnEncryptionSetting stmtColumnEncriptionSetting,
-            Integer precision,
-            boolean forceEncrypt,
-            int parameterIndex) throws SQLServerException {
+    void updateValue(JDBCType jdbcType, Object value, JavaType javaType, StreamSetterArgs streamSetterArgs,
+            Calendar cal, Integer scale, SQLServerConnection con,
+            SQLServerStatementColumnEncryptionSetting stmtColumnEncriptionSetting, Integer precision,
+            boolean forceEncrypt, int parameterIndex) throws SQLServerException {
         SSType ssType = typeInfo.getSSType();
 
         if (null != cryptoMetadata) {
@@ -223,13 +209,14 @@ final class Column {
             }
 
             if (null != value) {
-                // for encrypted tinyint, we need to convert short value to byte value, otherwise it would be sent as smallint
-                if (JDBCType.TINYINT == cryptoMetadata.getBaseTypeInfo().getSSType().getJDBCType() && javaType == JavaType.SHORT) {
+                // for encrypted tinyint, we need to convert short value to byte value, otherwise it would be sent as
+                // smallint
+                if (JDBCType.TINYINT == cryptoMetadata.getBaseTypeInfo().getSSType().getJDBCType()
+                        && javaType == JavaType.SHORT) {
                     if (value instanceof Boolean) {
                         if (true == ((boolean) value)) {
                             value = 1;
-                        }
-                        else {
+                        } else {
                             value = 0;
                         }
                     }
@@ -265,12 +252,12 @@ final class Column {
 
         if (Util.shouldHonorAEForParameters(stmtColumnEncriptionSetting, con)) {
             if ((null == cryptoMetadata) && true == forceEncrypt) {
-                MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_ForceEncryptionTrue_HonorAETrue_UnencryptedColumnRS"));
+                MessageFormat form = new MessageFormat(
+                        SQLServerException.getErrString("R_ForceEncryptionTrue_HonorAETrue_UnencryptedColumnRS"));
                 Object[] msgArgs = {parameterIndex};
 
                 throw new SQLServerException(null, form.format(msgArgs), null, 0, false);
-            }
-            else {
+            } else {
                 setJdbcTypeSetByUser(jdbcType);
 
                 this.valueLength = Util.getValueLengthBaseOnJavaType(value, javaType, precision, scale, jdbcType);
@@ -285,10 +272,10 @@ final class Column {
                     }
                 }
             }
-        }
-        else {
+        } else {
             if (true == forceEncrypt) {
-                MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_ForceEncryptionTrue_HonorAEFalseRS"));
+                MessageFormat form = new MessageFormat(
+                        SQLServerException.getErrString("R_ForceEncryptionTrue_HonorAEFalseRS"));
                 Object[] msgArgs = {parameterIndex};
 
                 throw new SQLServerException(null, form.format(msgArgs), null, 0, false);
@@ -298,8 +285,7 @@ final class Column {
         if (null != streamSetterArgs) {
             if (!streamSetterArgs.streamType.convertsTo(typeInfo))
                 DataTypes.throwConversionError(streamSetterArgs.streamType.toString(), ssType.toString());
-        }
-        else {
+        } else {
             if (null != cryptoMetadata) {
                 // For GUID, set the JDBCType before checking for conversion
                 if ((JDBCType.UNKNOWN == jdbcType) && (value instanceof java.util.UUID)) {
@@ -319,8 +305,7 @@ final class Column {
                     jdbcType = jdbcTypeFromSSType;
                     this.valueLength = Util.getValueLengthBaseOnJavaType(value, javaType, precision, scale, jdbcType);
                 }
-            }
-            else {
+            } else {
                 if (!jdbcType.convertsTo(ssType))
                     DataTypes.throwConversionError(jdbcType.toString(), ssType.toString());
             }
@@ -328,16 +313,16 @@ final class Column {
 
         // DateTimeOffset is not supported with SQL Server versions earlier than Katmai
         if ((JDBCType.DATETIMEOFFSET == jdbcType || JavaType.DATETIMEOFFSET == javaType) && !con.isKatmaiOrLater()) {
-            throw new SQLServerException(SQLServerException.getErrString("R_notSupported"), SQLState.DATA_EXCEPTION_NOT_SPECIFIC, DriverError.NOT_SET,
-                    null);
+            throw new SQLServerException(SQLServerException.getErrString("R_notSupported"),
+                    SQLState.DATA_EXCEPTION_NOT_SPECIFIC, DriverError.NOT_SET, null);
         }
 
         // sendStringParametersAsUnicode
         // If set to true, this connection property tells the driver to send textual parameters
         // to the server as Unicode rather than MBCS. This is accomplished here by re-tagging
         // the value with the appropriate corresponding Unicode type.
-        if ((null != cryptoMetadata) && (con.sendStringParametersAsUnicode())
-                && (JavaType.STRING == javaType || JavaType.READER == javaType || JavaType.CLOB == javaType || JavaType.OBJECT == javaType)) {
+        if ((null != cryptoMetadata) && (con.sendStringParametersAsUnicode()) && (JavaType.STRING == javaType
+                || JavaType.READER == javaType || JavaType.CLOB == javaType || JavaType.OBJECT == javaType)) {
             jdbcType = getSSPAUJDBCType(jdbcType);
         }
 
@@ -351,15 +336,17 @@ final class Column {
         // provide special data conversion.
 
         // Update of Unicode SSType from textual JDBCType: Use Unicode.
-        if ((SSType.NCHAR == ssType || SSType.NVARCHAR == ssType || SSType.NVARCHARMAX == ssType || SSType.NTEXT == ssType || SSType.XML == ssType) &&
+        if ((SSType.NCHAR == ssType || SSType.NVARCHAR == ssType || SSType.NVARCHARMAX == ssType
+                || SSType.NTEXT == ssType || SSType.XML == ssType) &&
 
-                (JDBCType.CHAR == jdbcType || JDBCType.VARCHAR == jdbcType || JDBCType.LONGVARCHAR == jdbcType || JDBCType.CLOB == jdbcType)) {
+                (JDBCType.CHAR == jdbcType || JDBCType.VARCHAR == jdbcType || JDBCType.LONGVARCHAR == jdbcType
+                        || JDBCType.CLOB == jdbcType)) {
             jdbcType = (JDBCType.CLOB == jdbcType) ? JDBCType.NCLOB : JDBCType.NVARCHAR;
         }
 
         // Update of binary SSType from textual JDBCType: Convert hex to binary.
-        else if ((SSType.BINARY == ssType || SSType.VARBINARY == ssType || SSType.VARBINARYMAX == ssType || SSType.IMAGE == ssType
-                || SSType.UDT == ssType) &&
+        else if ((SSType.BINARY == ssType || SSType.VARBINARY == ssType || SSType.VARBINARYMAX == ssType
+                || SSType.IMAGE == ssType || SSType.UDT == ssType) &&
 
                 (JDBCType.CHAR == jdbcType || JDBCType.VARCHAR == jdbcType || JDBCType.LONGVARCHAR == jdbcType)) {
             jdbcType = JDBCType.VARBINARY;
@@ -367,10 +354,12 @@ final class Column {
 
         // Update of textual SSType from temporal JDBCType requires
         // client-side conversion from temporal to textual.
-        else if ((JDBCType.TIMESTAMP == jdbcType || JDBCType.DATE == jdbcType || JDBCType.TIME == jdbcType || JDBCType.DATETIMEOFFSET == jdbcType) &&
+        else if ((JDBCType.TIMESTAMP == jdbcType || JDBCType.DATE == jdbcType || JDBCType.TIME == jdbcType
+                || JDBCType.DATETIMEOFFSET == jdbcType) &&
 
-                (SSType.CHAR == ssType || SSType.VARCHAR == ssType || SSType.VARCHARMAX == ssType || SSType.TEXT == ssType || SSType.NCHAR == ssType
-                        || SSType.NVARCHAR == ssType || SSType.NVARCHARMAX == ssType || SSType.NTEXT == ssType)) {
+                (SSType.CHAR == ssType || SSType.VARCHAR == ssType || SSType.VARCHARMAX == ssType
+                        || SSType.TEXT == ssType || SSType.NCHAR == ssType || SSType.NVARCHAR == ssType
+                        || SSType.NVARCHARMAX == ssType || SSType.NTEXT == ssType)) {
             jdbcType = JDBCType.NCHAR;
         }
 
@@ -380,12 +369,13 @@ final class Column {
 
         // Set the column's value
 
-        updaterDTV.setValue(typeInfo.getSQLCollation(), jdbcType, value, javaType, streamSetterArgs, cal, scale, con, false);
+        updaterDTV.setValue(typeInfo.getSQLCollation(), jdbcType, value, javaType, streamSetterArgs, cal, scale, con,
+                false);
     }
 
     /**
-     * Used when sendStringParametersAsUnicode=true to derive the appropriate National Character Set JDBC type corresponding to the specified JDBC
-     * type.
+     * Used when sendStringParametersAsUnicode=true to derive the appropriate National Character Set JDBC type
+     * corresponding to the specified JDBC type.
      */
     private static JDBCType getSSPAUJDBCType(JDBCType jdbcType) {
         switch (jdbcType) {
@@ -402,8 +392,7 @@ final class Column {
         }
     }
 
-    private static JDBCType getJDBCTypeFromBaseSSType(SSType basicSSType,
-            JDBCType jdbcType) {
+    private static JDBCType getJDBCTypeFromBaseSSType(SSType basicSSType, JDBCType jdbcType) {
         switch (jdbcType) {
             case TIMESTAMP:
                 if (SSType.DATETIME == basicSSType)
@@ -440,8 +429,7 @@ final class Column {
         updaterDTV = null;
     }
 
-    void sendByRPC(TDSWriter tdsWriter,
-            SQLServerConnection conn) throws SQLServerException {
+    void sendByRPC(TDSWriter tdsWriter, SQLServerConnection conn) throws SQLServerException {
         // If the column has had no updates then there is nothing to send
         if (null == updaterDTV)
             return;
@@ -452,13 +440,17 @@ final class Column {
 
             // Otherwise, send the updated value via RPC
             updaterDTV.sendByRPC(baseColumnName, typeInfo,
-                    null != cryptoMetadata ? cryptoMetadata.getBaseTypeInfo().getSQLCollation() : typeInfo.getSQLCollation(),
+                    null != cryptoMetadata ? cryptoMetadata.getBaseTypeInfo().getSQLCollation()
+                                           : typeInfo.getSQLCollation(),
                     null != cryptoMetadata ? cryptoMetadata.getBaseTypeInfo().getPrecision() : typeInfo.getPrecision(),
-                    null != cryptoMetadata ? cryptoMetadata.getBaseTypeInfo().getScale() : typeInfo.getScale(), false, // isOutParameter (always false
-                                                                                                                       // for column updates)
+                    null != cryptoMetadata ? cryptoMetadata.getBaseTypeInfo().getScale() : typeInfo.getScale(), false, // isOutParameter
+                                                                                                                       // (always
+                                                                                                                       // false
+                                                                                                                       // for
+                                                                                                                       // column
+                                                                                                                       // updates)
                     tdsWriter, conn);
-        }
-        finally {
+        } finally {
             // this is for updateRow() stuff
             updaterDTV.sendCryptoMetaData(null, tdsWriter);
         }
@@ -477,7 +469,7 @@ final class Column {
     }
 }
 
+
 abstract class ColumnFilter {
-    abstract Object apply(Object value,
-            JDBCType jdbcType) throws SQLServerException;
+    abstract Object apply(Object value, JDBCType jdbcType) throws SQLServerException;
 }

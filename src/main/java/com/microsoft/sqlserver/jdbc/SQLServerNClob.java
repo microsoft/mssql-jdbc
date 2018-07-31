@@ -1,9 +1,6 @@
 /*
- * Microsoft JDBC Driver for SQL Server
- * 
- * Copyright(c) Microsoft Corporation All rights reserved.
- * 
- * This program is made available under the terms of the MIT License. See the LICENSE file in the project root for more information.
+ * Microsoft JDBC Driver for SQL Server Copyright(c) Microsoft Corporation All rights reserved. This program is made
+ * available under the terms of the MIT License. See the LICENSE file in the project root for more information.
  */
 
 package com.microsoft.sqlserver.jdbc;
@@ -18,10 +15,10 @@ import java.sql.NClob;
 import java.sql.SQLException;
 import java.util.logging.Logger;
 
-/**
- * SQLServerNClob represents a National Character Set LOB object and implements java.sql.NClob.
- */
 
+/**
+ * Represents a National Character Set LOB object and implements java.sql.NClob.
+ */
 public final class SQLServerNClob extends SQLServerClobBase implements NClob {
 
     /**
@@ -37,8 +34,7 @@ public final class SQLServerNClob extends SQLServerClobBase implements NClob {
         super(connection, "", connection.getDatabaseCollation(), logger, null);
     }
 
-    SQLServerNClob(BaseInputStream stream,
-            TypeInfo typeInfo) throws SQLServerException, UnsupportedEncodingException {
+    SQLServerNClob(BaseInputStream stream, TypeInfo typeInfo) throws SQLServerException, UnsupportedEncodingException {
         super(null, stream, typeInfo.getSQLCollation(), logger, typeInfo);
     }
 
@@ -58,14 +54,12 @@ public final class SQLServerNClob extends SQLServerClobBase implements NClob {
     }
 
     @Override
-    public Reader getCharacterStream(long pos,
-            long length) throws SQLException {
+    public Reader getCharacterStream(long pos, long length) throws SQLException {
         return super.getCharacterStream(pos, length);
     }
 
     @Override
-    public String getSubString(long pos,
-            int length) throws SQLException {
+    public String getSubString(long pos, int length) throws SQLException {
         return super.getSubString(pos, length);
     }
 
@@ -80,14 +74,12 @@ public final class SQLServerNClob extends SQLServerClobBase implements NClob {
     }
 
     @Override
-    public long position(Clob searchstr,
-            long start) throws SQLException {
+    public long position(Clob searchstr, long start) throws SQLException {
         return super.position(searchstr, start);
     }
 
     @Override
-    public long position(String searchstr,
-            long start) throws SQLException {
+    public long position(String searchstr, long start) throws SQLException {
         return super.position(searchstr, start);
     }
 
@@ -107,16 +99,12 @@ public final class SQLServerNClob extends SQLServerClobBase implements NClob {
     }
 
     @Override
-    public int setString(long pos,
-            String s) throws SQLException {
+    public int setString(long pos, String s) throws SQLException {
         return super.setString(pos, s);
     }
 
     @Override
-    public int setString(long pos,
-            String str,
-            int offset,
-            int len) throws SQLException {
+    public int setString(long pos, String str, int offset, int len) throws SQLException {
         return super.setString(pos, str, offset, len);
     }
 

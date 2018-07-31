@@ -1,9 +1,6 @@
 /*
- * Microsoft JDBC Driver for SQL Server
- * 
- * Copyright(c) Microsoft Corporation All rights reserved.
- * 
- * This program is made available under the terms of the MIT License. See the LICENSE file in the project root for more information.
+ * Microsoft JDBC Driver for SQL Server Copyright(c) Microsoft Corporation All rights reserved. This program is made
+ * available under the terms of the MIT License. See the LICENSE file in the project root for more information.
  */
 
 package com.microsoft.sqlserver.jdbc;
@@ -12,18 +9,19 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.concurrent.TimeUnit.SECONDS;
 
 import java.text.MessageFormat;
+import java.util.Base64;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.ThreadFactory;;
 
-import java.util.Base64;;
 
 class CacheClear implements Runnable {
 
     private String keylookupValue;
-    static private java.util.logging.Logger aeLogger = java.util.logging.Logger.getLogger("com.microsoft.sqlserver.jdbc.CacheClear");
+    static private java.util.logging.Logger aeLogger = java.util.logging.Logger
+            .getLogger("com.microsoft.sqlserver.jdbc.CacheClear");
 
     CacheClear(String keylookupValue) {
         this.keylookupValue = keylookupValue;
@@ -45,6 +43,7 @@ class CacheClear implements Runnable {
         }
     }
 }
+
 
 /**
  * 
@@ -80,15 +79,14 @@ final class SQLServerSymmetricKeyCache {
     }
 
     /**
-     * Retrieves key
+     * Returns key
      * 
      * @param keyInfo
-     *            contains encryption meta data information
+     *        contains encryption meta data information
      * @param connection
      * @return plain text key
      */
-    SQLServerSymmetricKey getKey(EncryptionKeyInfo keyInfo,
-            SQLServerConnection connection) throws SQLServerException {
+    SQLServerSymmetricKey getKey(EncryptionKeyInfo keyInfo, SQLServerConnection connection) throws SQLServerException {
         SQLServerSymmetricKey encryptionKey = null;
         synchronized (lock) {
             String serverName = connection.getTrustedServerNameAE();
@@ -98,7 +96,8 @@ final class SQLServerSymmetricKeyCache {
             String keyLookupValue;
             keyLookupValuebuffer.append(":");
 
-            keyLookupValuebuffer.append(Base64.getEncoder().encodeToString((new String(keyInfo.encryptedKey, UTF_8)).getBytes()));
+            keyLookupValuebuffer
+                    .append(Base64.getEncoder().encodeToString((new String(keyInfo.encryptedKey, UTF_8)).getBytes()));
 
             keyLookupValuebuffer.append(":");
             keyLookupValuebuffer.append(keyInfo.keyStoreName);
@@ -109,9 +108,11 @@ final class SQLServerSymmetricKeyCache {
                 aeLogger.fine("Checking trusted master key path...");
             }
             Boolean[] hasEntry = new Boolean[1];
-            List<String> trustedKeyPaths = SQLServerConnection.getColumnEncryptionTrustedMasterKeyPaths(serverName, hasEntry);
+            List<String> trustedKeyPaths = SQLServerConnection.getColumnEncryptionTrustedMasterKeyPaths(serverName,
+                    hasEntry);
             if (hasEntry[0]) {
-                if ((null == trustedKeyPaths) || (0 == trustedKeyPaths.size()) || (!trustedKeyPaths.contains(keyInfo.keyPath))) {
+                if ((null == trustedKeyPaths) || (0 == trustedKeyPaths.size())
+                        || (!trustedKeyPaths.contains(keyInfo.keyPath))) {
                     MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_UntrustedKeyPath"));
                     Object[] msgArgs = {keyInfo.keyPath, serverName};
                     throw new SQLServerException(this, form.format(msgArgs), null, 0, false);
@@ -126,34 +127,41 @@ final class SQLServerSymmetricKeyCache {
             if (!cache.containsKey(keyLookupValue)) {
 
                 // Check for the connection provider first.
-                SQLServerColumnEncryptionKeyStoreProvider provider = connection.getSystemColumnEncryptionKeyStoreProvider(keyInfo.keyStoreName);
+                SQLServerColumnEncryptionKeyStoreProvider provider = connection
+                        .getSystemColumnEncryptionKeyStoreProvider(keyInfo.keyStoreName);
 
                 // There is no connection provider of this name, check for the global system providers.
                 if (null == provider) {
-                    provider = SQLServerConnection.getGlobalSystemColumnEncryptionKeyStoreProvider(keyInfo.keyStoreName);
+                    provider = SQLServerConnection
+                            .getGlobalSystemColumnEncryptionKeyStoreProvider(keyInfo.keyStoreName);
                 }
 
                 // There is no global system provider of this name, check for the global custom providers.
                 if (null == provider) {
-                    provider = SQLServerConnection.getGlobalCustomColumnEncryptionKeyStoreProvider(keyInfo.keyStoreName);
+                    provider = SQLServerConnection
+                            .getGlobalCustomColumnEncryptionKeyStoreProvider(keyInfo.keyStoreName);
                 }
 
                 // No provider was found of this name.
                 if (null == provider) {
                     String systemProviders = connection.getAllSystemColumnEncryptionKeyStoreProviders();
-                    String customProviders = SQLServerConnection.getAllGlobalCustomSystemColumnEncryptionKeyStoreProviders();
-                    MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_UnrecognizedKeyStoreProviderName"));
+                    String customProviders = SQLServerConnection
+                            .getAllGlobalCustomSystemColumnEncryptionKeyStoreProviders();
+                    MessageFormat form = new MessageFormat(
+                            SQLServerException.getErrString("R_UnrecognizedKeyStoreProviderName"));
                     Object[] msgArgs = {keyInfo.keyStoreName, systemProviders, customProviders};
                     throw new SQLServerException(this, form.format(msgArgs), null, 0, false);
                 }
 
                 byte[] plaintextKey;
-                plaintextKey = provider.decryptColumnEncryptionKey(keyInfo.keyPath, keyInfo.algorithmName, keyInfo.encryptedKey);
+                plaintextKey = provider.decryptColumnEncryptionKey(keyInfo.keyPath, keyInfo.algorithmName,
+                        keyInfo.encryptedKey);
                 encryptionKey = new SQLServerSymmetricKey(plaintextKey);
 
                 /*
-                 * a ColumnEncryptionKeyCacheTtl value of '0' means no caching at all. The expected use case is to have the application set it once.
-                 * The application could set it multiple times, in which case a key gets the TTL defined at the time of its entry into the cache.
+                 * a ColumnEncryptionKeyCacheTtl value of '0' means no caching at all. The expected use case is to have
+                 * the application set it once. The application could set it multiple times, in which case a key gets
+                 * the TTL defined at the time of its entry into the cache.
                  */
                 long columnEncryptionKeyCacheTtl = SQLServerConnection.getColumnEncryptionKeyCacheTtl();
                 if (0 != columnEncryptionKeyCacheTtl) {
@@ -163,8 +171,7 @@ final class SQLServerSymmetricKeyCache {
                     }
                     scheduler.schedule(new CacheClear(keyLookupValue), columnEncryptionKeyCacheTtl, SECONDS);
                 }
-            }
-            else {
+            } else {
                 encryptionKey = cache.get(keyLookupValue);
             }
         }

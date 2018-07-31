@@ -10,7 +10,7 @@
 
 apply plugin: 'java'
 
-version = '6.5.4'
+version = '7.0.0'
 def jreVersion = ""
 def testOutputDir = file("build/classes/java/test")
 def archivesBaseName = 'mssql-jdbc'
@@ -29,7 +29,11 @@ if (!hasProperty('buildProfile') || (hasProperty('buildProfile') && buildProfile
 	
 	jreVersion = "jre10"
 	excludedFile = 'com/microsoft/sqlserver/jdbc/SQLServerJdbc42.java'
-	
+	jar {
+		manifest {
+			attributes 'Automatic-Module-Name': 'com.microsoft.sqlserver.jdbc'
+		}
+	}
 	sourceCompatibility = 10
 	targetCompatibility = 10
 }
@@ -43,7 +47,7 @@ if((hasProperty('buildProfile') && buildProfile == "build42")) {
 	targetCompatibility = 1.8
 }
 
-jar.archiveName = "${archivesBaseName}-${version}.${jreVersion}-preview.jar"
+jar.archiveName = "${archivesBaseName}-${version}.${jreVersion}.jar"
 jar {
 	manifest {
         attributes 'Title': "Microsoft JDBC Driver ${version} for SQL Server",
@@ -78,7 +82,7 @@ repositories {
 }
 
 dependencies {
-	compile 'com.microsoft.azure:azure-keyvault:1.0.0',
+	compileOnly 'com.microsoft.azure:azure-keyvault:1.0.0',
 	'com.microsoft.azure:adal4j:1.6.0'
 	testCompile 'junit:junit:4.12',
 	'org.junit.platform:junit-platform-console:1.2.0',

@@ -1,9 +1,6 @@
 /*
- * Microsoft JDBC Driver for SQL Server
- * 
- * Copyright(c) Microsoft Corporation All rights reserved.
- * 
- * This program is made available under the terms of the MIT License. See the LICENSE file in the project root for more information.
+ * Microsoft JDBC Driver for SQL Server Copyright(c) Microsoft Corporation All rights reserved. This program is made
+ * available under the terms of the MIT License. See the LICENSE file in the project root for more information.
  */
 
 package com.microsoft.sqlserver.jdbc;
@@ -31,12 +28,14 @@ import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.UUID;
 
+
 /**
- * CallableStatement implements JDBC callable statements. CallableStatement allows the caller to specify the procedure name to call along with input
- * parameter value and output parameter types. Callable statement also allows the return of a return status with the ? = call( ?, ..) JDBC syntax
+ * Provides implementation of JDBC callable statements. CallableStatement allows the caller to specify the procedure
+ * name to call along with input parameter value and output parameter types. Callable statement also allows the return
+ * of a return status with the ? = call( ?, ..) JDBC syntax
  * <p>
- * The API javadoc for JDBC API methods that this class implements are not repeated here. Please see Sun's JDBC API interfaces javadoc for those
- * details.
+ * The API javadoc for JDBC API methods that this class implements are not repeated here. Please see Sun's JDBC API
+ * interfaces javadoc for those details.
  */
 
 public class SQLServerCallableStatement extends SQLServerPreparedStatement implements ISQLServerCallableStatement {
@@ -67,28 +66,24 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
      * Create a new callable statement.
      * 
      * @param connection
-     *            the connection
+     *        the connection
      * @param sql
-     *            the users call syntax
+     *        the users call syntax
      * @param nRSType
-     *            the result set type
+     *        the result set type
      * @param nRSConcur
-     *            the result set concurrency
+     *        the result set concurrency
      * @param stmtColEncSetting
-     *            the statement column encryption setting
+     *        the statement column encryption setting
      * @throws SQLServerException
      */
-    SQLServerCallableStatement(SQLServerConnection connection,
-            String sql,
-            int nRSType,
-            int nRSConcur,
+    SQLServerCallableStatement(SQLServerConnection connection, String sql, int nRSType, int nRSConcur,
             SQLServerStatementColumnEncryptionSetting stmtColEncSetting) throws SQLServerException {
         super(connection, sql, nRSType, nRSConcur, stmtColEncSetting);
     }
 
     @Override
-    public void registerOutParameter(int index,
-            int sqlType) throws SQLServerException {
+    public void registerOutParameter(int index, int sqlType) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "registerOutParameter", new Object[] {index, sqlType});
         checkClosed();
@@ -228,8 +223,8 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
     }
 
     /**
-     * Processes the remainder of the batch up to the final or batch-terminating DONE token that marks the end of a sp_[cursor][prep]exec stored
-     * procedure call.
+     * Processes the remainder of the batch up to the final or batch-terminating DONE token that marks the end of a
+     * sp_[cursor][prep]exec stored procedure call.
      */
     private void processBatchRemainder() throws SQLServerException {
         final class ExecDoneHandler extends TDSTokenHandler {
@@ -260,8 +255,7 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
         TDSParser.parse(resultsReader(), execDoneHandler);
     }
 
-    private void skipOutParameters(int numParamsToSkip,
-            boolean discardValues) throws SQLServerException {
+    private void skipOutParameters(int numParamsToSkip, boolean discardValues) throws SQLServerException {
         /** TDS token handler for locating OUT parameters (RETURN_VALUE tokens) in the response token stream */
         final class OutParamHandler extends TDSTokenHandler {
             final StreamRetValue srv = new StreamRetValue();
@@ -335,7 +329,8 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
             // of sp_[cursor][prep]exec params.
             outParamIndex -= outParamIndexAdjustment;
             if ((outParamIndex < 0 || outParamIndex >= inOutParam.length) || (!inOutParam[outParamIndex].isOutput())) {
-                getStatementLogger().info(toString() + " Unexpected outParamIndex: " + outParamIndex + "; adjustment: " + outParamIndexAdjustment);
+                getStatementLogger().info(toString() + " Unexpected outParamIndex: " + outParamIndex + "; adjustment: "
+                        + outParamIndexAdjustment);
                 connection.throwInvalidTDS();
             }
 
@@ -344,11 +339,10 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
     }
 
     @Override
-    public void registerOutParameter(int index,
-            int sqlType,
-            String typeName) throws SQLServerException {
+    public void registerOutParameter(int index, int sqlType, String typeName) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
-            loggerExternal.entering(getClassNameLogging(), "registerOutParameter", new Object[] {index, sqlType, typeName});
+            loggerExternal.entering(getClassNameLogging(), "registerOutParameter",
+                    new Object[] {index, sqlType, typeName});
 
         checkClosed();
 
@@ -358,11 +352,10 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
     }
 
     @Override
-    public void registerOutParameter(int index,
-            int sqlType,
-            int scale) throws SQLServerException {
+    public void registerOutParameter(int index, int sqlType, int scale) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
-            loggerExternal.entering(getClassNameLogging(), "registerOutParameter", new Object[] {index, sqlType, scale});
+            loggerExternal.entering(getClassNameLogging(), "registerOutParameter",
+                    new Object[] {index, sqlType, scale});
 
         checkClosed();
 
@@ -373,12 +366,10 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
     }
 
     @Override
-    public void registerOutParameter(int index,
-            int sqlType,
-            int precision,
-            int scale) throws SQLServerException {
+    public void registerOutParameter(int index, int sqlType, int precision, int scale) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
-            loggerExternal.entering(getClassNameLogging(), "registerOutParameter", new Object[] {index, sqlType, scale, precision});
+            loggerExternal.entering(getClassNameLogging(), "registerOutParameter",
+                    new Object[] {index, sqlType, scale, precision});
 
         checkClosed();
 
@@ -403,14 +394,16 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
 
         // Check index refers to a registered OUT parameter
         if (!inOutParam[index - 1].isOutput()) {
-            MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_outputParameterNotRegisteredForOutput"));
+            MessageFormat form = new MessageFormat(
+                    SQLServerException.getErrString("R_outputParameterNotRegisteredForOutput"));
             Object[] msgArgs = {index};
             SQLServerException.makeFromDriverError(connection, this, form.format(msgArgs), "07009", true);
         }
 
         // If we haven't executed the statement yet then throw a nice friendly exception.
         if (!wasExecuted())
-            SQLServerException.makeFromDriverError(connection, this, SQLServerException.getErrString("R_statementMustBeExecuted"), "07009", false);
+            SQLServerException.makeFromDriverError(connection, this,
+                    SQLServerException.getErrString("R_statementMustBeExecuted"), "07009", false);
 
         resultsReader().getCommand().checkForInterrupt();
 
@@ -423,21 +416,19 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
         return lastParamAccessed;
     }
 
-    private Object getValue(int parameterIndex,
-            JDBCType jdbcType) throws SQLServerException {
+    private Object getValue(int parameterIndex, JDBCType jdbcType) throws SQLServerException {
         return getterGetParam(parameterIndex).getValue(jdbcType, null, null, resultsReader());
     }
 
-    private Object getValue(int parameterIndex,
-            JDBCType jdbcType,
-            Calendar cal) throws SQLServerException {
+    private Object getValue(int parameterIndex, JDBCType jdbcType, Calendar cal) throws SQLServerException {
         return getterGetParam(parameterIndex).getValue(jdbcType, null, cal, resultsReader());
     }
 
-    private Object getStream(int parameterIndex,
-            StreamType streamType) throws SQLServerException {
+    private Object getStream(int parameterIndex, StreamType streamType) throws SQLServerException {
         Object value = getterGetParam(parameterIndex).getValue(streamType.getJDBCType(),
-                new InputStreamGetterArgs(streamType, getIsResponseBufferingAdaptive(), getIsResponseBufferingAdaptive(), toString()), null, // calendar
+                new InputStreamGetterArgs(streamType, getIsResponseBufferingAdaptive(),
+                        getIsResponseBufferingAdaptive(), toString()),
+                null, // calendar
                 resultsReader());
 
         activeStream = (Closeable) value;
@@ -446,7 +437,9 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
 
     private Object getSQLXMLInternal(int parameterIndex) throws SQLServerException {
         SQLServerSQLXML value = (SQLServerSQLXML) getterGetParam(parameterIndex).getValue(JDBCType.SQLXML,
-                new InputStreamGetterArgs(StreamType.SQLXML, getIsResponseBufferingAdaptive(), getIsResponseBufferingAdaptive(), toString()), null, // calendar
+                new InputStreamGetterArgs(StreamType.SQLXML, getIsResponseBufferingAdaptive(),
+                        getIsResponseBufferingAdaptive(), toString()),
+                null, // calendar
                 resultsReader());
 
         if (null != value)
@@ -518,8 +511,7 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
 
     @Deprecated
     @Override
-    public BigDecimal getBigDecimal(int parameterIndex,
-            int scale) throws SQLException {
+    public BigDecimal getBigDecimal(int parameterIndex, int scale) throws SQLException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "getBigDecimal", new Object[] {parameterIndex, scale});
         checkClosed();
@@ -532,8 +524,7 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
 
     @Deprecated
     @Override
-    public BigDecimal getBigDecimal(String parameterName,
-            int scale) throws SQLServerException {
+    public BigDecimal getBigDecimal(String parameterName, int scale) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "getBigDecimal", new Object[] {parameterName, scale});
         checkClosed();
@@ -619,8 +610,7 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
     }
 
     @Override
-    public Date getDate(int index,
-            Calendar cal) throws SQLServerException {
+    public Date getDate(int index, Calendar cal) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "getDate", new Object[] {index, cal});
         checkClosed();
@@ -630,8 +620,7 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
     }
 
     @Override
-    public Date getDate(String parameterName,
-            Calendar cal) throws SQLServerException {
+    public Date getDate(String parameterName, Calendar cal) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "getDate", new Object[] {parameterName, cal});
         checkClosed();
@@ -701,90 +690,72 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
 
         loggerExternal.entering(getClassNameLogging(), "getObject", index);
         checkClosed();
-        Object value = getValue(index, getterGetParam(index).getJdbcTypeSetByUser() != null ? getterGetParam(index).getJdbcTypeSetByUser()
-                : getterGetParam(index).getJdbcType());
+        Object value = getValue(index,
+                getterGetParam(index).getJdbcTypeSetByUser() != null ? getterGetParam(index).getJdbcTypeSetByUser()
+                                                                     : getterGetParam(index).getJdbcType());
         loggerExternal.exiting(getClassNameLogging(), "getObject", value);
         return value;
     }
 
     @Override
-    public <T> T getObject(int index,
-            Class<T> type) throws SQLException {
+    public <T> T getObject(int index, Class<T> type) throws SQLException {
         loggerExternal.entering(getClassNameLogging(), "getObject", index);
         checkClosed();
         Object returnValue;
         if (type == String.class) {
             returnValue = getString(index);
-        }
-        else if (type == Byte.class) {
+        } else if (type == Byte.class) {
             byte byteValue = getByte(index);
             returnValue = wasNull() ? null : byteValue;
-        }
-        else if (type == Short.class) {
+        } else if (type == Short.class) {
             short shortValue = getShort(index);
             returnValue = wasNull() ? null : shortValue;
-        }
-        else if (type == Integer.class) {
+        } else if (type == Integer.class) {
             int intValue = getInt(index);
             returnValue = wasNull() ? null : intValue;
-        }
-        else if (type == Long.class) {
+        } else if (type == Long.class) {
             long longValue = getLong(index);
             returnValue = wasNull() ? null : longValue;
-        }
-        else if (type == BigDecimal.class) {
+        } else if (type == BigDecimal.class) {
             returnValue = getBigDecimal(index);
-        }
-        else if (type == Boolean.class) {
+        } else if (type == Boolean.class) {
             boolean booleanValue = getBoolean(index);
             returnValue = wasNull() ? null : booleanValue;
-        }
-        else if (type == java.sql.Date.class) {
+        } else if (type == java.sql.Date.class) {
             returnValue = getDate(index);
-        }
-        else if (type == java.sql.Time.class) {
+        } else if (type == java.sql.Time.class) {
             returnValue = getTime(index);
-        }
-        else if (type == java.sql.Timestamp.class) {
+        } else if (type == java.sql.Timestamp.class) {
             returnValue = getTimestamp(index);
-        }
-        else if (type == microsoft.sql.DateTimeOffset.class) {
+        } else if (type == microsoft.sql.DateTimeOffset.class) {
             returnValue = getDateTimeOffset(index);
-        }
-        else if (type == UUID.class) {
+        } else if (type == UUID.class) {
             // read binary, avoid string allocation and parsing
             byte[] guid = getBytes(index);
             returnValue = guid != null ? Util.readGUIDtoUUID(guid) : null;
-        }
-        else if (type == SQLXML.class) {
+        } else if (type == SQLXML.class) {
             returnValue = getSQLXML(index);
-        }
-        else if (type == Blob.class) {
+        } else if (type == Blob.class) {
             returnValue = getBlob(index);
-        }
-        else if (type == Clob.class) {
+        } else if (type == Clob.class) {
             returnValue = getClob(index);
-        }
-        else if (type == NClob.class) {
+        } else if (type == NClob.class) {
             returnValue = getNClob(index);
-        }
-        else if (type == byte[].class) {
+        } else if (type == byte[].class) {
             returnValue = getBytes(index);
-        }
-        else if (type == Float.class) {
+        } else if (type == Float.class) {
             float floatValue = getFloat(index);
             returnValue = wasNull() ? null : floatValue;
-        }
-        else if (type == Double.class) {
+        } else if (type == Double.class) {
             double doubleValue = getDouble(index);
             returnValue = wasNull() ? null : doubleValue;
-        }
-        else {
+        } else {
             // if the type is not supported the specification says the should
             // a SQLException instead of SQLFeatureNotSupportedException
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_unsupportedConversionTo"));
             Object[] msgArgs = {type};
-            throw new SQLServerException(form.format(msgArgs), SQLState.DATA_EXCEPTION_NOT_SPECIFIC, DriverError.NOT_SET, null);
+            throw new SQLServerException(form.format(msgArgs), SQLState.DATA_EXCEPTION_NOT_SPECIFIC,
+                    DriverError.NOT_SET, null);
         }
         loggerExternal.exiting(getClassNameLogging(), "getObject", index);
         return type.cast(returnValue);
@@ -796,15 +767,14 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
         checkClosed();
         int parameterIndex = findColumn(parameterName);
         Object value = getValue(parameterIndex,
-                getterGetParam(parameterIndex).getJdbcTypeSetByUser() != null ? getterGetParam(parameterIndex).getJdbcTypeSetByUser()
-                        : getterGetParam(parameterIndex).getJdbcType());
+                getterGetParam(parameterIndex).getJdbcTypeSetByUser() != null ? getterGetParam(parameterIndex)
+                        .getJdbcTypeSetByUser() : getterGetParam(parameterIndex).getJdbcType());
         loggerExternal.exiting(getClassNameLogging(), "getObject", value);
         return value;
     }
 
     @Override
-    public <T> T getObject(String parameterName,
-            Class<T> type) throws SQLException {
+    public <T> T getObject(String parameterName, Class<T> type) throws SQLException {
         loggerExternal.entering(getClassNameLogging(), "getObject", parameterName);
         checkClosed();
         int parameterIndex = findColumn(parameterName);
@@ -852,8 +822,7 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
     }
 
     @Override
-    public Time getTime(int index,
-            Calendar cal) throws SQLServerException {
+    public Time getTime(int index, Calendar cal) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "getTime", new Object[] {index, cal});
         checkClosed();
@@ -863,8 +832,7 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
     }
 
     @Override
-    public Time getTime(String parameterName,
-            Calendar cal) throws SQLServerException {
+    public Time getTime(String parameterName, Calendar cal) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "getTime", new Object[] {parameterName, cal});
         checkClosed();
@@ -893,8 +861,7 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
     }
 
     @Override
-    public Timestamp getTimestamp(int index,
-            Calendar cal) throws SQLServerException {
+    public Timestamp getTimestamp(int index, Calendar cal) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "getTimestamp", new Object[] {index, cal});
         checkClosed();
@@ -904,8 +871,7 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
     }
 
     @Override
-    public Timestamp getTimestamp(String name,
-            Calendar cal) throws SQLServerException {
+    public Timestamp getTimestamp(String name, Calendar cal) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "getTimestamp", new Object[] {name, cal});
         checkClosed();
@@ -934,8 +900,7 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
     }
 
     @Override
-    public Timestamp getDateTime(int index,
-            Calendar cal) throws SQLServerException {
+    public Timestamp getDateTime(int index, Calendar cal) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "getDateTime", new Object[] {index, cal});
         checkClosed();
@@ -945,8 +910,7 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
     }
 
     @Override
-    public Timestamp getDateTime(String name,
-            Calendar cal) throws SQLServerException {
+    public Timestamp getDateTime(String name, Calendar cal) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "getDateTime", new Object[] {name, cal});
         checkClosed();
@@ -975,8 +939,7 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
     }
 
     @Override
-    public Timestamp getSmallDateTime(int index,
-            Calendar cal) throws SQLServerException {
+    public Timestamp getSmallDateTime(int index, Calendar cal) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "getSmallDateTime", new Object[] {index, cal});
         checkClosed();
@@ -986,8 +949,7 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
     }
 
     @Override
-    public Timestamp getSmallDateTime(String name,
-            Calendar cal) throws SQLServerException {
+    public Timestamp getSmallDateTime(String name, Calendar cal) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "getSmallDateTime", new Object[] {name, cal});
         checkClosed();
@@ -1004,8 +966,8 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
 
         // DateTimeOffset is not supported with SQL Server versions earlier than Katmai
         if (!connection.isKatmaiOrLater())
-            throw new SQLServerException(SQLServerException.getErrString("R_notSupported"), SQLState.DATA_EXCEPTION_NOT_SPECIFIC, DriverError.NOT_SET,
-                    null);
+            throw new SQLServerException(SQLServerException.getErrString("R_notSupported"),
+                    SQLState.DATA_EXCEPTION_NOT_SPECIFIC, DriverError.NOT_SET, null);
 
         microsoft.sql.DateTimeOffset value = (microsoft.sql.DateTimeOffset) getValue(index, JDBCType.DATETIMEOFFSET);
         loggerExternal.exiting(getClassNameLogging(), "getDateTimeOffset", value);
@@ -1019,10 +981,11 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
 
         // DateTimeOffset is not supported with SQL Server versions earlier than Katmai
         if (!connection.isKatmaiOrLater())
-            throw new SQLServerException(SQLServerException.getErrString("R_notSupported"), SQLState.DATA_EXCEPTION_NOT_SPECIFIC, DriverError.NOT_SET,
-                    null);
+            throw new SQLServerException(SQLServerException.getErrString("R_notSupported"),
+                    SQLState.DATA_EXCEPTION_NOT_SPECIFIC, DriverError.NOT_SET, null);
 
-        microsoft.sql.DateTimeOffset value = (microsoft.sql.DateTimeOffset) getValue(findColumn(parameterName), JDBCType.DATETIMEOFFSET);
+        microsoft.sql.DateTimeOffset value = (microsoft.sql.DateTimeOffset) getValue(findColumn(parameterName),
+                JDBCType.DATETIMEOFFSET);
         loggerExternal.exiting(getClassNameLogging(), "getDateTimeOffset", value);
         return value;
     }
@@ -1187,11 +1150,9 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
         if (null != activeStream) {
             try {
                 activeStream.close();
-            }
-            catch (IOException e) {
+            } catch (IOException e) {
                 SQLServerException.makeFromDriverError(null, null, e.getMessage(), null, true);
-            }
-            finally {
+            } finally {
                 activeStream = null;
             }
         }
@@ -1234,15 +1195,13 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
     }
 
     @Override
-    public Object getObject(int parameterIndex,
-            java.util.Map<String, Class<?>> map) throws SQLException {
+    public Object getObject(int parameterIndex, java.util.Map<String, Class<?>> map) throws SQLException {
         SQLServerException.throwNotSupportedException(connection, this);
         return null;
     }
 
     @Override
-    public Object getObject(String parameterName,
-            java.util.Map<String, Class<?>> m) throws SQLException {
+    public Object getObject(String parameterName, java.util.Map<String, Class<?>> m) throws SQLException {
         checkClosed();
         return getObject(findColumn(parameterName), m);
     }
@@ -1277,16 +1236,18 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
      * Find a column's index given its name.
      * 
      * @param columnName
-     *            the name
+     *        the name
      * @throws SQLServerException
-     *             when an error occurs
+     *         when an error occurs
      * @return the index
      */
     private int findColumn(String columnName) throws SQLServerException {
         if (parameterNames == null) {
             try (SQLServerStatement s = (SQLServerStatement) connection.createStatement()) {
-                // Note we are concatenating the information from the passed in sql, not any arguments provided by the user
-                // if the user can execute the sql, any fragments of it is potentially executed via the meta data call through injection
+                // Note we are concatenating the information from the passed in sql, not any arguments provided by the
+                // user
+                // if the user can execute the sql, any fragments of it is potentially executed via the meta data call
+                // through injection
                 // is not a security issue.
 
                 ThreePartName threePartName = ThreePartName.parse(procedureName);
@@ -1306,11 +1267,11 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
                     metaQuery.append("@procedure_name=");
                     metaQuery.append(threePartName.getProcedurePart());
                     metaQuery.append(" , @ODBCVer=3");
-                }
-                else {
+                } else {
                     // This should rarely happen, this will only happen if we can't find the stored procedure name
                     // invalidly formatted call syntax.
-                    MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_parameterNotDefinedForProcedure"));
+                    MessageFormat form = new MessageFormat(
+                            SQLServerException.getErrString("R_parameterNotDefinedForProcedure"));
                     Object[] msgArgs = {columnName, ""};
                     SQLServerException.makeFromDriverError(connection, this, form.format(msgArgs), "07009", false);
                 }
@@ -1321,8 +1282,7 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
                     String parameterName = rs.getString(4);
                     parameterNames.add(parameterName.trim());
                 }
-            }
-            catch (SQLException e) {
+            } catch (SQLException e) {
                 SQLServerException.makeFromDriverError(connection, this, e.toString(), null, false);
             }
 
@@ -1339,8 +1299,7 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
         String columnNameWithoutAtSign = null;
         if (columnName.startsWith("@")) {
             columnNameWithoutAtSign = columnName.substring(1, columnName.length());
-        }
-        else {
+        } else {
             columnNameWithoutAtSign = columnName;
         }
 
@@ -1378,7 +1337,8 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
         }
 
         if (-1 == matchPos) {
-            MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_parameterNotDefinedForProcedure"));
+            MessageFormat form = new MessageFormat(
+                    SQLServerException.getErrString("R_parameterNotDefinedForProcedure"));
             Object[] msgArgs = {columnName, procedureName};
             SQLServerException.makeFromDriverError(connection, this, form.format(msgArgs), "07009", false);
         }
@@ -1392,32 +1352,29 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
     }
 
     @Override
-    public void setTimestamp(String parameterName,
-            java.sql.Timestamp value,
+    public void setTimestamp(String parameterName, java.sql.Timestamp value,
             Calendar calendar) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
-            loggerExternal.entering(getClassNameLogging(), "setTimeStamp", new Object[] {parameterName, value, calendar});
+            loggerExternal.entering(getClassNameLogging(), "setTimeStamp",
+                    new Object[] {parameterName, value, calendar});
         checkClosed();
         setValue(findColumn(parameterName), JDBCType.TIMESTAMP, value, JavaType.TIMESTAMP, calendar, false);
         loggerExternal.exiting(getClassNameLogging(), "setTimeStamp");
     }
 
     @Override
-    public void setTimestamp(String parameterName,
-            java.sql.Timestamp value,
-            Calendar calendar,
+    public void setTimestamp(String parameterName, java.sql.Timestamp value, Calendar calendar,
             boolean forceEncrypt) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
-            loggerExternal.entering(getClassNameLogging(), "setTimeStamp", new Object[] {parameterName, value, calendar, forceEncrypt});
+            loggerExternal.entering(getClassNameLogging(), "setTimeStamp",
+                    new Object[] {parameterName, value, calendar, forceEncrypt});
         checkClosed();
         setValue(findColumn(parameterName), JDBCType.TIMESTAMP, value, JavaType.TIMESTAMP, calendar, forceEncrypt);
         loggerExternal.exiting(getClassNameLogging(), "setTimeStamp");
     }
 
     @Override
-    public void setTime(String parameterName,
-            java.sql.Time value,
-            Calendar calendar) throws SQLServerException {
+    public void setTime(String parameterName, java.sql.Time value, Calendar calendar) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setTime", new Object[] {parameterName, value, calendar});
         checkClosed();
@@ -1426,21 +1383,18 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
     }
 
     @Override
-    public void setTime(String parameterName,
-            java.sql.Time value,
-            Calendar calendar,
+    public void setTime(String parameterName, java.sql.Time value, Calendar calendar,
             boolean forceEncrypt) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
-            loggerExternal.entering(getClassNameLogging(), "setTime", new Object[] {parameterName, value, calendar, forceEncrypt});
+            loggerExternal.entering(getClassNameLogging(), "setTime",
+                    new Object[] {parameterName, value, calendar, forceEncrypt});
         checkClosed();
         setValue(findColumn(parameterName), JDBCType.TIME, value, JavaType.TIME, calendar, forceEncrypt);
         loggerExternal.exiting(getClassNameLogging(), "setTime");
     }
 
     @Override
-    public void setDate(String parameterName,
-            java.sql.Date value,
-            Calendar calendar) throws SQLServerException {
+    public void setDate(String parameterName, java.sql.Date value, Calendar calendar) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setDate", new Object[] {parameterName, value, calendar});
         checkClosed();
@@ -1449,74 +1403,69 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
     }
 
     @Override
-    public void setDate(String parameterName,
-            java.sql.Date value,
-            Calendar calendar,
+    public void setDate(String parameterName, java.sql.Date value, Calendar calendar,
             boolean forceEncrypt) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
-            loggerExternal.entering(getClassNameLogging(), "setDate", new Object[] {parameterName, value, calendar, forceEncrypt});
+            loggerExternal.entering(getClassNameLogging(), "setDate",
+                    new Object[] {parameterName, value, calendar, forceEncrypt});
         checkClosed();
         setValue(findColumn(parameterName), JDBCType.DATE, value, JavaType.DATE, calendar, forceEncrypt);
         loggerExternal.exiting(getClassNameLogging(), "setDate");
     }
 
     @Override
-    public final void setCharacterStream(String parameterName,
-            Reader reader) throws SQLException {
+    public final void setCharacterStream(String parameterName, Reader reader) throws SQLException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setCharacterStream", new Object[] {parameterName, reader});
         checkClosed();
-        setStream(findColumn(parameterName), StreamType.CHARACTER, reader, JavaType.READER, DataTypes.UNKNOWN_STREAM_LENGTH);
+        setStream(findColumn(parameterName), StreamType.CHARACTER, reader, JavaType.READER,
+                DataTypes.UNKNOWN_STREAM_LENGTH);
         loggerExternal.exiting(getClassNameLogging(), "setCharacterStream");
     }
 
     @Override
-    public final void setCharacterStream(String parameterName,
-            Reader value,
-            int length) throws SQLException {
+    public final void setCharacterStream(String parameterName, Reader value, int length) throws SQLException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
-            loggerExternal.entering(getClassNameLogging(), "setCharacterStream", new Object[] {parameterName, value, length});
+            loggerExternal.entering(getClassNameLogging(), "setCharacterStream",
+                    new Object[] {parameterName, value, length});
         checkClosed();
         setStream(findColumn(parameterName), StreamType.CHARACTER, value, JavaType.READER, length);
         loggerExternal.exiting(getClassNameLogging(), "setCharacterStream");
     }
 
     @Override
-    public final void setCharacterStream(String parameterName,
-            Reader reader,
-            long length) throws SQLException {
+    public final void setCharacterStream(String parameterName, Reader reader, long length) throws SQLException {
 
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
-            loggerExternal.entering(getClassNameLogging(), "setCharacterStream", new Object[] {parameterName, reader, length});
+            loggerExternal.entering(getClassNameLogging(), "setCharacterStream",
+                    new Object[] {parameterName, reader, length});
         checkClosed();
         setStream(findColumn(parameterName), StreamType.CHARACTER, reader, JavaType.READER, length);
         loggerExternal.exiting(getClassNameLogging(), "setCharacterStream");
     }
 
     @Override
-    public final void setNCharacterStream(String parameterName,
-            Reader value) throws SQLException {
+    public final void setNCharacterStream(String parameterName, Reader value) throws SQLException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setNCharacterStream", new Object[] {parameterName, value});
         checkClosed();
-        setStream(findColumn(parameterName), StreamType.NCHARACTER, value, JavaType.READER, DataTypes.UNKNOWN_STREAM_LENGTH);
+        setStream(findColumn(parameterName), StreamType.NCHARACTER, value, JavaType.READER,
+                DataTypes.UNKNOWN_STREAM_LENGTH);
         loggerExternal.exiting(getClassNameLogging(), "setNCharacterStream");
     }
 
     @Override
-    public final void setNCharacterStream(String parameterName,
-            Reader value,
-            long length) throws SQLException {
+    public final void setNCharacterStream(String parameterName, Reader value, long length) throws SQLException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
-            loggerExternal.entering(getClassNameLogging(), "setNCharacterStream", new Object[] {parameterName, value, length});
+            loggerExternal.entering(getClassNameLogging(), "setNCharacterStream",
+                    new Object[] {parameterName, value, length});
         checkClosed();
         setStream(findColumn(parameterName), StreamType.NCHARACTER, value, JavaType.READER, length);
         loggerExternal.exiting(getClassNameLogging(), "setNCharacterStream");
     }
 
     @Override
-    public final void setClob(String parameterName,
-            Clob value) throws SQLException {
+    public final void setClob(String parameterName, Clob value) throws SQLException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setClob", new Object[] {parameterName, value});
         checkClosed();
@@ -1525,19 +1474,17 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
     }
 
     @Override
-    public final void setClob(String parameterName,
-            Reader reader) throws SQLException {
+    public final void setClob(String parameterName, Reader reader) throws SQLException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setClob", new Object[] {parameterName, reader});
         checkClosed();
-        setStream(findColumn(parameterName), StreamType.CHARACTER, reader, JavaType.READER, DataTypes.UNKNOWN_STREAM_LENGTH);
+        setStream(findColumn(parameterName), StreamType.CHARACTER, reader, JavaType.READER,
+                DataTypes.UNKNOWN_STREAM_LENGTH);
         loggerExternal.exiting(getClassNameLogging(), "setClob");
     }
 
     @Override
-    public final void setClob(String parameterName,
-            Reader value,
-            long length) throws SQLException {
+    public final void setClob(String parameterName, Reader value, long length) throws SQLException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setClob", new Object[] {parameterName, value, length});
         checkClosed();
@@ -1546,8 +1493,7 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
     }
 
     @Override
-    public final void setNClob(String parameterName,
-            NClob value) throws SQLException {
+    public final void setNClob(String parameterName, NClob value) throws SQLException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setNClob", new Object[] {parameterName, value});
         checkClosed();
@@ -1556,19 +1502,17 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
     }
 
     @Override
-    public final void setNClob(String parameterName,
-            Reader reader) throws SQLException {
+    public final void setNClob(String parameterName, Reader reader) throws SQLException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setNClob", new Object[] {parameterName, reader});
         checkClosed();
-        setStream(findColumn(parameterName), StreamType.NCHARACTER, reader, JavaType.READER, DataTypes.UNKNOWN_STREAM_LENGTH);
+        setStream(findColumn(parameterName), StreamType.NCHARACTER, reader, JavaType.READER,
+                DataTypes.UNKNOWN_STREAM_LENGTH);
         loggerExternal.exiting(getClassNameLogging(), "setNClob");
     }
 
     @Override
-    public final void setNClob(String parameterName,
-            Reader reader,
-            long length) throws SQLException {
+    public final void setNClob(String parameterName, Reader reader, long length) throws SQLException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setNClob", new Object[] {parameterName, reader, length});
         checkClosed();
@@ -1577,8 +1521,7 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
     }
 
     @Override
-    public final void setNString(String parameterName,
-            String value) throws SQLException {
+    public final void setNString(String parameterName, String value) throws SQLException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setNString", new Object[] {parameterName, value});
         checkClosed();
@@ -1587,19 +1530,17 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
     }
 
     @Override
-    public final void setNString(String parameterName,
-            String value,
-            boolean forceEncrypt) throws SQLServerException {
+    public final void setNString(String parameterName, String value, boolean forceEncrypt) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
-            loggerExternal.entering(getClassNameLogging(), "setNString", new Object[] {parameterName, value, forceEncrypt});
+            loggerExternal.entering(getClassNameLogging(), "setNString",
+                    new Object[] {parameterName, value, forceEncrypt});
         checkClosed();
         setValue(findColumn(parameterName), JDBCType.NVARCHAR, value, JavaType.STRING, forceEncrypt);
         loggerExternal.exiting(getClassNameLogging(), "setNString");
     }
 
     @Override
-    public void setObject(String parameterName,
-            Object value) throws SQLServerException {
+    public void setObject(String parameterName, Object value) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setObject", new Object[] {parameterName, value});
         checkClosed();
@@ -1608,45 +1549,38 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
     }
 
     @Override
-    public void setObject(String parameterName,
-            Object value,
-            int sqlType) throws SQLServerException {
+    public void setObject(String parameterName, Object value, int sqlType) throws SQLServerException {
         String tvpName = null;
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setObject", new Object[] {parameterName, value, sqlType});
         checkClosed();
         if (microsoft.sql.Types.STRUCTURED == sqlType) {
             tvpName = getTVPNameIfNull(findColumn(parameterName), null);
-            setObject(setterGetParam(findColumn(parameterName)), value, JavaType.TVP, JDBCType.TVP, null, null, false, findColumn(parameterName),
-                    tvpName);
-        }
-        else
-            setObject(setterGetParam(findColumn(parameterName)), value, JavaType.of(value), JDBCType.of(sqlType), null, null, false,
+            setObject(setterGetParam(findColumn(parameterName)), value, JavaType.TVP, JDBCType.TVP, null, null, false,
                     findColumn(parameterName), tvpName);
+        } else
+            setObject(setterGetParam(findColumn(parameterName)), value, JavaType.of(value), JDBCType.of(sqlType), null,
+                    null, false, findColumn(parameterName), tvpName);
         loggerExternal.exiting(getClassNameLogging(), "setObject");
     }
 
     @Override
-    public void setObject(String parameterName,
-            Object value,
-            int sqlType,
-            int decimals) throws SQLServerException {
+    public void setObject(String parameterName, Object value, int sqlType, int decimals) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
-            loggerExternal.entering(getClassNameLogging(), "setObject", new Object[] {parameterName, value, sqlType, decimals});
+            loggerExternal.entering(getClassNameLogging(), "setObject",
+                    new Object[] {parameterName, value, sqlType, decimals});
         checkClosed();
-        setObject(setterGetParam(findColumn(parameterName)), value, JavaType.of(value), JDBCType.of(sqlType), decimals, null, false,
-                findColumn(parameterName), null);
+        setObject(setterGetParam(findColumn(parameterName)), value, JavaType.of(value), JDBCType.of(sqlType), decimals,
+                null, false, findColumn(parameterName), null);
         loggerExternal.exiting(getClassNameLogging(), "setObject");
     }
 
     @Override
-    public void setObject(String parameterName,
-            Object value,
-            int sqlType,
-            int decimals,
+    public void setObject(String parameterName, Object value, int sqlType, int decimals,
             boolean forceEncrypt) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
-            loggerExternal.entering(getClassNameLogging(), "setObject", new Object[] {parameterName, value, sqlType, decimals, forceEncrypt});
+            loggerExternal.entering(getClassNameLogging(), "setObject",
+                    new Object[] {parameterName, value, sqlType, decimals, forceEncrypt});
         checkClosed();
 
         // scale - for java.sql.Types.DECIMAL or java.sql.Types.NUMERIC types,
@@ -1654,20 +1588,18 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
         // For all other types, this value will be ignored.
 
         setObject(setterGetParam(findColumn(parameterName)), value, JavaType.of(value), JDBCType.of(sqlType),
-                (java.sql.Types.NUMERIC == sqlType || java.sql.Types.DECIMAL == sqlType) ? decimals : null, null, forceEncrypt,
-                findColumn(parameterName), null);
+                (java.sql.Types.NUMERIC == sqlType || java.sql.Types.DECIMAL == sqlType) ? decimals : null, null,
+                forceEncrypt, findColumn(parameterName), null);
 
         loggerExternal.exiting(getClassNameLogging(), "setObject");
     }
 
     @Override
-    public final void setObject(String parameterName,
-            Object value,
-            int targetSqlType,
-            Integer precision,
+    public final void setObject(String parameterName, Object value, int targetSqlType, Integer precision,
             int scale) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
-            loggerExternal.entering(getClassNameLogging(), "setObject", new Object[] {parameterName, value, targetSqlType, precision, scale});
+            loggerExternal.entering(getClassNameLogging(), "setObject",
+                    new Object[] {parameterName, value, targetSqlType, precision, scale});
         checkClosed();
 
         // scale - for java.sql.Types.DECIMAL or java.sql.Types.NUMERIC types,
@@ -1676,81 +1608,76 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
         // For all other types, this value will be ignored.
 
         setObject(setterGetParam(findColumn(parameterName)), value, JavaType.of(value), JDBCType.of(targetSqlType),
-                (java.sql.Types.NUMERIC == targetSqlType || java.sql.Types.DECIMAL == targetSqlType || InputStream.class.isInstance(value)
-                        || Reader.class.isInstance(value)) ? scale : null,
+                (java.sql.Types.NUMERIC == targetSqlType || java.sql.Types.DECIMAL == targetSqlType
+                        || InputStream.class.isInstance(value) || Reader.class.isInstance(value)) ? scale : null,
                 precision, false, findColumn(parameterName), null);
 
         loggerExternal.exiting(getClassNameLogging(), "setObject");
     }
 
     @Override
-    public final void setAsciiStream(String parameterName,
-            InputStream value) throws SQLException {
+    public final void setAsciiStream(String parameterName, InputStream value) throws SQLException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setAsciiStream", new Object[] {parameterName, value});
         checkClosed();
-        setStream(findColumn(parameterName), StreamType.ASCII, value, JavaType.INPUTSTREAM, DataTypes.UNKNOWN_STREAM_LENGTH);
+        setStream(findColumn(parameterName), StreamType.ASCII, value, JavaType.INPUTSTREAM,
+                DataTypes.UNKNOWN_STREAM_LENGTH);
         loggerExternal.exiting(getClassNameLogging(), "setAsciiStream");
     }
 
     @Override
-    public final void setAsciiStream(String parameterName,
-            InputStream value,
-            int length) throws SQLException {
+    public final void setAsciiStream(String parameterName, InputStream value, int length) throws SQLException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
-            loggerExternal.entering(getClassNameLogging(), "setAsciiStream", new Object[] {parameterName, value, length});
+            loggerExternal.entering(getClassNameLogging(), "setAsciiStream",
+                    new Object[] {parameterName, value, length});
         checkClosed();
         setStream(findColumn(parameterName), StreamType.ASCII, value, JavaType.INPUTSTREAM, length);
         loggerExternal.exiting(getClassNameLogging(), "setAsciiStream");
     }
 
     @Override
-    public final void setAsciiStream(String parameterName,
-            InputStream value,
-            long length) throws SQLException {
+    public final void setAsciiStream(String parameterName, InputStream value, long length) throws SQLException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
-            loggerExternal.entering(getClassNameLogging(), "setAsciiStream", new Object[] {parameterName, value, length});
+            loggerExternal.entering(getClassNameLogging(), "setAsciiStream",
+                    new Object[] {parameterName, value, length});
         checkClosed();
         setStream(findColumn(parameterName), StreamType.ASCII, value, JavaType.INPUTSTREAM, length);
         loggerExternal.exiting(getClassNameLogging(), "setAsciiStream");
     }
 
     @Override
-    public final void setBinaryStream(String parameterName,
-            InputStream value) throws SQLException {
+    public final void setBinaryStream(String parameterName, InputStream value) throws SQLException {
 
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setBinaryStream", new Object[] {parameterName, value});
         checkClosed();
-        setStream(findColumn(parameterName), StreamType.BINARY, value, JavaType.INPUTSTREAM, DataTypes.UNKNOWN_STREAM_LENGTH);
+        setStream(findColumn(parameterName), StreamType.BINARY, value, JavaType.INPUTSTREAM,
+                DataTypes.UNKNOWN_STREAM_LENGTH);
         loggerExternal.exiting(getClassNameLogging(), "setBinaryStream");
     }
 
     @Override
-    public final void setBinaryStream(String parameterName,
-            InputStream value,
-            int length) throws SQLException {
+    public final void setBinaryStream(String parameterName, InputStream value, int length) throws SQLException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
-            loggerExternal.entering(getClassNameLogging(), "setBinaryStream", new Object[] {parameterName, value, length});
+            loggerExternal.entering(getClassNameLogging(), "setBinaryStream",
+                    new Object[] {parameterName, value, length});
         checkClosed();
         setStream(findColumn(parameterName), StreamType.BINARY, value, JavaType.INPUTSTREAM, length);
         loggerExternal.exiting(getClassNameLogging(), "setBinaryStream");
     }
 
     @Override
-    public final void setBinaryStream(String parameterName,
-            InputStream value,
-            long length) throws SQLException {
+    public final void setBinaryStream(String parameterName, InputStream value, long length) throws SQLException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
-            loggerExternal.entering(getClassNameLogging(), "setBinaryStream", new Object[] {parameterName, value, length});
+            loggerExternal.entering(getClassNameLogging(), "setBinaryStream",
+                    new Object[] {parameterName, value, length});
         checkClosed();
         setStream(findColumn(parameterName), StreamType.BINARY, value, JavaType.INPUTSTREAM, length);
         loggerExternal.exiting(getClassNameLogging(), "setBinaryStream");
     }
 
     @Override
-    public final void setBlob(String parameterName,
-            Blob inputStream) throws SQLException {
+    public final void setBlob(String parameterName, Blob inputStream) throws SQLException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setBlob", new Object[] {parameterName, inputStream});
         checkClosed();
@@ -1759,29 +1686,27 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
     }
 
     @Override
-    public final void setBlob(String parameterName,
-            InputStream value) throws SQLException {
+    public final void setBlob(String parameterName, InputStream value) throws SQLException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setBlob", new Object[] {parameterName, value});
         checkClosed();
-        setStream(findColumn(parameterName), StreamType.BINARY, value, JavaType.INPUTSTREAM, DataTypes.UNKNOWN_STREAM_LENGTH);
+        setStream(findColumn(parameterName), StreamType.BINARY, value, JavaType.INPUTSTREAM,
+                DataTypes.UNKNOWN_STREAM_LENGTH);
         loggerExternal.exiting(getClassNameLogging(), "setBlob");
     }
 
     @Override
-    public final void setBlob(String parameterName,
-            InputStream inputStream,
-            long length) throws SQLException {
+    public final void setBlob(String parameterName, InputStream inputStream, long length) throws SQLException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
-            loggerExternal.entering(getClassNameLogging(), "setBlob", new Object[] {parameterName, inputStream, length});
+            loggerExternal.entering(getClassNameLogging(), "setBlob",
+                    new Object[] {parameterName, inputStream, length});
         checkClosed();
         setStream(findColumn(parameterName), StreamType.BINARY, inputStream, JavaType.INPUTSTREAM, length);
         loggerExternal.exiting(getClassNameLogging(), "setBlob");
     }
 
     @Override
-    public void setTimestamp(String parameterName,
-            java.sql.Timestamp value) throws SQLServerException {
+    public void setTimestamp(String parameterName, java.sql.Timestamp value) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setTimestamp", new Object[] {parameterName, value});
         checkClosed();
@@ -1790,9 +1715,7 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
     }
 
     @Override
-    public void setTimestamp(String parameterName,
-            java.sql.Timestamp value,
-            int scale) throws SQLServerException {
+    public void setTimestamp(String parameterName, java.sql.Timestamp value, int scale) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setTimestamp", new Object[] {parameterName, value});
         checkClosed();
@@ -1801,20 +1724,18 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
     }
 
     @Override
-    public void setTimestamp(String parameterName,
-            java.sql.Timestamp value,
-            int scale,
+    public void setTimestamp(String parameterName, java.sql.Timestamp value, int scale,
             boolean forceEncrypt) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
-            loggerExternal.entering(getClassNameLogging(), "setTimestamp", new Object[] {parameterName, value, forceEncrypt});
+            loggerExternal.entering(getClassNameLogging(), "setTimestamp",
+                    new Object[] {parameterName, value, forceEncrypt});
         checkClosed();
         setValue(findColumn(parameterName), JDBCType.TIMESTAMP, value, JavaType.TIMESTAMP, null, scale, forceEncrypt);
         loggerExternal.exiting(getClassNameLogging(), "setTimestamp");
     }
 
     @Override
-    public void setDateTimeOffset(String parameterName,
-            microsoft.sql.DateTimeOffset value) throws SQLServerException {
+    public void setDateTimeOffset(String parameterName, microsoft.sql.DateTimeOffset value) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setDateTimeOffset", new Object[] {parameterName, value});
         checkClosed();
@@ -1823,31 +1744,30 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
     }
 
     @Override
-    public void setDateTimeOffset(String parameterName,
-            microsoft.sql.DateTimeOffset value,
+    public void setDateTimeOffset(String parameterName, microsoft.sql.DateTimeOffset value,
             int scale) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setDateTimeOffset", new Object[] {parameterName, value});
         checkClosed();
-        setValue(findColumn(parameterName), JDBCType.DATETIMEOFFSET, value, JavaType.DATETIMEOFFSET, null, scale, false);
+        setValue(findColumn(parameterName), JDBCType.DATETIMEOFFSET, value, JavaType.DATETIMEOFFSET, null, scale,
+                false);
         loggerExternal.exiting(getClassNameLogging(), "setDateTimeOffset");
     }
 
     @Override
-    public void setDateTimeOffset(String parameterName,
-            microsoft.sql.DateTimeOffset value,
-            int scale,
+    public void setDateTimeOffset(String parameterName, microsoft.sql.DateTimeOffset value, int scale,
             boolean forceEncrypt) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
-            loggerExternal.entering(getClassNameLogging(), "setDateTimeOffset", new Object[] {parameterName, value, forceEncrypt});
+            loggerExternal.entering(getClassNameLogging(), "setDateTimeOffset",
+                    new Object[] {parameterName, value, forceEncrypt});
         checkClosed();
-        setValue(findColumn(parameterName), JDBCType.DATETIMEOFFSET, value, JavaType.DATETIMEOFFSET, null, scale, forceEncrypt);
+        setValue(findColumn(parameterName), JDBCType.DATETIMEOFFSET, value, JavaType.DATETIMEOFFSET, null, scale,
+                forceEncrypt);
         loggerExternal.exiting(getClassNameLogging(), "setDateTimeOffset");
     }
 
     @Override
-    public void setDate(String parameterName,
-            java.sql.Date value) throws SQLServerException {
+    public void setDate(String parameterName, java.sql.Date value) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setDate", new Object[] {parameterName, value});
         checkClosed();
@@ -1856,8 +1776,7 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
     }
 
     @Override
-    public void setTime(String parameterName,
-            java.sql.Time value) throws SQLServerException {
+    public void setTime(String parameterName, java.sql.Time value) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setTime", new Object[] {parameterName, value});
         checkClosed();
@@ -1866,9 +1785,7 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
     }
 
     @Override
-    public void setTime(String parameterName,
-            java.sql.Time value,
-            int scale) throws SQLServerException {
+    public void setTime(String parameterName, java.sql.Time value, int scale) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setTime", new Object[] {parameterName, value});
         checkClosed();
@@ -1877,20 +1794,18 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
     }
 
     @Override
-    public void setTime(String parameterName,
-            java.sql.Time value,
-            int scale,
+    public void setTime(String parameterName, java.sql.Time value, int scale,
             boolean forceEncrypt) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
-            loggerExternal.entering(getClassNameLogging(), "setTime", new Object[] {parameterName, value, forceEncrypt});
+            loggerExternal.entering(getClassNameLogging(), "setTime",
+                    new Object[] {parameterName, value, forceEncrypt});
         checkClosed();
         setValue(findColumn(parameterName), JDBCType.TIME, value, JavaType.TIME, null, scale, forceEncrypt);
         loggerExternal.exiting(getClassNameLogging(), "setTime");
     }
 
     @Override
-    public void setDateTime(String parameterName,
-            java.sql.Timestamp value) throws SQLServerException {
+    public void setDateTime(String parameterName, java.sql.Timestamp value) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setDateTime", new Object[] {parameterName, value});
         checkClosed();
@@ -1899,19 +1814,18 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
     }
 
     @Override
-    public void setDateTime(String parameterName,
-            java.sql.Timestamp value,
+    public void setDateTime(String parameterName, java.sql.Timestamp value,
             boolean forceEncrypt) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
-            loggerExternal.entering(getClassNameLogging(), "setDateTime", new Object[] {parameterName, value, forceEncrypt});
+            loggerExternal.entering(getClassNameLogging(), "setDateTime",
+                    new Object[] {parameterName, value, forceEncrypt});
         checkClosed();
         setValue(findColumn(parameterName), JDBCType.DATETIME, value, JavaType.TIMESTAMP, forceEncrypt);
         loggerExternal.exiting(getClassNameLogging(), "setDateTime");
     }
 
     @Override
-    public void setSmallDateTime(String parameterName,
-            java.sql.Timestamp value) throws SQLServerException {
+    public void setSmallDateTime(String parameterName, java.sql.Timestamp value) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setSmallDateTime", new Object[] {parameterName, value});
         checkClosed();
@@ -1920,19 +1834,18 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
     }
 
     @Override
-    public void setSmallDateTime(String parameterName,
-            java.sql.Timestamp value,
+    public void setSmallDateTime(String parameterName, java.sql.Timestamp value,
             boolean forceEncrypt) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
-            loggerExternal.entering(getClassNameLogging(), "setSmallDateTime", new Object[] {parameterName, value, forceEncrypt});
+            loggerExternal.entering(getClassNameLogging(), "setSmallDateTime",
+                    new Object[] {parameterName, value, forceEncrypt});
         checkClosed();
         setValue(findColumn(parameterName), JDBCType.SMALLDATETIME, value, JavaType.TIMESTAMP, forceEncrypt);
         loggerExternal.exiting(getClassNameLogging(), "setSmallDateTime");
     }
 
     @Override
-    public void setUniqueIdentifier(String parameterName,
-            String guid) throws SQLServerException {
+    public void setUniqueIdentifier(String parameterName, String guid) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setUniqueIdentifier", new Object[] {parameterName, guid});
         checkClosed();
@@ -1941,19 +1854,17 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
     }
 
     @Override
-    public void setUniqueIdentifier(String parameterName,
-            String guid,
-            boolean forceEncrypt) throws SQLServerException {
+    public void setUniqueIdentifier(String parameterName, String guid, boolean forceEncrypt) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
-            loggerExternal.entering(getClassNameLogging(), "setUniqueIdentifier", new Object[] {parameterName, guid, forceEncrypt});
+            loggerExternal.entering(getClassNameLogging(), "setUniqueIdentifier",
+                    new Object[] {parameterName, guid, forceEncrypt});
         checkClosed();
         setValue(findColumn(parameterName), JDBCType.GUID, guid, JavaType.STRING, forceEncrypt);
         loggerExternal.exiting(getClassNameLogging(), "setUniqueIdentifier");
     }
 
     @Override
-    public void setBytes(String parameterName,
-            byte[] value) throws SQLServerException {
+    public void setBytes(String parameterName, byte[] value) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setBytes", new Object[] {parameterName, value});
         checkClosed();
@@ -1962,19 +1873,17 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
     }
 
     @Override
-    public void setBytes(String parameterName,
-            byte[] value,
-            boolean forceEncrypt) throws SQLServerException {
+    public void setBytes(String parameterName, byte[] value, boolean forceEncrypt) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
-            loggerExternal.entering(getClassNameLogging(), "setBytes", new Object[] {parameterName, value, forceEncrypt});
+            loggerExternal.entering(getClassNameLogging(), "setBytes",
+                    new Object[] {parameterName, value, forceEncrypt});
         checkClosed();
         setValue(findColumn(parameterName), JDBCType.BINARY, value, JavaType.BYTEARRAY, forceEncrypt);
         loggerExternal.exiting(getClassNameLogging(), "setBytes");
     }
 
     @Override
-    public void setByte(String parameterName,
-            byte value) throws SQLServerException {
+    public void setByte(String parameterName, byte value) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setByte", new Object[] {parameterName, value});
         checkClosed();
@@ -1983,19 +1892,17 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
     }
 
     @Override
-    public void setByte(String parameterName,
-            byte value,
-            boolean forceEncrypt) throws SQLServerException {
+    public void setByte(String parameterName, byte value, boolean forceEncrypt) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
-            loggerExternal.entering(getClassNameLogging(), "setByte", new Object[] {parameterName, value, forceEncrypt});
+            loggerExternal.entering(getClassNameLogging(), "setByte",
+                    new Object[] {parameterName, value, forceEncrypt});
         checkClosed();
         setValue(findColumn(parameterName), JDBCType.TINYINT, value, JavaType.BYTE, forceEncrypt);
         loggerExternal.exiting(getClassNameLogging(), "setByte");
     }
 
     @Override
-    public void setString(String parameterName,
-            String value) throws SQLServerException {
+    public void setString(String parameterName, String value) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setString", new Object[] {parameterName, value});
         checkClosed();
@@ -2004,19 +1911,17 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
     }
 
     @Override
-    public void setString(String parameterName,
-            String value,
-            boolean forceEncrypt) throws SQLServerException {
+    public void setString(String parameterName, String value, boolean forceEncrypt) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
-            loggerExternal.entering(getClassNameLogging(), "setString", new Object[] {parameterName, value, forceEncrypt});
+            loggerExternal.entering(getClassNameLogging(), "setString",
+                    new Object[] {parameterName, value, forceEncrypt});
         checkClosed();
         setValue(findColumn(parameterName), JDBCType.VARCHAR, value, JavaType.STRING, forceEncrypt);
         loggerExternal.exiting(getClassNameLogging(), "setString");
     }
 
     @Override
-    public void setMoney(String parameterName,
-            BigDecimal value) throws SQLServerException {
+    public void setMoney(String parameterName, BigDecimal value) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setMoney", new Object[] {parameterName, value});
         checkClosed();
@@ -2025,19 +1930,17 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
     }
 
     @Override
-    public void setMoney(String parameterName,
-            BigDecimal value,
-            boolean forceEncrypt) throws SQLServerException {
+    public void setMoney(String parameterName, BigDecimal value, boolean forceEncrypt) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
-            loggerExternal.entering(getClassNameLogging(), "setMoney", new Object[] {parameterName, value, forceEncrypt});
+            loggerExternal.entering(getClassNameLogging(), "setMoney",
+                    new Object[] {parameterName, value, forceEncrypt});
         checkClosed();
         setValue(findColumn(parameterName), JDBCType.MONEY, value, JavaType.BIGDECIMAL, forceEncrypt);
         loggerExternal.exiting(getClassNameLogging(), "setMoney");
     }
 
     @Override
-    public void setSmallMoney(String parameterName,
-            BigDecimal value) throws SQLServerException {
+    public void setSmallMoney(String parameterName, BigDecimal value) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setSmallMoney", new Object[] {parameterName, value});
         checkClosed();
@@ -2046,19 +1949,17 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
     }
 
     @Override
-    public void setSmallMoney(String parameterName,
-            BigDecimal value,
-            boolean forceEncrypt) throws SQLServerException {
+    public void setSmallMoney(String parameterName, BigDecimal value, boolean forceEncrypt) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
-            loggerExternal.entering(getClassNameLogging(), "setSmallMoney", new Object[] {parameterName, value, forceEncrypt});
+            loggerExternal.entering(getClassNameLogging(), "setSmallMoney",
+                    new Object[] {parameterName, value, forceEncrypt});
         checkClosed();
         setValue(findColumn(parameterName), JDBCType.SMALLMONEY, value, JavaType.BIGDECIMAL, forceEncrypt);
         loggerExternal.exiting(getClassNameLogging(), "setSmallMoney");
     }
 
     @Override
-    public void setBigDecimal(String parameterName,
-            BigDecimal value) throws SQLServerException {
+    public void setBigDecimal(String parameterName, BigDecimal value) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setBigDecimal", new Object[] {parameterName, value});
         checkClosed();
@@ -2067,33 +1968,30 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
     }
 
     @Override
-    public void setBigDecimal(String parameterName,
-            BigDecimal value,
-            int precision,
+    public void setBigDecimal(String parameterName, BigDecimal value, int precision,
             int scale) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
-            loggerExternal.entering(getClassNameLogging(), "setBigDecimal", new Object[] {parameterName, value, precision, scale});
+            loggerExternal.entering(getClassNameLogging(), "setBigDecimal",
+                    new Object[] {parameterName, value, precision, scale});
         checkClosed();
         setValue(findColumn(parameterName), JDBCType.DECIMAL, value, JavaType.BIGDECIMAL, precision, scale, false);
         loggerExternal.exiting(getClassNameLogging(), "setBigDecimal");
     }
 
     @Override
-    public void setBigDecimal(String parameterName,
-            BigDecimal value,
-            int precision,
-            int scale,
+    public void setBigDecimal(String parameterName, BigDecimal value, int precision, int scale,
             boolean forceEncrypt) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
-            loggerExternal.entering(getClassNameLogging(), "setBigDecimal", new Object[] {parameterName, value, precision, scale, forceEncrypt});
+            loggerExternal.entering(getClassNameLogging(), "setBigDecimal",
+                    new Object[] {parameterName, value, precision, scale, forceEncrypt});
         checkClosed();
-        setValue(findColumn(parameterName), JDBCType.DECIMAL, value, JavaType.BIGDECIMAL, precision, scale, forceEncrypt);
+        setValue(findColumn(parameterName), JDBCType.DECIMAL, value, JavaType.BIGDECIMAL, precision, scale,
+                forceEncrypt);
         loggerExternal.exiting(getClassNameLogging(), "setBigDecimal");
     }
 
     @Override
-    public void setDouble(String parameterName,
-            double value) throws SQLServerException {
+    public void setDouble(String parameterName, double value) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setDouble", new Object[] {parameterName, value});
         checkClosed();
@@ -2102,19 +2000,17 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
     }
 
     @Override
-    public void setDouble(String parameterName,
-            double value,
-            boolean forceEncrypt) throws SQLServerException {
+    public void setDouble(String parameterName, double value, boolean forceEncrypt) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
-            loggerExternal.entering(getClassNameLogging(), "setDouble", new Object[] {parameterName, value, forceEncrypt});
+            loggerExternal.entering(getClassNameLogging(), "setDouble",
+                    new Object[] {parameterName, value, forceEncrypt});
         checkClosed();
         setValue(findColumn(parameterName), JDBCType.DOUBLE, value, JavaType.DOUBLE, forceEncrypt);
         loggerExternal.exiting(getClassNameLogging(), "setDouble");
     }
 
     @Override
-    public void setFloat(String parameterName,
-            float value) throws SQLServerException {
+    public void setFloat(String parameterName, float value) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setFloat", new Object[] {parameterName, value});
         checkClosed();
@@ -2123,19 +2019,17 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
     }
 
     @Override
-    public void setFloat(String parameterName,
-            float value,
-            boolean forceEncrypt) throws SQLServerException {
+    public void setFloat(String parameterName, float value, boolean forceEncrypt) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
-            loggerExternal.entering(getClassNameLogging(), "setFloat", new Object[] {parameterName, value, forceEncrypt});
+            loggerExternal.entering(getClassNameLogging(), "setFloat",
+                    new Object[] {parameterName, value, forceEncrypt});
         checkClosed();
         setValue(findColumn(parameterName), JDBCType.REAL, value, JavaType.FLOAT, forceEncrypt);
         loggerExternal.exiting(getClassNameLogging(), "setFloat");
     }
 
     @Override
-    public void setInt(String parameterName,
-            int value) throws SQLServerException {
+    public void setInt(String parameterName, int value) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setInt", new Object[] {parameterName, value});
         checkClosed();
@@ -2144,9 +2038,7 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
     }
 
     @Override
-    public void setInt(String parameterName,
-            int value,
-            boolean forceEncrypt) throws SQLServerException {
+    public void setInt(String parameterName, int value, boolean forceEncrypt) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setInt", new Object[] {parameterName, value, forceEncrypt});
         checkClosed();
@@ -2155,8 +2047,7 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
     }
 
     @Override
-    public void setLong(String parameterName,
-            long value) throws SQLServerException {
+    public void setLong(String parameterName, long value) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setLong", new Object[] {parameterName, value});
         checkClosed();
@@ -2165,19 +2056,17 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
     }
 
     @Override
-    public void setLong(String parameterName,
-            long value,
-            boolean forceEncrypt) throws SQLServerException {
+    public void setLong(String parameterName, long value, boolean forceEncrypt) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
-            loggerExternal.entering(getClassNameLogging(), "setLong", new Object[] {parameterName, value, forceEncrypt});
+            loggerExternal.entering(getClassNameLogging(), "setLong",
+                    new Object[] {parameterName, value, forceEncrypt});
         checkClosed();
         setValue(findColumn(parameterName), JDBCType.BIGINT, value, JavaType.LONG, forceEncrypt);
         loggerExternal.exiting(getClassNameLogging(), "setLong");
     }
 
     @Override
-    public void setShort(String parameterName,
-            short value) throws SQLServerException {
+    public void setShort(String parameterName, short value) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setShort", new Object[] {parameterName, value});
         checkClosed();
@@ -2186,19 +2075,17 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
     }
 
     @Override
-    public void setShort(String parameterName,
-            short value,
-            boolean forceEncrypt) throws SQLServerException {
+    public void setShort(String parameterName, short value, boolean forceEncrypt) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
-            loggerExternal.entering(getClassNameLogging(), "setShort", new Object[] {parameterName, value, forceEncrypt});
+            loggerExternal.entering(getClassNameLogging(), "setShort",
+                    new Object[] {parameterName, value, forceEncrypt});
         checkClosed();
         setValue(findColumn(parameterName), JDBCType.SMALLINT, value, JavaType.SHORT, forceEncrypt);
         loggerExternal.exiting(getClassNameLogging(), "setShort");
     }
 
     @Override
-    public void setBoolean(String parameterName,
-            boolean value) throws SQLServerException {
+    public void setBoolean(String parameterName, boolean value) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setBoolean", new Object[] {parameterName, value});
         checkClosed();
@@ -2207,42 +2094,37 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
     }
 
     @Override
-    public void setBoolean(String parameterName,
-            boolean value,
-            boolean forceEncrypt) throws SQLServerException {
+    public void setBoolean(String parameterName, boolean value, boolean forceEncrypt) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
-            loggerExternal.entering(getClassNameLogging(), "setBoolean", new Object[] {parameterName, value, forceEncrypt});
+            loggerExternal.entering(getClassNameLogging(), "setBoolean",
+                    new Object[] {parameterName, value, forceEncrypt});
         checkClosed();
         setValue(findColumn(parameterName), JDBCType.BIT, value, JavaType.BOOLEAN, forceEncrypt);
         loggerExternal.exiting(getClassNameLogging(), "setBoolean");
     }
 
     @Override
-    public void setNull(String parameterName,
-            int nType) throws SQLServerException {
+    public void setNull(String parameterName, int nType) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setNull", new Object[] {parameterName, nType});
         checkClosed();
-        setObject(setterGetParam(findColumn(parameterName)), null, JavaType.OBJECT, JDBCType.of(nType), null, null, false, findColumn(parameterName),
-                null);
+        setObject(setterGetParam(findColumn(parameterName)), null, JavaType.OBJECT, JDBCType.of(nType), null, null,
+                false, findColumn(parameterName), null);
         loggerExternal.exiting(getClassNameLogging(), "setNull");
     }
 
     @Override
-    public void setNull(String parameterName,
-            int nType,
-            String sTypeName) throws SQLServerException {
+    public void setNull(String parameterName, int nType, String sTypeName) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setNull", new Object[] {parameterName, nType, sTypeName});
         checkClosed();
-        setObject(setterGetParam(findColumn(parameterName)), null, JavaType.OBJECT, JDBCType.of(nType), null, null, false, findColumn(parameterName),
-                sTypeName);
+        setObject(setterGetParam(findColumn(parameterName)), null, JavaType.OBJECT, JDBCType.of(nType), null, null,
+                false, findColumn(parameterName), sTypeName);
         loggerExternal.exiting(getClassNameLogging(), "setNull");
     }
 
     @Override
-    public void setURL(String parameterName,
-            URL url) throws SQLException {
+    public void setURL(String parameterName, URL url) throws SQLException {
         loggerExternal.entering(getClassNameLogging(), "setURL", parameterName);
         checkClosed();
         setURL(findColumn(parameterName), url);
@@ -2250,36 +2132,36 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
     }
 
     @Override
-    public final void setStructured(String parameterName,
-            String tvpName,
+    public final void setStructured(String parameterName, String tvpName,
             SQLServerDataTable tvpDataTable) throws SQLServerException {
         tvpName = getTVPNameIfNull(findColumn(parameterName), tvpName);
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
-            loggerExternal.entering(getClassNameLogging(), "setStructured", new Object[] {parameterName, tvpName, tvpDataTable});
+            loggerExternal.entering(getClassNameLogging(), "setStructured",
+                    new Object[] {parameterName, tvpName, tvpDataTable});
         checkClosed();
         setValue(findColumn(parameterName), JDBCType.TVP, tvpDataTable, JavaType.TVP, tvpName);
         loggerExternal.exiting(getClassNameLogging(), "setStructured");
     }
 
     @Override
-    public final void setStructured(String parameterName,
-            String tvpName,
+    public final void setStructured(String parameterName, String tvpName,
             ResultSet tvpResultSet) throws SQLServerException {
         tvpName = getTVPNameIfNull(findColumn(parameterName), tvpName);
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
-            loggerExternal.entering(getClassNameLogging(), "setStructured", new Object[] {parameterName, tvpName, tvpResultSet});
+            loggerExternal.entering(getClassNameLogging(), "setStructured",
+                    new Object[] {parameterName, tvpName, tvpResultSet});
         checkClosed();
         setValue(findColumn(parameterName), JDBCType.TVP, tvpResultSet, JavaType.TVP, tvpName);
         loggerExternal.exiting(getClassNameLogging(), "setStructured");
     }
 
     @Override
-    public final void setStructured(String parameterName,
-            String tvpName,
+    public final void setStructured(String parameterName, String tvpName,
             ISQLServerDataRecord tvpDataRecord) throws SQLServerException {
         tvpName = getTVPNameIfNull(findColumn(parameterName), tvpName);
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
-            loggerExternal.entering(getClassNameLogging(), "setStructured", new Object[] {parameterName, tvpName, tvpDataRecord});
+            loggerExternal.entering(getClassNameLogging(), "setStructured",
+                    new Object[] {parameterName, tvpName, tvpDataRecord});
         checkClosed();
         setValue(findColumn(parameterName), JDBCType.TVP, tvpDataRecord, JavaType.TVP, tvpName);
         loggerExternal.exiting(getClassNameLogging(), "setStructured");
@@ -2298,8 +2180,7 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
     }
 
     @Override
-    public final void setSQLXML(String parameterName,
-            SQLXML xmlObject) throws SQLException {
+    public final void setSQLXML(String parameterName, SQLXML xmlObject) throws SQLException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setSQLXML", new Object[] {parameterName, xmlObject});
         checkClosed();
@@ -2326,8 +2207,7 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
     }
 
     @Override
-    public final void setRowId(String parameterName,
-            RowId value) throws SQLException {
+    public final void setRowId(String parameterName, RowId value) throws SQLException {
         SQLServerException.throwNotSupportedException(connection, this);
     }
 
@@ -2344,55 +2224,52 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
     }
 
     @Override
-    public void registerOutParameter(String parameterName,
-            int sqlType,
-            String typeName) throws SQLServerException {
+    public void registerOutParameter(String parameterName, int sqlType, String typeName) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
-            loggerExternal.entering(getClassNameLogging(), "registerOutParameter", new Object[] {parameterName, sqlType, typeName});
+            loggerExternal.entering(getClassNameLogging(), "registerOutParameter",
+                    new Object[] {parameterName, sqlType, typeName});
         checkClosed();
         registerOutParameter(findColumn(parameterName), sqlType, typeName);
         loggerExternal.exiting(getClassNameLogging(), "registerOutParameter");
     }
 
     @Override
-    public void registerOutParameter(String parameterName,
-            int sqlType,
-            int scale) throws SQLServerException {
+    public void registerOutParameter(String parameterName, int sqlType, int scale) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
-            loggerExternal.entering(getClassNameLogging(), "registerOutParameter", new Object[] {parameterName, sqlType, scale});
+            loggerExternal.entering(getClassNameLogging(), "registerOutParameter",
+                    new Object[] {parameterName, sqlType, scale});
         checkClosed();
         registerOutParameter(findColumn(parameterName), sqlType, scale);
         loggerExternal.exiting(getClassNameLogging(), "registerOutParameter");
     }
 
     @Override
-    public void registerOutParameter(String parameterName,
-            int sqlType,
-            int precision,
+    public void registerOutParameter(String parameterName, int sqlType, int precision,
             int scale) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
-            loggerExternal.entering(getClassNameLogging(), "registerOutParameter", new Object[] {parameterName, sqlType, scale});
+            loggerExternal.entering(getClassNameLogging(), "registerOutParameter",
+                    new Object[] {parameterName, sqlType, scale});
         checkClosed();
         registerOutParameter(findColumn(parameterName), sqlType, precision, scale);
         loggerExternal.exiting(getClassNameLogging(), "registerOutParameter");
     }
 
     @Override
-    public void registerOutParameter(String parameterName,
-            int sqlType) throws SQLServerException {
+    public void registerOutParameter(String parameterName, int sqlType) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
-            loggerExternal.entering(getClassNameLogging(), "registerOutParameter", new Object[] {parameterName, sqlType});
+            loggerExternal.entering(getClassNameLogging(), "registerOutParameter",
+                    new Object[] {parameterName, sqlType});
         checkClosed();
         registerOutParameter(findColumn(parameterName), sqlType);
         loggerExternal.exiting(getClassNameLogging(), "registerOutParameter");
     }
 
     @Override
-    public void registerOutParameter(int paramterIndex,
-            SQLType sqlType) throws SQLServerException {
+    public void registerOutParameter(int paramterIndex, SQLType sqlType) throws SQLServerException {
 
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
-            loggerExternal.entering(getClassNameLogging(), "registerOutParameter", new Object[] {paramterIndex, sqlType});
+            loggerExternal.entering(getClassNameLogging(), "registerOutParameter",
+                    new Object[] {paramterIndex, sqlType});
 
         // getVendorTypeNumber() returns the same constant integer values as in java.sql.Types
         registerOutParameter(paramterIndex, sqlType.getVendorTypeNumber());
@@ -2400,12 +2277,11 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
     }
 
     @Override
-    public void registerOutParameter(int paramterIndex,
-            SQLType sqlType,
-            String typeName) throws SQLServerException {
+    public void registerOutParameter(int paramterIndex, SQLType sqlType, String typeName) throws SQLServerException {
 
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
-            loggerExternal.entering(getClassNameLogging(), "registerOutParameter", new Object[] {paramterIndex, sqlType, typeName});
+            loggerExternal.entering(getClassNameLogging(), "registerOutParameter",
+                    new Object[] {paramterIndex, sqlType, typeName});
 
         // getVendorTypeNumber() returns the same constant integer values as in java.sql.Types
         registerOutParameter(paramterIndex, sqlType.getVendorTypeNumber(), typeName);
@@ -2413,12 +2289,11 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
     }
 
     @Override
-    public void registerOutParameter(int paramterIndex,
-            SQLType sqlType,
-            int scale) throws SQLServerException {
+    public void registerOutParameter(int paramterIndex, SQLType sqlType, int scale) throws SQLServerException {
 
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
-            loggerExternal.entering(getClassNameLogging(), "registerOutParameter", new Object[] {paramterIndex, sqlType, scale});
+            loggerExternal.entering(getClassNameLogging(), "registerOutParameter",
+                    new Object[] {paramterIndex, sqlType, scale});
 
         // getVendorTypeNumber() returns the same constant integer values as in java.sql.Types
         registerOutParameter(paramterIndex, sqlType.getVendorTypeNumber(), scale);
@@ -2426,13 +2301,12 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
     }
 
     @Override
-    public void registerOutParameter(int paramterIndex,
-            SQLType sqlType,
-            int precision,
+    public void registerOutParameter(int paramterIndex, SQLType sqlType, int precision,
             int scale) throws SQLServerException {
 
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
-            loggerExternal.entering(getClassNameLogging(), "registerOutParameter", new Object[] {paramterIndex, sqlType, scale});
+            loggerExternal.entering(getClassNameLogging(), "registerOutParameter",
+                    new Object[] {paramterIndex, sqlType, scale});
 
         // getVendorTypeNumber() returns the same constant integer values as in java.sql.Types
         registerOutParameter(paramterIndex, sqlType.getVendorTypeNumber(), precision, scale);
@@ -2440,9 +2314,7 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
     }
 
     @Override
-    public void setObject(String parameterName,
-            Object value,
-            SQLType jdbcType) throws SQLServerException {
+    public void setObject(String parameterName, Object value, SQLType jdbcType) throws SQLServerException {
 
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setObject", new Object[] {parameterName, value, jdbcType});
@@ -2453,13 +2325,11 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
     }
 
     @Override
-    public void setObject(String parameterName,
-            Object value,
-            SQLType jdbcType,
-            int scale) throws SQLServerException {
+    public void setObject(String parameterName, Object value, SQLType jdbcType, int scale) throws SQLServerException {
 
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
-            loggerExternal.entering(getClassNameLogging(), "setObject", new Object[] {parameterName, value, jdbcType, scale});
+            loggerExternal.entering(getClassNameLogging(), "setObject",
+                    new Object[] {parameterName, value, jdbcType, scale});
 
         // getVendorTypeNumber() returns the same constant integer values as in java.sql.Types
         setObject(parameterName, value, jdbcType.getVendorTypeNumber(), scale);
@@ -2467,14 +2337,12 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
     }
 
     @Override
-    public void setObject(String parameterName,
-            Object value,
-            SQLType jdbcType,
-            int scale,
+    public void setObject(String parameterName, Object value, SQLType jdbcType, int scale,
             boolean forceEncrypt) throws SQLServerException {
 
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
-            loggerExternal.entering(getClassNameLogging(), "setObject", new Object[] {parameterName, value, jdbcType, scale, forceEncrypt});
+            loggerExternal.entering(getClassNameLogging(), "setObject",
+                    new Object[] {parameterName, value, jdbcType, scale, forceEncrypt});
 
         // getVendorTypeNumber() returns the same constant integer values as in java.sql.Types
         setObject(parameterName, value, jdbcType.getVendorTypeNumber(), scale, forceEncrypt);
@@ -2482,12 +2350,11 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
     }
 
     @Override
-    public void registerOutParameter(String parameterName,
-            SQLType sqlType,
-            String typeName) throws SQLServerException {
+    public void registerOutParameter(String parameterName, SQLType sqlType, String typeName) throws SQLServerException {
 
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
-            loggerExternal.entering(getClassNameLogging(), "registerOutParameter", new Object[] {parameterName, sqlType, typeName});
+            loggerExternal.entering(getClassNameLogging(), "registerOutParameter",
+                    new Object[] {parameterName, sqlType, typeName});
 
         // getVendorTypeNumber() returns the same constant integer values as in java.sql.Types
         registerOutParameter(parameterName, sqlType.getVendorTypeNumber(), typeName);
@@ -2495,12 +2362,11 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
     }
 
     @Override
-    public void registerOutParameter(String parameterName,
-            SQLType sqlType,
-            int scale) throws SQLServerException {
+    public void registerOutParameter(String parameterName, SQLType sqlType, int scale) throws SQLServerException {
 
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
-            loggerExternal.entering(getClassNameLogging(), "registerOutParameter", new Object[] {parameterName, sqlType, scale});
+            loggerExternal.entering(getClassNameLogging(), "registerOutParameter",
+                    new Object[] {parameterName, sqlType, scale});
 
         // getVendorTypeNumber() returns the same constant integer values as in java.sql.Types
         registerOutParameter(parameterName, sqlType.getVendorTypeNumber(), scale);
@@ -2508,13 +2374,12 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
     }
 
     @Override
-    public void registerOutParameter(String parameterName,
-            SQLType sqlType,
-            int precision,
+    public void registerOutParameter(String parameterName, SQLType sqlType, int precision,
             int scale) throws SQLServerException {
 
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
-            loggerExternal.entering(getClassNameLogging(), "registerOutParameter", new Object[] {parameterName, sqlType, scale});
+            loggerExternal.entering(getClassNameLogging(), "registerOutParameter",
+                    new Object[] {parameterName, sqlType, scale});
 
         // getVendorTypeNumber() returns the same constant integer values as in java.sql.Types
         registerOutParameter(parameterName, sqlType.getVendorTypeNumber(), precision, scale);
@@ -2522,11 +2387,11 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
     }
 
     @Override
-    public void registerOutParameter(String parameterName,
-            SQLType sqlType) throws SQLServerException {
+    public void registerOutParameter(String parameterName, SQLType sqlType) throws SQLServerException {
 
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
-            loggerExternal.entering(getClassNameLogging(), "registerOutParameter", new Object[] {parameterName, sqlType});
+            loggerExternal.entering(getClassNameLogging(), "registerOutParameter",
+                    new Object[] {parameterName, sqlType});
 
         // getVendorTypeNumber() returns the same constant integer values as in java.sql.Types
         registerOutParameter(parameterName, sqlType.getVendorTypeNumber());

@@ -1,9 +1,6 @@
 /*
- * Microsoft JDBC Driver for SQL Server
- * 
- * Copyright(c) Microsoft Corporation All rights reserved.
- * 
- * This program is made available under the terms of the MIT License. See the LICENSE file in the project root for more information.
+ * Microsoft JDBC Driver for SQL Server Copyright(c) Microsoft Corporation All rights reserved. This program is made
+ * available under the terms of the MIT License. See the LICENSE file in the project root for more information.
  */
 package com.microsoft.sqlserver.jdbc.resultset;
 
@@ -12,6 +9,7 @@ import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.sql.Statement;
+
 import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
@@ -22,6 +20,7 @@ import com.microsoft.sqlserver.testframework.AbstractTest;
 import com.microsoft.sqlserver.testframework.Utils;
 import com.microsoft.sqlserver.testframework.util.RandomUtil;
 import com.microsoft.sqlserver.testframework.util.Util;
+
 
 @RunWith(JUnitPlatform.class)
 public class DataClassificationTest extends AbstractTest {
@@ -35,7 +34,8 @@ public class DataClassificationTest extends AbstractTest {
     @Test
     public void testDataClassificationMetadata() throws Exception {
         // Run this test only with newer SQL Servers (version>=2018) that support Data Classification
-        try (Connection con = DriverManager.getConnection(connectionString); Statement stmt = connection.createStatement();) {
+        try (Connection con = DriverManager.getConnection(connectionString);
+                Statement stmt = connection.createStatement();) {
             if (Util.serverSupportsDataClassification(stmt)) {
                 createTable(connection, stmt);
                 runTestsForServer(stmt);
@@ -51,11 +51,12 @@ public class DataClassificationTest extends AbstractTest {
      * @param stmt
      * @throws SQLException
      */
-    private void createTable(Connection connection,
-            Statement stmt) throws SQLException {
-        String createQuery = "CREATE TABLE " + tableName + " (" + "[Id] [int] IDENTITY(1,1) NOT NULL," + "[CompanyName] [nvarchar](40) NOT NULL,"
-                + "[ContactName] [nvarchar](50) NULL," + "[ContactTitle] [nvarchar](40) NULL," + "[City] [nvarchar](40) NULL,"
-                + "[Country] [nvarchar](40) NULL," + "[Phone] [nvarchar](30) MASKED WITH (FUNCTION = 'default()') NULL,"
+    private void createTable(Connection connection, Statement stmt) throws SQLException {
+        String createQuery = "CREATE TABLE " + tableName + " (" + "[Id] [int] IDENTITY(1,1) NOT NULL,"
+                + "[CompanyName] [nvarchar](40) NOT NULL," + "[ContactName] [nvarchar](50) NULL,"
+                + "[ContactTitle] [nvarchar](40) NULL," + "[City] [nvarchar](40) NULL,"
+                + "[CountryName] [nvarchar](40) NULL,"
+                + "[Phone] [nvarchar](30) MASKED WITH (FUNCTION = 'default()') NULL,"
                 + "[Fax] [nvarchar](30) MASKED WITH (FUNCTION = 'default()') NULL)";
         stmt.execute(createQuery);
 
@@ -69,7 +70,8 @@ public class DataClassificationTest extends AbstractTest {
                 + ".Fax WITH (LABEL='PII', LABEL_ID='L1', INFORMATION_TYPE='Contact Information', INFORMATION_TYPE_ID='CONTACT')");
 
         // INSERT ROWS OF DATA
-        try (PreparedStatement ps = connection.prepareStatement("INSERT INTO " + tableName + " VALUES (?,?,?,?,?,?,?)")) {
+        try (PreparedStatement ps = connection
+                .prepareStatement("INSERT INTO " + tableName + " VALUES (?,?,?,?,?,?,?)")) {
 
             ps.setString(1, "Exotic Liquids");
             ps.setString(2, "Charlotte Cooper");
@@ -120,17 +122,21 @@ public class DataClassificationTest extends AbstractTest {
      */
     private void verifySensitivityClassification(SQLServerResultSet rs) throws SQLException {
         if (null != rs.getSensitivityClassification()) {
-            for (int columnPos = 0; columnPos < rs.getSensitivityClassification().getColumnSensitivities().size(); columnPos++) {
-                for (SensitivityProperty sp : rs.getSensitivityClassification().getColumnSensitivities().get(columnPos).getSensitivityProperties()) {
+            for (int columnPos = 0; columnPos < rs.getSensitivityClassification().getColumnSensitivities().size();
+                    columnPos++) {
+                for (SensitivityProperty sp : rs.getSensitivityClassification().getColumnSensitivities().get(columnPos)
+                        .getSensitivityProperties()) {
                     if (columnPos == 1 || columnPos == 2 || columnPos == 6 || columnPos == 7) {
                         assert (sp.getLabel() != null);
                         assert (sp.getLabel().getId().equalsIgnoreCase("L1"));
                         assert (sp.getLabel().getName().equalsIgnoreCase("PII"));
 
                         assert (sp.getInformationType() != null);
-                        assert (sp.getInformationType().getId().equalsIgnoreCase(columnPos == 1 ? "COMPANY" : (columnPos == 2 ? "NAME" : "CONTACT")));
-                        assert (sp.getInformationType().getName()
-                                .equalsIgnoreCase(columnPos == 1 ? "Company name" : (columnPos == 2 ? "Person Name" : "Contact Information")));
+                        assert (sp.getInformationType().getId()
+                                .equalsIgnoreCase(columnPos == 1 ? "COMPANY" : (columnPos == 2 ? "NAME" : "CONTACT")));
+                        assert (sp.getInformationType().getName().equalsIgnoreCase(
+                                columnPos == 1 ? "Company name"
+                                               : (columnPos == 2 ? "Person Name" : "Contact Information")));
                     }
                 }
             }

@@ -1,9 +1,6 @@
 /*
- * Microsoft JDBC Driver for SQL Server
- * 
- * Copyright(c) Microsoft Corporation All rights reserved.
- * 
- * This program is made available under the terms of the MIT License. See the LICENSE file in the project root for more information.
+ * Microsoft JDBC Driver for SQL Server Copyright(c) Microsoft Corporation All rights reserved. This program is made
+ * available under the terms of the MIT License. See the LICENSE file in the project root for more information.
  */
 package com.microsoft.sqlserver.jdbc.connection;
 
@@ -15,7 +12,6 @@ import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.DriverManager;
 import java.sql.Statement;
-
 import java.text.MessageFormat;
 
 import org.junit.jupiter.api.Test;
@@ -26,6 +22,7 @@ import com.microsoft.sqlserver.jdbc.SQLServerException;
 import com.microsoft.sqlserver.jdbc.StringUtils;
 import com.microsoft.sqlserver.jdbc.TestResource;
 import com.microsoft.sqlserver.testframework.AbstractTest;
+
 
 /**
  * Tests new connection property sslProtocol
@@ -49,15 +46,13 @@ public class SSLProtocolTest extends AbstractTest {
             DatabaseMetaData dbmd = con.getMetaData();
             assertNotNull(dbmd);
             assertTrue(!StringUtils.isEmpty(dbmd.getDatabaseProductName()));
-        }
-        catch (SQLServerException e) {
+        } catch (SQLServerException e) {
             // Some older versions of SQLServer might not have all the TLS protocol versions enabled.
             // Example, if the highest TLS version enabled in the server is TLSv1.1,
             // the connection will fail if we enable only TLSv1.2
             assertTrue(e.getMessage().contains(TestResource.getResource("R_noProtocolVersion")));
         }
     }
-
 
     /**
      * Connect with unsupported protocol
@@ -70,13 +65,13 @@ public class SSLProtocolTest extends AbstractTest {
             String url = connectionString + ";sslProtocol=" + sslProtocol;
             con = DriverManager.getConnection(url);
             assertFalse(true, TestResource.getResource("R_protocolVersion"));
-        }
-        catch (SQLServerException e) {
+        } catch (SQLServerException e) {
             assertTrue(true, TestResource.getResource("R_shouldThrowException"));
             MessageFormat form = new MessageFormat(TestResource.getResource("R_invalidProtocolLabel"));
             Object[] msgArgs = {sslProtocol};
             String errMsg = form.format(msgArgs);
-            assertTrue(errMsg.equals(e.getMessage()), TestResource.getResource("R_SQLServerResourceMessage") + e.getMessage());
+            assertTrue(errMsg.equals(e.getMessage()),
+                    TestResource.getResource("R_SQLServerResourceMessage") + e.getMessage());
         }
     }
 
@@ -87,7 +82,8 @@ public class SSLProtocolTest extends AbstractTest {
      */
     @Test
     public void testConnectWithWrongProtocols() throws Exception {
-        String[] wrongProtocols = {"SSLv1111", "SSLv2222", "SSLv3111", "SSLv2Hello1111", "TLSv1.11", "TLSv2.4", "random"};
+        String[] wrongProtocols = {"SSLv1111", "SSLv2222", "SSLv3111", "SSLv2Hello1111", "TLSv1.11", "TLSv2.4",
+                "random"};
         for (String wrongProtocol : wrongProtocols) {
             testWithUnSupportedProtocols(wrongProtocol);
         }
@@ -106,4 +102,3 @@ public class SSLProtocolTest extends AbstractTest {
         }
     }
 }
-

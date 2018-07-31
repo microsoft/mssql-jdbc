@@ -1,9 +1,6 @@
 /*
- * Microsoft JDBC Driver for SQL Server
- * 
- * Copyright(c) Microsoft Corporation All rights reserved.
- * 
- * This program is made available under the terms of the MIT License. See the LICENSE file in the project root for more information.
+ * Microsoft JDBC Driver for SQL Server Copyright(c) Microsoft Corporation All rights reserved. This program is made
+ * available under the terms of the MIT License. See the LICENSE file in the project root for more information.
  */
 
 package com.microsoft.sqlserver.jdbc;
@@ -11,20 +8,22 @@ package com.microsoft.sqlserver.jdbc;
 import java.sql.SQLException;
 import java.util.concurrent.atomic.AtomicInteger;
 
-/**
- * A ResultSetMetaData object can be used to obtain the meta data (types and type properties) of the columns in a ResultSet.
- *
- * The API javadoc for JDBC API methods that this class implements are not repeated here. Please see Sun's JDBC API interfaces javadoc for those
- * details.
- */
 
+/**
+ * Provides an implementation of the result set metadata to the SQL Server. A ResultSetMetaData object can be used to
+ * obtain the meta data (types and type properties) of the columns in a ResultSet.
+ *
+ * The API javadoc for JDBC API methods that this class implements are not repeated here. Please see Sun's JDBC API
+ * interfaces javadoc for those details.
+ */
 public final class SQLServerResultSetMetaData implements ISQLServerResultSetMetaData {
     private SQLServerConnection con;
     private final SQLServerResultSet rs;
     static final private java.util.logging.Logger logger = java.util.logging.Logger
             .getLogger("com.microsoft.sqlserver.jdbc.internals.SQLServerResultSetMetaData");
 
-    static private final AtomicInteger baseID = new AtomicInteger(0);	// Unique id generator for each instance (used for logging).
+    static private final AtomicInteger baseID = new AtomicInteger(0); // Unique id generator for each instance (used for
+                                                                      // logging).
     final private String traceID;
 
     // Returns unique id for each instance.
@@ -37,15 +36,14 @@ public final class SQLServerResultSetMetaData implements ISQLServerResultSetMeta
     }
 
     /**
-     * Create a new meta data object for the result set.
+     * Constructs a SQLServerResultSetMetaData meta data object for the result set.
      * 
      * @param con
-     *            the connection
+     *        the connection
      * @param rs
-     *            the parent result set
+     *        the parent result set
      */
-    SQLServerResultSetMetaData(SQLServerConnection con,
-            SQLServerResultSet rs) {
+    SQLServerResultSetMetaData(SQLServerConnection con, SQLServerResultSet rs) {
         traceID = " SQLServerResultSetMetaData:" + nextInstanceID();
         this.con = con;
         this.rs = rs;
@@ -68,8 +66,7 @@ public final class SQLServerResultSetMetaData implements ISQLServerResultSetMeta
         T t;
         try {
             t = iface.cast(this);
-        }
-        catch (ClassCastException e) {
+        } catch (ClassCastException e) {
             throw new SQLServerException(e.getMessage(), e);
         }
         return t;
@@ -114,11 +111,12 @@ public final class SQLServerResultSetMetaData implements ISQLServerResultSetMeta
         if (null != cryptoMetadata) {
             typeInfo = cryptoMetadata.getBaseTypeInfo();
         }
-        
+
         JDBCType jdbcType = typeInfo.getSSType().getJDBCType();
         SSType sqlType = typeInfo.getSSType();
-        // in bulkcopy for instance, we need to return the real jdbc type which is sql variant and not the default Char one. 
-        if ( SSType.SQL_VARIANT == sqlType){
+        // in bulkcopy for instance, we need to return the real jdbc type which is sql variant and not the default Char
+        // one.
+        if (SSType.SQL_VARIANT == sqlType) {
             jdbcType = JDBCType.SQL_VARIANT;
         }
         if (SSType.UDT == sqlType) {
@@ -269,8 +267,7 @@ public final class SQLServerResultSetMetaData implements ISQLServerResultSetMeta
 
         if (null != cryptoMetadata) {
             ssType = cryptoMetadata.getBaseTypeInfo().getSSType();
-        }
-        else {
+        } else {
             ssType = rs.getColumn(column).getTypeInfo().getSSType();
         }
 
@@ -313,8 +310,7 @@ public final class SQLServerResultSetMetaData implements ISQLServerResultSetMeta
         CryptoMetadata cryptoMetadata = rs.getColumn(column).getCryptoMetadata();
         if (null != cryptoMetadata) {
             updatability = cryptoMetadata.getBaseTypeInfo().getUpdatability();
-        }
-        else {
+        } else {
             updatability = rs.getColumn(column).getTypeInfo().getUpdatability();
         }
         return TypeInfo.UPDATABLE_READ_WRITE == updatability || TypeInfo.UPDATABLE_UNKNOWN == updatability;

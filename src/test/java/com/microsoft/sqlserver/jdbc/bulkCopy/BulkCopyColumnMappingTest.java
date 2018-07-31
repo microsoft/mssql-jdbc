@@ -1,9 +1,6 @@
 /*
- * Microsoft JDBC Driver for SQL Server
- * 
- * Copyright(c) Microsoft Corporation All rights reserved.
- * 
- * This program is made available under the terms of the MIT License. See the LICENSE file in the project root for more information.
+ * Microsoft JDBC Driver for SQL Server Copyright(c) Microsoft Corporation All rights reserved. This program is made
+ * available under the terms of the MIT License. See the LICENSE file in the project root for more information.
  */
 package com.microsoft.sqlserver.jdbc.bulkCopy;
 
@@ -12,8 +9,8 @@ import static org.junit.jupiter.api.Assertions.fail;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
-import java.util.concurrent.ThreadLocalRandom;
 import java.text.MessageFormat;
+import java.util.concurrent.ThreadLocalRandom;
 
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
@@ -22,6 +19,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
 
+import com.microsoft.sqlserver.jdbc.TestResource;
 import com.microsoft.sqlserver.testframework.DBConnection;
 import com.microsoft.sqlserver.testframework.DBResultSet;
 import com.microsoft.sqlserver.testframework.DBStatement;
@@ -29,7 +27,6 @@ import com.microsoft.sqlserver.testframework.DBTable;
 import com.microsoft.sqlserver.testframework.sqlType.SqlType;
 import com.microsoft.sqlserver.testframework.util.ComparisonUtil;
 
-import com.microsoft.sqlserver.jdbc.TestResource;
 
 /**
  * Test BulkCopy Column Mapping
@@ -45,20 +42,20 @@ public class BulkCopyColumnMappingTest extends BulkCopyTestSetUp {
      * Create connection, statement and generate path of resource file
      */
     @BeforeAll
-    static void setUpConnection() {
+    public static void setUpConnection() {
         con = new DBConnection(connectionString);
         stmt = con.createStatement();
     }
 
     @AfterAll
-    static void closeConnection() throws SQLException {
+    public static void closeConnection() throws SQLException {
         stmt.close();
         con.close();
     }
 
     @Test
     @DisplayName("BulkCopy:test no explicit column mapping")
-    void testNoExplicitCM() {
+    public void testNoExplicitCM() {
 
         // create dest table
         DBTable destTable = sourceTable.cloneSchema();
@@ -72,7 +69,7 @@ public class BulkCopyColumnMappingTest extends BulkCopyTestSetUp {
 
     @Test
     @DisplayName("BulkCopy:test explicit column mapping")
-    void testExplicitCM() {
+    public void testExplicitCM() {
 
         // create dest table
         DBTable destTable = sourceTable.cloneSchema();
@@ -107,7 +104,7 @@ public class BulkCopyColumnMappingTest extends BulkCopyTestSetUp {
 
     @Test
     @DisplayName("BulkCopy:test unicode column mapping")
-    void testUnicodeCM() {
+    public void testUnicodeCM() {
 
         // create source unicode table
         DBTable sourceTableUnicode = new DBTable(true, true);
@@ -133,7 +130,8 @@ public class BulkCopyColumnMappingTest extends BulkCopyTestSetUp {
                     break;
 
                 case 2:
-                    bulkWrapper.setColumnMapping(sourceTableUnicode.getColumnName(i - 1), destTableUnicode.getColumnName(i - 1));
+                    bulkWrapper.setColumnMapping(sourceTableUnicode.getColumnName(i - 1),
+                            destTableUnicode.getColumnName(i - 1));
                     break;
 
                 case 3:
@@ -147,7 +145,7 @@ public class BulkCopyColumnMappingTest extends BulkCopyTestSetUp {
 
     @Test
     @DisplayName("BulkCopy:test repetative column mapping")
-    void testRepetativeCM() {
+    public void testRepetativeCM() {
 
         // create source table
         DBTable sourceTable1 = new DBTable(true);
@@ -194,10 +192,9 @@ public class BulkCopyColumnMappingTest extends BulkCopyTestSetUp {
         BulkCopyTestUtil.performBulkCopy(bulkWrapper, sourceTable1, destTable, false, false, false);
         try {
             validateValuesRepetativeCM(con, sourceTable1, destTable);
-        }
-        catch (SQLException e) {
+        } catch (SQLException e) {
             MessageFormat form = new MessageFormat(TestResource.getResource("R_failedValidate"));
-            Object[] msgArgs = {sourceTable1.getTableName()+" and"+destTable.getTableName()};
+            Object[] msgArgs = {sourceTable1.getTableName() + " and" + destTable.getTableName()};
 
             fail(form.format(msgArgs) + "\n" + destTable.getTableName() + "\n" + e.getMessage());
         }
@@ -207,7 +204,7 @@ public class BulkCopyColumnMappingTest extends BulkCopyTestSetUp {
 
     @Test
     @DisplayName("BulkCopy:test implicit mismatched column mapping")
-    void testImplicitMismatchCM() {
+    public void testImplicitMismatchCM() {
 
         // create non unicode dest table with different schema from source table
         DBTable destTable = new DBTable(true, false, true);
@@ -242,7 +239,7 @@ public class BulkCopyColumnMappingTest extends BulkCopyTestSetUp {
 
     @Test
     @DisplayName("BulkCopy:test invalid column mapping")
-    void testInvalidCM() {
+    public void testInvalidCM() {
 
         // create dest table
         DBTable destTable = sourceTable.cloneSchema();
@@ -327,42 +324,43 @@ public class BulkCopyColumnMappingTest extends BulkCopyTestSetUp {
     }
 
     /**
-     * validate if same values are in both source and destination table taking into account 1 extra column in destination which should be a copy of
-     * first column of source.
+     * validate if same values are in both source and destination table taking into account 1 extra column in
+     * destination which should be a copy of first column of source.
      * 
      * @param con
      * @param sourceTable
      * @param destinationTable
      * @throws SQLException
      */
-    private void validateValuesRepetativeCM(DBConnection con,
-            DBTable sourceTable,
+    private void validateValuesRepetativeCM(DBConnection con, DBTable sourceTable,
             DBTable destinationTable) throws SQLException {
-        try(DBStatement srcStmt = con.createStatement();
-	        DBStatement dstStmt = con.createStatement();
-	        DBResultSet srcResultSet = srcStmt.executeQuery("SELECT * FROM " + sourceTable.getEscapedTableName() + ";");
-	        DBResultSet dstResultSet = dstStmt.executeQuery("SELECT * FROM " + destinationTable.getEscapedTableName() + ";")) {
-	        ResultSetMetaData sourceMeta = ((ResultSet) srcResultSet.product()).getMetaData();
-	        int totalColumns = sourceMeta.getColumnCount();
-	
-	        // verify data from sourceType and resultSet
-	        while (srcResultSet.next() && dstResultSet.next()) {
-	            for (int i = 1; i <= totalColumns; i++) {
-	                // TODO: check row and column count in both the tables
-	
-	                Object srcValue, dstValue;
-	                srcValue = srcResultSet.getObject(i);
-	                dstValue = dstResultSet.getObject(i);
-	                ComparisonUtil.compareExpectedAndActual(sourceMeta.getColumnType(i), srcValue, dstValue);
-	
-	                // compare value of first column of source with extra column in destination
-	                if (1 == i) {
-	                    Object srcValueFirstCol = srcResultSet.getObject(i);
-	                    Object dstValLastCol = dstResultSet.getObject(totalColumns + 1);
-	                    ComparisonUtil.compareExpectedAndActual(sourceMeta.getColumnType(i), srcValueFirstCol, dstValLastCol);
-	                }
-	            }
-	        }
+        try (DBStatement srcStmt = con.createStatement(); DBStatement dstStmt = con.createStatement();
+                DBResultSet srcResultSet = srcStmt
+                        .executeQuery("SELECT * FROM " + sourceTable.getEscapedTableName() + ";");
+                DBResultSet dstResultSet = dstStmt
+                        .executeQuery("SELECT * FROM " + destinationTable.getEscapedTableName() + ";")) {
+            ResultSetMetaData sourceMeta = ((ResultSet) srcResultSet.product()).getMetaData();
+            int totalColumns = sourceMeta.getColumnCount();
+
+            // verify data from sourceType and resultSet
+            while (srcResultSet.next() && dstResultSet.next()) {
+                for (int i = 1; i <= totalColumns; i++) {
+                    // TODO: check row and column count in both the tables
+
+                    Object srcValue, dstValue;
+                    srcValue = srcResultSet.getObject(i);
+                    dstValue = dstResultSet.getObject(i);
+                    ComparisonUtil.compareExpectedAndActual(sourceMeta.getColumnType(i), srcValue, dstValue);
+
+                    // compare value of first column of source with extra column in destination
+                    if (1 == i) {
+                        Object srcValueFirstCol = srcResultSet.getObject(i);
+                        Object dstValLastCol = dstResultSet.getObject(totalColumns + 1);
+                        ComparisonUtil.compareExpectedAndActual(sourceMeta.getColumnType(i), srcValueFirstCol,
+                                dstValLastCol);
+                    }
+                }
+            }
         }
     }
 
@@ -371,8 +369,7 @@ public class BulkCopyColumnMappingTest extends BulkCopyTestSetUp {
         String dropSQL = "DROP TABLE [dbo]." + tableName;
         try {
             stmt.execute(dropSQL);
-        }
-        catch (SQLException e) {
+        } catch (SQLException e) {
             fail(tableName + " " + TestResource.getResource("R_tableNotDropped") + "\n" + e.getMessage());
         }
     }

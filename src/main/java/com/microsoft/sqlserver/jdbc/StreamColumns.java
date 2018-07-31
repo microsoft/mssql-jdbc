@@ -1,13 +1,11 @@
 /*
- * Microsoft JDBC Driver for SQL Server
- * 
- * Copyright(c) Microsoft Corporation All rights reserved.
- * 
- * This program is made available under the terms of the MIT License. See the LICENSE file in the project root for more information.
+ * Microsoft JDBC Driver for SQL Server Copyright(c) Microsoft Corporation All rights reserved. This program is made
+ * available under the terms of the MIT License. See the LICENSE file in the project root for more information.
  */
 
 package com.microsoft.sqlserver.jdbc;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import com.microsoft.sqlserver.jdbc.dataclassification.ColumnSensitivity;
@@ -16,10 +14,10 @@ import com.microsoft.sqlserver.jdbc.dataclassification.Label;
 import com.microsoft.sqlserver.jdbc.dataclassification.SensitivityClassification;
 import com.microsoft.sqlserver.jdbc.dataclassification.SensitivityProperty;
 
-import java.util.ArrayList;
 
 /**
- * StreamColumns stores the column meta data for a result set. StreamColumns parses the inbound TDS packet stream to determine column meta data.
+ * StreamColumns stores the column meta data for a result set. StreamColumns parses the inbound TDS packet stream to
+ * determine column meta data.
  */
 
 final class StreamColumns extends StreamPacket {
@@ -31,7 +29,7 @@ final class StreamColumns extends StreamPacket {
 
     private boolean shouldHonorAEForRead = false;
 
-    /* Gets the CekTable */
+    /* Returns the CekTable */
     CekTable getCekTable() {
         return cekTable;
     }
@@ -103,7 +101,8 @@ final class StreamColumns extends StreamPacket {
             String algorithmName = tdsReader.readUnicodeString(algorithmLength);
 
             // Add this encrypted CEK blob to our list of encrypted values for the CEK
-            cekTableEntry.add(encryptedCek, databaseId, cekId, cekVersion, cekMdVersion, keyPath, keyStoreName, algorithmName);
+            cekTableEntry.add(encryptedCek, databaseId, cekId, cekVersion, cekMdVersion, keyPath, keyStoreName,
+                    algorithmName);
         }
         return cekTableEntry;
     }
@@ -160,8 +159,8 @@ final class StreamColumns extends StreamPacket {
         // Read Normalization Rule Version.
         byte normalizationRuleVersion = (byte) tdsReader.readUnsignedByte();
 
-        CryptoMetadata cryptoMeta = new CryptoMetadata((cekTable == null) ? null : cekTable.getCekTableEntry(ordinal), ordinal, algorithmId,
-                algorithmName, encryptionType, normalizationRuleVersion);
+        CryptoMetadata cryptoMeta = new CryptoMetadata((cekTable == null) ? null : cekTable.getCekTableEntry(ordinal),
+                ordinal, algorithmId, algorithmName, encryptionType, normalizationRuleVersion);
         cryptoMeta.setBaseTypeInfo(typeInfo);
 
         return cryptoMeta;
@@ -197,7 +196,8 @@ final class StreamColumns extends StreamPacket {
             // Table name is set at this point for TEXT/NTEXT/IMAGE columns only.
             // For other columns, table name may be set via COLUMNINFO and TABNAME tokens.
             SQLIdentifier tableName = new SQLIdentifier();
-            if (SSType.TEXT == typeInfo.getSSType() || SSType.NTEXT == typeInfo.getSSType() || SSType.IMAGE == typeInfo.getSSType()) {
+            if (SSType.TEXT == typeInfo.getSSType() || SSType.NTEXT == typeInfo.getSSType()
+                    || SSType.IMAGE == typeInfo.getSSType()) {
                 // Yukon and later, table names are returned as multi-part SQL identifiers.
                 tableName = tdsReader.readSQLIdentifier();
             }
@@ -214,15 +214,16 @@ final class StreamColumns extends StreamPacket {
 
             if (shouldHonorAEForRead) {
                 this.columns[numColumns] = new Column(typeInfo, columnName, tableName, cryptoMeta);
-            }
-            else {
-                // Set null for crypto metadata if column encryption setting is off at the connection or at the statement level.
+            } else {
+                // Set null for crypto metadata if column encryption setting is off at the connection or at the
+                // statement level.
                 this.columns[numColumns] = new Column(typeInfo, columnName, tableName, null);
             }
         }
 
         // Data Classification
-        if (tdsReader.getServerSupportsDataClassification() && tdsReader.peekTokenType() == TDS.TDS_SQLDATACLASSIFICATION) {
+        if (tdsReader.getServerSupportsDataClassification()
+                && tdsReader.peekTokenType() == TDS.TDS_SQLDATACLASSIFICATION) {
             // Read and parse
             tdsReader.trySetSensitivityClassification(processDataClassification(tdsReader));
         }
@@ -298,8 +299,7 @@ final class StreamColumns extends StreamPacket {
                 int informationTypeIndex = tdsReader.readUnsignedShort();
                 InformationType informationType = null;
                 if (informationTypeIndex != Integer.MAX_VALUE) {
-                    if (informationTypeIndex >= informationTypes.size()) {
-                    }
+                    if (informationTypeIndex >= informationTypes.size()) {}
                     informationType = informationTypes.get(informationTypeIndex);
                 }
                 // add sensitivity properties for the source
@@ -312,11 +312,10 @@ final class StreamColumns extends StreamPacket {
     }
 
     /**
-     * Applies per-column table information derived from COLINFO and TABNAME tokens to the set of columns defined by this COLMETADATA token to produce
-     * the complete set of column information.
+     * Applies per-column table information derived from COLINFO and TABNAME tokens to the set of columns defined by
+     * this COLMETADATA token to produce the complete set of column information.
      */
-    Column[] buildColumns(StreamColInfo colInfoToken,
-            StreamTabName tabNameToken) throws SQLServerException {
+    Column[] buildColumns(StreamColInfo colInfoToken, StreamTabName tabNameToken) throws SQLServerException {
         if (null != colInfoToken && null != tabNameToken)
             tabNameToken.applyTo(columns, colInfoToken.applyTo(columns));
 
