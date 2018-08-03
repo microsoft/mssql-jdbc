@@ -34,7 +34,6 @@ class SQLServerAeadAes256CbcHmac256Algorithm extends SQLServerEncryptionAlgorith
             .getLogger("com.microsoft.sqlserver.jdbc.SQLServerAeadAes256CbcHmac256Algorithm");
 
     final static String algorithmName = "AEAD_AES_256_CBC_HMAC_SHA256";
-    static Cipher decryptCipher = null;
 
     // Stores column encryption key which includes root key and derived keys
     private SQLServerAeadAes256CbcHmac256EncryptionKey columnEncryptionkey;
@@ -48,6 +47,8 @@ class SQLServerAeadAes256CbcHmac256Algorithm extends SQLServerEncryptionAlgorith
     private byte[] version = new byte[] {0x01};
     // Added so that java hashing algorithm is similar to c#
     private byte[] versionSize = new byte[] {1};
+    // Cipher used to decrypt
+    private Cipher decryptCipher = null;
 
     /*
      * Minimum Length of cipherText without authentication tag. This value is 1 (version byte) + 16 (IV) + 16 (minimum
@@ -107,8 +108,7 @@ class SQLServerAeadAes256CbcHmac256Algorithm extends SQLServerEncryptionAlgorith
      * @throws SQLServerException
      */
     protected byte[] encryptData(byte[] plainText, boolean hasAuthenticationTag) throws SQLServerException {
-        aeLogger.entering(SQLServerAeadAes256CbcHmac256Algorithm.class.getName(),
-                "encryptData", "Encrypting data.");
+        aeLogger.entering(SQLServerAeadAes256CbcHmac256Algorithm.class.getName(), "encryptData", "Encrypting data.");
         // we will generate this initialization vector based whether
         // this encryption type is deterministic
         assert (plainText != null);
@@ -189,8 +189,7 @@ class SQLServerAeadAes256CbcHmac256Algorithm extends SQLServerEncryptionAlgorith
             throw new SQLServerException(this, form.format(msgArgs), null, 0, false);
         }
 
-        aeLogger.exiting(SQLServerAeadAes256CbcHmac256Algorithm.class.getName(),
-                "encryptData", "Data encrypted.");
+        aeLogger.exiting(SQLServerAeadAes256CbcHmac256Algorithm.class.getName(), "encryptData", "Data encrypted.");
         return outBuffer;
 
     }
@@ -198,7 +197,6 @@ class SQLServerAeadAes256CbcHmac256Algorithm extends SQLServerEncryptionAlgorith
     @Override
     byte[] decryptData(byte[] cipherText) throws SQLServerException {
         return decryptData(cipherText, true);
-
     }
 
     /**
@@ -297,8 +295,7 @@ class SQLServerAeadAes256CbcHmac256Algorithm extends SQLServerEncryptionAlgorith
      * @throws SQLServerException
      */
     private byte[] decryptData(byte[] iv, byte[] cipherText, int offset, int count) throws SQLServerException {
-        aeLogger.entering(SQLServerAeadAes256CbcHmac256Algorithm.class.getName(),
-                "decryptData", "Decrypting data.");
+        aeLogger.entering(SQLServerAeadAes256CbcHmac256Algorithm.class.getName(), "decryptData", "Decrypting data.");
         assert (cipherText != null);
         assert (iv != null);
         byte[] plainText = null;
@@ -319,8 +316,7 @@ class SQLServerAeadAes256CbcHmac256Algorithm extends SQLServerEncryptionAlgorith
             throw new SQLServerException(this, form.format(msgArgs), null, 0, false);
         }
 
-        aeLogger.exiting(SQLServerAeadAes256CbcHmac256Algorithm.class.getName(),
-                "decryptData", "Data decrypted.");
+        aeLogger.exiting(SQLServerAeadAes256CbcHmac256Algorithm.class.getName(), "decryptData", "Data decrypted.");
         return plainText;
     }
 
