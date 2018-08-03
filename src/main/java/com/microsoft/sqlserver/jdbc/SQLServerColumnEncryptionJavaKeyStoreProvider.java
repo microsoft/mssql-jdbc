@@ -191,7 +191,7 @@ public class SQLServerColumnEncryptionJavaKeyStoreProvider extends SQLServerColu
     public byte[] encryptColumnEncryptionKey(String masterKeyPath, String encryptionAlgorithm,
             byte[] plainTextColumnEncryptionKey) throws SQLServerException {
         javaKeyStoreLogger.entering(SQLServerColumnEncryptionJavaKeyStoreProvider.class.getName(),
-                Thread.currentThread().getStackTrace()[1].getMethodName(), "Encrypting Column Encryption Key.");
+                "encryptColumnEncryptionKey", "Encrypting Column Encryption Key.");
 
         byte[] version = KeyStoreProviderCommon.version;
         KeyStoreProviderCommon.validateNonEmptyMasterKeyPath(masterKeyPath);
@@ -257,7 +257,7 @@ public class SQLServerColumnEncryptionJavaKeyStoreProvider extends SQLServerColu
         System.arraycopy(signedHash, 0, encryptedColumnEncryptionKey, currentIndex, signedHash.length);
 
         javaKeyStoreLogger.exiting(SQLServerColumnEncryptionJavaKeyStoreProvider.class.getName(),
-                Thread.currentThread().getStackTrace()[1].getMethodName(),
+                "encryptColumnEncryptionKey",
                 "Finished encrypting Column Encryption Key.");
         return encryptedColumnEncryptionKey;
 
