@@ -47,8 +47,6 @@ class SQLServerAeadAes256CbcHmac256Algorithm extends SQLServerEncryptionAlgorith
     private byte[] version = new byte[] {0x01};
     // Added so that java hashing algorithm is similar to c#
     private byte[] versionSize = new byte[] {1};
-    // Cipher used to decrypt
-    private Cipher decryptCipher = null;
 
     /*
      * Minimum Length of cipherText without authentication tag. This value is 1 (version byte) + 16 (IV) + 16 (minimum
@@ -83,12 +81,6 @@ class SQLServerAeadAes256CbcHmac256Algorithm extends SQLServerEncryptionAlgorith
         }
         this.algorithmVersion = algorithmVersion;
         version[0] = algorithmVersion;
-
-        try {
-            decryptCipher = Cipher.getInstance("AES/CBC/PKCS5Padding");
-        } catch (NoSuchAlgorithmException | NoSuchPaddingException e) {
-            // not possible to get here
-        }
     }
 
     @Override
@@ -302,14 +294,13 @@ class SQLServerAeadAes256CbcHmac256Algorithm extends SQLServerEncryptionAlgorith
         // key to be used for decryption
         SecretKeySpec skeySpec = new SecretKeySpec(columnEncryptionkey.getEncryptionKey(), "AES");
         IvParameterSpec ivector = new IvParameterSpec(iv);
+        Cipher decryptCipher;
         try {
-            // AES encryption CBC mode and PKCS5 padding
-            if (decryptCipher != null) {
-                decryptCipher.init(Cipher.DECRYPT_MODE, skeySpec, ivector);
-            }
+            decryptCipher = Cipher.getInstance("AES/CBC/PKCS5Padding");
+            decryptCipher.init(Cipher.DECRYPT_MODE, skeySpec, ivector);
             plainText = decryptCipher.doFinal(cipherText, offset, count);
-        } catch (InvalidAlgorithmParameterException | InvalidKeyException | IllegalBlockSizeException
-                | BadPaddingException e) {
+        } catch (NoSuchAlgorithmException | InvalidAlgorithmParameterException | InvalidKeyException
+                | NoSuchPaddingException | IllegalBlockSizeException | BadPaddingException e) {
 
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_DecryptionFailed"));
             Object[] msgArgs = {e.getMessage()};
