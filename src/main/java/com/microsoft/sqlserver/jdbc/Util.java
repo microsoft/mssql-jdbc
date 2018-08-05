@@ -208,6 +208,27 @@ final class Util {
     }
 
     /**
+     * Writes a long to byte array.
+     *
+     * @param value
+     *        long value to write.
+     * @param valueBytes
+     *        the byte array.
+     * @param offset
+     *        the offset inside byte array.
+     */
+    public static void writeLong(long value, byte valueBytes[], int offset) {
+        valueBytes[offset++] = (byte) ((value) & 0xFF);
+        valueBytes[offset++] = (byte) ((value >> 8) & 0xFF);
+        valueBytes[offset++] = (byte) ((value >> 16) & 0xFF);
+        valueBytes[offset++] = (byte) ((value >> 24) & 0xFF);
+        valueBytes[offset++] = (byte) ((value >> 32) & 0xFF);
+        valueBytes[offset++] = (byte) ((value >> 40) & 0xFF);
+        valueBytes[offset++] = (byte) ((value >> 48) & 0xFF);
+        valueBytes[offset] = (byte) ((value >> 56) & 0xFF);
+    }
+
+    /**
      * Parse a JDBC URL into a set of properties.
      * 
      * @param url
