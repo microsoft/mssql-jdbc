@@ -34,7 +34,6 @@ class SQLServerAeadAes256CbcHmac256Algorithm extends SQLServerEncryptionAlgorith
             .getLogger("com.microsoft.sqlserver.jdbc.SQLServerAeadAes256CbcHmac256Algorithm");
 
     final static String algorithmName = "AEAD_AES_256_CBC_HMAC_SHA256";
-
     // Stores column encryption key which includes root key and derived keys
     private SQLServerAeadAes256CbcHmac256EncryptionKey columnEncryptionkey;
     private byte algorithmVersion;
@@ -309,6 +308,7 @@ class SQLServerAeadAes256CbcHmac256Algorithm extends SQLServerEncryptionAlgorith
 
         aeLogger.exiting(SQLServerAeadAes256CbcHmac256Algorithm.class.getName(), "decryptData", "Data decrypted.");
         return plainText;
+
     }
 
     /**
