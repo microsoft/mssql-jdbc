@@ -964,14 +964,14 @@ final class Util {
     }
 
     /**
-     * Escapes single quotes (') in table name to convert and pass it as String safely.
+     * Escapes single quotes (') in object name to convert and pass it as String safely.
      * 
-     * @param tableName
-     *        table name to be passed as String
-     * @return Converted table name
+     * @param name
+     *        Object name to be passed as String
+     * @return Converted object name
      */
-    static String escapeQuotes(String tableName) {
-        return tableName.replaceAll("'", "''");
+    static String escapeQuotes(String name) {
+        return name.replace("'", "''");
     }
 }
 
