@@ -33,6 +33,7 @@ import com.microsoft.sqlserver.testframework.AbstractTest;
 import com.microsoft.sqlserver.testframework.DBConnection;
 import com.microsoft.sqlserver.testframework.DBTable;
 import com.microsoft.sqlserver.testframework.util.RandomUtil;
+import com.microsoft.sqlserver.testframework.util.Util;
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
 
@@ -97,11 +98,11 @@ public class PoolingTest extends AbstractTest {
         String tableName = RandomUtil.getIdentifier("table");
         tableName = DBTable.escapeIdentifier(tableName);
 
-        String sql1 = "if exists (select * from dbo.sysobjects where name = '" + tableName + "' and type = 'U')\n"
-                + "drop table " + tableName + "\n" + "create table " + tableName + "\n" + "(\n"
+        String sql1 = "if exists (select * from dbo.sysobjects where name = '" + Util.escapeQuotes(tableName)
+                + "' and type = 'U')\n" + "drop table " + tableName + "\n" + "create table " + tableName + "\n" + "(\n"
                 + "wibble_id int primary key not null,\n" + "counter int null\n" + ");";
-        String sql2 = "if exists (select * from dbo.sysobjects where name = '" + tableName + "' and type = 'U')\n"
-                + "drop table " + tableName + "\n";
+        String sql2 = "if exists (select * from dbo.sysobjects where name = '" + Util.escapeQuotes(tableName)
+                + "' and type = 'U')\n" + "drop table " + tableName + "\n";
 
         SQLServerXADataSource ds = new SQLServerXADataSource();
         ds.setURL(connectionString);

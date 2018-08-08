@@ -377,4 +377,15 @@ public class Util {
         }
         return bin;
     }
+
+    /**
+     * Escapes single quotes (') in table name to convert and pass it as String safely.
+     * 
+     * @param tableName
+     *        table name to be passed as String
+     * @return Converted table name
+     */
+    public static String escapeQuotes(String tableName) {
+        return tableName.replace("'", "''");
+    }
 }

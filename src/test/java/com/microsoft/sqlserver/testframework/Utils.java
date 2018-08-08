@@ -47,6 +47,7 @@ import com.microsoft.sqlserver.testframework.sqlType.SqlVarBinary;
 import com.microsoft.sqlserver.testframework.sqlType.SqlVarBinaryMax;
 import com.microsoft.sqlserver.testframework.sqlType.SqlVarChar;
 import com.microsoft.sqlserver.testframework.sqlType.SqlVarCharMax;
+import com.microsoft.sqlserver.testframework.util.Util;
 
 
 /**
@@ -280,8 +281,8 @@ public class Utils {
     }
 
     public static void dropDatabaseIfExists(String databaseName, java.sql.Statement stmt) throws SQLException {
-        stmt.executeUpdate("USE MASTER; IF EXISTS(SELECT * from sys.databases WHERE name='" + databaseName
-                + "') DROP DATABASE [" + databaseName + "]");
+        stmt.executeUpdate("USE MASTER; IF EXISTS(SELECT * from sys.databases WHERE name='"
+                + Util.escapeQuotes(databaseName) + "') DROP DATABASE [" + databaseName + "]");
     }
 
     /**
@@ -300,8 +301,8 @@ public class Utils {
         String bracketedObjectName = sb.toString();
         String sql = String.format("IF EXISTS " + "( " + "SELECT * from sys.objects "
                 + "WHERE object_id = OBJECT_ID(N'%s') AND OBJECTPROPERTY(object_id, N'%s') = 1 " + ") " + "DROP %s %s ",
-                bracketedObjectName, objectProperty, "IsProcedure".equals(objectProperty) ? "PROCEDURE" : "TABLE",
-                bracketedObjectName);
+                Util.escapeQuotes(bracketedObjectName), objectProperty,
+                "IsProcedure".equals(objectProperty) ? "PROCEDURE" : "TABLE", bracketedObjectName);
         stmt.executeUpdate(sql);
     }
 

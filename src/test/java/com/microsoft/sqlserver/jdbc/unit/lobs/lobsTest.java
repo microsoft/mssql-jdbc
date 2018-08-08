@@ -52,6 +52,7 @@ import com.microsoft.sqlserver.testframework.Utils.DBBinaryStream;
 import com.microsoft.sqlserver.testframework.Utils.DBCharacterStream;
 import com.microsoft.sqlserver.testframework.sqlType.SqlType;
 import com.microsoft.sqlserver.testframework.util.RandomUtil;
+import com.microsoft.sqlserver.testframework.util.Util;
 
 
 /**
@@ -697,8 +698,8 @@ public class lobsTest extends AbstractTest {
     }
 
     private static void dropTables(DBTable table) throws SQLException {
-        stmt.executeUpdate("if object_id('" + table.getEscapedTableName() + "','U') is not null" + " drop table "
-                + table.getEscapedTableName());
+        stmt.executeUpdate("if object_id('" + Util.escapeQuotes(table.getEscapedTableName()) + "','U') is not null"
+                + " drop table " + table.getEscapedTableName());
     }
 
 }

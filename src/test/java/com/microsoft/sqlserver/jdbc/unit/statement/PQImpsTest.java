@@ -29,6 +29,7 @@ import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
 import com.microsoft.sqlserver.testframework.AbstractTest;
 import com.microsoft.sqlserver.testframework.Utils;
 import com.microsoft.sqlserver.testframework.util.RandomUtil;
+import com.microsoft.sqlserver.testframework.util.Util;
 
 
 /**
@@ -630,13 +631,14 @@ public class PQImpsTest extends AbstractTest {
     }
 
     private static void createTablesForCompexQueries() throws SQLException {
-        stmt.executeUpdate("if object_id('" + nameTable + "','U') is not null" + " drop table " + nameTable);
-
         stmt.executeUpdate(
-                "if object_id('" + phoneNumberTable + "','U') is not null" + " drop table " + phoneNumberTable);
+                "if object_id('" + Util.escapeQuotes(nameTable) + "','U') is not null" + " drop table " + nameTable);
 
-        stmt.executeUpdate(
-                "if object_id('" + mergeNameDesTable + "','U') is not null" + " drop table " + mergeNameDesTable);
+        stmt.executeUpdate("if object_id('" + Util.escapeQuotes(phoneNumberTable) + "','U') is not null"
+                + " drop table " + phoneNumberTable);
+
+        stmt.executeUpdate("if object_id('" + Util.escapeQuotes(mergeNameDesTable) + "','U') is not null"
+                + " drop table " + mergeNameDesTable);
 
         String sql = "create table " + nameTable + " ("
         // + "ID int NOT NULL,"
