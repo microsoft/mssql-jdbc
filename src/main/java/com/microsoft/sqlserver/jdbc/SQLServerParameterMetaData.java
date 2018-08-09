@@ -648,7 +648,7 @@ public final class SQLServerParameterMetaData implements ParameterMetaData {
                     String tablesAndJoins = sbTablesAndJoins.toString();
 
                     stmt = (SQLServerStatement) con.createStatement();
-                    String sCom = "sp_executesql N'SET FMTONLY ON SELECT " + columns + " FROM " + tablesAndJoins + " '";
+                    String sCom = "sp_executesql N'SET FMTONLY ON SELECT " + columns + " FROM " + Util.escapeQuotes(tablesAndJoins) + " '";
 
                     ResultSet rs = stmt.executeQuery(sCom);
                     parseQueryMetaFor2008(rs);
