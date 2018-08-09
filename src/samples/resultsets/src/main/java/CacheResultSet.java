@@ -11,18 +11,23 @@ import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.ArrayList;
 
 import com.microsoft.sqlserver.jdbc.SQLServerResultSet;
 
+/**
+ * Sample application that demonstrates how to use a result set to retrieve a large set
+ * of data from a SQL Server database.
+ * 
+ * In addition, it demonstrates how to control the amount of data that is fetched
+ * from the database and cached on the client.
+ */
+public class CacheResultSet {
 
-public class cacheRS {
+    private static final int ROW_COUNT = 10000;
 
+    @SuppressWarnings("serial")
     public static void main(String[] args) {
-
-        // Declare the JDBC objects.
-        Connection con = null;
-        Statement stmt = null;
-        ResultSet rs = null;
 
         String serverName = null;
         String portNumber = null;
@@ -30,7 +35,7 @@ public class cacheRS {
         String username = null;
         String password = null;
 
-        try (BufferedReader br = new BufferedReader(new InputStreamReader(System.in))) {
+        try (InputStreamReader in = new InputStreamReader(System.in); BufferedReader br = new BufferedReader(in)) {
 
             System.out.print("Enter server name: ");
             serverName = br.readLine();
@@ -42,67 +47,42 @@ public class cacheRS {
             username = br.readLine();
             System.out.print("Enter password: ");
             password = br.readLine();
+            System.out.println();
 
             // Create a variable for the connection string.
             String connectionUrl = "jdbc:sqlserver://" + serverName + ":" + portNumber + ";" + "databaseName="
                     + databaseName + ";username=" + username + ";password=" + password + ";";
 
             // Establish the connection.
-            Class.forName("com.microsoft.sqlserver.jdbc.SQLServerDriver");
-            con = DriverManager.getConnection(connectionUrl);
+            try (Connection con = DriverManager.getConnection(connectionUrl); Statement stmt = con.createStatement();
+                    Statement stmt1 = con.createStatement(SQLServerResultSet.TYPE_SS_SERVER_CURSOR_FORWARD_ONLY,
+                            +SQLServerResultSet.CONCUR_READ_ONLY);) {
 
-            createTable(con);
+                createTable(stmt);
 
-            // Create and execute an SQL statement that returns a large
-            // set of data and then display it.
-            String SQL = "SELECT * FROM SalesOrderDetail_JDBC_Sample;";
-            stmt = con.createStatement(SQLServerResultSet.TYPE_SS_SERVER_CURSOR_FORWARD_ONLY,
-                    +SQLServerResultSet.CONCUR_READ_ONLY);
+                // Create and execute an SQL statement that returns a large
+                // set of data and then display it.
+                String SQL = "SELECT * FROM SalesOrderDetail_JDBC_Sample;";
 
-            // Perform a fetch for every row in the result set.
-            rs = stmt.executeQuery(SQL);
-            timerTest(1, rs);
-            rs.close();
-
-            // Perform a fetch for every 10th row in the result set.
-            rs = stmt.executeQuery(SQL);
-            timerTest(10, rs);
-            rs.close();
-
-            // Perform a fetch for every 100th row in the result set.
-            rs = stmt.executeQuery(SQL);
-            timerTest(100, rs);
-            rs.close();
-
-            // Perform a fetch for every 1000th row in the result set.
-            rs = stmt.executeQuery(SQL);
-            timerTest(1000, rs);
-            rs.close();
-
-            // Perform a fetch for every 128th row (the default) in the result set.
-            rs = stmt.executeQuery(SQL);
-            timerTest(0, rs);
-            rs.close();
+                for (int n : new ArrayList<Integer>() {
+                    {
+                        add(1);
+                        add(10);
+                        add(100);
+                        add(1000);
+                        add(0);
+                    }
+                }) {
+                    // Perform a fetch for every nth row in the result set.
+                    try (ResultSet rs = stmt.executeQuery(SQL)) {
+                        timerTest(n, rs);
+                    }
+                }
+            }
         }
-
         // Handle any errors that may have occurred.
         catch (Exception e) {
             e.printStackTrace();
-        }
-
-        finally {
-            if (rs != null)
-                try {
-                    rs.close();
-                } catch (Exception e) {}
-            if (stmt != null)
-                try {
-                    stmt.close();
-                } catch (Exception e) {}
-            if (con != null)
-                try {
-                    con.close();
-                } catch (Exception e) {}
         }
     }
 
@@ -136,10 +116,7 @@ public class cacheRS {
         }
     }
 
-    private static void createTable(Connection con) throws SQLException {
-
-        Statement stmt = con.createStatement();
-
+    private static void createTable(Statement stmt) throws SQLException {
         stmt.execute("if exists (select * from sys.objects where name = 'SalesOrderDetail_JDBC_Sample')"
                 + "drop table SalesOrderDetail_JDBC_Sample");
 
@@ -152,7 +129,7 @@ public class cacheRS {
 
         stmt.execute(sql);
 
-        for (int i = 0; i < 10000; i++) {
+        for (int i = 0; i < ROW_COUNT; i++) {
             sql = "INSERT SalesOrderDetail_JDBC_Sample VALUES ('1','4911-403C-98','5','1','0','10.5555','0.00','5A74C7D2-E641-438E-A7AC-37BF23280301','2011-05-31 00:00:00.000') ";
             stmt.execute(sql);
         }

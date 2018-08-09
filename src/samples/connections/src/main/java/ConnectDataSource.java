@@ -6,23 +6,19 @@ package connections.src.main.java;
 
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
-import java.sql.CallableStatement;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.Statement;
 
 import com.microsoft.sqlserver.jdbc.SQLServerDataSource;
 
-
-public class connectDS {
+/**
+ * Sample application that demonstrates how to connect to a SQL Server database by 
+ * using a data source object.
+ */
+public class ConnectDataSource {
 
     public static void main(String[] args) {
-
-        // Declare the JDBC objects.
-        Connection con = null;
-        Statement stmt = null;
-        CallableStatement cstmt = null;
-        ResultSet rs = null;
 
         String serverName = null;
         String portNumber = null;
@@ -30,7 +26,7 @@ public class connectDS {
         String username = null;
         String password = null;
 
-        try (BufferedReader br = new BufferedReader(new InputStreamReader(System.in))) {
+        try (InputStreamReader in = new InputStreamReader(System.in); BufferedReader br = new BufferedReader(in)) {
 
             System.out.print("Enter server name: ");
             serverName = br.readLine();
@@ -51,39 +47,26 @@ public class connectDS {
             ds.setUser(username);
             ds.setPassword(password);
 
-            con = ds.getConnection();
+            try (Connection con = ds.getConnection(); Statement stmt = con.createStatement();) {
 
-            System.out.println();
-            System.out.println("Connection established successfully.");
+                System.out.println();
+                System.out.println("Connection established successfully.");
 
-            // Create and execute an SQL statement that returns user name.
-            String SQL = "SELECT SUSER_SNAME()";
-            stmt = con.createStatement();
-            rs = stmt.executeQuery(SQL);
+                // Create and execute an SQL statement that returns user name.
+                String SQL = "SELECT SUSER_SNAME()";
+                
+                try (ResultSet rs = stmt.executeQuery(SQL)) {
 
-            // Iterate through the data in the result set and display it.
-            while (rs.next()) {
-                System.out.println("user name: " + rs.getString(1));
+                    // Iterate through the data in the result set and display it.
+                    while (rs.next()) {
+                        System.out.println("user name: " + rs.getString(1));
+                    }
+                }
             }
         }
         // Handle any errors that may have occurred.
         catch (Exception e) {
             e.printStackTrace();
-        }
-
-        finally {
-            if (rs != null)
-                try {
-                    rs.close();
-                } catch (Exception e) {}
-            if (cstmt != null)
-                try {
-                    cstmt.close();
-                } catch (Exception e) {}
-            if (con != null)
-                try {
-                    con.close();
-                } catch (Exception e) {}
         }
     }
 }

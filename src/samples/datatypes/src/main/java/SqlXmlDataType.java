@@ -5,11 +5,13 @@
 package datatypes.src.main.java;
 
 import java.io.BufferedReader;
+import java.io.IOException;
 import java.io.InputStreamReader;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.sql.SQLXML;
 import java.sql.Statement;
 
@@ -25,15 +27,13 @@ import org.xml.sax.Locator;
 import org.xml.sax.SAXException;
 import org.xml.sax.XMLReader;
 
-
-public class sqlxmlExample {
+/**
+ * Sample application that demonstrates how to store XML data in a relational database, 
+ * how to retrieve XML data from a database, and how to parse XML data with the SQLXML Java data type.
+ */
+public class SqlXmlDataType {
 
     public static void main(String[] args) {
-
-        // Declare the JDBC objects.
-        Connection con = null;
-        Statement stmt = null;
-        ResultSet rs = null;
 
         String serverName = null;
         String portNumber = null;
@@ -41,8 +41,7 @@ public class sqlxmlExample {
         String username = null;
         String password = null;
 
-        try (BufferedReader br = new BufferedReader(new InputStreamReader(System.in))) {
-
+        try (InputStreamReader in = new InputStreamReader(System.in); BufferedReader br = new BufferedReader(in)) {
             System.out.print("Enter server name: ");
             serverName = br.readLine();
             System.out.print("Enter port number: ");
@@ -59,55 +58,42 @@ public class sqlxmlExample {
                     + databaseName + ";username=" + username + ";password=" + password + ";";
 
             // Establish the connection.
-            Class.forName("com.microsoft.sqlserver.jdbc.SQLServerDriver");
-            con = DriverManager.getConnection(connectionUrl);
+            try (Connection con = DriverManager.getConnection(connectionUrl);
+                    Statement stmt = con.createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE)) {
 
-            // Create initial sample data.
-            createSampleTables(con);
+                // Create initial sample data.
+                createSampleTables(stmt);
 
-            // The showGetters method demonstrates how to parse the data in the
-            // SQLXML object by using the SAX, ContentHandler and XMLReader.
-            showGetters(con);
+                // The showGetters method demonstrates how to parse the data in the
+                // SQLXML object by using the SAX, ContentHandler and XMLReader.
+                showGetters(stmt);
 
-            // The showSetters method demonstrates how to set the xml column
-            // by using the SAX, ContentHandler, and ResultSet.
-            showSetters(con);
+                // The showSetters method demonstrates how to set the xml column
+                // by using the SAX, ContentHandler, and ResultSet.
+                showSetters(con, stmt);
 
-            // The showTransformer method demonstrates how to get an XML data
-            // from one table and insert that XML data to another table
-            // by using the SAX and the Transformer.
-            showTransformer(con);
+                // The showTransformer method demonstrates how to get an XML data
+                // from one table and insert that XML data to another table
+                // by using the SAX and the Transformer.
+                showTransformer(con, stmt);
+            }
         }
         // Handle any errors that may have occurred.
         catch (Exception e) {
             e.printStackTrace();
-        } finally {
-            if (rs != null)
-                try {
-                    rs.close();
-                } catch (Exception e) {}
-            if (stmt != null)
-                try {
-                    stmt.close();
-                } catch (Exception e) {}
-            if (con != null)
-                try {
-                    con.close();
-                } catch (Exception e) {}
         }
     }
 
-    private static void showGetters(Connection con) {
+    private static void showGetters(Statement stmt) throws IOException, SAXException, SQLException {
 
-        try {
-            // Create an instance of the custom content handler.
-            ExampleContentHandler myHandler = new ExampleContentHandler();
+        // Create an instance of the custom content handler.
+        ExampleContentHandler myHandler = new ExampleContentHandler();
 
-            // Create and execute an SQL statement that returns a
-            // set of data.
-            String SQL = "SELECT * FROM TestTable1";
-            Statement stmt = con.createStatement();
-            ResultSet rs = stmt.executeQuery(SQL);
+        // Create and execute an SQL statement that returns a
+        // set of data.
+        String SQL = "SELECT * FROM TestTable1";
+
+        try (ResultSet rs = stmt.executeQuery(SQL)) {
 
             rs.next();
 
@@ -120,19 +106,14 @@ public class sqlxmlExample {
 
             System.out.println("showGetters method: Parse an XML data in TestTable1 => ");
             xmlReader.parse(sxSource.getInputSource());
-
-        } catch (Exception e) {
-            e.printStackTrace();
         }
     }
 
-    private static void showSetters(Connection con) {
+    private static void showSetters(Connection con, Statement stmt) {
 
-        try {
-            // Create and execute an SQL statement, retrieving an updatable result set.
-            String SQL = "SELECT * FROM TestTable1;";
-            Statement stmt = con.createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE);
-            ResultSet rs = stmt.executeQuery(SQL);
+        // Create and execute an SQL statement, retrieving an updatable result set.
+        String SQL = "SELECT * FROM TestTable1;";
+        try (ResultSet rs = stmt.executeQuery(SQL)) {
 
             // Create an empty SQLXML object.
             SQLXML sqlxml = con.createSQLXML();
@@ -169,14 +150,12 @@ public class sqlxmlExample {
         }
     }
 
-    private static void showTransformer(Connection con) {
+    private static void showTransformer(Connection con, Statement stmt) throws Exception {
 
-        try {
-            // Create and execute an SQL statement that returns a
-            // set of data.
-            String SQL = "SELECT * FROM TestTable1";
-            Statement stmt = con.createStatement();
-            ResultSet rs = stmt.executeQuery(SQL);
+        // Create and execute an SQL statement that returns a
+        // set of data.
+        String SQL = "SELECT * FROM TestTable1";
+        try (ResultSet rs = stmt.executeQuery(SQL)) {
 
             rs.next();
 
@@ -196,20 +175,19 @@ public class sqlxmlExample {
             SAXTransformerFactory stf = (SAXTransformerFactory) TransformerFactory.newInstance();
             Transformer identity = stf.newTransformer();
             identity.transform(sxSource, sxResult);
-
             // Insert the destination SQLXML object into the database.
-            PreparedStatement psmt = con
-                    .prepareStatement("INSERT INTO TestTable2" + " (Col2, Col3, Col4, Col5) VALUES (?, ?, ?, ?)");
-            psmt.setString(1, "A");
-            psmt.setString(2, "Test data");
-            psmt.setInt(3, 123);
-            psmt.setSQLXML(4, xmlDest);
-            psmt.execute();
-
-            // Execute the query and display the data.
-            SQL = "SELECT * FROM TestTable2";
-            stmt = con.createStatement();
-            rs = stmt.executeQuery(SQL);
+            try (PreparedStatement psmt = con
+                    .prepareStatement("INSERT INTO TestTable2" + " (Col2, Col3, Col4, Col5) VALUES (?, ?, ?, ?)")) {
+                psmt.setString(1, "A");
+                psmt.setString(2, "Test data");
+                psmt.setInt(3, 123);
+                psmt.setSQLXML(4, xmlDest);
+                psmt.execute();
+            }
+        }
+        // Execute the query and display the data.
+        SQL = "SELECT * FROM TestTable2";
+        try (ResultSet rs = stmt.executeQuery(SQL)) {
 
             System.out.println("showTransformer method : Display data in TestTable2 => ");
             while (rs.next()) {
@@ -219,42 +197,31 @@ public class sqlxmlExample {
                 SQLXML xml = rs.getSQLXML("Col5");
                 System.out.println("XML column : " + xml.getString());
             }
-        } catch (Exception e) {
-            e.printStackTrace();
         }
     }
 
-    private static void createSampleTables(Connection con) {
+    private static void createSampleTables(Statement stmt) throws SQLException {
+        // Drop the tables.
+        stmt.executeUpdate("if exists (select * from sys.objects where name = 'TestTable1')" + "drop table TestTable1");
 
-        try {
-            Statement stmt = con.createStatement();
+        stmt.executeUpdate("if exists (select * from sys.objects where name = 'TestTable2')" + "drop table TestTable2");
 
-            // Drop the tables.
-            stmt.executeUpdate(
-                    "if exists (select * from sys.objects where name = 'TestTable1')" + "drop table TestTable1");
+        // Create empty tables.
+        stmt.execute("CREATE TABLE TestTable1 (Col1 int IDENTITY, Col2 char, Col3 xml)");
+        stmt.execute("CREATE TABLE TestTable2 (Col1 int IDENTITY, Col2 char, Col3 varchar(50), Col4 int, Col5 xml)");
 
-            stmt.executeUpdate(
-                    "if exists (select * from sys.objects where name = 'TestTable2')" + "drop table TestTable2");
+        // Insert two rows to the TestTable1.
+        String row1 = "<contact><name>Contact Name 1</name><phone>XXX-XXX-XXXX</phone></contact>";
+        String row2 = "<contact><name>Contact Name 2</name><phone>YYY-YYY-YYYY</phone></contact>";
 
-            // Create empty tables.
-            stmt.execute("CREATE TABLE TestTable1 (Col1 int IDENTITY, Col2 char, Col3 xml)");
-            stmt.execute(
-                    "CREATE TABLE TestTable2 (Col1 int IDENTITY, Col2 char, Col3 varchar(50), Col4 int, Col5 xml)");
-
-            // Insert two rows to the TestTable1.
-            String row1 = "<contact><name>Contact Name 1</name><phone>XXX-XXX-XXXX</phone></contact>";
-            String row2 = "<contact><name>Contact Name 2</name><phone>YYY-YYY-YYYY</phone></contact>";
-
-            stmt.executeUpdate("insert into TestTable1" + " (Col2, Col3) values('A', '" + row1 + "')");
-            stmt.executeUpdate("insert into TestTable1" + " (Col2, Col3) values('B', '" + row2 + "')");
-
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
+        stmt.executeUpdate("insert into TestTable1" + " (Col2, Col3) values('A', '" + row1 + "')");
+        stmt.executeUpdate("insert into TestTable1" + " (Col2, Col3) values('B', '" + row2 + "')");
     }
 }
 
-
+/**
+ * Handles output for XML elements for the test.
+ */
 class ExampleContentHandler implements ContentHandler {
 
     public void startElement(String namespaceURI, String localName, String qName, Attributes atts) throws SAXException {

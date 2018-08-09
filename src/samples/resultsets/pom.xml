@@ -1,95 +1,82 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
 	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
 	<modelVersion>4.0.0</modelVersion>
-	
 	<groupId>com.microsoft.sqlserver.jdbc</groupId>
 	<artifactId>resultsets</artifactId>
 	<version>0.0.1</version>
-	
 	<packaging>jar</packaging>
-	
 	<name>${project.artifactId}</name>
 	<url>https://github.com/Microsoft/mssql-jdbc/tree/master/src/samples</url>
-	
 	<properties>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 	</properties>
-
 	<dependencies>
 		<dependency>
 			<groupId>com.microsoft.sqlserver</groupId>
 			<artifactId>mssql-jdbc</artifactId>
-			<version>6.4.0.jre9</version>
+			<version>7.0.0.jre10</version>
 		</dependency>
 	</dependencies>
-	
 	<profiles>
 		<profile>
-			<id>cacheRS</id>
+			<id>CacheResultSet</id>
 			<build>
-				<finalName>cacheRS</finalName>
-				
+				<finalName>CacheResultSet</finalName>
 				<plugins>
 					<plugin>
 						<groupId>org.codehaus.mojo</groupId>
 						<artifactId>exec-maven-plugin</artifactId>
 						<version>1.2.1</version>
 						<configuration>
-							<mainClass>resultsets.src.main.java.cacheRS</mainClass>
+							<mainClass>resultsets.src.main.java.CacheResultSet</mainClass>
 						</configuration>
 					</plugin>
 				</plugins>
 			</build>
 		</profile>
-		
 		<profile>
-			<id>retrieveRS</id>
+			<id>RetrieveResultSet</id>
 			<build>
-				<finalName>retrieveRS</finalName>
-				
+				<finalName>RetrieveResultSet</finalName>
 				<plugins>
 					<plugin>
 						<groupId>org.codehaus.mojo</groupId>
 						<artifactId>exec-maven-plugin</artifactId>
 						<version>1.2.1</version>
 						<configuration>
-							<mainClass>resultsets.src.main.java.retrieveRS</mainClass>
+							<mainClass>resultsets.src.main.java.RetrieveResultSet</mainClass>
 						</configuration>
 					</plugin>
 				</plugins>
 			</build>
 		</profile>
-		
 		<profile>
-			<id>updateRS</id>
+			<id>UpdateResultSet</id>
 			<build>
-				<finalName>updateRS</finalName>
-				
+				<finalName>UpdateResultSet</finalName>
 				<plugins>
 					<plugin>
 						<groupId>org.codehaus.mojo</groupId>
 						<artifactId>exec-maven-plugin</artifactId>
 						<version>1.2.1</version>
 						<configuration>
-							<mainClass>resultsets.src.main.java.updateRS</mainClass>
+							<mainClass>resultsets.src.main.java.UpdateResultSet</mainClass>
 						</configuration>
 					</plugin>
 				</plugins>
 			</build>
 		</profile>
 	</profiles>
-
 	<build>
 		<plugins>
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-compiler-plugin</artifactId>
 				<configuration>
-					<source>9</source>
-					<target>9</target>
+					<source>10</source>
+					<target>10</target>
 				</configuration>
 			</plugin>
-
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-resources-plugin</artifactId>
@@ -97,5 +84,4 @@
 			</plugin>
 		</plugins>
 	</build>
-
 </project>

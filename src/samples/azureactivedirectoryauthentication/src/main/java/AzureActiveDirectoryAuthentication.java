@@ -6,7 +6,6 @@ package azureactivedirectoryauthentication.src.main.java;
 
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
-import java.sql.CallableStatement;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.Statement;
@@ -14,15 +13,26 @@ import java.sql.Statement;
 import com.microsoft.sqlserver.jdbc.SQLServerDataSource;
 
 
+/**
+ * Sample application that demonstrates how to establidh secure connection to Azure Database, Azure Data Warehouse and
+ * any other cloud database. Users can use 'ActiveDirectoryPassword' or 'ActiveDirectoryIntegrated' Authentication modes
+ * as per their needs.
+ * 
+ * This test can be used to establish connection by both modes on any operating system, if required setup is provided
+ * for Active Directory Integrated Authentication.
+ * 
+ * For testing 'ActiveDirectoryIntegrated' Authentication, do one of the following:
+ * 
+ * 1. Generate Kerberos Ticket and validate its availability with klist tool, or
+ * 
+ * 2. Place sqljdbc_auth.dll in the same directory as the pom.xml file. (Only applicable for Windows OS)
+ * 
+ * For testing 'ActiveDirectoryPassword' Authentication, none of the above setup is required.
+ * 
+ */
 public class AzureActiveDirectoryAuthentication {
 
     public static void main(String[] args) {
-
-        // Declare the JDBC objects.
-        Connection con = null;
-        Statement stmt = null;
-        CallableStatement cstmt = null;
-        ResultSet rs = null;
 
         String serverName = null;
         String portNumber = null;
@@ -32,10 +42,16 @@ public class AzureActiveDirectoryAuthentication {
         String authentication = null;
         String hostNameInCertificate = null;
 
-        try (BufferedReader br = new BufferedReader(new InputStreamReader(System.in))) {
+        try (InputStreamReader in = new InputStreamReader(System.in); BufferedReader br = new BufferedReader(in)) {
 
-            System.out.println("Remember to put sqljdbc_auth.dll in the same directory as the pom.xml file.");
+            System.out.println("For testing 'ActiveDirectoryIntegrated' Authentication, do one of the following:");
+            System.out.println("   1. Generate Kerberos Ticket and validate its availability with klist tool, or");
+            System.out.println("   2. Place sqljdbc_auth.dll in the same directory as the pom.xml file.");
+            System.out.println(
+                    "For testing 'ActiveDirectoryPassword' Authentication, none of the above setup is not required.");//
+            System.out.println();
 
+            // Start capturing database info
             System.out.print("Enter server name: ");
             serverName = br.readLine();
             System.out.print("Enter port number: ");
@@ -46,7 +62,7 @@ public class AzureActiveDirectoryAuthentication {
             username = br.readLine();
             System.out.print("Enter password: ");
             password = br.readLine();
-            System.out.print("Enter authentication: "); // e.g. ActiveDirectoryPassword
+            System.out.print("Enter authentication: "); // e.g. ActiveDirectoryPassword / ActiveDirectoryIntegrated
             authentication = br.readLine();
             System.out.print("Enter host name in certificate: "); // e.g. *.database.windows.net
             hostNameInCertificate = br.readLine();
@@ -61,39 +77,24 @@ public class AzureActiveDirectoryAuthentication {
             ds.setAuthentication(authentication);
             ds.setHostNameInCertificate(hostNameInCertificate);
 
-            con = ds.getConnection();
+            try (Connection con = ds.getConnection(); Statement stmt = con.createStatement();) {
+                System.out.println();
+                System.out.println("Connection established successfully.");
 
-            System.out.println();
-            System.out.println("Connection established successfully.");
+                // Create and execute an SQL statement that returns user name.
+                String SQL = "SELECT SUSER_SNAME()";
+                try (ResultSet rs = stmt.executeQuery(SQL)) {
 
-            // Create and execute an SQL statement that returns user name.
-            String SQL = "SELECT SUSER_SNAME()";
-            stmt = con.createStatement();
-            rs = stmt.executeQuery(SQL);
-
-            // Iterate through the data in the result set and display it.
-            while (rs.next()) {
-                System.out.println("user name: " + rs.getString(1));
+                    // Iterate through the data in the result set and display it.
+                    while (rs.next()) {
+                        System.out.println("user name: " + rs.getString(1));
+                    }
+                }
             }
         }
         // Handle any errors that may have occurred.
         catch (Exception e) {
             e.printStackTrace();
-        }
-
-        finally {
-            if (rs != null)
-                try {
-                    rs.close();
-                } catch (Exception e) {}
-            if (cstmt != null)
-                try {
-                    cstmt.close();
-                } catch (Exception e) {}
-            if (con != null)
-                try {
-                    con.close();
-                } catch (Exception e) {}
         }
     }
 }
