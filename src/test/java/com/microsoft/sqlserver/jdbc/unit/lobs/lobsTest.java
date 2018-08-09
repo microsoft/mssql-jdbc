@@ -239,7 +239,7 @@ public class lobsTest extends AbstractTest {
                         .prepareStatement("INSERT INTO " + table.getEscapedTableName() + "  VALUES(?,?)");
                 blob = conn.createBlob();
                 blob.setBytes(1, data);
-                ps.setInt(1, i+1);
+                ps.setInt(1, i + 1);
                 ps.setBlob(2, blob);
                 ps.executeUpdate();
             }
@@ -297,15 +297,17 @@ public class lobsTest extends AbstractTest {
             table = this.createTable(table, types, true);
 
             DBStatement stmt = conn.createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE);
-            String query = "select * from " + table.getEscapedTableName() + " ORDER BY " + table.getEscapedColumnName(0);
+            String query = "select * from " + table.getEscapedTableName() + " ORDER BY "
+                    + table.getEscapedColumnName(0);
             DBResultSet rs = stmt.executeQuery(query);
             while (rs.next()) {
-                for (int i = 0; i < types.length+1; i++) { // +1 for RowId
-                    if(i==0) {
+                for (int i = 0; i < types.length + 1; i++) { // +1 for RowId
+                    if (i == 0) {
                         rs.getInt(1);
-                    }else {
+                    } else {
                         DBColumn col = table.getColumns().get(i);
-                        if (!col.getSqlType().canConvert(streamClass, DBCoercion.GET, new DBConnection(connectionString)))
+                        if (!col.getSqlType().canConvert(streamClass, DBCoercion.GET,
+                                new DBConnection(connectionString)))
                             continue;
                         Object stream = rs.getXXX(i + 1, streamClass);
                         if (stream == null) {
@@ -485,7 +487,8 @@ public class lobsTest extends AbstractTest {
         ps.executeUpdate();
 
         byte[] chunk = new byte[size];
-        ResultSet rs = stmt.executeQuery("select * from " + table.getEscapedTableName() + " ORDER BY " + table.getEscapedColumnName(0));
+        ResultSet rs = stmt.executeQuery(
+                "select * from " + table.getEscapedTableName() + " ORDER BY " + table.getEscapedColumnName(0));
         rs.next();
 
         blob = rs.getBlob(2);
@@ -520,16 +523,18 @@ public class lobsTest extends AbstractTest {
         InputStream stream = null;
         for (int i = 0; i < 5; i++)// create 5 blobs
         {
-            PreparedStatement ps = conn.prepareStatement("INSERT INTO " + table.getEscapedTableName() + "  VALUES(?,?)");
+            PreparedStatement ps = conn
+                    .prepareStatement("INSERT INTO " + table.getEscapedTableName() + "  VALUES(?,?)");
             blobs[i] = conn.createBlob();
             ThreadLocalRandom.current().nextBytes(data);
             blobs[i].setBytes(1, data);
-            ps.setInt(1, i+1);
+            ps.setInt(1, i + 1);
             ps.setBlob(2, blobs[i]);
             ps.executeUpdate();
         }
         byte[] chunk = new byte[size];
-        ResultSet rs = stmt.executeQuery("select * from " + table.getEscapedTableName() + " ORDER BY " + table.getEscapedColumnName(0));
+        ResultSet rs = stmt.executeQuery(
+                "select * from " + table.getEscapedTableName() + " ORDER BY " + table.getEscapedColumnName(0));
         for (int i = 0; i < 5; i++) {
             rs.next();
             blobs[i] = rs.getBlob(2);
@@ -692,17 +697,17 @@ public class lobsTest extends AbstractTest {
 
     private static DBTable createTable(DBTable table, String[] types, boolean populateTable) throws Exception {
 
-        try(DBConnection connection = new DBConnection(connectionString);
-                DBStatement stmt = connection.createStatement()){
+        try (DBConnection connection = new DBConnection(connectionString);
+                DBStatement stmt = connection.createStatement()) {
             table = new DBTable(false);
-            
-            //Add RowId
+
+            // Add RowId
             table.addColumn(Utils.find("int"));
-            
+
             for (String type1 : types) {
                 SqlType type = Utils.find(type1);
                 table.addColumn(type);
-    
+
             }
             stmt.createTable(table);
             if (populateTable) {

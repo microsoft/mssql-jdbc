@@ -204,7 +204,7 @@ public class DBResultSet extends AbstractParentWrapper implements AutoCloseable 
         try {
             // Verify
             verifydata(ordinal, coercion, expectedData, retrieved);
-        }catch(SQLException e) {
+        } catch (SQLException e) {
             System.out.println("Compared & failed: " + expectedData + " ::: " + retrieved + " <<< ");
         }
     }

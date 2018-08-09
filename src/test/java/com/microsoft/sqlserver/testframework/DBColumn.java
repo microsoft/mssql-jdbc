@@ -35,7 +35,7 @@ public class DBColumn {
     public String getColumnName() {
         return columnName;
     }
-    
+
     /**
      * @return Escaped "columnName"
      */
@@ -99,12 +99,13 @@ public class DBColumn {
 
     /**
      * Updates rowIndexes to all rows
-     * @param totalRows number of rows
+     * 
+     * @param totalRows
+     *        number of rows
      */
     public void populateRowId(int totalRows) {
         columnValues = new ArrayList<>();
         for (int i = 0; i < totalRows; i++)
-            columnValues.add(i+1);
+            columnValues.add(i + 1);
     }
-
 }

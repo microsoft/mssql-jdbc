@@ -100,15 +100,15 @@ public class DBTable extends AbstractSQLGenerator {
      * adds a columns for each SQL type in DBSchema
      */
     private void addColumns() {
-        totalColumns = schema.getNumberOfSqlTypes() + 1; //Add 1 column for RowId (Type Int)
+        totalColumns = schema.getNumberOfSqlTypes() + 1; // Add 1 column for RowId (Type Int)
         columns = new ArrayList<>(totalColumns);
-        
-        //Add RowID column
-        SqlType sqlType = schema.getSqlType(1); //Type SqlInt
+
+        // Add RowID column
+        SqlType sqlType = schema.getSqlType(1); // Type SqlInt
         DBColumn column = new DBColumn(RandomUtil.getIdentifier("RowID"), sqlType);
         columns.add(column);
-        
-        for (int i = 0; i < totalColumns-1; i++) {
+
+        for (int i = 0; i < totalColumns - 1; i++) {
             sqlType = schema.getSqlType(i);
             column = new DBColumn(RandomUtil.getIdentifier(sqlType.getName()), sqlType);
             columns.add(column);
@@ -119,15 +119,15 @@ public class DBTable extends AbstractSQLGenerator {
      * adds a columns for each SQL type in DBSchema
      */
     private void addColumns(boolean unicode) {
-        totalColumns = schema.getNumberOfSqlTypes() + 1; //Add 1 column for RowId
+        totalColumns = schema.getNumberOfSqlTypes() + 1; // Add 1 column for RowId
         columns = new ArrayList<>(totalColumns);
 
-        //Add RowID column
-        SqlType sqlType = schema.getSqlType(1); //Type SqlInt
+        // Add RowID column
+        SqlType sqlType = schema.getSqlType(1); // Type SqlInt
         DBColumn column = new DBColumn(RandomUtil.getIdentifier("RowID"), sqlType);
         columns.add(column);
-        
-        for (int i = 0; i < totalColumns-1; i++) {
+
+        for (int i = 0; i < totalColumns - 1; i++) {
             sqlType = schema.getSqlType(i);
             if (unicode)
                 column = new DBColumn(RandomUtil.getIdentifier(sqlType.getName()) + "ĀĂŎՖએДЕЖЗИЙਟਖਞ", sqlType);
@@ -308,7 +308,7 @@ public class DBTable extends AbstractSQLGenerator {
         // generate values for all columns
         for (int i = 0; i < totalColumns; i++) {
             DBColumn column = getColumn(i);
-            if(i==0) 
+            if (i == 0)
                 column.populateRowId(totalRows);
             else
                 column.populateValues(totalRows);
@@ -322,7 +322,7 @@ public class DBTable extends AbstractSQLGenerator {
     public String getColumnName(int columnIndex) {
         return getColumn(columnIndex).getColumnName();
     }
-    
+
     public String getEscapedColumnName(int columnIndex) {
         return getColumn(columnIndex).getEscapedColumnName();
     }
