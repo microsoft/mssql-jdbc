@@ -38,9 +38,9 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
 
     static long UUID = System.currentTimeMillis();;
     static String tableName = "BulkCopyParseTest" + UUID;
-    static String unsupportedTableName = "BulkCopyUnsupportedTable" + UUID;
-    static String squareBracketTableName = "[peter]]]]test" + UUID + "]";
-    static String doubleQuoteTableName = "\"peter\"\"\"\"test" + UUID + "\"";
+    static String unsupportedTableName = "[BulkCopyUnsupportedTable'" + UUID + "]";
+    static String squareBracketTableName = "[peter]]]]test'" + UUID + "]";
+    static String doubleQuoteTableName = "\"peter\"\"\"\"test'" + UUID + "\"";
 
     @Test
     public void testIsInsert() throws Exception {

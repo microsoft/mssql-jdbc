@@ -1971,7 +1971,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                         ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY, connection.getHoldability(),
                         stmtColumnEncriptionSetting);
                         SQLServerResultSet rs = stmt.executeQueryInternal(
-                                "sp_executesql N'SET FMTONLY ON SELECT * FROM " + tableName + " '");) {
+                                "sp_executesql N'SET FMTONLY ON SELECT * FROM " + Util.escapeQuotes(tableName) + " '");) {
                     if (null != columnList && columnList.size() > 0) {
                         if (columnList.size() != valueList.size()) {
                             throw new IllegalArgumentException(
@@ -2124,7 +2124,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                         ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY, connection.getHoldability(),
                         stmtColumnEncriptionSetting);
                         SQLServerResultSet rs = stmt.executeQueryInternal(
-                                "sp_executesql N'SET FMTONLY ON SELECT * FROM " + tableName + " '");) {
+                                "sp_executesql N'SET FMTONLY ON SELECT * FROM " + Util.escapeQuotes(tableName) + " '");) {
                     if (null != columnList && columnList.size() > 0) {
                         if (columnList.size() != valueList.size()) {
                             throw new IllegalArgumentException(
