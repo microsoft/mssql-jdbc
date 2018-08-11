@@ -6955,13 +6955,11 @@ class TimeoutCommand {
     private final int timeout;
     private final TDSCommand command;
     private final SQLServerConnection sqlServerConnection;
-    private final Thread executionThread;
 
     public TimeoutCommand(int timeout, TDSCommand command, SQLServerConnection sqlServerConnection) {
         this.timeout = timeout;
         this.command = command;
         this.sqlServerConnection = sqlServerConnection;
-        this.executionThread = Thread.currentThread();
         this.startTime = System.currentTimeMillis();
     }
 
@@ -6971,12 +6969,32 @@ class TimeoutCommand {
     }
 
     public void interrupt() {
-        this.executionThread.interrupt();
+        try {
+            // If TCP Connection to server is silently dropped, exceeding the query timeout on the same connection does
+            // not throw SQLTimeoutException
+            // The application stops responding instead until SocketTimeoutException is thrown. In this case, we must
+            // manually terminate the connection.
+            if (null == command && null != sqlServerConnection) {
+                sqlServerConnection.terminate(SQLServerException.DRIVER_ERROR_IO_FAILED,
+                        SQLServerException.getErrString("R_connectionIsClosed"));
+            } else {
+                // If the timer wasn't canceled before it ran out of
+                // time then interrupt the registered command.
+                command.interrupt(SQLServerException.getErrString("R_queryTimedOut"));
+            }
+        } catch (SQLServerException e) {
+            // Unfortunately, there's nothing we can do if we
+            // fail to time out the request. There is no way
+            // to report back what happened.
+            assert null != command;
+            command.log(Level.FINE, "Command could not be timed out. Reason: " + e.getMessage());
+        }
     }
 }
 
 /**
- * TODO: doc
+ * Thread that runs in the background while the mssql driver is used that can timeout TDSCommands
+ * Checks all registered commands every second to see if they can be interrupted
  */
 final class TimeoutPoller implements Runnable {
     private List<TimeoutCommand> timeoutCommands = new ArrayList<>();
@@ -6988,6 +7006,7 @@ final class TimeoutPoller implements Runnable {
         if (timeoutPoller == null) {
             synchronized (TimeoutPoller.class) {
                 if (timeoutPoller == null) {
+                    //initialize the timeout poller thread once
                     timeoutPoller = new TimeoutPoller();
                     //start the timeout polling thread
                     new Thread(timeoutPoller, "mssql-jdbc-TimeoutPoller").start();
