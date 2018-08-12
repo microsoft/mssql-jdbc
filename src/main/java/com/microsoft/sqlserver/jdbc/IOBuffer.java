@@ -41,10 +41,15 @@ import java.time.OffsetDateTime;
 import java.time.OffsetTime;
 import java.util.*;
 import java.util.Map.Entry;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.concurrent.SynchronousQueue;
+import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -93,7 +98,7 @@ final class TDS {
     static final byte ADALWORKFLOW_ACTIVEDIRECTORYPASSWORD = 0x01;
     static final byte ADALWORKFLOW_ACTIVEDIRECTORYINTEGRATED = 0x02;
     static final byte FEDAUTH_INFO_ID_STSURL = 0x01; // FedAuthInfoData is token endpoint URL from which to acquire fed
-    // auth token
+                                                     // auth token
     static final byte FEDAUTH_INFO_ID_SPN = 0x02; // FedAuthInfoData is the SPN to use for acquiring fed auth token
 
     // AE constants
@@ -268,7 +273,7 @@ final class TDS {
     // 4 byte outstanding request count
     static final int MARS_HEADER_LENGTH = 18; // 2 byte header type, 8 byte transaction descriptor,
     static final int TRACE_HEADER_LENGTH = 26; // header length (4) + header type (2) + guid (16) + Sequence number size
-    // (4)
+                                               // (4)
 
     static final short HEADERTYPE_TRACE = 3; // trace header type
 
@@ -500,7 +505,7 @@ class GregorianChange {
         GregorianCalendar cal = new GregorianCalendar(Locale.US);
         cal.clear();
         cal.set(1, Calendar.FEBRUARY, 577738, 0, 0, 0);// 577738 = 1+577737(no of days since epoch that brings us to oct
-        // 15th 1582)
+                                                       // 15th 1582)
         if (cal.get(Calendar.DAY_OF_MONTH) == 15) {
             // If the date calculation is correct(the above bug is fixed),
             // post the default gregorian cut over date, the pure gregorian date
@@ -628,7 +633,7 @@ final class TDSChannel {
      * Opens the physical communications channel (TCP/IP socket and I/O streams) to the SQL Server.
      */
     final void open(String host, int port, int timeoutMillis, boolean useParallel, boolean useTnir,
-                    boolean isTnirFirstAttempt, int timeoutMillisForFullTimeout) throws SQLServerException {
+            boolean isTnirFirstAttempt, int timeoutMillisForFullTimeout) throws SQLServerException {
         if (logger.isLoggable(Level.FINER))
             logger.finer(this.toString() + ": Opening TCP socket...");
 
@@ -1775,12 +1780,12 @@ final class TDSChannel {
                 logger.log(Level.FINER, "java.security path: " + JAVA_SECURITY + "\n" + "Security providers: "
                         + Arrays.asList(Security.getProviders()) + "\n"
                         + ((null != sslContextProvider) ? ("SSLContext provider info: " + sslContextProvider.getInfo()
-                        + "\n" + "SSLContext provider services:\n" + sslContextProvider.getServices() + "\n")
-                        : "")
+                                + "\n" + "SSLContext provider services:\n" + sslContextProvider.getServices() + "\n")
+                                                        : "")
                         + ((null != tmfProvider) ? ("TrustManagerFactory provider info: " + tmfProvider.getInfo()
-                        + "\n") : "")
+                                + "\n") : "")
                         + ((null != tmfDefaultAlgorithm) ? ("TrustManagerFactory default algorithm: "
-                        + tmfDefaultAlgorithm + "\n") : "")
+                                + tmfDefaultAlgorithm + "\n") : "")
                         + ((null != ksProvider) ? ("KeyStore provider info: " + ksProvider.getInfo() + "\n") : "")
                         + "java.ext.dirs: " + System.getProperty("java.ext.dirs"));
 
@@ -2242,7 +2247,7 @@ final class SocketFinder {
      * @throws IOException
      */
     Socket findSocket(String hostName, int portNumber, int timeoutInMilliSeconds, boolean useParallel, boolean useTnir,
-                      boolean isTnirFirstAttempt, int timeoutInMilliSecondsForFullTimeout) throws SQLServerException {
+            boolean isTnirFirstAttempt, int timeoutInMilliSecondsForFullTimeout) throws SQLServerException {
         assert timeoutInMilliSeconds != 0 : "The driver does not allow a time out of 0";
 
         try {
@@ -2382,7 +2387,7 @@ final class SocketFinder {
      * @throws IOException
      */
     private void findSocketUsingJavaNIO(InetAddress[] inetAddrs, int portNumber,
-                                        int timeoutInMilliSeconds) throws IOException {
+            int timeoutInMilliSeconds) throws IOException {
         // The driver does not allow a time out of zero.
         // Also, the unit of time the user can specify in the driver is seconds.
         // So, even if the user specifies 1 second(least value), the least possible
@@ -2449,7 +2454,7 @@ final class SocketFinder {
 
                         if (logger.isLoggable(Level.FINER))
                             logger.finer(this.toString() + " processing the channel :" + ch);// this traces the IP by
-                        // default
+                                                                                             // default
 
                         boolean connected = false;
                         try {
@@ -2540,7 +2545,7 @@ final class SocketFinder {
     }
 
     private Socket getConnectedSocket(InetAddress inetAddr, int portNumber,
-                                      int timeoutInMilliSeconds) throws IOException {
+            int timeoutInMilliSeconds) throws IOException {
         InetSocketAddress addr = new InetSocketAddress(inetAddr, portNumber);
         return getConnectedSocket(addr, timeoutInMilliSeconds);
     }
@@ -2555,7 +2560,7 @@ final class SocketFinder {
     }
 
     private void findSocketUsingThreading(InetAddress[] inetAddrs, int portNumber,
-                                          int timeoutInMilliSeconds) throws IOException, InterruptedException {
+            int timeoutInMilliSeconds) throws IOException, InterruptedException {
         assert timeoutInMilliSeconds != 0 : "The timeout cannot be zero";
 
         assert inetAddrs.length != 0 : "Number of inetAddresses should not be zero in this function";
@@ -2867,7 +2872,7 @@ final class SocketConnector implements Runnable {
      * Constructs a new SocketConnector object with the associated socket and socketFinder
      */
     SocketConnector(Socket socket, InetSocketAddress inetSocketAddress, int timeOutInMilliSeconds,
-                    SocketFinder socketFinder) {
+            SocketFinder socketFinder) {
         this.socket = socket;
         this.inetSocketAddress = inetSocketAddress;
         this.timeoutInMilliseconds = timeOutInMilliSeconds;
@@ -3257,7 +3262,7 @@ final class TDSWriter {
      * @throws SQLServerException
      */
     void writeBigDecimal(BigDecimal bigDecimalVal, int srcJdbcType, int precision,
-                         int scale) throws SQLServerException {
+            int scale) throws SQLServerException {
         /*
          * Length including sign byte One 1-byte unsigned integer that represents the sign of the decimal value (0 =>
          * Negative, 1 => positive) One 4-, 8-, 12-, or 16-byte signed integer that represents the decimal value
@@ -3397,8 +3402,8 @@ final class TDSWriter {
 
         // Number of milliseconds since midnight of the current day.
         int millisSinceMidnight = (subSecondNanos + Nanos.PER_MILLISECOND / 2) / Nanos.PER_MILLISECOND + // Millis into
-                // the current
-                // second
+                                                                                                         // the current
+                                                                                                         // second
                 1000 * calendar.get(Calendar.SECOND) + // Seconds into the current minute
                 60 * 1000 * calendar.get(Calendar.MINUTE) + // Minutes into the current hour
                 60 * 60 * 1000 * calendar.get(Calendar.HOUR_OF_DAY); // Hours into the current day
@@ -3476,7 +3481,7 @@ final class TDSWriter {
         // use a local time zone determined by the minutes offset of the value, since
         // the writers for those types expect local calendars.
         timeZone = (SSType.DATETIMEOFFSET == destSSType) ? UTC.timeZone
-                : new SimpleTimeZone(minutesOffset * 60 * 1000, "");
+                                                         : new SimpleTimeZone(minutesOffset * 60 * 1000, "");
 
         calendar = new GregorianCalendar(timeZone, Locale.US);
         calendar.setLenient(true);
@@ -3502,9 +3507,9 @@ final class TDSWriter {
             minutesOffset = offsetDateTimeValue.getOffset().getTotalSeconds() / 60;
         } catch (Exception e) {
             throw new SQLServerException(SQLServerException.getErrString("R_zoneOffsetError"), null, // SQLState is null
-                    // as this error is
-                    // generated in
-                    // the driver
+                                                                                                     // as this error is
+                                                                                                     // generated in
+                                                                                                     // the driver
                     0, // Use 0 instead of DriverError.NOT_SET to use the correct constructor
                     e);
         }
@@ -3560,9 +3565,9 @@ final class TDSWriter {
             minutesOffset = offsetTimeValue.getOffset().getTotalSeconds() / 60;
         } catch (Exception e) {
             throw new SQLServerException(SQLServerException.getErrString("R_zoneOffsetError"), null, // SQLState is null
-                    // as this error is
-                    // generated in
-                    // the driver
+                                                                                                     // as this error is
+                                                                                                     // generated in
+                                                                                                     // the driver
                     0, // Use 0 instead of DriverError.NOT_SET to use the correct constructor
                     e);
         }
@@ -3714,7 +3719,7 @@ final class TDSWriter {
     }
 
     void writeStream(InputStream inputStream, long advertisedLength,
-                     boolean writeChunkSizes) throws SQLServerException {
+            boolean writeChunkSizes) throws SQLServerException {
         assert DataTypes.UNKNOWN_STREAM_LENGTH == advertisedLength || advertisedLength >= 0;
 
         long actualLength = 0;
@@ -3724,7 +3729,7 @@ final class TDSWriter {
         do {
             // Read in next chunk
             for (bytesToWrite = 0; -1 != bytesRead && bytesToWrite < streamByteBuffer.length;
-                 bytesToWrite += bytesRead) {
+                    bytesToWrite += bytesRead) {
                 try {
                     bytesRead = inputStream.read(streamByteBuffer, bytesToWrite,
                             streamByteBuffer.length - bytesToWrite);
@@ -3769,7 +3774,7 @@ final class TDSWriter {
      */
 
     void writeNonUnicodeReader(Reader reader, long advertisedLength, boolean isDestBinary,
-                               Charset charSet) throws SQLServerException {
+            Charset charSet) throws SQLServerException {
         assert DataTypes.UNKNOWN_STREAM_LENGTH == advertisedLength || advertisedLength >= 0;
 
         long actualLength = 0;
@@ -3785,7 +3790,7 @@ final class TDSWriter {
         do {
             // Read in next chunk
             for (charsToWrite = 0; -1 != charsRead && charsToWrite < streamCharBuffer.length;
-                 charsToWrite += charsRead) {
+                    charsToWrite += charsRead) {
                 try {
                     charsRead = reader.read(streamCharBuffer, charsToWrite, streamCharBuffer.length - charsToWrite);
                 } catch (IOException e) {
@@ -3861,7 +3866,7 @@ final class TDSWriter {
         do {
             // Read in next chunk
             for (charsToWrite = 0; -1 != charsRead && charsToWrite < streamCharBuffer.length;
-                 charsToWrite += charsRead) {
+                    charsToWrite += charsRead) {
                 try {
                     charsRead = reader.read(streamCharBuffer, charsToWrite, streamCharBuffer.length - charsToWrite);
                 } catch (IOException e) {
@@ -4013,14 +4018,14 @@ final class TDSWriter {
         stagingBuffer.put(TDS.PACKET_HEADER_MESSAGE_TYPE, tdsMessageType);
         stagingBuffer.put(TDS.PACKET_HEADER_MESSAGE_STATUS, (byte) tdsMessageStatus);
         stagingBuffer.put(TDS.PACKET_HEADER_MESSAGE_LENGTH, (byte) ((tdsMessageLength >> 8) & 0xFF)); // Note: message
-        // length is 16
-        // bits,
+                                                                                                      // length is 16
+                                                                                                      // bits,
         stagingBuffer.put(TDS.PACKET_HEADER_MESSAGE_LENGTH + 1, (byte) ((tdsMessageLength >> 0) & 0xFF)); // written BIG
-        // ENDIAN
+                                                                                                          // ENDIAN
         stagingBuffer.put(TDS.PACKET_HEADER_SPID, (byte) ((tdsChannel.getSPID() >> 8) & 0xFF)); // Note: SPID is 16
-        // bits,
+                                                                                                // bits,
         stagingBuffer.put(TDS.PACKET_HEADER_SPID + 1, (byte) ((tdsChannel.getSPID() >> 0) & 0xFF)); // written BIG
-        // ENDIAN
+                                                                                                    // ENDIAN
         stagingBuffer.put(TDS.PACKET_HEADER_SEQUENCE_NUM, (byte) (packetNum % 256));
         stagingBuffer.put(TDS.PACKET_HEADER_WINDOW, (byte) 0); // Window (Reserved/Not used)
 
@@ -4029,14 +4034,14 @@ final class TDSWriter {
             logBuffer.put(TDS.PACKET_HEADER_MESSAGE_TYPE, tdsMessageType);
             logBuffer.put(TDS.PACKET_HEADER_MESSAGE_STATUS, (byte) tdsMessageStatus);
             logBuffer.put(TDS.PACKET_HEADER_MESSAGE_LENGTH, (byte) ((tdsMessageLength >> 8) & 0xFF)); // Note: message
-            // length is 16
-            // bits,
+                                                                                                      // length is 16
+                                                                                                      // bits,
             logBuffer.put(TDS.PACKET_HEADER_MESSAGE_LENGTH + 1, (byte) ((tdsMessageLength >> 0) & 0xFF)); // written BIG
-            // ENDIAN
+                                                                                                          // ENDIAN
             logBuffer.put(TDS.PACKET_HEADER_SPID, (byte) ((tdsChannel.getSPID() >> 8) & 0xFF)); // Note: SPID is 16
-            // bits,
+                                                                                                // bits,
             logBuffer.put(TDS.PACKET_HEADER_SPID + 1, (byte) ((tdsChannel.getSPID() >> 0) & 0xFF)); // written BIG
-            // ENDIAN
+                                                                                                    // ENDIAN
             logBuffer.put(TDS.PACKET_HEADER_SEQUENCE_NUM, (byte) (packetNum % 256));
             logBuffer.put(TDS.PACKET_HEADER_WINDOW, (byte) 0); // Window (Reserved/Not used);
         }
@@ -4360,7 +4365,7 @@ final class TDSWriter {
      *        the collation of the data value
      */
     void writeRPCStringUnicode(String sName, String sValue, boolean bOut,
-                               SQLCollation collation) throws SQLServerException {
+            SQLCollation collation) throws SQLServerException {
         boolean bValueNull = (sValue == null);
         int nValueLen = bValueNull ? 0 : (2 * sValue.length());
         boolean isShortValue = nValueLen <= DataTypes.SHORT_VARTYPE_MAX_BYTES;
@@ -4599,7 +4604,7 @@ final class TDSWriter {
     }
 
     private void writeInternalTVPRowValues(JDBCType jdbcType, String currentColumnStringValue, Object currentObject,
-                                           Map.Entry<Integer, SQLServerMetaData> columnPair, boolean isSqlVariant) throws SQLServerException {
+            Map.Entry<Integer, SQLServerMetaData> columnPair, boolean isSqlVariant) throws SQLServerException {
         boolean isShortValue, isNull;
         int dataLength;
         switch (jdbcType) {
@@ -5132,7 +5137,7 @@ final class TDSWriter {
     }
 
     void writeRPCByteArray(String sName, byte bValue[], boolean bOut, JDBCType jdbcType,
-                           SQLCollation collation) throws SQLServerException {
+            SQLCollation collation) throws SQLServerException {
         boolean bValueNull = (bValue == null);
         int nValueLen = bValueNull ? 0 : bValue.length;
         boolean isShortValue = (nValueLen <= DataTypes.SHORT_VARTYPE_MAX_BYTES);
@@ -5234,7 +5239,7 @@ final class TDSWriter {
      *
      */
     void writeRPCDateTime(String sName, GregorianCalendar cal, int subSecondNanos,
-                          boolean bOut) throws SQLServerException {
+            boolean bOut) throws SQLServerException {
         assert (subSecondNanos >= 0) && (subSecondNanos < Nanos.PER_SECOND) : "Invalid subNanoSeconds value: "
                 + subSecondNanos;
         assert (cal != null) || (subSecondNanos == 0) : "Invalid subNanoSeconds value when calendar is null: "
@@ -5272,8 +5277,8 @@ final class TDSWriter {
 
         // Next, figure out the number of milliseconds since midnight of the current day.
         int millisSinceMidnight = (subSecondNanos + Nanos.PER_MILLISECOND / 2) / Nanos.PER_MILLISECOND + // Millis into
-                // the current
-                // second
+                                                                                                         // the current
+                                                                                                         // second
                 1000 * cal.get(Calendar.SECOND) + // Seconds into the current minute
                 60 * 1000 * cal.get(Calendar.MINUTE) + // Minutes into the current hour
                 60 * 60 * 1000 * cal.get(Calendar.HOUR_OF_DAY); // Hours into the current day
@@ -5309,7 +5314,7 @@ final class TDSWriter {
     }
 
     void writeRPCTime(String sName, GregorianCalendar localCalendar, int subSecondNanos, int scale,
-                      boolean bOut) throws SQLServerException {
+            boolean bOut) throws SQLServerException {
         writeRPCNameValType(sName, bOut, TDSType.TIMEN);
         writeByte((byte) scale);
 
@@ -5336,7 +5341,7 @@ final class TDSWriter {
     }
 
     void writeEncryptedRPCTime(String sName, GregorianCalendar localCalendar, int subSecondNanos, int scale,
-                               boolean bOut) throws SQLServerException {
+            boolean bOut) throws SQLServerException {
         if (con.getSendTimeAsDatetime()) {
             throw new SQLServerException(SQLServerException.getErrString("R_sendTimeAsDateTimeForAE"), null);
         }
@@ -5360,7 +5365,7 @@ final class TDSWriter {
             writeEncryptedRPCByteArray(null);
         else
             writeEncryptedRPCByteArray(writeEncryptedScaledTemporal(localCalendar, 0, // subsecond nanos (none for a
-                    // date value)
+                                                                                      // date value)
                     0, // scale (dates are not scaled)
                     SSType.DATE, (short) 0));
 
@@ -5369,7 +5374,7 @@ final class TDSWriter {
     }
 
     void writeEncryptedRPCDateTime(String sName, GregorianCalendar cal, int subSecondNanos, boolean bOut,
-                                   JDBCType jdbcType) throws SQLServerException {
+            JDBCType jdbcType) throws SQLServerException {
         assert (subSecondNanos >= 0) && (subSecondNanos < Nanos.PER_SECOND) : "Invalid subNanoSeconds value: "
                 + subSecondNanos;
         assert (cal != null) || (subSecondNanos == 0) : "Invalid subNanoSeconds value when calendar is null: "
@@ -5394,14 +5399,14 @@ final class TDSWriter {
 
     // getEncryptedDateTimeAsBytes is called if jdbcType/ssType is SMALLDATETIME or DATETIME
     byte[] getEncryptedDateTimeAsBytes(GregorianCalendar cal, int subSecondNanos,
-                                       JDBCType jdbcType) throws SQLServerException {
+            JDBCType jdbcType) throws SQLServerException {
         int daysSinceSQLBaseDate = DDC.daysSinceBaseDate(cal.get(Calendar.YEAR), cal.get(Calendar.DAY_OF_YEAR),
                 TDS.BASE_YEAR_1900);
 
         // Next, figure out the number of milliseconds since midnight of the current day.
         int millisSinceMidnight = (subSecondNanos + Nanos.PER_MILLISECOND / 2) / Nanos.PER_MILLISECOND + // Millis into
-                // the current
-                // second
+                                                                                                         // the current
+                                                                                                         // second
                 1000 * cal.get(Calendar.SECOND) + // Seconds into the current minute
                 60 * 1000 * cal.get(Calendar.MINUTE) + // Minutes into the current hour
                 60 * 60 * 1000 * cal.get(Calendar.HOUR_OF_DAY); // Hours into the current day
@@ -5420,7 +5425,7 @@ final class TDSWriter {
 
             // Values that are 29.998 seconds or less are rounded down to the nearest minute
             minutesSinceMidnight = ((secondsSinceMidnight % 60) > 29.998) ? minutesSinceMidnight + 1
-                    : minutesSinceMidnight;
+                                                                          : minutesSinceMidnight;
 
             // minutesSinceMidnight for (23:59:30)
             int maxMinutesSinceMidnight_SmallDateTime = 1440;
@@ -5433,7 +5438,7 @@ final class TDSWriter {
             if ((daysSinceSQLBaseDate < DDC.daysSinceBaseDate(1900, 1, TDS.BASE_YEAR_1900)
                     || daysSinceSQLBaseDate > DDC.daysSinceBaseDate(2079, 157, TDS.BASE_YEAR_1900))
                     || (daysSinceSQLBaseDate == DDC.daysSinceBaseDate(2079, 157, TDS.BASE_YEAR_1900)
-                    && minutesSinceMidnight >= maxMinutesSinceMidnight_SmallDateTime)) {
+                            && minutesSinceMidnight >= maxMinutesSinceMidnight_SmallDateTime)) {
                 MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_valueOutOfRange"));
                 Object[] msgArgs = {SSType.SMALLDATETIME};
                 throw new SQLServerException(form.format(msgArgs), SQLState.DATA_EXCEPTION_DATETIME_FIELD_OVERFLOW,
@@ -5482,7 +5487,7 @@ final class TDSWriter {
     }
 
     void writeEncryptedRPCDateTime2(String sName, GregorianCalendar localCalendar, int subSecondNanos, int scale,
-                                    boolean bOut) throws SQLServerException {
+            boolean bOut) throws SQLServerException {
         writeRPCNameValType(sName, bOut, TDSType.BIGVARBINARY);
 
         if (null == localCalendar)
@@ -5497,7 +5502,7 @@ final class TDSWriter {
     }
 
     void writeEncryptedRPCDateTimeOffset(String sName, GregorianCalendar utcCalendar, int minutesOffset,
-                                         int subSecondNanos, int scale, boolean bOut) throws SQLServerException {
+            int subSecondNanos, int scale, boolean bOut) throws SQLServerException {
         writeRPCNameValType(sName, bOut, TDSType.BIGVARBINARY);
 
         if (null == utcCalendar)
@@ -5515,7 +5520,7 @@ final class TDSWriter {
     }
 
     void writeRPCDateTime2(String sName, GregorianCalendar localCalendar, int subSecondNanos, int scale,
-                           boolean bOut) throws SQLServerException {
+            boolean bOut) throws SQLServerException {
         writeRPCNameValType(sName, bOut, TDSType.DATETIME2N);
         writeByte((byte) scale);
 
@@ -5529,7 +5534,7 @@ final class TDSWriter {
     }
 
     void writeRPCDateTimeOffset(String sName, GregorianCalendar utcCalendar, int minutesOffset, int subSecondNanos,
-                                int scale, boolean bOut) throws SQLServerException {
+            int scale, boolean bOut) throws SQLServerException {
         writeRPCNameValType(sName, bOut, TDSType.DATETIMEOFFSETN);
         writeByte((byte) scale);
 
@@ -5576,7 +5581,7 @@ final class TDSWriter {
      *         if an I/O error occurs or if the value is not in the valid range
      */
     private void writeScaledTemporal(GregorianCalendar cal, int subSecondNanos, int scale,
-                                     SSType ssType) throws SQLServerException {
+            SSType ssType) throws SQLServerException {
 
         assert con.isKatmaiOrLater();
 
@@ -5710,7 +5715,7 @@ final class TDSWriter {
      *         if an I/O error occurs or if the value is not in the valid range
      */
     byte[] writeEncryptedScaledTemporal(GregorianCalendar cal, int subSecondNanos, int scale, SSType ssType,
-                                        short minutesOffset) throws SQLServerException {
+            short minutesOffset) throws SQLServerException {
         assert con.isKatmaiOrLater();
 
         assert SSType.DATE == ssType || SSType.TIME == ssType || SSType.DATETIME2 == ssType
@@ -5933,7 +5938,7 @@ final class TDSWriter {
      * @throws SQLServerException
      */
     void writeRPCInputStream(String sName, InputStream stream, long streamLength, boolean bOut, JDBCType jdbcType,
-                             SQLCollation collation) throws SQLServerException {
+            SQLCollation collation) throws SQLServerException {
         assert null != stream;
         assert DataTypes.UNKNOWN_STREAM_LENGTH == streamLength || streamLength >= 0;
 
@@ -5994,7 +5999,7 @@ final class TDSWriter {
 
             writeRPCNameValType(sName, bOut,
                     jdbcType.isTextual() ? (useVarType ? TDSType.BIGVARCHAR : TDSType.TEXT)
-                            : (useVarType ? TDSType.BIGVARBINARY : TDSType.IMAGE));
+                                         : (useVarType ? TDSType.BIGVARBINARY : TDSType.IMAGE));
 
             // Write maximum length, optional collation, and actual length
             if (useVarType) {
@@ -6069,7 +6074,7 @@ final class TDSWriter {
      * @throws SQLServerException
      */
     void writeRPCReaderUnicode(String sName, Reader re, long reLength, boolean bOut,
-                               SQLCollation collation) throws SQLServerException {
+            SQLCollation collation) throws SQLServerException {
         assert null != re;
         assert DataTypes.UNKNOWN_STREAM_LENGTH == reLength || reLength >= 0;
 
@@ -6089,8 +6094,8 @@ final class TDSWriter {
             // Handle Yukon v*max type header here.
             writeVMaxHeader(
                     (DataTypes.UNKNOWN_STREAM_LENGTH == reLength) ? DataTypes.UNKNOWN_STREAM_LENGTH : 2 * reLength, // Length
-                    // (in
-                    // bytes)
+                                                                                                                    // (in
+                                                                                                                    // bytes)
                     false, collation);
         }
 
@@ -6599,7 +6604,7 @@ final class TDSReader {
     }
 
     final Object readDecimal(int valueLength, TypeInfo typeInfo, JDBCType jdbcType,
-                             StreamType streamType) throws SQLServerException {
+            StreamType streamType) throws SQLServerException {
         if (valueLength > valueBytes.length) {
             if (logger.isLoggable(Level.WARNING)) {
                 logger.warning(toString() + " Invalid value length:" + valueLength);
@@ -6664,7 +6669,7 @@ final class TDSReader {
     }
 
     final Object readDateTime(int valueLength, Calendar appTimeZoneCalendar, JDBCType jdbcType,
-                              StreamType streamType) throws SQLServerException {
+            StreamType streamType) throws SQLServerException {
         // Build and return the right kind of temporal object.
         int daysSinceSQLBaseDate;
         int ticksSinceMidnight;
@@ -6687,7 +6692,7 @@ final class TDSReader {
                 }
 
                 msecSinceMidnight = (ticksSinceMidnight * 10 + 1) / 3; // Convert to msec (1 tick = 1 300th of a sec = 3
-                // msec)
+                                                                       // msec)
                 break;
 
             case 4:
@@ -6715,11 +6720,11 @@ final class TDSReader {
         // Convert the DATETIME/SMALLDATETIME value to the desired Java type.
         return DDC.convertTemporalToObject(jdbcType, SSType.DATETIME, appTimeZoneCalendar, daysSinceSQLBaseDate,
                 msecSinceMidnight, 0); // scale
-        // (ignored
-        // for
-        // fixed-scale
-        // DATETIME/SMALLDATETIME
-        // types)
+                                       // (ignored
+                                       // for
+                                       // fixed-scale
+                                       // DATETIME/SMALLDATETIME
+                                       // types)
     }
 
     final Object readDate(int valueLength, Calendar appTimeZoneCalendar, JDBCType jdbcType) throws SQLServerException {
@@ -6731,14 +6736,14 @@ final class TDSReader {
 
         // Convert the DATE value to the desired Java type.
         return DDC.convertTemporalToObject(jdbcType, SSType.DATE, appTimeZoneCalendar, localDaysIntoCE, 0, // midnight
-                // local to
-                // app time
-                // zone
+                                                                                                           // local to
+                                                                                                           // app time
+                                                                                                           // zone
                 0); // scale (ignored for DATE)
     }
 
     final Object readTime(int valueLength, TypeInfo typeInfo, Calendar appTimeZoneCalendar,
-                          JDBCType jdbcType) throws SQLServerException {
+            JDBCType jdbcType) throws SQLServerException {
         if (TDS.timeValueLength(typeInfo.getScale()) != valueLength)
             throwInvalidTDS();
 
@@ -6751,7 +6756,7 @@ final class TDSReader {
     }
 
     final Object readDateTime2(int valueLength, TypeInfo typeInfo, Calendar appTimeZoneCalendar,
-                               JDBCType jdbcType) throws SQLServerException {
+            JDBCType jdbcType) throws SQLServerException {
         if (TDS.datetime2ValueLength(typeInfo.getScale()) != valueLength)
             throwInvalidTDS();
 
