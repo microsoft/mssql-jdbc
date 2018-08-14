@@ -205,14 +205,14 @@ public final class SQLServerParameterMetaData implements ParameterMetaData {
     private void parseQueryMeta(ResultSet rsQueryMeta) throws SQLServerException {
         Pattern datatypePattern = Pattern.compile("(.*)\\((.*)(\\)|,(.*)\\))");
         try {
-            if(null != rsQueryMeta ) {
+            if (null != rsQueryMeta) {
                 while (rsQueryMeta.next()) {
                     QueryMeta qm = new QueryMeta();
                     SSType ssType = null;
-    
+
                     int paramOrdinal = rsQueryMeta.getInt("parameter_ordinal");
                     String typename = rsQueryMeta.getString("suggested_system_type_name");
-    
+
                     if (null == typename) {
                         typename = rsQueryMeta.getString("suggested_user_type_name");
                         try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) con.prepareStatement(
@@ -230,12 +230,13 @@ public final class SQLServerParameterMetaData implements ParameterMetaData {
                     } else {
                         qm.precision = rsQueryMeta.getInt("suggested_precision");
                         qm.scale = rsQueryMeta.getInt("suggested_scale");
-    
+
                         Matcher matcher = datatypePattern.matcher(typename);
                         if (matcher.matches()) {
                             // the datatype has some precision/scale defined explicitly.
                             ssType = SSType.of(matcher.group(1));
-                            if (typename.equalsIgnoreCase("varchar(max)") || typename.equalsIgnoreCase("varbinary(max)")) {
+                            if (typename.equalsIgnoreCase("varchar(max)")
+                                    || typename.equalsIgnoreCase("varbinary(max)")) {
                                 qm.precision = SQLServerDatabaseMetaData.MAXLOBSIZE;
                             } else if (typename.equalsIgnoreCase("nvarchar(max)")) {
                                 qm.precision = SQLServerDatabaseMetaData.MAXLOBSIZE / 2;
@@ -243,7 +244,8 @@ public final class SQLServerParameterMetaData implements ParameterMetaData {
                                     || SSType.Category.BINARY == ssType.category
                                     || SSType.Category.NCHARACTER == ssType.category) {
                                 try {
-                                    // For character/binary data types "suggested_precision" is 0. So get the precision from
+                                    // For character/binary data types "suggested_precision" is 0. So get the precision
+                                    // from
                                     // the type itself.
                                     qm.precision = Integer.parseInt(matcher.group(2));
                                 } catch (NumberFormatException e) {
@@ -256,7 +258,7 @@ public final class SQLServerParameterMetaData implements ParameterMetaData {
                             }
                         } else
                             ssType = SSType.of(typename);
-    
+
                         // For float and real types suggested_precision returns the number of bits, not digits.
                         if (SSType.FLOAT == ssType) {
                             // https://msdn.microsoft.com/en-CA/library/ms173773.aspx
@@ -277,15 +279,16 @@ public final class SQLServerParameterMetaData implements ParameterMetaData {
                         } else if (SSType.XML == ssType) {
                             qm.precision = SQLServerDatabaseMetaData.MAXLOBSIZE / 2;
                         }
-    
+
                         qm.parameterTypeName = ssType.toString();
                     }
-    
+
                     // Check if ssType is null. Was caught by static analysis.
                     if (null == ssType) {
-                        throw new SQLServerException(SQLServerException.getErrString("R_metaDataErrorForParameter"), null);
+                        throw new SQLServerException(SQLServerException.getErrString("R_metaDataErrorForParameter"),
+                                null);
                     }
-    
+
                     JDBCType jdbcType = ssType.getJDBCType();
                     qm.parameterClassName = jdbcType.className();
                     qm.parameterType = jdbcType.getIntValue();
@@ -592,8 +595,7 @@ public final class SQLServerParameterMetaData implements ParameterMetaData {
                 if (con.getServerMajorVersion() >= SQL_SERVER_2012_VERSION) {
                     // new implementation for SQL verser 2012 and above
                     String preparedSQL = con.replaceParameterMarkers((stmtParent).userSQL,
-                            (stmtParent).userSQLParamPositions,
-                            (stmtParent).inOutParam,
+                            (stmtParent).userSQLParamPositions, (stmtParent).inOutParam,
                             (stmtParent).bReturnValueSyntax);
 
                     try (SQLServerCallableStatement cstmt = (SQLServerCallableStatement) con
