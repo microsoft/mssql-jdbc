@@ -1535,7 +1535,7 @@ final class TDSChannel {
 
     /**
      * Enables SSL Handshake.
-     *
+     * 
      * @param host
      *        Server Host Name for SSL Handshake
      * @param port
@@ -1822,12 +1822,12 @@ final class TDSChannel {
 
     /**
      * Validate FIPS if fips set as true
-     *
+     * 
      * Valid FIPS settings:
      * <LI>Encrypt should be true
      * <LI>trustServerCertificate should be false
      * <LI>if certificate is not installed TrustStoreType should be present.
-     *
+     * 
      * @param trustStoreType
      * @param trustStoreFileName
      * @throws SQLServerException
@@ -2158,13 +2158,13 @@ final class TDSChannel {
 /**
  * SocketFinder is used to find a server socket to which a connection can be made. This class abstracts the logic of
  * finding a socket from TDSChannel class.
- *
+ * 
  * In the case when useParallel is set to true, this is achieved by trying to make parallel connections to multiple IP
  * addresses. This class is responsible for spawning multiple threads and keeping track of the search result and the
  * connected socket or exception to be thrown.
- *
+ * 
  * In the case where multiSubnetFailover is false, we try our old logic of trying to connect to the first ip address
- *
+ * 
  * Typical usage of this class is SocketFinder sf = new SocketFinder(traceId, conn); Socket = sf.getSocket(hostName,
  * port, timeout);
  */
@@ -2226,7 +2226,7 @@ final class SocketFinder {
 
     /**
      * Constructs a new SocketFinder object with appropriate traceId
-     *
+     * 
      * @param callerTraceID
      *        traceID of the caller
      * @param sqlServerConnection
@@ -2239,7 +2239,7 @@ final class SocketFinder {
 
     /**
      * Used to find a socket to which a connection can be made
-     *
+     * 
      * @param hostName
      * @param portNumber
      * @param timeoutInMilliSeconds
@@ -2378,7 +2378,7 @@ final class SocketFinder {
     /**
      * This function uses java NIO to connect to all the addresses in inetAddrs with in a specified timeout. If it
      * succeeds in connecting, it closes all the other open sockets and updates the result to success.
-     *
+     * 
      * @param inetAddrs
      *        the array of inetAddress to which connection should be made
      * @param portNumber
@@ -2704,7 +2704,7 @@ final class SocketFinder {
      * or exception). It updates the result, socket and exception variables of socketFinder object. This method notifies
      * the parent thread if a socket is found or if all the spawned threads have notified. It also closes a socket if it
      * is not selected for use by socketFinder.
-     *
+     * 
      * @param socket
      *        the SocketConnector's socket
      * @param exception
@@ -2808,7 +2808,7 @@ final class SocketFinder {
      * If there are multiple exceptions, that are not related to socketTimeout the first non-socketTimeout exception is
      * picked. If all exceptions are related to socketTimeout, the first exception is picked. Note: This method is not
      * thread safe. The caller should ensure thread safety.
-     *
+     * 
      * @param ex
      *        the IOException
      * @param traceId
@@ -2832,7 +2832,7 @@ final class SocketFinder {
 
     /**
      * Used fof tracing
-     *
+     * 
      * @return traceID string
      */
     public String toString() {
@@ -2914,7 +2914,7 @@ final class SocketConnector implements Runnable {
 
     /**
      * Used for tracing
-     *
+     * 
      * @return traceID string
      */
     public String toString() {
@@ -3157,7 +3157,7 @@ final class TDSWriter {
 
     /**
      * writing sqlCollation information for sqlVariant type when sending character types.
-     *
+     * 
      * @param variantType
      * @throws SQLServerException
      */
@@ -3213,7 +3213,7 @@ final class TDSWriter {
 
     /**
      * Append a real value in the TDS stream.
-     *
+     * 
      * @param value
      *        the data value
      */
@@ -3223,7 +3223,7 @@ final class TDSWriter {
 
     /**
      * Append a double value in the TDS stream.
-     *
+     * 
      * @param value
      *        the data value
      */
@@ -3250,7 +3250,7 @@ final class TDSWriter {
 
     /**
      * Append a big decimal in the TDS stream.
-     *
+     * 
      * @param bigDecimalVal
      *        the big decimal data value
      * @param srcJdbcType
@@ -3291,7 +3291,7 @@ final class TDSWriter {
 
     /**
      * Append a big decimal inside sql_variant in the TDS stream.
-     *
+     * 
      * @param bigDecimalVal
      *        the big decimal data value
      * @param srcJdbcType
@@ -4091,7 +4091,7 @@ final class TDSWriter {
 
     /**
      * Write out elements common to all RPC values.
-     *
+     * 
      * @param sName
      *        the optional parameter name
      * @param bOut
@@ -4120,7 +4120,7 @@ final class TDSWriter {
 
     /**
      * Append a boolean value in RPC transmission format.
-     *
+     * 
      * @param sName
      *        the optional parameter name
      * @param booleanValue
@@ -4141,7 +4141,7 @@ final class TDSWriter {
 
     /**
      * Append a short value in RPC transmission format.
-     *
+     * 
      * @param sName
      *        the optional parameter name
      * @param shortValue
@@ -4162,7 +4162,7 @@ final class TDSWriter {
 
     /**
      * Append a short value in RPC transmission format.
-     *
+     * 
      * @param sName
      *        the optional parameter name
      * @param shortValue
@@ -4183,7 +4183,7 @@ final class TDSWriter {
 
     /**
      * Append an int value in RPC transmission format.
-     *
+     * 
      * @param sName
      *        the optional parameter name
      * @param intValue
@@ -4204,7 +4204,7 @@ final class TDSWriter {
 
     /**
      * Append a long value in RPC transmission format.
-     *
+     * 
      * @param sName
      *        the optional parameter name
      * @param longValue
@@ -4225,7 +4225,7 @@ final class TDSWriter {
 
     /**
      * Append a real value in RPC transmission format.
-     *
+     * 
      * @param sName
      *        the optional parameter name
      * @param floatValue
@@ -4259,7 +4259,7 @@ final class TDSWriter {
 
     /**
      * Append a double value in RPC transmission format.
-     *
+     * 
      * @param sName
      *        the optional parameter name
      * @param doubleValue
@@ -4291,7 +4291,7 @@ final class TDSWriter {
 
     /**
      * Append a big decimal in RPC transmission format.
-     *
+     * 
      * @param sName
      *        the optional parameter name
      * @param bdValue
@@ -4312,7 +4312,7 @@ final class TDSWriter {
 
     /**
      * Appends a standard v*max header for RPC parameter transmission.
-     *
+     * 
      * @param headerLength
      *        the total length of the PLP data block.
      * @param isNull
@@ -4354,7 +4354,7 @@ final class TDSWriter {
 
     /**
      * Writes a string value as Unicode for RPC
-     *
+     * 
      * @param sName
      *        the optional parameter name
      * @param sValue
@@ -4883,7 +4883,7 @@ final class TDSWriter {
 
     /**
      * writes Header for sql_variant for TVP
-     *
+     * 
      * @param length
      * @param tdsType
      * @param probBytes
@@ -5227,7 +5227,7 @@ final class TDSWriter {
 
     /**
      * Append a timestamp in RPC transmission format as a SQL Server DATETIME data type
-     *
+     * 
      * @param sName
      *        the optional parameter name
      * @param cal
@@ -5922,7 +5922,7 @@ final class TDSWriter {
 
     /**
      * Append the data in a stream in RPC transmission format.
-     *
+     * 
      * @param sName
      *        the optional parameter name
      * @param stream
@@ -6021,7 +6021,7 @@ final class TDSWriter {
 
     /**
      * Append the XML data in a stream in RPC transmission format.
-     *
+     * 
      * @param sName
      *        the optional parameter name
      * @param stream
@@ -6060,7 +6060,7 @@ final class TDSWriter {
 
     /**
      * Append the data in a character reader in RPC transmission format.
-     *
+     * 
      * @param sName
      *        the optional parameter name
      * @param re
