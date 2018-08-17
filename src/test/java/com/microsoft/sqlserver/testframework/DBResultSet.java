@@ -201,8 +201,12 @@ public class DBResultSet extends AbstractParentWrapper implements AutoCloseable 
         // getXXX - default mapping
         Object retrieved = this.getXXX(ordinal + 1, coercion);
 
-        // Verify
-        verifydata(ordinal, coercion, expectedData, retrieved);
+        try {
+            // Verify
+            verifydata(ordinal, coercion, expectedData, retrieved);
+        } catch (SQLException e) {
+            System.out.println("Compared & failed: " + expectedData + " ::: " + retrieved + " <<< ");
+        }
     }
 
     /**

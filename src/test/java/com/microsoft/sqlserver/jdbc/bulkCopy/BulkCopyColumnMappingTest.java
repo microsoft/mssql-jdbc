@@ -186,7 +186,7 @@ public class BulkCopyColumnMappingTest extends BulkCopyTestSetUp {
         }
 
         // add column mapping for duplicate column in destination
-        bulkWrapper.setColumnMapping(1, 24);
+        bulkWrapper.setColumnMapping(1, 25);
 
         // perform bulkCopy without validating results or dropping destination table
         BulkCopyTestUtil.performBulkCopy(bulkWrapper, sourceTable1, destTable, false, false, false);
