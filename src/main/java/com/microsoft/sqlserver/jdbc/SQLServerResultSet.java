@@ -1056,7 +1056,11 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
         // Otherwise, we have reached the end of the result set
         if (UNKNOWN_ROW_COUNT == rowCount)
             rowCount = currentRow;
-
+        
+        //Read warnings at the end of ResultSet
+        stmt.startResults();
+        stmt.getMoreResults();
+        
         currentRow = AFTER_LAST_ROW;
         loggerExternal.exiting(getClassNameLogging(), "next", false);
         return false;
