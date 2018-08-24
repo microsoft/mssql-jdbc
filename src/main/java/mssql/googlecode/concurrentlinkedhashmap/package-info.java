@@ -22,7 +22,7 @@
  * automatically removed due to the map exceeding a capacity threshold. It is not called when an entry was explicitly removed.
  * <p>
  * The {@link ConcurrentLinkedHashMap} class supplies an efficient, scalable, thread-safe, bounded map. As with the
- * <tt>Java Collections Framework</tt> the "Concurrent" prefix is used to indicate that the map is not governed by a single exclusion lock.
+ * <code>Java Collections Framework</code> the "Concurrent" prefix is used to indicate that the map is not governed by a single exclusion lock.
  *
  * @see <a href="http://code.google.com/p/concurrentlinkedhashmap/"> http://code.google.com/p/concurrentlinkedhashmap/</a>
  */
