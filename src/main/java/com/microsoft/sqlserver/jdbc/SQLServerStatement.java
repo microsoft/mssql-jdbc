@@ -1366,6 +1366,10 @@ public class SQLServerStatement implements ISQLServerStatement {
     /**
      * Returns the next result in the TDS response token stream, which may be a result set, update count or exception.
      *
+     * @param clearFlag
+     *        Boolean Flag if set to true, clears the last stored results in ResultSet. If set to false, does not clear
+     *        ResultSet and continues processing TDS Stream for more results.
+     * 
      * @return true if another result (ResultSet or update count) was available; false if there were no more results.
      */
     final boolean getNextResult(boolean clearFlag) throws SQLServerException {
@@ -1592,13 +1596,15 @@ public class SQLServerStatement implements ISQLServerStatement {
         }
 
         // Clear out previous results only when clearFlag = true
-        if (clearFlag)
+        if (clearFlag) {
             clearLastResult();
+        }
 
         // If there are no more results, then we're done.
         // All we had to do was to close out the previous results.
-        if (!moreResults)
+        if (!moreResults) {
             return false;
+        }
 
         // Figure out the next result.
         NextResult nextResult = new NextResult();
@@ -1636,8 +1642,9 @@ public class SQLServerStatement implements ISQLServerStatement {
         // there is no update count. That is: we have a successful result (return true),
         // but we have no other information about it (updateCount = -1).
         updateCount = -1;
-        if (!moreResults)
+        if (!moreResults) {
             return true;
+        }
 
         // Only way to get here (moreResults is still true, but no apparent results of any kind)
         // is if the TDSParser didn't actually parse _anything_. That is, we are at EOF in the
