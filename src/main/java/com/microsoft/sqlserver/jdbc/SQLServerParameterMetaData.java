@@ -559,29 +559,29 @@ public final class SQLServerParameterMetaData implements ParameterMetaData {
             // If the CallableStatement/PreparedStatement is a stored procedure call
             // then we can extract metadata using sp_sproc_columns
             if (null != st.procedureName) {
-                try (SQLServerStatement s = (SQLServerStatement) con.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE,
-                        ResultSet.CONCUR_READ_ONLY)) {
-                    String sProc = parseProcIdentifier(st.procedureName);
-                    if (con.isKatmaiOrLater())
-                        rsProcedureMeta = s.executeQueryInternal("exec sp_sproc_columns_100 " + sProc + ", @ODBCVer=3");
-                    else
-                        rsProcedureMeta = s.executeQueryInternal("exec sp_sproc_columns " + sProc + ", @ODBCVer=3");
+                // DO NOT close the Statement as resultSet 'rsProcedureMeta' is required by other APIs
+                SQLServerStatement s = (SQLServerStatement) con.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE,
+                        ResultSet.CONCUR_READ_ONLY);
+                String sProc = parseProcIdentifier(st.procedureName);
+                if (con.isKatmaiOrLater())
+                    rsProcedureMeta = s.executeQueryInternal("exec sp_sproc_columns_100 " + sProc + ", @ODBCVer=3");
+                else
+                    rsProcedureMeta = s.executeQueryInternal("exec sp_sproc_columns " + sProc + ", @ODBCVer=3");
 
-                    // if rsProcedureMeta has next row, it means the stored procedure is found
-                    if (rsProcedureMeta.next()) {
-                        procedureIsFound = true;
-                    } else {
-                        procedureIsFound = false;
-                    }
-                    rsProcedureMeta.beforeFirst();
+                // if rsProcedureMeta has next row, it means the stored procedure is found
+                if (rsProcedureMeta.next()) {
+                    procedureIsFound = true;
+                } else {
+                    procedureIsFound = false;
+                }
+                rsProcedureMeta.beforeFirst();
 
-                    // Sixth is DATA_TYPE
-                    rsProcedureMeta.getColumn(6).setFilter(new DataTypeFilter());
-                    if (con.isKatmaiOrLater()) {
-                        rsProcedureMeta.getColumn(8).setFilter(new ZeroFixupFilter());
-                        rsProcedureMeta.getColumn(9).setFilter(new ZeroFixupFilter());
-                        rsProcedureMeta.getColumn(17).setFilter(new ZeroFixupFilter());
-                    }
+                // Sixth is DATA_TYPE
+                rsProcedureMeta.getColumn(6).setFilter(new DataTypeFilter());
+                if (con.isKatmaiOrLater()) {
+                    rsProcedureMeta.getColumn(8).setFilter(new ZeroFixupFilter());
+                    rsProcedureMeta.getColumn(9).setFilter(new ZeroFixupFilter());
+                    rsProcedureMeta.getColumn(17).setFilter(new ZeroFixupFilter());
                 }
             }
 
