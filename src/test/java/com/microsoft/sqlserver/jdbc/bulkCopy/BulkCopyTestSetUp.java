@@ -1,9 +1,6 @@
 /*
- * Microsoft JDBC Driver for SQL Server
- * 
- * Copyright(c) Microsoft Corporation All rights reserved.
- * 
- * This program is made available under the terms of the MIT License. See the LICENSE file in the project root for more information.
+ * Microsoft JDBC Driver for SQL Server Copyright(c) Microsoft Corporation All rights reserved. This program is made
+ * available under the terms of the MIT License. See the LICENSE file in the project root for more information.
  */
 package com.microsoft.sqlserver.jdbc.bulkCopy;
 
@@ -20,6 +17,7 @@ import com.microsoft.sqlserver.testframework.DBPreparedStatement;
 import com.microsoft.sqlserver.testframework.DBStatement;
 import com.microsoft.sqlserver.testframework.DBTable;;
 
+
 /**
  * Create and drop source table needed for testing bulk copy
  */
@@ -30,13 +28,13 @@ public class BulkCopyTestSetUp extends AbstractTest {
 
     /**
      * Create source table needed for testing bulk copy
-     * @throws SQLException 
+     * 
+     * @throws SQLException
      */
     @BeforeAll
-    static void setUpSourceTable() throws SQLException {
-        try (DBConnection con = new DBConnection(connectionString);
-        	 DBStatement stmt = con.createStatement();
-        	 DBPreparedStatement pstmt = new DBPreparedStatement(con);) {
+    public static void setUpSourceTable() throws SQLException {
+        try (DBConnection con = new DBConnection(connectionString); DBStatement stmt = con.createStatement();
+                DBPreparedStatement pstmt = new DBPreparedStatement(con);) {
             sourceTable = new DBTable(true);
             stmt.createTable(sourceTable);
             pstmt.populateTable(sourceTable);
@@ -45,12 +43,12 @@ public class BulkCopyTestSetUp extends AbstractTest {
 
     /**
      * drop source table after testing bulk copy
-     * @throws SQLException 
+     * 
+     * @throws SQLException
      */
     @AfterAll
-    static void dropSourceTable() throws SQLException {
-        try (DBConnection con = new DBConnection(connectionString);
-        	 DBStatement stmt = con.createStatement()) {
+    public static void dropSourceTable() throws SQLException {
+        try (DBConnection con = new DBConnection(connectionString); DBStatement stmt = con.createStatement()) {
             stmt.dropTable(sourceTable);
         }
     }

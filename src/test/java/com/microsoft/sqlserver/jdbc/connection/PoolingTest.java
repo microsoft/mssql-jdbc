@@ -1,9 +1,6 @@
 /*
- * Microsoft JDBC Driver for SQL Server
- * 
- * Copyright(c) Microsoft Corporation All rights reserved.
- * 
- * This program is made available under the terms of the MIT License. See the LICENSE file in the project root for more information.
+ * Microsoft JDBC Driver for SQL Server Copyright(c) Microsoft Corporation All rights reserved. This program is made
+ * available under the terms of the MIT License. See the LICENSE file in the project root for more information.
  */
 package com.microsoft.sqlserver.jdbc.connection;
 
@@ -30,14 +27,15 @@ import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
 
 import com.microsoft.sqlserver.jdbc.ISQLServerConnection;
-import com.microsoft.sqlserver.jdbc.SQLServerException;
 import com.microsoft.sqlserver.jdbc.SQLServerXADataSource;
+import com.microsoft.sqlserver.jdbc.TestResource;
 import com.microsoft.sqlserver.testframework.AbstractTest;
 import com.microsoft.sqlserver.testframework.DBConnection;
 import com.microsoft.sqlserver.testframework.DBTable;
 import com.microsoft.sqlserver.testframework.util.RandomUtil;
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
+
 
 /**
  * Tests pooled connection
@@ -47,7 +45,8 @@ import com.zaxxer.hikari.HikariDataSource;
 public class PoolingTest extends AbstractTest {
     @Test
     public void testPooling() throws SQLException {
-        assumeTrue(!DBConnection.isSqlAzure(DriverManager.getConnection(connectionString)), "Skipping test case on Azure SQL.");
+        assumeTrue(!DBConnection.isSqlAzure(DriverManager.getConnection(connectionString)),
+                "Skipping test case on Azure SQL.");
 
         String randomTableName = RandomUtil.getIdentifier("table");
 
@@ -60,23 +59,22 @@ public class PoolingTest extends AbstractTest {
 
         PooledConnection pc = XADataSource1.getPooledConnection();
         try (Connection conn = pc.getConnection()) {
-	
-	        // create table in tempdb database
-	        conn.createStatement().execute("create table [" + tempTableName + "] (myid int)");
-	        conn.createStatement().execute("insert into [" + tempTableName + "] values (1)");
+
+            // create table in tempdb database
+            conn.createStatement().execute("create table [" + tempTableName + "] (myid int)");
+            conn.createStatement().execute("insert into [" + tempTableName + "] values (1)");
         }
 
         boolean tempTableFileRemoved = false;
         try (Connection conn = pc.getConnection()) {
             conn.createStatement().executeQuery("select * from [" + tempTableName + "]");
-        }
-        catch (SQLServerException e) {
+        } catch (SQLException e) {
             // make sure the temporary table is not found.
-            if (e.getMessage().startsWith("Invalid object name")) {
+            if (e.getMessage().startsWith(TestResource.getResource("R_invalidObjectName"))) {
                 tempTableFileRemoved = true;
             }
         }
-        assertTrue(tempTableFileRemoved, "Temporary table is not removed.");
+        assertTrue(tempTableFileRemoved, TestResource.getResource("R_tempTAbleNotRemoved"));
     }
 
     @Test
@@ -91,7 +89,7 @@ public class PoolingTest extends AbstractTest {
         Connection con2 = pc.getConnection();
 
         // assert that the first connection is closed.
-        assertTrue(con.isClosed(), "First connection is not closed");
+        assertTrue(con.isClosed(), TestResource.getResource("R_firstConnectionNotClosed"));
     }
 
     @Test
@@ -99,19 +97,20 @@ public class PoolingTest extends AbstractTest {
         String tableName = RandomUtil.getIdentifier("table");
         tableName = DBTable.escapeIdentifier(tableName);
 
-        String sql1 = "if exists (select * from dbo.sysobjects where name = '" + tableName + "' and type = 'U')\n" + "drop table " + tableName + "\n"
-                + "create table " + tableName + "\n" + "(\n" + "wibble_id int primary key not null,\n" + "counter int null\n" + ");";
-        String sql2 = "if exists (select * from dbo.sysobjects where name = '" + tableName + "' and type = 'U')\n" + "drop table " + tableName + "\n";
+        String sql1 = "if exists (select * from dbo.sysobjects where name = '" + tableName + "' and type = 'U')\n"
+                + "drop table " + tableName + "\n" + "create table " + tableName + "\n" + "(\n"
+                + "wibble_id int primary key not null,\n" + "counter int null\n" + ");";
+        String sql2 = "if exists (select * from dbo.sysobjects where name = '" + tableName + "' and type = 'U')\n"
+                + "drop table " + tableName + "\n";
 
         SQLServerXADataSource ds = new SQLServerXADataSource();
         ds.setURL(connectionString);
 
         PooledConnection pc = ds.getPooledConnection();
-        try (Connection con = pc.getConnection();
-        	 Statement statement = con.createStatement()) {
-	        statement.execute(sql1);
-	        statement.execute(sql2);
-	        con.clearWarnings();
+        try (Connection con = pc.getConnection(); Statement statement = con.createStatement()) {
+            statement.execute(sql1);
+            statement.execute(sql2);
+            con.clearWarnings();
         }
         pc.close();
     }
@@ -126,7 +125,7 @@ public class PoolingTest extends AbstractTest {
 
         pc.close();
         // assert that the first connection is closed.
-        assertTrue(con.isClosed(), "Connection is not closed with pool close");
+        assertTrue(con.isClosed(), TestResource.getResource("R_connectionNotClosedWithPoolClose"));
     }
 
     @Test
@@ -138,7 +137,7 @@ public class PoolingTest extends AbstractTest {
         ISQLServerConnection con = (ISQLServerConnection) pc.getConnection();
 
         UUID Id1 = con.getClientConnectionId();
-        assertTrue(Id1 != null, "Unexecepted: ClientConnectionId is null from Pool");
+        assertTrue(Id1 != null, TestResource.getResource("R_connectionNotClosedWithPoolClose"));
         con.close();
 
         // now reget the connection
@@ -147,9 +146,9 @@ public class PoolingTest extends AbstractTest {
         UUID Id2 = con2.getClientConnectionId();
         con2.close();
 
-        assertEquals(Id1, Id2, "ClientConnection Ids from pool are not the same.");
+        assertEquals(Id1, Id2, TestResource.getResource("R_idFromPoolNotSame"));
     }
-    
+
     /**
      * test connection pool with HikariCP
      * 
@@ -161,10 +160,9 @@ public class PoolingTest extends AbstractTest {
         config.setJdbcUrl(connectionString);
         HikariDataSource ds = new HikariDataSource(config);
 
-        try{
+        try {
             connect(ds);
-        }
-        finally{
+        } finally {
             ds.close();
         }
     }
@@ -179,14 +177,12 @@ public class PoolingTest extends AbstractTest {
         BasicDataSource ds = new BasicDataSource();
         ds.setUrl(connectionString);
 
-        try{
+        try {
             connect(ds);
-        }
-        finally{
+        } finally {
             ds.close();
         }
     }
-
 
     /**
      * setup connection, get connection from pool, and test threads
@@ -207,12 +203,11 @@ public class PoolingTest extends AbstractTest {
 
             // TODO : we are commenting this out due to AppVeyor failures. Will investigate later.
             // assertTrue(countTimeoutThreads() >= 1, "Timeout timer is missing.");
-            
+
             while (rs.next()) {
                 rs.getString(1);
             }
-        }
-        finally {
+        } finally {
             if (rs != null) {
                 rs.close();
             }
@@ -236,10 +231,12 @@ public class PoolingTest extends AbstractTest {
         int count = 0;
         String threadName = "mssql-jdbc-TimeoutTimer";
 
-        ThreadInfo[] tinfos = ManagementFactory.getThreadMXBean().getThreadInfo(ManagementFactory.getThreadMXBean().getAllThreadIds(), 0);
+        ThreadInfo[] tinfos = ManagementFactory.getThreadMXBean()
+                .getThreadInfo(ManagementFactory.getThreadMXBean().getAllThreadIds(), 0);
 
         for (ThreadInfo ti : tinfos) {
-            if ((ti.getThreadName().startsWith(threadName)) && (ti.getThreadState().equals(java.lang.Thread.State.TIMED_WAITING))) {
+            if ((ti.getThreadName().startsWith(threadName))
+                    && (ti.getThreadState().equals(java.lang.Thread.State.TIMED_WAITING))) {
                 count++;
             }
         }

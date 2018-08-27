@@ -1,9 +1,6 @@
 /*
- * Microsoft JDBC Driver for SQL Server
- * 
- * Copyright(c) Microsoft Corporation All rights reserved.
- * 
- * This program is made available under the terms of the MIT License. See the LICENSE file in the project root for more information.
+ * Microsoft JDBC Driver for SQL Server Copyright(c) Microsoft Corporation All rights reserved. This program is made
+ * available under the terms of the MIT License. See the LICENSE file in the project root for more information.
  */
 package com.microsoft.sqlserver.jdbc.exception;
 
@@ -13,6 +10,7 @@ import java.io.UnsupportedEncodingException;
 import java.net.SocketTimeoutException;
 import java.sql.DriverManager;
 import java.sql.SQLException;
+import java.text.MessageFormat;
 
 import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
@@ -20,16 +18,17 @@ import org.junit.runner.RunWith;
 
 import com.microsoft.sqlserver.jdbc.SQLServerBulkCSVFileRecord;
 import com.microsoft.sqlserver.jdbc.SQLServerConnection;
-import com.microsoft.sqlserver.jdbc.SQLServerException;
+import com.microsoft.sqlserver.jdbc.TestResource;
 import com.microsoft.sqlserver.testframework.AbstractTest;
 import com.microsoft.sqlserver.testframework.Utils;
+
 
 @RunWith(JUnitPlatform.class)
 public class ExceptionTest extends AbstractTest {
     static String inputFile = "BulkCopyCSVTestInput.csv";
 
     /**
-     * Test the SQLServerException has the proper cause when encoding is not supported.
+     * Test the SQLException has the proper cause when encoding is not supported.
      * 
      * @throws Exception
      */
@@ -38,15 +37,17 @@ public class ExceptionTest extends AbstractTest {
         String filePath = Utils.getCurrentClassPath();
 
         try {
-            SQLServerBulkCSVFileRecord scvFileRecord = new SQLServerBulkCSVFileRecord(filePath + inputFile, "invalid_encoding", true);
-        }
-        catch (Exception e) {
-            if (!(e instanceof SQLServerException)) {
+            SQLServerBulkCSVFileRecord scvFileRecord = new SQLServerBulkCSVFileRecord(filePath + inputFile,
+                    "invalid_encoding", true);
+        } catch (Exception e) {
+            if (!(e instanceof SQLException)) {
                 throw e;
             }
 
-            assertTrue(null != e.getCause(), "Cause should not be null.");
-            assertTrue(e.getCause() instanceof UnsupportedEncodingException, "Cause should be instance of UnsupportedEncodingException.");
+            assertTrue(null != e.getCause(), TestResource.getResource("R_causeShouldNotBeNull"));
+            MessageFormat form = new MessageFormat(TestResource.getResource("R_causeShouldBeInstance"));
+            Object[] msgArgs = {"UnsupportedEncodingException"};
+            assertTrue(e.getCause() instanceof UnsupportedEncodingException, form.format(msgArgs));
         }
     }
 
@@ -54,7 +55,7 @@ public class ExceptionTest extends AbstractTest {
     final int waitForDelaySeconds = 10;
 
     /**
-     * Test the SQLServerException has the proper cause when socket timeout occurs.
+     * Test the SQLException has the proper cause when socket timeout occurs.
      * 
      * @throws Exception
      * 
@@ -64,26 +65,27 @@ public class ExceptionTest extends AbstractTest {
         SQLServerConnection conn = null;
         try {
             conn = (SQLServerConnection) DriverManager.getConnection(connectionString);
-            
+
             Utils.dropProcedureIfExists(waitForDelaySPName, conn.createStatement());
             createWaitForDelayPreocedure(conn);
 
-            conn = (SQLServerConnection) DriverManager.getConnection(connectionString + ";socketTimeout=" + (waitForDelaySeconds * 1000 / 2) + ";");
+            conn = (SQLServerConnection) DriverManager
+                    .getConnection(connectionString + ";socketTimeout=" + (waitForDelaySeconds * 1000 / 2) + ";");
 
             try {
                 conn.createStatement().execute("exec " + waitForDelaySPName);
-                throw new Exception("Exception for socketTimeout is not thrown.");
-            }
-            catch (Exception e) {
-                if (!(e instanceof SQLServerException)) {
+                throw new Exception(TestResource.getResource("R_expectedExceptionNotThrown"));
+            } catch (Exception e) {
+                if (!(e instanceof SQLException)) {
                     throw e;
                 }
 
-                assertTrue(null != e.getCause(), "Cause should not be null.");
-                assertTrue(e.getCause() instanceof SocketTimeoutException, "Cause should be instance of SocketTimeoutException.");
+                assertTrue(null != e.getCause(), TestResource.getResource("R_causeShouldNotBeNull"));
+                MessageFormat form = new MessageFormat(TestResource.getResource("R_causeShouldBeInstance"));
+                Object[] msgArgs = {"SocketTimeoutException"};
+                assertTrue(e.getCause() instanceof SocketTimeoutException, form.format(msgArgs));
             }
-        }
-        finally {
+        } finally {
             if (null != conn) {
                 conn.close();
             }
@@ -91,7 +93,8 @@ public class ExceptionTest extends AbstractTest {
     }
 
     private void createWaitForDelayPreocedure(SQLServerConnection conn) throws SQLException {
-        String sql = "CREATE PROCEDURE " + waitForDelaySPName + " AS" + " BEGIN" + " WAITFOR DELAY '00:00:" + waitForDelaySeconds + "';" + " END";
+        String sql = "CREATE PROCEDURE " + waitForDelaySPName + " AS" + " BEGIN" + " WAITFOR DELAY '00:00:"
+                + waitForDelaySeconds + "';" + " END";
         conn.createStatement().execute(sql);
     }
 }

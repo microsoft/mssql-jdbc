@@ -3,6 +3,114 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](http://keepachangelog.com/) 
 
+## [7.0.0] Stable Release
+### Added
+- Added 'Automatic-Module-Name' manifest entry to jre10 Jar, allowing JDK 10 users to access driver module 'com.microsoft.sqlserver.jdbc' [#732](https://github.com/Microsoft/mssql-jdbc/pull/732)
+- Added setUseBulkCopyForBatchInsert() to request boundary declaration APIs [#739](https://github.com/Microsoft/mssql-jdbc/pull/739)
+- Added new test for validation of supported public APIs in request boundary declaration APIs [#746](https://github.com/Microsoft/mssql-jdbc/pull/746)
+
+### Fixed Issues
+- Fixed policheck issue with 'Country' keyword [#745](https://github.com/Microsoft/mssql-jdbc/pull/745)
+- Fixed issues reported by static analysis tools (SonarQube, Fortify) [#747](https://github.com/Microsoft/mssql-jdbc/pull/747)
+
+### Changed
+- Reformatted code and updated mssql-jdbc-formatter [#742](https://github.com/Microsoft/mssql-jdbc/pull/742)
+- Changed Sha1HashKey to CityHash128Key for generating PreparedStatement handle and metadata cache keys [#717](https://github.com/Microsoft/mssql-jdbc/pull/717)
+- Changed order of logic for checking the condition for using Bulk Copy API [#736](https://github.com/Microsoft/mssql-jdbc/pull/736)
+- Changed collation name in UTF8SupportTest [#741](https://github.com/Microsoft/mssql-jdbc/pull/741)
+- Changed scope of unwanted Public APIs [#757](https://github.com/Microsoft/mssql-jdbc/pull/757)
+- Changed behavior of Bulk Copy API for batch inserts to disallow non-parameterized queries [#756](https://github.com/Microsoft/mssql-jdbc/pull/756)
+- Changed APIs and JavaDocs for Spatial Datatypes [#752](https://github.com/Microsoft/mssql-jdbc/pull/752)
+- Improved Javadoc comments in driver [#754](https://github.com/Microsoft/mssql-jdbc/pull/754), [#760](https://github.com/Microsoft/mssql-jdbc/pull/760)
+
+## [6.5.4] Preview Release
+### Added
+- Added new connection property "useBulkCopyForBatchInsert" to enable Bulk Copy API support for batch insert operation [#686](https://github.com/Microsoft/mssql-jdbc/pull/686)
+- Added implementation for Java 9 introduced Boundary methods APIs on Connection interface [#708](https://github.com/Microsoft/mssql-jdbc/pull/708)
+- Added support for "Data Classification Specifications" on fetched resultsets [#709](https://github.com/Microsoft/mssql-jdbc/pull/709)
+- Added support for UTF-8 feature extension [#722](https://github.com/Microsoft/mssql-jdbc/pull/722)
+
+### Fixed Issues
+- Fixed issue with escaping catalog name when retrieving from database metadata [#718](https://github.com/Microsoft/mssql-jdbc/pull/718)
+- Fixed issue with tests requiring additional dependencies [#729](https://github.com/Microsoft/mssql-jdbc/pull/729)
+
+### Changed
+- Made driver default compliant to JDBC 4.2 specifications [#711](https://github.com/Microsoft/mssql-jdbc/pull/711)
+- Updated ADAL4J dependency version to 1.6.0 [#711](https://github.com/Microsoft/mssql-jdbc/pull/711)
+- Cleaned up socket handling implementation to generalize functionality for different JVMs and simplified the logic for single address case [#663](https://github.com/Microsoft/mssql-jdbc/pull/663)
+
+## [6.5.3] Preview Release
+### Added
+- Added removed constructor back to AKV Provider which supports authentication with a customized method to fetch accessToken [#675](https://github.com/Microsoft/mssql-jdbc/pull/675)
+- Added support for JDK 10 for both Maven and Gradle [#691](https://github.com/Microsoft/mssql-jdbc/pull/691)
+- Added a resource bundle to handle junit error strings [#698](https://github.com/Microsoft/mssql-jdbc/pull/698)
+
+### Fixed Issues
+- Fixed the driver disposing user created credentials when using Kerberos Constrained Delegation [#636](https://github.com/Microsoft/mssql-jdbc/pull/636)
+- Fixed an issue with HostnameInCertificate when redirected while connected to Azure [#644](https://github.com/Microsoft/mssql-jdbc/pull/644)
+- Fixed an intermittent issue with Prepared Statement handle not found [#648](https://github.com/Microsoft/mssql-jdbc/pull/648)
+- Fixed a conflict with JDBC Compliance where the driver was returning marked columns as SS_IS_COMPUTED instead of IS_GENERATED [#695](https://github.com/Microsoft/mssql-jdbc/pull/695)
+- Fixed maven build warnings and deprecated Java API warnings [#701](https://github.com/Microsoft/mssql-jdbc/pull/701)
+- Fixed some Javadoc related warnings [#702](https://github.com/Microsoft/mssql-jdbc/pull/702)
+
+## [6.5.2] Preview Release
+### Added
+- Added new connection property "cancelQueryTimeout" to cancel QueryTimeout on Connection and Statement [#674](https://github.com/Microsoft/mssql-jdbc/pull/674)
+
+### Fixed Issues
+- Improved performance degradation while maintaining JDBC compliance with results from sp_fkeys [#677](https://github.com/Microsoft/mssql-jdbc/pull/677)
+- Fixed an issue where ResultSetMetaData instances created by a ResultSet that has been closed were not persisting [#685](https://github.com/Microsoft/mssql-jdbc/pull/685)
+- Fixed an issue with PreparedStatement.setBigDecimal when no scale is passed [#684](https://github.com/Microsoft/mssql-jdbc/pull/684)
+- Fixed an issue with Clobs/NClobs not persisting after ResultSet/Connection closes [#682](https://github.com/Microsoft/mssql-jdbc/pull/682)
+
+### Changed
+- Updated the samples to be usable with Eclipse directly, and updated the driver version used by the samples to 6.4.0.jre9 [#679](https://github.com/Microsoft/mssql-jdbc/pull/679)
+- Updated Gradle script for building JDBC Driver [#689](https://github.com/Microsoft/mssql-jdbc/pull/689)
+- Updated Maven dependencies for test suite [#676](https://github.com/Microsoft/mssql-jdbc/pull/676)
+- Updated multiple Maven dependency and plugin versions [#688](https://github.com/Microsoft/mssql-jdbc/pull/688)
+
+## [6.5.1] Preview Release
+### Added
+- Test cases for Date, Time, and Datetime2 data types [#558](https://github.com/Microsoft/mssql-jdbc/pull/558)
+
+### Fixed Issues
+- Fixed an issue where ResultSetMetadata returned incorrect columnType for Geometry and Geography data types [#657](https://github.com/Microsoft/mssql-jdbc/pull/657)
+- Fixed server side CPU Affinity problems caused by uneven connection distribution across NUMA Nodes when multiSubnetFailover is true [#662](https://github.com/Microsoft/mssql-jdbc/pull/662)
+- Fixed an issue where Driver wasn't parsing TDS Packets completely to capture exceptions raised inside executed stored procedures [#664](https://github.com/Microsoft/mssql-jdbc/pull/664)
+- Fixed an issue where driver throws exception when using setMaxRows() followed by query execution when SHOWPLAN_TEXT is ON [#666](https://github.com/Microsoft/mssql-jdbc/pull/666)
+
+### Changed
+- Removed unused imports which forced users to import the ADAL4J library [#652](https://github.com/Microsoft/mssql-jdbc/pull/652)
+
+## [6.5.0] Preview Release
+### Added
+- Support for spatial datatypes [#642](https://github.com/Microsoft/mssql-jdbc/pull/642)
+
+### Fixed Issues
+- Fixed blobs becoming unavailable when the Result Set cursor moves or the Result Set closes [#595](https://github.com/Microsoft/mssql-jdbc/pull/595)
+- Fixed an issue when attempting to insert an empty or null value into an encrypted column [#632](https://github.com/Microsoft/mssql-jdbc/pull/632)
+- Fixed a misleading error message thrown by the driver when a user doesn't have execute permissions [#635](https://github.com/Microsoft/mssql-jdbc/pull/635)
+- Fixed statements throwing SQLServerException instead of java.sql.SQLTimeoutException when the query times out [#641](https://github.com/Microsoft/mssql-jdbc/pull/641)
+
+### Changed
+- Unit tests now use SQLException in most cases instead of SQLServerException.
+
+## [6.4.0] Stable Release
+### Added
+- Support added for AAD Integrated Authentication with ADAL4J on Windows/Linux/Mac OS [#603](https://github.com/Microsoft/mssql-jdbc/pull/603) 
+- Enable Recover after MSDTC is restarted [#581](https://github.com/Microsoft/mssql-jdbc/pull/581)
+- Added  Version Update configuration rules to project [#541](https://github.com/Microsoft/mssql-jdbc/pull/541)
+- JDK 9 Compatibility + JDBC 4.3 API support added to the driver [#601 (https://github.com/Microsoft/mssql-jdbc/pull/601)
+
+### Fixed Issues
+- Re-introduced Retry Logic for Prepared Statement Caching implementation and remove detect change context function [#618](https://github.com/Microsoft/mssql-jdbc/pull/618) and [#620](https://github.com/Microsoft/mssql-jdbc/pull/620)
+- Fixes for SonarQube Reported issues [#599](https://github.com/Microsoft/mssql-jdbc/pull/599)
+- Fixes for Random Assertion Errors [#597](https://github.com/Microsoft/mssql-jdbc/pull/597)
+
+### Changed
+- Updated Appveyor to use JDK9 building driver and running tests [#619](https://github.com/Microsoft/mssql-jdbc/pull/619)
+- JDK 7 compilation support removed from the driver [#601](https://github.com/Microsoft/mssql-jdbc/pull/601)
+
 ## [6.3.6] Preview Release
 ### Added
 - Added support for using database name as part of the key for handle cache [#561](https://github.com/Microsoft/mssql-jdbc/pull/561)
@@ -21,7 +129,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/)
 
 ## [6.3.4] Preview Release
 ### Added
-- Added new ThreadGroup creation to prevent IllegalThreadStateException if the underlying ThreadGroup has been destroyed. [#474](https://github.com/Microsoft/mssql-jdbc/pull/474)
+- Added new ThreadGroup creation to prevent IllegalThreadStateException if the underlying ThreadGroup has been destroyed [#474](https://github.com/Microsoft/mssql-jdbc/pull/474)
 - Added try-with-resources to JUnit tests [#520](https://github.com/Microsoft/mssql-jdbc/pull/520)
 
 ### Fixed Issues 

@@ -1,9 +1,6 @@
 /*
- * Microsoft JDBC Driver for SQL Server
- * 
- * Copyright(c) Microsoft Corporation All rights reserved.
- * 
- * This program is made available under the terms of the MIT License. See the LICENSE file in the project root for more information.
+ * Microsoft JDBC Driver for SQL Server Copyright(c) Microsoft Corporation All rights reserved. This program is made
+ * available under the terms of the MIT License. See the LICENSE file in the project root for more information.
  */
 package com.microsoft.sqlserver.jdbc.dns;
 
@@ -12,19 +9,22 @@ import java.util.Set;
 import javax.naming.NameNotFoundException;
 import javax.naming.NamingException;
 
+
+/**
+ * Represents a DNS Kerberos Locator
+ */
 public final class DNSKerberosLocator {
 
-    private DNSKerberosLocator() {
-    }
+    private DNSKerberosLocator() {}
 
     /**
-     * Tells whether a realm is valid.
+     * Returns whether a realm is valid.
      *
      * @param realmName
-     *            the realm to test
+     *        the realm to test
      * @return true if realm is valid, false otherwise
      * @throws NamingException
-     *             if DNS failed, so realm existence cannot be determined
+     *         if DNS failed, so realm existence cannot be determined
      */
     public static boolean isRealmValid(String realmName) throws NamingException {
         if (realmName == null || realmName.length() < 2) {
@@ -36,8 +36,7 @@ public final class DNSKerberosLocator {
         try {
             Set<DNSRecordSRV> records = DNSUtilities.findSrvRecords("_kerberos._udp." + realmName);
             return !records.isEmpty();
-        }
-        catch (NameNotFoundException wrongDomainException) {
+        } catch (NameNotFoundException wrongDomainException) {
             return false;
         }
     }

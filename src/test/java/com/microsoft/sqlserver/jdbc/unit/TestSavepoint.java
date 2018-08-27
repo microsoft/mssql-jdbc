@@ -1,9 +1,6 @@
 /*
- * Microsoft JDBC Driver for SQL Server
- * 
- * Copyright(c) Microsoft Corporation All rights reserved.
- * 
- * This program is made available under the terms of the MIT License. See the LICENSE file in the project root for more information.
+ * Microsoft JDBC Driver for SQL Server Copyright(c) Microsoft Corporation All rights reserved. This program is made
+ * available under the terms of the MIT License. See the LICENSE file in the project root for more information.
  */
 package com.microsoft.sqlserver.jdbc.unit;
 
@@ -15,15 +12,17 @@ import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.text.MessageFormat;
 
 import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
 
-import com.microsoft.sqlserver.jdbc.SQLServerException;
 import com.microsoft.sqlserver.jdbc.SQLServerSavepoint;
+import com.microsoft.sqlserver.jdbc.TestResource;
 import com.microsoft.sqlserver.testframework.AbstractTest;
 import com.microsoft.sqlserver.testframework.util.RandomUtil;
+
 
 /**
  * Unit test case for Creating SavePoint.
@@ -45,17 +44,17 @@ public class TestSavepoint extends AbstractTest {
         connection.setAutoCommit(false);
 
         SQLServerSavepoint savePoint = (SQLServerSavepoint) connection.setSavepoint(savePointName);
-        assertTrue(savePointName.equals(savePoint.getSavepointName()), "Savepoint Name should be same.");
+        MessageFormat form = new MessageFormat(TestResource.getResource("R_savePointError"));
+        Object[][] msgArgs = {{"Name", "same"}, {"Label", "Savepoint Name"}, {"SQLServerSavepoint.isNamed", "true"}};
 
-        assertTrue(savePointName.equals(savePoint.getLabel()), "Savepoint Label should be same as Savepoint  Name.");
+        assertTrue(savePointName.equals(savePoint.getSavepointName()), form.format(msgArgs[0]));
+        assertTrue(savePointName.equals(savePoint.getLabel()), form.format(msgArgs[1]));
+        assertTrue(savePoint.isNamed(), form.format(msgArgs[2]));
 
-        assertTrue(savePoint.isNamed(), "SQLServerSavepoint.isNamed should be true");
         try {
             savePoint.getSavepointId();
-            assertTrue(false, "Expecting Exception as trying to get SavePointId when we created savepoint with name");
-        }
-        catch (SQLServerException e) {
-        }
+            assertTrue(false, TestResource.getResource("R_expectedExceptionNotThrown"));
+        } catch (SQLException e) {}
 
         connection.rollback();
     }
@@ -72,16 +71,19 @@ public class TestSavepoint extends AbstractTest {
         connection.setAutoCommit(false);
 
         SQLServerSavepoint savePoint = (SQLServerSavepoint) connection.setSavepoint(null);
-        assertNotNull(savePoint.getLabel(), "Savepoint Label should not be null.");
+
+        MessageFormat form = new MessageFormat(TestResource.getResource("R_savePointError"));
+        Object[][] msgArgs = {{"label", "not null"}, {"id", "not 0"}};
+        assertNotNull(savePoint.getLabel(), form.format(msgArgs[0]));
 
         try {
-            savePoint.getSavepointName();
-            assertTrue(false, "Expecting Exception as trying to get SavePointname when we created savepoint without name");
-        }
-        catch (SQLServerException e) {
-        }
 
-        assertTrue(savePoint.getSavepointId() != 0, "SavePoint should not be 0");
+            savePoint.getSavepointName();
+            // Expecting Exception as trying to get SavePointname when we created savepoint without name
+            assertTrue(false, TestResource.getResource("R_shouldThrowException"));
+        } catch (SQLException e) {}
+
+        assertTrue(savePoint.getSavepointId() != 0, form.format(msgArgs[1]));
         connection.rollback();
     }
 
@@ -98,7 +100,8 @@ public class TestSavepoint extends AbstractTest {
 
         SQLServerSavepoint savePoint = (SQLServerSavepoint) connection.setSavepoint(null);
 
-        assertFalse(savePoint.isNamed(), "SQLServerSavepoint.isNamed should be false as savePoint is created without name");
+        // SQLServerSavepoint.isNamed should be false as savePoint is created without name"
+        assertFalse(savePoint.isNamed(), TestResource.getResource("R_shouldThrowException"));
 
         connection.rollback();
     }
@@ -116,10 +119,9 @@ public class TestSavepoint extends AbstractTest {
 
         try {
             connection.setSavepoint(null);
-            assertTrue(false, "Expecting Exception as can not set SetPoint when AutoCommit mode is set to true.");
-        }
-        catch (SQLServerException e) {
-        }
+            // Expecting Exception as can not set SetPoint when AutoCommit mode is set to true
+            assertTrue(false, TestResource.getResource("R_shouldThrowException"));
+        } catch (SQLException e) {}
 
     }
 

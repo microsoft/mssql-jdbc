@@ -1,9 +1,6 @@
 /*
- * Microsoft JDBC Driver for SQL Server
- * 
- * Copyright(c) Microsoft Corporation All rights reserved.
- * 
- * This program is made available under the terms of the MIT License. See the LICENSE file in the project root for more information.
+ * Microsoft JDBC Driver for SQL Server Copyright(c) Microsoft Corporation All rights reserved. This program is made
+ * available under the terms of the MIT License. See the LICENSE file in the project root for more information.
  */
 package com.microsoft.sqlserver.jdbc.resultset;
 
@@ -24,6 +21,10 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.SQLXML;
 import java.sql.Statement;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.util.TimeZone;
 import java.util.UUID;
 
 import org.junit.jupiter.api.Test;
@@ -34,6 +35,7 @@ import com.microsoft.sqlserver.jdbc.ISQLServerResultSet;
 import com.microsoft.sqlserver.testframework.AbstractTest;
 import com.microsoft.sqlserver.testframework.Utils;
 import com.microsoft.sqlserver.testframework.util.RandomUtil;
+
 
 @RunWith(JUnitPlatform.class)
 public class ResultSetTest extends AbstractTest {
@@ -46,28 +48,16 @@ public class ResultSetTest extends AbstractTest {
      */
     @Test
     public void testJdbc41ResultSetMethods() throws SQLException {
-        try (Connection con = DriverManager.getConnection(connectionString);
-             Statement stmt = con.createStatement()) {
-            stmt.executeUpdate("create table " + tableName + " ( "
-                    + "col1 int, "
-                    + "col2 varchar(512), "
-                    + "col3 float, "
-                    + "col4 decimal(10,5), "
-                    + "col5 uniqueidentifier, "
-                    + "col6 xml, "
-                    + "col7 varbinary(max), "
-                    + "col8 text, "
-                    + "col9 ntext, "
-                    + "col10 varbinary(max), "
-                    + "col11 date, "
-                    + "col12 time, "
-                    + "col13 datetime2, "
-                    + "col14 datetimeoffset, "
+        try (Connection con = DriverManager.getConnection(connectionString); Statement stmt = con.createStatement()) {
+            stmt.executeUpdate("create table " + tableName + " ( " + "col1 int, " + "col2 varchar(512), "
+                    + "col3 float, " + "col4 decimal(10,5), " + "col5 uniqueidentifier, " + "col6 xml, "
+                    + "col7 varbinary(max), " + "col8 text, " + "col9 ntext, " + "col10 varbinary(max), "
+                    + "col11 date, " + "col12 time, " + "col13 datetime2, " + "col14 datetimeoffset, "
+                    + "col15 decimal(10,9), " + "col16 decimal(38,38), "
                     + "order_column int identity(1,1) primary key)");
             try {
-    
-                stmt.executeUpdate("Insert into " + tableName + " values("
-                        + "1, " // col1
+
+                stmt.executeUpdate("Insert into " + tableName + " values(" + "1, " // col1
                         + "'hello', " // col2
                         + "2.0, " // col3
                         + "123.45, " // col4
@@ -80,25 +70,15 @@ public class ResultSetTest extends AbstractTest {
                         + "'2017-05-19'," // col11
                         + "'10:47:15.1234567'," // col12
                         + "'2017-05-19T10:47:15.1234567'," // col13
-                        + "'2017-05-19T10:47:15.1234567+02:00'" // col14
+                        + "'2017-05-19T10:47:15.1234567+02:00'," // col14
+                        + "0.123456789, " // col15
+                        + "0.1234567890123456789012345678901234567" // col16
                         + ")");
-    
-                stmt.executeUpdate("Insert into " + tableName + " values("
-                        + "null, "
-                        + "null, "
-                        + "null, "
-                        + "null, "
-                        + "null, "
-                        + "null, "
-                        + "null, "
-                        + "null, "
-                        + "null, "
-                        + "null, "
-                        + "null, "
-                        + "null, "
-                        + "null, "
-                        + "null)");
-    
+
+                stmt.executeUpdate("Insert into " + tableName + " values(" + "null, " + "null, " + "null, " + "null, "
+                        + "null, " + "null, " + "null, " + "null, " + "null, " + "null, " + "null, " + "null, "
+                        + "null, " + "null, " + "null, " + "null)");
+
                 try (ResultSet rs = stmt.executeQuery("select * from " + tableName + " order by order_column")) {
                     // test non-null values
                     assertTrue(rs.next());
@@ -126,7 +106,8 @@ public class ResultSetTest extends AbstractTest {
                     assertEquals(0, rs.getObject("col4", BigDecimal.class).compareTo(new BigDecimal("123.45")));
 
                     assertEquals(UUID.fromString("6F9619FF-8B86-D011-B42D-00C04FC964FF"), rs.getObject(5, UUID.class));
-                    assertEquals(UUID.fromString("6F9619FF-8B86-D011-B42D-00C04FC964FF"), rs.getObject("col5", UUID.class));
+                    assertEquals(UUID.fromString("6F9619FF-8B86-D011-B42D-00C04FC964FF"),
+                            rs.getObject("col5", UUID.class));
 
                     SQLXML sqlXml;
                     sqlXml = rs.getObject(6, SQLXML.class);
@@ -139,7 +120,9 @@ public class ResultSetTest extends AbstractTest {
                     Blob blob;
                     blob = rs.getObject(7, Blob.class);
                     try {
-                        assertArrayEquals(new byte[] {0x63, (byte) 0xC3, 0x4D, 0x6B, (byte) 0xCA, (byte) 0xD5, 0x55, (byte) 0xEB, 0x64, (byte) 0xBF, 0x7E, (byte) 0x84, (byte) 0x8D, 0x02, (byte) 0xC3, 0x76},
+                        assertArrayEquals(
+                                new byte[] {0x63, (byte) 0xC3, 0x4D, 0x6B, (byte) 0xCA, (byte) 0xD5, 0x55, (byte) 0xEB,
+                                        0x64, (byte) 0xBF, 0x7E, (byte) 0x84, (byte) 0x8D, 0x02, (byte) 0xC3, 0x76},
                                 blob.getBytes(1, 16));
                     } finally {
                         blob.free();
@@ -161,7 +144,9 @@ public class ResultSetTest extends AbstractTest {
                         nclob.free();
                     }
 
-                    assertArrayEquals(new byte[] {0x63, (byte) 0xC3, 0x4D, 0x6B, (byte) 0xCA, (byte) 0xD5, 0x55, (byte) 0xEB, 0x64, (byte) 0xBF, 0x7E, (byte) 0x84, (byte) 0x8D, 0x02, (byte) 0xC3, 0x76},
+                    assertArrayEquals(
+                            new byte[] {0x63, (byte) 0xC3, 0x4D, 0x6B, (byte) 0xCA, (byte) 0xD5, 0x55, (byte) 0xEB,
+                                    0x64, (byte) 0xBF, 0x7E, (byte) 0x84, (byte) 0x8D, 0x02, (byte) 0xC3, 0x76},
                             rs.getObject(10, byte[].class));
 
                     assertEquals(java.sql.Date.valueOf("2017-05-19"), rs.getObject(11, java.sql.Date.class));
@@ -171,12 +156,25 @@ public class ResultSetTest extends AbstractTest {
                     assertEquals(expectedTime, rs.getObject(12, java.sql.Time.class));
                     assertEquals(expectedTime, rs.getObject("col12", java.sql.Time.class));
 
-                    assertEquals(java.sql.Timestamp.valueOf("2017-05-19 10:47:15.1234567"), rs.getObject(13, java.sql.Timestamp.class));
-                    assertEquals(java.sql.Timestamp.valueOf("2017-05-19 10:47:15.1234567"), rs.getObject("col13", java.sql.Timestamp.class));
+                    assertEquals(java.sql.Timestamp.valueOf("2017-05-19 10:47:15.1234567"),
+                            rs.getObject(13, java.sql.Timestamp.class));
+                    assertEquals(java.sql.Timestamp.valueOf("2017-05-19 10:47:15.1234567"),
+                            rs.getObject("col13", java.sql.Timestamp.class));
 
-                    assertEquals("2017-05-19 10:47:15.1234567 +02:00", rs.getObject(14, microsoft.sql.DateTimeOffset.class).toString());
-                    assertEquals("2017-05-19 10:47:15.1234567 +02:00", rs.getObject("col14", microsoft.sql.DateTimeOffset.class).toString());
+                    assertEquals("2017-05-19 10:47:15.1234567 +02:00",
+                            rs.getObject(14, microsoft.sql.DateTimeOffset.class).toString());
+                    assertEquals("2017-05-19 10:47:15.1234567 +02:00",
+                            rs.getObject("col14", microsoft.sql.DateTimeOffset.class).toString());
 
+                    // BigDecimal#equals considers the number of decimal places (ResultSet returns all digits after
+                    // decimal unlike CallableStatement outparams)
+                    assertEquals(0, rs.getObject(15, BigDecimal.class).compareTo(new BigDecimal("0.123456789")));
+                    assertEquals(0, rs.getObject("col15", BigDecimal.class).compareTo(new BigDecimal("0.123456789")));
+
+                    assertEquals(0, rs.getObject(16, BigDecimal.class)
+                            .compareTo(new BigDecimal("0.12345678901234567890123456789012345670")));
+                    assertEquals(0, rs.getObject("col16", BigDecimal.class)
+                            .compareTo(new BigDecimal("0.12345678901234567890123456789012345670")));
 
                     // test null values, mostly to verify primitive wrappers do not return default values
                     assertTrue(rs.next());
@@ -219,23 +217,71 @@ public class ResultSetTest extends AbstractTest {
 
                     assertNull(rs.getObject(10, byte[].class));
                     assertNull(rs.getObject("col10", byte[].class));
-                    
+
                     assertNull(rs.getObject(11, java.sql.Date.class));
                     assertNull(rs.getObject("col11", java.sql.Date.class));
-                    
+
                     assertNull(rs.getObject(12, java.sql.Time.class));
                     assertNull(rs.getObject("col12", java.sql.Time.class));
-                    
+
                     assertNull(rs.getObject(13, java.sql.Timestamp.class));
                     assertNull(rs.getObject("col14", java.sql.Timestamp.class));
 
                     assertNull(rs.getObject(14, microsoft.sql.DateTimeOffset.class));
                     assertNull(rs.getObject("col14", microsoft.sql.DateTimeOffset.class));
 
+                    assertNull(rs.getObject(15, BigDecimal.class));
+                    assertNull(rs.getObject("col15", BigDecimal.class));
+
+                    assertNull(rs.getObject(16, BigDecimal.class));
+                    assertNull(rs.getObject("col16", BigDecimal.class));
+
                     assertFalse(rs.next());
                 }
             } finally {
                 stmt.executeUpdate("drop table " + tableName);
+            }
+        }
+    }
+
+    /**
+     * Tests getObject(n, java.time.LocalDateTime.class).
+     * 
+     * @throws SQLException
+     */
+    @Test
+    public void testGetObjectAsLocalDateTime() throws SQLException {
+        try (Connection con = DriverManager.getConnection(connectionString); Statement stmt = con.createStatement()) {
+            TimeZone prevTimeZone = TimeZone.getDefault();
+            TimeZone.setDefault(TimeZone.getTimeZone("America/Edmonton"));
+            
+            // a local date/time that does not actually exist because of Daylight Saving Time
+            final String testValueDate = "2018-03-11";
+            final String testValueTime = "02:00:00.1234567";
+            final String testValueDateTime = testValueDate + "T" + testValueTime;
+            
+            stmt.executeUpdate(
+                    "CREATE TABLE " + tableName + " (id INT PRIMARY KEY, dt2 DATETIME2)");
+            stmt.executeUpdate(
+                    "INSERT INTO " + tableName + " (id, dt2) VALUES (1, '" + testValueDateTime + "')");
+
+            try (ResultSet rs = stmt.executeQuery("SELECT dt2 FROM " + tableName + " WHERE id=1")) {
+                rs.next();
+                
+                LocalDateTime expectedLocalDateTime = LocalDateTime.parse(testValueDateTime);
+                LocalDateTime actualLocalDateTime = rs.getObject(1, LocalDateTime.class);
+                assertEquals(expectedLocalDateTime, actualLocalDateTime);
+                
+                LocalDate expectedLocalDate = LocalDate.parse(testValueDate);
+                LocalDate actualLocalDate = rs.getObject(1, LocalDate.class);
+                assertEquals(expectedLocalDate, actualLocalDate);
+                
+                LocalTime expectedLocalTime = LocalTime.parse(testValueTime);
+                LocalTime actualLocalTime = rs.getObject(1, LocalTime.class);
+                assertEquals(expectedLocalTime, actualLocalTime);
+            } finally {
+                Utils.dropTableIfExists(tableName, stmt);
+                TimeZone.setDefault(prevTimeZone);
             }
         }
     }
@@ -247,11 +293,11 @@ public class ResultSetTest extends AbstractTest {
      */
     @Test
     public void testResultSetWrapper() throws SQLException {
-        try (Connection con = DriverManager.getConnection(connectionString);
-             Statement stmt = con.createStatement()) {
-            
-            stmt.executeUpdate("create table " + tableName + " (col1 int, col2 text, col3 int identity(1,1) primary key)");
-            
+        try (Connection con = DriverManager.getConnection(connectionString); Statement stmt = con.createStatement()) {
+
+            stmt.executeUpdate(
+                    "create table " + tableName + " (col1 int, col2 text, col3 int identity(1,1) primary key)");
+
             try (ResultSet rs = stmt.executeQuery("select * from " + tableName)) {
                 assertTrue(rs.isWrapperFor(ResultSet.class));
                 assertTrue(rs.isWrapperFor(ISQLServerResultSet.class));
@@ -263,7 +309,7 @@ public class ResultSetTest extends AbstractTest {
             }
         }
     }
-    
+
     /**
      * Tests calling any getter on a null column should work regardless of their type.
      * 
@@ -280,8 +326,7 @@ public class ResultSetTest extends AbstractTest {
             rs = stmt.executeQuery("select null");
             rs.next();
             assertEquals(null, rs.getTime(1));
-        }
-        finally {
+        } finally {
             if (con != null) {
                 con.close();
             }
@@ -293,5 +338,5 @@ public class ResultSetTest extends AbstractTest {
             }
         }
     }
-    
+
 }

@@ -1,9 +1,6 @@
 /*
- * Microsoft JDBC Driver for SQL Server
- * 
- * Copyright(c) Microsoft Corporation All rights reserved.
- * 
- * This program is made available under the terms of the MIT License. See the LICENSE file in the project root for more information.
+ * Microsoft JDBC Driver for SQL Server Copyright(c) Microsoft Corporation All rights reserved. This program is made
+ * available under the terms of the MIT License. See the LICENSE file in the project root for more information.
  */
 package com.microsoft.sqlserver.jdbc.bulkCopy;
 
@@ -29,7 +26,7 @@ import org.junit.runner.RunWith;
 import com.microsoft.sqlserver.jdbc.SQLServerBulkCopy;
 import com.microsoft.sqlserver.jdbc.SQLServerBulkCopyOptions;
 import com.microsoft.sqlserver.jdbc.SQLServerConnection;
-import com.microsoft.sqlserver.jdbc.SQLServerException;
+
 
 /**
  * Test BulkCopy Connection Constructor and BulkCopyOption
@@ -44,18 +41,19 @@ public class BulkCopyConnectionTest extends BulkCopyTestSetUp {
      * @return
      */
     @TestFactory
-    Stream<DynamicTest> generateBulkCopyConstructorTest() {
+    public Stream<DynamicTest> generateBulkCopyConstructorTest() {
         List<BulkCopyTestWrapper> testData = createTestDatatestBulkCopyConstructor();
         // had to avoid using lambdas as we need to test against java7
         return testData.stream().map(new Function<BulkCopyTestWrapper, DynamicTest>() {
             @Override
             public DynamicTest apply(final BulkCopyTestWrapper datum) {
-                return DynamicTest.dynamicTest("Testing " + datum.testName, new org.junit.jupiter.api.function.Executable() {
-                    @Override
-                    public void execute() {
-                        BulkCopyTestUtil.performBulkCopy(datum, sourceTable);
-                    }
-                });
+                return DynamicTest.dynamicTest("Testing " + datum.testName,
+                        new org.junit.jupiter.api.function.Executable() {
+                            @Override
+                            public void execute() {
+                                BulkCopyTestUtil.performBulkCopy(datum, sourceTable);
+                            }
+                        });
             }
         });
     }
@@ -66,17 +64,18 @@ public class BulkCopyConnectionTest extends BulkCopyTestSetUp {
      * @return
      */
     @TestFactory
-    Stream<DynamicTest> generateBulkCopyOptionsTest() {
+    public Stream<DynamicTest> generateBulkCopyOptionsTest() {
         List<BulkCopyTestWrapper> testData = createTestDatatestBulkCopyOption();
         return testData.stream().map(new Function<BulkCopyTestWrapper, DynamicTest>() {
             @Override
             public DynamicTest apply(final BulkCopyTestWrapper datum) {
-                return DynamicTest.dynamicTest("Testing " + datum.testName, new org.junit.jupiter.api.function.Executable() {
-                    @Override
-                    public void execute() {
-                        BulkCopyTestUtil.performBulkCopy(datum, sourceTable);
-                    }
-                });
+                return DynamicTest.dynamicTest("Testing " + datum.testName,
+                        new org.junit.jupiter.api.function.Executable() {
+                            @Override
+                            public void execute() {
+                                BulkCopyTestUtil.performBulkCopy(datum, sourceTable);
+                            }
+                        });
             }
         });
     }
@@ -86,13 +85,12 @@ public class BulkCopyConnectionTest extends BulkCopyTestSetUp {
      */
     @Test
     @DisplayName("BulkCopy:test uninitialized Connection")
-    void testInvalidConnection1() {
-        assertThrows(SQLServerException.class, new org.junit.jupiter.api.function.Executable() {
+    public void testInvalidConnection1() {
+        assertThrows(SQLException.class, new org.junit.jupiter.api.function.Executable() {
             @Override
             public void execute() throws SQLException {
-                try(Connection con = null;
-                	SQLServerBulkCopy bulkCopy = new SQLServerBulkCopy(con)) {
-        			//do nothing
+                try (Connection con = null; SQLServerBulkCopy bulkCopy = new SQLServerBulkCopy(con)) {
+                    // do nothing
                 }
             }
         });
@@ -103,30 +101,29 @@ public class BulkCopyConnectionTest extends BulkCopyTestSetUp {
      */
     @Test
     @DisplayName("BulkCopy:test uninitialized SQLServerConnection")
-    void testInvalidConnection2() {
-        assertThrows(SQLServerException.class, new org.junit.jupiter.api.function.Executable() {
+    public void testInvalidConnection2() {
+        assertThrows(SQLException.class, new org.junit.jupiter.api.function.Executable() {
             @Override
-            public void execute() throws SQLServerException {
-                try(SQLServerConnection con = null;
-                	SQLServerBulkCopy bulkCopy = new SQLServerBulkCopy(con)) {
-                	//do nothing
+            public void execute() throws SQLException {
+                try (SQLServerConnection con = null; SQLServerBulkCopy bulkCopy = new SQLServerBulkCopy(con)) {
+                    // do nothing
                 }
             }
         });
     }
 
     /**
-     * BulkCopy:test empty connenction string
+     * BulkCopy:test empty connection string
      */
     @Test
-    @DisplayName("BulkCopy:test empty connenction string")
-    void testInvalidConnection3() {
-        assertThrows(SQLServerException.class, new org.junit.jupiter.api.function.Executable() {
+    @DisplayName("BulkCopy:test empty connection string")
+    public void testInvalidConnection3() {
+        assertThrows(SQLException.class, new org.junit.jupiter.api.function.Executable() {
             @Override
-            public void execute() throws SQLServerException {
+            public void execute() throws SQLException {
                 String connectionUrl = " ";
-                try(SQLServerBulkCopy bulkCopy = new SQLServerBulkCopy(connectionUrl)) {
-                	//do nothing
+                try (SQLServerBulkCopy bulkCopy = new SQLServerBulkCopy(connectionUrl)) {
+                    // do nothing
                 }
             }
         });
@@ -137,13 +134,13 @@ public class BulkCopyConnectionTest extends BulkCopyTestSetUp {
      */
     @Test
     @DisplayName("BulkCopy:test null connenction string")
-    void testInvalidConnection4() {
-        assertThrows(SQLServerException.class, new org.junit.jupiter.api.function.Executable() {
+    public void testInvalidConnection4() {
+        assertThrows(SQLException.class, new org.junit.jupiter.api.function.Executable() {
             @Override
-            public void execute() throws SQLServerException {
+            public void execute() throws SQLException {
                 String connectionUrl = null;
-                try(SQLServerBulkCopy bulkCopy = new SQLServerBulkCopy(connectionUrl)) {
-                	//do nothing
+                try (SQLServerBulkCopy bulkCopy = new SQLServerBulkCopy(connectionUrl)) {
+                    // do nothing
                 }
             }
         });
@@ -154,7 +151,7 @@ public class BulkCopyConnectionTest extends BulkCopyTestSetUp {
      */
     @Test
     @DisplayName("BulkCopy:test null SQLServerBulkCopyOptions")
-    void testEmptyBulkCopyOptions() {
+    public void testEmptyBulkCopyOptions() {
         BulkCopyTestWrapper bulkWrapper = new BulkCopyTestWrapper(connectionString);
         bulkWrapper.setUsingConnection((0 == ThreadLocalRandom.current().nextInt(2)) ? true : false);
         SQLServerBulkCopyOptions option = null;

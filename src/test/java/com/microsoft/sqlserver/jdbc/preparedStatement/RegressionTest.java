@@ -1,14 +1,12 @@
 /*
- * Microsoft JDBC Driver for SQL Server
- * 
- * Copyright(c) Microsoft Corporation All rights reserved.
- * 
- * This program is made available under the terms of the MIT License. See the LICENSE file in the project root for more information.
+ * Microsoft JDBC Driver for SQL Server Copyright(c) Microsoft Corporation All rights reserved. This program is made
+ * available under the terms of the MIT License. See the LICENSE file in the project root for more information.
  */
 package com.microsoft.sqlserver.jdbc.preparedStatement;
 
 import static org.junit.jupiter.api.Assertions.fail;
 
+import java.lang.reflect.Field;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
@@ -23,8 +21,12 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
+
+import com.microsoft.sqlserver.jdbc.SQLServerConnection;
+import com.microsoft.sqlserver.jdbc.TestResource;
 import com.microsoft.sqlserver.testframework.AbstractTest;
 import com.microsoft.sqlserver.testframework.Utils;
+
 
 /**
  * Tests with sql queries using preparedStatement without parameters
@@ -66,9 +68,9 @@ public class RegressionTest extends AbstractTest {
             pstmt2 = con.prepareStatement("drop view x");
             pstmt1.execute();
             pstmt2.execute();
-        }
-        catch (SQLException e) {
-            fail("Create/drop view with preparedStatement failed! Error message: " + e.getMessage());
+        } catch (SQLException e) {
+            fail(TestResource.getResource("R_createDropViewFailed") + TestResource.getResource("R_errorMessage")
+                    + e.getMessage());
         }
 
         finally {
@@ -93,9 +95,9 @@ public class RegressionTest extends AbstractTest {
             pstmt2 = con.prepareStatement("drop schema x");
             pstmt1.execute();
             pstmt2.execute();
-        }
-        catch (SQLException e) {
-            fail("Create/drop schema with preparedStatement failed! Error message:" + e.getMessage());
+        } catch (SQLException e) {
+            fail(TestResource.getResource("R_createDropSchemaFailed") + TestResource.getResource("R_errorMessage")
+                    + e.getMessage());
         }
 
         finally {
@@ -120,9 +122,9 @@ public class RegressionTest extends AbstractTest {
             pstmt2 = con.prepareStatement("drop table x");
             pstmt1.execute();
             pstmt2.execute();
-        }
-        catch (SQLException e) {
-            fail("Create/drop table with preparedStatement failed! Error message:" + e.getMessage());
+        } catch (SQLException e) {
+            fail(TestResource.getResource("R_createDropTableFailed") + TestResource.getResource("R_errorMessage")
+                    + e.getMessage());
         }
 
         finally {
@@ -149,9 +151,9 @@ public class RegressionTest extends AbstractTest {
             pstmt1.execute();
             pstmt2.execute();
             pstmt3.execute();
-        }
-        catch (SQLException e) {
-            fail("Create/drop/alter table with preparedStatement failed! Error message:" + e.getMessage());
+        } catch (SQLException e) {
+            fail(TestResource.getResource("R_createDropAlterTableFailed") + TestResource.getResource("R_errorMessage")
+                    + e.getMessage());
         }
 
         finally {
@@ -183,9 +185,9 @@ public class RegressionTest extends AbstractTest {
             pstmt2.execute();
             pstmt3.execute();
             pstmt4.execute();
-        }
-        catch (SQLException e) {
-            fail("grant with preparedStatement failed! Error message:" + e.getMessage());
+        } catch (SQLException e) {
+            fail(TestResource.getResource("R_grantFailed") + TestResource.getResource("R_errorMessage")
+                    + e.getMessage());
         }
 
         finally {
@@ -210,107 +212,117 @@ public class RegressionTest extends AbstractTest {
      * @throws SQLException
      */
     @Test
-    public void batchWithLargeStringTest() throws SQLException {
-        Statement stmt = con.createStatement();
-        PreparedStatement pstmt = null;
-        ResultSet rs = null;
-        Utils.dropTableIfExists("TEST_TABLE", stmt);
+    public void batchWithLargeStringTest() throws Exception {
+        batchWithLargeStringTestInternal("BatchInsert");
+    }
 
-        con.setAutoCommit(false);
+    @Test
+    public void batchWithLargeStringTestUseBulkCopyAPI() throws Exception {
+        batchWithLargeStringTestInternal("BulkCopy");
+    }
 
-        // create a table with two columns
-        boolean createPrimaryKey = false;
-        try {
-            stmt.execute("if object_id('TEST_TABLE', 'U') is not null\ndrop table TEST_TABLE;");
-            if (createPrimaryKey) {
-                stmt.execute("create table TEST_TABLE ( ID int, DATA nvarchar(max), primary key (ID) );");
+    private void batchWithLargeStringTestInternal(String mode) throws Exception {
+        try (Connection con = DriverManager.getConnection(connectionString);) {
+            if (mode.equalsIgnoreCase("bulkcopy")) {
+                modifyConnectionForBulkCopyAPI((SQLServerConnection) con);
             }
-            else {
-                stmt.execute("create table TEST_TABLE ( ID int, DATA nvarchar(max) );");
-            }
-        }
-        catch (Exception e) {
-            fail(e.toString());
-        }
 
-        con.commit();
-
-        // build a String with 4001 characters
-        StringBuilder stringBuilder = new StringBuilder();
-        for (int i = 0; i < 4001; i++) {
-            stringBuilder.append('c');
-        }
-        String largeString = stringBuilder.toString();
-
-        String[] values = {"a", "b", largeString, "d", "e"};
-        // insert five rows into the table; use a batch for each row
-        try {
-            pstmt = con.prepareStatement("insert into TEST_TABLE values (?,?)");
-            // 0,a
-            pstmt.setInt(1, 0);
-            pstmt.setNString(2, values[0]);
-            pstmt.addBatch();
-
-            // 1,b
-            pstmt.setInt(1, 1);
-            pstmt.setNString(2, values[1]);
-            pstmt.addBatch();
-
-            // 2,ccc...
-            pstmt.setInt(1, 2);
-            pstmt.setNString(2, values[2]);
-            pstmt.addBatch();
-
-            // 3,d
-            pstmt.setInt(1, 3);
-            pstmt.setNString(2, values[3]);
-            pstmt.addBatch();
-
-            // 4,e
-            pstmt.setInt(1, 4);
-            pstmt.setNString(2, values[4]);
-            pstmt.addBatch();
-
-            pstmt.executeBatch();
-        }
-        catch (Exception e) {
-            fail(e.toString());
-        }
-        connection.commit();
-
-        // check the data in the table
-        Map<Integer, String> selectedValues = new LinkedHashMap<>();
-        int id = 0;
-        try {
-            pstmt = con.prepareStatement("select * from TEST_TABLE;");
-            try {
-                rs = pstmt.executeQuery();
-                int i = 0;
-                while (rs.next()) {
-                    id = rs.getInt(1);
-                    String data = rs.getNString(2);
-                    if (selectedValues.containsKey(id)) {
-                        fail("Found duplicate id: " + id + " ,actual values is : " + values[i++] + " data is: " + data);
-                    }
-                    selectedValues.put(id, data);
-                }
-            }
-            finally {
-                if (null != rs) {
-                    rs.close();
-                }
-            }
-        }
-        finally {
+            Statement stmt = con.createStatement();
+            PreparedStatement pstmt = null;
+            ResultSet rs = null;
             Utils.dropTableIfExists("TEST_TABLE", stmt);
-            if (null != pstmt) {
-                pstmt.close();
+
+            con.setAutoCommit(false);
+
+            // create a table with two columns
+            boolean createPrimaryKey = false;
+            try {
+                stmt.execute("if object_id('TEST_TABLE', 'U') is not null\ndrop table TEST_TABLE;");
+                if (createPrimaryKey) {
+                    stmt.execute("create table TEST_TABLE ( ID int, DATA nvarchar(max), primary key (ID) );");
+                } else {
+                    stmt.execute("create table TEST_TABLE ( ID int, DATA nvarchar(max) );");
+                }
+            } catch (Exception e) {
+                fail(e.toString());
             }
-            if (null != stmt) {
-                stmt.close();
+
+            con.commit();
+
+            // build a String with 4001 characters
+            StringBuilder stringBuilder = new StringBuilder();
+            for (int i = 0; i < 4001; i++) {
+                stringBuilder.append('c');
+            }
+            String largeString = stringBuilder.toString();
+
+            String[] values = {"a", "b", largeString, "d", "e"};
+            // insert five rows into the table; use a batch for each row
+            try {
+                pstmt = con.prepareStatement("insert into TEST_TABLE values (?,?)");
+                // 0,a
+                pstmt.setInt(1, 0);
+                pstmt.setNString(2, values[0]);
+                pstmt.addBatch();
+
+                // 1,b
+                pstmt.setInt(1, 1);
+                pstmt.setNString(2, values[1]);
+                pstmt.addBatch();
+
+                // 2,ccc...
+                pstmt.setInt(1, 2);
+                pstmt.setNString(2, values[2]);
+                pstmt.addBatch();
+
+                // 3,d
+                pstmt.setInt(1, 3);
+                pstmt.setNString(2, values[3]);
+                pstmt.addBatch();
+
+                // 4,e
+                pstmt.setInt(1, 4);
+                pstmt.setNString(2, values[4]);
+                pstmt.addBatch();
+
+                pstmt.executeBatch();
+            } catch (Exception e) {
+                fail(e.toString());
+            }
+            con.commit();
+
+            // check the data in the table
+            Map<Integer, String> selectedValues = new LinkedHashMap<>();
+            int id = 0;
+            try {
+                pstmt = con.prepareStatement("select * from TEST_TABLE;");
+                try {
+                    rs = pstmt.executeQuery();
+                    int i = 0;
+                    while (rs.next()) {
+                        id = rs.getInt(1);
+                        String data = rs.getNString(2);
+                        if (selectedValues.containsKey(id)) {
+                            fail("Found duplicate id: " + id + " ,actual values is : " + values[i++] + " data is: "
+                                    + data);
+                        }
+                        selectedValues.put(id, data);
+                    }
+                } finally {
+                    if (null != rs) {
+                        rs.close();
+                    }
+                }
+            } finally {
+                Utils.dropTableIfExists("TEST_TABLE", stmt);
+                if (null != pstmt) {
+                    pstmt.close();
+                }
+                if (null != stmt) {
+                    stmt.close();
+                }
             }
         }
-
     }
 
     /**
@@ -332,12 +344,10 @@ public class RegressionTest extends AbstractTest {
             stmt.execute("if object_id('testTable', 'U') is not null\ndrop table testTable;");
             if (createPrimaryKey) {
                 stmt.execute("create table testTable ( ID int, DATA nvarchar(max), primary key (ID) );");
-            }
-            else {
+            } else {
                 stmt.execute("create table testTable ( ID int, DATA nvarchar(max) );");
             }
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             fail(e.toString());
         }
         con.commit();
@@ -399,8 +409,7 @@ public class RegressionTest extends AbstractTest {
 
         catch (Exception e) {
             fail(e.toString());
-        }
-        finally {
+        } finally {
             Utils.dropTableIfExists("testTable", stmt);
             if (null != stmt) {
                 stmt.close();
@@ -433,4 +442,11 @@ public class RegressionTest extends AbstractTest {
 
     }
 
+    private void modifyConnectionForBulkCopyAPI(SQLServerConnection con) throws Exception {
+        Field f1 = SQLServerConnection.class.getDeclaredField("isAzureDW");
+        f1.setAccessible(true);
+        f1.set(con, true);
+
+        con.setUseBulkCopyForBatchInsert(true);
+    }
 }

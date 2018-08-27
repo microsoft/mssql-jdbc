@@ -1,15 +1,13 @@
 /*
- * Microsoft JDBC Driver for SQL Server
- * 
- * Copyright(c) Microsoft Corporation All rights reserved.
- * 
- * This program is made available under the terms of the MIT License. See the LICENSE file in the project root for more information.
+ * Microsoft JDBC Driver for SQL Server Copyright(c) Microsoft Corporation All rights reserved. This program is made
+ * available under the terms of the MIT License. See the LICENSE file in the project root for more information.
  */
 
 package com.microsoft.sqlserver.jdbc;
 
 import java.util.logging.Level;
 import java.util.logging.Logger;
+
 
 /**
  * The top level TDS parser class.
@@ -19,17 +17,16 @@ final class TDSParser {
     private static Logger logger = Logger.getLogger("com.microsoft.sqlserver.jdbc.internals.TDS.TOKEN");
 
     /*
-     * Parses a TDS token stream from a reader using the supplied token handler. Parsing requires the ability to peek one byte ahead into the token
-     * stream to determine the token type of the next token in the stream. When the token type has been determined, the token handler is called to
-     * process the token (or not). Parsing continues until the token handler says to stop by returning false from one of the token handling methods.
+     * Parses a TDS token stream from a reader using the supplied token handler. Parsing requires the ability to peek
+     * one byte ahead into the token stream to determine the token type of the next token in the stream. When the token
+     * type has been determined, the token handler is called to process the token (or not). Parsing continues until the
+     * token handler says to stop by returning false from one of the token handling methods.
      */
-    static void parse(TDSReader tdsReader,
-            String logContext) throws SQLServerException {
+    static void parse(TDSReader tdsReader, String logContext) throws SQLServerException {
         parse(tdsReader, new TDSTokenHandler(logContext));
     }
 
-    static void parse(TDSReader tdsReader,
-            TDSTokenHandler tdsTokenHandler) throws SQLServerException {
+    static void parse(TDSReader tdsReader, TDSTokenHandler tdsTokenHandler) throws SQLServerException {
         final boolean isLogging = logger.isLoggable(Level.FINEST);
 
         // Process TDS tokens from the token stream until we're told to stop.
@@ -102,7 +99,6 @@ final class TDSParser {
                 case TDS.TDS_FEDAUTHINFO:
                     parsing = tdsTokenHandler.onFedAuthInfo(tdsReader);
                     break;
-
                 case -1:
                     tdsReader.getCommand().onTokenEOF();
                     tdsTokenHandler.onEOF(tdsReader);
@@ -117,14 +113,14 @@ final class TDSParser {
 
         // if TDS_FEATURE_EXTENSION_ACK is not received verify if TDS_FEATURE_EXT_AE was sent
         if (isLoginAck && !isFeatureExtAck)
-            tdsReader.TryProcessFeatureExtAck(isFeatureExtAck);
+            tdsReader.tryProcessFeatureExtAck(isFeatureExtAck);
     }
 
     /* Handle unexpected tokens - throw an exception */
-    static void throwUnexpectedTokenException(TDSReader tdsReader,
-            String logContext) throws SQLServerException {
+    static void throwUnexpectedTokenException(TDSReader tdsReader, String logContext) throws SQLServerException {
         if (logger.isLoggable(Level.SEVERE))
-            logger.severe(tdsReader.toString() + ": " + logContext + ": Encountered unexpected " + TDS.getTokenName(tdsReader.peekTokenType()));
+            logger.severe(tdsReader.toString() + ": " + logContext + ": Encountered unexpected "
+                    + TDS.getTokenName(tdsReader.peekTokenType()));
         tdsReader.throwInvalidTDSToken(TDS.getTokenName(tdsReader.peekTokenType()));
     }
 
@@ -137,9 +133,10 @@ final class TDSParser {
     }
 }
 
+
 /**
- * A default TDS token handler with some meaningful default processing. Other token handlers should subclass from this one to override the defaults
- * and provide specialized functionality.
+ * A default TDS token handler with some meaningful default processing. Other token handlers should subclass from this
+ * one to override the defaults and provide specialized functionality.
  *
  * ENVCHANGE_TOKEN Processes the ENVCHANGE
  *
@@ -159,6 +156,9 @@ class TDSTokenHandler {
     final String logContext;
 
     private StreamError databaseError;
+
+    /** TDS protocol diagnostics logger */
+    private static Logger logger = Logger.getLogger("com.microsoft.sqlserver.jdbc.internals.TDS.TOKEN");
 
     final StreamError getDatabaseError() {
         return databaseError;
@@ -208,8 +208,7 @@ class TDSTokenHandler {
         if (null == databaseError) {
             databaseError = new StreamError();
             databaseError.setFromTDS(tdsReader);
-        }
-        else {
+        } else {
             (new StreamError()).setFromTDS(tdsReader);
         }
 
@@ -227,7 +226,10 @@ class TDSTokenHandler {
     }
 
     boolean onColMetaData(TDSReader tdsReader) throws SQLServerException {
-        TDSParser.throwUnexpectedTokenException(tdsReader, logContext);
+        // SHOWPLAN might be ON, instead of throwing an exception, ignore the column meta data
+        if (logger.isLoggable(Level.SEVERE))
+            logger.severe(tdsReader.toString() + ": " + logContext + ": Encountered "
+                    + TDS.getTokenName(tdsReader.peekTokenType()) + ". SHOWPLAN is ON, ignoring.");
         return false;
     }
 
@@ -253,7 +255,8 @@ class TDSTokenHandler {
 
     void onEOF(TDSReader tdsReader) throws SQLServerException {
         if (null != getDatabaseError()) {
-            SQLServerException.makeFromDatabaseError(tdsReader.getConnection(), null, getDatabaseError().getMessage(), getDatabaseError(), false);
+            SQLServerException.makeFromDatabaseError(tdsReader.getConnection(), null, getDatabaseError().getMessage(),
+                    getDatabaseError(), false);
         }
     }
 

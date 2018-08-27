@@ -1,9 +1,6 @@
 /*
- * Microsoft JDBC Driver for SQL Server
- * 
- * Copyright(c) Microsoft Corporation All rights reserved.
- * 
- * This program is made available under the terms of the MIT License. See the LICENSE file in the project root for more information.
+ * Microsoft JDBC Driver for SQL Server Copyright(c) Microsoft Corporation All rights reserved. This program is made
+ * available under the terms of the MIT License. See the LICENSE file in the project root for more information.
  */
 
 package com.microsoft.sqlserver.testframework;
@@ -44,7 +41,7 @@ public abstract class AbstractSQLGenerator {// implements ISQLGenerator {
 
     /**
      * @param wrapIdentifier
-     *            the wrapIdentifier to set
+     *        the wrapIdentifier to set
      */
     public static void setWrapIdentifier(String wrapIdentifier) {
         AbstractSQLGenerator.wrapIdentifier = wrapIdentifier;
@@ -72,8 +69,7 @@ public abstract class AbstractSQLGenerator {// implements ISQLGenerator {
      * @param openIdentifier
      * @param closeIdentifier
      */
-    public static void setEscapeIdentifier(String openIdentifier,
-            String closeIdentifier) {
+    public static void setEscapeIdentifier(String openIdentifier, String closeIdentifier) {
         AbstractSQLGenerator.openEscapeIdentifier = openIdentifier;
         AbstractSQLGenerator.closeEscapeIdentifier = closeIdentifier;
     }
@@ -81,7 +77,7 @@ public abstract class AbstractSQLGenerator {// implements ISQLGenerator {
     /**
      * 
      * @param value
-     *            to escape
+     *        to escape
      * @return escaped literal
      */
     public static String escapeIdentifier(String value) {

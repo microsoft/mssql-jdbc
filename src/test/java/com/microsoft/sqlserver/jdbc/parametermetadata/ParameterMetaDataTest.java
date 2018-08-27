@@ -1,9 +1,6 @@
 /*
- * Microsoft JDBC Driver for SQL Server
- * 
- * Copyright(c) Microsoft Corporation All rights reserved.
- * 
- * This program is made available under the terms of the MIT License. See the LICENSE file in the project root for more information.
+ * Microsoft JDBC Driver for SQL Server Copyright(c) Microsoft Corporation All rights reserved. This program is made
+ * available under the terms of the MIT License. See the LICENSE file in the project root for more information.
  */
 package com.microsoft.sqlserver.jdbc.parametermetadata;
 
@@ -21,10 +18,10 @@ import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
 
-import com.microsoft.sqlserver.jdbc.SQLServerException;
 import com.microsoft.sqlserver.testframework.AbstractTest;
 import com.microsoft.sqlserver.testframework.Utils;
 import com.microsoft.sqlserver.testframework.util.RandomUtil;
+
 
 @RunWith(JUnitPlatform.class)
 public class ParameterMetaDataTest extends AbstractTest {
@@ -48,15 +45,14 @@ public class ParameterMetaDataTest extends AbstractTest {
                     assertTrue(parameterMetaData.isWrapperFor(ParameterMetaData.class));
                     assertSame(parameterMetaData, parameterMetaData.unwrap(ParameterMetaData.class));
                 }
-            }
-            finally {
+            } finally {
                 Utils.dropTableIfExists(tableName, stmt);
             }
         }
     }
 
     /**
-     * Test SQLServerException is not wrapped with another SQLServerException.
+     * Test SQLException is not wrapped with another SQLException.
      * 
      * @throws SQLException
      */
@@ -66,13 +62,12 @@ public class ParameterMetaDataTest extends AbstractTest {
                 PreparedStatement pstmt = connection.prepareStatement("invalid query :)");) {
 
             pstmt.getParameterMetaData();
-        }
-        catch (SQLServerException e) {
-            assertTrue(!e.getMessage().contains("com.microsoft.sqlserver.jdbc.SQLServerException"),
-                    "SQLServerException should not be wrapped by another SQLServerException.");
+        } catch (SQLException e) {
+            assertTrue(!e.getMessage().contains("com.microsoft.sqlserver.jdbc.SQLException"),
+                    "SQLException should not be wrapped by another SQLException.");
         }
     }
-    
+
     /**
      * Test ParameterMetaData when parameter name contains braces
      * 
@@ -89,8 +84,7 @@ public class ParameterMetaDataTest extends AbstractTest {
                 try (PreparedStatement pstmt = con.prepareStatement(query)) {
                     pstmt.getParameterMetaData();
                 }
-            }
-            finally {
+            } finally {
                 Utils.dropTableIfExists(tableName, stmt);
             }
         }

@@ -1,9 +1,6 @@
 /*
- * Microsoft JDBC Driver for SQL Server
- * 
- * Copyright(c) Microsoft Corporation All rights reserved.
- * 
- * This program is made available under the terms of the MIT License. See the LICENSE file in the project root for more information.
+ * Microsoft JDBC Driver for SQL Server Copyright(c) Microsoft Corporation All rights reserved. This program is made
+ * available under the terms of the MIT License. See the LICENSE file in the project root for more information.
  */
 package com.microsoft.sqlserver.jdbc.tvp;
 
@@ -27,6 +24,7 @@ import com.microsoft.sqlserver.testframework.DBTable;
 import com.microsoft.sqlserver.testframework.Utils;
 import com.microsoft.sqlserver.testframework.sqlType.SqlType;
 import com.microsoft.sqlserver.testframework.util.ComparisonUtil;
+
 
 @RunWith(JUnitPlatform.class)
 public class TVPAllTypes extends AbstractTest {
@@ -54,24 +52,21 @@ public class TVPAllTypes extends AbstractTest {
         testTVPResultSet(false, ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_UPDATABLE);
     }
 
-    private void testTVPResultSet(boolean setSelectMethod,
-            Integer resultSetType,
+    private void testTVPResultSet(boolean setSelectMethod, Integer resultSetType,
             Integer resultSetConcurrency) throws SQLException {
         setupVariation();
 
         Connection connnection = null;
         if (setSelectMethod) {
             connnection = DriverManager.getConnection(connectionString + ";selectMethod=cursor;");
-        }
-        else {
+        } else {
             connnection = DriverManager.getConnection(connectionString);
         }
 
         Statement stmtement = null;
         if (null != resultSetType || null != resultSetConcurrency) {
             stmtement = connnection.createStatement(resultSetType, resultSetConcurrency);
-        }
-        else {
+        } else {
             stmtement = connnection.createStatement();
         }
 
@@ -82,7 +77,8 @@ public class TVPAllTypes extends AbstractTest {
         pstmt.setStructured(1, tvpName, rs);
         pstmt.execute();
 
-        ComparisonUtil.compareSrcTableAndDestTableIgnoreRowOrder(new DBConnection(connectionString), tableSrc, tableDest);
+        ComparisonUtil.compareSrcTableAndDestTableIgnoreRowOrder(new DBConnection(connectionString), tableSrc,
+                tableDest);
 
         terminateVariation();
     }
@@ -102,24 +98,21 @@ public class TVPAllTypes extends AbstractTest {
         testTVPStoredProcedureResultSet(false, ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_UPDATABLE);
     }
 
-    private void testTVPStoredProcedureResultSet(boolean setSelectMethod,
-            Integer resultSetType,
+    private void testTVPStoredProcedureResultSet(boolean setSelectMethod, Integer resultSetType,
             Integer resultSetConcurrency) throws SQLException {
         setupVariation();
 
         Connection connnection = null;
         if (setSelectMethod) {
             connnection = DriverManager.getConnection(connectionString + ";selectMethod=cursor;");
-        }
-        else {
+        } else {
             connnection = DriverManager.getConnection(connectionString);
         }
 
         Statement stmtement = null;
         if (null != resultSetType || null != resultSetConcurrency) {
             stmtement = connnection.createStatement(resultSetType, resultSetConcurrency);
-        }
-        else {
+        } else {
             stmtement = connnection.createStatement();
         }
 
@@ -130,7 +123,8 @@ public class TVPAllTypes extends AbstractTest {
         Cstmt.setStructured(1, tvpName, rs);
         Cstmt.execute();
 
-        ComparisonUtil.compareSrcTableAndDestTableIgnoreRowOrder(new DBConnection(connectionString), tableSrc, tableDest);
+        ComparisonUtil.compareSrcTableAndDestTableIgnoreRowOrder(new DBConnection(connectionString), tableSrc,
+                tableDest);
 
         terminateVariation();
     }
@@ -165,20 +159,19 @@ public class TVPAllTypes extends AbstractTest {
         pstmt.execute();
     }
 
-    private static void createPreocedure(String procedureName,
-            String destTable) throws SQLException {
-        String sql = "CREATE PROCEDURE " + procedureName + " @InputData " + tvpName + " READONLY " + " AS " + " BEGIN " + " INSERT INTO " + destTable
-                + " SELECT * FROM @InputData" + " END";
+    private static void createPreocedure(String procedureName, String destTable) throws SQLException {
+        String sql = "CREATE PROCEDURE " + procedureName + " @InputData " + tvpName + " READONLY " + " AS " + " BEGIN "
+                + " INSERT INTO " + destTable + " SELECT * FROM @InputData" + " END";
 
         stmt.execute(sql);
     }
 
     private static void dropTVPS(String tvpName) throws SQLException {
-        stmt.executeUpdate("IF EXISTS (SELECT * FROM sys.types WHERE is_table_type = 1 AND name = '" + tvpName + "') " + " drop type " + tvpName);
+        stmt.executeUpdate("IF EXISTS (SELECT * FROM sys.types WHERE is_table_type = 1 AND name = '" + tvpName + "') "
+                + " drop type " + tvpName);
     }
 
-    private static void createTVPS(String TVPName,
-            String TVPDefinition) throws SQLException {
+    private static void createTVPS(String TVPName, String TVPDefinition) throws SQLException {
         String TVPCreateCmd = "CREATE TYPE " + TVPName + " as table (" + TVPDefinition + ");";
         stmt.executeUpdate(TVPCreateCmd);
     }

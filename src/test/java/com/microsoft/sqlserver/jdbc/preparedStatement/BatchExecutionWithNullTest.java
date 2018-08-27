@@ -1,9 +1,6 @@
 /*
- * Microsoft JDBC Driver for SQL Server
- * 
- * Copyright(c) Microsoft Corporation All rights reserved.
- * 
- * This program is made available under the terms of the MIT License. See the LICENSE file in the project root for more information.
+ * Microsoft JDBC Driver for SQL Server Copyright(c) Microsoft Corporation All rights reserved. This program is made
+ * available under the terms of the MIT License. See the LICENSE file in the project root for more information.
  */
 package com.microsoft.sqlserver.jdbc.preparedStatement;
 
@@ -26,9 +23,11 @@ import org.junit.runner.RunWith;
 import org.opentest4j.TestAbortedException;
 
 import com.microsoft.sqlserver.jdbc.SQLServerStatement;
+import com.microsoft.sqlserver.jdbc.TestResource;
 import com.microsoft.sqlserver.testframework.AbstractTest;
 import com.microsoft.sqlserver.testframework.DBConnection;
 import com.microsoft.sqlserver.testframework.Utils;
+
 
 @RunWith(JUnitPlatform.class)
 public class BatchExecutionWithNullTest extends AbstractTest {
@@ -40,8 +39,9 @@ public class BatchExecutionWithNullTest extends AbstractTest {
     static ResultSet rs = null;
 
     /**
-     * Test with combination of setString and setNull which cause the "Violation of PRIMARY KEY constraint and internally 
-     * "Could not find prepared statement with handle X" error.
+     * Test with combination of setString and setNull which cause the "Violation of PRIMARY KEY constraint and
+     * internally "Could not find prepared statement with handle X" error.
+     * 
      * @throws SQLException
      */
     @Test
@@ -79,14 +79,14 @@ public class BatchExecutionWithNullTest extends AbstractTest {
         updateCount = pstmt.executeBatch();
         updateCountlen += updateCount.length;
 
-        assertTrue(updateCountlen == 5, "addBatch does not add the SQL Statements to Batch ,call to addBatch failed");
+        assertTrue(updateCountlen == 5, TestResource.getResource("R_addBatchFailed"));
 
         String sPrepStmt1 = "select count(*) from esimple";
 
         pstmt1 = connection.prepareStatement(sPrepStmt1);
         rs = pstmt1.executeQuery();
         rs.next();
-        assertTrue(rs.getInt(1) == 5, "affected rows does not match with batch size. Insert failed");
+        assertTrue(rs.getInt(1) == 5, TestResource.getResource("R_insertBatchFailed"));
         pstmt1.close();
 
     }
@@ -105,7 +105,7 @@ public class BatchExecutionWithNullTest extends AbstractTest {
     @BeforeEach
     public void testSetup() throws TestAbortedException, Exception {
         assumeTrue(13 <= new DBConnection(connectionString).getServerVersion(),
-                "Aborting test case as SQL Server version is not compatible with Always encrypted ");
+                TestResource.getResource("R_Incompat_SQLServerVersion"));
 
         connection = DriverManager.getConnection(connectionString);
         SQLServerStatement stmt = (SQLServerStatement) connection.createStatement();

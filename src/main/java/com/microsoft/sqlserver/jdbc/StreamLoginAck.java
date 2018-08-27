@@ -1,9 +1,6 @@
 /*
- * Microsoft JDBC Driver for SQL Server
- * 
- * Copyright(c) Microsoft Corporation All rights reserved.
- * 
- * This program is made available under the terms of the MIT License. See the LICENSE file in the project root for more information.
+ * Microsoft JDBC Driver for SQL Server Copyright(c) Microsoft Corporation All rights reserved. This program is made
+ * available under the terms of the MIT License. See the LICENSE file in the project root for more information.
  */
 
 package com.microsoft.sqlserver.jdbc;
@@ -32,6 +29,7 @@ final class StreamLoginAck extends StreamPacket {
         int serverMinorVersion = tdsReader.readUnsignedByte();
         int serverBuildNumber = (tdsReader.readUnsignedByte() << 8) | tdsReader.readUnsignedByte();
 
-        sSQLServerVersion = serverMajorVersion + "." + ((serverMinorVersion <= 9) ? "0" : "") + serverMinorVersion + "." + serverBuildNumber;
+        sSQLServerVersion = serverMajorVersion + "." + ((serverMinorVersion <= 9) ? "0" : "") + serverMinorVersion + "."
+                + serverBuildNumber;
     }
 }

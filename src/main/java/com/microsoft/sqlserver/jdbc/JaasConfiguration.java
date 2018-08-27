@@ -1,9 +1,6 @@
 /*
- * Microsoft JDBC Driver for SQL Server
- * 
- * Copyright(c) Microsoft Corporation All rights reserved.
- * 
- * This program is made available under the terms of the MIT License. See the LICENSE file in the project root for more information.
+ * Microsoft JDBC Driver for SQL Server Copyright(c) Microsoft Corporation All rights reserved. This program is made
+ * available under the terms of the MIT License. See the LICENSE file in the project root for more information.
  */
 package com.microsoft.sqlserver.jdbc;
 
@@ -13,8 +10,9 @@ import java.util.Map;
 import javax.security.auth.login.AppConfigurationEntry;
 import javax.security.auth.login.Configuration;
 
+
 /**
- * This class overrides JAAS Configuration and always provide a configuration is not defined for default configuration.
+ * Overrides JAAS Configuration and always provide a configuration is not defined for default configuration.
  */
 public class JaasConfiguration extends Configuration {
 
@@ -27,17 +25,20 @@ public class JaasConfiguration extends Configuration {
             confDetailsWithoutPassword.put("useDefaultCcache", "true");
             Map<String, String> confDetailsWithPassword = new HashMap<>();
             // We generated a two configurations fallback that is suitable for password and password-less authentication
-            // See https://www.ibm.com/support/knowledgecenter/SSYKE2_8.0.0/com.ibm.java.security.component.80.doc/security-component/jgssDocs/jaas_login_user.html
+            // See
+            // https://www.ibm.com/support/knowledgecenter/SSYKE2_8.0.0/com.ibm.java.security.component.80.doc/security-component/jgssDocs/jaas_login_user.html
             final String ibmLoginModule = "com.ibm.security.auth.module.Krb5LoginModule";
             return new AppConfigurationEntry[] {
-                    new AppConfigurationEntry(ibmLoginModule, AppConfigurationEntry.LoginModuleControlFlag.SUFFICIENT, confDetailsWithoutPassword),
-                    new AppConfigurationEntry(ibmLoginModule, AppConfigurationEntry.LoginModuleControlFlag.SUFFICIENT, confDetailsWithPassword)};
-        }
-        else {
+                    new AppConfigurationEntry(ibmLoginModule, AppConfigurationEntry.LoginModuleControlFlag.SUFFICIENT,
+                            confDetailsWithoutPassword),
+                    new AppConfigurationEntry(ibmLoginModule, AppConfigurationEntry.LoginModuleControlFlag.SUFFICIENT,
+                            confDetailsWithPassword)};
+        } else {
             Map<String, String> confDetails = new HashMap<>();
             confDetails.put("useTicketCache", "true");
-            return new AppConfigurationEntry[] {new AppConfigurationEntry("com.sun.security.auth.module.Krb5LoginModule",
-                    AppConfigurationEntry.LoginModuleControlFlag.REQUIRED, confDetails)};
+            return new AppConfigurationEntry[] {
+                    new AppConfigurationEntry("com.sun.security.auth.module.Krb5LoginModule",
+                            AppConfigurationEntry.LoginModuleControlFlag.REQUIRED, confDetails)};
         }
     }
 
@@ -45,7 +46,7 @@ public class JaasConfiguration extends Configuration {
      * Package protected constructor.
      * 
      * @param delegate
-     *            a possibly null delegate
+     *        a possibly null delegate
      */
     JaasConfiguration(Configuration delegate) {
         this.delegate = delegate;
@@ -62,7 +63,7 @@ public class JaasConfiguration extends Configuration {
         }
         return conf;
     }
-    
+
     @Override
     public void refresh() {
         if (null != delegate)

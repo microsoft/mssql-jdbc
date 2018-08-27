@@ -1,15 +1,13 @@
 /*
- * Microsoft JDBC Driver for SQL Server
- * 
- * Copyright(c) Microsoft Corporation All rights reserved.
- * 
- * This program is made available under the terms of the MIT License. See the LICENSE file in the project root for more information.
+ * Microsoft JDBC Driver for SQL Server Copyright(c) Microsoft Corporation All rights reserved. This program is made
+ * available under the terms of the MIT License. See the LICENSE file in the project root for more information.
  */
 
 package com.microsoft.sqlserver.jdbc;
 
 /**
- * StreamDone/StreamDoneInProc/StreamDoneProc stores a TDS Done packet that denotes the completion of a database operation.
+ * StreamDone/StreamDoneInProc/StreamDoneProc stores a TDS Done packet that denotes the completion of a database
+ * operation.
  */
 
 class StreamDone extends StreamPacket {
@@ -243,7 +241,6 @@ class StreamDone extends StreamPacket {
             case CMD_SELECTINTO:
 
                 // DDL
-                // Lifted from SQL Server 2005 Books Online at:
                 // http://msdn2.microsoft.com/en-us/library/ms180824.aspx
             case CMD_CNST_CREATE:
             case CMD_DENY:
