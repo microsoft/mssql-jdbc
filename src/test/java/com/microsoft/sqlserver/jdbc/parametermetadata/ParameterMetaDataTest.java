@@ -96,12 +96,12 @@ public class ParameterMetaDataTest extends AbstractTest {
      * @throws SQLException
      */
     @Test
-    public void testNameWithApostrophe() throws SQLException {
+    public void testParameterMetaData() throws SQLException {
         try (Connection con = DriverManager.getConnection(connectionString); Statement stmt = con.createStatement()) {
 
-            stmt.executeUpdate("create table " + tableName + " ([c1_var'char(max)] varchar(max), c2 decimal(38,5))");
+            stmt.executeUpdate("create table " + tableName + " ([c1_varchar(max)] varchar(max), c2 decimal(38,5))");
             try {
-                String query = "insert into " + tableName + " ([c1_var'char(max)], c2) values (?,?)";
+                String query = "insert into " + tableName + " ([c1_varchar(max)], c2) values (?,?)";
 
                 try (PreparedStatement pstmt = con.prepareStatement(query)) {
                     ParameterMetaData metadata = pstmt.getParameterMetaData();
