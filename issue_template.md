@@ -1,23 +1,27 @@
-## Driver version or JAR name
-Please tell us what the JDBC driver version or JAR name is.
+## Driver version
+<!--- Provide the JDBC driver version (e.g. 7.0.0). -->
 
 ## SQL Server version
-Please tell us what the SQL Server version is.
+<!--- Provide the output of executing `SELECT @@VERSION` on your target SQL Server. -->
 
 ## Client Operating System
-Please tell us what Operating System the client application is running on.
+<!--- Provide the Operating System the client application is running on. -->
 
-## Java/JVM version
-Example: java version "1.8.0", IBM J9 VM
+## JAVA/JVM version
+<!--- Provide the JAVA/JVM version (e.g. java version "1.8.0", IBM J9 VM). -->
 
 ## Table schema
-Please tell us the table schema.
+<!--- Provide the table schema. -->
 
 ## Problem description
-Please share more details with us.
+<!--- Provide full details of the problem. 
+1. Expected behaviour.
+2. Actual behaviour.
+3. Error message/stack trace. 
+4. Any other details that can be helpful. -->
 
-## Expected behavior and actual behavior
-Please tell us what should happen and what happens instead.
+## JDBC logs
+<!--- Provide the JDBC logs. Instructions can be found here: https://docs.microsoft.com/en-us/sql/connect/jdbc/tracing-driver-operation?view=sql-server-2017 -->
 
-## Repro code
-Please share a repro code with us.
+## Reproduction code
+<!--- Provide standalone JAVA code that reproduces the issue, preferably raw JDBC code. -->
