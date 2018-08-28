@@ -12,6 +12,7 @@ import java.sql.SQLException;
 import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.StringTokenizer;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -36,7 +37,7 @@ public final class SQLServerParameterMetaData implements ParameterMetaData {
     private final SQLServerPreparedStatement stmtParent;
     private SQLServerConnection con;
 
-    private SQLServerResultSet rsProcedureMeta;
+    private List<Map<String, Object>> procMetadata;
 
     protected boolean procedureIsFound = false;
 
@@ -546,6 +547,7 @@ public final class SQLServerParameterMetaData implements ParameterMetaData {
      *        the procedure name
      * @throws SQLServerException
      */
+    @SuppressWarnings("serial")
     SQLServerParameterMetaData(SQLServerPreparedStatement st, String sProcString) throws SQLServerException {
 
         assert null != st;
@@ -559,29 +561,46 @@ public final class SQLServerParameterMetaData implements ParameterMetaData {
             // If the CallableStatement/PreparedStatement is a stored procedure call
             // then we can extract metadata using sp_sproc_columns
             if (null != st.procedureName) {
-                // DO NOT close the Statement as resultSet 'rsProcedureMeta' is required by other APIs
-                SQLServerStatement s = (SQLServerStatement) con.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE,
-                        ResultSet.CONCUR_READ_ONLY);
                 String sProc = parseProcIdentifier(st.procedureName);
-                if (con.isKatmaiOrLater())
-                    rsProcedureMeta = s.executeQueryInternal("exec sp_sproc_columns_100 " + sProc + ", @ODBCVer=3");
-                else
-                    rsProcedureMeta = s.executeQueryInternal("exec sp_sproc_columns " + sProc + ", @ODBCVer=3");
+                // DO NOT close the Statement as resultSet 'rsProcedureMeta' is required by other APIs
+                try (SQLServerStatement s = (SQLServerStatement) con.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE,
+                        ResultSet.CONCUR_READ_ONLY);
+                        SQLServerResultSet rsProcedureMeta = s.executeQueryInternal(
+                                con.isKatmaiOrLater() ? "exec sp_sproc_columns_100 " + sProc + ", @ODBCVer=3"
+                                                      : "exec sp_sproc_columns " + sProc + ", @ODBCVer=3")) {
 
-                // if rsProcedureMeta has next row, it means the stored procedure is found
-                if (rsProcedureMeta.next()) {
-                    procedureIsFound = true;
-                } else {
-                    procedureIsFound = false;
-                }
-                rsProcedureMeta.beforeFirst();
+                    // if rsProcedureMeta has next row, it means the stored procedure is found
+                    if (rsProcedureMeta.next()) {
+                        procedureIsFound = true;
+                    } else {
+                        procedureIsFound = false;
+                    }
 
-                // Sixth is DATA_TYPE
-                rsProcedureMeta.getColumn(6).setFilter(new DataTypeFilter());
-                if (con.isKatmaiOrLater()) {
-                    rsProcedureMeta.getColumn(8).setFilter(new ZeroFixupFilter());
-                    rsProcedureMeta.getColumn(9).setFilter(new ZeroFixupFilter());
-                    rsProcedureMeta.getColumn(17).setFilter(new ZeroFixupFilter());
+                    rsProcedureMeta.beforeFirst();
+
+                    // Sixth is DATA_TYPE
+                    rsProcedureMeta.getColumn(6).setFilter(new DataTypeFilter());
+                    if (con.isKatmaiOrLater()) {
+                        rsProcedureMeta.getColumn(8).setFilter(new ZeroFixupFilter());
+                        rsProcedureMeta.getColumn(9).setFilter(new ZeroFixupFilter());
+                        rsProcedureMeta.getColumn(17).setFilter(new ZeroFixupFilter());
+                    }
+
+                    procMetadata = new ArrayList<>();
+
+                    // Process ResultSet Procedure Metadata for API usage
+                    while (rsProcedureMeta.next()) {
+                        procMetadata.add(new HashMap<String, Object>() {
+                            {
+                                put("DATA_TYPE", rsProcedureMeta.getInt("DATA_TYPE"));
+                                put("COLUMN_TYPE", rsProcedureMeta.getInt("COLUMN_TYPE"));
+                                put("TYPE_NAME", rsProcedureMeta.getInt("TYPE_NAME"));
+                                put("PRECISION", rsProcedureMeta.getInt("PRECISION"));
+                                put("SCALE", rsProcedureMeta.getInt("SCALE"));
+                                put("NULLABLE", rsProcedureMeta.getInt("NULLABLE"));
+                            }
+                        });
+                    }
                 }
             }
 
@@ -684,25 +703,25 @@ public final class SQLServerParameterMetaData implements ParameterMetaData {
         return t;
     }
 
-    private void verifyParameterPosition(int param) throws SQLServerException {
+    private Map<String, Object> getParameterInfo(int param) throws SQLServerException {
         boolean bFound = false;
-        try {
-            if ((stmtParent).bReturnValueSyntax && isTVP) {
-                bFound = rsProcedureMeta.absolute(param);
-            } else {
-                bFound = rsProcedureMeta.absolute(param + 1); // Note row 1 is the 'return value' meta data
+        if ((stmtParent).bReturnValueSyntax && isTVP) {
+            bFound = procMetadata.size() < param;
+            if (bFound) {
+                return procMetadata.get(param);
             }
-        } catch (SQLException e) {
-            MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_metaDataErrorForParameter"));
-            Object[] msgArgs = {param};
-            SQLServerException.makeFromDriverError(con, stmtParent, form.format(msgArgs) + " " + e.toString(), null,
-                    false);
+        } else {
+            bFound = procMetadata.size() <= param;
+            if (bFound) {
+                return procMetadata.get(param + 1);
+            } // Note row 1 is the 'return value' meta data
         }
         if (!bFound) {
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidParameterNumber"));
             Object[] msgArgs = {param};
             SQLServerException.makeFromDriverError(con, stmtParent, form.format(msgArgs), null, false);
         }
+        return null;
     }
 
     private void checkParam(int n) throws SQLServerException {
@@ -716,13 +735,12 @@ public final class SQLServerParameterMetaData implements ParameterMetaData {
     public String getParameterClassName(int param) throws SQLServerException {
         checkClosed();
         try {
-            if (rsProcedureMeta == null) {
+            if (procMetadata == null) {
                 // PreparedStatement.
                 checkParam(param);
                 return queryMetaMap.get(param).parameterClassName;
             } else {
-                verifyParameterPosition(param);
-                JDBCType jdbcType = JDBCType.of(rsProcedureMeta.getShort("DATA_TYPE"));
+                JDBCType jdbcType = JDBCType.of((int) getParameterInfo(param).get("DATA_TYPE"));
                 return jdbcType.className();
             }
         } catch (SQLException e) {
@@ -734,20 +752,11 @@ public final class SQLServerParameterMetaData implements ParameterMetaData {
     @Override
     public int getParameterCount() throws SQLServerException {
         checkClosed();
-        try {
-            if (rsProcedureMeta == null) {
-                // PreparedStatement
-                return queryMetaMap.size();
-            } else {
-                rsProcedureMeta.last();
-                int nCount = rsProcedureMeta.getRow() - 1;
-                if (nCount < 0)
-                    nCount = 0;
-                return nCount;
-            }
-        } catch (SQLException e) {
-            SQLServerException.makeFromDriverError(con, stmtParent, e.toString(), null, false);
-            return 0;
+        if (procMetadata == null) {
+            // PreparedStatement
+            return queryMetaMap.size();
+        } else {
+            return procMetadata.size();
         }
     }
 
@@ -755,13 +764,12 @@ public final class SQLServerParameterMetaData implements ParameterMetaData {
     public int getParameterMode(int param) throws SQLServerException {
         checkClosed();
         try {
-            if (rsProcedureMeta == null) {
+            if (procMetadata == null) {
                 checkParam(param);
                 // if it is not a stored proc, the param can only be input.
                 return parameterModeIn;
             } else {
-                verifyParameterPosition(param);
-                int n = rsProcedureMeta.getInt("COLUMN_TYPE");
+                int n = (int) getParameterInfo(param).get("COLUMN_TYPE");
                 switch (n) {
                     case 1:
                         return parameterModeIn;
@@ -783,13 +791,12 @@ public final class SQLServerParameterMetaData implements ParameterMetaData {
 
         int parameterType;
         try {
-            if (rsProcedureMeta == null) {
+            if (procMetadata == null) {
                 // PreparedStatement.
                 checkParam(param);
                 parameterType = queryMetaMap.get(param).parameterType;
             } else {
-                verifyParameterPosition(param);
-                parameterType = rsProcedureMeta.getShort("DATA_TYPE");
+                parameterType = (int) getParameterInfo(param).get("DATA_TYPE");
             }
 
             switch (parameterType) {
@@ -817,13 +824,12 @@ public final class SQLServerParameterMetaData implements ParameterMetaData {
     public String getParameterTypeName(int param) throws SQLServerException {
         checkClosed();
         try {
-            if (rsProcedureMeta == null) {
+            if (procMetadata == null) {
                 // PreparedStatement.
                 checkParam(param);
                 return queryMetaMap.get(param).parameterTypeName;
             } else {
-                verifyParameterPosition(param);
-                return rsProcedureMeta.getString("TYPE_NAME");
+                return getParameterInfo(param).get("TYPE_NAME").toString();
             }
         } catch (SQLException e) {
             SQLServerException.makeFromDriverError(con, stmtParent, e.toString(), null, false);
@@ -835,13 +841,12 @@ public final class SQLServerParameterMetaData implements ParameterMetaData {
     public int getPrecision(int param) throws SQLServerException {
         checkClosed();
         try {
-            if (rsProcedureMeta == null) {
+            if (procMetadata == null) {
                 // PreparedStatement.
                 checkParam(param);
                 return queryMetaMap.get(param).precision;
             } else {
-                verifyParameterPosition(param);
-                int nPrec = rsProcedureMeta.getInt("PRECISION");
+                int nPrec = (int) getParameterInfo(param).get("PRECISION");
                 return nPrec;
             }
         } catch (SQLException e) {
@@ -854,13 +859,12 @@ public final class SQLServerParameterMetaData implements ParameterMetaData {
     public int getScale(int param) throws SQLServerException {
         checkClosed();
         try {
-            if (rsProcedureMeta == null) {
+            if (procMetadata == null) {
                 // PreparedStatement.
                 checkParam(param);
                 return queryMetaMap.get(param).scale;
             } else {
-                verifyParameterPosition(param);
-                int nScale = rsProcedureMeta.getInt("SCALE");
+                int nScale = (int) getParameterInfo(param).get("SCALE");
                 return nScale;
             }
         } catch (SQLException e) {
@@ -873,13 +877,12 @@ public final class SQLServerParameterMetaData implements ParameterMetaData {
     public int isNullable(int param) throws SQLServerException {
         checkClosed();
         try {
-            if (rsProcedureMeta == null) {
+            if (procMetadata == null) {
                 // PreparedStatement.
                 checkParam(param);
                 return queryMetaMap.get(param).isNullable;
             } else {
-                verifyParameterPosition(param);
-                int nNull = rsProcedureMeta.getInt("NULLABLE");
+                int nNull = (int) getParameterInfo(param).get("NULLABLE");
                 if (nNull == 1)
                     return parameterNullable;
                 if (nNull == 0)
@@ -905,13 +908,12 @@ public final class SQLServerParameterMetaData implements ParameterMetaData {
     public boolean isSigned(int param) throws SQLServerException {
         checkClosed();
         try {
-            if (rsProcedureMeta == null) {
+            if (procMetadata == null) {
                 // PreparedStatement.
                 checkParam(param);
                 return queryMetaMap.get(param).isSigned;
             } else {
-                verifyParameterPosition(param);
-                return JDBCType.of(rsProcedureMeta.getShort("DATA_TYPE")).isSigned();
+                return JDBCType.of((int) getParameterInfo(param).get("DATA_TYPE")).isSigned();
             }
         } catch (SQLException e) {
             SQLServerException.makeFromDriverError(con, stmtParent, e.toString(), null, false);
@@ -921,7 +923,6 @@ public final class SQLServerParameterMetaData implements ParameterMetaData {
 
     String getTVPSchemaFromStoredProcedure(int param) throws SQLServerException {
         checkClosed();
-        verifyParameterPosition(param);
-        return rsProcedureMeta.getString("SS_TYPE_SCHEMA_NAME");
+        return (String) getParameterInfo(param).get("SS_TYPE_SCHEMA_NAME");
     }
 }
