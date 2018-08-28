@@ -254,28 +254,26 @@ public class ResultSetTest extends AbstractTest {
         try (Connection con = DriverManager.getConnection(connectionString); Statement stmt = con.createStatement()) {
             TimeZone prevTimeZone = TimeZone.getDefault();
             TimeZone.setDefault(TimeZone.getTimeZone("America/Edmonton"));
-            
+
             // a local date/time that does not actually exist because of Daylight Saving Time
             final String testValueDate = "2018-03-11";
             final String testValueTime = "02:00:00.1234567";
             final String testValueDateTime = testValueDate + "T" + testValueTime;
-            
-            stmt.executeUpdate(
-                    "CREATE TABLE " + tableName + " (id INT PRIMARY KEY, dt2 DATETIME2)");
-            stmt.executeUpdate(
-                    "INSERT INTO " + tableName + " (id, dt2) VALUES (1, '" + testValueDateTime + "')");
+
+            stmt.executeUpdate("CREATE TABLE " + tableName + " (id INT PRIMARY KEY, dt2 DATETIME2)");
+            stmt.executeUpdate("INSERT INTO " + tableName + " (id, dt2) VALUES (1, '" + testValueDateTime + "')");
 
             try (ResultSet rs = stmt.executeQuery("SELECT dt2 FROM " + tableName + " WHERE id=1")) {
                 rs.next();
-                
+
                 LocalDateTime expectedLocalDateTime = LocalDateTime.parse(testValueDateTime);
                 LocalDateTime actualLocalDateTime = rs.getObject(1, LocalDateTime.class);
                 assertEquals(expectedLocalDateTime, actualLocalDateTime);
-                
+
                 LocalDate expectedLocalDate = LocalDate.parse(testValueDate);
                 LocalDate actualLocalDate = rs.getObject(1, LocalDate.class);
                 assertEquals(expectedLocalDate, actualLocalDate);
-                
+
                 LocalTime expectedLocalTime = LocalTime.parse(testValueTime);
                 LocalTime actualLocalTime = rs.getObject(1, LocalTime.class);
                 assertEquals(expectedLocalTime, actualLocalTime);
