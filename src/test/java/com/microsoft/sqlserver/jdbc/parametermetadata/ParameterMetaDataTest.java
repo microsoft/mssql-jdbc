@@ -25,7 +25,7 @@ import com.microsoft.sqlserver.testframework.util.RandomUtil;
 
 @RunWith(JUnitPlatform.class)
 public class ParameterMetaDataTest extends AbstractTest {
-    private static final String tableName = "[" + RandomUtil.getIdentifier("StatementParam") + "]";
+    private static final String tableName = "[" + RandomUtil.getIdentifier("Statement'Param") + "]";
 
     /**
      * Test ParameterMetaData#isWrapperFor and ParameterMetaData#unwrap.
@@ -83,6 +83,32 @@ public class ParameterMetaDataTest extends AbstractTest {
 
                 try (PreparedStatement pstmt = con.prepareStatement(query)) {
                     pstmt.getParameterMetaData();
+                }
+            } finally {
+                Utils.dropTableIfExists(tableName, stmt);
+            }
+        }
+    }
+
+    /**
+     * Test ParameterMetaData when parameter name containing apostrophe
+     * 
+     * @throws SQLException
+     */
+    @Test
+    public void testNameWithApostrophe() throws SQLException {
+        try (Connection con = DriverManager.getConnection(connectionString); Statement stmt = con.createStatement()) {
+
+            stmt.executeUpdate("create table " + tableName + " ([c1_var'char(max)] varchar(max))");
+            try {
+                String query = "insert into " + tableName + " ([c1_var'char(max)]) values (?)";
+
+                try (PreparedStatement pstmt = con.prepareStatement(query)) {
+                    pstmt.setString(1, "string");
+                    pstmt.execute();
+                    ParameterMetaData metadata = pstmt.getParameterMetaData();
+                    assert(metadata.getParameterCount()==1);
+                    assert(metadata.getParameterTypeName(1).equalsIgnoreCase("varchar"));
                 }
             } finally {
                 Utils.dropTableIfExists(tableName, stmt);
