@@ -446,7 +446,7 @@ final class DTV {
              */
             if (null != value) {
                 TimeZone timeZone = conn.getServerTimeZone(); // Time zone to associate with the value in the Gregorian
-                                                           // calendar
+                                                              // calendar
                 long utcMillis = 0; // Value to which the calendar is to be set (in milliseconds 1/1/1970 00:00:00 GMT)
 
                 // Figure out the value components according to the type of the Java object passed in...
@@ -3546,7 +3546,8 @@ final class ServerDTVImpl extends DTVImpl {
                 // cannot reuse method
                 int daysIntoCE = getDaysIntoCE(decryptedValue, baseSSType);
 
-                return DDC.convertTemporalToObject(jdbcType, baseSSType, cal, con.getServerTimeZone(), daysIntoCE, 0, 0);
+                return DDC.convertTemporalToObject(jdbcType, baseSSType, cal, con.getServerTimeZone(), daysIntoCE, 0,
+                        0);
 
             }
 
@@ -3554,7 +3555,7 @@ final class ServerDTVImpl extends DTVImpl {
                 long localNanosSinceMidnight = readNanosSinceMidnightAE(decryptedValue, baseTypeInfo.getScale(),
                         baseSSType);
 
-                return DDC.convertTemporalToObject(jdbcType, SSType.TIME, cal, con.getServerTimeZone(), 0, 
+                return DDC.convertTemporalToObject(jdbcType, SSType.TIME, cal, con.getServerTimeZone(), 0,
                         localNanosSinceMidnight, baseTypeInfo.getScale());
 
             }
@@ -3577,7 +3578,7 @@ final class ServerDTVImpl extends DTVImpl {
                 int daysIntoCE = getDaysIntoCE(datePortion, baseSSType);
 
                 // Convert the DATETIME2 value to the desired Java type.
-                return DDC.convertTemporalToObject(jdbcType, SSType.DATETIME2, cal, con.getServerTimeZone(), daysIntoCE, 
+                return DDC.convertTemporalToObject(jdbcType, SSType.DATETIME2, cal, con.getServerTimeZone(), daysIntoCE,
                         localNanosSinceMidnight, baseTypeInfo.getScale());
 
             }
@@ -3591,7 +3592,7 @@ final class ServerDTVImpl extends DTVImpl {
                 // SQL smalldatetime has less precision. It stores 2 bytes
                 // for the days since SQL Base Date and 2 bytes for minutes
                 // after midnight.
-                return DDC.convertTemporalToObject(jdbcType, SSType.DATETIME, cal, con.getServerTimeZone(), 
+                return DDC.convertTemporalToObject(jdbcType, SSType.DATETIME, cal, con.getServerTimeZone(),
                         Util.readUnsignedShort(decryptedValue, 0),
                         Util.readUnsignedShort(decryptedValue, 2) * 60L * 1000L, 0);
             }
@@ -3605,8 +3606,8 @@ final class ServerDTVImpl extends DTVImpl {
                 // SQL datetime is 4 bytes for days since SQL Base Date
                 // (January 1, 1900 00:00:00 GMT) and 4 bytes for
                 // the number of three hundredths (1/300) of a second since midnight.
-                return DDC.convertTemporalToObject(jdbcType, SSType.DATETIME, cal, con.getServerTimeZone(), Util.readInt(decryptedValue, 0),
-                        (Util.readInt(decryptedValue, 4) * 10 + 1) / 3, 0);
+                return DDC.convertTemporalToObject(jdbcType, SSType.DATETIME, cal, con.getServerTimeZone(),
+                        Util.readInt(decryptedValue, 0), (Util.readInt(decryptedValue, 4) * 10 + 1) / 3, 0);
             }
 
             case DATETIMEOFFSET: {
@@ -3627,8 +3628,7 @@ final class ServerDTVImpl extends DTVImpl {
 
                 return DDC.convertTemporalToObject(jdbcType, SSType.DATETIMEOFFSET,
                         new GregorianCalendar(new SimpleTimeZone(localMinutesOffset * 60 * 1000, ""), Locale.US),
-                        con.getServerTimeZone(), daysIntoCE, localNanosSinceMidnight,
-                        baseTypeInfo.getScale());
+                        con.getServerTimeZone(), daysIntoCE, localNanosSinceMidnight, baseTypeInfo.getScale());
 
             }
 

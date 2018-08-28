@@ -734,7 +734,7 @@ final class DDC {
      *        default VM time zone.
      * 
      * @param serverTimeZone
-     *            the default server time zone, used if timeZoneCalendar is null.
+     *        the default server time zone, used if timeZoneCalendar is null.
      *
      * @param daysSinceBaseDate
      *        The date part of the value, expressed as a number of days since the base date for the specified SQL Server
@@ -754,13 +754,8 @@ final class DDC {
      *
      * @return a Java object of the desired type.
      */
-    static final Object convertTemporalToObject(JDBCType jdbcType,
-            SSType ssType,
-            Calendar timeZoneCalendar,
-            TimeZone serverTimeZone,
-            int daysSinceBaseDate,
-            long ticksSinceMidnight,
-            int fractionalSecondsScale) {
+    static final Object convertTemporalToObject(JDBCType jdbcType, SSType ssType, Calendar timeZoneCalendar,
+            TimeZone serverTimeZone, int daysSinceBaseDate, long ticksSinceMidnight, int fractionalSecondsScale) {
         // Determine the local time zone to associate with the value. Use the default VM
         // time zone if no time zone is otherwise specified.
         TimeZone localTimeZone = (null != timeZoneCalendar) ? timeZoneCalendar.getTimeZone() : serverTimeZone;

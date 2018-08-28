@@ -597,6 +597,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
     TimeZone getServerTimeZone() {
         return serverTimeZone;
+    }
 
     private boolean serverSupportsDataClassification = false;
 
@@ -1845,7 +1846,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             } else {
                 activeConnectionProperties.setProperty(sPropKey, SSLProtocol.valueOfString(sPropValue).toString());
             }
-            
+
             sPropKey = SQLServerDriverStringProperty.SERVER_TIME_ZONE.toString();
             sPropValue = activeConnectionProperties.getProperty(sPropKey);
             if (null != sPropValue) {

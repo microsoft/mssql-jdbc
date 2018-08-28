@@ -252,6 +252,7 @@ enum SQLServerDriverObjectProperty {
     }
 }
 
+
 enum SQLServerDriverStringProperty {
     APPLICATION_INTENT("applicationIntent", ApplicationIntent.READ_WRITE.toString()),
     APPLICATION_NAME("applicationName", SQLServerDriver.DEFAULT_APP_NAME),
@@ -265,7 +266,7 @@ enum SQLServerDriverStringProperty {
     SELECT_METHOD("selectMethod", "direct"),
     SERVER_NAME("serverName", ""),
     SERVER_SPN("serverSpn", ""),
-  	SERVER_TIME_ZONE("serverTimeZone", ""),
+    SERVER_TIME_ZONE("serverTimeZone", ""),
     TRUST_STORE_TYPE("trustStoreType", "JKS"),
     TRUST_STORE("trustStore", ""),
     TRUST_STORE_PASSWORD("trustStorePassword", ""),

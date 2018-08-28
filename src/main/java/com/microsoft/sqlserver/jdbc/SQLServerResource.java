@@ -534,5 +534,6 @@ public final class SQLServerResource extends ListResourceBundle {
             {"R_illegalWKT", "Illegal Well-Known text. Please make sure Well-Known text is valid."},
             {"R_illegalTypeForGeometry", "{0} is not supported for Geometry."},
             {"R_illegalWKTposition", "Illegal character in Well-Known text at position {0}."},
-            {"R_serverTimeZonePropertyDescription", "The default time zone to use to convert date and time values. The default is the VM default time zone."},};
+            {"R_serverTimeZonePropertyDescription",
+                    "The default time zone to use to convert date and time values. The default is the VM default time zone."},};
 }

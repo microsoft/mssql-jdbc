@@ -680,7 +680,7 @@ public class SQLServerDataSource
                 SQLServerDriverStringProperty.TRUST_MANAGER_CONSTRUCTOR_ARG.toString(),
                 SQLServerDriverStringProperty.TRUST_MANAGER_CONSTRUCTOR_ARG.getDefaultValue());
     }
-    
+
     public void setServerTimeZone(String serverTimeZone) {
         setStringProperty(connectionProps, SQLServerDriverStringProperty.SERVER_TIME_ZONE.toString(), serverTimeZone);
     }
