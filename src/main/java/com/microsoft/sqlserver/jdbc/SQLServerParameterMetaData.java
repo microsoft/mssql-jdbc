@@ -592,9 +592,9 @@ public final class SQLServerParameterMetaData implements ParameterMetaData {
                     while (rsProcedureMeta.next()) {
                         procMetadata.add(new HashMap<String, Object>() {
                             {
-                                put("DATA_TYPE", rsProcedureMeta.getInt("DATA_TYPE"));
+                                put("DATA_TYPE", rsProcedureMeta.getShort("DATA_TYPE"));
                                 put("COLUMN_TYPE", rsProcedureMeta.getInt("COLUMN_TYPE"));
-                                put("TYPE_NAME", rsProcedureMeta.getInt("TYPE_NAME"));
+                                put("TYPE_NAME", rsProcedureMeta.getString("TYPE_NAME"));
                                 put("PRECISION", rsProcedureMeta.getInt("PRECISION"));
                                 put("SCALE", rsProcedureMeta.getInt("SCALE"));
                                 put("NULLABLE", rsProcedureMeta.getInt("NULLABLE"));
