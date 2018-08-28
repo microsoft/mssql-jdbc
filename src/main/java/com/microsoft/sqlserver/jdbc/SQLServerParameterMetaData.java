@@ -706,15 +706,16 @@ public final class SQLServerParameterMetaData implements ParameterMetaData {
     private Map<String, Object> getParameterInfo(int param) throws SQLServerException {
         boolean bFound = false;
         if ((stmtParent).bReturnValueSyntax && isTVP) {
-            bFound = procMetadata.size() < param;
+            bFound = procMetadata.size() >= param;
+            if (bFound) {
+                return procMetadata.get(param - 1);
+            }
+        } else {
+            // Note row 1 is the 'return value' meta data
+            bFound = procMetadata.size() > param;
             if (bFound) {
                 return procMetadata.get(param);
             }
-        } else {
-            bFound = procMetadata.size() <= param;
-            if (bFound) {
-                return procMetadata.get(param + 1);
-            } // Note row 1 is the 'return value' meta data
         }
         if (!bFound) {
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidParameterNumber"));
@@ -740,7 +741,7 @@ public final class SQLServerParameterMetaData implements ParameterMetaData {
                 checkParam(param);
                 return queryMetaMap.get(param).parameterClassName;
             } else {
-                JDBCType jdbcType = JDBCType.of((int) getParameterInfo(param).get("DATA_TYPE"));
+                JDBCType jdbcType = JDBCType.of((short) getParameterInfo(param).get("DATA_TYPE"));
                 return jdbcType.className();
             }
         } catch (SQLException e) {
@@ -756,7 +757,8 @@ public final class SQLServerParameterMetaData implements ParameterMetaData {
             // PreparedStatement
             return queryMetaMap.size();
         } else {
-            return procMetadata.size();
+            // Row 1 is Return Type metadata
+            return procMetadata.size() - 1;
         }
     }
 
@@ -796,7 +798,7 @@ public final class SQLServerParameterMetaData implements ParameterMetaData {
                 checkParam(param);
                 parameterType = queryMetaMap.get(param).parameterType;
             } else {
-                parameterType = (int) getParameterInfo(param).get("DATA_TYPE");
+                parameterType = (short) getParameterInfo(param).get("DATA_TYPE");
             }
 
             switch (parameterType) {
@@ -913,7 +915,7 @@ public final class SQLServerParameterMetaData implements ParameterMetaData {
                 checkParam(param);
                 return queryMetaMap.get(param).isSigned;
             } else {
-                return JDBCType.of((int) getParameterInfo(param).get("DATA_TYPE")).isSigned();
+                return JDBCType.of((short) getParameterInfo(param).get("DATA_TYPE")).isSigned();
             }
         } catch (SQLException e) {
             SQLServerException.makeFromDriverError(con, stmtParent, e.toString(), null, false);
