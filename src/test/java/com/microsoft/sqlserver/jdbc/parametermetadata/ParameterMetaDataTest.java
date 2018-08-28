@@ -99,16 +99,17 @@ public class ParameterMetaDataTest extends AbstractTest {
     public void testNameWithApostrophe() throws SQLException {
         try (Connection con = DriverManager.getConnection(connectionString); Statement stmt = con.createStatement()) {
 
-            stmt.executeUpdate("create table " + tableName + " ([c1_var'char(max)] varchar(max))");
+            stmt.executeUpdate("create table " + tableName + " ([c1_var'char(max)] varchar(max), c2 decimal(38,5))");
             try {
-                String query = "insert into " + tableName + " ([c1_var'char(max)]) values (?)";
+                String query = "insert into " + tableName + " ([c1_var'char(max)], c2) values (?,?)";
 
                 try (PreparedStatement pstmt = con.prepareStatement(query)) {
-                    pstmt.setString(1, "string");
-                    pstmt.execute();
                     ParameterMetaData metadata = pstmt.getParameterMetaData();
-                    assert(metadata.getParameterCount()==1);
-                    assert(metadata.getParameterTypeName(1).equalsIgnoreCase("varchar"));
+                    assert (metadata.getParameterCount() == 2);
+                    assert (metadata.getParameterTypeName(1).equalsIgnoreCase("varchar"));
+                    assert (metadata.getParameterTypeName(2).equalsIgnoreCase("decimal"));
+                    assert (metadata.getPrecision(2) == 38);
+                    assert (metadata.getScale(2) == 5);
                 }
             } finally {
                 Utils.dropTableIfExists(tableName, stmt);
