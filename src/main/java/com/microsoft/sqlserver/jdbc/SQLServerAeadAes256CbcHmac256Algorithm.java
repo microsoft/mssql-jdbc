@@ -99,8 +99,7 @@ class SQLServerAeadAes256CbcHmac256Algorithm extends SQLServerEncryptionAlgorith
      * @throws SQLServerException
      */
     protected byte[] encryptData(byte[] plainText, boolean hasAuthenticationTag) throws SQLServerException {
-        aeLogger.entering(SQLServerAeadAes256CbcHmac256Algorithm.class.getName(),
-                Thread.currentThread().getStackTrace()[1].getMethodName(), "Encrypting data.");
+        aeLogger.entering(SQLServerAeadAes256CbcHmac256Algorithm.class.getName(), "encryptData", "Encrypting data.");
         // we will generate this initialization vector based whether
         // this encryption type is deterministic
         assert (plainText != null);
@@ -181,8 +180,7 @@ class SQLServerAeadAes256CbcHmac256Algorithm extends SQLServerEncryptionAlgorith
             throw new SQLServerException(this, form.format(msgArgs), null, 0, false);
         }
 
-        aeLogger.exiting(SQLServerAeadAes256CbcHmac256Algorithm.class.getName(),
-                Thread.currentThread().getStackTrace()[1].getMethodName(), "Data encrypted.");
+        aeLogger.exiting(SQLServerAeadAes256CbcHmac256Algorithm.class.getName(), "encryptData", "Data encrypted.");
         return outBuffer;
 
     }
@@ -190,7 +188,6 @@ class SQLServerAeadAes256CbcHmac256Algorithm extends SQLServerEncryptionAlgorith
     @Override
     byte[] decryptData(byte[] cipherText) throws SQLServerException {
         return decryptData(cipherText, true);
-
     }
 
     /**
@@ -289,8 +286,7 @@ class SQLServerAeadAes256CbcHmac256Algorithm extends SQLServerEncryptionAlgorith
      * @throws SQLServerException
      */
     private byte[] decryptData(byte[] iv, byte[] cipherText, int offset, int count) throws SQLServerException {
-        aeLogger.entering(SQLServerAeadAes256CbcHmac256Algorithm.class.getName(),
-                Thread.currentThread().getStackTrace()[1].getMethodName(), "Decrypting data.");
+        aeLogger.entering(SQLServerAeadAes256CbcHmac256Algorithm.class.getName(), "decryptData", "Decrypting data.");
         assert (cipherText != null);
         assert (iv != null);
         byte[] plainText = null;
@@ -299,7 +295,6 @@ class SQLServerAeadAes256CbcHmac256Algorithm extends SQLServerEncryptionAlgorith
         IvParameterSpec ivector = new IvParameterSpec(iv);
         Cipher decryptCipher;
         try {
-            // AES encryption CBC mode and PKCS5 padding
             decryptCipher = Cipher.getInstance("AES/CBC/PKCS5Padding");
             decryptCipher.init(Cipher.DECRYPT_MODE, skeySpec, ivector);
             plainText = decryptCipher.doFinal(cipherText, offset, count);
@@ -311,8 +306,7 @@ class SQLServerAeadAes256CbcHmac256Algorithm extends SQLServerEncryptionAlgorith
             throw new SQLServerException(this, form.format(msgArgs), null, 0, false);
         }
 
-        aeLogger.exiting(SQLServerAeadAes256CbcHmac256Algorithm.class.getName(),
-                Thread.currentThread().getStackTrace()[1].getMethodName(), "Data decrypted.");
+        aeLogger.exiting(SQLServerAeadAes256CbcHmac256Algorithm.class.getName(), "decryptData", "Data decrypted.");
         return plainText;
 
     }

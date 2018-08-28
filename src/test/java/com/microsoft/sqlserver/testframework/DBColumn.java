@@ -37,6 +37,13 @@ public class DBColumn {
     }
 
     /**
+     * @return Escaped "columnName"
+     */
+    public String getEscapedColumnName() {
+        return "[" + columnName + "]";
+    }
+
+    /**
      * @param columnName
      *        the columnName to set
      */
@@ -90,4 +97,15 @@ public class DBColumn {
         return columnValues.get(row);
     }
 
+    /**
+     * Updates rowIndexes to all rows
+     * 
+     * @param totalRows
+     *        number of rows
+     */
+    public void populateRowId(int totalRows) {
+        columnValues = new ArrayList<>();
+        for (int i = 0; i < totalRows; i++)
+            columnValues.add(i + 1);
+    }
 }

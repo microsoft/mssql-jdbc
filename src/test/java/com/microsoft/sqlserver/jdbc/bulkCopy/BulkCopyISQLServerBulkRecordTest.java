@@ -96,7 +96,11 @@ public class BulkCopyISQLServerBulkRecordTest extends AbstractTest {
                     if (JDBCType.BIT == sqlType.getJdbctype()) {
                         CurrentRow[j] = ((0 == ThreadLocalRandom.current().nextInt(2)) ? Boolean.FALSE : Boolean.TRUE);
                     } else {
-                        CurrentRow[j] = sqlType.createdata();
+                        if (j == 0) {
+                            CurrentRow[j] = i + 1;
+                        } else {
+                            CurrentRow[j] = sqlType.createdata();
+                        }
                     }
                 }
                 data.add(CurrentRow);

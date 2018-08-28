@@ -28,4 +28,22 @@ public class UtilTest {
         assertEquals(expected, Util.readGUIDtoUUID(guid));
     }
 
+    @Test
+    public void testLongConversions() {
+        writeAndReadLong(Long.MIN_VALUE);
+        writeAndReadLong(Long.MIN_VALUE / 2);
+        writeAndReadLong(-1);
+        writeAndReadLong(0);
+        writeAndReadLong(1);
+        writeAndReadLong(Long.MAX_VALUE / 2);
+        writeAndReadLong(Long.MAX_VALUE);
+    }
+
+    private void writeAndReadLong(long valueToTest) {
+        byte[] buffer = new byte[8];
+        Util.writeLong(valueToTest, buffer, 0);
+        long newLong = Util.readLong(buffer, 0);
+        assertEquals(valueToTest, newLong);
+    }
+
 }
