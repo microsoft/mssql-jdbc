@@ -598,6 +598,7 @@ public final class SQLServerParameterMetaData implements ParameterMetaData {
                                 put("PRECISION", rsProcedureMeta.getInt("PRECISION"));
                                 put("SCALE", rsProcedureMeta.getInt("SCALE"));
                                 put("NULLABLE", rsProcedureMeta.getInt("NULLABLE"));
+                                put("SS_TYPE_SCHEMA_NAME", rsProcedureMeta.getString("SS_TYPE_SCHEMA_NAME"));
                             }
                         });
                     }
