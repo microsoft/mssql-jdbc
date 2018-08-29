@@ -197,12 +197,31 @@ final class Util {
      * @return long value as read from bytes.
      */
     /* L0 */static long readLong(byte data[], int nOffset) {
-        long v = 0;
-        for (int i = 7; i > 0; i--) {
-            v += (long) (data[nOffset + i] & 0xff);
-            v <<= 8;
-        }
-        return v + (long) (data[nOffset] & 0xff);
+        return ((long) (data[nOffset + 7] & 0xff) << 56) | ((long) (data[nOffset + 6] & 0xff) << 48)
+                | ((long) (data[nOffset + 5] & 0xff) << 40) | ((long) (data[nOffset + 4] & 0xff) << 32)
+                | ((long) (data[nOffset + 3] & 0xff) << 24) | ((long) (data[nOffset + 2] & 0xff) << 16)
+                | ((long) (data[nOffset + 1] & 0xff) << 8) | ((long) (data[nOffset] & 0xff));
+    }
+
+    /**
+     * Writes a long to byte array.
+     *
+     * @param value
+     *        long value to write.
+     * @param valueBytes
+     *        the byte array.
+     * @param offset
+     *        the offset inside byte array.
+     */
+    static void writeLong(long value, byte valueBytes[], int offset) {
+        valueBytes[offset++] = (byte) ((value) & 0xFF);
+        valueBytes[offset++] = (byte) ((value >> 8) & 0xFF);
+        valueBytes[offset++] = (byte) ((value >> 16) & 0xFF);
+        valueBytes[offset++] = (byte) ((value >> 24) & 0xFF);
+        valueBytes[offset++] = (byte) ((value >> 32) & 0xFF);
+        valueBytes[offset++] = (byte) ((value >> 40) & 0xFF);
+        valueBytes[offset++] = (byte) ((value >> 48) & 0xFF);
+        valueBytes[offset] = (byte) ((value >> 56) & 0xFF);
     }
 
     /**
