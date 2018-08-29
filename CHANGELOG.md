@@ -9,8 +9,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/)
 - Added support to read SQL Warnings after ResultSet is read completely [#785](https://github.com/Microsoft/mssql-jdbc/pull/785)
 
 ### Fixed Issues
-- Fixed JavaDoc warnings and removed obselete HTML tags from Javadocs [#786](https://github.com/Microsoft/mssql-jdbc/pull/786)
-- Fixed random Junit failures in framework tests [#762](https://github.com/Microsoft/mssql-jdbc/pull/762)
+- Fixed Javadoc warnings and removed obselete HTML tags from Javadocs [#786](https://github.com/Microsoft/mssql-jdbc/pull/786)
+- Fixed random JUnit failures in framework tests [#762](https://github.com/Microsoft/mssql-jdbc/pull/762)
 
 ### Changed
 - Improved performance of readLong() function by unrolling loop and using bitwise operators instead of additions [#763](https://github.com/Microsoft/mssql-jdbc/pull/763)
