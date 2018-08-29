@@ -1083,8 +1083,16 @@ final class DTV {
 
         void execute(DTV dtv, BigDecimal bigDecimalValue) throws SQLServerException {
             if (DDC.exceedsMaxRPCDecimalPrecisionOrScale(bigDecimalValue)) {
-                String strValue = bigDecimalValue.toString();
-                tdsWriter.writeRPCStringUnicode(name, strValue, isOutParam, collation);
+                if (JDBCType.DECIMAL == dtv.getJdbcType() || JDBCType.NUMERIC == dtv.getJdbcType()) {
+                    // Throw exception for DECIMAL and NUMERIC Datatypes
+                    MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_valueOutOfRange"));
+                    Object[] msgArgs = {SSType.DECIMAL};
+                    throw new SQLServerException(form.format(msgArgs), SQLState.DATA_EXCEPTION_DATETIME_FIELD_OVERFLOW,
+                            DriverError.NOT_SET, null);
+                } else {
+                    String strValue = bigDecimalValue.toString();
+                    tdsWriter.writeRPCStringUnicode(name, strValue, isOutParam, collation);
+                }
             } else {
                 tdsWriter.writeRPCBigDecimal(name, bigDecimalValue, outScale, isOutParam);
             }
