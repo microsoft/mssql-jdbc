@@ -381,10 +381,10 @@ abstract class SQLServerClobBase extends SQLServerLob implements Serializable {
      */
     public long length() throws SQLException {
         checkClosed();
-
         if (value == null && activeStreams.get(0) instanceof PLPInputStream) {
             return (long) ((PLPInputStream) activeStreams.get(0)).payloadLength / 2;
         }
+        getStringFromStream();
         return value.length();
     }
 
