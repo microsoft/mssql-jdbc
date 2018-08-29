@@ -175,9 +175,9 @@ abstract class SQLServerSpatialDatatype {
      * multiple corresponding data structures.
      * 
      * @param type
-     *          Type of Spatial Datatype (Geography/Geometry)
+     *        Type of Spatial Datatype (Geography/Geometry)
      * @throws SQLServerException
-     *          if an Exception occurs
+     *         if an Exception occurs
      */
     protected void parseWkb(SQLServerSpatialDatatype type) throws SQLServerException {
         srid = readInt();
