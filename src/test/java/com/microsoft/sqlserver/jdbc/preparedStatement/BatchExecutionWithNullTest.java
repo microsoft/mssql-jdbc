@@ -32,6 +32,7 @@ import com.microsoft.sqlserver.testframework.Utils;
 @RunWith(JUnitPlatform.class)
 public class BatchExecutionWithNullTest extends AbstractTest {
 
+    static Connection conn = null;
     static Statement stmt = null;
     static Connection connection = null;
     static PreparedStatement pstmt = null;
@@ -51,8 +52,9 @@ public class BatchExecutionWithNullTest extends AbstractTest {
         int updateCountlen = 0;
         int key = 42;
 
-        // this is the minimum sequence, I've found to trigger the error
-        pstmt = connection.prepareStatement(sPrepStmt);
+        // this is the minimum sequence, I've found to trigger the error\
+        conn = DriverManager.getConnection(connectionString);
+        pstmt = conn.prepareStatement(sPrepStmt);
         pstmt.setInt(1, key++);
         pstmt.setNull(2, Types.VARCHAR);
         pstmt.addBatch();
@@ -117,10 +119,9 @@ public class BatchExecutionWithNullTest extends AbstractTest {
 
     @AfterAll
     public static void terminateVariation() throws SQLException {
-        connection = DriverManager.getConnection(connectionString);
-
-        SQLServerStatement stmt = (SQLServerStatement) connection.createStatement();
-        Utils.dropTableIfExists("esimple", stmt);
+        try (SQLServerStatement stmt = (SQLServerStatement) conn.createStatement()) {
+            Utils.dropTableIfExists("esimple", stmt);
+        }
 
         if (null != pstmt) {
             pstmt.close();
@@ -134,8 +135,8 @@ public class BatchExecutionWithNullTest extends AbstractTest {
         if (null != rs) {
             rs.close();
         }
-        if (null != connection) {
-            connection.close();
+        if (null != conn) {
+            conn.close();
         }
     }
 }

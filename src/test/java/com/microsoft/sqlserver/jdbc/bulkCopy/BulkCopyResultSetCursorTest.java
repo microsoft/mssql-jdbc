@@ -20,6 +20,7 @@ import java.util.TimeZone;
 import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
+import org.junit.jupiter.api.AfterAll;
 
 import com.microsoft.sqlserver.jdbc.SQLServerBulkCopy;
 import com.microsoft.sqlserver.jdbc.SQLServerPreparedStatement;
@@ -213,5 +214,17 @@ public class BulkCopyResultSetCursorTest extends AbstractTest {
         sql = "create table " + desTable
                 + " (c1 decimal(10,5) null, c2 nchar(50) null, c3 datetime2(7) null, c4 char(7000));";
         stmt.execute(sql);
+    }
+    
+    /**
+     * drops tables
+     * 
+     * @throws SQLException
+     */
+    @AfterAll
+    public static void terminate() throws SQLException {
+        try (Connection conn = DriverManager.getConnection(connectionString); Statement stmt = conn.createStatement()) {
+            dropTables(stmt);
+        }
     }
 }

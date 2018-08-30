@@ -76,21 +76,14 @@ public class TVPResultSetCursorTest extends AbstractTest {
 
         populateSourceTable();
 
-        ResultSet rs = conn.createStatement(resultSetType, resultSetConcurrency)
+        try (ResultSet rs = conn.createStatement(resultSetType, resultSetConcurrency)
                 .executeQuery("select * from " + srcTable);
+                SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) conn
+                        .prepareStatement("INSERT INTO " + desTable + " select * from ? ;")) {
+            pstmt.setStructured(1, tvpName, rs);
+            pstmt.execute();
 
-        SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) conn
-                .prepareStatement("INSERT INTO " + desTable + " select * from ? ;");
-        pstmt.setStructured(1, tvpName, rs);
-        pstmt.execute();
-
-        verifyDestinationTableData(expectedBigDecimals.length);
-
-        if (null != pstmt) {
-            pstmt.close();
-        }
-        if (null != rs) {
-            rs.close();
+            verifyDestinationTableData(expectedBigDecimals.length);
         }
     }
 
@@ -116,20 +109,13 @@ public class TVPResultSetCursorTest extends AbstractTest {
 
         populateSourceTable();
 
-        ResultSet rs = conn.createStatement().executeQuery("select * from " + srcTable);
+        try (ResultSet rs = conn.createStatement().executeQuery("select * from " + srcTable);
+                SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) conn
+                        .prepareStatement("INSERT INTO " + desTable + " select * from ? ;")) {
+            pstmt.setStructured(1, tvpName, rs);
+            pstmt.execute();
 
-        SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) conn
-                .prepareStatement("INSERT INTO " + desTable + " select * from ? ;");
-        pstmt.setStructured(1, tvpName, rs);
-        pstmt.execute();
-
-        verifyDestinationTableData(expectedBigDecimals.length);
-
-        if (null != pstmt) {
-            pstmt.close();
-        }
-        if (null != rs) {
-            rs.close();
+            verifyDestinationTableData(expectedBigDecimals.length);
         }
     }
 
@@ -157,24 +143,15 @@ public class TVPResultSetCursorTest extends AbstractTest {
 
         populateSourceTable();
 
-        ResultSet rs = conn.createStatement().executeQuery("select * from " + srcTable);
+        try (ResultSet rs = conn.createStatement().executeQuery("select * from " + srcTable);
+                SQLServerCallableStatement pstmt = (SQLServerCallableStatement) conn
+                        .prepareCall("{call " + procedureName + "(?)}")) {
+            pstmt.setStructured(1, tvpName, rs);
 
-        final String sql = "{call " + procedureName + "(?)}";
-        SQLServerCallableStatement pstmt = (SQLServerCallableStatement) conn.prepareCall(sql);
-        pstmt.setStructured(1, tvpName, rs);
-
-        try {
             pstmt.execute();
 
             verifyDestinationTableData(expectedBigDecimals.length);
         } finally {
-            if (null != pstmt) {
-                pstmt.close();
-            }
-            if (null != rs) {
-                rs.close();
-            }
-
             dropProcedure();
         }
     }
@@ -200,24 +177,16 @@ public class TVPResultSetCursorTest extends AbstractTest {
 
         populateSourceTable();
 
-        ResultSet rs = conn.createStatement().executeQuery("select * from " + srcTable);
+        try (ResultSet rs = conn.createStatement().executeQuery("select * from " + srcTable);
+                SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) conn
+                        .prepareStatement("INSERT INTO " + desTable + " select * from ? ;")) {
 
-        SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) conn
-                .prepareStatement("INSERT INTO " + desTable + " select * from ? ;");
-        pstmt.setStructured(1, "invalid" + tvpName, rs);
+            pstmt.setStructured(1, "invalid" + tvpName, rs);
 
-        try {
             pstmt.execute();
         } catch (SQLException e) {
             if (!e.getMessage().contains(TestResource.getResource("R_dataTypeNotFound"))) {
                 throw e;
-            }
-        } finally {
-            if (null != pstmt) {
-                pstmt.close();
-            }
-            if (null != rs) {
-                rs.close();
             }
         }
     }
@@ -245,26 +214,17 @@ public class TVPResultSetCursorTest extends AbstractTest {
 
         populateSourceTable();
 
-        ResultSet rs = conn.createStatement().executeQuery("select * from " + srcTable);
+        try (ResultSet rs = conn.createStatement().executeQuery("select * from " + srcTable);
+                SQLServerCallableStatement pstmt = (SQLServerCallableStatement) conn
+                        .prepareCall("{call invalid" + procedureName + "(?)}")) {
+            pstmt.setStructured(1, tvpName, rs);
 
-        final String sql = "{call invalid" + procedureName + "(?)}";
-        SQLServerCallableStatement pstmt = (SQLServerCallableStatement) conn.prepareCall(sql);
-        pstmt.setStructured(1, tvpName, rs);
-
-        try {
             pstmt.execute();
         } catch (SQLException e) {
             if (!e.getMessage().contains(TestResource.getResource("R_StoredProcedureNotFound"))) {
                 throw e;
             }
         } finally {
-
-            if (null != pstmt) {
-                pstmt.close();
-            }
-            if (null != rs) {
-                rs.close();
-            }
 
             dropProcedure();
         }
@@ -289,81 +249,94 @@ public class TVPResultSetCursorTest extends AbstractTest {
 
         populateSourceTable();
 
-        ResultSet rs = conn.createStatement(ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_UPDATABLE)
-                .executeQuery("select * from " + srcTable);
+        ResultSet rs = null;
+        ResultSet rs2 = null;
+        SQLServerPreparedStatement pstmt1 = null;
+        SQLServerPreparedStatement pstmt2 = null;
 
-        SQLServerPreparedStatement pstmt1 = (SQLServerPreparedStatement) conn
-                .prepareStatement("INSERT INTO " + desTable + " select * from ? ;");
-        pstmt1.setStructured(1, tvpName, rs);
-        pstmt1.execute();
-        verifyDestinationTableData(expectedBigDecimals.length);
+        try {
 
-        rs.beforeFirst();
-        pstmt1 = (SQLServerPreparedStatement) conn.prepareStatement("INSERT INTO " + desTable + " select * from ? ;");
-        pstmt1.setStructured(1, tvpName, rs);
-        pstmt1.execute();
-        verifyDestinationTableData(expectedBigDecimals.length * 2);
+            rs = conn.createStatement(ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_UPDATABLE)
+                    .executeQuery("select * from " + srcTable);
 
-        rs.beforeFirst();
-        SQLServerPreparedStatement pstmt2 = (SQLServerPreparedStatement) conn
-                .prepareStatement("INSERT INTO " + desTable + " select * from ? ;");
-        pstmt2.setStructured(1, tvpName, rs);
-        pstmt2.execute();
-        verifyDestinationTableData(expectedBigDecimals.length * 3);
-
-        String sql = "insert into " + desTable + " values (?,?,?,?)";
-        Calendar calGMT = Calendar.getInstance(TimeZone.getTimeZone("GMT"));
-        pstmt1 = (SQLServerPreparedStatement) conn.prepareStatement(sql);
-        for (int i = 0; i < expectedBigDecimals.length; i++) {
-            pstmt1.setBigDecimal(1, expectedBigDecimals[i]);
-            pstmt1.setString(2, expectedStrings[i]);
-            pstmt1.setTimestamp(3, expectedTimestamps[i], calGMT);
-            pstmt1.setString(4, expectedStrings[i]);
+            pstmt1 = (SQLServerPreparedStatement) conn
+                    .prepareStatement("INSERT INTO " + desTable + " select * from ? ;");
+            pstmt1.setStructured(1, tvpName, rs);
             pstmt1.execute();
-        }
-        verifyDestinationTableData(expectedBigDecimals.length * 4);
+            verifyDestinationTableData(expectedBigDecimals.length);
 
-        ResultSet rs2 = conn.createStatement(ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_UPDATABLE)
-                .executeQuery("select * from " + srcTable);
+            rs.beforeFirst();
+            pstmt1 = (SQLServerPreparedStatement) conn
+                    .prepareStatement("INSERT INTO " + desTable + " select * from ? ;");
+            pstmt1.setStructured(1, tvpName, rs);
+            pstmt1.execute();
+            verifyDestinationTableData(expectedBigDecimals.length * 2);
 
-        pstmt1 = (SQLServerPreparedStatement) conn.prepareStatement("INSERT INTO " + desTable + " select * from ? ;");
-        pstmt1.setStructured(1, tvpName, rs2);
-        pstmt1.execute();
-        verifyDestinationTableData(expectedBigDecimals.length * 5);
+            rs.beforeFirst();
+            pstmt2 = (SQLServerPreparedStatement) conn
+                    .prepareStatement("INSERT INTO " + desTable + " select * from ? ;");
+            pstmt2.setStructured(1, tvpName, rs);
+            pstmt2.execute();
+            verifyDestinationTableData(expectedBigDecimals.length * 3);
 
-        if (null != pstmt1) {
-            pstmt1.close();
-        }
-        if (null != pstmt2) {
-            pstmt2.close();
-        }
-        if (null != rs) {
-            rs.close();
-        }
-        if (null != rs2) {
-            rs2.close();
+            String sql = "insert into " + desTable + " values (?,?,?,?)";
+            Calendar calGMT = Calendar.getInstance(TimeZone.getTimeZone("GMT"));
+            pstmt1 = (SQLServerPreparedStatement) conn.prepareStatement(sql);
+            for (int i = 0; i < expectedBigDecimals.length; i++) {
+                pstmt1.setBigDecimal(1, expectedBigDecimals[i]);
+                pstmt1.setString(2, expectedStrings[i]);
+                pstmt1.setTimestamp(3, expectedTimestamps[i], calGMT);
+                pstmt1.setString(4, expectedStrings[i]);
+                pstmt1.execute();
+            }
+            verifyDestinationTableData(expectedBigDecimals.length * 4);
+
+            rs2 = conn.createStatement(ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_UPDATABLE)
+                    .executeQuery("select * from " + srcTable);
+
+            pstmt1 = (SQLServerPreparedStatement) conn
+                    .prepareStatement("INSERT INTO " + desTable + " select * from ? ;");
+            pstmt1.setStructured(1, tvpName, rs2);
+            pstmt1.execute();
+            verifyDestinationTableData(expectedBigDecimals.length * 5);
+        } finally {
+
+            if (null != pstmt1) {
+                pstmt1.close();
+            }
+            if (null != pstmt2) {
+                pstmt2.close();
+            }
+            if (null != rs) {
+                rs.close();
+            }
+
+            if (null != rs2) {
+                rs2.close();
+            }
         }
     }
 
     private static void verifyDestinationTableData(int expectedNumberOfRows) throws SQLException {
-        ResultSet rs = conn.createStatement().executeQuery("select * from " + desTable);
+        try (ResultSet rs = conn.createStatement().executeQuery("select * from " + desTable)) {
 
-        int expectedArrayLength = expectedBigDecimals.length;
+            int expectedArrayLength = expectedBigDecimals.length;
 
-        int i = 0;
-        while (rs.next()) {
-            assertTrue(rs.getString(1).equals(expectedBigDecimalStrings[i % expectedArrayLength]), "Expected Value:"
-                    + expectedBigDecimalStrings[i % expectedArrayLength] + ", Actual Value: " + rs.getString(1));
-            assertTrue(rs.getString(2).trim().equals(expectedStrings[i % expectedArrayLength]), "Expected Value:"
-                    + expectedStrings[i % expectedArrayLength] + ", Actual Value: " + rs.getString(2));
-            assertTrue(rs.getString(3).equals(expectedTimestampStrings[i % expectedArrayLength]), "Expected Value:"
-                    + expectedTimestampStrings[i % expectedArrayLength] + ", Actual Value: " + rs.getString(3));
-            assertTrue(rs.getString(4).trim().equals(expectedStrings[i % expectedArrayLength]), "Expected Value:"
-                    + expectedStrings[i % expectedArrayLength] + ", Actual Value: " + rs.getString(4));
-            i++;
+            int i = 0;
+            while (rs.next()) {
+                assertTrue(rs.getString(1).equals(expectedBigDecimalStrings[i % expectedArrayLength]), "Expected Value:"
+                        + expectedBigDecimalStrings[i % expectedArrayLength] + ", Actual Value: " + rs.getString(1));
+                assertTrue(rs.getString(2).trim().equals(expectedStrings[i % expectedArrayLength]), "Expected Value:"
+                        + expectedStrings[i % expectedArrayLength] + ", Actual Value: " + rs.getString(2));
+                assertTrue(rs.getString(3).equals(expectedTimestampStrings[i % expectedArrayLength]), "Expected Value:"
+                        + expectedTimestampStrings[i % expectedArrayLength] + ", Actual Value: " + rs.getString(3));
+                assertTrue(rs.getString(4).trim().equals(expectedStrings[i % expectedArrayLength]), "Expected Value:"
+                        + expectedStrings[i % expectedArrayLength] + ", Actual Value: " + rs.getString(4));
+                i++;
+            }
+
+            assertTrue(i == expectedNumberOfRows);
         }
-
-        assertTrue(i == expectedNumberOfRows);
     }
 
     private static void populateSourceTable() throws SQLException {
@@ -371,14 +344,15 @@ public class TVPResultSetCursorTest extends AbstractTest {
 
         Calendar calGMT = Calendar.getInstance(TimeZone.getTimeZone("GMT"));
 
-        SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) conn.prepareStatement(sql);
+        try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) conn.prepareStatement(sql)) {
 
-        for (int i = 0; i < expectedBigDecimals.length; i++) {
-            pstmt.setBigDecimal(1, expectedBigDecimals[i]);
-            pstmt.setString(2, expectedStrings[i]);
-            pstmt.setTimestamp(3, expectedTimestamps[i], calGMT);
-            pstmt.setString(4, expectedStrings[i]);
-            pstmt.execute();
+            for (int i = 0; i < expectedBigDecimals.length; i++) {
+                pstmt.setBigDecimal(1, expectedBigDecimals[i]);
+                pstmt.setString(2, expectedStrings[i]);
+                pstmt.setTimestamp(3, expectedTimestamps[i], calGMT);
+                pstmt.setString(4, expectedStrings[i]);
+                pstmt.execute();
+            }
         }
     }
 

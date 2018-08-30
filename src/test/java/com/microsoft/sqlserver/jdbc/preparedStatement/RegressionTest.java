@@ -36,10 +36,6 @@ import com.microsoft.sqlserver.testframework.Utils;
 @RunWith(JUnitPlatform.class)
 public class RegressionTest extends AbstractTest {
     static Connection con = null;
-    static PreparedStatement pstmt1 = null;
-    static PreparedStatement pstmt2 = null;
-    static PreparedStatement pstmt3 = null;
-    static PreparedStatement pstmt4 = null;
 
     /**
      * Setup before test
@@ -49,10 +45,8 @@ public class RegressionTest extends AbstractTest {
     @BeforeAll
     public static void setupTest() throws SQLException {
         con = DriverManager.getConnection(connectionString);
-        Statement stmt = con.createStatement();
-        Utils.dropTableIfExists("x", stmt);
-        if (null != stmt) {
-            stmt.close();
+        try (Statement stmt = con.createStatement()) {
+            Utils.dropTableIfExists("x", stmt);
         }
     }
 
@@ -63,23 +57,13 @@ public class RegressionTest extends AbstractTest {
      */
     @Test
     public void createViewTest() throws SQLException {
-        try {
-            pstmt1 = con.prepareStatement("create view x as select 1 a");
-            pstmt2 = con.prepareStatement("drop view x");
+        try (PreparedStatement pstmt1 = con.prepareStatement("create view x as select 1 a");
+                PreparedStatement pstmt2 = con.prepareStatement("drop view x")) {
             pstmt1.execute();
             pstmt2.execute();
         } catch (SQLException e) {
             fail(TestResource.getResource("R_createDropViewFailed") + TestResource.getResource("R_errorMessage")
                     + e.getMessage());
-        }
-
-        finally {
-            if (null != pstmt1) {
-                pstmt1.close();
-            }
-            if (null != pstmt2) {
-                pstmt2.close();
-            }
         }
     }
 
@@ -90,23 +74,13 @@ public class RegressionTest extends AbstractTest {
      */
     @Test
     public void createSchemaTest() throws SQLException {
-        try {
-            pstmt1 = con.prepareStatement("create schema x");
-            pstmt2 = con.prepareStatement("drop schema x");
+        try (PreparedStatement pstmt1 = con.prepareStatement("create schema x");
+                PreparedStatement pstmt2 = con.prepareStatement("drop schema x")) {
             pstmt1.execute();
             pstmt2.execute();
         } catch (SQLException e) {
             fail(TestResource.getResource("R_createDropSchemaFailed") + TestResource.getResource("R_errorMessage")
                     + e.getMessage());
-        }
-
-        finally {
-            if (null != pstmt1) {
-                pstmt1.close();
-            }
-            if (null != pstmt2) {
-                pstmt2.close();
-            }
         }
     }
 
@@ -117,23 +91,13 @@ public class RegressionTest extends AbstractTest {
      */
     @Test
     public void createTableTest() throws SQLException {
-        try {
-            pstmt1 = con.prepareStatement("create table x (col1 int)");
-            pstmt2 = con.prepareStatement("drop table x");
+        try (PreparedStatement pstmt1 = con.prepareStatement("create table x (col1 int)");
+                PreparedStatement pstmt2 = con.prepareStatement("drop table x")) {
             pstmt1.execute();
             pstmt2.execute();
         } catch (SQLException e) {
             fail(TestResource.getResource("R_createDropTableFailed") + TestResource.getResource("R_errorMessage")
                     + e.getMessage());
-        }
-
-        finally {
-            if (null != pstmt1) {
-                pstmt1.close();
-            }
-            if (null != pstmt2) {
-                pstmt2.close();
-            }
         }
     }
 
@@ -144,28 +108,15 @@ public class RegressionTest extends AbstractTest {
      */
     @Test
     public void alterTableTest() throws SQLException {
-        try {
-            pstmt1 = con.prepareStatement("create table x (col1 int)");
-            pstmt2 = con.prepareStatement("ALTER TABLE x ADD column_name char;");
-            pstmt3 = con.prepareStatement("drop table x");
+        try (PreparedStatement pstmt1 = con.prepareStatement("create table x (col1 int)");
+                PreparedStatement pstmt2 = con.prepareStatement("ALTER TABLE x ADD column_name char;");
+                PreparedStatement pstmt3 = con.prepareStatement("drop table x")) {
             pstmt1.execute();
             pstmt2.execute();
             pstmt3.execute();
         } catch (SQLException e) {
             fail(TestResource.getResource("R_createDropAlterTableFailed") + TestResource.getResource("R_errorMessage")
                     + e.getMessage());
-        }
-
-        finally {
-            if (null != pstmt1) {
-                pstmt1.close();
-            }
-            if (null != pstmt2) {
-                pstmt2.close();
-            }
-            if (null != pstmt3) {
-                pstmt3.close();
-            }
         }
     }
 
@@ -176,11 +127,10 @@ public class RegressionTest extends AbstractTest {
      */
     @Test
     public void grantTest() throws SQLException {
-        try {
-            pstmt1 = con.prepareStatement("create table x (col1 int)");
-            pstmt2 = con.prepareStatement("grant select on x to public");
-            pstmt3 = con.prepareStatement("revoke select on x from public");
-            pstmt4 = con.prepareStatement("drop table x");
+        try (PreparedStatement pstmt1 = con.prepareStatement("create table x (col1 int)");
+                PreparedStatement pstmt2 = con.prepareStatement("grant select on x to public");
+                PreparedStatement pstmt3 = con.prepareStatement("revoke select on x from public");
+                PreparedStatement pstmt4 = con.prepareStatement("drop table x")) {
             pstmt1.execute();
             pstmt2.execute();
             pstmt3.execute();
@@ -188,21 +138,6 @@ public class RegressionTest extends AbstractTest {
         } catch (SQLException e) {
             fail(TestResource.getResource("R_grantFailed") + TestResource.getResource("R_errorMessage")
                     + e.getMessage());
-        }
-
-        finally {
-            if (null != pstmt1) {
-                pstmt1.close();
-            }
-            if (null != pstmt2) {
-                pstmt2.close();
-            }
-            if (null != pstmt3) {
-                pstmt3.close();
-            }
-            if (null != pstmt4) {
-                pstmt4.close();
-            }
         }
     }
 
@@ -228,7 +163,6 @@ public class RegressionTest extends AbstractTest {
             }
 
             Statement stmt = con.createStatement();
-            PreparedStatement pstmt = null;
             ResultSet rs = null;
             Utils.dropTableIfExists("TEST_TABLE", stmt);
 
@@ -258,8 +192,7 @@ public class RegressionTest extends AbstractTest {
 
             String[] values = {"a", "b", largeString, "d", "e"};
             // insert five rows into the table; use a batch for each row
-            try {
-                pstmt = con.prepareStatement("insert into TEST_TABLE values (?,?)");
+            try (PreparedStatement pstmt = con.prepareStatement("insert into TEST_TABLE values (?,?)")) {
                 // 0,a
                 pstmt.setInt(1, 0);
                 pstmt.setNString(2, values[0]);
@@ -294,8 +227,7 @@ public class RegressionTest extends AbstractTest {
             // check the data in the table
             Map<Integer, String> selectedValues = new LinkedHashMap<>();
             int id = 0;
-            try {
-                pstmt = con.prepareStatement("select * from TEST_TABLE;");
+            try (PreparedStatement pstmt = con.prepareStatement("select * from TEST_TABLE;")) {
                 try {
                     rs = pstmt.executeQuery();
                     int i = 0;
@@ -315,9 +247,6 @@ public class RegressionTest extends AbstractTest {
                 }
             } finally {
                 Utils.dropTableIfExists("TEST_TABLE", stmt);
-                if (null != pstmt) {
-                    pstmt.close();
-                }
                 if (null != stmt) {
                     stmt.close();
                 }
@@ -424,22 +353,13 @@ public class RegressionTest extends AbstractTest {
      */
     @AfterAll
     public static void cleanup() throws SQLException {
-        Statement stmt = con.createStatement();
-        Utils.dropTableIfExists("x", stmt);
-        Utils.dropTableIfExists("TEST_TABLE", stmt);
-        if (null != stmt) {
-            stmt.close();
+        try (Statement stmt = con.createStatement()) {
+            Utils.dropTableIfExists("x", stmt);
+            Utils.dropTableIfExists("TEST_TABLE", stmt);
         }
         if (null != con) {
             con.close();
         }
-        if (null != pstmt1) {
-            pstmt1.close();
-        }
-        if (null != pstmt2) {
-            pstmt2.close();
-        }
-
     }
 
     private void modifyConnectionForBulkCopyAPI(SQLServerConnection con) throws Exception {

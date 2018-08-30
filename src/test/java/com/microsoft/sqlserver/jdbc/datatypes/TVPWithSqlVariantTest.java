@@ -13,7 +13,6 @@ import java.sql.Date;
 import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.sql.SQLTimeoutException;
-import java.util.Random;
 
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
@@ -58,7 +57,7 @@ public class TVPWithSqlVariantTest extends AbstractTest {
         tvp = new SQLServerDataTable();
         tvp.addColumnMetadata("c1", microsoft.sql.Types.SQL_VARIANT);
         tvp.addRow(12);
-        pstmt = (SQLServerPreparedStatement) connection
+        pstmt = (SQLServerPreparedStatement) conn
                 .prepareStatement("INSERT INTO " + destTable + " select * from ? ;");
         pstmt.setStructured(1, tvpName, tvp);
         pstmt.execute();
@@ -87,7 +86,7 @@ public class TVPWithSqlVariantTest extends AbstractTest {
         tvp = new SQLServerDataTable();
         tvp.addColumnMetadata("c1", microsoft.sql.Types.SQL_VARIANT);
         tvp.addRow(date);
-        pstmt = (SQLServerPreparedStatement) connection
+        pstmt = (SQLServerPreparedStatement) conn
                 .prepareStatement("INSERT INTO " + destTable + " select * from ? ;");
         pstmt.setStructured(1, tvpName, tvp);
         pstmt.execute();
@@ -112,7 +111,7 @@ public class TVPWithSqlVariantTest extends AbstractTest {
         tvp.addColumnMetadata("c1", microsoft.sql.Types.SQL_VARIANT);
         String[] numeric = createNumericValues();
         tvp.addRow(new BigDecimal(numeric[14]));
-        pstmt = (SQLServerPreparedStatement) connection
+        pstmt = (SQLServerPreparedStatement) conn
                 .prepareStatement("INSERT INTO " + destTable + " select * from ? ;");
         pstmt.setStructured(1, tvpName, tvp);
         pstmt.execute();
@@ -137,7 +136,7 @@ public class TVPWithSqlVariantTest extends AbstractTest {
         tvp.addColumnMetadata("c1", microsoft.sql.Types.SQL_VARIANT);
         String[] numeric = createNumericValues();
         tvp.addRow(Short.valueOf(numeric[2]));
-        pstmt = (SQLServerPreparedStatement) connection
+        pstmt = (SQLServerPreparedStatement) conn
                 .prepareStatement("INSERT INTO " + destTable + " select * from ? ;");
         pstmt.setStructured(1, tvpName, tvp);
         pstmt.execute();
@@ -161,13 +160,12 @@ public class TVPWithSqlVariantTest extends AbstractTest {
      */
     @Test
     public void testBigInt() throws SQLException {
-        Random r = new Random();
         tvp = new SQLServerDataTable();
         tvp.addColumnMetadata("c1", microsoft.sql.Types.SQL_VARIANT);
         String[] numeric = createNumericValues();
         tvp.addRow(Long.parseLong(numeric[4]));
 
-        pstmt = (SQLServerPreparedStatement) connection
+        pstmt = (SQLServerPreparedStatement) conn
                 .prepareStatement("INSERT INTO " + destTable + " select * from ? ;");
         pstmt.setStructured(1, tvpName, tvp);
         pstmt.execute();
@@ -192,7 +190,7 @@ public class TVPWithSqlVariantTest extends AbstractTest {
         tvp.addColumnMetadata("c1", microsoft.sql.Types.SQL_VARIANT);
         String[] numeric = createNumericValues();
         tvp.addRow(Boolean.parseBoolean(numeric[0]));
-        pstmt = (SQLServerPreparedStatement) connection
+        pstmt = (SQLServerPreparedStatement) conn
                 .prepareStatement("INSERT INTO " + destTable + " select * from ? ;");
         pstmt.setStructured(1, tvpName, tvp);
         pstmt.execute();
@@ -217,7 +215,7 @@ public class TVPWithSqlVariantTest extends AbstractTest {
         tvp.addColumnMetadata("c1", microsoft.sql.Types.SQL_VARIANT);
         String[] numeric = createNumericValues();
         tvp.addRow(Float.parseFloat(numeric[1]));
-        pstmt = (SQLServerPreparedStatement) connection
+        pstmt = (SQLServerPreparedStatement) conn
                 .prepareStatement("INSERT INTO " + destTable + " select * from ? ;");
         pstmt.setStructured(1, tvpName, tvp);
         pstmt.execute();
@@ -242,7 +240,7 @@ public class TVPWithSqlVariantTest extends AbstractTest {
         tvp.addColumnMetadata("c1", microsoft.sql.Types.SQL_VARIANT);
         String colValue = "س";
         tvp.addRow(colValue);
-        pstmt = (SQLServerPreparedStatement) connection
+        pstmt = (SQLServerPreparedStatement) conn
                 .prepareStatement("INSERT INTO " + destTable + " select * from ? ;");
         pstmt.setStructured(1, tvpName, tvp);
         pstmt.execute();
@@ -272,7 +270,7 @@ public class TVPWithSqlVariantTest extends AbstractTest {
         String value = buffer.toString();
         tvp.addRow(value);
 
-        pstmt = (SQLServerPreparedStatement) connection
+        pstmt = (SQLServerPreparedStatement) conn
                 .prepareStatement("INSERT INTO " + destTable + " select * from ? ;");
         pstmt.setStructured(1, tvpName, tvp);
         pstmt.execute();
@@ -302,7 +300,7 @@ public class TVPWithSqlVariantTest extends AbstractTest {
         String value = buffer.toString();
         tvp.addRow(value);
 
-        pstmt = (SQLServerPreparedStatement) connection
+        pstmt = (SQLServerPreparedStatement) conn
                 .prepareStatement("INSERT INTO " + destTable + " select * from ? ;");
         pstmt.setStructured(1, tvpName, tvp);
         try {
@@ -333,7 +331,7 @@ public class TVPWithSqlVariantTest extends AbstractTest {
         tvp.addColumnMetadata("c1", microsoft.sql.Types.SQL_VARIANT);
         tvp.addRow(timestamp);
 
-        pstmt = (SQLServerPreparedStatement) connection
+        pstmt = (SQLServerPreparedStatement) conn
                 .prepareStatement("INSERT INTO " + destTable + " select * from ? ;");
         pstmt.setStructured(1, tvpName, tvp);
         pstmt.execute();
@@ -363,7 +361,7 @@ public class TVPWithSqlVariantTest extends AbstractTest {
             assertTrue(e.getMessage().startsWith("Use of TVPs containing null sql_variant columns is not supported."));
         }
 
-        pstmt = (SQLServerPreparedStatement) connection
+        pstmt = (SQLServerPreparedStatement) conn
                 .prepareStatement("INSERT INTO " + destTable + " select * from ? ;");
         pstmt.setStructured(1, tvpName, tvp);
         pstmt.execute();
@@ -389,7 +387,7 @@ public class TVPWithSqlVariantTest extends AbstractTest {
         tvp = new SQLServerDataTable();
         tvp.addColumnMetadata("c1", microsoft.sql.Types.SQL_VARIANT);
         tvp.addRow(timestamp);
-        SQLServerCallableStatement Cstatement = (SQLServerCallableStatement) connection.prepareCall(sql);
+        SQLServerCallableStatement Cstatement = (SQLServerCallableStatement) conn.prepareCall(sql);
         Cstatement.setStructured(1, tvpName, tvp);
         Cstatement.execute();
         rs = (SQLServerResultSet) stmt.executeQuery("select * from " + destTable);

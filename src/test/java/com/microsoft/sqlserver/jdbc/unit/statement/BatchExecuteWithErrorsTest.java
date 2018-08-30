@@ -96,28 +96,31 @@ public class BatchExecuteWithErrorsTest extends AbstractTest {
         String warning;
         String error;
         String severe;
-        con = DriverManager.getConnection(connectionString);
-        if (DBConnection.isSqlAzure(con)) {
-            // SQL Azure will throw exception for "raiserror WITH LOG", so the following RAISERROR statements have not
-            // "with log" option
-            warning = "RAISERROR ('raiserror level 4',4,1)";
-            error = "RAISERROR ('raiserror level 11',11,1)";
-            // On SQL Azure, raising FATAL error by RAISERROR() is not supported and there is no way to
-            // cut the current connection by a statement inside a SQL batch.
-            // Details: Although one can simulate a fatal error (that cuts the connections) by dropping the database,
-            // this simulation cannot be written entirely in TSQL (because it needs a new connection),
-            // and thus it cannot be put into a TSQL batch and it is useless here.
-            // So we have to skip the last scenario of this test case, i.e. "Test Severe (connection-closing) errors"
-            // It is worthwhile to still execute the first 5 test scenarios of this test case, in order to have best
-            // test coverage.
-            severe = "--Not executed when testing against SQL Azure"; // this is a dummy statement that never being
-                                                                      // executed on SQL Azure
-        } else {
-            warning = "RAISERROR ('raiserror level 4',4,1) WITH LOG";
-            error = "RAISERROR ('raiserror level 11',11,1) WITH LOG";
-            severe = "RAISERROR ('raiserror level 20',20,1) WITH LOG";
+        try (Connection con = DriverManager.getConnection(connectionString)) {
+            if (DBConnection.isSqlAzure(con)) {
+                // SQL Azure will throw exception for "raiserror WITH LOG", so the following RAISERROR statements have
+                // not
+                // "with log" option
+                warning = "RAISERROR ('raiserror level 4',4,1)";
+                error = "RAISERROR ('raiserror level 11',11,1)";
+                // On SQL Azure, raising FATAL error by RAISERROR() is not supported and there is no way to
+                // cut the current connection by a statement inside a SQL batch.
+                // Details: Although one can simulate a fatal error (that cuts the connections) by dropping the
+                // database,
+                // this simulation cannot be written entirely in TSQL (because it needs a new connection),
+                // and thus it cannot be put into a TSQL batch and it is useless here.
+                // So we have to skip the last scenario of this test case, i.e. "Test Severe (connection-closing)
+                // errors"
+                // It is worthwhile to still execute the first 5 test scenarios of this test case, in order to have best
+                // test coverage.
+                severe = "--Not executed when testing against SQL Azure"; // this is a dummy statement that never being
+                                                                          // executed on SQL Azure
+            } else {
+                warning = "RAISERROR ('raiserror level 4',4,1) WITH LOG";
+                error = "RAISERROR ('raiserror level 11',11,1) WITH LOG";
+                severe = "RAISERROR ('raiserror level 20',20,1) WITH LOG";
+            }
         }
-        con.close();
 
         int[] actualUpdateCounts;
         int[] expectedUpdateCounts;
@@ -143,24 +146,25 @@ public class BatchExecuteWithErrorsTest extends AbstractTest {
 
                 // Regular Statement batch update
                 expectedUpdateCounts = new int[] {1, -2, 1, -2, 1, -2};
-                Statement batchStmt = conn.createStatement();
-                batchStmt.addBatch(insertStmt);
-                batchStmt.addBatch(warning);
-                batchStmt.addBatch(insertStmt);
-                batchStmt.addBatch(warning);
-                batchStmt.addBatch(insertStmt);
-                batchStmt.addBatch(warning);
-                try {
-                    actualUpdateCounts = batchStmt.executeBatch();
-                    actualExceptionText = "";
-                } catch (BatchUpdateException bue) {
-                    actualUpdateCounts = bue.getUpdateCounts();
-                    actualExceptionText = bue.getMessage();
-                    if (log.isLoggable(Level.FINE)) {
-                        log.fine("BatchUpdateException occurred. Message:" + actualExceptionText);
+                try (Statement batchStmt = conn.createStatement()) {
+                    batchStmt.addBatch(insertStmt);
+                    batchStmt.addBatch(warning);
+                    batchStmt.addBatch(insertStmt);
+                    batchStmt.addBatch(warning);
+                    batchStmt.addBatch(insertStmt);
+                    batchStmt.addBatch(warning);
+                    try {
+                        actualUpdateCounts = batchStmt.executeBatch();
+                        actualExceptionText = "";
+                    } catch (BatchUpdateException bue) {
+                        actualUpdateCounts = bue.getUpdateCounts();
+                        actualExceptionText = bue.getMessage();
+                        if (log.isLoggable(Level.FINE)) {
+                            log.fine("BatchUpdateException occurred. Message:" + actualExceptionText);
+                        }
+                    } finally {
+                        batchStmt.close();
                     }
-                } finally {
-                    batchStmt.close();
                 }
                 if (log.isLoggable(Level.FINE)) {
                     log.fine("UpdateCounts:");
@@ -291,12 +295,13 @@ public class BatchExecuteWithErrorsTest extends AbstractTest {
                         }
                     }
                 }
-
-                try {
-                    stmt.executeUpdate("drop table " + tableName);
-                } catch (Exception ignored) {}
             }
-
+        }
+        finally {
+            try (Connection conn = DriverManager.getConnection(connectionString);
+                    Statement stmt = conn.createStatement()) {
+                stmt.executeUpdate("drop table " + tableName);
+            }
         }
     }
 
@@ -353,23 +358,23 @@ public class BatchExecuteWithErrorsTest extends AbstractTest {
                 } catch (Exception ignored) {}
                 // Regular Statement batch update
                 expectedUpdateCounts = new long[] {1, -2, 1, -2, 1, -2};
-                Statement batchStmt = conn.createStatement();
-                batchStmt.addBatch(insertStmt);
-                batchStmt.addBatch(warning);
-                batchStmt.addBatch(insertStmt);
-                batchStmt.addBatch(warning);
-                batchStmt.addBatch(insertStmt);
-                batchStmt.addBatch(warning);
-                try {
-                    actualUpdateCounts = batchStmt.executeLargeBatch();
-                    actualExceptionText = "";
-                } catch (BatchUpdateException bue) {
-                    actualUpdateCounts = bue.getLargeUpdateCounts();
-                    actualExceptionText = bue.getMessage();
-                    log.fine("BatchUpdateException occurred. Message:" + actualExceptionText);
-                } finally {
-                    batchStmt.close();
+                try (Statement batchStmt = conn.createStatement()) {
+                    batchStmt.addBatch(insertStmt);
+                    batchStmt.addBatch(warning);
+                    batchStmt.addBatch(insertStmt);
+                    batchStmt.addBatch(warning);
+                    batchStmt.addBatch(insertStmt);
+                    batchStmt.addBatch(warning);
+                    try {
+                        actualUpdateCounts = batchStmt.executeLargeBatch();
+                        actualExceptionText = "";
+                    } catch (BatchUpdateException bue) {
+                        actualUpdateCounts = bue.getLargeUpdateCounts();
+                        actualExceptionText = bue.getMessage();
+                        log.fine("BatchUpdateException occurred. Message:" + actualExceptionText);
+                    }
                 }
+                
                 log.fine("UpdateCounts:");
                 for (long updateCount : actualUpdateCounts) {
                     log.fine("" + updateCount + ",");

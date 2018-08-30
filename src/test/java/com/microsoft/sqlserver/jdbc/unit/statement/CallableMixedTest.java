@@ -31,7 +31,6 @@ import com.microsoft.sqlserver.testframework.util.RandomUtil;
  */
 @RunWith(JUnitPlatform.class)
 public class CallableMixedTest extends AbstractTest {
-    Connection connection = null;
     String tableN = RandomUtil.getIdentifier("TFOO3");
     String procN = RandomUtil.getIdentifier("SPFOO3");
     String tableName = AbstractSQLGenerator.escapeIdentifier(tableN);
@@ -66,28 +65,35 @@ public class CallableMixedTest extends AbstractTest {
                 callableStatement.setObject((int) 4, Short.valueOf("-5372"), (int) 5);
 
                 // get results and a value
-                ResultSet rs = callableStatement.executeQuery();
-                rs.next();
+                try (ResultSet rs = callableStatement.executeQuery()) {
+                    rs.next();
 
-                assertEquals(rs.getInt(1), 0, TestResource.getResource("R_setDataNotEqual"));
-                assertEquals(callableStatement.getInt((int) 5), -5372, TestResource.getResource("R_setDataNotEqual"));
-
-                // do nothing and reexecute
-                rs = callableStatement.executeQuery();
+                    assertEquals(rs.getInt(1), 0, TestResource.getResource("R_setDataNotEqual"));
+                    assertEquals(callableStatement.getInt((int) 5), -5372,
+                            TestResource.getResource("R_setDataNotEqual"));
+                }
+                
+                // do nothing and re-execute
+                try (ResultSet rs = callableStatement.executeQuery()) {
+                }
+                
                 // get the param without getting the resultset
-                rs = callableStatement.executeQuery();
+                try (ResultSet rs = callableStatement.executeQuery()) {
                 assertEquals(callableStatement.getInt((int) 1), -2147483648,
                         TestResource.getResource("R_setDataNotEqual"));
-
-                rs = callableStatement.executeQuery();
+                }
+                
+                try (ResultSet rs = callableStatement.executeQuery()) {
                 rs.next();
 
                 assertEquals(rs.getInt(1), 0, TestResource.getResource("R_setDataNotEqual"));
                 assertEquals(callableStatement.getInt((int) 1), -2147483648,
                         TestResource.getResource("R_setDataNotEqual"));
                 assertEquals(callableStatement.getInt((int) 5), -5372, TestResource.getResource("R_setDataNotEqual"));
-                rs = callableStatement.executeQuery();
-                rs.close();
+                }
+                
+                try (ResultSet rs = callableStatement.executeQuery()) {
+                }               
             }
             terminateVariation(statement);
         }

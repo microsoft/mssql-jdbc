@@ -75,31 +75,30 @@ public class StatementTest extends AbstractTest {
 
         @BeforeEach
         public void init() throws Exception {
-            Connection con = DriverManager.getConnection(connectionString);
-            con.setAutoCommit(false);
-            Statement stmt = con.createStatement();
-            try {
-                Utils.dropTableIfExists(tableName, stmt);
-            } catch (SQLException e) {}
-            stmt.executeUpdate("CREATE TABLE " + tableName + " (col1 INT PRIMARY KEY, col2 VARCHAR("
-                    + TEST_STRING.length() + "))");
-            for (int i = 0; i < NUM_TABLE_ROWS; i++)
-                stmt.executeUpdate(
-                        "INSERT INTO " + tableName + " (col1, col2) VALUES (" + i + ", '" + TEST_STRING + "')");
-            stmt.close();
-            con.commit();
-            con.close();
+            try (Connection con = DriverManager.getConnection(connectionString)) {
+                con.setAutoCommit(false);
+                try (Statement stmt = con.createStatement()) {
+                    try {
+                        Utils.dropTableIfExists(tableName, stmt);
+                    } catch (SQLException e) {}
+                    stmt.executeUpdate("CREATE TABLE " + tableName + " (col1 INT PRIMARY KEY, col2 VARCHAR("
+                            + TEST_STRING.length() + "))");
+                    for (int i = 0; i < NUM_TABLE_ROWS; i++)
+                        stmt.executeUpdate(
+                                "INSERT INTO " + tableName + " (col1, col2) VALUES (" + i + ", '" + TEST_STRING + "')");
+                }
+                con.commit();
+            }
         }
 
         @AfterEach
         public void terminate() throws Exception {
-            Connection con = DriverManager.getConnection(connectionString);
-            Statement stmt = con.createStatement();
-            try {
-                Utils.dropTableIfExists(tableName, stmt);
-            } catch (SQLException e) {}
-            stmt.close();
-            con.close();
+            try (Connection con = DriverManager.getConnection(connectionString);
+                    Statement stmt = con.createStatement()) {
+                try {
+                    Utils.dropTableIfExists(tableName, stmt);
+                } catch (SQLException e) {}
+            }
         }
 
         /**
@@ -110,18 +109,17 @@ public class StatementTest extends AbstractTest {
         @Test
         public void testCancelBeforeExecute() throws Exception {
 
-            Connection con = DriverManager.getConnection(connectionString);
-            Statement stmt = con.createStatement();
-            stmt.cancel();
-            ResultSet rs = stmt.executeQuery("SELECT * FROM " + tableName);
-            int numSelectedRows = 0;
-            while (rs.next())
-                ++numSelectedRows;
+            try (Connection con = DriverManager.getConnection(connectionString);
+                    Statement stmt = con.createStatement()) {
+                stmt.cancel();
+                ResultSet rs = stmt.executeQuery("SELECT * FROM " + tableName);
+                int numSelectedRows = 0;
+                while (rs.next())
+                    ++numSelectedRows;
 
-            // Wrong number of rows returned
-            assertEquals(NUM_TABLE_ROWS, numSelectedRows, TestResource.getResource("R_valueNotMatch"));
-            stmt.close();
-            con.close();
+                // Wrong number of rows returned
+                assertEquals(NUM_TABLE_ROWS, numSelectedRows, TestResource.getResource("R_valueNotMatch"));
+            }
         }
 
         /**
@@ -135,30 +133,27 @@ public class StatementTest extends AbstractTest {
          */
         @Test
         public void testErrorInRequest() throws Exception {
-            Connection con = DriverManager.getConnection(connectionString);
-
-            PreparedStatement ps = con.prepareStatement("UPDATE " + tableName + " SET col2 = ? WHERE col1 = ?");
-            ps.setString(1, TEST_STRING);
-            for (int i = 0; i < MIN_TABLE_ROWS; i++) {
-                ps.setInt(2, i);
+            try (Connection con = DriverManager.getConnection(connectionString); PreparedStatement ps = con
+                    .prepareStatement("UPDATE " + tableName + " SET col2 = ? WHERE col1 = ?")) {
+                ps.setString(1, TEST_STRING);
+                for (int i = 0; i < MIN_TABLE_ROWS; i++) {
+                    ps.setInt(2, i);
+                    ps.addBatch();
+                }
+                ps.setCharacterStream(1, new StringReader(TEST_STRING), TEST_STRING.length() - 1);
                 ps.addBatch();
-            }
-            ps.setCharacterStream(1, new StringReader(TEST_STRING), TEST_STRING.length() - 1);
-            ps.addBatch();
 
-            try {
-                ps.executeBatch();
-            } catch (SQLException e) {
-                assertEquals(
-                        "The stream value is not the specified length. The specified length was "
-                                + (TEST_STRING.length() - 1) + ", the actual length is " + TEST_STRING.length() + ".",
-                        e.getMessage(), TestResource.getResource("R_unexpectedException"));
-            }
+                try {
+                    ps.executeBatch();
+                } catch (SQLException e) {
+                    assertEquals("The stream value is not the specified length. The specified length was "
+                            + (TEST_STRING.length() - 1) + ", the actual length is " + TEST_STRING.length() + ".",
+                            e.getMessage(), TestResource.getResource("R_unexpectedException"));
+                }
 
-            // Successfully closing the PreparedStatement is verification enough that the connection is
-            // still usable and that there isn't a left over attention ack on the wire.
-            ps.close();
-            con.close();
+                // Successfully closing the PreparedStatement is verification enough that the connection is
+                // still usable and that there isn't a left over attention ack on the wire.
+            }
         }
 
         /**
@@ -172,44 +167,42 @@ public class StatementTest extends AbstractTest {
         public void testQueryTimeout() throws Exception {
             long elapsedMillis;
 
-            Connection con = DriverManager.getConnection(connectionString);
-            PreparedStatement ps = con.prepareStatement("WAITFOR DELAY '00:00:07'");
+            try (Connection con = DriverManager.getConnection(connectionString);
+                    PreparedStatement ps = con.prepareStatement("WAITFOR DELAY '00:00:07'")) {
 
-            // First execution:
-            // Verify timeout actually cancels statement execution.
-            elapsedMillis = -System.currentTimeMillis();
-            ps.setQueryTimeout(2);
-            try {
+                // First execution:
+                // Verify timeout actually cancels statement execution.
+                elapsedMillis = -System.currentTimeMillis();
+                ps.setQueryTimeout(2);
+                try {
+                    ps.execute();
+
+                    assertEquals(false, true, TestResource.getResource("R_executionNotTimeout"));
+                } catch (SQLException e) {
+                    assertTrue(TestResource.getResource("R_queryTimedOut").equalsIgnoreCase(e.getMessage()),
+                            TestResource.getResource("R_unexpectedException"));
+                    assertTrue("The query has timed out.".equalsIgnoreCase(e.getMessage()),
+                            TestResource.getResource("R_unexpectedException"));
+                }
+                elapsedMillis += System.currentTimeMillis();
+                if (elapsedMillis >= 3000) {
+                    assertEquals(2000, (int) elapsedMillis, TestResource.getResource("R_executionTooLong"));
+                }
+
+                // Second execution:
+                // Verify connection is still usable.
+                // Verify execution with no timeout doesn't return too soon.
+                ps.setQueryTimeout(0);
+                elapsedMillis = -System.currentTimeMillis();
                 ps.execute();
+                elapsedMillis += System.currentTimeMillis();
 
-                assertEquals(false, true, TestResource.getResource("R_executionNotTimeout"));
-            } catch (SQLException e) {
-                assertTrue(TestResource.getResource("R_queryTimedOut").equalsIgnoreCase(e.getMessage()),
-                        TestResource.getResource("R_unexpectedException"));
-                assertTrue("The query has timed out.".equalsIgnoreCase(e.getMessage()),
-                        TestResource.getResource("R_unexpectedException"));
+                // Oddly enough, the server's idea of 7 seconds is actually slightly less than
+                // 7000 milliseconds by our clock (!) so we have to allow some slack here.
+                if (elapsedMillis < 6500) {
+                    assertEquals(6500, (int) elapsedMillis, TestResource.getResource("R_executionNotLong"));
+                }
             }
-            elapsedMillis += System.currentTimeMillis();
-            if (elapsedMillis >= 3000) {
-                assertEquals(2000, (int) elapsedMillis, TestResource.getResource("R_executionTooLong"));
-            }
-
-            // Second execution:
-            // Verify connection is still usable.
-            // Verify execution with no timeout doesn't return too soon.
-            ps.setQueryTimeout(0);
-            elapsedMillis = -System.currentTimeMillis();
-            ps.execute();
-            elapsedMillis += System.currentTimeMillis();
-
-            // Oddly enough, the server's idea of 7 seconds is actually slightly less than
-            // 7000 milliseconds by our clock (!) so we have to allow some slack here.
-            if (elapsedMillis < 6500) {
-                assertEquals(6500, (int) elapsedMillis, TestResource.getResource("R_executionNotLong"));
-            }
-
-            ps.close();
-            con.close();
         }
 
         /**
@@ -224,51 +217,52 @@ public class StatementTest extends AbstractTest {
         public void testCancelLongResponse() throws Exception {
             assumeTrue("JDBC42".equals(Utils.getConfiguredProperty("JDBC_Version")),
                     TestResource.getResource("R_incompatJDBC"));
-            Connection con = DriverManager.getConnection(connectionString);
-            Statement stmt = con.createStatement(SQLServerResultSet.TYPE_SS_DIRECT_FORWARD_ONLY,
-                    ResultSet.CONCUR_READ_ONLY);
-            ((SQLServerStatement) stmt).setResponseBuffering("adaptive");
 
-            // enable isCloseOnCompletion
-            try {
-                stmt.closeOnCompletion();
-            } catch (Exception e) {
+            try (Connection con = DriverManager.getConnection(connectionString); Statement stmt = con
+                    .createStatement(SQLServerResultSet.TYPE_SS_DIRECT_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY)) {
+                ((SQLServerStatement) stmt).setResponseBuffering("adaptive");
 
-                throw new SQLException(TestResource.getResource("R_unexpectedException") + ": ", e);
+                // enable isCloseOnCompletion
+                try {
+                    stmt.closeOnCompletion();
+                } catch (Exception e) {
 
+                    throw new SQLException(TestResource.getResource("R_unexpectedException") + ": ", e);
+
+                }
+
+                try (ResultSet rs = stmt.executeQuery(
+                        "SELECT " + "a.col1, a.col2 FROM " + tableName + " a CROSS JOIN " + tableName + " b")) {
+
+                    // Scan the first MIN_TABLE_ROWS rows
+                    int numSelectedRows = 0;
+                    while (rs.next() && ++numSelectedRows < MIN_TABLE_ROWS);
+
+                    // Verify that MIN_TABLE_ROWS rows were returned
+                    // Wrong number of rows returned in first scan
+                    assertEquals(MIN_TABLE_ROWS, numSelectedRows, TestResource.getResource("R_valueNotMatch"));
+
+                    // Cancel the statement and verify that the ResultSet
+                    // does NOT return all the remaining rows.
+                    stmt.cancel();
+
+                    try {
+                        while (rs.next())
+                            ++numSelectedRows;
+
+                        assertEquals(false, true, TestResource.getResource("R_expectedExceptionNotThrown"));
+                    } catch (SQLException e) {
+                        assertEquals(TestResource.getResource("R_queryCancelled"),
+                                TestResource.getResource("R_unexpectedException"));
+                    }
+
+                    assertEquals(false, NUM_TABLE_ROWS * NUM_TABLE_ROWS == numSelectedRows,
+                            "All rows returned after cancel");
+
+                    rs.close();
+                    assertEquals(stmt.isClosed(), true, TestResource.getResource("R_statementShouldBeClosed"));
+                }
             }
-
-            ResultSet rs = stmt
-                    .executeQuery("SELECT " + "a.col1, a.col2 FROM " + tableName + " a CROSS JOIN " + tableName + " b");
-
-            // Scan the first MIN_TABLE_ROWS rows
-            int numSelectedRows = 0;
-            while (rs.next() && ++numSelectedRows < MIN_TABLE_ROWS);
-
-            // Verify that MIN_TABLE_ROWS rows were returned
-            // Wrong number of rows returned in first scan
-            assertEquals(MIN_TABLE_ROWS, numSelectedRows, TestResource.getResource("R_valueNotMatch"));
-
-            // Cancel the statement and verify that the ResultSet
-            // does NOT return all the remaining rows.
-            stmt.cancel();
-
-            try {
-                while (rs.next())
-                    ++numSelectedRows;
-
-                assertEquals(false, true, TestResource.getResource("R_expectedExceptionNotThrown"));
-            } catch (SQLException e) {
-                assertEquals(TestResource.getResource("R_queryCancelled"),
-                        TestResource.getResource("R_unexpectedException"));
-            }
-
-            assertEquals(false, NUM_TABLE_ROWS * NUM_TABLE_ROWS == numSelectedRows, "All rows returned after cancel");
-
-            rs.close();
-            assertEquals(stmt.isClosed(), true, TestResource.getResource("R_statementShouldBeClosed"));
-
-            con.close();
         }
 
         /**
@@ -659,46 +653,46 @@ public class StatementTest extends AbstractTest {
             // so that cancelling execution from the same thread will work.
             String name = RandomUtil.getIdentifier("p1");
             final String procName = AbstractSQLGenerator.escapeIdentifier(name);
-            Connection con = DriverManager.getConnection(connectionString + ";packetSize=512");
-            Statement stmt = con.createStatement();
+            try (Connection con = DriverManager.getConnection(connectionString + ";packetSize=512");
+                    Statement stmt = con.createStatement()) {
 
-            try {
+                try {
+                    Utils.dropProcedureIfExists(procName, stmt);
+                } catch (Exception ex) {} ;
+                stmt.executeUpdate("CREATE PROCEDURE " + procName + "    @arg1 CHAR(512) OUTPUT, "
+                        + "    @arg2 CHAR(512) OUTPUT, " + "    @arg3 CHAR(512) OUTPUT " + "AS " + "BEGIN "
+                        + "   SET @arg1='hi' " + "   SET @arg2='there' " + "   SET @arg3='!' " + "END");
+                CallableStatement cstmt = con.prepareCall("{call " + procName + "(?, ?, ?)}");
+                ((SQLServerStatement) cstmt).setResponseBuffering("adaptive");
+                cstmt.registerOutParameter(1, Types.CHAR);
+                cstmt.registerOutParameter(2, Types.CHAR);
+                cstmt.registerOutParameter(3, Types.CHAR);
+
+                // Cancel before getting any OUT params
+                cstmt.execute();
+                cstmt.cancel();
+
+                // Cancel after getting first OUT param
+                cstmt.execute();
+                cstmt.getString(1);
+                cstmt.cancel();
+
+                // Cancel after getting last OUT param
+                cstmt.execute();
+                cstmt.getString(3);
+                cstmt.cancel();
+
+                // Cancel after getting OUT params out of order
+                cstmt.execute();
+                cstmt.getString(2);
+                cstmt.getString(1);
+                cstmt.cancel();
+
+                // Reexecute to prove CS is still good after last cancel
+                cstmt.execute();
+
                 Utils.dropProcedureIfExists(procName, stmt);
-            } catch (Exception ex) {} ;
-            stmt.executeUpdate("CREATE PROCEDURE " + procName + "    @arg1 CHAR(512) OUTPUT, "
-                    + "    @arg2 CHAR(512) OUTPUT, " + "    @arg3 CHAR(512) OUTPUT " + "AS " + "BEGIN "
-                    + "   SET @arg1='hi' " + "   SET @arg2='there' " + "   SET @arg3='!' " + "END");
-            CallableStatement cstmt = con.prepareCall("{call " + procName + "(?, ?, ?)}");
-            ((SQLServerStatement) cstmt).setResponseBuffering("adaptive");
-            cstmt.registerOutParameter(1, Types.CHAR);
-            cstmt.registerOutParameter(2, Types.CHAR);
-            cstmt.registerOutParameter(3, Types.CHAR);
-
-            // Cancel before getting any OUT params
-            cstmt.execute();
-            cstmt.cancel();
-
-            // Cancel after getting first OUT param
-            cstmt.execute();
-            cstmt.getString(1);
-            cstmt.cancel();
-
-            // Cancel after getting last OUT param
-            cstmt.execute();
-            cstmt.getString(3);
-            cstmt.cancel();
-
-            // Cancel after getting OUT params out of order
-            cstmt.execute();
-            cstmt.getString(2);
-            cstmt.getString(1);
-            cstmt.cancel();
-
-            // Reexecute to prove CS is still good after last cancel
-            cstmt.execute();
-
-            Utils.dropProcedureIfExists(procName, stmt);
-            con.close();
+            }
         }
 
         static final int RUN_TIME_MILLIS = 10000;
@@ -761,8 +755,7 @@ public class StatementTest extends AbstractTest {
                         public void run() {
                             ++numExecuteTries;
 
-                            try {
-                                ResultSet rs = stmt.executeQuery("SELECT * FROM " + tableName);
+                            try (ResultSet rs = stmt.executeQuery("SELECT * FROM " + tableName)) {
 
                                 while (rs.next())
                                     ++numExecuteSuccesses;
@@ -887,50 +880,46 @@ public class StatementTest extends AbstractTest {
 
         @Test
         public void testIsCloseOnCompletion() throws Exception {
-            Connection con = DriverManager.getConnection(connectionString);
+            try (Connection con = DriverManager.getConnection(connectionString);
+                    PreparedStatement ps = con.prepareStatement("")) {
 
-            PreparedStatement ps = con.prepareStatement("");
+                boolean result = false;
+                try {
+                    result = ps.isCloseOnCompletion();
+                } catch (Exception e) {
 
-            boolean result = false;
-            try {
-                result = ps.isCloseOnCompletion();
-            } catch (Exception e) {
+                    throw new SQLException(TestResource.getResource("R_unexpectedException") + ": ", e);
 
-                throw new SQLException(TestResource.getResource("R_unexpectedException") + ": ", e);
+                }
 
+                assertEquals(false, result, "isCloseOnCompletion: " + TestResource.getResource("R_incorrectDefault"));
             }
-
-            assertEquals(false, result, "isCloseOnCompletion: " + TestResource.getResource("R_incorrectDefault"));
-
-            ps.close();
-            con.close();
         }
 
         @Test
         public void testCloseOnCompletion() throws Exception {
-            Connection con = DriverManager.getConnection(connectionString);
-            PreparedStatement ps = con.prepareStatement("select ?");
-            ps.setInt(1, 1);
+            try (Connection con = DriverManager.getConnection(connectionString);
+                    PreparedStatement ps = con.prepareStatement("select ?")) {
+                ps.setInt(1, 1);
 
-            // enable isCloseOnCompletion
-            try {
-                ps.closeOnCompletion();
-            } catch (Exception e) {
-                throw new SQLException(TestResource.getResource("R_unexpectedException") + ": ", e);
+                // enable isCloseOnCompletion
+                try {
+                    ps.closeOnCompletion();
+                } catch (Exception e) {
+                    throw new SQLException(TestResource.getResource("R_unexpectedException") + ": ", e);
 
+                }
+
+                ResultSet rs;
+                try {
+                    rs = ps.executeQuery();
+                    rs.close();
+                } catch (SQLException e) {
+                    log.fine("testIsCloseOnCompletion threw: " + e.getMessage());
+                }
+
+                assertEquals(ps.isClosed(), true, TestResource.getResource("R_statementShouldBeClosed"));
             }
-
-            ResultSet rs;
-            try {
-                rs = ps.executeQuery();
-                rs.close();
-            } catch (SQLException e) {
-                log.fine("testIsCloseOnCompletion threw: " + e.getMessage());
-            }
-
-            assertEquals(ps.isClosed(), true, TestResource.getResource("R_statementShouldBeClosed"));
-
-            con.close();
         }
     }
 
@@ -948,25 +937,21 @@ public class StatementTest extends AbstractTest {
          */
         @Test
         public void testIsCloseOnCompletion() throws Exception {
-            Connection con = DriverManager.getConnection(connectionString);
-            Statement stmt = con.createStatement();
+            try (Connection con = DriverManager.getConnection(connectionString);
+                    Statement stmt = con.createStatement()) {
 
-            assertEquals(false, stmt.isCloseOnCompletion(), "isCloseOnCompletion default should be false.");
+                assertEquals(false, stmt.isCloseOnCompletion(), "isCloseOnCompletion default should be false.");
 
-            // enable isCloseOnCompletion
-            try {
-                stmt.closeOnCompletion();
-            } catch (Exception e) {
+                // enable isCloseOnCompletion
+                try {
+                    stmt.closeOnCompletion();
+                } catch (Exception e) {
+                    throw new SQLException(TestResource.getResource("R_unexpectedException") + ": ", e);
+                }
 
-                throw new SQLException(TestResource.getResource("R_unexpectedException") + ": ", e);
-
+                assertEquals(true, stmt.isCloseOnCompletion(),
+                        "isCloseOnCompletion " + TestResource.getResource("R_shouldBeEnabled"));
             }
-
-            assertEquals(true, stmt.isCloseOnCompletion(),
-                    "isCloseOnCompletion " + TestResource.getResource("R_shouldBeEnabled"));
-
-            stmt.close();
-            con.close();
         }
 
         /**
@@ -974,28 +959,26 @@ public class StatementTest extends AbstractTest {
          */
         @Test
         public void testCloseOnCompletion() throws Exception {
-            Connection con = DriverManager.getConnection(connectionString);
-            Statement stmt = con.createStatement();
+            try (Connection con = DriverManager.getConnection(connectionString);
+                    Statement stmt = con.createStatement()) {
+                // enable isCloseOnCompletion
+                try {
+                    stmt.closeOnCompletion();
+                } catch (Exception e) {
 
-            // enable isCloseOnCompletion
-            try {
-                stmt.closeOnCompletion();
-            } catch (Exception e) {
+                    throw new SQLException(TestResource.getResource("R_unexpectedException") + ": ", e);
 
-                throw new SQLException(TestResource.getResource("R_unexpectedException") + ": ", e);
+                }
 
+                try (ResultSet rs = stmt.executeQuery("SELECT 1")) {
+                    assertEquals(stmt.isClosed(), false, TestResource.getResource("R_statementShouldBeOpened"));
+
+                    // now statement should be closed
+                    rs.close();
+
+                    assertEquals(stmt.isClosed(), true, TestResource.getResource("R_statementShouldBeClosed"));
+                }
             }
-
-            ResultSet rs;
-            rs = stmt.executeQuery("SELECT 1");
-            assertEquals(stmt.isClosed(), false, TestResource.getResource("R_statementShouldBeOpened"));
-
-            // now statement should be closed
-            rs.close();
-
-            assertEquals(stmt.isClosed(), true, TestResource.getResource("R_statementShouldBeClosed"));
-
-            con.close();
         }
 
         /**
@@ -1005,37 +988,29 @@ public class StatementTest extends AbstractTest {
          */
         @Test
         public void testConsecutiveQueries() throws Exception {
+            try (Connection con = DriverManager.getConnection(connectionString);
+                    Statement stmt = con.createStatement()) {
+                // enable isCloseOnCompletion
+                try {
+                    stmt.closeOnCompletion();
+                } catch (Exception e) {
+                    throw new SQLException(TestResource.getResource("R_unexpectedException") + ": ", e);
+                }
 
-            Connection con = DriverManager.getConnection(connectionString);
-            Statement stmt = con.createStatement();
+                try {
+                    Utils.dropTableIfExists(table1Name, stmt);
+                } catch (SQLException e) {}
+                try {
+                    Utils.dropTableIfExists(table2Name, stmt);
+                } catch (SQLException e) {}
 
-            // enable isCloseOnCompletion
+                stmt.executeUpdate("CREATE TABLE " + table1Name + " (col1 INT PRIMARY KEY)");
+                stmt.executeUpdate("CREATE TABLE " + table2Name + " (col1 INT PRIMARY KEY)");
 
-            try {
-                stmt.closeOnCompletion();
-            } catch (Exception e) {
-                throw new SQLException(TestResource.getResource("R_unexpectedException") + ": ", e);
+                try (ResultSet rs = stmt.executeQuery("SELECT * FROM " + table2Name)) {} catch (Exception e) {
+                    assertEquals(stmt.isClosed(), true, TestResource.getResource("R_statementShouldBeClosed"));
+                }
             }
-
-            try {
-                Utils.dropTableIfExists(table1Name, stmt);
-            } catch (SQLException e) {}
-            try {
-                Utils.dropTableIfExists(table2Name, stmt);
-            } catch (SQLException e) {}
-
-            stmt.executeUpdate("CREATE TABLE " + table1Name + " (col1 INT PRIMARY KEY)");
-            stmt.executeUpdate("CREATE TABLE " + table2Name + " (col1 INT PRIMARY KEY)");
-
-            ResultSet rs1 = stmt.executeQuery("SELECT * FROM " + table1Name);
-
-            try {
-                ResultSet rs2 = stmt.executeQuery("SELECT * FROM " + table2Name);
-            } catch (Exception e) {
-                assertEquals(stmt.isClosed(), true, TestResource.getResource("R_statementShouldBeClosed"));
-            }
-
-            con.close();
         }
 
         /**
@@ -1049,31 +1024,24 @@ public class StatementTest extends AbstractTest {
             assumeTrue("JDBC41".equals(Utils.getConfiguredProperty("JDBC_Version")),
                     TestResource.getResource("R_incompatJDBC"));
 
-            Connection con = DriverManager.getConnection(connectionString);
-            SQLServerStatement stmt = (SQLServerStatement) con.createStatement();
+            try (Connection con = DriverManager.getConnection(connectionString);
+                    SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
 
-            // testing exception for getLargeMaxRows method
-            try {
+                // testing exception for getLargeMaxRows method
+                try {
+                    stmt.getLargeMaxRows();
+                    throw new SQLException(TestResource.getResource("R_unexpectedException"));
+                } catch (Exception e) {
+                    fail(e.getMessage());
+                }
 
-                stmt.getLargeMaxRows();
-                throw new SQLException(TestResource.getResource("R_unexpectedException"));
-            } catch (Exception e) {
-                fail(e.getMessage());
-            }
-
-            // testing exception for setLargeMaxRows method
-            try {
-                stmt.setLargeMaxRows(2015);
-                throw new SQLException(TestResource.getResource("R_unexpectedException"));
-            } catch (Exception e) {
-                fail(e.getMessage());
-            }
-
-            if (null != stmt) {
-                stmt.close();
-            }
-            if (null != con) {
-                con.close();
+                // testing exception for setLargeMaxRows method
+                try {
+                    stmt.setLargeMaxRows(2015);
+                    throw new SQLException(TestResource.getResource("R_unexpectedException"));
+                } catch (Exception e) {
+                    fail(e.getMessage());
+                }
             }
         }
 
@@ -1086,49 +1054,44 @@ public class StatementTest extends AbstractTest {
         public void testLargeMaxRowsJDBC42() throws Exception {
             assumeTrue("JDBC42".equals(Utils.getConfiguredProperty("JDBC_Version")),
                     TestResource.getResource("R_incompatJDBC"));
-            Connection dbcon = DriverManager.getConnection(connectionString);
-            Statement dbstmt = dbcon.createStatement();
 
-            // Default value should return zero
-            long actual = dbstmt.getLargeMaxRows();
-            assertEquals(actual, (long) 0, "getLargeMaxRows():" + TestResource.getResource("R_incorrectDefault"));
+            try (Connection con = DriverManager.getConnection(connectionString);
+                    Statement stmt = con.createStatement()) {
 
-            // Set a new value less than MAX_VALUE, and then get the modified value
-            long newValue = 2012L;
-            dbstmt.setLargeMaxRows(newValue);
-            actual = dbstmt.getLargeMaxRows();
-            assertEquals(actual, newValue, "LargeMaxRows() : set/get problem");
+                // Default value should return zero
+                long actual = stmt.getLargeMaxRows();
+                assertEquals(actual, (long) 0, "getLargeMaxRows():" + TestResource.getResource("R_incorrectDefault"));
 
-            // Set a new value grater than MAX_VALUE, and then get the modified value
-            // SQL Server only supports integer limits for setting max rows
-            // If the value MAX_VALUE + 1 is accepted, throw exception
-            try {
-                newValue = (long) Integer.MAX_VALUE + 1;
-                dbstmt.setLargeMaxRows(newValue);
-                throw new SQLException("setLargeMaxRows(): Long values should not be set");
-            } catch (Exception e) {
-                assertEquals(
-                        ("calling setLargeMaxRows failed : java.lang.UnsupportedOperationException: "
-                                + "The supported maximum row count for a result set is Integer.MAX_VALUE or less."),
-                        (e.getMessage()), TestResource.getResource("R_unexpectedException"));
-            }
+                // Set a new value less than MAX_VALUE, and then get the modified value
+                long newValue = 2012L;
+                stmt.setLargeMaxRows(newValue);
+                actual = stmt.getLargeMaxRows();
+                assertEquals(actual, newValue, "LargeMaxRows() : set/get problem");
 
-            // Set a negative value. If negative is accepted, throw exception
-            try {
-                dbstmt.setLargeMaxRows(-2012L);
-                throw new SQLException("setLargeMaxRows():  Negative value not allowed");
-            } catch (Exception e) {
-                assertEquals(
-                        "calling setLargeMaxRows failed : com.microsoft.sqlserver.jdbc.SQLServerException: "
-                                + "The maximum row count -2,012 for a result set must be non-negative.",
-                        e.getMessage(), TestResource.getResource("R_unexpectedException"));
-            }
+                // Set a new value grater than MAX_VALUE, and then get the modified value
+                // SQL Server only supports integer limits for setting max rows
+                // If the value MAX_VALUE + 1 is accepted, throw exception
+                try {
+                    newValue = (long) Integer.MAX_VALUE + 1;
+                    stmt.setLargeMaxRows(newValue);
+                    throw new SQLException("setLargeMaxRows(): Long values should not be set");
+                } catch (Exception e) {
+                    assertEquals(
+                            ("calling setLargeMaxRows failed : java.lang.UnsupportedOperationException: "
+                                    + "The supported maximum row count for a result set is Integer.MAX_VALUE or less."),
+                            (e.getMessage()), TestResource.getResource("R_unexpectedException"));
+                }
 
-            if (null != dbstmt) {
-                dbstmt.close();
-            }
-            if (null != dbcon) {
-                dbcon.close();
+                // Set a negative value. If negative is accepted, throw exception
+                try {
+                    stmt.setLargeMaxRows(-2012L);
+                    throw new SQLException("setLargeMaxRows():  Negative value not allowed");
+                } catch (Exception e) {
+                    assertEquals(
+                            "calling setLargeMaxRows failed : com.microsoft.sqlserver.jdbc.SQLServerException: "
+                                    + "The maximum row count -2,012 for a result set must be non-negative.",
+                            e.getMessage(), TestResource.getResource("R_unexpectedException"));
+                }
             }
         }
 
@@ -1318,8 +1281,8 @@ public class StatementTest extends AbstractTest {
         @Test
         public void testStatementOutParamGetsTwice() throws Exception {
             Class.forName("com.microsoft.sqlserver.jdbc.SQLServerDriver");
-            Connection con = DriverManager.getConnection(connectionString);
-            Statement stmt = con.createStatement();
+            try (Connection con = DriverManager.getConnection(connectionString);
+                    Statement stmt = con.createStatement()) {
 
             // enable isCloseOnCompletion
             try {
@@ -1338,6 +1301,7 @@ public class StatementTest extends AbstractTest {
             } else {
                 assertEquals(stmt.isClosed(), false, TestResource.getResource("R_statementShouldBeOpened"));
             }
+            
             CallableStatement cstmt = con.prepareCall("{  ? = CALL " + procNameTemp + " (?,?)}");
             cstmt.registerOutParameter(1, Types.INTEGER);
             cstmt.setObject(2, Short.valueOf("32"), Types.SMALLINT);
@@ -1357,33 +1321,36 @@ public class StatementTest extends AbstractTest {
             } else {
                 assertEquals(stmt.isClosed(), false, TestResource.getResource("R_statementShouldBeOpened"));
             }
+            }
         }
 
         @Test
         public void testStatementOutManyParamGetsTwiceRandomOrder() throws Exception {
             Class.forName("com.microsoft.sqlserver.jdbc.SQLServerDriver");
-            Connection con = DriverManager.getConnection(connectionString);
-            Statement stmt = con.createStatement();
-            stmt.executeUpdate("CREATE PROCEDURE " + procNameTemp
-                    + " ( @p2_smallint smallint,  @p3_smallint_out smallint OUTPUT,  @p4_smallint smallint OUTPUT, @p5_smallint_out smallint OUTPUT) AS SELECT @p3_smallint_out=@p2_smallint, @p5_smallint_out=@p4_smallint RETURN @p2_smallint + 1");
+            try (Connection con = DriverManager.getConnection(connectionString);
+                    Statement stmt = con.createStatement()) {
+                stmt.executeUpdate("CREATE PROCEDURE " + procNameTemp
+                        + " ( @p2_smallint smallint,  @p3_smallint_out smallint OUTPUT,  @p4_smallint smallint OUTPUT, @p5_smallint_out smallint OUTPUT) AS SELECT @p3_smallint_out=@p2_smallint, @p5_smallint_out=@p4_smallint RETURN @p2_smallint + 1");
 
-            CallableStatement cstmt = con.prepareCall("{  ? = CALL " + procNameTemp + " (?,?, ?, ?)}");
-            cstmt.registerOutParameter(1, Types.INTEGER);
-            cstmt.setObject(2, Short.valueOf("32"), Types.SMALLINT);
-            cstmt.registerOutParameter(3, Types.SMALLINT);
-            cstmt.setObject(4, Short.valueOf("23"), Types.SMALLINT);
-            cstmt.registerOutParameter(5, Types.INTEGER);
-            cstmt.execute();
-            assertEquals(cstmt.getInt(1), 33, TestResource.getResource("R_valueNotMatch"));
-            assertEquals(cstmt.getInt(5), 23, TestResource.getResource("R_valueNotMatch"));
-            assertEquals(cstmt.getInt(3), 32, TestResource.getResource("R_valueNotMatch"));
+                try (CallableStatement cstmt = con.prepareCall("{  ? = CALL " + procNameTemp + " (?,?, ?, ?)}")) {
+                    cstmt.registerOutParameter(1, Types.INTEGER);
+                    cstmt.setObject(2, Short.valueOf("32"), Types.SMALLINT);
+                    cstmt.registerOutParameter(3, Types.SMALLINT);
+                    cstmt.setObject(4, Short.valueOf("23"), Types.SMALLINT);
+                    cstmt.registerOutParameter(5, Types.INTEGER);
+                    cstmt.execute();
+                    assertEquals(cstmt.getInt(1), 33, TestResource.getResource("R_valueNotMatch"));
+                    assertEquals(cstmt.getInt(5), 23, TestResource.getResource("R_valueNotMatch"));
+                    assertEquals(cstmt.getInt(3), 32, TestResource.getResource("R_valueNotMatch"));
 
-            cstmt.setObject(2, Short.valueOf("34"), Types.SMALLINT);
-            cstmt.setObject(4, Short.valueOf("24"), Types.SMALLINT);
-            cstmt.execute();
-            assertEquals(cstmt.getInt(3), 34, TestResource.getResource("R_valueNotMatch"));
-            assertEquals(cstmt.getInt(5), 24, TestResource.getResource("R_valueNotMatch"));
-            assertEquals(cstmt.getInt(1), 35, TestResource.getResource("R_valueNotMatch"));
+                    cstmt.setObject(2, Short.valueOf("34"), Types.SMALLINT);
+                    cstmt.setObject(4, Short.valueOf("24"), Types.SMALLINT);
+                    cstmt.execute();
+                    assertEquals(cstmt.getInt(3), 34, TestResource.getResource("R_valueNotMatch"));
+                    assertEquals(cstmt.getInt(5), 24, TestResource.getResource("R_valueNotMatch"));
+                    assertEquals(cstmt.getInt(1), 35, TestResource.getResource("R_valueNotMatch"));
+                }
+            }
         }
 
         /**
@@ -1394,24 +1361,26 @@ public class StatementTest extends AbstractTest {
         @Test
         public void testStatementOutParamGetsTwiceInOut() throws Exception {
             Class.forName("com.microsoft.sqlserver.jdbc.SQLServerDriver");
-            Connection con = DriverManager.getConnection(connectionString);
-            Statement stmt = con.createStatement();
-            stmt.executeUpdate("CREATE PROCEDURE " + procNameTemp
-                    + " ( @p2_smallint smallint,  @p3_smallint_out smallint OUTPUT) AS SELECT @p3_smallint_out=@p3_smallint_out +1 RETURN @p2_smallint + 1");
+            try (Connection con = DriverManager.getConnection(connectionString);
+                    Statement stmt = con.createStatement()) {
+                stmt.executeUpdate("CREATE PROCEDURE " + procNameTemp
+                        + " ( @p2_smallint smallint,  @p3_smallint_out smallint OUTPUT) AS SELECT @p3_smallint_out=@p3_smallint_out +1 RETURN @p2_smallint + 1");
 
-            CallableStatement cstmt = con.prepareCall("{  ? = CALL " + procNameTemp + " (?,?)}");
-            cstmt.registerOutParameter(1, Types.INTEGER);
-            cstmt.setObject(2, Short.valueOf("1"), Types.SMALLINT);
-            cstmt.setObject(3, Short.valueOf("100"), Types.SMALLINT);
-            cstmt.registerOutParameter(3, Types.SMALLINT);
-            cstmt.execute();
-            assertEquals(cstmt.getInt(1), 2, TestResource.getResource("R_valueNotMatch"));
-            assertEquals(cstmt.getInt(1), 2, TestResource.getResource("R_valueNotMatch"));
+                try (CallableStatement cstmt = con.prepareCall("{  ? = CALL " + procNameTemp + " (?,?)}")) {
+                    cstmt.registerOutParameter(1, Types.INTEGER);
+                    cstmt.setObject(2, Short.valueOf("1"), Types.SMALLINT);
+                    cstmt.setObject(3, Short.valueOf("100"), Types.SMALLINT);
+                    cstmt.registerOutParameter(3, Types.SMALLINT);
+                    cstmt.execute();
+                    assertEquals(cstmt.getInt(1), 2, TestResource.getResource("R_valueNotMatch"));
+                    assertEquals(cstmt.getInt(1), 2, TestResource.getResource("R_valueNotMatch"));
 
-            cstmt.setObject(2, Short.valueOf("10"), Types.SMALLINT);
-            cstmt.execute();
-            assertEquals(cstmt.getInt(1), 11, TestResource.getResource("R_valueNotMatch"));
-            assertEquals(cstmt.getInt(3), 101, TestResource.getResource("R_valueNotMatch"));
+                    cstmt.setObject(2, Short.valueOf("10"), Types.SMALLINT);
+                    cstmt.execute();
+                    assertEquals(cstmt.getInt(1), 11, TestResource.getResource("R_valueNotMatch"));
+                    assertEquals(cstmt.getInt(3), 101, TestResource.getResource("R_valueNotMatch"));
+                }
+            }
         }
 
         /**
@@ -1422,25 +1391,27 @@ public class StatementTest extends AbstractTest {
         @Test
         public void testResultSetParams() throws Exception {
             Class.forName("com.microsoft.sqlserver.jdbc.SQLServerDriver");
-            Connection conn = DriverManager.getConnection(connectionString);
-            Statement stmt = conn.createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE);
+            try (Connection con = DriverManager.getConnection(connectionString);
+                    Statement stmt = con.createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE)) {
 
-            stmt.executeUpdate(
-                    "create table " + tableName + " (col1 int, col2 text, col3 int identity(1,1) primary key)");
-            stmt.executeUpdate("Insert into " + tableName + " values(0, 'hello')");
-            stmt.executeUpdate("Insert into " + tableName + " values(0, 'hi')");
-            String query = "create procedure " + procName
-                    + " @col1Value int, @col2Value varchar(512) OUTPUT AS BEGIN SELECT * from " + tableName
-                    + " where col1=@col1Value SET @col2Value='hi' END";
-            stmt.execute(query);
+                stmt.executeUpdate(
+                        "create table " + tableName + " (col1 int, col2 text, col3 int identity(1,1) primary key)");
+                stmt.executeUpdate("Insert into " + tableName + " values(0, 'hello')");
+                stmt.executeUpdate("Insert into " + tableName + " values(0, 'hi')");
+                String query = "create procedure " + procName
+                        + " @col1Value int, @col2Value varchar(512) OUTPUT AS BEGIN SELECT * from " + tableName
+                        + " where col1=@col1Value SET @col2Value='hi' END";
+                stmt.execute(query);
 
-            CallableStatement cstmt = conn.prepareCall("{call " + procName + "(?, ?)}");
-            cstmt.setInt(1, 0);
-            cstmt.registerOutParameter(2, java.sql.Types.VARCHAR);
-            ResultSet rs = cstmt.executeQuery();
-            rs.next();
-            assertEquals(rs.getString(2), "hello", TestResource.getResource("R_valueNotMatch"));
-            assertEquals(cstmt.getString(2), "hi", TestResource.getResource("R_valueNotMatch"));
+                try (CallableStatement cstmt = con.prepareCall("{call " + procName + "(?, ?)}")) {
+                    cstmt.setInt(1, 0);
+                    cstmt.registerOutParameter(2, java.sql.Types.VARCHAR);
+                    ResultSet rs = cstmt.executeQuery();
+                    rs.next();
+                    assertEquals(rs.getString(2), "hello", TestResource.getResource("R_valueNotMatch"));
+                    assertEquals(cstmt.getString(2), "hi", TestResource.getResource("R_valueNotMatch"));
+                }
+            }
         }
 
         /**
@@ -1451,26 +1422,28 @@ public class StatementTest extends AbstractTest {
         @Test
         public void testResultSetNullParams() throws Exception {
             Class.forName("com.microsoft.sqlserver.jdbc.SQLServerDriver");
-            Connection conn = DriverManager.getConnection(connectionString);
-            Statement stmt = conn.createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE);
+            try (Connection con = DriverManager.getConnection(connectionString);
+                    Statement stmt = con.createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE)) {
 
-            stmt.executeUpdate(
-                    "create table " + tableName + " (col1 int, col2 text, col3 int identity(1,1) primary key)");
-            stmt.executeUpdate("Insert into " + tableName + " values(0, 'hello')");
-            stmt.executeUpdate("Insert into " + tableName + " values(0, 'hi')");
-            String query = "create procedure " + procName
-                    + " @col1Value int, @col2Value varchar(512) OUTPUT AS BEGIN SELECT * from " + tableName
-                    + " where col1=@col1Value SET @col2Value='hi' END";
-            stmt.execute(query);
+                stmt.executeUpdate(
+                        "create table " + tableName + " (col1 int, col2 text, col3 int identity(1,1) primary key)");
+                stmt.executeUpdate("Insert into " + tableName + " values(0, 'hello')");
+                stmt.executeUpdate("Insert into " + tableName + " values(0, 'hi')");
+                String query = "create procedure " + procName
+                        + " @col1Value int, @col2Value varchar(512) OUTPUT AS BEGIN SELECT * from " + tableName
+                        + " where col1=@col1Value SET @col2Value='hi' END";
+                stmt.execute(query);
 
-            CallableStatement cstmt = conn.prepareCall("{call " + procName + "(?, ?)}");
-            cstmt.setInt(1, 0);
-            try {
-                cstmt.getInt(2);
-            } catch (Exception ex) {
-                if (!ex.getMessage().equalsIgnoreCase("The output parameter 2 was not registered for output."))
-                    throw ex;
-            } ;
+                try (CallableStatement cstmt = con.prepareCall("{call " + procName + "(?, ?)}")) {
+                    cstmt.setInt(1, 0);
+                    try {
+                        cstmt.getInt(2);
+                    } catch (Exception ex) {
+                        if (!ex.getMessage().equalsIgnoreCase("The output parameter 2 was not registered for output."))
+                            throw ex;
+                    }
+                }
+            }
         }
 
         /**
@@ -1480,27 +1453,28 @@ public class StatementTest extends AbstractTest {
         @Test
         public void testFailedToResumeTransaction() throws Exception {
             Class.forName("com.microsoft.sqlserver.jdbc.SQLServerDriver");
-            Connection conn = DriverManager.getConnection(connectionString);
-            Statement stmt = conn.createStatement();
+            try (Connection con = DriverManager.getConnection(connectionString);
+                    Statement stmt = con.createStatement()) {
 
-            stmt.executeUpdate("create table " + tableName + " (col1 int primary key)");
-            stmt.executeUpdate("Insert into " + tableName + " values(0)");
-            stmt.executeUpdate("Insert into " + tableName + " values(1)");
-            stmt.executeUpdate("Insert into " + tableName + " values(2)");
-            stmt.executeUpdate("Insert into " + tableName + " values(3)");
-            PreparedStatement ps = conn
-                    .prepareStatement("BEGIN TRAN " + "Insert into " + tableName + " values(4) " + "ROLLBACK");
+                stmt.executeUpdate("create table " + tableName + " (col1 int primary key)");
+                stmt.executeUpdate("Insert into " + tableName + " values(0)");
+                stmt.executeUpdate("Insert into " + tableName + " values(1)");
+                stmt.executeUpdate("Insert into " + tableName + " values(2)");
+                stmt.executeUpdate("Insert into " + tableName + " values(3)");
+                PreparedStatement ps = con
+                        .prepareStatement("BEGIN TRAN " + "Insert into " + tableName + " values(4) " + "ROLLBACK");
 
-            conn.setAutoCommit(false);
-            PreparedStatement ps2 = conn.prepareStatement("Insert into " + tableName + " values('a')");
+                con.setAutoCommit(false);
+                try (PreparedStatement ps2 = con.prepareStatement("Insert into " + tableName + " values('a')")) {
 
-            try {
-                ps2.execute();
-            } catch (SQLException e) {}
-            try {
-                stmt.executeUpdate("Insert into " + tableName + " values(4)");
-            } catch (SQLException ex) {}
-            conn.close();
+                    try {
+                        ps2.execute();
+                    } catch (SQLException e) {}
+                    try {
+                        stmt.executeUpdate("Insert into " + tableName + " values(4)");
+                    } catch (SQLException ex) {}
+                }
+            }
         }
 
         /**
@@ -1510,26 +1484,26 @@ public class StatementTest extends AbstractTest {
         @Test
         public void testResultSetErrors() throws Exception {
             Class.forName("com.microsoft.sqlserver.jdbc.SQLServerDriver");
-            Connection conn = DriverManager.getConnection(connectionString);
-            Statement stmt = conn.createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE);
+            try (Connection con = DriverManager.getConnection(connectionString);
+                    Statement stmt = con.createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE)) {
 
-            stmt.executeUpdate(
-                    "create table " + tableName + " (col1 int, col2 text, col3 int identity(1,1) primary key)");
-            stmt.executeUpdate("Insert into " + tableName + " values(0, 'hello')");
-            stmt.executeUpdate("Insert into " + tableName + " values(0, 'hi')");
-            String query = "create procedure " + procName
-                    + " @col1Value int, @col2Value varchar(512) OUTPUT AS BEGIN SELECT * from somenonexistanttable where col1=@col1Value SET @col2Value='hi' END";
-            stmt.execute(query);
+                stmt.executeUpdate(
+                        "create table " + tableName + " (col1 int, col2 text, col3 int identity(1,1) primary key)");
+                stmt.executeUpdate("Insert into " + tableName + " values(0, 'hello')");
+                stmt.executeUpdate("Insert into " + tableName + " values(0, 'hi')");
+                String query = "create procedure " + procName
+                        + " @col1Value int, @col2Value varchar(512) OUTPUT AS BEGIN SELECT * from somenonexistanttable where col1=@col1Value SET @col2Value='hi' END";
+                stmt.execute(query);
 
-            CallableStatement cstmt = conn.prepareCall("{call " + procName + "(?, ?)}");
-            cstmt.setInt(1, 0);
-            cstmt.registerOutParameter(2, Types.VARCHAR);
+                try (CallableStatement cstmt = con.prepareCall("{call " + procName + "(?, ?)}")) {
+                    cstmt.setInt(1, 0);
+                    cstmt.registerOutParameter(2, Types.VARCHAR);
 
-            try {
-                ResultSet rs = cstmt.executeQuery();
-            } catch (Exception ex) {} ;
+                    try (ResultSet rs = cstmt.executeQuery()) {} catch (Exception ex) {} ;
 
-            assertEquals(null, cstmt.getString(2), TestResource.getResource("R_valueNotMatch"));
+                    assertEquals(null, cstmt.getString(2), TestResource.getResource("R_valueNotMatch"));
+                }
+            }
         }
 
         /**
@@ -1540,96 +1514,92 @@ public class StatementTest extends AbstractTest {
         // TODO: We are commenting this out due to random AppVeyor failures. We will investigate later.
         public void testRowError() throws Exception {
             Class.forName("com.microsoft.sqlserver.jdbc.SQLServerDriver");
-            Connection conn = DriverManager.getConnection(connectionString);
+            try (Connection con = DriverManager.getConnection(connectionString);
+                    Statement stmt = con.createStatement()) {
 
-            // Set up everything
-            Statement stmt = conn.createStatement();
+                stmt.executeUpdate("create table " + tableName + " (col1 int primary key)");
+                stmt.executeUpdate("insert into " + tableName + " values(0)");
+                stmt.executeUpdate("insert into " + tableName + " values(1)");
+                stmt.executeUpdate("insert into " + tableName + " values(2)");
+                stmt.execute(
+                        "create procedure " + procName + " @col1Value int AS " + " BEGIN " + "    SELECT col1 FROM "
+                                + tableName + "       WITH (UPDLOCK) WHERE (col1 = @col1Value) " + " END");
 
-            stmt.executeUpdate("create table " + tableName + " (col1 int primary key)");
-            stmt.executeUpdate("insert into " + tableName + " values(0)");
-            stmt.executeUpdate("insert into " + tableName + " values(1)");
-            stmt.executeUpdate("insert into " + tableName + " values(2)");
-            stmt.execute("create procedure " + procName + " @col1Value int AS " + " BEGIN " + "    SELECT col1 FROM "
-                    + tableName + "       WITH (UPDLOCK) WHERE (col1 = @col1Value) " + " END");
+                // For the test, lock each row in the table, one by one, for update
+                // on one connection and, on another connection, verify that the
+                // row is locked by looking for an expected row error for that row.
+                // The expectation is that ResultSet.next() will throw an lock timeout
+                // exception when the locked row is encountered, no matter whether the
+                // locked row is the first one in the table or not. Also, the connection
+                // must be usable after properly handling and dispatching the row locked
+                // error.
 
-            // For the test, lock each row in the table, one by one, for update
-            // on one connection and, on another connection, verify that the
-            // row is locked by looking for an expected row error for that row.
-            // The expectation is that ResultSet.next() will throw an lock timeout
-            // exception when the locked row is encountered, no matter whether the
-            // locked row is the first one in the table or not. Also, the connection
-            // must be usable after properly handling and dispatching the row locked
-            // error.
+                for (int row = 0; row <= 2; row++) {
+                    // On the first connection, retrieve the indicated row,
+                    // locking it for update.
+                    try (Connection testConn1 = DriverManager.getConnection(connectionString)) {
+                        testConn1.setAutoCommit(false);
+                        try (CallableStatement cstmt = testConn1.prepareCall("{call " + procName + "(?)}")) {
+                            cstmt.setInt(1, row);
 
-            for (int row = 0; row <= 2; row++) {
-                // On the first connection, retrieve the indicated row,
-                // locking it for update.
-                Connection testConn1 = DriverManager.getConnection(connectionString);
-                testConn1.setAutoCommit(false);
-                CallableStatement cstmt = testConn1.prepareCall("{call " + procName + "(?)}");
-                cstmt.setInt(1, row);
+                            // enable isCloseOnCompletion
+                            try {
+                                cstmt.closeOnCompletion();
+                            } catch (Exception e) {
+                                throw new SQLException(TestResource.getResource("R_unexpectedException"));
+                            }
 
-                // enable isCloseOnCompletion
-                try {
-                    cstmt.closeOnCompletion();
-                } catch (Exception e) {
-                    throw new SQLException(TestResource.getResource("R_unexpectedException"));
-                }
+                            try (ResultSet rs = cstmt.executeQuery()) {
+                                assertEquals(true, rs.next(), "Query returned no rows");
+                            }
+                            assertEquals(cstmt.isClosed(), true, TestResource.getResource("R_statementShouldBeClosed"));
 
-                ResultSet rs = cstmt.executeQuery();
-                assertEquals(true, rs.next(), "Query returned no rows");
-                rs.close();
-                assertEquals(cstmt.isClosed(), true, TestResource.getResource("R_statementShouldBeClosed"));
+                            // On a second connection, repeat the query, with an immediate
+                            // lock timeout to induce an error.
+                            try (Connection testConn2 = DriverManager.getConnection(connectionString)) {
+                                testConn2.setTransactionIsolation(Connection.TRANSACTION_READ_COMMITTED);
+                                testConn2.setAutoCommit(false);
+                                try (Statement stmt2 = testConn2.createStatement()) {
+                                    stmt2.executeUpdate("SET LOCK_TIMEOUT 0");
 
-                // On a second connection, repeat the query, with an immediate
-                // lock timeout to induce an error.
-                Connection testConn2 = DriverManager.getConnection(connectionString);
-                testConn2.setTransactionIsolation(Connection.TRANSACTION_READ_COMMITTED);
-                testConn2.setAutoCommit(false);
-                Statement stmt2 = testConn2.createStatement();
-                stmt2.executeUpdate("SET LOCK_TIMEOUT 0");
+                                    try (CallableStatement cstmt2 = testConn2
+                                            .prepareCall("SELECT col1 FROM " + tableName + " WITH (UPDLOCK)")) {
 
-                CallableStatement cstmt2 = testConn2.prepareCall("SELECT col1 FROM " + tableName + " WITH (UPDLOCK)");
+                                        // Verify that the result set can be closed after
+                                        // the lock timeout error
+                                        try (ResultSet rs = cstmt2.executeQuery()) {
+                                            rs.close();
+                                        }
+                                        // Verify that the ResultSet hits a lock timeout exception on the
+                                        // indicated row and continues to report that exception on subsequent
+                                        // accesses to that row.
+                                        try (ResultSet rs = cstmt2.executeQuery()) {
+                                            for (int i = 0; i < row; i++)
+                                                assertEquals(true, rs.next(), "Query returned wrong number of rows.");
 
-                // Verify that the result set can be closed after
-                // the lock timeout error
-                rs = cstmt2.executeQuery();
-                rs.close();
+                                            for (int i = 0; i < 2; i++) {
+                                                try {
+                                                    rs.next();
+                                                    assertEquals(false, true, "lock timeout"
+                                                            + TestResource.getResource("R_expectedExceptionNotThrown"));
+                                                } catch (SQLException e) {
+                                                    assertEquals(1222, // lock timeout
+                                                            e.getErrorCode(),
+                                                            TestResource.getResource("R_unexpectedException")
+                                                                    + e.getMessage());
+                                                }
+                                            }
+                                        }
+                                    }
 
-                // Verify that the ResultSet hits a lock timeout exception on the
-                // indicated row and continues to report that exception on subsequent
-                // accesses to that row.
-                rs = cstmt2.executeQuery();
-                for (int i = 0; i < row; i++)
-                    assertEquals(true, rs.next(), "Query returned wrong number of rows.");
-
-                for (int i = 0; i < 2; i++) {
-                    try {
-                        rs.next();
-                        assertEquals(false, true,
-                                "lock timeout" + TestResource.getResource("R_expectedExceptionNotThrown"));
-                    } catch (SQLException e) {
-                        assertEquals(1222, // lock timeout
-                                e.getErrorCode(), TestResource.getResource("R_unexpectedException") + e.getMessage());
+                                    // Verify testConn2 is still usable for queries
+                                    stmt2.executeQuery("SELECT 1").close();
+                                }
+                            }
+                        }
                     }
                 }
-
-                rs.close();
-
-                // Closing the callable statement after the error
-                // has been handled should not throw any exception.
-                cstmt2.close();
-
-                // Verify testConn2 is still usable for queries
-                stmt2.executeQuery("SELECT 1").close();
-
-                // Now clean up
-                stmt2.close();
-                testConn2.close();
-                testConn1.close();
             }
-            stmt.close();
-            conn.close();
         }
 
         @AfterEach

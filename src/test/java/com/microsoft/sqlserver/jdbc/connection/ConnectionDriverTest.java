@@ -6,6 +6,7 @@ package com.microsoft.sqlserver.jdbc.connection;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 import java.sql.Connection;
@@ -53,7 +54,7 @@ public class ConnectionDriverTest extends AbstractTest {
     String randomServer = RandomUtil.getIdentifier("Server");
 
     /**
-     * test SSL properties
+     * test connection properties
      * 
      * @throws SQLException
      */
@@ -92,7 +93,7 @@ public class ConnectionDriverTest extends AbstractTest {
     }
 
     /**
-     * test SSL properties with SQLServerDataSource
+     * test connection properties with SQLServerDataSource
      */
     @Test
     public void testDataSource() {
@@ -229,15 +230,17 @@ public class ConnectionDriverTest extends AbstractTest {
         SQLServerDataSource mds = new SQLServerDataSource();
         mds.setURL(connectionString);
         Connection con = mds.getConnection();
-        Statement stmt = con.createStatement(ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_UPDATABLE);
-
-        boolean exceptionThrown = false;
-        try {
-            stmt.executeUpdate("RAISERROR ('foo', 20,1) WITH LOG");
+        try (Statement stmt = con.createStatement(ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_UPDATABLE)) {
+            boolean exceptionThrown = false;
+            try {
+                stmt.executeUpdate("RAISERROR ('foo', 20,1) WITH LOG");
+            } catch (Exception e) {
+                exceptionThrown = true;
+            }
+            assertTrue(exceptionThrown, TestResource.getResource("R_expectedExceptionNotThrown"));
         } catch (Exception e) {
-            exceptionThrown = true;
+            fail(TestResource.getResource("R_unexpectedErrorMessage") + e.toString());
         }
-        assertTrue(exceptionThrown, TestResource.getResource("R_expectedExceptionNotThrown"));
 
         // check to make sure that connection is closed.
         assertTrue(con.isClosed(), TestResource.getResource("R_connectionIsNotClosed"));
@@ -302,15 +305,15 @@ public class ConnectionDriverTest extends AbstractTest {
         assumeTrue(!DBConnection.isSqlAzure(DriverManager.getConnection(connectionString)),
                 TestResource.getResource("R_skipAzure"));
 
+        String tableName = null;
         try (SQLServerConnection conn = (SQLServerConnection) DriverManager
-                .getConnection(connectionString + ";responseBuffering=adaptive")) {
+                .getConnection(connectionString + ";responseBuffering=adaptive");
+                Statement stmt = conn.createStatement()) {
 
-            Statement stmt = null;
-            String tableName = RandomUtil.getIdentifier("Table");
+            tableName = RandomUtil.getIdentifier("Table");
             tableName = DBTable.escapeIdentifier(tableName);
 
             conn.setAutoCommit(false);
-            stmt = conn.createStatement();
             stmt.executeUpdate("CREATE TABLE " + tableName + " (col1 int primary key)");
             for (int i = 0; i < 80; i++) {
                 stmt.executeUpdate("INSERT INTO " + tableName + "(col1) values (" + i + ")");
@@ -322,10 +325,16 @@ public class ConnectionDriverTest extends AbstractTest {
             } catch (SQLException e) {
                 assertEquals(e.getMessage(), TestResource.getResource("R_connectionReset"),
                         TestResource.getResource("R_unknownException"));
-            } finally {
-                DriverManager.getConnection(connectionString).createStatement().execute("drop table " + tableName);
             }
             assertEquals(conn.isValid(5), false, TestResource.getResource("R_deadConnection"));
+        } catch (Exception e) {
+            fail(TestResource.getResource("R_unexpectedErrorMessage") + e.toString());
+        } finally {
+            try (SQLServerConnection conn = (SQLServerConnection) DriverManager
+                    .getConnection(connectionString + ";responseBuffering=adaptive");
+                    Statement stmt = conn.createStatement()) {
+                stmt.execute("drop table " + tableName);
+            }
         }
     }
 

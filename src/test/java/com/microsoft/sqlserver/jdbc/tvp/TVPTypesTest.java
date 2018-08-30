@@ -59,18 +59,16 @@ public class TVPTypesTest extends AbstractTest {
         tvp.addColumnMetadata("c1", java.sql.Types.LONGVARCHAR);
         tvp.addRow(value);
 
-        SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) connection
-                .prepareStatement("INSERT INTO " + table + " select * from ? ;");
-        pstmt.setStructured(1, tvpName, tvp);
+        try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) connection
+                .prepareStatement("INSERT INTO " + table + " select * from ? ;")) {
+            pstmt.setStructured(1, tvpName, tvp);
 
-        pstmt.execute();
+            pstmt.execute();
 
-        rs = conn.createStatement().executeQuery("select * from " + table);
-        while (rs.next()) {
-            assertEquals(rs.getString(1), value);
-        }
-        if (null != pstmt) {
-            pstmt.close();
+            rs = conn.createStatement().executeQuery("select * from " + table);
+            while (rs.next()) {
+                assertEquals(rs.getString(1), value);
+            }
         }
     }
 
@@ -93,19 +91,16 @@ public class TVPTypesTest extends AbstractTest {
         tvp.addColumnMetadata("c1", java.sql.Types.LONGNVARCHAR);
         tvp.addRow(value);
 
-        SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) connection
-                .prepareStatement("INSERT INTO " + table + " select * from ? ;");
-        pstmt.setStructured(1, tvpName, tvp);
+        try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) connection
+                .prepareStatement("INSERT INTO " + table + " select * from ? ;")) {
+            pstmt.setStructured(1, tvpName, tvp);
 
-        pstmt.execute();
+            pstmt.execute();
 
-        rs = conn.createStatement().executeQuery("select * from " + table);
-        while (rs.next()) {
-            assertEquals(rs.getString(1), value);
-        }
-
-        if (null != pstmt) {
-            pstmt.close();
+            rs = conn.createStatement().executeQuery("select * from " + table);
+            while (rs.next()) {
+                assertEquals(rs.getString(1), value);
+            }
         }
     }
 
@@ -126,19 +121,16 @@ public class TVPTypesTest extends AbstractTest {
         tvp.addColumnMetadata("c1", java.sql.Types.SQLXML);
         tvp.addRow(value);
 
-        SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) connection
-                .prepareStatement("INSERT INTO " + table + " select * from ? ;");
-        pstmt.setStructured(1, tvpName, tvp);
+        try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) connection
+                .prepareStatement("INSERT INTO " + table + " select * from ? ;")) {
+            pstmt.setStructured(1, tvpName, tvp);
 
-        pstmt.execute();
+            pstmt.execute();
 
-        Connection con = DriverManager.getConnection(connectionString);
-        ResultSet rs = con.createStatement().executeQuery("select * from " + table);
-        while (rs.next())
-            assertEquals(rs.getString(1), value);
-
-        if (null != pstmt) {
-            pstmt.close();
+            Connection con = DriverManager.getConnection(connectionString);
+            ResultSet rs = con.createStatement().executeQuery("select * from " + table);
+            while (rs.next())
+                assertEquals(rs.getString(1), value);
         }
     }
 
@@ -159,19 +151,16 @@ public class TVPTypesTest extends AbstractTest {
         tvp.addColumnMetadata("c1", java.sql.Types.LONGNVARCHAR);
         tvp.addRow(value);
 
-        SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) connection
-                .prepareStatement("INSERT INTO " + table + " select * from ? ;");
-        pstmt.setStructured(1, tvpName, tvp);
+        try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) connection
+                .prepareStatement("INSERT INTO " + table + " select * from ? ;")) {
+            pstmt.setStructured(1, tvpName, tvp);
 
-        pstmt.execute();
+            pstmt.execute();
 
-        Connection con = DriverManager.getConnection(connectionString);
-        ResultSet rs = con.createStatement().executeQuery("select * from " + table);
-        while (rs.next())
-            assertEquals(rs.getString(1), value);
-
-        if (null != pstmt) {
-            pstmt.close();
+            Connection con = DriverManager.getConnection(connectionString);
+            ResultSet rs = con.createStatement().executeQuery("select * from " + table);
+            while (rs.next())
+                assertEquals(rs.getString(1), value);
         }
     }
 
@@ -192,19 +181,16 @@ public class TVPTypesTest extends AbstractTest {
         tvp.addColumnMetadata("c1", java.sql.Types.LONGVARCHAR);
         tvp.addRow(value);
 
-        SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) connection
-                .prepareStatement("INSERT INTO " + table + " select * from ? ;");
-        pstmt.setStructured(1, tvpName, tvp);
+        try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) connection
+                .prepareStatement("INSERT INTO " + table + " select * from ? ;")) {
+            pstmt.setStructured(1, tvpName, tvp);
 
-        pstmt.execute();
+            pstmt.execute();
 
-        Connection con = DriverManager.getConnection(connectionString);
-        ResultSet rs = con.createStatement().executeQuery("select * from " + table);
-        while (rs.next())
-            assertEquals(rs.getString(1), value);
-
-        if (null != pstmt) {
-            pstmt.close();
+            Connection con = DriverManager.getConnection(connectionString);
+            ResultSet rs = con.createStatement().executeQuery("select * from " + table);
+            while (rs.next())
+                assertEquals(rs.getString(1), value);
         }
     }
 
@@ -264,16 +250,13 @@ public class TVPTypesTest extends AbstractTest {
 
         final String sql = "{call " + procedureName + "(?)}";
 
-        SQLServerCallableStatement P_C_statement = (SQLServerCallableStatement) connection.prepareCall(sql);
-        P_C_statement.setStructured(1, tvpName, tvp);
-        P_C_statement.execute();
+        try (SQLServerCallableStatement P_C_statement = (SQLServerCallableStatement) connection.prepareCall(sql)) {
+            P_C_statement.setStructured(1, tvpName, tvp);
+            P_C_statement.execute();
 
-        rs = stmt.executeQuery("select * from " + table);
-        while (rs.next())
-            assertEquals(rs.getString(1), value);
-
-        if (null != P_C_statement) {
-            P_C_statement.close();
+            rs = stmt.executeQuery("select * from " + table);
+            while (rs.next())
+                assertEquals(rs.getString(1), value);
         }
     }
 
@@ -298,16 +281,13 @@ public class TVPTypesTest extends AbstractTest {
 
         final String sql = "{call " + procedureName + "(?)}";
 
-        SQLServerCallableStatement P_C_statement = (SQLServerCallableStatement) connection.prepareCall(sql);
-        P_C_statement.setStructured(1, tvpName, tvp);
-        P_C_statement.execute();
+        try (SQLServerCallableStatement P_C_statement = (SQLServerCallableStatement) connection.prepareCall(sql)) {
+            P_C_statement.setStructured(1, tvpName, tvp);
+            P_C_statement.execute();
 
-        rs = stmt.executeQuery("select * from " + table);
-        while (rs.next())
-            assertEquals(rs.getString(1), value);
-
-        if (null != P_C_statement) {
-            P_C_statement.close();
+            rs = stmt.executeQuery("select * from " + table);
+            while (rs.next())
+                assertEquals(rs.getString(1), value);
         }
     }
 
@@ -332,15 +312,13 @@ public class TVPTypesTest extends AbstractTest {
 
         final String sql = "{call " + procedureName + "(?)}";
 
-        SQLServerCallableStatement P_C_statement = (SQLServerCallableStatement) connection.prepareCall(sql);
-        P_C_statement.setStructured(1, tvpName, tvp);
-        P_C_statement.execute();
+        try (SQLServerCallableStatement P_C_statement = (SQLServerCallableStatement) connection.prepareCall(sql)) {
+            P_C_statement.setStructured(1, tvpName, tvp);
+            P_C_statement.execute();
 
-        rs = stmt.executeQuery("select * from " + table);
-        while (rs.next())
-            assertEquals(rs.getString(1), value);
-        if (null != P_C_statement) {
-            P_C_statement.close();
+            rs = stmt.executeQuery("select * from " + table);
+            while (rs.next())
+                assertEquals(rs.getString(1), value);
         }
     }
 
@@ -366,15 +344,13 @@ public class TVPTypesTest extends AbstractTest {
 
         final String sql = "{call " + procedureName + "(?)}";
 
-        SQLServerCallableStatement P_C_statement = (SQLServerCallableStatement) connection.prepareCall(sql);
-        P_C_statement.setStructured(1, tvpName, tvp);
-        P_C_statement.execute();
+        try (SQLServerCallableStatement P_C_statement = (SQLServerCallableStatement) connection.prepareCall(sql)) {
+            P_C_statement.setStructured(1, tvpName, tvp);
+            P_C_statement.execute();
 
-        rs = stmt.executeQuery("select * from " + table);
-        while (rs.next())
-            assertEquals(rs.getString(1), value);
-        if (null != P_C_statement) {
-            P_C_statement.close();
+            rs = stmt.executeQuery("select * from " + table);
+            while (rs.next())
+                assertEquals(rs.getString(1), value);
         }
     }
 
@@ -400,15 +376,13 @@ public class TVPTypesTest extends AbstractTest {
 
         final String sql = "{call " + procedureName + "(?)}";
 
-        SQLServerCallableStatement P_C_statement = (SQLServerCallableStatement) connection.prepareCall(sql);
-        P_C_statement.setStructured(1, tvpName, tvp);
-        P_C_statement.execute();
+        try (SQLServerCallableStatement P_C_statement = (SQLServerCallableStatement) connection.prepareCall(sql)) {
+            P_C_statement.setStructured(1, tvpName, tvp);
+            P_C_statement.execute();
 
-        rs = stmt.executeQuery("select * from " + table);
-        while (rs.next())
-            assertEquals(rs.getString(1), value);
-        if (null != P_C_statement) {
-            P_C_statement.close();
+            rs = stmt.executeQuery("select * from " + table);
+            while (rs.next())
+                assertEquals(rs.getString(1), value);
         }
     }
 
@@ -434,15 +408,13 @@ public class TVPTypesTest extends AbstractTest {
 
         final String sql = "{call " + procedureName + "(?)}";
 
-        SQLServerCallableStatement P_C_statement = (SQLServerCallableStatement) connection.prepareCall(sql);
-        P_C_statement.setStructured(1, tvpName, tvp);
-        P_C_statement.execute();
+        try (SQLServerCallableStatement P_C_statement = (SQLServerCallableStatement) connection.prepareCall(sql)) {
+            P_C_statement.setStructured(1, tvpName, tvp);
+            P_C_statement.execute();
 
-        rs = stmt.executeQuery("select * from " + table);
-        while (rs.next())
-            assertTrue(parseByte(rs.getBytes(1), value.getBytes()));
-        if (null != P_C_statement) {
-            P_C_statement.close();
+            rs = stmt.executeQuery("select * from " + table);
+            while (rs.next())
+                assertTrue(parseByte(rs.getBytes(1), value.getBytes()));
         }
     }
 
@@ -462,18 +434,16 @@ public class TVPTypesTest extends AbstractTest {
         tvp.addColumnMetadata("c1", microsoft.sql.Types.DATETIME);
         tvp.addRow(value);
 
-        SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) connection
-                .prepareStatement("INSERT INTO " + table + " select * from ? ;");
-        pstmt.setStructured(1, tvpName, tvp);
+        try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) connection
+                .prepareStatement("INSERT INTO " + table + " select * from ? ;")) {
+            pstmt.setStructured(1, tvpName, tvp);
 
-        pstmt.execute();
+            pstmt.execute();
 
-        rs = conn.createStatement().executeQuery("select * from " + table);
-        while (rs.next()) {
-            assertEquals(((SQLServerResultSet) rs).getDateTime(1), value);
-        }
-        if (null != pstmt) {
-            pstmt.close();
+            rs = conn.createStatement().executeQuery("select * from " + table);
+            while (rs.next()) {
+                assertEquals(((SQLServerResultSet) rs).getDateTime(1), value);
+            }
         }
     }
 
@@ -494,18 +464,16 @@ public class TVPTypesTest extends AbstractTest {
         tvp.addColumnMetadata("c1", microsoft.sql.Types.SMALLDATETIME);
         tvp.addRow(value);
 
-        SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) connection
-                .prepareStatement("INSERT INTO " + table + " select * from ? ;");
-        pstmt.setStructured(1, tvpName, tvp);
+        try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) connection
+                .prepareStatement("INSERT INTO " + table + " select * from ? ;")) {
+            pstmt.setStructured(1, tvpName, tvp);
 
-        pstmt.execute();
+            pstmt.execute();
 
-        rs = conn.createStatement().executeQuery("select * from " + table);
-        while (rs.next()) {
-            assertEquals(((SQLServerResultSet) rs).getSmallDateTime(1), returnValue);
-        }
-        if (null != pstmt) {
-            pstmt.close();
+            rs = conn.createStatement().executeQuery("select * from " + table);
+            while (rs.next()) {
+                assertEquals(((SQLServerResultSet) rs).getSmallDateTime(1), returnValue);
+            }
         }
     }
 

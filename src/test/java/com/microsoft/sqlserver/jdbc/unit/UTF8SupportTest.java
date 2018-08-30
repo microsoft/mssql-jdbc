@@ -118,10 +118,14 @@ public class UTF8SupportTest extends AbstractTest {
 
     @AfterAll
     public static void cleanUp() throws SQLException {
-        if (Utils.serverSupportsUTF8(connection)) {
-            Utils.dropDatabaseIfExists(databaseName, connection.createStatement());
+        try (Statement stmt = connection.createStatement()) {
+            if (Utils.serverSupportsUTF8(connection)) {
+                Utils.dropDatabaseIfExists(databaseName, stmt);
+            }
         }
-        connection.close();
+        if (null != connection) {
+            connection.close();
+        }
     }
 
     private static void createDatabaseWithUTF8Collation() throws SQLException {
@@ -145,6 +149,7 @@ public class UTF8SupportTest extends AbstractTest {
     }
 
     public void validate(String value) throws SQLException {
+        ResultSet rs = null;
         try (PreparedStatement psInsert = connection.prepareStatement("INSERT INTO " + tableName + " VALUES(?)");
                 PreparedStatement psFetch = connection.prepareStatement("SELECT * FROM " + tableName);
                 Statement stmt = connection.createStatement();) {
@@ -156,18 +161,23 @@ public class UTF8SupportTest extends AbstractTest {
             psInsert.executeUpdate();
 
             // Fetch using Statement.
-            ResultSet rsStatement = stmt.executeQuery("SELECT * FROM " + tableName);
-            rsStatement.next();
+            rs = stmt.executeQuery("SELECT * FROM " + tableName);
+            rs.next();
             // Compare Strings.
-            assertEquals(value, rsStatement.getString(1));
+            assertEquals(value, rs.getString(1));
             // Test UTF8 sequence returned from getBytes().
-            assertArrayEquals(valueBytes, rsStatement.getBytes(1));
+            assertArrayEquals(valueBytes, rs.getBytes(1));
 
             // Fetch using PreparedStatement.
-            ResultSet rsPreparedStatement = psFetch.executeQuery();
-            rsPreparedStatement.next();
-            assertEquals(value, rsPreparedStatement.getString(1));
-            assertArrayEquals(valueBytes, rsPreparedStatement.getBytes(1));
+            try (ResultSet rsPreparedStatement = psFetch.executeQuery()) {
+                rsPreparedStatement.next();
+                assertEquals(value, rsPreparedStatement.getString(1));
+                assertArrayEquals(valueBytes, rsPreparedStatement.getBytes(1));
+            }
+        } finally {
+            if (null != rs) {
+                rs.close();
+            }
         }
     }
 }

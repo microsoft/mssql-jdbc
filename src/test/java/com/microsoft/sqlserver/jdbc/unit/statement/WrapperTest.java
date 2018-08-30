@@ -133,10 +133,8 @@ public class WrapperTest extends AbstractTest {
     @Test
     public void unWrapFailureTest() throws Exception {
         Class.forName("com.microsoft.sqlserver.jdbc.SQLServerDriver");
-        Connection con = DriverManager.getConnection(connectionString);
-        SQLServerStatement stmt = (SQLServerStatement) con.createStatement();
-
-        try {
+        try (Connection con = DriverManager.getConnection(connectionString);
+                SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
             String str = "java.lang.String";
             boolean isWrapper = stmt.isWrapperFor(Class.forName(str));
             stmt.unwrap(Class.forName(str));
@@ -152,21 +150,13 @@ public class WrapperTest extends AbstractTest {
                     "isWrapperFor " + TestResource.getResource("R_shouldBeSupported"));
             assertEquals(e.getMessage(), "This operation is not supported.",
                     TestResource.getResource("R_unexpectedExceptionContent"));
-        } finally {
-            if (null != stmt) {
-                stmt.close();
-            }
-            if (null != con) {
-                con.close();
-            }
         }
     }
 
     private static boolean isKatmaiServer() throws Exception {
-        DBConnection conn = new DBConnection(connectionString);
-        double version = conn.getServerVersion();
-        conn.close();
-        return ((version >= 10.0) ? true : false);
+        try (DBConnection conn = new DBConnection(connectionString)) {
+            double version = conn.getServerVersion();
+            return ((version >= 10.0) ? true : false);
+        }
     }
-
 }

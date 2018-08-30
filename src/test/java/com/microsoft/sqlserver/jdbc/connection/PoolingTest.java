@@ -6,6 +6,7 @@ package com.microsoft.sqlserver.jdbc.connection;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 import java.lang.management.ManagementFactory;
@@ -58,16 +59,16 @@ public class PoolingTest extends AbstractTest {
         XADataSource1.setDatabaseName("tempdb");
 
         PooledConnection pc = XADataSource1.getPooledConnection();
-        try (Connection conn = pc.getConnection()) {
+        try (Connection conn = pc.getConnection(); Statement stmt = conn.createStatement()) {
 
             // create table in tempdb database
-            conn.createStatement().execute("create table [" + tempTableName + "] (myid int)");
-            conn.createStatement().execute("insert into [" + tempTableName + "] values (1)");
+            stmt.execute("create table [" + tempTableName + "] (myid int)");
+            stmt.execute("insert into [" + tempTableName + "] values (1)");
         }
 
         boolean tempTableFileRemoved = false;
-        try (Connection conn = pc.getConnection()) {
-            conn.createStatement().executeQuery("select * from [" + tempTableName + "]");
+        try (Connection conn = pc.getConnection(); Statement stmt = conn.createStatement()) {
+            stmt.executeQuery("select * from [" + tempTableName + "]");
         } catch (SQLException e) {
             // make sure the temporary table is not found.
             if (e.getMessage().startsWith(TestResource.getResource("R_invalidObjectName"))) {
@@ -81,15 +82,32 @@ public class PoolingTest extends AbstractTest {
     public void testConnectionPoolReget() throws SQLException {
         SQLServerXADataSource ds = new SQLServerXADataSource();
         ds.setURL(connectionString);
+        PooledConnection pc = null;
+        try {
+            pc = ds.getPooledConnection();
+            Connection con = null;
+            Connection con2 = null;
+            try {
+                con = pc.getConnection();
 
-        PooledConnection pc = ds.getPooledConnection();
-        Connection con = pc.getConnection();
+                // now re-get a connection
+                con2 = pc.getConnection();
 
-        // now reget a connection
-        Connection con2 = pc.getConnection();
-
-        // assert that the first connection is closed.
-        assertTrue(con.isClosed(), TestResource.getResource("R_firstConnectionNotClosed"));
+                // assert that the first connection is closed.
+                assertTrue(con.isClosed(), TestResource.getResource("R_firstConnectionNotClosed"));
+            } finally {
+                if (null != con) {
+                    con.close();
+                }
+                if (null != con2) {
+                    con2.close();
+                }
+            }
+        } finally {
+            if (null != pc) {
+                pc.close();
+            }
+        }
     }
 
     @Test
@@ -111,8 +129,14 @@ public class PoolingTest extends AbstractTest {
             statement.execute(sql1);
             statement.execute(sql2);
             con.clearWarnings();
+
+        } catch (Exception e) {
+            fail(TestResource.getResource("R_unexpectedErrorMessage") + e.toString());
+        } finally {
+            if (null != pc) {
+                pc.close();
+            }
         }
-        pc.close();
     }
 
     @Test
@@ -121,32 +145,45 @@ public class PoolingTest extends AbstractTest {
         ds.setURL(connectionString);
 
         PooledConnection pc = ds.getPooledConnection();
-        Connection con = pc.getConnection();
+        try (Connection con = pc.getConnection()) {
+            pc.close();
 
-        pc.close();
-        // assert that the first connection is closed.
-        assertTrue(con.isClosed(), TestResource.getResource("R_connectionNotClosedWithPoolClose"));
+            // assert that the first connection is closed.
+            assertTrue(con.isClosed(), TestResource.getResource("R_connectionNotClosedWithPoolClose"));
+        } catch (Exception e) {
+            fail(TestResource.getResource("R_unexpectedErrorMessage") + e.toString());
+        } finally {
+            if (null != pc) {
+                pc.close();
+            }
+        }
     }
 
     @Test
     public void testConnectionPoolClientConnectionId() throws SQLException {
         SQLServerXADataSource ds = new SQLServerXADataSource();
         ds.setURL(connectionString);
+        PooledConnection pc = null;
+        try {
+            pc = ds.getPooledConnection();
+            ISQLServerConnection con = (ISQLServerConnection) pc.getConnection();
 
-        PooledConnection pc = ds.getPooledConnection();
-        ISQLServerConnection con = (ISQLServerConnection) pc.getConnection();
+            UUID Id1 = con.getClientConnectionId();
+            assertTrue(Id1 != null, TestResource.getResource("R_connectionNotClosedWithPoolClose"));
+            con.close();
 
-        UUID Id1 = con.getClientConnectionId();
-        assertTrue(Id1 != null, TestResource.getResource("R_connectionNotClosedWithPoolClose"));
-        con.close();
+            // now reget the connection
+            ISQLServerConnection con2 = (ISQLServerConnection) pc.getConnection();
 
-        // now reget the connection
-        ISQLServerConnection con2 = (ISQLServerConnection) pc.getConnection();
+            UUID Id2 = con2.getClientConnectionId();
+            con2.close();
 
-        UUID Id2 = con2.getClientConnectionId();
-        con2.close();
-
-        assertEquals(Id1, Id2, TestResource.getResource("R_idFromPoolNotSame"));
+            assertEquals(Id1, Id2, TestResource.getResource("R_idFromPoolNotSame"));
+        } finally {
+            if (null != pc) {
+                pc.close();
+            }
+        }
     }
 
     /**
@@ -191,33 +228,14 @@ public class PoolingTest extends AbstractTest {
      * @throws SQLException
      */
     private static void connect(DataSource ds) throws SQLException {
-        Connection con = null;
-        PreparedStatement pst = null;
-        ResultSet rs = null;
-
-        try {
-            con = ds.getConnection();
-            pst = con.prepareStatement("SELECT SUSER_SNAME()");
-            pst.setQueryTimeout(5);
-            rs = pst.executeQuery();
+        try (Connection con = ds.getConnection(); PreparedStatement pst = con.prepareStatement("SELECT SUSER_SNAME()");
+                ResultSet rs = pst.executeQuery()) {
 
             // TODO : we are commenting this out due to AppVeyor failures. Will investigate later.
             // assertTrue(countTimeoutThreads() >= 1, "Timeout timer is missing.");
 
             while (rs.next()) {
                 rs.getString(1);
-            }
-        } finally {
-            if (rs != null) {
-                rs.close();
-            }
-
-            if (pst != null) {
-                pst.close();
-            }
-
-            if (con != null) {
-                con.close();
             }
         }
     }

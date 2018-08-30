@@ -315,26 +315,10 @@ public class ResultSetTest extends AbstractTest {
      */
     @Test
     public void testGetterOnNull() throws SQLException {
-        Connection con = null;
-        Statement stmt = null;
-        ResultSet rs = null;
-        try {
-            con = DriverManager.getConnection(connectionString);
-            stmt = con.createStatement();
-            rs = stmt.executeQuery("select null");
+        try (Connection con = DriverManager.getConnection(connectionString); Statement stmt = con.createStatement();
+                ResultSet rs = stmt.executeQuery("select null")) {
             rs.next();
             assertEquals(null, rs.getTime(1));
-        } finally {
-            if (con != null) {
-                con.close();
-            }
-            if (stmt != null) {
-                stmt.close();
-            }
-            if (rs != null) {
-                rs.close();
-            }
         }
     }
-
 }

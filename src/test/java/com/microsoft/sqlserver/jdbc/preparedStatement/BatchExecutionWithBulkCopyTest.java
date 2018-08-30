@@ -181,23 +181,24 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
 
             pstmt.executeBatch();
 
-            ResultSet rs = stmt.executeQuery("SELECT * FROM " + tableName);
+            try (ResultSet rs = stmt.executeQuery("SELECT * FROM " + tableName)) {
 
-            Object[] expected = new Object[9];
+                Object[] expected = new Object[9];
 
-            expected[0] = 1234;
-            expected[1] = false;
-            expected[2] = "a";
-            expected[3] = d;
-            expected[4] = myTimestamp;
-            expected[5] = 123.45;
-            expected[6] = "b";
-            expected[7] = "varc";
-            expected[8] = "''";
+                expected[0] = 1234;
+                expected[1] = false;
+                expected[2] = "a";
+                expected[3] = d;
+                expected[4] = myTimestamp;
+                expected[5] = 123.45;
+                expected[6] = "b";
+                expected[7] = "varc";
+                expected[8] = "''";
 
-            rs.next();
-            for (int i = 0; i < expected.length; i++) {
-                assertEquals(expected[i].toString(), rs.getObject(i + 1).toString());
+                rs.next();
+                for (int i = 0; i < expected.length; i++) {
+                    assertEquals(expected[i].toString(), rs.getObject(i + 1).toString());
+                }
             }
         }
     }
@@ -226,24 +227,25 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
 
             pstmt.executeBatch();
 
-            ResultSet rs = stmt.executeQuery("SELECT * FROM " + tableName);
+            try (ResultSet rs = stmt.executeQuery("SELECT * FROM " + tableName)) {
 
-            Object[] expected = new Object[9];
+                Object[] expected = new Object[9];
 
-            expected[0] = 1234;
-            expected[1] = false;
-            expected[2] = "a";
-            expected[3] = d;
-            expected[4] = myTimestamp;
-            expected[5] = 123.45;
-            expected[6] = "b";
-            expected[7] = "varc";
-            expected[8] = "varcmax";
+                expected[0] = 1234;
+                expected[1] = false;
+                expected[2] = "a";
+                expected[3] = d;
+                expected[4] = myTimestamp;
+                expected[5] = 123.45;
+                expected[6] = "b";
+                expected[7] = "varc";
+                expected[8] = "varcmax";
 
-            rs.next();
-            for (int i = 0; i < expected.length; i++) {
-                if (null != rs.getObject(i + 1)) {
-                    assertEquals(expected[i].toString(), rs.getObject(i + 1).toString());
+                rs.next();
+                for (int i = 0; i < expected.length; i++) {
+                    if (null != rs.getObject(i + 1)) {
+                        assertEquals(expected[i].toString(), rs.getObject(i + 1).toString());
+                    }
                 }
             }
         }
@@ -272,22 +274,23 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
 
             pstmt.executeBatch();
 
-            ResultSet rs = stmt.executeQuery("SELECT * FROM " + tableName);
+            try (ResultSet rs = stmt.executeQuery("SELECT * FROM " + tableName)) {
 
-            Object[] expected = new Object[9];
+                Object[] expected = new Object[9];
 
-            expected[0] = 1234;
-            expected[1] = false;
-            expected[2] = null;
-            expected[3] = null;
-            expected[4] = null;
-            expected[5] = 123.45;
-            expected[6] = " ";
+                expected[0] = 1234;
+                expected[1] = false;
+                expected[2] = null;
+                expected[3] = null;
+                expected[4] = null;
+                expected[5] = 123.45;
+                expected[6] = " ";
 
-            rs.next();
-            for (int i = 0; i < expected.length; i++) {
-                if (null != rs.getObject(i + 1)) {
-                    assertEquals(expected[i], rs.getObject(i + 1));
+                rs.next();
+                for (int i = 0; i < expected.length; i++) {
+                    if (null != rs.getObject(i + 1)) {
+                        assertEquals(expected[i], rs.getObject(i + 1));
+                    }
                 }
             }
         }
@@ -310,23 +313,24 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
 
             pstmt.executeBatch();
 
-            ResultSet rs = stmt.executeQuery("SELECT * FROM " + tableName);
+            try (ResultSet rs = stmt.executeQuery("SELECT * FROM " + tableName)) {
 
-            Object[] expected = new Object[9];
+                Object[] expected = new Object[9];
 
-            expected[0] = 1234;
-            expected[1] = false;
-            expected[2] = "a";
-            expected[3] = null;
-            expected[4] = null;
-            expected[5] = 123.45;
-            expected[6] = "b";
-            expected[7] = "varc";
-            expected[8] = "sadf";
+                expected[0] = 1234;
+                expected[1] = false;
+                expected[2] = "a";
+                expected[3] = null;
+                expected[4] = null;
+                expected[5] = 123.45;
+                expected[6] = "b";
+                expected[7] = "varc";
+                expected[8] = "sadf";
 
-            rs.next();
-            for (int i = 0; i < expected.length; i++) {
-                assertEquals(expected[i], rs.getObject(i + 1));
+                rs.next();
+                for (int i = 0; i < expected.length; i++) {
+                    assertEquals(expected[i], rs.getObject(i + 1));
+                }
             }
         }
     }
@@ -351,10 +355,11 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
 
             pstmt.executeBatch();
 
-            ResultSet rs = stmt.executeQuery("SELECT * FROM " + squareBracketTableName);
-            rs.next();
+            try (ResultSet rs = stmt.executeQuery("SELECT * FROM " + squareBracketTableName)) {
+                rs.next();
 
-            assertEquals(1, rs.getObject(1));
+                assertEquals(1, rs.getObject(1));
+            }
         }
     }
 
@@ -378,10 +383,11 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
 
             pstmt.executeBatch();
 
-            ResultSet rs = stmt.executeQuery("SELECT * FROM " + doubleQuoteTableName);
-            rs.next();
+            try (ResultSet rs = stmt.executeQuery("SELECT * FROM " + doubleQuoteTableName)) {
+                rs.next();
 
-            assertEquals(1, rs.getObject(1));
+                assertEquals(1, rs.getObject(1));
+            }
         }
     }
 
@@ -407,10 +413,11 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
 
             pstmt.executeBatch();
 
-            ResultSet rs = stmt.executeQuery("SELECT * FROM " + schemaTableName);
-            rs.next();
+            try (ResultSet rs = stmt.executeQuery("SELECT * FROM " + schemaTableName)) {
+                rs.next();
 
-            assertEquals(1, rs.getObject(1));
+                assertEquals(1, rs.getObject(1));
+            }
         }
     }
 
@@ -434,10 +441,11 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
 
             pstmt.executeBatch();
 
-            ResultSet rs = stmt.executeQuery("SELECT * FROM " + squareBracketTableName);
-            rs.next();
+            try (ResultSet rs = stmt.executeQuery("SELECT * FROM " + squareBracketTableName)) {
+                rs.next();
 
-            assertEquals(1, rs.getObject(1));
+                assertEquals(1, rs.getObject(1));
+            }
         }
     }
 
@@ -470,23 +478,24 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
 
             pstmt.executeLargeBatch();
 
-            ResultSet rs = stmt.executeQuery("SELECT * FROM " + tableName);
+            try (ResultSet rs = stmt.executeQuery("SELECT * FROM " + tableName)) {
 
-            Object[] expected = new Object[9];
+                Object[] expected = new Object[9];
 
-            expected[0] = 1234;
-            expected[1] = false;
-            expected[2] = "a";
-            expected[3] = d;
-            expected[4] = myTimestamp;
-            expected[5] = 123.45;
-            expected[6] = "b";
-            expected[7] = "varc";
-            expected[8] = "''";
+                expected[0] = 1234;
+                expected[1] = false;
+                expected[2] = "a";
+                expected[3] = d;
+                expected[4] = myTimestamp;
+                expected[5] = 123.45;
+                expected[6] = "b";
+                expected[7] = "varc";
+                expected[8] = "''";
 
-            rs.next();
-            for (int i = 0; i < expected.length; i++) {
-                assertEquals(expected[i].toString(), rs.getObject(i + 1).toString());
+                rs.next();
+                for (int i = 0; i < expected.length; i++) {
+                    assertEquals(expected[i].toString(), rs.getObject(i + 1).toString());
+                }
             }
         }
     }
@@ -611,12 +620,13 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
 
             pstmt.executeBatch();
 
-            ResultSet rs = stmt.executeQuery("SELECT * FROM " + unsupportedTableName);
-            rs.next();
-            assertEquals(g1.toString(), Geometry.STGeomFromWKB((byte[]) rs.getObject(1)).toString());
-            assertEquals(g2.toString(), Geography.STGeomFromWKB((byte[]) rs.getObject(2)).toString());
-            assertEquals(myTimestamp, rs.getObject(3));
-            assertEquals(myTimestamp, rs.getObject(4));
+            try (ResultSet rs = stmt.executeQuery("SELECT * FROM " + unsupportedTableName)) {
+                rs.next();
+                assertEquals(g1.toString(), Geometry.STGeomFromWKB((byte[]) rs.getObject(1)).toString());
+                assertEquals(g2.toString(), Geography.STGeomFromWKB((byte[]) rs.getObject(2)).toString());
+                assertEquals(myTimestamp, rs.getObject(3));
+                assertEquals(myTimestamp, rs.getObject(4));
+            }
         }
     }
 
