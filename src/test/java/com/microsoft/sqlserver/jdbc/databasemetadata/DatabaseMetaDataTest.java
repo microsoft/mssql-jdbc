@@ -108,6 +108,7 @@ public class DatabaseMetaDataTest extends AbstractTest {
             int intBuildVersion = Integer.valueOf(buildVersion);
             int intDriverVersion = Integer.valueOf(driverVersion);
             assertTrue(intDriverVersion == intBuildVersion, TestResource.getResource("R_buildVersionError"));
+        }
     }
 
     /**
