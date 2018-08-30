@@ -278,8 +278,10 @@ public class RequestBoundaryMethodsTest extends AbstractTest {
             if (null != cs) {
                 cs.close();
             }
-            try (SQLServerConnection con = connect(); Statement st = con.createStatement()) {
-                Utils.dropTableIfExists(tableName, st);
+            if (null != tableName) {
+                try (SQLServerConnection con = connect(); Statement st = con.createStatement()) {
+                    Utils.dropTableIfExists(tableName, st);
+                }
             }
         }
     }

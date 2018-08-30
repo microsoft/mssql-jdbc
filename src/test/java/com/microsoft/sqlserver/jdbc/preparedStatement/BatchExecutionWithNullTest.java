@@ -119,7 +119,8 @@ public class BatchExecutionWithNullTest extends AbstractTest {
 
     @AfterAll
     public static void terminateVariation() throws SQLException {
-        try (SQLServerStatement stmt = (SQLServerStatement) conn.createStatement()) {
+        try (Connection cnnection = DriverManager.getConnection(connectionString);
+                SQLServerStatement stmt = (SQLServerStatement) conn.createStatement()) {
             Utils.dropTableIfExists("esimple", stmt);
         }
 
