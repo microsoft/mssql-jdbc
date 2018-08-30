@@ -106,8 +106,9 @@ public class BatchExecutionWithNullTest extends AbstractTest {
 
     @BeforeEach
     public void testSetup() throws TestAbortedException, Exception {
-        assumeTrue(13 <= new DBConnection(connectionString).getServerVersion(),
-                TestResource.getResource("R_Incompat_SQLServerVersion"));
+        try (DBConnection con = new DBConnection(connectionString)) {
+            assumeTrue(13 <= con.getServerVersion(), TestResource.getResource("R_Incompat_SQLServerVersion"));
+        }
 
         connection = DriverManager.getConnection(connectionString);
         SQLServerStatement stmt = (SQLServerStatement) connection.createStatement();

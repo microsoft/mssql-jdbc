@@ -12,7 +12,9 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
+import java.sql.Connection;
 import java.sql.CallableStatement;
+import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -279,8 +281,8 @@ public class RequestBoundaryMethodsTest extends AbstractTest {
                 cs.close();
             }
             if (null != tableName) {
-                try (SQLServerConnection con = connect(); Statement st = con.createStatement()) {
-                    Utils.dropTableIfExists(tableName, st);
+                try (Connection con = DriverManager.getConnection(connectionString); Statement statement = con.createStatement()) {
+                    Utils.dropTableIfExists(tableName, statement);
                 }
             }
         }

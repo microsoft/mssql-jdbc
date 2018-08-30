@@ -84,8 +84,9 @@ public class AESetup extends AbstractTest {
      */
     @BeforeAll
     public static void setUpConnection() throws TestAbortedException, Exception {
-        assumeTrue(13 <= new DBConnection(connectionString).getServerVersion(),
-                TestResource.getResource("R_Incompat_SQLServerVersion"));
+        try (DBConnection con = new DBConnection(connectionString)) {
+            assumeTrue(13 <= con.getServerVersion(), TestResource.getResource("R_Incompat_SQLServerVersion"));
+        }
 
         String AETestConenctionString = connectionString + ";sendTimeAsDateTime=false";
         readFromFile(javaKeyStoreInputFile, "Alias name");
