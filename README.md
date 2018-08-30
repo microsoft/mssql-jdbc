@@ -88,7 +88,7 @@ To get the latest preview version of the driver, add the following to your POM f
 <dependency>
 	<groupId>com.microsoft.sqlserver</groupId>
 	<artifactId>mssql-jdbc</artifactId>
-	<version>6.5.4.jre10-preview</version>
+	<version>7.1.0.jre10-preview</version>
 </dependency>
 ```
 ### Using driver as Java Module
@@ -119,7 +119,7 @@ Projects that require either of the two features need to explicitly declare the 
 <dependency>
 	<groupId>com.microsoft.sqlserver</groupId>
 	<artifactId>mssql-jdbc</artifactId>
-	<version>7.0.0.jre10</version>
+	<version>7.1.0.jre10-preview</version>
 	<scope>compile</scope>
 </dependency>
 
@@ -135,7 +135,7 @@ Projects that require either of the two features need to explicitly declare the 
 <dependency>
 	<groupId>com.microsoft.sqlserver</groupId>
 	<artifactId>mssql-jdbc</artifactId>
-	<version>7.0.0.jre10</version>
+	<version>7.1.0.jre10-preview</version>
 	<scope>compile</scope>
 </dependency>
 
@@ -183,7 +183,7 @@ Preview releases happen approximately monthly between stable releases. This give
 You can see what is going into a future release by monitoring [Milestones](https://github.com/Microsoft/mssql-jdbc/milestones) in the repository.
 
 ### Versioning convention
-Starting with 6.0, stable versions have an even minor version. For example, 6.0, 6.2, 6.4. Preview versions have an odd minor version. For example, 6.1, 6.3, 6.5.
+Starting with 6.0, stable versions have an even minor version. For example, 6.0, 6.2, 6.4, 7.0. Preview versions have an odd minor version. For example, 6.1, 6.3, 6.5, 7.1.
 
 ## Contributors 
 Special thanks to everyone who has contributed to the project.
