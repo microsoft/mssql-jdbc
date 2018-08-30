@@ -7,6 +7,7 @@ package com.microsoft.sqlserver.jdbc;
 
 import static java.nio.charset.StandardCharsets.US_ASCII;
 import static java.nio.charset.StandardCharsets.UTF_16LE;
+import static java.nio.charset.StandardCharsets.UTF_16;
 
 import java.io.BufferedInputStream;
 import java.io.BufferedReader;
@@ -20,6 +21,7 @@ import java.io.Serializable;
 import java.io.StringReader;
 import java.io.UnsupportedEncodingException;
 import java.io.Writer;
+import java.nio.charset.Charset;
 import java.sql.Clob;
 import java.sql.SQLException;
 import java.text.MessageFormat;
@@ -301,7 +303,12 @@ abstract class SQLServerClobBase extends SQLServerLob implements Serializable {
         Reader getterStream = null;
         if (null == value && !activeStreams.isEmpty()) {
             InputStream inputStream = (InputStream) activeStreams.get(0);
-            getterStream = new BufferedReader(new InputStreamReader(inputStream, UTF_16LE));
+            try {
+                inputStream.reset();
+            } catch (IOException e) {
+                throw new SQLServerException(e.getMessage(), null, 0, e);
+            }
+            getterStream = new BufferedReader(new InputStreamReader(inputStream));
         } else {
             getterStream = new StringReader(value);
             activeStreams.add(getterStream);
@@ -383,9 +390,11 @@ abstract class SQLServerClobBase extends SQLServerLob implements Serializable {
         checkClosed();
         if (value == null && activeStreams.get(0) instanceof PLPInputStream) {
             return (long) ((PLPInputStream) activeStreams.get(0)).payloadLength / 2;
+        } else if (value == null && activeStreams.get(0) instanceof SimpleInputStream) {
+            return (long) ((SimpleInputStream) activeStreams.get(0)).payloadLength / 2;
+        } else {
+            return value.length();
         }
-        getStringFromStream();
-        return value.length();
     }
 
     /**
