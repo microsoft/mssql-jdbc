@@ -257,8 +257,7 @@ public class SQLServerColumnEncryptionJavaKeyStoreProvider extends SQLServerColu
         System.arraycopy(signedHash, 0, encryptedColumnEncryptionKey, currentIndex, signedHash.length);
 
         javaKeyStoreLogger.exiting(SQLServerColumnEncryptionJavaKeyStoreProvider.class.getName(),
-                "encryptColumnEncryptionKey",
-                "Finished encrypting Column Encryption Key.");
+                "encryptColumnEncryptionKey", "Finished encrypting Column Encryption Key.");
         return encryptedColumnEncryptionKey;
 
     }

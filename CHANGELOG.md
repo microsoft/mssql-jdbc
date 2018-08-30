@@ -3,6 +3,19 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](http://keepachangelog.com/) 
 
+## [7.1.0] Preview Release
+### Added
+- Added support for LocalDate, LocalTime and LocalDateTime to be passed as 'type' in ResultSet.getObject() [#749](https://github.com/Microsoft/mssql-jdbc/pull/749)
+- Added support to read SQL Warnings after ResultSet is read completely [#785](https://github.com/Microsoft/mssql-jdbc/pull/785)
+
+### Fixed Issues
+- Fixed Javadoc warnings and removed obselete HTML tags from Javadocs [#786](https://github.com/Microsoft/mssql-jdbc/pull/786)
+- Fixed random JUnit failures in framework tests [#762](https://github.com/Microsoft/mssql-jdbc/pull/762)
+
+### Changed
+- Improved performance of readLong() function by unrolling loop and using bitwise operators instead of additions [#763](https://github.com/Microsoft/mssql-jdbc/pull/763)
+- Removed logging logic which caused performance degradation in AE [#773](https://github.com/Microsoft/mssql-jdbc/pull/773)
+
 ## [7.0.0] Stable Release
 ### Added
 - Added 'Automatic-Module-Name' manifest entry to jre10 Jar, allowing JDK 10 users to access driver module 'com.microsoft.sqlserver.jdbc' [#732](https://github.com/Microsoft/mssql-jdbc/pull/732)
