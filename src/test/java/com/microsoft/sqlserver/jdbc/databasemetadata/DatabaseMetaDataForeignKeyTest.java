@@ -95,40 +95,26 @@ public class DatabaseMetaDataForeignKeyTest extends AbstractTest {
      */
     @Test
     public void testGetImportedKeys() throws SQLException {
-        SQLServerResultSet rs1 = null;
-        SQLServerResultSet rs2 = null;
-        SQLServerResultSet rs3 = null;
-     
         try (SQLServerConnection conn = (SQLServerConnection) DriverManager.getConnection(connectionString)) {
             SQLServerDatabaseMetaData dmd = (SQLServerDatabaseMetaData) conn.getMetaData();
 
-            rs1 = (SQLServerResultSet) dmd.getImportedKeys(null, null, table1);
-            validateGetImportedKeysResults(rs1);
+            try (SQLServerResultSet rs1 = (SQLServerResultSet) dmd.getImportedKeys(null, null, table1);
+                    SQLServerResultSet rs2 = (SQLServerResultSet) dmd.getImportedKeys(catalog, schema, table1);
+                    SQLServerResultSet rs3 = (SQLServerResultSet) dmd.getImportedKeys(catalog, "", table1)) {
 
-            rs2 = (SQLServerResultSet) dmd.getImportedKeys(catalog, schema, table1);
-            validateGetImportedKeysResults(rs2);
+                validateGetImportedKeysResults(rs1);
+                validateGetImportedKeysResults(rs2);
+                validateGetImportedKeysResults(rs3);
 
-            rs3 = (SQLServerResultSet) dmd.getImportedKeys(catalog, "", table1);
-            validateGetImportedKeysResults(rs3);
-            
-            try {
-                dmd.getImportedKeys("", schema, table1);
-                fail(TestResource.getResource("R_expectedExceptionNotThrown"));
-            } catch (SQLException e) {
-                assertTrue(e.getMessage().startsWith(TestResource.getResource("R_dbNameIsCurrentDB")));
+                try {
+                    dmd.getImportedKeys("", schema, table1);
+                    fail(TestResource.getResource("R_expectedExceptionNotThrown"));
+                } catch (SQLException e) {
+                    assertTrue(e.getMessage().startsWith(TestResource.getResource("R_dbNameIsCurrentDB")));
+                }
             }
         } catch (Exception e) {
             fail(TestResource.getResource("R_unexpectedErrorMessage") + e.toString());
-        } finally {
-            if (null != rs1) {
-                rs1.close();
-            }
-            if (null != rs2) {
-                rs2.close();
-            }
-            if (null != rs3) {
-                rs3.close();
-            }
         }
     }
 
@@ -173,9 +159,6 @@ public class DatabaseMetaDataForeignKeyTest extends AbstractTest {
         int[][] values = {
                 // expected UPDATE_RULE, expected DELETE_RULE
                 {4, 3}, {2, 0}, {0, 2}, {3, 4}};
-        SQLServerResultSet rs1 = null;
-        SQLServerResultSet rs2 = null;
-        SQLServerResultSet rs3 = null;
 
         try (SQLServerConnection conn = (SQLServerConnection) DriverManager.getConnection(connectionString)) {
 
@@ -183,40 +166,32 @@ public class DatabaseMetaDataForeignKeyTest extends AbstractTest {
 
             for (int i = 0; i < tableNames.length; i++) {
                 String pkTable = tableNames[i];
-                rs1 = (SQLServerResultSet) dmd.getExportedKeys(null, null, pkTable);
-                rs1.next();
-                assertEquals(values[i][0], rs1.getInt("UPDATE_RULE"));
-                assertEquals(values[i][1], rs1.getInt("DELETE_RULE"));
+                try (SQLServerResultSet rs1 = (SQLServerResultSet) dmd.getExportedKeys(null, null, pkTable);
+                        SQLServerResultSet rs2 = (SQLServerResultSet) dmd.getExportedKeys(catalog, schema, pkTable);
+                        SQLServerResultSet rs3 = (SQLServerResultSet) dmd.getExportedKeys(catalog, "", pkTable)) {
 
-                rs2 = (SQLServerResultSet) dmd.getExportedKeys(catalog, schema, pkTable);
-                rs2.next();
-                assertEquals(values[i][0], rs2.getInt("UPDATE_RULE"));
-                assertEquals(values[i][1], rs2.getInt("DELETE_RULE"));
+                    rs1.next();
+                    assertEquals(values[i][0], rs1.getInt("UPDATE_RULE"));
+                    assertEquals(values[i][1], rs1.getInt("DELETE_RULE"));
 
-                rs3 = (SQLServerResultSet) dmd.getExportedKeys(catalog, "", pkTable);
-                rs3.next();
-                assertEquals(values[i][0], rs3.getInt("UPDATE_RULE"));
-                assertEquals(values[i][1], rs3.getInt("DELETE_RULE"));
+                    rs2.next();
+                    assertEquals(values[i][0], rs2.getInt("UPDATE_RULE"));
+                    assertEquals(values[i][1], rs2.getInt("DELETE_RULE"));
 
-                try {
-                    dmd.getExportedKeys("", schema, pkTable);
-                    fail(TestResource.getResource("R_expectedExceptionNotThrown"));
-                } catch (SQLException e) {
-                    assertTrue(e.getMessage().startsWith(TestResource.getResource("R_dbNameIsCurrentDB")));
+                    rs3.next();
+                    assertEquals(values[i][0], rs3.getInt("UPDATE_RULE"));
+                    assertEquals(values[i][1], rs3.getInt("DELETE_RULE"));
+
+                    try {
+                        dmd.getExportedKeys("", schema, pkTable);
+                        fail(TestResource.getResource("R_expectedExceptionNotThrown"));
+                    } catch (SQLException e) {
+                        assertTrue(e.getMessage().startsWith(TestResource.getResource("R_dbNameIsCurrentDB")));
+                    }
                 }
             }
         } catch (Exception e) {
             fail(TestResource.getResource("R_unexpectedErrorMessage") + e.toString());
-        } finally {
-            if (null != rs1) {
-                rs1.close();
-            }
-            if (null != rs2) {
-                rs2.close();
-            }
-            if (null != rs3) {
-                rs3.close();
-            }
         }
     }
 
@@ -238,29 +213,31 @@ public class DatabaseMetaDataForeignKeyTest extends AbstractTest {
 
         for (int i = 0; i < tableNames.length; i++) {
             String pkTable = tableNames[i];
-            SQLServerResultSet rs1 = (SQLServerResultSet) dmd.getCrossReference(null, null, pkTable, null, null,
+            try (SQLServerResultSet rs1 = (SQLServerResultSet) dmd.getCrossReference(null, null, pkTable, null, null,
                     fkTable);
-            rs1.next();
-            assertEquals(values[i][0], rs1.getInt("UPDATE_RULE"));
-            assertEquals(values[i][1], rs1.getInt("DELETE_RULE"));
+                    SQLServerResultSet rs2 = (SQLServerResultSet) dmd.getCrossReference(catalog, schema, pkTable,
+                            catalog, schema, fkTable);
+                    SQLServerResultSet rs3 = (SQLServerResultSet) dmd.getCrossReference(catalog, "", pkTable, catalog,
+                            "", fkTable)) {
 
-            SQLServerResultSet rs2 = (SQLServerResultSet) dmd.getCrossReference(catalog, schema, pkTable, catalog,
-                    schema, fkTable);
-            rs2.next();
-            assertEquals(values[i][0], rs2.getInt("UPDATE_RULE"));
-            assertEquals(values[i][1], rs2.getInt("DELETE_RULE"));
+                rs1.next();
+                assertEquals(values[i][0], rs1.getInt("UPDATE_RULE"));
+                assertEquals(values[i][1], rs1.getInt("DELETE_RULE"));
 
-            SQLServerResultSet rs3 = (SQLServerResultSet) dmd.getCrossReference(catalog, "", pkTable, catalog, "",
-                    fkTable);
-            rs3.next();
-            assertEquals(values[i][0], rs3.getInt("UPDATE_RULE"));
-            assertEquals(values[i][1], rs3.getInt("DELETE_RULE"));
+                rs2.next();
+                assertEquals(values[i][0], rs2.getInt("UPDATE_RULE"));
+                assertEquals(values[i][1], rs2.getInt("DELETE_RULE"));
 
-            try {
-                dmd.getCrossReference("", schema, pkTable, "", schema, fkTable);
-                fail(TestResource.getResource("R_expectedExceptionNotThrown"));
-            } catch (SQLException e) {
-                assertEquals(TestResource.getResource("R_dbNameIsCurrentDB"), e.getMessage());
+                rs3.next();
+                assertEquals(values[i][0], rs3.getInt("UPDATE_RULE"));
+                assertEquals(values[i][1], rs3.getInt("DELETE_RULE"));
+
+                try {
+                    dmd.getCrossReference("", schema, pkTable, "", schema, fkTable);
+                    fail(TestResource.getResource("R_expectedExceptionNotThrown"));
+                } catch (SQLException e) {
+                    assertEquals(TestResource.getResource("R_dbNameIsCurrentDB"), e.getMessage());
+                }
             }
         }
     }

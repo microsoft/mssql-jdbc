@@ -85,23 +85,10 @@ public class PoolingTest extends AbstractTest {
         PooledConnection pc = null;
         try {
             pc = ds.getPooledConnection();
-            Connection con = null;
-            Connection con2 = null;
-            try {
-                con = pc.getConnection();
-
-                // now re-get a connection
-                con2 = pc.getConnection();
+            try (Connection con = pc.getConnection(); Connection con2 = pc.getConnection()) {
 
                 // assert that the first connection is closed.
                 assertTrue(con.isClosed(), TestResource.getResource("R_firstConnectionNotClosed"));
-            } finally {
-                if (null != con) {
-                    con.close();
-                }
-                if (null != con2) {
-                    con2.close();
-                }
             }
         } finally {
             if (null != pc) {

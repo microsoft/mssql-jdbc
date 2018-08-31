@@ -246,8 +246,8 @@ public class TimeoutTest extends AbstractTest {
                 assertEquals(e.getMessage(), TestResource.getResource("R_readTimedOut"),
                         TestResource.getResource("R_invalidExceptionMessage"));
             }
-            try {
-                conn.createStatement().execute("SELECT @@version");
+            try (SQLServerStatement stmt = (SQLServerStatement) conn.createStatement()) {
+                stmt.execute("SELECT @@version");
             } catch (SQLException e) {
                 assertEquals(e.getMessage(), TestResource.getResource("R_connectionIsClosed"),
                         TestResource.getResource("R_invalidExceptionMessage"));

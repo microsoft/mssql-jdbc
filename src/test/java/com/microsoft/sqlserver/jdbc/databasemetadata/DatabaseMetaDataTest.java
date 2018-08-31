@@ -197,52 +197,46 @@ public class DatabaseMetaDataTest extends AbstractTest {
         UUID id = UUID.randomUUID();
         String testCatalog = "dash-catalog" + id;
         String testSchema = "some-schema" + id;
-        ResultSet rs = null;
         
         try (Connection conn = DriverManager.getConnection(connectionString);
-                Statement stmt = connection.createStatement()) {        
+                Statement stmt = connection.createStatement()) {
             Utils.dropDatabaseIfExists(testCatalog, stmt);
             stmt.execute(String.format("CREATE DATABASE [%s]", testCatalog));
 
             stmt.execute(String.format("USE [%s]", testCatalog));
             stmt.execute(String.format("CREATE SCHEMA [%s]", testSchema));
 
-            rs = conn.getMetaData().getSchemas(testCatalog, null);
+            try (ResultSet rs = conn.getMetaData().getSchemas(testCatalog, null)) {
 
-            MessageFormat schemaEmptyFormat = new MessageFormat(TestResource.getResource("R_nameEmpty"));
-            Object[] schemaMsgArgs = {"Schema"};
+                MessageFormat schemaEmptyFormat = new MessageFormat(TestResource.getResource("R_nameEmpty"));
+                Object[] schemaMsgArgs = {"Schema"};
 
-            boolean hasResults = false;
-            boolean hasDashCatalogSchema = false;
-            while (rs.next()) {
-                hasResults = true;
-                String schemaName = rs.getString(1);
-                assertTrue(!StringUtils.isEmpty(schemaName), schemaEmptyFormat.format(schemaMsgArgs));
-                String catalogName = rs.getString(2);
-                if (schemaName.equals(testSchema)) {
-                    hasDashCatalogSchema = true;
-                    assertEquals(catalogName, testCatalog);
-                } else {
-                    assertNull(catalogName);
+                boolean hasResults = false;
+                boolean hasDashCatalogSchema = false;
+                while (rs.next()) {
+                    hasResults = true;
+                    String schemaName = rs.getString(1);
+                    assertTrue(!StringUtils.isEmpty(schemaName), schemaEmptyFormat.format(schemaMsgArgs));
+                    String catalogName = rs.getString(2);
+                    if (schemaName.equals(testSchema)) {
+                        hasDashCatalogSchema = true;
+                        assertEquals(catalogName, testCatalog);
+                    } else {
+                        assertNull(catalogName);
+                    }
                 }
+
+                MessageFormat atLeastOneFoundFormat = new MessageFormat(TestResource.getResource("R_atLeastOneFound"));
+                assertTrue(hasResults, atLeastOneFoundFormat.format(schemaMsgArgs));
+
+                MessageFormat dashCatalogFormat = new MessageFormat(TestResource.getResource("R_atLeastOneFound"));
+                assertTrue(hasDashCatalogSchema, dashCatalogFormat.format(new Object[] {testSchema}));
+            } finally {
+                Utils.dropDatabaseIfExists(testCatalog, stmt);
             }
-
-            MessageFormat atLeastOneFoundFormat = new MessageFormat(TestResource.getResource("R_atLeastOneFound"));
-            assertTrue(hasResults, atLeastOneFoundFormat.format(schemaMsgArgs));
-
-            MessageFormat dashCatalogFormat = new MessageFormat(TestResource.getResource("R_atLeastOneFound"));
-            assertTrue(hasDashCatalogSchema, dashCatalogFormat.format(new Object[] {testSchema}));
         } catch (Exception e) {
             fail(TestResource.getResource("R_unexpectedErrorMessage") + e.toString());
 
-        } finally {
-            if (null != rs) {
-                rs.close();
-            }
-            try (Connection conn = DriverManager.getConnection(connectionString);
-                    Statement stmt = connection.createStatement()) {        
-                Utils.dropDatabaseIfExists(testCatalog, stmt);
-            }
         }
     }
 
@@ -258,7 +252,6 @@ public class DatabaseMetaDataTest extends AbstractTest {
         String testCatalog = "dash-catalog" + id;
         String testSchema = "some-schema" + id;
 
-        ResultSet rs = null;
         try (Connection conn = DriverManager.getConnection(connectionString); Statement stmt = conn.createStatement()) {
             Utils.dropDatabaseIfExists(testCatalog, stmt);
             stmt.execute(String.format("CREATE DATABASE [%s]", testCatalog));
@@ -266,37 +259,31 @@ public class DatabaseMetaDataTest extends AbstractTest {
             stmt.execute(String.format("USE [%s]", testCatalog));
             stmt.execute(String.format("CREATE SCHEMA [%s]", testSchema));
 
-            rs = conn.getMetaData().getSchemas(testCatalog, "some-%");
+            try (ResultSet rs = conn.getMetaData().getSchemas(testCatalog, "some-%")) {
 
-            MessageFormat schemaEmptyFormat = new MessageFormat(TestResource.getResource("R_nameEmpty"));
-            Object[] schemaMsgArgs = {testSchema};
-            Object[] catalogMsgArgs = {testCatalog};
+                MessageFormat schemaEmptyFormat = new MessageFormat(TestResource.getResource("R_nameEmpty"));
+                Object[] schemaMsgArgs = {testSchema};
+                Object[] catalogMsgArgs = {testCatalog};
 
-            boolean hasResults = false;
-            while (rs.next()) {
-                hasResults = true;
-                String schemaName = rs.getString(1);
-                String catalogName = rs.getString(2);
-                assertTrue(!StringUtils.isEmpty(schemaName), schemaEmptyFormat.format(schemaMsgArgs));
-                assertTrue(!StringUtils.isEmpty(catalogName), schemaEmptyFormat.format(catalogMsgArgs));
-                assertEquals(schemaName, schemaMsgArgs[0]);
-                assertEquals(catalogName, catalogMsgArgs[0]);
+                boolean hasResults = false;
+                while (rs.next()) {
+                    hasResults = true;
+                    String schemaName = rs.getString(1);
+                    String catalogName = rs.getString(2);
+                    assertTrue(!StringUtils.isEmpty(schemaName), schemaEmptyFormat.format(schemaMsgArgs));
+                    assertTrue(!StringUtils.isEmpty(catalogName), schemaEmptyFormat.format(catalogMsgArgs));
+                    assertEquals(schemaName, schemaMsgArgs[0]);
+                    assertEquals(catalogName, catalogMsgArgs[0]);
+                }
+
+                MessageFormat atLeastOneFoundFormat = new MessageFormat(TestResource.getResource("R_atLeastOneFound"));
+                assertTrue(hasResults, atLeastOneFoundFormat.format(schemaMsgArgs));
+            } finally {
+                Utils.dropDatabaseIfExists(testCatalog, stmt);
             }
-
-            MessageFormat atLeastOneFoundFormat = new MessageFormat(TestResource.getResource("R_atLeastOneFound"));
-            assertTrue(hasResults, atLeastOneFoundFormat.format(schemaMsgArgs));
         } catch (Exception e) {
             fail(TestResource.getResource("R_unexpectedErrorMessage") + e.toString());
 
-        } finally {
-            if (null != rs) {
-                rs.close();
-            }
-
-            try (Connection conn = DriverManager.getConnection(connectionString);
-                    Statement stmt = conn.createStatement()) {
-                Utils.dropDatabaseIfExists(testCatalog, stmt);
-            }
         }
     }
 
@@ -312,30 +299,23 @@ public class DatabaseMetaDataTest extends AbstractTest {
 */
     public void testDBTables() throws SQLException {
 
-        ResultSet rsCatalog = null;
-        ResultSet rs = null;
         try (Connection con = DriverManager.getConnection(connectionString)) {
             DatabaseMetaData databaseMetaData = con.getMetaData();
-            rsCatalog = databaseMetaData.getCatalogs();
+            try (ResultSet rsCatalog = databaseMetaData.getCatalogs()) {
 
-            MessageFormat form1 = new MessageFormat(TestResource.getResource("R_atLeastOneFound"));
-            Object[] msgArgs1 = {"catalog"};
-            assertTrue(rsCatalog.next(), form1.format(msgArgs1));
+                MessageFormat form1 = new MessageFormat(TestResource.getResource("R_atLeastOneFound"));
+                Object[] msgArgs1 = {"catalog"};
+                assertTrue(rsCatalog.next(), form1.format(msgArgs1));
 
-            String[] types = {"TABLE"};
-            rs = databaseMetaData.getTables(rsCatalog.getString("TABLE_CAT"), null, "%", types);
+                String[] types = {"TABLE"};
+                try (ResultSet rs = databaseMetaData.getTables(rsCatalog.getString("TABLE_CAT"), null, "%", types)) {
 
-            MessageFormat form2 = new MessageFormat(TestResource.getResource("R_nameEmpty"));
-            Object[] msgArgs2 = {"Table"};
-            while (rs.next()) {
-                assertTrue(!StringUtils.isEmpty(rs.getString("TABLE_NAME")), form2.format(msgArgs2));
-            }
-        } finally {
-            if (null != rsCatalog) {
-                rsCatalog.close();
-            }
-            if (null != rs) {
-                rs.close();
+                    MessageFormat form2 = new MessageFormat(TestResource.getResource("R_nameEmpty"));
+                    Object[] msgArgs2 = {"Table"};
+                    while (rs.next()) {
+                        assertTrue(!StringUtils.isEmpty(rs.getString("TABLE_NAME")), form2.format(msgArgs2));
+                    }
+                }
             }
         }
     }
@@ -353,49 +333,40 @@ public class DatabaseMetaDataTest extends AbstractTest {
      */
     @Test
     public void testGetDBColumn() throws SQLException {
-        
-        ResultSet rs = null;
-        ResultSet rs1 = null;
 
         try (Connection conn = DriverManager.getConnection(connectionString)) {
             DatabaseMetaData databaseMetaData = conn.getMetaData();
 
             String[] types = {"TABLE"};
-            rs = databaseMetaData.getTables(null, null, "%", types);
+            try (ResultSet rs = databaseMetaData.getTables(null, null, "%", types)) {
 
+                // Fetch one table
+                MessageFormat form1 = new MessageFormat(TestResource.getResource("R_atLeastOneFound"));
+                Object[] msgArgs1 = {"table"};
+                assertTrue(rs.next(), form1.format(msgArgs1));
 
-            // Fetch one table
-            MessageFormat form1 = new MessageFormat(TestResource.getResource("R_atLeastOneFound"));
-            Object[] msgArgs1 = {"table"};
-            assertTrue(rs.next(), form1.format(msgArgs1));
+                // Go through all columns.
+                try (ResultSet rs1 = databaseMetaData.getColumns(null, null, rs.getString("TABLE_NAME"), "%")) {
 
-            // Go through all columns.
-            rs1 = databaseMetaData.getColumns(null, null, rs.getString("TABLE_NAME"), "%");
-
-            MessageFormat form2 = new MessageFormat(TestResource.getResource("R_nameEmpty"));
-            Object[][] msgArgs2 = {{"Category"}, {"SCHEMA"}, {"Table"}, {"COLUMN"}, {"Data Type"}, {"Type"},
-                    {"Column Size"}, {"Nullable value"}, {"IS_NULLABLE"}, {"IS_AUTOINCREMENT"}};
-            while (rs1.next()) {
-                assertTrue(!StringUtils.isEmpty(rs1.getString("TABLE_CAT")), form2.format(msgArgs2[0]));
-                assertTrue(!StringUtils.isEmpty(rs1.getString("TABLE_SCHEM")), form2.format(msgArgs2[1]));
-                assertTrue(!StringUtils.isEmpty(rs1.getString("TABLE_NAME")), form2.format(msgArgs2[2]));
-                assertTrue(!StringUtils.isEmpty(rs1.getString("COLUMN_NAME")), form2.format(msgArgs2[3]));
-                assertTrue(!StringUtils.isEmpty(rs1.getString("DATA_TYPE")), form2.format(msgArgs2[4]));
-                assertTrue(!StringUtils.isEmpty(rs1.getString("TYPE_NAME")), form2.format(msgArgs2[5]));
-                assertTrue(!StringUtils.isEmpty(rs1.getString("COLUMN_SIZE")), form2.format(msgArgs2[6]));
-                assertTrue(!StringUtils.isEmpty(rs1.getString("NULLABLE")), form2.format(msgArgs2[7])); // 11
-                assertTrue(!StringUtils.isEmpty(rs1.getString("IS_NULLABLE")), form2.format(msgArgs2[8])); // 18
-                assertTrue(!StringUtils.isEmpty(rs1.getString("IS_AUTOINCREMENT")), form2.format(msgArgs2[9])); // 22
+                    MessageFormat form2 = new MessageFormat(TestResource.getResource("R_nameEmpty"));
+                    Object[][] msgArgs2 = {{"Category"}, {"SCHEMA"}, {"Table"}, {"COLUMN"}, {"Data Type"}, {"Type"},
+                            {"Column Size"}, {"Nullable value"}, {"IS_NULLABLE"}, {"IS_AUTOINCREMENT"}};
+                    while (rs1.next()) {
+                        assertTrue(!StringUtils.isEmpty(rs1.getString("TABLE_CAT")), form2.format(msgArgs2[0]));
+                        assertTrue(!StringUtils.isEmpty(rs1.getString("TABLE_SCHEM")), form2.format(msgArgs2[1]));
+                        assertTrue(!StringUtils.isEmpty(rs1.getString("TABLE_NAME")), form2.format(msgArgs2[2]));
+                        assertTrue(!StringUtils.isEmpty(rs1.getString("COLUMN_NAME")), form2.format(msgArgs2[3]));
+                        assertTrue(!StringUtils.isEmpty(rs1.getString("DATA_TYPE")), form2.format(msgArgs2[4]));
+                        assertTrue(!StringUtils.isEmpty(rs1.getString("TYPE_NAME")), form2.format(msgArgs2[5]));
+                        assertTrue(!StringUtils.isEmpty(rs1.getString("COLUMN_SIZE")), form2.format(msgArgs2[6]));
+                        assertTrue(!StringUtils.isEmpty(rs1.getString("NULLABLE")), form2.format(msgArgs2[7])); // 11
+                        assertTrue(!StringUtils.isEmpty(rs1.getString("IS_NULLABLE")), form2.format(msgArgs2[8])); // 18
+                        assertTrue(!StringUtils.isEmpty(rs1.getString("IS_AUTOINCREMENT")), form2.format(msgArgs2[9])); // 22
+                    }
+                }
             }
         } catch (Exception e) {
             fail(TestResource.getResource("R_unexpectedErrorMessage") + e.toString());
-        } finally {
-            if (null != rs) {
-                rs.close();
-            }
-            if (null != rs1) {
-                rs1.close();
-            }
         }
     }
 
@@ -410,34 +381,34 @@ public class DatabaseMetaDataTest extends AbstractTest {
      */
     @Test
     public void testGetColumnPrivileges() throws SQLException {
-        
-        ResultSet rsTables = null;
-        ResultSet rs1 = null;
-        
+
         try (Connection conn = DriverManager.getConnection(connectionString)) {
             DatabaseMetaData databaseMetaData = conn.getMetaData();
             String[] types = {"TABLE"};
-            rsTables = databaseMetaData.getTables(null, null, "%", types);
+            try (ResultSet rsTables = databaseMetaData.getTables(null, null, "%", types)) {
 
-           // Fetch one table
-            MessageFormat form1 = new MessageFormat(TestResource.getResource("R_atLeastOneFound"));
-            Object[] msgArgs1 = {"table"};
-            assertTrue(rsTables.next(), form1.format(msgArgs1));
+                // Fetch one table
+                MessageFormat form1 = new MessageFormat(TestResource.getResource("R_atLeastOneFound"));
+                Object[] msgArgs1 = {"table"};
+                assertTrue(rsTables.next(), form1.format(msgArgs1));
 
-            rs1 = databaseMetaData.getColumnPrivileges(null, null, rsTables.getString("TABLE_NAME"), "%");
+                try (ResultSet rs1 = databaseMetaData.getColumnPrivileges(null, null, rsTables.getString("TABLE_NAME"),
+                        "%")) {
 
-            MessageFormat form2 = new MessageFormat(TestResource.getResource("R_nameEmpty"));
-            Object[][] msgArgs2 = {{"Category"}, {"SCHEMA"}, {"Table"}, {"COLUMN"}, {"GRANTOR"}, {"GRANTEE"},
-                    {"PRIVILEGE"}, {"IS_GRANTABLE"}};
-            while (rs1.next()) {
-                assertTrue(!StringUtils.isEmpty(rs1.getString("TABLE_CAT")), form2.format(msgArgs2[0]));
-                assertTrue(!StringUtils.isEmpty(rs1.getString("TABLE_SCHEM")), form2.format(msgArgs2[1]));
-                assertTrue(!StringUtils.isEmpty(rs1.getString("TABLE_NAME")), form2.format(msgArgs2[2]));
-                assertTrue(!StringUtils.isEmpty(rs1.getString("COLUMN_NAME")), form2.format(msgArgs2[3]));
-                assertTrue(!StringUtils.isEmpty(rs1.getString("GRANTOR")), form2.format(msgArgs2[4]));
-                assertTrue(!StringUtils.isEmpty(rs1.getString("GRANTEE")), form2.format(msgArgs2[5]));
-                assertTrue(!StringUtils.isEmpty(rs1.getString("PRIVILEGE")), form2.format(msgArgs2[6]));
-                assertTrue(!StringUtils.isEmpty(rs1.getString("IS_GRANTABLE")), form2.format(msgArgs2[7]));
+                    MessageFormat form2 = new MessageFormat(TestResource.getResource("R_nameEmpty"));
+                    Object[][] msgArgs2 = {{"Category"}, {"SCHEMA"}, {"Table"}, {"COLUMN"}, {"GRANTOR"}, {"GRANTEE"},
+                            {"PRIVILEGE"}, {"IS_GRANTABLE"}};
+                    while (rs1.next()) {
+                        assertTrue(!StringUtils.isEmpty(rs1.getString("TABLE_CAT")), form2.format(msgArgs2[0]));
+                        assertTrue(!StringUtils.isEmpty(rs1.getString("TABLE_SCHEM")), form2.format(msgArgs2[1]));
+                        assertTrue(!StringUtils.isEmpty(rs1.getString("TABLE_NAME")), form2.format(msgArgs2[2]));
+                        assertTrue(!StringUtils.isEmpty(rs1.getString("COLUMN_NAME")), form2.format(msgArgs2[3]));
+                        assertTrue(!StringUtils.isEmpty(rs1.getString("GRANTOR")), form2.format(msgArgs2[4]));
+                        assertTrue(!StringUtils.isEmpty(rs1.getString("GRANTEE")), form2.format(msgArgs2[5]));
+                        assertTrue(!StringUtils.isEmpty(rs1.getString("PRIVILEGE")), form2.format(msgArgs2[6]));
+                        assertTrue(!StringUtils.isEmpty(rs1.getString("IS_GRANTABLE")), form2.format(msgArgs2[7]));
+                    }
+                }
             }
         } catch (Exception e) {
             fail(TestResource.getResource("R_unexpectedErrorMessage") + e.toString());
@@ -489,50 +460,43 @@ public class DatabaseMetaDataTest extends AbstractTest {
     }
 
     /**
-     * Te
      * 
      * @throws SQLException
      */
     @Test
     public void testGetFunctionColumns() throws SQLException {
-        ResultSet rsFunctions = null;
-        ResultSet rs = null;
         try (Connection conn = DriverManager.getConnection(connectionString)) {
 
             DatabaseMetaData databaseMetaData = conn.getMetaData();
 
-            rsFunctions = databaseMetaData.getFunctions(null, null, "%");
+            try (ResultSet rsFunctions = databaseMetaData.getFunctions(null, null, "%")) {
 
-            // Fetch one Function
-            MessageFormat form1 = new MessageFormat(TestResource.getResource("R_atLeastOneFound"));
-            Object[] msgArgs1 = {"function"};
-            assertTrue(rsFunctions.next(), form1.format(msgArgs1));
+                // Fetch one Function
+                MessageFormat form1 = new MessageFormat(TestResource.getResource("R_atLeastOneFound"));
+                Object[] msgArgs1 = {"function"};
+                assertTrue(rsFunctions.next(), form1.format(msgArgs1));
 
-            rs = databaseMetaData.getFunctionColumns(null, null, rsFunctions.getString("FUNCTION_NAME"), "%");
+                try (ResultSet rs = databaseMetaData.getFunctionColumns(null, null,
+                        rsFunctions.getString("FUNCTION_NAME"), "%")) {
 
-            MessageFormat form2 = new MessageFormat(TestResource.getResource("R_nameNull"));
-            Object[][] msgArgs2 = {{"FUNCTION_CAT"}, {"FUNCTION_SCHEM"}, {"FUNCTION_NAME"}, {"COLUMN_NAME"},
-                    {"COLUMN_TYPE"}, {"DATA_TYPE"}, {"TYPE_NAME"}, {"NULLABLE"}, {"IS_NULLABLE"}};
-            while (rs.next()) {
-                assertTrue(!StringUtils.isEmpty(rs.getString("FUNCTION_CAT")), form2.format(msgArgs2[0]));
-                assertTrue(!StringUtils.isEmpty(rs.getString("FUNCTION_SCHEM")), form2.format(msgArgs2[1]));
-                assertTrue(!StringUtils.isEmpty(rs.getString("FUNCTION_NAME")), form2.format(msgArgs2[2]));
-                assertTrue(!StringUtils.isEmpty(rs.getString("COLUMN_NAME")), form2.format(msgArgs2[3]));
-                assertTrue(!StringUtils.isEmpty(rs.getString("COLUMN_TYPE")), form2.format(msgArgs2[4]));
-                assertTrue(!StringUtils.isEmpty(rs.getString("DATA_TYPE")), form2.format(msgArgs2[5]));
-                assertTrue(!StringUtils.isEmpty(rs.getString("TYPE_NAME")), form2.format(msgArgs2[6]));
-                assertTrue(!StringUtils.isEmpty(rs.getString("NULLABLE")), form2.format(msgArgs2[7])); // 12
-                assertTrue(!StringUtils.isEmpty(rs.getString("IS_NULLABLE")), form2.format(msgArgs2[8])); // 19
+                    MessageFormat form2 = new MessageFormat(TestResource.getResource("R_nameNull"));
+                    Object[][] msgArgs2 = {{"FUNCTION_CAT"}, {"FUNCTION_SCHEM"}, {"FUNCTION_NAME"}, {"COLUMN_NAME"},
+                            {"COLUMN_TYPE"}, {"DATA_TYPE"}, {"TYPE_NAME"}, {"NULLABLE"}, {"IS_NULLABLE"}};
+                    while (rs.next()) {
+                        assertTrue(!StringUtils.isEmpty(rs.getString("FUNCTION_CAT")), form2.format(msgArgs2[0]));
+                        assertTrue(!StringUtils.isEmpty(rs.getString("FUNCTION_SCHEM")), form2.format(msgArgs2[1]));
+                        assertTrue(!StringUtils.isEmpty(rs.getString("FUNCTION_NAME")), form2.format(msgArgs2[2]));
+                        assertTrue(!StringUtils.isEmpty(rs.getString("COLUMN_NAME")), form2.format(msgArgs2[3]));
+                        assertTrue(!StringUtils.isEmpty(rs.getString("COLUMN_TYPE")), form2.format(msgArgs2[4]));
+                        assertTrue(!StringUtils.isEmpty(rs.getString("DATA_TYPE")), form2.format(msgArgs2[5]));
+                        assertTrue(!StringUtils.isEmpty(rs.getString("TYPE_NAME")), form2.format(msgArgs2[6]));
+                        assertTrue(!StringUtils.isEmpty(rs.getString("NULLABLE")), form2.format(msgArgs2[7])); // 12
+                        assertTrue(!StringUtils.isEmpty(rs.getString("IS_NULLABLE")), form2.format(msgArgs2[8])); // 19
+                    }
+                }
             }
         } catch (Exception e) {
             fail(TestResource.getResource("R_unexpectedErrorMessage") + e.toString());
-        } finally {
-            if (null != rsFunctions) {
-                rsFunctions.close();
-            }
-            if (null != rs) {
-                rs.close();
-            }
         }
     }
 }
