@@ -162,9 +162,7 @@ public class DateAndTimeTypeTest extends AbstractTest {
         try (DBConnection dbc = new DBConnection(connectionString)) {
             assumeTrue(9 <= dbc.getServerVersion(), "Aborting test case as SQL Server version does not support TIME");
         }
-        // To get TIME & setTime working on Servers >= 2008, we must add 'sendTimeAsDatetime=false'
-        // by default to the connection. See issue https://github.com/Microsoft/mssql-jdbc/issues/559
-        connection = DriverManager.getConnection(connectionString + ";sendTimeAsDatetime=false");
+        connection = DriverManager.getConnection(connectionString);
         stmt = (SQLServerStatement) connection.createStatement();
         Utils.dropTableIfExists("dateandtime", stmt);
         String sql1 = "create table dateandtime (id integer not null, my_date date, my_time time, my_timestamp datetime2 constraint pk_esimple primary key (id))";
