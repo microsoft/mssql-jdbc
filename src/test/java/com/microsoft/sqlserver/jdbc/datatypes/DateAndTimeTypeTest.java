@@ -27,9 +27,9 @@ import org.opentest4j.TestAbortedException;
 import com.microsoft.sqlserver.jdbc.SQLServerDataTable;
 import com.microsoft.sqlserver.jdbc.SQLServerPreparedStatement;
 import com.microsoft.sqlserver.jdbc.SQLServerStatement;
+import com.microsoft.sqlserver.jdbc.TestUtils;
 import com.microsoft.sqlserver.testframework.AbstractTest;
 import com.microsoft.sqlserver.testframework.DBConnection;
-import com.microsoft.sqlserver.testframework.Utils;
 
 
 @RunWith(JUnitPlatform.class)
@@ -166,7 +166,7 @@ public class DateAndTimeTypeTest extends AbstractTest {
         // by default to the connection. See issue https://github.com/Microsoft/mssql-jdbc/issues/559
         connection = DriverManager.getConnection(connectionString + ";sendTimeAsDatetime=false");
         stmt = (SQLServerStatement) connection.createStatement();
-        Utils.dropTableIfExists("dateandtime", stmt);
+        TestUtils.dropTableIfExists("dateandtime", stmt);
         String sql1 = "create table dateandtime (id integer not null, my_date date, my_time time, my_timestamp datetime2 constraint pk_esimple primary key (id))";
         stmt.execute(sql1);
 
@@ -187,7 +187,7 @@ public class DateAndTimeTypeTest extends AbstractTest {
     @AfterAll
     public static void terminateVariation() throws SQLException {
 
-        Utils.dropTableIfExists("dateandtime", stmt);
+        TestUtils.dropTableIfExists("dateandtime", stmt);
 
         if (null != connection) {
             connection.close();

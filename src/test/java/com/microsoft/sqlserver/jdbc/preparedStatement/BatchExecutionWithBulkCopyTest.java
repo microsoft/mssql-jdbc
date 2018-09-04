@@ -29,8 +29,8 @@ import com.microsoft.sqlserver.jdbc.Geometry;
 import com.microsoft.sqlserver.jdbc.SQLServerConnection;
 import com.microsoft.sqlserver.jdbc.SQLServerPreparedStatement;
 import com.microsoft.sqlserver.jdbc.SQLServerStatement;
+import com.microsoft.sqlserver.jdbc.TestUtils;
 import com.microsoft.sqlserver.testframework.AbstractTest;
-import com.microsoft.sqlserver.testframework.Utils;
 
 
 @RunWith(JUnitPlatform.class)
@@ -346,7 +346,7 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
             f1.setAccessible(true);
             f1.set(connection, true);
 
-            Utils.dropTableIfExists(squareBracketTableName, stmt);
+            TestUtils.dropTableIfExists(squareBracketTableName, stmt);
             String createTable = "create table " + squareBracketTableName + " (c1 int)";
             stmt.execute(createTable);
 
@@ -374,7 +374,7 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
             f1.setAccessible(true);
             f1.set(connection, true);
 
-            Utils.dropTableIfExists(doubleQuoteTableName, stmt);
+            TestUtils.dropTableIfExists(doubleQuoteTableName, stmt);
             String createTable = "create table " + doubleQuoteTableName + " (c1 int)";
             stmt.execute(createTable);
 
@@ -403,7 +403,7 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
             f1.setAccessible(true);
             f1.set(connection, true);
 
-            Utils.dropTableIfExists("[dbo]." + squareBracketTableName, stmt);
+            TestUtils.dropTableIfExists("[dbo]." + squareBracketTableName, stmt);
 
             String createTable = "create table " + schemaTableName + " (c1 int)";
             stmt.execute(createTable);
@@ -432,7 +432,7 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
             f1.setAccessible(true);
             f1.set(connection, true);
 
-            Utils.dropTableIfExists(squareBracketTableName, stmt);
+            TestUtils.dropTableIfExists(squareBracketTableName, stmt);
             String createTable = "create table " + squareBracketTableName + " ([c]]]]1] int, [c]]]]2] int)";
             stmt.execute(createTable);
 
@@ -602,7 +602,7 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
             f1.setAccessible(true);
             f1.set(connection, true);
 
-            Utils.dropTableIfExists(unsupportedTableName, stmt);
+            TestUtils.dropTableIfExists(unsupportedTableName, stmt);
 
             String createTable = "create table " + unsupportedTableName
                     + " (c1 geometry, c2 geography, c3 datetime, c4 smalldatetime)";
@@ -635,7 +635,7 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
         try (Connection connection = DriverManager
                 .getConnection(connectionString + ";useBulkCopyForBatchInsert=true;")) {
             try (Statement stmt = (SQLServerStatement) connection.createStatement()) {
-                Utils.dropTableIfExists(tableName, stmt);
+                TestUtils.dropTableIfExists(tableName, stmt);
                 String sql1 = "create table " + tableName + " " + "(" + "c1 int DEFAULT 1234, " + "c2 bit, "
                         + "c3 char DEFAULT NULL, " + "c4 date, " + "c5 datetime2, " + "c6 float, " + "c7 nchar, "
                         + "c8 varchar(20), " + "c9 varchar(max)" + ")";
@@ -649,10 +649,10 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
     public static void terminateVariation() throws SQLException {
         try (Connection connection = DriverManager.getConnection(connectionString)) {
             try (Statement stmt = (SQLServerStatement) connection.createStatement()) {
-                Utils.dropTableIfExists(tableName, stmt);
-                Utils.dropTableIfExists(squareBracketTableName, stmt);
-                Utils.dropTableIfExists(doubleQuoteTableName, stmt);
-                Utils.dropTableIfExists(unsupportedTableName, stmt);
+                TestUtils.dropTableIfExists(tableName, stmt);
+                TestUtils.dropTableIfExists(squareBracketTableName, stmt);
+                TestUtils.dropTableIfExists(doubleQuoteTableName, stmt);
+                TestUtils.dropTableIfExists(unsupportedTableName, stmt);
             }
         }
     }

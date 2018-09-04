@@ -37,7 +37,11 @@ import org.junit.jupiter.api.function.Executable;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
 
+import com.microsoft.sqlserver.jdbc.RandomUtil;
 import com.microsoft.sqlserver.jdbc.TestResource;
+import com.microsoft.sqlserver.jdbc.TestUtils;
+import com.microsoft.sqlserver.jdbc.TestUtils.DBBinaryStream;
+import com.microsoft.sqlserver.jdbc.TestUtils.DBCharacterStream;
 import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
 import com.microsoft.sqlserver.testframework.AbstractTest;
 import com.microsoft.sqlserver.testframework.DBCoercion;
@@ -47,11 +51,7 @@ import com.microsoft.sqlserver.testframework.DBInvalidUtil;
 import com.microsoft.sqlserver.testframework.DBResultSet;
 import com.microsoft.sqlserver.testframework.DBStatement;
 import com.microsoft.sqlserver.testframework.DBTable;
-import com.microsoft.sqlserver.testframework.Utils;
-import com.microsoft.sqlserver.testframework.Utils.DBBinaryStream;
-import com.microsoft.sqlserver.testframework.Utils.DBCharacterStream;
 import com.microsoft.sqlserver.testframework.sqlType.SqlType;
-import com.microsoft.sqlserver.testframework.util.RandomUtil;
 
 
 /**
@@ -709,13 +709,13 @@ public class lobsTest extends AbstractTest {
         else if (lobClass == DBBinaryStream.class)
             return new DBInvalidUtil().new InvalidBinaryStream(data, streamLength < -1);
         if (lobClass == Clob.class) {
-            ArrayList<SqlType> types = Utils.types();
-            SqlType type = Utils.find(String.class);
+            ArrayList<SqlType> types = TestUtils.types();
+            SqlType type = TestUtils.find(String.class);
             Object expected = type.createdata(String.class, data);
             return new DBInvalidUtil().new InvalidClob(expected, false);
         } else {
-            ArrayList<SqlType> types = Utils.types();
-            SqlType type = Utils.find(byte[].class);
+            ArrayList<SqlType> types = TestUtils.types();
+            SqlType type = TestUtils.find(byte[].class);
             Object expected = type.createdata(type.getClass(), data);
             return new DBInvalidUtil().new InvalidBlob(expected, false);
         }
@@ -729,10 +729,10 @@ public class lobsTest extends AbstractTest {
             table = new DBTable(false);
 
             // Add RowId
-            table.addColumn(Utils.find("int"));
+            table.addColumn(TestUtils.find("int"));
 
             for (String type1 : types) {
-                SqlType type = Utils.find(type1);
+                SqlType type = TestUtils.find(type1);
                 table.addColumn(type);
 
             }

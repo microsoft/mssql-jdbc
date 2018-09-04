@@ -26,13 +26,13 @@ import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
 
+import com.microsoft.sqlserver.jdbc.RandomUtil;
 import com.microsoft.sqlserver.jdbc.SQLServerConnection;
 import com.microsoft.sqlserver.jdbc.TestResource;
+import com.microsoft.sqlserver.jdbc.TestUtils;
 import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
 import com.microsoft.sqlserver.testframework.AbstractTest;
 import com.microsoft.sqlserver.testframework.DBConnection;
-import com.microsoft.sqlserver.testframework.Utils;
-import com.microsoft.sqlserver.testframework.util.RandomUtil;
 
 
 /**
@@ -139,7 +139,7 @@ public class BatchExecuteWithErrorsTest extends AbstractTest {
             try (Statement stmt = conn.createStatement()) {
 
                 try {
-                    Utils.dropTableIfExists(tableName, stmt);
+                    TestUtils.dropTableIfExists(tableName, stmt);
                 } catch (Exception ignored) {}
                 stmt.executeUpdate("create table " + tableName
                         + " (c1_int int, c2_varchar varchar(20), c3_date datetime, c4_int int identity(1,1) primary key)");
@@ -307,7 +307,7 @@ public class BatchExecuteWithErrorsTest extends AbstractTest {
 
     private void Repro47239largeInternal(String mode) throws Exception {
 
-        assumeTrue("JDBC42".equals(Utils.getConfiguredProperty("JDBC_Version")),
+        assumeTrue("JDBC42".equals(TestUtils.getConfiguredProperty("JDBC_Version")),
                 TestResource.getResource("R_incompatJDBC"));
         // the DBConnection for detecting whether the server is SQL Azure or SQL Server.
         con = DriverManager.getConnection(connectionString);
@@ -350,7 +350,7 @@ public class BatchExecuteWithErrorsTest extends AbstractTest {
             try (Statement stmt = conn.createStatement()) {
 
                 try {
-                    Utils.dropTableIfExists(tableName, stmt);
+                    TestUtils.dropTableIfExists(tableName, stmt);
                 } catch (Exception ignored) {}
                 try {
                     stmt.executeLargeUpdate("create table " + tableName

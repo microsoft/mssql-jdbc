@@ -25,8 +25,8 @@ import org.junit.runner.RunWith;
 import com.microsoft.sqlserver.jdbc.SQLServerCallableStatement;
 import com.microsoft.sqlserver.jdbc.SQLServerPreparedStatement;
 import com.microsoft.sqlserver.jdbc.TestResource;
+import com.microsoft.sqlserver.jdbc.TestUtils;
 import com.microsoft.sqlserver.testframework.AbstractTest;
-import com.microsoft.sqlserver.testframework.Utils;
 
 
 @RunWith(JUnitPlatform.class)
@@ -357,8 +357,8 @@ public class TVPResultSetCursorTest extends AbstractTest {
     }
 
     private static void dropTables() throws SQLException {
-        Utils.dropTableIfExists(srcTable, stmt);
-        Utils.dropTableIfExists(desTable, stmt);
+        TestUtils.dropTableIfExists(srcTable, stmt);
+        TestUtils.dropTableIfExists(desTable, stmt);
     }
 
     private static void createTables() throws SQLException {
@@ -383,7 +383,7 @@ public class TVPResultSetCursorTest extends AbstractTest {
     }
 
     private static void dropProcedure() throws SQLException {
-        Utils.dropProcedureIfExists(procedureName, stmt);
+        TestUtils.dropProcedureIfExists(procedureName, stmt);
     }
 
     private static void createPreocedure() throws SQLException {

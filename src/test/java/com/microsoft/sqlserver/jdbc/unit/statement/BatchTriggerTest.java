@@ -22,8 +22,8 @@ import org.opentest4j.TestAbortedException;
 
 import com.microsoft.sqlserver.jdbc.SQLServerStatement;
 import com.microsoft.sqlserver.jdbc.TestResource;
+import com.microsoft.sqlserver.jdbc.TestUtils;
 import com.microsoft.sqlserver.testframework.AbstractTest;
-import com.microsoft.sqlserver.testframework.Utils;
 
 
 /**
@@ -127,7 +127,7 @@ public class BatchTriggerTest extends AbstractTest {
      */
     private static void dropTable() throws SQLException {
         try (Connection connection = DriverManager.getConnection(connectionString); Statement stmt = connection.createStatement()) {
-            Utils.dropTableIfExists(tableName, stmt);
+            TestUtils.dropTableIfExists(tableName, stmt);
         }
     }
 

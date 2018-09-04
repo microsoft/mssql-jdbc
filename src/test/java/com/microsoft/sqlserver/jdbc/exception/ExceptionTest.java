@@ -19,8 +19,8 @@ import org.junit.runner.RunWith;
 import com.microsoft.sqlserver.jdbc.SQLServerBulkCSVFileRecord;
 import com.microsoft.sqlserver.jdbc.SQLServerConnection;
 import com.microsoft.sqlserver.jdbc.TestResource;
+import com.microsoft.sqlserver.jdbc.TestUtils;
 import com.microsoft.sqlserver.testframework.AbstractTest;
-import com.microsoft.sqlserver.testframework.Utils;
 
 
 @RunWith(JUnitPlatform.class)
@@ -34,7 +34,7 @@ public class ExceptionTest extends AbstractTest {
      */
     @Test
     public void testBulkCSVFileRecordExceptionCause() throws Exception {
-        String filePath = Utils.getCurrentClassPath();
+        String filePath = TestUtils.getCurrentClassPath();
 
         try {
             SQLServerBulkCSVFileRecord scvFileRecord = new SQLServerBulkCSVFileRecord(filePath + inputFile,
@@ -66,7 +66,7 @@ public class ExceptionTest extends AbstractTest {
         try {
             conn = (SQLServerConnection) DriverManager.getConnection(connectionString);
 
-            Utils.dropProcedureIfExists(waitForDelaySPName, conn.createStatement());
+            TestUtils.dropProcedureIfExists(waitForDelaySPName, conn.createStatement());
             createWaitForDelayPreocedure(conn);
 
             conn = (SQLServerConnection) DriverManager

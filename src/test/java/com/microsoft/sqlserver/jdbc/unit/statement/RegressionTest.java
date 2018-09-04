@@ -24,9 +24,9 @@ import org.junit.runner.RunWith;
 import com.microsoft.sqlserver.jdbc.SQLServerConnection;
 import com.microsoft.sqlserver.jdbc.SQLServerPreparedStatement;
 import com.microsoft.sqlserver.jdbc.TestResource;
+import com.microsoft.sqlserver.jdbc.TestUtils;
 import com.microsoft.sqlserver.testframework.AbstractTest;
 import com.microsoft.sqlserver.testframework.DBConnection;
-import com.microsoft.sqlserver.testframework.Utils;
 
 
 @RunWith(JUnitPlatform.class)
@@ -133,7 +133,7 @@ public class RegressionTest extends AbstractTest {
      */
     @Test
     public void testUpdateQuery() throws SQLException {
-        assumeTrue("JDBC41".equals(Utils.getConfiguredProperty("JDBC_Version")),
+        assumeTrue("JDBC41".equals(TestUtils.getConfiguredProperty("JDBC_Version")),
                 TestResource.getResource("R_incompatJDBC"));
 
         try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(connectionString);
@@ -143,7 +143,7 @@ public class RegressionTest extends AbstractTest {
             int rows = 3;
             final String tableName = "[updateQuery]";
 
-            Utils.dropTableIfExists(tableName, stmt);
+            TestUtils.dropTableIfExists(tableName, stmt);
             stmt.executeUpdate(
                     "CREATE TABLE " + tableName + " (" + "c1 int null," + "PK int NOT NULL PRIMARY KEY" + ")");
 
@@ -193,7 +193,7 @@ public class RegressionTest extends AbstractTest {
      */
     @Test
     public void testXmlQuery() throws SQLException {
-        assumeTrue("JDBC41".equals(Utils.getConfiguredProperty("JDBC_Version")),
+        assumeTrue("JDBC41".equals(TestUtils.getConfiguredProperty("JDBC_Version")),
                 TestResource.getResource("R_incompatJDBC"));
 
         try (Connection connection = DriverManager.getConnection(connectionString);
@@ -237,8 +237,8 @@ public class RegressionTest extends AbstractTest {
     public static void terminate() throws SQLException {
         try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(connectionString);
                 Statement stmt = con.createStatement()) {
-            Utils.dropTableIfExists(tableName, stmt);
-            Utils.dropProcedureIfExists(procName, stmt);
+            TestUtils.dropTableIfExists(tableName, stmt);
+            TestUtils.dropProcedureIfExists(procName, stmt);
         }
     }
 }

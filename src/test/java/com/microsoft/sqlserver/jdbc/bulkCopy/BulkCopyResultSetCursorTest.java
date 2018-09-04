@@ -24,8 +24,8 @@ import org.junit.jupiter.api.AfterAll;
 
 import com.microsoft.sqlserver.jdbc.SQLServerBulkCopy;
 import com.microsoft.sqlserver.jdbc.SQLServerPreparedStatement;
+import com.microsoft.sqlserver.jdbc.TestUtils;
 import com.microsoft.sqlserver.testframework.AbstractTest;
-import com.microsoft.sqlserver.testframework.Utils;
 
 
 @RunWith(JUnitPlatform.class)
@@ -202,8 +202,8 @@ public class BulkCopyResultSetCursorTest extends AbstractTest {
     }
 
     private static void dropTables(Statement stmt) throws SQLException {
-        Utils.dropTableIfExists(srcTable, stmt);
-        Utils.dropTableIfExists(desTable, stmt);
+        TestUtils.dropTableIfExists(srcTable, stmt);
+        TestUtils.dropTableIfExists(desTable, stmt);
     }
 
     private static void createTables(Statement stmt) throws SQLException {

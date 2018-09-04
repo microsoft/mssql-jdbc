@@ -23,8 +23,8 @@ import com.microsoft.sqlserver.jdbc.SQLServerDatabaseMetaData;
 import com.microsoft.sqlserver.jdbc.SQLServerResultSet;
 import com.microsoft.sqlserver.jdbc.SQLServerStatement;
 import com.microsoft.sqlserver.jdbc.TestResource;
+import com.microsoft.sqlserver.jdbc.TestUtils;
 import com.microsoft.sqlserver.testframework.AbstractTest;
-import com.microsoft.sqlserver.testframework.Utils;
 
 
 /**
@@ -77,11 +77,11 @@ public class DatabaseMetaDataForeignKeyTest extends AbstractTest {
         try (SQLServerConnection conn = (SQLServerConnection) DriverManager.getConnection(connectionString);
                 SQLServerStatement stmt = (SQLServerStatement) conn.createStatement()) {
 
-            Utils.dropTableIfExists(table1, stmt);
-            Utils.dropTableIfExists(table2, stmt);
-            Utils.dropTableIfExists(table3, stmt);
-            Utils.dropTableIfExists(table4, stmt);
-            Utils.dropTableIfExists(table5, stmt);
+            TestUtils.dropTableIfExists(table1, stmt);
+            TestUtils.dropTableIfExists(table2, stmt);
+            TestUtils.dropTableIfExists(table3, stmt);
+            TestUtils.dropTableIfExists(table4, stmt);
+            TestUtils.dropTableIfExists(table5, stmt);
         } catch (Exception e) {
             fail(TestResource.getResource("R_unexpectedErrorMessage") + e.toString());
         }

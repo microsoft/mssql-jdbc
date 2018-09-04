@@ -29,8 +29,8 @@ import com.microsoft.sqlserver.jdbc.SQLServerException;
 import com.microsoft.sqlserver.jdbc.SQLServerPreparedStatement;
 import com.microsoft.sqlserver.jdbc.SQLServerResultSet;
 import com.microsoft.sqlserver.jdbc.TestResource;
+import com.microsoft.sqlserver.jdbc.TestUtils;
 import com.microsoft.sqlserver.testframework.AbstractTest;
-import com.microsoft.sqlserver.testframework.Utils;
 
 
 /**
@@ -985,14 +985,14 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest {
     }
 
     private void beforeEachSetup() throws SQLException {
-        Utils.dropTableIfExists(geomTableName, stmt);
-        Utils.dropTableIfExists(geogTableName, stmt);
+        TestUtils.dropTableIfExists(geomTableName, stmt);
+        TestUtils.dropTableIfExists(geogTableName, stmt);
         stmt.executeUpdate("Create table " + geomTableName + " (c1 geometry)");
         stmt.executeUpdate("Create table " + geogTableName + " (c1 geography)");
     }
 
     private void beforeEachSetupSpatialDatatype() throws SQLException {
-        Utils.dropTableIfExists(spatialDatatypeTableName, stmt);
+        TestUtils.dropTableIfExists(spatialDatatypeTableName, stmt);
         stmt.executeUpdate("Create table " + spatialDatatypeTableName + " (c1 geometry," + "c2 geography,"
                 + "c3 nvarchar(512)," + "c4 decimal(28,4)," + "c5 int)");
     }
@@ -1071,8 +1071,8 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest {
      */
     @AfterAll
     public static void afterAll() throws SQLException {
-        Utils.dropTableIfExists(geomTableName, stmt);
-        Utils.dropTableIfExists(geogTableName, stmt);
+        TestUtils.dropTableIfExists(geomTableName, stmt);
+        TestUtils.dropTableIfExists(geogTableName, stmt);
 
         if (null != stmt) {
             stmt.close();

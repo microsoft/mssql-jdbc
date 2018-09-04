@@ -19,8 +19,8 @@ import org.junit.runner.RunWith;
 import com.microsoft.sqlserver.jdbc.SQLServerDataSource;
 import com.microsoft.sqlserver.jdbc.StringUtils;
 import com.microsoft.sqlserver.jdbc.TestResource;
-import com.microsoft.sqlserver.testframework.PrepUtil;
-import com.microsoft.sqlserver.testframework.Utils;;
+import com.microsoft.sqlserver.jdbc.TestUtils;
+import com.microsoft.sqlserver.testframework.PrepUtil;;
 
 
 /**
@@ -34,7 +34,7 @@ public class FipsTest {
 
     @BeforeAll
     public static void init() {
-        connectionString = Utils.getConfiguredProperty("mssql_jdbc_test_connection_properties");
+        connectionString = TestUtils.getConfiguredProperty("mssql_jdbc_test_connection_properties");
         dataSourceProps = getDataSourceProperties();
     }
 

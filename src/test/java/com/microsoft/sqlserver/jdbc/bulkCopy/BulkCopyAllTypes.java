@@ -14,13 +14,13 @@ import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
 
+import com.microsoft.sqlserver.jdbc.ComparisonUtil;
 import com.microsoft.sqlserver.jdbc.SQLServerBulkCopy;
+import com.microsoft.sqlserver.jdbc.TestUtils;
 import com.microsoft.sqlserver.testframework.AbstractTest;
 import com.microsoft.sqlserver.testframework.DBConnection;
 import com.microsoft.sqlserver.testframework.DBStatement;
 import com.microsoft.sqlserver.testframework.DBTable;
-import com.microsoft.sqlserver.testframework.Utils;
-import com.microsoft.sqlserver.testframework.util.ComparisonUtil;
 
 
 @RunWith(JUnitPlatform.class)
@@ -84,8 +84,8 @@ public class BulkCopyAllTypes extends AbstractTest {
     private void terminateVariation() throws SQLException {
         try (Connection conn = DriverManager.getConnection(connectionString); Statement stmt = conn.createStatement()) {
 
-            Utils.dropTableIfExists(tableSrc.getEscapedTableName(), stmt);
-            Utils.dropTableIfExists(tableDest.getEscapedTableName(), stmt);
+            TestUtils.dropTableIfExists(tableSrc.getEscapedTableName(), stmt);
+            TestUtils.dropTableIfExists(tableDest.getEscapedTableName(), stmt);
         }
     }
 }

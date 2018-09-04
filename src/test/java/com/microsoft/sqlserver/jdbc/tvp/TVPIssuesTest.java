@@ -24,8 +24,8 @@ import com.microsoft.sqlserver.jdbc.SQLServerCallableStatement;
 import com.microsoft.sqlserver.jdbc.SQLServerPreparedStatement;
 import com.microsoft.sqlserver.jdbc.SQLServerStatement;
 import com.microsoft.sqlserver.jdbc.TestResource;
-import com.microsoft.sqlserver.testframework.AbstractTest;
-import com.microsoft.sqlserver.testframework.Utils;;
+import com.microsoft.sqlserver.jdbc.TestUtils;
+import com.microsoft.sqlserver.testframework.AbstractTest;;
 
 
 @RunWith(JUnitPlatform.class)
@@ -133,13 +133,13 @@ public class TVPIssuesTest extends AbstractTest {
 
         stmt.executeUpdate("IF EXISTS (SELECT * FROM sys.types WHERE is_table_type = 1 AND name = '" + tvp_varcharMax
                 + "') " + " drop type " + tvp_varcharMax);
-        Utils.dropTableIfExists(srcTable_varcharMax, stmt);
-        Utils.dropTableIfExists(desTable_varcharMax, stmt);
+        TestUtils.dropTableIfExists(srcTable_varcharMax, stmt);
+        TestUtils.dropTableIfExists(desTable_varcharMax, stmt);
 
         stmt.executeUpdate("IF EXISTS (SELECT * FROM sys.types WHERE is_table_type = 1 AND name = '" + tvp_time_6
                 + "') " + " drop type " + tvp_time_6);
-        Utils.dropTableIfExists(srcTable_time_6, stmt);
-        Utils.dropTableIfExists(desTable_time_6, stmt);
+        TestUtils.dropTableIfExists(srcTable_time_6, stmt);
+        TestUtils.dropTableIfExists(desTable_time_6, stmt);
 
         String sql = "create table " + srcTable_varcharMax + " (c1 varchar(max) null);";
         stmt.execute(sql);
@@ -185,7 +185,7 @@ public class TVPIssuesTest extends AbstractTest {
     }
 
     private static void dropProcedure() throws SQLException {
-        Utils.dropProcedureIfExists(spName_varcharMax, stmt);
+        TestUtils.dropProcedureIfExists(spName_varcharMax, stmt);
     }
 
     private static void createPreocedure() throws SQLException {
@@ -200,13 +200,13 @@ public class TVPIssuesTest extends AbstractTest {
         dropProcedure();
         stmt.executeUpdate("IF EXISTS (SELECT * FROM sys.types WHERE is_table_type = 1 AND name = '" + tvp_varcharMax
                 + "') " + " drop type " + tvp_varcharMax);
-        Utils.dropTableIfExists(srcTable_varcharMax, stmt);
-        Utils.dropTableIfExists(desTable_varcharMax, stmt);
+        TestUtils.dropTableIfExists(srcTable_varcharMax, stmt);
+        TestUtils.dropTableIfExists(desTable_varcharMax, stmt);
 
         stmt.executeUpdate("IF EXISTS (SELECT * FROM sys.types WHERE is_table_type = 1 AND name = '" + tvp_time_6
                 + "') " + " drop type " + tvp_time_6);
-        Utils.dropTableIfExists(srcTable_time_6, stmt);
-        Utils.dropTableIfExists(desTable_time_6, stmt);
+        TestUtils.dropTableIfExists(srcTable_time_6, stmt);
+        TestUtils.dropTableIfExists(desTable_time_6, stmt);
 
         if (null != stmt) {
             stmt.close();

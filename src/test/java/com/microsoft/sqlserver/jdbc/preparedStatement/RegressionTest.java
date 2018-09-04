@@ -24,8 +24,8 @@ import org.junit.runner.RunWith;
 
 import com.microsoft.sqlserver.jdbc.SQLServerConnection;
 import com.microsoft.sqlserver.jdbc.TestResource;
+import com.microsoft.sqlserver.jdbc.TestUtils;
 import com.microsoft.sqlserver.testframework.AbstractTest;
-import com.microsoft.sqlserver.testframework.Utils;
 
 
 /**
@@ -46,7 +46,7 @@ public class RegressionTest extends AbstractTest {
     public static void setupTest() throws SQLException {
         con = DriverManager.getConnection(connectionString);
         try (Statement stmt = con.createStatement()) {
-            Utils.dropTableIfExists("x", stmt);
+            TestUtils.dropTableIfExists("x", stmt);
         }
     }
 
@@ -164,7 +164,7 @@ public class RegressionTest extends AbstractTest {
 
             Statement stmt = con.createStatement();
             ResultSet rs = null;
-            Utils.dropTableIfExists("TEST_TABLE", stmt);
+            TestUtils.dropTableIfExists("TEST_TABLE", stmt);
 
             con.setAutoCommit(false);
 
@@ -246,7 +246,7 @@ public class RegressionTest extends AbstractTest {
                     }
                 }
             } finally {
-                Utils.dropTableIfExists("TEST_TABLE", stmt);
+                TestUtils.dropTableIfExists("TEST_TABLE", stmt);
                 if (null != stmt) {
                     stmt.close();
                 }
@@ -263,7 +263,7 @@ public class RegressionTest extends AbstractTest {
     public void addBatchWithLargeStringTest() throws SQLException {
         Statement stmt = con.createStatement();
         PreparedStatement pstmt = null;
-        Utils.dropTableIfExists("TEST_TABLE", stmt);
+        TestUtils.dropTableIfExists("TEST_TABLE", stmt);
 
         con.setAutoCommit(false);
 
@@ -339,7 +339,7 @@ public class RegressionTest extends AbstractTest {
         catch (Exception e) {
             fail(e.toString());
         } finally {
-            Utils.dropTableIfExists("testTable", stmt);
+            TestUtils.dropTableIfExists("testTable", stmt);
             if (null != stmt) {
                 stmt.close();
             }
@@ -354,8 +354,8 @@ public class RegressionTest extends AbstractTest {
     @AfterAll
     public static void cleanup() throws SQLException {
         try (Statement stmt = con.createStatement()) {
-            Utils.dropTableIfExists("x", stmt);
-            Utils.dropTableIfExists("TEST_TABLE", stmt);
+            TestUtils.dropTableIfExists("x", stmt);
+            TestUtils.dropTableIfExists("TEST_TABLE", stmt);
         }
         if (null != con) {
             con.close();

@@ -38,8 +38,8 @@ import com.microsoft.sqlserver.jdbc.SQLServerDatabaseMetaData;
 import com.microsoft.sqlserver.jdbc.SQLServerStatement;
 import com.microsoft.sqlserver.jdbc.StringUtils;
 import com.microsoft.sqlserver.jdbc.TestResource;
+import com.microsoft.sqlserver.jdbc.TestUtils;
 import com.microsoft.sqlserver.testframework.AbstractTest;
-import com.microsoft.sqlserver.testframework.Utils;
 
 
 /**
@@ -77,7 +77,7 @@ public class DatabaseMetaDataTest extends AbstractTest {
      */
     @Test
     public void testDriverVersion() throws SQLException, IOException {
-        String manifestFile = Utils.getCurrentClassPath() + "META-INF/MANIFEST.MF";
+        String manifestFile = TestUtils.getCurrentClassPath() + "META-INF/MANIFEST.MF";
         manifestFile = manifestFile.replace("test-classes", "classes");
 
         File f = new File(manifestFile);
@@ -200,7 +200,7 @@ public class DatabaseMetaDataTest extends AbstractTest {
         
         try (Connection conn = DriverManager.getConnection(connectionString);
                 Statement stmt = connection.createStatement()) {
-            Utils.dropDatabaseIfExists(testCatalog, stmt);
+            TestUtils.dropDatabaseIfExists(testCatalog, stmt);
             stmt.execute(String.format("CREATE DATABASE [%s]", testCatalog));
 
             stmt.execute(String.format("USE [%s]", testCatalog));
@@ -232,7 +232,7 @@ public class DatabaseMetaDataTest extends AbstractTest {
                 MessageFormat dashCatalogFormat = new MessageFormat(TestResource.getResource("R_atLeastOneFound"));
                 assertTrue(hasDashCatalogSchema, dashCatalogFormat.format(new Object[] {testSchema}));
             } finally {
-                Utils.dropDatabaseIfExists(testCatalog, stmt);
+                TestUtils.dropDatabaseIfExists(testCatalog, stmt);
             }
         } catch (Exception e) {
             fail(TestResource.getResource("R_unexpectedErrorMessage") + e.toString());
@@ -253,7 +253,7 @@ public class DatabaseMetaDataTest extends AbstractTest {
         String testSchema = "some-schema" + id;
 
         try (Connection conn = DriverManager.getConnection(connectionString); Statement stmt = conn.createStatement()) {
-            Utils.dropDatabaseIfExists(testCatalog, stmt);
+            TestUtils.dropDatabaseIfExists(testCatalog, stmt);
             stmt.execute(String.format("CREATE DATABASE [%s]", testCatalog));
 
             stmt.execute(String.format("USE [%s]", testCatalog));
@@ -279,7 +279,7 @@ public class DatabaseMetaDataTest extends AbstractTest {
                 MessageFormat atLeastOneFoundFormat = new MessageFormat(TestResource.getResource("R_atLeastOneFound"));
                 assertTrue(hasResults, atLeastOneFoundFormat.format(schemaMsgArgs));
             } finally {
-                Utils.dropDatabaseIfExists(testCatalog, stmt);
+                TestUtils.dropDatabaseIfExists(testCatalog, stmt);
             }
         } catch (Exception e) {
             fail(TestResource.getResource("R_unexpectedErrorMessage") + e.toString());

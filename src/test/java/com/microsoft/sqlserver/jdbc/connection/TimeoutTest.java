@@ -18,12 +18,12 @@ import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
 
+import com.microsoft.sqlserver.jdbc.RandomUtil;
 import com.microsoft.sqlserver.jdbc.SQLServerConnection;
 import com.microsoft.sqlserver.jdbc.SQLServerStatement;
 import com.microsoft.sqlserver.jdbc.TestResource;
+import com.microsoft.sqlserver.jdbc.TestUtils;
 import com.microsoft.sqlserver.testframework.AbstractTest;
-import com.microsoft.sqlserver.testframework.Utils;
-import com.microsoft.sqlserver.testframework.util.RandomUtil;
 
 
 @RunWith(JUnitPlatform.class)
@@ -263,7 +263,7 @@ public class TimeoutTest extends AbstractTest {
 
     private void dropWaitForDelayProcedure(SQLServerConnection conn) throws SQLException {
         try (SQLServerStatement stmt = (SQLServerStatement) conn.createStatement()) {
-            Utils.dropProcedureIfExists(waitForDelaySPName, stmt);
+            TestUtils.dropProcedureIfExists(waitForDelaySPName, stmt);
         } catch (Exception e) {
             fail(TestResource.getResource("R_unexpectedErrorMessage") + e.toString());
         }

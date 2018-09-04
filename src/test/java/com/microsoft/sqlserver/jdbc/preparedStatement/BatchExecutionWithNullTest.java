@@ -24,9 +24,9 @@ import org.opentest4j.TestAbortedException;
 
 import com.microsoft.sqlserver.jdbc.SQLServerStatement;
 import com.microsoft.sqlserver.jdbc.TestResource;
+import com.microsoft.sqlserver.jdbc.TestUtils;
 import com.microsoft.sqlserver.testframework.AbstractTest;
 import com.microsoft.sqlserver.testframework.DBConnection;
-import com.microsoft.sqlserver.testframework.Utils;
 
 
 @RunWith(JUnitPlatform.class)
@@ -112,7 +112,7 @@ public class BatchExecutionWithNullTest extends AbstractTest {
 
         connection = DriverManager.getConnection(connectionString);
         SQLServerStatement stmt = (SQLServerStatement) connection.createStatement();
-        Utils.dropTableIfExists("esimple", stmt);
+        TestUtils.dropTableIfExists("esimple", stmt);
         String sql1 = "create table esimple (id integer not null, name varchar(255), constraint pk_esimple primary key (id))";
         stmt.execute(sql1);
         stmt.close();
@@ -122,7 +122,7 @@ public class BatchExecutionWithNullTest extends AbstractTest {
     public static void terminateVariation() throws SQLException {
         try (Connection conn = DriverManager.getConnection(connectionString);
                 SQLServerStatement stmt = (SQLServerStatement) conn.createStatement()) {
-            Utils.dropTableIfExists("esimple", stmt);
+            TestUtils.dropTableIfExists("esimple", stmt);
         }
 
         if (null != pstmt) {

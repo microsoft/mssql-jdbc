@@ -21,6 +21,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
 
+import com.microsoft.sqlserver.jdbc.RandomData;
 import com.microsoft.sqlserver.jdbc.SQLServerCallableStatement;
 import com.microsoft.sqlserver.jdbc.SQLServerConnection;
 import com.microsoft.sqlserver.jdbc.SQLServerDataTable;
@@ -28,10 +29,9 @@ import com.microsoft.sqlserver.jdbc.SQLServerPreparedStatement;
 import com.microsoft.sqlserver.jdbc.SQLServerResultSet;
 import com.microsoft.sqlserver.jdbc.SQLServerStatement;
 import com.microsoft.sqlserver.jdbc.TestResource;
+import com.microsoft.sqlserver.jdbc.TestUtils;
 import com.microsoft.sqlserver.testframework.AbstractTest;
-import com.microsoft.sqlserver.testframework.Utils;
 import com.microsoft.sqlserver.testframework.sqlType.SqlDate;
-import com.microsoft.sqlserver.testframework.util.RandomData;
 
 
 @RunWith(JUnitPlatform.class)
@@ -469,8 +469,8 @@ public class TVPWithSqlVariantTest extends AbstractTest {
                 .getConnection(connectionString + ";sendStringParametersAsUnicode=true;");
         stmt = (SQLServerStatement) conn.createStatement();
 
-        Utils.dropProcedureIfExists(procedureName, stmt);
-        Utils.dropTableIfExists(destTable, stmt);
+        TestUtils.dropProcedureIfExists(procedureName, stmt);
+        TestUtils.dropTableIfExists(destTable, stmt);
         dropTVPS();
 
         createTVPS();
@@ -502,8 +502,8 @@ public class TVPWithSqlVariantTest extends AbstractTest {
 
     @AfterEach
     public void terminateVariation() throws SQLException {
-        Utils.dropProcedureIfExists(procedureName, stmt);
-        Utils.dropTableIfExists(destTable, stmt);
+        TestUtils.dropProcedureIfExists(procedureName, stmt);
+        TestUtils.dropTableIfExists(destTable, stmt);
         dropTVPS();
     }
 

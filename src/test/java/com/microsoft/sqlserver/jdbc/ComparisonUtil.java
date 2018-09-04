@@ -3,7 +3,7 @@
  * available under the terms of the MIT License. See the LICENSE file in the project root for more information.
  */
 
-package com.microsoft.sqlserver.testframework.util;
+package com.microsoft.sqlserver.jdbc;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -22,7 +22,6 @@ import com.microsoft.sqlserver.jdbc.SQLServerResultSetMetaData;
 import com.microsoft.sqlserver.testframework.DBConnection;
 import com.microsoft.sqlserver.testframework.DBResultSet;
 import com.microsoft.sqlserver.testframework.DBTable;
-import com.microsoft.sqlserver.testframework.Utils;
 
 
 public class ComparisonUtil {
@@ -156,7 +155,7 @@ public class ComparisonUtil {
 
                 case java.sql.Types.BINARY:
                 case java.sql.Types.VARBINARY:
-                    assertTrue(Utils.parseByte((byte[]) expectedValue, (byte[]) actualValue),
+                    assertTrue(TestUtils.parseByte((byte[]) expectedValue, (byte[]) actualValue),
                             "Unexpected bianry/varbinary value ");
                     break;
 

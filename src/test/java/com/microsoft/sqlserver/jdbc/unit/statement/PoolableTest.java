@@ -24,8 +24,8 @@ import com.microsoft.sqlserver.jdbc.SQLServerCallableStatement;
 import com.microsoft.sqlserver.jdbc.SQLServerPreparedStatement;
 import com.microsoft.sqlserver.jdbc.SQLServerStatement;
 import com.microsoft.sqlserver.jdbc.TestResource;
+import com.microsoft.sqlserver.jdbc.TestUtils;
 import com.microsoft.sqlserver.testframework.AbstractTest;
-import com.microsoft.sqlserver.testframework.Utils;
 
 
 /**
@@ -93,7 +93,7 @@ public class PoolableTest extends AbstractTest {
     public static void afterAll() throws Exception {
         try (Connection conn = DriverManager.getConnection(connectionString); Statement stmt = conn.createStatement()) {
             try {
-                Utils.dropProcedureIfExists("ProcName", stmt);
+                TestUtils.dropProcedureIfExists("ProcName", stmt);
             } catch (Exception ex) {
                 fail(ex.toString());
             }

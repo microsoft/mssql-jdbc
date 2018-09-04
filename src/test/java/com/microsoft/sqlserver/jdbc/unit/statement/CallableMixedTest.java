@@ -18,11 +18,11 @@ import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
 
+import com.microsoft.sqlserver.jdbc.RandomUtil;
 import com.microsoft.sqlserver.jdbc.TestResource;
+import com.microsoft.sqlserver.jdbc.TestUtils;
 import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
 import com.microsoft.sqlserver.testframework.AbstractTest;
-import com.microsoft.sqlserver.testframework.Utils;
-import com.microsoft.sqlserver.testframework.util.RandomUtil;
 
 
 /**
@@ -105,7 +105,7 @@ public class CallableMixedTest extends AbstractTest {
      * @throws SQLException
      */
     private void terminateVariation(Statement statement) throws SQLException {
-        Utils.dropTableIfExists(tableName, statement);
-        Utils.dropProcedureIfExists(procName, statement);
+        TestUtils.dropTableIfExists(tableName, statement);
+        TestUtils.dropProcedureIfExists(procName, statement);
     }
 }

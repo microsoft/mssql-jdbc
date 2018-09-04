@@ -16,17 +16,17 @@ import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
 
+import com.microsoft.sqlserver.jdbc.ComparisonUtil;
 import com.microsoft.sqlserver.jdbc.SQLServerCallableStatement;
 import com.microsoft.sqlserver.jdbc.SQLServerDataTable;
 import com.microsoft.sqlserver.jdbc.SQLServerPreparedStatement;
 import com.microsoft.sqlserver.jdbc.TestResource;
+import com.microsoft.sqlserver.jdbc.TestUtils;
 import com.microsoft.sqlserver.testframework.AbstractTest;
 import com.microsoft.sqlserver.testframework.DBConnection;
 import com.microsoft.sqlserver.testframework.DBStatement;
 import com.microsoft.sqlserver.testframework.DBTable;
-import com.microsoft.sqlserver.testframework.Utils;
 import com.microsoft.sqlserver.testframework.sqlType.SqlType;
-import com.microsoft.sqlserver.testframework.util.ComparisonUtil;
 
 
 @RunWith(JUnitPlatform.class)
@@ -169,7 +169,7 @@ public class TVPAllTypes extends AbstractTest {
             stmt = conn.createStatement();
         }
 
-        Utils.dropProcedureIfExists(procedureName, stmt);
+        TestUtils.dropProcedureIfExists(procedureName, stmt);
         dropTVPS(tvpName);
 
         DBConnection dbConnection = new DBConnection(connectionString);
@@ -188,9 +188,9 @@ public class TVPAllTypes extends AbstractTest {
     }
 
     private void terminateVariation() throws SQLException {
-        Utils.dropProcedureIfExists(procedureName, stmt);
-        Utils.dropTableIfExists(tableSrc.getEscapedTableName(), stmt);
-        Utils.dropTableIfExists(tableDest.getEscapedTableName(), stmt);
+        TestUtils.dropProcedureIfExists(procedureName, stmt);
+        TestUtils.dropTableIfExists(tableSrc.getEscapedTableName(), stmt);
+        TestUtils.dropTableIfExists(tableDest.getEscapedTableName(), stmt);
         dropTVPS(tvpName);
         
         if (null != stmt) {

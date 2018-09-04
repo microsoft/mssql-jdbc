@@ -27,12 +27,12 @@ import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
 
+import com.microsoft.sqlserver.jdbc.RandomUtil;
 import com.microsoft.sqlserver.jdbc.SQLServerConnection;
+import com.microsoft.sqlserver.jdbc.TestUtils;
 import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
 import com.microsoft.sqlserver.testframework.AbstractTest;
 import com.microsoft.sqlserver.testframework.PrepUtil;
-import com.microsoft.sqlserver.testframework.Utils;
-import com.microsoft.sqlserver.testframework.util.RandomUtil;
 
 
 /**
@@ -75,7 +75,7 @@ public class RequestBoundaryMethodsTest extends AbstractTest {
         boolean useBulkCopyForBatchInsert2 = false;
 
         try (SQLServerConnection con = connect(); Statement stmt = con.createStatement()) {
-            if (Utils.isJDBC43OrGreater(con)) {
+            if (TestUtils.isJDBC43OrGreater(con)) {
                 // Second database
                 stmt.executeUpdate("CREATE DATABASE [" + sCatalog2 + "]");
 
@@ -135,7 +135,7 @@ public class RequestBoundaryMethodsTest extends AbstractTest {
             }
         } finally {
             try (SQLServerConnection con = connect(); Statement stmt = con.createStatement()) {
-                Utils.dropDatabaseIfExists(sCatalog2, stmt);
+                TestUtils.dropDatabaseIfExists(sCatalog2, stmt);
             }
         }
     }
@@ -148,7 +148,7 @@ public class RequestBoundaryMethodsTest extends AbstractTest {
     @Test
     public void testWarnings() throws SQLException {
         try (SQLServerConnection con = connect()) {
-            if (Utils.isJDBC43OrGreater(con)) {
+            if (TestUtils.isJDBC43OrGreater(con)) {
                 con.beginRequest();
                 generateWarning(con);
                 assertNotNull(con.getWarnings());
@@ -176,13 +176,12 @@ public class RequestBoundaryMethodsTest extends AbstractTest {
      */
     @Test
     public void testOpenTransactions() throws SQLException {
-        ResultSet rs = null;
         String tableName = null;
 
         try (SQLServerConnection con = connect(); Statement stmt = con.createStatement()) {
-            if (Utils.isJDBC43OrGreater(con)) {
+            if (TestUtils.isJDBC43OrGreater(con)) {
                 tableName = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("RequestBoundaryTable"));
-                Utils.dropTableIfExists(tableName, stmt);
+                TestUtils.dropTableIfExists(tableName, stmt);
                 stmt.executeUpdate("CREATE TABLE " + tableName + " (col int)");
                 con.beginRequest();
                 con.setAutoCommit(false);
@@ -191,19 +190,16 @@ public class RequestBoundaryMethodsTest extends AbstractTest {
                 con.endRequest();
                 con.commit();
 
-                rs = con.createStatement().executeQuery("SELECT * from " + tableName);
-                assertTrue(!rs.isBeforeFirst(), "Should not have returned a result set.");
+                try (ResultSet rs = con.createStatement().executeQuery("SELECT * from " + tableName)) {
+                    assertTrue(!rs.isBeforeFirst(), "Should not have returned a result set.");
+                }
             }
         } catch (Exception e) {
             e.printStackTrace();
-        } finally {
-            if (null != rs) {
-                rs.close();
-            }
-                
+        } finally {               
             if (null != tableName) {
                 try (SQLServerConnection con = connect(); Statement stmt = con.createStatement()) {
-                    Utils.dropTableIfExists(tableName, stmt);
+                    TestUtils.dropTableIfExists(tableName, stmt);
                 }
             }
         }
@@ -226,7 +222,7 @@ public class RequestBoundaryMethodsTest extends AbstractTest {
         String tableName = null;
 
         try (SQLServerConnection con = connect();) {
-            if (Utils.isJDBC43OrGreater(con)) {
+            if (TestUtils.isJDBC43OrGreater(con)) {
                 stmt1 = con.createStatement();
                 con.beginRequest();
                 stmt = con.createStatement();
@@ -246,7 +242,7 @@ public class RequestBoundaryMethodsTest extends AbstractTest {
                 con.beginRequest();
                 stmt = con.createStatement();
                 tableName = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("RequestBoundary"));
-                Utils.dropTableIfExists(tableName, stmt);
+                TestUtils.dropTableIfExists(tableName, stmt);
                 stmt.executeUpdate("CREATE TABLE " + tableName + " (col int)");
                 ps = con.prepareStatement("INSERT INTO " + tableName + " values (?)");
                 ps.setInt(1, 2);
@@ -282,7 +278,7 @@ public class RequestBoundaryMethodsTest extends AbstractTest {
             }
             if (null != tableName) {
                 try (Connection con = DriverManager.getConnection(connectionString); Statement statement = con.createStatement()) {
-                    Utils.dropTableIfExists(tableName, statement);
+                    TestUtils.dropTableIfExists(tableName, statement);
                 }
             }
         }
@@ -305,7 +301,7 @@ public class RequestBoundaryMethodsTest extends AbstractTest {
         final CountDownLatch latch = new CountDownLatch(3);
         try {
             sharedVariables.con = connect();
-            if (Utils.isJDBC43OrGreater(sharedVariables.con)) {
+            if (TestUtils.isJDBC43OrGreater(sharedVariables.con)) {
                 Thread thread1 = new Thread() {
                     public void run() {
                         try {

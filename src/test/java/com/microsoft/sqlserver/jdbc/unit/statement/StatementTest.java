@@ -41,16 +41,16 @@ import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
 
+import com.microsoft.sqlserver.jdbc.RandomUtil;
 import com.microsoft.sqlserver.jdbc.SQLServerDataSource;
 import com.microsoft.sqlserver.jdbc.SQLServerResultSet;
 import com.microsoft.sqlserver.jdbc.SQLServerResultSetMetaData;
 import com.microsoft.sqlserver.jdbc.SQLServerStatement;
 import com.microsoft.sqlserver.jdbc.TestResource;
+import com.microsoft.sqlserver.jdbc.TestUtils;
 import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
 import com.microsoft.sqlserver.testframework.AbstractTest;
 import com.microsoft.sqlserver.testframework.DBConnection;
-import com.microsoft.sqlserver.testframework.Utils;
-import com.microsoft.sqlserver.testframework.util.RandomUtil;
 
 
 /**
@@ -79,7 +79,7 @@ public class StatementTest extends AbstractTest {
                 con.setAutoCommit(false);
                 try (Statement stmt = con.createStatement()) {
                     try {
-                        Utils.dropTableIfExists(tableName, stmt);
+                        TestUtils.dropTableIfExists(tableName, stmt);
                     } catch (SQLException e) {}
                     stmt.executeUpdate("CREATE TABLE " + tableName + " (col1 INT PRIMARY KEY, col2 VARCHAR("
                             + TEST_STRING.length() + "))");
@@ -96,7 +96,7 @@ public class StatementTest extends AbstractTest {
             try (Connection con = DriverManager.getConnection(connectionString);
                     Statement stmt = con.createStatement()) {
                 try {
-                    Utils.dropTableIfExists(tableName, stmt);
+                    TestUtils.dropTableIfExists(tableName, stmt);
                 } catch (SQLException e) {}
             }
         }
@@ -215,7 +215,7 @@ public class StatementTest extends AbstractTest {
          */
         @Test
         public void testCancelLongResponse() throws Exception {
-            assumeTrue("JDBC42".equals(Utils.getConfiguredProperty("JDBC_Version")),
+            assumeTrue("JDBC42".equals(TestUtils.getConfiguredProperty("JDBC_Version")),
                     TestResource.getResource("R_incompatJDBC"));
 
             try (Connection con = DriverManager.getConnection(connectionString); Statement stmt = con
@@ -657,7 +657,7 @@ public class StatementTest extends AbstractTest {
                     Statement stmt = con.createStatement()) {
 
                 try {
-                    Utils.dropProcedureIfExists(procName, stmt);
+                    TestUtils.dropProcedureIfExists(procName, stmt);
                 } catch (Exception ex) {} ;
                 stmt.executeUpdate("CREATE PROCEDURE " + procName + "    @arg1 CHAR(512) OUTPUT, "
                         + "    @arg2 CHAR(512) OUTPUT, " + "    @arg3 CHAR(512) OUTPUT " + "AS " + "BEGIN "
@@ -691,7 +691,7 @@ public class StatementTest extends AbstractTest {
                 // Reexecute to prove CS is still good after last cancel
                 cstmt.execute();
 
-                Utils.dropProcedureIfExists(procName, stmt);
+                TestUtils.dropProcedureIfExists(procName, stmt);
             }
         }
 
@@ -998,10 +998,10 @@ public class StatementTest extends AbstractTest {
                 }
 
                 try {
-                    Utils.dropTableIfExists(table1Name, stmt);
+                    TestUtils.dropTableIfExists(table1Name, stmt);
                 } catch (SQLException e) {}
                 try {
-                    Utils.dropTableIfExists(table2Name, stmt);
+                    TestUtils.dropTableIfExists(table2Name, stmt);
                 } catch (SQLException e) {}
 
                 stmt.executeUpdate("CREATE TABLE " + table1Name + " (col1 INT PRIMARY KEY)");
@@ -1021,7 +1021,7 @@ public class StatementTest extends AbstractTest {
          */
         @Test
         public void testLargeMaxRowsJDBC41() throws Exception {
-            assumeTrue("JDBC41".equals(Utils.getConfiguredProperty("JDBC_Version")),
+            assumeTrue("JDBC41".equals(TestUtils.getConfiguredProperty("JDBC_Version")),
                     TestResource.getResource("R_incompatJDBC"));
 
             try (Connection con = DriverManager.getConnection(connectionString);
@@ -1052,7 +1052,7 @@ public class StatementTest extends AbstractTest {
          */
         @Test
         public void testLargeMaxRowsJDBC42() throws Exception {
-            assumeTrue("JDBC42".equals(Utils.getConfiguredProperty("JDBC_Version")),
+            assumeTrue("JDBC42".equals(TestUtils.getConfiguredProperty("JDBC_Version")),
                     TestResource.getResource("R_incompatJDBC"));
 
             try (Connection con = DriverManager.getConnection(connectionString);
@@ -1100,8 +1100,8 @@ public class StatementTest extends AbstractTest {
             try (Connection con = DriverManager.getConnection(connectionString);
                     Statement stmt = con.createStatement();) {
                 try {
-                    Utils.dropTableIfExists(table1Name, stmt);
-                    Utils.dropTableIfExists(table2Name, stmt);
+                    TestUtils.dropTableIfExists(table1Name, stmt);
+                    TestUtils.dropTableIfExists(table2Name, stmt);
                 } catch (SQLException e) {}
             }
         }
@@ -1258,7 +1258,7 @@ public class StatementTest extends AbstractTest {
             try (Connection con = DriverManager.getConnection(connectionString);
                     Statement stmt = con.createStatement()) {
                 try {
-                    Utils.dropProcedureIfExists(procName, stmt);
+                    TestUtils.dropProcedureIfExists(procName, stmt);
                 } catch (SQLException e) {
                     fail(e.toString());
                 }
@@ -1607,8 +1607,8 @@ public class StatementTest extends AbstractTest {
             try (Connection con = DriverManager.getConnection(connectionString);
                     Statement stmt = con.createStatement()) {
                 try {
-                    Utils.dropTableIfExists(tableName, stmt);
-                    Utils.dropProcedureIfExists(procName, stmt);
+                    TestUtils.dropTableIfExists(tableName, stmt);
+                    TestUtils.dropProcedureIfExists(procName, stmt);
                 } catch (SQLException e) {
                     fail(e.toString());
                 }
@@ -1645,7 +1645,7 @@ public class StatementTest extends AbstractTest {
             try (Connection con = DriverManager.getConnection(connectionString);
                     Statement stmt = con.createStatement()) {
                 try {
-                    Utils.dropTableIfExists(tableName, stmt);
+                    TestUtils.dropTableIfExists(tableName, stmt);
                 } catch (SQLException e) {
                     fail(e.toString());
                 }
@@ -1820,7 +1820,7 @@ public class StatementTest extends AbstractTest {
                 con = ds.getConnection();
                 Statement stmt = con.createStatement();
                 try {
-                    Utils.dropTableIfExists(tableName, stmt);
+                    TestUtils.dropTableIfExists(tableName, stmt);
                 } catch (SQLException e) {}
 
                 String createTableQuery = "CREATE TABLE " + tableName + "(col1 int PRIMARY KEY IDENTITY(1,1)";
@@ -1866,7 +1866,7 @@ public class StatementTest extends AbstractTest {
                 con = ds.getConnection();
                 Statement stmt = con.createStatement();
                 try {
-                    Utils.dropTableIfExists(tableName, stmt);
+                    TestUtils.dropTableIfExists(tableName, stmt);
                 } catch (SQLException e) {}
 
                 // construct a query to create a table with 100 columns
@@ -2261,9 +2261,9 @@ public class StatementTest extends AbstractTest {
             try (Connection con = DriverManager.getConnection(connectionString);
                     Statement stmt = con.createStatement();) {
                 try {
-                    Utils.dropTableIfExists(tableName, stmt);
-                    Utils.dropTableIfExists(table2Name, stmt);
-                    Utils.dropProcedureIfExists(sprocName, stmt);
+                    TestUtils.dropTableIfExists(tableName, stmt);
+                    TestUtils.dropTableIfExists(table2Name, stmt);
+                    TestUtils.dropProcedureIfExists(sprocName, stmt);
                 } catch (SQLException e) {
                     fail(e.toString());
                 }
@@ -2464,7 +2464,7 @@ public class StatementTest extends AbstractTest {
             try (Connection con = DriverManager.getConnection(connectionString);
                     Statement stmt = con.createStatement();) {
                 try {
-                    Utils.dropTableIfExists(tableName, stmt);
+                    TestUtils.dropTableIfExists(tableName, stmt);
                 } catch (SQLException e) {
                     fail(e.toString());
                 }
@@ -2534,7 +2534,7 @@ public class StatementTest extends AbstractTest {
             try (Connection con = DriverManager.getConnection(connectionString);
                     Statement stmt = con.createStatement()) {
                 try {
-                    Utils.dropTableIfExists(tableName, stmt);
+                    TestUtils.dropTableIfExists(tableName, stmt);
                 } catch (SQLException e) {
                     fail(e.toString());
                 }

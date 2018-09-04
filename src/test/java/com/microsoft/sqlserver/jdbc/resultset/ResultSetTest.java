@@ -32,9 +32,9 @@ import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
 
 import com.microsoft.sqlserver.jdbc.ISQLServerResultSet;
+import com.microsoft.sqlserver.jdbc.RandomUtil;
+import com.microsoft.sqlserver.jdbc.TestUtils;
 import com.microsoft.sqlserver.testframework.AbstractTest;
-import com.microsoft.sqlserver.testframework.Utils;
-import com.microsoft.sqlserver.testframework.util.RandomUtil;
 
 
 @RunWith(JUnitPlatform.class)
@@ -278,7 +278,7 @@ public class ResultSetTest extends AbstractTest {
                 LocalTime actualLocalTime = rs.getObject(1, LocalTime.class);
                 assertEquals(expectedLocalTime, actualLocalTime);
             } finally {
-                Utils.dropTableIfExists(tableName, stmt);
+                TestUtils.dropTableIfExists(tableName, stmt);
                 TimeZone.setDefault(prevTimeZone);
             }
         }
@@ -303,7 +303,7 @@ public class ResultSetTest extends AbstractTest {
                 assertSame(rs, rs.unwrap(ResultSet.class));
                 assertSame(rs, rs.unwrap(ISQLServerResultSet.class));
             } finally {
-                Utils.dropTableIfExists(tableName, stmt);
+                TestUtils.dropTableIfExists(tableName, stmt);
             }
         }
     }

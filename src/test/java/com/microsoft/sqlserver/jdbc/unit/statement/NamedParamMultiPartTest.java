@@ -20,8 +20,8 @@ import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
 
 import com.microsoft.sqlserver.jdbc.TestResource;
+import com.microsoft.sqlserver.jdbc.TestUtils;
 import com.microsoft.sqlserver.testframework.AbstractTest;
-import com.microsoft.sqlserver.testframework.Utils;
 
 
 /**
@@ -42,7 +42,7 @@ public class NamedParamMultiPartTest extends AbstractTest {
     public static void beforeAll() throws SQLException {
         try (Connection connection = DriverManager.getConnection(connectionString);
                 Statement statement = connection.createStatement()) {
-            Utils.dropProcedureIfExists("mystoredproc", statement);
+            TestUtils.dropProcedureIfExists("mystoredproc", statement);
             statement.executeUpdate(
                     "CREATE PROCEDURE [mystoredproc] (@p_out varchar(255) OUTPUT) AS set @p_out =  '" + dataPut + "'");
         }
@@ -156,7 +156,7 @@ public class NamedParamMultiPartTest extends AbstractTest {
     public static void afterAll() throws SQLException {
         try (Connection connection = DriverManager.getConnection(connectionString);
                 Statement stmt = connection.createStatement()) {
-            Utils.dropProcedureIfExists("mystoredproc", stmt);
+            TestUtils.dropProcedureIfExists("mystoredproc", stmt);
         }
     }
 }

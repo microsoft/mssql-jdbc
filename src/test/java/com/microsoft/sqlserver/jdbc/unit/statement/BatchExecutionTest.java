@@ -26,9 +26,9 @@ import org.opentest4j.TestAbortedException;
 import com.microsoft.sqlserver.jdbc.SQLServerConnection;
 import com.microsoft.sqlserver.jdbc.SQLServerStatement;
 import com.microsoft.sqlserver.jdbc.TestResource;
+import com.microsoft.sqlserver.jdbc.TestUtils;
 import com.microsoft.sqlserver.testframework.AbstractTest;
 import com.microsoft.sqlserver.testframework.DBConnection;
-import com.microsoft.sqlserver.testframework.Utils;
 
 
 /**
@@ -228,8 +228,8 @@ public class BatchExecutionTest extends AbstractTest {
         try (Connection connection = DriverManager
                 .getConnection(connectionString + ";columnEncryptionSetting=Enabled;");
                 Statement stmt = (SQLServerStatement) connection.createStatement()) {
-            Utils.dropTableIfExists("ctstable2", stmt);
-            Utils.dropTableIfExists("ctstable1", stmt);
+            TestUtils.dropTableIfExists("ctstable2", stmt);
+            TestUtils.dropTableIfExists("ctstable1", stmt);
         }
     }
 

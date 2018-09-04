@@ -22,8 +22,8 @@ import org.junit.runner.RunWith;
 import com.microsoft.sqlserver.jdbc.SQLServerCallableStatement;
 import com.microsoft.sqlserver.jdbc.SQLServerDataSource;
 import com.microsoft.sqlserver.jdbc.TestResource;
+import com.microsoft.sqlserver.jdbc.TestUtils;
 import com.microsoft.sqlserver.testframework.AbstractTest;
-import com.microsoft.sqlserver.testframework.Utils;
 
 
 /**
@@ -49,10 +49,10 @@ public class CallableStatementTest extends AbstractTest {
         connection = DriverManager.getConnection(connectionString);
         stmt = connection.createStatement();
 
-        Utils.dropTableIfExists(tableNameGUID, stmt);
-        Utils.dropProcedureIfExists(outputProcedureNameGUID, stmt);
-        Utils.dropProcedureIfExists(setNullProcedureName, stmt);
-        Utils.dropProcedureIfExists(inputParamsProcedureName, stmt);
+        TestUtils.dropTableIfExists(tableNameGUID, stmt);
+        TestUtils.dropProcedureIfExists(outputProcedureNameGUID, stmt);
+        TestUtils.dropProcedureIfExists(setNullProcedureName, stmt);
+        TestUtils.dropProcedureIfExists(inputParamsProcedureName, stmt);
 
         createGUIDTable(stmt);
         createGUIDStoredProcedure(stmt);
@@ -172,10 +172,10 @@ public class CallableStatementTest extends AbstractTest {
      */
     @AfterAll
     public static void cleanup() throws SQLException {
-        Utils.dropTableIfExists(tableNameGUID, stmt);
-        Utils.dropProcedureIfExists(outputProcedureNameGUID, stmt);
-        Utils.dropProcedureIfExists(setNullProcedureName, stmt);
-        Utils.dropProcedureIfExists(inputParamsProcedureName, stmt);
+        TestUtils.dropTableIfExists(tableNameGUID, stmt);
+        TestUtils.dropProcedureIfExists(outputProcedureNameGUID, stmt);
+        TestUtils.dropProcedureIfExists(setNullProcedureName, stmt);
+        TestUtils.dropProcedureIfExists(inputParamsProcedureName, stmt);
 
         if (null != stmt) {
             stmt.close();

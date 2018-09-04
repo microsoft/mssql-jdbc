@@ -34,8 +34,8 @@ import com.microsoft.sqlserver.jdbc.SQLServerBulkCopy;
 import com.microsoft.sqlserver.jdbc.SQLServerConnection;
 import com.microsoft.sqlserver.jdbc.SQLServerException;
 import com.microsoft.sqlserver.jdbc.TestResource;
+import com.microsoft.sqlserver.jdbc.TestUtils;
 import com.microsoft.sqlserver.testframework.AbstractTest;
-import com.microsoft.sqlserver.testframework.Utils;
 
 
 @RunWith(JUnitPlatform.class)
@@ -220,8 +220,8 @@ public class ISQLServerBulkRecordIssuesTest extends AbstractTest {
     public static void setupHere() throws SQLException, SecurityException, IOException {
         con = (SQLServerConnection) DriverManager.getConnection(connectionString);
         stmt = con.createStatement();
-        Utils.dropTableIfExists(destTable, stmt);
-        Utils.dropTableIfExists(srcTable, stmt);
+        TestUtils.dropTableIfExists(destTable, stmt);
+        TestUtils.dropTableIfExists(srcTable, stmt);
     }
 
     /**
@@ -231,8 +231,8 @@ public class ISQLServerBulkRecordIssuesTest extends AbstractTest {
      */
     @AfterEach
     public void afterEachTests() throws SQLException {
-        Utils.dropTableIfExists(destTable, stmt);
-        Utils.dropTableIfExists(srcTable, stmt);
+        TestUtils.dropTableIfExists(destTable, stmt);
+        TestUtils.dropTableIfExists(srcTable, stmt);
     }
 
     @AfterAll
