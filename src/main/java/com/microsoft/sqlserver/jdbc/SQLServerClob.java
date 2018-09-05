@@ -6,8 +6,6 @@
 package com.microsoft.sqlserver.jdbc;
 
 import static java.nio.charset.StandardCharsets.US_ASCII;
-import static java.nio.charset.StandardCharsets.UTF_16LE;
-import static java.nio.charset.StandardCharsets.UTF_16;
 
 import java.io.BufferedInputStream;
 import java.io.BufferedReader;
@@ -21,7 +19,6 @@ import java.io.Serializable;
 import java.io.StringReader;
 import java.io.UnsupportedEncodingException;
 import java.io.Writer;
-import java.nio.charset.Charset;
 import java.sql.Clob;
 import java.sql.SQLException;
 import java.text.MessageFormat;
@@ -154,7 +151,7 @@ abstract class SQLServerClobBase extends SQLServerLob implements Serializable {
 
     // The value of the CLOB that this Clob object represents.
     // This value is never null unless/until the free() method is called.
-    private String value;
+    protected String value;
 
     private final SQLCollation sqlCollation;
 
@@ -167,7 +164,7 @@ abstract class SQLServerClobBase extends SQLServerLob implements Serializable {
      * assumption that a Clob/NClob object is typically used either for input or output, and then only once. The array
      * size grows automatically if multiple streams are used.
      */
-    private ArrayList<Closeable> activeStreams = new ArrayList<>(1);
+    protected ArrayList<Closeable> activeStreams = new ArrayList<>(1);
 
     transient SQLServerConnection con;
 
@@ -262,7 +259,7 @@ abstract class SQLServerClobBase extends SQLServerLob implements Serializable {
     /**
      * Throws a SQLException if the LOB has been freed.
      */
-    private void checkClosed() throws SQLServerException {
+    protected void checkClosed() throws SQLServerException {
         if (isClosed) {
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_isFreed"));
             SQLServerException.makeFromDriverError(con, null, form.format(new Object[] {getDisplayClassName()}), null,
@@ -308,7 +305,7 @@ abstract class SQLServerClobBase extends SQLServerLob implements Serializable {
             } catch (IOException e) {
                 throw new SQLServerException(e.getMessage(), null, 0, e);
             }
-            getterStream = new BufferedReader(new InputStreamReader(inputStream));
+            getterStream = new BufferedReader(new InputStreamReader(inputStream, typeInfo.getCharset()));
         } else {
             getterStream = new StringReader(value);
             activeStreams.add(getterStream);
@@ -388,13 +385,10 @@ abstract class SQLServerClobBase extends SQLServerLob implements Serializable {
      */
     public long length() throws SQLException {
         checkClosed();
-        if (value == null && activeStreams.get(0) instanceof PLPInputStream) {
-            return (long) ((PLPInputStream) activeStreams.get(0)).payloadLength / 2;
-        } else if (value == null && activeStreams.get(0) instanceof SimpleInputStream) {
-            return (long) ((SimpleInputStream) activeStreams.get(0)).payloadLength / 2;
-        } else {
-            return value.length();
+        if (value == null && activeStreams.get(0) instanceof BaseInputStream) {
+            return (long) ((BaseInputStream) activeStreams.get(0)).payloadLength / 2;
         }
+        return value.length();
     }
 
     /**

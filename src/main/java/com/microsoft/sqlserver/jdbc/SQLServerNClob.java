@@ -5,9 +5,15 @@
 
 package com.microsoft.sqlserver.jdbc;
 
+import static java.nio.charset.StandardCharsets.UTF_16LE;
+
+import java.io.BufferedReader;
+import java.io.IOException;
 import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.Reader;
+import java.io.StringReader;
 import java.io.UnsupportedEncodingException;
 import java.io.Writer;
 import java.sql.Clob;
@@ -50,7 +56,22 @@ public final class SQLServerNClob extends SQLServerClobBase implements NClob {
 
     @Override
     public Reader getCharacterStream() throws SQLException {
-        return super.getCharacterStream();
+        checkClosed();
+
+        Reader getterStream = null;
+        if (null == value && !activeStreams.isEmpty()) {
+            InputStream inputStream = (InputStream) activeStreams.get(0);
+            try {
+                inputStream.reset();
+            } catch (IOException e) {
+                throw new SQLServerException(e.getMessage(), null, 0, e);
+            }
+            getterStream = new BufferedReader(new InputStreamReader(inputStream, UTF_16LE));
+        } else {
+            getterStream = new StringReader(value);
+            activeStreams.add(getterStream);
+        }
+        return getterStream;
     }
 
     @Override
