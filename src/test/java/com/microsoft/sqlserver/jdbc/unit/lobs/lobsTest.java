@@ -421,9 +421,8 @@ public class lobsTest extends AbstractTest {
                 nclob = rs.getNClob(2);
                 assertEquals(nclob.length(), size);
                 stream = nclob.getAsciiStream();
-                BufferedInputStream is = new BufferedInputStream(stream);
-                is.read(chunk);
-                assertEquals(chunk.length, size);
+                chunk = stream.readAllBytes();
+                assertEquals(chunk.length/2, size);//2 bytes per character when streaming
             } else {
                 blob = rs.getBlob(2);
                 stream = blob.getBinaryStream();
@@ -432,7 +431,6 @@ public class lobsTest extends AbstractTest {
                 while ((read = stream.read(chunk)) > 0)
                     buffer.write(chunk, 0, read);
                 assertEquals(chunk.length, size);
-
             }
 
         }
@@ -721,5 +719,4 @@ public class lobsTest extends AbstractTest {
         stmt.executeUpdate("if object_id('" + table.getEscapedTableName() + "','U') is not null" + " drop table "
                 + table.getEscapedTableName());
     }
-
 }
