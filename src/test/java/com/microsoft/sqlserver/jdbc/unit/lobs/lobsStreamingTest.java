@@ -121,6 +121,7 @@ public class lobsStreamingTest extends AbstractTest {
         ResultSet rs = stmt.executeQuery("SELECT * FROM [" + tableName + "] ORDER BY id ASC");
         while (rs.next()) {
             Clob c = rs.getClob(2);
+            assertEquals(c.length(),lobs.get(rs.getInt(1)).length());
             lobsFromServer.add(c);
             String recieved = getStringFromInputStream(c.getAsciiStream());// streaming string
             streamedStrings.add(recieved);
@@ -158,6 +159,7 @@ public class lobsStreamingTest extends AbstractTest {
         ResultSet rs = stmt.executeQuery("SELECT * FROM [" + tableName + "] ORDER BY id ASC");
         while (rs.next()) {
             NClob c = rs.getNClob(2);
+            assertEquals(c.length(),lobs.get(rs.getInt(1)).length());
             lobsFromServer.add(c);
             String recieved = getStringFromInputStream(c.getAsciiStream());// streaming string
             streamedStrings.add(recieved);
@@ -195,6 +197,7 @@ public class lobsStreamingTest extends AbstractTest {
         ResultSet rs = stmt.executeQuery("SELECT * FROM [" + tableName + "] ORDER BY id ASC");
         while (rs.next()) {
             Clob c = rs.getClob(2);
+            assertEquals(c.length(),lobs.get(rs.getInt(1)).length());
             lobsFromServer.add(c);
             String recieved = getStringFromReader(c.getCharacterStream(), c.length());// streaming string
             streamedStrings.add(recieved);
@@ -233,6 +236,7 @@ public class lobsStreamingTest extends AbstractTest {
         ResultSet rs = stmt.executeQuery("SELECT * FROM [" + tableName + "] ORDER BY id ASC");
         while (rs.next()) {
             NClob c = rs.getNClob(2);
+            assertEquals(c.length(),lobs.get(rs.getInt(1)).length());
             lobsFromServer.add(c);
             String recieved = getStringFromReader(c.getCharacterStream(), c.length());// streaming string
             streamedStrings.add(recieved);
