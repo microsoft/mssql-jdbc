@@ -38,10 +38,12 @@ public final class SQLServerNClob extends SQLServerClobBase implements NClob {
 
     SQLServerNClob(SQLServerConnection connection) {
         super(connection, "", connection.getDatabaseCollation(), logger, null);
+        this.setDefaultCharset(UTF_16LE);
     }
 
     SQLServerNClob(BaseInputStream stream, TypeInfo typeInfo) throws SQLServerException, UnsupportedEncodingException {
         super(null, stream, typeInfo.getSQLCollation(), logger, typeInfo);
+        this.setDefaultCharset(UTF_16LE);
     }
 
     @Override
@@ -56,22 +58,7 @@ public final class SQLServerNClob extends SQLServerClobBase implements NClob {
 
     @Override
     public Reader getCharacterStream() throws SQLException {
-        checkClosed();
-
-        Reader getterStream = null;
-        if (null == value && !activeStreams.isEmpty()) {
-            InputStream inputStream = (InputStream) activeStreams.get(0);
-            try {
-                inputStream.reset();
-            } catch (IOException e) {
-                throw new SQLServerException(e.getMessage(), null, 0, e);
-            }
-            getterStream = new BufferedReader(new InputStreamReader(inputStream, UTF_16LE));
-        } else {
-            getterStream = new StringReader(value);
-            activeStreams.add(getterStream);
-        }
-        return getterStream;
+        return super.getCharacterStream();
     }
 
     @Override

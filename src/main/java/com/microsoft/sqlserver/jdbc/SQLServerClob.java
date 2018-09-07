@@ -19,6 +19,7 @@ import java.io.Serializable;
 import java.io.StringReader;
 import java.io.UnsupportedEncodingException;
 import java.io.Writer;
+import java.nio.charset.Charset;
 import java.sql.Clob;
 import java.sql.SQLException;
 import java.text.MessageFormat;
@@ -180,8 +181,9 @@ abstract class SQLServerClobBase extends SQLServerLob implements Serializable {
     // Unique id generator for each instance (used for logging).
     static private final AtomicInteger baseID = new AtomicInteger(0);
 
+    private Charset defaultCharset = null;
+    
     // Returns unique id for each instance.
-
     private static int nextInstanceID() {
         return baseID.incrementAndGet();
     }
@@ -305,7 +307,8 @@ abstract class SQLServerClobBase extends SQLServerLob implements Serializable {
             } catch (IOException e) {
                 throw new SQLServerException(e.getMessage(), null, 0, e);
             }
-            getterStream = new BufferedReader(new InputStreamReader(inputStream, typeInfo.getCharset()));
+            Charset cs = (defaultCharset == null) ? typeInfo.getCharset() : defaultCharset;
+            getterStream = new BufferedReader(new InputStreamReader(inputStream, cs));
         } else {
             getterStream = new StringReader(value);
             activeStreams.add(getterStream);
@@ -415,7 +418,8 @@ abstract class SQLServerClobBase extends SQLServerLob implements Serializable {
             } catch (IOException e) {
                 throw new SQLServerException(e.getMessage(), null, 0, e);
             }
-            value = new String((stream).getBytes(), typeInfo.getCharset());
+            Charset cs = (defaultCharset == null) ? typeInfo.getCharset() : defaultCharset;
+            value = new String((stream).getBytes(), cs);
         }
     }
 
@@ -663,6 +667,10 @@ abstract class SQLServerClobBase extends SQLServerLob implements Serializable {
         }
 
         return len;
+    }
+    
+    protected void setDefaultCharset(Charset c) {
+        this.defaultCharset = c;
     }
 }
 
