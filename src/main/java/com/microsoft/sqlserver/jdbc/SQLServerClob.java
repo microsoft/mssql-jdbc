@@ -282,9 +282,22 @@ abstract class SQLServerClobBase extends SQLServerLob implements Serializable {
         if (null != sqlCollation && !sqlCollation.supportsAsciiConversion())
             DataTypes.throwConversionError(getDisplayClassName(), "AsciiStream");
 
-        getStringFromStream();
-        InputStream getterStream = new BufferedInputStream(
-                new ReaderInputStream(new StringReader(value), US_ASCII, value.length()));
+        // Need to use a BufferedInputStream since the stream returned by this method is assumed to support mark/reset
+        InputStream getterStream;
+        if (null == value && !activeStreams.isEmpty()) {
+            InputStream inputStream = (InputStream) activeStreams.get(0);
+            try {
+                inputStream.reset();
+                getterStream = new BufferedInputStream(
+                        new ReaderInputStream(new InputStreamReader(inputStream), US_ASCII, inputStream.available()));
+            } catch (IOException e) {
+                throw new SQLServerException(e.getMessage(), null, 0, e);
+            }
+        } else {
+            getStringFromStream();
+            getterStream = new BufferedInputStream(
+                    new ReaderInputStream(new StringReader(value), US_ASCII, value.length()));
+        }
         activeStreams.add(getterStream);
         return getterStream;
     }
@@ -310,9 +323,10 @@ abstract class SQLServerClobBase extends SQLServerLob implements Serializable {
             Charset cs = (defaultCharset == null) ? typeInfo.getCharset() : defaultCharset;
             getterStream = new BufferedReader(new InputStreamReader(inputStream, cs));
         } else {
+            getStringFromStream();
             getterStream = new StringReader(value);
-            activeStreams.add(getterStream);
         }
+        activeStreams.add(getterStream);
         return getterStream;
     }
 

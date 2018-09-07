@@ -69,11 +69,8 @@ public final class SQLServerNClob extends SQLServerClobBase implements NClob {
 
     @Override
     public long length() throws SQLException {
-        if (value == null && activeStreams.get(0) instanceof BaseInputStream) {
-            return super.length()/2;
-        } else {
-            return super.length();
-        }
+        //If streaming, every 2 bytes represents 1 character. If not, length() just returns string length
+        return (value == null && activeStreams.get(0) instanceof BaseInputStream) ? super.length() / 2 : super.length();
     }
 
     @Override
