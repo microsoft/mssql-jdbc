@@ -255,12 +255,28 @@ public class Utils {
     public static String getCurrentClassPath() {
         try {
             String className = new Object() {}.getClass().getEnclosingClass().getName();
-            String location = Class.forName(className).getProtectionDomain().getCodeSource().getLocation().getPath()
-                    + "/";
-            URI uri = new URI(location.toString());
+            String location = Class.forName(className).getProtectionDomain().getCodeSource().getLocation().getPath();
+            URI uri = new URI(location + "/");
             return uri.getPath();
         } catch (Exception e) {
             fail("Failed to get CSV file path. " + e.getMessage());
+        }
+        return null;
+    }
+
+    /**
+     * 
+     * @return location of resource file
+     */
+    public static String getAECertificatePath() {
+        try {
+            String className = new Object() {}.getClass().getEnclosingClass().getName();
+            String location = Class.forName(className).getProtectionDomain().getCodeSource().getLocation().getPath();
+            URI uri = new URI(
+                    location.toString().substring(0, location.indexOf("/target/test-classes")) + "/AE_Certificates/");
+            return uri.getPath();
+        } catch (Exception e) {
+            fail("Failed to get AE Certificates Path " + e.getMessage());
         }
         return null;
     }
