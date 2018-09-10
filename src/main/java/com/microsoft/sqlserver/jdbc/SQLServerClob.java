@@ -165,7 +165,7 @@ abstract class SQLServerClobBase extends SQLServerLob implements Serializable {
      * assumption that a Clob/NClob object is typically used either for input or output, and then only once. The array
      * size grows automatically if multiple streams are used.
      */
-    protected ArrayList<Closeable> activeStreams = new ArrayList<>(1);
+    private ArrayList<Closeable> activeStreams = new ArrayList<>(1);
 
     transient SQLServerConnection con;
 
@@ -261,7 +261,7 @@ abstract class SQLServerClobBase extends SQLServerLob implements Serializable {
     /**
      * Throws a SQLException if the LOB has been freed.
      */
-    protected void checkClosed() throws SQLServerException {
+    private void checkClosed() throws SQLServerException {
         if (isClosed) {
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_isFreed"));
             SQLServerException.makeFromDriverError(con, null, form.format(new Object[] {getDisplayClassName()}), null,
