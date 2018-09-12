@@ -5,8 +5,6 @@
 
 package com.microsoft.sqlserver.jdbc;
 
-import static java.nio.charset.StandardCharsets.UTF_16LE;
-
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.Reader;
@@ -34,12 +32,12 @@ public final class SQLServerNClob extends SQLServerClobBase implements NClob {
 
     SQLServerNClob(SQLServerConnection connection) {
         super(connection, "", connection.getDatabaseCollation(), logger, null);
-        this.setDefaultCharset(UTF_16LE);
+        this.setDefaultCharset(java.nio.charset.StandardCharsets.UTF_16LE);
     }
 
     SQLServerNClob(BaseInputStream stream, TypeInfo typeInfo) throws SQLServerException, UnsupportedEncodingException {
         super(null, stream, typeInfo.getSQLCollation(), logger, typeInfo);
-        this.setDefaultCharset(UTF_16LE);
+        this.setDefaultCharset(java.nio.charset.StandardCharsets.UTF_16LE);
     }
 
     @Override

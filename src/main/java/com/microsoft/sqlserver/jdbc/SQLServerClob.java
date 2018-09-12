@@ -5,8 +5,6 @@
 
 package com.microsoft.sqlserver.jdbc;
 
-import static java.nio.charset.StandardCharsets.US_ASCII;
-
 import java.io.BufferedReader;
 import java.io.ByteArrayInputStream;
 import java.io.Closeable;
@@ -294,7 +292,7 @@ abstract class SQLServerClobBase extends SQLServerLob implements Serializable {
             }
         } else {
             getStringFromStream();
-            getterStream = new ByteArrayInputStream(value.getBytes(US_ASCII));
+            getterStream = new ByteArrayInputStream(value.getBytes(java.nio.charset.StandardCharsets.US_ASCII));
         }
         activeStreams.add(getterStream);
         return getterStream;
