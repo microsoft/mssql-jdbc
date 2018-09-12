@@ -306,7 +306,12 @@ public class TestUtils {
                 + "WHERE object_id = OBJECT_ID(N'%s') AND OBJECTPROPERTY(object_id, N'%s') = 1 " + ") " + "DROP %s %s ",
                 bracketedObjectName, objectProperty, "IsProcedure".equals(objectProperty) ? "PROCEDURE" : "TABLE",
                 bracketedObjectName);
-        stmt.executeUpdate(sql);
+        try {
+            stmt.executeUpdate(sql);
+        } catch (SQLException e) {
+            fail(TestResource.getResource("R_createDropTableFailed") + TestResource.getResource("R_errorMessage")
+                    + e.getMessage());
+        }
     }
 
     public static boolean parseByte(byte[] expectedData, byte[] retrieved) {
