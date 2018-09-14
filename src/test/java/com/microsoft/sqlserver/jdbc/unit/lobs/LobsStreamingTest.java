@@ -30,11 +30,11 @@ import com.microsoft.sqlserver.testframework.util.RandomUtil;
 
 
 @RunWith(JUnitPlatform.class)
-public class lobsStreamingTest extends AbstractTest {
+public class LobsStreamingTest extends AbstractTest {
 
     private static final int LOB_ARRAY_SIZE = 250; // number of rows to insert into the table and compare
-    private static final int LOB_LENGTH_MIN = 4000;
-    private static final int LOB_LENGTH_MAX = 8000;
+    private static final int LOB_LENGTH_MIN = 8000;
+    private static final int LOB_LENGTH_MAX = 32000;
 
     static String tableName;
     static String escapedTableName;
@@ -78,6 +78,39 @@ public class lobsStreamingTest extends AbstractTest {
             stringBuilder.append(buffer, 0, amountRead);
         }
         return stringBuilder.toString();
+    }
+    
+    @Test
+    @DisplayName("testLengthAfterStream")
+    public void testLengthAfterStream() throws SQLException, IOException {
+        try (Connection conn = DriverManager.getConnection(connectionString); Statement stmt = conn.createStatement()) {
+            stmt.execute("CREATE TABLE [" + tableName + "] (id int, lobValue varchar(max))");
+            ArrayList<String> lobs = new ArrayList<>();
+            IntStream.range(0, LOB_ARRAY_SIZE).forEach(i -> lobs
+                    .add(getRandomString(ThreadLocalRandom.current().nextInt(LOB_LENGTH_MIN, LOB_LENGTH_MAX))));
+
+            try (PreparedStatement pstmt = conn.prepareStatement("INSERT INTO [" + tableName + "] VALUES(?,?)")) {
+                for (int i = 0; i < lobs.size(); i++) {
+                    Clob c = conn.createClob();
+                    c.setString(1, lobs.get(i));
+                    pstmt.setInt(1, i);
+                    pstmt.setClob(2, c);
+                    pstmt.addBatch();
+                }
+                pstmt.executeBatch();
+
+                ResultSet rs = stmt.executeQuery("SELECT * FROM [" + tableName + "] ORDER BY id ASC");
+                while (rs.next()) {
+                    Clob c = rs.getClob(2);
+                    Reader r = c.getCharacterStream();
+                    long clobLength = c.length();
+                    String recieved = getStringFromReader(r,clobLength);// streaming string
+                    assertEquals(lobs.get(rs.getInt(1)), recieved);// compare streamed string to initial string
+                }
+                rs.close();
+            }
+            stmt.execute("DROP TABLE [" + tableName + "]");
+        }
     }
 
     @Test
