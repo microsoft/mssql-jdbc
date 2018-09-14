@@ -97,13 +97,14 @@ public class BatchExecutionTest extends AbstractTest {
 
                 pstmt.setInt(1, 3);
                 pstmt.addBatch();
-
+            
                 int[] updateCount = pstmt.executeBatch();
+            
                 updateCountlen = updateCount.length;
 
                 assertTrue(updateCountlen == 3, TestResource.getResource("R_executeBatchFailed") + ": "
                         + TestResource.getResource("R_incorrectUpdateCount"));
-
+            
                 String sPrepStmt1 = "select count(*) from ctstable2 where TYPE_ID=?";
 
                 try (PreparedStatement pstmt1 = connection.prepareStatement(sPrepStmt1)) {

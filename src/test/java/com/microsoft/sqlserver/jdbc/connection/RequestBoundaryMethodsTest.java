@@ -192,16 +192,14 @@ public class RequestBoundaryMethodsTest extends AbstractTest {
 
                 try (ResultSet rs = con.createStatement().executeQuery("SELECT * from " + tableName)) {
                     assertTrue(!rs.isBeforeFirst(), "Should not have returned a result set.");
+                } finally {
+                    if (null != tableName) {
+                        TestUtils.dropTableIfExists(tableName, stmt);
+                    }
                 }
             }
         } catch (Exception e) {
             e.printStackTrace();
-        } finally {               
-            if (null != tableName) {
-                try (SQLServerConnection con = connect(); Statement stmt = con.createStatement()) {
-                    TestUtils.dropTableIfExists(tableName, stmt);
-                }
-            }
         }
     }
 
@@ -213,73 +211,63 @@ public class RequestBoundaryMethodsTest extends AbstractTest {
     @SuppressWarnings("resource")
     @Test
     public void testStatements() throws SQLException {
-        Statement stmt = null;
-        ResultSet rs = null;
-        Statement stmt1 = null;
-        PreparedStatement ps = null;
-        CallableStatement cs = null;
-        ResultSet rs1 = null;
         String tableName = null;
 
         try (SQLServerConnection con = connect();) {
             if (TestUtils.isJDBC43OrGreater(con)) {
-                stmt1 = con.createStatement();
-                con.beginRequest();
-                stmt = con.createStatement();
-                rs = stmt.executeQuery("SELECT 1");
-                rs.next();
-                assertEquals(1, rs.getInt(1));
-                con.endRequest();
+                try (Statement stmt1 = con.createStatement()) {
+                    con.beginRequest();
+                    try (Statement stmt = con.createStatement()) {
+                        try (ResultSet rs = stmt.executeQuery("SELECT 1")) {
+                            rs.next();
+                            assertEquals(1, rs.getInt(1));
+                            con.endRequest();
 
-                assertTrue(!stmt1.isClosed(),
-                        "Statement created outside of beginRequest()/endRequest() block should not be closed.");
-                assertTrue(stmt.isClosed(),
-                        "Statment created inside beginRequest()/endRequest() block should be closed after endRequest().");
-                assertTrue(rs.isClosed(), "ResultSet should be closed after endRequest().");
-                stmt1.close();
+                            assertTrue(!stmt1.isClosed(),
+                                    "Statement created outside of beginRequest()/endRequest() block should not be closed.");
+                            assertTrue(stmt.isClosed(),
+                                    "Statment created inside beginRequest()/endRequest() block should be closed after endRequest().");
+                            assertTrue(rs.isClosed(), "ResultSet should be closed after endRequest().");
+                        }
+                    }
+                }
 
                 // Multiple statements inside beginRequest()/endRequest() block
                 con.beginRequest();
-                stmt = con.createStatement();
-                tableName = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("RequestBoundary"));
-                TestUtils.dropTableIfExists(tableName, stmt);
-                stmt.executeUpdate("CREATE TABLE " + tableName + " (col int)");
-                ps = con.prepareStatement("INSERT INTO " + tableName + " values (?)");
-                ps.setInt(1, 2);
-                ps.executeUpdate();
+                try (Statement stmt = con.createStatement()) {
+                    tableName = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("RequestBoundary"));
+                    TestUtils.dropTableIfExists(tableName, stmt);
+                    stmt.executeUpdate("CREATE TABLE " + tableName + " (col int)");
+                    try (PreparedStatement ps = con.prepareStatement("INSERT INTO " + tableName + " values (?)")) {
+                        ps.setInt(1, 2);
+                        ps.executeUpdate();
 
-                stmt1 = con.createStatement();
-                rs1 = stmt1.executeQuery("SELECT * FROM " + tableName);
-                rs1.next();
-                assertEquals(2, rs1.getInt(1));
+                        try (Statement stmt1 = con.createStatement();
+                                ResultSet rs = stmt1.executeQuery("SELECT * FROM " + tableName)) {
+                            rs.next();
+                            assertEquals(2, rs.getInt(1));
+                            TestUtils.dropTableIfExists(tableName, stmt);
 
-                cs = con.prepareCall("{call sp_server_info}");
-                cs.execute();
-                con.endRequest();
+                            try (CallableStatement cs = con.prepareCall("{call sp_server_info}")) {
+                                cs.execute();
+                                con.endRequest();
 
-                assertTrue(stmt.isClosed());
-                assertTrue(ps.isClosed());
-                assertTrue(stmt1.isClosed());
-                assertTrue(cs.isClosed());
-                assertTrue(rs1.isClosed());
-            }
-        } finally {
-            if (null != stmt) {
-                stmt.close();
-            }
-            if (null != stmt1) {
-                stmt1.close();
-            }
-            if (null != ps) {
-                ps.close();
-            }
-            if (null != cs) {
-                cs.close();
-            }
-            if (null != tableName) {
-                try (Connection con = DriverManager.getConnection(connectionString); Statement statement = con.createStatement()) {
-                    TestUtils.dropTableIfExists(tableName, statement);
+                                assertTrue(stmt.isClosed());
+                                assertTrue(ps.isClosed());
+                                assertTrue(stmt1.isClosed());
+                                assertTrue(cs.isClosed());
+                                assertTrue(rs.isClosed());
+                            }
+                        }
+                    }
+                } finally {
+                    if (null != tableName) {
+                        try (Statement stmt = con.createStatement()) {
+                            TestUtils.dropTableIfExists(tableName, stmt);
+                        }
+                    }
                 }
+
             }
         }
     }

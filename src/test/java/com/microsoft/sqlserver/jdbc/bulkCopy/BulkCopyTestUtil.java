@@ -92,7 +92,6 @@ class BulkCopyTestUtil {
                 fail(ex.getMessage());
             } finally {
                 stmt.dropTable(destinationTable);
-                con.close();
             }
         } catch (SQLException ex) {
             fail(ex.getMessage());
@@ -190,7 +189,6 @@ class BulkCopyTestUtil {
                 }
             } finally {
                 stmt.dropTable(destinationTable);
-                con.close();
             }
         } catch (SQLException e) {
             if (!fail) {
@@ -251,7 +249,6 @@ class BulkCopyTestUtil {
                 if (dropDest) {
                     stmt.dropTable(destinationTable);
                 }
-                con.close();
             }
         } catch (SQLException ex) {
             if (!fail) {

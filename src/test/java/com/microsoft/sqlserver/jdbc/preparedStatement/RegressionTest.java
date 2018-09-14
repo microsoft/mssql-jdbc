@@ -163,7 +163,6 @@ public class RegressionTest extends AbstractTest {
             }
 
             Statement stmt = con.createStatement();
-            ResultSet rs = null;
             TestUtils.dropTableIfExists("TEST_TABLE", stmt);
 
             con.setAutoCommit(false);
@@ -228,8 +227,7 @@ public class RegressionTest extends AbstractTest {
             Map<Integer, String> selectedValues = new LinkedHashMap<>();
             int id = 0;
             try (PreparedStatement pstmt = con.prepareStatement("select * from TEST_TABLE;")) {
-                try {
-                    rs = pstmt.executeQuery();
+                try (ResultSet rs = pstmt.executeQuery()) {
                     int i = 0;
                     while (rs.next()) {
                         id = rs.getInt(1);
@@ -239,10 +237,6 @@ public class RegressionTest extends AbstractTest {
                                     + data);
                         }
                         selectedValues.put(id, data);
-                    }
-                } finally {
-                    if (null != rs) {
-                        rs.close();
                     }
                 }
             } finally {

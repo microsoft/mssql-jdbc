@@ -153,17 +153,20 @@ public class PoolingTest extends AbstractTest {
         PooledConnection pc = null;
         try {
             pc = ds.getPooledConnection();
-            ISQLServerConnection con = (ISQLServerConnection) pc.getConnection();
+            UUID Id1 = null;
+            UUID Id2 = null;
 
-            UUID Id1 = con.getClientConnectionId();
-            assertTrue(Id1 != null, TestResource.getResource("R_connectionNotClosedWithPoolClose"));
-            con.close();
+            try (ISQLServerConnection con = (ISQLServerConnection) pc.getConnection()) {
 
-            // now reget the connection
-            ISQLServerConnection con2 = (ISQLServerConnection) pc.getConnection();
+                Id1 = con.getClientConnectionId();
+                assertTrue(Id1 != null, TestResource.getResource("R_connectionNotClosedWithPoolClose"));
+            }
 
-            UUID Id2 = con2.getClientConnectionId();
-            con2.close();
+            // now re-get the connection
+            try (ISQLServerConnection con = (ISQLServerConnection) pc.getConnection()) {
+
+                Id2 = con.getClientConnectionId();
+            }
 
             assertEquals(Id1, Id2, TestResource.getResource("R_idFromPoolNotSame"));
         } finally {

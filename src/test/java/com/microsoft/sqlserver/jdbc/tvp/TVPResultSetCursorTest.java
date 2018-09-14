@@ -17,7 +17,6 @@ import java.util.Calendar;
 import java.util.Properties;
 import java.util.TimeZone;
 
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
@@ -31,9 +30,6 @@ import com.microsoft.sqlserver.testframework.AbstractTest;
 
 @RunWith(JUnitPlatform.class)
 public class TVPResultSetCursorTest extends AbstractTest {
-
-    private static Connection conn = null;
-    static Statement stmt = null;
 
     static BigDecimal[] expectedBigDecimals = {new BigDecimal("12345.12345"), new BigDecimal("125.123"),
             new BigDecimal("45.12345")};
@@ -65,25 +61,25 @@ public class TVPResultSetCursorTest extends AbstractTest {
     }
 
     private void serverCursorsTest(int resultSetType, int resultSetConcurrency) throws SQLException {
-        conn = DriverManager.getConnection(connectionString);
-        stmt = conn.createStatement();
+        try (Connection conn = DriverManager.getConnection(connectionString); Statement stmt = conn.createStatement()) {
 
-        dropTVPS();
-        dropTables();
+            dropTVPS();
+            dropTables();
 
-        createTVPS();
-        createTables();
+            createTVPS();
+            createTables();
 
-        populateSourceTable();
+            populateSourceTable();
 
-        try (ResultSet rs = conn.createStatement(resultSetType, resultSetConcurrency)
-                .executeQuery("select * from " + srcTable);
-                SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) conn
-                        .prepareStatement("INSERT INTO " + desTable + " select * from ? ;")) {
-            pstmt.setStructured(1, tvpName, rs);
-            pstmt.execute();
+            try (ResultSet rs = conn.createStatement(resultSetType, resultSetConcurrency)
+                    .executeQuery("select * from " + srcTable);
+                    SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) conn
+                            .prepareStatement("INSERT INTO " + desTable + " select * from ? ;")) {
+                pstmt.setStructured(1, tvpName, rs);
+                pstmt.execute();
 
-            verifyDestinationTableData(expectedBigDecimals.length);
+                verifyDestinationTableData(expectedBigDecimals.length);
+            }
         }
     }
 
@@ -97,25 +93,25 @@ public class TVPResultSetCursorTest extends AbstractTest {
     public void testSelectMethodSetToCursor() throws SQLException {
         Properties info = new Properties();
         info.setProperty("SelectMethod", "cursor");
-        conn = DriverManager.getConnection(connectionString, info);
+        try (Connection conn = DriverManager.getConnection(connectionString, info);
+                Statement stmt = conn.createStatement()) {
 
-        stmt = conn.createStatement();
+            dropTVPS();
+            dropTables();
 
-        dropTVPS();
-        dropTables();
+            createTVPS();
+            createTables();
 
-        createTVPS();
-        createTables();
+            populateSourceTable();
 
-        populateSourceTable();
+            try (ResultSet rs = conn.createStatement().executeQuery("select * from " + srcTable);
+                    SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) conn
+                            .prepareStatement("INSERT INTO " + desTable + " select * from ? ;")) {
+                pstmt.setStructured(1, tvpName, rs);
+                pstmt.execute();
 
-        try (ResultSet rs = conn.createStatement().executeQuery("select * from " + srcTable);
-                SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) conn
-                        .prepareStatement("INSERT INTO " + desTable + " select * from ? ;")) {
-            pstmt.setStructured(1, tvpName, rs);
-            pstmt.execute();
-
-            verifyDestinationTableData(expectedBigDecimals.length);
+                verifyDestinationTableData(expectedBigDecimals.length);
+            }
         }
     }
 
@@ -129,30 +125,30 @@ public class TVPResultSetCursorTest extends AbstractTest {
     public void testSelectMethodSetToCursorWithSP() throws SQLException {
         Properties info = new Properties();
         info.setProperty("SelectMethod", "cursor");
-        conn = DriverManager.getConnection(connectionString, info);
+        try (Connection conn = DriverManager.getConnection(connectionString, info);
+                Statement stmt = conn.createStatement()) {
 
-        stmt = conn.createStatement();
-
-        dropProcedure();
-        dropTVPS();
-        dropTables();
-
-        createTVPS();
-        createTables();
-        createPreocedure();
-
-        populateSourceTable();
-
-        try (ResultSet rs = conn.createStatement().executeQuery("select * from " + srcTable);
-                SQLServerCallableStatement pstmt = (SQLServerCallableStatement) conn
-                        .prepareCall("{call " + procedureName + "(?)}")) {
-            pstmt.setStructured(1, tvpName, rs);
-
-            pstmt.execute();
-
-            verifyDestinationTableData(expectedBigDecimals.length);
-        } finally {
             dropProcedure();
+            dropTVPS();
+            dropTables();
+
+            createTVPS();
+            createTables();
+            createPreocedure();
+
+            populateSourceTable();
+
+            try (ResultSet rs = conn.createStatement().executeQuery("select * from " + srcTable);
+                    SQLServerCallableStatement pstmt = (SQLServerCallableStatement) conn
+                            .prepareCall("{call " + procedureName + "(?)}")) {
+                pstmt.setStructured(1, tvpName, rs);
+
+                pstmt.execute();
+
+                verifyDestinationTableData(expectedBigDecimals.length);
+            } finally {
+                dropProcedure();
+            }
         }
     }
 
@@ -165,28 +161,28 @@ public class TVPResultSetCursorTest extends AbstractTest {
     public void testInvalidTVPName() throws SQLException {
         Properties info = new Properties();
         info.setProperty("SelectMethod", "cursor");
-        conn = DriverManager.getConnection(connectionString, info);
+        try (Connection conn = DriverManager.getConnection(connectionString, info);
+                Statement stmt = conn.createStatement()) {
 
-        stmt = conn.createStatement();
+            dropTVPS();
+            dropTables();
 
-        dropTVPS();
-        dropTables();
+            createTVPS();
+            createTables();
 
-        createTVPS();
-        createTables();
+            populateSourceTable();
 
-        populateSourceTable();
+            try (ResultSet rs = conn.createStatement().executeQuery("select * from " + srcTable);
+                    SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) conn
+                            .prepareStatement("INSERT INTO " + desTable + " select * from ? ;")) {
 
-        try (ResultSet rs = conn.createStatement().executeQuery("select * from " + srcTable);
-                SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) conn
-                        .prepareStatement("INSERT INTO " + desTable + " select * from ? ;")) {
+                pstmt.setStructured(1, "invalid" + tvpName, rs);
 
-            pstmt.setStructured(1, "invalid" + tvpName, rs);
-
-            pstmt.execute();
-        } catch (SQLException e) {
-            if (!e.getMessage().contains(TestResource.getResource("R_dataTypeNotFound"))) {
-                throw e;
+                pstmt.execute();
+            } catch (SQLException e) {
+                if (!e.getMessage().contains(TestResource.getResource("R_dataTypeNotFound"))) {
+                    throw e;
+                }
             }
         }
     }
@@ -200,33 +196,33 @@ public class TVPResultSetCursorTest extends AbstractTest {
     public void testInvalidStoredProcedureName() throws SQLException {
         Properties info = new Properties();
         info.setProperty("SelectMethod", "cursor");
-        conn = DriverManager.getConnection(connectionString, info);
-
-        stmt = conn.createStatement();
-
-        dropProcedure();
-        dropTVPS();
-        dropTables();
-
-        createTVPS();
-        createTables();
-        createPreocedure();
-
-        populateSourceTable();
-
-        try (ResultSet rs = conn.createStatement().executeQuery("select * from " + srcTable);
-                SQLServerCallableStatement pstmt = (SQLServerCallableStatement) conn
-                        .prepareCall("{call invalid" + procedureName + "(?)}")) {
-            pstmt.setStructured(1, tvpName, rs);
-
-            pstmt.execute();
-        } catch (SQLException e) {
-            if (!e.getMessage().contains(TestResource.getResource("R_StoredProcedureNotFound"))) {
-                throw e;
-            }
-        } finally {
+        try (Connection conn = DriverManager.getConnection(connectionString, info);
+                Statement stmt = conn.createStatement()) {
 
             dropProcedure();
+            dropTVPS();
+            dropTables();
+
+            createTVPS();
+            createTables();
+            createPreocedure();
+
+            populateSourceTable();
+
+            try (ResultSet rs = conn.createStatement().executeQuery("select * from " + srcTable);
+                    SQLServerCallableStatement pstmt = (SQLServerCallableStatement) conn
+                            .prepareCall("{call invalid" + procedureName + "(?)}")) {
+                pstmt.setStructured(1, tvpName, rs);
+
+                pstmt.execute();
+            } catch (SQLException e) {
+                if (!e.getMessage().contains(TestResource.getResource("R_StoredProcedureNotFound"))) {
+                    throw e;
+                }
+            } finally {
+
+                dropProcedure();
+            }
         }
     }
 
@@ -237,88 +233,71 @@ public class TVPResultSetCursorTest extends AbstractTest {
      */
     @Test
     public void testMultiplePreparedStatementAndResultSet() throws SQLException {
-        conn = DriverManager.getConnection(connectionString);
+        try (Connection conn = DriverManager.getConnection(connectionString)) {
 
-        stmt = conn.createStatement();
+            dropTVPS();
+            dropTables();
 
-        dropTVPS();
-        dropTables();
+            createTVPS();
+            createTables();
 
-        createTVPS();
-        createTables();
+            populateSourceTable();
 
-        populateSourceTable();
+            try (Statement stmt = conn.createStatement(ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_UPDATABLE)) {
+                try (ResultSet rs = stmt.executeQuery("select * from " + srcTable)) {
 
-        ResultSet rs = null;
-        ResultSet rs2 = null;
-        SQLServerPreparedStatement pstmt1 = null;
-        SQLServerPreparedStatement pstmt2 = null;
+                    try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) conn
+                            .prepareStatement("INSERT INTO " + desTable + " select * from ? ;")) {
+                        pstmt.setStructured(1, tvpName, rs);
+                        pstmt.execute();
+                        verifyDestinationTableData(expectedBigDecimals.length);
 
-        try {
+                        rs.beforeFirst();
+                    }
 
-            rs = conn.createStatement(ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_UPDATABLE)
-                    .executeQuery("select * from " + srcTable);
+                    try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) conn
+                            .prepareStatement("INSERT INTO " + desTable + " select * from ? ;")) {
+                        pstmt.setStructured(1, tvpName, rs);
+                        pstmt.execute();
+                        verifyDestinationTableData(expectedBigDecimals.length * 2);
 
-            pstmt1 = (SQLServerPreparedStatement) conn
-                    .prepareStatement("INSERT INTO " + desTable + " select * from ? ;");
-            pstmt1.setStructured(1, tvpName, rs);
-            pstmt1.execute();
-            verifyDestinationTableData(expectedBigDecimals.length);
+                        rs.beforeFirst();
+                    }
 
-            rs.beforeFirst();
-            pstmt1 = (SQLServerPreparedStatement) conn
-                    .prepareStatement("INSERT INTO " + desTable + " select * from ? ;");
-            pstmt1.setStructured(1, tvpName, rs);
-            pstmt1.execute();
-            verifyDestinationTableData(expectedBigDecimals.length * 2);
+                    try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) conn
+                            .prepareStatement("INSERT INTO " + desTable + " select * from ? ;")) {
+                        pstmt.setStructured(1, tvpName, rs);
+                        pstmt.execute();
+                        verifyDestinationTableData(expectedBigDecimals.length * 3);
+                    }
 
-            rs.beforeFirst();
-            pstmt2 = (SQLServerPreparedStatement) conn
-                    .prepareStatement("INSERT INTO " + desTable + " select * from ? ;");
-            pstmt2.setStructured(1, tvpName, rs);
-            pstmt2.execute();
-            verifyDestinationTableData(expectedBigDecimals.length * 3);
-
-            String sql = "insert into " + desTable + " values (?,?,?,?)";
-            Calendar calGMT = Calendar.getInstance(TimeZone.getTimeZone("GMT"));
-            pstmt1 = (SQLServerPreparedStatement) conn.prepareStatement(sql);
-            for (int i = 0; i < expectedBigDecimals.length; i++) {
-                pstmt1.setBigDecimal(1, expectedBigDecimals[i]);
-                pstmt1.setString(2, expectedStrings[i]);
-                pstmt1.setTimestamp(3, expectedTimestamps[i], calGMT);
-                pstmt1.setString(4, expectedStrings[i]);
-                pstmt1.execute();
-            }
-            verifyDestinationTableData(expectedBigDecimals.length * 4);
-
-            rs2 = conn.createStatement(ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_UPDATABLE)
-                    .executeQuery("select * from " + srcTable);
-
-            pstmt1 = (SQLServerPreparedStatement) conn
-                    .prepareStatement("INSERT INTO " + desTable + " select * from ? ;");
-            pstmt1.setStructured(1, tvpName, rs2);
-            pstmt1.execute();
-            verifyDestinationTableData(expectedBigDecimals.length * 5);
-        } finally {
-
-            if (null != pstmt1) {
-                pstmt1.close();
-            }
-            if (null != pstmt2) {
-                pstmt2.close();
-            }
-            if (null != rs) {
-                rs.close();
-            }
-
-            if (null != rs2) {
-                rs2.close();
+                    String sql = "insert into " + desTable + " values (?,?,?,?)";
+                    Calendar calGMT = Calendar.getInstance(TimeZone.getTimeZone("GMT"));
+                    try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) conn.prepareStatement(sql)) {
+                        for (int i = 0; i < expectedBigDecimals.length; i++) {
+                            pstmt.setBigDecimal(1, expectedBigDecimals[i]);
+                            pstmt.setString(2, expectedStrings[i]);
+                            pstmt.setTimestamp(3, expectedTimestamps[i], calGMT);
+                            pstmt.setString(4, expectedStrings[i]);
+                            pstmt.execute();
+                        }
+                        verifyDestinationTableData(expectedBigDecimals.length * 4);
+                    }
+                }
+                try (ResultSet rs = stmt.executeQuery("select * from " + srcTable);
+                        SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) conn
+                                .prepareStatement("INSERT INTO " + desTable + " select * from ? ;")) {
+                    pstmt.setStructured(1, tvpName, rs);
+                    pstmt.execute();
+                    verifyDestinationTableData(expectedBigDecimals.length * 5);
+                }
             }
         }
     }
 
     private static void verifyDestinationTableData(int expectedNumberOfRows) throws SQLException {
-        try (ResultSet rs = conn.createStatement().executeQuery("select * from " + desTable)) {
+        try (Connection conn = DriverManager.getConnection(connectionString); Statement stmt = conn.createStatement();
+                ResultSet rs = conn.createStatement().executeQuery("select * from " + desTable)) {
 
             int expectedArrayLength = expectedBigDecimals.length;
 
@@ -344,7 +323,8 @@ public class TVPResultSetCursorTest extends AbstractTest {
 
         Calendar calGMT = Calendar.getInstance(TimeZone.getTimeZone("GMT"));
 
-        try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) conn.prepareStatement(sql)) {
+        try (Connection conn = DriverManager.getConnection(connectionString); Statement stmt = conn.createStatement();
+                SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) conn.prepareStatement(sql)) {
 
             for (int i = 0; i < expectedBigDecimals.length; i++) {
                 pstmt.setBigDecimal(1, expectedBigDecimals[i]);
@@ -357,50 +337,51 @@ public class TVPResultSetCursorTest extends AbstractTest {
     }
 
     private static void dropTables() throws SQLException {
-        TestUtils.dropTableIfExists(srcTable, stmt);
-        TestUtils.dropTableIfExists(desTable, stmt);
+        try (Connection conn = DriverManager.getConnection(connectionString); Statement stmt = conn.createStatement()) {
+            TestUtils.dropTableIfExists(srcTable, stmt);
+            TestUtils.dropTableIfExists(desTable, stmt);
+        }
     }
 
     private static void createTables() throws SQLException {
-        String sql = "create table " + srcTable
-                + " (c1 decimal(10,5) null, c2 nchar(50) null, c3 datetime2(7) null, c4 char(7000));";
-        stmt.execute(sql);
+        try (Connection conn = DriverManager.getConnection(connectionString); Statement stmt = conn.createStatement()) {
+            String sql = "create table " + srcTable
+                    + " (c1 decimal(10,5) null, c2 nchar(50) null, c3 datetime2(7) null, c4 char(7000));";
+            stmt.execute(sql);
 
-        sql = "create table " + desTable
-                + " (c1 decimal(10,5) null, c2 nchar(50) null, c3 datetime2(7) null, c4 char(7000));";
-        stmt.execute(sql);
+            sql = "create table " + desTable
+                    + " (c1 decimal(10,5) null, c2 nchar(50) null, c3 datetime2(7) null, c4 char(7000));";
+            stmt.execute(sql);
+        }
     }
 
     private static void createTVPS() throws SQLException {
-        String TVPCreateCmd = "CREATE TYPE " + tvpName
-                + " as table (c1 decimal(10,5) null, c2 nchar(50) null, c3 datetime2(7) null, c4 char(7000) null)";
-        stmt.execute(TVPCreateCmd);
+        try (Connection conn = DriverManager.getConnection(connectionString); Statement stmt = conn.createStatement()) {
+            String TVPCreateCmd = "CREATE TYPE " + tvpName
+                    + " as table (c1 decimal(10,5) null, c2 nchar(50) null, c3 datetime2(7) null, c4 char(7000) null)";
+            stmt.execute(TVPCreateCmd);
+        }
     }
 
     private static void dropTVPS() throws SQLException {
-        stmt.execute("IF EXISTS (SELECT * FROM sys.types WHERE is_table_type = 1 AND name = '" + tvpName + "') "
-                + " drop type " + tvpName);
+        try (Connection conn = DriverManager.getConnection(connectionString); Statement stmt = conn.createStatement()) {
+            stmt.execute("IF EXISTS (SELECT * FROM sys.types WHERE is_table_type = 1 AND name = '" + tvpName + "') "
+                    + " drop type " + tvpName);
+        }
     }
 
     private static void dropProcedure() throws SQLException {
-        TestUtils.dropProcedureIfExists(procedureName, stmt);
+        try (Connection conn = DriverManager.getConnection(connectionString); Statement stmt = conn.createStatement()) {
+            TestUtils.dropProcedureIfExists(procedureName, stmt);
+        }
     }
 
     private static void createPreocedure() throws SQLException {
-        String sql = "CREATE PROCEDURE " + procedureName + " @InputData " + tvpName + " READONLY " + " AS " + " BEGIN "
-                + " INSERT INTO " + desTable + " SELECT * FROM @InputData" + " END";
+        try (Connection conn = DriverManager.getConnection(connectionString); Statement stmt = conn.createStatement()) {
+            String sql = "CREATE PROCEDURE " + procedureName + " @InputData " + tvpName + " READONLY " + " AS "
+                    + " BEGIN " + " INSERT INTO " + desTable + " SELECT * FROM @InputData" + " END";
 
         stmt.execute(sql);
-    }
-
-    @AfterEach
-    public void terminateVariation() throws SQLException {
-        if (null != conn) {
-            conn.close();
-        }
-        if (null != stmt) {
-            stmt.close();
         }
     }
-
 }

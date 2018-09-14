@@ -120,8 +120,8 @@ public class PreparedStatementTest extends AbstractTest {
             // Skipped for now due to unexpected failures. Not functional so not critical.
             /*
              * // Verify total cache use. int expectedCacheHits = iterations * 4; int allowedDiscrepency = 20; // Allow
-             * some discrepency in number of cache hits to not fail test ( // TODO: Follow up on why there is sometimes
-             * a discrepency in number of cache hits (less than expected). assertTrue(expectedCacheHits >=
+             * some discrepancy in number of cache hits to not fail test ( // TODO: Follow up on why there is sometimes
+             * a discrepancy in number of cache hits (less than expected). assertTrue(expectedCacheHits >=
              * executeSQLReturnFirstInt(con, verifyTotalCacheUsesQuery)); assertTrue(expectedCacheHits -
              * allowedDiscrepency < executeSQLReturnFirstInt(con, verifyTotalCacheUsesQuery));
              */

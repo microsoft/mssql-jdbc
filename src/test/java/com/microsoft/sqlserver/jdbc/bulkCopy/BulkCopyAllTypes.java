@@ -51,9 +51,8 @@ public class BulkCopyAllTypes extends AbstractTest {
         try (Connection connnection = DriverManager
                 .getConnection(connectionString + (setSelectMethod ? ";selectMethod=cursor;" : ""));
                 Statement statement = (null != resultSetType || null != resultSetConcurrency) ? connnection
-                        .createStatement(resultSetType, resultSetConcurrency) : connnection.createStatement()) {
-
-            ResultSet rs = statement.executeQuery("select * from " + tableSrc.getEscapedTableName());
+                        .createStatement(resultSetType, resultSetConcurrency) : connnection.createStatement();
+                ResultSet rs = statement.executeQuery("select * from " + tableSrc.getEscapedTableName())) {
 
             SQLServerBulkCopy bcOperation = new SQLServerBulkCopy(connection);
             bcOperation.setDestinationTableName(tableDest.getEscapedTableName());
@@ -62,9 +61,9 @@ public class BulkCopyAllTypes extends AbstractTest {
 
             ComparisonUtil.compareSrcTableAndDestTableIgnoreRowOrder(new DBConnection(connectionString), tableSrc,
                     tableDest);
+        } finally {
+            terminateVariation();
         }
-
-        terminateVariation();
     }
 
     private void setupVariation() throws SQLException {

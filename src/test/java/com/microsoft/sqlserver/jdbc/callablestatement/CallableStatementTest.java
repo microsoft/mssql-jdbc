@@ -130,28 +130,30 @@ public class CallableStatementTest extends AbstractTest {
     @Test
     public void inputParamsTest() throws SQLException {
         String call = "{CALL " + inputParamsProcedureName + " (?,?)}";
-        ResultSet rs = null;
 
         // the historical way: no leading '@', parameter names respected (not positional)
-        CallableStatement cs1 = connection.prepareCall(call);
-        cs1.setString("p2", "world");
-        cs1.setString("p1", "hello");
-        rs = cs1.executeQuery();
-        rs.next();
-        assertEquals("helloworld", rs.getString(1));
-
+        try (CallableStatement cs = connection.prepareCall(call)) {
+            cs.setString("p2", "world");
+            cs.setString("p1", "hello");
+            try (ResultSet rs = cs.executeQuery()) {
+                rs.next();
+                assertEquals("helloworld", rs.getString(1));
+            }
+        }
+        
         // the "new" way: leading '@', parameter names still respected (not positional)
-        CallableStatement cs2 = connection.prepareCall(call);
-        cs2.setString("@p2", "world!");
-        cs2.setString("@p1", "Hello ");
-        rs = cs2.executeQuery();
-        rs.next();
-        assertEquals("Hello world!", rs.getString(1));
+        try (CallableStatement cs = connection.prepareCall(call)) {
+            cs.setString("@p2", "world!");
+            cs.setString("@p1", "Hello ");
+            try (ResultSet rs = cs.executeQuery()) {
+                rs.next();
+                assertEquals("Hello world!", rs.getString(1));
+            }
+        }
 
         // sanity check: unrecognized parameter name
-        CallableStatement cs3 = connection.prepareCall(call);
-        try {
-            cs3.setString("@whatever", "test");
+        try (CallableStatement cs = connection.prepareCall(call)) {
+            cs.setString("@whatever", "test");
             fail(TestResource.getResource("R_shouldThrowException"));
         } catch (SQLException sse) {
 
@@ -162,7 +164,6 @@ public class CallableStatementTest extends AbstractTest {
                 fail(TestResource.getResource("R_unexpectedExceptionContent"));
             }
         }
-
     }
 
     /**

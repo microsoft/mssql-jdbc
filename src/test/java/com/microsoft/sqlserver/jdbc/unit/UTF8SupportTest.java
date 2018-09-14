@@ -149,7 +149,6 @@ public class UTF8SupportTest extends AbstractTest {
     }
 
     public void validate(String value) throws SQLException {
-        ResultSet rs = null;
         try (PreparedStatement psInsert = connection.prepareStatement("INSERT INTO " + tableName + " VALUES(?)");
                 PreparedStatement psFetch = connection.prepareStatement("SELECT * FROM " + tableName);
                 Statement stmt = connection.createStatement();) {
@@ -161,22 +160,19 @@ public class UTF8SupportTest extends AbstractTest {
             psInsert.executeUpdate();
 
             // Fetch using Statement.
-            rs = stmt.executeQuery("SELECT * FROM " + tableName);
-            rs.next();
-            // Compare Strings.
-            assertEquals(value, rs.getString(1));
-            // Test UTF8 sequence returned from getBytes().
-            assertArrayEquals(valueBytes, rs.getBytes(1));
-
+            try (ResultSet rs = stmt.executeQuery("SELECT * FROM " + tableName)) {
+                rs.next();
+                // Compare Strings.
+                assertEquals(value, rs.getString(1));
+                // Test UTF8 sequence returned from getBytes().
+                assertArrayEquals(valueBytes, rs.getBytes(1));
+            }
+            
             // Fetch using PreparedStatement.
             try (ResultSet rsPreparedStatement = psFetch.executeQuery()) {
                 rsPreparedStatement.next();
                 assertEquals(value, rsPreparedStatement.getString(1));
                 assertArrayEquals(valueBytes, rsPreparedStatement.getBytes(1));
-            }
-        } finally {
-            if (null != rs) {
-                rs.close();
             }
         }
     }

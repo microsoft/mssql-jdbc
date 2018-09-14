@@ -31,9 +31,6 @@ import com.microsoft.sqlserver.testframework.AbstractTest;
 @RunWith(JUnitPlatform.class)
 public class TVPTypesTest extends AbstractTest {
 
-    private static Connection conn = null;
-    static Statement stmt = null;
-    static ResultSet rs = null;
     static SQLServerDataTable tvp = null;
     private static String tvpName = "TVP";
     private static String table = "TVPTable";
@@ -65,9 +62,11 @@ public class TVPTypesTest extends AbstractTest {
 
             pstmt.execute();
 
-            rs = conn.createStatement().executeQuery("select * from " + table);
-            while (rs.next()) {
-                assertEquals(rs.getString(1), value);
+            try (Connection con = DriverManager.getConnection(connectionString); Statement stmt = con.createStatement();
+                    ResultSet rs = stmt.executeQuery("select * from " + table)) {
+                while (rs.next()) {
+                    assertEquals(rs.getString(1), value);
+                }
             }
         }
     }
@@ -97,9 +96,12 @@ public class TVPTypesTest extends AbstractTest {
 
             pstmt.execute();
 
-            rs = conn.createStatement().executeQuery("select * from " + table);
-            while (rs.next()) {
-                assertEquals(rs.getString(1), value);
+            try (Connection conn = DriverManager.getConnection(connectionString);
+                    Statement stmt = conn.createStatement();
+                    ResultSet rs = stmt.executeQuery("select * from " + table)) {
+                while (rs.next()) {
+                    assertEquals(rs.getString(1), value);
+                }
             }
         }
     }
@@ -127,10 +129,11 @@ public class TVPTypesTest extends AbstractTest {
 
             pstmt.execute();
 
-            Connection con = DriverManager.getConnection(connectionString);
-            ResultSet rs = con.createStatement().executeQuery("select * from " + table);
-            while (rs.next())
-                assertEquals(rs.getString(1), value);
+            try (Connection con = DriverManager.getConnection(connectionString); Statement stmt = con.createStatement();
+                    ResultSet rs = stmt.executeQuery("select * from " + table)) {
+                while (rs.next())
+                    assertEquals(rs.getString(1), value);
+            }
         }
     }
 
@@ -157,10 +160,11 @@ public class TVPTypesTest extends AbstractTest {
 
             pstmt.execute();
 
-            Connection con = DriverManager.getConnection(connectionString);
-            ResultSet rs = con.createStatement().executeQuery("select * from " + table);
-            while (rs.next())
-                assertEquals(rs.getString(1), value);
+            try (Connection con = DriverManager.getConnection(connectionString); Statement stmt = con.createStatement();
+                    ResultSet rs = stmt.executeQuery("select * from " + table)) {
+                while (rs.next())
+                    assertEquals(rs.getString(1), value);
+            }
         }
     }
 
@@ -187,10 +191,11 @@ public class TVPTypesTest extends AbstractTest {
 
             pstmt.execute();
 
-            Connection con = DriverManager.getConnection(connectionString);
-            ResultSet rs = con.createStatement().executeQuery("select * from " + table);
-            while (rs.next())
-                assertEquals(rs.getString(1), value);
+            try (Connection con = DriverManager.getConnection(connectionString); Statement stmt = con.createStatement();
+                    ResultSet rs = stmt.executeQuery("select * from " + table)) {
+                while (rs.next())
+                    assertEquals(rs.getString(1), value);
+            }
         }
     }
 
@@ -211,20 +216,18 @@ public class TVPTypesTest extends AbstractTest {
         tvp.addColumnMetadata("c1", java.sql.Types.LONGVARBINARY);
         tvp.addRow(value.getBytes());
 
-        SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) connection
-                .prepareStatement("INSERT INTO " + table + " select * from ? ;");
-        pstmt.setStructured(1, tvpName, tvp);
+        try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) connection
+                .prepareStatement("INSERT INTO " + table + " select * from ? ;")) {
+            pstmt.setStructured(1, tvpName, tvp);
 
-        pstmt.execute();
+            pstmt.execute();
 
-        Connection con = DriverManager.getConnection(connectionString);
-        ResultSet rs = con.createStatement().executeQuery("select * from " + table);
+            try (Connection con = DriverManager.getConnection(connectionString); Statement stmt = con.createStatement();
+                    ResultSet rs = stmt.executeQuery("select * from " + table)) {
 
-        while (rs.next())
-            assertTrue(parseByte(rs.getBytes(1), value.getBytes()));
-
-        if (null != pstmt) {
-            pstmt.close();
+                while (rs.next())
+                    assertTrue(parseByte(rs.getBytes(1), value.getBytes()));
+            }
         }
     }
 
@@ -254,9 +257,11 @@ public class TVPTypesTest extends AbstractTest {
             P_C_statement.setStructured(1, tvpName, tvp);
             P_C_statement.execute();
 
-            rs = stmt.executeQuery("select * from " + table);
-            while (rs.next())
-                assertEquals(rs.getString(1), value);
+            try (Connection con = DriverManager.getConnection(connectionString); Statement stmt = con.createStatement();
+                    ResultSet rs = stmt.executeQuery("select * from " + table)) {
+                while (rs.next())
+                    assertEquals(rs.getString(1), value);
+            }
         }
     }
 
@@ -285,9 +290,11 @@ public class TVPTypesTest extends AbstractTest {
             P_C_statement.setStructured(1, tvpName, tvp);
             P_C_statement.execute();
 
-            rs = stmt.executeQuery("select * from " + table);
-            while (rs.next())
-                assertEquals(rs.getString(1), value);
+            try (Connection con = DriverManager.getConnection(connectionString); Statement stmt = con.createStatement();
+                    ResultSet rs = stmt.executeQuery("select * from " + table)) {
+                while (rs.next())
+                    assertEquals(rs.getString(1), value);
+            }
         }
     }
 
@@ -316,9 +323,11 @@ public class TVPTypesTest extends AbstractTest {
             P_C_statement.setStructured(1, tvpName, tvp);
             P_C_statement.execute();
 
-            rs = stmt.executeQuery("select * from " + table);
-            while (rs.next())
-                assertEquals(rs.getString(1), value);
+            try (Connection con = DriverManager.getConnection(connectionString); Statement stmt = con.createStatement();
+                    ResultSet rs = stmt.executeQuery("select * from " + table)) {
+                while (rs.next())
+                    assertEquals(rs.getString(1), value);
+            }
         }
     }
 
@@ -348,9 +357,11 @@ public class TVPTypesTest extends AbstractTest {
             P_C_statement.setStructured(1, tvpName, tvp);
             P_C_statement.execute();
 
-            rs = stmt.executeQuery("select * from " + table);
-            while (rs.next())
-                assertEquals(rs.getString(1), value);
+            try (Connection con = DriverManager.getConnection(connectionString); Statement stmt = con.createStatement();
+                    ResultSet rs = stmt.executeQuery("select * from " + table)) {
+                while (rs.next())
+                    assertEquals(rs.getString(1), value);
+            }
         }
     }
 
@@ -380,9 +391,11 @@ public class TVPTypesTest extends AbstractTest {
             P_C_statement.setStructured(1, tvpName, tvp);
             P_C_statement.execute();
 
-            rs = stmt.executeQuery("select * from " + table);
-            while (rs.next())
-                assertEquals(rs.getString(1), value);
+            try (Connection con = DriverManager.getConnection(connectionString); Statement stmt = con.createStatement();
+                    ResultSet rs = stmt.executeQuery("select * from " + table)) {
+                while (rs.next())
+                    assertEquals(rs.getString(1), value);
+            }
         }
     }
 
@@ -412,9 +425,11 @@ public class TVPTypesTest extends AbstractTest {
             P_C_statement.setStructured(1, tvpName, tvp);
             P_C_statement.execute();
 
-            rs = stmt.executeQuery("select * from " + table);
-            while (rs.next())
-                assertTrue(parseByte(rs.getBytes(1), value.getBytes()));
+            try (Connection con = DriverManager.getConnection(connectionString); Statement stmt = con.createStatement();
+                    ResultSet rs = stmt.executeQuery("select * from " + table)) {
+                while (rs.next())
+                    assertTrue(parseByte(rs.getBytes(1), value.getBytes()));
+            }
         }
     }
 
@@ -440,9 +455,11 @@ public class TVPTypesTest extends AbstractTest {
 
             pstmt.execute();
 
-            rs = conn.createStatement().executeQuery("select * from " + table);
-            while (rs.next()) {
-                assertEquals(((SQLServerResultSet) rs).getDateTime(1), value);
+            try (Connection con = DriverManager.getConnection(connectionString); Statement stmt = con.createStatement();
+                    ResultSet rs = stmt.executeQuery("select * from " + table)) {
+                while (rs.next()) {
+                    assertEquals(((SQLServerResultSet) rs).getDateTime(1), value);
+                }
             }
         }
     }
@@ -470,62 +487,74 @@ public class TVPTypesTest extends AbstractTest {
 
             pstmt.execute();
 
-            rs = conn.createStatement().executeQuery("select * from " + table);
-            while (rs.next()) {
-                assertEquals(((SQLServerResultSet) rs).getSmallDateTime(1), returnValue);
+            try (Connection con = DriverManager.getConnection(connectionString); Statement stmt = con.createStatement();
+                    ResultSet rs = stmt.executeQuery("select * from " + table)) {
+                while (rs.next()) {
+                    assertEquals(((SQLServerResultSet) rs).getSmallDateTime(1), returnValue);
+                }
             }
         }
     }
 
     @BeforeEach
     public void testSetup() throws SQLException {
-        conn = DriverManager.getConnection(connectionString);
-        stmt = conn.createStatement();
-
-        dropProcedure();
-        dropTables();
-        dropTVPS();
+        try (Connection conn = DriverManager.getConnection(connectionString); Statement stmt = conn.createStatement()) {
+            dropProcedure();
+            dropTables();
+            dropTVPS();
+        }
     }
 
     @AfterAll
     public static void terminate() throws SQLException {
-        conn = DriverManager.getConnection(connectionString);
-        stmt = conn.createStatement();
-        dropProcedure();
-        dropTables();
-        dropTVPS();
+        try (Connection conn = DriverManager.getConnection(connectionString); Statement stmt = conn.createStatement()) {
+            dropProcedure();
+            dropTables();
+            dropTVPS();
+        }
     }
 
     private static void dropProcedure() throws SQLException {
-        String sql = " IF EXISTS (select * from sysobjects where id = object_id(N'" + procedureName
-                + "') and OBJECTPROPERTY(id, N'IsProcedure') = 1)" + " DROP PROCEDURE " + procedureName;
-        stmt.execute(sql);
+        try (Connection conn = DriverManager.getConnection(connectionString); Statement stmt = conn.createStatement()) {
+            String sql = " IF EXISTS (select * from sysobjects where id = object_id(N'" + procedureName
+                    + "') and OBJECTPROPERTY(id, N'IsProcedure') = 1)" + " DROP PROCEDURE " + procedureName;
+            stmt.execute(sql);
+        }
     }
 
     private static void dropTables() throws SQLException {
-        stmt.executeUpdate("if object_id('" + table + "','U') is not null" + " drop table " + table);
+        try (Connection conn = DriverManager.getConnection(connectionString); Statement stmt = conn.createStatement()) {
+            stmt.executeUpdate("if object_id('" + table + "','U') is not null" + " drop table " + table);
+        }
     }
 
     private static void dropTVPS() throws SQLException {
-        stmt.executeUpdate("IF EXISTS (SELECT * FROM sys.types WHERE is_table_type = 1 AND name = '" + tvpName + "') "
-                + " drop type " + tvpName);
+        try (Connection conn = DriverManager.getConnection(connectionString); Statement stmt = conn.createStatement()) {
+            stmt.executeUpdate("IF EXISTS (SELECT * FROM sys.types WHERE is_table_type = 1 AND name = '" + tvpName
+                    + "') " + " drop type " + tvpName);
+        }
     }
 
     private static void createPreocedure() throws SQLException {
-        String sql = "CREATE PROCEDURE " + procedureName + " @InputData " + tvpName + " READONLY " + " AS " + " BEGIN "
-                + " INSERT INTO " + table + " SELECT * FROM @InputData" + " END";
-
-        stmt.execute(sql);
+        try (Connection conn = DriverManager.getConnection(connectionString); Statement stmt = conn.createStatement()) {
+            String sql = "CREATE PROCEDURE " + procedureName + " @InputData " + tvpName + " READONLY " + " AS "
+                    + " BEGIN " + " INSERT INTO " + table + " SELECT * FROM @InputData" + " END";
+            stmt.execute(sql);
+        }
     }
 
     private void createTables(String colType) throws SQLException {
-        String sql = "create table " + table + " (c1 " + colType + " null);";
-        stmt.execute(sql);
+        try (Connection conn = DriverManager.getConnection(connectionString); Statement stmt = conn.createStatement()) {
+            String sql = "create table " + table + " (c1 " + colType + " null);";
+            stmt.execute(sql);
+        }
     }
 
     private void createTVPS(String colType) throws SQLException {
-        String TVPCreateCmd = "CREATE TYPE " + tvpName + " as table (c1 " + colType + " null)";
-        stmt.executeUpdate(TVPCreateCmd);
+        try (Connection conn = DriverManager.getConnection(connectionString); Statement stmt = conn.createStatement()) {
+            String TVPCreateCmd = "CREATE TYPE " + tvpName + " as table (c1 " + colType + " null)";
+            stmt.executeUpdate(TVPCreateCmd);
+        }
     }
 
     private boolean parseByte(byte[] expectedData, byte[] retrieved) {
@@ -539,15 +568,6 @@ public class TVPTypesTest extends AbstractTest {
 
     @AfterEach
     public void terminateVariation() throws SQLException {
-        if (null != conn) {
-            conn.close();
-        }
-        if (null != stmt) {
-            stmt.close();
-        }
-        if (null != rs) {
-            rs.close();
-        }
         if (null != tvp) {
             tvp.clear();
         }

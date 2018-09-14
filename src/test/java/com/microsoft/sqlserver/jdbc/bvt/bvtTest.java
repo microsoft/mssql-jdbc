@@ -55,7 +55,6 @@ public class bvtTest extends bvtTestSetup {
             assertTrue(!conn.isClosed(), TestResource.getResource("R_connShouldNotBeClosed"));
             conn.close();
             assertTrue(conn.isClosed(), TestResource.getResource("R_connShouldNotBeOpen"));
-
         }
     }
 

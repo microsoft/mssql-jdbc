@@ -20,6 +20,7 @@ import java.util.Calendar;
 
 import com.microsoft.sqlserver.jdbc.SQLServerResultSetMetaData;
 import com.microsoft.sqlserver.testframework.DBConnection;
+import com.microsoft.sqlserver.testframework.DBStatement;
 import com.microsoft.sqlserver.testframework.DBResultSet;
 import com.microsoft.sqlserver.testframework.DBTable;
 
@@ -36,49 +37,52 @@ public class ComparisonUtil {
      */
     public static void compareSrcTableAndDestTableIgnoreRowOrder(DBConnection con, DBTable srcTable,
             DBTable destTable) throws SQLException {
-        DBResultSet srcResultSetCount = con.createStatement()
-                .executeQuery("SELECT COUNT(*) FROM " + srcTable.getEscapedTableName() + ";");
-        DBResultSet dstResultSetCount = con.createStatement()
-                .executeQuery("SELECT COUNT(*) FROM " + destTable.getEscapedTableName() + ";");
-        srcResultSetCount.next();
-        dstResultSetCount.next();
-        int srcRows = srcResultSetCount.getInt(1);
-        int destRows = dstResultSetCount.getInt(1);
+        try (DBStatement stmt = con.createStatement();
+                DBResultSet srcResultSetCount = stmt
+                        .executeQuery("SELECT COUNT(*) FROM " + srcTable.getEscapedTableName() + ";");
+                DBResultSet dstResultSetCount = stmt
+                        .executeQuery("SELECT COUNT(*) FROM " + destTable.getEscapedTableName() + ";")) {
+            srcResultSetCount.next();
+            dstResultSetCount.next();
+            int srcRows = srcResultSetCount.getInt(1);
+            int destRows = dstResultSetCount.getInt(1);
 
-        if (srcRows != destRows) {
-            fail("Souce table and Destination table have different number of rows.");
-        }
+            if (srcRows != destRows) {
+                fail("Souce table and Destination table have different number of rows.");
+            }
 
-        if (srcTable.getColumns().size() != destTable.getColumns().size()) {
-            fail("Souce table and Destination table have different number of columns.");
-        }
+            if (srcTable.getColumns().size() != destTable.getColumns().size()) {
+                fail("Souce table and Destination table have different number of columns.");
+            }
 
-        DBResultSet srcResultSet = con.createStatement().executeQuery(
-                "SELECT * FROM " + srcTable.getEscapedTableName() + " ORDER BY [" + srcTable.getColumnName(1) + "], ["
-                        + srcTable.getColumnName(2) + "],[" + srcTable.getColumnName(3) + "];");
-        DBResultSet dstResultSet = con.createStatement().executeQuery(
-                "SELECT * FROM " + destTable.getEscapedTableName() + " ORDER BY [" + destTable.getColumnName(1) + "], ["
-                        + destTable.getColumnName(2) + "],[" + destTable.getColumnName(3) + "];");
+            try (DBResultSet srcResultSet = stmt.executeQuery(
+                    "SELECT * FROM " + srcTable.getEscapedTableName() + " ORDER BY [" + srcTable.getColumnName(1)
+                            + "], [" + srcTable.getColumnName(2) + "],[" + srcTable.getColumnName(3) + "];");
+                    DBResultSet dstResultSet = stmt.executeQuery("SELECT * FROM " + destTable.getEscapedTableName()
+                            + " ORDER BY [" + destTable.getColumnName(1) + "], [" + destTable.getColumnName(2) + "],["
+                            + destTable.getColumnName(3) + "];")) {
 
-        while (srcResultSet.next() && dstResultSet.next()) {
-            for (int i = 0; i < destTable.getColumns().size(); i++) {
-                SQLServerResultSetMetaData srcMeta = (SQLServerResultSetMetaData) ((ResultSet) srcResultSet.product())
-                        .getMetaData();
-                SQLServerResultSetMetaData destMeta = (SQLServerResultSetMetaData) ((ResultSet) dstResultSet.product())
-                        .getMetaData();
+                while (srcResultSet.next() && dstResultSet.next()) {
+                    for (int i = 0; i < destTable.getColumns().size(); i++) {
+                        SQLServerResultSetMetaData srcMeta = (SQLServerResultSetMetaData) ((ResultSet) srcResultSet
+                                .product()).getMetaData();
+                        SQLServerResultSetMetaData destMeta = (SQLServerResultSetMetaData) ((ResultSet) dstResultSet
+                                .product()).getMetaData();
 
-                int srcJDBCTypeInt = srcMeta.getColumnType(i + 1);
-                int destJDBCTypeInt = destMeta.getColumnType(i + 1);
+                        int srcJDBCTypeInt = srcMeta.getColumnType(i + 1);
+                        int destJDBCTypeInt = destMeta.getColumnType(i + 1);
 
-                // verify column types
-                if (srcJDBCTypeInt != destJDBCTypeInt) {
-                    fail("Souce table and Destination table have different number of columns.");
+                        // verify column types
+                        if (srcJDBCTypeInt != destJDBCTypeInt) {
+                            fail("Souce table and Destination table have different number of columns.");
+                        }
+
+                        Object expectedValue = srcResultSet.getObject(i + 1);
+                        Object actualValue = dstResultSet.getObject(i + 1);
+
+                        compareExpectedAndActual(destJDBCTypeInt, expectedValue, actualValue);
+                    }
                 }
-
-                Object expectedValue = srcResultSet.getObject(i + 1);
-                Object actualValue = dstResultSet.getObject(i + 1);
-
-                compareExpectedAndActual(destJDBCTypeInt, expectedValue, actualValue);
             }
         }
     }

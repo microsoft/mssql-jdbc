@@ -39,12 +39,10 @@ public class TVPWithSqlVariantTest extends AbstractTest {
 
     private static SQLServerConnection conn = null;
     static SQLServerStatement stmt = null;
-    static SQLServerResultSet rs = null;
     static SQLServerDataTable tvp = null;
     private static String tvpName = "numericTVP";
     private static String destTable = "destTvpSqlVariantTable";
     private static String procedureName = "procedureThatCallsTVP";
-    static SQLServerPreparedStatement pstmt = null;
 
     /**
      * Test a previous failure regarding to numeric precision. Issue #211
@@ -57,19 +55,19 @@ public class TVPWithSqlVariantTest extends AbstractTest {
         tvp = new SQLServerDataTable();
         tvp.addColumnMetadata("c1", microsoft.sql.Types.SQL_VARIANT);
         tvp.addRow(12);
-        pstmt = (SQLServerPreparedStatement) conn
-                .prepareStatement("INSERT INTO " + destTable + " select * from ? ;");
-        pstmt.setStructured(1, tvpName, tvp);
-        pstmt.execute();
-        if (null != pstmt) {
-            pstmt.close();
+
+        try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) conn
+                .prepareStatement("INSERT INTO " + destTable + " select * from ? ;")) {
+            pstmt.setStructured(1, tvpName, tvp);
+            pstmt.execute();
         }
 
-        rs = (SQLServerResultSet) stmt.executeQuery("SELECT * FROM " + destTable);
-        while (rs.next()) {
-            assertEquals(rs.getInt(1), 12);
-            assertEquals(rs.getString(1), "" + 12);
-            assertEquals(rs.getObject(1), 12);
+        try (SQLServerResultSet rs = (SQLServerResultSet) stmt.executeQuery("SELECT * FROM " + destTable)) {
+            while (rs.next()) {
+                assertEquals(rs.getInt(1), 12);
+                assertEquals(rs.getString(1), "" + 12);
+                assertEquals(rs.getObject(1), 12);
+            }
         }
     }
 
@@ -86,16 +84,16 @@ public class TVPWithSqlVariantTest extends AbstractTest {
         tvp = new SQLServerDataTable();
         tvp.addColumnMetadata("c1", microsoft.sql.Types.SQL_VARIANT);
         tvp.addRow(date);
-        pstmt = (SQLServerPreparedStatement) conn
-                .prepareStatement("INSERT INTO " + destTable + " select * from ? ;");
-        pstmt.setStructured(1, tvpName, tvp);
-        pstmt.execute();
-        if (null != pstmt) {
-            pstmt.close();
+        try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) conn
+                .prepareStatement("INSERT INTO " + destTable + " select * from ? ;")) {
+            pstmt.setStructured(1, tvpName, tvp);
+            pstmt.execute();
         }
-        rs = (SQLServerResultSet) stmt.executeQuery("SELECT * FROM " + destTable);
-        while (rs.next()) {
-            assertEquals(rs.getString(1), "" + date); // TODO: GetDate has issues
+
+        try (SQLServerResultSet rs = (SQLServerResultSet) stmt.executeQuery("SELECT * FROM " + destTable)) {
+            while (rs.next()) {
+                assertEquals(rs.getString(1), "" + date); // TODO: GetDate has issues
+            }
         }
     }
 
@@ -111,16 +109,16 @@ public class TVPWithSqlVariantTest extends AbstractTest {
         tvp.addColumnMetadata("c1", microsoft.sql.Types.SQL_VARIANT);
         String[] numeric = createNumericValues();
         tvp.addRow(new BigDecimal(numeric[14]));
-        pstmt = (SQLServerPreparedStatement) conn
-                .prepareStatement("INSERT INTO " + destTable + " select * from ? ;");
-        pstmt.setStructured(1, tvpName, tvp);
-        pstmt.execute();
-        if (null != pstmt) {
-            pstmt.close();
+        try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) conn
+                .prepareStatement("INSERT INTO " + destTable + " select * from ? ;")) {
+            pstmt.setStructured(1, tvpName, tvp);
+            pstmt.execute();
         }
-        rs = (SQLServerResultSet) stmt.executeQuery("SELECT * FROM " + destTable);
-        while (rs.next()) {
-            assertEquals(rs.getMoney(1), new BigDecimal(numeric[14]));
+        
+        try (SQLServerResultSet rs = (SQLServerResultSet) stmt.executeQuery("SELECT * FROM " + destTable)) {
+            while (rs.next()) {
+                assertEquals(rs.getMoney(1), new BigDecimal(numeric[14]));
+            }
         }
     }
 
@@ -136,19 +134,20 @@ public class TVPWithSqlVariantTest extends AbstractTest {
         tvp.addColumnMetadata("c1", microsoft.sql.Types.SQL_VARIANT);
         String[] numeric = createNumericValues();
         tvp.addRow(Short.valueOf(numeric[2]));
-        pstmt = (SQLServerPreparedStatement) conn
-                .prepareStatement("INSERT INTO " + destTable + " select * from ? ;");
-        pstmt.setStructured(1, tvpName, tvp);
-        pstmt.execute();
+        try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) conn
+                .prepareStatement("INSERT INTO " + destTable + " select * from ? ;")) {
+            pstmt.setStructured(1, tvpName, tvp);
+            pstmt.execute();
 
-        if (null != pstmt) {
-            pstmt.close();
         }
-        rs = (SQLServerResultSet) stmt.executeQuery("SELECT * FROM " + destTable);
-        while (rs.next()) {
-            assertEquals("" + rs.getInt(1), numeric[2]);
-            // System.out.println(rs.getShort(1)); //does not work says cannot cast integer to short cause it is written
-            // as int
+        
+        try (SQLServerResultSet rs = (SQLServerResultSet) stmt.executeQuery("SELECT * FROM " + destTable)) {
+            while (rs.next()) {
+                assertEquals("" + rs.getInt(1), numeric[2]);
+                // System.out.println(rs.getShort(1)); //does not work says cannot cast integer to short cause it is
+                // written
+                // as int
+            }
         }
     }
 
@@ -165,16 +164,15 @@ public class TVPWithSqlVariantTest extends AbstractTest {
         String[] numeric = createNumericValues();
         tvp.addRow(Long.parseLong(numeric[4]));
 
-        pstmt = (SQLServerPreparedStatement) conn
-                .prepareStatement("INSERT INTO " + destTable + " select * from ? ;");
-        pstmt.setStructured(1, tvpName, tvp);
-        pstmt.execute();
-        if (null != pstmt) {
-            pstmt.close();
+        try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) conn
+                .prepareStatement("INSERT INTO " + destTable + " select * from ? ;")) {
+            pstmt.setStructured(1, tvpName, tvp);
+            pstmt.execute();
         }
-        rs = (SQLServerResultSet) stmt.executeQuery("SELECT * FROM " + destTable);
-        while (rs.next()) {
-            assertEquals(rs.getLong(1), Long.parseLong(numeric[4]));
+        try (SQLServerResultSet rs = (SQLServerResultSet) stmt.executeQuery("SELECT * FROM " + destTable)) {
+            while (rs.next()) {
+                assertEquals(rs.getLong(1), Long.parseLong(numeric[4]));
+            }
         }
     }
 
@@ -190,16 +188,15 @@ public class TVPWithSqlVariantTest extends AbstractTest {
         tvp.addColumnMetadata("c1", microsoft.sql.Types.SQL_VARIANT);
         String[] numeric = createNumericValues();
         tvp.addRow(Boolean.parseBoolean(numeric[0]));
-        pstmt = (SQLServerPreparedStatement) conn
-                .prepareStatement("INSERT INTO " + destTable + " select * from ? ;");
-        pstmt.setStructured(1, tvpName, tvp);
-        pstmt.execute();
-        if (null != pstmt) {
-            pstmt.close();
+        try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) conn
+                .prepareStatement("INSERT INTO " + destTable + " select * from ? ;")) {
+            pstmt.setStructured(1, tvpName, tvp);
+            pstmt.execute();
         }
-        rs = (SQLServerResultSet) stmt.executeQuery("SELECT * FROM " + destTable);
-        while (rs.next()) {
-            assertEquals(rs.getBoolean(1), Boolean.parseBoolean(numeric[0]));
+        try (SQLServerResultSet rs = (SQLServerResultSet) stmt.executeQuery("SELECT * FROM " + destTable)) {
+            while (rs.next()) {
+                assertEquals(rs.getBoolean(1), Boolean.parseBoolean(numeric[0]));
+            }
         }
     }
 
@@ -215,16 +212,15 @@ public class TVPWithSqlVariantTest extends AbstractTest {
         tvp.addColumnMetadata("c1", microsoft.sql.Types.SQL_VARIANT);
         String[] numeric = createNumericValues();
         tvp.addRow(Float.parseFloat(numeric[1]));
-        pstmt = (SQLServerPreparedStatement) conn
-                .prepareStatement("INSERT INTO " + destTable + " select * from ? ;");
-        pstmt.setStructured(1, tvpName, tvp);
-        pstmt.execute();
-        if (null != pstmt) {
-            pstmt.close();
+        try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) conn
+                .prepareStatement("INSERT INTO " + destTable + " select * from ? ;")) {
+            pstmt.setStructured(1, tvpName, tvp);
+            pstmt.execute();
         }
-        rs = (SQLServerResultSet) stmt.executeQuery("SELECT * FROM " + destTable);
-        while (rs.next()) {
-            assertEquals(rs.getFloat(1), Float.parseFloat(numeric[1]));
+        try (SQLServerResultSet rs = (SQLServerResultSet) stmt.executeQuery("SELECT * FROM " + destTable)) {
+            while (rs.next()) {
+                assertEquals(rs.getFloat(1), Float.parseFloat(numeric[1]));
+            }
         }
     }
 
@@ -240,16 +236,15 @@ public class TVPWithSqlVariantTest extends AbstractTest {
         tvp.addColumnMetadata("c1", microsoft.sql.Types.SQL_VARIANT);
         String colValue = "س";
         tvp.addRow(colValue);
-        pstmt = (SQLServerPreparedStatement) conn
-                .prepareStatement("INSERT INTO " + destTable + " select * from ? ;");
-        pstmt.setStructured(1, tvpName, tvp);
-        pstmt.execute();
-        if (null != pstmt) {
-            pstmt.close();
+        try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) conn
+                .prepareStatement("INSERT INTO " + destTable + " select * from ? ;")) {
+            pstmt.setStructured(1, tvpName, tvp);
+            pstmt.execute();
         }
-        rs = (SQLServerResultSet) stmt.executeQuery("SELECT * FROM " + destTable);
-        while (rs.next()) {
-            assertEquals(rs.getString(1), colValue);
+        try (SQLServerResultSet rs = (SQLServerResultSet) stmt.executeQuery("SELECT * FROM " + destTable)) {
+            while (rs.next()) {
+                assertEquals(rs.getString(1), colValue);
+            }
         }
     }
 
@@ -270,16 +265,15 @@ public class TVPWithSqlVariantTest extends AbstractTest {
         String value = buffer.toString();
         tvp.addRow(value);
 
-        pstmt = (SQLServerPreparedStatement) conn
-                .prepareStatement("INSERT INTO " + destTable + " select * from ? ;");
-        pstmt.setStructured(1, tvpName, tvp);
-        pstmt.execute();
-        if (null != pstmt) {
-            pstmt.close();
+        try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) conn
+                .prepareStatement("INSERT INTO " + destTable + " select * from ? ;")) {
+            pstmt.setStructured(1, tvpName, tvp);
+            pstmt.execute();
         }
-        rs = (SQLServerResultSet) stmt.executeQuery("SELECT * FROM " + destTable);
-        while (rs.next()) {
-            assertEquals(rs.getString(1), value);
+        try (SQLServerResultSet rs = (SQLServerResultSet) stmt.executeQuery("SELECT * FROM " + destTable)) {
+            while (rs.next()) {
+                assertEquals(rs.getString(1), value);
+            }
         }
     }
 
@@ -300,20 +294,17 @@ public class TVPWithSqlVariantTest extends AbstractTest {
         String value = buffer.toString();
         tvp.addRow(value);
 
-        pstmt = (SQLServerPreparedStatement) conn
-                .prepareStatement("INSERT INTO " + destTable + " select * from ? ;");
-        pstmt.setStructured(1, tvpName, tvp);
-        try {
-            pstmt.execute();
-        } catch (SQLException e) {
-            assertTrue(
-                    e.getMessage().contains("SQL_VARIANT does not support string values of length greater than 8000."));
-        } catch (Exception e) {
-            // Test should have failed! mistakenly inserted string value of more than 8000 in sql-variant
-            fail(TestResource.getResource("R_unexpectedException"));
-        } finally {
-            if (null != pstmt) {
-                pstmt.close();
+        try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) conn
+                .prepareStatement("INSERT INTO " + destTable + " select * from ? ;")) {
+            pstmt.setStructured(1, tvpName, tvp);
+            try {
+                pstmt.execute();
+            } catch (SQLException e) {
+                assertTrue(e.getMessage()
+                        .contains("SQL_VARIANT does not support string values of length greater than 8000."));
+            } catch (Exception e) {
+                // Test should have failed! mistakenly inserted string value of more than 8000 in sql-variant
+                fail(TestResource.getResource("R_unexpectedException"));
             }
         }
     }
@@ -331,17 +322,16 @@ public class TVPWithSqlVariantTest extends AbstractTest {
         tvp.addColumnMetadata("c1", microsoft.sql.Types.SQL_VARIANT);
         tvp.addRow(timestamp);
 
-        pstmt = (SQLServerPreparedStatement) conn
-                .prepareStatement("INSERT INTO " + destTable + " select * from ? ;");
-        pstmt.setStructured(1, tvpName, tvp);
-        pstmt.execute();
-        if (null != pstmt) {
-            pstmt.close();
+        try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) conn
+                .prepareStatement("INSERT INTO " + destTable + " select * from ? ;")) {
+            pstmt.setStructured(1, tvpName, tvp);
+            pstmt.execute();
         }
-        rs = (SQLServerResultSet) stmt.executeQuery("SELECT * FROM " + destTable);
-        while (rs.next()) {
-            assertEquals(rs.getString(1), "" + timestamp);
-            // System.out.println(rs.getDateTime(1));// TODO does not work
+        try (SQLServerResultSet rs = (SQLServerResultSet) stmt.executeQuery("SELECT * FROM " + destTable)) {
+            while (rs.next()) {
+                assertEquals(rs.getString(1), "" + timestamp);
+                // System.out.println(rs.getDateTime(1));// TODO does not work
+            }
         }
     }
 
@@ -361,16 +351,15 @@ public class TVPWithSqlVariantTest extends AbstractTest {
             assertTrue(e.getMessage().startsWith("Use of TVPs containing null sql_variant columns is not supported."));
         }
 
-        pstmt = (SQLServerPreparedStatement) conn
-                .prepareStatement("INSERT INTO " + destTable + " select * from ? ;");
-        pstmt.setStructured(1, tvpName, tvp);
-        pstmt.execute();
-        if (null != pstmt) {
-            pstmt.close();
+        try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) conn
+                .prepareStatement("INSERT INTO " + destTable + " select * from ? ;")) {
+            pstmt.setStructured(1, tvpName, tvp);
+            pstmt.execute();
         }
-        rs = (SQLServerResultSet) stmt.executeQuery("SELECT * FROM " + destTable);
-        while (rs.next()) {
-            System.out.println(rs.getString(1));
+        try (SQLServerResultSet rs = (SQLServerResultSet) stmt.executeQuery("SELECT * FROM " + destTable)) {
+            while (rs.next()) {
+                System.out.println(rs.getString(1));
+            }
         }
     }
 
@@ -390,12 +379,13 @@ public class TVPWithSqlVariantTest extends AbstractTest {
         SQLServerCallableStatement Cstatement = (SQLServerCallableStatement) conn.prepareCall(sql);
         Cstatement.setStructured(1, tvpName, tvp);
         Cstatement.execute();
-        rs = (SQLServerResultSet) stmt.executeQuery("select * from " + destTable);
-        while (rs.next()) {
-            System.out.println(rs.getString(1));
-        }
-        if (null != Cstatement) {
-            Cstatement.close();
+        try (SQLServerResultSet rs = (SQLServerResultSet) stmt.executeQuery("select * from " + destTable)) {
+            while (rs.next()) {
+                System.out.println(rs.getString(1));
+            }
+            if (null != Cstatement) {
+                Cstatement.close();
+            }
         }
     }
 
@@ -516,14 +506,6 @@ public class TVPWithSqlVariantTest extends AbstractTest {
     public static void afterAll() throws SQLException {
         if (null != stmt) {
             stmt.close();
-        }
-
-        if (null != pstmt) {
-            pstmt.close();
-        }
-
-        if (null != rs) {
-            rs.close();
         }
 
         if (null != conn) {
