@@ -566,7 +566,6 @@ public class TestUtils {
             case 1:
                 ts.setNanos((millis - 1) * 1000000);
                 break;
-    
             // 2, 3, 4 -> 3
             case 2:
                 ts.setNanos((millis + 1) * 1000000);
@@ -574,7 +573,6 @@ public class TestUtils {
             case 4:
                 ts.setNanos((millis - 1) * 1000000);
                 break;
-    
             // 5, 6, 7, 8 -> 7
             case 5:
                 ts.setNanos((millis + 2) * 1000000);
@@ -585,13 +583,11 @@ public class TestUtils {
             case 8:
                 ts.setNanos((millis - 1) * 1000000);
                 break;
-    
             // 9 -> 0 with overflow
             case 9:
                 ts.setNanos(0);
                 ts.setTime(ts.getTime() + millis + 1);
                 break;
-    
             // default, i.e. 0, 3, 7 -> 0, 3, 7
             // don't change the millis but make sure that any
             // sub-millisecond digits are zeroed out
