@@ -106,10 +106,11 @@ public class AESetup extends AbstractTest {
         info.setProperty("keyStoreLocation", keyPath);
         info.setProperty("keyStoreSecret", secretstrJks);
 
-        con = (SQLServerConnection) DriverManager.getConnection(AETestConenctionString, info);
-        stmt = (SQLServerStatement) con.createStatement();
-        createCMK(keyStoreName, javaKeyAliases);
-        createCEK(storeProvider);
+        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConenctionString, info);
+                SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
+            createCMK(keyStoreName, javaKeyAliases);
+            createCEK(storeProvider);
+        }
     }
 
     /**

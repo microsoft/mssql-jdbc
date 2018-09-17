@@ -56,18 +56,22 @@ public class BulkCopyColumnMappingTest extends BulkCopyTestSetUp {
     @Test
     @DisplayName("BulkCopy:test no explicit column mapping")
     public void testNoExplicitCM() {
+        DBTable destTable = null;
+        try {
+            // create dest table
+            destTable = sourceTable.cloneSchema();
+            stmt.createTable(destTable);
 
-        // create dest table
-        DBTable destTable = sourceTable.cloneSchema();
-        stmt.createTable(destTable);
-
-        // set up bulkCopy without explicit column mapping
-        BulkCopyTestWrapper bulkWrapper = new BulkCopyTestWrapper(connectionString);
-        bulkWrapper.setUsingConnection((0 == ThreadLocalRandom.current().nextInt(2)) ? true : false);
-        BulkCopyTestUtil.performBulkCopy(bulkWrapper, sourceTable, destTable);
-        
-        // drop dest table
-        stmt.dropTable(destTable);
+            // set up bulkCopy without explicit column mapping
+            BulkCopyTestWrapper bulkWrapper = new BulkCopyTestWrapper(connectionString);
+            bulkWrapper.setUsingConnection((0 == ThreadLocalRandom.current().nextInt(2)) ? true : false);
+            BulkCopyTestUtil.performBulkCopy(bulkWrapper, sourceTable, destTable);
+        } finally {
+            if (null != destTable) {
+                // drop dest table
+                stmt.dropTable(destTable);
+            }
+        }
     }
 
     @Test
@@ -271,85 +275,85 @@ public class BulkCopyColumnMappingTest extends BulkCopyTestSetUp {
     public void testInvalidCM() {
         DBTable destTable = null;
         try {
-        // create dest table
-        destTable = sourceTable.cloneSchema();
-        stmt.createTable(destTable);
+            // create dest table
+            destTable = sourceTable.cloneSchema();
+            stmt.createTable(destTable);
 
-        // set up bulkCopy with wrong column names
-        BulkCopyTestWrapper bulkWrapper = new BulkCopyTestWrapper(connectionString);
-        bulkWrapper.setUsingConnection((0 == ThreadLocalRandom.current().nextInt(2)) ? true : false);
-        bulkWrapper.setColumnMapping("wrongFirst", "wrongSecond");
-        BulkCopyTestUtil.performBulkCopy(bulkWrapper, sourceTable, destTable, true, true);
+            // set up bulkCopy with wrong column names
+            BulkCopyTestWrapper bulkWrapper = new BulkCopyTestWrapper(connectionString);
+            bulkWrapper.setUsingConnection((0 == ThreadLocalRandom.current().nextInt(2)) ? true : false);
+            bulkWrapper.setColumnMapping("wrongFirst", "wrongSecond");
+            BulkCopyTestUtil.performBulkCopy(bulkWrapper, sourceTable, destTable, true, true);
 
-        // create dest table
-        destTable = sourceTable.cloneSchema();
-        stmt.createTable(destTable);
+            // create dest table
+            destTable = sourceTable.cloneSchema();
+            stmt.createTable(destTable);
 
-        // set up bulkCopy with invalid ordinal, column no 65 does not exist
-        bulkWrapper = new BulkCopyTestWrapper(connectionString);
-        bulkWrapper.setUsingConnection((0 == ThreadLocalRandom.current().nextInt(2)) ? true : false);
-        bulkWrapper.setColumnMapping(sourceTable.getColumnName(1), 65);
-        BulkCopyTestUtil.performBulkCopy(bulkWrapper, sourceTable, destTable, true, true);
+            // set up bulkCopy with invalid ordinal, column no 65 does not exist
+            bulkWrapper = new BulkCopyTestWrapper(connectionString);
+            bulkWrapper.setUsingConnection((0 == ThreadLocalRandom.current().nextInt(2)) ? true : false);
+            bulkWrapper.setColumnMapping(sourceTable.getColumnName(1), 65);
+            BulkCopyTestUtil.performBulkCopy(bulkWrapper, sourceTable, destTable, true, true);
 
-        // create dest table
-        destTable = sourceTable.cloneSchema();
-        stmt.createTable(destTable);
+            // create dest table
+            destTable = sourceTable.cloneSchema();
+            stmt.createTable(destTable);
 
-        // set up bulkCopy with invalid ordinal, column no 42 does not exist
-        bulkWrapper = new BulkCopyTestWrapper(connectionString);
-        bulkWrapper.setUsingConnection((0 == ThreadLocalRandom.current().nextInt(2)) ? true : false);
-        bulkWrapper.setColumnMapping(42, destTable.getColumnName(1));
-        BulkCopyTestUtil.performBulkCopy(bulkWrapper, sourceTable, destTable, true, true);
+            // set up bulkCopy with invalid ordinal, column no 42 does not exist
+            bulkWrapper = new BulkCopyTestWrapper(connectionString);
+            bulkWrapper.setUsingConnection((0 == ThreadLocalRandom.current().nextInt(2)) ? true : false);
+            bulkWrapper.setColumnMapping(42, destTable.getColumnName(1));
+            BulkCopyTestUtil.performBulkCopy(bulkWrapper, sourceTable, destTable, true, true);
 
-        // create dest table
-        destTable = sourceTable.cloneSchema();
-        stmt.createTable(destTable);
+            // create dest table
+            destTable = sourceTable.cloneSchema();
+            stmt.createTable(destTable);
 
-        // set up bulkCopy with invalid ordinal, column no 42 and 65 do not exist
-        bulkWrapper = new BulkCopyTestWrapper(connectionString);
-        bulkWrapper.setUsingConnection((0 == ThreadLocalRandom.current().nextInt(2)) ? true : false);
-        bulkWrapper.setColumnMapping(42, 65);
-        BulkCopyTestUtil.performBulkCopy(bulkWrapper, sourceTable, destTable, true, true);
+            // set up bulkCopy with invalid ordinal, column no 42 and 65 do not exist
+            bulkWrapper = new BulkCopyTestWrapper(connectionString);
+            bulkWrapper.setUsingConnection((0 == ThreadLocalRandom.current().nextInt(2)) ? true : false);
+            bulkWrapper.setColumnMapping(42, 65);
+            BulkCopyTestUtil.performBulkCopy(bulkWrapper, sourceTable, destTable, true, true);
 
-        // create dest table
-        destTable = sourceTable.cloneSchema();
-        stmt.createTable(destTable);
+            // create dest table
+            destTable = sourceTable.cloneSchema();
+            stmt.createTable(destTable);
 
-        // set up bulkCopy while passing empty string as column mapping
-        bulkWrapper = new BulkCopyTestWrapper(connectionString);
-        bulkWrapper.setUsingConnection((0 == ThreadLocalRandom.current().nextInt(2)) ? true : false);
-        bulkWrapper.setColumnMapping(sourceTable.getColumnName(1), "     ");
-        BulkCopyTestUtil.performBulkCopy(bulkWrapper, sourceTable, destTable, true, true);
+            // set up bulkCopy while passing empty string as column mapping
+            bulkWrapper = new BulkCopyTestWrapper(connectionString);
+            bulkWrapper.setUsingConnection((0 == ThreadLocalRandom.current().nextInt(2)) ? true : false);
+            bulkWrapper.setColumnMapping(sourceTable.getColumnName(1), "     ");
+            BulkCopyTestUtil.performBulkCopy(bulkWrapper, sourceTable, destTable, true, true);
 
-        // create dest table
-        destTable = sourceTable.cloneSchema();
-        stmt.createTable(destTable);
+            // create dest table
+            destTable = sourceTable.cloneSchema();
+            stmt.createTable(destTable);
 
-        // set up bulkCopy with 0 ordinal column mapping
-        bulkWrapper = new BulkCopyTestWrapper(connectionString);
-        bulkWrapper.setUsingConnection((0 == ThreadLocalRandom.current().nextInt(2)) ? true : false);
-        bulkWrapper.setColumnMapping(0, 0);
-        BulkCopyTestUtil.performBulkCopy(bulkWrapper, sourceTable, destTable, true, true);
+            // set up bulkCopy with 0 ordinal column mapping
+            bulkWrapper = new BulkCopyTestWrapper(connectionString);
+            bulkWrapper.setUsingConnection((0 == ThreadLocalRandom.current().nextInt(2)) ? true : false);
+            bulkWrapper.setColumnMapping(0, 0);
+            BulkCopyTestUtil.performBulkCopy(bulkWrapper, sourceTable, destTable, true, true);
 
-        // create dest table
-        destTable = sourceTable.cloneSchema();
-        stmt.createTable(destTable);
+            // create dest table
+            destTable = sourceTable.cloneSchema();
+            stmt.createTable(destTable);
 
-        // set up bulkCopy with negative ordinal column mapping
-        bulkWrapper = new BulkCopyTestWrapper(connectionString);
-        bulkWrapper.setUsingConnection((0 == ThreadLocalRandom.current().nextInt(2)) ? true : false);
-        bulkWrapper.setColumnMapping(-3, -6);
-        BulkCopyTestUtil.performBulkCopy(bulkWrapper, sourceTable, destTable, true, true);
+            // set up bulkCopy with negative ordinal column mapping
+            bulkWrapper = new BulkCopyTestWrapper(connectionString);
+            bulkWrapper.setUsingConnection((0 == ThreadLocalRandom.current().nextInt(2)) ? true : false);
+            bulkWrapper.setColumnMapping(-3, -6);
+            BulkCopyTestUtil.performBulkCopy(bulkWrapper, sourceTable, destTable, true, true);
 
-        // create dest table
-        destTable = sourceTable.cloneSchema();
-        stmt.createTable(destTable);
+            // create dest table
+            destTable = sourceTable.cloneSchema();
+            stmt.createTable(destTable);
 
-        // set up bulkCopy with Integer.MIN_VALUE and Integer.MAX_VALUE column mapping
-        bulkWrapper = new BulkCopyTestWrapper(connectionString);
-        bulkWrapper.setUsingConnection((0 == ThreadLocalRandom.current().nextInt(2)) ? true : false);
-        bulkWrapper.setColumnMapping(Integer.MIN_VALUE, Integer.MAX_VALUE);
-        BulkCopyTestUtil.performBulkCopy(bulkWrapper, sourceTable, destTable, true, true);
+            // set up bulkCopy with Integer.MIN_VALUE and Integer.MAX_VALUE column mapping
+            bulkWrapper = new BulkCopyTestWrapper(connectionString);
+            bulkWrapper.setUsingConnection((0 == ThreadLocalRandom.current().nextInt(2)) ? true : false);
+            bulkWrapper.setColumnMapping(Integer.MIN_VALUE, Integer.MAX_VALUE);
+            BulkCopyTestUtil.performBulkCopy(bulkWrapper, sourceTable, destTable, true, true);
         } finally {
             if (null != destTable) {
                 stmt.dropTable(destTable);

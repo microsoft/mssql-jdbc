@@ -172,19 +172,20 @@ public class TVPAllTypes extends AbstractTest {
         TestUtils.dropProcedureIfExists(procedureName, stmt);
         dropTVPS(tvpName);
 
-        DBConnection dbConnection = new DBConnection(connectionString);
-        DBStatement dbStmt = dbConnection.createStatement();
+        try (DBConnection dbConnection = new DBConnection(connectionString);
+                DBStatement dbStmt = dbConnection.createStatement()) {
 
-        tableSrc = new DBTable(true);
-        tableDest = tableSrc.cloneSchema();
+            tableSrc = new DBTable(true);
+            tableDest = tableSrc.cloneSchema();
 
-        dbStmt.createTable(tableSrc);
-        dbStmt.createTable(tableDest);
+            dbStmt.createTable(tableSrc);
+            dbStmt.createTable(tableDest);
 
-        createTVPS(tvpName, tableSrc.getDefinitionOfColumns());
-        createPreocedure(procedureName, tableDest.getEscapedTableName());
+            createTVPS(tvpName, tableSrc.getDefinitionOfColumns());
+            createPreocedure(procedureName, tableDest.getEscapedTableName());
 
-        dbStmt.populateTable(tableSrc);
+            dbStmt.populateTable(tableSrc);
+        }
     }
 
     private void terminateVariation() throws SQLException {

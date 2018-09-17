@@ -91,7 +91,9 @@ class BulkCopyTestUtil {
             } catch (SQLException ex) {
                 fail(ex.getMessage());
             } finally {
-                stmt.dropTable(destinationTable);
+                if (null != destinationTable) {
+                    stmt.dropTable(destinationTable);
+                }
             }
         } catch (SQLException ex) {
             fail(ex.getMessage());
@@ -188,7 +190,9 @@ class BulkCopyTestUtil {
                     fail(ex.getMessage());
                 }
             } finally {
-                stmt.dropTable(destinationTable);
+                if (null != destinationTable) {
+                    stmt.dropTable(destinationTable);
+                }
             }
         } catch (SQLException e) {
             if (!fail) {
@@ -246,7 +250,7 @@ class BulkCopyTestUtil {
                     fail(ex.getMessage());
                 }
             } finally {
-                if (dropDest) {
+                if (dropDest && null != destinationTable) {
                     stmt.dropTable(destinationTable);
                 }
             }

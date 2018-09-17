@@ -61,7 +61,8 @@ public class BatchTriggerTest extends AbstractTest {
      */
     @Test
     public void preparedStatementTest() throws SQLException {
-        try (Connection connection = DriverManager.getConnection(connectionString); PreparedStatement pstmt = connection.prepareStatement(insertQuery)) {
+        try (Connection connection = DriverManager.getConnection(connectionString);
+                PreparedStatement pstmt = connection.prepareStatement(insertQuery)) {
 
             pstmt.addBatch();
             pstmt.executeBatch();
@@ -126,7 +127,8 @@ public class BatchTriggerTest extends AbstractTest {
      * @throws SQLException
      */
     private static void dropTable() throws SQLException {
-        try (Connection connection = DriverManager.getConnection(connectionString); Statement stmt = connection.createStatement()) {
+        try (Connection connection = DriverManager.getConnection(connectionString);
+                Statement stmt = connection.createStatement()) {
             TestUtils.dropTableIfExists(tableName, stmt);
         }
     }

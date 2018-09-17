@@ -32,7 +32,6 @@ import com.microsoft.sqlserver.jdbc.TestUtils;
  */
 @RunWith(JUnitPlatform.class)
 public class PrecisionScaleTest extends AESetup {
-    private static SQLServerPreparedStatement pstmt = null;
 
     private static java.util.Date date = null;
     private static int offsetFromGMT = 0;

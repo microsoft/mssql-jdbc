@@ -381,7 +381,7 @@ public class TVPResultSetCursorTest extends AbstractTest {
             String sql = "CREATE PROCEDURE " + procedureName + " @InputData " + tvpName + " READONLY " + " AS "
                     + " BEGIN " + " INSERT INTO " + desTable + " SELECT * FROM @InputData" + " END";
 
-        stmt.execute(sql);
+            stmt.execute(sql);
         }
     }
 }

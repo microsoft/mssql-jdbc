@@ -281,9 +281,10 @@ public class ConnectionDriverTest extends AbstractTest {
 
     @Test
     public void testClosedConnection() throws SQLException {
-        SQLServerConnection conn = (SQLServerConnection) DriverManager.getConnection(connectionString);
-        conn.close();
-        assertTrue(!conn.isValid(0), TestResource.getResource("R_closedConnectionShouldBeInvalid"));
+        try (SQLServerConnection conn = (SQLServerConnection) DriverManager.getConnection(connectionString)) {
+            conn.close();
+            assertTrue(!conn.isValid(0), TestResource.getResource("R_closedConnectionShouldBeInvalid"));
+        }
     }
 
     @Test
@@ -331,10 +332,12 @@ public class ConnectionDriverTest extends AbstractTest {
         } catch (Exception e) {
             fail(TestResource.getResource("R_unexpectedErrorMessage") + e.toString());
         } finally {
-            try (SQLServerConnection conn = (SQLServerConnection) DriverManager
-                    .getConnection(connectionString + ";responseBuffering=adaptive");
-                    Statement stmt = conn.createStatement()) {
-                stmt.execute("drop table " + tableName);
+            if (null != tableName) {
+                try (SQLServerConnection conn = (SQLServerConnection) DriverManager
+                        .getConnection(connectionString + ";responseBuffering=adaptive");
+                        Statement stmt = conn.createStatement()) {
+                    stmt.execute("drop table " + tableName);
+                }
             }
         }
     }
