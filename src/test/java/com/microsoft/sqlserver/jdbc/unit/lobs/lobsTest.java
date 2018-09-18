@@ -248,7 +248,6 @@ public class lobsTest extends AbstractTest {
             ThreadLocalRandom.current().nextBytes(data);
 
             Blob blob = null;
-            InputStream stream = null;
             for (int i = 0; i < 5; i++) {
                 try (PreparedStatement ps = conn
                         .prepareStatement("INSERT INTO " + table.getEscapedTableName() + "  VALUES(?,?)")) {
@@ -265,27 +264,23 @@ public class lobsTest extends AbstractTest {
                     rs.next();
 
                     blob = rs.getBlob(2);
-                    stream = blob.getBinaryStream();
-                    while (stream.available() > 0)
-                        stream.read();
-                    blob.free();
-                    try {
-                        stream = blob.getBinaryStream();
-                    } catch (SQLException e) {
+                    try (InputStream stream = blob.getBinaryStream()) {
+                        while (stream.available() > 0)
+                            stream.read();
+                        blob.free();
+                    }
+                    try (InputStream stream = blob.getBinaryStream()) {} catch (SQLException e) {
                         assertTrue(e.getMessage().contains(TestResource.getResource("R_blobFreed")));
                     }
                 }
             }
-            try {
-                stream = blob.getBinaryStream();
-            } catch (SQLException e) {
+            try (InputStream stream = blob.getBinaryStream()) {} catch (SQLException e) {
                 assertTrue(e.getMessage().contains(TestResource.getResource("R_blobFreed")));
             }
         } catch (Exception e) {
             dropTables(table);
             e.printStackTrace();
-        }
-        finally {
+        } finally {
             dropTables(table);
         }
     }
@@ -327,18 +322,24 @@ public class lobsTest extends AbstractTest {
                                 if (!col.getSqlType().canConvert(streamClass, DBCoercion.GET, con))
                                     continue;
                             }
-                            Object stream = rs.getXXX(i + 1, streamClass);
-                            if (stream == null) {
-                                assertEquals(stream, rs.getObject(i + 1), TestResource.getResource("R_streamNull"));
-                            } else {
-                                // close the stream twice
-                                if (streamClass == DBCharacterStream.class) {
-                                    ((Reader) stream).close();
-                                    ((Reader) stream).close();
+
+                            Object stream = null;
+                            try {
+                                stream = rs.getXXX(i + 1, streamClass);
+                            } finally {
+                                if (null == stream) {
+                                    assertEquals(stream, rs.getObject(i + 1), TestResource.getResource("R_streamNull"));
                                 } else {
-                                    ((InputStream) stream).close();
-                                    ((InputStream) stream).close();
+                                    // close the stream twice
+                                    if (streamClass == DBCharacterStream.class) {
+                                        ((Reader) stream).close();
+                                        ((Reader) stream).close();
+                                    } else {
+                                        ((InputStream) stream).close();
+                                        ((InputStream) stream).close();
+                                    }
                                 }
+
                             }
                         }
                     }
@@ -397,7 +398,6 @@ public class lobsTest extends AbstractTest {
         Clob clob = null;
         Blob blob = null;
         NClob nclob = null;
-        InputStream stream = null;
         try (PreparedStatement ps = conn
                 .prepareStatement("INSERT INTO " + table.getEscapedTableName() + "  VALUES(?,?)")) {
             if (clobType == classType(lobClass)) {
@@ -433,24 +433,27 @@ public class lobsTest extends AbstractTest {
                         clob = conn.createClob();
                         clob.setString(1, stringData);
                         rs.getClob(2);
-                        stream = clob.getAsciiStream();
-                        assertEquals(clob.length(), size);
+                        try (InputStream stream = clob.getAsciiStream()) {
+                            assertEquals(clob.length(), size);
+                        }
 
                     } else if (nClobType == classType(lobClass)) {
                         nclob = rs.getNClob(2);
                         assertEquals(nclob.length(), size);
-                        stream = nclob.getAsciiStream();
-                        BufferedInputStream is = new BufferedInputStream(stream);
-                        is.read(chunk);
-                        assertEquals(chunk.length, size);
+                        try (InputStream stream = nclob.getAsciiStream();
+                                BufferedInputStream is = new BufferedInputStream(stream)) {
+                            is.read(chunk);
+                            assertEquals(chunk.length, size);
+                        }
                     } else {
                         blob = rs.getBlob(2);
-                        stream = blob.getBinaryStream();
-                        ByteArrayOutputStream buffer = new ByteArrayOutputStream();
-                        int read = 0;
-                        while ((read = stream.read(chunk)) > 0)
-                            buffer.write(chunk, 0, read);
-                        assertEquals(chunk.length, size);
+                        try (InputStream stream = blob.getBinaryStream();
+                                ByteArrayOutputStream buffer = new ByteArrayOutputStream()) {
+                            int read = 0;
+                            while ((read = stream.read(chunk)) > 0)
+                                buffer.write(chunk, 0, read);
+                            assertEquals(chunk.length, size);
+                        }
                     }
                 }
 
@@ -498,7 +501,6 @@ public class lobsTest extends AbstractTest {
         ThreadLocalRandom.current().nextBytes(data);
 
         Blob blob = null;
-        InputStream stream = null;
         try (PreparedStatement ps = conn
                 .prepareStatement("INSERT INTO " + table.getEscapedTableName() + "  VALUES(?,?)")) {
             blob = conn.createBlob();
@@ -513,19 +515,21 @@ public class lobsTest extends AbstractTest {
                 rs.next();
 
                 blob = rs.getBlob(2);
-                stream = blob.getBinaryStream();
-                ByteArrayOutputStream buffer = new ByteArrayOutputStream();
-                int read = 0;
-                while ((read = stream.read(chunk)) > 0)
-                    buffer.write(chunk, 0, read);
-                assertEquals(chunk.length, size);
-                rs.close();
-                stream = blob.getBinaryStream();
-                buffer = new ByteArrayOutputStream();
-                read = 0;
-                while ((read = stream.read(chunk)) > 0)
-                    buffer.write(chunk, 0, read);
-                assertEquals(chunk.length, size);
+                try (InputStream stream = blob.getBinaryStream();
+                        ByteArrayOutputStream buffer = new ByteArrayOutputStream()) {
+                    int read = 0;
+                    while ((read = stream.read(chunk)) > 0)
+                        buffer.write(chunk, 0, read);
+                    assertEquals(chunk.length, size);
+                    rs.close();
+                }
+                try (InputStream stream = blob.getBinaryStream();
+                        ByteArrayOutputStream buffer = new ByteArrayOutputStream()) {
+                    int read = 0;
+                    while ((read = stream.read(chunk)) > 0)
+                        buffer.write(chunk, 0, read);
+                    assertEquals(chunk.length, size);
+                }
             }
         } finally {
             if (null != blob)
@@ -556,7 +560,7 @@ public class lobsTest extends AbstractTest {
                 ps.executeUpdate();
             }
         }
-        
+
         byte[] chunk = new byte[size];
         try (ResultSet rs = stmt.executeQuery(
                 "select * from " + table.getEscapedTableName() + " ORDER BY " + table.getEscapedColumnName(0))) {
@@ -564,20 +568,27 @@ public class lobsTest extends AbstractTest {
                 rs.next();
                 blobs[i] = rs.getBlob(2);
                 stream = blobs[i].getBinaryStream();
-                ByteArrayOutputStream buffer = new ByteArrayOutputStream();
-                int read = 0;
-                while ((read = stream.read(chunk)) > 0)
-                    buffer.write(chunk, 0, read);
-                assertEquals(chunk.length, size);
+                try (ByteArrayOutputStream buffer = new ByteArrayOutputStream()) {
+                    int read = 0;
+                    while ((read = stream.read(chunk)) > 0)
+                        buffer.write(chunk, 0, read);
+                    assertEquals(chunk.length, size);
+                }
             }
-        }
-        for (int i = 0; i < 5; i++) {
-            stream = blobs[i].getBinaryStream();
-            ByteArrayOutputStream buffer = new ByteArrayOutputStream();
-            int read = 0;
-            while ((read = stream.read(chunk)) > 0)
-                buffer.write(chunk, 0, read);
-            assertEquals(chunk.length, size);
+
+            for (int i = 0; i < 5; i++) {
+                stream = blobs[i].getBinaryStream();
+                try (ByteArrayOutputStream buffer = new ByteArrayOutputStream()) {
+                    int read = 0;
+                    while ((read = stream.read(chunk)) > 0)
+                        buffer.write(chunk, 0, read);
+                    assertEquals(chunk.length, size);
+                }
+            }
+        } finally {
+            if (null != stream) {
+                stream.close();
+            }
         }
     }
 

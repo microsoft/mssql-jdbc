@@ -84,30 +84,31 @@ public class DatabaseMetaDataTest extends AbstractTest {
 
         assumeTrue(f.exists(), TestResource.getResource("R_manifestNotFound"));
 
-        InputStream in = new BufferedInputStream(new FileInputStream(f));
-        Manifest manifest = new Manifest(in);
-        Attributes attributes = manifest.getMainAttributes();
-        String buildVersion = attributes.getValue("Bundle-Version");
+        try (InputStream in = new BufferedInputStream(new FileInputStream(f))) {
+            Manifest manifest = new Manifest(in);
+            Attributes attributes = manifest.getMainAttributes();
+            String buildVersion = attributes.getValue("Bundle-Version");
 
-        try (SQLServerConnection conn = (SQLServerConnection) DriverManager.getConnection(connectionString)) {
+            try (SQLServerConnection conn = (SQLServerConnection) DriverManager.getConnection(connectionString)) {
 
-            DatabaseMetaData dbmData = conn.getMetaData();
+                DatabaseMetaData dbmData = conn.getMetaData();
 
-            String driverVersion = dbmData.getDriverVersion();
+                String driverVersion = dbmData.getDriverVersion();
 
-            boolean isSnapshot = buildVersion.contains("SNAPSHOT");
+                boolean isSnapshot = buildVersion.contains("SNAPSHOT");
 
-            // Removing all dots & chars easy for comparing.
-            driverVersion = driverVersion.replaceAll("[^0-9]", "");
-            buildVersion = buildVersion.replaceAll("[^0-9]", "");
+                // Removing all dots & chars easy for comparing.
+                driverVersion = driverVersion.replaceAll("[^0-9]", "");
+                buildVersion = buildVersion.replaceAll("[^0-9]", "");
 
-            // Not comparing last build number. We will compare only major.minor.patch
-            driverVersion = driverVersion.substring(0, 3);
-            buildVersion = buildVersion.substring(0, 3);
+                // Not comparing last build number. We will compare only major.minor.patch
+                driverVersion = driverVersion.substring(0, 3);
+                buildVersion = buildVersion.substring(0, 3);
 
-            int intBuildVersion = Integer.valueOf(buildVersion);
-            int intDriverVersion = Integer.valueOf(driverVersion);
-            assertTrue(intDriverVersion == intBuildVersion, TestResource.getResource("R_buildVersionError"));
+                int intBuildVersion = Integer.valueOf(buildVersion);
+                int intDriverVersion = Integer.valueOf(driverVersion);
+                assertTrue(intDriverVersion == intBuildVersion, TestResource.getResource("R_buildVersionError"));
+            }
         }
     }
 
