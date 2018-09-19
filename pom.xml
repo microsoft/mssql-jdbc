@@ -39,21 +39,21 @@
 
 	<properties>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-		<junit.platform.version>1.3.0</junit.platform.version>
-		<junit.jupiter.version>5.3.0</junit.jupiter.version>
+		<junit.platform.version>1.3.1</junit.platform.version>
+		<junit.jupiter.version>5.3.1</junit.jupiter.version>
 	</properties>
 
 	<dependencies>
 		<dependency>
 			<groupId>com.microsoft.azure</groupId>
 			<artifactId>azure-keyvault</artifactId>
-			<version>1.1</version>
+			<version>1.1.1</version>
 			<optional>true</optional>
 		</dependency>
 		<dependency>
 			<groupId>com.microsoft.azure</groupId>
 			<artifactId>azure-keyvault-webkey</artifactId>
-			<version>1.1</version>
+			<version>1.1.1</version>
 			<optional>true</optional>
 		</dependency>
 		<dependency>
@@ -65,7 +65,7 @@
 		<dependency>
 			<groupId>com.microsoft.rest</groupId>
 			<artifactId>client-runtime</artifactId>
-			<version>1.6.0</version>
+			<version>1.6.2</version>
 			<optional>true</optional>
 		</dependency>
 
@@ -138,14 +138,14 @@
 				<finalName>${project.artifactId}-${project.version}.jre8-preview</finalName>
 				<plugins>
 					<plugin>
+						<groupId>org.apache.maven.plugins</groupId>
 						<artifactId>maven-compiler-plugin</artifactId>
-						<version>3.7.0</version>
+						<version>3.8.0</version>
 						<configuration>
 							<excludes>
 								<exclude>**/com/microsoft/sqlserver/jdbc/SQLServerJdbc43.java</exclude>
 							</excludes>
-							<source>1.8</source>
-							<target>1.8</target>
+							<release>1.8</release>
 						</configuration>
 					</plugin>
 					<plugin>
@@ -156,6 +156,57 @@
 							<archive>
 								<manifestFile>${project.build.outputDirectory}/META-INF/MANIFEST.MF</manifestFile>
 							</archive>
+						</configuration>
+					</plugin>
+					<plugin>
+						<groupId>org.jacoco</groupId>
+						<artifactId>jacoco-maven-plugin</artifactId>
+						<version>0.8.2</version>
+						<executions>
+							<!-- Prepares the property pointing to the JaCoCo runtime agent which 
+								is passed as VM argument when Maven the Surefire plugin is executed. -->
+							<execution>
+								<id>pre-unit-test</id>
+								<goals>
+									<goal>prepare-agent</goal>
+								</goals>
+								<configuration>
+									<!-- Sets the path to the file which contains the execution data. -->
+									<destFile>${project.build.directory}/coverage-reports/jacoco-ut.exec</destFile>
+									<!-- Sets the name of the property containing the settings for JaCoCo 
+										runtime agent. -->
+									<propertyName>surefireArgLine</propertyName>
+								</configuration>
+							</execution>
+							<!-- Ensures that the code coverage report for unit tests is created 
+								after unit tests have been run. -->
+							<execution>
+								<id>post-unit-test</id>
+								<phase>test</phase>
+								<goals>
+									<goal>report</goal>
+								</goals>
+								<configuration>
+									<!-- Sets the path to the file which contains the execution data. -->
+									<dataFile>${project.build.directory}/coverage-reports/jacoco-ut.exec</dataFile>
+									<!-- Sets the output directory for the code coverage report. -->
+									<outputDirectory>${project.reporting.outputDirectory}/jacoco-ut</outputDirectory>
+								</configuration>
+							</execution>
+						</executions>
+					</plugin>
+					<plugin>
+						<groupId>org.apache.maven.plugins</groupId>
+						<artifactId>maven-surefire-plugin</artifactId>
+						<version>2.22.0</version>
+
+						<configuration>
+							<argLine>
+								--illegal-access=permit
+							</argLine>
+							<properties>
+								<excludeTags>${skipTestTag}</excludeTags>
+							</properties>
 						</configuration>
 					</plugin>
 				</plugins>
@@ -170,14 +221,14 @@
 				<finalName>${project.artifactId}-${project.version}.jre10-preview</finalName>
 				<plugins>
 					<plugin>
+						<groupId>org.apache.maven.plugins</groupId>
 						<artifactId>maven-compiler-plugin</artifactId>
-						<version>3.7.0</version>
+						<version>3.8.0</version>
 						<configuration>
 							<excludes>
 								<exclude>**/com/microsoft/sqlserver/jdbc/SQLServerJdbc42.java</exclude>
 							</excludes>
-							<source>10</source>
-							<target>10</target>
+							<release>11</release>
 						</configuration>
 					</plugin>
 					<plugin>
@@ -234,8 +285,10 @@
 						<groupId>org.apache.maven.plugins</groupId>
 						<artifactId>maven-surefire-plugin</artifactId>
 						<version>2.22.0</version>
-
 						<configuration>
+							<argLine>
+								--illegal-access=permit
+							</argLine>
 							<properties>
 								<excludeTags>${skipTestTag}</excludeTags>
 							</properties>
