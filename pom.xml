@@ -299,7 +299,7 @@
 
 				<configuration>
 					<argLine>
-						--illegal-access=permit
+						${surefireArgLine} --illegal-access=permit
 					</argLine>
 					<properties>
 						<excludeTags>${skipTestTag}</excludeTags>
