@@ -1717,7 +1717,6 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
         }
 
         SQLServerResultSet rs = null;
-        SQLServerResultSet rsMoreMetaData = null;
         SQLServerStatement stmt = null;
 
         try {
@@ -1735,29 +1734,28 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
             destColumnCount = rs.getMetaData().getColumnCount();
             destColumnMetadata = new HashMap<>();
             destCekTable = rs.getCekTable();
-
-            if (!connection.getServerSupportsColumnEncryption()) {
-                // SQL server prior to 2016 does not support encryption_type
-                rsMoreMetaData = ((SQLServerStatement) connection.createStatement())
-                        .executeQueryInternal("select collation_name from sys.columns where " + "object_id=OBJECT_ID('"
-                                + destinationTableName + "') " + "order by column_id ASC");
-            } else {
-                rsMoreMetaData = ((SQLServerStatement) connection.createStatement())
-                        .executeQueryInternal("select collation_name, encryption_type from sys.columns where "
-                                + "object_id=OBJECT_ID('" + destinationTableName + "') " + "order by column_id ASC");
-            }
-            for (int i = 1; i <= destColumnCount; ++i) {
-                if (rsMoreMetaData.next()) {
-                    if (!connection.getServerSupportsColumnEncryption()) {
-                        destColumnMetadata.put(i, new BulkColumnMetaData(rs.getColumn(i),
-                                rsMoreMetaData.getString("collation_name"), null));
+            try (SQLServerStatement statementMoreMetadata = (SQLServerStatement) connection.createStatement();
+                    SQLServerResultSet rsMoreMetaData = (!connection
+                            .getServerSupportsColumnEncryption() ? statementMoreMetadata
+                                    .executeQueryInternal("select collation_name from sys.columns where "
+                                            + "object_id=OBJECT_ID('" + destinationTableName + "') "
+                                            + "order by column_id ASC") : statementMoreMetadata.executeQueryInternal(
+                                                    "select collation_name, encryption_type from sys.columns where "
+                                                            + "object_id=OBJECT_ID('" + destinationTableName + "') "
+                                                            + "order by column_id ASC"))) {
+                for (int i = 1; i <= destColumnCount; ++i) {
+                    if (rsMoreMetaData.next()) {
+                        if (!connection.getServerSupportsColumnEncryption()) {
+                            destColumnMetadata.put(i, new BulkColumnMetaData(rs.getColumn(i),
+                                    rsMoreMetaData.getString("collation_name"), null));
+                        } else {
+                            destColumnMetadata.put(i,
+                                    new BulkColumnMetaData(rs.getColumn(i), rsMoreMetaData.getString("collation_name"),
+                                            rsMoreMetaData.getString("encryption_type")));
+                        }
                     } else {
-                        destColumnMetadata.put(i,
-                                new BulkColumnMetaData(rs.getColumn(i), rsMoreMetaData.getString("collation_name"),
-                                        rsMoreMetaData.getString("encryption_type")));
+                        destColumnMetadata.put(i, new BulkColumnMetaData(rs.getColumn(i)));
                     }
-                } else {
-                    destColumnMetadata.put(i, new BulkColumnMetaData(rs.getColumn(i)));
                 }
             }
         } catch (SQLException e) {
@@ -1768,8 +1766,6 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
                 rs.close();
             if (null != stmt)
                 stmt.close();
-            if (null != rsMoreMetaData)
-                rsMoreMetaData.close();
         }
     }
 
