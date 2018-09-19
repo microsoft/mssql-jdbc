@@ -562,7 +562,6 @@ public final class SQLServerParameterMetaData implements ParameterMetaData {
             // then we can extract metadata using sp_sproc_columns
             if (null != st.procedureName) {
                 String sProc = parseProcIdentifier(st.procedureName);
-                // DO NOT close the Statement as resultSet 'rsProcedureMeta' is required by other APIs
                 try (SQLServerStatement s = (SQLServerStatement) con.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE,
                         ResultSet.CONCUR_READ_ONLY);
                         SQLServerResultSet rsProcedureMeta = s.executeQueryInternal(
