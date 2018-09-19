@@ -1972,7 +1972,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                         stmtColumnEncriptionSetting);
                         SQLServerResultSet rs = stmt
                                 .executeQueryInternal("sp_executesql N'SET FMTONLY ON SELECT * FROM "
-                                        + Util.escapeQuotes(tableName) + " '");) {
+                                        + Util.escapeSingleQuotes(tableName) + " '");) {
                     if (null != columnList && columnList.size() > 0) {
                         if (columnList.size() != valueList.size()) {
                             throw new IllegalArgumentException(
@@ -2126,7 +2126,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                         stmtColumnEncriptionSetting);
                         SQLServerResultSet rs = stmt
                                 .executeQueryInternal("sp_executesql N'SET FMTONLY ON SELECT * FROM "
-                                        + Util.escapeQuotes(tableName) + " '");) {
+                                        + Util.escapeSingleQuotes(tableName) + " '");) {
                     if (null != columnList && columnList.size() > 0) {
                         if (columnList.size() != valueList.size()) {
                             throw new IllegalArgumentException(

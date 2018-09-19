@@ -668,7 +668,7 @@ public final class SQLServerParameterMetaData implements ParameterMetaData {
                     }
 
                     String sCom = "sp_executesql N'SET FMTONLY ON SELECT " + columns + " FROM "
-                            + Util.escapeQuotes(sbTablesAndJoins.toString()) + " '";
+                            + Util.escapeSingleQuotes(sbTablesAndJoins.toString()) + " '";
 
                     try (SQLServerStatement stmt = (SQLServerStatement) con.createStatement();
                             ResultSet rs = stmt.executeQuery(sCom)) {

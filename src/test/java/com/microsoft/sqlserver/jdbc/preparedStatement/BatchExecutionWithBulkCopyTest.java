@@ -38,18 +38,19 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
 
     static long UUID = System.currentTimeMillis();;
     static String tableName = "BulkCopyParseTest" + UUID;
+    static String tableNameBulk = "BulkCopyParseTest" + UUID;
     static String unsupportedTableName = "[BulkCopyUnsupportedTable'" + UUID + "]";
-    static String squareBracketTableName = "[peter]]]]test'" + UUID + "]";
-    static String doubleQuoteTableName = "\"peter\"\"\"\"test'" + UUID + "\"";
+    static String squareBracketTableName = "[BulkCopy]]]]test'" + UUID + "]";
+    static String doubleQuoteTableName = "\"BulkCopy\"\"\"\"test'" + UUID + "\"";
 
     @Test
     public void testIsInsert() throws Exception {
         try (Connection connection = DriverManager.getConnection(connectionString + ";useBulkCopyForBatchInsert=true;");
                 Statement stmt = (SQLServerStatement) connection.createStatement()) {
-            String valid1 = "INSERT INTO PeterTable values (1, 2)";
-            String valid2 = " INSERT INTO PeterTable values (1, 2)";
-            String valid3 = "/* asdf */ INSERT INTO PeterTable values (1, 2)";
-            String invalid = "Select * from PEterTable";
+            String valid1 = "INSERT INTO "+ tableNameBulk + " values (1, 2)";
+            String valid2 = " INSERT INTO " + tableNameBulk + " values (1, 2)";
+            String valid3 = "/* asdf */ INSERT INTO " +  tableNameBulk + " values (1, 2)";
+            String invalid = "Select * from " + tableNameBulk;
 
             Method method = stmt.getClass().getDeclaredMethod("isInsert", String.class);
             method.setAccessible(true);
@@ -64,7 +65,7 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
     public void testComments() throws Exception {
         try (Connection connection = DriverManager.getConnection(connectionString + ";useBulkCopyForBatchInsert=true;");
                 PreparedStatement pstmt = (SQLServerPreparedStatement) connection.prepareStatement("");) {
-            String valid = "/* rando comment *//* rando comment */ INSERT /* rando comment */ INTO /* rando comment *//*rando comment*/ PeterTable /*rando comment */"
+            String valid = "/* rando comment *//* rando comment */ INSERT /* rando comment */ INTO /* rando comment *//*rando comment*/ tableNameBulk /*rando comment */"
                     + " /* rando comment */values/* rando comment */ (1, 2)";
 
             Field f1 = pstmt.getClass().getDeclaredField("localUserSQL");
@@ -75,7 +76,7 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
                     boolean.class, boolean.class, boolean.class);
             method.setAccessible(true);
 
-            assertEquals("PeterTable", (String) method.invoke(pstmt, false, false, false, false));
+            assertEquals("tableNameBulk", (String) method.invoke(pstmt, false, false, false, false));
         }
     }
 
@@ -83,7 +84,7 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
     public void testBrackets() throws Exception {
         try (Connection connection = DriverManager.getConnection(connectionString + ";useBulkCopyForBatchInsert=true;");
                 PreparedStatement pstmt = (SQLServerPreparedStatement) connection.prepareStatement("");) {
-            String valid = "/* rando comment *//* rando comment */ INSERT /* rando comment */ INTO /* rando comment *//*rando comment*/ [Peter[]]Table] /*rando comment */"
+            String valid = "/* rando comment *//* rando comment */ INSERT /* rando comment */ INTO /* rando comment *//*rando comment*/ [BulkCopy[]]Table] /*rando comment */"
                     + " /* rando comment */values/* rando comment */ (1, 2)";
 
             Field f1 = pstmt.getClass().getDeclaredField("localUserSQL");
@@ -94,7 +95,7 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
                     boolean.class, boolean.class, boolean.class);
             method.setAccessible(true);
 
-            assertEquals("[Peter[]]Table]", (String) method.invoke(pstmt, false, false, false, false));
+            assertEquals("[BulkCopy[]]Table]", (String) method.invoke(pstmt, false, false, false, false));
         }
     }
 
@@ -102,7 +103,7 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
     public void testDoubleQuotes() throws Exception {
         try (Connection connection = DriverManager.getConnection(connectionString + ";useBulkCopyForBatchInsert=true;");
                 PreparedStatement pstmt = (SQLServerPreparedStatement) connection.prepareStatement("");) {
-            String valid = "/* rando comment *//* rando comment */ INSERT /* rando comment */ INTO /* rando comment *//*rando comment*/ \"Peter\"\"\"\"Table\" /*rando comment */"
+            String valid = "/* rando comment *//* rando comment */ INSERT /* rando comment */ INTO /* rando comment *//*rando comment*/ \"Bulk\"\"\"\"Table\" /*rando comment */"
                     + " /* rando comment */values/* rando comment */ (1, 2)";
 
             Field f1 = pstmt.getClass().getDeclaredField("localUserSQL");
@@ -113,7 +114,7 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
                     boolean.class, boolean.class, boolean.class);
             method.setAccessible(true);
 
-            assertEquals("\"Peter\"\"\"\"Table\"", (String) method.invoke(pstmt, false, false, false, false));
+            assertEquals("\"Bulk\"\"\"\"Table\"", (String) method.invoke(pstmt, false, false, false, false));
         }
     }
 
@@ -122,7 +123,7 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
     public void testAll() throws Exception {
         try (Connection connection = DriverManager.getConnection(connectionString + ";useBulkCopyForBatchInsert=true;");
                 PreparedStatement pstmt = (SQLServerPreparedStatement) connection.prepareStatement("");) {
-            String valid = "/* rando comment *//* rando comment */ INSERT /* rando comment */ INTO /* rando comment *//*rando comment*/ \"Peter\"\"\"\"Table\" /*rando comment */"
+            String valid = "/* rando comment *//* rando comment */ INSERT /* rando comment */ INTO /* rando comment *//*rando comment*/ \"Bulk\"\"\"\"Table\" /*rando comment */"
                     + " /* rando comment */ (\"c1\"/* rando comment */, /* rando comment */[c2]/* rando comment */, /* rando comment */ /* rando comment */c3/* rando comment */, c4)"
                     + "values/* rando comment */ (/* rando comment */1/* rando comment */, /* rando comment */2/* rando comment */ , '?', ?)/* rando comment */";
 
@@ -134,7 +135,7 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
                     boolean.class, boolean.class, boolean.class);
             method.setAccessible(true);
 
-            assertEquals((String) method.invoke(pstmt, false, false, false, false), "\"Peter\"\"\"\"Table\"");
+            assertEquals((String) method.invoke(pstmt, false, false, false, false), "\"Bulk\"\"\"\"Table\"");
 
             method = pstmt.getClass().getDeclaredMethod("parseUserSQLForColumnListDW");
             method.setAccessible(true);

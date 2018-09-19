@@ -1729,7 +1729,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
 
                 // Get destination metadata
                 rs = stmt.executeQueryInternal("sp_executesql N'SET FMTONLY ON SELECT * FROM "
-                        + Util.escapeQuotes(destinationTableName) + " '");
+                        + Util.escapeSingleQuotes(destinationTableName) + " '");
             }
 
             destColumnCount = rs.getMetaData().getColumnCount();
@@ -1740,11 +1740,11 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
                 // SQL server prior to 2016 does not support encryption_type
                 rsMoreMetaData = ((SQLServerStatement) connection.createStatement())
                         .executeQueryInternal("select collation_name from sys.columns where " + "object_id=OBJECT_ID('"
-                                + Util.escapeQuotes(destinationTableName) + "') " + "order by column_id ASC");
+                                + Util.escapeSingleQuotes(destinationTableName) + "') " + "order by column_id ASC");
             } else {
                 rsMoreMetaData = ((SQLServerStatement) connection.createStatement()).executeQueryInternal(
                         "select collation_name, encryption_type from sys.columns where " + "object_id=OBJECT_ID('"
-                                + Util.escapeQuotes(destinationTableName) + "') " + "order by column_id ASC");
+                                + Util.escapeSingleQuotes(destinationTableName) + "') " + "order by column_id ASC");
             }
             for (int i = 1; i <= destColumnCount; ++i) {
                 if (rsMoreMetaData.next()) {

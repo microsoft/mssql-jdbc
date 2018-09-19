@@ -993,7 +993,7 @@ final class Util {
      *        Object name to be passed as String
      * @return Converted object name
      */
-    static String escapeQuotes(String name) {
+    static String escapeSingleQuotes(String name) {
         return name.replace("'", "''");
     }
 }
