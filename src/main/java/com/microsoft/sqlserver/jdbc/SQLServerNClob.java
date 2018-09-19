@@ -47,6 +47,9 @@ public final class SQLServerNClob extends SQLServerClobBase implements NClob {
 
     @Override
     public InputStream getAsciiStream() throws SQLException {
+        // NClobs are mapped to Nvarchar(max), and are always UTF-16 encoded. This API expects a US_ASCII stream.
+        // It's not possible to modify the stream without loading it into memory. Users should use getCharacterStream.
+        this.fillFromStream();
         return super.getAsciiStream();
     }
 

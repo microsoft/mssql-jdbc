@@ -196,7 +196,7 @@ public class LobsStreamingTest extends AbstractTest {
                         assertEquals(c.length(), lobs.get(index).length());
                         lobsFromServer.add(c);
                         String recieved = getStringFromInputStream(c.getAsciiStream(),
-                                java.nio.charset.StandardCharsets.UTF_16LE);// streaming string
+                                java.nio.charset.StandardCharsets.US_ASCII);// streaming string
                         streamedStrings.add(recieved);
                         assertEquals(lobs.get(index), recieved);// compare streamed string to initial string
                     }
