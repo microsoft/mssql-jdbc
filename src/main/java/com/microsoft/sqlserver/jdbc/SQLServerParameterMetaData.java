@@ -306,24 +306,24 @@ public final class SQLServerParameterMetaData implements ParameterMetaData {
 
     private void parseQueryMetaFor2008(ResultSet rsQueryMeta) throws SQLServerException {
         ResultSetMetaData md;
-
         try {
-            md = rsQueryMeta.getMetaData();
+            if (null != rsQueryMeta) {
+                md = rsQueryMeta.getMetaData();
 
-            for (int i = 1; i <= md.getColumnCount(); i++) {
-                QueryMeta qm = new QueryMeta();
+                for (int i = 1; i <= md.getColumnCount(); i++) {
+                    QueryMeta qm = new QueryMeta();
 
-                qm.parameterClassName = md.getColumnClassName(i);
-                qm.parameterType = md.getColumnType(i);
-                qm.parameterTypeName = md.getColumnTypeName(i);
-                qm.precision = md.getPrecision(i);
-                qm.scale = md.getScale(i);
-                qm.isNullable = md.isNullable(i);
-                qm.isSigned = md.isSigned(i);
+                    qm.parameterClassName = md.getColumnClassName(i);
+                    qm.parameterType = md.getColumnType(i);
+                    qm.parameterTypeName = md.getColumnTypeName(i);
+                    qm.precision = md.getPrecision(i);
+                    qm.scale = md.getScale(i);
+                    qm.isNullable = md.isNullable(i);
+                    qm.isSigned = md.isSigned(i);
 
-                queryMetaMap.put(i, qm);
+                    queryMetaMap.put(i, qm);
+                }
             }
-
         } catch (SQLException e) {
             throw new SQLServerException(SQLServerException.getErrString("R_metaDataErrorForParameter"), e);
         }
