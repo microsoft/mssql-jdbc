@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.Reader;
+import java.nio.charset.Charset;
 import java.sql.Clob;
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -26,6 +27,7 @@ import org.junit.runner.RunWith;
 
 import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
 import com.microsoft.sqlserver.testframework.AbstractTest;
+import com.microsoft.sqlserver.testframework.Utils;
 import com.microsoft.sqlserver.testframework.util.RandomUtil;
 
 
@@ -58,12 +60,9 @@ public class LobsStreamingTest extends AbstractTest {
 
     }
 
-    private String getStringFromInputStream(InputStream is) {
-        try (@SuppressWarnings("resource")
-        java.util.Scanner s = new java.util.Scanner(is, java.nio.charset.StandardCharsets.US_ASCII)
-                .useDelimiter("\\A")) {
-            return s.hasNext() ? s.next() : "";
-        }
+    private String getStringFromInputStream(InputStream is, Charset c) {
+        java.util.Scanner s = new java.util.Scanner(is, c).useDelimiter("\\A");
+        return s.hasNext() ? s.next() : "";
     }
 
     private String getStringFromReader(Reader r, long l) throws IOException {
@@ -83,200 +82,234 @@ public class LobsStreamingTest extends AbstractTest {
     @Test
     @DisplayName("testLengthAfterStream")
     public void testLengthAfterStream() throws SQLException, IOException {
-        try (Connection conn = DriverManager.getConnection(connectionString); Statement stmt = conn.createStatement()) {
-            stmt.execute("CREATE TABLE [" + tableName + "] (id int, lobValue varchar(max))");
-            ArrayList<String> lobs = new ArrayList<>();
-            IntStream.range(0, LOB_ARRAY_SIZE).forEach(i -> lobs
-                    .add(getRandomString(ThreadLocalRandom.current().nextInt(LOB_LENGTH_MIN, LOB_LENGTH_MAX))));
+        try (Connection conn = DriverManager.getConnection(connectionString);) {
+            try (Statement stmt = conn.createStatement()) {
+                stmt.execute("CREATE TABLE [" + tableName + "] (id int, lobValue varchar(max))");
+                ArrayList<String> lobs = new ArrayList<>();
+                IntStream.range(0, LOB_ARRAY_SIZE).forEach(i -> lobs
+                        .add(getRandomString(ThreadLocalRandom.current().nextInt(LOB_LENGTH_MIN, LOB_LENGTH_MAX))));
 
-            try (PreparedStatement pstmt = conn.prepareStatement("INSERT INTO [" + tableName + "] VALUES(?,?)")) {
-                for (int i = 0; i < lobs.size(); i++) {
-                    Clob c = conn.createClob();
-                    c.setString(1, lobs.get(i));
-                    pstmt.setInt(1, i);
-                    pstmt.setClob(2, c);
-                    pstmt.addBatch();
-                }
-                pstmt.executeBatch();
+                try (PreparedStatement pstmt = conn.prepareStatement("INSERT INTO [" + tableName + "] VALUES(?,?)")) {
+                    for (int i = 0; i < lobs.size(); i++) {
+                        Clob c = conn.createClob();
+                        c.setString(1, lobs.get(i));
+                        pstmt.setInt(1, i);
+                        pstmt.setClob(2, c);
+                        pstmt.addBatch();
+                    }
+                    pstmt.executeBatch();
 
-                ResultSet rs = stmt.executeQuery("SELECT * FROM [" + tableName + "] ORDER BY id ASC");
-                while (rs.next()) {
-                    Clob c = rs.getClob(2);
-                    Reader r = c.getCharacterStream();
-                    long clobLength = c.length();
-                    String recieved = getStringFromReader(r,clobLength);// streaming string
-                    assertEquals(lobs.get(rs.getInt(1)), recieved);// compare streamed string to initial string
+                    ResultSet rs = stmt.executeQuery("SELECT * FROM [" + tableName + "] ORDER BY id ASC");
+                    while (rs.next()) {
+                        Clob c = rs.getClob(2);
+                        Reader r = c.getCharacterStream();
+                        long clobLength = c.length();
+                        String recieved = getStringFromReader(r, clobLength);// streaming string
+                        assertEquals(lobs.get(rs.getInt(1)), recieved);// compare streamed string to initial string
+                    }
+                    rs.close();
                 }
-                rs.close();
+            } finally {
+                try (Statement stmt = conn.createStatement()) {
+                    stmt.execute("DROP TABLE [" + tableName + "]");
+                }
             }
-            stmt.execute("DROP TABLE [" + tableName + "]");
         }
     }
 
     @Test
     @DisplayName("testClobsVarcharASCII")
     public void testClobsVarcharASCII() throws SQLException {
-        try (Connection conn = DriverManager.getConnection(connectionString); Statement stmt = conn.createStatement()) {
-            stmt.execute("CREATE TABLE [" + tableName + "] (id int, lobValue varchar(max))");
-            ArrayList<String> lobs = new ArrayList<>();
-            IntStream.range(0, LOB_ARRAY_SIZE).forEach(i -> lobs
-                    .add(getRandomString(ThreadLocalRandom.current().nextInt(LOB_LENGTH_MIN, LOB_LENGTH_MAX))));
+        try (Connection conn = DriverManager.getConnection(connectionString)) {
+            try (Statement stmt = conn.createStatement()) {
+                Utils.dropTableIfExists(tableName, stmt);
+                stmt.execute("CREATE TABLE [" + tableName + "] (id int, lobValue varchar(max))");
+                ArrayList<String> lobs = new ArrayList<>();
+                IntStream.range(0, LOB_ARRAY_SIZE).forEach(i -> lobs
+                        .add(getRandomString(ThreadLocalRandom.current().nextInt(LOB_LENGTH_MIN, LOB_LENGTH_MAX))));
 
-            try (PreparedStatement pstmt = conn.prepareStatement("INSERT INTO [" + tableName + "] VALUES(?,?)")) {
-                for (int i = 0; i < lobs.size(); i++) {
-                    Clob c = conn.createClob();
-                    c.setString(1, lobs.get(i));
-                    pstmt.setInt(1, i);
-                    pstmt.setClob(2, c);
-                    pstmt.addBatch();
-                }
-                pstmt.executeBatch();
+                try (PreparedStatement pstmt = conn.prepareStatement("INSERT INTO [" + tableName + "] VALUES(?,?)")) {
+                    for (int i = 0; i < lobs.size(); i++) {
+                        Clob c = conn.createClob();
+                        c.setString(1, lobs.get(i));
+                        pstmt.setInt(1, i);
+                        pstmt.setClob(2, c);
+                        pstmt.addBatch();
+                    }
+                    pstmt.executeBatch();
 
-                ArrayList<Clob> lobsFromServer = new ArrayList<>();
-                ArrayList<String> streamedStrings = new ArrayList<>();
-                ResultSet rs = stmt.executeQuery("SELECT * FROM [" + tableName + "] ORDER BY id ASC");
-                while (rs.next()) {
-                    Clob c = rs.getClob(2);
-                    assertEquals(c.length(), lobs.get(rs.getInt(1)).length());
-                    lobsFromServer.add(c);
-                    String recieved = getStringFromInputStream(c.getAsciiStream());// streaming string
-                    streamedStrings.add(recieved);
-                    assertEquals(lobs.get(rs.getInt(1)), recieved);// compare streamed string to initial string
+                    ArrayList<Clob> lobsFromServer = new ArrayList<>();
+                    ArrayList<String> streamedStrings = new ArrayList<>();
+                    ResultSet rs = stmt.executeQuery("SELECT * FROM [" + tableName + "] ORDER BY id ASC");
+                    while (rs.next()) {
+                        int index = rs.getInt(1);
+                        Clob c = rs.getClob(2);
+                        assertEquals(c.length(), lobs.get(index).length());
+                        lobsFromServer.add(c);
+                        String recieved = getStringFromInputStream(c.getAsciiStream(),
+                                java.nio.charset.StandardCharsets.US_ASCII);// streaming string
+                        streamedStrings.add(recieved);
+                        assertEquals(lobs.get(index), recieved);// compare streamed string to initial string
+                    }
+                    rs.close();
+                    for (int i = 0; i < lobs.size(); i++) {
+                        String recieved = getStringFromInputStream(lobsFromServer.get(i).getAsciiStream(),
+                                java.nio.charset.StandardCharsets.US_ASCII);// non-streaming
+                        // string
+                        assertEquals(recieved, streamedStrings.get(i));// compare static string to streamed string
+                    }
                 }
-                rs.close();
-                for (int i = 0; i < lobs.size(); i++) {
-                    String recieved = getStringFromInputStream(lobsFromServer.get(i).getAsciiStream());// non-streaming
-                                                                                                       // string
-                    assertEquals(recieved, streamedStrings.get(i));// compare static string to streamed string
+            } finally {
+                try (Statement stmt = conn.createStatement()) {
+                    Utils.dropTableIfExists(tableName, stmt);
                 }
             }
-            stmt.execute("DROP TABLE [" + tableName + "]");
         }
     }
 
     @Test
     @DisplayName("testNClobsNVarcharASCII")
-    public void testNClobsVarcharASCII() throws SQLException {
-        try (Connection conn = DriverManager.getConnection(connectionString); Statement stmt = conn.createStatement()) {
-            stmt.execute("CREATE TABLE [" + tableName + "] (id int, lobValue nvarchar(max))");
-            ArrayList<String> lobs = new ArrayList<>();
-            IntStream.range(0, LOB_ARRAY_SIZE).forEach(i -> lobs
-                    .add(getRandomString(ThreadLocalRandom.current().nextInt(LOB_LENGTH_MIN, LOB_LENGTH_MAX))));
+    public void testNClobsVarcharASCII() throws SQLException, IOException {
+        try (Connection conn = DriverManager.getConnection(connectionString)) {
+            try (Statement stmt = conn.createStatement()) {
+                Utils.dropTableIfExists(tableName, stmt);
+                stmt.execute("CREATE TABLE [" + tableName + "] (id int, lobValue nvarchar(max))");
+                ArrayList<String> lobs = new ArrayList<>();
+                IntStream.range(0, LOB_ARRAY_SIZE).forEach(i -> lobs
+                        .add(getRandomString(ThreadLocalRandom.current().nextInt(LOB_LENGTH_MIN, LOB_LENGTH_MAX))));
 
-            try (PreparedStatement pstmt = conn.prepareStatement("INSERT INTO [" + tableName + "] VALUES(?,?)")) {
-                for (int i = 0; i < lobs.size(); i++) {
-                    NClob c = conn.createNClob();
-                    c.setString(1, lobs.get(i));
-                    pstmt.setInt(1, i);
-                    pstmt.setNClob(2, c);
-                    pstmt.addBatch();
-                }
-                pstmt.executeBatch();
+                try (PreparedStatement pstmt = conn.prepareStatement("INSERT INTO [" + tableName + "] VALUES(?,?)")) {
+                    for (int i = 0; i < lobs.size(); i++) {
+                        NClob c = conn.createNClob();
+                        c.setString(1, lobs.get(i));
+                        pstmt.setInt(1, i);
+                        pstmt.setNClob(2, c);
+                        pstmt.addBatch();
+                    }
+                    pstmt.executeBatch();
 
-                ArrayList<NClob> lobsFromServer = new ArrayList<>();
-                ArrayList<String> streamedStrings = new ArrayList<>();
-                ResultSet rs = stmt.executeQuery("SELECT * FROM [" + tableName + "] ORDER BY id ASC");
-                while (rs.next()) {
-                    NClob c = rs.getNClob(2);
-                    assertEquals(c.length(), lobs.get(rs.getInt(1)).length());
-                    lobsFromServer.add(c);
-                    String recieved = getStringFromInputStream(c.getAsciiStream());// streaming string
-                    streamedStrings.add(recieved);
-                    assertEquals(lobs.get(rs.getInt(1)), recieved);// compare streamed string to initial string
+                    ArrayList<NClob> lobsFromServer = new ArrayList<>();
+                    ArrayList<String> streamedStrings = new ArrayList<>();
+                    ResultSet rs = stmt.executeQuery("SELECT * FROM [" + tableName + "] ORDER BY id ASC");
+                    while (rs.next()) {
+                        int index = rs.getInt(1);
+                        NClob c = rs.getNClob(2);
+                        assertEquals(c.length(), lobs.get(index).length());
+                        lobsFromServer.add(c);
+                        String recieved = getStringFromInputStream(c.getAsciiStream(),
+                                java.nio.charset.StandardCharsets.UTF_16LE);// streaming string
+                        streamedStrings.add(recieved);
+                        assertEquals(lobs.get(index), recieved);// compare streamed string to initial string
+                    }
+                    rs.close();
+                    for (int i = 0; i < lobs.size(); i++) {
+                        String recieved = getStringFromInputStream(lobsFromServer.get(i).getAsciiStream(),
+                                java.nio.charset.StandardCharsets.US_ASCII);// non-streaming string
+                        assertEquals(recieved, streamedStrings.get(i));// compare static string to streamed string
+                    }
                 }
-                rs.close();
-                for (int i = 0; i < lobs.size(); i++) {
-                    String recieved = getStringFromInputStream(lobsFromServer.get(i).getAsciiStream());// non-streaming
-                                                                                                       // string
-                    assertEquals(recieved, streamedStrings.get(i));// compare static string to streamed string
+            } finally {
+                try (Statement stmt = conn.createStatement()) {
+                    Utils.dropTableIfExists(tableName, stmt);
                 }
             }
-            stmt.execute("DROP TABLE [" + tableName + "]");
         }
     }
 
     @Test
     @DisplayName("testClobsVarcharCHARA")
     public void testClobsVarcharCHARA() throws SQLException, IOException {
-        try (Connection conn = DriverManager.getConnection(connectionString); Statement stmt = conn.createStatement()) {
-            stmt.execute("CREATE TABLE [" + tableName + "] (id int, lobValue varchar(max))");
-            ArrayList<String> lobs = new ArrayList<>();
-            IntStream.range(0, LOB_ARRAY_SIZE).forEach(i -> lobs
-                    .add(getRandomString(ThreadLocalRandom.current().nextInt(LOB_LENGTH_MIN, LOB_LENGTH_MAX))));
+        try (Connection conn = DriverManager.getConnection(connectionString)) {
+            try (Statement stmt = conn.createStatement()) {
+                Utils.dropTableIfExists(tableName, stmt);
+                stmt.execute("CREATE TABLE [" + tableName + "] (id int, lobValue varchar(max))");
+                ArrayList<String> lobs = new ArrayList<>();
+                IntStream.range(0, LOB_ARRAY_SIZE).forEach(i -> lobs
+                        .add(getRandomString(ThreadLocalRandom.current().nextInt(LOB_LENGTH_MIN, LOB_LENGTH_MAX))));
 
-            try (PreparedStatement pstmt = conn.prepareStatement("INSERT INTO [" + tableName + "] VALUES(?,?)")) {
-                for (int i = 0; i < lobs.size(); i++) {
-                    Clob c = conn.createClob();
-                    c.setString(1, lobs.get(i));
-                    pstmt.setInt(1, i);
-                    pstmt.setClob(2, c);
-                    pstmt.addBatch();
+                try (PreparedStatement pstmt = conn.prepareStatement("INSERT INTO [" + tableName + "] VALUES(?,?)")) {
+                    for (int i = 0; i < lobs.size(); i++) {
+                        Clob c = conn.createClob();
+                        c.setString(1, lobs.get(i));
+                        pstmt.setInt(1, i);
+                        pstmt.setClob(2, c);
+                        pstmt.addBatch();
+                    }
+                    pstmt.executeBatch();
+
+                    ArrayList<Clob> lobsFromServer = new ArrayList<>();
+                    ArrayList<String> streamedStrings = new ArrayList<>();
+                    ResultSet rs = stmt.executeQuery("SELECT * FROM [" + tableName + "] ORDER BY id ASC");
+                    while (rs.next()) {
+                        int index = rs.getInt(1);
+                        Clob c = rs.getClob(2);
+                        assertEquals(c.length(), lobs.get(index).length());
+                        lobsFromServer.add(c);
+                        String recieved = getStringFromReader(c.getCharacterStream(), c.length());// streaming string
+                        streamedStrings.add(recieved);
+                        assertEquals(lobs.get(index), recieved);// compare streamed string to initial string
+                    }
+                    rs.close();
+                    for (int i = 0; i < lobs.size(); i++) {
+                        String recieved = getStringFromReader(lobsFromServer.get(i).getCharacterStream(),
+                                lobsFromServer.get(i).length());// non-streaming string
+                        assertEquals(recieved, streamedStrings.get(i));// compare static string to streamed string
+
+                    }
                 }
-                pstmt.executeBatch();
-
-                ArrayList<Clob> lobsFromServer = new ArrayList<>();
-                ArrayList<String> streamedStrings = new ArrayList<>();
-                ResultSet rs = stmt.executeQuery("SELECT * FROM [" + tableName + "] ORDER BY id ASC");
-                while (rs.next()) {
-                    Clob c = rs.getClob(2);
-                    assertEquals(c.length(), lobs.get(rs.getInt(1)).length());
-                    lobsFromServer.add(c);
-                    String recieved = getStringFromReader(c.getCharacterStream(), c.length());// streaming string
-                    streamedStrings.add(recieved);
-                    assertEquals(lobs.get(rs.getInt(1)), recieved);// compare streamed string to initial string
-                }
-                rs.close();
-
-                for (int i = 0; i < lobs.size(); i++) {
-                    String recieved = getStringFromReader(lobsFromServer.get(i).getCharacterStream(),
-                            lobsFromServer.get(i).length());// non-streaming string
-                    assertEquals(recieved, streamedStrings.get(i));// compare static string to streamed string
-
+            } finally {
+                try (Statement stmt = conn.createStatement()) {
+                    Utils.dropTableIfExists(tableName, stmt);
                 }
             }
-            stmt.execute("DROP TABLE [" + tableName + "]");
         }
     }
 
     @Test
     @DisplayName("testNClobsVarcharCHARA")
     public void testNClobsVarcharCHARA() throws SQLException, IOException {
-        try (Connection conn = DriverManager.getConnection(connectionString); Statement stmt = conn.createStatement()) {
-            stmt.execute("CREATE TABLE [" + tableName + "] (id int, lobValue nvarchar(max))");
-            ArrayList<String> lobs = new ArrayList<>();
-            IntStream.range(0, LOB_ARRAY_SIZE).forEach(i -> lobs
-                    .add(getRandomString(ThreadLocalRandom.current().nextInt(LOB_LENGTH_MIN, LOB_LENGTH_MAX))));
+        try (Connection conn = DriverManager.getConnection(connectionString)) {
+            try (Statement stmt = conn.createStatement()) {
+                Utils.dropTableIfExists(tableName, stmt);
+                stmt.execute("CREATE TABLE [" + tableName + "] (id int, lobValue nvarchar(max))");
+                ArrayList<String> lobs = new ArrayList<>();
+                IntStream.range(0, LOB_ARRAY_SIZE).forEach(i -> lobs
+                        .add(getRandomString(ThreadLocalRandom.current().nextInt(LOB_LENGTH_MIN, LOB_LENGTH_MAX))));
 
-            try (PreparedStatement pstmt = conn.prepareStatement("INSERT INTO [" + tableName + "] VALUES(?,?)")) {
-                for (int i = 0; i < lobs.size(); i++) {
-                    NClob c = conn.createNClob();
-                    c.setString(1, lobs.get(i));
-                    pstmt.setInt(1, i);
-                    pstmt.setNClob(2, c);
-                    pstmt.addBatch();
+                try (PreparedStatement pstmt = conn.prepareStatement("INSERT INTO [" + tableName + "] VALUES(?,?)")) {
+                    for (int i = 0; i < lobs.size(); i++) {
+                        NClob c = conn.createNClob();
+                        c.setString(1, lobs.get(i));
+                        pstmt.setInt(1, i);
+                        pstmt.setNClob(2, c);
+                        pstmt.addBatch();
+                    }
+                    pstmt.executeBatch();
+
+                    ArrayList<NClob> lobsFromServer = new ArrayList<>();
+                    ArrayList<String> streamedStrings = new ArrayList<>();
+                    ResultSet rs = stmt.executeQuery("SELECT * FROM [" + tableName + "] ORDER BY id ASC");
+                    while (rs.next()) {
+                        int index = rs.getInt(1);
+                        NClob c = rs.getNClob(2);
+                        assertEquals(c.length(), lobs.get(index).length());
+                        lobsFromServer.add(c);
+                        String recieved = getStringFromReader(c.getCharacterStream(), c.length());// streaming string
+                        streamedStrings.add(recieved);
+                        assertEquals(lobs.get(index), recieved);// compare streamed string to initial string
+                    }
+                    rs.close();
+                    for (int i = 0; i < lobs.size(); i++) {
+                        String recieved = getStringFromReader(lobsFromServer.get(i).getCharacterStream(),
+                                lobsFromServer.get(i).length());// non-streaming string
+                        assertEquals(recieved, streamedStrings.get(i));// compare static string to streamed string
+                    }
                 }
-                pstmt.executeBatch();
-
-                ArrayList<NClob> lobsFromServer = new ArrayList<>();
-                ArrayList<String> streamedStrings = new ArrayList<>();
-                ResultSet rs = stmt.executeQuery("SELECT * FROM [" + tableName + "] ORDER BY id ASC");
-                while (rs.next()) {
-                    NClob c = rs.getNClob(2);
-                    assertEquals(c.length(), lobs.get(rs.getInt(1)).length());
-                    lobsFromServer.add(c);
-                    String recieved = getStringFromReader(c.getCharacterStream(), c.length());// streaming string
-                    streamedStrings.add(recieved);
-                    assertEquals(lobs.get(rs.getInt(1)), recieved);// compare streamed string to initial string
-                }
-                rs.close();
-
-                for (int i = 0; i < lobs.size(); i++) {
-                    String recieved = getStringFromReader(lobsFromServer.get(i).getCharacterStream(),
-                            lobsFromServer.get(i).length());// non-streaming string
-                    assertEquals(recieved, streamedStrings.get(i));// compare static string to streamed string
+            } finally {
+                try (Statement stmt = conn.createStatement()) {
+                    Utils.dropTableIfExists(tableName, stmt);
                 }
             }
-            stmt.execute("DROP TABLE [" + tableName + "]");
         }
     }
 }

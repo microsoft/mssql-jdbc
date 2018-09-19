@@ -281,20 +281,19 @@ abstract class SQLServerClobBase extends SQLServerLob implements Serializable {
             DataTypes.throwConversionError(getDisplayClassName(), "AsciiStream");
 
         // Need to use a BufferedInputStream since the stream returned by this method is assumed to support mark/reset
-        InputStream getterStream;
+        InputStream getterStream = null;
         if (null == value && !activeStreams.isEmpty()) {
             InputStream inputStream = (InputStream) activeStreams.get(0);
             try {
                 inputStream.reset();
-                getterStream = inputStream;
             } catch (IOException e) {
-                throw new SQLServerException(e.getMessage(), null, 0, e);
+                SQLServerException.makeFromDriverError(con, null, e.getMessage(), null, false);
             }
+            getterStream = inputStream;
         } else {
-            getStringFromStream();
             getterStream = new ByteArrayInputStream(value.getBytes(java.nio.charset.StandardCharsets.US_ASCII));
+            activeStreams.add(getterStream);
         }
-        activeStreams.add(getterStream);
         return getterStream;
     }
 
@@ -314,12 +313,11 @@ abstract class SQLServerClobBase extends SQLServerLob implements Serializable {
             try {
                 inputStream.reset();
             } catch (IOException e) {
-                throw new SQLServerException(e.getMessage(), null, 0, e);
+                SQLServerException.makeFromDriverError(con, null, e.getMessage(), null, false);
             }
             Charset cs = (defaultCharset == null) ? typeInfo.getCharset() : defaultCharset;
             getterStream = new BufferedReader(new InputStreamReader(inputStream, cs));
         } else {
-            getStringFromStream();
             getterStream = new StringReader(value);
         }
         activeStreams.add(getterStream);
@@ -398,7 +396,7 @@ abstract class SQLServerClobBase extends SQLServerLob implements Serializable {
      */
     public long length() throws SQLException {
         checkClosed();
-        if (value == null && activeStreams.get(0) instanceof BaseInputStream) {
+        if (null == value && activeStreams.get(0) instanceof BaseInputStream) {
             return (long) ((BaseInputStream) activeStreams.get(0)).payloadLength;
         }
         return value.length();
@@ -426,10 +424,10 @@ abstract class SQLServerClobBase extends SQLServerLob implements Serializable {
             try {
                 stream.reset();
             } catch (IOException e) {
-                throw new SQLServerException(e.getMessage(), null, 0, e);
+                SQLServerException.makeFromDriverError(con, null, e.getMessage(), null, false);
             }
             Charset cs = (defaultCharset == null) ? typeInfo.getCharset() : defaultCharset;
-            value = new String((stream).getBytes(), cs);
+            value = new String(stream.getBytes(), cs);
         }
     }
 
