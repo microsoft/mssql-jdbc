@@ -78,12 +78,13 @@ public class LobsStreamingTest extends AbstractTest {
         }
         return stringBuilder.toString();
     }
-    
+
     @Test
     @DisplayName("testLengthAfterStream")
     public void testLengthAfterStream() throws SQLException, IOException {
         try (Connection conn = DriverManager.getConnection(connectionString);) {
             try (Statement stmt = conn.createStatement()) {
+                Utils.dropTableIfExists(tableName, stmt);
                 stmt.execute("CREATE TABLE [" + tableName + "] (id int, lobValue varchar(max))");
                 ArrayList<String> lobs = new ArrayList<>();
                 IntStream.range(0, LOB_ARRAY_SIZE).forEach(i -> lobs
@@ -107,11 +108,10 @@ public class LobsStreamingTest extends AbstractTest {
                         String recieved = getStringFromReader(r, clobLength);// streaming string
                         assertEquals(lobs.get(rs.getInt(1)), recieved);// compare streamed string to initial string
                     }
-                    rs.close();
                 }
             } finally {
                 try (Statement stmt = conn.createStatement()) {
-                    stmt.execute("DROP TABLE [" + tableName + "]");
+                    Utils.dropTableIfExists(tableName, stmt);
                 }
             }
         }
@@ -154,8 +154,7 @@ public class LobsStreamingTest extends AbstractTest {
                     rs.close();
                     for (int i = 0; i < lobs.size(); i++) {
                         String recieved = getStringFromInputStream(lobsFromServer.get(i).getAsciiStream(),
-                                java.nio.charset.StandardCharsets.US_ASCII);// non-streaming
-                        // string
+                                java.nio.charset.StandardCharsets.US_ASCII);// non-streaming string
                         assertEquals(recieved, streamedStrings.get(i));// compare static string to streamed string
                     }
                 }
@@ -254,7 +253,6 @@ public class LobsStreamingTest extends AbstractTest {
                         String recieved = getStringFromReader(lobsFromServer.get(i).getCharacterStream(),
                                 lobsFromServer.get(i).length());// non-streaming string
                         assertEquals(recieved, streamedStrings.get(i));// compare static string to streamed string
-
                     }
                 }
             } finally {
