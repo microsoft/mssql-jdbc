@@ -420,9 +420,10 @@ public class lobsTest extends AbstractTest {
             } else if (nClobType == classType(lobClass)) {
                 nclob = rs.getNClob(2);
                 assertEquals(nclob.length(), size);
-                stream = nclob.getAsciiStream();
-                chunk = stream.readAllBytes();
-                assertEquals(chunk.length, size);
+                Reader r = nclob.getCharacterStream();
+                char[] c = new char[(int) nclob.length()];
+                r.read(c);
+                assertEquals(c.length, size);
             } else {
                 blob = rs.getBlob(2);
                 stream = blob.getBinaryStream();
