@@ -422,7 +422,7 @@ public class lobsTest extends AbstractTest {
                 assertEquals(nclob.length(), size);
                 stream = nclob.getAsciiStream();
                 chunk = stream.readAllBytes();
-                assertEquals(chunk.length/2, size);//2 bytes per character when streaming
+                assertEquals(chunk.length, size);
             } else {
                 blob = rs.getBlob(2);
                 stream = blob.getBinaryStream();
