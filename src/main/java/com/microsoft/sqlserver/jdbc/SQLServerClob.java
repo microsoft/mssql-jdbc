@@ -5,6 +5,7 @@
 
 package com.microsoft.sqlserver.jdbc;
 
+import java.io.BufferedInputStream;
 import java.io.BufferedReader;
 import java.io.ByteArrayInputStream;
 import java.io.Closeable;
@@ -289,11 +290,11 @@ abstract class SQLServerClobBase extends SQLServerLob implements Serializable {
             } catch (IOException e) {
                 SQLServerException.makeFromDriverError(con, null, e.getMessage(), null, false);
             }
-            getterStream = inputStream;
+            getterStream = new BufferedInputStream(inputStream);
         } else {
             getterStream = new ByteArrayInputStream(value.getBytes(java.nio.charset.StandardCharsets.US_ASCII));
-            activeStreams.add(getterStream);
         }
+        activeStreams.add(getterStream);
         return getterStream;
     }
 
