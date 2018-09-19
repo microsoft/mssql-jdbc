@@ -14,6 +14,8 @@ import java.sql.SQLException;
 import java.sql.SQLTimeoutException;
 import java.text.MessageFormat;
 import java.util.EnumMap;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
@@ -80,20 +82,35 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
     }
 
     final class HandleAssociation {
-        final String databaseName;
-        final CallableStatement stmt;
+        Map<String, CallableStatement> statementMap;
+        boolean nullCatalog = false;
+        CallableStatement stmt;
 
-        HandleAssociation(String databaseName, CallableStatement stmt) {
-            this.databaseName = databaseName;
-            this.stmt = stmt;
+        HandleAssociation() {
+            if (null == statementMap) {
+                statementMap = new HashMap<>();
+            }
         }
 
-        final void close() throws SQLServerException {
-            ((SQLServerCallableStatement) stmt).close();
+        final void addToMap(String databaseName, CallableStatement stmt) {
+            if (null != databaseName) {
+                nullCatalog = false;
+                statementMap.put(databaseName, stmt);
+            } else {
+                nullCatalog = true;
+                this.stmt = stmt;
+            }
         }
 
-        final boolean isClosed() throws SQLException {
-            return stmt.isClosed();
+        final CallableStatement getMappedStatement(String databaseName) {
+            if (null != databaseName) {
+                if (null != statementMap && statementMap.containsKey(databaseName)) {
+                    return statementMap.get(databaseName);
+                }
+                return null;
+            } else {
+                return stmt;
+            }
         }
     }
 
@@ -272,20 +289,23 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
         CallableStatement CS = null;
         HandleAssociation hassoc = handleMap.get(request);
         try {
-            if (null == hassoc || null == hassoc.databaseName || !hassoc.databaseName.equals(catalog)
-                    || hassoc.stmt.isClosed()) {
+            if (null == hassoc) {
                 CS = request.prepare(connection);
-                CS.closeOnCompletion();
-                hassoc = new HandleAssociation(catalog, CS);
-                HandleAssociation previous = handleMap.put(request, hassoc);
-                if (null != previous && !previous.isClosed()) {
-                    previous.close();
+                hassoc = new HandleAssociation();
+                hassoc.addToMap(catalog, CS);
+            } else { // hassoc != null
+                CS = hassoc.getMappedStatement(catalog);
+                // No Cached Statement yet
+                if (null == CS) {
+                    CS = request.prepare(connection);
+                    hassoc.addToMap(catalog, CS);
                 }
             }
+            handleMap.put(request, hassoc);
         } catch (SQLException e) {
             SQLServerException.makeFromDriverError(connection, CS, e.toString(), null, false);
         }
-        return hassoc.stmt;
+        return CS;
     }
 
     /**
