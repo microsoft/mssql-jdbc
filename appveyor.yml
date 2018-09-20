@@ -4,13 +4,16 @@ init:
   - cmd: net start MSSQL$%SQL_Instance%
 
 environment:
-  JAVA_HOME: C:\Program Files\Java\jdk10
+  JAVA_HOME: C:\projects\pro\jdk-11
   mssql_jdbc_test_connection_properties: jdbc:sqlserver://localhost:1433;instanceName=%SQL_Instance%;databaseName=master;username=sa;password=Password12!;
   matrix:
     - SQL_Instance: SQL2008R2SP2
     - SQL_Instance: SQL2017
 
 install:
+  - ps: (new-object net.webclient).DownloadFile('https://download.java.net/java/early_access/jdk11/25/GPL/openjdk-11-ea+25_windows-x64_bin.zip', 'C:\projects\pro\openjdk-11.zip')
+  - ps: Expand-Archive -Path C:\projects\pro\openjdk-11.zip -DestinationPath C:\projects\pro
+  - cmd: echo "%JAVA_HOME%"
   - ps: Write-Host 'Installing JCE with powershell'
   - ps: cd AppVeyorJCE
   - ps: choco pack
