@@ -160,6 +160,39 @@
 							</archive>
 						</configuration>
 					</plugin>
+					<plugin>
+						<groupId>org.jacoco</groupId>
+						<artifactId>jacoco-maven-plugin</artifactId>
+						<version>0.8.2</version>
+						<executions>
+							<execution>
+								<id>pre-test</id>
+								<goals>
+									<goal>prepare-agent</goal>
+								</goals>
+							</execution>
+							<execution>
+								<id>report</id>
+								<phase>test</phase>
+								<goals>
+									<goal>report</goal>
+								</goals>
+							</execution>
+						</executions>
+					</plugin>
+					<plugin>
+						<groupId>org.apache.maven.plugins</groupId>
+						<artifactId>maven-surefire-plugin</artifactId>
+						<version>2.22.0</version>
+						<configuration>
+							<argLine>
+								${argLine} --illegal-access=permit
+							</argLine>
+							<properties>
+								<excludeTags>${skipTestTag}</excludeTags>
+							</properties>
+						</configuration>
+					</plugin>
 				</plugins>
 			</build>
 		</profile>
@@ -194,6 +227,39 @@
 									<Automatic-Module-Name>com.microsoft.sqlserver.jdbc</Automatic-Module-Name>
 								</manifestEntries>
 							</archive>
+						</configuration>
+					</plugin>
+					<plugin>
+						<groupId>org.jacoco</groupId>
+						<artifactId>jacoco-maven-plugin</artifactId>
+						<version>0.8.2</version>
+						<executions>
+							<execution>
+								<id>pre-test</id>
+								<goals>
+									<goal>prepare-agent</goal>
+								</goals>
+							</execution>
+							<execution>
+								<id>report</id>
+								<phase>test</phase>
+								<goals>
+									<goal>report</goal>
+								</goals>
+							</execution>
+						</executions>
+					</plugin>
+					<plugin>
+						<groupId>org.apache.maven.plugins</groupId>
+						<artifactId>maven-surefire-plugin</artifactId>
+						<version>2.22.0</version>
+						<configuration>
+							<argLine>
+								${argLine} --illegal-access=permit
+							</argLine>
+							<properties>
+								<excludeTags>${skipTestTag}</excludeTags>
+							</properties>
 						</configuration>
 					</plugin>
 				</plugins>
@@ -319,39 +385,6 @@
 				<configuration>
 					<outputFile>outdated-dependencies.txt</outputFile>
 					<rulesUri>file:///${session.executionRootDirectory}/maven-version-rules.xml</rulesUri>
-				</configuration>
-			</plugin>
-			<plugin>
-				<groupId>org.jacoco</groupId>
-				<artifactId>jacoco-maven-plugin</artifactId>
-				<version>0.8.2</version>
-				<executions>
-					<execution>
-						<id>pre-test</id>
-						<goals>
-							<goal>prepare-agent</goal>
-						</goals>
-					</execution>
-					<execution>
-						<id>report</id>
-						<phase>test</phase>
-						<goals>
-							<goal>report</goal>
-						</goals>
-					</execution>
-				</executions>
-			</plugin>
-			<plugin>
-				<groupId>org.apache.maven.plugins</groupId>
-				<artifactId>maven-surefire-plugin</artifactId>
-				<version>2.22.0</version>
-				<configuration>
-					<argLine>
-						${argLine} --illegal-access=permit
-					</argLine>
-					<properties>
-						<excludeTags>${skipTestTag}</excludeTags>
-					</properties>
 				</configuration>
 			</plugin>
 		</plugins>
