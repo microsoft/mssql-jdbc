@@ -212,8 +212,8 @@
 							<excludes>
 								<exclude>**/com/microsoft/sqlserver/jdbc/SQLServerJdbc42.java</exclude>
 							</excludes>
-							<source>11</source>
-							<target>11</target>
+							<source>10</source>
+							<target>10</target>
 						</configuration>
 					</plugin>
 					<plugin>
@@ -316,7 +316,7 @@
 									<version>3.0.5</version>
 								</requireMavenVersion>
 								<requireJavaVersion>
-									<version>11</version>
+									<version>10</version>
 								</requireJavaVersion>
 							</rules>
 						</configuration>
