@@ -138,6 +138,7 @@ public class AESetup extends AbstractTest {
     private static void readFromFile(String inputFile, String lookupValue) throws IOException {
         filePath = Utils.getAECertificatePath();
         try {
+            System.out.println("inputFile: " + inputFile);
             File f = new File(filePath + inputFile);
             System.out.println("file: " + f.getName());
             assumeTrue(f.exists(), TestResource.getResource("R_noKeyStore"));

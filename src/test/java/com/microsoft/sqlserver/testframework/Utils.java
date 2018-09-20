@@ -274,6 +274,7 @@ public class Utils {
             String location = Class.forName(className).getProtectionDomain().getCodeSource().getLocation().getPath();
             URI uri = new URI(
                     location.toString().substring(0, location.indexOf("/target/test-classes")) + "/AE_Certificates/");
+            System.out.println(uri.getPath());
             return uri.getPath();
         } catch (Exception e) {
             fail("Failed to get AE Certificates Path " + e.getMessage());
