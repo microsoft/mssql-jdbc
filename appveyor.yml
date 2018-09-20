@@ -23,13 +23,14 @@ install:
   - ps: $path = 'cert:\CurrentUser\My\' + $cert.thumbprint
   - ps: $certificate = Export-PfxCertificate -cert $path -FilePath cert.pfx -Password $pwd 
   - ps: Get-ChildItem -path cert:\CurrentUser\My > certificate.txt
-
+  - ps: keytool -importkeystore -srckeystore cert.pfx -srcstoretype pkcs12 -destkeystore clientcert.jks -deststoretype JKS -srcstorepass password -deststorepass password  
+  - ps: keytool -list -v -keystore clientcert.jks -storepass "password" > JavaKeyStoreBase.txt
+  - ps: Get-Content .\JavaKeyStoreBase.txt | Set-Content -Encoding utf8 JavaKeyStore.txt
+  - ps: Remove-Item –path .\JavaKeyStoreBase.txt
 cache:
   - C:\Users\appveyor\.m2 -> pom.xml
 
 build_script:
-  - keytool -importkeystore -srckeystore cert.pfx -srcstoretype pkcs12 -destkeystore clientcert.jks -deststoretype JKS -srcstorepass password -deststorepass password  
-  - keytool -list -v -keystore clientcert.jks -storepass "password" > JavaKeyStore.txt
   - cd..
   - mvn install -DskipTests=true -Dmaven.javadoc.skip=true -B -V -Pbuild43
   - mvn install -DskipTests=true -Dmaven.javadoc.skip=true -B -V -Pbuild42
