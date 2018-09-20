@@ -139,6 +139,7 @@ public class AESetup extends AbstractTest {
         filePath = Utils.getAECertificatePath();
         try {
             File f = new File(filePath + inputFile);
+            System.out.println("file: " + f.getName());
             assumeTrue(f.exists(), TestResource.getResource("R_noKeyStore"));
             try (BufferedReader buffer = new BufferedReader(
                     new InputStreamReader(new FileInputStream(f), "UTF8"));) {
@@ -149,6 +150,7 @@ public class AESetup extends AbstractTest {
                     if (readLine.trim().contains(lookupValue)) {
                         linecontents = readLine.split(" ");
                         javaKeyAliases = linecontents[2];
+                        System.out.println(javaKeyAliases);
                         break;
                     }
                 }
