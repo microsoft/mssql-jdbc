@@ -236,10 +236,11 @@ public class lobsTest extends AbstractTest {
             InputStream stream = null;
             for (int i = 0; i < 5; i++) {
                 PreparedStatement ps = conn
-                        .prepareStatement("INSERT INTO " + table.getEscapedTableName() + "  VALUES(?)");
+                        .prepareStatement("INSERT INTO " + table.getEscapedTableName() + "  VALUES(?,?)");
                 blob = conn.createBlob();
                 blob.setBytes(1, data);
-                ps.setBlob(1, blob);
+                ps.setInt(1, i + 1);
+                ps.setBlob(2, blob);
                 ps.executeUpdate();
             }
 
@@ -248,7 +249,7 @@ public class lobsTest extends AbstractTest {
             for (int i = 0; i < 5; i++) {
                 rs.next();
 
-                blob = rs.getBlob(1);
+                blob = rs.getBlob(2);
                 stream = blob.getBinaryStream();
                 while (stream.available() > 0)
                     stream.read();
@@ -296,24 +297,30 @@ public class lobsTest extends AbstractTest {
             table = this.createTable(table, types, true);
 
             DBStatement stmt = conn.createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE);
-            String query = "select * from " + table.getEscapedTableName();
+            String query = "select * from " + table.getEscapedTableName() + " ORDER BY "
+                    + table.getEscapedColumnName(0);
             DBResultSet rs = stmt.executeQuery(query);
             while (rs.next()) {
-                for (int i = 0; i < 3; i++) {
-                    DBColumn col = table.getColumns().get(i);
-                    if (!col.getSqlType().canConvert(streamClass, DBCoercion.GET, new DBConnection(connectionString)))
-                        continue;
-                    Object stream = rs.getXXX(i + 1, streamClass);
-                    if (stream == null) {
-                        assertEquals(stream, rs.getObject(i + 1), TestResource.getResource("R_streamNull"));
+                for (int i = 0; i < types.length + 1; i++) { // +1 for RowId
+                    if (i == 0) {
+                        rs.getInt(1);
                     } else {
-                        // close the stream twice
-                        if (streamClass == DBCharacterStream.class) {
-                            ((Reader) stream).close();
-                            ((Reader) stream).close();
+                        DBColumn col = table.getColumns().get(i);
+                        if (!col.getSqlType().canConvert(streamClass, DBCoercion.GET,
+                                new DBConnection(connectionString)))
+                            continue;
+                        Object stream = rs.getXXX(i + 1, streamClass);
+                        if (stream == null) {
+                            assertEquals(stream, rs.getObject(i + 1), TestResource.getResource("R_streamNull"));
                         } else {
-                            ((InputStream) stream).close();
-                            ((InputStream) stream).close();
+                            // close the stream twice
+                            if (streamClass == DBCharacterStream.class) {
+                                ((Reader) stream).close();
+                                ((Reader) stream).close();
+                            } else {
+                                ((InputStream) stream).close();
+                                ((InputStream) stream).close();
+                            }
                         }
                     }
                 }
@@ -373,25 +380,28 @@ public class lobsTest extends AbstractTest {
         Blob blob = null;
         NClob nclob = null;
         InputStream stream = null;
-        PreparedStatement ps = conn.prepareStatement("INSERT INTO " + table.getEscapedTableName() + "  VALUES(?)");
+        PreparedStatement ps = conn.prepareStatement("INSERT INTO " + table.getEscapedTableName() + "  VALUES(?,?)");
         if (clobType == classType(lobClass)) {
             String stringData = new String(data);
             size = stringData.length();
             clob = conn.createClob();
             clob.setString(1, stringData);
-            ps.setClob(1, clob);
+            ps.setInt(1, 1);
+            ps.setClob(2, clob);
         } else if (nClobType == classType(lobClass)) {
             String stringData = new String(data);
             size = stringData.length();
             nclob = conn.createNClob();
             nclob.setString(1, stringData);
-            ps.setNClob(1, nclob);
+            ps.setInt(1, 1);
+            ps.setNClob(2, nclob);
         }
 
         else {
             blob = conn.createBlob();
             blob.setBytes(1, data);
-            ps.setBlob(1, blob);
+            ps.setInt(1, 1);
+            ps.setBlob(2, blob);
         }
         ps.executeUpdate();
 
@@ -403,19 +413,19 @@ public class lobsTest extends AbstractTest {
                 size = stringData.length();
                 clob = conn.createClob();
                 clob.setString(1, stringData);
-                rs.getClob(1);
+                rs.getClob(2);
                 stream = clob.getAsciiStream();
                 assertEquals(clob.length(), size);
 
             } else if (nClobType == classType(lobClass)) {
-                nclob = rs.getNClob(1);
+                nclob = rs.getNClob(2);
                 assertEquals(nclob.length(), size);
                 stream = nclob.getAsciiStream();
                 BufferedInputStream is = new BufferedInputStream(stream);
                 is.read(chunk);
                 assertEquals(chunk.length, size);
             } else {
-                blob = rs.getBlob(1);
+                blob = rs.getBlob(2);
                 stream = blob.getBinaryStream();
                 ByteArrayOutputStream buffer = new ByteArrayOutputStream();
                 int read = 0;
@@ -469,17 +479,19 @@ public class lobsTest extends AbstractTest {
 
         Blob blob = null;
         InputStream stream = null;
-        PreparedStatement ps = conn.prepareStatement("INSERT INTO " + table.getEscapedTableName() + "  VALUES(?)");
+        PreparedStatement ps = conn.prepareStatement("INSERT INTO " + table.getEscapedTableName() + "  VALUES(?,?)");
         blob = conn.createBlob();
         blob.setBytes(1, data);
-        ps.setBlob(1, blob);
+        ps.setInt(1, 1);
+        ps.setBlob(2, blob);
         ps.executeUpdate();
 
         byte[] chunk = new byte[size];
-        ResultSet rs = stmt.executeQuery("select * from " + table.getEscapedTableName());
+        ResultSet rs = stmt.executeQuery(
+                "select * from " + table.getEscapedTableName() + " ORDER BY " + table.getEscapedColumnName(0));
         rs.next();
 
-        blob = rs.getBlob(1);
+        blob = rs.getBlob(2);
         stream = blob.getBinaryStream();
         ByteArrayOutputStream buffer = new ByteArrayOutputStream();
         int read = 0;
@@ -511,18 +523,21 @@ public class lobsTest extends AbstractTest {
         InputStream stream = null;
         for (int i = 0; i < 5; i++)// create 5 blobs
         {
-            PreparedStatement ps = conn.prepareStatement("INSERT INTO " + table.getEscapedTableName() + "  VALUES(?)");
+            PreparedStatement ps = conn
+                    .prepareStatement("INSERT INTO " + table.getEscapedTableName() + "  VALUES(?,?)");
             blobs[i] = conn.createBlob();
             ThreadLocalRandom.current().nextBytes(data);
             blobs[i].setBytes(1, data);
-            ps.setBlob(1, blobs[i]);
+            ps.setInt(1, i + 1);
+            ps.setBlob(2, blobs[i]);
             ps.executeUpdate();
         }
         byte[] chunk = new byte[size];
-        ResultSet rs = stmt.executeQuery("select * from " + table.getEscapedTableName());
+        ResultSet rs = stmt.executeQuery(
+                "select * from " + table.getEscapedTableName() + " ORDER BY " + table.getEscapedColumnName(0));
         for (int i = 0; i < 5; i++) {
             rs.next();
-            blobs[i] = rs.getBlob(1);
+            blobs[i] = rs.getBlob(2);
             stream = blobs[i].getBinaryStream();
             ByteArrayOutputStream buffer = new ByteArrayOutputStream();
             int read = 0;
@@ -552,25 +567,28 @@ public class lobsTest extends AbstractTest {
         Blob blob = null;
         NClob nclob = null;
         InputStream stream = null;
-        PreparedStatement ps = conn.prepareStatement("INSERT INTO " + table.getEscapedTableName() + "  VALUES(?)");
+        PreparedStatement ps = conn.prepareStatement("INSERT INTO " + table.getEscapedTableName() + "  VALUES(?,?)");
         if (clobType == classType(lobClass)) {
             String stringData = new String(data);
             size = stringData.length();
             clob = conn.createClob();
             clob.setString(1, stringData);
-            ps.setClob(1, clob);
+            ps.setInt(1, 1);
+            ps.setClob(2, clob);
         } else if (nClobType == classType(lobClass)) {
             String stringData = new String(data);
             size = stringData.length();
             nclob = conn.createNClob();
             nclob.setString(1, stringData);
-            ps.setNClob(1, nclob);
+            ps.setInt(1, 1);
+            ps.setNClob(2, nclob);
         }
 
         else {
             blob = conn.createBlob();
             blob.setBytes(1, data);
-            ps.setBlob(1, blob);
+            ps.setInt(1, 1);
+            ps.setBlob(2, blob);
         }
         ps.executeUpdate();
 
@@ -582,16 +600,16 @@ public class lobsTest extends AbstractTest {
                 size = stringData.length();
                 clob = conn.createClob();
                 clob.setString(1, stringData);
-                rs.updateClob(1, clob);
+                rs.updateClob(2, clob);
             } else if (nClobType == classType(lobClass)) {
                 String stringData = new String(data);
                 size = stringData.length();
                 nclob = conn.createNClob();
                 nclob.setString(1, stringData);
-                rs.updateClob(1, nclob);
+                rs.updateClob(2, nclob);
             } else {
                 blob = conn.createBlob();
-                rs.updateBlob(1, blob);
+                rs.updateBlob(2, blob);
 
             }
             rs.updateRow();
@@ -679,20 +697,23 @@ public class lobsTest extends AbstractTest {
 
     private static DBTable createTable(DBTable table, String[] types, boolean populateTable) throws Exception {
 
-        DBStatement stmt = new DBConnection(connectionString).createStatement();
-        table = new DBTable(false);
+        try (DBConnection connection = new DBConnection(connectionString);
+                DBStatement stmt = connection.createStatement()) {
+            table = new DBTable(false);
 
-        for (String type1 : types) {
-            SqlType type = Utils.find(type1);
-            table.addColumn(type);
+            // Add RowId
+            table.addColumn(Utils.find("int"));
 
+            for (String type1 : types) {
+                SqlType type = Utils.find(type1);
+                table.addColumn(type);
+
+            }
+            stmt.createTable(table);
+            if (populateTable) {
+                stmt.populateTable(table);
+            }
         }
-        stmt.createTable(table);
-        if (populateTable) {
-            stmt.populateTable(table);
-        }
-        stmt.close();
-
         return table;
     }
 

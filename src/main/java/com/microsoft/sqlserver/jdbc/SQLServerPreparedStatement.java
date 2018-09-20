@@ -575,7 +575,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
                 ensureExecuteResultsReader(command.startResponse(getIsResponseBufferingAdaptive()));
                 startResults();
-                getNextResult();
+                getNextResult(true);
             } catch (SQLException e) {
                 if (retryBasedOnFailedReuseOfCachedHandle(e, attempt, needsPrepare, false))
                     continue;
@@ -2763,7 +2763,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                                 // Get the first result from the batch. If there is no result for this batch
                                 // then bail, leaving EXECUTE_FAILED in the current and remaining slots of
                                 // the update count array.
-                                if (!getNextResult())
+                                if (!getNextResult(true))
                                     return;
 
                                 // If the result is a ResultSet (rather than an update count) then throw an

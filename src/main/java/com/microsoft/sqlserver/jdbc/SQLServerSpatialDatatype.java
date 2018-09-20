@@ -96,6 +96,8 @@ abstract class SQLServerSpatialDatatype {
      * 
      * @param noZM
      *        flag to indicate if Z and M coordinates should be included
+     * @param type
+     *        Type of Spatial Datatype (Geometry/Geography)
      */
     protected void serializeToWkb(boolean noZM, SQLServerSpatialDatatype type) {
         ByteBuffer buf = ByteBuffer.allocate(determineWkbCapacity());
@@ -172,6 +174,10 @@ abstract class SQLServerSpatialDatatype {
      * Deserializes the buffer (that contains WKB representation of Geometry/Geography data), and stores it into
      * multiple corresponding data structures.
      * 
+     * @param type
+     *        Type of Spatial Datatype (Geography/Geometry)
+     * @throws SQLServerException
+     *         if an Exception occurs
      */
     protected void parseWkb(SQLServerSpatialDatatype type) throws SQLServerException {
         srid = readInt();

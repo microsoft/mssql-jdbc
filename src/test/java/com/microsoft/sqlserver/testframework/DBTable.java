@@ -100,12 +100,17 @@ public class DBTable extends AbstractSQLGenerator {
      * adds a columns for each SQL type in DBSchema
      */
     private void addColumns() {
-        totalColumns = schema.getNumberOfSqlTypes();
+        totalColumns = schema.getNumberOfSqlTypes() + 1; // Add 1 column for RowId (Type Int)
         columns = new ArrayList<>(totalColumns);
 
-        for (int i = 0; i < totalColumns; i++) {
-            SqlType sqlType = schema.getSqlType(i);
-            DBColumn column = new DBColumn(RandomUtil.getIdentifier(sqlType.getName()), sqlType);
+        // Add RowID column
+        SqlType sqlType = schema.getSqlType(1); // Type SqlInt
+        DBColumn column = new DBColumn(RandomUtil.getIdentifier("RowID"), sqlType);
+        columns.add(column);
+
+        for (int i = 0; i < totalColumns - 1; i++) {
+            sqlType = schema.getSqlType(i);
+            column = new DBColumn(RandomUtil.getIdentifier(sqlType.getName()), sqlType);
             columns.add(column);
         }
     }
@@ -114,12 +119,16 @@ public class DBTable extends AbstractSQLGenerator {
      * adds a columns for each SQL type in DBSchema
      */
     private void addColumns(boolean unicode) {
-        totalColumns = schema.getNumberOfSqlTypes();
+        totalColumns = schema.getNumberOfSqlTypes() + 1; // Add 1 column for RowId
         columns = new ArrayList<>(totalColumns);
 
-        for (int i = 0; i < totalColumns; i++) {
-            SqlType sqlType = schema.getSqlType(i);
-            DBColumn column;
+        // Add RowID column
+        SqlType sqlType = schema.getSqlType(1); // Type SqlInt
+        DBColumn column = new DBColumn(RandomUtil.getIdentifier("RowID"), sqlType);
+        columns.add(column);
+
+        for (int i = 0; i < totalColumns - 1; i++) {
+            sqlType = schema.getSqlType(i);
             if (unicode)
                 column = new DBColumn(RandomUtil.getIdentifier(sqlType.getName()) + "ĀĂŎՖએДЕЖЗИЙਟਖਞ", sqlType);
             else
@@ -299,7 +308,10 @@ public class DBTable extends AbstractSQLGenerator {
         // generate values for all columns
         for (int i = 0; i < totalColumns; i++) {
             DBColumn column = getColumn(i);
-            column.populateValues(totalRows);
+            if (i == 0)
+                column.populateRowId(totalRows);
+            else
+                column.populateValues(totalRows);
         }
     }
 
@@ -309,6 +321,10 @@ public class DBTable extends AbstractSQLGenerator {
 
     public String getColumnName(int columnIndex) {
         return getColumn(columnIndex).getColumnName();
+    }
+
+    public String getEscapedColumnName(int columnIndex) {
+        return getColumn(columnIndex).getEscapedColumnName();
     }
 
     public int totalColumns() {

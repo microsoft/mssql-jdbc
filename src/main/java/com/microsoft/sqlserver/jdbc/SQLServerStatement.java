@@ -856,7 +856,7 @@ public class SQLServerStatement implements ISQLServerStatement {
             // Start the response
             ensureExecuteResultsReader(execCmd.startResponse(isResponseBufferingAdaptive));
             startResults();
-            getNextResult();
+            getNextResult(true);
         }
 
         // If execution produced no result set, then throw an exception if executeQuery() was used.
@@ -923,7 +923,7 @@ public class SQLServerStatement implements ISQLServerStatement {
         // Start the response
         ensureExecuteResultsReader(execCmd.startResponse(isResponseBufferingAdaptive));
         startResults();
-        getNextResult();
+        getNextResult(true);
 
         // If execution produced a result set, then throw an exception
         if (null != resultSet) {
@@ -1277,7 +1277,7 @@ public class SQLServerStatement implements ISQLServerStatement {
         while (moreResults) {
             // Get the next result
             try {
-                getNextResult();
+                getNextResult(true);
             } catch (SQLServerException e) {
                 // If an exception is thrown while processing the results
                 // then decide what to do with it:
@@ -1327,7 +1327,7 @@ public class SQLServerStatement implements ISQLServerStatement {
         // Get the next result, whatever it is (ResultSet or update count).
         // Don't just return the value from the getNextResult() call, however.
         // The getMoreResults method has a subtle spec for its return value (see above).
-        getNextResult();
+        getNextResult(true);
         loggerExternal.exiting(getClassNameLogging(), "getMoreResults", null != resultSet);
         return null != resultSet;
     }
@@ -1366,9 +1366,13 @@ public class SQLServerStatement implements ISQLServerStatement {
     /**
      * Returns the next result in the TDS response token stream, which may be a result set, update count or exception.
      *
+     * @param clearFlag
+     *        Boolean Flag if set to true, clears the last stored results in ResultSet. If set to false, does not clear
+     *        ResultSet and continues processing TDS Stream for more results.
+     * 
      * @return true if another result (ResultSet or update count) was available; false if there were no more results.
      */
-    final boolean getNextResult() throws SQLServerException {
+    final boolean getNextResult(boolean clearFlag) throws SQLServerException {
         /**
          * TDS response token stream handler used to locate the next result in the TDS response token stream.
          */
@@ -1591,13 +1595,16 @@ public class SQLServerStatement implements ISQLServerStatement {
             return false;
         }
 
-        // Clear out previous results
-        clearLastResult();
+        // Clear out previous results only when clearFlag = true
+        if (clearFlag) {
+            clearLastResult();
+        }
 
         // If there are no more results, then we're done.
         // All we had to do was to close out the previous results.
-        if (!moreResults)
+        if (!moreResults) {
             return false;
+        }
 
         // Figure out the next result.
         NextResult nextResult = new NextResult();
@@ -1635,8 +1642,9 @@ public class SQLServerStatement implements ISQLServerStatement {
         // there is no update count. That is: we have a successful result (return true),
         // but we have no other information about it (updateCount = -1).
         updateCount = -1;
-        if (!moreResults)
+        if (!moreResults) {
             return true;
+        }
 
         // Only way to get here (moreResults is still true, but no apparent results of any kind)
         // is if the TDSParser didn't actually parse _anything_. That is, we are at EOF in the
@@ -1786,7 +1794,7 @@ public class SQLServerStatement implements ISQLServerStatement {
                         // If there are not enough results (update counts) to satisfy the number of batches,
                         // then bail, leaving EXECUTE_FAILED in the remaining slots of the update count array.
                         startResults();
-                        if (!getNextResult())
+                        if (!getNextResult(true))
                             break;
                     }
 
@@ -1863,7 +1871,7 @@ public class SQLServerStatement implements ISQLServerStatement {
                         // If there are not enough results (update counts) to satisfy the number of batches,
                         // then bail, leaving EXECUTE_FAILED in the remaining slots of the update count array.
                         startResults();
-                        if (!getNextResult())
+                        if (!getNextResult(true))
                             break;
                     }
 
@@ -1997,7 +2005,7 @@ public class SQLServerStatement implements ISQLServerStatement {
 
         ensureExecuteResultsReader(execCmd.startResponse(isResponseBufferingAdaptive));
         startResults();
-        getNextResult();
+        getNextResult(true);
     }
 
     /* JDBC 3.0 */
@@ -2182,7 +2190,7 @@ public class SQLServerStatement implements ISQLServerStatement {
             // Generated keys are returned in a ResultSet result right after the update count.
             // Try to get that ResultSet. If there are no more results after the update count,
             // or if the next result isn't a ResultSet, then something is wrong.
-            if (!getNextResult() || null == resultSet) {
+            if (!getNextResult(true) || null == resultSet) {
                 SQLServerException.makeFromDriverError(connection, this,
                         SQLServerException.getErrString("R_statementMustBeExecuted"), null, false);
             }
