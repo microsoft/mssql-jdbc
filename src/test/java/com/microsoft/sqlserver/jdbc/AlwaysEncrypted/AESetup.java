@@ -12,6 +12,7 @@ import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
 import java.math.BigDecimal;
+import java.nio.charset.Charset;
 import java.sql.Date;
 import java.sql.DriverManager;
 import java.sql.JDBCType;
@@ -139,7 +140,7 @@ public class AESetup extends AbstractTest {
         try {
             File f = new File(filePath + inputFile);
             assumeTrue(f.exists(), TestResource.getResource("R_noKeyStore"));
-            try (BufferedReader buffer = new BufferedReader(new FileReader(f))) {
+            try (BufferedReader buffer = new BufferedReader(new FileReader(f, java.nio.charset.StandardCharsets.UTF_8))) {
                 String readLine = "";
                 String[] linecontents;
 
