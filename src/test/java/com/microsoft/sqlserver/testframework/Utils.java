@@ -272,6 +272,7 @@ public class Utils {
         try {
             String className = new Object() {}.getClass().getEnclosingClass().getName();
             String location = Class.forName(className).getProtectionDomain().getCodeSource().getLocation().getPath();
+            System.out.println("location: " + location);
             URI uri = new URI(
                     location.toString().substring(0, location.indexOf("/target/test-classes")) + "/AE_Certificates/");
             System.out.println(uri.getPath());
