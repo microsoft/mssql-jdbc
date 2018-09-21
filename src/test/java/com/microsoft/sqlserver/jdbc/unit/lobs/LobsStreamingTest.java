@@ -24,9 +24,9 @@ import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
 
+import com.microsoft.sqlserver.jdbc.RandomUtil;
+import com.microsoft.sqlserver.jdbc.TestUtils;
 import com.microsoft.sqlserver.testframework.AbstractTest;
-import com.microsoft.sqlserver.testframework.Utils;
-import com.microsoft.sqlserver.testframework.util.RandomUtil;
 
 
 @RunWith(JUnitPlatform.class)
@@ -113,7 +113,7 @@ public class LobsStreamingTest extends AbstractTest {
     public void testLengthAfterStream() throws SQLException, IOException {
         try (Connection conn = DriverManager.getConnection(connectionString);) {
             try (Statement stmt = conn.createStatement()) {
-                Utils.dropTableIfExists(tableName, stmt);
+                TestUtils.dropTableIfExists(tableName, stmt);
                 createLobTable(stmt, tableName, LoB.CLOB);
                 ArrayList<String> lob_data = createRandomStringArray(LoB.CLOB);
                 insertData(conn, tableName, lob_data);
@@ -128,7 +128,7 @@ public class LobsStreamingTest extends AbstractTest {
                 }
             } finally {
                 try (Statement stmt = conn.createStatement()) {
-                    Utils.dropTableIfExists(tableName, stmt);
+                    TestUtils.dropTableIfExists(tableName, stmt);
                 }
             }
         }
@@ -139,7 +139,7 @@ public class LobsStreamingTest extends AbstractTest {
     public void testClobsVarcharASCII() throws SQLException {
         try (Connection conn = DriverManager.getConnection(connectionString)) {
             try (Statement stmt = conn.createStatement()) {
-                Utils.dropTableIfExists(tableName, stmt);
+                TestUtils.dropTableIfExists(tableName, stmt);
                 createLobTable(stmt, tableName, LoB.CLOB);
                 ArrayList<String> lob_data = createRandomStringArray(LoB.CLOB);
                 insertData(conn, tableName, lob_data);
@@ -162,7 +162,7 @@ public class LobsStreamingTest extends AbstractTest {
                 }
             } finally {
                 try (Statement stmt = conn.createStatement()) {
-                    Utils.dropTableIfExists(tableName, stmt);
+                    TestUtils.dropTableIfExists(tableName, stmt);
                 }
             }
         }
@@ -173,7 +173,7 @@ public class LobsStreamingTest extends AbstractTest {
     public void testNClobsVarcharASCII() throws SQLException, IOException {
         try (Connection conn = DriverManager.getConnection(connectionString)) {
             try (Statement stmt = conn.createStatement()) {
-                Utils.dropTableIfExists(tableName, stmt);
+                TestUtils.dropTableIfExists(tableName, stmt);
                 createLobTable(stmt, tableName, LoB.NCLOB);
                 // Testing AsciiStream, use Clob string set or characters will be converted to '?'
                 ArrayList<String> lob_data = createRandomStringArray(LoB.CLOB);
@@ -192,7 +192,7 @@ public class LobsStreamingTest extends AbstractTest {
                 }
             } finally {
                 try (Statement stmt = conn.createStatement()) {
-                    Utils.dropTableIfExists(tableName, stmt);
+                    TestUtils.dropTableIfExists(tableName, stmt);
                 }
             }
         }
@@ -203,7 +203,7 @@ public class LobsStreamingTest extends AbstractTest {
     public void testClobsVarcharCHARA() throws SQLException, IOException {
         try (Connection conn = DriverManager.getConnection(connectionString)) {
             try (Statement stmt = conn.createStatement()) {
-                Utils.dropTableIfExists(tableName, stmt);
+                TestUtils.dropTableIfExists(tableName, stmt);
                 createLobTable(stmt, tableName, LoB.CLOB);
                 ArrayList<String> lob_data = createRandomStringArray(LoB.CLOB);
                 insertData(conn, tableName, lob_data);
@@ -226,7 +226,7 @@ public class LobsStreamingTest extends AbstractTest {
                 }
             } finally {
                 try (Statement stmt = conn.createStatement()) {
-                    Utils.dropTableIfExists(tableName, stmt);
+                    TestUtils.dropTableIfExists(tableName, stmt);
                 }
             }
         }
@@ -237,7 +237,7 @@ public class LobsStreamingTest extends AbstractTest {
     public void testNClobsVarcharCHARA() throws SQLException, IOException {
         try (Connection conn = DriverManager.getConnection(connectionString)) {
             try (Statement stmt = conn.createStatement()) {
-                Utils.dropTableIfExists(tableName, stmt);
+                TestUtils.dropTableIfExists(tableName, stmt);
                 createLobTable(stmt, tableName, LoB.NCLOB);
                 ArrayList<String> lob_data = createRandomStringArray(LoB.NCLOB);
                 insertData(conn, tableName, lob_data);
@@ -260,7 +260,7 @@ public class LobsStreamingTest extends AbstractTest {
                 }
             } finally {
                 try (Statement stmt = conn.createStatement()) {
-                    Utils.dropTableIfExists(tableName, stmt);
+                    TestUtils.dropTableIfExists(tableName, stmt);
                 }
             }
         }

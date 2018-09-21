@@ -49,14 +49,11 @@ public class TVPNumericTest extends AbstractTest {
         tvp.addRow(12.12);
         tvp.addRow(1.123);
 
-        SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) connection
-                .prepareStatement("INSERT INTO " + charTable + " select * from ? ;");
-        pstmt.setStructured(1, tvpName, tvp);
+        try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) connection
+                .prepareStatement("INSERT INTO " + charTable + " select * from ? ;")) {
+            pstmt.setStructured(1, tvpName, tvp);
 
-        pstmt.execute();
-
-        if (null != pstmt) {
-            pstmt.close();
+            pstmt.execute();
         }
     }
 

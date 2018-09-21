@@ -30,9 +30,6 @@ import com.microsoft.sqlserver.testframework.AbstractTest;
 @RunWith(JUnitPlatform.class)
 public class SSLProtocolTest extends AbstractTest {
 
-    Connection con = null;
-    Statement stmt = null;
-
     /**
      * Connect with supported protocol
      * 
@@ -41,8 +38,7 @@ public class SSLProtocolTest extends AbstractTest {
      */
     public void testWithSupportedProtocols(String sslProtocol) throws Exception {
         String url = connectionString + ";sslProtocol=" + sslProtocol;
-        try {
-            con = DriverManager.getConnection(url);
+        try (Connection con = DriverManager.getConnection(url)) {
             DatabaseMetaData dbmd = con.getMetaData();
             assertNotNull(dbmd);
             assertTrue(!StringUtils.isEmpty(dbmd.getDatabaseProductName()));
@@ -61,9 +57,8 @@ public class SSLProtocolTest extends AbstractTest {
      * @throws Exception
      */
     public void testWithUnSupportedProtocols(String sslProtocol) throws Exception {
-        try {
-            String url = connectionString + ";sslProtocol=" + sslProtocol;
-            con = DriverManager.getConnection(url);
+        String url = connectionString + ";sslProtocol=" + sslProtocol;
+        try (Connection con = DriverManager.getConnection(url)) {
             assertFalse(true, TestResource.getResource("R_protocolVersion"));
         } catch (SQLServerException e) {
             assertTrue(true, TestResource.getResource("R_shouldThrowException"));

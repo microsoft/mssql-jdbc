@@ -11,6 +11,7 @@ import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 
+import com.microsoft.sqlserver.jdbc.ComparisonUtil;
 import com.microsoft.sqlserver.jdbc.ISQLServerBulkRecord;
 import com.microsoft.sqlserver.jdbc.SQLServerBulkCopy;
 import com.microsoft.sqlserver.jdbc.TestResource;
@@ -19,7 +20,6 @@ import com.microsoft.sqlserver.testframework.DBConnection;
 import com.microsoft.sqlserver.testframework.DBResultSet;
 import com.microsoft.sqlserver.testframework.DBStatement;
 import com.microsoft.sqlserver.testframework.DBTable;
-import com.microsoft.sqlserver.testframework.util.ComparisonUtil;
 
 
 /**
@@ -91,8 +91,9 @@ class BulkCopyTestUtil {
             } catch (SQLException ex) {
                 fail(ex.getMessage());
             } finally {
-                stmt.dropTable(destinationTable);
-                con.close();
+                if (null != destinationTable) {
+                    stmt.dropTable(destinationTable);
+                }
             }
         } catch (SQLException ex) {
             fail(ex.getMessage());
@@ -189,8 +190,9 @@ class BulkCopyTestUtil {
                     fail(ex.getMessage());
                 }
             } finally {
-                stmt.dropTable(destinationTable);
-                con.close();
+                if (null != destinationTable) {
+                    stmt.dropTable(destinationTable);
+                }
             }
         } catch (SQLException e) {
             if (!fail) {
@@ -248,10 +250,9 @@ class BulkCopyTestUtil {
                     fail(ex.getMessage());
                 }
             } finally {
-                if (dropDest) {
+                if (dropDest && null != destinationTable) {
                     stmt.dropTable(destinationTable);
                 }
-                con.close();
             }
         } catch (SQLException ex) {
             if (!fail) {

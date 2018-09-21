@@ -4,6 +4,8 @@
  */
 package com.microsoft.sqlserver.jdbc.fips;
 
+import static org.junit.Assert.fail;
+
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.Properties;
@@ -17,8 +19,8 @@ import org.junit.runner.RunWith;
 import com.microsoft.sqlserver.jdbc.SQLServerDataSource;
 import com.microsoft.sqlserver.jdbc.StringUtils;
 import com.microsoft.sqlserver.jdbc.TestResource;
-import com.microsoft.sqlserver.testframework.PrepUtil;
-import com.microsoft.sqlserver.testframework.Utils;;
+import com.microsoft.sqlserver.jdbc.TestUtils;
+import com.microsoft.sqlserver.testframework.PrepUtil;;
 
 
 /**
@@ -32,7 +34,7 @@ public class FipsTest {
 
     @BeforeAll
     public static void init() {
-        connectionString = Utils.getConfiguredProperty("mssql_jdbc_test_connection_properties");
+        connectionString = TestUtils.getConfiguredProperty("mssql_jdbc_test_connection_properties");
         dataSourceProps = getDataSourceProperties();
     }
 
@@ -43,10 +45,9 @@ public class FipsTest {
      */
     @Test
     public void fipsTrustServerCertificateTest() throws Exception {
-        try {
-            Properties props = buildConnectionProperties();
-            props.setProperty("TrustServerCertificate", "true");
-            Connection con = PrepUtil.getConnection(connectionString, props);
+        Properties props = buildConnectionProperties();
+        props.setProperty("TrustServerCertificate", "true");
+        try (Connection con = PrepUtil.getConnection(connectionString, props)) {
             Assertions.fail(TestResource.getResource("R_expectedExceptionNotThrown"));
         } catch (SQLException e) {
             Assertions.assertTrue(e.getMessage().contains(TestResource.getResource("R_invalidFipsConfig")),
@@ -61,10 +62,9 @@ public class FipsTest {
      */
     @Test
     public void fipsEncryptTest() throws Exception {
-        try {
-            Properties props = buildConnectionProperties();
-            props.setProperty("encrypt", "false");
-            Connection con = PrepUtil.getConnection(connectionString, props);
+        Properties props = buildConnectionProperties();
+        props.setProperty("encrypt", "false");
+        try (Connection con = PrepUtil.getConnection(connectionString, props)) {
             Assertions.fail(TestResource.getResource("R_expectedExceptionNotThrown"));
         } catch (SQLException e) {
             Assertions.assertTrue(e.getMessage().contains(TestResource.getResource("R_invalidFipsConfig")),
@@ -83,10 +83,11 @@ public class FipsTest {
         props.remove("fips");
         props.remove("trustStoreType");
         props.remove("encrypt");
-        Connection con = PrepUtil.getConnection(connectionString, props);
-        Assertions.assertTrue(!StringUtils.isEmpty(con.getSchema()));
-        con.close();
-        con = null;
+        try (Connection con = PrepUtil.getConnection(connectionString, props)) {
+            Assertions.assertTrue(!StringUtils.isEmpty(con.getSchema()));
+        } catch (Exception e) {
+            fail(TestResource.getResource("R_unexpectedErrorMessage") + e.toString());
+        }
     }
 
     /**
@@ -101,10 +102,11 @@ public class FipsTest {
         ds.setFIPS(false);
         ds.setEncrypt(false);
         ds.setTrustStoreType("JKS");
-        Connection con = ds.getConnection();
-        Assertions.assertTrue(!StringUtils.isEmpty(con.getSchema()));
-        con.close();
-        con = null;
+        try (Connection con = ds.getConnection()) {
+            Assertions.assertTrue(!StringUtils.isEmpty(con.getSchema()));
+        } catch (Exception e) {
+            fail(TestResource.getResource("R_unexpectedErrorMessage") + e.toString());
+        }
     }
 
     /**
@@ -112,12 +114,11 @@ public class FipsTest {
      */
     @Test
     public void fipsDatSourceEncrypt() {
-        try {
-            SQLServerDataSource ds = new SQLServerDataSource();
-            setDataSourceProperties(ds);
-            ds.setEncrypt(false);
-            Connection con = ds.getConnection();
+        SQLServerDataSource ds = new SQLServerDataSource();
+        setDataSourceProperties(ds);
+        ds.setEncrypt(false);
 
+        try (Connection con = ds.getConnection()) {
             Assertions.fail(TestResource.getResource("R_expectedExceptionNotThrown"));
         } catch (SQLException e) {
             Assertions.assertTrue(e.getMessage().contains(TestResource.getResource("R_invalidFipsConfig")),
@@ -132,11 +133,11 @@ public class FipsTest {
      */
     @Test
     public void fipsDataSourceTrustServerCertificateTest() throws Exception {
-        try {
-            SQLServerDataSource ds = new SQLServerDataSource();
-            setDataSourceProperties(ds);
-            ds.setTrustServerCertificate(true);
-            Connection con = ds.getConnection();
+        SQLServerDataSource ds = new SQLServerDataSource();
+        setDataSourceProperties(ds);
+        ds.setTrustServerCertificate(true);
+
+        try (Connection con = ds.getConnection()) {
             Assertions.fail(TestResource.getResource("R_expectedExceptionNotThrown"));
         } catch (SQLException e) {
             Assertions.assertTrue(e.getMessage().contains(TestResource.getResource("R_invalidFipsConfig")),
@@ -244,5 +245,4 @@ public class FipsTest {
 
         return dataSoureParam;
     }
-
 }
