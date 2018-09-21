@@ -18,8 +18,8 @@ import java.sql.SQLException;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.logging.Logger;
 
-import com.microsoft.sqlserver.testframework.Utils.DBBinaryStream;
-import com.microsoft.sqlserver.testframework.Utils.DBCharacterStream;
+import com.microsoft.sqlserver.jdbc.TestUtils.DBBinaryStream;
+import com.microsoft.sqlserver.jdbc.TestUtils.DBCharacterStream;
 
 
 /**

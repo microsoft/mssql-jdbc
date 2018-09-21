@@ -23,14 +23,14 @@ import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
 
+import com.microsoft.sqlserver.jdbc.RandomData;
 import com.microsoft.sqlserver.jdbc.SQLServerConnection;
 import com.microsoft.sqlserver.jdbc.SQLServerException;
 import com.microsoft.sqlserver.jdbc.SQLServerPreparedStatement;
 import com.microsoft.sqlserver.jdbc.SQLServerResultSet;
 import com.microsoft.sqlserver.jdbc.TestResource;
+import com.microsoft.sqlserver.jdbc.TestUtils;
 import com.microsoft.sqlserver.testframework.AbstractTest;
-import com.microsoft.sqlserver.testframework.Utils;
-import com.microsoft.sqlserver.testframework.util.RandomData;
 
 
 /**
@@ -404,7 +404,7 @@ public class SQLVariantResultSetTest extends AbstractTest {
         for (int i = 0; i < 8001; i++) {
             buffer.append("a");
         }
-        Utils.dropTableIfExists(tableName, stmt);
+        TestUtils.dropTableIfExists(tableName, stmt);
         stmt.executeUpdate("create table " + tableName + " (col1 sql_variant)");
         SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) con
                 .prepareStatement("insert into " + tableName + " values (?)");
@@ -520,7 +520,7 @@ public class SQLVariantResultSetTest extends AbstractTest {
      */
     @Test
     public void insertTest() throws SQLException {
-        Utils.dropTableIfExists(tableName, stmt);
+        TestUtils.dropTableIfExists(tableName, stmt);
         stmt.executeUpdate("create table " + tableName + " (col1 sql_variant, col2 int)");
         SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) con
                 .prepareStatement("insert into " + tableName + " values (?, ?)");
@@ -551,7 +551,7 @@ public class SQLVariantResultSetTest extends AbstractTest {
      */
     @Test
     public void insertTestNull() throws SQLException {
-        Utils.dropTableIfExists(tableName, stmt);
+        TestUtils.dropTableIfExists(tableName, stmt);
         stmt.executeUpdate("create table " + tableName + " (col1 sql_variant)");
         pstmt = (SQLServerPreparedStatement) con.prepareStatement("insert into " + tableName + " values ( ?)");
 
@@ -571,7 +571,7 @@ public class SQLVariantResultSetTest extends AbstractTest {
      */
     @Test
     public void insertSetObject() throws SQLException {
-        Utils.dropTableIfExists(tableName, stmt);
+        TestUtils.dropTableIfExists(tableName, stmt);
         stmt.executeUpdate("create table " + tableName + " (col1 sql_variant)");
         pstmt = (SQLServerPreparedStatement) con.prepareStatement("insert into " + tableName + " values (?)");
 
@@ -591,11 +591,11 @@ public class SQLVariantResultSetTest extends AbstractTest {
     @Test
     public void callableStatementOutputIntTest() throws SQLException {
         int value = 5;
-        Utils.dropTableIfExists(tableName, stmt);
+        TestUtils.dropTableIfExists(tableName, stmt);
         stmt.executeUpdate("create table " + tableName + " (col1 sql_variant)");
         stmt.executeUpdate("INSERT into " + tableName + " values (CAST (" + value + " AS " + "int" + "))");
 
-        Utils.dropProcedureIfExists(inputProc, stmt);
+        TestUtils.dropProcedureIfExists(inputProc, stmt);
         String sql = "CREATE PROCEDURE " + inputProc + " @p0 sql_variant OUTPUT AS SELECT TOP 1 @p0=col1 FROM "
                 + tableName;
         stmt.execute(sql);
@@ -618,11 +618,11 @@ public class SQLVariantResultSetTest extends AbstractTest {
     public void callableStatementOutputDateTest() throws SQLException {
         String value = "2015-05-08";
 
-        Utils.dropTableIfExists(tableName, stmt);
+        TestUtils.dropTableIfExists(tableName, stmt);
         stmt.executeUpdate("create table " + tableName + " (col1 sql_variant)");
         stmt.executeUpdate("INSERT into " + tableName + " values (CAST ('" + value + "' AS " + "date" + "))");
 
-        Utils.dropProcedureIfExists(inputProc, stmt);
+        TestUtils.dropProcedureIfExists(inputProc, stmt);
         String sql = "CREATE PROCEDURE " + inputProc + " @p0 sql_variant OUTPUT AS SELECT TOP 1 @p0=col1 FROM "
                 + tableName;
         stmt.execute(sql);
@@ -645,11 +645,11 @@ public class SQLVariantResultSetTest extends AbstractTest {
     public void callableStatementOutputTimeTest() throws SQLException {
         String value = "12:26:27.123345";
         String returnValue = "12:26:27";
-        Utils.dropTableIfExists(tableName, stmt);
+        TestUtils.dropTableIfExists(tableName, stmt);
         stmt.executeUpdate("create table " + tableName + " (col1 sql_variant)");
         stmt.executeUpdate("INSERT into " + tableName + " values (CAST ('" + value + "' AS " + "time(3)" + "))");
 
-        Utils.dropProcedureIfExists(inputProc, stmt);
+        TestUtils.dropProcedureIfExists(inputProc, stmt);
         String sql = "CREATE PROCEDURE " + inputProc + " @p0 sql_variant OUTPUT AS SELECT TOP 1 @p0=col1 FROM "
                 + tableName;
         stmt.execute(sql);
@@ -672,13 +672,13 @@ public class SQLVariantResultSetTest extends AbstractTest {
     public void callableStatementOutputBinaryTest() throws SQLException {
         byte[] binary20 = RandomData.generateBinaryTypes("20", false, false);
         byte[] secondBinary20 = RandomData.generateBinaryTypes("20", false, false);
-        Utils.dropTableIfExists(tableName, stmt);
+        TestUtils.dropTableIfExists(tableName, stmt);
         stmt.executeUpdate("create table " + tableName + " (col1 sql_variant, col2 sql_variant)");
         pstmt = (SQLServerPreparedStatement) con.prepareStatement("insert into " + tableName + " values (?,?)");
         pstmt.setObject(1, binary20);
         pstmt.setObject(2, secondBinary20);
         pstmt.execute();
-        Utils.dropProcedureIfExists(inputProc, stmt);
+        TestUtils.dropProcedureIfExists(inputProc, stmt);
         String sql = "CREATE PROCEDURE " + inputProc + " @p0 sql_variant OUTPUT, @p1 sql_variant" + " AS"
                 + " SELECT top 1 @p0=col1 FROM " + tableName + " where col2=@p1 ";
         stmt.execute(sql);
@@ -703,11 +703,11 @@ public class SQLVariantResultSetTest extends AbstractTest {
     public void callableStatementInputOutputIntTest() throws SQLException {
         int col1Value = 5;
         int col2Value = 2;
-        Utils.dropTableIfExists(tableName, stmt);
+        TestUtils.dropTableIfExists(tableName, stmt);
         stmt.executeUpdate("create table " + tableName + " (col1 sql_variant, col2 int)");
         stmt.executeUpdate("INSERT into " + tableName + "(col1, col2) values (CAST (" + col1Value + " AS " + "int"
                 + "), " + col2Value + ")");
-        Utils.dropProcedureIfExists(inputProc, stmt);
+        TestUtils.dropProcedureIfExists(inputProc, stmt);
         String sql = "CREATE PROCEDURE " + inputProc + " @p0 sql_variant OUTPUT, @p1 sql_variant" + " AS"
                 + " SELECT top 1 @p0=col1 FROM " + tableName + " where col2=@p1";
         stmt.execute(sql);
@@ -732,11 +732,11 @@ public class SQLVariantResultSetTest extends AbstractTest {
         int col1Value = 5;
         int col2Value = 2;
         int returnValue = 12;
-        Utils.dropTableIfExists(tableName, stmt);
+        TestUtils.dropTableIfExists(tableName, stmt);
         stmt.executeUpdate("create table " + tableName + " (col1 sql_variant, col2 int)");
         stmt.executeUpdate("INSERT into " + tableName + "(col1, col2) values (CAST (" + col1Value + " AS " + "int"
                 + "), " + col2Value + ")");
-        Utils.dropProcedureIfExists(inputProc, stmt);
+        TestUtils.dropProcedureIfExists(inputProc, stmt);
         String sql = "CREATE PROCEDURE " + inputProc + " @p0 sql_variant OUTPUT, @p1 sql_variant" + " AS"
                 + " SELECT top 1 @p0=col1 FROM " + tableName + " where col2=@p1" + " return " + returnValue;
         stmt.execute(sql);
@@ -764,11 +764,11 @@ public class SQLVariantResultSetTest extends AbstractTest {
         String col2Value = "bb";
         int returnValue = 12;
 
-        Utils.dropTableIfExists(tableName, stmt);
+        TestUtils.dropTableIfExists(tableName, stmt);
         stmt.executeUpdate("create table " + tableName + " (col1 sql_variant, col2 sql_variant)");
         stmt.executeUpdate("INSERT into " + tableName + "(col1,col2) values" + " (CAST ('" + col1Value + "' AS "
                 + "varchar(5)" + ")" + " ,CAST ('" + col2Value + "' AS " + "varchar(5)" + ")" + ")");
-        Utils.dropProcedureIfExists(inputProc, stmt);
+        TestUtils.dropProcedureIfExists(inputProc, stmt);
         String sql = "CREATE PROCEDURE " + inputProc + " @p0 sql_variant OUTPUT, @p1 sql_variant" + " AS"
                 + " SELECT top 1 @p0=col1 FROM " + tableName + " where col2=@p1 " + " return " + returnValue;
         stmt.execute(sql);
@@ -795,7 +795,7 @@ public class SQLVariantResultSetTest extends AbstractTest {
         short value1 = 5;
         int value2 = 10;
         String value3 = "hi";
-        Utils.dropTableIfExists(tableName, stmt);
+        TestUtils.dropTableIfExists(tableName, stmt);
         stmt.executeUpdate("create table " + tableName + " (col1 sql_variant, col2 sql_variant, col3 sql_variant)");
         stmt.executeUpdate("INSERT into " + tableName + " values (CAST (" + value1 + " AS " + "tinyint" + ")"
                 + ",CAST (" + value2 + " AS " + "int" + ")" + ",CAST ('" + value3 + "' AS " + "char(2)" + ")" + ")");
@@ -879,7 +879,7 @@ public class SQLVariantResultSetTest extends AbstractTest {
      * @throws SQLException
      */
     private void createAndPopulateTable(String columnType, Object value) throws SQLException {
-        Utils.dropTableIfExists(tableName, stmt);
+        TestUtils.dropTableIfExists(tableName, stmt);
         stmt.executeUpdate("create table " + tableName + " (col1 sql_variant)");
         stmt.executeUpdate("INSERT into " + tableName + " values (CAST (" + value + " AS " + columnType + "))");
     }
@@ -904,8 +904,8 @@ public class SQLVariantResultSetTest extends AbstractTest {
      */
     @AfterAll
     public static void afterAll() throws SQLException {
-        Utils.dropProcedureIfExists(inputProc, stmt);
-        Utils.dropTableIfExists(tableName, stmt);
+        TestUtils.dropProcedureIfExists(inputProc, stmt);
+        TestUtils.dropTableIfExists(tableName, stmt);
 
         if (null != stmt) {
             stmt.close();
