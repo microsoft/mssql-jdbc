@@ -40,7 +40,7 @@ public class LobsStreamingTest extends AbstractTest {
             + "Ǥ⚌c♮ƺåYèĢù⚏Ȓ★ǌäõpƸŃōoƝĤßuÙőƆE♹gǇÜŬȺǱ!Û☵ŦãǁĸNQŰǚǻTÖC]ǶýåÉbɉ☩=\\ȍáźŗǃĻýű☓☄¸T☑ö^k☏I:x☑⚀läiȉ☱☚⚅ǸǎãÂ";
     private static String tableName = null;
 
-    private static enum LoB {
+    private static enum Lob {
         CLOB,
         NCLOB
     };
@@ -82,13 +82,13 @@ public class LobsStreamingTest extends AbstractTest {
         return stringBuilder.toString();
     }
 
-    private void createLobTable(Statement stmt, String table, LoB l) throws SQLException {
-        String columnType = (l == LoB.CLOB) ? "varchar(max)" : "nvarchar(max)";
+    private void createLobTable(Statement stmt, String table, Lob l) throws SQLException {
+        String columnType = (l == Lob.CLOB) ? "varchar(max)" : "nvarchar(max)";
         stmt.execute("CREATE TABLE [" + table + "] (id int, lobValue " + columnType + ")");
     }
 
-    private ArrayList<String> createRandomStringArray(LoB l) {
-        String characterPool = (l == LoB.CLOB) ? ASCII_CHARACTERS : UNICODE_CHARACTERS;
+    private ArrayList<String> createRandomStringArray(Lob l) {
+        String characterPool = (l == Lob.CLOB) ? ASCII_CHARACTERS : UNICODE_CHARACTERS;
         ArrayList<String> string_array = new ArrayList<>();
         IntStream.range(0, LOB_ARRAY_SIZE).forEach(i -> string_array.add(
                 getRandomString(ThreadLocalRandom.current().nextInt(LOB_LENGTH_MIN, LOB_LENGTH_MAX), characterPool)));
@@ -114,8 +114,8 @@ public class LobsStreamingTest extends AbstractTest {
         try (Connection conn = DriverManager.getConnection(connectionString);) {
             try (Statement stmt = conn.createStatement()) {
                 TestUtils.dropTableIfExists(tableName, stmt);
-                createLobTable(stmt, tableName, LoB.CLOB);
-                ArrayList<String> lob_data = createRandomStringArray(LoB.CLOB);
+                createLobTable(stmt, tableName, Lob.CLOB);
+                ArrayList<String> lob_data = createRandomStringArray(Lob.CLOB);
                 insertData(conn, tableName, lob_data);
 
                 ResultSet rs = stmt.executeQuery("SELECT * FROM [" + tableName + "] ORDER BY id ASC");
@@ -140,8 +140,8 @@ public class LobsStreamingTest extends AbstractTest {
         try (Connection conn = DriverManager.getConnection(connectionString)) {
             try (Statement stmt = conn.createStatement()) {
                 TestUtils.dropTableIfExists(tableName, stmt);
-                createLobTable(stmt, tableName, LoB.CLOB);
-                ArrayList<String> lob_data = createRandomStringArray(LoB.CLOB);
+                createLobTable(stmt, tableName, Lob.CLOB);
+                ArrayList<String> lob_data = createRandomStringArray(Lob.CLOB);
                 insertData(conn, tableName, lob_data);
 
                 ArrayList<Clob> lobsFromServer = new ArrayList<>();
@@ -174,9 +174,9 @@ public class LobsStreamingTest extends AbstractTest {
         try (Connection conn = DriverManager.getConnection(connectionString)) {
             try (Statement stmt = conn.createStatement()) {
                 TestUtils.dropTableIfExists(tableName, stmt);
-                createLobTable(stmt, tableName, LoB.NCLOB);
+                createLobTable(stmt, tableName, Lob.NCLOB);
                 // Testing AsciiStream, use Clob string set or characters will be converted to '?'
-                ArrayList<String> lob_data = createRandomStringArray(LoB.CLOB);
+                ArrayList<String> lob_data = createRandomStringArray(Lob.CLOB);
                 insertData(conn, tableName, lob_data);
 
                 ArrayList<NClob> lobsFromServer = new ArrayList<>();
@@ -204,8 +204,8 @@ public class LobsStreamingTest extends AbstractTest {
         try (Connection conn = DriverManager.getConnection(connectionString)) {
             try (Statement stmt = conn.createStatement()) {
                 TestUtils.dropTableIfExists(tableName, stmt);
-                createLobTable(stmt, tableName, LoB.CLOB);
-                ArrayList<String> lob_data = createRandomStringArray(LoB.CLOB);
+                createLobTable(stmt, tableName, Lob.CLOB);
+                ArrayList<String> lob_data = createRandomStringArray(Lob.CLOB);
                 insertData(conn, tableName, lob_data);
 
                 ArrayList<Clob> lobsFromServer = new ArrayList<>();
@@ -238,8 +238,8 @@ public class LobsStreamingTest extends AbstractTest {
         try (Connection conn = DriverManager.getConnection(connectionString)) {
             try (Statement stmt = conn.createStatement()) {
                 TestUtils.dropTableIfExists(tableName, stmt);
-                createLobTable(stmt, tableName, LoB.NCLOB);
-                ArrayList<String> lob_data = createRandomStringArray(LoB.NCLOB);
+                createLobTable(stmt, tableName, Lob.NCLOB);
+                ArrayList<String> lob_data = createRandomStringArray(Lob.NCLOB);
                 insertData(conn, tableName, lob_data);
 
                 ArrayList<NClob> lobsFromServer = new ArrayList<>();
