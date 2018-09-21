@@ -115,13 +115,14 @@ public class LobsStreamingTest extends AbstractTest {
                 ArrayList<String> lob_data = createRandomStringArray(Lob.CLOB);
                 insertData(conn, tableName, lob_data);
 
-                ResultSet rs = stmt.executeQuery("SELECT * FROM [" + tableName + "] ORDER BY id ASC");
-                while (rs.next()) {
-                    Clob c = rs.getClob(2);
-                    Reader r = c.getCharacterStream();
-                    long clobLength = c.length();
-                    String received = getStringFromReader(r, clobLength);// streaming string
-                    assertEquals(lob_data.get(rs.getInt(1)), received);// compare streamed string to initial string
+                try (ResultSet rs = stmt.executeQuery("SELECT * FROM [" + tableName + "] ORDER BY id ASC")) {
+                    while (rs.next()) {
+                        Clob c = rs.getClob(2);
+                        Reader r = c.getCharacterStream();
+                        long clobLength = c.length();
+                        String received = getStringFromReader(r, clobLength);// streaming string
+                        assertEquals(lob_data.get(rs.getInt(1)), received);// compare streamed string to initial string
+                    }
                 }
             } finally {
                 try (Statement stmt = conn.createStatement()) {
@@ -142,16 +143,16 @@ public class LobsStreamingTest extends AbstractTest {
                 insertData(conn, tableName, lob_data);
 
                 ArrayList<Clob> lobsFromServer = new ArrayList<>();
-                ResultSet rs = stmt.executeQuery("SELECT * FROM [" + tableName + "] ORDER BY id ASC");
-                while (rs.next()) {
-                    int index = rs.getInt(1);
-                    Clob c = rs.getClob(2);
-                    assertEquals(c.length(), lob_data.get(index).length());
-                    lobsFromServer.add(c);
-                    String received = getStringFromInputStream(c.getAsciiStream());// streaming string
-                    assertEquals(lob_data.get(index), received);// compare streamed string to initial string
+                try (ResultSet rs = stmt.executeQuery("SELECT * FROM [" + tableName + "] ORDER BY id ASC")) {
+                    while (rs.next()) {
+                        int index = rs.getInt(1);
+                        Clob c = rs.getClob(2);
+                        assertEquals(c.length(), lob_data.get(index).length());
+                        lobsFromServer.add(c);
+                        String received = getStringFromInputStream(c.getAsciiStream());// streaming string
+                        assertEquals(lob_data.get(index), received);// compare streamed string to initial string
+                    }
                 }
-                rs.close();
                 for (int i = 0; i < lob_data.size(); i++) {
                     String received = getStringFromInputStream(lobsFromServer.get(i).getAsciiStream());// non-streaming
                                                                                                        // string
@@ -177,15 +178,16 @@ public class LobsStreamingTest extends AbstractTest {
                 insertData(conn, tableName, lob_data);
 
                 ArrayList<NClob> lobsFromServer = new ArrayList<>();
-                ResultSet rs = stmt.executeQuery("SELECT * FROM [" + tableName + "] ORDER BY id ASC");
-                while (rs.next()) {
-                    int index = rs.getInt(1);
-                    NClob c = rs.getNClob(2);
-                    assertEquals(c.length(), lob_data.get(index).length());
-                    lobsFromServer.add(c);
-                    String received = getStringFromInputStream(c.getAsciiStream());// NClob AsciiStream is never
-                                                                                   // streamed
-                    assertEquals(lob_data.get(index), received);// compare string to initial string
+                try (ResultSet rs = stmt.executeQuery("SELECT * FROM [" + tableName + "] ORDER BY id ASC")) {
+                    while (rs.next()) {
+                        int index = rs.getInt(1);
+                        NClob c = rs.getNClob(2);
+                        assertEquals(c.length(), lob_data.get(index).length());
+                        lobsFromServer.add(c);
+                        String received = getStringFromInputStream(c.getAsciiStream());// NClob AsciiStream is never
+                                                                                       // streamed
+                        assertEquals(lob_data.get(index), received);// compare string to initial string
+                    }
                 }
             } finally {
                 try (Statement stmt = conn.createStatement()) {
@@ -206,16 +208,16 @@ public class LobsStreamingTest extends AbstractTest {
                 insertData(conn, tableName, lob_data);
 
                 ArrayList<Clob> lobsFromServer = new ArrayList<>();
-                ResultSet rs = stmt.executeQuery("SELECT * FROM [" + tableName + "] ORDER BY id ASC");
-                while (rs.next()) {
-                    int index = rs.getInt(1);
-                    Clob c = rs.getClob(2);
-                    assertEquals(c.length(), lob_data.get(index).length());
-                    lobsFromServer.add(c);
-                    String received = getStringFromReader(c.getCharacterStream(), c.length());// streaming string
-                    assertEquals(lob_data.get(index), received);// compare streamed string to initial string
+                try (ResultSet rs = stmt.executeQuery("SELECT * FROM [" + tableName + "] ORDER BY id ASC")) {
+                    while (rs.next()) {
+                        int index = rs.getInt(1);
+                        Clob c = rs.getClob(2);
+                        assertEquals(c.length(), lob_data.get(index).length());
+                        lobsFromServer.add(c);
+                        String received = getStringFromReader(c.getCharacterStream(), c.length());// streaming string
+                        assertEquals(lob_data.get(index), received);// compare streamed string to initial string
+                    }
                 }
-                rs.close();
                 for (int i = 0; i < lob_data.size(); i++) {
                     String received = getStringFromReader(lobsFromServer.get(i).getCharacterStream(),
                             lobsFromServer.get(i).length());// non-streaming string
@@ -240,16 +242,16 @@ public class LobsStreamingTest extends AbstractTest {
                 insertData(conn, tableName, lob_data);
 
                 ArrayList<NClob> lobsFromServer = new ArrayList<>();
-                ResultSet rs = stmt.executeQuery("SELECT * FROM [" + tableName + "] ORDER BY id ASC");
-                while (rs.next()) {
-                    int index = rs.getInt(1);
-                    NClob c = rs.getNClob(2);
-                    assertEquals(c.length(), lob_data.get(index).length());
-                    lobsFromServer.add(c);
-                    String received = getStringFromReader(c.getCharacterStream(), c.length());// streaming string
-                    assertEquals(lob_data.get(index), received);// compare streamed string to initial string
+                try (ResultSet rs = stmt.executeQuery("SELECT * FROM [" + tableName + "] ORDER BY id ASC")) {
+                    while (rs.next()) {
+                        int index = rs.getInt(1);
+                        NClob c = rs.getNClob(2);
+                        assertEquals(c.length(), lob_data.get(index).length());
+                        lobsFromServer.add(c);
+                        String received = getStringFromReader(c.getCharacterStream(), c.length());// streaming string
+                        assertEquals(lob_data.get(index), received);// compare streamed string to initial string
+                    }
                 }
-                rs.close();
                 for (int i = 0; i < lob_data.size(); i++) {
                     String received = getStringFromReader(lobsFromServer.get(i).getCharacterStream(),
                             lobsFromServer.get(i).length());// non-streaming string
