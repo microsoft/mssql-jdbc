@@ -1085,7 +1085,7 @@ final class DTV {
             if (DDC.exceedsMaxRPCDecimalPrecisionOrScale(bigDecimalValue)) {
                 if (JDBCType.DECIMAL == dtv.getJdbcType() || JDBCType.NUMERIC == dtv.getJdbcType()) {
                     // Throw exception for DECIMAL and NUMERIC Datatypes
-                    MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_valueOutOfRange"));
+                    MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_valueOutOfRangeSQLType"));
                     Object[] msgArgs = {JDBCType.DECIMAL == dtv.getJdbcType() ? SSType.DECIMAL : SSType.NUMERIC};
                     throw new SQLServerException(form.format(msgArgs), SQLState.NUMERIC_DATA_OUT_OF_RANGE,
                             DriverError.NOT_SET, null);
