@@ -9,9 +9,8 @@ import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 import java.io.BufferedReader;
 import java.io.File;
-import java.io.FileInputStream;
+import java.io.FileReader;
 import java.io.IOException;
-import java.io.InputStreamReader;
 import java.math.BigDecimal;
 import java.sql.Date;
 import java.sql.DriverManager;
@@ -136,14 +135,11 @@ public class AESetup extends AbstractTest {
      * @throws IOException
      */
     private static void readFromFile(String inputFile, String lookupValue) throws IOException {
-        filePath = Utils.getAECertificatePath();
+        filePath = Utils.getCurrentClassPath();
         try {
-            System.out.println("inputFile: " + inputFile);
             File f = new File(filePath + inputFile);
-            System.out.println("file: " + f.getName());
             assumeTrue(f.exists(), TestResource.getResource("R_noKeyStore"));
-            try (BufferedReader buffer = new BufferedReader(
-                    new InputStreamReader(new FileInputStream(f), "UTF8"));) {
+            try (BufferedReader buffer = new BufferedReader(new FileReader(f))) {
                 String readLine = "";
                 String[] linecontents;
 
@@ -151,7 +147,6 @@ public class AESetup extends AbstractTest {
                     if (readLine.trim().contains(lookupValue)) {
                         linecontents = readLine.split(" ");
                         javaKeyAliases = linecontents[2];
-                        System.out.println(javaKeyAliases);
                         break;
                     }
                 }

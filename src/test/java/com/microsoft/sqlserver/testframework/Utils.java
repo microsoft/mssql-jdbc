@@ -265,26 +265,6 @@ public class Utils {
     }
 
     /**
-     * 
-     * @return location of resource file
-     */
-    public static String getAECertificatePath() {
-        try {
-            String className = new Object() {}.getClass().getEnclosingClass().getName();
-            System.out.println("className: " + className);
-            String location = Class.forName(className).getProtectionDomain().getCodeSource().getLocation().getPath();
-            System.out.println("location: " + location);
-            URI uri = new URI(
-                    location.toString().substring(0, location.indexOf("/target/test-classes")) + "/AE_Certificates/");
-            System.out.println(uri.getPath());
-            return uri.getPath();
-        } catch (Exception e) {
-            fail("Failed to get AE Certificates Path " + e.getMessage());
-        }
-        return null;
-    }
-
-    /**
      * mimic "DROP TABLE IF EXISTS ..." for older versions of SQL Server
      */
     public static void dropTableIfExists(String tableName, java.sql.Statement stmt) throws SQLException {
