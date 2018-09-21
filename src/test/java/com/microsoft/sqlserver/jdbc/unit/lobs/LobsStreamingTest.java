@@ -120,8 +120,8 @@ public class LobsStreamingTest extends AbstractTest {
                     Clob c = rs.getClob(2);
                     Reader r = c.getCharacterStream();
                     long clobLength = c.length();
-                    String recieved = getStringFromReader(r, clobLength);// streaming string
-                    assertEquals(lob_data.get(rs.getInt(1)), recieved);// compare streamed string to initial string
+                    String received = getStringFromReader(r, clobLength);// streaming string
+                    assertEquals(lob_data.get(rs.getInt(1)), received);// compare streamed string to initial string
                 }
             } finally {
                 try (Statement stmt = conn.createStatement()) {
@@ -148,14 +148,14 @@ public class LobsStreamingTest extends AbstractTest {
                     Clob c = rs.getClob(2);
                     assertEquals(c.length(), lob_data.get(index).length());
                     lobsFromServer.add(c);
-                    String recieved = getStringFromInputStream(c.getAsciiStream());// streaming string
-                    assertEquals(lob_data.get(index), recieved);// compare streamed string to initial string
+                    String received = getStringFromInputStream(c.getAsciiStream());// streaming string
+                    assertEquals(lob_data.get(index), received);// compare streamed string to initial string
                 }
                 rs.close();
                 for (int i = 0; i < lob_data.size(); i++) {
-                    String recieved = getStringFromInputStream(lobsFromServer.get(i).getAsciiStream());// non-streaming
+                    String received = getStringFromInputStream(lobsFromServer.get(i).getAsciiStream());// non-streaming
                                                                                                        // string
-                    assertEquals(recieved, lob_data.get(i));// compare static string to streamed string
+                    assertEquals(received, lob_data.get(i));// compare static string to streamed string
                 }
             } finally {
                 try (Statement stmt = conn.createStatement()) {
@@ -183,9 +183,9 @@ public class LobsStreamingTest extends AbstractTest {
                     NClob c = rs.getNClob(2);
                     assertEquals(c.length(), lob_data.get(index).length());
                     lobsFromServer.add(c);
-                    String recieved = getStringFromInputStream(c.getAsciiStream());// NClob AsciiStream is never
+                    String received = getStringFromInputStream(c.getAsciiStream());// NClob AsciiStream is never
                                                                                    // streamed
-                    assertEquals(lob_data.get(index), recieved);// compare string to initial string
+                    assertEquals(lob_data.get(index), received);// compare string to initial string
                 }
             } finally {
                 try (Statement stmt = conn.createStatement()) {
@@ -212,14 +212,14 @@ public class LobsStreamingTest extends AbstractTest {
                     Clob c = rs.getClob(2);
                     assertEquals(c.length(), lob_data.get(index).length());
                     lobsFromServer.add(c);
-                    String recieved = getStringFromReader(c.getCharacterStream(), c.length());// streaming string
-                    assertEquals(lob_data.get(index), recieved);// compare streamed string to initial string
+                    String received = getStringFromReader(c.getCharacterStream(), c.length());// streaming string
+                    assertEquals(lob_data.get(index), received);// compare streamed string to initial string
                 }
                 rs.close();
                 for (int i = 0; i < lob_data.size(); i++) {
-                    String recieved = getStringFromReader(lobsFromServer.get(i).getCharacterStream(),
+                    String received = getStringFromReader(lobsFromServer.get(i).getCharacterStream(),
                             lobsFromServer.get(i).length());// non-streaming string
-                    assertEquals(recieved, lob_data.get(i));// compare static string to streamed string
+                    assertEquals(received, lob_data.get(i));// compare static string to streamed string
                 }
             } finally {
                 try (Statement stmt = conn.createStatement()) {
@@ -246,14 +246,14 @@ public class LobsStreamingTest extends AbstractTest {
                     NClob c = rs.getNClob(2);
                     assertEquals(c.length(), lob_data.get(index).length());
                     lobsFromServer.add(c);
-                    String recieved = getStringFromReader(c.getCharacterStream(), c.length());// streaming string
-                    assertEquals(lob_data.get(index), recieved);// compare streamed string to initial string
+                    String received = getStringFromReader(c.getCharacterStream(), c.length());// streaming string
+                    assertEquals(lob_data.get(index), received);// compare streamed string to initial string
                 }
                 rs.close();
                 for (int i = 0; i < lob_data.size(); i++) {
-                    String recieved = getStringFromReader(lobsFromServer.get(i).getCharacterStream(),
+                    String received = getStringFromReader(lobsFromServer.get(i).getCharacterStream(),
                             lobsFromServer.get(i).length());// non-streaming string
-                    assertEquals(recieved, lob_data.get(i));// compare static string to streamed string
+                    assertEquals(received, lob_data.get(i));// compare static string to streamed string
                 }
             } finally {
                 try (Statement stmt = conn.createStatement()) {
