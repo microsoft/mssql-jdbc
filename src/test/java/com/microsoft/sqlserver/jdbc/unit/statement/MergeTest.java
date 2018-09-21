@@ -19,10 +19,10 @@ import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
 
 import com.microsoft.sqlserver.jdbc.TestResource;
+import com.microsoft.sqlserver.jdbc.TestUtils;
 import com.microsoft.sqlserver.testframework.AbstractTest;
 import com.microsoft.sqlserver.testframework.DBConnection;
 import com.microsoft.sqlserver.testframework.DBStatement;
-import com.microsoft.sqlserver.testframework.Utils;
 
 
 /**
@@ -81,7 +81,7 @@ public class MergeTest extends AbstractTest {
 
         try (Connection con = DriverManager.getConnection(connectionString); Statement stmt = con.createStatement()) {
             try {
-                Utils.dropTableIfExists("dbo.CricketTeams", stmt);
+                TestUtils.dropTableIfExists("dbo.CricketTeams", stmt);
             } catch (Exception ex) {
                 fail(ex.toString());
             }

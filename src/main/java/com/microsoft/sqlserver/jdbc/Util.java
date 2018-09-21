@@ -197,14 +197,10 @@ final class Util {
      * @return long value as read from bytes.
      */
     /* L0 */static long readLong(byte data[], int nOffset) {
-		return ((long) (data[nOffset + 7] & 0xff) << 56)
-                | ((long) (data[nOffset + 6] & 0xff) << 48)
-                | ((long) (data[nOffset + 5] & 0xff) << 40)
-                | ((long) (data[nOffset + 4] & 0xff) << 32)
-                | ((long) (data[nOffset + 3] & 0xff) << 24)
-                | ((long) (data[nOffset + 2] & 0xff) << 16)
-                | ((long) (data[nOffset + 1] & 0xff) << 8)
-                | ((long) (data[nOffset] & 0xff));
+        return ((long) (data[nOffset + 7] & 0xff) << 56) | ((long) (data[nOffset + 6] & 0xff) << 48)
+                | ((long) (data[nOffset + 5] & 0xff) << 40) | ((long) (data[nOffset + 4] & 0xff) << 32)
+                | ((long) (data[nOffset + 3] & 0xff) << 24) | ((long) (data[nOffset + 2] & 0xff) << 16)
+                | ((long) (data[nOffset + 1] & 0xff) << 8) | ((long) (data[nOffset] & 0xff));
     }
 
     /**

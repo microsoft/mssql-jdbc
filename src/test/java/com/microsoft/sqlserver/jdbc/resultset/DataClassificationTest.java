@@ -14,12 +14,11 @@ import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
 
+import com.microsoft.sqlserver.jdbc.RandomUtil;
 import com.microsoft.sqlserver.jdbc.SQLServerResultSet;
+import com.microsoft.sqlserver.jdbc.TestUtils;
 import com.microsoft.sqlserver.jdbc.dataclassification.SensitivityProperty;
 import com.microsoft.sqlserver.testframework.AbstractTest;
-import com.microsoft.sqlserver.testframework.Utils;
-import com.microsoft.sqlserver.testframework.util.RandomUtil;
-import com.microsoft.sqlserver.testframework.util.Util;
 
 
 @RunWith(JUnitPlatform.class)
@@ -36,10 +35,10 @@ public class DataClassificationTest extends AbstractTest {
         // Run this test only with newer SQL Servers (version>=2018) that support Data Classification
         try (Connection con = DriverManager.getConnection(connectionString);
                 Statement stmt = connection.createStatement();) {
-            if (Util.serverSupportsDataClassification(stmt)) {
+            if (TestUtils.serverSupportsDataClassification(stmt)) {
                 createTable(connection, stmt);
                 runTestsForServer(stmt);
-                Utils.dropTableIfExists(tableName, stmt);
+                TestUtils.dropTableIfExists(tableName, stmt);
             }
         }
     }

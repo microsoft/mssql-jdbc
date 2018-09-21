@@ -37,14 +37,21 @@ public class BulkCopyISQLServerBulkRecordTest extends AbstractTest {
 
     @Test
     public void testISQLServerBulkRecord() throws SQLException {
+        DBTable dstTable = null;
         try (DBConnection con = new DBConnection(connectionString); DBStatement stmt = con.createStatement()) {
-            DBTable dstTable = new DBTable(true);
+            dstTable = new DBTable(true);
             stmt.createTable(dstTable);
             BulkData Bdata = new BulkData(dstTable);
 
             BulkCopyTestWrapper bulkWrapper = new BulkCopyTestWrapper(connectionString);
             bulkWrapper.setUsingConnection((0 == ThreadLocalRandom.current().nextInt(2)) ? true : false);
             BulkCopyTestUtil.performBulkCopy(bulkWrapper, Bdata, dstTable);
+        } finally {
+            if (null != dstTable) {
+                try (DBConnection con = new DBConnection(connectionString); DBStatement stmt = con.createStatement()) {
+                    stmt.dropTable(dstTable);
+                }
+            }
         }
     }
 

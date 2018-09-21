@@ -23,7 +23,7 @@ import org.junit.runner.RunWith;
 import com.microsoft.sqlserver.jdbc.SQLServerPreparedStatement;
 import com.microsoft.sqlserver.jdbc.SQLServerResultSet;
 import com.microsoft.sqlserver.jdbc.TestResource;
-import com.microsoft.sqlserver.testframework.util.Util;
+import com.microsoft.sqlserver.jdbc.TestUtils;
 
 
 /**
@@ -32,7 +32,6 @@ import com.microsoft.sqlserver.testframework.util.Util;
  */
 @RunWith(JUnitPlatform.class)
 public class PrecisionScaleTest extends AESetup {
-    private static SQLServerPreparedStatement pstmt = null;
 
     private static java.util.Date date = null;
     private static int offsetFromGMT = 0;
@@ -339,7 +338,7 @@ public class PrecisionScaleTest extends AESetup {
         String sql = "insert into " + dateTable + " values( " + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?,"
                 + "?,?,?" + ")";
 
-        try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) Util.getPreparedStmt(con, sql,
+        try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) TestUtils.getPreparedStmt(con, sql,
                 stmtColEncSetting)) {
 
             // datetime2(5)
@@ -381,7 +380,7 @@ public class PrecisionScaleTest extends AESetup {
         String sql = "insert into " + dateTable + " values( " + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?,"
                 + "?,?,?" + ")";
 
-        try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) Util.getPreparedStmt(con, sql,
+        try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) TestUtils.getPreparedStmt(con, sql,
                 stmtColEncSetting)) {
 
             // datetime2(5)
@@ -421,7 +420,7 @@ public class PrecisionScaleTest extends AESetup {
     private void populateNumericNormalCase(String[] numeric, int precision, int scale) throws SQLException {
         String sql = "insert into " + numericTable + " values( " + "?,?,?," + "?,?,?," + "?,?,?" + ")";
 
-        try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) Util.getPreparedStmt(con, sql,
+        try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) TestUtils.getPreparedStmt(con, sql,
                 stmtColEncSetting)) {
 
             // float(30)
@@ -446,7 +445,7 @@ public class PrecisionScaleTest extends AESetup {
     private void populateNumericSetObject(String[] numeric, int precision, int scale) throws SQLException {
         String sql = "insert into " + numericTable + " values( " + "?,?,?," + "?,?,?," + "?,?,?" + ")";
 
-        try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) Util.getPreparedStmt(con, sql,
+        try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) TestUtils.getPreparedStmt(con, sql,
                 stmtColEncSetting)) {
 
             // float(30)
@@ -472,7 +471,7 @@ public class PrecisionScaleTest extends AESetup {
     private void populateNumericSetObjectNull(int precision, int scale) throws SQLException {
         String sql = "insert into " + numericTable + " values( " + "?,?,?," + "?,?,?," + "?,?,?" + ")";
 
-        try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) Util.getPreparedStmt(con, sql,
+        try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) TestUtils.getPreparedStmt(con, sql,
                 stmtColEncSetting)) {
 
             // float(30)
@@ -499,7 +498,7 @@ public class PrecisionScaleTest extends AESetup {
         String sql = "insert into " + dateTable + " values( " + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?,"
                 + "?,?,?" + ")";
 
-        try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) Util.getPreparedStmt(con, sql,
+        try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) TestUtils.getPreparedStmt(con, sql,
                 stmtColEncSetting)) {
 
             // datetime2(5)
@@ -542,7 +541,7 @@ public class PrecisionScaleTest extends AESetup {
         String sql = "insert into " + dateTable + " values( " + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?,"
                 + "?,?,?" + ")";
 
-        try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) Util.getPreparedStmt(con, sql,
+        try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) TestUtils.getPreparedStmt(con, sql,
                 stmtColEncSetting)) {
 
             // datetime2(5)

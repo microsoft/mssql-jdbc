@@ -2381,16 +2381,15 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
             returnValue = getTime(columnIndex);
         } else if (type == java.sql.Timestamp.class) {
             returnValue = getTimestamp(columnIndex);
-        } else if (type == java.time.LocalDateTime.class 
-                || type == java.time.LocalDate.class 
+        } else if (type == java.time.LocalDateTime.class || type == java.time.LocalDate.class
                 || type == java.time.LocalTime.class) {
             java.sql.Timestamp ts = getTimestamp(columnIndex,
                     Calendar.getInstance(java.util.TimeZone.getTimeZone("UTC")));
             if (ts == null) {
                 returnValue = null;
             } else {
-                java.time.LocalDateTime ldt = java.time.LocalDateTime
-                        .ofInstant(ts.toInstant(), java.time.ZoneId.of("UTC")); 
+                java.time.LocalDateTime ldt = java.time.LocalDateTime.ofInstant(ts.toInstant(),
+                        java.time.ZoneId.of("UTC"));
                 if (type == java.time.LocalDateTime.class) {
                     returnValue = ldt;
                 } else if (type == java.time.LocalDate.class) {
