@@ -72,11 +72,8 @@ public class LobsStreamingTest extends AbstractTest {
         // read the Reader contents into a buffer and return the complete string
         final StringBuilder stringBuilder = new StringBuilder((int) l);
         char[] buffer = new char[(int) l];
-        while (true) {
-            int amountRead = r.read(buffer, 0, (int) l);
-            if (amountRead == -1) {
-                break;
-            }
+        int amountRead = -1;
+        while ((amountRead = r.read(buffer, 0, (int) l)) != -1) {
             stringBuilder.append(buffer, 0, amountRead);
         }
         return stringBuilder.toString();
