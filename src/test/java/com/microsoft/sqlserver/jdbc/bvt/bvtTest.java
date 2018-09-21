@@ -55,7 +55,6 @@ public class bvtTest extends bvtTestSetup {
             assertTrue(!conn.isClosed(), TestResource.getResource("R_connShouldNotBeClosed"));
             conn.close();
             assertTrue(conn.isClosed(), TestResource.getResource("R_connShouldNotBeOpen"));
-
         }
     }
 
@@ -281,9 +280,9 @@ public class bvtTest extends bvtTestSetup {
                 DBPreparedStatement pstmt = conn.prepareStatement(query)) {
 
             pstmt.setObject(1, new BigDecimal(value));
-            DBResultSet rs = pstmt.executeQuery();
-            rs.verify(table1);
-            rs.close();
+            try (DBResultSet rs = pstmt.executeQuery()) {
+                rs.verify(table1);
+            }
         }
     }
 
@@ -330,21 +329,21 @@ public class bvtTest extends bvtTestSetup {
         try (DBConnection conn = new DBConnection(connectionString); DBStatement stmt1 = conn.createStatement();
                 DBStatement stmt2 = conn.createStatement()) {
 
-            DBResultSet rs1 = stmt1.selectAll(table1);
-            DBResultSet rs2 = stmt2.selectAll(table2);
+            try (DBResultSet rs1 = stmt1.selectAll(table1); DBResultSet rs2 = stmt2.selectAll(table2)) {
 
-            // Interleave resultset calls
-            rs1.next();
-            rs1.verifyCurrentRow(table1);
-            rs2.next();
-            rs2.verifyCurrentRow(table2);
-            rs1.next();
-            rs1.verifyCurrentRow(table1);
-            rs1.verify(table1);
-            rs1.close();
-            rs2.next();
-            rs2.verify(table2);
-            rs2.close();
+                // Interleave resultset calls
+                rs1.next();
+                rs1.verifyCurrentRow(table1);
+                rs2.next();
+                rs2.verifyCurrentRow(table2);
+                rs1.next();
+                rs1.verifyCurrentRow(table1);
+                rs1.verify(table1);
+                rs1.close();
+                rs2.next();
+                rs2.verify(table2);
+                rs2.close();
+            }
         }
     }
 
@@ -357,25 +356,25 @@ public class bvtTest extends bvtTestSetup {
     public void testTwoResultsetsSameStmt() throws SQLException {
         try (DBConnection conn = new DBConnection(connectionString); DBStatement stmt = conn.createStatement()) {
 
-            DBResultSet rs1 = stmt.selectAll(table1);
-            DBResultSet rs2 = stmt.selectAll(table2);
-            // Interleave resultset calls. rs is expected to be closed
-            try {
-                rs1.next();
-            } catch (SQLException e) {
-                assertEquals(e.getMessage(), TestResource.getResource("R_resultsetClosed"));
+            try (DBResultSet rs1 = stmt.selectAll(table1); DBResultSet rs2 = stmt.selectAll(table2)) {
+                // Interleave resultset calls. rs is expected to be closed
+                try {
+                    rs1.next();
+                } catch (SQLException e) {
+                    assertEquals(e.getMessage(), TestResource.getResource("R_resultsetClosed"));
+                }
+                rs2.next();
+                rs2.verifyCurrentRow(table2);
+                try {
+                    rs1.next();
+                } catch (SQLException e) {
+                    assertEquals(e.getMessage(), TestResource.getResource("R_resultsetClosed"));
+                }
+                rs1.close();
+                rs2.next();
+                rs2.verify(table2);
+                rs2.close();
             }
-            rs2.next();
-            rs2.verifyCurrentRow(table2);
-            try {
-                rs1.next();
-            } catch (SQLException e) {
-                assertEquals(e.getMessage(), TestResource.getResource("R_resultsetClosed"));
-            }
-            rs1.close();
-            rs2.next();
-            rs2.verify(table2);
-            rs2.close();
         }
     }
 

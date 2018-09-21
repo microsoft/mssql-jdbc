@@ -14,8 +14,8 @@ import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
 
+import com.microsoft.sqlserver.jdbc.TestUtils;
 import com.microsoft.sqlserver.testframework.AbstractTest;
-import com.microsoft.sqlserver.testframework.util.Util;
 
 
 /**
@@ -43,7 +43,7 @@ public class DriverVersionTest extends AbstractTest {
     public void testConnectionDriver() throws SQLException {
         // the original way to create version byte array
         String interfaceLibVersion = generateInterfaceLibVersion();
-        byte originalVersionBytes[] = Util.hexStringToByte(interfaceLibVersion);
+        byte originalVersionBytes[] = TestUtils.hexStringToByte(interfaceLibVersion);
 
         String originalBytes = Arrays.toString(originalVersionBytes);
 

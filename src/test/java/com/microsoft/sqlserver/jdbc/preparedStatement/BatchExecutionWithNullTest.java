@@ -24,14 +24,15 @@ import org.opentest4j.TestAbortedException;
 
 import com.microsoft.sqlserver.jdbc.SQLServerStatement;
 import com.microsoft.sqlserver.jdbc.TestResource;
+import com.microsoft.sqlserver.jdbc.TestUtils;
 import com.microsoft.sqlserver.testframework.AbstractTest;
 import com.microsoft.sqlserver.testframework.DBConnection;
-import com.microsoft.sqlserver.testframework.Utils;
 
 
 @RunWith(JUnitPlatform.class)
 public class BatchExecutionWithNullTest extends AbstractTest {
 
+    static Connection conn = null;
     static Statement stmt = null;
     static Connection connection = null;
     static PreparedStatement pstmt = null;
@@ -51,8 +52,9 @@ public class BatchExecutionWithNullTest extends AbstractTest {
         int updateCountlen = 0;
         int key = 42;
 
-        // this is the minimum sequence, I've found to trigger the error
-        pstmt = connection.prepareStatement(sPrepStmt);
+        // this is the minimum sequence, I've found to trigger the error\
+        conn = DriverManager.getConnection(connectionString);
+        pstmt = conn.prepareStatement(sPrepStmt);
         pstmt.setInt(1, key++);
         pstmt.setNull(2, Types.VARCHAR);
         pstmt.addBatch();
@@ -104,12 +106,13 @@ public class BatchExecutionWithNullTest extends AbstractTest {
 
     @BeforeEach
     public void testSetup() throws TestAbortedException, Exception {
-        assumeTrue(13 <= new DBConnection(connectionString).getServerVersion(),
-                TestResource.getResource("R_Incompat_SQLServerVersion"));
+        try (DBConnection con = new DBConnection(connectionString)) {
+            assumeTrue(13 <= con.getServerVersion(), TestResource.getResource("R_Incompat_SQLServerVersion"));
+        }
 
         connection = DriverManager.getConnection(connectionString);
         SQLServerStatement stmt = (SQLServerStatement) connection.createStatement();
-        Utils.dropTableIfExists("esimple", stmt);
+        TestUtils.dropTableIfExists("esimple", stmt);
         String sql1 = "create table esimple (id integer not null, name varchar(255), constraint pk_esimple primary key (id))";
         stmt.execute(sql1);
         stmt.close();
@@ -117,10 +120,10 @@ public class BatchExecutionWithNullTest extends AbstractTest {
 
     @AfterAll
     public static void terminateVariation() throws SQLException {
-        connection = DriverManager.getConnection(connectionString);
-
-        SQLServerStatement stmt = (SQLServerStatement) connection.createStatement();
-        Utils.dropTableIfExists("esimple", stmt);
+        try (Connection conn = DriverManager.getConnection(connectionString);
+                SQLServerStatement stmt = (SQLServerStatement) conn.createStatement()) {
+            TestUtils.dropTableIfExists("esimple", stmt);
+        }
 
         if (null != pstmt) {
             pstmt.close();
@@ -134,8 +137,8 @@ public class BatchExecutionWithNullTest extends AbstractTest {
         if (null != rs) {
             rs.close();
         }
-        if (null != connection) {
-            connection.close();
+        if (null != conn) {
+            conn.close();
         }
     }
 }

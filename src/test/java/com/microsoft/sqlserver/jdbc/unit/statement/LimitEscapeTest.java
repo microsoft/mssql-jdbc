@@ -28,8 +28,8 @@ import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
 
 import com.microsoft.sqlserver.jdbc.TestResource;
+import com.microsoft.sqlserver.jdbc.TestUtils;
 import com.microsoft.sqlserver.testframework.AbstractTest;
-import com.microsoft.sqlserver.testframework.Utils;
 
 
 /**
@@ -52,7 +52,9 @@ public class LimitEscapeTest extends AbstractTest {
         boolean callable = false;
         int preparedCount = 0;
         boolean verifyResult = true;
-        ResultSet resultSet;
+        ResultSet resultSet = null;
+        PreparedStatement pstmt = null;
+        Statement stmt = null;
         int queryID;
         int queryId = 0;
         static int queryCount = 0;
@@ -117,7 +119,7 @@ public class LimitEscapeTest extends AbstractTest {
         }
 
         void executeSpecific(Connection conn) throws Exception {
-            Statement stmt = conn.createStatement();
+            stmt = conn.createStatement();
             resultSet = stmt.executeQuery(inputSql);
         }
 
@@ -181,7 +183,7 @@ public class LimitEscapeTest extends AbstractTest {
         }
 
         void executeSpecific(Connection conn) throws Exception {
-            PreparedStatement pstmt = conn.prepareStatement(inputSql);
+            pstmt = conn.prepareStatement(inputSql);
             for (int i = 1; i <= placeholderCount; ++i) {
                 pstmt.setObject(i, i);
             }
@@ -196,53 +198,56 @@ public class LimitEscapeTest extends AbstractTest {
         }
 
         void execute(Connection conn) throws Exception {
-            CallableStatement cstmt = conn.prepareCall(inputSql);
-            for (int i = 1; i <= placeholderCount; ++i) {
-                cstmt.setObject(i, i);
+            try (CallableStatement cstmt = conn.prepareCall(inputSql)) {
+                for (int i = 1; i <= placeholderCount; ++i) {
+                    cstmt.setObject(i, i);
+                }
+                resultSet = cstmt.executeQuery();
             }
-            resultSet = cstmt.executeQuery();
         }
     }
 
     public static void createAndPopulateTables(Connection conn) throws Exception {
-        Statement stmt = conn.createStatement();
-        // Instead of table identifiers use some simple table names for this test only, as a lot of string manipulation
-        // is done
-        // around table names.
-        try {
-            stmt.executeUpdate("drop table UnitStatement_LimitEscape_t1");
-        } catch (Exception ex) {} ;
-        try {
-            stmt.executeUpdate("drop table UnitStatement_LimitEscape_t2");
-        } catch (Exception ex) {} ;
-        try {
-            stmt.executeUpdate("drop table UnitStatement_LimitEscape_t3");
-        } catch (Exception ex) {} ;
-        try {
-            stmt.executeUpdate("drop table UnitStatement_LimitEscape_t4");
-        } catch (Exception ex) {} ;
-        try {
-            stmt.executeUpdate("drop procedure UnitStatement_LimitEscape_p1");
-        } catch (Exception ex) {} ;
-        stmt.executeUpdate(
-                "create table UnitStatement_LimitEscape_t1 (col1 int, col2 int, col3 varchar(100), col4 varchar(100), id int identity(1,1) primary key)");
-        stmt.executeUpdate(
-                "create table UnitStatement_LimitEscape_t2 (col1 int, col2 int, col3 varchar(100), col4 varchar(100), id int identity(1,1) primary key)");
-        stmt.executeUpdate(
-                "create table UnitStatement_LimitEscape_t3 (col1 int, col2 int, col3 varchar(100), col4 varchar(100), id int identity(1,1) primary key)");
-        stmt.executeUpdate(
-                "create table UnitStatement_LimitEscape_t4 (col1 int, col2 int, col3 varchar(100), col4 varchar(100), id int identity(1,1) primary key)");
+        try (Statement stmt = conn.createStatement()) {
+            // Instead of table identifiers use some simple table names for this test only, as a lot of string
+            // manipulation
+            // is done
+            // around table names.
+            try {
+                stmt.executeUpdate("drop table UnitStatement_LimitEscape_t1");
+            } catch (Exception ex) {} ;
+            try {
+                stmt.executeUpdate("drop table UnitStatement_LimitEscape_t2");
+            } catch (Exception ex) {} ;
+            try {
+                stmt.executeUpdate("drop table UnitStatement_LimitEscape_t3");
+            } catch (Exception ex) {} ;
+            try {
+                stmt.executeUpdate("drop table UnitStatement_LimitEscape_t4");
+            } catch (Exception ex) {} ;
+            try {
+                stmt.executeUpdate("drop procedure UnitStatement_LimitEscape_p1");
+            } catch (Exception ex) {} ;
+            stmt.executeUpdate(
+                    "create table UnitStatement_LimitEscape_t1 (col1 int, col2 int, col3 varchar(100), col4 varchar(100), id int identity(1,1) primary key)");
+            stmt.executeUpdate(
+                    "create table UnitStatement_LimitEscape_t2 (col1 int, col2 int, col3 varchar(100), col4 varchar(100), id int identity(1,1) primary key)");
+            stmt.executeUpdate(
+                    "create table UnitStatement_LimitEscape_t3 (col1 int, col2 int, col3 varchar(100), col4 varchar(100), id int identity(1,1) primary key)");
+            stmt.executeUpdate(
+                    "create table UnitStatement_LimitEscape_t4 (col1 int, col2 int, col3 varchar(100), col4 varchar(100), id int identity(1,1) primary key)");
 
-        stmt.executeUpdate("Insert into UnitStatement_LimitEscape_t1 values " + "(1, 1, 'col3', 'col4'), "
-                + "(2, 2, 'row2 '' with '' quote', 'row2 with limit  {limit 22} {limit ?}'),"
-                + "(3, 3, 'row3 with subquery (select * from t1)', 'row3 with subquery (select * from (select * from t1) {limit 4})'),"
-                + "(4, 4, 'select * from t1 {limit 4} ''quotes'' (braces)', 'ucase(scalar function)'),"
-                + "(5, 5, 'openquery(''server'', ''query'')', 'openrowset(''server'',''connection string'',''query'')')");
-        stmt.executeUpdate("Insert into UnitStatement_LimitEscape_t2 values (11, 11, 'col33', 'col44')");
-        stmt.executeUpdate("Insert into UnitStatement_LimitEscape_t3 values (111, 111, 'col333', 'col444')");
-        stmt.executeUpdate("Insert into UnitStatement_LimitEscape_t4 values (1111, 1111, 'col4444', 'col4444')");
-        String query = "create procedure UnitStatement_LimitEscape_p1 @col3Value varchar(512), @col4Value varchar(512) AS BEGIN SELECT TOP 1 * from UnitStatement_LimitEscape_t1 where col3 = @col3Value and col4 = @col4Value END";
-        stmt.execute(query);
+            stmt.executeUpdate("Insert into UnitStatement_LimitEscape_t1 values " + "(1, 1, 'col3', 'col4'), "
+                    + "(2, 2, 'row2 '' with '' quote', 'row2 with limit  {limit 22} {limit ?}'),"
+                    + "(3, 3, 'row3 with subquery (select * from t1)', 'row3 with subquery (select * from (select * from t1) {limit 4})'),"
+                    + "(4, 4, 'select * from t1 {limit 4} ''quotes'' (braces)', 'ucase(scalar function)'),"
+                    + "(5, 5, 'openquery(''server'', ''query'')', 'openrowset(''server'',''connection string'',''query'')')");
+            stmt.executeUpdate("Insert into UnitStatement_LimitEscape_t2 values (11, 11, 'col33', 'col44')");
+            stmt.executeUpdate("Insert into UnitStatement_LimitEscape_t3 values (111, 111, 'col333', 'col444')");
+            stmt.executeUpdate("Insert into UnitStatement_LimitEscape_t4 values (1111, 1111, 'col4444', 'col4444')");
+            String query = "create procedure UnitStatement_LimitEscape_p1 @col3Value varchar(512), @col4Value varchar(512) AS BEGIN SELECT TOP 1 * from UnitStatement_LimitEscape_t1 where col3 = @col3Value and col4 = @col4Value END";
+            stmt.execute(query);
+        }
     }
 
     /**
@@ -777,16 +782,14 @@ public class LimitEscapeTest extends AbstractTest {
     @AfterAll
     public static void afterAll() throws Exception {
 
-        Statement stmt = conn.createStatement();
-        try {
-            Utils.dropTableIfExists("UnitStatement_LimitEscape_t1", stmt);
-            Utils.dropTableIfExists("UnitStatement_LimitEscape_t2", stmt);
-            Utils.dropTableIfExists("UnitStatement_LimitEscape_t3", stmt);
-            Utils.dropTableIfExists("UnitStatement_LimitEscape_t4", stmt);
+        try (Statement stmt = conn.createStatement()) {
+            TestUtils.dropTableIfExists("UnitStatement_LimitEscape_t1", stmt);
+            TestUtils.dropTableIfExists("UnitStatement_LimitEscape_t2", stmt);
+            TestUtils.dropTableIfExists("UnitStatement_LimitEscape_t3", stmt);
+            TestUtils.dropTableIfExists("UnitStatement_LimitEscape_t4", stmt);
         } catch (Exception ex) {
             fail(ex.toString());
         } finally {
-            stmt.close();
             conn.close();
         }
 

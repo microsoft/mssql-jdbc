@@ -16,9 +16,9 @@ import java.util.StringJoiner;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import com.microsoft.sqlserver.jdbc.RandomUtil;
 import com.microsoft.sqlserver.testframework.sqlType.SqlType;
 import com.microsoft.sqlserver.testframework.sqlType.VariableLengthType;
-import com.microsoft.sqlserver.testframework.util.RandomUtil;
 
 
 /**

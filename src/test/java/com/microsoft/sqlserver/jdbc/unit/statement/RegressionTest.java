@@ -24,9 +24,9 @@ import org.junit.runner.RunWith;
 import com.microsoft.sqlserver.jdbc.SQLServerConnection;
 import com.microsoft.sqlserver.jdbc.SQLServerPreparedStatement;
 import com.microsoft.sqlserver.jdbc.TestResource;
+import com.microsoft.sqlserver.jdbc.TestUtils;
 import com.microsoft.sqlserver.testframework.AbstractTest;
 import com.microsoft.sqlserver.testframework.DBConnection;
-import com.microsoft.sqlserver.testframework.Utils;
 
 
 @RunWith(JUnitPlatform.class)
@@ -41,59 +41,55 @@ public class RegressionTest extends AbstractTest {
      */
     @Test
     public void testServerCursorPStmt() throws SQLException {
+        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(connectionString);
+                Statement stmt = con.createStatement()) {
 
-        SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(connectionString);
-        Statement stmt = con.createStatement();
+            // expected values
+            int numRowsInResult = 1;
+            String col3Value = "India";
+            String col3Lookup = "IN";
 
-        PreparedStatement pstmt = null;
-        ResultSet rs = null;
+            stmt.executeUpdate(
+                    "CREATE TABLE " + tableName + " (col1 int primary key, col2 varchar(3), col3 varchar(128))");
+            stmt.executeUpdate("INSERT INTO " + tableName + " VALUES (1, 'CAN', 'Canada')");
+            stmt.executeUpdate("INSERT INTO " + tableName + " VALUES (2, 'USA', 'United States of America')");
+            stmt.executeUpdate("INSERT INTO " + tableName + " VALUES (3, 'JPN', 'Japan')");
+            stmt.executeUpdate("INSERT INTO " + tableName + " VALUES (4, '" + col3Lookup + "', '" + col3Value + "')");
 
-        // expected values
-        int numRowsInResult = 1;
-        String col3Value = "India";
-        String col3Lookup = "IN";
+            // create stored proc
+            String storedProcString;
 
-        stmt.executeUpdate("CREATE TABLE " + tableName + " (col1 int primary key, col2 varchar(3), col3 varchar(128))");
-        stmt.executeUpdate("INSERT INTO " + tableName + " VALUES (1, 'CAN', 'Canada')");
-        stmt.executeUpdate("INSERT INTO " + tableName + " VALUES (2, 'USA', 'United States of America')");
-        stmt.executeUpdate("INSERT INTO " + tableName + " VALUES (3, 'JPN', 'Japan')");
-        stmt.executeUpdate("INSERT INTO " + tableName + " VALUES (4, '" + col3Lookup + "', '" + col3Value + "')");
+            if (DBConnection.isSqlAzure(con)) {
+                // On SQL Azure, 'SELECT INTO' is not supported. So do not use it.
+                storedProcString = "CREATE PROCEDURE " + procName + " @param varchar(3) AS SELECT col3 FROM "
+                        + tableName + " WHERE col2 = @param";
+            } else {
+                // On SQL Server
+                storedProcString = "CREATE PROCEDURE " + procName
+                        + " @param varchar(3) AS SELECT col3 INTO #TMPTABLE FROM " + tableName
+                        + " WHERE col2 = @param SELECT col3 FROM #TMPTABLE";
+            }
 
-        // create stored proc
-        String storedProcString;
+            stmt.executeUpdate(storedProcString);
 
-        if (DBConnection.isSqlAzure(con)) {
-            // On SQL Azure, 'SELECT INTO' is not supported. So do not use it.
-            storedProcString = "CREATE PROCEDURE " + procName + " @param varchar(3) AS SELECT col3 FROM " + tableName
-                    + " WHERE col2 = @param";
-        } else {
-            // On SQL Server
-            storedProcString = "CREATE PROCEDURE " + procName + " @param varchar(3) AS SELECT col3 INTO #TMPTABLE FROM "
-                    + tableName + " WHERE col2 = @param SELECT col3 FROM #TMPTABLE";
+            // execute stored proc via pstmt
+            try (PreparedStatement pstmt = con.prepareStatement("EXEC " + procName + " ?",
+                    ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY)) {
+                pstmt.setString(1, col3Lookup);
+
+                // should return 1 row
+                try (ResultSet rs = pstmt.executeQuery()) {
+                    rs.last();
+                    assertEquals(rs.getRow(), numRowsInResult,
+                            TestResource.getResource("R_valueNotMatch") + rs.getRow() + ", " + numRowsInResult);
+                    rs.beforeFirst();
+                    while (rs.next()) {
+                        assertEquals(rs.getString(1), col3Value,
+                                TestResource.getResource("R_valueNotMatch") + rs.getString(1) + ", " + col3Value);
+                    }
+                }
+            }
         }
-
-        stmt.executeUpdate(storedProcString);
-
-        // execute stored proc via pstmt
-        pstmt = con.prepareStatement("EXEC " + procName + " ?", ResultSet.TYPE_SCROLL_INSENSITIVE,
-                ResultSet.CONCUR_READ_ONLY);
-        pstmt.setString(1, col3Lookup);
-
-        // should return 1 row
-        rs = pstmt.executeQuery();
-        rs.last();
-        assertEquals(rs.getRow(), numRowsInResult,
-                TestResource.getResource("R_valueNotMatch") + rs.getRow() + ", " + numRowsInResult);
-        rs.beforeFirst();
-        while (rs.next()) {
-            assertEquals(rs.getString(1), col3Value,
-                    TestResource.getResource("R_valueNotMatch") + rs.getString(1) + ", " + col3Value);
-        }
-
-        if (null != stmt)
-            stmt.close();
-        if (null != con)
-            con.close();
     }
 
     /**
@@ -103,33 +99,31 @@ public class RegressionTest extends AbstractTest {
      */
     @Test
     public void testSelectIntoUpdateCount() throws SQLException {
-        SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(connectionString);
+        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(connectionString)) {
 
-        // Azure does not do SELECT INTO
-        if (!DBConnection.isSqlAzure(con)) {
-            final String tableName = "[#SourceTableForSelectInto]";
+            // Azure does not do SELECT INTO
+            if (!DBConnection.isSqlAzure(con)) {
+                final String tableName = "[#SourceTableForSelectInto]";
 
-            Statement stmt = con.createStatement();
-            stmt.executeUpdate(
-                    "CREATE TABLE " + tableName + " (col1 int primary key, col2 varchar(3), col3 varchar(128))");
-            stmt.executeUpdate("INSERT INTO " + tableName + " VALUES (1, 'CAN', 'Canada')");
-            stmt.executeUpdate("INSERT INTO " + tableName + " VALUES (2, 'USA', 'United States of America')");
-            stmt.executeUpdate("INSERT INTO " + tableName + " VALUES (3, 'JPN', 'Japan')");
+                try (Statement stmt = con.createStatement()) {
+                    stmt.executeUpdate("CREATE TABLE " + tableName
+                            + " (col1 int primary key, col2 varchar(3), col3 varchar(128))");
+                    stmt.executeUpdate("INSERT INTO " + tableName + " VALUES (1, 'CAN', 'Canada')");
+                    stmt.executeUpdate("INSERT INTO " + tableName + " VALUES (2, 'USA', 'United States of America')");
+                    stmt.executeUpdate("INSERT INTO " + tableName + " VALUES (3, 'JPN', 'Japan')");
 
-            // expected values
-            int numRowsToCopy = 2;
+                    // expected values
+                    int numRowsToCopy = 2;
 
-            PreparedStatement ps = con
-                    .prepareStatement("SELECT * INTO #TMPTABLE FROM " + tableName + " WHERE col1 <= ?");
-            ps.setInt(1, numRowsToCopy);
-            int updateCount = ps.executeUpdate();
-            assertEquals(numRowsToCopy, updateCount, TestResource.getResource("R_incorrectUpdateCount"));
-
-            if (null != stmt)
-                stmt.close();
+                    try (PreparedStatement ps = con
+                            .prepareStatement("SELECT * INTO #TMPTABLE FROM " + tableName + " WHERE col1 <= ?")) {
+                        ps.setInt(1, numRowsToCopy);
+                        int updateCount = ps.executeUpdate();
+                        assertEquals(numRowsToCopy, updateCount, TestResource.getResource("R_incorrectUpdateCount"));
+                    }
+                }
+            }
         }
-        if (null != con)
-            con.close();
     }
 
     /**
@@ -139,57 +133,55 @@ public class RegressionTest extends AbstractTest {
      */
     @Test
     public void testUpdateQuery() throws SQLException {
-        assumeTrue("JDBC41".equals(Utils.getConfiguredProperty("JDBC_Version")),
+        assumeTrue("JDBC41".equals(TestUtils.getConfiguredProperty("JDBC_Version")),
                 TestResource.getResource("R_incompatJDBC"));
 
-        SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(connectionString);
-        String sql;
-        SQLServerPreparedStatement pstmt = null;
-        JDBCType[] targets = {JDBCType.INTEGER, JDBCType.SMALLINT};
-        int rows = 3;
-        final String tableName = "[updateQuery]";
+        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(connectionString);
+                Statement stmt = con.createStatement()) {
+            String sql;
+            JDBCType[] targets = {JDBCType.INTEGER, JDBCType.SMALLINT};
+            int rows = 3;
+            final String tableName = "[updateQuery]";
 
-        Statement stmt = con.createStatement();
-        Utils.dropTableIfExists(tableName, stmt);
-        stmt.executeUpdate("CREATE TABLE " + tableName + " (" + "c1 int null," + "PK int NOT NULL PRIMARY KEY" + ")");
+            TestUtils.dropTableIfExists(tableName, stmt);
+            stmt.executeUpdate(
+                    "CREATE TABLE " + tableName + " (" + "c1 int null," + "PK int NOT NULL PRIMARY KEY" + ")");
 
-        /*
-         * populate table
-         */
-        sql = "insert into " + tableName + " values(" + "?,?" + ")";
-        pstmt = (SQLServerPreparedStatement) con.prepareStatement(sql, ResultSet.TYPE_FORWARD_ONLY,
-                ResultSet.CONCUR_READ_ONLY, connection.getHoldability());
+            /*
+             * populate table
+             */
+            sql = "insert into " + tableName + " values(" + "?,?" + ")";
+            try (PreparedStatement pstmt = (SQLServerPreparedStatement) con.prepareStatement(sql,
+                    ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY, con.getHoldability())) {
 
-        for (int i = 1; i <= rows; i++) {
-            pstmt.setObject(1, i, JDBCType.INTEGER);
-            pstmt.setObject(2, i, JDBCType.INTEGER);
-            pstmt.executeUpdate();
-        }
+                for (int i = 1; i <= rows; i++) {
+                    pstmt.setObject(1, i, JDBCType.INTEGER);
+                    pstmt.setObject(2, i, JDBCType.INTEGER);
+                    pstmt.executeUpdate();
+                }
+            }
+            /*
+             * Update table
+             */
+            sql = "update " + tableName + " SET c1= ? where PK =1";
+            for (int i = 1; i <= rows; i++) {
+                try (PreparedStatement pstmt = (SQLServerPreparedStatement) con.prepareStatement(sql,
+                        ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY)) {
+                    for (JDBCType target : targets) {
+                        pstmt.setObject(1, 5 + i, target);
+                        pstmt.executeUpdate();
+                    }
+                }
+            }
 
-        /*
-         * Update table
-         */
-        sql = "update " + tableName + " SET c1= ? where PK =1";
-        for (int i = 1; i <= rows; i++) {
-            pstmt = (SQLServerPreparedStatement) con.prepareStatement(sql, ResultSet.TYPE_FORWARD_ONLY,
-                    ResultSet.CONCUR_READ_ONLY);
-            for (JDBCType target : targets) {
-                pstmt.setObject(1, 5 + i, target);
-                pstmt.executeUpdate();
+            /*
+             * Verify
+             */
+            try (ResultSet rs = stmt.executeQuery("select * from " + tableName)) {
+                rs.next();
+                assertEquals(rs.getInt(1), 8, "Value mismatch");
             }
         }
-
-        /*
-         * Verify
-         */
-        ResultSet rs = stmt.executeQuery("select * from " + tableName);
-        rs.next();
-        assertEquals(rs.getInt(1), 8, "Value mismatch");
-
-        if (null != stmt)
-            stmt.close();
-        if (null != con)
-            con.close();
     }
 
     private String xmlTableName = "try_SQLXML_Table";
@@ -201,32 +193,33 @@ public class RegressionTest extends AbstractTest {
      */
     @Test
     public void testXmlQuery() throws SQLException {
-        assumeTrue("JDBC41".equals(Utils.getConfiguredProperty("JDBC_Version")),
+        assumeTrue("JDBC41".equals(TestUtils.getConfiguredProperty("JDBC_Version")),
                 TestResource.getResource("R_incompatJDBC"));
 
-        Connection connection = DriverManager.getConnection(connectionString);
+        try (Connection connection = DriverManager.getConnection(connectionString);
+                Statement stmt = connection.createStatement()) {
+            dropTables(stmt);
+            createTable(stmt);
 
-        Statement stmt = connection.createStatement();
+            String sql = "UPDATE " + xmlTableName + " SET [c2] = ?, [c3] = ?";
+            try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) connection.prepareStatement(sql)) {
 
-        dropTables(stmt);
-        createTable(stmt);
+                pstmt.setObject(1, null);
+                pstmt.setObject(2, null, Types.SQLXML);
+                pstmt.executeUpdate();
+            }
+            try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) connection.prepareStatement(sql)) {
+                pstmt.setObject(1, null, Types.SQLXML);
+                pstmt.setObject(2, null);
+                pstmt.executeUpdate();
+            }
 
-        String sql = "UPDATE " + xmlTableName + " SET [c2] = ?, [c3] = ?";
-        SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) connection.prepareStatement(sql);
-
-        pstmt.setObject(1, null);
-        pstmt.setObject(2, null, Types.SQLXML);
-        pstmt.executeUpdate();
-
-        pstmt = (SQLServerPreparedStatement) connection.prepareStatement(sql);
-        pstmt.setObject(1, null, Types.SQLXML);
-        pstmt.setObject(2, null);
-        pstmt.executeUpdate();
-
-        pstmt = (SQLServerPreparedStatement) connection.prepareStatement(sql);
-        pstmt.setObject(1, null);
-        pstmt.setObject(2, null, Types.SQLXML);
-        pstmt.executeUpdate();
+            try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) connection.prepareStatement(sql)) {
+                pstmt.setObject(1, null);
+                pstmt.setObject(2, null, Types.SQLXML);
+                pstmt.executeUpdate();
+            }
+        }
     }
 
     private void dropTables(Statement stmt) throws SQLException {
@@ -242,10 +235,10 @@ public class RegressionTest extends AbstractTest {
 
     @AfterAll
     public static void terminate() throws SQLException {
-        SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(connectionString);
-        Statement stmt = con.createStatement();
-        Utils.dropTableIfExists(tableName, stmt);
-        Utils.dropProcedureIfExists(procName, stmt);
+        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(connectionString);
+                Statement stmt = con.createStatement()) {
+            TestUtils.dropTableIfExists(tableName, stmt);
+            TestUtils.dropProcedureIfExists(procName, stmt);
+        }
     }
-
 }
