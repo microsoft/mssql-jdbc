@@ -271,6 +271,7 @@ public class Utils {
     public static String getAECertificatePath() {
         try {
             String className = new Object() {}.getClass().getEnclosingClass().getName();
+            System.out.println("className: " + className);
             String location = Class.forName(className).getProtectionDomain().getCodeSource().getLocation().getPath();
             System.out.println("location: " + location);
             URI uri = new URI(
