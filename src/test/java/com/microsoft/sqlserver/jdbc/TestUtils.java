@@ -284,8 +284,8 @@ public class TestUtils {
     }
 
     public static void dropDatabaseIfExists(String databaseName, java.sql.Statement stmt) throws SQLException {
-        stmt.executeUpdate("USE MASTER; IF EXISTS(SELECT * from sys.databases WHERE name='" + escapeSingleQuotes(databaseName)
-                + "') DROP DATABASE [" + databaseName + "]");
+        stmt.executeUpdate("USE MASTER; IF EXISTS(SELECT * from sys.databases WHERE name='"
+                + escapeSingleQuotes(databaseName) + "') DROP DATABASE [" + databaseName + "]");
     }
 
     /**
@@ -304,8 +304,8 @@ public class TestUtils {
         String bracketedObjectName = sb.toString();
         String sql = String.format("IF EXISTS " + "( " + "SELECT * from sys.objects "
                 + "WHERE object_id = OBJECT_ID(N'%s') AND OBJECTPROPERTY(object_id, N'%s') = 1 " + ") " + "DROP %s %s ",
-                escapeSingleQuotes(bracketedObjectName), objectProperty, "IsProcedure".equals(objectProperty) ? "PROCEDURE" : "TABLE",
-                bracketedObjectName);
+                escapeSingleQuotes(bracketedObjectName), objectProperty,
+                "IsProcedure".equals(objectProperty) ? "PROCEDURE" : "TABLE", bracketedObjectName);
         try {
             stmt.executeUpdate(sql);
         } catch (SQLException e) {
@@ -392,7 +392,7 @@ public class TestUtils {
         if (rs != null) {
             try {
                 rs.close();
-    
+
             } catch (SQLException e) {
                 System.out.println("The result set cannot be closed.");
             }
@@ -612,11 +612,11 @@ public class TestUtils {
         if (value == null) {
             return null;
         }
-    
+
         Calendar cal;
         java.sql.Timestamp ts = null;
         int nanos = -1;
-    
+
         if (value instanceof Calendar) {
             cal = (Calendar) value;
         } else {
@@ -625,7 +625,7 @@ public class TestUtils {
             cal.setTimeInMillis(ts.getTime());
             nanos = ts.getNanos();
         }
-    
+
         // round to the nearest minute
         double seconds = cal.get(Calendar.SECOND)
                 + (nanos == -1 ? ((double) cal.get(Calendar.MILLISECOND) / 1000) : ((double) nanos / 1000000000));
@@ -635,10 +635,10 @@ public class TestUtils {
         cal.set(Calendar.SECOND, 0);
         cal.set(Calendar.MILLISECOND, 0);
         nanos = 0;
-    
+
         // required to force computation
         cal.getTimeInMillis();
-    
+
         // return appropriate value
         if (value instanceof Calendar) {
             return cal;

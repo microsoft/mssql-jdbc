@@ -111,8 +111,8 @@ public class FipsEnvTest {
          * "Testing"))); assumingThat("BCFIPS".equals(TestUtils.getConfiguredProperty("FIPS_ENV")), () ->
          * assertAll("All FIPS", () -> assertTrue(isFIPS("IBMJCEFIPS"), "FIPS should be Enabled."), () ->
          * assertTrue(isFIPS("BCFIPS"), "Testing")));
-         * assumingThat("FIPS".equals(TestUtils.getConfiguredProperty("FIPS_ENV")), ()-> assertTrue(isFIPS("IBMJCEFIPS"),
-         * "FIPS Should be enabled"));
+         * assumingThat("FIPS".equals(TestUtils.getConfiguredProperty("FIPS_ENV")), ()->
+         * assertTrue(isFIPS("IBMJCEFIPS"), "FIPS Should be enabled"));
          */
     }
 

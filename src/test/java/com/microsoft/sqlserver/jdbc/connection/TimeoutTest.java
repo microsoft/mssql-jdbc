@@ -37,13 +37,13 @@ public class TimeoutTest extends AbstractTest {
     public void testDefaultLoginTimeout() {
         long timerStart = 0;
         long timerEnd = 0;
-        
+
         timerStart = System.currentTimeMillis();
         // Try a non existing server and see if the default timeout is 15 seconds
-        try (Connection con = DriverManager.getConnection("jdbc:sqlserver://" + randomServer + ";user=sa;password=pwd;")) {
-            
-        }
-        catch (Exception e) {
+        try (Connection con = DriverManager
+                .getConnection("jdbc:sqlserver://" + randomServer + ";user=sa;password=pwd;")) {
+
+        } catch (Exception e) {
             assertTrue(e.getMessage().contains(TestResource.getResource("R_tcpipConnectionToHost")));
             timerEnd = System.currentTimeMillis();
         }
@@ -58,7 +58,7 @@ public class TimeoutTest extends AbstractTest {
     public void testFailoverInstanceResolution() throws SQLException {
         long timerStart = 0;
         long timerEnd = 0;
-        
+
         timerStart = System.currentTimeMillis();
         // Try a non existing server and see if the default timeout is 15 seconds
         try (Connection con = DriverManager
@@ -77,7 +77,7 @@ public class TimeoutTest extends AbstractTest {
     public void testFOInstanceResolution2() throws SQLException {
         long timerStart = 0;
         long timerEnd = 0;
-        
+
         timerStart = System.currentTimeMillis();
         try (Connection con = DriverManager
                 .getConnection("jdbc:sqlserver://" + randomServer + "\\fooggg;databaseName=FailoverDB;failoverPartner="
@@ -102,7 +102,7 @@ public class TimeoutTest extends AbstractTest {
             dropWaitForDelayProcedure(conn);
             createWaitForDelayPreocedure(conn);
         }
-        
+
         try (SQLServerConnection conn = (SQLServerConnection) DriverManager
                 .getConnection(connectionString + ";queryTimeout=" + (waitForDelaySeconds / 2) + ";")) {
 
@@ -192,7 +192,7 @@ public class TimeoutTest extends AbstractTest {
                 assertEquals(e.getMessage(), TestResource.getResource("R_queryTimedOut"),
                         TestResource.getResource("R_invalidExceptionMessage"));
             }
-            
+
             try (SQLServerStatement stmt = (SQLServerStatement) conn.createStatement()) {
                 stmt.execute("SELECT @@version");
             } catch (Exception e) {
@@ -229,7 +229,7 @@ public class TimeoutTest extends AbstractTest {
                 assertEquals(e.getMessage(), TestResource.getResource("R_readTimedOut"),
                         TestResource.getResource("R_invalidExceptionMessage"));
             }
-            
+
             try (SQLServerStatement stmt = (SQLServerStatement) conn.createStatement()) {
                 stmt.execute("SELECT @@version");
             } catch (SQLException e) {

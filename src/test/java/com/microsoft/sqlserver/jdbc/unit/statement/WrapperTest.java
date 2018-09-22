@@ -70,7 +70,8 @@ public class WrapperTest extends AbstractTest {
                     isWrapper = ((SQLServerCallableStatement) cs)
                             .isWrapperFor(Class.forName("com.microsoft.sqlserver.jdbc.SQLServerStatement"));
                     assertEquals(isWrapper, true, form.format(msgArgs[2]));
-                    // Now unwrap the Callable to a statement and call a SQLServerStatement specific function and make sure it succeeds.
+                    // Now unwrap the Callable to a statement and call a SQLServerStatement specific function and make
+                    // sure it succeeds.
                     try (SQLServerStatement stmt2 = (SQLServerStatement) ((SQLServerCallableStatement) cs)
                             .unwrap(Class.forName("com.microsoft.sqlserver.jdbc.SQLServerStatement"))) {
                         stmt2.setResponseBuffering("adaptive");

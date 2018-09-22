@@ -158,15 +158,15 @@ public class lobsTest extends AbstractTest {
                 DBColumn col = table.getColumns().get(i);
                 try (DBConnection conn = new DBConnection(connectionString)) {
                     if (!col.getSqlType().canConvert(lobClass, coercionType, conn))
-                    continue;
+                        continue;
                 }
                 // re-create LOB since it might get closed
                 Object lob = this.createLob(lobClass);
                 if (isResultSet) {
                     stmt = conn.createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE);
-                        updater = stmt.executeQuery("Select " + table.getEscapedTableName() + ".[" + col.getColumnName()
-                                + "]" + " from " + table.getEscapedTableName());
-                        ((ResultSet) updater).next();
+                    updater = stmt.executeQuery("Select " + table.getEscapedTableName() + ".[" + col.getColumnName()
+                            + "]" + " from " + table.getEscapedTableName());
+                    ((ResultSet) updater).next();
                 } else
                     updater = conn.prepareStatement("update " + table.getEscapedTableName() + " set " + ".["
                             + col.getColumnName() + "]" + "=?");
@@ -196,12 +196,12 @@ public class lobsTest extends AbstractTest {
                             || (lobClass == Clob.class && ((DBInvalidUtil.InvalidClob) lob).stream != null)) {
                         try (DBInvalidUtil.InvalidCharacterStream stream = lobClass == DBCharacterStream.class ? ((DBInvalidUtil.InvalidCharacterStream) lob)
                                                                                                                : ((DBInvalidUtil.InvalidClob) lob).stream) {
-                        if (stream.threwException) {
-                            // CharacterStream threw IOException
-                            String[] args = {
-                                    "java.io.IOException: " + DBInvalidUtil.InvalidCharacterStream.IOExceptionMsg};
-                            assertTrue(e.getMessage().contains(args[0]));
-                            verified = true;
+                            if (stream.threwException) {
+                                // CharacterStream threw IOException
+                                String[] args = {
+                                        "java.io.IOException: " + DBInvalidUtil.InvalidCharacterStream.IOExceptionMsg};
+                                assertTrue(e.getMessage().contains(args[0]));
+                                verified = true;
                             }
                         }
                     }
@@ -756,8 +756,8 @@ public class lobsTest extends AbstractTest {
     }
 
     private static void dropTables(DBTable table) throws SQLException {
-        stmt.executeUpdate("if object_id('" + TestUtils.escapeSingleQuotes(table.getEscapedTableName()) + "','U') is not null"
-                + " drop table " + table.getEscapedTableName());
+        stmt.executeUpdate("if object_id('" + TestUtils.escapeSingleQuotes(table.getEscapedTableName())
+                + "','U') is not null" + " drop table " + table.getEscapedTableName());
     }
 
 }

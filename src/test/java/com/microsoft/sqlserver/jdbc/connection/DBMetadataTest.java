@@ -31,8 +31,8 @@ public class DBMetadataTest extends AbstractTest {
         ds.setURL(connectionString);
 
         String sqlDropFunction = "if exists (select * from dbo.sysobjects where id = object_id(N'[dbo]."
-                + TestUtils.escapeSingleQuotes(functionName) + "')" + "and xtype in (N'FN', N'IF', N'TF'))" + "drop function "
-                + functionName;
+                + TestUtils.escapeSingleQuotes(functionName) + "')" + "and xtype in (N'FN', N'IF', N'TF'))"
+                + "drop function " + functionName;
         String sqlCreateFunction = "CREATE  FUNCTION " + functionName
                 + " (@text varchar(8000), @delimiter varchar(20) = ' ') RETURNS @Strings TABLE "
                 + "(position int IDENTITY PRIMARY KEY, value varchar(8000)) AS BEGIN INSERT INTO @Strings VALUES ('DDD') RETURN END ";

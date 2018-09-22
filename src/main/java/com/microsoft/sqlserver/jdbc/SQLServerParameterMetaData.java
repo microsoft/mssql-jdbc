@@ -704,20 +704,20 @@ public final class SQLServerParameterMetaData implements ParameterMetaData {
     }
 
     private Map<String, Object> getParameterInfo(int param) throws SQLServerException {
-        boolean bFound = false;
+        boolean paramFound = false;
         if ((stmtParent).bReturnValueSyntax && isTVP) {
-            bFound = procMetadata.size() >= param;
-            if (bFound) {
+            paramFound = procMetadata.size() >= param;
+            if (paramFound) {
                 return procMetadata.get(param - 1);
             }
         } else {
             // Note row 1 is the 'return value' meta data
-            bFound = procMetadata.size() > param;
-            if (bFound) {
+            paramFound = procMetadata.size() > param;
+            if (paramFound) {
                 return procMetadata.get(param);
             }
         }
-        if (!bFound) {
+        if (!paramFound) {
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidParameterNumber"));
             Object[] msgArgs = {param};
             SQLServerException.makeFromDriverError(con, stmtParent, form.format(msgArgs), null, false);
@@ -758,7 +758,7 @@ public final class SQLServerParameterMetaData implements ParameterMetaData {
             return queryMetaMap.size();
         } else {
             // Row 1 is Return Type metadata
-            return procMetadata.size() - 1;
+            return (procMetadata.size() == 0 ? 0 : procMetadata.size() - 1);
         }
     }
 

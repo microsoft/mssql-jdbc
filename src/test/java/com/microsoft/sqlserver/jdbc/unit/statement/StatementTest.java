@@ -1416,7 +1416,7 @@ public class StatementTest extends AbstractTest {
                 try (PreparedStatement ps = con
                         .prepareStatement("BEGIN TRAN " + "Insert into " + tableName + " values(4) " + "ROLLBACK")) {}
                 con.setAutoCommit(false);
-                
+
                 try (PreparedStatement ps2 = con.prepareStatement("Insert into " + tableName + " values('a')")) {
                     try {
                         ps2.execute();
@@ -1869,7 +1869,7 @@ public class StatementTest extends AbstractTest {
                         stmt.executeUpdate(insertQuery);
                     }
                 }
-                
+
                 try (Statement stmt = con.createStatement(ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_UPDATABLE);
                         ResultSet rs = stmt.executeQuery("SELECT * FROM " + tableName)) {
 
@@ -2380,7 +2380,7 @@ public class StatementTest extends AbstractTest {
                     assertEquals(e.getMessage(), expectedMessage,
                             "Second result: Unexpected error message from RAISERROR");
                 }
-                
+
                 try (ResultSet rs = pstmt.getResultSet()) {
                     assertEquals(rs, null, "First result: Unexpected update count");
 
@@ -2390,7 +2390,7 @@ public class StatementTest extends AbstractTest {
                     assertEquals(result, false, "Second result: wrong result type; update count expected");
                     assertEquals(pstmt.getUpdateCount(), 1, "Second result: wrong number of rows inserted");
                 }
-                
+
                 try (ResultSet rs = con.createStatement().executeQuery("SELECT * FROM " + tableName)) {
                     int rowCount = 0;
                     while (rs.next())

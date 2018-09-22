@@ -47,9 +47,9 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
     public void testIsInsert() throws Exception {
         try (Connection connection = DriverManager.getConnection(connectionString + ";useBulkCopyForBatchInsert=true;");
                 Statement stmt = (SQLServerStatement) connection.createStatement()) {
-            String valid1 = "INSERT INTO "+ tableNameBulk + " values (1, 2)";
+            String valid1 = "INSERT INTO " + tableNameBulk + " values (1, 2)";
             String valid2 = " INSERT INTO " + tableNameBulk + " values (1, 2)";
-            String valid3 = "/* asdf */ INSERT INTO " +  tableNameBulk + " values (1, 2)";
+            String valid3 = "/* asdf */ INSERT INTO " + tableNameBulk + " values (1, 2)";
             String invalid = "Select * from " + tableNameBulk;
 
             Method method = stmt.getClass().getDeclaredMethod("isInsert", String.class);
