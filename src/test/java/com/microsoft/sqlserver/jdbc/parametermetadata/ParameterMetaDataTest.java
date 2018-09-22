@@ -112,7 +112,7 @@ public class ParameterMetaDataTest extends AbstractTest {
                     assert (metadata.getScale(2) == 5);
                 }
             } finally {
-                Utils.dropTableIfExists(tableName, stmt);
+                TestUtils.dropTableIfExists(tableName, stmt);
             }
         }
     }

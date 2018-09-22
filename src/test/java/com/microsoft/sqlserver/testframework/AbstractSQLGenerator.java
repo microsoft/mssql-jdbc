@@ -5,7 +5,7 @@
 
 package com.microsoft.sqlserver.testframework;
 
-import com.microsoft.sqlserver.testframework.util.Util;
+import com.microsoft.sqlserver.jdbc.TestUtils;
 
 
 /**
@@ -61,7 +61,7 @@ public abstract class AbstractSQLGenerator {// implements ISQLGenerator {
     public String wrapName(String name) {
         StringBuffer wrap = new StringBuffer();
         wrap.append(getWrapIdentifier());
-        wrap.append(Util.escapeQuotes(name));
+        wrap.append(TestUtils.escapeSingleQuotes(name));
         wrap.append(getWrapIdentifier());
         return wrap.toString();
     }

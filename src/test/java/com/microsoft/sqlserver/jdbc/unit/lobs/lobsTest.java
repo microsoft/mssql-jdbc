@@ -756,8 +756,8 @@ public class lobsTest extends AbstractTest {
     }
 
     private static void dropTables(DBTable table) throws SQLException {
-        stmt.executeUpdate("if object_id('" + table.getEscapedTableName() + "','U') is not null" + " drop table "
-                + table.getEscapedTableName());
+        stmt.executeUpdate("if object_id('" + TestUtils.escapeSingleQuotes(table.getEscapedTableName()) + "','U') is not null"
+                + " drop table " + table.getEscapedTableName());
     }
 
 }

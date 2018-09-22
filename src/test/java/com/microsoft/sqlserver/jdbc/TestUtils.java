@@ -284,7 +284,7 @@ public class TestUtils {
     }
 
     public static void dropDatabaseIfExists(String databaseName, java.sql.Statement stmt) throws SQLException {
-        stmt.executeUpdate("USE MASTER; IF EXISTS(SELECT * from sys.databases WHERE name='" + databaseName
+        stmt.executeUpdate("USE MASTER; IF EXISTS(SELECT * from sys.databases WHERE name='" + escapeSingleQuotes(databaseName)
                 + "') DROP DATABASE [" + databaseName + "]");
     }
 
@@ -304,7 +304,7 @@ public class TestUtils {
         String bracketedObjectName = sb.toString();
         String sql = String.format("IF EXISTS " + "( " + "SELECT * from sys.objects "
                 + "WHERE object_id = OBJECT_ID(N'%s') AND OBJECTPROPERTY(object_id, N'%s') = 1 " + ") " + "DROP %s %s ",
-                bracketedObjectName, objectProperty, "IsProcedure".equals(objectProperty) ? "PROCEDURE" : "TABLE",
+                escapeSingleQuotes(bracketedObjectName), objectProperty, "IsProcedure".equals(objectProperty) ? "PROCEDURE" : "TABLE",
                 bracketedObjectName);
         try {
             stmt.executeUpdate(sql);
@@ -696,7 +696,7 @@ public class TestUtils {
      *        Object name to be passed as String
      * @return Converted object name
      */
-    public static String escapeQuotes(String name) {
+    public static String escapeSingleQuotes(String name) {
         return name.replace("'", "''");
     }
 }

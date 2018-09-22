@@ -26,7 +26,6 @@ import com.microsoft.sqlserver.testframework.DBPreparedStatement;
 import com.microsoft.sqlserver.testframework.DBResultSet;
 import com.microsoft.sqlserver.testframework.DBResultSetTypes;
 import com.microsoft.sqlserver.testframework.DBStatement;
-import com.microsoft.sqlserver.testframework.util.Util;;
 
 
 @RunWith(JUnitPlatform.class)

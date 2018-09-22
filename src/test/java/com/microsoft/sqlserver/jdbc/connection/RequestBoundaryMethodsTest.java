@@ -389,7 +389,7 @@ public class RequestBoundaryMethodsTest extends AbstractTest {
     private SQLServerConnection connect() throws SQLException {
         SQLServerConnection connection = null;
         try {
-            connection = PrepUtil.getConnection(getConfiguredProperty("mssql_jdbc_test_connection_properties"));
+            connection = PrepUtil.getConnection(connectionString);
         } catch (ClassNotFoundException e) {
             e.printStackTrace();
         }
