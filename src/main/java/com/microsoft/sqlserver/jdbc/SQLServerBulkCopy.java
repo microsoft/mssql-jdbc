@@ -1559,22 +1559,6 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
             } finally {
                 tdsWriter = command.getTDSWriter();
             }
-        } catch (SQLServerException ex) {
-            if (null == tdsWriter) {
-                tdsWriter = command.getTDSWriter();
-            }
-
-            // Close the TDS packet before handling the exception
-            writePacketDataDone(tdsWriter);
-
-            // Send Attention packet to interrupt a complete request that was already sent to the server
-            command.startRequest(TDS.PKT_CANCEL_REQ);
-
-            TDSParser.parse(command.startResponse(), command.getLogContext());
-            command.interrupt(ex.getMessage());
-            command.onRequestComplete();
-
-            throw ex;
         } finally {
             if (null == tdsWriter) {
                 tdsWriter = command.getTDSWriter();
