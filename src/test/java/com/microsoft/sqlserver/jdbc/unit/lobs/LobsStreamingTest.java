@@ -121,6 +121,7 @@ public class LobsStreamingTest extends AbstractTest {
                         Reader r = c.getCharacterStream();
                         long clobLength = c.length();
                         String received = getStringFromReader(r, clobLength);// streaming string
+                        c.free();
                         assertEquals(lob_data.get(rs.getInt(1)), received);// compare streamed string to initial string
                     }
                 }
@@ -158,6 +159,9 @@ public class LobsStreamingTest extends AbstractTest {
                                                                                                        // string
                     assertEquals(received, lob_data.get(i));// compare static string to streamed string
                 }
+                for (Clob c : lobsFromServer) {
+                    c.free();
+                }
             } finally {
                 try (Statement stmt = conn.createStatement()) {
                     TestUtils.dropTableIfExists(tableName, stmt);
@@ -177,15 +181,14 @@ public class LobsStreamingTest extends AbstractTest {
                 ArrayList<String> lob_data = createRandomStringArray(Lob.CLOB);
                 insertData(conn, tableName, lob_data);
 
-                ArrayList<NClob> lobsFromServer = new ArrayList<>();
                 try (ResultSet rs = stmt.executeQuery("SELECT * FROM [" + tableName + "] ORDER BY id ASC")) {
                     while (rs.next()) {
                         int index = rs.getInt(1);
                         NClob c = rs.getNClob(2);
                         assertEquals(c.length(), lob_data.get(index).length());
-                        lobsFromServer.add(c);
                         String received = getStringFromInputStream(c.getAsciiStream());// NClob AsciiStream is never
                                                                                        // streamed
+                        c.free();
                         assertEquals(lob_data.get(index), received);// compare string to initial string
                     }
                 }
@@ -223,6 +226,9 @@ public class LobsStreamingTest extends AbstractTest {
                             lobsFromServer.get(i).length());// non-streaming string
                     assertEquals(received, lob_data.get(i));// compare static string to streamed string
                 }
+                for (Clob c : lobsFromServer) {
+                    c.free();
+                }
             } finally {
                 try (Statement stmt = conn.createStatement()) {
                     TestUtils.dropTableIfExists(tableName, stmt);
@@ -256,6 +262,9 @@ public class LobsStreamingTest extends AbstractTest {
                     String received = getStringFromReader(lobsFromServer.get(i).getCharacterStream(),
                             lobsFromServer.get(i).length());// non-streaming string
                     assertEquals(received, lob_data.get(i));// compare static string to streamed string
+                }
+                for (Clob c : lobsFromServer) {
+                    c.free();
                 }
             } finally {
                 try (Statement stmt = conn.createStatement()) {
