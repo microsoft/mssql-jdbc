@@ -23,13 +23,14 @@ import com.microsoft.sqlserver.jdbc.SQLServerConnection;
 import com.microsoft.sqlserver.jdbc.SQLServerStatement;
 import com.microsoft.sqlserver.jdbc.TestResource;
 import com.microsoft.sqlserver.jdbc.TestUtils;
+import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
 import com.microsoft.sqlserver.testframework.AbstractTest;
 
 
 @RunWith(JUnitPlatform.class)
 public class TimeoutTest extends AbstractTest {
     String randomServer = RandomUtil.getIdentifier("Server");
-    String waitForDelaySPName = "waitForDelaySP";
+    String waitForDelaySPName = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("waitForDelaySP"));
     final int waitForDelaySeconds = 10;
 
     @Test

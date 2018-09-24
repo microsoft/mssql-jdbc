@@ -22,9 +22,11 @@ import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
 
+import com.microsoft.sqlserver.jdbc.RandomUtil;
 import com.microsoft.sqlserver.jdbc.SQLServerConnection;
 import com.microsoft.sqlserver.jdbc.TestResource;
 import com.microsoft.sqlserver.jdbc.TestUtils;
+import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
 import com.microsoft.sqlserver.testframework.AbstractTest;
 
 
@@ -37,6 +39,10 @@ import com.microsoft.sqlserver.testframework.AbstractTest;
 public class RegressionTest extends AbstractTest {
     static Connection con = null;
 
+    static String tableName = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("table"));
+
+
+
     /**
      * Setup before test
      * 
@@ -46,7 +52,7 @@ public class RegressionTest extends AbstractTest {
     public static void setupTest() throws SQLException {
         con = DriverManager.getConnection(connectionString);
         try (Statement stmt = con.createStatement()) {
-            TestUtils.dropTableIfExists("x", stmt);
+            TestUtils.dropTableIfExists(tableName, stmt);
         }
     }
 
@@ -57,8 +63,8 @@ public class RegressionTest extends AbstractTest {
      */
     @Test
     public void createViewTest() throws SQLException {
-        try (PreparedStatement pstmt1 = con.prepareStatement("create view x as select 1 a");
-                PreparedStatement pstmt2 = con.prepareStatement("drop view x")) {
+        try (PreparedStatement pstmt1 = con.prepareStatement("create view " + tableName + " as select 1 a");
+                PreparedStatement pstmt2 = con.prepareStatement("drop view " + tableName)) {
             pstmt1.execute();
             pstmt2.execute();
         } catch (SQLException e) {
@@ -91,8 +97,8 @@ public class RegressionTest extends AbstractTest {
      */
     @Test
     public void createTableTest() throws SQLException {
-        try (PreparedStatement pstmt1 = con.prepareStatement("create table x (col1 int)");
-                PreparedStatement pstmt2 = con.prepareStatement("drop table x")) {
+        try (PreparedStatement pstmt1 = con.prepareStatement("create table " + tableName + " (col1 int)");
+                PreparedStatement pstmt2 = con.prepareStatement("drop table " + tableName)) {
             pstmt1.execute();
             pstmt2.execute();
         } catch (SQLException e) {
@@ -108,9 +114,9 @@ public class RegressionTest extends AbstractTest {
      */
     @Test
     public void alterTableTest() throws SQLException {
-        try (PreparedStatement pstmt1 = con.prepareStatement("create table x (col1 int)");
-                PreparedStatement pstmt2 = con.prepareStatement("ALTER TABLE x ADD column_name char;");
-                PreparedStatement pstmt3 = con.prepareStatement("drop table x")) {
+        try (PreparedStatement pstmt1 = con.prepareStatement("create table " + tableName + " (col1 int)");
+                PreparedStatement pstmt2 = con.prepareStatement("ALTER TABLE " + tableName + " ADD column_name char;");
+                PreparedStatement pstmt3 = con.prepareStatement("drop table " + tableName)) {
             pstmt1.execute();
             pstmt2.execute();
             pstmt3.execute();
@@ -127,10 +133,10 @@ public class RegressionTest extends AbstractTest {
      */
     @Test
     public void grantTest() throws SQLException {
-        try (PreparedStatement pstmt1 = con.prepareStatement("create table x (col1 int)");
-                PreparedStatement pstmt2 = con.prepareStatement("grant select on x to public");
-                PreparedStatement pstmt3 = con.prepareStatement("revoke select on x from public");
-                PreparedStatement pstmt4 = con.prepareStatement("drop table x")) {
+        try (PreparedStatement pstmt1 = con.prepareStatement("create table " + tableName + " (col1 int)");
+                PreparedStatement pstmt2 = con.prepareStatement("grant select on " + tableName + " to public");
+                PreparedStatement pstmt3 = con.prepareStatement("revoke select on " + tableName + " from public");
+                PreparedStatement pstmt4 = con.prepareStatement("drop table " + tableName)) {
             pstmt1.execute();
             pstmt2.execute();
             pstmt3.execute();

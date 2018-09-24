@@ -15,6 +15,7 @@ import java.sql.SQLException;
 import java.sql.Time;
 import java.sql.Timestamp;
 import java.util.LinkedList;
+import java.util.UUID;
 
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
@@ -23,11 +24,13 @@ import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
 
 import com.microsoft.sqlserver.jdbc.RandomData;
+import com.microsoft.sqlserver.jdbc.RandomUtil;
 import com.microsoft.sqlserver.jdbc.SQLServerCallableStatement;
 import com.microsoft.sqlserver.jdbc.SQLServerPreparedStatement;
 import com.microsoft.sqlserver.jdbc.SQLServerResultSet;
 import com.microsoft.sqlserver.jdbc.TestResource;
 import com.microsoft.sqlserver.jdbc.TestUtils;
+import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
 
 import microsoft.sql.DateTimeOffset;
 
@@ -39,37 +42,34 @@ import microsoft.sql.DateTimeOffset;
 @RunWith(JUnitPlatform.class)
 public class CallableStatementTest extends AESetup {
 
-    private static String multiStatementsProcedure = "multiStatementsProcedure";
-
-    private static String inputProcedure = "inputProcedure";
-    private static String inputProcedure2 = "inputProcedure2";
-
-    private static String outputProcedure = "outputProcedure";
-    private static String outputProcedure2 = "outputProcedure2";
-    private static String outputProcedure3 = "outputProcedure3";
-    private static String outputProcedureChar = "outputProcedureChar";
-    private static String outputProcedureNumeric = "outputProcedureNumeric";
-    private static String outputProcedureBinary = "outputProcedureBinary";
-    private static String outputProcedureDate = "outputProcedureDate";
-    private static String MixedProcedureDateScale = "outputProcedureDateScale";
-    private static String outputProcedureBatch = "outputProcedureBatch";
-    private static String outputProcedure4 = "outputProcedure4";
-
-    private static String inoutProcedure = "inoutProcedure";
-
-    private static String mixedProcedure = "mixedProcedure";
-    private static String mixedProcedure2 = "mixedProcedure2";
-    private static String mixedProcedure3 = "mixedProcedure3";
-    private static String mixedProcedureNumericPrcisionScale = "mixedProcedureNumericPrcisionScale";
-
-    private static String table1 = "StoredProcedureTable1";
-    private static String table2 = "StoredProcedureTable2";
-    private static String table3 = "StoredProcedureTable3";
-    private static String table4 = "StoredProcedureTable4";
-    private static String table5 = "StoredProcedureTable5";
-    private static String table6 = "StoredProcedureTable6";
-
-    static final String uid = "171fbe25-4331-4765-a838-b2e3eea3e7ea";
+    private static String multiStatementsProcedure = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("multiStatementsProcedure"));
+    private static String inputProcedure = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("inputProcedure"));
+    private static String inputProcedure2 = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("inputProcedure2"));
+    private static String outputProcedure = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("outputProcedure"));
+    private static String outputProcedure2 = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("outputProcedure2"));
+    private static String outputProcedure3 = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("outputProcedure3"));
+    private static String outputProcedureChar = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("outputProcedureChar"));
+    private static String outputProcedureNumeric = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("outputProcedureNumeric"));
+    private static String outputProcedureBinary = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("outputProcedureBinary"));
+    private static String outputProcedureDate = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("outputProcedureDate"));
+    private static String outputProcedureDateScale = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("outputProcedureDateScale"));
+    private static String outputProcedureBatch = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("outputProcedureBatch"));
+    private static String outputProcedure4 = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("outputProcedure4"));
+  
+    private static String inoutProcedure = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("inoutProcedure"));
+    private static String mixedProcedure = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("inoutProcedure"));
+    private static String mixedProcedure2 = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("mixedProcedure2"));
+    private static String mixedProcedure3 = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("mixedProcedure3"));
+    private static String mixedProcedureNumericPrcisionScale = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("mixedProcedureNumericPrcisionScale"));
+  
+    private static String table1 = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("StoredProcedure_table1"));
+    private static String table2 = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("StoredProcedure_table2"));
+    private static String table3 = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("StoredProcedure_table3"));
+    private static String table4 = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("StoredProcedure_table4"));
+    private static String table5 = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("StoredProcedure_table5"));
+    private static String table6 = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("StoredProcedure_table6"));
+    
+    static final String uid = UUID.randomUUID().toString();
 
     private static String[] numericValues;
     private static LinkedList<byte[]> byteValues;
@@ -85,6 +85,7 @@ public class CallableStatementTest extends AESetup {
      */
     @BeforeAll
     public static void initCallableStatementTest() throws SQLException {
+
         dropTables();
 
         numericValues = createNumericValues(nullable);
@@ -228,8 +229,8 @@ public class CallableStatementTest extends AESetup {
     @Test
     public void testMixedProcedureDateScale() throws SQLException {
         createMixedProcedureDateScale();
-        testMixedProcedureDateScaleInorder("{call " + MixedProcedureDateScale + "(?,?,?,?,?,?)}");
-        testMixedProcedureDateScaleWithParameterName("{call " + MixedProcedureDateScale + "(?,?,?,?,?,?)}");
+        testMixedProcedureDateScaleInorder("{call " + outputProcedureDateScale + "(?,?,?,?,?,?)}");
+        testMixedProcedureDateScaleWithParameterName("{call " + outputProcedureDateScale + "(?,?,?,?,?,?)}");
     }
 
     @Test
@@ -2409,11 +2410,11 @@ public class CallableStatementTest extends AESetup {
     }
 
     private void createMixedProcedureDateScale() throws SQLException {
-        String sql = " IF EXISTS (select * from sysobjects where id = object_id(N'" + MixedProcedureDateScale
-                + "') and OBJECTPROPERTY(id, N'IsProcedure') = 1)" + " DROP PROCEDURE " + MixedProcedureDateScale;
+        String sql = " IF EXISTS (select * from sysobjects where id = object_id(N'" + outputProcedureDateScale
+                + "') and OBJECTPROPERTY(id, N'IsProcedure') = 1)" + " DROP PROCEDURE " + outputProcedureDateScale;
         stmt.execute(sql);
 
-        sql = "CREATE PROCEDURE " + MixedProcedureDateScale + " @p1 datetime2(2) OUTPUT, @p2 datetime2(2) OUTPUT,"
+        sql = "CREATE PROCEDURE " + outputProcedureDateScale + " @p1 datetime2(2) OUTPUT, @p2 datetime2(2) OUTPUT,"
                 + " @p3 time(2) OUTPUT, @p4 time(2) OUTPUT, @p5 datetimeoffset(2) OUTPUT, @p6 datetimeoffset(2) OUTPUT "
                 + " AS"
                 + " SELECT top 1 @p1=DeterministicDatetime2,@p2=RandomizedDatetime2,@p3=DeterministicTime,@p4=RandomizedTime,"

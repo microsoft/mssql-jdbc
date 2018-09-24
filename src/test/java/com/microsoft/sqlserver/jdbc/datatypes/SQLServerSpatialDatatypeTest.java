@@ -25,12 +25,14 @@ import org.junit.runner.RunWith;
 
 import com.microsoft.sqlserver.jdbc.Geography;
 import com.microsoft.sqlserver.jdbc.Geometry;
+import com.microsoft.sqlserver.jdbc.RandomUtil;
 import com.microsoft.sqlserver.jdbc.SQLServerConnection;
 import com.microsoft.sqlserver.jdbc.SQLServerException;
 import com.microsoft.sqlserver.jdbc.SQLServerPreparedStatement;
 import com.microsoft.sqlserver.jdbc.SQLServerResultSet;
 import com.microsoft.sqlserver.jdbc.TestResource;
 import com.microsoft.sqlserver.jdbc.TestUtils;
+import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
 import com.microsoft.sqlserver.testframework.AbstractTest;
 
 
@@ -41,9 +43,9 @@ import com.microsoft.sqlserver.testframework.AbstractTest;
 @RunWith(JUnitPlatform.class)
 public class SQLServerSpatialDatatypeTest extends AbstractTest {
 
-    static String geomTableName = "geometryTestTable";
-    static String geogTableName = "geographyTestTable";
-    static String spatialDatatypeTableName = "spatialDatatypeTestTable";
+    static String geomTableName;
+    static String geogTableName;
+    static String spatialDatatypeTableName;
     static boolean isDenaliOrLater = false;
 
     @Test
@@ -1111,6 +1113,10 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest {
      */
     @BeforeAll
     public static void setupHere() throws SQLException, SecurityException, IOException {
+        geomTableName = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("geometryTestTable"));;
+        geogTableName = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("geographyTestTable"));;
+        spatialDatatypeTableName = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("spatialDatatypeTestTable"));;
+
         try (Connection con = (SQLServerConnection) DriverManager.getConnection(connectionString);
                 Statement stmt = con.createStatement(); SQLServerResultSet rs = (SQLServerResultSet) stmt
                         .executeQuery("select SERVERPROPERTY ( 'ProductVersion' )")) {
@@ -1139,8 +1145,9 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest {
     public static void afterAll() throws SQLException {
         try (Connection con = (SQLServerConnection) DriverManager.getConnection(connectionString);
                 Statement stmt = con.createStatement()) {
-        TestUtils.dropTableIfExists(geomTableName, stmt);
-        TestUtils.dropTableIfExists(geogTableName, stmt);
+            TestUtils.dropTableIfExists(geomTableName, stmt);
+            TestUtils.dropTableIfExists(geogTableName, stmt);
+            TestUtils.dropTableIfExists(spatialDatatypeTableName, stmt);
         }
     }
 }

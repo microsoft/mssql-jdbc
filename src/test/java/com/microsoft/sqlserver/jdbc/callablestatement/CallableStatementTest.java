@@ -19,25 +19,23 @@ import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
 
+import com.microsoft.sqlserver.jdbc.RandomUtil;
 import com.microsoft.sqlserver.jdbc.SQLServerCallableStatement;
 import com.microsoft.sqlserver.jdbc.SQLServerDataSource;
 import com.microsoft.sqlserver.jdbc.TestResource;
 import com.microsoft.sqlserver.jdbc.TestUtils;
 import com.microsoft.sqlserver.testframework.AbstractTest;
-
+import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
 
 /**
  * Test CallableStatement
  */
 @RunWith(JUnitPlatform.class)
 public class CallableStatementTest extends AbstractTest {
-    private static String tableNameGUID = "uniqueidentifier_Table";
-    private static String outputProcedureNameGUID = "uniqueidentifier_SP";
-    private static String setNullProcedureName = "CallableStatementTest_setNull_SP";
-    private static String inputParamsProcedureName = "CallableStatementTest_inputParams_SP";
-
-    private static Connection connection = null;
-    private static Statement stmt = null;
+    private static String tableNameGUID = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("uniqueidentifier_Table"));
+    private static String outputProcedureNameGUID = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("uniqueidentifier_SP"));
+    private static String setNullProcedureName = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("CallableStatementTest_setNull_SP"));
+    private static String inputParamsProcedureName = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("CallableStatementTest_inputParams_SP"));
 
     /**
      * Setup before test
@@ -46,18 +44,19 @@ public class CallableStatementTest extends AbstractTest {
      */
     @BeforeAll
     public static void setupTest() throws SQLException {
-        connection = DriverManager.getConnection(connectionString);
-        stmt = connection.createStatement();
+        
+        try (Connection connection = DriverManager.getConnection(connectionString);
+                Statement stmt = connection.createStatement()) {
+            TestUtils.dropTableIfExists(tableNameGUID, stmt);
+            TestUtils.dropProcedureIfExists(outputProcedureNameGUID, stmt);
+            TestUtils.dropProcedureIfExists(setNullProcedureName, stmt);
+            TestUtils.dropProcedureIfExists(inputParamsProcedureName, stmt);
 
-        TestUtils.dropTableIfExists(tableNameGUID, stmt);
-        TestUtils.dropProcedureIfExists(outputProcedureNameGUID, stmt);
-        TestUtils.dropProcedureIfExists(setNullProcedureName, stmt);
-        TestUtils.dropProcedureIfExists(inputParamsProcedureName, stmt);
-
-        createGUIDTable(stmt);
-        createGUIDStoredProcedure(stmt);
-        createSetNullPreocedure(stmt);
-        createInputParamsProcedure(stmt);
+            createGUIDTable(stmt);
+            createGUIDStoredProcedure(stmt);
+            createSetNullPreocedure(stmt);
+            createInputParamsProcedure(stmt);
+        }
     }
 
     /**
@@ -173,16 +172,13 @@ public class CallableStatementTest extends AbstractTest {
      */
     @AfterAll
     public static void cleanup() throws SQLException {
-        TestUtils.dropTableIfExists(tableNameGUID, stmt);
-        TestUtils.dropProcedureIfExists(outputProcedureNameGUID, stmt);
-        TestUtils.dropProcedureIfExists(setNullProcedureName, stmt);
-        TestUtils.dropProcedureIfExists(inputParamsProcedureName, stmt);
+        try (Connection connection = DriverManager.getConnection(connectionString);
+                Statement stmt = connection.createStatement()) {
 
-        if (null != stmt) {
-            stmt.close();
-        }
-        if (null != connection) {
-            connection.close();
+            TestUtils.dropTableIfExists(tableNameGUID, stmt);
+            TestUtils.dropProcedureIfExists(outputProcedureNameGUID, stmt);
+            TestUtils.dropProcedureIfExists(setNullProcedureName, stmt);
+            TestUtils.dropProcedureIfExists(inputParamsProcedureName, stmt);
         }
     }
 
@@ -203,9 +199,10 @@ public class CallableStatementTest extends AbstractTest {
     }
 
     private static void createInputParamsProcedure(Statement stmt) throws SQLException {
-        String sql = "CREATE PROCEDURE [dbo].[CallableStatementTest_inputParams_SP] "
+        String sql = "CREATE PROCEDURE " + inputParamsProcedureName
                 + "    @p1 nvarchar(max) = N'parameter1', " + "    @p2 nvarchar(max) = N'parameter2' " + "AS "
                 + "BEGIN " + "    SET NOCOUNT ON; " + "    SELECT @p1 + @p2 AS result; " + "END ";
+
         stmt.execute(sql);
     }
 }

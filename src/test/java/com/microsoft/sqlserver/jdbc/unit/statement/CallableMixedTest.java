@@ -31,10 +31,8 @@ import com.microsoft.sqlserver.testframework.AbstractTest;
  */
 @RunWith(JUnitPlatform.class)
 public class CallableMixedTest extends AbstractTest {
-    String tableN = RandomUtil.getIdentifier("TFOO3");
-    String procN = RandomUtil.getIdentifier("SPFOO3");
-    String tableName = AbstractSQLGenerator.escapeIdentifier(tableN);
-    String procName = AbstractSQLGenerator.escapeIdentifier(procN);
+    String tableName = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("TFOO3"));
+    String procName = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("SPFOO3"));
 
     /**
      * Tests Callable mix

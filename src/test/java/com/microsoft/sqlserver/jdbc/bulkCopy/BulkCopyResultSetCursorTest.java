@@ -26,6 +26,7 @@ import com.microsoft.sqlserver.jdbc.RandomUtil;
 import com.microsoft.sqlserver.jdbc.SQLServerBulkCopy;
 import com.microsoft.sqlserver.jdbc.SQLServerPreparedStatement;
 import com.microsoft.sqlserver.jdbc.TestUtils;
+import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
 import com.microsoft.sqlserver.testframework.AbstractTest;
 
 
@@ -43,8 +44,8 @@ public class BulkCopyResultSetCursorTest extends AbstractTest {
     static String[] expectedTimestampStrings = {"2015-06-03 13:35:33.4610000", "2442-09-19 01:59:43.9990000",
             "2017-04-02 08:58:53.0000000"};
 
-    private static String srcTable = null;
-    private static String desTable = null;
+    private static String srcTable = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("BulkCopyResultSetCursorTest_SourceTable"));;
+    private static String desTable = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("BulkCopyResultSetCursorTest_DestinationTable"));   
 
     /**
      * Test a previous failure when using server cursor and using the same connection to create Bulk Copy and result
@@ -213,13 +214,6 @@ public class BulkCopyResultSetCursorTest extends AbstractTest {
     }
 
     private static void createTables(Statement stmt) throws SQLException {
-        
-        if (null == srcTable) {
-            srcTable = "[BulkCopyResultSetCursorTest_Source_" + RandomUtil.getIdentifier("table") + "]";
-        }
-        if (null == desTable) {            
-            desTable = "[BulkCopyResultSetCursorTest_Destination_" + RandomUtil.getIdentifier("table") + "]";
-        }
         
         String sql = "create table " + srcTable
                 + " (c1 decimal(10,5) null, c2 nchar(50) null, c3 datetime2(7) null, c4 char(7000));";

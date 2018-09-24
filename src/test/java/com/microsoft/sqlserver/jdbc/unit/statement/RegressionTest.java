@@ -21,18 +21,20 @@ import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
 
+import com.microsoft.sqlserver.jdbc.RandomUtil;
 import com.microsoft.sqlserver.jdbc.SQLServerConnection;
 import com.microsoft.sqlserver.jdbc.SQLServerPreparedStatement;
 import com.microsoft.sqlserver.jdbc.TestResource;
 import com.microsoft.sqlserver.jdbc.TestUtils;
+import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
 import com.microsoft.sqlserver.testframework.AbstractTest;
 import com.microsoft.sqlserver.testframework.DBConnection;
 
 
 @RunWith(JUnitPlatform.class)
 public class RegressionTest extends AbstractTest {
-    private static String tableName = "[ServerCursorPStmt]";
-    private static String procName = "[ServerCursorProc]";
+    private static String tableName = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("ServerCursorPStmt"));
+    private static String procName = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("ServerCursorProc"));
 
     /**
      * Tests select into stored proc

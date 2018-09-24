@@ -70,8 +70,7 @@ public class StatementTest extends AbstractTest {
                 + "  It is particularly long so that we will get a multipacket TDS response back from the server."
                 + "  This is a test string." + "  This is a test string." + "  This is a test string."
                 + "  This is a test string." + "  This is a test string." + "  This is a test string.";
-        String tableN = RandomUtil.getIdentifier("TCAttentionHandling");
-        String tableName = AbstractSQLGenerator.escapeIdentifier(tableN);
+        String tableName = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("TCAttentionHandling"));
 
         @BeforeEach
         public void init() throws Exception {

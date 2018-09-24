@@ -34,13 +34,15 @@ import org.junit.runner.RunWith;
 import com.microsoft.sqlserver.jdbc.ISQLServerResultSet;
 import com.microsoft.sqlserver.jdbc.RandomUtil;
 import com.microsoft.sqlserver.jdbc.TestUtils;
+import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
 import com.microsoft.sqlserver.testframework.AbstractTest;
 
 
 @RunWith(JUnitPlatform.class)
 public class ResultSetTest extends AbstractTest {
-    private static final String tableName = "[" + RandomUtil.getIdentifier("StatementParam") + "]";
+    private static final String tableName = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("StatementParam"));
 
+    static final String uuid = UUID.randomUUID().toString();
     /**
      * Tests proper exception for unsupported operation
      * 
@@ -61,7 +63,7 @@ public class ResultSetTest extends AbstractTest {
                         + "'hello', " // col2
                         + "2.0, " // col3
                         + "123.45, " // col4
-                        + "'6F9619FF-8B86-D011-B42D-00C04FC964FF', " // col5
+                        + "'" + uuid + "', " // col5
                         + "'<test/>', " // col6
                         + "0x63C34D6BCAD555EB64BF7E848D02C376, " // col7
                         + "'text', " // col8
@@ -105,8 +107,8 @@ public class ResultSetTest extends AbstractTest {
                     assertEquals(0, rs.getObject(4, BigDecimal.class).compareTo(new BigDecimal("123.45")));
                     assertEquals(0, rs.getObject("col4", BigDecimal.class).compareTo(new BigDecimal("123.45")));
 
-                    assertEquals(UUID.fromString("6F9619FF-8B86-D011-B42D-00C04FC964FF"), rs.getObject(5, UUID.class));
-                    assertEquals(UUID.fromString("6F9619FF-8B86-D011-B42D-00C04FC964FF"),
+                    assertEquals(UUID.fromString(uuid), rs.getObject(5, UUID.class));
+                    assertEquals(UUID.fromString(uuid),
                             rs.getObject("col5", UUID.class));
 
                     SQLXML sqlXml;

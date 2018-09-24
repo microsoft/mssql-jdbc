@@ -20,12 +20,13 @@ import org.junit.runner.RunWith;
 
 import com.microsoft.sqlserver.jdbc.RandomUtil;
 import com.microsoft.sqlserver.jdbc.TestUtils;
+import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
 import com.microsoft.sqlserver.testframework.AbstractTest;
 
 
 @RunWith(JUnitPlatform.class)
 public class ParameterMetaDataTest extends AbstractTest {
-    private static final String tableName = "[" + RandomUtil.getIdentifier("StatementParam") + "]";
+    private static final String tableName = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("StatementParam"));
 
     /**
      * Test ParameterMetaData#isWrapperFor and ParameterMetaData#unwrap.

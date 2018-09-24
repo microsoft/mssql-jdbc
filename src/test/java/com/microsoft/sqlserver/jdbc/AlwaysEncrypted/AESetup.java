@@ -28,6 +28,7 @@ import org.junit.runner.RunWith;
 import org.opentest4j.TestAbortedException;
 
 import com.microsoft.sqlserver.jdbc.RandomData;
+import com.microsoft.sqlserver.jdbc.RandomUtil;
 import com.microsoft.sqlserver.jdbc.SQLServerColumnEncryptionJavaKeyStoreProvider;
 import com.microsoft.sqlserver.jdbc.SQLServerColumnEncryptionKeyStoreProvider;
 import com.microsoft.sqlserver.jdbc.SQLServerConnection;
@@ -36,6 +37,7 @@ import com.microsoft.sqlserver.jdbc.SQLServerStatement;
 import com.microsoft.sqlserver.jdbc.SQLServerStatementColumnEncryptionSetting;
 import com.microsoft.sqlserver.jdbc.TestResource;
 import com.microsoft.sqlserver.jdbc.TestUtils;
+import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
 import com.microsoft.sqlserver.testframework.AbstractTest;
 import com.microsoft.sqlserver.testframework.DBConnection;
 
@@ -57,11 +59,12 @@ public class AESetup extends AbstractTest {
     static final String cmkName = "JDBC_CMK";
     static final String cekName = "JDBC_CEK";
     static final String secretstrJks = "password";
-    static final String charTable = "JDBCEncryptedCharTable";
-    static final String binaryTable = "JDBCEncryptedBinaryTable";
-    static final String dateTable = "JDBCEncryptedDateTable";
-    static final String numericTable = "JDBCEncryptedNumericTable";
-    static final String scaleDateTable = "JDBCEncryptedScaleDateTable";
+
+    static String charTable = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("JDBCEncryptedChar"));
+    static String binaryTable = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("JDBCEncryptedBinary"));
+    static String dateTable = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("JDBCEncryptedDate"));
+    static String numericTable = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("JDBCEncryptedNumeric"));
+    static String scaleDateTable = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("JDBCEncryptedScaleDate"));
 
     static final String uid = "171fbe25-4331-4765-a838-b2e3eea3e7ea";
 
@@ -83,6 +86,7 @@ public class AESetup extends AbstractTest {
      */
     @BeforeAll
     public static void setUpConnection() throws TestAbortedException, Exception {
+        
         try (DBConnection con = new DBConnection(connectionString)) {
             assumeTrue(13 <= con.getServerVersion(), TestResource.getResource("R_Incompat_SQLServerVersion"));
         }

@@ -18,12 +18,14 @@ import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
 
+import com.microsoft.sqlserver.jdbc.RandomUtil;
 import com.microsoft.sqlserver.jdbc.SQLServerConnection;
 import com.microsoft.sqlserver.jdbc.SQLServerDatabaseMetaData;
 import com.microsoft.sqlserver.jdbc.SQLServerResultSet;
 import com.microsoft.sqlserver.jdbc.SQLServerStatement;
 import com.microsoft.sqlserver.jdbc.TestResource;
 import com.microsoft.sqlserver.jdbc.TestUtils;
+import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
 import com.microsoft.sqlserver.testframework.AbstractTest;
 
 
@@ -32,14 +34,13 @@ import com.microsoft.sqlserver.testframework.AbstractTest;
  */
 @RunWith(JUnitPlatform.class)
 public class DatabaseMetaDataForeignKeyTest extends AbstractTest {
-    private static SQLServerConnection conn = null;
 
-    private static String table1 = "DatabaseMetaDataForeignKeyTest_table_1";
-    private static String table2 = "DatabaseMetaDataForeignKeyTest_table_2";
-    private static String table3 = "DatabaseMetaDataForeignKeyTest_table_3";
-    private static String table4 = "DatabaseMetaDataForeignKeyTest_table_4";
-    private static String table5 = "DatabaseMetaDataForeignKeyTest_table_5";
-
+    private static String table1 = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("DatabaseMetaDataForeignKeyTest_table_1"));
+    private static String table2 = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("DatabaseMetaDataForeignKeyTest_table_2"));
+    private static String table3 = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("DatabaseMetaDataForeignKeyTest_table_3"));
+    private static String table4 = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("DatabaseMetaDataForeignKeyTest_table_4"));
+    private static String table5 = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("DatabaseMetaDataForeignKeyTest_table_5"));
+    
     private static String schema = null;
     private static String catalog = null;
 
@@ -52,16 +53,19 @@ public class DatabaseMetaDataForeignKeyTest extends AbstractTest {
 
             stmt.executeUpdate("if object_id('" + table1 + "','U') is not null drop table " + table1);
 
-            stmt.executeUpdate("if object_id('" + table2 + "','U') is not null drop table " + table2);
+            stmt.executeUpdate("if object_id('" +  table2 + "','U') is not null drop table " + table2);
             stmt.execute("Create table " + table2 + " (c21 int NOT NULL PRIMARY KEY)");
 
             stmt.executeUpdate("if object_id('" + table3 + "','U') is not null drop table " + table3);
             stmt.execute("Create table " + table3 + " (c31 int NOT NULL PRIMARY KEY)");
+            
             stmt.executeUpdate("if object_id('" + table4 + "','U') is not null drop table " + table4);
             stmt.execute("Create table " + table4 + " (c41 int NOT NULL PRIMARY KEY)");
+            
             stmt.executeUpdate("if object_id('" + table5 + "','U') is not null drop table " + table5);
             stmt.execute("Create table " + table5 + " (c51 int NOT NULL PRIMARY KEY)");
-            stmt.executeUpdate("if object_id('" + table1 + "','U') is not null drop table " + table1);
+            
+            stmt.executeUpdate("if object_id('" + table1 + "','U') is not null drop table " + table1);            
             stmt.execute("Create table " + table1 + " (c11 int primary key," + " c12 int FOREIGN KEY REFERENCES "
                     + table2 + "(c21) ON DELETE no action ON UPDATE set default," + " c13 int FOREIGN KEY REFERENCES "
                     + table3 + "(c31) ON DELETE cascade ON UPDATE set null," + " c14 int FOREIGN KEY REFERENCES "
@@ -98,16 +102,16 @@ public class DatabaseMetaDataForeignKeyTest extends AbstractTest {
         try (SQLServerConnection conn = (SQLServerConnection) DriverManager.getConnection(connectionString)) {
             SQLServerDatabaseMetaData dmd = (SQLServerDatabaseMetaData) conn.getMetaData();
 
-            try (SQLServerResultSet rs1 = (SQLServerResultSet) dmd.getImportedKeys(null, null, table1);
-                    SQLServerResultSet rs2 = (SQLServerResultSet) dmd.getImportedKeys(catalog, schema, table1);
-                    SQLServerResultSet rs3 = (SQLServerResultSet) dmd.getImportedKeys(catalog, "", table1)) {
+            try (SQLServerResultSet rs1 = (SQLServerResultSet) dmd.getImportedKeys(null, null, table1.replaceAll("\\[|\\]", ""));
+                    SQLServerResultSet rs2 = (SQLServerResultSet) dmd.getImportedKeys(catalog, schema, table1.replaceAll("\\[|\\]", ""));
+                    SQLServerResultSet rs3 = (SQLServerResultSet) dmd.getImportedKeys(catalog, "", table1.replaceAll("\\[|\\]", ""))) {
 
                 validateGetImportedKeysResults(rs1);
                 validateGetImportedKeysResults(rs2);
                 validateGetImportedKeysResults(rs3);
 
                 try {
-                    dmd.getImportedKeys("", schema, table1);
+                    dmd.getImportedKeys("", schema, table1.replaceAll("\\[|\\]", ""));
                     fail(TestResource.getResource("R_expectedExceptionNotThrown"));
                 } catch (SQLException e) {
                     assertTrue(e.getMessage().startsWith(TestResource.getResource("R_dbNameIsCurrentDB")));
@@ -165,7 +169,7 @@ public class DatabaseMetaDataForeignKeyTest extends AbstractTest {
             SQLServerDatabaseMetaData dmd = (SQLServerDatabaseMetaData) conn.getMetaData();
 
             for (int i = 0; i < tableNames.length; i++) {
-                String pkTable = tableNames[i];
+                String pkTable = tableNames[i].replaceAll("\\[|\\]", "");
                 try (SQLServerResultSet rs1 = (SQLServerResultSet) dmd.getExportedKeys(null, null, pkTable);
                         SQLServerResultSet rs2 = (SQLServerResultSet) dmd.getExportedKeys(catalog, schema, pkTable);
                         SQLServerResultSet rs3 = (SQLServerResultSet) dmd.getExportedKeys(catalog, "", pkTable)) {
@@ -203,7 +207,7 @@ public class DatabaseMetaDataForeignKeyTest extends AbstractTest {
      */
     @Test
     public void testGetCrossReference() throws SQLException {
-        String fkTable = table1;
+        String fkTable = table1.replaceAll("\\[|\\]", "");
         String[] tableNames = {table2, table3, table4, table5};
         int[][] values = {
                 // expected UPDATE_RULE, expected DELETE_RULE
@@ -212,7 +216,7 @@ public class DatabaseMetaDataForeignKeyTest extends AbstractTest {
         SQLServerDatabaseMetaData dmd = (SQLServerDatabaseMetaData) connection.getMetaData();
 
         for (int i = 0; i < tableNames.length; i++) {
-            String pkTable = tableNames[i];
+            String pkTable = tableNames[i].replaceAll("\\[|\\]", "");
             try (SQLServerResultSet rs1 = (SQLServerResultSet) dmd.getCrossReference(null, null, pkTable, null, null,
                     fkTable);
                     SQLServerResultSet rs2 = (SQLServerResultSet) dmd.getCrossReference(catalog, schema, pkTable,

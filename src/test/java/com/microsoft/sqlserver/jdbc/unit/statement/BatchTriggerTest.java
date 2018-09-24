@@ -20,9 +20,11 @@ import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
 import org.opentest4j.TestAbortedException;
 
+import com.microsoft.sqlserver.jdbc.RandomUtil;
 import com.microsoft.sqlserver.jdbc.SQLServerStatement;
 import com.microsoft.sqlserver.jdbc.TestResource;
 import com.microsoft.sqlserver.jdbc.TestUtils;
+import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
 import com.microsoft.sqlserver.testframework.AbstractTest;
 
 
@@ -33,11 +35,9 @@ import com.microsoft.sqlserver.testframework.AbstractTest;
 @RunWith(JUnitPlatform.class)
 public class BatchTriggerTest extends AbstractTest {
 
-    static String tableName = "triggerTable";
-    static String triggerName = "triggerTest";
-    static String insertQuery = "insert into " + tableName
-            + " (col1, col2, col3, col4) values (1, '22-08-2017 17:30:00.000', 'R4760', 31)";
-
+    static String tableName;
+    static String triggerName;;
+    static String insertQuery;
     /**
      * Tests that the proper trigger exception is thrown using statement
      * 
@@ -110,6 +110,11 @@ public class BatchTriggerTest extends AbstractTest {
      */
     @BeforeAll
     public static void testSetup() throws TestAbortedException, Exception {
+        tableName = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("triggerTable"));
+        triggerName = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("triggerTest"));
+        insertQuery = "insert into " + tableName
+                + " (col1, col2, col3, col4) values (1, '22-08-2017 17:30:00.000', 'R4760', 31)";
+
         try (Connection connection = DriverManager.getConnection(connectionString);
                 SQLServerStatement stmt = (SQLServerStatement) connection.createStatement()) {
             stmt.execute("IF EXISTS (\r\n" + "    SELECT *\r\n" + "    FROM sys.objects\r\n"

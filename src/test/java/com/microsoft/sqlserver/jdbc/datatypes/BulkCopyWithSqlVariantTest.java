@@ -21,9 +21,11 @@ import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
 
+import com.microsoft.sqlserver.jdbc.RandomUtil;
 import com.microsoft.sqlserver.jdbc.SQLServerBulkCopy;
 import com.microsoft.sqlserver.jdbc.SQLServerResultSet;
 import com.microsoft.sqlserver.jdbc.TestUtils;
+import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
 import com.microsoft.sqlserver.testframework.AbstractTest;
 
 
@@ -34,8 +36,8 @@ import com.microsoft.sqlserver.testframework.AbstractTest;
 @RunWith(JUnitPlatform.class)
 public class BulkCopyWithSqlVariantTest extends AbstractTest {
 
-    static String tableName = "sqlVariantTestSrcTable";
-    static String destTableName = "sqlVariantDestTable";
+    static String tableName;
+    static String destTableName;
 
     /**
      * Test integer value
@@ -806,6 +808,20 @@ public class BulkCopyWithSqlVariantTest extends AbstractTest {
             stmt.executeUpdate("create table " + destTableName + " (col1 sql_variant)");
         }
     }
+
+    /**
+     * Prepare test
+     * 
+     * @throws SQLException
+     * @throws SecurityException
+     * @throws IOException
+     */
+    @BeforeAll
+    public static void setupHere() throws SQLException, SecurityException, IOException {
+        tableName = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("sqlVariantTestSrcTable"));
+        destTableName = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("sqlVariantDestTable"));
+    }
+
 
     /**
      * drop the tables

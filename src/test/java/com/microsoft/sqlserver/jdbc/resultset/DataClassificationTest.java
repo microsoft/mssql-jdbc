@@ -18,12 +18,13 @@ import com.microsoft.sqlserver.jdbc.RandomUtil;
 import com.microsoft.sqlserver.jdbc.SQLServerResultSet;
 import com.microsoft.sqlserver.jdbc.TestUtils;
 import com.microsoft.sqlserver.jdbc.dataclassification.SensitivityProperty;
+import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
 import com.microsoft.sqlserver.testframework.AbstractTest;
 
 
 @RunWith(JUnitPlatform.class)
 public class DataClassificationTest extends AbstractTest {
-    private static final String tableName = "[" + RandomUtil.getIdentifier("DataClassification") + "]";
+    private static final String tableName = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("DataClassification"));
 
     /**
      * Tests data classification metadata information from SQL Server

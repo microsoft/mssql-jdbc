@@ -16,6 +16,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
 
+import com.microsoft.sqlserver.jdbc.RandomUtil;
 import com.microsoft.sqlserver.jdbc.SQLServerCallableStatement;
 import com.microsoft.sqlserver.jdbc.SQLServerDataTable;
 import com.microsoft.sqlserver.jdbc.SQLServerPreparedStatement;
@@ -35,11 +36,11 @@ public class TVPSchemaTest extends AbstractTest {
     static String expectecValue1 = "hello";
     static String expectecValue2 = "world";
     static String expectecValue3 = "again";
-    private static String schemaName = "anotherSchma";
-    private static String tvpNameWithouSchema = "charTVP";
-    private static String tvpNameWithSchema = "[" + schemaName + "].[" + tvpNameWithouSchema + "]";
-    private static String charTable = "[" + schemaName + "].[tvpCharTable]";
-    private static String procedureName = "[" + schemaName + "].[procedureThatCallsTVP]";
+    private static String schemaName;
+    private static String tvpNameWithouSchema;
+    private static String tvpNameWithSchema;
+    private static String charTable;
+    private static String procedureName;
 
     /**
      * PreparedStatement with storedProcedure
@@ -123,6 +124,14 @@ public class TVPSchemaTest extends AbstractTest {
 
     @BeforeEach
     public void testSetup() throws SQLException {
+        schemaName = "[" + RandomUtil.getIdentifier("anotherSchema") + "]";
+        tvpNameWithouSchema = "[" + RandomUtil.getIdentifier("charTVP")  + "]";
+        tvpNameWithSchema = schemaName + "." + tvpNameWithouSchema;
+        
+        charTable = schemaName + ".[tvpCharTable]";
+        procedureName = schemaName + ".[procedureThatCallsTVP]";
+
+       
         conn = new DBConnection(connectionString);
         stmt = conn.createStatement();
 
@@ -176,8 +185,8 @@ public class TVPSchemaTest extends AbstractTest {
     }
 
     private static void dropAndCreateSchema() throws SQLException {
-        stmt.execute("if EXISTS (SELECT * FROM sys.schemas where name = 'anotherSchma') drop schema anotherSchma");
-        stmt.execute("CREATE SCHEMA anotherSchma");
+        stmt.execute("if EXISTS (SELECT * FROM sys.schemas where name = '" + schemaName + "') drop schema " + schemaName);
+        stmt.execute("CREATE SCHEMA " + schemaName);
     }
 
     private static void createPreocedure() throws SQLException {

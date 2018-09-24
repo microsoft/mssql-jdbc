@@ -21,6 +21,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
 
+import com.microsoft.sqlserver.jdbc.RandomUtil;
 import com.microsoft.sqlserver.jdbc.SQLServerCallableStatement;
 import com.microsoft.sqlserver.jdbc.SQLServerDataTable;
 import com.microsoft.sqlserver.jdbc.SQLServerPreparedStatement;
@@ -32,9 +33,9 @@ import com.microsoft.sqlserver.testframework.AbstractTest;
 public class TVPTypesTest extends AbstractTest {
 
     static SQLServerDataTable tvp = null;
-    private static String tvpName = "TVP";
-    private static String table = "TVPTable";
-    private static String procedureName = "procedureThatCallsTVP";
+    private static String tvpName;
+    private static String table;
+    private static String procedureName;
     private String value = null;
 
     /**
@@ -495,9 +496,14 @@ public class TVPTypesTest extends AbstractTest {
             }
         }
     }
+        
 
     @BeforeEach
     public void testSetup() throws SQLException {
+        tvpName = "[" + RandomUtil.getIdentifier("TVP") + "]";
+        table = "[" + RandomUtil.getIdentifier("TVPTable") + "]";
+        procedureName = "[" + RandomUtil.getIdentifier("procedureThatCallsTVP") + "]";
+
         try (Connection conn = DriverManager.getConnection(connectionString); Statement stmt = conn.createStatement()) {
             dropProcedure();
             dropTables();
@@ -530,7 +536,7 @@ public class TVPTypesTest extends AbstractTest {
 
     private static void dropTVPS() throws SQLException {
         try (Connection conn = DriverManager.getConnection(connectionString); Statement stmt = conn.createStatement()) {
-            stmt.executeUpdate("IF EXISTS (SELECT * FROM sys.types WHERE is_table_type = 1 AND name = '" + tvpName
+            stmt.executeUpdate("IF EXISTS (SELECT * FROM sys.types WHERE is_table_type = 1 AND name = '" + tvpName.replaceAll("\\[|\\]", "")
                     + "') " + " drop type " + tvpName);
         }
     }

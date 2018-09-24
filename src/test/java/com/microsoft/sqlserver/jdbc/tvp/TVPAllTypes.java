@@ -17,6 +17,7 @@ import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
 
 import com.microsoft.sqlserver.jdbc.ComparisonUtil;
+import com.microsoft.sqlserver.jdbc.RandomUtil;
 import com.microsoft.sqlserver.jdbc.SQLServerCallableStatement;
 import com.microsoft.sqlserver.jdbc.SQLServerDataTable;
 import com.microsoft.sqlserver.jdbc.SQLServerPreparedStatement;
@@ -34,8 +35,8 @@ public class TVPAllTypes extends AbstractTest {
     private static Connection conn = null;
     static Statement stmt = null;
 
-    private static String tvpName = "TVPAllTypesTable_char_TVP";
-    private static String procedureName = "TVPAllTypesTable_char_SP";
+    private static String tvpName;
+    private static String procedureName;
 
     private static DBTable tableSrc = null;
     private static DBTable tableDest = null;
@@ -139,6 +140,8 @@ public class TVPAllTypes extends AbstractTest {
     }
 
     private static void createPreocedure(String procedureName, String destTable) throws SQLException {
+        tvpName = "[" + RandomUtil.getIdentifier("TVPAllTypesTable_char_TVP") + "]";
+        procedureName = "[" + RandomUtil.getIdentifier("TVPAllTypesTable_char_SP") + "]";    
         String sql = "CREATE PROCEDURE " + procedureName + " @InputData " + tvpName + " READONLY " + " AS " + " BEGIN "
                 + " INSERT INTO " + destTable + " SELECT * FROM @InputData" + " END";
 
@@ -146,7 +149,7 @@ public class TVPAllTypes extends AbstractTest {
     }
 
     private static void dropTVPS(String tvpName) throws SQLException {
-        stmt.executeUpdate("IF EXISTS (SELECT * FROM sys.types WHERE is_table_type = 1 AND name = '" + tvpName + "') "
+        stmt.executeUpdate("IF EXISTS (SELECT * FROM sys.types WHERE is_table_type = 1 AND name = '" + tvpName.replaceAll("\\[|\\]", "") + "') "
                 + " drop type " + tvpName);
     }
 

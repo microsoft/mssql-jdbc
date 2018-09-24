@@ -22,37 +22,32 @@ import org.junit.runner.RunWith;
 import com.microsoft.sqlserver.jdbc.RandomUtil;
 import com.microsoft.sqlserver.jdbc.SQLServerConnection;
 import com.microsoft.sqlserver.jdbc.TestUtils;
+import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
 import com.microsoft.sqlserver.testframework.AbstractTest;
 
 
 @RunWith(JUnitPlatform.class)
 public class ParameterMetaDataWhiteSpaceTest extends AbstractTest {
-    private static final String tableName = "[" + RandomUtil.getIdentifier("ParameterMetaDataWhiteSpaceTest") + "]";
-
-    private static Statement stmt = null;
+    private static final String tableName = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("ParameterMetaDataWhiteSpaceTest"));
 
     @BeforeAll
     public static void BeforeTests() throws SQLException {
-        connection = (SQLServerConnection) DriverManager.getConnection(connectionString);
-        stmt = connection.createStatement();
         createCharTable();
     }
 
     @AfterAll
     public static void dropTables() throws SQLException {
-        TestUtils.dropTableIfExists(tableName, stmt);
-
-        if (null != stmt) {
-            stmt.close();
-        }
-
-        if (null != connection) {
-            connection.close();
+        try (SQLServerConnection connection = (SQLServerConnection) DriverManager.getConnection(connectionString);
+                Statement stmt = connection.createStatement()) {
+            TestUtils.dropTableIfExists(tableName, stmt);
         }
     }
 
     private static void createCharTable() throws SQLException {
-        stmt.execute("Create table " + tableName + " (c1 int)");
+        try (SQLServerConnection connection = (SQLServerConnection) DriverManager.getConnection(connectionString);
+                Statement stmt = connection.createStatement()) {
+            stmt.execute("Create table " + tableName + " (c1 int)");
+        }
     }
 
     /**

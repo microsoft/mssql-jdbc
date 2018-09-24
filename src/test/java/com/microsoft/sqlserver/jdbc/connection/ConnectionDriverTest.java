@@ -47,7 +47,7 @@ import com.microsoft.sqlserver.testframework.DBTable;
 
 @RunWith(JUnitPlatform.class)
 public class ConnectionDriverTest extends AbstractTest {
-    // If no retry is done, the function should atleast exit in 5 seconds
+    // If no retry is done, the function should at least exit in 5 seconds
     static int threshHoldForNoRetryInMilliseconds = 5000;
     static int loginTimeOutInSeconds = 10;
 

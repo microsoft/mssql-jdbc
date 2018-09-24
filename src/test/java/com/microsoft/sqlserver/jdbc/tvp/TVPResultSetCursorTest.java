@@ -17,10 +17,12 @@ import java.util.Calendar;
 import java.util.Properties;
 import java.util.TimeZone;
 
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
 
+import com.microsoft.sqlserver.jdbc.RandomUtil;
 import com.microsoft.sqlserver.jdbc.SQLServerCallableStatement;
 import com.microsoft.sqlserver.jdbc.SQLServerPreparedStatement;
 import com.microsoft.sqlserver.jdbc.TestResource;
@@ -42,10 +44,10 @@ public class TVPResultSetCursorTest extends AbstractTest {
     static String[] expectedTimestampStrings = {"2015-06-03 13:35:33.4610000", "2442-09-19 01:59:43.9990000",
             "2017-04-02 08:58:53.0000000"};
 
-    private static String tvpName = "TVPResultSetCursorTest_TVP";
-    private static String procedureName = "TVPResultSetCursorTest_SP";
-    private static String srcTable = "TVPResultSetCursorTest_SourceTable";
-    private static String desTable = "TVPResultSetCursorTest_DestinationTable";
+    private static String tvpName;
+    private static String procedureName;
+    private static String srcTable;
+    private static String desTable;
 
     /**
      * Test a previous failure when using server cursor and using the same connection to create TVP and result set.
@@ -134,7 +136,7 @@ public class TVPResultSetCursorTest extends AbstractTest {
 
             createTVPS();
             createTables();
-            createPreocedure();
+            createProcedure();
 
             populateSourceTable();
 
@@ -176,7 +178,7 @@ public class TVPResultSetCursorTest extends AbstractTest {
                     SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) conn
                             .prepareStatement("INSERT INTO " + desTable + " select * from ? ;")) {
 
-                pstmt.setStructured(1, "invalid" + tvpName, rs);
+                pstmt.setStructured(1, "invalid" + tvpName.replaceAll("\\[|\\]", ""), rs);
 
                 pstmt.execute();
             } catch (SQLException e) {
@@ -205,7 +207,7 @@ public class TVPResultSetCursorTest extends AbstractTest {
 
             createTVPS();
             createTables();
-            createPreocedure();
+            createProcedure();
 
             populateSourceTable();
 
@@ -365,7 +367,7 @@ public class TVPResultSetCursorTest extends AbstractTest {
 
     private static void dropTVPS() throws SQLException {
         try (Connection conn = DriverManager.getConnection(connectionString); Statement stmt = conn.createStatement()) {
-            stmt.execute("IF EXISTS (SELECT * FROM sys.types WHERE is_table_type = 1 AND name = '" + tvpName + "') "
+            stmt.execute("IF EXISTS (SELECT * FROM sys.types WHERE is_table_type = 1 AND name = '" + tvpName.replaceAll("\\[|\\]", "") + "') "
                     + " drop type " + tvpName);
         }
     }
@@ -376,12 +378,20 @@ public class TVPResultSetCursorTest extends AbstractTest {
         }
     }
 
-    private static void createPreocedure() throws SQLException {
+    private static void createProcedure() throws SQLException {
         try (Connection conn = DriverManager.getConnection(connectionString); Statement stmt = conn.createStatement()) {
             String sql = "CREATE PROCEDURE " + procedureName + " @InputData " + tvpName + " READONLY " + " AS "
                     + " BEGIN " + " INSERT INTO " + desTable + " SELECT * FROM @InputData" + " END";
 
             stmt.execute(sql);
         }
+    }
+    
+    @BeforeAll
+    public static void beforeAll() throws SQLException {
+        tvpName = "[" + RandomUtil.getIdentifier("TVPResultSetCursorTest_TVP") + "]";
+        procedureName = "[" + RandomUtil.getIdentifier("TVPResultSetCursorTest_SP") + "]";
+        srcTable = "[" + RandomUtil.getIdentifier("TVPResultSetCursorTest_SourceTable") + "]";
+        desTable = "[" + RandomUtil.getIdentifier("TVPResultSetCursorTest_DestinationTable") + "]";
     }
 }

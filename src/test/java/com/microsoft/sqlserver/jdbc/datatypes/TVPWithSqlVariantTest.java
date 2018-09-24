@@ -16,12 +16,14 @@ import java.sql.SQLTimeoutException;
 
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
 
 import com.microsoft.sqlserver.jdbc.RandomData;
+import com.microsoft.sqlserver.jdbc.RandomUtil;
 import com.microsoft.sqlserver.jdbc.SQLServerCallableStatement;
 import com.microsoft.sqlserver.jdbc.SQLServerConnection;
 import com.microsoft.sqlserver.jdbc.SQLServerDataTable;
@@ -30,6 +32,7 @@ import com.microsoft.sqlserver.jdbc.SQLServerResultSet;
 import com.microsoft.sqlserver.jdbc.SQLServerStatement;
 import com.microsoft.sqlserver.jdbc.TestResource;
 import com.microsoft.sqlserver.jdbc.TestUtils;
+import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
 import com.microsoft.sqlserver.testframework.AbstractTest;
 import com.microsoft.sqlserver.testframework.sqlType.SqlDate;
 
@@ -40,9 +43,10 @@ public class TVPWithSqlVariantTest extends AbstractTest {
     private static SQLServerConnection conn = null;
     static SQLServerStatement stmt = null;
     static SQLServerDataTable tvp = null;
-    private static String tvpName = "numericTVP";
-    private static String destTable = "destTvpSqlVariantTable";
-    private static String procedureName = "procedureThatCallsTVP";
+    private static String tvpName = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("numericTVP"));
+    private static String destTable = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("destTvpSqlVariantTable"));
+    private static String procedureName = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("procedureThatCallsTVP"));
+
 
     /**
      * Test a previous failure regarding to numeric precision. Issue #211
@@ -85,7 +89,7 @@ public class TVPWithSqlVariantTest extends AbstractTest {
         tvp.addColumnMetadata("c1", microsoft.sql.Types.SQL_VARIANT);
         tvp.addRow(date);
         try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) conn
-                .prepareStatement("INSERT INTO " + destTable + " select * from ? ;")) {
+                .prepareStatement("INSERT INTO " + destTable  + " select * from ? ;")) {
             pstmt.setStructured(1, tvpName, tvp);
             pstmt.execute();
         }
@@ -376,15 +380,13 @@ public class TVPWithSqlVariantTest extends AbstractTest {
         tvp = new SQLServerDataTable();
         tvp.addColumnMetadata("c1", microsoft.sql.Types.SQL_VARIANT);
         tvp.addRow(timestamp);
-        SQLServerCallableStatement Cstatement = (SQLServerCallableStatement) conn.prepareCall(sql);
-        Cstatement.setStructured(1, tvpName, tvp);
-        Cstatement.execute();
-        try (SQLServerResultSet rs = (SQLServerResultSet) stmt.executeQuery("select * from " + destTable)) {
-            while (rs.next()) {
-                System.out.println(rs.getString(1));
-            }
-            if (null != Cstatement) {
-                Cstatement.close();
+        try (SQLServerCallableStatement cstatement = (SQLServerCallableStatement) conn.prepareCall(sql)) {
+            cstatement.setStructured(1, tvpName, tvp);
+            cstatement.execute();
+            try (SQLServerResultSet rs = (SQLServerResultSet) stmt.executeQuery("select * from " + destTable)) {
+                while (rs.next()) {
+                    System.out.println(rs.getString(1));
+                }
             }
         }
     }
@@ -469,7 +471,7 @@ public class TVPWithSqlVariantTest extends AbstractTest {
     }
 
     private static void dropTVPS() throws SQLException {
-        stmt.executeUpdate("IF EXISTS (SELECT * FROM sys.types WHERE is_table_type = 1 AND name = '" + tvpName + "') "
+        stmt.executeUpdate("IF EXISTS (SELECT * FROM sys.types WHERE is_table_type = 1 AND name = '" + tvpName.replaceAll("\\[|\\]", "") + "') "
                 + " drop type " + tvpName);
     }
 
@@ -511,7 +513,5 @@ public class TVPWithSqlVariantTest extends AbstractTest {
         if (null != conn) {
             conn.close();
         }
-
     }
-
 }
